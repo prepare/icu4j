@@ -5,8 +5,8 @@
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/text/BreakIteratorFactory.java,v $ 
- * $Date: 2004/01/12 22:50:16 $ 
- * $Revision: 1.8 $
+ * $Date: 2004/01/08 22:26:56 $ 
+ * $Revision: 1.7 $
  *
  *****************************************************************************************
  */
@@ -58,11 +58,7 @@ final class BreakIteratorFactory extends BreakIterator.BreakIteratorServiceShim 
         if (service.isDefault()) {
             return createBreakInstance(locale, kind);
         }
-        Locale[] actualLoc = new Locale[1];
-        BreakIterator iter = (BreakIterator)service.get(locale, kind, actualLoc);
-        ULocale uloc = new ULocale(actualLoc[0]);
-        iter.setLocale(uloc, uloc); // services make no distinction between actual & valid
-        return iter;
+        return (BreakIterator)service.get(locale, kind);
     }
 
     private static class BFService extends ICULocaleService {

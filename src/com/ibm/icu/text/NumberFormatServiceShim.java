@@ -5,8 +5,8 @@
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/text/NumberFormatServiceShim.java,v $ 
- * $Date: 2004/01/12 22:50:16 $ 
- * $Revision: 1.6 $
+ * $Date: 2003/05/15 20:35:18 $ 
+ * $Revision: 1.5 $
  *
  *******************************************************************************
  */
@@ -25,7 +25,6 @@ import com.ibm.icu.impl.ICULocaleService.LocaleKey;
 import com.ibm.icu.impl.ICULocaleService.LocaleKeyFactory;
 import com.ibm.icu.text.NumberFormat;
 import com.ibm.icu.text.NumberFormat.NumberFormatFactory;
-import com.ibm.icu.util.ULocale;
 
 class NumberFormatServiceShim extends NumberFormat.NumberFormatShim {
 
@@ -77,12 +76,7 @@ class NumberFormatServiceShim extends NumberFormat.NumberFormatShim {
         if (service.isDefault()) {
             return NumberFormat.createInstance(desiredLocale, choice);
         }
-        Locale[] actualLoc = new Locale[1];
-        NumberFormat fmt = (NumberFormat)service.get(desiredLocale, choice,
-                                                     actualLoc);
-        ULocale uloc = new ULocale(actualLoc[0]);
-        fmt.setLocale(uloc, uloc); // services make no distinction between actual & valid
-        return fmt;
+        return (NumberFormat)service.get(desiredLocale, choice);
     }
 
     private static class NFService extends ICULocaleService {
