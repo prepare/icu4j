@@ -5,8 +5,8 @@
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/dev/test/calendar/AstroTest.java,v $ 
- * $Date: 2003/10/16 00:49:58 $ 
- * $Revision: 1.15 $
+ * $Date: 2003/06/06 20:54:00 $ 
+ * $Revision: 1.11 $
  *
  *****************************************************************************************
  */
@@ -114,10 +114,10 @@ public class AstroTest extends TestFmwk {
 	    logln("   moon phase: " + astro.getMoonPhase());
 	    logln("   moonrise: " + new Date(astro.getMoonRiseSet(true)));
 	    logln("   moonset: " + new Date(astro.getMoonRiseSet(false)));
-	    logln("   prev summer solstice: " + new Date(astro.getSunTime(CalendarAstronomer.SUMMER_SOLSTICE, false)));
-	    logln("   next summer solstice: " + new Date(astro.getSunTime(CalendarAstronomer.SUMMER_SOLSTICE, true)));
-	    logln("   prev full moon: " + new Date(astro.getMoonTime(CalendarAstronomer.FULL_MOON, false)));
-	    logln("   next full moon: " + new Date(astro.getMoonTime(CalendarAstronomer.FULL_MOON, true)));
+	    logln("   prev summer solstice: " + new Date(astro.getSunTime(astro.SUMMER_SOLSTICE, false)));
+	    logln("   next summer solstice: " + new Date(astro.getSunTime(astro.SUMMER_SOLSTICE, true)));
+	    logln("   prev full moon: " + new Date(astro.getMoonTime(astro.FULL_MOON, false)));
+	    logln("   next full moon: " + new Date(astro.getMoonTime(astro.FULL_MOON, true)));
 	}
     }
 
@@ -168,16 +168,7 @@ public class AstroTest extends TestFmwk {
 
         logln("Sunrise/Sunset times for Toronto, Canada");
         CalendarAstronomer astro = new CalendarAstronomer(-(79+25/60), 43+40/60);
-
-        // As of ICU4J 2.8 the ICU4J time zones implement pass-through
-        // to the underlying JDK.  Because of variation in the
-        // underlying JDKs, we have to use a fixed-offset
-        // SimpleTimeZone to get consistent behavior between JDKs.
-        // The offset we want is [-18000000, 3600000] (raw, dst).
-        // [aliu 10/15/03]
-
-        // TimeZone tz = TimeZone.getTimeZone("America/Montreal");
-        TimeZone tz = new SimpleTimeZone(-18000000 + 3600000, "Montreal(FIXED)");
+        TimeZone tz = TimeZone.getTimeZone("America/Montreal");
 
         GregorianCalendar cal = new GregorianCalendar(tz, Locale.US);
         GregorianCalendar cal2 = new GregorianCalendar(tz, Locale.US);
@@ -190,7 +181,7 @@ public class AstroTest extends TestFmwk {
         DateFormat df = DateFormat.getTimeInstance(cal, DateFormat.MEDIUM, Locale.US);
         DateFormat df2 = DateFormat.getDateTimeInstance(cal, DateFormat.MEDIUM, DateFormat.MEDIUM, Locale.US);
         DateFormat day = DateFormat.getDateInstance(cal, DateFormat.MEDIUM, Locale.US);
-
+				
         for (int i=0; i < 30; i++) {
             astro.setDate(cal.getTime());
 			
@@ -264,9 +255,9 @@ public class AstroTest extends TestFmwk {
         GregorianCalendar cal3 = new GregorianCalendar(TimeZone.getTimeZone("GMT"), Locale.US);
         DateFormat d3 = DateFormat.getDateTimeInstance(cal3, DateFormat.MEDIUM,DateFormat.MEDIUM,Locale.US);
         cal3.clear();
-        cal3.set(Calendar.YEAR, 1980);
-        cal3.set(Calendar.MONTH, Calendar.JULY);
-        cal3.set(Calendar.DATE, 27);
+        cal3.set(cal3.YEAR, 1980);
+        cal3.set(cal3.MONTH, Calendar.JULY);
+        cal3.set(cal3.DATE, 27);
         astro.setDate(cal3.getTime());
         double jd = astro.getJulianDay() - 2447891.5;
         double exp = -3444;

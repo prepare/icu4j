@@ -5,8 +5,8 @@
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/util/SimpleDateRule.java,v $ 
- * $Date: 2003/10/02 20:50:27 $ 
- * $Revision: 1.10 $
+ * $Date: 2002/12/04 01:03:39 $ 
+ * $Revision: 1.8 $
  *
  *****************************************************************************************
  */
@@ -14,6 +14,9 @@
 package com.ibm.icu.util;
 
 import java.util.Date;
+import com.ibm.icu.util.Calendar;
+import com.ibm.icu.util.GregorianCalendar;
+import com.ibm.icu.util.SimpleTimeZone;
 
 /**
  * Simple implementation of DateRule.

@@ -5,8 +5,8 @@
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/dev/tool/localeconverter/PosixCharMap.java,v $ 
- * $Date: 2003/09/10 23:36:09 $ 
- * $Revision: 1.5 $
+ * $Date: 2002/06/20 01:17:12 $ 
+ * $Revision: 1.3 $
  *
  *****************************************************************************************
  */
@@ -258,12 +258,10 @@ public class PosixCharMap {
                             int digit = Integer.parseInt(numData, 16);
                             defineMapping(key, ""+(char)digit);
                         }else if(data.startsWith("\\x")){
-                            byte[] encData = new byte[100];
+                            byte[] encData = new byte[6];
                             int num = hexToByte(data,encData);
                             String tData = new String(encData,0,num,encoding);
                             defineMapping(key,tData);
-                        }else{
-                            defineMapping(key,byteToChar(data,encoding));
                         }
                         state = p.nextToken();
                         key=p.getData();
@@ -284,21 +282,9 @@ public class PosixCharMap {
                         String tData = new String(encData,0,num,encoding);
                         String stringVal;
                         int[] val = getInt(begin);
-                        int beginRange = 0;
-                        int endRange = 0;
-                        if(val == null){
-                            val = getInt((String)table.get(begin));
-                            if(val!=null){
-                                beginRange = val[1];
-                            }
-                        }
-                        val = getInt(end);                     
-                        if(val == null){
-                            val = getInt((String)table.get(end));
-                            if(val!=null){
-                                endRange = val[1];
-                            }
-                        }
+                        int beginRange = val[1];
+                        val =getInt(end);                     
+                        int endRange = val[1];
                         stringVal = key.substring(0,val[0]);
                         int digit = (int)(char)tData.charAt(0);
                         while(beginRange <= endRange){
@@ -319,9 +305,6 @@ public class PosixCharMap {
         }
     }
     public int[] getInt(String data){
-        if(data == null){
-            return null;
-        }
         int i=0;
         int[] retVal = new int[2];
         int len =data.length();
@@ -331,13 +314,10 @@ public class PosixCharMap {
             }
             i++;
         }
-        if(i < len){
-            String sub =data.substring(i,len-1);
-            retVal[0] =i;
-            retVal[1]=Integer.parseInt(sub,10);
-            return retVal;
-        }
-        return null;
+        String sub =data.substring(i,len-1);
+        retVal[0] =i;
+        retVal[1]=Integer.parseInt(sub,10);
+        return retVal;
     }
     public int hexToByte(String data, byte[] retval){
         String tData = data;
@@ -350,20 +330,7 @@ public class PosixCharMap {
             }
         }       
         return i;
-    }  
-    public String byteToChar(String data, String encoding) 
-        throws UnsupportedEncodingException{
-        
-        byte[] bytes = new byte[data.length()];
-        for(int i=0; i<data.length(); i++){
-            char ch = data.charAt(i);
-            if(ch > 0xFF){
-                throw new RuntimeException("Bytes in the string are greater than 0xFF");
-            }
-            bytes[i] = (byte) ch;        
-        }
-        return new String(bytes,encoding);
-    }      
+    }        
     public void defineMapping(String from, String to) {
         table.put(from, to);
         backTable = null;

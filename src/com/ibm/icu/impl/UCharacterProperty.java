@@ -6,8 +6,8 @@
 *
 * $Source: 
 *         /usr/cvs/icu4j/icu4j/src/com/ibm/icu/text/UCharacterPropertyDB.java $ 
-* $Date: 2003/10/04 00:37:18 $ 
-* $Revision: 1.34 $
+* $Date: 2003/06/09 23:15:00 $ 
+* $Revision: 1.31 $
 *
 *******************************************************************************
 */
@@ -1209,14 +1209,11 @@ public final class UCharacterProperty implements Trie.DataManipulate
      */
     public static boolean isRuleWhiteSpace(int c) 
     {
-        /* "white space" in the sense of ICU rule parsers
-           This is a FIXED LIST that is NOT DEPENDENT ON UNICODE PROPERTIES.
-           See UTR #31: http://www.unicode.org/reports/tr31/.
-           U+0009..U+000D, U+0020, U+0085, U+200E..U+200F, and U+2028..U+2029
-        */
-        return (c >= 0x0009 && c <= 0x2029 &&
-                (c <= 0x000D || c == 0x0020 || c == 0x0085 ||
-                 c == 0x200E || c == 0x200F || c >= 0x2028));
+        // "white space" in the sense of ICU rule parsers: Cf+White_Space
+        UCharacterProperty property = UCharacterProperty.getInstance();
+        return (property.getProperty(c) & TYPE_MASK) 
+                                                   == UCharacterCategory.FORMAT 
+               || property.hasBinaryProperty(c, UProperty.WHITE_SPACE);
     }
 
     /**

@@ -4,8 +4,8 @@
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/dev/test/format/DateFormatTest.java,v $ 
- * $Date: 2003/10/16 00:52:18 $ 
- * $Revision: 1.21 $
+ * $Date: 2003/06/03 18:49:29 $ 
+ * $Revision: 1.17 $
  *
  *****************************************************************************************
  */
@@ -140,10 +140,10 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
     
         /*
          * SimpleDateFormat(pattern, locale) Construct a SimpleDateDateFormat using
-         * the given pattern, the locale and using the TimeZone.getDefault();
+         * the givening pattern, the locale and using the TimeZone.getDefault();
          * So it need to add the timezone offset on hour field. 
          * ps. the Method Calendar.getTime() used by SimpleDateFormat.parse() always 
-         * return Date value with TimeZone.getDefault() [Richard/GCL]
+         * return Date vaule with TimeZone.getDefault() [Richard/GCL]
          */
         
         TimeZone defaultTZ = TimeZone.getDefault();
@@ -151,8 +151,7 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         int defaultOffset = defaultTZ.getRawOffset();
         int PSTOffset = PST.getRawOffset();
         int hour = 2 + (defaultOffset - PSTOffset) / (60*60*1000);
-        // hour is the expected hour of day, in units of seconds
-        hour = ((hour < 0) ? hour + 24 : hour) * 60*60;
+        hour = (hour < 0) ? hour + 24 : hour;
         try {
             Date d = fmt.parse(s);
             Calendar cal = Calendar.getInstance();
@@ -161,13 +160,9 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             hour += defaultTZ.inDaylightTime(d) ? 1 : 0;
             
             logln(s + " P> " + ((DateFormat) fullFmt).format(d));
-            // hr is the actual hour of day, in units of seconds
-            // adjust for DST
-            int hr = cal.get(Calendar.HOUR_OF_DAY) * 60*60 -
-                cal.get(Calendar.DST_OFFSET) / 1000;
+            int hr = cal.get(Calendar.HOUR_OF_DAY);
             if (hr != hour)
-                errln("FAIL: Hour (-DST) = " + hr / (60*60.0)+
-                      "; expected " + hour / (60*60.0));
+                errln("FAIL: Should parse to hour " + hour);
         } catch (ParseException e) {
             errln("Parse Error:" + e.getMessage());
         }
@@ -218,6 +213,7 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
           //  String str;
             DateFormat df = dateFormats[j];
             TimeZone tz = TimeZone.getTimeZone("PST");
+            ((SimpleTimeZone)tz).setDSTSavings(3600000);
             df.setTimeZone(tz);
             logln(" Pattern = " + ((SimpleDateFormat) df).toPattern());
             // str = "";
@@ -740,10 +736,11 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         DateFormat dfUS = DateFormat.getDateTimeInstance(DateFormat.FULL, DateFormat.FULL, Locale.US);
         //Set TimeZone = PDT
         TimeZone tz = TimeZone.getTimeZone("PST");
+        ((SimpleTimeZone)tz).setDSTSavings(3600000);
         dfFrench.setTimeZone(tz);
         dfUS.setTimeZone(tz);
         String expectedFRENCH_JDK12 = "lundi 15 septembre 1997 00 h 00 GMT-07:00";
-        //String expectedFRENCH = "lundi 15 septembre 1997 00 h 00 PDT";
+        String expectedFRENCH = "lundi 15 septembre 1997 00 h 00 PDT";
         String expectedUS = "Monday, September 15, 1997 12:00:00 AM PDT";
         logln("Date set to : " + testDate);
         String out = dfFrench.format(testDate);
@@ -893,24 +890,6 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         };
 
         expectParse(DATA, new Locale("en", "", ""));
-    }
-
-    public void TestInvalidPattern() {
-        Exception e = null;
-        SimpleDateFormat f = null;
-        String out = null;
-        try {
-            f = new SimpleDateFormat("Yesterday");
-            out = f.format(new Date(0));
-        } catch (IllegalArgumentException e1) {
-            e = e1;
-        }
-        if (e != null) {
-            logln("Ok: Received " + e.getMessage());
-        } else {
-            errln("FAIL: Expected exception, got " + f.toPattern() +
-                  "; " + out);
-        }
     }
 
     public void TestCoverage() {

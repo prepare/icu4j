@@ -5,27 +5,25 @@
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/dev/demo/calendar/CalendarPanel.java,v $ 
- * $Date: 2003/10/02 20:50:56 $ 
- * $Revision: 1.13 $
+ * $Date: 2003/06/03 18:49:27 $ 
+ * $Revision: 1.11 $
  *
  *****************************************************************************************
  */
 
 package com.ibm.icu.dev.demo.calendar;
 
-import java.awt.Canvas;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.FontMetrics;
-import java.awt.Graphics;
-import java.awt.Point;
+import java.awt.*;
+
+//import java.util.SimpleTimeZone;
+import com.ibm.icu.util.SimpleTimeZone;
+//import java.util.*;
 import java.util.Date;
 import java.util.Locale;
 
-import com.ibm.icu.dev.demo.impl.DemoUtility;
-import com.ibm.icu.text.DateFormatSymbols;
-import com.ibm.icu.util.Calendar;
-import com.ibm.icu.util.SimpleTimeZone;
+import com.ibm.icu.util.*;
+import com.ibm.icu.text.*;
+import com.ibm.icu.dev.demo.impl.*;
 
 class CalendarPanel extends Canvas {
 
@@ -184,11 +182,11 @@ class CalendarPanel extends Canvas {
         pos.x = cell % daysInWeek;
         pos.y = cell / daysInWeek;
     }
-    //private Point dateToCell(int date) {
-    //    Point p = new Point(0,0);
-    //    dateToCell(date, p);
-    //    return p;
-    //}
+    private Point dateToCell(int date) {
+        Point p = new Point(0,0);
+        dateToCell(date, p);
+        return p;
+    }
 
     public void paint(Graphics g) {
 

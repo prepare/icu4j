@@ -5,13 +5,13 @@
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/util/JapaneseCalendar.java,v $ 
- * $Date: 2003/10/02 20:50:26 $ 
- * $Revision: 1.15 $
+ * $Date: 2002/12/18 19:35:07 $ 
+ * $Revision: 1.13 $
  *
  *****************************************************************************************
  */
 package com.ibm.icu.util;
-import com.ibm.icu.util.TimeZone;
+
 import java.util.Date;
 import java.util.Locale;
 

@@ -5,13 +5,13 @@
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/dev/test/TestFmwk.java,v $
- * $Date: 2003/10/09 21:24:37 $
- * $Revision: 1.54 $
+ * $Date: 2003/06/11 18:27:08 $
+ * $Revision: 1.47 $
  *
  *****************************************************************************************
  */
 package com.ibm.icu.dev.test;
-import com.ibm.icu.util.TimeZone;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
@@ -24,6 +24,8 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Locale;
 import java.util.Random;
+import java.util.TimeZone;
+
 
 /**
  * TestFmwk is a base class for tests that can be run conveniently from
@@ -40,7 +42,7 @@ import java.util.Random;
 public class TestFmwk extends AbstractTestLog {
     /**
      * Puts a copyright in the .class file
-    */
+     */
     private static final String copyrightNotice
         = "Copyright \u00a91997-2003 IBM Corp.  All rights reserved.";
 
@@ -187,6 +189,7 @@ public class TestFmwk extends AbstractTestLog {
                     return getSubtest(i, false);
                 }
             }
+
             throw new TestFmwkException(testName);
         }
 
@@ -257,27 +260,23 @@ public class TestFmwk extends AbstractTestLog {
         public Target getNext() {
             return next;
         }
-        
-        public void run() {
-            int f = filter();
-            if (f == -1) {
-                ++params.invalidCount;
-            } else {
-                Locale.setDefault(defaultLocale);
-                TimeZone.setDefault(defaultTimeZone);
 
-                if (!validate()) {
-                    params.writeTestInvalid(name);
-                } else {
-                    params.push(name, getDescription(), f == 1);
-                    execute();
-                    params.pop();
-                }
+        public void run() {
+            Locale.setDefault(defaultLocale);
+            TimeZone.setDefault(defaultTimeZone);
+
+            if (!validate()) {
+                params.writeTestInvalid(name);
+            } else {
+                params.writeTestName(name);
+
+                int oldError = params.errorCount;
+                int oldInvalid = params.invalidCount;
+
+                execute();
+
+                params.writeTestResult(oldError, oldInvalid);
             }
-        }
-        
-        protected int filter() {
-            return params.filter(name);
         }
 
         protected boolean validate() {
@@ -297,8 +296,9 @@ public class TestFmwk extends AbstractTestLog {
             super(name);
         }
 
-        protected boolean validate() {
-            return true;
+        public void run() {
+            params.writeTestName(name);
+            params.writeTestResult(params.errorCount, params.invalidCount);
         }
     }
 
@@ -320,26 +320,20 @@ public class TestFmwk extends AbstractTestLog {
 
         protected void execute() {
             if (params.inDocMode()) {
-                // nothing to execute
-            } else if (!params.stack.included) {
-                ++params.invalidCount;
+                params.writeTestDescription(getDescription());
             } else {
                 final Object[] NO_ARGS = new Object[0];
                 try {
                     testMethod.invoke(TestFmwk.this, NO_ARGS);
-                    ++params.testCount;
                 } catch( IllegalAccessException e ) {
                     errln("Can't access test method " + testMethod.getName());
                 } catch( InvocationTargetException e ) {
-                    String msg = "Uncaught exception \"" + e
-                        +"\" thrown in test method " + testMethod.getName()
-                        +" accessed under name " + name;
-                    if (params.nothrow) {
-                        errln(msg);
-                    } else {
-                        e.getTargetException().printStackTrace(System.out);
-                        throw new RuntimeException(msg);
+                    if (!params.nothrow) {
+                        e.getTargetException().printStackTrace(params.log);
                     }
+                    errln("Uncaught exception \"" + e
+                          +"\" thrown in test method " + testMethod.getName()
+                          +" accessed under name " + name);
                 }
             }
         }
@@ -347,7 +341,7 @@ public class TestFmwk extends AbstractTestLog {
 
     public class ClassTarget extends Target {
         String targetName;
-        
+
         public ClassTarget() {
             this(null);
         }
@@ -366,6 +360,10 @@ public class TestFmwk extends AbstractTestLog {
         }
 
         protected void execute() {
+            if (params.inDocMode()) {
+                params.writeTestDescription(getDescription());
+            }
+
             params.indentLevel++;
             Target target = randomize(getTargets(targetName));
             while (target != null) {
@@ -445,7 +443,6 @@ public class TestFmwk extends AbstractTestLog {
         boolean prompt = false;
         int exitCode = 0;
         boolean usageError = false;
-        String filter = null;
 
         for (int i = 0; i < args.length; i++) {
             String arg = args[i];
@@ -473,7 +470,6 @@ public class TestFmwk extends AbstractTestLog {
                     params.listlevel = 3;
                 } else if (arg.equals("-nothrow") || arg.equals("-n")) {
                     params.nothrow = true;
-                    params.errorSummary = new StringBuffer();
                 } else if (arg.equals("-describe") || arg.equals("-d")) {
                     params.describe = true;
                 } else if (arg.startsWith("-r")) {
@@ -501,16 +497,8 @@ public class TestFmwk extends AbstractTestLog {
                     if (params.inclusion < 0 || params.inclusion > 10) {
                         usageError = true;
                     }
-                } else if (arg.startsWith("-tfilter:")) {
-                    params.tfilter = arg.substring(8);
                 } else if (arg.startsWith("-filter:")) {
-                    String temp = arg.substring(8).toLowerCase();
-                    filter = filter == null ? temp : filter + "," + temp;
-                } else if (arg.startsWith("-f:")) {
-                    String temp = arg.substring(3).toLowerCase();
-                    filter = filter == null ? temp : filter + "," + temp;
-                } else if (arg.startsWith("-s")) {
-                    params.log = new NullWriter();
+                    params.filter = arg.substring(8);
                 } else {
                     System.out.println("*** Error: unrecognized argument: " + args[i]);
                     exitCode = 1;
@@ -529,39 +517,29 @@ public class TestFmwk extends AbstractTestLog {
             System.exit(exitCode);
         } 
 
-        if (filter != null) {
-            params.filter = filter.toLowerCase();
-        }
-
         try {
-            if (targets == null) {
-                params.init();
-                resolveTarget(params).run();
-            } else {
-                for (int i = 0; i < targets.size(); ++i) {
-                    if (i > 0) {
-                        System.out.println();
-                    }
-
-                    //String target = (String)targets.get(i);
-                    params.init();
-                    resolveTarget(params, (String)targets.get(i)).run();
+        if (targets == null) {
+            params.init();
+            resolveTarget(params).run();
+        } else {
+            for (int i = 0; i < targets.size(); ++i) {
+                if (i > 0) {
+                    System.out.println();
                 }
+
+                //String target = (String)targets.get(i);
+                params.init();
+                resolveTarget(params, (String)targets.get(i)).run();
             }
         }
+        }
         catch (Exception e) {
-            System.out.println(e.getMessage());
             System.out.println("encountered exception, exiting");
         }
 
         if (params.seed != 0) {
             System.out.println("-random:" + params.seed);
             System.out.flush();
-        }
-
-        if (params.errorSummary != null && params.errorSummary.length() > 0) {
-            System.out.println("\nError summary:");
-            System.out.println(params.errorSummary.toString());
         }
 
         if (prompt) {
@@ -615,7 +593,7 @@ public class TestFmwk extends AbstractTestLog {
                     p = 0;
                     e = targetPath.length();
                 }
-
+                
                 try {
                     for (;;) {
                         int n = targetPath.indexOf('/');
@@ -725,6 +703,10 @@ public class TestFmwk extends AbstractTestLog {
         return params.inclusion == 0;
     }
 
+    public String getFilter() {
+        return params.filter;
+    }
+
     public void msg(String message, int level, boolean incCount, boolean newln) {
         params.msg(message, level, incCount, newln);
     }
@@ -733,17 +715,41 @@ public class TestFmwk extends AbstractTestLog {
         return params.errorCount;
     }
 
-    protected TimeZone safeGetTimeZone(String id) {
-        TimeZone tz = TimeZone.getTimeZone(id);
-        if (tz == null) {
-            // should never happen
-            errln("FAIL: TimeZone.getTimeZone(" + id + ") => null");
-        }
-        if (!tz.getID().equals(id)) {
-            errln("FAIL: TimeZone.getTimeZone(" + id + ") => " + tz.getID());
-        }
-        return tz;
+    /*
+    protected void writeTestName(String testName) {
+        indent(params.indentLevel);
+        params.log.print(testName);
+        params.log.flush();
+        params.needLineFeed = true;
     }
+
+    protected void writeTestResult(int failCount, int invalidCount) {
+        if (!params.needLineFeed) {
+            indent(params.indentLevel);
+            params.log.print("}");
+        }
+        params.needLineFeed = false;
+
+        if (failCount != 0) {
+            params.log.println(" FAILED (" + failCount + " failures" +
+                               ((invalidCount != 0) ?
+                                ", " + invalidCount + " tests skipped)" :
+                                ")"));
+        } else if (invalidCount != 0) {
+            params.log.println(" Qualified (" + invalidCount + " tests skipped)");
+        } else {
+            params.log.println(" Passed");
+        }
+    }
+
+    private final void indent(int distance) {
+        if (params.needLineFeed) {
+            params.log.println(" {");
+            params.needLineFeed = false;
+        }
+        params.log.print(spaces.substring(0, distance * 2));
+    }
+    */
 
     /**
      * Print a usage message for this test class.
@@ -757,19 +763,7 @@ public class TestFmwk extends AbstractTestLog {
         System.out.println(" -e<n> Set exhaustiveness from 0..10.  Default is 0, fewest tests.\n" +
                            "       To run all tests, specify -e10.  Giving -e with no <n> is\n" +
                            "       the same as -e5.");
-        System.out.println(" -filter:<str> Only tests matching filter will be run or listed.\n"
-                         + "       <str> is of the form ['^']text[','['^']text].\n"
-                         + "       Each string delimited by ',' is a separate filter argument.\n"
-                         + "       If '^' is prepended to an argument, its matches are excluded.\n"
-                         + "       Filtering operates on test groups as well as tests, if a test\n"
-                         + "       group is included, all its subtests that are not excluded will\n"
-                         + "       be run.  Examples:\n"
-                         + "    -filter:A -- only tests matching A are run.  If A matches a group,\n"
-                         + "       all subtests of this group are run.\n"
-                         + "    -filter:^A -- all tests except those matching A are run.  If A matches\n"
-                         +"        a group, no subtest of that group will be run.\n"
-                         + "    -filter:A,B,^C,^D -- tests matching A or B and not C and not D are run\n"
-                         + "       Note: Filters are case insensitive.");
+        System.out.println(" -filter:<str> ?");
         System.out.println(" -h[elp] Print this help text and exit.");
         System.out.println(" -l[ist] List immediate targets of this test");
         System.out.println("   -la, -listAll List immediate targets of this test, and all subtests");
@@ -780,8 +774,6 @@ public class TestFmwk extends AbstractTestLog {
         System.out.println(" -r[andom][:<n>] If present, randomize targets.  If n is present,\n" +
                            "       use it as the seed.  If random is not set, targets will\n" +
                            "       be in alphabetical order to ensure cross-platform consistency.");
-        System.out.println(" -s[ilent] No output except error summary or exceptions.\n");
-        System.out.println(" -tfilter:<str> Transliterator Test filter of ids.");
         System.out.println(" -v[erbose] Show log messages");
         System.out.println(" -w[arning] Continue in presence of warnings, and disable missing test warnings.");
         System.out.println(" -nodata | -nd Do not warn if resource data is not present.");
@@ -827,37 +819,6 @@ public class TestFmwk extends AbstractTestLog {
 
     public static String hex(StringBuffer s) {
         return hex(s.toString());
-    }
-    public static String prettify(String s) {
-        StringBuffer result = new StringBuffer();
-        for (int i = 0; i < s.length(); ++i) {
-            char ch =s.charAt(i);
-            if(ch > 0x7f){
-                result.append("\\u");
-                result.append(hex(ch));
-            }else{
-                result.append(ch);
-            }
-            
-        }
-        return result.toString();
-    }
-    public static String prettify(StringBuffer s) {
-        return prettify(s.toString());
-    }
-
-    private static class NullWriter extends PrintWriter {
-        public NullWriter() {
-            super(System.out, false);
-        }
-        public void write(int c) {
-        }
-        public void write(char[] buf, int off, int len) {
-        }
-        public void write(String s, int off, int len) {
-        }
-        public void println() {
-        }
     }
 
     private static class ASCIIWriter extends PrintWriter {
@@ -909,42 +870,27 @@ public class TestFmwk extends AbstractTestLog {
         }
     }
 
-    // filters
-    // match against the entire hierarchy
-    // A;B;!C;!D --> (A ||B) && (!C && !D)
-    // positive, negative, unknown matches
-    // positive -- known to be included, negative- known to be excluded
-    // positive only if no excludes, and matches at least one include, if any
-    // negative only if matches at least one exclude
-    // otherwise, we wait
-
     public static class TestParams {
-        public boolean   prompt;
-        public boolean   nothrow;
-        public boolean   verbose;
-        public boolean   quiet;
-        public int       listlevel;
-        public boolean   describe;
-        public boolean   warnings;
-        public boolean   nodata;
-        public int       inclusion;
-        public String    filter;
-        public long      seed;
-        public String    tfilter; // for transliterator tests
-        
-        private State    stack;
+        public boolean   prompt = false;
+        public boolean   nothrow = false;
+        public boolean   verbose = false;
+        public boolean   quiet = false;
+        public int       listlevel = 0;;
+        public boolean   describe = false;
+        public boolean   warnings = false;
+        public boolean   nodata = false;
+        public int       inclusion = 0;
+        public String    filter = null;
+        public long        seed = 0;
 
-        private StringBuffer errorSummary;
-
-        private PrintWriter log = new ASCIIWriter(System.out, true);
-        private int         indentLevel;
-        private boolean     needLineFeed;
-        private boolean     suppressIndent;
-        private int         errorCount;
-        private int         warnCount;
-        private int         invalidCount;
-        private int         testCount;
-        public Random       random;
+        public PrintWriter log = new ASCIIWriter(System.out, true);
+        public int         indentLevel = 0;
+        public boolean     needLineFeed = false;
+        public boolean     suppressIndent = false;
+        public int         errorCount = 0;
+        public int         warnCount = 0;
+        public int         invalidCount = 0;
+        public Random      random = null;
 
         public void init() {
             indentLevel = 0;
@@ -953,81 +899,9 @@ public class TestFmwk extends AbstractTestLog {
             errorCount = 0;
             warnCount = 0;
             invalidCount = 0;
-            testCount = 0;
             random = seed == 0 ? null : new Random(seed);
         }
-        
-        private class State {
-            State link;
-            String name;
-            StringBuffer buffer;
-            int level;
-            int ec;
-            int wc;
-            int ic;
-            int tc;
-            boolean flushed;
-            boolean included;
 
-            public State(State link, String name, boolean included) {
-                this.link = link;
-                this.name = name;
-                if (link == null) {
-                    this.level = 0;
-                    this.included = included;
-                } else {
-                    this.level = link.level + 1;
-                    this.included = included || link.included;
-                }
-                this.ec = errorCount;
-                this.wc = warnCount;
-                this.ic = invalidCount;
-                this.tc = testCount;
-
-                if (link == null || this.included) {
-                    flush();
-                }
-            }
-
-            void flush() {
-                if (!flushed) {
-                    if (link != null) {
-                        link.flush();
-                    }
-
-                    indent(level);
-                    log.print(name);
-                    log.flush();
-
-                    flushed = true;
-
-                    needLineFeed = true;
-                }
-            }
-
-            void appendPath(StringBuffer buf) {
-                if (this.link != null) {
-                    this.link.appendPath(buf);
-                    buf.append('/');
-                }
-                buf.append(name);
-            }
-        }
-
-        public void push(String name, String description, boolean included) {
-            if (inDocMode() && describe && description != null) {
-                name += ": " + description;
-            }
-            stack = new State(stack, name, included);
-        }
-
-        public void pop() {
-            if (stack != null) {
-                writeTestResult(stack.ec, stack.ic, stack.tc);
-                stack = stack.link;
-            }
-        }
-            
         public boolean inDocMode() {
             return describe || listlevel != 0;
         }
@@ -1043,47 +917,8 @@ public class TestFmwk extends AbstractTestLog {
         public boolean doRecurseGroupsOnly() {
             return inDocMode() && (listlevel == 2 || (indentLevel == 1 && listlevel > 0));
         }
-
-        public int filter(String testName) {
-            int result = 0;
-            if (filter == null) {
-                result = 1;
-            } else {
-                boolean noIncludes = true;
-                boolean noExcludes = filter.indexOf('^') == -1;
-                testName = testName.toLowerCase();
-                int ix = 0;
-                while (ix < filter.length()) {
-                    int nix = filter.indexOf(',', ix);
-                    if (nix == -1) {
-                        nix = filter.length();
-                    }
-                    if (filter.charAt(ix) == '^') {
-                        if (testName.indexOf(filter.substring(ix + 1, nix)) != -1) {
-                            result = -1;
-                            break;
-                        }
-                    } else {
-                        noIncludes = false;
-                        if (testName.indexOf(filter.substring(ix, nix)) != -1) {
-                            result = 1;
-                            if (noExcludes) {
-                                break;
-                            }
-                        }
-                    }
-
-                    ix = nix + 1;
-                }
-                if (result == 0 && noIncludes) {
-                    result = 1;
-                }
-            }
-//              System.out.println("filter: " + testName + " returns: " + result);
-            return result;
-        }
-
-        private void msg(String message, int level, boolean incCount, boolean newln) {
+        
+        public void msg(String message, int level, boolean incCount, boolean newln) {
             if (level == WARN && !warnings) {
                 level = ERR;
             }
@@ -1112,24 +947,24 @@ public class TestFmwk extends AbstractTestLog {
                 log.flush();
             }
 
-            if (level == ERR) {
-                if (!nothrow) {
-                    throw new RuntimeException(message);
-                }
-                if (!suppressIndent && errorSummary != null && (errorCount == stack.ec + 1)) {
-                    stack.appendPath(errorSummary);
-                    errorSummary.append("\n");
-                }
+            if (level == ERR && !nothrow) {
+                throw new RuntimeException(message);
             }
 
             suppressIndent = !newln;
         }
 
-        private void writeTestInvalid(String name) {
-//              msg("***" + name + "*** not found or not valid.", WARN, true, true);
+        private void writeTestName(String testName) {
+            indent(indentLevel);
+            log.print(testName);
+            log.flush();
+            needLineFeed = true;
+        }
+
+        public void writeTestInvalid(String name) {
             if (inDocMode()) {
                 if (!warnings) {
-                    stack.flush();
+                    writeTestName(name);
                     log.println(" *** Target not found or not valid.");
                     log.flush();
                     needLineFeed = false;
@@ -1139,7 +974,15 @@ public class TestFmwk extends AbstractTestLog {
             }
         }
 
-        private void writeTestResult(int oldFail, int oldInvalid, int oldTestCount) {
+        private void writeTestDescription(String description) {
+            if (describe && description != null) {
+                log.println(": " + description);
+                log.flush();
+                needLineFeed = false;
+            }
+        }
+                
+        private void writeTestResult(int oldFail, int oldInvalid) {
             if (inDocMode()) {
                 if (needLineFeed) {
                     log.println();
@@ -1151,12 +994,6 @@ public class TestFmwk extends AbstractTestLog {
 
             int errorDelta = errorCount - oldFail;
             int invalidDelta = invalidCount - oldInvalid;
-            int testDelta = testCount - oldTestCount;
-            if (testDelta == 0) {
-                return;
-            }
-
-            stack.flush();
 
             if (!needLineFeed) {
                 indent(indentLevel);
@@ -1193,10 +1030,6 @@ public class TestFmwk extends AbstractTestLog {
                 log.print("-- ");
             }
         }
-    }
-
-    public String getTranslitTestFilter() {
-        return params.tfilter;
     }
 
     /**

@@ -5,14 +5,15 @@
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/dev/tool/localeconverter/QuoteTransition.java,v $ 
- * $Date: 2003/09/10 23:36:08 $ 
- * $Revision: 1.3 $
+ * $Date: 2002/02/16 03:05:31 $ 
+ * $Revision: 1.2 $
  *
  *****************************************************************************************
  */
 package com.ibm.icu.dev.tool.localeconverter;
 
 import java.io.*;
+import java.util.*;
 
 public class QuoteTransition extends ComplexTransition {
     public static final QuoteTransition GLOBAL = new QuoteTransition(SUCCESS);

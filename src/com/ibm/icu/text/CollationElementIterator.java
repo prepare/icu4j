@@ -9,17 +9,12 @@
 */
 package com.ibm.icu.text;
 
-/***
- * import java.text.StringCharacterIterator;
- * import java.text.CharacterIterator;
- */
+import java.text.StringCharacterIterator;
+import java.text.CharacterIterator;
 import com.ibm.icu.impl.NormalizerImpl;
 import com.ibm.icu.impl.UCharacterProperty;
-import com.ibm.icu.impl.StringUCharacterIterator;
-import com.ibm.icu.impl.CharacterIteratorWrapper;
-import com.ibm.icu.impl.ICUDebug;
 import com.ibm.icu.lang.UCharacter;
-import java.text.CharacterIterator;
+import com.ibm.icu.impl.ICUDebug;
 
 /**
  * <p><code>CollationElementIterator</code> is an iterator created by
@@ -223,7 +218,7 @@ public final class CollationElementIterator
      */
     public void reset()
     {
-        m_source_.setToStart();
+        m_source_.setIndex(m_source_.getBeginIndex());
         updateInternalState();
     }
 
@@ -260,13 +255,13 @@ public final class CollationElementIterator
             m_CEBufferSize_ = 0;
             m_CEBufferOffset_ = 0;
         }
- 
-        int ch_int = nextChar();
-        
-        if (ch_int == UCharacterIterator.DONE) {
+
+        char ch = nextChar();
+        /* System.out.println("ch " + Integer.toHexString(ch) + " " +
+           Integer.toHexString(m_source_.current()));*/
+        if (ch == CharacterIterator.DONE) {
             return NULLORDER;
         }
-        char ch = (char)ch_int;
         if (m_collator_.m_isHiragana4_) {
             m_isCodePointHiragana_ = (ch >= 0x3040 && ch <= 0x309e)
                                      && !(ch > 0x3094 && ch < 0x309d);
@@ -330,7 +325,7 @@ public final class CollationElementIterator
         if (m_source_.getIndex() <= 0 && m_isForwards_) {
             // if iterator is new or reset, we can immediate perform  backwards
             // iteration even when the offset is not right.
-            m_source_.setToLimit();
+            m_source_.setIndex(m_source_.getEndIndex());
             updateInternalState();
         }
         m_isForwards_ = false;
@@ -342,11 +337,10 @@ public final class CollationElementIterator
             m_CEBufferSize_ = 0;
             m_CEBufferOffset_ = 0;
         }
-        int ch_int = previousChar();
-        if (ch_int == UCharacterIterator.DONE) {
+        char ch = previousChar();
+        if (ch == CharacterIterator.DONE) {
             return NULLORDER;
         }
-        char ch = (char)ch_int;
         if (m_collator_.m_isHiragana4_) {
             m_isCodePointHiragana_ = (ch >= 0x3040 && ch <= 0x309f);
         }
@@ -483,14 +477,13 @@ public final class CollationElementIterator
     public void setOffset(int offset)
     {
         m_source_.setIndex(offset);
-        int ch_int = m_source_.current();
-        char ch = (char)ch_int;
-        if (ch_int != UCharacterIterator.DONE && m_collator_.isUnsafe(ch)) {
+        char ch = m_source_.current();
+        if (ch != CharacterIterator.DONE && m_collator_.isUnsafe(ch)) {
             // if it is unsafe we need to check if it is part of a contraction
             // or a surrogate character
             if (UTF16.isTrailSurrogate(ch)) {
                 // if it is a surrogate pair we move up one character
-                char prevch = (char)m_source_.previous();
+                char prevch = m_source_.previous();
                 if (!UTF16.isLeadSurrogate(prevch)) {
                     m_source_.setIndex(offset); // go back to the same index
                 }
@@ -502,7 +495,7 @@ public final class CollationElementIterator
                     if (!m_collator_.isUnsafe(ch)) {
                         break;
                     }
-                    ch = (char)m_source_.previous();
+                    ch = m_source_.previous();
                 }
                 updateInternalState();
                 int prevoffset = 0;
@@ -517,12 +510,12 @@ public final class CollationElementIterator
         // direction code to prevent next and previous from returning a 
         // character if we are already at the ends
         offset = m_source_.getIndex();
-        if (offset == 0/* m_source_.getBeginIndex() */) {
+        if (offset == m_source_.getBeginIndex()) {
             // preventing previous() from returning characters from the end of 
             // the string again if we are at the beginning
             m_isForwards_ = false; 
         }
-        else if (offset == m_source_.getLength()) {
+        else if (offset == m_source_.getEndIndex()) {
             // preventing next() from returning characters from the start of 
             // the string again if we are at the end
             m_isForwards_ = true;
@@ -542,22 +535,6 @@ public final class CollationElementIterator
         m_source_ = m_srcUtilIter_;
         updateInternalState();
     }
-    
-    /**
-     * <p>Set a new source string iterator for iteration, and reset the
-     * offset to the beginning of the text.
-     * </p>
-     * <p>The source iterator's integrity will be preserved since a new copy
-     * will be created for use.</p>
-     * @param source the new source string iterator for iteration.
-     * @draft ICU 2.8
-     */
-    public void setText(UCharacterIterator source)
-    {
-        m_srcUtilIter_.setText(source.getText());
-        m_source_ = m_srcUtilIter_;
-        updateInternalState(); 
-    }
 
     /**
      * <p>Set a new source string iterator for iteration, and reset the
@@ -568,8 +545,8 @@ public final class CollationElementIterator
      */
     public void setText(CharacterIterator source)
     {
-        m_source_ = new CharacterIteratorWrapper(source);
-        m_source_.setToStart();
+        m_source_ = source;
+        m_source_.setIndex(m_source_.getBeginIndex());
         updateInternalState();
     }
 
@@ -591,13 +568,10 @@ public final class CollationElementIterator
         if (that instanceof CollationElementIterator) {
             CollationElementIterator thatceiter
                                               = (CollationElementIterator)that;
-            if (!m_collator_.equals(thatceiter.m_collator_)) {
-                return false;
+            if (m_collator_.equals(thatceiter.m_collator_)
+                && m_source_.equals(thatceiter.m_source_)) {
+                return true;
             }
-            // checks the text 
-            return m_source_.getIndex() == thatceiter.m_source_.getIndex()
-                   && m_source_.getText().equals(
-                                            thatceiter.m_source_.getText());
         }
         return false;
     }
@@ -617,7 +591,7 @@ public final class CollationElementIterator
      */
     CollationElementIterator(String source, RuleBasedCollator collator)
     {
-        m_srcUtilIter_ = new StringUCharacterIterator(source);
+        m_srcUtilIter_ = new StringCharacterIterator(source);
         m_utilStringBuffer_ = new StringBuffer();
         m_source_ = m_srcUtilIter_;
         m_collator_ = collator;
@@ -641,34 +615,9 @@ public final class CollationElementIterator
     CollationElementIterator(CharacterIterator source,
                              RuleBasedCollator collator)
     {
-        m_srcUtilIter_ = new StringUCharacterIterator();
+        m_srcUtilIter_ = new StringCharacterIterator("");
         m_utilStringBuffer_ = new StringBuffer();
-        m_source_ = new CharacterIteratorWrapper(source);
-        m_collator_ = collator;
-        m_CEBuffer_ = new int[CE_BUFFER_INIT_SIZE_];
-        m_buffer_ = new StringBuffer();
-        m_utilSpecialBackUp_ = new Backup();
-        updateInternalState();
-    }
-    
-    /**
-     * <p>CollationElementIterator constructor. This takes a source
-     * character iterator and a RuleBasedCollator. The iterator will
-     * walk through the source string based on the rules defined by
-     * the collator. If the source string is empty, NULLORDER will be
-     * returned on the first call to next().</p>
-     *
-     * @param source the source string iterator.
-     * @param collator the RuleBasedCollator
-     * @draft ICU 2.2
-     */
-    CollationElementIterator(UCharacterIterator source,
-                             RuleBasedCollator collator)
-    {
-        m_srcUtilIter_ = new StringUCharacterIterator();
-        m_utilStringBuffer_ = new StringBuffer();
-        m_srcUtilIter_.setText(source.getText());
-        m_source_ = m_srcUtilIter_;
+        m_source_ = source;
         m_collator_ = collator;
         m_CEBuffer_ = new int[CE_BUFFER_INIT_SIZE_];
         m_buffer_ = new StringBuffer();
@@ -703,13 +652,6 @@ public final class CollationElementIterator
      * will cause this value to be reset to 0.
      */
     int m_CEBufferSize_;
-    static final int CE_NOT_FOUND_ = 0xF0000000;
-    static final int CE_EXPANSION_TAG_ = 1;
-    static final int CE_CONTRACTION_TAG_ = 2;
-    /** 
-     * Collate Digits As Numbers (CODAN) implementation
-     */
-    static final int CE_DIGIT_TAG_ = 13;
 
     // package private methods ----------------------------------------------
 
@@ -768,11 +710,11 @@ public final class CollationElementIterator
      * @param ch character to test
      * @return true if ch is a Thai prevowel, false otherwise
      */
-    static final boolean isThaiPreVowel(int ch)
+    static final boolean isThaiPreVowel(char ch)
     {
         return (ch >= 0xe40 && ch <= 0xe44) || (ch >= 0xec0 && ch <= 0xec4);
     }
-    
+
     /**
      * <p>Sets the iterator to point to the collation element corresponding to
      * the specified character (the parameter is a CHARACTER offset in the
@@ -787,10 +729,9 @@ public final class CollationElementIterator
      * @param source the new source string iterator for iteration.
      * @param offset to the source
      */
-    void setText(UCharacterIterator source, int offset)
+    void setText(CharacterIterator source, int offset)
     {
-        m_srcUtilIter_.setText(source.getText());
-        m_source_ = m_srcUtilIter_;
+        m_source_ = source;
         m_source_.setIndex(offset);
         updateInternalState();
     }
@@ -848,7 +789,7 @@ public final class CollationElementIterator
     /**
      * Source string iterator
      */
-    private UCharacterIterator m_source_;
+    private CharacterIterator m_source_;
     /**
      * This is position to the m_buffer_, -1 if iterator is not in m_buffer_
      */
@@ -898,7 +839,7 @@ public final class CollationElementIterator
     /**
      * Utility
      */
-    private StringUCharacterIterator m_srcUtilIter_;
+    private StringCharacterIterator m_srcUtilIter_;
     private StringBuffer m_utilStringBuffer_;
     private StringBuffer m_utilSkippedBuffer_;
     private CollationElementIterator m_utilColEIter_;
@@ -921,7 +862,7 @@ public final class CollationElementIterator
     private static final int SECOND_LAST_BYTE_SHIFT_ = 8;
 
     // special ce values and tags -------------------------------------------
-    
+    /*private*/ static final int CE_NOT_FOUND_ = 0xF0000000;
     private static final int CE_EXPANSION_ = 0xF1000000;
     private static final int CE_CONTRACTION_ = 0xF2000000;
     private static final int CE_THAI_ = 0xF3000000;
@@ -935,6 +876,8 @@ public final class CollationElementIterator
     private static final int CE_NO_MORE_CES_TERTIARY_ = 0x00000001;
 
     private static final int CE_NOT_FOUND_TAG_ = 0;
+    /*private*/ static final int CE_EXPANSION_TAG_ = 1;
+    /*private*/ static final int CE_CONTRACTION_TAG_ = 2;
     private static final int CE_THAI_TAG_ = 3;
     /**
      * Charset processing, not yet implemented
@@ -964,8 +907,7 @@ public final class CollationElementIterator
      * space without affecting the performance (hopefully).
      */
     private static final int CE_LONG_PRIMARY_TAG_ = 12;
-                        
-    private static final int CE_CE_TAGS_COUNT = 14;
+    private static final int CE_CE_TAGS_COUNT = 13;
     private static final int CE_BYTE_COMMON_ = 0x05;
 
     // end special ce values and tags ---------------------------------------
@@ -1002,7 +944,7 @@ public final class CollationElementIterator
         m_CEBufferOffset_ = 0;
         m_CEBufferSize_ = 0;
         m_FCDLimit_ = -1;
-        m_FCDStart_ = m_source_.getLength();
+        m_FCDStart_ = m_source_.getEndIndex();
         m_isHiragana4_ = m_collator_.m_isHiragana4_;
         m_isForwards_ = true;
     }
@@ -1074,7 +1016,8 @@ public final class CollationElementIterator
         m_buffer_.setLength(0);
         m_source_.setIndex(m_FCDStart_);
         for (int i = 0; i < size; i ++) {
-            m_buffer_.append((char)m_source_.next());
+            m_buffer_.append(m_source_.current());
+            m_source_.next();
         }
         String decomp = Normalizer.decompose(m_buffer_.toString(), false);
         m_buffer_.setLength(0);
@@ -1110,9 +1053,7 @@ public final class CollationElementIterator
         // trie access
         char fcd = NormalizerImpl.getFCD16(ch);
         if (fcd != 0 && UTF16.isLeadSurrogate(ch)) {
-            m_source_.next();
-            ch = (char)m_source_.current(); 
-            // UCharacterIterator.DONE has 0 fcd
+            ch = m_source_.next(); // CharacterIterator.DONE has 0 fcd
             if (UTF16.isTrailSurrogate(ch)) {
                 fcd = NormalizerImpl.getFCD16FromSurrogatePair(fcd, ch);
             } else {
@@ -1126,17 +1067,14 @@ public final class CollationElementIterator
             // The current char has a non-zero trailing CC. Scan forward until
             // we find a char with a leading cc of zero.
             while (true) {
-                m_source_.next();
-                int ch_int = m_source_.current();
-                if (ch_int == UCharacterIterator.DONE) {
+                ch = m_source_.next();
+                if (ch == CharacterIterator.DONE) {
                     break;
                 }
-                ch = (char)ch_int;
                 // trie access
                 fcd = NormalizerImpl.getFCD16(ch);
                 if (fcd != 0 && UTF16.isLeadSurrogate(ch)) {
-                    m_source_.next();
-                    ch = (char)m_source_.current();
+                    ch = m_source_.next();
                     if (UTF16.isTrailSurrogate(ch)) {
                         fcd = NormalizerImpl.getFCD16FromSurrogatePair(fcd, ch);
                     } else {
@@ -1168,9 +1106,9 @@ public final class CollationElementIterator
      * <p>Offsets are returned at the next character.</p>
      * @return next fcd character
      */
-    private int nextChar()
+    private char nextChar()
     {
-        int result;
+        char result;
 
         // loop handles the next character whether it is in the buffer or not.
         if (m_bufferOffset_ < 0) {
@@ -1203,9 +1141,8 @@ public final class CollationElementIterator
         if (result < LEAD_ZERO_COMBINING_CLASS_FAST_LIMIT_) {
             // We need to peek at the next character in order to tell if we are
             // FCD
-            m_source_.next();
-            int next = m_source_.current();
-            if (next == UCharacterIterator.DONE
+            char next = m_source_.next();
+            if (next == CharacterIterator.DONE
                 || next <= LEAD_ZERO_COMBINING_CLASS_FAST_LIMIT_) {
                 return result; // end of source string and if next character
                 // starts with a base character is always fcd.
@@ -1213,7 +1150,7 @@ public final class CollationElementIterator
         }
 
         // Need a more complete FCD check and possible normalization.
-        if (!FCDCheck((char)result, startoffset)) {
+        if (!FCDCheck(result, startoffset)) {
             normalize();
             result = m_buffer_.charAt(0);
             m_bufferOffset_ = 1;
@@ -1263,7 +1200,7 @@ public final class CollationElementIterator
         else if (UTF16.isTrailSurrogate(ch) && m_FCDLimit_ > 0) {
             // note trail surrogate characters gets 0 fcd
             char trailch = ch;
-            ch = (char)m_source_.previous();
+            ch = m_source_.previous();
             if (UTF16.isLeadSurrogate(ch)) {
                 fcd = NormalizerImpl.getFCD16(ch);
                 if (fcd != 0) {
@@ -1285,13 +1222,13 @@ public final class CollationElementIterator
             if (offset == 0) {
                 break;
             }
-            ch = (char)m_source_.previous();
+            ch = m_source_.previous();
             if (!UTF16.isSurrogate(ch)) {
                 fcd = NormalizerImpl.getFCD16(ch);
             }
             else if (UTF16.isTrailSurrogate(ch) && m_source_.getIndex() > 0) {
                 char trail = ch;
-                ch = (char)m_source_.previous();
+                ch = m_source_.previous();
                 if (UTF16.isLeadSurrogate(ch)) {
                     fcd = NormalizerImpl.getFCD16(ch);
                 }
@@ -1327,7 +1264,7 @@ public final class CollationElementIterator
      * <p>Offsets are returned at the current character.</p>
      * @return previous fcd character
      */
-    private int previousChar()
+    private char previousChar()
     {
         if (m_bufferOffset_ >= 0) {
             m_bufferOffset_ --;
@@ -1337,10 +1274,10 @@ public final class CollationElementIterator
             else {
                 // At the start of buffer, route back to string.
                 m_buffer_.setLength(0);
-                if (m_FCDStart_ == 0) {
+                if (m_FCDStart_ == m_source_.getBeginIndex()) {
                     m_FCDStart_ = -1;
-                    m_source_.setIndex(0);
-                    return UCharacterIterator.DONE;
+                    m_source_.setIndex(m_source_.getBeginIndex());
+                    return CharacterIterator.DONE;
                 }
                 else {
                     m_FCDLimit_ = m_FCDStart_;
@@ -1349,21 +1286,21 @@ public final class CollationElementIterator
                 }
             }
         }
-        int result = m_source_.previous();
+        char result = m_source_.previous();
         int startoffset = m_source_.getIndex();
         if (result < LEAD_ZERO_COMBINING_CLASS_FAST_LIMIT_
             || m_collator_.getDecomposition() == Collator.NO_DECOMPOSITION
             || m_FCDStart_ <= startoffset || m_source_.getIndex() == 0) {
             return result;
         }
-        int ch = m_source_.previous();
+        char ch = m_source_.previous();
         if (ch < FULL_ZERO_COMBINING_CLASS_FAST_LIMIT_) {
             // if previous character is FCD
             m_source_.next();
             return result;
         }
         // Need a more complete FCD check and possible normalization.
-        if (!FCDCheckBackwards((char)result, startoffset)) {
+        if (!FCDCheckBackwards(result, startoffset)) {
             normalizeBackwards();
             m_bufferOffset_ --;
             result = m_buffer_.charAt(m_bufferOffset_);
@@ -1397,10 +1334,10 @@ public final class CollationElementIterator
             }
             else {
                 // at end of buffer. check if fcd is at the end
-                return m_FCDLimit_ == m_source_.getLength();
+                return m_FCDLimit_ == m_source_.getEndIndex();
             }
         }
-        return m_source_.getLength() == m_source_.getIndex();
+        return m_source_.getEndIndex() == m_source_.getIndex();
     }
 
     /**
@@ -1465,12 +1402,12 @@ public final class CollationElementIterator
                 // Note: this operation might activate the normalization buffer. We have to check for 
                 // that and act accordingly.
                 m_FCDStart_ = m_source_.getIndex() - 1;
-                char thCh = (char)nextChar(); 
+                char thCh = nextChar(); 
                 int cp = thCh;
                 if (UTF16.isLeadSurrogate(thCh)) {
                     if (!isEnd()) {
                         backupInternalState(m_utilSpecialBackUp_);
-                        char trailCh = (char)nextChar(); 
+                        char trailCh = nextChar(); 
                         if (UTF16.isTrailSurrogate(trailCh)) {
                             cp = UCharacterProperty.getRawSupplementary(
                                                                 thCh, trailCh);                  
@@ -1517,9 +1454,68 @@ public final class CollationElementIterator
                     else {
                         m_buffer_.insert(1, ch);
                     }
+                    /*
+                    m_utilStringBuffer_.replace(0, m_utilStringBuffer_.length(),
+                              Normalizer.decompose(UTF16.toString(cp), false));
+                    if (m_utilStringBuffer_.length() >= 2 
+                        && UTF16.isLeadSurrogate(m_utilStringBuffer_.charAt(0)) 
+                        && UTF16.isLeadSurrogate(m_utilStringBuffer_.charAt(1))) 
+                    {
+                        m_utilStringBuffer_.insert(2, ch);
+                    } 
+                    else {
+                        m_utilStringBuffer_.insert(1, ch);
+                    }
+                    // we will construct a new iterator and suck out CEs.
+                    // Here is the string initialization. We have decomposed 
+                    // character (decompLen) + 1 Thai + trailing zero
+                    String temp = m_utilStringBuffer_.toString();
+                    if (m_utilColEIter_ == null) {
+                        m_utilColEIter_ = new CollationElementIterator(
+                                                                temp, collator);
+                    }
+                    else {
+                        m_utilColEIter_.m_collator_ = collator;
+                        m_utilColEIter_.setText(temp);
+                    }
+                    
+                    // We need the trailing zero so that we can tell the 
+                    // iterate function that it is in the normalized and 
+                    // reordered buffer. This buffer is always zero terminated.
+                    m_utilColEIter_.m_buffer_.replace(0, 
+                                     m_utilColEIter_.m_buffer_.length(), temp); 
+                    m_utilColEIter_.m_bufferOffset_ = 0;
+                    // This is where to return after iteration is done. 
+                    // We point at the end of the string
+                    m_utilColEIter_.m_FCDStart_ = 0;
+                    m_utilColEIter_.m_FCDLimit_ = temp.length();
+    
+                    ce = m_utilColEIter_.next();
+                    m_CEBufferSize_ = 0;
+                    while (ce != NULLORDER) {
+                        if (m_CEBufferSize_ == m_CEBuffer_.length) {
+                            try {
+                                // increasing cebuffer size
+                                int tempbuffer[] = new int[m_CEBuffer_.length + 50];
+                                System.arraycopy(m_CEBuffer_, 0, tempbuffer, 0,
+                                                 m_CEBuffer_.length);
+                                m_CEBuffer_ = tempbuffer;
+                            }
+                            catch (Exception e) {
+                                e.printStackTrace();
+                                return NULLORDER;
+                            }
+                        }
+                        m_CEBuffer_[m_CEBufferSize_ ++] = ce;
+                        ce = m_utilColEIter_.next();
+                    }
+                    m_CEBufferOffset_ = 1;
+                    // return the first of CEs so that we save a call
+                    return m_CEBuffer_[0];
+                    */
                 }
                 m_bufferOffset_ = 0;
-                return next(); // IGNORABLE;
+                return IGNORABLE;
             } else {
                 return collator.m_expansion_[getExpansionOffset(collator, ce)];
             }
@@ -1580,7 +1576,7 @@ public final class CollationElementIterator
                 ce = collator.m_contractionCE_[offset];
                 break;
             }
-            char previous = (char)previousChar();
+            char previous = previousChar();
             while (previous > collator.m_contractionIndex_[offset]) {
                 // contraction characters are ordered, skip smaller characters
                 offset ++;
@@ -1611,7 +1607,7 @@ public final class CollationElementIterator
                      // 3. schar is a trail surrogate in a valid surrogate
                      // sequence that is explicitly set to zero.
                      if (!isBackwardsStart()) {
-                         char lead = (char)previousChar();
+                         char lead = previousChar();
                          if (UTF16.isLeadSurrogate(lead)) {
                              isZeroCE = collator.m_trie_.getLeadValue(lead);
                              if (RuleBasedCollator.getTag(isZeroCE)
@@ -1704,11 +1700,12 @@ public final class CollationElementIterator
      * Returns the current character for forward iteration
      * @return current character
      */
-    private int currentChar()
+    private char currentChar()
     {
         if (m_bufferOffset_ < 0) {
-            m_source_.previous();
-            return m_source_.next();
+            char result = m_source_.previous();
+            m_source_.next();
+            return result;
         }
 
         // m_bufferOffset_ is never 0 in normal circumstances except after a
@@ -1737,8 +1734,8 @@ public final class CollationElementIterator
         else {
             m_utilSkippedBuffer_.setLength(0);
         }
-        char ch = (char)currentChar();
-        m_utilSkippedBuffer_.append((char)currentChar());
+        char ch = currentChar();
+        m_utilSkippedBuffer_.append(currentChar());
         // accent after the first character
         if (m_utilSpecialDiscontiguousBackUp_ == null) {
             m_utilSpecialDiscontiguousBackUp_ = new Backup();
@@ -1747,15 +1744,14 @@ public final class CollationElementIterator
         char nextch = ch;
         while (true) {
             ch = nextch;
-            int ch_int = nextChar();
-            nextch = (char)ch_int;
-            if (ch_int == UCharacterIterator.DONE
+            nextch = nextChar();
+            if (nextch == CharacterIterator.DONE
                 || getCombiningClass(nextch) == 0) {
                 // if there are no more accents to move around
                 // we don't have to shift previousChar, since we are resetting
                 // the offset later
                 if (multicontraction) {
-                    if (ch_int != UCharacterIterator.DONE) {
+                    if (nextch != CharacterIterator.DONE) {
                         previousChar(); // backtrack
                     }
                     setDiscontiguous(m_utilSkippedBuffer_);
@@ -1815,7 +1811,6 @@ public final class CollationElementIterator
     {
         backupInternalState(m_utilSpecialBackUp_);
         int entryce = CE_NOT_FOUND_;
-        boolean wasIgnorable = false;
         while (true) {
             int entryoffset = getContractionOffset(collator, ce);
             int offset = entryoffset;
@@ -1828,11 +1823,6 @@ public final class CollationElementIterator
                     ce = entryce;
                     updateInternalState(m_utilSpecialBackUp_);
                 }
-                else if (wasIgnorable) {
-                    // move back to last non-ignorable position
-                    // this is to synch with the reverse direction
-                    updateInternalState(m_utilSpecialBackUp_);
-                }
                 break;
             }
 
@@ -1840,38 +1830,36 @@ public final class CollationElementIterator
             byte maxCC = (byte)(collator.m_contractionIndex_[offset] & 0xFF);
             // checks if all characters have the same combining class
             byte allSame = (byte)(collator.m_contractionIndex_[offset] >> 8);
-            char ch = (char)nextChar();
+            char ch = nextChar();
             offset ++;
             while (ch > collator.m_contractionIndex_[offset]) {
                 // contraction characters are ordered, skip all smaller
                 offset ++;
             }
-            
+
             if (ch == collator.m_contractionIndex_[offset]) {
                 // Found the source string char in the contraction table.
                 //  Pick up the corresponding CE from the table.
                 ce = collator.m_contractionCE_[offset];
-                wasIgnorable = false;
             }
             else {
                 // if there is a completely ignorable code point in the middle
                 // of contraction, we need to act as if it's not there
-                int nextCE = collator.m_trie_.getLeadValue(ch);
+                int isZeroCE = collator.m_trie_.getLeadValue(ch);
                 // it's easy for BMP code points
-                if (nextCE == 0) {
-                    wasIgnorable = true;
+                if (isZeroCE == 0) {
                     continue;
                 }
                 else if (UTF16.isLeadSurrogate(ch)) {
                     if (!isEnd()) {
                         backupInternalState(m_utilSpecialBackUp_);
-                        char trail = (char)nextChar();
+                        char trail = nextChar();
                         if (UTF16.isTrailSurrogate(trail)) {
                             // do stuff with trail
-                            if (RuleBasedCollator.getTag(nextCE)
+                            if (RuleBasedCollator.getTag(isZeroCE)
                                 == RuleBasedCollator.CE_SURROGATE_TAG_) {
                                 int finalCE = collator.m_trie_.getTrailValue(
-                                                           nextCE, trail);
+                                                           isZeroCE, trail);
                                 if (finalCE == 0) {
                                     continue;
                                 }
@@ -1892,7 +1880,7 @@ public final class CollationElementIterator
                         // because of us
                         continue;
                     }
-               }    
+               }
 
                 // Source string char was not in contraction table.
                 // Unless it is a discontiguous contraction, we are done
@@ -1907,11 +1895,10 @@ public final class CollationElementIterator
                 else {
                     // Contraction is possibly discontiguous.
                     // find the next character if ch is not a base character
-                    int ch_int = nextChar();
-                    if (ch_int != UCharacterIterator.DONE) {
+                    char nextch = nextChar();
+                    if (nextch != CharacterIterator.DONE) {
                         previousChar();
                     }
-                    char nextch = (char)ch_int;
                     if (getCombiningClass(nextch) == 0) {
                         previousChar();
                         // base character not part of discontiguous contraction
@@ -1932,11 +1919,6 @@ public final class CollationElementIterator
 
             // source was a contraction
             if (!isContractionTag(ce)) {
-                if (wasIgnorable) {
-                    // move back to last non-ignorable position
-                    // this is to synch with the reverse direction
-                    updateInternalState(m_utilSpecialBackUp_);
-                }
                 break;
             }
 
@@ -2010,10 +1992,9 @@ public final class CollationElementIterator
         else {
             // ce are terminated
             m_CEBufferSize_ = 1;
-            offset ++;
             while (collator.m_expansion_[offset] != 0) {
                 m_CEBuffer_[m_CEBufferSize_ ++] =
-                    collator.m_expansion_[offset ++];
+                    collator.m_expansion_[++ offset];
             }
         }
         // in case of one element expansion, we 
@@ -2023,193 +2004,6 @@ public final class CollationElementIterator
             m_CEBufferOffset_ = 0;
         }
         return m_CEBuffer_[0];
-    }
-    
-    /**
-     * Gets the next digit ce
-     * @param collator current collator
-     * @param ce current collation element
-     * @param cp current codepoint
-     * @return next digit ce
-     */
-    private int nextDigit(RuleBasedCollator collator, int ce, int cp)
-    {
-        // We do a check to see if we want to collate digits as numbers; 
-        // if so we generate a custom collation key. Otherwise we pull out 
-        // the value stored in the expansion table.
-
-        if (collator.m_isNumericCollation_){
-            int collateVal = 0;
-            int trailingZeroIndex = 0;
-            boolean nonZeroValReached = false;
-
-            // I just need a temporary place to store my generated CEs.
-            // icu4c uses a unsigned byte array, i'll use a stringbuffer here
-            // to avoid dealing with the sign problems and array allocation
-            // clear and set initial string buffer length
-            m_utilStringBuffer_.setLength(3);
-        
-            // We parse the source string until we hit a char that's NOT a 
-            // digit.
-            // Use this u_charDigitValue. This might be slow because we have 
-            // to handle surrogates...
-            int digVal = UCharacter.digit(cp); 
-            // if we have arrived here, we have already processed possible 
-            // supplementaries that trigered the digit tag -
-            // all supplementaries are marked in the UCA.
-            // We  pad a zero in front of the first element anyways. 
-            // This takes care of the (probably) most common case where 
-            // people are sorting things followed by a single digit
-            int digIndx = 1;
-            for (;;) {
-                // Make sure we have enough space.
-                if (digIndx >= ((m_utilStringBuffer_.length() - 2) << 1)) {
-                    m_utilStringBuffer_.setLength(m_utilStringBuffer_.length() 
-                                                  << 1);
-                }
-                // Skipping over leading zeroes.        
-                if (digVal != 0 || nonZeroValReached) {
-                    if (digVal != 0 && !nonZeroValReached) {
-                        nonZeroValReached = true;
-                    }    
-                    // We parse the digit string into base 100 numbers 
-                    // (this fits into a byte).
-                    // We only add to the buffer in twos, thus if we are 
-                    // parsing an odd character, that serves as the 
-                    // 'tens' digit while the if we are parsing an even 
-                    // one, that is the 'ones' digit. We dumped the 
-                    // parsed base 100 value (collateVal) into a buffer. 
-                    // We multiply each collateVal by 2 (to give us room) 
-                    // and add 5 (to avoid overlapping magic CE byte 
-                    // values). The last byte we subtract 1 to ensure it is 
-                    // less than all the other bytes.
-                    if (digIndx % 2 == 1) {
-                        collateVal += digVal;  
-                        // This removes trailing zeroes.
-                        if (collateVal == 0 && trailingZeroIndex == 0) {
-                            trailingZeroIndex = ((digIndx - 1) >>> 1) + 2;
-                        }
-                        else if (trailingZeroIndex != 0) {
-                            trailingZeroIndex = 0;
-                        }
-                        m_utilStringBuffer_.setCharAt(
-                                            ((digIndx - 1) >>> 1) + 2,
-                                            (char)((collateVal << 1) + 6));
-                        collateVal = 0;
-                    }
-                    else {
-                        // We drop the collation value into the buffer so if 
-                        // we need to do a "front patch" we don't have to 
-                        // check to see if we're hitting the last element.
-                        collateVal = digVal * 10;
-                        m_utilStringBuffer_.setCharAt((digIndx >>> 1) + 2, 
-                                                (char)((collateVal << 1) + 6));
-                    }
-                    digIndx ++;
-                }
-            
-                // Get next character.
-                if (!isEnd()){
-                    backupInternalState(m_utilSpecialBackUp_);
-                    int char32 = nextChar();
-                    char ch = (char)char32;
-                    if (UTF16.isLeadSurrogate(ch)){
-                        if (!isEnd()) {
-                            char trail = (char)nextChar();
-                            if (UTF16.isTrailSurrogate(trail)) {
-                               char32 = UCharacterProperty.getRawSupplementary(
-                                                                   ch, trail);
-                            } 
-                            else {
-                                goBackOne();
-                            }
-                        }
-                    }
-                    
-                    digVal = UCharacter.digit(char32);
-                    if (digVal == -1) {
-                        // Resetting position to point to the next unprocessed 
-                        // char. We overshot it when doing our test/set for 
-                        // numbers.
-                        updateInternalState(m_utilSpecialBackUp_);
-                        break;
-                    }
-                } 
-                else {
-                    break;
-                }
-            }
-        
-            if (nonZeroValReached == false){
-                digIndx = 2;
-                m_utilStringBuffer_.setCharAt(2, (char)6);
-            }
-        
-            int endIndex = trailingZeroIndex != 0 ? trailingZeroIndex 
-                                             : (digIndx >>> 1) + 2;              
-            if (digIndx % 2 != 0){
-                // We missed a value. Since digIndx isn't even, stuck too many 
-                // values into the buffer (this is what we get for padding the 
-                // first byte with a zero). "Front-patch" now by pushing all 
-                // nybbles forward.
-                // Doing it this way ensures that at least 50% of the time 
-                // (statistically speaking) we'll only be doing a single pass 
-                // and optimizes for strings with single digits. I'm just 
-                // assuming that's the more common case.
-                for (int i = 2; i < endIndex; i ++){
-                    m_utilStringBuffer_.setCharAt(i, 
-                        (char)((((((m_utilStringBuffer_.charAt(i) - 6) >>> 1) 
-                                  % 10) * 10) 
-                                 + (((m_utilStringBuffer_.charAt(i + 1) - 6) 
-                                      >>> 1) / 10) << 1) + 6));
-                }
-                -- digIndx;
-            }
-        
-            // Subtract one off of the last byte. 
-            m_utilStringBuffer_.setCharAt(endIndex - 1, 
-                         (char)(m_utilStringBuffer_.charAt(endIndex - 1) - 1));            
-                
-            // We want to skip over the first two slots in the buffer. 
-            // The first slot is reserved for the header byte 0x1B. 
-            // The second slot is for the sign/exponent byte: 
-            // 0x80 + (decimalPos/2) & 7f.
-            m_utilStringBuffer_.setCharAt(0, (char)0x1B);
-            m_utilStringBuffer_.setCharAt(1, 
-                                     (char)(0x80 + ((digIndx >>> 1) & 0x7F)));
-        
-            // Now transfer the collation key to our collIterate struct.
-            // The total size for our collation key is endIndx bumped up to the next largest even value divided by two.
-            ce = (((m_utilStringBuffer_.charAt(0) << 8)
-                       // Primary weight 
-                       | m_utilStringBuffer_.charAt(1)) 
-                                    << RuleBasedCollator.CE_PRIMARY_SHIFT_)
-                       //  Secondary weight 
-                       | (RuleBasedCollator.BYTE_COMMON_ 
-                          << RuleBasedCollator.CE_SECONDARY_SHIFT_) 
-                       | RuleBasedCollator.BYTE_COMMON_; // Tertiary weight.
-            int i = 2; // Reset the index into the buffer.
-            
-            m_CEBuffer_[0] = ce;
-            m_CEBufferSize_ = 1;
-            m_CEBufferOffset_ = 1;
-            while (i < endIndex)
-            {
-                int primWeight = m_utilStringBuffer_.charAt(i ++) << 8;
-                if (i < endIndex) {
-                    primWeight |= m_utilStringBuffer_.charAt(i ++);
-                }
-                m_CEBuffer_[m_CEBufferSize_ ++] 
-                    = (primWeight << RuleBasedCollator.CE_PRIMARY_SHIFT_) 
-                      | RuleBasedCollator.CE_CONTINUATION_MARKER_;
-            }
-            return ce;
-        } 
-        
-        // no numeric mode, we'll just switch to whatever we stashed and 
-        // continue
-        // find the offset to expansion table
-        return collator.m_expansion_[getExpansionOffset(collator, ce)];
     }
 
     /**
@@ -2240,9 +2034,8 @@ public final class CollationElementIterator
      */
     private int nextSurrogate(char ch)
     {
-        int ch_int = nextChar();
-        char nextch = (char)ch_int;
-        if (ch_int != CharacterIterator.DONE &&
+        char nextch = nextChar();
+        if (nextch != CharacterIterator.DONE &&
             UTF16.isTrailSurrogate(nextch)) {
             int codepoint = UCharacterProperty.getRawSupplementary(ch, nextch);
             return nextImplicit(codepoint);
@@ -2308,7 +2101,7 @@ public final class CollationElementIterator
             m_FCDStart_ = m_FCDLimit_ - 1;
             // Indicate where to continue in main input string after
             // exhausting the buffer
-            return next();
+            return IGNORABLE;
         }
     }
 
@@ -2344,7 +2137,7 @@ public final class CollationElementIterator
                         return IGNORABLE;
                     }
                     backupInternalState(m_utilSpecialBackUp_);
-                    char trail = (char)nextChar();
+                    char trail = nextChar();
                     ce = nextSurrogate(collator, ce, trail);
                     // calculate the supplementary code point value,
                     // if surrogate was not tailored we go one more round
@@ -2364,9 +2157,6 @@ public final class CollationElementIterator
                     return nextLongPrimary(ce);
                 case CE_EXPANSION_TAG_:
                     return nextExpansion(collator, ce);
-                case CE_DIGIT_TAG_:
-                    ce = nextDigit(collator, ce, codepoint);
-                    break;
                     // various implicits optimization
                 case CE_CJK_IMPLICIT_TAG_:
                     // 0x3400-0x4DB5, 0x4E00-0x9FA5, 0xF900-0xFA2D
@@ -2390,8 +2180,7 @@ public final class CollationElementIterator
                     break;
                 }
             }
-        } 
-        finally {
+        } finally {
             m_utilSpecialEntryBackUp_ = entrybackup;
         }
         return ce;
@@ -2417,10 +2206,10 @@ public final class CollationElementIterator
         
         // check that ch is from the normalization buffer or not
         boolean innorm = m_bufferOffset_ >= 0;
-        int prevch = previousChar();
+        char prevch = previousChar();
         if (!isThaiPreVowel(prevch)) {
             // we now rearrange unconditionally do not check for base consonant
-            if (prevch != UCharacterIterator.DONE) {
+            if (prevch != CharacterIterator.DONE) {
                 nextChar();
             }
             // Treat Thai as a length one expansion
@@ -2459,12 +2248,12 @@ public final class CollationElementIterator
             m_FCDLimit_ = m_FCDStart_ + 2;
         }
         if (reorder) {
-            m_buffer_.insert(1, (char)prevch);
+            m_buffer_.insert(1, prevch);
         } 
         else {
-            m_buffer_.insert(0, (char)prevch);
+            m_buffer_.insert(0, prevch);
         }
-        return previous(); // IGNORABLE;
+        return IGNORABLE;
     }
 
     /**
@@ -2489,7 +2278,7 @@ public final class CollationElementIterator
                 ce = collator.m_contractionCE_[offset];
                 break;
             }
-            char prevch = (char)previousChar();
+            char prevch = previousChar();
             while (prevch > collator.m_contractionIndex_[offset]) {
                 // since contraction codepoints are ordered, we skip all that
                 // are smaller
@@ -2519,7 +2308,7 @@ public final class CollationElementIterator
                     // 3. schar is a trail surrogate in a valid surrogate
                     //    sequence that is explicitly set to zero.
                     if (!isBackwardsStart()) {
-                        char lead = (char)previousChar();
+                        char lead = previousChar();
                         if (UTF16.isLeadSurrogate(lead)) {
                             isZeroCE = collator.m_trie_.getLeadValue(lead);
                             if (RuleBasedCollator.getTag(isZeroCE)
@@ -2577,7 +2366,7 @@ public final class CollationElementIterator
         m_utilStringBuffer_.setLength(0);
         // since we might encounter normalized characters (from the thai
         // processing) we can't use peekCharacter() here.
-        char prevch = (char)previousChar();
+        char prevch = previousChar();
         boolean atStart = false;
         while (collator.isUnsafe(ch) || isThaiPreVowel(prevch)) {
             m_utilStringBuffer_.insert(0, ch);
@@ -2586,7 +2375,7 @@ public final class CollationElementIterator
                 atStart = true;
                 break;
             }
-            prevch = (char)previousChar();
+            prevch = previousChar();
         }
         if (!atStart) {
             // undo the previousChar() if we didn't reach the beginning 
@@ -2680,185 +2469,6 @@ public final class CollationElementIterator
         m_CEBufferOffset_ = m_CEBufferSize_ - 1;
         return m_CEBuffer_[m_CEBufferOffset_];
     }
-    
-    /**
-     * Getting the digit collation elements
-     * @param collator
-     * @param ce current collation element
-     * @param ch current code point
-     * @return digit collation element
-     */
-    private int previousDigit(RuleBasedCollator collator, int ce, char ch)
-    {
-        // We do a check to see if we want to collate digits as numbers; if so we generate
-        //  a custom collation key. Otherwise we pull out the value stored in the expansion table.
-        if (collator.m_isNumericCollation_){
-            int leadingZeroIndex = 0;
-            int collateVal = 0;
-            boolean nonZeroValReached = false;
-
-            // clear and set initial string buffer length
-            m_utilStringBuffer_.setLength(3);
-        
-            // We parse the source string until we hit a char that's NOT a digit
-            // Use this u_charDigitValue. This might be slow because we have to 
-            // handle surrogates...
-            int char32 = ch;
-            if (UTF16.isTrailSurrogate(ch)) {
-                if (!isBackwardsStart()){
-                    char lead = (char)previousChar();
-                    if (UTF16.isLeadSurrogate(lead)) {
-                        char32 = UCharacterProperty.getRawSupplementary(lead,
-                                                                        ch);
-                    } 
-                    else {
-                        goForwardOne();
-                    }
-                }
-            } 
-            int digVal = UCharacter.digit(char32);
-            int digIndx = 0;
-            for (;;) {
-                // Make sure we have enough space.
-                if (digIndx >= ((m_utilStringBuffer_.length() - 2) << 1)) {
-                    m_utilStringBuffer_.setLength(m_utilStringBuffer_.length() 
-                                                  << 1);
-                }
-                // Skipping over "trailing" zeroes but we still add to digIndx.
-                if (digVal != 0 || nonZeroValReached) {
-                    if (digVal != 0 && !nonZeroValReached) {
-                        nonZeroValReached = true;
-                    }
-                
-                    // We parse the digit string into base 100 numbers (this 
-                    // fits into a byte).
-                    // We only add to the buffer in twos, thus if we are 
-                    // parsing an odd character, that serves as the 'tens' 
-                    // digit while the if we are parsing an even one, that is 
-                    // the 'ones' digit. We dumped the parsed base 100 value 
-                    // (collateVal) into a buffer. We multiply each collateVal 
-                    // by 2 (to give us room) and add 5 (to avoid overlapping 
-                    // magic CE byte values). The last byte we subtract 1 to 
-                    // ensure it is less than all the other bytes. 
-                    // Since we're doing in this reverse we want to put the 
-                    // first digit encountered into the ones place and the 
-                    // second digit encountered into the tens place.
-                
-                    if (digIndx % 2 == 1){
-                        collateVal += digVal * 10;
-                    
-                        // This removes leading zeroes.
-                        if (collateVal == 0 && leadingZeroIndex == 0) {
-                           leadingZeroIndex = ((digIndx - 1) >>> 1) + 2;
-                        }
-                        else if (leadingZeroIndex != 0) {
-                            leadingZeroIndex = 0;
-                        }
-                                            
-                        m_utilStringBuffer_.setCharAt(((digIndx - 1) >>> 1) + 2, 
-                                                (char)((collateVal << 1) + 6));
-                        collateVal = 0;
-                    }
-                    else {
-                        collateVal = digVal;    
-                    }
-                }
-                digIndx ++;
-            
-                if (!isBackwardsStart()){
-                    backupInternalState(m_utilSpecialBackUp_);
-                    char32 = previousChar();
-                    ch = (char)ch;
-                    if (UTF16.isTrailSurrogate(ch)){
-                        if (!isBackwardsStart()) {
-                            char lead = (char)previousChar();
-                            if (UTF16.isLeadSurrogate(lead)) {
-                                char32 
-                                    = UCharacterProperty.getRawSupplementary(
-                                                                    lead, ch);
-                            } 
-                            else {
-                                updateInternalState(m_utilSpecialBackUp_);
-                            }
-                        }
-                    }
-                    
-                    digVal = UCharacter.digit(char32);
-                    if (digVal == -1) {
-                        updateInternalState(m_utilSpecialBackUp_);
-                        break;
-                    }
-                }
-                else {
-                    break;
-                }
-            }
-
-            if (nonZeroValReached == false) {
-                digIndx = 2;
-                m_utilStringBuffer_.setCharAt(2, (char)6);
-            }
-            
-            if (digIndx % 2 != 0) {
-                if (collateVal == 0 && leadingZeroIndex == 0) {
-                    // This removes the leading 0 in a odd number sequence of 
-                    // numbers e.g. avery001
-                    leadingZeroIndex = ((digIndx - 1) >>> 1) + 2;
-                }
-                else {
-                    // this is not a leading 0, we add it in
-                    m_utilStringBuffer_.setCharAt((digIndx >>> 1) + 2,
-                                                (char)((collateVal << 1) + 6));
-                    digIndx ++; 
-                }               
-            }
-                     
-            int endIndex = leadingZeroIndex != 0 ? leadingZeroIndex 
-                                               : ((digIndx >>> 1) + 2) ;  
-            digIndx = ((endIndex - 2) << 1) + 1; // removing initial zeros         
-            // Subtract one off of the last byte. 
-            // Really the first byte here, but it's reversed...
-            m_utilStringBuffer_.setCharAt(2, 
-                                    (char)(m_utilStringBuffer_.charAt(2) - 1));          
-            // We want to skip over the first two slots in the buffer. 
-            // The first slot is reserved for the header byte 0x1B. 
-            // The second slot is for the sign/exponent byte: 
-            // 0x80 + (decimalPos/2) & 7f.
-            m_utilStringBuffer_.setCharAt(0, (char)0x1B);
-            m_utilStringBuffer_.setCharAt(1, 
-                                    (char)(0x80 + ((digIndx >>> 1) & 0x7F)));
-        
-            // Now transfer the collation key to our collIterate struct.
-            // The total size for our collation key is endIndx bumped up to the 
-            // next largest even value divided by two.
-            m_CEBufferSize_ = 0;
-            m_CEBuffer_[m_CEBufferSize_ ++] 
-                        = (((m_utilStringBuffer_.charAt(0) << 8)
-                            // Primary weight 
-                            | m_utilStringBuffer_.charAt(1)) 
-                              << RuleBasedCollator.CE_PRIMARY_SHIFT_)
-                            // Secondary weight 
-                            | (RuleBasedCollator.BYTE_COMMON_ 
-                               << RuleBasedCollator.CE_SECONDARY_SHIFT_)
-                            // Tertiary weight. 
-                            | RuleBasedCollator.BYTE_COMMON_; 
-             int i = endIndex - 1; // Reset the index into the buffer.
-             while (i >= 2) {
-                int primWeight = m_utilStringBuffer_.charAt(i --) << 8;
-                if (i >= 2) {
-                    primWeight |= m_utilStringBuffer_.charAt(i --);
-                }
-                m_CEBuffer_[m_CEBufferSize_ ++] 
-                    = (primWeight << RuleBasedCollator.CE_PRIMARY_SHIFT_) 
-                      | RuleBasedCollator.CE_CONTINUATION_MARKER_;
-             }
-             m_CEBufferOffset_ = m_CEBufferSize_ - 1;
-             return m_CEBuffer_[m_CEBufferOffset_];
-         }
-         else {
-             return collator.m_expansion_[getExpansionOffset(collator, ce)];
-         }
-    } 
 
     /**
      * Returns previous hangul ces
@@ -2906,7 +2516,7 @@ public final class CollationElementIterator
 
             m_FCDStart_ = m_source_.getIndex();
             m_FCDLimit_ = m_FCDStart_ + 1;
-            return previous();
+            return IGNORABLE;
         }
     }
 
@@ -2940,7 +2550,7 @@ public final class CollationElementIterator
             // we are at the start of the string, wrong place to be at
             return IGNORABLE;
         }
-        char prevch = (char)previousChar();
+        char prevch = previousChar();
         // Handles Han and Supplementary characters here.
         if (UTF16.isLeadSurrogate(prevch)) {
             return previousImplicit(
@@ -2990,9 +2600,6 @@ public final class CollationElementIterator
                 return previousLongPrimary(ce);
             case CE_EXPANSION_TAG_: // always returns
                 return previousExpansion(collator, ce);
-            case CE_DIGIT_TAG_:
-                ce = previousDigit(collator, ce, ch);
-                break;
             case CE_HANGUL_SYLLABLE_TAG_: // AC00-D7AF
                 return previousHangul(collator, ch);
             case CE_LEAD_SURROGATE_TAG_:  // D800-DBFF
@@ -3113,53 +2720,12 @@ public final class CollationElementIterator
         if (offset != 0) {
             int currentoffset = m_source_.getIndex();
             m_source_.setIndex(currentoffset + offset);
-            char result = (char)m_source_.current();
+            char result = m_source_.current();
             m_source_.setIndex(currentoffset);
             return result;
         } 
         else {
-            return (char)m_source_.current();
-        }
-    }
-    
-    /**
-     * Moves back 1 position in the source string. This is slightly less 
-     * complicated than previousChar in that it doesn't normalize while 
-     * moving back. Boundary checks are not performed.
-     * This method is to be used with caution, with the assumption that 
-     * moving back one position will not exceed the source limits.
-     * Use only with nextChar() and never call this API twice in a row without
-     * nextChar() in the middle.
-     */
-    private void goBackOne() 
-    {
-        if (m_bufferOffset_ >= 0) {
-            m_bufferOffset_ --;
-        }
-        else {
-            m_source_.setIndex(m_source_.getIndex() - 1);
-        }
-    }
-    
-    /**
-     * Moves forward 1 position in the source string. This is slightly less 
-     * complicated than nextChar in that it doesn't normalize while 
-     * moving back. Boundary checks are not performed.
-     * This method is to be used with caution, with the assumption that 
-     * moving back one position will not exceed the source limits.
-     * Use only with previousChar() and never call this API twice in a row 
-     * without previousChar() in the middle.
-     */
-    private void goForwardOne() 
-    {
-        if (m_bufferOffset_ < 0) {
-            // we're working on the source and not normalizing. fast path.
-            // note Thai pre-vowel reordering uses buffer too
-            m_source_.setIndex(m_source_.getIndex() + 1);
-        }
-        else {
-            // we are in the buffer, buffer offset will never be 0 here
-            m_bufferOffset_ ++;
+            return m_source_.current();
         }
     }
 }

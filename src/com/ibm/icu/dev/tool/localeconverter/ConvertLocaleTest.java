@@ -5,14 +5,16 @@
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/dev/tool/localeconverter/ConvertLocaleTest.java,v $ 
- * $Date: 2003/09/10 23:36:09 $ 
- * $Revision: 1.3 $
+ * $Date: 2002/02/16 03:05:27 $ 
+ * $Revision: 1.2 $
  *
  *****************************************************************************************
  */
  
 package com.ibm.icu.dev.tool.localeconverter;
 
+import java.io.*;
+import java.util.*;
 /*
 
 ConvertPOSIXLocale [-11] [-12] [-icu] [-icu2] localeDataFile [charMapFile ...]

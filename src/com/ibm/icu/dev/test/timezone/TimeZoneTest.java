@@ -5,8 +5,8 @@
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/dev/test/timezone/TimeZoneTest.java,v $
- * $Date: 2003/10/17 21:46:12 $
- * $Revision: 1.17 $
+ * $Date: 2003/06/11 21:04:51 $
+ * $Revision: 1.14 $
  *
  *******************************************************************************
  */
@@ -36,11 +36,6 @@ public class TimeZoneTest extends TestFmwk
     }
 
     /**
-     * NOTE: As of ICU 2.8, the mapping of 3-letter legacy aliases
-     * to `real' Olson IDs is under control of the underlying JDK.
-     * This test may fail on one JDK and pass on another; don't be
-     * too concerned.  Alan
-     *
      * Bug 4130885
      * Certain short zone IDs, used since 1.1.x, are incorrect.
      *  
@@ -125,14 +120,13 @@ public class TimeZoneTest extends TestFmwk
             // new ZoneDescriptor("NET", 240, false);
             // As of bug 4191164, fix NET
             new ZoneDescriptor("NET", 240, true),
-            // PLT behaves differently under different JDKs, so we don't check it
-            // new ZoneDescriptor("PLT", 300, false), // updated Oct 2003 aliu
+            new ZoneDescriptor("PLT", 300, true), // Liu 3Dec02, Pakistan uses DST as of 2002
             new ZoneDescriptor("IST", 330, false),
             new ZoneDescriptor("BST", 360, false),
             new ZoneDescriptor("VST", 420, false),
-            new ZoneDescriptor("CTT", 480, false), // updated Oct 2003 aliu
+            new ZoneDescriptor("CTT", 480, true), // Revised Liu 3Jan01, std->dst
             new ZoneDescriptor("JST", 540, false),
-            new ZoneDescriptor("ACT", 570, false), // updated Oct 2003 aliu
+            new ZoneDescriptor("ACT", 570, true), // Revised Liu 3Jan01, std->dst
             new ZoneDescriptor("AET", 600, true),
             new ZoneDescriptor("SST", 660, false),
             // new ZoneDescriptor("NST", 720, false),
@@ -227,7 +221,7 @@ public class TimeZoneTest extends TestFmwk
         if (min < 0) { sign = '-'; min = -min; }
         int h = min/60;
         min = min%60;
-        return "" + sign + (h<10?"0":"") + h + ":" + (min<10?"0":"") + min;
+        return "" + sign + h + ":" + ((min<10) ? "0" : "") + min;
     }
     /**
      * As part of the VM fix (see CCC approved RFE 4028006, bug
@@ -237,24 +231,22 @@ public class TimeZoneTest extends TestFmwk
      *
      * Bug 4044013
      */
-    public void TestCustomParse() {
+    public void TestCustomParse() throws Exception {
         Object[] DATA = {
             // ID        Expected offset in minutes
             "GMT",       null,
-            // "GMT0",      null, // This is parsed by some JDKs (Sun 1.4.1), but not by others
+            "GMT0",      null,
             "GMT+0",     new Integer(0),
             "GMT+1",     new Integer(60),
             "GMT-0030",  new Integer(-30),
-            // Parsed in 1.3, parse failure in 1.4:
-            //"GMT+15:99", new Integer(15*60+99),
+            "GMT+15:99", new Integer(15*60+99),
             "GMT+",      null,
             "GMT-",      null,
             "GMT+0:",    null,
             "GMT-:",     null,
             "GMT+0010",  new Integer(10), // Interpret this as 00:10
             "GMT-10",    new Integer(-10*60),
-            // Parsed in 1.3, parse failure in 1.4:
-            //"GMT+30",    new Integer(30),
+            "GMT+30",    new Integer(30),
             "GMT-3:30",  new Integer(-(3*60+30)),
             "GMT-230",   new Integer(-(2*60+30)),
         };
@@ -268,29 +260,25 @@ public class TimeZoneTest extends TestFmwk
                 // returns GMT -- a dubious practice, but required for
                 // backward compatibility.
                 if (exp != null) {
-                    errln("Expected offset of " + formatMinutes(exp.intValue()) +
-                          " for " + id + ", got parse failure");
+                    throw new Exception("Expected offset of " + formatMinutes(exp.intValue()) +
+                                        " for " + id + ", got parse failure");
                 }
             }
             else {
                 int ioffset = zone.getRawOffset()/60000;
                 String offset = formatMinutes(ioffset);
-                String genID = "GMT"+ offset;
-                logln(id + " -> " + zone.getID() + " " + genID);
+                logln(id + " -> " + zone.getID() + " GMT" + offset);
                 if (exp == null) {
-                    errln("Expected parse failure for " + id +
-                          ", got offset of " + offset +
-                          ", id " + zone.getID());
+                    throw new Exception("Expected parse failure for " + id +
+                                        ", got offset of " + offset +
+                                        ", id " + zone.getID());
                 }
-                // JDK 1.3 creates custom zones with the ID "Custom"
-                // JDK 1.4 creates custom zones with IDs of the form "GMT+02:00"
                 else if (ioffset != exp.intValue() ||
-                         !(zone.getID().equals(EXPECTED_CUSTOM_ID) ||
-                           zone.getID().equals(genID))) {
-                    errln("Expected offset of " + formatMinutes(exp.intValue()) +
-                          ", id Custom, for " + id +
-                          ", got offset of " + offset +
-                          ", id " + zone.getID());
+                         !zone.getID().equals(EXPECTED_CUSTOM_ID)) {
+                    throw new Exception("Expected offset of " + formatMinutes(exp.intValue()) +
+                                        ", id Custom, for " + id +
+                                        ", got offset of " + offset +
+                                        ", id " + zone.getID());
                 }
             }
         }
@@ -430,29 +418,29 @@ public class TimeZoneTest extends TestFmwk
         TimeZone.setDefault(saveDefault);
         // delete defaultzone;
         // delete zoneclone;
-
-//      // ICU 2.6 Coverage
-//      logln(zone.toString());
-//      logln(zone.getDisplayName());
-//      SimpleTimeZoneAdapter stza = new SimpleTimeZoneAdapter((SimpleTimeZone) TimeZone.getTimeZone("GMT"));
-//      stza.setID("Foo");
-//      if (stza.hasSameRules(java.util.TimeZone.getTimeZone("GMT"))) {
-//          errln("FAIL: SimpleTimeZoneAdapter.hasSameRules");
-//      }
-//      stza.setRawOffset(3000);
-//      offset = stza.getOffset(GregorianCalendar.BC, 2001, Calendar.DECEMBER,
-//                              25, Calendar.TUESDAY, 12*60*60*1000);
-//      if (offset != 3000) {
-//          errln("FAIL: SimpleTimeZoneAdapter.getOffset");
-//      }
-//      SimpleTimeZoneAdapter dup = (SimpleTimeZoneAdapter) stza.clone();
-//      if (stza.hashCode() != dup.hashCode()) {
-//          errln("FAIL: SimpleTimeZoneAdapter.hashCode");
-//      }
-//      if (!stza.equals(dup)) {
-//          errln("FAIL: SimpleTimeZoneAdapter.equals");
-//      }
-//      logln(stza.toString());
+        
+        // ICU 2.6 Coverage
+        logln(zone.toString());
+        logln(zone.getDisplayName());
+        SimpleTimeZoneAdapter stza = new SimpleTimeZoneAdapter((SimpleTimeZone) TimeZone.getTimeZone("GMT"));
+        stza.setID("Foo");
+        if (stza.hasSameRules(java.util.TimeZone.getTimeZone("GMT"))) {
+            errln("FAIL: SimpleTimeZoneAdapter.hasSameRules");
+        }
+        stza.setRawOffset(3000);
+        offset = stza.getOffset(GregorianCalendar.BC, 2001, Calendar.DECEMBER,
+                                25, Calendar.TUESDAY, 12*60*60*1000);
+        if (offset != 3000) {
+            errln("FAIL: SimpleTimeZoneAdapter.getOffset");
+        }
+        SimpleTimeZoneAdapter dup = (SimpleTimeZoneAdapter) stza.clone();
+        if (stza.hashCode() != dup.hashCode()) {
+            errln("FAIL: SimpleTimeZoneAdapter.hashCode");
+        }
+        if (!stza.equals(dup)) {
+            errln("FAIL: SimpleTimeZoneAdapter.equals");
+        }
+        logln(stza.toString());
     }
 
     public void TestRuleAPI()

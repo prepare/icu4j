@@ -5,8 +5,8 @@
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/dev/tool/localeconverter/ICU2LocaleWriter.java,v $ 
- * $Date: 2003/09/10 23:36:09 $ 
- * $Revision: 1.5 $
+ * $Date: 2002/06/20 01:17:12 $ 
+ * $Revision: 1.3 $
  *
  *****************************************************************************************
  */
@@ -63,7 +63,7 @@ public class ICU2LocaleWriter extends LocaleWriter {
                 println(" { ");
                 for (int i = 0; i < items.length; i++) {
                     if(items[i]!=null){
-                        printRuleString(items[i].toString());
+                        printString(items[i].toString());
                         if (items[i].comment != null) {
                             tabTo(30);
                             print("//");
@@ -118,7 +118,7 @@ public class ICU2LocaleWriter extends LocaleWriter {
         return true;
     }
     protected String getEscapeChar() {
-        return "\\u";
+        return "%u";
     }
     //{{DECLARE_CONTROLS
     //}}

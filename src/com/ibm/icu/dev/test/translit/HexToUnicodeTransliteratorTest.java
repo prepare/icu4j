@@ -6,19 +6,18 @@
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/dev/test/translit/Attic/HexToUnicodeTransliteratorTest.java,v $ 
- * $Date: 2003/09/18 21:00:34 $ 
- * $Revision: 1.7 $
+ * $Date: 2002/08/28 16:45:18 $ 
+ * $Revision: 1.6 $
  *
  *****************************************************************************************
  */
 package com.ibm.icu.dev.test.translit;
-import com.ibm.icu.dev.test.TestFmwk;
+import com.ibm.icu.lang.*;
+import com.ibm.icu.text.*;
+import com.ibm.icu.dev.test.*;
 import com.ibm.icu.impl.Utility;
-import com.ibm.icu.text.HexToUnicodeTransliterator;
-import com.ibm.icu.text.ReplaceableString;
-import com.ibm.icu.text.Transliterator;
-import com.ibm.icu.text.UnicodeFilter;
-import com.ibm.icu.text.UnicodeSet;
+import java.text.*;
+import java.util.*;
 
 
 /**

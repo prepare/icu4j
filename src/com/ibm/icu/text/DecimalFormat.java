@@ -5,8 +5,8 @@
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/text/DecimalFormat.java,v $ 
- * $Date: 2003/10/29 00:20:03 $ 
- * $Revision: 1.37 $
+ * $Date: 2003/06/06 21:09:43 $ 
+ * $Revision: 1.35 $
  *
  *****************************************************************************************
  */
@@ -616,7 +616,11 @@ public class DecimalFormat extends NumberFormat {
         // At this point we are guaranteed a nonnegative finite
         // number.
         synchronized(digitList) {
-            digitList.set(number, precision(false), !useExponentialNotation);
+            digitList.set(number, useExponentialNotation ?
+                      getMinimumIntegerDigits() + getMaximumFractionDigits() :
+                      getMaximumFractionDigits(),
+                      !useExponentialNotation);
+
             return subformat(result, fieldPosition, isNegative, false);
         }
     }
@@ -725,7 +729,9 @@ public class DecimalFormat extends NumberFormat {
 
         number *= multiplier;
         synchronized(digitList) {
-            digitList.set(number, precision(true));
+            digitList.set(number, useExponentialNotation ?
+                          getMinimumIntegerDigits() + getMaximumFractionDigits() : 0);
+
             return subformat(result, fieldPosition, isNegative, true);
         }
     }
@@ -750,7 +756,9 @@ public class DecimalFormat extends NumberFormat {
         // At this point we are guaranteed a nonnegative finite
         // number.
         synchronized(digitList) {
-            digitList.set(number, precision(true));
+            digitList.set(number, useExponentialNotation ?
+                          getMinimumIntegerDigits() + getMaximumFractionDigits() : 0);
+
             return subformat(result, fieldPosition, number.signum() < 0, false);
         }
     }
@@ -774,10 +782,14 @@ public class DecimalFormat extends NumberFormat {
         // At this point we are guaranteed a nonnegative finite
         // number.
         synchronized(digitList) {
-            digitList.set(number, precision(false), !useExponentialNotation);
+            digitList.set(number, useExponentialNotation ?
+                      getMinimumIntegerDigits() + getMaximumFractionDigits() :
+                      getMaximumFractionDigits(),
+                      !useExponentialNotation);
             return subformat(result, fieldPosition, number.signum() < 0, false);
         }        
     }
+
 
     /**
      * <strong><font face=helvetica color=red>NEW</font></strong>
@@ -805,7 +817,10 @@ public class DecimalFormat extends NumberFormat {
         // At this point we are guaranteed a nonnegative finite
         // number.
         synchronized(digitList) {
-            digitList.set(number, precision(false), !useExponentialNotation);
+            digitList.set(number, useExponentialNotation ?
+                      getMinimumIntegerDigits() + getMaximumFractionDigits() :
+                      getMaximumFractionDigits(),
+                      !useExponentialNotation);
             return subformat(result, fieldPosition, number.signum() < 0, false);
         }        
     }
@@ -830,23 +845,6 @@ public class DecimalFormat extends NumberFormat {
             }
         }
         return result;
-    }
-
-    /**
-     * Return the number of digits to show.
-     */
-    private int precision(boolean isIntegral) {
-        int maxIntDig = getMaximumIntegerDigits();
-        int minIntDig = getMinimumIntegerDigits();
-        if (useExponentialNotation && maxIntDig > MAX_SCIENTIFIC_INTEGER_DIGITS) {
-            maxIntDig = 1;
-	    if (maxIntDig < minIntDig) {
-		maxIntDig = minIntDig;
-	    }
-        }
-	return useExponentialNotation 
-	    ? getMinimumIntegerDigits() + getMaximumFractionDigits() 
-	    : (isIntegral ? 0 : getMaximumFractionDigits());
     }
 
     /**
@@ -879,15 +877,6 @@ public class DecimalFormat extends NumberFormat {
             symbols.getDecimalSeparator();
         int maxIntDig = getMaximumIntegerDigits();
         int minIntDig = getMinimumIntegerDigits();
-        if (useExponentialNotation && maxIntDig > MAX_SCIENTIFIC_INTEGER_DIGITS) {
-            maxIntDig = 1;
-	    if (maxIntDig < minIntDig) {
-		maxIntDig = minIntDig;
-	    }
-        }
-        if (useExponentialNotation && maxIntDig > minIntDig) {
-            minIntDig = 1;
-        }
 
         /* Per bug 4147706, DecimalFormat must respect the sign of numbers which
          * format as zero.  This allows sensible computations and preserves
@@ -1008,13 +997,7 @@ public class DecimalFormat extends NumberFormat {
                 result.append(symbols.getPlusSign());
             }
             digitList.set(exponent);
-            {
-                int expDig = minExponentDigits;
-                if (useExponentialNotation && expDig < 1) {
-                    expDig = 1;
-                }
-                for (i=digitList.decimalAt; i<expDig; ++i) result.append(zero);
-            }
+            for (i=digitList.decimalAt; i<minExponentDigits; ++i) result.append(zero);
             for (i=0; i<digitList.decimalAt; ++i)
             {
                 result.append((i < digitList.count) ?
@@ -2172,11 +2155,7 @@ public class DecimalFormat extends NumberFormat {
 
     /**
      * <strong><font face=helvetica color=red>NEW</font></strong>
-     * Set whether or not scientific notation is used.  When scientific notation
-     * is used, the effective maximum number of integer digits is <= 8.  If the
-     * maximum number of integer digits is set to more than 8, the effective
-     * maximum will be 1.  This allows this call to generate a 'default' scientific
-     * number format without additional changes.
+     * Set whether or not scientific notation is used.
      * @param useScientific true if this object formats and parses scientific
      * notation
      * @see #isScientificNotation
@@ -2188,6 +2167,9 @@ public class DecimalFormat extends NumberFormat {
      */
     public void setScientificNotation(boolean useScientific) {
         useExponentialNotation = useScientific;
+        if (useExponentialNotation && minExponentDigits < 1) {
+            minExponentDigits = 1;
+        }
     }
 
     /**
@@ -2404,25 +2386,6 @@ public class DecimalFormat extends NumberFormat {
                 minExponentDigits == other.minExponentDigits)
             && symbols.equals(other.symbols));
     }
-
-//      protected void handleToString(StringBuffer buf) {
-//          super.handleToString(buf);
-//          buf.append("\nposPrefixPattern: '" + posPrefixPattern + "'\n");
-//          buf.append("positivePrefix: '" + positivePrefix + "'\n");
-//          buf.append("posSuffixPattern: '" + posSuffixPattern + "'\n");
-//          buf.append("positiveSuffix: '" + positiveSuffix + "'\n");
-//          buf.append("negPrefixPattern: '" + Utility.format1ForSource(negPrefixPattern) + "'\n");
-//          buf.append("negativePrefix: '" + Utility.format1ForSource(negativePrefix) + "'\n");
-//          buf.append("negSuffixPattern: '" + negSuffixPattern + "'\n");
-//          buf.append("negativeSuffix: '" + negativeSuffix + "'\n");
-//          buf.append("multiplier: '" + multiplier + "'\n");
-//          buf.append("groupingSize: '" + groupingSize + "'\n");
-//          buf.append("groupingSize2: '" + groupingSize2 + "'\n");
-//          buf.append("decimalSeparatorAlwaysShown: '" + decimalSeparatorAlwaysShown + "'\n");
-//          buf.append("useExponentialNotation: '" + useExponentialNotation + "'\n");
-//          buf.append("minExponentDigits: '" + minExponentDigits + "'\n");
-//          buf.append("symbols: '" + symbols + "'");
-//      }
 
     /**
      * Overrides hashCode
@@ -2755,15 +2718,9 @@ public class DecimalFormat extends NumberFormat {
             if (g > 0 && groupingSize2 > 0 && groupingSize2 != groupingSize) {
                 g += groupingSize2;
             }
-            int maxIntDig = getMaximumIntegerDigits();
-            if (useExponentialNotation) {
-                if (maxIntDig > MAX_SCIENTIFIC_INTEGER_DIGITS) {
-                    maxIntDig = 1;
-                }
-            } else {
-                maxIntDig = (Math.max(Math.max(g, getMinimumIntegerDigits()),
+            int maxIntDig = useExponentialNotation ? getMaximumIntegerDigits() :
+                (Math.max(Math.max(g, getMinimumIntegerDigits()),
                           roundingDecimalPos) + 1);
-            }
             for (i = maxIntDig; i > 0; --i) {
                 if (!useExponentialNotation && i<maxIntDig &&
                     isGroupingPosition(i)) {
@@ -3375,7 +3332,7 @@ public class DecimalFormat extends NumberFormat {
             (negPrefixPattern.equals(posPrefixPattern)
              && negSuffixPattern.equals(posSuffixPattern))) {
             negSuffixPattern = posSuffixPattern;
-            negPrefixPattern = PATTERN_MINUS + posPrefixPattern;
+            negPrefixPattern = symbols.getMinusSign() + posPrefixPattern;
         }
         /*Bug 4212072
           Update the affix strings accroding to symbols in order to keep
@@ -3888,18 +3845,7 @@ public class DecimalFormat extends NumberFormat {
     */
     static final int DOUBLE_INTEGER_DIGITS  = 309;
     static final int DOUBLE_FRACTION_DIGITS = 340;
-
-    /**
-     * When someone turns on scientific mode, we assume that more than this
-     * number of digits is due to flipping from some other mode that didn't
-     * restrict the maximum, and so we force 1 integer digit.  We don't bother
-     * to track and see if someone is using exponential notation with more than
-     * this number, it wouldn't make sense anyway, and this is just to make sure
-     * that someone turning on scientific mode with default settings doesn't
-     * end up with lots of zeroes.
-     */
-    static final int MAX_SCIENTIFIC_INTEGER_DIGITS = 8;
-
+    
     // Proclaim JDK 1.1 serial compatibility.
     static final long serialVersionUID = 864413376551465018L;
 

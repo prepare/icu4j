@@ -6,8 +6,8 @@
 *******************************************************************************
 *
 * $Source: /xsrl/Nsvn/icu/icu4j/build.xml,v $
-* $Date: 2003/10/24 17:57:09 $
-* $Revision: 1.79 $
+* $Date: 2003/06/13 19:27:24 $
+* $Revision: 1.73 $
 *
 *******************************************************************************
 * This is the ant build file for ICU4J.  See readme.html for more information.
@@ -16,44 +16,34 @@
 
 <project name="ICU4J" default="core" basedir=".">
 
-    <!-- ### Begin Clover 1.2 setup ### -->
-    <typedef resource="clovertypes"/>
-    <taskdef resource="clovertasks"/>
+    <!-- ### begin clover setup ### -->
+    <property name="icu4j.tempdir" value="tmp"/>
+    <property name="clover.initstring" value="${icu4j.tempdir}/icu4j.db"/>
+    <path id="clover.classpath">
+    <!-- ***** you will need to change the paths below to point
+               to clover.jar and velocity.jar on your filesystem ***** -->
+    <pathelement path="${java.class.path}/"/>
+    <pathelement location="clover.jar"/>
+    <pathelement location="velocity.jar"/>
+    </path>
 
+    <!-- target to switch Clover on -->
     <target name="with.clover">
-    	<clover-setup initString="tmp/icu4j.db">
-    	     <files>
-       	     	<exclude name="**/dev/**/*.java"/>
-             </files>
-        </clover-setup>
-    </target>
-    <target name="clover.html" depends="with.clover">
-    	<clover-report >
-            <current outfile="icu4j_html" >
-                 <format type="html" /> 
-      	    </current>	 
- 	</clover-report>
-    </target>
-    <target name="clover.log" depends="with.clover">
-        <clover-log level="method">
-             <package name="com.ibm.icu.text"/>
- 	</clover-log>
-        <clover-log level="method">
-             <package name="com.ibm.icu.lang"/>
- 	</clover-log>
-        <clover-log level="method">
-             <package name="com.ibm.icu.math"/>
- 	</clover-log>
-        <clover-log level="method">
-             <package name="com.ibm.icu.util"/>
- 	</clover-log>
-        <clover-log level="method">
-             <package name="com.ibm.icu.impl"/>
- 	</clover-log>
+        <property name="build.compiler" value="org.apache.tools.ant.taskdefs.CloverCompilerAdapter"/>
+
+        <!-- instruct clover to use a class-based instrumentation strategy when instrumenting SimpleTimeZone.java -->
+        <property name="clover.useclass.includes" value="**/SimpleTimeZone.java"/>
     </target>
 
-    <!-- ### End Clover 1.2 setup ### -->
-    
+    <!-- target to generate a Clover html report -->
+    <target name="clover.report">
+    <java classname="com.cortexeb.tools.clover.reporters.html.HtmlReporter" fork="yes">
+        <arg line="--outputdir ${icu4j.tempdir}/icu4j_html --showSrc --initstring ${clover.initstring} --title 'icu4j core'"/>
+        <classpath refid="clover.classpath"/>
+    </java>
+    </target>
+    <!-- ### end clover setup ### -->
+
     <target name="anthack1">
         <!-- It's a real pain to set properties conditionally.
           Ant 1.5 isn't really any better than 1.4, in fact 1.5 enforces that
@@ -66,7 +56,7 @@
         </condition>
 
 	    <condition property="doc.params"
-	        value="-breakiterator -use -tagletpath ./classes -taglet com.ibm.icu.dev.tool.docs.ICUTaglet -group 'ICU Core' 'com.ibm.icu.lang*:com.ibm.icu.math*:com.ibm.icu.text*:com.ibm.icu.util*:com.ibm.icu.stringprep*' -group 'ICU Tools' 'com.ibm.icu.dev*' -group 'Rich Text Editing' 'com.ibm.richtext*'">
+	        value="-breakiterator -use -tagletpath ./classes -taglet com.ibm.icu.dev.tool.docs.ICUTaglet -group 'ICU Core' 'com.ibm.icu.lang*:com.ibm.icu.math*:com.ibm.icu.text*:com.ibm.icu.util*' -group 'ICU Tools' 'com.ibm.icu.dev*' -group 'Rich Text Editing' 'com.ibm.richtext*'">
 	            <equals arg1="${version.1.4}" arg2="true"/>
 	    </condition>
     </target>
@@ -81,8 +71,6 @@
         <property name="build.dir" value="classes"/>
         <property name="doc.dir" value="doc"/>
         <property name="jar.file" value="icu4j.jar"/>
-        <property name="jarSrc.file" value="icu4jsrc.jar"/>
-        <property name="jarDocs.file" value="icu4jdocs.jar"/>
         <property name="icu4j.manifest" value="${src.dir}/com/ibm/icu/manifest.stub"/>
         <property name="icu4j.module.manifest" value="${src.dir}/com/ibm/icu/manifest.module.stub"/>
         <property name="zip.file" value="../icu4j${DSTAMP}.zip"/>
@@ -90,6 +78,7 @@
 
     <path id="build.classpath">
         <pathelement path="${build.dir}"/>
+        <path refid="clover.classpath"/>
     </path>
 
         <property name="richedit.dir" value="richedit"/>
@@ -127,13 +116,14 @@
 
     <!-- core does not build richedit or tests -->
     <target name="core" depends="init,coreData,_resources">
+        <copy file="${src.dir}/com/ibm/icu/impl/data/thai_dict"
+            todir="${build.dir}/com/ibm/icu/impl/data/"/><!-- only needed if you are using html reporter -->
         <javac includes="com/ibm/icu/util/**/*.java,com/ibm/icu/text/**/*.java,com/ibm/icu/math/**/*.java,com/ibm/icu/impl/**/*.java,com/ibm/icu/lang/*.java"
             excludes="**/CVS/**/*"
             srcdir="${src.dir}"
             destdir="${build.dir}"
             classpathref="build.classpath"
-            debug="on" deprecation="off"
-	    encoding="ascii"/>
+            debug="on" deprecation="off"/>
     </target>
 
     <target name="tests" depends="core,testData">
@@ -178,7 +168,7 @@
         <echo message="doc params: ${doc.params}"/>
         <mkdir dir="${doc.dir}"/>
         <javadoc
-            packagenames="com.ibm.icu.lang,com.ibm.icu.text,com.ibm.icu.util,com.ibm.icu.math,com.ibm.icu.stringprep,com.ibm.richtext.demo,com.ibm.richtext.textlayout.attributes,com.ibm.richtext.awtui,com.ibm.richtext.print,com.ibm.richtext.styledtext,com.ibm.richtext.swingui,com.ibm.richtext.textformat,com.ibm.richtext.textpanel"
+            packagenames="com.ibm.icu.lang,com.ibm.icu.text,com.ibm.icu.util,com.ibm.icu.math,com.ibm.richtext.demo,com.ibm.richtext.textlayout.attributes,com.ibm.richtext.awtui,com.ibm.richtext.print,com.ibm.richtext.styledtext,com.ibm.richtext.swingui,com.ibm.richtext.textformat,com.ibm.richtext.textpanel"
             sourcepath="${src.dir}"
             destdir="${doc.dir}"
             nodeprecatedlist="true"
@@ -194,7 +184,7 @@
     <target name ="coreData" depends="init">
         <copy todir="${build.dir}/com/ibm/icu/impl/data">
               <fileset dir="${src.dir}/com/ibm/icu/impl/data"
-                 includes="Transliterator_*.txt,*.icu,*.spp"
+                 includes="Transliterator_*.txt,*.icu"
                  excludes="**/CVS/**/*,Transliterator_Han_Latin_*.txt"/>
         </copy>
     </target>
@@ -208,10 +198,6 @@
                     destdir="${build.dir}"
                     classpathref="build.classpath"
             debug="on" deprecation="off"/>
-         <copy todir="${build.dir}/com/ibm/icu/dev/data">
-              <fileset dir="${src.dir}/com/ibm/icu/dev/data"
-                 includes="*.spp"/>
-        </copy>
     </target>
 
     <!-- builds richedit and richedit tests -->
@@ -227,35 +213,11 @@
         </copy>
     </target>
 
-	<!-- Creates the 3 release jar archives for distribution -->
-	<target name="jarRelease" depends="jar,jarSrc,jarDocs"/>
-	
     <target name="jar" depends="core">
         <jar jarfile="${jar.file}"
             compress="true"
             includes="com/ibm/icu/util/**/*,com/ibm/icu/text/**/*,com/ibm/icu/math/**/*,com/ibm/icu/impl/**/*,com/ibm/icu/lang/**/*"
             basedir="${build.dir}"
-            manifest="${icu4j.manifest}"/>
-    </target>
-
-    <target name="jarSrc" depends="init">
-        <!--Create a jar archive of just the source for distribution.  The
-        zip file will be created in the directory above the root ICU4J
-        directory. The exclude pattern ${src.dir}/com/ibm/icu/dev/data/unicode/UnicodeData-*.txt
-        and ${src.dir}/com/ibm/icu/dev/data/unicode/SpecialCasing-*.txt
-        eliminates old archive copies like SpecialCasing-2.txt and
-        UnicodeData-2.1.8.txt -->
-        <jar jarfile="${jarSrc.file}"
-            compress="true"
-            basedir="."
-            excludes="${richedit.dir}/**/*,test_*,${src.dir}/com/ibm/icu/dev/data/unicode//UnicodeData-*.txt,${src.dir}/com/ibm/icu/dev/data/unicode/SpecialCasing-*.txt,${src.dir}/com/ibm/icu/dev/data/unicode/CompositionExclusions-*.txt,${obsolete.dir}/**,**/*~,${src.dir}/**/*.class,${build.dir}/**,**/CVS/**/*,${doc.dir}/**,${jar.file}"
-          manifest="${icu4j.manifest}"/>
-    </target>
-
-    <target name="jarDocs" depends="docs">
-        <jar jarfile="${jarDocs.file}"
-            compress="true"
-            basedir="${doc.dir}"
             manifest="${icu4j.manifest}"/>
     </target>
 
@@ -300,11 +262,34 @@
             includes="doc/**/*,richedit.jar,license.html"/>
     </target>
 
+    <target name="zip" depends="docs,jar">
+        <!--Create a zip archive of the source, docs, and jar file for
+        distribution.  The zip file will be created in the directory above
+        the root ICU4J directory. The exclude pattern ${src.dir}/com/ibm/icu/dev/data/unicode/UnicodeData-*.txt
+        and ${src.dir}/data/unicode/SpecialCasing-*.txt
+        eliminates old archive copies like SpecialCasing-2.txt and
+        UnicodeData-2.1.8.txt etc -->
+        <zip zipfile="${zip.file}"
+            basedir="."
+            excludes="${richedit.dir}/**/*,test_*,${src.dir}/com/ibm/icu/dev/data/unicode/UnicodeData-*.txt,${src.dir}/com/ibm/icu/dev/data/unicode/SpecialCasing-*.txt,${src.dir}/com/ibm/icu/dev/data/unicode/CompositionExclusions-*.txt,${obsolete.dir}/**,**/*~,${src.dir}/**/*.class,${build.dir}/**,**/CVS/**/*"/>
+    </target>
+
+    <target name="zipSrc" depends="init">
+        <!--Create a zip archive of just the source for distribution.  The
+        zip file will be created in the directory above the root ICU4J
+        directory. The exclude pattern ${src.dir}/com/ibm/icu/dev/data/unicode/UnicodeData-*.txt
+        and ${src.dir}/com/ibm/icu/dev/data/unicode/SpecialCasing-*.txt
+        eliminates old archive copies like SpecialCasing-2.txt and
+        UnicodeData-2.1.8.txt -->
+        <zip zipfile="${zipSrc.file}"
+            basedir="."
+            excludes="${richedit.dir}/**/*,test_*,${src.dir}/com/ibm/icu/dev/data/unicode//UnicodeData-*.txt,${src.dir}/com/ibm/icu/dev/data/unicode/SpecialCasing-*.txt,${src.dir}/com/ibm/icu/dev/data/unicode/CompositionExclusions-*.txt,${obsolete.dir}/**,**/*~,${src.dir}/**/*.class,${build.dir}/**,**/CVS/**/*,${doc.dir}/**,${jar.file}"/>
+    </target>
+
     <target name="check" depends="tests">
     <java classname="com.ibm.icu.dev.test.TestAll" fork="yes">
         <classpath>
                 <pathelement path="${java.class.path}/"/>
-                <!-- pathelement location="clover.jar"-->
                 <pathelement path="${build.dir}"/>
             </classpath>
     </java>
@@ -404,6 +389,9 @@
             Targets to build only Collation API and Collation tests
      -->
     <target name="collator" depends="init,_resources,copyAllICUData">
+
+         <copy file="${src.dir}/com/ibm/icu/impl/data/thai_dict"
+            todir="${build.dir}/com/ibm/icu/impl/data/"/>
 
          <javac includes="com/ibm/icu/text/*Collator*.java,com/ibm/icu/text/*Collation*.java,com/ibm/icu/text/*BreakIterator*.java,com/ibm/icu/text/Normalizer.java,com/ibm/icu/text/UTF16.java,com/ibm/icu/text/Replaceable.java,com/ibm/icu/text/ReplaceableString.java,com/ibm/icu/text/UnicodeFilter.java,com/ibm/icu/text/UnicodeSetIterator.java, com/ibm/icu/impl/data/*Break*.java"
             excludes="**/CVS/**/*, com/ibm/icu/lang/UScriptRun.java,com/ibm/icu/impl/UtilityExtensions.java,com/ibm/icu/impl/UnicodeCharacterIterator.java"
@@ -560,6 +548,9 @@
      -->
     <target name="breakIterator" depends="init,_resources,copyICUPropsData">
 
+         <copy file="${src.dir}/com/ibm/icu/impl/data/thai_dict"
+            todir="${build.dir}/com/ibm/icu/impl/data/"/>
+
          <javac includes="com/ibm/icu/text/*BreakIterator*.java,com/ibm/icu/impl/data/*Break*.java,com/ibm/icu/lang/**/*,com/ibm/icu/impl/UCharacterName.java,com/ibm/icu/impl/ICUListResourceBundle.java,com/ibm/icu/text/UnicodeSetIterator.java"
             excludes="**/CVS/**/*, com/ibm/icu/lang/UScriptRun.java,com/ibm/icu/impl/UtilityExtensions.java,com/ibm/icu/impl/BOCU.java,com/ibm/icu/impl/TrieBuilder.java,com/ibm/icu/impl/IntTrieBuilder.java"
             srcdir="${src.dir}"
@@ -588,17 +579,4 @@
               <fileset dir="${src.dir}/com/ibm/icu/impl/data" includes="Transliterator_Han_Latin_*.txt"/>
         </copy>
     </target>
-	<!-- Taget for builing XLIFF2ICUConverter Jar -->
-	<target name="xliff" depends="init">
-	    <javac includes="com/ibm/icu/dev/tool/localeconverter/XLIFF2ICUConverter.java,com/ibm/icu/dev/tool/localeconverter/CalculateCRC32.java,com/ibm/icu/dev/tool/UOption.java"
-            srcdir="${src.dir}"
-            destdir="${build.dir}"
-            classpathref="build.classpath"
-            debug="on" deprecation="off"/>
-         <jar jarfile="xliff.jar"
-            compress="true"
-            includes="com/ibm/icu/dev/tool/localeconverter/XLIFF2ICUConverter*.class,com/ibm/icu/dev/tool/localeconverter/CalculateCRC32.class,com/ibm/icu/dev/tool/UOption.class"
-            basedir="${build.dir}"
-            manifest="${icu4j.module.manifest}"/>
-     </target>
 </project>

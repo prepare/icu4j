@@ -5,8 +5,8 @@
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/impl/Utility.java,v $
- * $Date: 2003/10/07 18:11:01 $
- * $Revision: 1.48 $
+ * $Date: 2003/06/11 19:55:18 $
+ * $Revision: 1.42 $
  *
  *****************************************************************************************
  */
@@ -723,7 +723,7 @@ public final class Utility {
 
     /**
      * Convert an escape to a 32-bit code point value.  We attempt
-     * to parallel the icu4c unescapeAt() function.
+     * to parallel the icu4c unesacpeAt() function.
      * @param offset16 an array containing offset to the character
      * <em>after</em> the backslash.  Upon return offset16[0] will
      * be updated to point after the escape sequence.
@@ -799,28 +799,6 @@ public final class Utility {
                     return -1;
                 }
                 ++offset;
-            }
-            if (result < 0 || result >= 0x110000) {
-                return -1;
-            }
-            // If an escape sequence specifies a lead surrogate, see
-            // if there is a trail surrogate after it, either as an
-            // escape or as a literal.  If so, join them up into a
-            // supplementary.
-            if (offset < length &&
-                UTF16.isLeadSurrogate((char) result)) {
-                int ahead = offset+1;
-                c = s.charAt(offset); // [sic] get 16-bit code unit
-                if (c == '\\' && ahead < length) {
-                    int o[] = new int[] { ahead };
-                    c = unescapeAt(s, o);
-                    ahead = o[0];
-                }
-                if (UTF16.isTrailSurrogate((char) c)) {
-                    offset = ahead;
-	            result = UCharacterProperty.getRawSupplementary(
-                                  (char) result, (char) c);
-                }
             }
             offset16[0] = offset;
             return result;

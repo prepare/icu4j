@@ -5,8 +5,8 @@
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/text/UnicodeSet.java,v $
- * $Date: 2003/09/29 23:20:06 $
- * $Revision: 1.101 $
+ * $Date: 2003/06/11 19:59:52 $
+ * $Revision: 1.97 $
  *
  *****************************************************************************************
  */
@@ -18,13 +18,12 @@ import com.ibm.icu.lang.*;
 import com.ibm.icu.impl.UCharacterProperty;
 import com.ibm.icu.impl.UPropertyAliases;
 import com.ibm.icu.impl.SortedSetRelation;
-import com.ibm.icu.impl.RuleCharacterIterator;
 import com.ibm.icu.util.VersionInfo;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.TreeSet;
 import java.util.Iterator;
-import java.util.Collection;
+
 
 /**
  * A mutable set of Unicode characters and multicharacter strings.  Objects of this class
@@ -307,6 +306,8 @@ public class UnicodeSet extends UnicodeFilter {
      * certain ranges.  These ranges are ranges of characters whose
      * properties are all exactly alike, e.g. CJK Ideographs from
      * U+4E00 to U+9FA5.
+     *
+     * TODO: Replace this with an API call when such API is implemented.
      */
     private static UnicodeSet INCLUSIONS = null;
     
@@ -401,6 +402,32 @@ public class UnicodeSet extends UnicodeFilter {
         this();
         applyPattern(pattern, pos, symbols, IGNORE_SPACE);
     }
+
+// Removed ICU 2.6
+//    // Delete the following when the category constructor is removed
+//    private static final String CATEGORY_NAMES =
+//        //                    1 1 1 1 1 1 1   1 1 2 2 2 2 2 2 2 2 2
+//        //0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6   8 9 0 1 2 3 4 5 6 7 8
+//        "CnLuLlLtLmLoMnMeMcNdNlNoZsZlZpCcCf--CoCsPdPsPePcPoSmScSkSo";
+//    /**
+//     * DEPRECATED - Constructs a set from the given Unicode character
+//     * category.
+//     * @param category an integer indicating the character category as
+//     * returned by <code>java.lang.Character.getType()</code>.  Note
+//     * that this is <em>different</em> from the UCharacterCategory
+//     * codes.
+//     * @exception java.lang.IllegalArgumentException if the given
+//     * category is invalid.
+//     * @deprecated ICU 0.0 this will be removed Dec-31-2002
+//     */
+//    public UnicodeSet(int category) {
+//        if (category < 0 || category > java.lang.Character.OTHER_SYMBOL ||
+//            category == 17) {
+//            throw new IllegalArgumentException("Invalid category");
+//        }
+//        String pat = "[:" + CATEGORY_NAMES.substring(2*category, 2*category+2) + ":]";
+//        applyPattern(pat, false);
+//    }
 
     /**
      * Return a new set that is equivalent to this one.
@@ -1946,405 +1973,452 @@ public class UnicodeSet extends UnicodeFilter {
         // Need to build the pattern in a temporary string because
         // _applyPattern calls add() etc., which set pat to empty.
         StringBuffer rebuiltPat = new StringBuffer();
-        RuleCharacterIterator chars =
-            new RuleCharacterIterator(pattern, symbols, pos);
-        applyPattern(chars, symbols, rebuiltPat, options);
-        if (chars.inVariable()) {
-            syntaxError(chars, "Extra chars in variable value");
-        }
+        _applyPattern(pattern, pos, symbols, rebuiltPat, options);
         pat = rebuiltPat.toString();
     }
 
-    /**
-     * Parse the pattern from the given RuleCharacterIterator.  The
-     * iterator is advanced over the parsed pattern.
-     * @param chars iterator over the pattern characters.  Upon return
-     * it will be advanced to the first character after the parsed
-     * pattern, or the end of the iteration if all characters are
-     * parsed.
-     * @param symbols symbol table to use to parse and dereference
-     * variables, or null if none.
-     * @param rebuiltPat the pattern that was parsed, rebuilt or
-     * copied from the input pattern, as appropriate.
-     * @param options a bit mask of zero or more of the following:
-     * IGNORE_SPACE, CASE.
-     */
-    void applyPattern(RuleCharacterIterator chars, SymbolTable symbols,
-                      StringBuffer rebuiltPat, int options) {
+    void _applyPattern(String pattern, ParsePosition pos,
+                       SymbolTable symbols, StringBuffer rebuiltPat,
+                       int options) {
 
-        // Syntax characters: [ ] ^ - & { }
-        
-        // Recognized special forms for chars, sets: c-c s-s s&s
+        // If the pattern contains any of the following, we save a
+        // rebuilt (variable-substituted) copy of the source pattern:
+        // - a category
+        // - an intersection or subtraction operator
+        // - an anchor (trailing '$', indicating RBT ether)
+        boolean rebuildPattern = false;
+        StringBuffer newPat = new StringBuffer("[");
+        int nestedPatStart = -1; // see below for usage
+        boolean nestedPatDone = false; // see below for usage
+        StringBuffer multiCharBuffer = new StringBuffer();
 
-        int opts = RuleCharacterIterator.PARSE_VARIABLES |
-                   RuleCharacterIterator.PARSE_ESCAPES;
-        if ((options & IGNORE_SPACE) != 0) {
-            opts |= RuleCharacterIterator.SKIP_WHITESPACE;
-        }
-
-        StringBuffer pat = new StringBuffer(), buf = null;
-        boolean usePat = false;
-        UnicodeSet scratch = null;
-        Object backup = null;
-
-        // mode: 0=before [, 1=between [...], 2=after ]
-        // lastItem: 0=none, 1=char, 2=set
-        int lastItem = 0, lastChar = 0, mode = 0;
-        char op = 0;
 
         boolean invert = false;
-
         clear();
 
-        while (mode != 2 && !chars.atEnd()) {
-            if (false) {
-                // Debugging assertion
-                if (!((lastItem == 0 && op == 0) ||
-                      (lastItem == 1 && (op == 0 || op == '-')) ||
-                      (lastItem == 2 && (op == 0 || op == '-' || op == '&')))) {
-                    throw new IllegalArgumentException();
-                }
-            }
+        final int NONE = -1;
+        int lastChar = NONE; // This is either a char (0..10FFFF) or -1
+        boolean isLastLiteral = false; // TRUE if lastChar was a literal
+        char lastOp = 0;
 
-            int c = 0;
-            boolean literal = false;
-            UnicodeSet nested = null;
+        /* This loop iterates over the characters in the pattern.  We start at
+         * the position specified by pos.  We exit the loop when either a
+         * matching closing ']' is seen, or we read all characters of the
+         * pattern.  In the latter case an error will be thrown.
+         */
 
-            // -------- Check for property pattern
+        /* Pattern syntax:
+         *  pat := '[' '^'? elem* ']'
+         *  elem := a | a '-' a | set | set op set
+         *  set := pat | (a set variable)
+         *  op := '&' | '-'
+         *  a := (a character, possibly defined by a var)
+         */
 
-            // setMode: 0=none, 1=unicodeset, 2=propertypat, 3=preparsed
-            int setMode = 0;
-            if (resemblesPropertyPattern(chars, opts)) {
-                setMode = 2;
-            }
-
-            // -------- Parse '[' of opening delimiter OR nested set.
-            // If there is a nested set, use `setMode' to define how
-            // the set should be parsed.  If the '[' is part of the
-            // opening delimiter for this pattern, parse special
-            // strings "[", "[^", "[-", and "[^-".  Check for stand-in
-            // characters representing a nested set in the symbol
-            // table.
-
-            else {
-                // Prepare to backup if necessary
-                backup = chars.getPos(backup);
-                c = chars.next(opts);
-                literal = chars.isEscaped();
-
-                if (c == '[' && !literal) {
-                    if (mode == 1) {
-                        chars.setPos(backup); // backup
-                        setMode = 1;
-                    } else {
-                        // Handle opening '[' delimiter
-                        mode = 1;
-                        pat.append('[');
-                        backup = chars.getPos(backup); // prepare to backup
-                        c = chars.next(opts);
-                        literal = chars.isEscaped();
-                        if (c == '^' && !literal) {
-                            invert = true;
-                            pat.append('^');
-                            backup = chars.getPos(backup); // prepare to backup
-                            c = chars.next(opts);
-                            literal = chars.isEscaped();
-                        }
-                        // Fall through to handle special leading '-';
-                        // otherwise restart loop for nested [], \p{}, etc.
-                        if (c == '-') {
-                            literal = true;
-                            // Fall through to handle literal '-' below
-                        } else {
-                            chars.setPos(backup); // backup
-                            continue;
-                        }
+        // mode 0: No chars parsed yet; next must be '['
+        // mode 1: '[' seen; if next is '^' or ':' then special
+        // mode 15: "[^" seen; if next is '-' then literal
+        // mode 2: '[' '^'? seen; parse pattern and close with ']'
+        // mode 3: '[:' seen; parse category and close with ':]'
+        // mode 4: ']' seen; parse complete
+        // mode 5: Top-level property pattern seen
+        int mode = 0;
+        int start = pos.getIndex();
+        int i = start;
+        int limit = pattern.length();
+        /* In the case of an embedded SymbolTable variable, we look it up and
+         * then take characters from the resultant char[] array.  These chars
+         * are subjected to an extra level of lookup in the SymbolTable in case
+         * they are stand-ins for a nested UnicodeSet.  */
+        char[] varValueBuffer = null;
+        int ivarValueBuffer = 0;
+        int anchor = 0;
+        int c;
+        while (i<limit) {
+            /* If the next element is a single character, c will be set to it,
+             * and nestedSet will be null.  In this case isLiteral indicates
+             * whether the character should assume special meaning if it has
+             * one.  If the next element is a nested set, either via a variable
+             * reference, or via an embedded "[..]"  or "[:..:]" pattern, then
+             * nestedSet will be set to the pairs list for the nested set, and
+             * c's value should be ignored.
+             */
+            UnicodeSet nestedSet = null;
+            boolean isLiteral = false;
+            if (varValueBuffer != null) {
+                if (ivarValueBuffer < varValueBuffer.length) {
+                    c = UTF16.charAt(varValueBuffer, 0, varValueBuffer.length, ivarValueBuffer);
+                    ivarValueBuffer += UTF16.getCharCount(c);
+                    UnicodeMatcher m = symbols.lookupMatcher(c); // may be NULL
+                    try {
+                        nestedSet = (UnicodeSet) m;
+                    } catch (ClassCastException e) {
+                        throw new IllegalArgumentException("Syntax error");
                     }
-                } else if (symbols != null) {
-                     UnicodeMatcher m = symbols.lookupMatcher(c); // may be null
-                     if (m != null) {
-                         try {
-                             nested = (UnicodeSet) m;
-                             setMode = 3;
-                         } catch (ClassCastException e) {
-                             syntaxError(chars, "Syntax error");
-                         }
-                     }
+                    nestedPatDone = false;
+                } else {
+                    varValueBuffer = null;
+                    c = UTF16.charAt(pattern, i);
+                    i += UTF16.getCharCount(c);
                 }
+            } else {
+                c = UTF16.charAt(pattern, i);
+                i += UTF16.getCharCount(c);
             }
 
-            // -------- Handle a nested set.  This either is inline in
-            // the pattern or represented by a stand-in that has
-            // previously been parsed and was looked up in the symbol
-            // table.
-
-            if (setMode != 0) {
-                if (lastItem == 1) {
-                    if (op != 0) {
-                        syntaxError(chars, "Char expected after operator");
-                    }
-                    add(lastChar, lastChar);
-                    _appendToPat(pat, lastChar, false);
-                    lastItem = op = 0;
-                }
-
-                if (op == '-' || op == '&') {
-                    pat.append(op);
-                }
-
-                if (nested == null) {
-                    if (scratch == null) scratch = new UnicodeSet();
-                    nested = scratch;
-                }
-                switch (setMode) {
-                case 1:
-                    nested.applyPattern(chars, symbols, pat, options);
-                    break;
-                case 2:
-                    chars.skipIgnored(opts);
-                    nested.applyPropertyPattern(chars, pat);
-                    break;
-                case 3: // `nested' already parsed
-                    nested._toPattern(pat, false);
-                    break;
-                }
-
-                usePat = true;
-
-                if (mode == 0) {
-                    // Entire pattern is a category; leave parse loop
-                    set(nested);
-                    mode = 2;
-                    break;
-                }
-
-                switch (op) {
-                case '-':
-                    removeAll(nested);
-                    break;
-                case '&':
-                    retainAll(nested);
-                    break;
-                case 0:
-                    addAll(nested);
-                    break;
-                }
-                
-                op = 0;
-                lastItem = 2;
-
+            if ((options & IGNORE_SPACE) != 0 && UCharacterProperty.isRuleWhiteSpace(c)) {
                 continue;
             }
 
-            if (mode == 0) {
-                syntaxError(chars, "Missing '['");
+            // Keep track of the count of characters after an alleged anchor
+            if (anchor > 0) {
+                ++anchor;
             }
 
-            // -------- Parse special (syntax) characters.  If the
-            // current character is not special, or if it is escaped,
-            // then fall through and handle it below.
-
-            if (!literal) {
-                switch (c) {
-                case ']':
-                    if (lastItem == 1) {
-                        add(lastChar, lastChar);
-                        _appendToPat(pat, lastChar, false);
-                    }
-                    // Treat final trailing '-' as a literal
-                    if (op == '-') {
-                        add(op, op);
-                        pat.append(op);
-                    } else if (op == '&') {
-                        syntaxError(chars, "Trailing '&'");
-                    }
-                    pat.append(']');
-                    mode = 2;
+            // Parse the opening '[' and optional following '^'
+            switch (mode) {
+            case 0:
+                if (resemblesPropertyPattern(pattern, i-1)) {
+                    mode = 3;
+                    break; // Fall through
+                } else if (c == '[') {
+                    mode = 1; // Next look for '^'
                     continue;
-                case '-':
-                    if (op == 0) {
-                        if (lastItem != 0) {
-                            op = (char) c;
-                            continue;
-                        } else {
-                            // Treat final trailing '-' as a literal
-                            add(c, c);
-                            c = chars.next(opts);
-                            literal = chars.isEscaped();
-                            if (c == ']' && !literal) {
-                                pat.append("-]");
-                                mode = 2;
-                                continue;
-                            }
-                        }
-                    }
-                    syntaxError(chars, "'-' not after char or set");
-                case '&':
-                    if (lastItem == 2 && op == 0) {
-                        op = (char) c;
-                        continue;
-                    }
-                    syntaxError(chars, "'&' not after set");
+                } else {
+                    throw new IllegalArgumentException("Missing opening '['");
+                }
+            case 1:
+                mode = 2;
+                switch (c) {
                 case '^':
-                    syntaxError(chars, "'^' not after '['");
-                case '{':
-                    if (op != 0) {
-                        syntaxError(chars, "Missing operand after operator");
+                    invert = true;
+                    newPat.append((char) c);
+                    mode = 15;
+                    continue; // Back to top to fetch next character
+                case '-':
+                    isLiteral = true; // Treat leading '-' as a literal
+                    break; // Fall through
+                }
+                break;
+            case 15:
+                mode = 2;
+                if (c == '-') {
+                    isLiteral = true; // [^-...] starts with literal '-'
+                }
+                break;
+                // else fall through and parse this character normally
+            }
+
+            // After opening matter is parsed ("[", "[^", or "[:"), the mode
+            // will be 2 if we want a closing ']', or 3 if we should parse a
+            // category and close with ":]".
+
+            // Only process escapes, variable references, and nested sets
+            // if we are _not_ retrieving characters from the variable
+            // buffer.  Characters in the variable buffer have already
+            // benn through escape and variable reference processing.
+            if (varValueBuffer == null) {
+                /**
+                 * Handle property set patterns.
+                 */
+                if (resemblesPropertyPattern(pattern, i-1)) {
+                    ParsePosition pp = new ParsePosition(i-1);
+                    nestedSet = new UnicodeSet();
+                    nestedSet.applyPropertyPattern(pattern, pp);
+                    nestedPatStart = newPat.length();
+                    nestedPatDone = true; // we're going to do it just below
+
+                    switch (lastOp) {
+                    case '-':
+                    case '&':
+                        newPat.append(lastOp);
+                        break;
                     }
-                    if (lastItem == 1) {
-                        add(lastChar, lastChar);
-                        _appendToPat(pat, lastChar, false);
+
+                    // If we have a top-level property pattern, then trim
+                    // off the opening '[' and use the property pattern
+                    // as the entire pattern.
+                    if (mode == 3) {
+                        newPat.deleteCharAt(0);
                     }
-                    lastItem = 0;
-                    if (buf == null) {
-                        buf = new StringBuffer();
-                    } else {
-                        buf.setLength(0);
+                    newPat.append(pattern.substring(i-1, pp.getIndex()));
+                    rebuildPattern = true;
+
+                    i = pp.getIndex(); // advance past property pattern
+
+                    if (mode == 3) {
+                        // Entire pattern is a category; leave parse
+                        // loop.  This is one of 2 ways we leave this
+                        // loop if the pattern is well-formed.
+                        set(nestedSet);
+                        mode = 5;
+                        break;
                     }
-                    boolean ok = false;
-                    while (!chars.atEnd()) {
-                        c = chars.next(opts);
-                        literal = chars.isEscaped();
-                        if (c == '}' && !literal) {
-                            ok = true;
-                            break;
+                }
+
+                /* Handle escapes.  If a character is escaped, then it assumes its
+                 * literal value.  This is true for all characters, both special
+                 * characters and characters with no special meaning.  We also
+                 * interpret '\\uxxxx' Unicode escapes here (as literals).
+                 */
+                else if (c == '\\') {
+                    int[] offset = new int[] { i };
+                    int escaped = Utility.unescapeAt(pattern, offset);
+                    if (escaped == -1) {
+                        int sta = Math.max(i - 8, 0);
+                        int lim = Math.min(i + 16, pattern.length());
+                        throw new IllegalArgumentException("Invalid escape sequence " +
+                                                           pattern.substring(sta, i-1) +
+                                                           "|" +
+                                                           pattern.substring(i-1, lim));
+                    }
+                    i = offset[0];
+                    isLiteral = true;
+                    c = escaped;
+                }
+
+                /* Parse variable references.  These are treated as literals.  If a
+                 * variable refers to a UnicodeSet, its stand in character is
+                 * returned in the char[] buffer.
+                 * Variable names are only parsed if varNameToChar is not null.
+                 * Set variables are only looked up if varCharToSet is not null.
+                 */
+                else if (symbols != null && !isLiteral && c == SymbolTable.SYMBOL_REF) {
+                    pos.setIndex(i);
+                    String name = symbols.parseReference(pattern, pos, limit);
+                    if (name != null) {
+                        varValueBuffer = symbols.lookup(name);
+                        if (varValueBuffer == null) {
+                            throw new IllegalArgumentException("Undefined variable: "
+                                                               + name);
                         }
-                        UTF16.append(buf, c);
+                        ivarValueBuffer = 0;
+                        i = pos.getIndex(); // Make i point PAST last char of var name
+                    } else {
+                        // Got a null; this means we have an isolated $.
+                        // Tentatively assume this is an anchor.
+                        anchor = 1;
                     }
-                    if (buf.length() < 1 || !ok) {
-                        syntaxError(chars, "Invalid multicharacter string");
+                    continue; // Back to the top to get varValueBuffer[0]
+                }
+
+                /* An opening bracket indicates the first bracket of a nested
+                 * subpattern.
+                 */
+                else if (!isLiteral && c == '[') {
+                    // Record position before nested pattern
+                    nestedPatStart = newPat.length();
+
+                    // Recurse to get the pairs for this nested set.
+                    // Backup i to '['.
+                    pos.setIndex(--i);
+                    switch (lastOp) {
+                    case '-':
+                    case '&':
+                        newPat.append(lastOp);
+                        break;
+                    }
+                    nestedSet = new UnicodeSet();
+                    nestedSet._applyPattern(pattern, pos, symbols, newPat, options);
+                    nestedPatDone = true;
+                    i = pos.getIndex();
+                } else if (!isLiteral && c == '{') {
+                    // start of a string. find the rest.
+                    int length = 0;
+                    int st = i;
+                    multiCharBuffer.setLength(0);
+                    while (i < pattern.length()) {
+                        int ch = UTF16.charAt(pattern, i);
+                        i += UTF16.getCharCount(ch);
+                        if (ch == '}') {
+                            length = -length; // signal that we saw '}'
+                            break;
+                        } else if (ch == '\\') {
+                            int[] offset = new int[] { i };
+                            ch = Utility.unescapeAt(pattern, offset);
+                            if (ch == -1) {
+                                int sta = Math.max(i - 8, 0);
+                                int lim = Math.min(i + 16, pattern.length());
+                                throw new IllegalArgumentException("Invalid escape sequence " +
+                                                                   pattern.substring(sta, i-1) +
+                                                                   "|" +
+                                                                   pattern.substring(i-1, lim));
+                            }
+                            i = offset[0];
+                        }
+                        --length; // sic; see above
+                        UTF16.append(multiCharBuffer, ch);
+                    }
+                    if (length < 1) {
+                        throw new IllegalArgumentException("Invalid multicharacter string");
                     }
                     // We have new string. Add it to set and continue;
                     // we don't need to drop through to the further
                     // processing
-                    add(buf.toString());
-                    pat.append('{');
-                    _appendToPat(pat, buf.toString(), false);
-                    pat.append('}');
+                    add(multiCharBuffer.toString());
+                    newPat.append('{').append(pattern.substring(st, i));
+                    rebuildPattern = true;
                     continue;
-                case SymbolTable.SYMBOL_REF:
-                    //         symbols  nosymbols
-                    // [a-$]   error    error (ambiguous)
-                    // [a$]    anchor   anchor
-                    // [a-$x]  var "x"* literal '$'
-                    // [a-$.]  error    literal '$'
-                    // *We won't get here in the case of var "x"
-                    backup = chars.getPos(backup);
-                    c = chars.next(opts);
-                    literal = chars.isEscaped();
-                    boolean anchor = (c == ']' && !literal);
-                    if (symbols == null && !anchor) {
-                        c = SymbolTable.SYMBOL_REF;
-                        chars.setPos(backup);
-                        break; // literal '$'
+                }
+            }
+
+            /* At this point we have either a character c, or a nested set.  If
+             * we have encountered a nested set, either embedded in the pattern,
+             * or as a variable, we have a non-null nestedSet, and c should be
+             * ignored.  Otherwise c is the current character, and isLiteral
+             * indicates whether it is an escaped literal (or variable) or a
+             * normal unescaped character.  Unescaped characters '-', '&', and
+             * ']' have special meanings.
+             */
+            if (nestedSet != null) {
+                if (lastChar != NONE) {
+                    if (lastOp != 0) {
+                        throw new IllegalArgumentException("Illegal rhs for " + lastChar + lastOp);
                     }
-                    if (anchor && op == 0) {
-                        if (lastItem == 1) {
-                            add(lastChar, lastChar);
-                            _appendToPat(pat, lastChar, false);
-                        }
-                        add(UnicodeMatcher.ETHER);
-                        usePat = true;
-                        pat.append(SymbolTable.SYMBOL_REF).append(']');
-                        mode = 2;
-                        continue;
+                    add(lastChar, lastChar);
+                    if (nestedPatDone) {
+                        // If there was a character before the nested set,
+                        // then we need to insert it in newPat before the
+                        // pattern for the nested set.  This position was
+                        // recorded in nestedPatStart.
+                        StringBuffer s = new StringBuffer();
+                        _appendToPat(s, lastChar, false);
+                        newPat.insert(nestedPatStart, s.toString());
+                    } else {
+                        _appendToPat(newPat, lastChar, false);
                     }
-                    syntaxError(chars, "Unquoted '$'");
-                default:
+                    lastChar = NONE;
+                }
+                switch (lastOp) {
+                case '-':
+                    removeAll(nestedSet);
+                    break;
+                case '&':
+                    retainAll(nestedSet);
+                    break;
+                case 0:
+                    addAll(nestedSet);
                     break;
                 }
-            }
 
-            // -------- Parse literal characters.  This includes both
-            // escaped chars ("\u4E01") and non-syntax characters
-            // ("a").
-
-            switch (lastItem) {
-            case 0:
-                lastItem = 1;
-                lastChar = c;
-                break;
-            case 1:
-                if (op == '-') {
-                    if (lastChar >= c) {
-                        // Don't allow redundant (a-a) or empty (b-a) ranges;
-                        // these are most likely typos.
-                        syntaxError(chars, "Invalid range");
+                // Get the pattern for the nested set, if we haven't done so
+                // already.
+                if (!nestedPatDone) {
+                    if (lastOp != 0) {
+                        newPat.append(lastOp);
                     }
-                    add(lastChar, c);
-                    _appendToPat(pat, lastChar, false);
-                    pat.append(op);
-                    _appendToPat(pat, c, false);
-                    lastItem = op = 0;
-                } else {
-                    add(lastChar, lastChar);
-                    _appendToPat(pat, lastChar, false);
-                    lastChar = c;
+                    nestedSet._toPattern(newPat, false);
                 }
+                rebuildPattern = true;
+
+                lastOp = 0;
+
+            } else if (!isLiteral && c == ']') {
+                // Final closing delimiter.  This is the only way we leave this
+                // loop if the pattern is well-formed.
+                if (anchor > 2 || anchor == 1) {
+                    throw new IllegalArgumentException("Syntax error near $" + pattern);
+
+                }
+                if (anchor == 2) {
+                    rebuildPattern = true;
+                    newPat.append(SymbolTable.SYMBOL_REF);
+                    add(UnicodeMatcher.ETHER);
+                }
+                mode = 4;
                 break;
-            case 2:
-                if (op != 0) {
-                    syntaxError(chars, "Set expected after operator");
+            } else if (lastOp == 0 && !isLiteral && (c == '-' || c == '&')) {
+                lastOp = (char) c;
+            } else if (lastOp == '-') {
+                if (lastChar >= c || lastChar == NONE) {
+                    // Don't allow redundant (a-a) or empty (b-a) ranges;
+                    // these are most likely typos.
+                    throw new IllegalArgumentException("Invalid range " + lastChar +
+                                                       '-' + c);
+                }
+                add(lastChar, c);
+                _appendToPat(newPat, lastChar, false);
+                newPat.append('-');
+                _appendToPat(newPat, c, false);
+                lastOp = 0;
+                lastChar = NONE;
+            } else if (lastOp != 0) {
+                // We have <set>&<char> or <char>&<char>
+                throw new IllegalArgumentException("Unquoted " + lastOp);
+            } else {
+                if (lastChar != NONE) {
+                    // We have <char><char>
+                    add(lastChar, lastChar);
+                    _appendToPat(newPat, lastChar, false);
                 }
                 lastChar = c;
-                lastItem = 1;
-                break;
+                isLastLiteral = isLiteral;
             }
         }
 
-        if (mode != 2) {
-            syntaxError(chars, "Missing ']'");
+        if (mode < 4) {
+            throw new IllegalArgumentException("Missing ']'");
         }
 
-        chars.skipIgnored(opts);
+        // Treat a trailing '$' as indicating ETHER.  This code is only
+        // executed if symbols == NULL; otherwise other code parses the
+        // anchor.
+        if (lastChar == SymbolTable.SYMBOL_REF && !isLastLiteral) {
+            rebuildPattern = true;
+            newPat.append((char) lastChar);
+            add(UnicodeMatcher.ETHER);
+        }
+
+        else if (lastChar != NONE) {
+            add(lastChar, lastChar);
+            _appendToPat(newPat, lastChar, false);
+        }
+
+        // Handle unprocessed stuff preceding the closing ']'
+        if (lastOp == '-') {
+            // Trailing '-' is treated as literal
+            add(lastOp, lastOp);
+            newPat.append('-');
+        } else if (lastOp == '&') {
+            throw new IllegalArgumentException("Unquoted trailing " + lastOp);
+        }
+
+        if (mode == 4) {
+            newPat.append(']');
+        }
 
         /**
-         * Handle global flags (invert, case insensitivity).  If this
-         * pattern should be compiled case-insensitive, then we need
-         * to close over case BEFORE COMPLEMENTING.  This makes
-         * patterns like /[^abc]/i work.
+         * If this pattern should be compiled case-insensitive, then
+         * we need to close over case BEFORE complementing.  This
+         * makes patterns like /[^abc]/i work.
          */
         if ((options & CASE) != 0) {
             closeOver(CASE);
         }
+
+        /**
+         * If we saw a '^' after the initial '[' of this pattern, then perform
+         * the complement.  (Inversion after '[:' is handled elsewhere.)
+         */
         if (invert) {
             complement();
         }
 
-        // Use the rebuilt pattern (pat) only if necessary.  Prefer the
+        pos.setIndex(i);
+
+        // Use the rebuilt pattern (newPat) only if necessary.  Prefer the
         // generated pattern.
-        if (usePat) {
-            rebuiltPat.append(pat.toString());
+        if (rebuildPattern) {
+            rebuiltPat.append(newPat.toString());
         } else {
             _generatePattern(rebuiltPat, false);
         }
-    }
 
-    private static void syntaxError(RuleCharacterIterator chars, String msg) {
-        throw new IllegalArgumentException("Error: " + msg + " at \"" +
-                                           Utility.escape(chars.toString()) +
-                                           '"');
-    }
-
-    /**
-     * Add the contents of the UnicodeSet (as strings) into a collection.
-     * @param target collection to add into
-     */
-    public void addAllTo(Collection target) {
-        UnicodeSetIterator it = new UnicodeSetIterator(this);
-        while (it.next()) {
-            target.add(it.getString());
-        }
-    }
-
-    /**
-     * Add the contents of the collection (as strings) into this UnicodeSet.
-     * @param source
-     */
-    public void addAll(Collection source) {
-        Iterator it = source.iterator();
-        while (it.hasNext()) {
-            source.add(it.next().toString());
+        if (false) {
+            // Debug parser
+            System.out.println("UnicodeSet(" +
+                               pattern.substring(start, i+1) + ") -> " +
+                               Utility.escape(toString()));
         }
     }
 
@@ -2902,7 +2976,7 @@ public class UnicodeSet extends UnicodeFilter {
                             return this;
                         } else {
                             // Property name was never matched.
-                            throw new IllegalArgumentException("Invalid property alias: " + propertyAlias + "=" + valueAlias);
+                            throw new IllegalArgumentException("Invalid property alias");
                         }
                     } else {
                         // Valid propery name, but it isn't binary, so the value
@@ -2942,29 +3016,6 @@ public class UnicodeSet extends UnicodeFilter {
         return pattern.regionMatches(pos, "[:", 0, 2) ||
             pattern.regionMatches(true, pos, "\\p", 0, 2) ||
             pattern.regionMatches(pos, "\\N", 0, 2);
-    }
-
-    /**
-     * Return true if the given iterator appears to point at a
-     * property pattern.  Regardless of the result, return with the
-     * iterator unchanged.
-     * @param chars iterator over the pattern characters.  Upon return
-     * it will be unchanged.
-     * @param iterOpts RuleCharacterIterator options
-     */
-    private static boolean resemblesPropertyPattern(RuleCharacterIterator chars,
-                                                    int iterOpts) {
-        boolean result = false;
-        iterOpts &= ~RuleCharacterIterator.PARSE_ESCAPES;
-        Object pos = chars.getPos(null);
-        int c = chars.next(iterOpts);
-        if (c == '[' || c == '\\') {
-            int d = chars.next(iterOpts & ~RuleCharacterIterator.SKIP_WHITESPACE);
-            result = (c == '[') ? (d == ':') :
-                     (d == 'N' || d == 'p' || d == 'P');
-        }
-        chars.setPos(pos);
-        return result;
     }
 
     /**
@@ -3052,27 +3103,6 @@ public class UnicodeSet extends UnicodeFilter {
         ppos.setIndex(close + (posix ? 2 : 1));
 
         return this;
-    }
-
-    /**
-     * Parse a property pattern.
-     * @param chars iterator over the pattern characters.  Upon return
-     * it will be advanced to the first character after the parsed
-     * pattern, or the end of the iteration if all characters are
-     * parsed.
-     * @param rebuiltPat the pattern that was parsed, rebuilt or
-     * copied from the input pattern, as appropriate.
-     */
-    private void applyPropertyPattern(RuleCharacterIterator chars,
-                                      StringBuffer rebuiltPat) {
-        String pat = chars.lookahead();
-        ParsePosition pos = new ParsePosition(0);
-        applyPropertyPattern(pat, pos);
-        if (pos.getIndex() == 0) {
-            syntaxError(chars, "Invalid property pattern");
-        }
-        chars.jumpahead(pos.getIndex());
-        rebuiltPat.append(pat.substring(0, pos.getIndex()));
     }
 
     //----------------------------------------------------------------

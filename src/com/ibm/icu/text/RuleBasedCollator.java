@@ -5,8 +5,8 @@
 *******************************************************************************
 *
 * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/text/RuleBasedCollator.java,v $
-* $Date: 2003/10/08 21:51:44 $
-* $Revision: 1.48 $
+* $Date: 2003/08/25 23:23:12 $
+* $Revision: 1.44 $
 *
 *******************************************************************************
 */
@@ -19,6 +19,7 @@ import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.Arrays;
 import java.text.CharacterIterator;
+import java.text.StringCharacterIterator;
 import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.util.VersionInfo;
 import com.ibm.icu.impl.IntTrie;
@@ -27,7 +28,6 @@ import com.ibm.icu.impl.ICULocaleData;
 import com.ibm.icu.impl.BOCU;
 import com.ibm.icu.impl.Utility;
 import com.ibm.icu.impl.ICUDebug;
-import com.ibm.icu.impl.StringUCharacterIterator;
 
 /**
  * <p>RuleBasedCollator is a concrete subclass of Collator. It allows
@@ -255,19 +255,6 @@ public final class RuleBasedCollator extends Collator
         CharacterIterator newsource = (CharacterIterator)source.clone();
         return new CollationElementIterator(newsource, this);
     }
-    
-    /**
-     * Return a CollationElementIterator for the given UCharacterIterator.
-     * The source iterator's integrity will be preserved since a new copy
-     * will be created for use.
-     * @see CollationElementIterator
-     * @draft ICU 2.8
-     */
-    public CollationElementIterator getCollationElementIterator(
-                                                UCharacterIterator source)
-    {
-        return new CollationElementIterator(source, this);
-    }
 
     // public setters --------------------------------------------------------
 
@@ -459,20 +446,6 @@ public final class RuleBasedCollator extends Collator
     }
     
     /**
-     * Method to set numeric collation to its default value.
-     * When numeric collation is turned on, this Collator generates a collation 
-     * key for the numeric value of substrings of digits. This is a way to get 
-     * '100' to sort AFTER '2'
-     * @see #getNumericCollation
-     * @see #setNumericCollation
-     * @draft ICU 2.8
-     */
-    public void setNumericCollationDefault()
-    {
-        setNumericCollation(m_defaultIsNumericCollation_);
-    }
-
-    /**
      * Sets the mode for the direction of SECONDARY weights to be used in
      * French collation.
      * The default value is false, which treats SECONDARY weights in the order
@@ -652,21 +625,6 @@ public final class RuleBasedCollator extends Collator
         m_variableTopValue_ = (varTop & CE_PRIMARY_MASK_) >> 16;
     }
     
-    /**
-     * When numeric collation is turned on, this Collator generates a collation 
-     * key for the numeric value of substrings of digits. This is a way to get 
-     * '100' to sort AFTER '2'
-     * @param flag true to turn numeric collation on and false to turn it off
-     * @see #getNumericCollation
-     * @see #setNumericCollationDefault
-     * @draft ICU 2.8
-     */
-    public void setNumericCollation(boolean flag)
-    {
-        // sort substrings of digits as numbers
-        m_isNumericCollation_ = flag;
-    }
-
     // public getters --------------------------------------------------------
 
     /**
@@ -742,37 +700,9 @@ public final class RuleBasedCollator extends Collator
      *         null, a null CollationKey is returned.
      * @see CollationKey
      * @see #compare(String, String)
-     * @see #getRawCollationKey
      * @draft ICU 2.2
      */
-    public CollationKey getCollationKey(String source) {
-        if (source == null) {
-            return null;
-        }
-        m_utilRawCollationKey_ = getRawCollationKey(source, 
-                                                    m_utilRawCollationKey_);
-        return new CollationKey(source, m_utilRawCollationKey_);
-    }
-    
-    /**
-     * Gets the simpler form of a CollationKey for the String source following
-     * the rules of this Collator and stores the result into the user provided 
-     * argument key. 
-     * If key has a internal byte array of length that's too small for the 
-     * result, the internal byte array will be grown to the exact required 
-     * size.
-     * @param source the text String to be transformed into a RawCollationKey  
-     * @param key output RawCollationKey to store results
-     * @return If key is null, a new instance of RawCollationKey will be 
-     *         created and returned, otherwise the user provided key will be 
-     *         returned.
-     * @see #getCollationKey 
-     * @see #compare(String, String)
-     * @see RawCollationKey
-     * @draft ICU 2.8
-     */
-    public RawCollationKey getRawCollationKey(String source, 
-                                              RawCollationKey key)
+    public CollationKey getCollationKey(String source)
     {
         if (source == null) {
             return null;
@@ -827,11 +757,9 @@ public final class RuleBasedCollator extends Collator
         }
         getSortKeyBytes(source, doFrench, hiragana4, commonBottom4,
                         bottomCount4);
-        if (key == null) {
-            key = new RawCollationKey();
-        }
-        getSortKey(source, doFrench, commonBottom4, bottomCount4, key);
-        return key;
+        byte sortkey[] = getSortKey(source, doFrench, commonBottom4,
+                                    bottomCount4);
+        return new CollationKey(source, sortkey);
     }
 
     /**
@@ -933,21 +861,6 @@ public final class RuleBasedCollator extends Collator
     public int getVariableTop()
     {
           return m_variableTopValue_ << 16;
-    }
-    
-    /** 
-     * Method to retrieve the numeric collation value.
-     * When numeric collation is turned on, this Collator generates a collation 
-     * key for the numeric value of substrings of digits. This is a way to get 
-     * '100' to sort AFTER '2'
-     * @see #setNumericCollation
-     * @see #setNumericCollationDefault
-     * @return true if numeric collation is turned on, false otherwise
-     * @draft ICU 2.8
-     */
-    public boolean getNumericCollation()
-    {
-        return m_isNumericCollation_;
     }
     
     // public other methods -------------------------------------------------
@@ -1078,13 +991,6 @@ public final class RuleBasedCollator extends Collator
      * If comparison are to be done to the same String multiple times, it would
      * be more efficient to generate CollationKeys for the Strings and use
      * CollationKey.compareTo(CollationKey) for the comparisons.
-     * If speed performance is critical and object instantiation is to be 
-     * reduced, further optimization may be achieved by generating a simpler 
-     * key of the form RawCollationKey and reusing this RawCollationKey 
-     * object with the method RuleBasedCollator.getRawCollationKey. Internal 
-     * byte representation can be directly accessed via RawCollationKey and
-     * stored for future use. Like CollationKey, RawCollationKey provides a
-     * method RawCollationKey.compareTo for key comparisons.
      * If the each Strings are compared to only once, using the method
      * RuleBasedCollator.compare(String, String) will have a better performance.
      * </p>
@@ -1418,7 +1324,6 @@ public final class RuleBasedCollator extends Collator
     boolean m_isJamoSpecial_;
 
     // Collator options ------------------------------------------------------
-    
     int m_defaultVariableTopValue_;
     boolean m_defaultIsFrenchCollation_;
     boolean m_defaultIsAlternateHandlingShifted_;
@@ -1427,8 +1332,6 @@ public final class RuleBasedCollator extends Collator
     int m_defaultDecomposition_;
     int m_defaultStrength_;
     boolean m_defaultIsHiragana4_;
-    boolean m_defaultIsNumericCollation_;
-    
     /**
      * Value of the variable top
      */
@@ -1441,10 +1344,6 @@ public final class RuleBasedCollator extends Collator
      * Case sorting customization
      */
     int m_caseFirst_;
-    /**
-     * Numeric collation option
-     */
-    boolean m_isNumericCollation_;
 
     // end Collator options --------------------------------------------------
 
@@ -1616,9 +1515,10 @@ public final class RuleBasedCollator extends Collator
                 Object elements = rb.getObject("CollationElements");
                 if (elements != null) {
                     Object[][] rules = (Object[][])elements;
+                    m_rules_ = (String)rules[1][1];
                     // %%CollationBin
                     if(rules[0][1] instanceof byte[]){
-                        m_rules_ = (String)rules[1][1];
+
                         byte map[] = (byte [])rules[0][1];
                         BufferedInputStream input =
                                                  new BufferedInputStream(
@@ -1643,13 +1543,11 @@ public final class RuleBasedCollator extends Collator
                         }
                         init();
                         return;
-                    }
-                    else {
+                    }else{
                         // due to resource redirection ICUListResourceBundle does not
                         // raise missing resource error
                         //throw new MissingResourceException("Could not get resource for constructing RuleBasedCollator","com.ibm.icu.impl.data.LocaleElements_"+locale.toString(), "%%CollationBin");
-                        m_rules_ = (String)rules[0][1];
-                        init(m_rules_);
+                        init((String)rules[1][1]);
                         return;
                     }
                 }
@@ -1708,7 +1606,6 @@ public final class RuleBasedCollator extends Collator
         m_defaultIsHiragana4_ = UCA_.m_defaultIsHiragana4_;
         m_defaultStrength_ = UCA_.m_defaultStrength_;
         m_defaultVariableTopValue_ = UCA_.m_defaultVariableTopValue_;
-        m_defaultIsNumericCollation_ = UCA_.m_defaultIsNumericCollation_;
         m_expansionOffset_ = UCA_.m_expansionOffset_;
         m_isAlternateHandlingShifted_ = UCA_.m_isAlternateHandlingShifted_;
         m_isCaseLevel_ = UCA_.m_isCaseLevel_;
@@ -1724,7 +1621,6 @@ public final class RuleBasedCollator extends Collator
         m_top3_ = UCA_.m_top3_;
         m_topCount3_ = UCA_.m_topCount3_;
         m_variableTopValue_ = UCA_.m_variableTopValue_;
-        m_isNumericCollation_ = UCA_.m_isNumericCollation_;
         setWithUCATables();
         latinOneFailed_ = false;
     }
@@ -1744,10 +1640,9 @@ public final class RuleBasedCollator extends Collator
         if (ch < m_minUnsafe_) {
             return false;
         }
-        
+
         if (ch >= (HEURISTIC_SIZE_ << HEURISTIC_SHIFT_)) {
-            if (UTF16.isLeadSurrogate(ch) 
-                || UTF16.isTrailSurrogate(ch)) {
+            if (UTF16.isLeadSurrogate(ch) || UTF16.isTrailSurrogate(ch)) {
                 //  Trail surrogate are always considered unsafe.
                 return true;
             }
@@ -1923,7 +1818,7 @@ public final class RuleBasedCollator extends Collator
      * Minimum size required for the binary collation data in bytes.
      * Size of UCA header + size of options to 4 bytes
      */
-    private static final int MIN_BINARY_DATA_SIZE_ = (42 + 25) << 2;
+    private static final int MIN_BINARY_DATA_SIZE_ = (42 + 24) << 2;
 
     /**
      * If this collator is to generate only simple tertiaries for fast path
@@ -1980,9 +1875,9 @@ public final class RuleBasedCollator extends Collator
     /**
      * Bunch of utility iterators
      */
-    private StringUCharacterIterator m_srcUtilIter_;
+    private StringCharacterIterator m_srcUtilIter_;
     private CollationElementIterator m_srcUtilColEIter_;
-    private StringUCharacterIterator m_tgtUtilIter_;
+    private StringCharacterIterator m_tgtUtilIter_;
     private CollationElementIterator m_tgtUtilColEIter_;
     /**
      * Utility comparison flags
@@ -2002,7 +1897,6 @@ public final class RuleBasedCollator extends Collator
     private byte m_utilBytes3_[];
     private byte m_utilBytes4_[];
     private byte m_utilBytes5_[];
-    private RawCollationKey m_utilRawCollationKey_;
 
     private int m_utilBytesCount0_;
     private int m_utilBytesCount1_;
@@ -2619,12 +2513,10 @@ public final class RuleBasedCollator extends Collator
      *                  be done
      * @param commonBottom4 smallest common quaternary byte
      * @param bottomCount4 smallest quaternary byte
-     * @param key output RawCollationKey to store results, key cannot be null
+     * @return the compact sortkey
      */
-    private final void getSortKey(String source, boolean doFrench,
-                                             int commonBottom4, 
-                                             int bottomCount4,
-                                             RawCollationKey key)
+    private final byte[] getSortKey(String source, boolean doFrench,
+                                    int commonBottom4, int bottomCount4)
     {
         // we have done all the CE's, now let's put them together to form
         // a key
@@ -2646,8 +2538,8 @@ public final class RuleBasedCollator extends Collator
         }
         m_utilBytes1_ = append(m_utilBytes1_, m_utilBytesCount1_, (byte)0);
         m_utilBytesCount1_ ++;
-
-        key.set(m_utilBytes1_, 0, m_utilBytesCount1_);
+        byte result[] = (byte [])m_utilBytes1_.clone();
+        return result;
     }
 
     /**
@@ -2971,13 +2863,10 @@ public final class RuleBasedCollator extends Collator
     private static final byte[] append(byte array[], int appendindex,
                                        byte value)
     {
-        try {
-            array[appendindex] = value;
-        }
-        catch (ArrayIndexOutOfBoundsException e) {
+        if (appendindex + 1 >= array.length) {
             array = increase(array, appendindex, SORT_BUFFER_INIT_SIZE_);
-            array[appendindex] = value;
         }
+        array[appendindex] = value;
         return array;
     }
 
@@ -2991,11 +2880,9 @@ public final class RuleBasedCollator extends Collator
     private final int compareBySortKeys(String source, String target)
 
     {
-        m_utilRawCollationKey_ = getRawCollationKey(source, 
-                                                    m_utilRawCollationKey_);
-        // this method is very seldom called
-        RawCollationKey targetkey = getRawCollationKey(target, null);
-        return m_utilRawCollationKey_.compareTo(targetkey);
+        CollationKey sourcekey = getCollationKey(source);
+        CollationKey targetkey = getCollationKey(target);
+        return sourcekey.compareTo(targetkey);
     }
 
     /**
@@ -3792,7 +3679,6 @@ public final class RuleBasedCollator extends Collator
         m_isCaseLevel_ = m_defaultIsCaseLevel_;
         m_caseFirst_ = m_defaultCaseFirst_;
         m_isHiragana4_ = m_defaultIsHiragana4_;
-        m_isNumericCollation_ = m_defaultIsNumericCollation_;
         latinOneFailed_ = false;
         updateInternalState();
     }
@@ -3801,9 +3687,9 @@ public final class RuleBasedCollator extends Collator
      *  Initializes utility iterators and byte buffer used by compare
      */
     private final void initUtility() {
-       m_srcUtilIter_ = new StringUCharacterIterator();
+       m_srcUtilIter_ = new StringCharacterIterator(new String(""));
        m_srcUtilColEIter_ = new CollationElementIterator(m_srcUtilIter_, this);
-       m_tgtUtilIter_ = new StringUCharacterIterator();
+       m_tgtUtilIter_ = new StringCharacterIterator(new String(""));
        m_tgtUtilColEIter_ = new CollationElementIterator(m_tgtUtilIter_, this);
        m_utilBytes0_ = new byte[SORT_BUFFER_INIT_SIZE_CASE_]; // case
        m_utilBytes1_ = new byte[SORT_BUFFER_INIT_SIZE_1_]; // primary

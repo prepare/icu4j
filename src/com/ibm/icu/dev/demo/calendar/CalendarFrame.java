@@ -5,50 +5,27 @@
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/dev/demo/calendar/CalendarFrame.java,v $ 
- * $Date: 2003/10/02 20:50:56 $ 
- * $Revision: 1.14 $
+ * $Date: 2003/06/03 18:49:27 $ 
+ * $Revision: 1.12 $
  *
  *****************************************************************************************
  */
 
 package com.ibm.icu.dev.demo.calendar;
 
-import java.awt.BorderLayout;
-import java.awt.Button;
-import java.awt.Choice;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Container;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
-import java.awt.Font;
-import java.awt.FontMetrics;
-import java.awt.Frame;
-import java.awt.Graphics;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Label;
-import java.awt.Panel;
-import java.awt.Rectangle;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.ItemEvent;
-import java.awt.event.ItemListener;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
-import java.util.Date;
-import java.util.Locale;
-
-import com.ibm.icu.dev.demo.impl.DemoApplet;
-import com.ibm.icu.dev.demo.impl.DemoUtility;
-import com.ibm.icu.text.DateFormat;
-import com.ibm.icu.util.BuddhistCalendar;
 import com.ibm.icu.util.Calendar;
-import com.ibm.icu.util.GregorianCalendar;
 import com.ibm.icu.util.HebrewCalendar;
-import com.ibm.icu.util.IslamicCalendar;
+import com.ibm.icu.util.BuddhistCalendar;
 import com.ibm.icu.util.JapaneseCalendar;
+import com.ibm.icu.util.IslamicCalendar;
 import com.ibm.icu.util.SimpleTimeZone;
+import java.awt.*;
+import java.awt.event.*;
+import com.ibm.icu.text.DateFormat;
+import java.util.Date;
+import com.ibm.icu.util.GregorianCalendar;
+import java.util.Locale;
+import com.ibm.icu.dev.demo.impl.*;
 
 /**
  * A Frame is a top-level window with a title. The default layout for a frame
@@ -261,6 +238,11 @@ class CalendarFrame extends Frame
                             com.ibm.icu.text.SimpleDateFormat f1 = (com.ibm.icu.text.SimpleDateFormat) f;
                             f1.applyPattern("MMMM, yyyy G");
                             f1.setTimeZone(new SimpleTimeZone(0, "UTC"));
+//hey {al} -
+//                        } else if (f instanceof java.text.SimpleDateFormat) {
+//                            java.text.SimpleDateFormat f1 = (java.text.SimpleDateFormat) f;
+//                            f1.applyPattern("MMMM, yyyy G");
+//                            f1.setTimeZone(new SimpleTimeZone(0, "UTC"));
                         }
                         monthFormat[i] = f;
                     }

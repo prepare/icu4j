@@ -5,8 +5,8 @@
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/impl/ICUBinary.java,v $
- * $Date: 2003/09/19 00:14:36 $
- * $Revision: 1.8 $
+ * $Date: 2002/10/09 23:53:24 $
+ * $Revision: 1.7 $
  *  *****************************************************************************************
  */
 package com.ibm.icu.impl;
@@ -91,42 +91,39 @@ public final class ICUBinary
     {
         DataInputStream input = new DataInputStream(inputStream);
         char headersize = input.readChar();
-        int readcount = 2;
+        headersize -= 2;
         //reading the header format
         byte magic1 = input.readByte();
-        readcount ++;
+        headersize --;
         byte magic2 = input.readByte();
-        readcount ++;
+        headersize --;
         if (magic1 != MAGIC1 || magic2 != MAGIC2) {
             throw new IOException(MAGIC_NUMBER_AUTHENTICATION_FAILED_);
         }
         
         input.readChar(); // reading size
-        readcount += 2;
+        headersize -= 2;
         input.readChar(); // reading reserved word
-        readcount += 2;
+        headersize -= 2;
         byte bigendian    = input.readByte();
-        readcount ++;
+        headersize --;
         byte charset      = input.readByte();
-        readcount ++;
+        headersize --;
         byte charsize     = input.readByte();
-        readcount ++;
+        headersize --;
         input.readByte(); // reading reserved byte
-        readcount ++;
+        headersize --;
                 
         byte dataFormatID[] = new byte[4];
         input.readFully(dataFormatID);
-        readcount += 4;
+        headersize -= 4;
         byte dataVersion[] = new byte[4];
         input.readFully(dataVersion);
-        readcount += 4;
+        headersize -= 4;
         byte unicodeVersion[] = new byte[4];
         input.readFully(unicodeVersion);
-        readcount += 4;
-        if (headersize < readcount) {
-            throw new IOException("Internal Error: Header size error");
-        }
-        input.skipBytes(headersize - readcount);
+        headersize -= 4;
+        input.skipBytes(headersize);
 
         if (bigendian != BIG_ENDIAN_ || charset != CHAR_SET_
             || charsize != CHAR_SIZE_

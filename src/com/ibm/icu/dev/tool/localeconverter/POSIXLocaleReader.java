@@ -5,8 +5,8 @@
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/dev/tool/localeconverter/POSIXLocaleReader.java,v $ 
- * $Date: 2003/09/10 23:36:08 $ 
- * $Revision: 1.5 $
+ * $Date: 2002/08/01 00:08:57 $ 
+ * $Revision: 1.3 $
  *
  *****************************************************************************************
  */
@@ -184,9 +184,7 @@ public class POSIXLocaleReader {
                     s = p.nextToken();
                     if (s == TAG_TOKEN || p.getData().length() != 1) {
                         String comment_char = p.getData();
-                        if(comment_char.length() > 0){
-                            EOLTransition.setCommentChar(comment_char.charAt(0));
-                        }
+                        EOLTransition.setCommentChar(comment_char.charAt(0));
                     } else {
                         System.out.println("Error in escape_char directive.  Directive ignored.");
                     }
@@ -227,8 +225,6 @@ public class POSIXLocaleReader {
             p.accept(TAG_TOKEN, "LC_CTYPE");
         } else {
             while ((s == TAG_TOKEN) && !p.dataEquals("END")) {  
-                //IGNORE the CTYPE definition ... we dont need it
-                
                 String key = p.getData();
                 temp.setLength(0);
                 p.accept(TAG_TOKEN);
@@ -240,13 +236,11 @@ public class POSIXLocaleReader {
                     s = p.nextToken();
                 }
                 if (s != EOL_TOKEN) {
-                    System.err.println("WARNING: Could not parse the Unexpected token: Expecting EOL got "+s);
+                    throw new IOException();
                 } else {
                     table.put(key, temp.toString());
                 }
-                
                 s = p.nextToken();
-                
             }
             p.accept(TAG_TOKEN, "LC_CTYPE");
         }
@@ -306,7 +300,7 @@ public class POSIXLocaleReader {
         }
         input.accept(TAG_TOKEN, sectionTag);
     }
-
+    
     private void parseCOLLATE(Hashtable table, PushbackReader reader) 
             throws IOException {
         PosixCharMap map = new PosixCharMap(SymbolTransition.getCharMap());

@@ -5,8 +5,8 @@
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/dev/test/collator/CollationTest.java,v $
- * $Date: 2003/10/09 23:27:16 $
- * $Revision: 1.15 $
+ * $Date: 2003/07/29 23:08:06 $
+ * $Revision: 1.13 $
  *
  *******************************************************************************
  */
@@ -17,7 +17,6 @@ import com.ibm.icu.dev.test.TestFmwk;
 import com.ibm.icu.text.RuleBasedCollator;
 import com.ibm.icu.text.Collator;
 import com.ibm.icu.text.CollationKey;
-import com.ibm.icu.text.RawCollationKey;
 import com.ibm.icu.text.CollationElementIterator;
 import com.ibm.icu.text.UTF16;
 import com.ibm.icu.lang.UCharacter;
@@ -117,10 +116,18 @@ public class CollationTest extends ModuleTest
     
         while ((o = iter.previous()) != CollationElementIterator.NULLORDER) {
             if (o != orders[--index]) {
-                test.errln("Mismatch at index " + index + ": 0x" 
-                           + Integer.toHexString(orders[index]) + " vs 0x" 
-                           + Integer.toHexString(o));
-                break;
+                if (o == 0) {
+                    index ++;
+                } else {
+                    while (index > 0 && orders[index] == 0) {
+                        index --;
+                    } 
+                    if (o != orders[index]) {
+                        test.errln("Mismatch at index " + index + ": 0x" 
+                            + Integer.toHexString(orders[index]) + " vs 0x" + Integer.toHexString(o));
+                        break;
+                    }
+                }
             }
         }
     
@@ -431,22 +438,7 @@ public class CollationTest extends ModuleTest
         if (compareResult != result) {
             printInfo = true;
             if(!test.isModularBuild()){
-                test.errln("Comparing CollationKeys of \"" + Utility.hex(source) 
-                           + "\" with \"" + Utility.hex(target) 
-                           + "\" expected " + result + " but got " 
-                           + compareResult);
-           }
-        }
-        RawCollationKey srsk = new RawCollationKey();
-        myCollation.getRawCollationKey(source, srsk);
-        RawCollationKey trsk = new RawCollationKey();
-        myCollation.getRawCollationKey(target, trsk);
-        compareResult = ssk.compareTo(tsk);
-        if (compareResult != result) {
-            printInfo = true;
-            if(!test.isModularBuild()){
-                test.errln("Comparing RawCollationKeys of \"" 
-                           + Utility.hex(source) 
+                test.errln("Comparing sortkeys of \"" + Utility.hex(source) 
                            + "\" with \"" + Utility.hex(target) 
                            + "\" expected " + result + " but got " 
                            + compareResult);

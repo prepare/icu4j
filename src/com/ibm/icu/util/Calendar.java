@@ -13,7 +13,6 @@ import com.ibm.icu.impl.ICULocaleService.LocaleKeyFactory;
 import com.ibm.icu.text.DateFormat;
 import com.ibm.icu.text.DateFormatSymbols;
 import com.ibm.icu.text.SimpleDateFormat;
-import com.ibm.icu.util.TimeZone;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -3753,9 +3752,8 @@ public abstract class Calendar implements Serializable, Cloneable {
      * @stable ICU 2.0
      */
     protected void computeFields() {
-        int offsets[] = new int[2];
-        getTimeZone().getOffset(time, false, offsets);
-        long localMillis = time + offsets[0] + offsets[1];
+        int rawOffset = getTimeZone().getRawOffset();
+        long localMillis = time + rawOffset;
 
         // Mark fields as set.  Do this before calling handleComputeFields().
         int mask = internalSetMask;
@@ -3777,12 +3775,47 @@ public abstract class Calendar implements Serializable, Cloneable {
         // JULIAN_DAY field and also removes some inelegant code. - Liu
         // 11/6/00
 
-        long days = floorDivide(localMillis, ONE_DAY);
-        fields[JULIAN_DAY] = (int) days + EPOCH_JULIAN_DAY;
+        fields[JULIAN_DAY] = (int) floorDivide(localMillis, ONE_DAY) +
+            EPOCH_JULIAN_DAY;
 
         // In some cases we will have to call this method again below to
         // adjust for DST pushing us into the next Julian day.
         computeGregorianAndDOWFields(fields[JULIAN_DAY]);
+
+        long days = (long) (localMillis / ONE_DAY);
+        int millisInDay = (int) (localMillis - (days * ONE_DAY));
+        if (millisInDay < 0) millisInDay += ONE_DAY;
+
+        // Call getOffset() to get the TimeZone offset.  The millisInDay value
+        // must be _standard_ local zone millis.
+        int dstOffset = getTimeZone().getOffset(
+                gregorianYear, gregorianMonth,
+                gregorianDayOfMonth,
+                fields[DAY_OF_WEEK],
+                millisInDay,
+                gregorianMonthLength(gregorianYear, gregorianMonth),
+                gregorianPreviousMonthLength(gregorianYear, gregorianMonth))
+            - rawOffset;
+
+        // Adjust our millisInDay for DST.  dstOffset will be zero if DST
+        // is not in effect at this time of year, or if our zone does not
+        // use DST.
+        millisInDay += dstOffset;
+
+        // If DST has pushed us into the next day, we must call
+        // computeGregorianAndDOWFields() again.  This happens in DST between
+        // 12:00 am and 1:00 am every day.  The first call to
+        // computeGregorianAndDOWFields() will give the wrong day, since the
+        // Standard time is in the previous day.
+        if (millisInDay >= ONE_DAY) {
+            millisInDay -= ONE_DAY; // ASSUME dstOffset < 24:00
+
+            // We don't worry about overflow of JULIAN_DAY because the
+            // allowable range of JULIAN_DAY has slop at the ends (that is,
+            // the max is less that 0x7FFFFFFF and the min is greater than
+            // -0x80000000).
+            computeGregorianAndDOWFields(++fields[JULIAN_DAY]);
+        }
 
         // Call framework method to have subclass compute its fields.
         // These must include, at a minimum, MONTH, DAY_OF_MONTH,
@@ -3797,7 +3830,6 @@ public abstract class Calendar implements Serializable, Cloneable {
         // Compute time-related fields.  These are indepent of the date and
         // of the subclass algorithm.  They depend only on the local zone
         // wall milliseconds in day.
-        int millisInDay = (int) (localMillis - (days * ONE_DAY));
         fields[MILLISECONDS_IN_DAY] = millisInDay;
         fields[MILLISECOND] = millisInDay % 1000;
         millisInDay /= 1000;
@@ -3808,8 +3840,8 @@ public abstract class Calendar implements Serializable, Cloneable {
         fields[HOUR_OF_DAY] = millisInDay;
         fields[AM_PM] = millisInDay / 12; // Assume AM == 0
         fields[HOUR] = millisInDay % 12;
-        fields[ZONE_OFFSET] = offsets[0];
-        fields[DST_OFFSET] = offsets[1];
+        fields[ZONE_OFFSET] = rawOffset;
+        fields[DST_OFFSET] = dstOffset;
     }
 
     /**
@@ -4258,16 +4290,30 @@ public abstract class Calendar implements Serializable, Cloneable {
 
     /**
      * This method can assume EXTENDED_YEAR has been set.
-     * @param millis milliseconds of the date fields (local midnight millis)
+     * @param millis milliseconds of the date fields
      * @param millisInDay milliseconds of the time fields; may be out
      * or range.
-     * @return total zone offset (raw + DST) for the given moment
      * @stable ICU 2.0
      */
     protected int computeZoneOffset(long millis, int millisInDay) {
-        int offsets[] = new int[2];
-        zone.getOffset(millis + millisInDay, true, offsets);
-        return offsets[0] + offsets[1];
+
+        /* Normalize the millisInDay to 0..ONE_DAY-1.  If the millis is out
+         * of range, then we must call computeGregorianAndDOWFields() to
+         * recompute our fields. */
+        int[] normalizedMillisInDay = new int[1];
+        int days = floorDivide(millis + millisInDay, (int) ONE_DAY,
+                               normalizedMillisInDay);
+
+        int julianDay = millisToJulianDay(days * ONE_DAY);
+
+        computeGregorianAndDOWFields(julianDay);
+
+        return zone.getOffset(
+                      gregorianYear, gregorianMonth, gregorianDayOfMonth,
+                      fields[DAY_OF_WEEK], normalizedMillisInDay[0],
+                      gregorianMonthLength(gregorianYear, gregorianMonth),
+                      gregorianPreviousMonthLength(gregorianYear,
+                                                   gregorianMonth));
 
         // Note: Because we pass in wall millisInDay, rather than
         // standard millisInDay, we interpret "1:00 am" on the day

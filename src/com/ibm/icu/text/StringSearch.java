@@ -5,8 +5,8 @@
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/text/StringSearch.java,v $ 
- * $Date: 2003/10/08 21:51:44 $ 
- * $Revision: 1.26 $
+ * $Date: 2003/06/03 18:49:35 $ 
+ * $Revision: 1.22 $
  *
  *****************************************************************************************
  */
@@ -17,7 +17,6 @@ import java.text.CharacterIterator;
 import java.text.StringCharacterIterator;
 import java.util.Locale;
 import com.ibm.icu.lang.UCharacter;
-import com.ibm.icu.impl.CharacterIteratorWrapper;
 import com.ibm.icu.impl.NormalizerImpl;
 
 /**
@@ -88,7 +87,7 @@ import com.ibm.icu.impl.NormalizerImpl;
  *           a match will be found, since the target text is canonically 
  *           equivalent to "a&#92;u0300&#92;u0325"
  * option 2. P matches S' and if P starts or ends with a combining mark, 
- *           there exists no non-ignorable combining mark before or after S' 
+ *           there exists no non-ignorable combining mark before or after S’ 
  *           in S respectively. Following the example above, the pattern 
  *           "a&#92;u0300" will not find a match in "a&#92;u0325&#92;u0300", 
  *           since
@@ -577,16 +576,7 @@ public final class StringSearch extends SearchIterator
                 // see SearchIterator next(), it checks the bounds and returns
                 // if it exceeds the range. It does not allow setting of
                 // m_matchedIndex
-                if (start == m_textBeginOffset_) {
-                    m_matchedIndex_ = DONE;
-                }
-                else {
-                    // for boundary check purposes. this will ensure that the
-                    // next match will not preceed the current offset
-                    // note search->matchedIndex will always be set to something
-                    // in the code
-                    m_matchedIndex_ = start - 1;
-                }
+                m_matchedIndex_ = DONE;
             }
     
 	        // status checked below
@@ -1089,8 +1079,7 @@ public final class StringSearch extends SearchIterator
 	        				 	 || breakIterator.following(end - 1) == end);
 	        if (result) {
 	            // iterates the individual ces
-	            m_utilColEIter_.setText(
-                    new CharacterIteratorWrapper(targetText), start);
+	            m_utilColEIter_.setText(targetText, start);
 	            for (int count = 0; count < m_pattern_.m_CELength_;
 	                 count ++) {
                     int ce = getCE(m_utilColEIter_.next());
@@ -1467,11 +1456,10 @@ public final class StringSearch extends SearchIterator
 	    int lastmatchend = m_matchedIndex_ + matchLength - 1; 
 	    if (!isOverlapping()) {
             return (start >= m_matchedIndex_ && start <= lastmatchend) 
-                    || (end >= m_matchedIndex_ && end <= lastmatchend)
-                    || (start <= m_matchedIndex_ && end >= lastmatchend);
+                    || (end >= m_matchedIndex_ && end <= lastmatchend);
                       
 	    }
-	    return start <= m_matchedIndex_ && end >= lastmatchend;
+	    return start == m_matchedIndex_;
 	}
 	
 	/**
@@ -1770,7 +1758,7 @@ public final class StringSearch extends SearchIterator
 	        
 	    int accentsindex[] = new int[INITIAL_ARRAY_SIZE_];      
 	    int accentsize = getUnblockedAccentIndex(accents, accentsindex);
-	    int count = (2 << (accentsize - 1)) - 1;  
+	    int count = (2 << (accentsize - 1)) - 2;  
 	    while (count > 0) {
 	    	// copy the base characters
 	    	m_canonicalPrefixAccents_.delete(0, 
@@ -1990,8 +1978,8 @@ public final class StringSearch extends SearchIterator
 	    int accentsindex[] = new int[INITIAL_ARRAY_SIZE_];
 	    int size = getUnblockedAccentIndex(accents, accentsindex);
 	
-	    // 2 power n - 1 plus the full set of accents
-	    int  count = (2 << (size - 1)) - 1;  
+	    // 2 power n - 1 minus the full set of accents
+	    int  count = (2 << (size - 1)) - 2;  
 	    while (count > 0) {
             m_canonicalSuffixAccents_.delete(0, 
                                            m_canonicalSuffixAccents_.length());
@@ -2381,7 +2369,7 @@ public final class StringSearch extends SearchIterator
 	        
 	    int accentsindex[] = new int[INITIAL_ARRAY_SIZE_];      
 	    int accentsize = getUnblockedAccentIndex(accents, accentsindex);
-	    int count = (2 << (accentsize - 1)) - 1;  
+	    int count = (2 << (accentsize - 1)) - 2;  
 	    while (count > 0) {
             m_canonicalSuffixAccents_.delete(0, 
                                            m_canonicalSuffixAccents_.length());
@@ -2574,8 +2562,8 @@ public final class StringSearch extends SearchIterator
 	    int accentsindex[] = new int[INITIAL_ARRAY_SIZE_];
 	    int size = getUnblockedAccentIndex(accents, accentsindex);
 	
-	    // 2 power n - 1 plus the full set of accents
-	    int count = (2 << (size - 1)) - 1;  
+	    // 2 power n - 1 minus the full set of accents
+	    int count = (2 << (size - 1)) - 2;  
 	    while (count > 0) {
 	    	m_canonicalPrefixAccents_.delete(0, 
 	    								m_canonicalPrefixAccents_.length());
@@ -2757,7 +2745,7 @@ public final class StringSearch extends SearchIterator
 	 */
 	private void handleNextExact(int start)
 	{
-        int textoffset = shiftForward(start, 
+	   	int textoffset = shiftForward(start, 
 	   								  CollationElementIterator.NULLORDER,
 	   								  m_pattern_.m_CELength_);
 		int targetce = CollationElementIterator.IGNORABLE;
@@ -2798,6 +2786,8 @@ public final class StringSearch extends SearchIterator
 	            }
 	        }
 	
+	        targetce = lastce;
+	        
 	        while (found && patternceindex > 0) {
 	            targetce = m_colEIter_.previous();
 	            if (targetce == CollationElementIterator.NULLORDER) {
@@ -2814,7 +2804,8 @@ public final class StringSearch extends SearchIterator
 	        }
 	
 	        if (!found) {
-	            textoffset = shiftForward(textoffset, lastce, patternceindex);
+	            textoffset = shiftForward(textoffset, targetce, 
+	            											patternceindex);
 	            // status checked at loop.
 	            patternceindex = m_pattern_.m_CELength_;
 	            continue;
@@ -2879,6 +2870,7 @@ public final class StringSearch extends SearchIterator
 	                break;
 	            }
 	        }
+	        targetce = lastce;
 	        
 	        while (found && patternceindex > 0) {
 	            targetce    = m_colEIter_.previous();
@@ -2901,7 +2893,7 @@ public final class StringSearch extends SearchIterator
 	        }
 	
 	        if (!found) {
-	            textoffset = shiftForward(textoffset, lastce, patternceindex);
+	            textoffset = shiftForward(textoffset, targetce, patternceindex);
 	            // status checked at loop
 	            patternceindex = m_pattern_.m_CELength_;
 	            continue;

@@ -5,13 +5,15 @@
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/dev/tool/localeconverter/SpaceTransition.java,v $ 
- * $Date: 2003/09/10 23:36:09 $ 
- * $Revision: 1.3 $
+ * $Date: 2002/02/16 03:05:32 $ 
+ * $Revision: 1.2 $
  *
  *****************************************************************************************
  */
 package com.ibm.icu.dev.tool.localeconverter;
 
+import java.io.*;
+import java.util.*;
 
 public class SpaceTransition extends ComplexTransition {
     public static final SpaceTransition GLOBAL = new SpaceTransition(SUCCESS);

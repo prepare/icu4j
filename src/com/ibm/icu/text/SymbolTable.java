@@ -1,12 +1,12 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2003, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2000, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/text/SymbolTable.java,v $ 
- * $Date: 2003/09/24 23:38:49 $ 
- * $Revision: 1.12 $
+ * $Date: 2002/12/04 00:03:40 $ 
+ * $Revision: 1.10 $
  *
  *****************************************************************************************
  */
@@ -14,31 +14,17 @@ package com.ibm.icu.text;
 import java.text.ParsePosition;
 
 /**
- * An interface that defines both lookup protocol and parsing of
- * symbolic names.
+ * An interface that maps strings to objects.  This interface defines
+ * both lookup protocol and parsing.  This allows different components
+ * to share a symbol table and to handle name parsing uniformly.  It
+ * is expected that client parse code look for the SYMBOL_REF
+ * character and, when seen, attempt to parse the characters after it
+ * using parseReference().
  *
- * <p>A symbol table maintains two kinds of mappings.  The first is
- * between symbolic names and their values.  For example, if the
- * variable with the name "start" is set to the value "alpha"
- * (perhaps, though not necessarily, through an expression such as
- * "$start=alpha"), then the call lookup("start") will return the
- * char[] array ['a', 'l', 'p', 'h', 'a'].
- *
- * <p>The second kind of mapping is between character values and
- * UnicodeMatcher objects.  This is used by RuleBasedTransliterator,
- * which uses characters in the private use area to represent objects
- * such as UnicodeSets.  If U+E015 is mapped to the UnicodeSet [a-z],
- * then lookupMatcher(0xE015) will return the UnicodeSet [a-z].
- *
- * <p>Finally, a symbol table defines parsing behavior for symbolic
- * names.  All symbolic names start with the SYMBOL_REF character.
- * When a parser encounters this character, it calls parseReference()
- * with the position immediately following the SYMBOL_REF.  The symbol
- * table parses the name, if there is one, and returns it.
- *
- * @draft ICU 2.8
+ * <p>Currently, RuleBasedTransliterator and UnicodeSet use this
+ * interface to share variable definitions.
  */
-public interface SymbolTable {
+interface SymbolTable {
 
     /**
      * The character preceding a symbol reference name.
@@ -49,36 +35,26 @@ public interface SymbolTable {
      * Lookup the characters associated with this string and return it.
      * Return <tt>null</tt> if no such name exists.  The resultant
      * array may have length zero.
-     * @param s the symbolic name to lookup
-     * @return a char array containing the name's value, or null if
-     * there is no mapping for s.
      */
     char[] lookup(String s);
 
     /**
      * Lookup the UnicodeMatcher associated with the given character, and
      * return it.  Return <tt>null</tt> if not found.
-     * @param ch a 32-bit code point from 0 to 0x10FFFF inclusive.
-     * @return the UnicodeMatcher object represented by the given
-     * character, or null if there is no mapping for ch.
+     * @param ch a 32-bit code point from 0 to 0x10FFFF.
      */
     UnicodeMatcher lookupMatcher(int ch);
 
     /**
      * Parse a symbol reference name from the given string, starting
      * at the given position.  If no valid symbol reference name is
-     * found, return null and leave pos unchanged.  That is, if the
-     * character at pos cannot start a name, or if pos is at or after
-     * text.length(), then return null.  This indicates an isolated
-     * SYMBOL_REF character.
+     * found, return null and leave pos unchanged.
      * @param text the text to parse for the name
      * @param pos on entry, the index of the first character to parse.
      * This is the character following the SYMBOL_REF character.  On
-     * exit, the index after the last parsed character.  If the parse
-     * failed, pos is unchanged on exit.
+     * exit, the index after the last parsed character.
      * @param limit the index after the last character to be parsed.
-     * @return the parsed name, or null if there is no valid symbolic
-     * name at the given position.
+     * @return the parsed name.
      */
     String parseReference(String text, ParsePosition pos, int limit);
 }

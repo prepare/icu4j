@@ -6,7 +6,7 @@ import com.ibm.icu.dev.test.UTF16Util;
 
 /**
  * Accesses the Normalization Data used for Forms C and D.<br>
- * Copyright (C) 1998-2002 Unicode, Inc. All Rights Reserved.<br>
+ * Copyright © 1998-2002 Unicode, Inc. All Rights Reserved.<br>
  * The Unicode Consortium makes no expressed or implied warranty of any
  * kind, and assumes no liability for errors or omissions.
  * No liability is assumed for incidental and consequential damages
@@ -16,7 +16,7 @@ import com.ibm.icu.dev.test.UTF16Util;
  * Vladimir Weinstein & Markus Scherer
  */
 public class NormalizerData {
-    static final String copyright = "Copyright (C) 1998-1999 Unicode, Inc.";
+    static final String copyright = "Copyright © 1998-1999 Unicode, Inc.";
 
     /**
     * Constant for use in getPairwiseComposition
@@ -37,8 +37,8 @@ public class NormalizerData {
     * Returns the composite of the two characters. If the two
     * characters don't combine, returns NOT_COMPOSITE.
     * @param   first   first character (e.g. 'c')
-    * @param   first   second character (e.g. \u0327 cedilla)
-    * @return          composite (e.g. \u00C7 c cedilla)
+    * @param   first   second character (e.g. '¸' cedilla)
+    * @return          composite (e.g. 'ç')
     */
     public int getPairwiseComposition(int first, int second) {
         return compose.get(((long)first << 32) | second);

@@ -5,8 +5,8 @@
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/dev/tool/localeconverter/ConvertJavaLocale.java,v $ 
- * $Date: 2003/09/10 23:36:09 $ 
- * $Revision: 1.5 $
+ * $Date: 2002/12/12 02:08:46 $ 
+ * $Revision: 1.3 $
  *
  *****************************************************************************************
  */
@@ -101,6 +101,7 @@ public class ConvertJavaLocale {
             String localeName = null;
             String packagename = null;
             for (int i = 0; i < args.length; i++) {
+                final String thisArg = args[i];
                 if(args[i].equalsIgnoreCase("-package")){
                    i++;
                    packagename = args[i];
@@ -110,23 +111,12 @@ public class ConvertJavaLocale {
                 }
             }
             final Hashtable data = new Hashtable();
-            final String localeElements;
-            final String dateFormatZoneData;
-            
-            if(localeName != null){
-                if(!localeName.equals("root")){
-                    localeElements = packagename+".LocaleElements" +"_"+localeName;
-                    dateFormatZoneData = packagename+".DateFormatZoneData" + "_"+localeName;
-                }else{
-                    localeElements = packagename+".LocaleElements";
-                    dateFormatZoneData = packagename+".DateFormatZoneData";
-                }
-            }else{
-                printUsage();
-                return;
-            }
+            final String localeElements = packagename+".LocaleElements" +
+                    (String)((localeName != null) ? "_"+localeName : "");
+            final String DateFormatZoneData = packagename+".DateFormatZoneData" +
+                    (String)((localeName != null) ? "_"+localeName : "");
             addLocaleData(localeElements, data);
-            addLocaleData(dateFormatZoneData, data);
+            addLocaleData(DateFormatZoneData, data);
             final Locale locale = localeFromString(localeName);
             if ((options & OPT_11) != 0) {
                 new Java1LocaleWriter(out, System.err).write(locale, data);

@@ -4,8 +4,8 @@
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/dev/test/format/DateFormatRegressionTest.java,v $ 
- * $Date: 2003/10/02 20:50:58 $ 
- * $Revision: 1.9 $
+ * $Date: 2003/06/03 18:49:29 $ 
+ * $Revision: 1.7 $
  *
  *****************************************************************************************
  */
@@ -831,10 +831,12 @@ public class DateFormatRegressionTest extends com.ibm.icu.dev.test.TestFmwk {
     public void Test4210209() {
     
         String pattern = "MMM d, yyyy";
-        DateFormat fmt = new SimpleDateFormat(pattern, Locale.US);
-        DateFormat disp = new SimpleDateFormat("MMM dd yyyy GG", Locale.US);
+        SimpleDateFormat sfmt = new SimpleDateFormat(pattern, Locale.US);
+        SimpleDateFormat sdisp = new SimpleDateFormat("MMM dd yyyy GG", Locale.US);
+        DateFormat fmt = (DateFormat) sfmt; // Yuck: See j25
+        DateFormat disp = (DateFormat) sdisp; // Yuck: See j25
     
-        Calendar calx = fmt.getCalendar();
+        Calendar calx = (Calendar) fmt.getCalendar(); // cast away const!
         calx.setLenient(false);
         Calendar calendar = Calendar.getInstance();
         calendar.clear();
@@ -844,8 +846,7 @@ public class DateFormatRegressionTest extends com.ibm.icu.dev.test.TestFmwk {
         logln(disp.format(d) + " f> " + pattern + " => \"" + s + "\"");
         ParsePosition pos = new ParsePosition(0);
         d = fmt.parse(s, pos);
-        logln("\"" + s + "\" p> " + pattern + " => " +
-              (d!=null?disp.format(d):"null"));
+        logln("\"" + s + "\" p> " + pattern + " => " + disp.format(d));
         logln("Parse pos = " + pos.getIndex() + ", error pos = " + pos.getErrorIndex());
         if (pos.getErrorIndex() != -1) {
             errln("FAIL: Error index should be -1");
@@ -858,8 +859,7 @@ public class DateFormatRegressionTest extends com.ibm.icu.dev.test.TestFmwk {
         cal.clear();
         cal.setLenient(false);
         cal.set(2000, Calendar.FEBRUARY, 29); // This should work!
-        d = cal.getTime();
-        logln("Attempt to set Calendar to Feb 29 2000: " + disp.format(d));
+        logln("Attempt to set Calendar to Feb 29 2000: " + disp.format(cal.getTime()));
     }
     
     public void Test714() {

@@ -4,8 +4,8 @@
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/dev/test/format/DateFormatRoundTripTest.java,v $ 
- * $Date: 2003/10/02 20:50:58 $ 
- * $Revision: 1.8 $
+ * $Date: 2003/06/03 18:49:29 $ 
+ * $Revision: 1.6 $
  *
  *****************************************************************************************
  */

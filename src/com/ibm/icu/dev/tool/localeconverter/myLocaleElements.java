@@ -7,8 +7,8 @@
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/dev/tool/localeconverter/myLocaleElements.java,v $ 
- * $Date: 2003/09/10 23:36:08 $ 
- * $Revision: 1.4 $
+ * $Date: 2002/08/01 20:27:21 $ 
+ * $Revision: 1.3 $
  *
  *****************************************************************************************
  */
@@ -524,17 +524,15 @@ public class myLocaleElements extends ListResourceBundle {
             { "CountryISBNNumber" , ""},
             { "LanguageLibraryUse" , ""},
             { "PaperSize", new String[][]{
-                            {"Height",""},
+                            {"Hieght",""},
                             {"Width",""},
                             {"Units", ""}
                         }
             },
           
             { "Messages" , new String[][] {
-                                {"YesExpression",""}, /* yes expression */
-                                {"NoExpression",""},  /* no expression */
-                                {"YesStr", ""},
-                                {"NoStr", ""}
+                                {"yesExpression",""}, /* yes expression */
+                                {"noExpression",""}  /* no expression */
                             }
             },
             { "AddressFormat", new String[][]{

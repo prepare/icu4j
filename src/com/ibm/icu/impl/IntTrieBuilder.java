@@ -5,8 +5,8 @@
 ******************************************************************************
 *
 * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/impl/IntTrieBuilder.java,v $ 
-* $Date: 2003/08/20 00:19:19 $ 
-* $Revision: 1.4 $
+* $Date: 2002/10/31 01:09:18 $ 
+* $Revision: 1.3 $
 *
 ******************************************************************************
 */
@@ -14,7 +14,6 @@
 package com.ibm.icu.impl;
 
 import com.ibm.icu.lang.UCharacter;
-import com.ibm.icu.text.UTF16;
 import java.util.Arrays;
 
 /**
@@ -32,7 +31,7 @@ import java.util.Arrays;
  *     <LI>Smaller memory footprint.
  * </UL>
  * This is a direct port from the ICU4C version
- * @version            $Revision: 1.4 $
+ * @version            $Revision: 1.3 $
  * @author             Syn Wee Quek
  */
 public class IntTrieBuilder extends TrieBuilder
@@ -48,7 +47,6 @@ public class IntTrieBuilder extends TrieBuilder
 		m_data_ = new int[m_dataCapacity_];
         System.arraycopy(table.m_data_, 0, m_data_, 0, m_dataLength_);
         m_initialValue_ = table.m_initialValue_;
-        m_leadUnitValue_ = table.m_leadUnitValue_;
     }
     
     /**
@@ -60,11 +58,10 @@ public class IntTrieBuilder extends TrieBuilder
      * @return updated table
      */
     public IntTrieBuilder(int aliasdata[], int maxdatalength, 
-                          int initialvalue, int leadunitvalue, 
-                          boolean latin1linear) 
+                          int initialvalue, boolean latin1linear) 
     {
     	super();
-    	if (maxdatalength < DATA_BLOCK_LENGTH || (latin1linear 
+    	if (maxdatalength < DATA_BLOCK_LENGTH_ || (latin1linear 
 	                                               && maxdatalength < 1024)) {
 	        throw new IllegalArgumentException(
 	                                   "Argument maxdatalength is too small");
@@ -78,7 +75,7 @@ public class IntTrieBuilder extends TrieBuilder
 	    }
 	
 	    // preallocate and reset the first data block (block index 0)
-	    int j = DATA_BLOCK_LENGTH;
+	    int j = DATA_BLOCK_LENGTH_;
 	
 	    if (latin1linear) {
 	        // preallocate and reset the first block (number 0) and Latin-1 
@@ -90,7 +87,7 @@ public class IntTrieBuilder extends TrieBuilder
 	            // do this at least for trie->index[0] even if that block is 
 	            // only partly used for Latin-1
 	            m_index_[i ++] = j;
-	            j += DATA_BLOCK_LENGTH;
+	            j += DATA_BLOCK_LENGTH_;
 	        } while (i < (256 >> SHIFT_));
 	    }
 	
@@ -98,7 +95,6 @@ public class IntTrieBuilder extends TrieBuilder
 	    // reset the initially allocated blocks to the initial value
         Arrays.fill(m_data_, 0, m_dataLength_, initialvalue);
 	    m_initialValue_ = initialvalue;
-        m_leadUnitValue_ = leadunitvalue;
 	    m_dataCapacity_ = maxdatalength;
 	    m_isLatin1Linear_ = latin1linear;
 	    m_isCompacted_ = false;
@@ -250,135 +246,13 @@ public class IntTrieBuilder extends TrieBuilder
                            triedatamanipulate);
     }
     
-    /**
-     * Set a value in a range of code points [start..limit].
-     * All code points c with start &lt;= c &lt; limit will get the value if
-     * overwrite is true or if the old value is 0.
-     * @param start the first code point to get the value
-     * @param limit one past the last code point to get the value
-     * @param value the value
-     * @param overwrite flag for whether old non-initial values are to be 
-     *        overwritten
-     * @return false if a failure occurred (illegal argument or data array 
-     *               overrun)
-     */
-    public boolean setRange(int start, int limit, int value, 
-                            boolean overwrite) 
-    {
-        // repeat value in [start..limit[
-        // mark index values for repeat-data blocks by setting bit 31 of the 
-        // index values fill around existing values if any, if(overwrite)
-            
-        // valid, uncompacted trie and valid indexes?
-        if (m_isCompacted_ || start < UCharacter.MIN_VALUE 
-            || start > UCharacter.MAX_VALUE || limit < UCharacter.MIN_VALUE
-            || limit > (UCharacter.MAX_VALUE + 1) || start > limit) {
-            return false;
-        }
-            
-        if (start == limit) {
-            return true; // nothing to do
-        }
-        
-        if ((start & MASK_) != 0) {
-            // set partial block at [start..following block boundary[
-            int block = getDataBlock(start);
-            if (block < 0) {
-                return false;
-            }
-        
-            int nextStart = (start + DATA_BLOCK_LENGTH) & ~MASK_;
-            if (nextStart <= limit) {
-                fillBlock(block, start & MASK_, DATA_BLOCK_LENGTH,
-                          value, overwrite);
-                start = nextStart;
-            } 
-            else {
-                fillBlock(block, start & MASK_, limit & MASK_,
-                          value, overwrite);
-                return true;
-            }
-        }
-        
-        // number of positions in the last, partial block
-        int rest = limit & MASK_;
-        
-        // round down limit to a block boundary 
-        limit &= ~MASK_;
-        
-        // iterate over all-value blocks 
-        int repeatBlock = 0;
-        if (value == m_initialValue_) {
-            // repeatBlock = 0; assigned above
-        } 
-        else {
-            repeatBlock = -1;
-        }
-        while (start < limit) {
-            // get index value 
-            int block = m_index_[start >> SHIFT_];
-            if (block > 0) {
-                // already allocated, fill in value
-                fillBlock(block, 0, DATA_BLOCK_LENGTH, value, overwrite);
-            } 
-            else if (m_data_[-block] != value && (block == 0 || overwrite)) {
-                // set the repeatBlock instead of the current block 0 or range 
-                // block 
-                if (repeatBlock >= 0) {
-                    m_index_[start >> SHIFT_] = -repeatBlock;
-                } 
-                else {
-                    // create and set and fill the repeatBlock
-                    repeatBlock = getDataBlock(start);
-                    if (repeatBlock < 0) {
-                        return false;
-                    }
-        
-                    // set the negative block number to indicate that it is a 
-                    // repeat block
-                    m_index_[start >> SHIFT_] = -repeatBlock;
-                    fillBlock(repeatBlock, 0, DATA_BLOCK_LENGTH, value, true);
-                }
-            }
-        
-            start += DATA_BLOCK_LENGTH;
-        }
-        
-        if (rest > 0) {
-            // set partial block at [last block boundary..limit[
-            int block = getDataBlock(start);
-            if (block < 0) {
-                return false;
-            }
-            fillBlock(block, 0, rest, value, overwrite);
-        }
-        
-        return true;
-    }
-    
-	// protected data member ------------------------------------------------
+	// public data member ---------------------------------------------
 		
 	protected int m_data_[];
 	protected int m_initialValue_;  
-    
-    //  private data member ------------------------------------------------
-        
-    private int m_leadUnitValue_;  
-     
+	
 	// private methods ------------------------------------------------------
    
-    private int allocDataBlock() 
-    {
-        int newBlock = m_dataLength_;
-        int newTop = newBlock + DATA_BLOCK_LENGTH;
-        if (newTop > m_dataCapacity_) {
-            // out of memory in the data array
-            return -1;
-        }
-        m_dataLength_ = newTop;
-        return newBlock;
-    }
-
     /**
      * No error checking for illegal arguments.
      * @param ch codepoint to look for
@@ -393,16 +267,18 @@ public class IntTrieBuilder extends TrieBuilder
         }
     
         // allocate a new data block
-        int newBlock = allocDataBlock();
-        if (newBlock < 0) {
+        int newBlock = m_dataLength_;
+        int newTop = newBlock + DATA_BLOCK_LENGTH_;
+        if (newTop > m_dataCapacity_) {
             // out of memory in the data array 
             return -1;
         }
+        m_dataLength_ = newTop;
         m_index_[ch] = newBlock;
     
         // copy-on-write for a block from a setRange()
-        System.arraycopy(m_data_, Math.abs(indexValue), m_data_, newBlock,  
-                         DATA_BLOCK_LENGTH << 2);
+        Arrays.fill(m_data_, newBlock, newBlock + DATA_BLOCK_LENGTH_, 
+                    m_initialValue_);
         return newBlock;
     }
     
@@ -431,34 +307,34 @@ public class IntTrieBuilder extends TrieBuilder
         
         // if Latin-1 is preallocated and linear, then do not compact Latin-1 
         // data
-        int overlapStart = DATA_BLOCK_LENGTH;
+        int overlapStart = DATA_BLOCK_LENGTH_;
         if (m_isLatin1Linear_ && SHIFT_ <= 8) {
             overlapStart += 256;
         }
        
-        int newStart = DATA_BLOCK_LENGTH;
+        int newStart = DATA_BLOCK_LENGTH_;
         int prevEnd = newStart - 1;
         for (int start = newStart; start < m_dataLength_;) {
             // start: index of first entry of current block
             // prevEnd: index to last entry of previous block
             // newStart: index where the current block is to be moved
             // skip blocks that are not used 
-            if (m_map_[start >>> SHIFT_] < 0) {
+            if (m_map_[start >> SHIFT_] < 0) {
                 // advance start to the next block 
-                start += DATA_BLOCK_LENGTH;
+                start += DATA_BLOCK_LENGTH_;
                 // leave prevEnd and newStart with the previous block!
                 continue;
             }
             // search for an identical block
             if (start >= overlapStart) {
                 int i = findSameDataBlock(m_data_, newStart, start,
-                             overlap ? DATA_GRANULARITY_ : DATA_BLOCK_LENGTH);
+                             overlap ? DATA_GRANULARITY_ : DATA_BLOCK_LENGTH_);
                 if (i >= 0) {
                     // found an identical block, set the other block's index 
                     // value for the current block
-                    m_map_[start >>> SHIFT_] = i;
+                    m_map_[start >> SHIFT_] = i;
                     // advance start to the next block
-                    start += DATA_BLOCK_LENGTH;
+                    start += DATA_BLOCK_LENGTH_;
                     // leave prevEnd and newStart with the previous block!
                     continue;
                 }
@@ -471,7 +347,7 @@ public class IntTrieBuilder extends TrieBuilder
             if (x == m_data_[prevEnd] && overlap && start >= overlapStart) 
             {
                 // overlap by at least one
-                for (i = 1; i < DATA_BLOCK_LENGTH 
+                for (i = 1; i < DATA_BLOCK_LENGTH_ 
                      && x == m_data_[start + i] 
                      && x == m_data_[prevEnd - i]; ++ i) 
                 {
@@ -482,23 +358,23 @@ public class IntTrieBuilder extends TrieBuilder
             } 
             if (i > 0) {
                 // some overlap
-                m_map_[start >>> SHIFT_] = newStart - i;
+                m_map_[start >> SHIFT_] = newStart - i;
                 // move the non-overlapping indexes to their new positions
                 start += i;
-                for (i = DATA_BLOCK_LENGTH - i; i > 0; -- i) {
+                for (i = DATA_BLOCK_LENGTH_ - i; i > 0; -- i) {
                     m_data_[newStart ++] = m_data_[start ++];
                 }
             } 
             else if (newStart < start) {
                 // no overlap, just move the indexes to their new positions
-                m_map_[start >>> SHIFT_] = newStart;
-                for (i = DATA_BLOCK_LENGTH; i > 0; -- i) {
+                m_map_[start >> SHIFT_] = newStart;
+                for (i = DATA_BLOCK_LENGTH_; i > 0; -- i) {
                     m_data_[newStart ++] = m_data_[start ++];
                 }
             } 
             else { // no overlap && newStart==start
-                m_map_[start >>> SHIFT_] = start;
-                newStart += DATA_BLOCK_LENGTH;
+                m_map_[start >> SHIFT_] = start;
+                newStart += DATA_BLOCK_LENGTH_;
                 start = newStart;
             }
     
@@ -506,7 +382,7 @@ public class IntTrieBuilder extends TrieBuilder
         }
         // now adjust the index (stage 1) table
         for (int i = 0; i < m_indexLength_; ++ i) {
-            m_index_[i] = m_map_[Math.abs(m_index_[i]) >>> SHIFT_];
+            m_index_[i] = m_map_[m_index_[i] >>> SHIFT_];
         }
         m_dataLength_ = newStart;
     }
@@ -522,16 +398,16 @@ public class IntTrieBuilder extends TrieBuilder
                                                 int otherBlock, int step) 
     {
         // ensure that we do not even partially get past dataLength
-        dataLength -= DATA_BLOCK_LENGTH;
+        dataLength -= DATA_BLOCK_LENGTH_;
 
         for (int block = 0; block <= dataLength; block += step) {
             int i = 0;
-            for (i = 0; i < DATA_BLOCK_LENGTH; ++ i) {
+            for (i = 0; i < DATA_BLOCK_LENGTH_; ++ i) {
                 if (data[block + i] != data[otherBlock + i]) {
                     break;
                 }
             }
-            if (i == DATA_BLOCK_LENGTH) {
+            if (i == DATA_BLOCK_LENGTH_) {
                 return block;
             }
         }
@@ -557,33 +433,16 @@ public class IntTrieBuilder extends TrieBuilder
         System.arraycopy(index, 0xd800 >> SHIFT_, leadIndexes, 0, 
                          SURROGATE_BLOCK_COUNT_);
         
-        // set all values for lead surrogate code *units* to leadUnitValue
-        // so that by default runtime lookups will find no data for associated
-        // supplementary code points, unless there is data for such code points
-        // which will result in a non-zero folding value below that is set for
-        // the respective lead units
-        // the above saved the indexes for surrogate code *points*
-        // fill the indexes with simplified code from utrie_setRange32()
-        int block = 0;
-        if (m_leadUnitValue_ == m_initialValue_) {
-            // leadUnitValue == initialValue, use all-initial-value block
-            // block = 0; if block here left empty
-        } 
-        else {
-            // create and fill the repeatBlock
-            block = allocDataBlock();
-            if (block < 0) {
-                // data table overflow
-                throw new InternalError("Internal error: Out of memory space");
+        // to protect the copied lead surrogate values,
+        // mark all their indexes as repeat blocks
+        // (causes copy-on-write)
+        for (char c = 0xd800; c <= 0xdbff; ++ c) {
+            int block = index[c >> SHIFT_];
+            if (block > 0) {
+                index[c >> SHIFT_] =- block;
             }
-            fillBlock(block, 0, DATA_BLOCK_LENGTH, m_leadUnitValue_, true);
-            // negative block number to indicate that it is a repeat block
-            block = -block; 
         }
-        for (int c = (0xd800 >> SHIFT_); c < (0xdc00 >> SHIFT_); ++ c) {
-            m_index_[c] = block;
-        }
-
+     
         // Fold significant index values into the area just after the BMP 
         // indexes.
         // In case the first lead surrogate has significant data,
@@ -598,16 +457,13 @@ public class IntTrieBuilder extends TrieBuilder
                 // there is data, treat the full block for a lead surrogate
                 c &= ~0x3ff;
                 // is there an identical index block?
-                block = findSameIndexBlock(index, indexLength, c >> SHIFT_);
-                
-                // get a folded value for [c..c+0x400[ and,
-                // if different from the value for the lead surrogate code 
-                // point, set it for the lead surrogate code unit
-
+                int block = findSameIndexBlock(index, indexLength, c >> SHIFT_);
+                // get a folded value for [c..c+0x400[ and, if 0, set it for 
+                // the lead surrogate 
                 int value = manipulate.getFoldedValue(c, 
                                                 block + SURROGATE_BLOCK_COUNT_);
-                if (value != getValue(UTF16.getLeadSurrogate(c))) {
-                    if (!setValue(UTF16.getLeadSurrogate(c), value)) {
+                if (value != 0) {
+                    if (!setValue(0xd7c0 + (c >> 10), value)) {
                         // data table overflow 
                         throw new ArrayIndexOutOfBoundsException(
                                                         "Data table overflow");
@@ -624,7 +480,7 @@ public class IntTrieBuilder extends TrieBuilder
                 c += 0x400;
             } 
             else {
-                c += DATA_BLOCK_LENGTH;
+                c += DATA_BLOCK_LENGTH_;
             }
         }
         
@@ -648,29 +504,6 @@ public class IntTrieBuilder extends TrieBuilder
                          SURROGATE_BLOCK_COUNT_);
         indexLength += SURROGATE_BLOCK_COUNT_;
         m_indexLength_ = indexLength;
-    }
-    
-    /**
-     * @internal
-     */
-    private void fillBlock(int block, int start, int limit, int value, 
-                           boolean overwrite) 
-    {
-        limit += block;
-        block += start;
-        if (overwrite) {
-            while (block < limit) {
-                m_data_[block ++] = value;
-            }
-        } 
-        else {
-            while (block < limit) {
-                if (m_data_[block] == m_initialValue_) {
-                    m_data_[block] = value;
-                }
-                ++ block;
-            }
-        }
     }
 }
     

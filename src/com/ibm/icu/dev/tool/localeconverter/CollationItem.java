@@ -5,13 +5,15 @@
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/dev/tool/localeconverter/CollationItem.java,v $ 
- * $Date: 2003/09/10 23:36:09 $ 
- * $Revision: 1.4 $
+ * $Date: 2002/02/16 03:05:26 $ 
+ * $Revision: 1.2 $
  *
  *****************************************************************************************
  */
 package com.ibm.icu.dev.tool.localeconverter;
 
+import java.io.*;
+import java.util.*;
 
 /**
  * A CollationItem represents a single entry in a collation sequence.
@@ -49,8 +51,8 @@ public class CollationItem {
     public CollationItem(int op, String item, String expansion) {
         this.op = Math.abs(op);
         if (this.op > TERTIARY) this.op = TERTIARY;
-        this.item = cleanString(PosixCollationBuilder.unescape(item));
-        this.expansion = cleanString(PosixCollationBuilder.unescape(expansion));
+        this.item = cleanString(item);
+        this.expansion = cleanString(expansion);
     }
     
     public void setComment(String comment) {
@@ -58,6 +60,7 @@ public class CollationItem {
     }
     
     public String toString() {
+        String itemString = item;
         if (expansion.length() == 0) {
             return ""+OP_CHARS[op]+item;
         } else {
@@ -78,11 +81,11 @@ public class CollationItem {
                     || ((c <= '\u007E') && (c >= '\u007B'))) {
                 if (i < result.length()-1) {
                     result = result.substring(0, i)
-                            + "\\" + c 
+                            + "'" + c +"'"
                             + result.substring(i+1);
                 } else {
                     result = result.substring(0, i)
-                            + "\\" + c;
+                            + "'" + c +"'";
                 }
                 i += 2; //skip the two characters we inserted
             }

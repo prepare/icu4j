@@ -5,8 +5,8 @@
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/dev/test/timezone/TimeZoneRegression.java,v $
- * $Date: 2003/10/09 22:30:05 $
- * $Revision: 1.13 $
+ * $Date: 2003/06/03 18:49:31 $
+ * $Revision: 1.10 $
  *
  *******************************************************************************
  */
@@ -47,7 +47,7 @@ public class TimeZoneRegression extends TestFmwk {
     }
 
     public void Test4073215() {
-        SimpleTimeZone z = new SimpleTimeZone(0, "GMT");
+        SimpleTimeZone z = (SimpleTimeZone) TimeZone.getTimeZone("GMT");
         if (z.useDaylightTime())
             errln("Fail: Fix test to start with non-DST zone");
         z.setStartRule(Calendar.FEBRUARY, 1, Calendar.SUNDAY, 0);
@@ -673,7 +673,6 @@ public class TimeZoneRegression extends TestFmwk {
     public void Test4162593() {
         SimpleDateFormat fmt = new SimpleDateFormat("z", Locale.US);
         final int ONE_HOUR = 60*60*1000;
-        final float H = (float) ONE_HOUR;
 	TimeZone initialZone = TimeZone.getDefault();
         SimpleDateFormat sdf = new SimpleDateFormat("MMM dd yyyy HH:mm z"); 
 
@@ -689,15 +688,15 @@ public class TimeZoneRegression extends TestFmwk {
             new SimpleTimeZone(2*ONE_HOUR, "Asia/Damascus" /*EE%sT*/,
                 Calendar.APRIL, 1, 0 /*DOM*/, 0*ONE_HOUR,
                 Calendar.OCTOBER, 1, 0 /*DOM*/, 0*ONE_HOUR, 1*ONE_HOUR),
-            new int[] {1998, Calendar.SEPTEMBER, 30, 22, 0},
+            new int[] {98, Calendar.SEPTEMBER, 30, 22, 0},
             Boolean.TRUE,
 
             asuncion,
-            new int[] {2000, Calendar.FEBRUARY, 28, 22, 0},
+            new int[] {100, Calendar.FEBRUARY, 28, 22, 0},
             Boolean.FALSE,
 
             asuncion,
-            new int[] {2000, Calendar.FEBRUARY, 29, 22, 0},
+            new int[] {100, Calendar.FEBRUARY, 29, 22, 0},
             Boolean.TRUE,
         };
         
@@ -711,48 +710,24 @@ public class TimeZoneRegression extends TestFmwk {
 
             // Must construct the Date object AFTER setting the default zone
             int[] p = (int[])DATA[j+1];
-            Calendar cal = Calendar.getInstance();
-            cal.clear();
-            cal.set(p[0], p[1], p[2], p[3], p[4]);
-            long start = cal.getTime().getTime();
+            java.util.Calendar tempcal = java.util.Calendar.getInstance();
+            tempcal.clear();
+            tempcal.set(p[0] + 1900, p[1], p[2], p[3], p[4]);
+            Date d = tempcal.getTime();
             boolean transitionExpected = ((Boolean)DATA[j+2]).booleanValue();
 
             logln(tz.getID() + ":");
             for (int i=0; i<4; ++i) {
-                Date d = new Date(start + i*ONE_HOUR);
                 zone[i] = fmt.format(d);
-                logln("" + i + ": " + sdf.format(d) + " => " + zone[i] +
-                      " (" + d.getTime()/H + ")");
-            }
-            cal.set(p[0], p[1], p[2], 0, 0);
-            for (int i=0; i<4; ++i) {
-                int h = 22+i;
-                int dom = p[2]+(h>=24?1:0);
-                h %= 24;
-                int ms = h*ONE_HOUR;
-                cal.clear();
-                cal.set(p[0], p[1], dom, 0, 0);
-                int off = tz.getOffset(GregorianCalendar.AD,
-                                       cal.get(Calendar.YEAR),
-                                       cal.get(Calendar.MONTH),
-                                       cal.get(Calendar.DATE),
-                                       cal.get(Calendar.DAY_OF_WEEK),
-                                       ms);
-                cal.add(Calendar.HOUR, h);
-                int x = cal.get(Calendar.DST_OFFSET);
-                logln("h=" + h + "; dom=" + dom +
-                      "; ZONE_OFFSET=" + cal.get(Calendar.ZONE_OFFSET)/H +
-                      "; DST_OFFSET=" + cal.get(Calendar.DST_OFFSET)/H +
-                      "; getOffset()=" + off/H +
-                      " (" + cal.getTime().getTime()/H + ")");
+                logln("" + i + ": " + sdf.format(d) + " => " + zone[i]);
+                d = new Date(d.getTime() + ONE_HOUR);
             }
             if (zone[0].equals(zone[1]) &&
                 (zone[1].equals(zone[2]) != transitionExpected) &&
                 zone[2].equals(zone[3])) {
                 logln("Ok: transition " + transitionExpected);
             } else {
-                errln("FAIL: expected " +
-                      (transitionExpected?"transition":"no transition"));
+                errln("Fail: boundary transition incorrect");
             }
         }
 
@@ -765,7 +740,7 @@ public class TimeZoneRegression extends TestFmwk {
      * TimeZone broken in last hour of year
      */
     public void Test4173604() {
-        TimeZone pst = TimeZone.getTimeZone("PST");
+        SimpleTimeZone pst = (SimpleTimeZone)TimeZone.getTimeZone("PST");
         int o22 = pst.getOffset(1, 1998, 11, 31, Calendar.THURSDAY, 22*60*60*1000);
         int o23 = pst.getOffset(1, 1998, 11, 31, Calendar.THURSDAY, 23*60*60*1000);
         int o00 = pst.getOffset(1, 1999, 0, 1, Calendar.FRIDAY, 0);
@@ -919,7 +894,7 @@ public class TimeZoneRegression extends TestFmwk {
      * of 2/29/1996 (leap day).
      */
     public void Test4208960 () {
-	TimeZone tz = TimeZone.getTimeZone("PST");
+	SimpleTimeZone tz = (SimpleTimeZone)TimeZone.getTimeZone("PST");
 	try {
 	    /*int offset =*/ tz.getOffset(GregorianCalendar.AD, 1996, Calendar.FEBRUARY, 29, 
 				      Calendar.THURSDAY, 0);
@@ -942,8 +917,11 @@ public class TimeZoneRegression extends TestFmwk {
      * might seem that this should be a DateFormat test, but it's really a
      * TimeZone test -- the changes to DateFormat are minor.
      *
-     * We use two known, zones that are equivalent, where one zone has
-     * localized name data, and the other doesn't, in some locale.
+     * We use two known, stable zones that shouldn't change much over time
+     * -- America/Vancouver and America/Los_Angeles.  However, they MAY
+     * change at some point -- if that happens, replace them with any two
+     * zones in an equivalency group where one zone has localized name
+     * data, and the other doesn't, in some locale.
      */
     public void TestJ449() {
         // not used String str;
@@ -952,7 +930,7 @@ public class TimeZoneRegression extends TestFmwk {
         // specify two zones in the same equivalency group.  One must have
         // locale data in 'loc'; the other must not.
         String idWithLocaleData = "America/Los_Angeles";
-        String idWithoutLocaleData = "PST"; // "US/Pacific";
+        String idWithoutLocaleData = "America/Vancouver";
         Locale loc = new Locale("en", "", "");
 
         TimeZone zoneWith = TimeZone.getTimeZone(idWithLocaleData);
