@@ -1,7 +1,7 @@
 /*****************************************************************************************
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/dev/test/format/NumberRegression.java,v $ 
- * $Date: 2002/08/15 18:29:06 $ 
- * $Revision: 1.10 $
+ * $Date: 2002/10/09 19:20:40 $ 
+ * $Revision: 1.10.2.1 $
  *
  *****************************************************************************************
  **/
@@ -1528,7 +1528,8 @@ public class NumberRegression extends com.ibm.icu.dev.test.TestFmwk {
         }
         sym.setInternationalCurrencySymbol("USD");
 
-        if (VersionInfo.ICU_VERSION == VersionInfo.getInstance(2,2)) {
+	if (VersionInfo.ICU_VERSION.compareTo(VersionInfo.getInstance(2,4)) 
+                                                                      < 0) {
             // bug in 2.2 that fails this test
             // to be fixed in the later versions
             System.out.println("\n        Test skipped for release 2.2");
