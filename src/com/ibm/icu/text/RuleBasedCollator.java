@@ -5,8 +5,8 @@
 *******************************************************************************
 *
 * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/text/RuleBasedCollator.java,v $
-* $Date: 2004/01/08 22:27:03 $
-* $Revision: 1.54 $
+* $Date: 2003/11/21 19:46:25 $
+* $Revision: 1.52 $
 *
 *******************************************************************************
 */
@@ -20,7 +20,6 @@ import java.util.ResourceBundle;
 import java.util.Arrays;
 import java.text.CharacterIterator;
 import com.ibm.icu.lang.UCharacter;
-import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.VersionInfo;
 import com.ibm.icu.impl.IntTrie;
 import com.ibm.icu.impl.Trie;
@@ -559,7 +558,7 @@ public final class RuleBasedCollator extends Collator
      * during comparison.
      * </p>
      * <p>See the Collator class description for an example of use.</p>
-     * @param newStrength the new strength value.
+     * @param the new strength value.
      * @see #getStrength
      * @see #setStrengthDefault
      * @see #PRIMARY
@@ -1627,10 +1626,6 @@ public final class RuleBasedCollator extends Collator
                             = ((ICUListResourceBundle)rb).getObjectWithFallback(
                                                        "collations/" + collkey);
                 if (elements != null) {
-                    // TODO: Determine actual & valid locale correctly
-                    ULocale uloc = new ULocale(rb.getLocale());
-                    setLocale(uloc, uloc);
-
                     Object[][] rules = (Object[][])elements;
                     // %%CollationBin
                     if(rules[0][1] instanceof byte[]){

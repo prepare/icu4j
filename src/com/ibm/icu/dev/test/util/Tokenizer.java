@@ -1,12 +1,12 @@
 /*
  *******************************************************************************
- * Copyright (C) 2002-2003, International Business Machines Corporation and         *
+ * Copyright (C) 2002, International Business Machines Corporation and         *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/dev/test/util/Tokenizer.java,v $
- * $Date: 2003/12/20 03:06:53 $
- * $Revision: 1.3 $
+ * $Date: 2003/11/21 01:03:39 $
+ * $Revision: 1.1 $
  *
  *****************************************************************************************
  */
@@ -16,6 +16,7 @@ import java.text.ParsePosition;
 
 import com.ibm.icu.text.*;
 import com.ibm.icu.lang.*;
+import com.ibm.icu.util.*;
 
 import java.util.HashMap;
 import java.util.HashSet;

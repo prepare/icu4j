@@ -1,11 +1,7 @@
 /*****************************************************************************************
- *
- *   Copyright (C) 1996-2003, International Business Machines
- *   Corporation and others.  All Rights Reserved.
- *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/dev/test/format/IntlTestDateFormatSymbols.java,v $ 
- * $Date: 2003/12/20 03:06:51 $ 
- * $Revision: 1.7 $
+ * $Date: 2003/06/03 18:49:29 $ 
+ * $Revision: 1.6 $
  *
  *****************************************************************************************
  **/
@@ -19,6 +15,13 @@
     @test 1.4 98/03/06
     @summary test International Date Format Symbols
 */
+/***************************************************************************
+*
+*   Copyright (C) 1996-2003, International Business Machines
+*   Corporation and others.  All Rights Reserved.
+*
+************************************************************************/
+
 
 package com.ibm.icu.dev.test.format;
 

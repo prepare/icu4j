@@ -1,31 +1,29 @@
 
 /*
  *******************************************************************************
- * Copyright (C) 2002-2003, International Business Machines Corporation and         *
+ * Copyright (C) 2002, International Business Machines Corporation and         *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/dev/test/util/UnicodePropertySource.java,v $
- * $Date: 2003/12/29 19:48:57 $
- * $Revision: 1.5 $
+ * $Date: 2003/11/21 19:10:43 $
+ * $Revision: 1.2 $
  *
  *****************************************************************************************
  */
 package com.ibm.icu.dev.test.util;
 
+//import java.util.regex.*;
 import java.util.Set;
 import java.util.Locale;
 import java.util.Map;
 import java.util.List;
 import java.util.Arrays;
 
-import com.ibm.icu.lang.UProperty;
-import com.ibm.icu.lang.UCharacter;
-import com.ibm.icu.text.Normalizer;
-import com.ibm.icu.text.UTF16;
-import com.ibm.icu.text.UnicodeSet;
-import com.ibm.icu.text.UnicodeSetIterator;
-
+import com.ibm.icu.lang.*;
+import com.ibm.icu.util.*;
+import com.ibm.icu.impl.*;
+import com.ibm.icu.text.*;
 
 /**
  * Provides a general interface for Unicode Properties, and
@@ -87,6 +85,7 @@ public abstract class UnicodePropertySource implements Cloneable {
         return result;
     }
 
+    /*
     public UnicodeSet getPropertySet(String propertyValue, UnicodeSet result){
         if (result == null) result = new UnicodeSet();
         matchIterator.reset();
@@ -106,16 +105,14 @@ public abstract class UnicodePropertySource implements Cloneable {
             String value = filter.remap(getPropertyValue(matchIterator.codepoint));
             if (value == null)
                 continue;
-            if (matcher.matches(value)) {
+            matcher.reset(value);
+            if (matcher.matches()) {
                 result.add(matchIterator.codepoint);
             }
         }
         return result;
     }
-    
-    public interface Matcher {
-        public boolean matches(String value);
-    }
+    */
     
     public int getNameChoice() {
         return nameChoice;
@@ -304,7 +301,7 @@ public abstract class UnicodePropertySource implements Cloneable {
      */
     static public void addAll(UnicodeSetIterator source, UnicodeSet result) {
         while (source.nextRange()) {
-            if (source.codepoint == UnicodeSetIterator.IS_STRING) {
+            if (source.codepoint == source.IS_STRING) {
                 result.add(source.string);
             } else {
                 result.add(source.codepoint, source.codepointEnd);

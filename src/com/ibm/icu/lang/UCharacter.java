@@ -5,8 +5,8 @@
 *******************************************************************************
 *
 * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/lang/UCharacter.java,v $ 
-* $Date: 2004/01/07 20:06:24 $ 
-* $Revision: 1.85 $
+* $Date: 2003/11/24 22:23:39 $ 
+* $Revision: 1.83 $
 *
 *******************************************************************************
 */
@@ -1956,7 +1956,7 @@ public final class UCharacter
     /**
 	 * Hangul Syllable Type constants.
 	 *
-	 * @see UProperty#HANGUL_SYLLABLE_TYPE
+	 * @see HANGUL_SYLLABLE_TYPE
 	 * @draft ICU 2.6
 	 */
 	public static interface HangulSyllableType 
@@ -2237,11 +2237,7 @@ public final class UCharacter
      * except for the above mentioned code points that had their category 
      * changed.<br>
      * Return results are constants from the interface 
-     * <a href=UCharacterCategory.html>UCharacterCategory</a><br>
-     * <em>NOTE:</em> the UCharacterCategory values are <em>not</em> compatible with
-     * those returned by java.lang.Character.getType.  UCharacterCategory values
-     * match the ones used in ICU4C, while java.lang.Character type
-     * values, though similar, skip the value 17.</p>
+     * <a href=UCharacterCategory.html>UCharacterCategory</a>
      * @param ch code point whose type is to be determined
      * @return category which is a value of UCharacterCategory
      * @stable ICU 2.1
@@ -2909,7 +2905,7 @@ public final class UCharacter
      * <li> Not-a-character, having the form 0x xxFFFF or 0x xxFFFE
      * </ul>
      * Note: legal does not mean that it is assigned in this version of Unicode.
-     * @param str containing code points to examin
+     * @param ch code point to determine if it is a legal code point by itself
      * @return true if and only if legal. 
      * @stable ICU 2.1
      */
@@ -4066,7 +4062,7 @@ public final class UCharacter
 	 * <p>Important: If ICU is built with UCD files from Unicode versions 
 	 * below 3.2, then properties marked with "new" are not or 
 	 * not fully available.</p>
-	 * @param ch code point to test.
+	 * @param codepoint Code point to test.
 	 * @param property selector constant from com.ibm.icu.lang.UProperty, 
 	 *        identifies which binary property to check.
 	 * @return true or false according to the binary Unicode property value 

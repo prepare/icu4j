@@ -1,12 +1,12 @@
 /*
  *******************************************************************************
- * Copyright (C) 2002-2003, International Business Machines Corporation and         *
+ * Copyright (C) 2002, International Business Machines Corporation and         *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/dev/test/util/TestBagFormatter.java,v $
- * $Date: 2003/12/29 19:48:57 $
- * $Revision: 1.5 $
+ * $Date: 2003/11/21 19:10:43 $
+ * $Revision: 1.2 $
  *
  *****************************************************************************************
  */
@@ -16,15 +16,23 @@ package com.ibm.icu.dev.test.util;
 
 import java.util.TreeSet;
 import java.util.Iterator;
-import java.io.IOException;
-import java.io.PrintWriter;
 import java.text.Collator;
 import java.util.Locale;
+
+import java.io.*;
+import java.util.Random;
+import java.text.ParseException;
 import java.util.Set;
+import java.util.Iterator;
+import java.util.TreeSet;
+import java.util.Locale;
+//import java.util.regex.*;
+
+import com.ibm.icu.text.*;
 
 import com.ibm.icu.lang.UScript;
 import com.ibm.icu.lang.UProperty;
-import com.ibm.icu.text.Transliterator;
+import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.text.UnicodeSet;
 
 public class TestBagFormatter {
@@ -62,9 +70,9 @@ public class TestBagFormatter {
             BagFormatter bf = new BagFormatter();
 
             UnicodeSet us = new UnicodeSet("[:numeric_value=2:]");   
-            bf.showSetNames(bf.CONSOLE,"[:numeric_value=2:]", us);
+            System.out.println(bf.showSetNames("[:numeric_value=2:]", us));
             us = new UnicodeSet("[:numeric_type=numeric:]");   
-            bf.showSetNames(bf.CONSOLE,"[:numeric_type=numeric:]", us);
+            System.out.println(bf.showSetNames("[:numeric_type=numeric:]", us));
             
             if (true) return;
             //showNames("Name", ".*MARK.*");
@@ -121,7 +129,7 @@ public class TestBagFormatter {
             );
         }
         //CollectionFormatter cf = new CollectionFormatter();
-        PrintWriter pw = BagFormatter.openUTF8Writer("", "countries.txt");
+        PrintWriter pw = BagFormatter.openUTF8Writer("", "countries.txt", BagFormatter.CONSOLE);
         Iterator it = s.iterator();
         while (it.hasNext()) {
             pw.println(it.next());

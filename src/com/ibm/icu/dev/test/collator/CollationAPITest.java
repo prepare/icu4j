@@ -558,13 +558,10 @@ public class CollationAPITest extends TestFmwk {
         doAssert((col.getStrength() != Collator.PRIMARY), "collation object's strength is primary difference");
         doAssert((col.getStrength() != Collator.SECONDARY), "collation object's strength is secondary difference");
     
-    }
-    public void TestJunkCollator(){
         logln("Create junk collation: ");
         Locale abcd = new Locale("ab", "CD", "");
         
         Collator junk = null;
-        Collator col = null;
         try {
             junk = Collator.getInstance(abcd);
         } catch (Exception e) {
@@ -593,8 +590,8 @@ public class CollationAPITest extends TestFmwk {
     
         doAssert(!(frCol.equals(junk)), "The junk is the same as the French collator.");
         logln("Collator property test ended.");
-    
     }
+    
     /**
     * This tests the RuleBasedCollator
     * - constructor/destructor
@@ -698,16 +695,16 @@ public class CollationAPITest extends TestFmwk {
     public void TestRules() {
         RuleBasedCollator coll;
         try {
-            coll = (RuleBasedCollator)Collator.getInstance(new Locale("","","")); //root
+            coll = (RuleBasedCollator)Collator.getInstance(Locale.ENGLISH); 
             // logln("PASS: RuleBased Collator creation passed\n");
         } catch (Exception e) {
-            errln("Root Collator creation failed.\n");
+            errln("English Collator creation failed.\n");
             return;
         }
     
         String rules = coll.getRules();
         if (rules != null && rules.length() != 0) {
-            errln("Root tailored rules failed");
+            errln("English tailored rules failed");
         }
     }
     

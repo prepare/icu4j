@@ -5,8 +5,8 @@
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/text/DictionaryBasedBreakIterator.java,v $
- * $Date: 2003/12/01 23:39:13 $
- * $Revision: 1.15 $
+ * $Date: 2003/06/11 16:31:31 $
+ * $Revision: 1.13 $
  *
  *****************************************************************************************
  */
@@ -92,7 +92,7 @@ public class DictionaryBasedBreakIterator extends RuleBasedBreakIterator {
      * @param description Same as the description parameter on RuleBasedBreakIterator,
      * except for the special meaning of DICTIONARY_VAR.  This parameter is just
      * passed through to RuleBasedBreakIterator's constructor.
-     * @param dictionaryStream the stream containing the dictionary data
+     * @param dictionaryFilename The filename of the dictionary file to use
      * @stable ICU 2.0
      */
     public DictionaryBasedBreakIterator(String description,
@@ -584,7 +584,7 @@ switch (categoryFlags.length % 4) {
         // which is called by the function above.  This gives us a way to create a separate
         // character category for the dictionary characters even when RuleBasedBreakIterator
         // isn't making a distinction
-	/**
+	/*
 	 * @internal
 	 */
         protected void mungeExpressionList(Hashtable expressions) {

@@ -5,8 +5,8 @@
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/text/DecimalFormatSymbols.java,v $ 
- * $Date: 2004/01/08 22:27:01 $ 
- * $Revision: 1.15 $
+ * $Date: 2003/11/21 22:52:05 $ 
+ * $Revision: 1.13 $
  *
  *****************************************************************************************
  */
@@ -421,12 +421,10 @@ final public class DecimalFormatSymbols implements Cloneable, Serializable {
      */
     public Object clone() {
         try {
-            return (DecimalFormatSymbols) super.clone();
+            return (DecimalFormatSymbols)super.clone();
             // other fields are bit-copied
         } catch (CloneNotSupportedException e) {
-        	///CLOVER:OFF
             throw new InternalError();
-            ///CLOVER:ON
         }
     }
 
@@ -437,6 +435,7 @@ final public class DecimalFormatSymbols implements Cloneable, Serializable {
     public boolean equals(Object obj) {
         if (obj == null) return false;
         if (this == obj) return true;
+        if (getClass() != obj.getClass()) return false;
         DecimalFormatSymbols other = (DecimalFormatSymbols) obj;
         return (zeroDigit == other.zeroDigit &&
         groupingSeparator == other.groupingSeparator &&
@@ -487,36 +486,29 @@ final public class DecimalFormatSymbols implements Cloneable, Serializable {
         numberElements = data[0];
         
         ResourceBundle r = ICULocaleData.getLocaleElements(locale);
-        
-        // TODO: Determine actual and valid locale correctly.
-        ULocale uloc = new ULocale(r.getLocale());
-        setLocale(uloc, uloc);
+        validLocale = new ULocale(r.getLocale());
 
 	// {dlf} clean up below now that we have our own resource data
         decimalSeparator = numberElements[0].charAt(0);
         groupingSeparator = numberElements[1].charAt(0);
-        // Temporary hack to support old JDK 1.1 resources
-//        patternSeparator = numberElements[2].length() > 0 ?
-//            numberElements[2].charAt(0) : ';';
-        patternSeparator = numberElements[2].charAt(0);
+        // [NEW] Temporary hack to support old JDK 1.1 resources
+        patternSeparator = numberElements[2].length() > 0 ?
+            numberElements[2].charAt(0) : ';';
+        // patternSeparator = numberElements[2].charAt(0);
         percent = numberElements[3].charAt(0);
         zeroDigit = numberElements[4].charAt(0); //different for Arabic,etc.
         digit = numberElements[5].charAt(0);
         minusSign = numberElements[6].charAt(0);
         
-        // Temporary hack to support JDK versions before 1.1.6 (?)
-//        exponentSeparator = numberElements.length >= 9 ?
-//            numberElements[7] : DecimalFormat.PATTERN_EXPONENT;
-//        perMill = numberElements.length >= 9 ?
-//            numberElements[8].charAt(0) : '\u2030';
-//        infinity  = numberElements.length >= 10 ?
-//            numberElements[9] : "\u221e";
-//        NaN = numberElements.length >= 11 ?
-//            numberElements[10] : "\ufffd";
-		exponentSeparator = numberElements[7];
-		perMill = numberElements[8].charAt(0);
-		infinity = numberElements[9];
-		NaN = numberElements[10];
+        // [NEW] Temporary hack to support JDK versions before 1.1.6 (?)
+        exponentSeparator = numberElements.length >= 9 ?
+            numberElements[7] : DecimalFormat.PATTERN_EXPONENT;
+        perMill = numberElements.length >= 9 ?
+            numberElements[8].charAt(0) : '\u2030';
+        infinity  = numberElements.length >= 10 ?
+            numberElements[9] : "\u221e";
+        NaN = numberElements.length >= 11 ?
+            numberElements[10] : "\ufffd";
         
         // [NEW] Temporarily hard code; retrieve from resource later
         plusSign  = DecimalFormat.PATTERN_PLUS_SIGN;
@@ -543,9 +535,8 @@ final public class DecimalFormatSymbols implements Cloneable, Serializable {
             currencySymbol = "\u00A4"; // 'OX' currency symbol
         }
         // If there is a currency decimal, use it.
-//        monetarySeparator =
-//            numberElements[numberElements.length >= 12 ? 11 : 0].charAt(0);
-		monetarySeparator = numberElements[11].charAt(0);
+        monetarySeparator =
+            numberElements[numberElements.length >= 12 ? 11 : 0].charAt(0);
     }
 
     /**
@@ -560,15 +551,13 @@ final public class DecimalFormatSymbols implements Cloneable, Serializable {
     private void readObject(ObjectInputStream stream)
         throws IOException, ClassNotFoundException {
         stream.defaultReadObject();
-        ///CLOVER:OFF
-        // we don't have data for these old serialized forms any more
         if (serialVersionOnStream < 1) {
             // Didn't have monetarySeparator or exponential field;
             // use defaults.
             monetarySeparator = decimalSeparator;
             exponential = 'E';
         }
-        if (serialVersionOnStream < 2) {
+        if (serialVersionOnStream < 2) { // [NEW]
             padEscape = DecimalFormat.PATTERN_PAD_ESCAPE;
             plusSign = DecimalFormat.PATTERN_PLUS_SIGN;
             exponentSeparator = String.valueOf(exponential);
@@ -577,7 +566,6 @@ final public class DecimalFormatSymbols implements Cloneable, Serializable {
             // notation isn't supported by the old classes, even though the
             // symbol is there.
         }
-        ///CLOVER:ON
         if (serialVersionOnStream < 3) {
             // Resurrected objects from old streams will have no
             // locale.  There is no 100% fix for this.  A
@@ -768,76 +756,11 @@ final public class DecimalFormatSymbols implements Cloneable, Serializable {
      * cache to hold the NumberElements of a Locale.
      */
     private static final Hashtable cachedLocaleData = new Hashtable(3);
- 
-    // -------- BEGIN ULocale boilerplate --------
-
-    /**
-     * Return the locale that was used to create this object, or null.
-     * This may may differ from the locale requested at the time of
-     * this object's creation.  For example, if an object is created
-     * for locale <tt>en_US_CALIFORNIA</tt>, the actual data may be
-     * drawn from <tt>en</tt> (the <i>actual</i> locale), and
-     * <tt>en_US</tt> may be the most specific locale that exists (the
-     * <i>valid</i> locale).
-     * @param type type of information requested, either {@link
-     * com.ibm.icu.util.ULocale#VALID_LOCALE} or {@link
-     * com.ibm.icu.util.ULocale#ACTUAL_LOCALE}.
-     * @return the information specified by <i>type</i>, or null if
-     * this object was not constructed from locale data.
-     * @see com.ibm.icu.util.ULocale
-     * @see com.ibm.icu.util.ULocale#VALID_LOCALE
-     * @see com.ibm.icu.util.ULocale#ACTUAL_LOCALE
-     * @draft ICU 2.8
-     */
-    public final ULocale getLocale(ULocale.Type type) {
-        return type == ULocale.ACTUAL_LOCALE ?
-            this.actualLocale : this.validLocale;
-    }
-
-    /**
-     * Set information about the locales that were used to create this
-     * object.  If the object was not constructed from locale data,
-     * both arguments should be set to null.  Otherwise, neither
-     * should be null.  The actual locale must be at the same level or
-     * less specific than the valid locale.  This method is intended
-     * for use by factories or other entities that create objects of
-     * this class.
-     * @param valid the most specific locale containing any resource
-     * data, or null
-     * @param actual the locale containing data used to construct this
-     * object, or null
-     * @see com.ibm.icu.util.ULocale
-     * @see com.ibm.icu.util.ULocale#VALID_LOCALE
-     * @see com.ibm.icu.util.ULocale#ACTUAL_LOCALE
-     * @internal
-     */
-    final void setLocale(ULocale valid, ULocale actual) {
-        // Change the following to an assertion later
-        if ((valid == null) != (actual == null)) {
-            ///CLOVER:OFF
-            throw new IllegalArgumentException();
-            ///CLOVER:ON
-        }
-        // Another check we could do is that the actual locale is at
-        // the same level or less specific than the valid locale.
-        this.validLocale = valid;
-        this.actualLocale = actual;
-    }
-
-    /**
-     * The most specific locale containing any resource data, or null.
-     * @see com.ibm.icu.util.ULocale
-     * @internal
-     */
+    
     private ULocale validLocale;
-
-    /**
-     * The locale containing data used to construct this object, or
-     * null.
-     * @see com.ibm.icu.util.ULocale
-     * @internal
-     */
-    private ULocale actualLocale;
-
-    // -------- END ULocale boilerplate --------
+    
+    ULocale getLocale(ULocale.ULocaleDataType type) {
+    	return validLocale;
+    }
+    
 }

@@ -1,12 +1,12 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2003, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2000, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/text/SearchIterator.java,v $ 
- * $Date: 2003/12/20 03:07:10 $ 
- * $Revision: 1.18 $
+ * $Date: 2003/11/18 17:53:53 $ 
+ * $Revision: 1.16 $
  *
  *****************************************************************************************
  */
@@ -755,7 +755,7 @@ public abstract class SearchIterator
      * {@link #getIndex}, is the starting position of the match if one was 
      * found. If a match is not found, <tt>DONE</tt> will be returned.
      * </p> 
-	 * @param startAt index in the target text at which the backwards search 
+	 * @param start index in the target text at which the backwards search 
      *        should begin.
 	 * @return the starting index of the next backwards match if found, 
      *         DONE otherwise
@@ -763,7 +763,7 @@ public abstract class SearchIterator
      * @see #handleNext(int)
      * @see #DONE
      * @stable ICU 2.0
-     */
+	 */
     protected abstract int handlePrevious(int startAt);
     
     // private data members ------------------------------------------------

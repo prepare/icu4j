@@ -1,17 +1,18 @@
 /*
  *******************************************************************************
- * Copyright (C) 2002-2003, International Business Machines Corporation and         *
+ * Copyright (C) 2002, International Business Machines Corporation and         *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/dev/test/util/BNF.java,v $
- * $Date: 2003/12/20 03:06:54 $
- * $Revision: 1.3 $
+ * $Date: 2003/11/21 01:03:38 $
+ * $Revision: 1.1 $
  *
  *****************************************************************************************
  */
 package com.ibm.icu.dev.test.util;
 
+import java.text.ParsePosition;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.Set;
@@ -19,7 +20,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 
+import com.ibm.icu.text.SymbolTable;
+import com.ibm.icu.text.UnicodeMatcher;
 import com.ibm.icu.text.UnicodeSet;
+import com.ibm.icu.text.UTF16;
 import java.util.Random;
 
 public class BNF {
@@ -151,8 +155,8 @@ public class BNF {
     
     private boolean addRule() {
         int type = t.next();
-        if (type == Tokenizer.DONE) return false;
-        if (type != Tokenizer.STRING) error("missing weight");
+        if (type == t.DONE) return false;
+        if (type != t.STRING) error("missing weight");
         String s = t.getString();
         if (s.length() == 0 || s.charAt(0) != '$') error("missing $ in variable");
         if (t.next() != '=') error("missing =");
@@ -203,14 +207,14 @@ public class BNF {
                 weights = getWeights();
                 return Pick.repeat(1, maxRepeat, weights, item);
             case '{':
-                if (t.next() != Tokenizer.NUMBER) error("missing number");
+                if (t.next() != t.NUMBER) error("missing number");
                 int start = (int) t.getNumber();
                 int end = start;
                 type = t.next();
                 if (type == ',') {
                     end = maxRepeat;
                     type = t.next();
-                    if (type == Tokenizer.NUMBER) {
+                    if (type == t.NUMBER) {
                         end = (int)t.getNumber();
                         type = t.next();
                     }
@@ -225,12 +229,12 @@ public class BNF {
     
     Pick getCore() {
         int token = t.next();
-        if (token == Tokenizer.STRING) {
+        if (token == t.STRING) {
             String s = t.getString();
             if (s.charAt(0) == '$') variables.add(s);
             return Pick.string(s);
         }
-        if (token == Tokenizer.UNICODESET) {
+        if (token == t.UNICODESET) {
             return Pick.codePoint(t.getUnicodeSet());            
         }
         if (token != '(') {
@@ -300,7 +304,7 @@ public class BNF {
     int getWeight() {       
         int weight;
         int token = t.next();
-        if (token != Tokenizer.NUMBER) {
+        if (token != t.NUMBER) {
             t.backup();
             return NO_WEIGHT;
         }

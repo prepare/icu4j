@@ -1486,7 +1486,7 @@ public final class CollationElementIterator
                 if (m_bufferOffset_ < 0) {
                     // decompose into writable buffer
                     m_buffer_.replace(0, m_buffer_.length(), 
-                                      Normalizer.decompose(UTF16.valueOf(cp), 
+                                      Normalizer.decompose(UTF16.toString(cp), 
                                                            false));
                     // reorder Thai and the character after it
                     if (m_buffer_.length() >= 2 
@@ -2024,7 +2024,7 @@ public final class CollationElementIterator
         // if so we generate a custom collation key. Otherwise we pull out 
         // the value stored in the expansion table.
 
-        if (m_collator_.m_isNumericCollation_){
+        if (collator.m_isNumericCollation_){
             int collateVal = 0;
             int trailingZeroIndex = 0;
             boolean nonZeroValReached = false;
@@ -2430,7 +2430,7 @@ public final class CollationElementIterator
             // in the normalization buffer
         }
         else {
-            String decomp = Normalizer.decompose(UTF16.valueOf(ch), false);
+            String decomp = Normalizer.decompose(UTF16.toString(ch), false);
             // we need to check if we will hit a contraction trigger because of 
             // decomposition
             for (int i = decomp.length() - 1; i >= 0; i --) {
@@ -2678,7 +2678,7 @@ public final class CollationElementIterator
     {
         // We do a check to see if we want to collate digits as numbers; if so we generate
         //  a custom collation key. Otherwise we pull out the value stored in the expansion table.
-        if (m_collator_.m_isNumericCollation_){
+        if (collator.m_isNumericCollation_){
             int leadingZeroIndex = 0;
             int collateVal = 0;
             boolean nonZeroValReached = false;

@@ -8,6 +8,7 @@ package com.ibm.icu.text;
 import com.ibm.icu.impl.ICULocaleData;
 import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.TimeZone;
+import com.ibm.icu.util.ULocale;
 import com.ibm.icu.text.UFormat;
 
 import java.text.FieldPosition;
@@ -95,7 +96,7 @@ import java.util.MissingResourceException;
  * format instances for each thread. If multiple threads access a format 
  * concurrently, it must be synchronized externally. 
  *
- * @see          UFormat
+ * @see          Format
  * @see          NumberFormat
  * @see          SimpleDateFormat
  * @see          com.ibm.icu.util.Calendar
@@ -729,12 +730,20 @@ public abstract class DateFormat extends UFormat {
         return calendar.isLenient();
     }
 
+    /** Get the locale for this date format object. You can choose between valid and actual locale.
+	 *  @param type type of the locale we're looking for (valid or actual) 
+	 *  @return the locale
+	 *  @draft ICU 2.8
+	 */
+	public ULocale getLocale(ULocale.ULocaleDataType type) {
+	    return ULocale.ROOT;
+	}
+
     /**
      * Overrides hashCode
      * @stable ICU 2.0
      */
     ///CLOVER:OFF
-    // turn off code coverage since all subclasses override this
     public int hashCode() {
         return numberFormat.hashCode();
         // just enough fields for a reasonable distribution
@@ -784,10 +793,7 @@ public abstract class DateFormat extends UFormat {
         try {
             return new SimpleDateFormat(timeStyle, dateStyle, loc);
         } catch (MissingResourceException e) {
-        	///CLOVER:OFF
-        	// coverage requires separate run with no data, so skip
             return new SimpleDateFormat("M/d/yy h:mm a");
-            ///CLOVER:ON
         }
     }
 

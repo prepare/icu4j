@@ -1,11 +1,7 @@
 /*****************************************************************************************
- *
- *   Copyright (C) 1996-2003, International Business Machines
- *   Corporation and others.  All Rights Reserved.
- *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/dev/test/format/IntlTestDateFormatAPI.java,v $ 
- * $Date: 2003/12/20 03:06:52 $ 
- * $Revision: 1.11 $
+ * $Date: 2003/10/02 20:50:58 $ 
+ * $Revision: 1.10 $
  *
  *****************************************************************************************
  **/
@@ -19,6 +15,12 @@
     @test 1.4 98/03/06
     @summary test International Date Format API
 */
+/***************************************************************************
+*
+*   Copyright (C) 1996-2003, International Business Machines
+*   Corporation and others.  All Rights Reserved.
+*
+************************************************************************/
 
 package com.ibm.icu.dev.test.format;
 

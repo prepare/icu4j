@@ -5,8 +5,8 @@
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/text/Normalizer.java,v $ 
- * $Date: 2003/12/13 00:30:50 $ 
- * $Revision: 1.39 $
+ * $Date: 2003/11/24 22:16:56 $ 
+ * $Revision: 1.37 $
  *
  *******************************************************************************
  */
@@ -537,7 +537,7 @@ public final class Normalizer implements Cloneable{
      * altogether.
      * <p>
      * @see #setMode
-     * @deprecated ICU 2.8. Use Nomalizer.NONE
+     * @obsolete ICU 2.8. To be removed after 2004-Aug-31. Use Nomalizer.NONE
      * @see #NONE
      */
     public static final Mode NO_OP = NONE;
@@ -555,7 +555,7 @@ public final class Normalizer implements Cloneable{
      * <b>C</b>.
      * <p>
      * @see #setMode
-     * @deprecated ICU 2.8. Use Normalier.NFC
+     * @obsolete ICU 2.8. To be removed after 2004-Aug-31. Use Normalier.NFC
      * @see #NFC
      */
     public static final Mode COMPOSE = NFC;
@@ -573,7 +573,7 @@ public final class Normalizer implements Cloneable{
      * <b>KC</b>.
      * <p>
      * @see #setMode
-     * @deprecated ICU 2.8. Use Normalizer.NFKC
+     * @obsolete ICU 2.8. To be removed after 2004-Aug-31. Use Normalizer.NFKC
      * @see #NFKC
      */
     public static final Mode COMPOSE_COMPAT = NFKC;
@@ -591,7 +591,7 @@ public final class Normalizer implements Cloneable{
      * <b>D</b>.
      * <p>
      * @see #setMode
-     * @deprecated ICU 2.8. Use Normalizer.NFD
+     * @obsolete ICU 2.8. To be removed after 2004-Aug-31.Use Normalizer.NFD
      * @see #NFD
      */
     public static final Mode DECOMP = NFD;
@@ -609,7 +609,7 @@ public final class Normalizer implements Cloneable{
      * <b>KD</b>.
      * <p>
      * @see #setMode
-     * @deprecated ICU 2.8. Use Normalizer.NFKD
+     * @obsolete ICU 2.8. To be removed after 2004-Aug-31. Use Normalizer.NFKD
      * @see #NFKD
      */
     public static final Mode DECOMP_COMPAT = NFKD;
@@ -630,7 +630,7 @@ public final class Normalizer implements Cloneable{
      * Unicode Normalization Forms</a>.
      * <p>
      * @see #setOption
-     * @deprecated ICU 2.8. This option is no longer supported. TODO: check with Ram
+     * @obsolete ICU 2.8. To be removed after 2004-Aug-31.
      */
     public static final int IGNORE_HANGUL = 0x0001;
           
@@ -1057,10 +1057,10 @@ public final class Normalizer implements Cloneable{
      * Unicode Normalization Forms, use 0 for this argument.
      * <p>
      * @param str       the input string to be normalized.
-     * @param mode      the normalization mode
+     * @param aMode     the normalization mode
      * @param options   the optional features to be enabled.
      * @return String   the normalized string
-     * @draft ICU 2.6
+	 * @draft ICU 2.6
      */
     public static String normalize(String str, Mode mode, int options){
         return mode.normalize(str,options);
@@ -1070,15 +1070,15 @@ public final class Normalizer implements Cloneable{
      * Normalize a string.
      * The string will be normalized according the the specified normalization 
      * mode and options.
-     * @param src        The string to normalize.
+     * @param source     The string to normalize.
      * @param mode       The normalization mode; one of Normalizer.NONE, 
      *                    Normalizer.NFD, Normalizer.NFC, Normalizer.NFKC, 
      *                    Normalizer.NFKD, Normalizer.DEFAULT
-     * @return the normalized string
+     * @return String    The normalized string
      * @stable ICU 2.8
      *   
      */
-    public static String normalize(String src,Mode mode){
+    public static String normalize( String src,Mode mode){
         return normalize(src, mode, 0);    
     }
     /**
@@ -1141,7 +1141,7 @@ public final class Normalizer implements Cloneable{
     /**
      * Normalize a codepoint accoding to the given mode
      * @param char32    The input string to be normalized.
-     * @param mode      The normalization mode
+     * @param aMode     The normalization mode
      * @param options   Options for use with exclusion set an tailored Normalization
      * 					 The only option that is currently recognized is UNICODE_3_2
      * @return String   The normalized string
@@ -1156,7 +1156,7 @@ public final class Normalizer implements Cloneable{
     /**
      * Conveinience method to normalize a codepoint accoding to the given mode
      * @param char32    The input string to be normalized.
-     * @param mode      The normalization mode
+     * @param aMode     The normalization mode
      * @return String   The normalized string
      * @see #UNICODE_3_2		
 	 * @draft ICU 2.6
@@ -1261,7 +1261,7 @@ public final class Normalizer implements Cloneable{
      *                   it is normalized
      * @param start     The strart index in the source
      * @param limit     The limit index in the source
-     * @param mode      the normalization mode
+     * @param aMode     the normalization mode
      * @param options   Options for use with exclusion set an tailored Normalization
      * 					 The only option that is currently recognized is UNICODE_3_2    
      * @return Boolean value indicating whether the source string is in the
@@ -1278,7 +1278,7 @@ public final class Normalizer implements Cloneable{
      * Convenience Method
      * @param str       the input string to be checked to see if it is 
      *                   normalized
-     * @param mode      the normalization mode
+     * @param aMode     the normalization mode
      * @param options   Options for use with exclusion set an tailored Normalization
      * 					 The only option that is currently recognized is UNICODE_3_2   
      * @see #isNormalized
@@ -1292,7 +1292,7 @@ public final class Normalizer implements Cloneable{
      * Convenience Method
      * @param char32    the input code point to be checked to see if it is 
      *                   normalized
-     * @param mode      the normalization mode
+     * @param aMode     the normalization mode
      * @param options   Options for use with exclusion set an tailored Normalization
      * 					 The only option that is currently recognized is UNICODE_3_2    
 
@@ -1451,7 +1451,8 @@ public final class Normalizer implements Cloneable{
      * by not allocating buffers.
      * @param char32a    the first code point to be checked against the
      * @param char32b    the second code point
-     * @param options    A bit set of options
+     * @param options 	  A bit set of options
+     * @param aMode     the normalization mode
      * @stable ICU 2.8
      */
     // TODO: actually do the optimization when the guts of Normalizer are 
@@ -1468,6 +1469,7 @@ public final class Normalizer implements Cloneable{
      * @param char32a   the first code point to be checked against the
      * @param str2      the second string
      * @param options   A bit set of options
+     * @param aMode     the normalization mode
      * @stable ICU 2.8
      *
      */
@@ -1498,15 +1500,14 @@ public final class Normalizer implements Cloneable{
      * It is allowed to have dest==left to avoid copying the entire left string.
      *
      * @param left Left source array, may be same as dest.
-     * @param leftStart start in the left array.
-     * @param leftLimit limit in the left array (==length)
+     * @param leftStart start index of the left array.
+     * @param leftLimit end index of the left array (==length)
      * @param right Right source array.
-     * @param rightStart start in the right array.
-     * @param rightLimit limit in the right array (==length)
+     * @param rightStart start index of the right array.
+     * @param leftLimit end index of the right array (==length)
      * @param dest The output buffer; can be null if destStart==destLimit==0 
      *              for pure preflighting.
-     * @param destStart start in the destination array
-     * @param destLimit limit in the destination array (==length)
+     * @param destStart start index of the destination array
      * @param mode The normalization mode.
      * @param options The normalization options, ORed together (0 for no options).
      * @return Length of output (number of chars) when successful or 
@@ -1843,17 +1844,18 @@ public final class Normalizer implements Cloneable{
      * @throws IllegalArgumentException if the given index is less than
      *          {@link #getBeginIndex} or greater than {@link #getEndIndex}.
      * @return The codepoint as an int
+     * @obsolete ICU 2.8. To be removed after 2004-Aug-31
      */
-//    public int setIndex(int index) {
-//		setIndexOnly(index);
-//		return current();
-//    }
+    public int setIndex(int index) {
+		setIndexOnly(index);
+		return current();
+    }
  
     /**
      * Retrieve the index of the start of the input text. This is the begin 
      * index of the <tt>CharacterIterator</tt> or the start (i.e. 0) of the 
      * <tt>String</tt> over which this <tt>Normalizer</tt> is iterating
-     * @deprecated ICU 2.2. Use startIndex() instead.
+     * @deprecated ICU 2.2. To be removed after 2003-aug-31. Use startIndex() instead.
      * @return The codepoint as an int
      * @see #startIndex
      */
@@ -1865,7 +1867,7 @@ public final class Normalizer implements Cloneable{
      * Retrieve the index of the end of the input text.  This is the end index
      * of the <tt>CharacterIterator</tt> or the length of the <tt>String</tt>
      * over which this <tt>Normalizer</tt> is iterating
-     * @deprecated ICU 2.2. Use endIndex() instead.
+     * @obsolete ICU 2.2. To be removed after 2003-aug-31. Use endIndex() instead.
      * @return The codepoint as an int
      * @see #endIndex
      */
@@ -2047,7 +2049,7 @@ public final class Normalizer implements Cloneable{
     
     /**
      * Returns the text under iteration as a string
-     * @return a copy of the text under iteration.
+     * @param result a copy of the text under iteration.
      * @stable ICU 2.8
      */
     public String getText(){

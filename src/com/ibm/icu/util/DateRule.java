@@ -1,12 +1,12 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2003, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2000, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/util/DateRule.java,v $ 
- * $Date: 2003/12/20 03:07:07 $ 
- * $Revision: 1.6 $
+ * $Date: 2002/12/04 16:38:52 $ 
+ * $Revision: 1.4 $
  *
  *****************************************************************************************
  */
@@ -22,7 +22,7 @@ import java.util.Date;
  * Daylight Savings Time rules, and other events such as meetings.
  *
  * @see SimpleDateRule
- * @draft ICU 2.8
+ * @draft ICU 2.2
  */
 public interface DateRule
 {
@@ -36,7 +36,7 @@ public interface DateRule
      *              does not occur on or after the start date.
      *
      * @see #firstBetween
-     * @draft ICU 2.8
+     * @draft ICU 2.2
      */
     abstract public Date    firstAfter(Date start);
 
@@ -52,7 +52,7 @@ public interface DateRule
      *              does not occur between the start and end dates.
      *
      * @see #firstAfter
-     * @draft ICU 2.8
+     * @draft ICU 2.2
      */
     abstract public Date    firstBetween(Date start, Date end);
 
@@ -65,14 +65,14 @@ public interface DateRule
      *
      * @param date  The date to check.
      * @return      true if this event occurs on the given date.
-     * @draft ICU 2.8
+     * @draft ICU 2.2
      */
     abstract public boolean isOn(Date date);
 
     /**
      * Check whether this event occurs at least once between the two
      * dates given.
-     * @draft ICU 2.8
+     * @draft ICU 2.2
      */
     abstract public boolean isBetween(Date start, Date end);
 };

@@ -1,17 +1,18 @@
 /*
  *******************************************************************************
- * Copyright (C) 2002-2003, International Business Machines Corporation and         *
+ * Copyright (C) 2002, International Business Machines Corporation and         *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/dev/test/util/TestBNF.java,v $
- * $Date: 2003/12/20 03:06:53 $
- * $Revision: 1.3 $
+ * $Date: 2003/11/21 01:03:39 $
+ * $Revision: 1.1 $
  *
  *****************************************************************************************
  */
 package com.ibm.icu.dev.test.util;
 
+import java.text.ParseException;
 import java.util.Random;
 
 //TODO integrate this into the test framework
@@ -236,7 +237,7 @@ public class TestBNF {
             System.out.println();
             System.out.println("Input: " + t.getSource());
             int type = 0;
-            while (type != Tokenizer.DONE) {
+            while (type != t.DONE) {
                 type = t.next();
                 System.out.println(t.toString(type, false));
             }

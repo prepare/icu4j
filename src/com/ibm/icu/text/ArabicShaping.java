@@ -1,6 +1,6 @@
 /*
 *******************************************************************************
-*   Copyright (C) 2001-2003, International Business Machines
+*   Copyright (C) 2001, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 *******************************************************************************
 */
@@ -123,8 +123,8 @@ public final class ArabicShaping {
     /**
      * Convert a string, returning the new string.
      *
-     * @param text the string to convert
-     * @return the converted string
+     * @param source The string to convert.
+     * @return The converted string.
      * @throws ArabicShapingException if the string cannot be converted according to the options.
      * @stable ICU 2.0
      */

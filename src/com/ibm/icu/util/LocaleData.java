@@ -5,8 +5,8 @@
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/util/LocaleData.java,v $
- * $Date: 2004/01/09 03:09:05 $
- * $Revision: 1.5 $
+ * $Date: 2003/11/21 22:45:06 $
+ * $Revision: 1.3 $
  *
  *******************************************************************************
 */
@@ -21,7 +21,6 @@ import com.ibm.icu.text.UnicodeSet;
 /**
  * A class for accessing miscelleneous data in the locale bundles
  * @author ram
- * @draft ICU 2.8
  */
 public final class LocaleData {
     
@@ -30,9 +29,8 @@ public final class LocaleData {
     private static final String PAPER_SIZE          = "PaperSize";
     
     // private constructor to prevent default construction
-    ///CLOVER:OFF
     private LocaleData(){}
-    ///CLOVER:ON
+    
     /**
      * Returns the exemplar characters for the given locale ID.
      *
@@ -73,6 +71,7 @@ public final class LocaleData {
             return systemID == id;
         }
     }
+    
    
     /**
      * Returns the measurement system used in the locale specified by the locale.

@@ -1,17 +1,3 @@
-/**
- * Builds the normalization tables. This is a separate class so that it
- * can be unloaded once not needed.<br>
- * Copyright (C) 1998-2003 International Business Machines Corporation and
- * Unicode, Inc. All Rights Reserved.<br>
- * The Unicode Consortium makes no expressed or implied warranty of any
- * kind, and assumes no liability for errors or omissions.
- * No liability is assumed for incidental and consequential damages
- * in connection with or arising out of the use of the information here.
- * @author Mark Davis
- * Updates for supplementary code points:
- * Vladimir Weinstein & Markus Scherer
- */
-
 package com.ibm.icu.dev.test.normalizer;
 
 import java.io.BufferedReader;
@@ -20,8 +6,21 @@ import java.util.BitSet;
 import com.ibm.icu.dev.test.TestUtil;
 import com.ibm.icu.dev.test.UTF16Util;
 
+
+/**
+ * Builds the normalization tables. This is a separate class so that it
+ * can be unloaded once not needed.<br>
+ * Copyright (C) 1998-2002 Unicode, Inc. All Rights Reserved.<br>
+ * The Unicode Consortium makes no expressed or implied warranty of any
+ * kind, and assumes no liability for errors or omissions.
+ * No liability is assumed for incidental and consequential damages
+ * in connection with or arising out of the use of the information here.
+ * @author Mark Davis
+ * Updates for supplementary code points:
+ * Vladimir Weinstein & Markus Scherer
+ */
 class NormalizerBuilder {
-    static final String copyright = "Copyright (C) 1998-2003 International Business Machines Corporation and Unicode, Inc.";
+    static final String copyright = "Copyright (C) 1998-1999 Unicode, Inc.";
 
     /**
      * Testing flags

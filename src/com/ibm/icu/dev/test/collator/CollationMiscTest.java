@@ -1091,7 +1091,7 @@ public class CollationMiscTest extends TestFmwk{
         }
     }
     
-    public void DontTestJ831() { // Latvian does not use upper first
+    public void TestJ831() {
         String[] data = {
             "I",
             "i",
@@ -1789,9 +1789,8 @@ public class CollationMiscTest extends TestFmwk{
     public void TestUCARules() 
     {
        try {
-            // only root locale can have empty tailorings .. not English!
             RuleBasedCollator coll 
-                = (RuleBasedCollator)Collator.getInstance(new Locale("","",""));
+                = (RuleBasedCollator)Collator.getInstance(Locale.ENGLISH);
             String rule 
                 = coll.getRules(false);
             if (!rule.equals("")) {
@@ -1922,11 +1921,5 @@ public class CollationMiscTest extends TestFmwk{
         if (coll.compare("6", "!6") != 0) {
             errln("Jitterbug 3347 failed");
         }
-    }
-    
-    public void TestPinyinProblem()
-	{
-    	String test[] = { "\u4E56\u4E56\u7761", "\u4E56\u5B69\u5B50" };
-    	genericLocaleStarter(new Locale("zh", "", "PINYIN"), test);   	
     }
 }

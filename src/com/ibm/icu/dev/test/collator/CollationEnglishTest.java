@@ -232,10 +232,10 @@ public class CollationEnglishTest extends TestFmwk{
 
     private static char[][] testMore = {
         {0x0061 /* 'a' */, 0x0065 /* 'e' */},
+        {0x0061 /* 'a' */, 0x0066 /* 'f' */},
         { 0x00E6},
         { 0x00C6},
-        {0x0061 /* 'a' */, 0x0066 /* 'f' */},
-		{0x006F /* 'o' */, 0x0065 /* 'e' */},
+        {0x006F /* 'o' */, 0x0065 /* 'e' */},
         { 0x0153},
         { 0x0152},
         {0x006F /* 'o' */, 0x0066 /* 'f' */},
@@ -258,7 +258,7 @@ public class CollationEnglishTest extends TestFmwk{
         int i;
         myCollation.setStrength(Collator.PRIMARY);
         for (i = 38; i < 43 ; i++) {
-            doTest(testSourceCases[i], testTargetCases[i], results[i]);
+            doTest(testSourceCases[39], testTargetCases[39], results[39]);
         }  
     }
     

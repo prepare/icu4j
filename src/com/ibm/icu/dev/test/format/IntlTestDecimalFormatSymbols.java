@@ -1,11 +1,7 @@
 /*****************************************************************************************
- *
- *   Copyright (C) 1996-2003, International Business Machines
- *   Corporation and others.  All Rights Reserved.
- *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/dev/test/format/IntlTestDecimalFormatSymbols.java,v $ 
- * $Date: 2003/12/20 03:06:52 $ 
- * $Revision: 1.8 $
+ * $Date: 2003/06/03 18:49:29 $ 
+ * $Revision: 1.6 $
  *
  *****************************************************************************************
  **/
@@ -19,6 +15,12 @@
     @test 1.4 98/03/06
     @summary test International Decimal Format Symbols
 */
+/***************************************************************************
+*
+*   Copyright (C) 1996-2003, International Business Machines
+*   Corporation and others.  All Rights Reserved.
+*
+************************************************************************/
 
 
 package com.ibm.icu.dev.test.format;
@@ -107,23 +109,11 @@ public class IntlTestDecimalFormatSymbols extends com.ibm.icu.dev.test.TestFmwk
             errln("ERROR: get/set MinusSign failed");
         }
 
-		char plusSign = en.getPlusSign();
-		fr.setPlusSign(plusSign);
-		if(fr.getPlusSign() != en.getPlusSign()) {
-			errln("ERROR: get/set PlusSign failed");
-		}
-
-		char padEscape = en.getPadEscape();
-		fr.setPadEscape(padEscape);
-		if(fr.getPadEscape() != en.getPadEscape()) {
-			errln("ERROR: get/set PadEscape failed");
-		}
-
-        String exponential = en.getExponentSeparator();
-        fr.setExponentSeparator(exponential);
-        if(fr.getExponentSeparator() != en.getExponentSeparator()) {
-            errln("ERROR: get/set Exponential failed");
-        }
+//        char exponential = en.getExponentialSymbol();
+//        fr.setExponentialSymbol(exponential);
+//        if(fr.getExponentialSymbol() != en.getExponentialSymbol()) {
+//            errln("ERROR: get/set Exponential failed");
+//        }
 
         //DecimalFormatSymbols foo = new DecimalFormatSymbols(); //The variable is never used
 
@@ -132,13 +122,5 @@ public class IntlTestDecimalFormatSymbols extends com.ibm.icu.dev.test.TestFmwk
         if(! en.equals(fr)) {
             errln("ERROR: Clone failed");
         }
-    }
-    
-    public void testCoverage() {
-    	DecimalFormatSymbols df = new DecimalFormatSymbols();
-    	DecimalFormatSymbols df2 = (DecimalFormatSymbols)df.clone();
-    	if (!df.equals(df2) || df.hashCode() != df2.hashCode()) {
-    		errln("decimal format symbols clone, equals, or hashCode failed");    		
-    	}
     }
 }

@@ -5,8 +5,8 @@
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/text/BreakIteratorFactory.java,v $ 
- * $Date: 2004/01/08 22:26:56 $ 
- * $Revision: 1.7 $
+ * $Date: 2003/06/04 20:24:14 $ 
+ * $Revision: 1.6 $
  *
  *****************************************************************************************
  */
@@ -23,8 +23,6 @@ import com.ibm.icu.impl.ICULocaleData;
 import com.ibm.icu.impl.ICULocaleService;
 import com.ibm.icu.impl.ICUService;
 import com.ibm.icu.impl.ICUService.Factory;
-import com.ibm.icu.util.ULocale;
-
 /**
  * @author Ram
  *
@@ -98,10 +96,8 @@ final class BreakIteratorFactory extends BreakIterator.BreakIteratorServiceShim 
 
         String rules = bundle.getString(rulesName);
 
-        BreakIterator iter = null;
-
         if (classNames[kind].equals("RuleBasedBreakIterator")) {
-            iter = new RuleBasedBreakIterator(rules);
+            return new RuleBasedBreakIterator(rules);
         }
         else if (classNames[kind].equals("DictionaryBasedBreakIterator")) {
             try {
@@ -110,7 +106,7 @@ final class BreakIteratorFactory extends BreakIterator.BreakIteratorServiceShim 
                 // System.out.println(t);
                 URL url = (URL)t;
                 InputStream dictionary = url.openStream();
-                iter = new DictionaryBasedBreakIterator(rules, dictionary);
+                return new DictionaryBasedBreakIterator(rules, dictionary);
             }
             catch(IOException e) {
             }
@@ -119,9 +115,7 @@ final class BreakIteratorFactory extends BreakIterator.BreakIteratorServiceShim 
 	    // TODO: we don't have 'bad' resource data, so this should never happen
 	    // in our current tests.
 	    ///CLOVER:OFF
-            if (iter == null) {
-                iter = new RuleBasedBreakIterator(rules);
-            }
+            return new RuleBasedBreakIterator(rules);
 	    ///CLOVER:ON
         }
         else {
@@ -132,10 +126,5 @@ final class BreakIteratorFactory extends BreakIterator.BreakIteratorServiceShim 
                             classNames[kind] + "\"");
 	    ///CLOVER:ON
         }
-
-        // TODO: Determine valid and actual locale correctly.
-        ULocale uloc = new ULocale(bundle.getLocale());
-        iter.setLocale(uloc, uloc);
-        return iter;
     }
 }

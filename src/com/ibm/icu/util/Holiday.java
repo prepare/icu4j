@@ -1,12 +1,12 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2003, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2000, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/util/Holiday.java,v $ 
- * $Date: 2003/12/20 03:07:07 $ 
- * $Revision: 1.9 $
+ * $Date: 2002/12/04 01:03:39 $ 
+ * $Revision: 1.6 $
  *
  *****************************************************************************************
  */
@@ -21,13 +21,15 @@ import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 
 /**
- * An abstract class representing a holiday.
- * @draft ICU 2.8
+ * An abstract class representing a holiday.  This class simply adds
+ * a holiday name to the DateRule interface for calculating the date
+ * of an event.
+ * @draft ICU 2.2
  */
 public abstract class Holiday implements DateRule
 {
     /**
-     * @draft ICU 2.8
+     * @draft ICU 2.2
      */
     public static Holiday[] getHolidays()
     {
@@ -35,7 +37,7 @@ public abstract class Holiday implements DateRule
     }
 
     /**
-     * @draft ICU 2.8
+     * @draft ICU 2.2
      */
     public static Holiday[] getHolidays(Locale locale)
     {
@@ -60,7 +62,7 @@ public abstract class Holiday implements DateRule
      *              does not occur on or after the start date.
      *
      * @see #firstBetween
-     * @draft ICU 2.8
+     * @draft ICU 2.2
      */
     public Date firstAfter(Date start) {
         return rule.firstAfter(start);
@@ -77,7 +79,7 @@ public abstract class Holiday implements DateRule
      *              does not occur between the start and end dates.
      *
      * @see #firstAfter
-     * @draft ICU 2.8
+     * @draft ICU 2.2
      */
     public Date firstBetween(Date start, Date end) {
         return rule.firstBetween(start, end);
@@ -90,7 +92,7 @@ public abstract class Holiday implements DateRule
      *
      * @param date  The date to check.
      * @return      true if this holiday occurs on the given date.
-     * @draft ICU 2.8
+     * @draft ICU 2.2
      *
      */
     public boolean isOn(Date date) {
@@ -101,7 +103,7 @@ public abstract class Holiday implements DateRule
     /**
      * Check whether this holiday occurs at least once between the two
      * dates given.
-     * @draft ICU 2.8
+     * @draft ICU 2.2
      */
     public boolean isBetween(Date start, Date end) {
         return rule.isBetween(start, end);
@@ -118,7 +120,7 @@ public abstract class Holiday implements DateRule
      * @param rule  The date rules used for determining when this holiday
      *              falls.  Holiday's implementation of the DateRule inteface
      *              simply delegates to this DateRule object.
-     * @draft ICU 2.8
+     * @draft ICU 2.2
      */
     protected Holiday(String name, DateRule rule)
     {
@@ -128,7 +130,7 @@ public abstract class Holiday implements DateRule
 
     /**
      * Return the name of this holiday in the language of the default locale
-     * @draft ICU 2.8
+     * @draft ICU 2.2
      */
     public String getDisplayName() {
         return getDisplayName(Locale.getDefault());
@@ -140,10 +142,10 @@ public abstract class Holiday implements DateRule
      * as a key to look up the holiday's localized name in a ResourceBundle object
      * named HolidayBundle.
      *
-     * @param locale   A locale specifying the language in which the name is desired.
+     * @param loc   A locale specifying the language in which the name is desired.
      *
      * @see ResourceBundle
-     * @draft ICU 2.8
+     * @draft ICU 2.2
      */
     public String getDisplayName(Locale locale)
     {
@@ -160,14 +162,14 @@ public abstract class Holiday implements DateRule
     }
 
     /**
-     * @draft ICU 2.8
+     * @draft ICU 2.2
      */
     public DateRule getRule() {
         return rule;
     }
 
     /**
-     * @draft ICU 2.8
+     * @draft ICU 2.2
      */
     public void setRule(DateRule rule) {
         this.rule = rule;

@@ -1,12 +1,12 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2003, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2000, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/util/RangeDateRule.java,v $ 
- * $Date: 2003/12/20 03:07:08 $ 
- * $Revision: 1.10 $
+ * $Date: 2002/12/18 21:20:52 $ 
+ * $Revision: 1.7 $
  *
  *****************************************************************************************
  */
@@ -18,12 +18,12 @@ import java.util.Vector;
 
 /**
  * Implementation of DateRule that takes a range.
- * @draft ICU 2.8
+ * @draft ICU 2.2
  */
 public class RangeDateRule implements DateRule
 {
     /**
-     * @draft ICU 2.8
+     * @draft ICU 2.2
      */
     public RangeDateRule()
     {
@@ -33,15 +33,15 @@ public class RangeDateRule implements DateRule
      * @internal
      */
     // Range is a package-private class so this should be package-private too, probably
-//    public RangeDateRule(Range[] ranges)
-//    {
-//        for (int i = 0; i < ranges.length; i++) {
-//            this.ranges.addElement(ranges[i]);
-//        }
-//    }
+    public RangeDateRule(Range[] ranges)
+    {
+        for (int i = 0; i < ranges.length; i++) {
+            this.ranges.addElement(ranges[i]);
+        }
+    }
 
     /**
-     * @draft ICU 2.8
+     * @draft ICU 2.2
      */
     public void add(DateRule rule)
     {
@@ -49,7 +49,7 @@ public class RangeDateRule implements DateRule
     }
 
     /**
-     * @draft ICU 2.8
+     * @draft ICU 2.2
      */
     public void add(Date start, DateRule rule)
     {
@@ -61,15 +61,12 @@ public class RangeDateRule implements DateRule
     //-----------------------------------------------------------------------
 
     /**
-     * @draft ICU 2.8
+     * @draft ICU 2.2
      */
     public Date firstAfter(Date start)
     {
         // Find the range that I should look at
         int index = startIndex(start);
-        if (index == ranges.size()) {
-            index = 0;
-        }
         Date result = null;
 
         Range r = rangeAt(index);
@@ -87,27 +84,23 @@ public class RangeDateRule implements DateRule
     }
 
     /**
-     * @draft ICU 2.8
+     * @draft ICU 2.2
      */
     public Date firstBetween(Date start, Date end)
     {
-    	if (end == null) {
-    		return firstAfter(start);
-    	}
-    	
         // Find the range that I should look at
         int index = startIndex(start);
         Date result = null;
 
         Range next = rangeAt(index);
 
-        while (result == null && next != null && !next.start.after(end))
+        while (result == null && next != null && ! next.start.after(end))
         {
             Range r = next;
             next = rangeAt(index+1);
 
             if (r.rule != null) {
-                Date e = (next != null && !next.start.after(end)) ? next.start
+                Date e = (next != null && next.start.before(end)) ? next.start
                                                                   : end;
                 result = r.rule.firstBetween(start, e);
             }
@@ -116,18 +109,17 @@ public class RangeDateRule implements DateRule
     }
 
     /**
-     * @draft ICU 2.8
+     * @draft ICU 2.2
      */
     public boolean isOn(Date date)
     {
-        Range r = rangeAt(startIndex(date));
-        return r != null && r.rule != null && r.rule.isOn(date);
+        return false;
     }
 
     /**
      * Check whether this event occurs at least once between the two
      * dates given.
-     * @draft ICU 2.8
+     * @draft ICU 2.2
      */
     public boolean isBetween(Date start, Date end)
     {

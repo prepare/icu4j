@@ -5,8 +5,8 @@
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/dev/test/collator/CollationTest.java,v $
- * $Date: 2004/01/06 23:09:07 $
- * $Revision: 1.18 $
+ * $Date: 2003/11/24 19:26:54 $
+ * $Revision: 1.16 $
  *
  *******************************************************************************
  */
@@ -305,8 +305,7 @@ public class CollationTest extends ModuleTest
         m_nextRelation_ = -1;
         m_target_.delete(0, m_target_.length());
         Vector vector = new Vector();
-        int lastsmallerthanindex = -1;
-        getNextInSequence();
+        int lastsmallerthanindex = 0;
         while (getNextInSequence()) {
             String target = m_target_.toString();
             doTest(this, col, m_source_, target, m_relation_);
@@ -421,7 +420,7 @@ public class CollationTest extends ModuleTest
         boolean printInfo = false;
         int compareResult  = myCollation.compare(source, target);
         if (compareResult != result) {
-            
+            printInfo = true;
             // !!! if not mod build, error, else nothing.
             // warnln if not build, error, else always print warning.
             // do we need a 'quiet warning?' (err or log).  Hmmm,
@@ -432,22 +431,18 @@ public class CollationTest extends ModuleTest
                 test.errln("Comparing \"" + Utility.hex(source) + "\" with \""
                            + Utility.hex(target) + "\" expected " + result
                            + " but got " + compareResult);
-            }else{
-                printInfo = true;
             }
         }
         CollationKey ssk = myCollation.getCollationKey(source);
         CollationKey tsk = myCollation.getCollationKey(target);
         compareResult = ssk.compareTo(tsk);
         if (compareResult != result) {
-            
+            printInfo = true;
             if(!test.isModularBuild()){
                 test.errln("Comparing CollationKeys of \"" + Utility.hex(source) 
                            + "\" with \"" + Utility.hex(target) 
                            + "\" expected " + result + " but got " 
                            + compareResult);
-           }else{
-               printInfo = true;
            }
         }
         RawCollationKey srsk = new RawCollationKey();
@@ -456,15 +451,13 @@ public class CollationTest extends ModuleTest
         myCollation.getRawCollationKey(target, trsk);
         compareResult = ssk.compareTo(tsk);
         if (compareResult != result) {
-            
+            printInfo = true;
             if(!test.isModularBuild()){
                 test.errln("Comparing RawCollationKeys of \"" 
                            + Utility.hex(source) 
                            + "\" with \"" + Utility.hex(target) 
                            + "\" expected " + result + " but got " 
                            + compareResult);
-           }else{
-               printInfo = true;
            }
         }
         // hmmm, but here we issue a warning

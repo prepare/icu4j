@@ -1,13 +1,13 @@
 
 /*
  *******************************************************************************
- * Copyright (C) 2002-2003, International Business Machines Corporation and         *
+ * Copyright (C) 2002, International Business Machines Corporation and         *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/dev/test/util/Visitor.java,v $
- * $Date: 2003/12/20 03:06:54 $
- * $Revision: 1.3 $
+ * $Date: 2003/11/21 01:03:39 $
+ * $Revision: 1.1 $
  *
  *****************************************************************************************
  */
@@ -94,7 +94,7 @@ public abstract class Visitor {
         CodePointRange cpr;
         
         while(it.nextRange()) {
-            if (it.codepoint == UnicodeSetIterator.IS_STRING) {
+            if (it.codepoint == it.IS_STRING) {
                 item = it.string;
             } else {
                 cpr = last == cpr0 ? cpr1 : cpr0;   // make sure we don't override last
