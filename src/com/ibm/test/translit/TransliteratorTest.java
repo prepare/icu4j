@@ -5,8 +5,8 @@
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/test/translit/Attic/TransliteratorTest.java,v $ 
- * $Date: 2001/04/04 18:07:08 $ 
- * $Revision: 1.34 $
+ * $Date: 2001/03/30 22:56:47 $ 
+ * $Revision: 1.28 $
  *
  *****************************************************************************************
  */
@@ -683,102 +683,15 @@ public class TransliteratorTest extends TestFmwk {
     }
 
     /**
-     * Test IDs of inverses of compound transliterators. (J20)
-     */
-    public void TestCompoundInverseID() {
-        String ID = "Latin-Jamo;Jamo-Hangul";
-        Transliterator t = Transliterator.getInstance(ID);
-        Transliterator u = t.getInverse();
-        String exp = "Hangul-Jamo;Jamo-Latin";
-        String got = u.getID();
-        if (!got.equals(exp)) {
-            errln("FAIL: Inverse of " + ID + " is " + got +
-                  ", expected " + exp);
-        }
-    }
-
-    /**
-     * Inverse of "Null" should be "Null". (J21)
-     */
-    public void TestNullInverse() {
-        Transliterator t = Transliterator.getInstance("Null");
-        Transliterator u = t.getInverse();
-        if (!u.getID().equals("Null")) {
-            errln("FAIL: Inverse of Null should be Null");
-        }
-    }
-
-    /**
-     * Check ID of inverse of alias. (J22)
-     */
-    public void TestAliasInverseID() {
-        String ID = "Latin-Hangul"; // This should be any alias ID with an inverse
-        Transliterator t = Transliterator.getInstance(ID);
-        Transliterator u = t.getInverse();
-        String exp = "Hangul-Latin";
-        String got = u.getID();
-        if (!got.equals(exp)) {
-            errln("FAIL: Inverse of " + ID + " is " + got +
-                  ", expected " + exp);
-        }        
-    }
-
-    /**
-     * Test filter syntax in IDs. (J23)
+     * Test filter syntax in IDs.
      */
     public void TestFilterIDs() {
-        String[] DATA = {
-            "Unicode-Hex[aeiou]",
-            "Hex-Unicode[aeiou]",
-            "quizzical",
-            "q\\u0075\\u0069zz\\u0069c\\u0061l",
-            
-            "Unicode-Hex[aeiou];Hex-Unicode[^5]",
-            "Unicode-Hex[^5];Hex-Unicode[aeiou]",
-            "quizzical",
-            "q\\u0075izzical",
-            
-            "Null[abc]",
-            "Null[abc]",
-            "xyz",
-            "xyz",
-            
-            "Remove[abc]",
-            "Remove[abc]",
-            "axbycz",
-            "xyz",
-        };
-        
-        for (int i=0; i<DATA.length; i+=4) {
-            String ID = DATA[i];
-            Transliterator t = Transliterator.getInstance(ID);
-            expect(t, DATA[i+2], DATA[i+3]);
-
-            // Check the ID
-            if (!ID.equals(t.getID())) {
-                errln("FAIL: getInstance(" + ID + ").getID() => " +
-                      t.getID());
-            }
-
-            // Check the inverse
-            String uID = DATA[i+1];
-            Transliterator u = t.getInverse();
-            if (u == null) {
-                errln("FAIL: " + ID + ".getInverse() returned NULL");
-            } else if (!u.getID().equals(uID)) {
-                errln("FAIL: " + ID + ".getInverse().getID() => " +
-                      u.getID() + ", expected " + uID);
-            }
-        }
-    }
-
-    /**
-     * Test the "Remove" transliterator.
-     */
-    public void TestRemove() {
-        Transliterator t = Transliterator.getInstance("Remove[aeiou]");
-        expect(t, "The quick brown fox.",
-               "Th qck brwn fx.");
+        String ID = "Unicode-Hex[aeiou]";
+        expect(Transliterator.getInstance(ID), "quizzical",
+               "q\\u0075\\u0069zz\\u0069c\\u0061l");
+        ID = "Unicode-Hex[aeiou];Hex-Unicode[^5]";
+        expect(Transliterator.getInstance(ID), "quizzical",
+               "q\\u0075izzical");
     }
 
     //======================================================================
