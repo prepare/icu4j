@@ -5,8 +5,8 @@
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/text/Attic/Transliterator.java,v $ 
- * $Date: 2001/04/04 18:06:25 $ 
- * $Revision: 1.31 $
+ * $Date: 2001/03/30 22:50:08 $ 
+ * $Revision: 1.27 $
  *
  *****************************************************************************************
  */
@@ -240,7 +240,7 @@ import com.ibm.text.resources.ResourceReader;
  * <p>Copyright &copy; IBM Corporation 1999.  All rights reserved.
  *
  * @author Alan Liu
- * @version $RCSfile: Transliterator.java,v $ $Revision: 1.31 $ $Date: 2001/04/04 18:06:25 $
+ * @version $RCSfile: Transliterator.java,v $ $Revision: 1.27 $ $Date: 2001/03/30 22:50:08 $
  */
 public abstract class Transliterator {
     /**
@@ -658,14 +658,6 @@ public abstract class Transliterator {
     }
 
     /**
-     * Set the programmatic identifier for this transliterator.  Only
-     * for use by subclasses.
-     */
-    protected final void setID(String id) {
-        ID = id;
-    }
-
-    /**
      * Returns a name for this transliterator that is appropriate for
      * display to the user in the default locale.  See {@link
      * #getDisplayName(String,Locale)} for details.
@@ -776,39 +768,30 @@ public abstract class Transliterator {
         }
 
         for (;;) {
-            // ID and id are identical, unless there is a filter pattern,
-            // in which case id is the substring of ID preceding the
-            // filter pattern.
-            String id = ID;
             UnicodeFilter filter = null;
-            int bracket = ID.indexOf('[');
-            if (bracket >= 0) {
-                ParsePosition pos = new ParsePosition(bracket);
+            int i = ID.indexOf('[');
+            if (i >= 0) {
+                ParsePosition pos = new ParsePosition(i);
                 filter = new UnicodeSet(ID, pos, null);
                 if (pos.getIndex() != ID.length()) {
                     break; // unparsed junk after ']'
                 }
-                id = ID.substring(0, bracket);
+                ID = ID.substring(0, i);
             }
 
             if (direction == REVERSE) {
-                int i = id.indexOf('-');
+                i = ID.indexOf('-');
                 if (i < 0) {
-                    if (!id.equals(NullTransliterator._ID) &&
-                        !id.equals(RemoveTransliterator._ID)) {
-                        throw new IllegalArgumentException("No inverse for: "
-                                                           + id);
-                    }
-                } else {
-                    id = id.substring(i+1) + '-' + id.substring(0, i);
+                    throw new IllegalArgumentException("No inverse for: "
+                                                       + ID);
                 }
+                ID = ID.substring(i+1) + '-' + ID.substring(0, i);
             }
 
-            Transliterator t = internalGetInstance(id);
+            Transliterator t = internalGetInstance(ID);
             if (t != null) {
                 if (filter != null) {
                     t.setFilter(filter);
-                    t.ID += ID.substring(bracket);
                 }
                 return t;
             }
@@ -1084,7 +1067,5 @@ public abstract class Transliterator {
                       UnicodeToHexTransliterator.class, null);
         registerClass(NullTransliterator._ID,
                       NullTransliterator.class, null);
-        registerClass(RemoveTransliterator._ID,
-                      RemoveTransliterator.class, null);
     }
 }
