@@ -13,6 +13,7 @@
  * java -old: icu4j28.api.zip -new: icu4j30.api -html -out: icu4j_compare_28_30.html
  *
  * TODO:
+ * - add a separate section for obsoleted APIs
  * - make 'changed apis' smarter - detect method parameter or return type change
  *   for this, the sequential search through methods ordered by signature won't do.
  *     We need to gather all added and removed overloads for a method, and then
@@ -98,8 +99,8 @@ public class ReportAPI {
     }
         
     static final class DeltaInfo extends APIInfo {
-        APIInfo added;
-        APIInfo removed;
+        private APIInfo added;
+        private APIInfo removed;
 
         DeltaInfo(APIInfo added, APIInfo removed) {
             this.added = added;
@@ -137,24 +138,6 @@ public class ReportAPI {
         new ReportAPI(oldFile, newFile).writeReport(outFile, html);
     }
 
-/*
-    while the both are methods and the class and method names are the same, collect
-    overloads.  when you hit a new method or class, compare the overloads
-    looking for the same # of params and simple param changes.  ideally
-    there are just a few.
-
-    String oldA = null; 
-    String oldR = null;
-    if (!a.isMethod()) {
-       remove and continue
-}
-    String am = a.getClassName() + "." + a.getName();
-    String rm = r.getClassName() + "." + r.getName();
-    int comp = am.compare(rm);
-    if (comp == 0 && a.isMethod() && r.isMethod())
-      
-*/
-
     ReportAPI(String oldFile, String newFile) {
         oldData = APIData.read(oldFile);
         newData = APIData.read(newFile);
@@ -169,37 +152,10 @@ public class ReportAPI {
         Iterator ai = added.iterator();
         Iterator ri = removed.iterator();
         Comparator c = APIInfo.changedComparator();
-
-	ArrayList ams = new ArrayList();
-	ArrayList rms = new ArrayList();
-	PrintWriter outpw = new PrintWriter(System.out);
-
         APIInfo a = null, r = null;
         while (ai.hasNext() && ri.hasNext()) {
             if (a == null) a = (APIInfo)ai.next();
             if (r == null) r = (APIInfo)ri.next();
-
-	    String am = a.getClassName() + "." + a.getName();
-	    String rm = r.getClassName() + "." + r.getName();
-	    int comp = am.compareTo(rm);
-	    if (comp == 0 && a.isMethod() && r.isMethod()) { // collect overloads
-		ams.add(a); a = null;
-		rms.add(r); r = null;
-		continue;
-	    }
-	    
-	    if (!ams.isEmpty()) {
-		// simplest case first
-		if (ams.size() == 1 && rms.size() == 1) {
-		    changed.add(new DeltaInfo((APIInfo)ams.get(0), (APIInfo)rms.get(0)));
-		} else {
-		    // dang, what to do now?  
-		    // TODO: modify deltainfo to deal with lists of added and removed
-		}
-		ams.clear();
-		rms.clear();
-	    }
-	    
             int result = c.compare(a, r);
             if (result < 0) {
                 a = null;
@@ -207,19 +163,11 @@ public class ReportAPI {
                 r = null;
             } else {
                 changed.add(new DeltaInfo(a, r));
-                a = null;
-                r = null;
+                a = null; ai.remove();
+                r = null; ri.remove();
             }
         }
 
-	// now clean up added and removed by cleaning out the changed members
-	Iterator ci = changed.iterator();
-	while (ci.hasNext()) {
-	    DeltaInfo di = (DeltaInfo)ci.next();
-	    added.remove(di.added);
-	    removed.remove(di.removed);
-	}
-	
         Set tempAdded = new HashSet();
         tempAdded.addAll(newData.set);
         tempAdded.removeAll(removed);
@@ -358,7 +306,7 @@ public class ReportAPI {
             }
 
             pw.println("<hr/>");
-            pw.println("<p><i><font size=\"-1\">" + info + "<br/>" + copyright + "</font></i></p>");
+            pw.println("<p><i>" + info + "<br/>" + copyright + "</i></p>");
             pw.println("</body>");
             pw.println("</html>");
         } else {
@@ -458,7 +406,7 @@ public class ReportAPI {
                         if (clas != null) {
                             pw.println("</ul>");
                         }
-                        pw.println(className);
+                        pw.println("<li>" + className);
                         pw.println("<ul>");
                     } else {
                         pw.println(className);
@@ -472,20 +420,20 @@ public class ReportAPI {
                 pw.print("<li>");
                 if (info instanceof DeltaInfo) {
                     DeltaInfo dinfo = (DeltaInfo)info;
-                    dinfo.removed.print(pw, isChangedAPIs, html);
+                    dinfo.removed.print(pw, isChangedAPIs);
                     pw.println("</br>");
-                    dinfo.added.print(pw, isChangedAPIs, html);
+                    dinfo.added.print(pw, isChangedAPIs);
                 } else {
-                    info.print(pw, isChangedAPIs, html);
+                    info.print(pw, isChangedAPIs);
                 }
                 pw.println("</li>");
             } else {
                 if (info instanceof DeltaInfo) {
                     DeltaInfo dinfo = (DeltaInfo)info;
-                    dinfo.removed.println(pw, isChangedAPIs, html);
-                    dinfo.added.println(pw, isChangedAPIs, html);
+                    dinfo.removed.println(pw, isChangedAPIs);
+                    dinfo.added.println(pw, isChangedAPIs);
                 } else {
-                    info.println(pw, isChangedAPIs, html);
+                    info.println(pw, isChangedAPIs);
                 }
             }
         }
