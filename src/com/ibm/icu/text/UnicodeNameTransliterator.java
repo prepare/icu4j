@@ -3,8 +3,8 @@
  * others. All Rights Reserved.
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/text/UnicodeNameTransliterator.java,v $ 
- * $Date: 2002/09/09 16:11:07 $ 
- * $Revision: 1.9 $
+ * $Date: 2002/03/27 19:11:37 $ 
+ * $Revision: 1.8 $
  */
 package com.ibm.icu.text;
 import java.util.*;
@@ -12,16 +12,14 @@ import com.ibm.icu.lang.*;
 
 /**
  * A transliterator that performs character to name mapping.
- * It generates the Perl syntax \N{name}.
  * @author Alan Liu
  */
 class UnicodeNameTransliterator extends Transliterator {
 
-    static final String _ID = "Any-Name";
+    char openDelimiter;
+    char closeDelimiter;
 
-    static final String OPEN_DELIM = "\\N{";
-    static final char CLOSE_DELIM = '}';
-    static final int OPEN_DELIM_LEN = 3;
+    static final String _ID = "Any-Name";
 
     /**
      * System registration hook.
@@ -37,8 +35,19 @@ class UnicodeNameTransliterator extends Transliterator {
     /**
      * Constructs a transliterator.
      */
-    public UnicodeNameTransliterator(UnicodeFilter filter) {
+    public UnicodeNameTransliterator(char openDelimiter, char closeDelimiter,
+                                     UnicodeFilter filter) {
         super(_ID, filter);
+        this.openDelimiter = openDelimiter;
+        this.closeDelimiter = closeDelimiter;
+    }
+
+    /**
+     * Constructs a transliterator with the default delimiters '{' and
+     * '}'.
+     */
+    public UnicodeNameTransliterator(UnicodeFilter filter) {
+        this('{', '}', filter);
     }
 
     /**
@@ -50,7 +59,7 @@ class UnicodeNameTransliterator extends Transliterator {
         int limit = offsets.limit;
         
         StringBuffer str = new StringBuffer();
-        str.append(OPEN_DELIM);
+        str.append(openDelimiter);
         int len;
         String name;
         
@@ -58,8 +67,8 @@ class UnicodeNameTransliterator extends Transliterator {
             int c = text.char32At(cursor);
             if ((name=UCharacter.getExtendedName(c)) != null) {
                 
-                str.setLength(OPEN_DELIM_LEN);
-                str.append(name).append(CLOSE_DELIM);
+                str.setLength(1);
+                str.append(name).append(closeDelimiter);
 
                 int clen = UTF16.getCharCount(c);
                 text.replace(cursor, cursor+clen, str.toString());

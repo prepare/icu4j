@@ -480,17 +480,16 @@ public class GregorianCalendar extends Calendar {
     }
 
     /**
-     * Returns true if the given Calendar object is equivalent to this
-     * one.  Calendar override.
-     *
-     * @param other the Calendar to be compared with this Calendar   
-     * @since ICU 2.4
+     * Compares this GregorianCalendar to an object reference.
+     * @param obj the object reference with which to compare
+     * @return true if this object is equal to <code>obj</code>; false otherwise
      */
-    public boolean isEquivalentTo(Calendar other) {
-        return super.isEquivalentTo(other) &&
-            gregorianCutover == ((GregorianCalendar)other).gregorianCutover;
+    public boolean equals(Object obj) {
+        return super.equals(obj) &&
+            // Calendar.equals() ensures obj instanceof GregorianCalendar
+            gregorianCutover == ((GregorianCalendar)obj).gregorianCutover;
     }
-
+    
     /**
      * Override hashCode.
      * Generates the hash code for the GregorianCalendar object
@@ -901,21 +900,5 @@ public class GregorianCalendar extends Calendar {
         }
 
         return julianDay;
-    }
-
-    private static CalendarFactory factory;
-    public static CalendarFactory factory() {
-        if (factory == null) {
-            factory = new CalendarFactory() {
-                public Calendar create(TimeZone tz, Locale loc) {
-                    return new GregorianCalendar(tz, loc);
-                }
-
-                public String factoryName() {
-                    return "Gregorian";
-                }
-            };
-        }
-        return factory;
     }
 }

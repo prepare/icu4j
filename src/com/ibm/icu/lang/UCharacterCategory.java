@@ -6,8 +6,8 @@
 *
 * $Source: 
 *      /usr/cvs/icu4j/icu4j/src/com/ibm/icu/text/UCharacterCategory.java $ 
-* $Date: 2002/09/19 21:18:14 $ 
-* $Revision: 1.9 $
+* $Date: 2002/07/11 21:25:24 $ 
+* $Revision: 1.7 $
 *
 *******************************************************************************
 */
@@ -20,14 +20,11 @@ package com.ibm.icu.lang;
 * Equivalent to icu's UCharCategory.
 * Refer to <a href=http://www.unicode.org/Public/UNIDATA/UnicodeData.html>
 * Unicode Consortium</a> for more information about UnicodeData.txt.
-* <p>
-* This class is not subclassable
-* </p>
 * @author Syn Wee Quek
 * @since oct0300
 */
 
-public final class UCharacterCategory
+public class UCharacterCategory
 {
   // public variable -----------------------------------------------------
   
@@ -250,4 +247,63 @@ public final class UCharacterCategory
     private UCharacterCategory()
     {
     }
+    
+	// package private data members --------------------------------------
+	
+	/**
+	* Not a character type
+	*/
+	static final int NON_CHARACTER_ = CHAR_CATEGORY_COUNT;
+	/**
+	* Lead surrogate type
+	*/
+	static final int LEAD_SURROGATE_ = CHAR_CATEGORY_COUNT + 1;
+    /**
+	* Trail surrogate type
+	*/
+	static final int TRAIL_SURROGATE_ = CHAR_CATEGORY_COUNT + 2;
+	/**
+	* Extended category count
+	*/
+	static final int EXTENDED_CATEGORY_ = CHAR_CATEGORY_COUNT + 3;
+	/**
+    * Type names used for extended names
+    */
+    static final String TYPE_NAMES_[] = {"unassigned",
+                                                 "uppercase letter",
+                                                 "lowercase letter",
+                                                 "titlecase letter",
+                                                 "modifier letter",
+                                                 "other letter",
+                                                 "non spacing mark",
+                                                 "enclosing mark",
+                                                 "combining spacing mark",
+                                                 "decimal digit number",
+                                                 "letter number",
+                                                 "other number",
+                                                 "space separator",
+                                                 "line separator",
+                                                 "paragraph separator",
+                                                 "control",
+                                                 "format",
+                                                 "private use area",
+                                                 "surrogate",
+                                                 "dash punctuation",   
+                                                 "start punctuation",
+                                                 "end punctuation",
+                                                 "connector punctuation",
+                                                 "other punctuation",
+                                                 "math symbol",
+                                                 "currency symbol",
+                                                 "modifier symbol",
+                                                 "other symbol",
+                                                 "initial punctuation",
+                                                 "final punctuation",
+                                                 "noncharacter",
+                                                 "lead surrogate",
+                                                 "trail surrogate"};
+   /**
+   * Unknown type name
+   */
+   static final String UNKNOWN_TYPE_NAME_ = "unknown";
 }

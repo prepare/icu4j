@@ -5,8 +5,8 @@
 *******************************************************************************
 *
 * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/text/RuleBasedCollator.java,v $ 
-* $Date: 2002/09/17 21:31:58 $ 
-* $Revision: 1.21 $
+* $Date: 2002/08/08 23:37:53 $ 
+* $Revision: 1.17 $
 *
 *******************************************************************************
 */
@@ -17,16 +17,13 @@ import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.util.Locale;
 import java.util.ResourceBundle;
-import java.util.Arrays;
 import java.text.CharacterIterator;
 import java.text.StringCharacterIterator;
-import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.impl.IntTrie;
 import com.ibm.icu.impl.Trie;
 import com.ibm.icu.impl.ICULocaleData;
 import com.ibm.icu.impl.BOCU;
 import com.ibm.icu.impl.Utility;
-import com.ibm.icu.impl.ICUDebug;
 
 /**
  * <p>RuleBasedCollator is a concrete subclass of Collator. It allows
@@ -177,9 +174,6 @@ import com.ibm.icu.impl.ICUDebug;
  *              = new RuleBasedCollator(en_USCollator.getRules() + jaString);
  * </pre>
  * </blockquote>
- * </p>
- * <p>
- * This class is not subclassable
  * </p>
  * @author Syn Wee Quek
  * @since release 2.2, April 18 2002
@@ -545,22 +539,6 @@ public final class RuleBasedCollator extends Collator
     	return m_rules_;
     }
 
-    /**
-     * Get an UnicodeSet that contains all the characters and sequences 
-     * tailored in this collator.
-     * @return a pointer to a UnicodeSet object containing all the 
-     *         code points and sequences that may sort differently than
-     *         in the UCA. 
-     * @exception ParseException thrown when argument rules have an 
-     *            invalid syntax. IOException 
-     * @draft ICU 2.4
-     */
-  	public UnicodeSet getTailoredSet() throws Exception
-  	{
-	  CollationRuleParser src = new CollationRuleParser(getRules());
-	  return src.getTailoredSet();
-  	}
-
 	/**
      * <p>
      * Get a Collation key for the argument String source from this 
@@ -757,80 +735,23 @@ public final class RuleBasedCollator extends Collator
         }
         RuleBasedCollator other = (RuleBasedCollator)obj;
         // all other non-transient information is also contained in rules.
-        if (getStrength() != other.getStrength() 
-               || getDecomposition() != other.getDecomposition() 
-               || other.m_caseFirst_ != m_caseFirst_
-               || other.m_caseSwitch_ != m_caseSwitch_
-               || other.m_isAlternateHandlingShifted_ 
-                                             != m_isAlternateHandlingShifted_
-               || other.m_isCaseLevel_ != m_isCaseLevel_
-               || other.m_isFrenchCollation_ != m_isFrenchCollation_
-               || other.m_isHiragana4_ != m_isHiragana4_) {
+        boolean property = getStrength() == other.getStrength() 
+               && getDecomposition() == other.getDecomposition() 
+               && other.m_caseFirst_ == m_caseFirst_
+               && other.m_caseSwitch_ == m_caseSwitch_
+               && other.m_isAlternateHandlingShifted_ 
+                                             == m_isAlternateHandlingShifted_
+               && other.m_isCaseLevel_ == m_isCaseLevel_
+               && other.m_isFrenchCollation_ == m_isFrenchCollation_
+               && other.m_isHiragana4_ == m_isHiragana4_;
+        if (!property) {
             return false;
         }
         boolean rules = m_rules_ == other.m_rules_;
         if (!rules && (m_rules_ != null && other.m_rules_ != null)) {
             rules = m_rules_.equals(other.m_rules_);
         }
-        if (!rules || !ICUDebug.enabled("collation")) {
-            return rules;
-        }
-        if (m_addition3_ != other.m_addition3_ 
-                  || m_bottom3_ != other.m_bottom3_ 
-                  || m_bottomCount3_ != other.m_bottomCount3_ 
-                  || m_common3_ != other.m_common3_ 
-                  || m_isSimple3_ != other.m_isSimple3_
-                  || m_mask3_ != other.m_mask3_
-                  || m_minContractionEnd_ != other.m_minContractionEnd_
-                  || m_minUnsafe_ != other.m_minUnsafe_
-                  || m_top3_ != other.m_top3_
-                  || m_topCount3_ != other.m_topCount3_
-                  || !Arrays.equals(m_unsafe_, other.m_unsafe_)) {
-            return false;
-        }
-        if (!m_trie_.equals(other.m_trie_)) {
-            // we should use the trie iterator here, but then this part is 
-            // only used in the test.
-            for (int i = UCharacter.MAX_VALUE; i >= UCharacter.MIN_VALUE; i --)
-            {
-                int v = m_trie_.getCodePointValue(i);
-                int otherv = other.m_trie_.getCodePointValue(i);
-                if (v != otherv) {
-                    int mask = v & (CE_TAG_MASK_ | CE_SPECIAL_FLAG_);
-                    if (mask == (otherv & 0xff000000)) {
-                        v &= 0xffffff; 
-                        otherv &= 0xffffff; 
-                        if (mask == 0xf1000000) {
-                            v -= (m_expansionOffset_ << 4);
-                            otherv -= (other.m_expansionOffset_ << 4);
-                        }
-                        else if (mask == 0xf2000000) {
-                            v -= m_contractionOffset_;
-                            otherv -= other.m_contractionOffset_;
-                        }
-                        if (v == otherv) {
-                            continue;
-                        }
-                    }
-                    return false;
-                }
-            }
-        }
-        if (Arrays.equals(m_contractionCE_, other.m_contractionCE_)
-            && Arrays.equals(m_contractionEnd_, other.m_contractionEnd_)
-            && Arrays.equals(m_contractionIndex_, other.m_contractionIndex_)
-            && Arrays.equals(m_expansion_, other.m_expansion_)
-            && Arrays.equals(m_expansionEndCE_, other.m_expansionEndCE_)) {
-            // not comparing paddings
-            for (int i = 0; i < m_expansionEndCE_.length; i ++) {
-                 if (m_expansionEndCEMaxSize_[i] 
-                     != other.m_expansionEndCEMaxSize_[i]) {
-                     return false;
-                 }
-                 return true;
-            }
-        }
-        return false;
+        return rules;
     }
     
 	/**

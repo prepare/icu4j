@@ -7,14 +7,6 @@
 package com.ibm.icu.util;
 
 import com.ibm.icu.impl.ICULocaleData;
-import com.ibm.icu.impl.ICUService;
-import com.ibm.icu.impl.ICUService.Key;
-import com.ibm.icu.impl.ICUService.Factory;
-import com.ibm.icu.impl.ICULocaleService;
-import com.ibm.icu.impl.ICULocaleService.ICUResourceBundleFactory;
-import com.ibm.icu.impl.ICULocaleService.LocaleKey;
-import com.ibm.icu.impl.ICULocaleService.LocaleKeyFactory;
-import com.ibm.icu.impl.LocaleUtility;
 import com.ibm.icu.text.DateFormat;
 import com.ibm.icu.text.DateFormatSymbols;
 import com.ibm.icu.text.SimpleDateFormat;
@@ -24,15 +16,11 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.text.MessageFormat;
-import java.util.Collections;
 import java.util.Date;
 import java.util.Hashtable;
-import java.util.HashMap;
 import java.util.Locale;
-import java.util.Map;
 import java.util.MissingResourceException;
 import java.util.ResourceBundle;
-import java.util.Set;
 
 /**
  * <code>Calendar</code> is an abstract base class for converting between
@@ -632,7 +620,7 @@ import java.util.Set;
  * @see          GregorianCalendar
  * @see          TimeZone
  * @see          DateFormat
- * @version      $Revision: 1.33 $ $Date: 2002/10/04 19:49:10 $
+ * @version      $Revision: 1.29 $ $Date: 2002/08/08 01:45:21 $
  * @author Mark Davis, David Goldsmith, Chen-Lieh Huang, Alan Liu, Laura Werner
  * @since JDK1.1
  */
@@ -1434,7 +1422,7 @@ public abstract class Calendar implements Serializable, Cloneable {
      */
     public static synchronized Calendar getInstance()
     {
-        return getInstance(TimeZone.getDefault(), Locale.getDefault(), null);
+        return new GregorianCalendar();
     }
 
     /**
@@ -1444,7 +1432,7 @@ public abstract class Calendar implements Serializable, Cloneable {
      */
     public static synchronized Calendar getInstance(TimeZone zone)
     {
-        return getInstance(zone, Locale.getDefault(), null);
+        return new GregorianCalendar(zone, Locale.getDefault());
     }
 
     /**
@@ -1454,7 +1442,7 @@ public abstract class Calendar implements Serializable, Cloneable {
      */
     public static synchronized Calendar getInstance(Locale aLocale)
     {
-        return getInstance(TimeZone.getDefault(), aLocale, null);
+        return new GregorianCalendar(TimeZone.getDefault(), aLocale);
     }
 
     /**
@@ -1464,141 +1452,19 @@ public abstract class Calendar implements Serializable, Cloneable {
      * @return a Calendar.
      */
     public static synchronized Calendar getInstance(TimeZone zone,
-                                                    Locale aLocale) {
-        return getInstance(zone, aLocale, null);
-    }
-
-    // ==== Factory Stuff ====
-
-    /**
-     * Return a calendar of for the TimeZone and locale.  If factoryName is
-     * not null, looks in the collection of CalendarFactories for a match
-     * and uses that factory to instantiate the calendar.  Otherwise, it
-     * uses the default factory that has been registered for the locale.
-     */
-    public static synchronized Calendar getInstance(TimeZone zone,
-                                                    Locale locale,
-                                                    String factoryName)
+                                                    Locale aLocale)
     {
-        CalendarFactory factory = null;
-        if (factoryName != null) {
-            factory = (CalendarFactory)getFactoryMap().get(factoryName);
-        }
-
-        if (factory == null && service != null) {
-            factory = (CalendarFactory)service.get(locale);
-        }
-
-        if (factory == null) {
-            return new GregorianCalendar(zone, locale);
-        } else {
-            return factory.create(zone, locale);
-        }
+        return new GregorianCalendar(zone, aLocale);
     }
 
     /**
      * Gets the list of locales for which Calendars are installed.
      * @return the list of locales for which Calendars are installed.
      */
-    public static Locale[] getAvailableLocales()
+    public static synchronized Locale[] getAvailableLocales()
     {
-        return service == null
-            ? ICULocaleData.getAvailableLocales()
-            : service.getAvailableLocales();
+        return DateFormat.getAvailableLocales();
     }
-
-    private static Map factoryMap;
-    private static Map getFactoryMap() {
-        if (factoryMap == null) {
-            Map m = new HashMap(5);
-            addFactory(m, BuddhistCalendar.factory());
-            addFactory(m, ChineseCalendar.factory());
-            addFactory(m, GregorianCalendar.factory());
-            addFactory(m, HebrewCalendar.factory());
-            addFactory(m, IslamicCalendar.factory());
-            addFactory(m, JapaneseCalendar.factory());
-            factoryMap = m;
-        }
-        return factoryMap;
-    }
-
-    private static void addFactory(Map m, CalendarFactory f) {
-        m.put(f.factoryName(), f);
-    }
-
-    /**
-     * Return a set of all the registered calendar factory names.
-     */
-    public static Set getCalendarFactoryNames() {
-        return Collections.unmodifiableSet(getFactoryMap().keySet());
-    }
-
-    /**
-     * Register a new CalendarFactory.  getInstance(TimeZone, Locale, String) will
-     * try to locate a registered factories matching the factoryName.  Only registered
-     * factories will be found.
-     */
-    public static void registerFactory(CalendarFactory factory) {
-        if (factory == null) {
-            throw new IllegalArgumentException("Factory must not be null");
-        }
-        getFactoryMap().put(factory.factoryName(), factory);
-    }
-
-    /**
-     * Convenience override of register(CalendarFactory, Locale, boolean);
-     */
-    public static Object register(CalendarFactory factory, Locale locale) {
-        return register(factory, locale, true);
-    }
-
-    /**
-     * Registers a default CalendarFactory for the provided locale.
-     * If the factory has not already been registered with
-     * registerFactory, it will be.  
-     */
-    public static Object register(CalendarFactory factory, Locale locale, boolean visible) {
-        if (factory == null) {
-            throw new IllegalArgumentException("calendar must not be null");
-        }
-        registerFactory(factory);
-        return getService().registerObject(factory, locale, visible
-                                           ? LocaleKeyFactory.VISIBLE
-                                           : LocaleKeyFactory.INVISIBLE);
-    }
-
-    /**
-     * Unregister the CalendarFactory associated with this key 
-     * (obtained from register).
-     */
-    public static boolean unregister(Object registryKey) {
-        return service == null 
-            ? false
-            : service.unregisterFactory((Factory)registryKey);
-    }
-
-    private static ICULocaleService service = null;
-    private static ICULocaleService getService() {
-        if (service == null) {
-            ICULocaleService newService = new ICULocaleService("Calendar");
-
-            class RBCalendarFactory extends ICUResourceBundleFactory {
-                protected Object handleCreate(Locale locale, int kind, ICUService service) {
-                    return GregorianCalendar.factory();
-                }
-            }
-            newService.registerFactory(new RBCalendarFactory());
-
-            synchronized (Calendar.class) {
-                if (service == null) {
-                    service = newService;
-                }
-            }
-        }
-        return service;
-    }
-
-    // ==== End of factory Stuff ====
 
     /**
      * Gets this Calendar's current time.
@@ -1819,26 +1685,12 @@ public abstract class Calendar implements Serializable, Cloneable {
 
         Calendar that = (Calendar) obj;
 
-        return isEquivalentTo(that) &&
-            getTimeInMillis() == that.getTime().getTime();
-    }
-
-    /**
-     * Returns true if the given Calendar object is equivalent to this
-     * one.  An equivalent Calendar will behave exactly as this one
-     * does, but it may be set to a different time.  By contrast, for
-     * the equals() method to return true, the other Calendar must
-     * be set to the same time.
-     *
-     * @param other the Calendar to be compared with this Calendar   
-     * @since ICU 2.4
-     */
-    public boolean isEquivalentTo(Calendar other) {
-        return this.getClass() == other.getClass() &&
-            isLenient() == other.isLenient() &&
-            getFirstDayOfWeek() == other.getFirstDayOfWeek() &&
-            getMinimalDaysInFirstWeek() == other.getMinimalDaysInFirstWeek() &&
-            getTimeZone().equals(other.getTimeZone());
+        return
+            getTimeInMillis() == that.getTime().getTime() &&
+            isLenient() == that.isLenient() &&
+            getFirstDayOfWeek() == that.getFirstDayOfWeek() &&
+            getMinimalDaysInFirstWeek() == that.getMinimalDaysInFirstWeek() &&
+            getTimeZone().equals(that.getTimeZone());
     }
 
     /**

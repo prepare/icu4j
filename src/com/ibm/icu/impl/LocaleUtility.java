@@ -5,8 +5,8 @@
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/impl/LocaleUtility.java,v $
- * $Date: 2002/10/02 20:20:21 $
- * $Revision: 1.6 $
+ * $Date: 2002/06/19 21:03:12 $
+ * $Revision: 1.4 $
  *  *****************************************************************************************
  */
  
@@ -71,14 +71,6 @@ public class LocaleUtility {
 
 
     /**
-     * Convenience method that calls canonicalLocaleString(String) with
-     * locale.toString();
-     */
-    public static String canonicalLocaleString(Locale locale) {
-        return canonicalLocaleString(locale.toString());
-    }
-
-    /**
      * You'd think that Locale canonicalizes, since it munges the
      * renamed languages, but it doesn't quite.  It forces the region
      * to be upper case but doesn't do anything about the language or
@@ -105,4 +97,27 @@ public class LocaleUtility {
 	}
 	return id;
     }
+
+    /*
+    public static String getDisplayLanguage(String languageID, Locale l) {
+    }
+
+    public static String getDisplayRegion(String regionID, Locale l) {
+    }
+
+    public static String getDisplayVariant(String variantID, Locale l) {
+    }
+
+    public static String getDisplayName(String localeName) {
+	return getDisplayName(getLocaleFromString(localeName));
+    }
+
+    public static String getDisplayName(Locale locale) {
+	String lang = locale.getLanguage();
+	String region = locale.getCountry();
+	String var = locale.getVariant();
+
+	StringBuffer buf = new StringBuffer(lang);
+    }
+    */
 }

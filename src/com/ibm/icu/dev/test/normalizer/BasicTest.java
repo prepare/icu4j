@@ -5,8 +5,8 @@
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/dev/test/normalizer/BasicTest.java,v $
- * $Date: 2002/09/26 23:01:57 $
- * $Revision: 1.17 $
+ * $Date: 2002/10/09 18:11:37 $
+ * $Revision: 1.15.2.1 $
  *
  *****************************************************************************************
  */
@@ -2052,12 +2052,12 @@ public class BasicTest extends TestFmwk {
 	    count=countFoldFCDExceptions(0);
 	    count+=countFoldFCDExceptions(Normalizer.FOLD_CASE_EXCLUDE_SPECIAL_I);
 	    if(count>0) {
-	        //*
-	        //* If case-folding un-FCDs any strings, then unorm_compare() must be
-	        //* re-implemented.
-	        //* It currently assumes that one can check for FCD then case-fold
-	        //* and then still have FCD strings for raw decomposition without reordering.
-	        //*
+	        /*
+	         * If case-folding un-FCDs any strings, then unorm_compare() must be
+	         * re-implemented.
+	         * It currently assumes that one can check for FCD then case-fold
+	         * and then still have FCD strings for raw decomposition without reordering.
+	         */
 	        errln("error: There are "+count+" code points for which case-folding"+
 	              " may un-FCD a string for all folding options.\n See comment"+
                   " in BasicNormalizerTest::FindFoldFCDExceptions()!");
@@ -2096,65 +2096,26 @@ public class BasicTest extends TestFmwk {
         }
     }
     */
-    public void TestFCNFKCClosure() {
-        final class TestStruct{
-            int c;
-            String s;
-            TestStruct(int cp, String src){
-                c=cp;
-                s=src;
-            }
-        };
-        
-        TestStruct[] tests= new TestStruct[]{
-            new TestStruct( 0x037A, new String( "\u0020\u03B9") ),
-            new TestStruct( 0x03D2, new String( "\u03C5") ),
-            new TestStruct( 0x20A8, new String( "\u0072\u0073") ) ,
-            new TestStruct( 0x210B, new String( "\u0068") ),
-            new TestStruct( 0x210C, new String( "\u0068") ),
-            new TestStruct( 0x2121, new String( "\u0074\u0065\u006C") ),
-            new TestStruct( 0x2122, new String( "\u0074\u006D") ),
-            new TestStruct( 0x2128, new String( "\u007A") ),
-            new TestStruct( 0x1D5DB, new String( "\u0068") ),
-            new TestStruct( 0x1D5ED, new String( "\u007A") ),
-            new TestStruct( 0x0061, new String() )
-        };
+
+    public void TestBugJ2324() { 
+        /* String[] input = new String[] { 
+                          //"\u30FD\u3099", 
+                            "\u30FA\u309A", 
+                            "\u30FB\u309A", 
+                            "\u30FC\u309A", 
+                            "\u30FE\u309A", 
+                            "\u30FD\u309A", 
     
-
-        int i, length;
-    
-        for(i=0; i<tests.length; ++i) {
-            String result=Normalizer.getFC_NFKC_Closure(tests[i].c);
-            if(!result.equals(new String(tests[i].s))) {
-                errln("getFC_NFKC_Closure(U+"+Integer.toHexString(tests[i].c)+") is wrong");
-            }
-        }
-    
-        /* error handling */
-
-        length=Normalizer.getFC_NFKC_Closure(0x5c, null);
-
-
-    }
-    public void TestBugJ2324(){
-       /* String[] input = new String[]{
-                            //"\u30FD\u3099",
-                            "\u30FA\u309A",
-                            "\u30FB\u309A",
-                            "\u30FC\u309A",
-                            "\u30FE\u309A",
-                            "\u30FD\u309A",
-
-        };*/
-        String troublesome = "\u309A";
-        for(int i=0x3000; i<0x3100;i++){
-            String input = ((char)i)+troublesome;
-            try{                            
-                String result = Normalizer.compose(input,false);
-            }catch(IndexOutOfBoundsException e){
-                errln("compose() failed for input: " + Utility.hex(input) + " Exception: " + e.toString());
-            }
-        }
-                
-    }
+        }; */ 
+        String troublesome = "\u309A"; 
+        for (int i=0x3000; i<0x3100;i++) { 
+            String input = ((char)i)+troublesome; 
+            try {                             
+                String result = Normalizer.compose(input,false); 
+            } catch(IndexOutOfBoundsException e) { 
+                errln("compose() failed for input: " + Utility.hex(input) 
+                      + " Exception: " + e.toString()); 
+            } 
+        }                 
+    } 
 }

@@ -82,9 +82,7 @@ import com.ibm.icu.impl.ICUDebug;
  * </pre>
  * </blockquote>
  * </p>
- * <p>
- * This class is not subclassable
- * </p>
+ * 
  * @see Collator
  * @see RuleBasedCollator
  * @see StringSearch

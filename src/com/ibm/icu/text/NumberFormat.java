@@ -5,12 +5,14 @@
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/text/NumberFormat.java,v $ 
- * $Date: 2002/10/04 19:49:10 $ 
- * $Revision: 1.17 $
+ * $Date: 2002/03/20 05:11:15 $ 
+ * $Revision: 1.13 $
  *
  *****************************************************************************************
  */
 package com.ibm.icu.text;
+
+import com.ibm.icu.impl.ICULocaleData;
 
 import java.io.InvalidObjectException; //Bug 4185761 [Richard/GCL]
 import java.io.IOException;
@@ -21,23 +23,9 @@ import java.text.FieldPosition;
 import java.text.Format;
 import java.text.ParseException;
 import java.text.ParsePosition;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Locale;
-import java.util.Map;
 import java.util.ResourceBundle;
-import java.util.Set;
-
-import com.ibm.icu.impl.ICULocaleData;
-import com.ibm.icu.impl.ICUService;
-import com.ibm.icu.impl.ICUService.Key;
-import com.ibm.icu.impl.ICUService.Factory;
-import com.ibm.icu.impl.ICULocaleService;
-import com.ibm.icu.impl.ICULocaleService.ICUResourceBundleFactory;
-import com.ibm.icu.impl.ICULocaleService.LocaleKey;
-import com.ibm.icu.impl.ICULocaleService.LocaleKeyFactory;
-import com.ibm.icu.impl.LocaleUtility;
 
 /**
  * <code>NumberFormat</code> is the abstract base class for all number
@@ -163,19 +151,12 @@ import com.ibm.icu.impl.LocaleUtility;
  *
  * see          DecimalFormat
  * see          java.text.ChoiceFormat
- * @version      $Revision: 1.17 $
+ * @version      $Revision: 1.13 $
  * @author       Mark Davis
  * @author       Helena Shih
  * @author       Alan Liu
  */
 public abstract class NumberFormat extends Format{
-
-    // Constants used by factory methods to specify a style of format.
-    private static final int NUMBERSTYLE = 0;
-    private static final int CURRENCYSTYLE = 1;
-    private static final int PERCENTSTYLE = 2;
-    private static final int SCIENTIFICSTYLE = 3;
-    private static final int INTEGERSTYLE = 4;
 
     /**
      * Field constant used to construct a FieldPosition object. Signifies that
@@ -474,133 +455,14 @@ public abstract class NumberFormat extends Format{
         return getInstance(inLocale, SCIENTIFICSTYLE);
     }
 
-    // ===== Factory stuff =====
-
-    public static abstract class NumberFormatFactory {
-        public static final int FORMAT_NUMBER = NUMBERSTYLE;
-        public static final int FORMAT_CURRENCY = CURRENCYSTYLE;
-        public static final int FORMAT_PERCENT = PERCENTSTYLE;
-        public static final int FORMAT_SCIENTIFIC = SCIENTIFICSTYLE;
-        public static final int FORMAT_INTEGER = INTEGERSTYLE;
-
-        /**
-         * Return true if this factory will be visible.  Default is true.  */
-        public boolean visible() {
-            return true;
-        }
-
-        /**
-         * Return an unmodifiable collection of the locale names directly 
-         * supported by this factory.
-         */
-         public abstract Set getSupportedLocaleNames();
-
-        /**
-         * Return a number format of the appropriate type.  If the locale
-         * is not supported, return null.  All the defined types must be
-         * supported.
-         */
-        public abstract NumberFormat createFormat(Locale loc, int formatType);
-    }
-
-    public static abstract class SimpleNumberFormatFactory extends NumberFormatFactory {
-        final Set localeNames;
-        final boolean visible;
-
-        public SimpleNumberFormatFactory(Locale locale) {
-            this(locale, true);
-        }
-        
-        public SimpleNumberFormatFactory(Locale locale, boolean visible) {
-            localeNames = Collections.singleton(LocaleUtility.canonicalLocaleString(locale));
-            this.visible = visible;
-        }
-
-        public final boolean visible() {
-            return visible;
-        }
-
-        public final Set getSupportedLocaleNames() {
-            return localeNames;
-        }
-    }
-
-    private static final class NFFactory extends LocaleKeyFactory {
-        private NumberFormatFactory delegate;
-
-        NFFactory(NumberFormatFactory delegate) {
-            super(delegate.visible() ? VISIBLE : INVISIBLE);
-
-            this.delegate = delegate;
-        }
-
-        protected Object handleCreate(Locale loc, int kind, ICUService service) {
-            return delegate.createFormat(loc, kind);
-        }
-
-        protected Set getSupportedIDs() {
-            return delegate.getSupportedLocaleNames();
-        }
-    }
 
     /**
      * Get the set of Locales for which NumberFormats are installed
      * @return available locales
      */
     public static Locale[] getAvailableLocales() {
-        if (service == null) {
-            return ICULocaleData.getAvailableLocales();
-        } else {
-            return service.getAvailableLocales();
-        }
+        return ICULocaleData.getAvailableLocales("NumberPatterns");
     }
-
-    /**
-     * Registers a new NumberFormat for the provided locale of the defined
-     * type.  The returned object is a key that can be used to unregister this
-     * NumberFormat object.
-     */
-    public static Object register(NumberFormatFactory factory) {
-        if (factory == null) {
-            throw new IllegalArgumentException("factory must not be null");
-        }
-        return getService().registerFactory(new NFFactory(factory));
-    }
-
-    /**
-     * Unregister the currency associated with this key (obtained from
-     * registerInstance).
-     */
-    public static boolean unregister(Object registryKey) {
-        if (service == null) {
-            return false;
-        } else {
-            return service.unregisterFactory((Factory)registryKey);
-        }
-    }
-
-    private static ICULocaleService service = null;
-    private static ICULocaleService getService() {
-        if (service == null) {
-            class RBNumberFormatFactory extends ICUResourceBundleFactory {
-                protected Object handleCreate(Locale loc, int kind, ICUService service) {
-                    return createInstance(loc, kind);
-                }
-            }
-                
-            ICULocaleService newService = new ICULocaleService("NumberFormat");
-            newService.registerFactory(new RBNumberFormatFactory());
-            
-            synchronized (NumberFormat.class) {
-                if (service == null) {
-                    service = newService;
-                }
-            }
-        }
-        return service;
-    }
-
-    // ===== End of factory stuff =====
 
     /**
      * Overrides hashCode
@@ -762,24 +624,11 @@ public abstract class NumberFormat extends Format{
 
     // =======================privates===============================
 
-    // Hook for service
-    private static NumberFormat getInstance(Locale desiredLocale, int choice) {
-        if (service == null) {
-            return createInstance(desiredLocale, choice);
-        } else {
-            NumberFormat result = (NumberFormat)service.get(desiredLocale, choice);
-            return (NumberFormat)result.clone();
-        }
-    }
-
     // [NEW]
-    private static NumberFormat createInstance(Locale desiredLocale,
+    private static NumberFormat getInstance(Locale desiredLocale,
                                             int choice) {
-        String pattern = getPattern(desiredLocale, choice);
-        DecimalFormatSymbols symbols = new DecimalFormatSymbols(desiredLocale);
-        DecimalFormat format = new DecimalFormat(pattern, symbols);
-        // System.out.println("loc: " + desiredLocale + " choice: " + choice + " pat: " + pattern + " sym: " + symbols + " result: " + format);
-                                 
+        DecimalFormat format = new DecimalFormat(getPattern(desiredLocale, choice),
+                                 new DecimalFormatSymbols(desiredLocale));
         /*Bug 4408066
          Add codes for the new method getIntegerInstance() [Richard/GCL]
         */
@@ -914,9 +763,15 @@ public abstract class NumberFormat extends Format{
      */
     private static final Hashtable cachedLocaleData = new Hashtable(3);
 
+    // Constants used by factory methods to specify a style of format.
+    private static final int NUMBERSTYLE = 0;
+    private static final int CURRENCYSTYLE = 1;
+    private static final int PERCENTSTYLE = 2;
+    private static final int SCIENTIFICSTYLE = 3;
     /*Bug 4408066
       Add Field for the new method getIntegerInstance() [Richard/GCL]
     */
+    private static final int INTEGERSTYLE = 4;
 
     /**
      * True if the the grouping (i.e. thousands) separator is used when

@@ -1,7 +1,7 @@
 /*****************************************************************************************
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/dev/test/format/NumberRegression.java,v $ 
- * $Date: 2002/09/14 21:36:28 $ 
- * $Revision: 1.12 $
+ * $Date: 2002/10/09 19:20:40 $ 
+ * $Revision: 1.10.2.1 $
  *
  *****************************************************************************************
  **/
@@ -634,7 +634,7 @@ public class NumberRegression extends com.ibm.icu.dev.test.TestFmwk {
         if (tempString.equals(expectedDefault)) {
             logln ("Bug 4071859 default test passed.");
         } else {
-            errln("a) Failed:" +
+            errln("Failed:" +
             " Expected " + expectedDefault +
             " Received " + tempString );
         }
@@ -645,7 +645,7 @@ public class NumberRegression extends com.ibm.icu.dev.test.TestFmwk {
         if (tempString.equals(expectedCurrency) ) {
             logln ("Bug 4071859 currency test passed.");
         } else {
-            errln("b) Failed:" +
+            errln("Failed:" +
             " Expected " + expectedCurrency +
             " Received " + tempString );
         }
@@ -656,7 +656,7 @@ public class NumberRegression extends com.ibm.icu.dev.test.TestFmwk {
         if (tempString.equals(expectedPercent) ) {
             logln ("Bug 4071859 percentage test passed.");
         } else {
-            errln("c) Failed:" +
+            errln("Failed:" +
             " Expected " + expectedPercent +
             " Received " + tempString );
         }
@@ -1528,7 +1528,8 @@ public class NumberRegression extends com.ibm.icu.dev.test.TestFmwk {
         }
         sym.setInternationalCurrencySymbol("USD");
 
-        if (VersionInfo.ICU_VERSION == VersionInfo.getInstance(2,2)) {
+	if (VersionInfo.ICU_VERSION.compareTo(VersionInfo.getInstance(2,4)) 
+                                                                      < 0) {
             // bug in 2.2 that fails this test
             // to be fixed in the later versions
             System.out.println("\n        Test skipped for release 2.2");
@@ -1559,7 +1560,7 @@ public class NumberRegression extends com.ibm.icu.dev.test.TestFmwk {
                 DecimalFormatSymbols symb = new DecimalFormatSymbols(avail[i]);
                 DecimalFormat f2 = new DecimalFormat(pat, symb);
                 if (!df.equals(f2)) {
-                    errln("FAIL: " + avail[i] + " #" + j + " -> \"" + pat +
+                    errln("FAIL: " + avail[i] + " -> \"" + pat +
                           "\" -> \"" + f2.toPattern() + '"');
                 }
 
@@ -1567,8 +1568,8 @@ public class NumberRegression extends com.ibm.icu.dev.test.TestFmwk {
                 pat = df.toLocalizedPattern();
                 f2.applyLocalizedPattern(pat);
                 if (!df.equals(f2)) {
-                    errln("FAIL: " + avail[i] + " #" + j + " -> localized \"" + pat +
-                          "\" -> \"" + f2.toLocalizedPattern() + '"');
+                    errln("FAIL: " + avail[i] + " -> localized \"" + pat +
+                          "\" -> \"" + f2.toPattern() + '"');
                 }
 
                 // Test writeObject/readObject round trip
@@ -1587,33 +1588,6 @@ public class NumberRegression extends com.ibm.icu.dev.test.TestFmwk {
                           (f2 != null ? ("\""+f2.toPattern()+'"') : "null"));
                 }
 
-            }
-        }
-
-        // @since ICU 2.4
-        // Make sure that all special characters, when quoted in a suffix or
-        // prefix, lose their special meaning.
-        char[] SPECIALS = { '0', ',', '.', '\u2030', '%', '#',
-                            ';', 'E', '*', '+', '-' };
-        sym = new DecimalFormatSymbols(Locale.US);
-        for (int j=0; j<SPECIALS.length; ++j) {
-            char special = SPECIALS[j];
-            String pat = "'" + special + "'#0'" + special + "'";
-            try {
-                fmt = new DecimalFormat(pat, sym);
-                String pat2 = fmt.toPattern();
-                if (!pat.equals(pat2)) {
-                    errln("FAIL: Pattern \"" + pat + "\" => toPattern() => \"" +
-                          pat2 + "\"");
-                }
-                String s = fmt.format(123);
-                String exp = "" + special + "123" + special;
-                if (!s.equals(exp)) {
-                    errln("FAIL: 123 x \"" + pat + "\" => \"" + s + "\", exp \"" +
-                          exp + "\"");
-                }
-            } catch (IllegalArgumentException e) {
-                errln("FAIL: Pattern \"" + pat + "\" => " + e.getMessage());
             }
         }
     }

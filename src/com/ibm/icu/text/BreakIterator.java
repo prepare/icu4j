@@ -5,21 +5,14 @@
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/text/BreakIterator.java,v $ 
- * $Date: 2002/10/04 19:41:02 $ 
- * $Revision: 1.10 $
+ * $Date: 2002/03/20 05:11:15 $ 
+ * $Revision: 1.8 $
  *
  *****************************************************************************************
  */
 package com.ibm.icu.text;
 
 import com.ibm.icu.impl.ICULocaleData;
-import com.ibm.icu.impl.ICULocaleService;
-import com.ibm.icu.impl.ICULocaleService.LocaleKey;
-import com.ibm.icu.impl.ICULocaleService.ICUResourceBundleFactory;
-import com.ibm.icu.impl.ICUService;
-import com.ibm.icu.impl.ICUService.Factory;
-import com.ibm.icu.impl.ICUService.Key;
-import com.ibm.icu.impl.LocaleUtility;
 
 import java.io.InputStream;
 import java.io.IOException;
@@ -404,18 +397,11 @@ public abstract class BreakIterator implements Cloneable
      */
     public abstract void setText(CharacterIterator newText);
 
-    public static final int KIND_CHARACTER = 0;
-    public static final int KIND_WORD = 1;
-    public static final int KIND_LINE = 2;
-    public static final int KIND_SENTENCE = 3;
-    public static final int KIND_TITLE = 4;
-    /*
     private static final int CHARACTER_INDEX = 0;
     private static final int WORD_INDEX = 1;
     private static final int LINE_INDEX = 2;
     private static final int SENTENCE_INDEX = 3;
     private static final int TITLE_INDEX = 4;
-    */
     private static final SoftReference[] iterCache = new SoftReference[5];
 
     /**
@@ -437,7 +423,10 @@ public abstract class BreakIterator implements Cloneable
      */
     public static BreakIterator getWordInstance(Locale where)
     {
-        return getBreakInstance(where, KIND_WORD);
+        return getBreakInstance(where,
+                                WORD_INDEX,
+                                "WordBreakRules",
+                                "WordBreakDictionary");
     }
 
     /**
@@ -461,7 +450,10 @@ public abstract class BreakIterator implements Cloneable
      */
     public static BreakIterator getLineInstance(Locale where)
     {
-        return getBreakInstance(where, KIND_LINE);
+        return getBreakInstance(where,
+                                LINE_INDEX,
+                                "LineBreakRules",
+                                "LineBreakDictionary");
     }
 
     /**
@@ -485,7 +477,10 @@ public abstract class BreakIterator implements Cloneable
      */
     public static BreakIterator getCharacterInstance(Locale where)
     {
-        return getBreakInstance(where, KIND_CHARACTER);
+        return getBreakInstance(where,
+                                CHARACTER_INDEX,
+                                "CharacterBreakRules",
+                                "CharacterBreakDictionary");
     }
 
     /**
@@ -506,7 +501,10 @@ public abstract class BreakIterator implements Cloneable
      */
     public static BreakIterator getSentenceInstance(Locale where)
     {
-        return getBreakInstance(where, KIND_SENTENCE);
+        return getBreakInstance(where,
+                                SENTENCE_INDEX,
+                                "SentenceBreakRules",
+                                "SentenceBreakDictionary");
     }
 
     /**
@@ -527,64 +525,19 @@ public abstract class BreakIterator implements Cloneable
      */
     public static BreakIterator getTitleInstance(Locale where)
     {
-        return getBreakInstance(where, KIND_TITLE);
+        return getBreakInstance(where,
+                                TITLE_INDEX,
+                                "TitleBreakRules",
+                                "TitleBreakDictionary");
     }
 
-    public static Object register(BreakIterator iter, Locale locale, int kind) {
-        try {
-            return getService().registerObject(iter, locale, kind);
-        }
-        catch (IndexOutOfBoundsException e) {
-            throw new IllegalArgumentException("unknown kind: " + kind);
-        }
-    }
+    private static BreakIterator getBreakInstance(Locale where,
+                                                  int type,
+                                                  String rulesName,
+                                                  String dictionaryName) {
 
-    public static boolean unregister(Object key) {
-        if (service != null) {
-            return service.unregisterFactory((Factory)key);
-        }
-        return false;
-    }
-
-    private static ICULocaleService service;
-    private static ICULocaleService getService() {
-        if (service == null) {
-            ICULocaleService newService = new ICULocaleService("BreakIterator");
-
-            class RBBreakIteratorFactory extends ICUResourceBundleFactory {
-                protected Object handleCreate(Locale loc, int kind, ICUService service) {
-                    return createBreakInstance(loc, kind);
-                }
-            }
-            newService.registerFactory(new RBBreakIteratorFactory());
-
-            synchronized (BreakIterator.class) {
-                if (service == null) {
-                    service = newService;
-                }
-            }
-        }
-        return service;
-    }
-
-    private static final String[] KIND_NAMES = {
-        "Character", "Word", "Line", "Sentence", "Title"
-    };
-
-    private static BreakIterator createBreakInstance(Locale locale, int kind) {
-        String prefix = KIND_NAMES[kind];
-        return createBreakInstance(locale, 
-                                   kind, 
-                                   prefix + "BreakRules",
-                                   prefix + "BreakDictionary");
-    }
-
-    // end of registration
-
-    private static BreakIterator getBreakInstance(Locale where, int kind) {
-
-        if (iterCache[kind] != null) {
-            BreakIteratorCache cache = (BreakIteratorCache) iterCache[kind].get();
+        if (iterCache[type] != null) {
+            BreakIteratorCache cache = (BreakIteratorCache) iterCache[type].get();
             if (cache != null) {
                 if (cache.getLocale().equals(where)) {
                     return cache.createBreakInstance();
@@ -592,14 +545,17 @@ public abstract class BreakIterator implements Cloneable
             }
         }
 
-        BreakIterator result = createBreakInstance(where, kind);
+        BreakIterator result = createBreakInstance(where,
+                                                   type,
+                                                   rulesName,
+                                                   dictionaryName);
         BreakIteratorCache cache = new BreakIteratorCache(where, result);
-        iterCache[kind] = new SoftReference(cache);
+        iterCache[type] = new SoftReference(cache);
         return result;
     }
 
     private static BreakIterator createBreakInstance(Locale where,
-                                                     int kind,
+                                                     int type,
                                                      String rulesName,
                                                      String dictionaryName) {
 
@@ -610,10 +566,10 @@ public abstract class BreakIterator implements Cloneable
 
         String rules = bundle.getString(rulesName);
         
-        if (classNames[kind].equals("RuleBasedBreakIterator")) {
+        if (classNames[type].equals("RuleBasedBreakIterator")) {
             return new RuleBasedBreakIterator(rules);
         }
-        else if (classNames[kind].equals("DictionaryBasedBreakIterator")) {
+        else if (classNames[type].equals("DictionaryBasedBreakIterator")) {
             try {
 				// System.out.println(dictionaryName);
                 Object t = bundle.getObject(dictionaryName);
@@ -630,7 +586,7 @@ public abstract class BreakIterator implements Cloneable
         }
         else
             throw new IllegalArgumentException("Invalid break iterator class \"" +
-                            classNames[kind] + "\"");
+                            classNames[type] + "\"");
     }
 
     /**
@@ -640,11 +596,8 @@ public abstract class BreakIterator implements Cloneable
      */
     public static synchronized Locale[] getAvailableLocales()
     {
-        if (service == null) {
-            return ICULocaleData.getAvailableLocales();
-        } else {
-            return service.getAvailableLocales();
-        }
+		// returns all locales
+        return ICULocaleData.getAvailableLocales();
     }
 
     private static final class BreakIteratorCache {

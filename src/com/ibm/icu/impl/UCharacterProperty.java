@@ -6,8 +6,8 @@
 *
 * $Source: 
 *         /usr/cvs/icu4j/icu4j/src/com/ibm/icu/text/UCharacterPropertyDB.java $ 
-* $Date: 2002/10/03 23:42:02 $ 
-* $Revision: 1.17 $
+* $Date: 2002/07/30 02:32:55 $ 
+* $Revision: 1.15 $
 *
 *******************************************************************************
 */
@@ -99,6 +99,22 @@ public final class UCharacterProperty implements Trie.DataManipulate
      */
     public static final int EXC_COMBINING_CLASS_ = 9;
     /**
+     * Non numeric type
+     */
+    public static final int NON_NUMERIC_TYPE_ = 0;
+    /**
+     * Numeric type for decimal digits
+     */
+    public static final int DECIMAL_DIGIT_NUMERIC_TYPE_ = 1;
+    /**
+     * Numeric type for digits
+     */
+    public static final int DIGIT_NUMERIC_TYPE_ = 2;
+    /**
+     * Numeric type for non digits numbers
+     */
+    public static final int NON_DIGIT_NUMERIC_TYPE_ = 3;
+    /**
      * Maximum number of expansion for a case mapping
      */
     public static final int MAX_CASE_MAP_SIZE = 10;                         
@@ -126,20 +142,20 @@ public final class UCharacterProperty implements Trie.DataManipulate
     * Latin lowercase i
     */
     public static final char LATIN_SMALL_LETTER_I_ = 0x69;
-    /**
-    * Character type mask
-    */
-    public static final int TYPE_MASK = 0x1F; 
-    /**
-    * Exception test mask
-    */
-    public static final int EXCEPTION_MASK = 0x20; 
-    /**
-    * Mirror test mask
-    */
-    public static final int MIRROR_MASK = 1 << 11;
     
     // public methods ----------------------------------------------------
+        
+    /**
+    * Extracts out the type value from property.
+    * For use in enumeration.
+    * @param value of trie value associated with a codepoint
+    */
+    public int extract(int value)
+    {    
+        // access the general category from the 32-bit properties, and those 
+        // from the 16-bit trie value    
+        return getPropType(m_property_[value]);
+    }
       
     /**
     * Called by com.ibm.icu.util.Trie to extract from a lead surrogate's 
@@ -169,6 +185,40 @@ public final class UCharacterProperty implements Trie.DataManipulate
     }
     
     /**
+    * Returns a value indicating a character category from the argument property
+    * value
+    * @param unicode character property
+    * @return category
+    */
+    public static int getPropType(int prop)
+    {
+        // Since character information data are packed together.
+	    // This is the category mask for getting the category information
+        return prop & LAST_5_BIT_MASK_;
+    }
+    
+    /**
+    * Determines if the argument props indicates that the exception block has 
+    * to be accessed for data
+    * @param prop property value
+    * @return true if this is an exception indicator false otherwise
+    */
+    public static boolean isExceptionIndicator(int prop)
+    {
+        return (prop & EXCEPTION_MASK_) != 0;
+    }
+    
+    /**
+     * Getting the numberic type
+     * @param prop property value
+     * @return number type in prop
+     */
+     public static int getNumericType(int prop)
+     {
+     	return (prop >> NUMERIC_TYPE_SHIFT_) & NUMERIC_TYPE_MASK_;
+     }
+    
+    /**
     * Getting the signed numeric value of a character embedded in the property
     * argument
     * @param prop the character
@@ -187,6 +237,26 @@ public final class UCharacterProperty implements Trie.DataManipulate
     public static int getExceptionIndex(int prop)
     {
         return (prop >> VALUE_SHIFT_) & UNSIGNED_VALUE_MASK_AFTER_SHIFT_;
+    }
+      
+    /**
+    * Checking if property indicates mirror element
+    * @param prop property value
+    * @return true if mirror indicator is set, false otherwise
+    */
+    public static boolean isMirrored(int prop)
+    {
+        return (prop & MIRROR_MASK_) != 0;
+    }
+      
+    /**
+    * Getting the direction data in the property value
+    * @param prop property value
+    * @return direction value in property
+    */
+    public static int getDirection(int prop)
+    {
+        return (prop >> BIDI_SHIFT_) & BIDI_MASK_AFTER_SHIFT_;
     }
     
     /**
@@ -226,13 +296,14 @@ public final class UCharacterProperty implements Trie.DataManipulate
         // contained in exception data
         int evalue = m_exception_[index];
         
-        switch (etype) {
-            case EXC_COMBINING_CLASS_ :
-                return evalue;
-            default :
-                index ++;
-                // contained in the exception digit address
-                index = addExceptionOffset(evalue, etype, index);
+        switch (etype)
+        {
+        case EXC_COMBINING_CLASS_ :
+            return evalue;
+        default :
+            index ++;
+            // contained in the exception digit address
+            index = addExceptionOffset(evalue, etype, index);
         }
         return m_exception_[index];
     }
@@ -410,7 +481,7 @@ public final class UCharacterProperty implements Trie.DataManipulate
 		switch(property) {
     		case UProperty.ALPHABETIC: {
         		// Lu+Ll+Lt+Lm+Lo+Nl+Other_Alphabetic
-        		int generaltype = getProperty(codepoint) & TYPE_MASK;
+        		int generaltype = getPropType(getProperty(codepoint));
         		boolean generalmatch = 
         		        generaltype == UCharacterCategory.UPPERCASE_LETTER 
                         || generaltype == UCharacterCategory.LOWERCASE_LETTER 
@@ -431,7 +502,7 @@ public final class UCharacterProperty implements Trie.DataManipulate
         		                             BIDI_CONTROL_PROPERTY_);
     		}
     		case UProperty.BIDI_MIRRORED: {
-        		return (getProperty(codepoint) & MIRROR_MASK) != 0;
+        		return isMirrored(getProperty(codepoint));
     		}
     		case UProperty.DASH: {
         		return compareAdditionalType(getAdditional(codepoint, 1),
@@ -453,7 +524,7 @@ public final class UCharacterProperty implements Trie.DataManipulate
                 }
                 if (!compareAdditionalType(additionalproperty, 
 		                                              WHITE_SPACE_PROPERTY_)) {
-                    int generaltype = getProperty(codepoint) & TYPE_MASK;
+                    int generaltype = getPropType(getProperty(codepoint));
                     if (generaltype == UCharacterCategory.FORMAT 
                         || generaltype == UCharacterCategory.CONTROL 
                         || generaltype == UCharacterCategory.SURROGATE) {
@@ -482,7 +553,7 @@ public final class UCharacterProperty implements Trie.DataManipulate
                 // [0..10FFFF]-Cc-Cf-Cs-Co-Cn-Zl-Zp-Grapheme_Link-(Me+Mn+Mc+Other_Grapheme_Extend)-CGJ ==
                 // [0..10FFFF]-Cc-Cf-Cs-Co-Cn-Zl-Zp-Me-Mn-Mc-Grapheme_Link-Other_Grapheme_Extend-CGJ
                 if (codepoint != 0x34f) { // CGJ
-                    int generaltype = getProperty(codepoint) & TYPE_MASK;
+                    int generaltype = getPropType(getProperty(codepoint));
              		if (generaltype != UCharacterCategory.CONTROL 
                         && generaltype != UCharacterCategory.FORMAT 
                         && generaltype != UCharacterCategory.SURROGATE
@@ -516,7 +587,7 @@ public final class UCharacterProperty implements Trie.DataManipulate
                                              OTHER_GRAPHEME_EXTEND_PROPERTY_)) {
                         return true;
                     }
-                    int generaltype = getProperty(codepoint) & TYPE_MASK;
+                    int generaltype = getPropType(getProperty(codepoint));
                     if (generaltype == UCharacterCategory.ENCLOSING_MARK ||
                         generaltype == UCharacterCategory.NON_SPACING_MARK ||
                         generaltype 
@@ -541,7 +612,7 @@ public final class UCharacterProperty implements Trie.DataManipulate
     		}
     		case UProperty.ID_CONTINUE: {
         		// ID_Start+Mn+Mc+Nd+Pc == Lu+Ll+Lt+Lm+Lo+Nl+Mn+Mc+Nd+Pc
-        		int generaltype = getProperty(codepoint) & TYPE_MASK;
+        		int generaltype = getPropType(getProperty(codepoint));
         		return generaltype == UCharacterCategory.UPPERCASE_LETTER ||
         		       generaltype == UCharacterCategory.LOWERCASE_LETTER || 
         		       generaltype == UCharacterCategory.TITLECASE_LETTER ||
@@ -557,7 +628,7 @@ public final class UCharacterProperty implements Trie.DataManipulate
     		}
     		case UProperty.ID_START: {
         		// Lu+Ll+Lt+Lm+Lo+Nl
-        		int generaltype = getProperty(codepoint) & TYPE_MASK;
+        		int generaltype = getPropType(getProperty(codepoint));
         		return generaltype == UCharacterCategory.UPPERCASE_LETTER ||
         		       generaltype == UCharacterCategory.LOWERCASE_LETTER || 
         		       generaltype == UCharacterCategory.TITLECASE_LETTER ||
@@ -587,7 +658,7 @@ public final class UCharacterProperty implements Trie.DataManipulate
     		}
     		case UProperty.LOWERCASE: {
         		// Ll+Other_Lowercase
-        		int generaltype = getProperty(codepoint) & TYPE_MASK;
+        		int generaltype = getPropType(getProperty(codepoint));
         		if (generaltype == UCharacterCategory.LOWERCASE_LETTER) {
         			return true;
         		}
@@ -596,7 +667,7 @@ public final class UCharacterProperty implements Trie.DataManipulate
     		}
     		case UProperty.MATH: {
         		// Sm+Other_Math 
-        		int generaltype = getProperty(codepoint) & TYPE_MASK;
+        		int generaltype = getPropType(getProperty(codepoint));
         		if (generaltype == UCharacterCategory.MATH_SYMBOL) {
         			return true;
         		}
@@ -629,7 +700,7 @@ public final class UCharacterProperty implements Trie.DataManipulate
 		    }
     		case UProperty.UPPERCASE: {
         		// Lu+Other_Uppercase 
-        		int generaltype = getProperty(codepoint) & TYPE_MASK;
+        		int generaltype = getPropType(getProperty(codepoint));
         		if (generaltype == UCharacterCategory.UPPERCASE_LETTER) {
         			return true;
         		}
@@ -871,8 +942,8 @@ public final class UCharacterProperty implements Trie.DataManipulate
                                    StringBuffer buffer)
     {
     	int props = getProperty(ch);
-        if ((props & EXCEPTION_MASK) == 0) {
-            int type = props & TYPE_MASK;
+        if (!UCharacterProperty.isExceptionIndicator(props)) {
+            int type = UCharacterProperty.getPropType(props);
             if (type == UCharacterCategory.UPPERCASE_LETTER ||
                 type == UCharacterCategory.TITLECASE_LETTER) {
                 ch += UCharacterProperty.getSignedValue(props);
@@ -905,8 +976,8 @@ public final class UCharacterProperty implements Trie.DataManipulate
                            UnicodeCharacterIterator uchariter, char buffer[])
     {
         int props = getProperty(ch);
-        if ((props & EXCEPTION_MASK) == 0) {
-            int type = props & TYPE_MASK;
+        if (!UCharacterProperty.isExceptionIndicator(props)) {
+            int type = UCharacterProperty.getPropType(props);
             if (type == UCharacterCategory.UPPERCASE_LETTER ||
                 type == UCharacterCategory.TITLECASE_LETTER) {
                 ch += UCharacterProperty.getSignedValue(props);
@@ -1049,8 +1120,8 @@ public final class UCharacterProperty implements Trie.DataManipulate
 	                              boolean upperflag, StringBuffer buffer) 
     {
         int props = getProperty(ch);
-        if ((props & EXCEPTION_MASK) == 0) {
-            int type = props & TYPE_MASK;
+        if (!UCharacterProperty.isExceptionIndicator(props)) {
+            int type = UCharacterProperty.getPropType(props);
             if (type == UCharacterCategory.LOWERCASE_LETTER) {
             	ch -= UCharacterProperty.getSignedValue(props);
             }
@@ -1091,8 +1162,8 @@ public final class UCharacterProperty implements Trie.DataManipulate
 	                              boolean upperflag, char buffer[]) 
     {
         int props = getProperty(ch);
-        if ((props & EXCEPTION_MASK) == 0) {
-            int type = props & TYPE_MASK;
+        if (!UCharacterProperty.isExceptionIndicator(props)) {
+            int type = UCharacterProperty.getPropType(props);
             if (type == UCharacterCategory.LOWERCASE_LETTER) {
             	ch -= UCharacterProperty.getSignedValue(props);
             }
@@ -1281,56 +1352,41 @@ public final class UCharacterProperty implements Trie.DataManipulate
     {
         // "white space" in the sense of ICU rule parsers: Cf+White_Space
         UCharacterProperty property = UCharacterProperty.getInstance();
-        return (property.getProperty(c) & TYPE_MASK) 
-                                                   == UCharacterCategory.FORMAT 
-               || property.hasBinaryProperty(c, UProperty.WHITE_SPACE);
+        return property.getType(c) == UCharacterCategory.FORMAT ||
+               property.hasBinaryProperty(c, UProperty.WHITE_SPACE);
     }
 
-    /**
-     * Get the the maximum values for some enum/int properties.
-     * @return maximum values for the integer properties.
-     */
-    public int getMaxBlockScriptValues() 
-    {
-        return m_maxBlockScriptValue_;
-    }
-    
     // protected variables -----------------------------------------------
   
     /**
     * Case table
     */
-    char m_case_[];
+    protected char m_case_[];
       
     /**
     * Exception property table
     */
-    int m_exception_[];
+    protected int m_exception_[];
     /**
      * Extra property trie
      */
-    CharTrie m_additionalTrie_;
+    protected CharTrie m_additionalTrie_;
     /**
      * Extra property vectors, 1st column for age and second for binary 
      * properties.
      */
-    int m_additionalVectors_[];
+    protected int m_additionalVectors_[];
     /**
      * Number of additional columns
      */
-    int m_additionalColumnsCount_;
-    /**
-     * Maximum values for block and script codes, bits used as in vector word
-     * 0
-     */
-    int m_maxBlockScriptValue_;
+    protected int m_additionalColumnsCount_;
     
     // private variables -------------------------------------------------
   
   	/**
      * UnicodeData.txt property object
      */
-    private static UCharacterProperty INSTANCE_ = null;   
+    public static UCharacterProperty INSTANCE_ = null;   
         
     /**
     * Default name of the datafile
@@ -1390,11 +1446,41 @@ public final class UCharacterProperty implements Trie.DataManipulate
     private static final int VALUE_SHIFT_ = 20;
       
     /**
+    * Exception test mask
+    */
+    private static final int EXCEPTION_MASK_ = 0x20;
+      
+    /**
     * Mask to be applied after shifting to obtain an unsigned numeric value
     */
     private static final int UNSIGNED_VALUE_MASK_AFTER_SHIFT_ = 0x7FF;
     
     /**
+    * Shift to get bidi bits
+    */
+    private static final int BIDI_SHIFT_ = 6;
+      
+    /**
+    * Mask to be applied after shifting to get bidi bits
+    */
+    private static final int BIDI_MASK_AFTER_SHIFT_ = 0x1F;
+      
+    /**
+    * Mirror test mask
+    */
+    private static final int MIRROR_MASK_ = 1 << 11;
+    
+    /**
+     * Shift to get numeric type
+     */
+    private static final int NUMERIC_TYPE_SHIFT_ = 12;
+    
+    /**
+     * Mask to get numeric type
+     */
+    private static final int NUMERIC_TYPE_MASK_ = 0x7;
+
+	/**
 	 * Shift to get reserved value
 	 */
 	private static final int RESERVED_SHIFT_ = 15;
@@ -1423,6 +1509,7 @@ public final class UCharacterProperty implements Trie.DataManipulate
      */
     private static int MAX_EXCEPTIONS_COUNT_ = 1 << VALUE_BITS_;
 
+      
     /**
     * To get the last 5 bits out from a data type
     */
@@ -1617,6 +1704,17 @@ public final class UCharacterProperty implements Trie.DataManipulate
     }
                                      
 	// private methods -------------------------------------------------------
+	
+    /**
+    * <p>Returns a value indicating a code point's Unicode category.</p>
+    * <p>This method does not check for the codepoint validity</p>
+    * @param ch code point whose type is to be determined
+    * @return category which is a value of UCharacterCategory
+    */
+    private int getType(int ch)
+    {
+        return getPropType(getProperty(ch));
+    }
     
     /**
      * Unicode 3.2 UAX 21 "Case Mappings" defines the conditions as follows:
@@ -1720,7 +1818,7 @@ public final class UCharacterProperty implements Trie.DataManipulate
         int ch = uchariter.nextCodePoint(); // start checking
     	
     	while (ch != UnicodeCharacterIterator.DONE_CODEPOINT) {
-            int cat = getProperty(ch) & TYPE_MASK;
+            int cat = getType(ch);
             if (isCased(ch, cat)) {
                 return false; // followed by cased letter
             }
@@ -1748,7 +1846,7 @@ public final class UCharacterProperty implements Trie.DataManipulate
     	int ch = uchariter.previousCodePoint();
     	
         while (ch != UnicodeCharacterIterator.DONE_CODEPOINT) {
-            int cat = getProperty(ch) & TYPE_MASK;
+            int cat = getType(ch);
             if (isCased(ch, cat)) {
                 return true; // preceded by cased letter
             }

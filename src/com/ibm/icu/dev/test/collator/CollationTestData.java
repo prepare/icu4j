@@ -5,8 +5,8 @@
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/dev/test/collator/Attic/CollationTestData.java,v $
- * $Date: 2002/09/04 01:37:26 $
- * $Revision: 1.5 $
+ * $Date: 2002/08/13 21:55:25 $
+ * $Revision: 1.3 $
  *
  *******************************************************************************
  */
@@ -265,7 +265,6 @@ public class CollationTestData extends ICUListResourceBundle {
                                 },
                             },
                         },
-                        // this test does not pass in Java yet
                         {
                             "TestShiftedIgnorable",
                             new Object[][]{
@@ -274,22 +273,14 @@ public class CollationTestData extends ICUListResourceBundle {
                                     new Object[]{
                                         new Object[]{
                                             new String[] { 
-                                                "a' 'b="
-                                                + "a' '\u0300b="
-                                                + "a' '\u0301b<"
-                                                + "a_b="
-                                                + "a_\u0300b="
-                                                + "a_\u0301b<"
-                                                + "A' 'b="
-                                                + "A' '\u0300b="
-                                                + "A' '\u0301b<"
-                                                + "A_b="
-                                                + "A_\u0300b="
-                                                + "A_\u0301b<"
-                                                + "a\u0301b<"
-                                                + "A\u0301b<"
-                                                + "a\u0300b<"
-                                                + "A\u0300b",
+                                                "a' 'b=a' '\u0300b=a' " +
+                                                "'\u0301b<a_b=a_\u0300" +
+                                                "b=a_\u0301b<A' 'b=A' " +
+                                                "'\u0300b=A' '\u0301b<" +
+                                                "A_b=A_\u0300b=A_\u0301" +
+                                                "b<a\u0301b<A\u0301b<a" +
+                                                "\u0300b<A\u0300b",
+
                                             },
 
                                         },

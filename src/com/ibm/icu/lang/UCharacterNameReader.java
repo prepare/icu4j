@@ -4,13 +4,13 @@
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 *
-* $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/impl/UCharacterNameReader.java,v $ 
-* $Date: 2002/09/19 21:19:04 $ 
-* $Revision: 1.1 $
+* $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/lang/Attic/UCharacterNameReader.java,v $ 
+* $Date: 2002/08/01 19:50:26 $ 
+* $Revision: 1.11 $
 *
 *******************************************************************************
 */
-package com.ibm.icu.impl;
+package com.ibm.icu.lang;
 
 import java.io.InputStream;
 import java.io.DataInputStream;

@@ -3,8 +3,8 @@
  * others. All Rights Reserved.
  *********************************************************************
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/util/ChineseCalendar.java,v $
- * $Date: 2002/10/02 20:20:25 $
- * $Revision: 1.11 $
+ * $Date: 2002/02/16 03:06:26 $
+ * $Revision: 1.10 $
  */
 package com.ibm.icu.util;
 import com.ibm.icu.lang.*;
@@ -550,14 +550,8 @@ public class ChineseCalendar extends Calendar {
      */
     private boolean hasNoMajorSolarTerm(int newMoon) {
         
-        int mst = majorSolarTerm(newMoon);
-        int nmn = newMoonNear(newMoon + SYNODIC_GAP, true);
-        int mstt = majorSolarTerm(nmn);
-        return mst == mstt;
-        /*
         return majorSolarTerm(newMoon) ==
             majorSolarTerm(newMoonNear(newMoon + SYNODIC_GAP, true));
-        */
     }
 
     //------------------------------------------------------------------
@@ -784,21 +778,5 @@ public class ChineseCalendar extends Calendar {
         internalSet(IS_LEAP_MONTH, saveIsLeapMonth);
 
         return julianDay - 1;
-    }
-
-    private static CalendarFactory factory;
-    public static CalendarFactory factory() {
-        if (factory == null) {
-            factory = new CalendarFactory() {
-                public Calendar create(TimeZone tz, Locale loc) {
-                    return new ChineseCalendar(tz, loc);
-                }
-
-                public String factoryName() {
-                    return "Chinese";
-                }
-            };
-        }
-        return factory;
     }
 }

@@ -5,8 +5,8 @@
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/dev/test/translit/UnicodeSetTest.java,v $ 
- * $Date: 2002/10/08 18:29:16 $ 
- * $Revision: 1.34 $
+ * $Date: 2002/10/09 18:48:37 $ 
+ * $Revision: 1.30.2.1 $
  *
  *****************************************************************************************
  */
@@ -15,6 +15,7 @@ import com.ibm.icu.lang.*;
 import com.ibm.icu.text.*;
 import com.ibm.icu.dev.test.*;
 import com.ibm.icu.impl.Utility;
+import java.text.*;
 import java.util.*;
 
 /**
@@ -725,15 +726,6 @@ public class UnicodeSetTest extends TestFmwk {
             "[:math=false:]",
             "q",
             "(*+)",
-
-            // JB#1767 \N{}, \p{ASCII}
-            "[:Ascii:]",
-            "abc\u0000\u007F",
-            "\u0080\u4E00",
-
-            "[\\N{ latin small letter  a  }[:name= latin small letter z:]]",
-            "az",
-            "qrs",
         };
 
         for (int i=0; i<DATA.length; i+=3) {
@@ -774,11 +766,6 @@ public class UnicodeSetTest extends TestFmwk {
         }
     }
 
-    public void TestContainsString() {
-        UnicodeSet x = new UnicodeSet("[a{bc}]");
-        if (x.contains("abc")) errln("FAIL");
-    }
-    
     public void TestExhaustive() {
         // exhaustive tests. Simulate UnicodeSets with integers.
         // That gives us very solid tests (except for large memory tests).
@@ -800,32 +787,32 @@ public class UnicodeSetTest extends TestFmwk {
             }
         }
     }
-    
-    /**
-     * Make sure each script name and abbreviated name can be used
-     * to construct a UnicodeSet.
-     */
-    public void TestScriptNames() {
-        for (int i=0; i<UScript.CODE_LIMIT; ++i) {
-            for (int j=0; j<2; ++j) {
-                String pat = "";
-                try {
-                    String name =
-                        (j==0) ? UScript.getName(i) : UScript.getShortName(i);
-                    pat = "[:" + name + ":]";
-                    UnicodeSet set = new UnicodeSet(pat);
-                    logln("Ok: " + pat);
-                } catch (IllegalArgumentException e) {
-                    if (pat.length() == 0) {
-                        errln("FAIL (in UScript): No name for script " + i);
-                    } else {
-                        errln("FAIL: Couldn't create " + pat);
-                    }
-                }
-            }
-        }
-    }
 
+    /** 
+     * Make sure each script name and abbreviated name can be used 
+     * to construct a UnicodeSet. 
+     */ 
+    public void TestScriptNames() { 
+        for (int i=0; i<UScript.CODE_LIMIT; ++i) { 
+            for (int j=0; j<2; ++j) { 
+                String pat = ""; 
+                try { 
+                    String name = 
+                        (j==0) ? UScript.getName(i) : UScript.getShortName(i); 
+                    pat = "[:" + name + ":]"; 
+                    UnicodeSet set = new UnicodeSet(pat); 
+                    logln("Ok: " + pat); 
+                } catch (IllegalArgumentException e) { 
+                    if (pat.length() == 0) { 
+                        errln("FAIL (in UScript): No name for script " + i); 
+                    } else { 
+                        errln("FAIL: Couldn't create " + pat); 
+                    } 
+                } 
+            } 
+        } 
+    } 
+    
     void _testComplement(int a) {
         UnicodeSet x = bitsToSet(a);
         UnicodeSet z = bitsToSet(a);

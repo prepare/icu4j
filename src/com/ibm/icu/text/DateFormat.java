@@ -574,7 +574,7 @@ public abstract class DateFormat extends Format {
      */
     public static Locale[] getAvailableLocales()
     {
-        return ICULocaleData.getAvailableLocales();
+        return ICULocaleData.getAvailableLocales("DateTimePatterns");
     }
 
     /**
@@ -673,7 +673,11 @@ public abstract class DateFormat extends Format {
         if (this == obj) return true;
         if (obj == null || getClass() != obj.getClass()) return false;
         DateFormat other = (DateFormat) obj;
-        return (calendar.isEquivalentTo(other.calendar) &&
+        return (// calendar.equivalentTo(other.calendar) // THIS API DOESN'T EXIST YET!
+                calendar.getFirstDayOfWeek() == other.calendar.getFirstDayOfWeek() &&
+                calendar.getMinimalDaysInFirstWeek() == other.calendar.getMinimalDaysInFirstWeek() &&
+                calendar.isLenient() == other.calendar.isLenient() &&
+                calendar.getTimeZone().equals(other.calendar.getTimeZone()) &&
                 numberFormat.equals(other.numberFormat));
     }
 

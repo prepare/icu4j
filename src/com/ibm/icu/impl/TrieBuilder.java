@@ -5,8 +5,8 @@
 ******************************************************************************
 *
 * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/impl/TrieBuilder.java,v $ 
-* $Date: 2002/09/06 01:50:43 $ 
-* $Revision: 1.8 $
+* $Date: 2002/07/12 21:59:22 $ 
+* $Revision: 1.6 $
 *
 ******************************************************************************
 */
@@ -31,7 +31,7 @@ import java.util.Arrays;
  *     <LI>Smaller memory footprint.
  * </UL>
  * This is a direct port from the ICU4C version
- * @version            $Revision: 1.8 $
+ * @version            $Revision: 1.6 $
  * @author             Syn Wee Quek
  */
 public class TrieBuilder
@@ -88,8 +88,7 @@ public class TrieBuilder
     public boolean isInZeroBlock(int ch) 
     {
         // valid, uncompacted trie and valid c?
-        if (m_isCompacted_ || ch > UCharacter.MAX_VALUE 
-            || ch < UCharacter.MIN_VALUE) {
+        if (m_isCompacted_ || !UCharacter.isLegal(ch)) {
             return true;
         }
     
@@ -98,7 +97,184 @@ public class TrieBuilder
     
     // package private method -----------------------------------------------
     
-	 // protected data member -----------------------------------------------
+	  /**
+	  * Takes argument array and forms a compact array into the result arrays.
+	  * The result will be 
+	  * <code>
+	  *   array[index] == valuearray[indexarray[index]]
+	  * </code>.
+	  * Note : This method is generic, it only takes values from the array. 
+	  * @param array value array to be manipulated
+	  * @param start index of the array to process
+	  * @param length of array to process.
+	  * @param blocksize size of each blocks existing in valuearray
+	  * @param indexarray result index array with length = array.length, with 
+	  *        values which indexes to valuearray.
+	  * @param valuearray result value array compact value array
+	  * @return size of valuearray
+	  * @deprecated release 2.1, since icu4c has written their own tool
+	  */
+	  static int build(byte array[], int start, int length, int blocksize, 
+	                   int indexarray[], byte valuearray[])
+	  {
+	    int valuesize = 0;
+	    int valueindex;
+	    int blockcount = 0;  
+	    int index = 0;
+	    int min;
+	    
+	    while (start < length) {
+	      // for a block of blocksize in the array
+	      // we try to find a similar block in valuearray
+	      for (valueindex = 0; valueindex < valuesize; valueindex ++) {
+	        // testing each block of blocksize at index valueindex in valuearray
+	        // if it is == to array blocks
+	        min = Math.min(blocksize, valuesize - valueindex);
+	        for (blockcount = 0; blockcount < min;blockcount ++) {
+	          if (array[start + blockcount] != 
+	                                        valuearray[valueindex + blockcount]) {
+	            break;
+	          }
+	        }
+	        
+	        if (blockcount == blocksize || valueindex + blockcount == valuesize) {
+	          break;
+	        }
+	      }
+	
+	      // if no similar block is found in value array
+	      // we populate the result arrays with data
+	      for (min = Math.min(blocksize, length - start); blockcount < min; 
+	                                                              blockcount ++) {
+	        valuearray[valuesize ++] = array[start + blockcount];
+	      }
+	        
+	      indexarray[index ++] = valueindex;
+	      start += blocksize;
+	    }
+	    
+	    return valuesize;
+	  }
+	  
+	  /**
+	  * Takes argument array and forms a compact array into the result arrays.
+	  * The result will be 
+	  * <code>
+	  *   array[index] == valuearray[indexarray[index]]
+	  * </code>.
+	  * Note : This method is generic, it only takes values from the array. 
+	  * @param array value array to be manipulated
+	  * @param start index of the array to process
+	  * @param length of array to process.
+	  * @param blocksize size of each blocks existing in valuearray
+	  * @param indexarray result index array with length = array.length, with 
+	  *        values which indexes to valuearray.
+	  * @param valuearray result value array compact value array
+	  * @return size of valuearray
+	  * @deprecated release 2.1, since icu4c has written their own tool
+	  */
+	  static int build(char array[], int start, int length, int blocksize, 
+	                   int indexarray[], char valuearray[])
+	  {
+	    int valuesize = 0;
+	    int valueindex;
+	    int blockcount = 0;  
+	    int index = 0;
+	    int min;
+	    
+	    while (start < length) {
+	      // for a block of blocksize in the array
+	      // we try to find a similar block in valuearray
+	      for (valueindex = 0; valueindex < valuesize; valueindex ++) {
+	        // testing each block of blocksize at index valueindex in valuearray
+	        // if it is == to array blocks
+	        min = Math.min(blocksize, valuesize - valueindex);
+	        for (blockcount = 0; blockcount < min;blockcount ++) {
+	          if (array[start + blockcount] != 
+	                                        valuearray[valueindex + blockcount]) {
+	            break;
+	          }
+	        }
+	        
+	        if (blockcount == blocksize || valueindex + blockcount == valuesize) {
+	          break;
+	        }
+	      }
+	
+	      // if no similar block is found in value array
+	      // we populate the result arrays with data
+	      for (min = Math.min(blocksize, length - start); blockcount < min; 
+	                                                              blockcount ++) {
+	        valuearray[valuesize ++] = array[start + blockcount];
+	      }
+	        
+	      indexarray[index ++] = valueindex;
+	      start += blocksize;
+	    }
+	    
+	    return valuesize;
+	  }
+	  
+	  /**
+	  * Takes argument array and forms a compact array into the result arrays.
+	  * The result will be 
+	  * <code>
+	  *   array[index] == valuearray[indexarray[index]]
+	  * </code>.
+	  * Note : This method is generic, it only takes values from the array. 
+	  * @param array value array to be manipulated
+	  * @param start index of the array to process
+	  * @param length of array to process.
+	  * @param blocksize size of each blocks existing in valuearray
+	  * @param indexarray result index array with length = array.length, with 
+	  *        values which indexes to valuearray.
+	  * @param valuearray result value array compact value array
+	  * @return size of valuearray 
+	  * @deprecated release 2.1, since icu4c has written their own tool
+	  */
+	  static int build(int array[], int start, int length, int blocksize, 
+	                   int indexarray[], int valuearray[])
+	  {
+	    int valuesize = 0;
+	    int valueindex;
+	    int blockcount = 0;  
+	    int index = 0;
+	    int min;
+	    
+	    while (start < length) {
+	      // for a block of blocksize in the array
+	      // we try to find a similar block in valuearray
+	      for (valueindex = 0; valueindex < valuesize; valueindex ++) {
+	        // testing each block of blocksize at index valueindex in valuearray
+	        // if it is == to array blocks
+	        min = Math.min(blocksize, valuesize - valueindex);
+	        for (blockcount = 0; blockcount < min; blockcount ++) {
+	          if (array[start + blockcount] != 
+	                                        valuearray[valueindex + blockcount]) {
+	            break;
+	          }
+	        }
+	        
+	        if (blockcount == blocksize || valueindex + blockcount == valuesize) {
+	          break;
+	        }
+	      }
+	
+	      // if no similar block is found in value array
+	      // we populate the result arrays with data
+	      min = Math.min(blocksize, length - start);
+	      for (; blockcount < min; blockcount ++) {
+	        valuearray[valuesize ++] = array[start + blockcount];
+	      }
+	        
+	      indexarray[index ++] = valueindex;
+	      start += blocksize;
+	    }
+	    
+	    return valuesize;
+	  }
+	
+	// protected data member -----------------------------------------------
 	  
 	/**
 	 * Index values at build-time are 32 bits wide for easier processing.
@@ -109,6 +285,7 @@ public class TrieBuilder
 	protected int m_indexLength_;
 	protected int m_dataCapacity_; 
 	protected int m_dataLength_;
+	protected boolean m_isDataAllocated_;
 	protected boolean m_isLatin1Linear_;
 	protected boolean m_isCompacted_;
     /**
@@ -196,6 +373,7 @@ public class TrieBuilder
         m_dataLength_ = table.m_dataLength_;
         m_map_ = new int[table.m_map_.length];
         System.arraycopy(table.m_map_, 0, m_map_, 0, m_map_.length);
+        m_isDataAllocated_ = table.m_isDataAllocated_;
         m_isLatin1Linear_ = table.m_isLatin1Linear_;
         m_isCompacted_ = table.m_isCompacted_;
     }

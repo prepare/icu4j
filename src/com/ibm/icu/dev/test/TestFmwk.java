@@ -5,29 +5,24 @@
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/dev/test/TestFmwk.java,v $ 
- * $Date: 2002/09/19 22:45:45 $ 
- * $Revision: 1.32 $
+ * $Date: 2002/06/05 23:00:58 $ 
+ * $Revision: 1.30 $
  *
  *****************************************************************************************
  */
 package com.ibm.icu.dev.test;
 
-import java.io.*;
 import java.lang.reflect.*;
-import java.text.*;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.TreeSet;
+import java.util.Hashtable;
+import java.util.Enumeration;
 import java.util.Vector;
-
+import java.util.Comparator;
+import java.io.*;
+import java.text.*;
+import com.ibm.icu.text.UTF16;
 import com.ibm.icu.impl.Utility;
 import com.ibm.icu.text.UnicodeSet;
-import com.ibm.icu.text.UTF16;
+
 
 /**
  * TestFmwk is a base class for tests that can be run conveniently from
@@ -56,66 +51,52 @@ public class TestFmwk implements TestLog {
     //------------------------------------------------------------------------
 
     protected TestFmwk() {
-    }
-
-    /**
-     * Default is to create a hashmap containing all the test methods.
-     * Data-driven tests can override to provide a different mapping
-     * of test names to test methods, and a different list.  If this
-     * test suite is invalid, subclassers should return an empty
-     * collection.
-     */
-    protected Map getAvailableTests() {
-        Map result = Collections.EMPTY_MAP;
-        if (validate()) {
-            result = new HashMap();
-            Method[] methods = getClass().getDeclaredMethods();
-            for( int i=0; i<methods.length; i++ ) {
-                if( methods[i].getName().startsWith("Test") 
-                    || methods[i].getName().startsWith("test")) {
-                    result.put(methods[i].getName(), methods[i] );
-                }
+        // Create a hashtable containing all the test methods.
+        testMethods = new Hashtable();
+        Method[] methods = getClass().getDeclaredMethods();
+        for( int i=0; i<methods.length; i++ ) {
+            if( methods[i].getName().startsWith("Test") 
+                || methods[i].getName().startsWith("test")) {
+                testMethods.put( methods[i].getName(), methods[i] );
             }
         }
-        return result;
-    }
-
-    private Map getTestsToRun(Set testNames) {
-        Map methodsToRun = getAvailableTests();
-        if (!(testNames == null  || testNames.isEmpty())) {
-            methodsToRun.keySet().retainAll(testNames);
-        }
-        return methodsToRun;
-    }
-
-    private Iterator getTestEntryIterator(Map testsToRun) {
-        TreeMap sortedMethods = new TreeMap(String.CASE_INSENSITIVE_ORDER);
-        sortedMethods.putAll(testsToRun);
-        return sortedMethods.entrySet().iterator();
     }
 
     private void _run() throws Exception {
-        _run(getTestsToRun(null));
-    }
-    
-    private void _run(Map testsToRun) throws Exception {
         writeTestName(getClass().getName());
         params.indentLevel++;
         int oldClassCount = params.errorCount;
         int oldClassInvalidCount = params.invalidCount;
 
         if (validate()) {
-            Iterator iter = getTestEntryIterator(testsToRun);
+                        
+            Enumeration methodsToRun;
+                
+            if (testsToRun != null && testsToRun.size() >= 1) {
+                methodsToRun = testsToRun.elements();
+            } else {
+                methodsToRun = testMethods.elements();
+            }
+
+            methodsToRun = new SortedEnumeration(methodsToRun,
+                                                 new Comparator() {
+                                                     public int compare(Object a, Object b) {
+                                                         return ((Method)a).getName().compareToIgnoreCase(
+                                                                                                          ((Method)b).getName());
+                                                     }
+                                                     public boolean equals(Object o) {
+                                                         return false;
+                                                     }
+                                                 });
 
             // Run the list of tests given in the test arguments
 	    final Object[] NO_ARGS = new Object[0];
-            while (iter.hasNext()) {
+            while (methodsToRun.hasMoreElements()) {
                 int oldCount = params.errorCount;
                 int oldInvalidCount = params.invalidCount;
 
-                Map.Entry entry = (Map.Entry)iter.next();
-		String testName = (String)entry.getKey();
-                Method testMethod = (Method)entry.getValue();
+                Method testMethod = (Method)methodsToRun.nextElement();
+		String testName = testMethod.getName();
 
                 writeTestName(testName);
 
@@ -125,9 +106,8 @@ public class TestFmwk implements TestLog {
 		    } catch( IllegalAccessException e ) {
 			errln("Can't access test method " + testName);
 		    } catch( InvocationTargetException e ) {
-			errln("Uncaught exception \"" + e
-                              +"\" thrown in test method " + testMethod.getName() 
-                              +" accessed under name " + testName);
+			errln("Uncaught exception \""+e+"\" thrown in test method "
+			      + testName);
 			e.getTargetException().printStackTrace(this.params.log);
 		    }
 		} else {
@@ -139,7 +119,7 @@ public class TestFmwk implements TestLog {
             params.invalidCount++;
         }
         params.indentLevel--;
-    
+
         writeTestResult(params.errorCount - oldClassCount, params.invalidCount - oldClassInvalidCount);
     }
     
@@ -149,45 +129,37 @@ public class TestFmwk implements TestLog {
         // Parse the test arguments.  They can be either the flag
         // "-verbose" or names of test methods. Create a list of
         // tests to be run.
-	boolean usageError = false;
-        Set testNames = null;
+	boolean printUsage = false;
+        testsToRun = new Vector(args.length);
         for (int i = 0; i < args.length; i++) {
             if (args[i].equals("-verbose") || args[i].equals("-v")) {
                 params.verbose = true;
             }
             else if (args[i].equals("-prompt")) {
                 params.prompt = true;
-            } else if (args[i].equals("-nothrow") || args[i].equals("-n")) {
+            } else if (args[i].equals("-nothrow")) {
                 params.nothrow = true;
 	    } else if (args[i].equals("-describe")) {
 		params.describe = true;
             } else if (args[i].startsWith("-e")) {
-                // see above
                 params.inclusion = (args[i].length() == 2) ? 5 : Integer.parseInt(args[i].substring(2));
-                if (params.inclusion < 0 || params.inclusion > 10) {
-                    usageError = true;
-                }
             } else if (args[i].toLowerCase().startsWith("-filter:")) {
                 params.filter = args[i].substring(8);
             } else {
-                if (testNames == null) {
-                    testNames = new TreeSet();
+                Object m = testMethods.get(args[i]);
+                if (m != null) {
+                    testsToRun.addElement(m);
+                } else {
+		    printUsage = true;
                 }
-                testNames.add(args[i]);
             }
         }
-
-        Map testsToRun = null;
-        if (!usageError) {
-            testsToRun = getTestsToRun(testNames);
-        }
-        if (usageError ||
-            (testNames != null && testsToRun.size() != testNames.size())) {
+	if (printUsage) {
 	    usage();
 	    return;
 	}
 
-        _run(testsToRun);
+        _run();
 
         if (params.prompt) {
             System.out.println("Hit RETURN to exit...");
@@ -358,15 +330,18 @@ public class TestFmwk implements TestLog {
      */
     void usage() {
         System.out.println(getClass().getName() +
-                           ": [-verbose] [-nothrow] [-prompt] [-describe]\n                              [-e<n>] [-filter:<str>] [test names]");
-        System.out.println("Options:");
-        System.out.println(" -v[erbose] Show all output");
-        System.out.println(" -n[othrow] Message on test failure rather than exception");
-        System.out.println(" -prompt Prompt before exiting");
-        System.out.println(" -describe ?");
-        System.out.println(" -e<n> Set exhaustiveness from 0..10.  Default is 0, fewest tests.\n       To run all tests, specify -e10.  Giving -e with no <n> is\n       the same as -e5.");
-        System.out.println(" -filter:<str> ?");
+                           ": [-verbose] [-nothrow] [-prompt] [-describe] [test names]");
 
+        Enumeration methodNames = new SortedEnumeration(testMethods.keys(),
+                                                        new Comparator() {
+                                                            public int compare(Object a, Object b) {
+                                                                return ((String)a).compareToIgnoreCase(
+                                                                                                       ((String)b));
+                                                            }
+                                                            public boolean equals(Object o) {
+                                                                return false;
+                                                            }
+                                                        });
 	boolean valid = params.describe && validate();
 	if (valid) {
 	    String testDescription = getDescription();
@@ -374,14 +349,9 @@ public class TestFmwk implements TestLog {
 		System.out.println("-- " + testDescription);
 	    }
 	}
-
-        Iterator testEntries = getTestEntryIterator(getAvailableTests());
-
-        System.out.println("Test names:");
-        while(testEntries.hasNext() ) {
-            Map.Entry e = (Map.Entry)testEntries.next();
-	    String methodName = (String)e.getKey();
-
+        System.out.println("test names:");
+        while( methodNames.hasMoreElements() ) {
+	    String methodName = (String)methodNames.nextElement();
             System.out.print("\t" + methodName );
 	    if (valid) {
 		String methodDescription = getMethodDescription(methodName);
@@ -489,8 +459,32 @@ public class TestFmwk implements TestLog {
         public int         invalidCount = 0;
     }
 
+    private static class SortedEnumeration implements Enumeration {
+        private Object[] sorted;
+        private int pos;
+
+        public SortedEnumeration(Enumeration unsorted, Comparator c) {
+            Vector v = new Vector();
+            while (unsorted.hasMoreElements()) {
+                v.addElement(unsorted.nextElement());
+            }
+            sorted = new Object[v.size()];
+            v.copyInto(sorted);
+            java.util.Arrays.sort(sorted, c);
+            pos = 0;
+        }
+
+        public boolean hasMoreElements() {
+            return pos < sorted.length;
+        }
+
+        public Object nextElement() {
+            return pos < sorted.length ? sorted[pos++] : null;
+        }
+    }
+
     private TestParams params = null;
-    private Map testMethods;
-    private Set testsToRun;
+    private Hashtable testMethods;
+    private Vector testsToRun;
     private final String spaces = "                                          ";
 }

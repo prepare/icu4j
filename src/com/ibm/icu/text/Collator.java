@@ -5,25 +5,15 @@
 *******************************************************************************
 *
 * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/text/Collator.java,v $ 
-* $Date: 2002/10/09 18:56:58 $ 
-* $Revision: 1.13 $
+* $Date: 2002/08/07 20:54:56 $ 
+* $Revision: 1.11 $
 *
 *******************************************************************************
 */
 package com.ibm.icu.text;
 
-import java.util.Comparator;
 import java.util.Locale;
-import java.util.Map;
-
-import com.ibm.icu.impl.ICULocaleData;
-import com.ibm.icu.impl.ICULocaleService;
-import com.ibm.icu.impl.ICULocaleService.LocaleKey;
-import com.ibm.icu.impl.ICULocaleService.ICUResourceBundleFactory;
-import com.ibm.icu.impl.ICUService;
-import com.ibm.icu.impl.ICUService.Factory;
-import com.ibm.icu.impl.ICUService.Key;
-import com.ibm.icu.impl.LocaleUtility;
+import java.util.Comparator;
 
 /**
 * <p>Collator performs locale-sensitive string comparison. A concrete
@@ -328,62 +318,9 @@ public abstract class Collator implements Comparator, Cloneable
      */
     public static final Collator getInstance(Locale locale)
     {
-        if (service == null) {
-            return new RuleBasedCollator(locale);
-        } else {
-            try {
-                return (Collator)((Collator)service.get(locale)).clone();
-            }
-            catch (CloneNotSupportedException e) {
-                throw new InternalError(e.getMessage());
-            }
-        }
+        return new RuleBasedCollator(locale);
     }
-
-    private static ICULocaleService service;
-    private static ICULocaleService getService() {
-        if (service == null) {
-            ICULocaleService newService = new ICULocaleService("Collator");
-
-            class CollatorFactory extends ICUResourceBundleFactory {
-                protected Object handleCreate(Locale loc, int kind, ICUService service) {
-                    return new RuleBasedCollator(loc);
-                }
-            }
-            newService.registerFactory(new CollatorFactory());
-
-            synchronized (Collator.class) {
-                if (service == null) {
-                    service = newService;
-                }
-            }
-        }
-        return service;
-    }
-
-    public static final Object register(Collator collator, Locale locale) {
-        return getService().registerObject(collator, locale);
-    }
-
-    public static final boolean unregister(Object registryKey) {
-        if (service != null) {
-            return service.unregisterFactory((Factory)registryKey);
-        }
-        return false;
-    }
-
-    public static final Locale[] getAvailableLocales() {
-        if (service != null) {
-            return service.getAvailableLocales();
-        } else {
-            return ICULocaleData.getAvailableLocales();
-        }
-    }
-
-    public static final Map getDisplayNames(Locale locale) {
-        return getService().getDisplayNames(locale);
-    }
-
+    
     /**
      * <p>Returns this Collator's strength property. The strength property 
      * determines the minimum level of difference considered significant.
@@ -470,19 +407,6 @@ public abstract class Collator implements Comparator, Cloneable
     {
         return (compare(source, target) == 0);
     }
-
-	  /**
-	   * Get an UnicodeSet that contains all the characters and sequences 
-	   * tailored in this collator.
-	   * @return a pointer to a UnicodeSet object containing all the 
-	   *         code points and sequences that may sort differently than
-	   *         in the UCA. 
-	   * @draft ICU 2.4
-	   */
-  	public UnicodeSet getTailoredSet() throws Exception
-  	{
-  		return new UnicodeSet(0, 0x10FFFF);
-  	}
 
     /**
      * Compares the equality of two Collators.

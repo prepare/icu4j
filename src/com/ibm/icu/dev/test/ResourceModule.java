@@ -5,16 +5,13 @@
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/dev/test/ResourceModule.java,v $
- * $Date: 2002/08/31 04:55:10 $
- * $Revision: 1.4 $
+ * $Date: 2002/08/13 21:59:54 $
+ * $Revision: 1.3 $
  *
  *******************************************************************************
  */
 package com.ibm.icu.dev.test;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 import java.util.ResourceBundle;
 
 /**
@@ -109,16 +106,6 @@ public class ResourceModule extends TestDataModule {
 	    }
 	}
 	return null;
-    }
-
-    /**
-     * Return an unmodifiable list of the test data names, in index order.
-     */
-    public List getTestDataNames() {
-        if (tests != null) {
-            return Collections.unmodifiableList(Arrays.asList(tests.names()));
-        }
-        return null;
     }
 
     private TestData createTestData(Object[] d) {

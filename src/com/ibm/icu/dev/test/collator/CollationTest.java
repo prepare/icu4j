@@ -5,8 +5,8 @@
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/dev/test/collator/CollationTest.java,v $
- * $Date: 2002/10/08 21:52:23 $
- * $Revision: 1.7 $
+ * $Date: 2002/08/13 21:55:25 $
+ * $Revision: 1.4 $
  *
  *******************************************************************************
  */
@@ -21,8 +21,8 @@ import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.impl.Utility;
 import com.ibm.icu.impl.LocaleUtility;
 
-import java.util.Vector;
 import java.util.Locale;
+import java.util.Vector;
 
 public class CollationTest extends ModuleTest 
 {
@@ -36,12 +36,38 @@ public class CollationTest extends ModuleTest
             test.TestCIgnorableContraction();
         }*/
     }
-
-    public CollationTest() {
-        super("processModules");
+ 
+    public void TestCIgnorableContraction() {
+    	while (nextSettings()) {
+    	    processTest();
+    	}
     }
-
-    public void processModules() {
+    
+    public void TestCIgnorablePrefix() {
+        while (nextSettings()) {
+            processTest();
+        }
+    }
+    
+    public void TestNShiftedIgnorable() {
+        while (nextSettings()) {
+            processTest();
+        }
+    }
+    
+    public void TestSafeSurrogates() {
+        while (nextSettings()) {
+            processTest();
+        }
+    }
+    
+    public void TestPrimary() {
+        while (nextSettings()) {
+            processTest();
+        }
+    }
+    
+    public void TestTertiary() {
         while (nextSettings()) {
             processTest();
         }
@@ -66,8 +92,14 @@ public class CollationTest extends ModuleTest
         if (locale != null) {
             // this is a case where we have locale 
             try {
-                Locale l = LocaleUtility.getLocaleFromName(locale);
-                col = (RuleBasedCollator)Collator.getInstance(l);          
+                if (locale.equalsIgnoreCase("root")) {
+                    col = (RuleBasedCollator)Collator.getInstance(
+                                                               Locale.ENGLISH);
+                }
+                else {
+                    Locale l = LocaleUtility.getLocaleFromName(locale);
+                    col = (RuleBasedCollator)Collator.getInstance(l);          
+                }
             } catch (Exception e) {
                 errln("Error creating collator for locale " + locale);
             }
@@ -176,24 +208,16 @@ public class CollationTest extends ModuleTest
         m_nextRelation_ = -1;
         m_target_.delete(0, m_target_.length());
         Vector vector = new Vector();
-        int lastsmallerthanindex = 0;
+    
         while (getNextInSequence()) {    
             String target = m_target_.toString();
             doTest(col, m_source_, target, m_relation_);
             int vsize = vector.size();
-            for (int i = vsize - 1; i >= 0; i --) {
-                String source = (String)vector.elementAt(i); 
-                if (i > lastsmallerthanindex) {  
-                    doTest(col, source, target, m_relation_);
-                }
-                else {
-                    doTest(col, source, target, -1);
-                }
+            for (int i = 0; i < vsize; i ++) {
+                String source = (String)vector.elementAt(i);   
+                doTest(col, source, target, m_relation_);
             }
             vector.addElement(target);
-            if (m_relation_ < 0) {
-                lastsmallerthanindex = vsize - 1;
-            }
         }
     }
     

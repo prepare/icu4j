@@ -5,8 +5,8 @@
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/text/UnicodeFilter.java,v $ 
- * $Date: 2002/08/28 16:29:26 $ 
- * $Revision: 1.12 $
+ * $Date: 2002/06/28 19:15:53 $ 
+ * $Revision: 1.11 $
  *
  *****************************************************************************************
  */
@@ -18,6 +18,8 @@ package com.ibm.icu.text;
  * Currently, filters are used in conjunction with classes like {@link
  * Transliterator} to only process selected characters through a
  * transformation.
+ *
+ * {@link UnicodeFilterLogic}
  */
 public abstract class UnicodeFilter implements UnicodeMatcher {
 
@@ -58,5 +60,28 @@ public abstract class UnicodeFilter implements UnicodeMatcher {
             return U_PARTIAL_MATCH;
         }
         return U_MISMATCH;
+    }
+
+    /**
+     * Stubbed out UnicodeMatcher implementation for filters that do
+     * not implement a pattern.
+     */
+    public String toPattern(boolean escapeUnprintable) {
+        return "";
+    }
+
+    /**
+     * Stubbed out UnicodeMatcher implementation for filters that do
+     * not implement indexing.
+     */
+    public boolean matchesIndexValue(int v) {
+        return false;
+    }
+
+    /**
+     * Stubbed out implementation of UnicodeMatcher API.
+     * @param toUnionTo the set into which to union the source characters
+     */
+    public void addMatchSetTo(UnicodeSet toUnionTo) {
     }
 }

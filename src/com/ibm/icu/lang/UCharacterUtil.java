@@ -4,13 +4,13 @@
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 *
-* $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/impl/UCharacterUtility.java,v $ 
-* $Date: 2002/09/19 21:19:04 $ 
-* $Revision: 1.1 $
+* $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/lang/Attic/UCharacterUtil.java,v $ 
+* $Date: 2002/07/22 23:28:21 $ 
+* $Revision: 1.6 $
 *
 *******************************************************************************
 */
-package com.ibm.icu.impl;
+package com.ibm.icu.lang;
 
 /**
 * Internal character utility class for simple data type conversion and String 
@@ -19,26 +19,18 @@ package com.ibm.icu.impl;
 * @since sep2900
 */
 
-public final class UCharacterUtility
+final class UCharacterUtil
 {
-    // public methods -----------------------------------------------------
-    
+    // constructor =====================================================
+      
     /**
-    * Determines if codepoint is a non character
-    * @param ch codepoint
-    * @return true if codepoint is a non character false otherwise
+    * private constructor to avoid initialisation
     */
-    public static boolean isNonCharacter(int ch) 
+    private UCharacterUtil()
     {
-        if ((ch & NON_CHARACTER_SUFFIX_MIN_3_0_) == 
-                                            NON_CHARACTER_SUFFIX_MIN_3_0_) {
-            return true;
-        }
-        
-        return ch >= NON_CHARACTER_MIN_3_1_ && ch <=  NON_CHARACTER_MAX_3_1_;
     }
-    
-    // package private methods ---------------------------------------------
+      
+    // protected methods ===============================================
       
     /**
     * joining 2 chars to form an int
@@ -46,7 +38,7 @@ public final class UCharacterUtility
     * @param lsc least significant char
     * @return int form
     */
-    static int toInt(char msc, char lsc)
+    protected static int toInt(char msc, char lsc)
     {
         return ((msc << 16) | lsc);
     }
@@ -57,7 +49,7 @@ public final class UCharacterUtility
     * @param lsb the least significant byte
     * @return char form
     */
-    static char toChar(byte msb, byte lsb)
+    protected static char toChar(byte msb, byte lsb)
     {
         return (char)((msb << 8) | (lsb & 0xFF));
     }
@@ -73,7 +65,7 @@ public final class UCharacterUtility
     * @param index to start substring in byte count
     * @return the end position of the substring within the character array
     */
-    static int getNullTermByteSubString(StringBuffer str, byte[] array, 
+    protected static int getNullTermByteSubString(StringBuffer str, byte[] array, 
                                                   int index)
     {
         byte b = 1;
@@ -101,7 +93,7 @@ public final class UCharacterUtility
     * @return the end position of the substring within str if matches otherwise 
     *         a -1
     */
-    static int compareNullTermByteSubString(String str, byte[] array, 
+    protected static int compareNullTermByteSubString(String str, byte[] array, 
                                                       int strindex, int aindex)
     {
         byte b = 1;
@@ -135,7 +127,7 @@ public final class UCharacterUtility
     * @param skipcount number of null terminated substrings to skip
     * @return the end position of the substrings within the character array
     */
-    static int skipNullTermByteSubString(byte[] array, int index, 
+    protected static int skipNullTermByteSubString(byte[] array, int index, 
                                                    int skipcount)
     {
         byte b;
@@ -162,7 +154,7 @@ public final class UCharacterUtility
      * @param skipend value of byte to skip to
      * @return the number of bytes skipped
      */
-    static int skipByteSubString(byte[] array, int index, int length, 
+    protected static int skipByteSubString(byte[] array, int index, int length, 
                                            byte skipend)
     {
         int result;
@@ -179,31 +171,6 @@ public final class UCharacterUtility
         }
         
         return result;
-    }
-    
-    // private data member --------------------------------------------------
-    
-    /**
-    * Minimum suffix value that indicates if a character is non character.
-    * Unicode 3.0 non characters
-    */
-    private static final int NON_CHARACTER_SUFFIX_MIN_3_0_ = 0xFFFE;
-    /**
-    * New minimum non character in Unicode 3.1
-    */
-    private static final int NON_CHARACTER_MIN_3_1_ = 0xFDD0;
-    /**
-    * New non character range in Unicode 3.1
-    */
-    private static final int NON_CHARACTER_MAX_3_1_ = 0xFDEF;
-    
-    // private constructor --------------------------------------------------
-      
-    /**
-    * private constructor to avoid initialisation
-    */
-    private UCharacterUtility()
-    {
     }
 }
 
