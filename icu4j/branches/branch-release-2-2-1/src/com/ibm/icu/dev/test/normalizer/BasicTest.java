@@ -5,8 +5,8 @@
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/dev/test/normalizer/BasicTest.java,v $
- * $Date: 2002/08/12 16:14:35 $
- * $Revision: 1.15 $
+ * $Date: 2002/10/09 18:11:37 $
+ * $Revision: 1.15.2.1 $
  *
  *****************************************************************************************
  */
@@ -2097,4 +2097,25 @@ public class BasicTest extends TestFmwk {
     }
     */
 
+    public void TestBugJ2324() { 
+        /* String[] input = new String[] { 
+                          //"\u30FD\u3099", 
+                            "\u30FA\u309A", 
+                            "\u30FB\u309A", 
+                            "\u30FC\u309A", 
+                            "\u30FE\u309A", 
+                            "\u30FD\u309A", 
+    
+        }; */ 
+        String troublesome = "\u309A"; 
+        for (int i=0x3000; i<0x3100;i++) { 
+            String input = ((char)i)+troublesome; 
+            try {                             
+                String result = Normalizer.compose(input,false); 
+            } catch(IndexOutOfBoundsException e) { 
+                errln("compose() failed for input: " + Utility.hex(input) 
+                      + " Exception: " + e.toString()); 
+            } 
+        }                 
+    } 
 }
