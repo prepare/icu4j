@@ -511,7 +511,6 @@
         </unjar>
         <touch file="${build.dir}/${icu4j.data.path}/uprops.icu"/>
     </target>
-
     <target name="copyBasicPropsData" depends="init" >
         <unjar src="${src.dir}/com/ibm/icu/impl/data/icudata.jar" dest="${build.dir}">
             <patternset>
@@ -524,7 +523,6 @@
         </unjar>
         <touch file="${build.dir}/${icu4j.data.path}/uprops.icu"/>
     </target>
-
     <target name="copyCollatorData" depends="init">
         <unjar src="${src.dir}/com/ibm/icu/impl/data/icudata.jar" dest="${build.dir}">
             <patternset>
@@ -536,7 +534,6 @@
         </unjar>
         <touch file="${build.dir}/${icu4j.data.path}/uprops.icu"/>
     </target>
-
     <target name="copyCalendarData" depends="init">
         <!-- Calendar does not require Collation data, BreakIterator data -->
         <unjar src="${src.dir}/com/ibm/icu/impl/data/icudata.jar" dest="${build.dir}">
@@ -552,7 +549,6 @@
         </unjar>
         <touch file="${build.dir}/${icu4j.data.path}/uprops.icu"/>
     </target>
-
     <target name="copyFormatData" depends="init" if="icu4j.module.resources">
         <!-- Format does not require BreakIterator data -->
         <unjar src="${src.dir}/com/ibm/icu/impl/data/icudata.jar" dest="${build.dir}">
@@ -658,7 +654,6 @@
             classpathref="build.classpath"
             debug="on" deprecation="off"/>
     </target>
-
     <target name="propertiesFullTests" depends="propertiesFull">
         <copy file="${src.dir}/com/ibm/icu/dev/data/unicode/SpecialCasing.txt"
             todir="${build.dir}/com/ibm/icu/dev/data/unicode/"/>
@@ -802,7 +797,6 @@
             <patternset includes="**/*.spp"/>
       </unjar>
     </target>
-
     <target name="stringPrep" depends="init,normalizer,copyStringPrepData">
          <javac includes="com/ibm/icu/text/*StringPrep*.java,com/ibm/icu/text/*IDNA*.java,com/ibm/icu/impl/*StringPrep*.java"
             excludes="**/CVS/**/*, com/ibm/icu/lang/UScriptRun.java,com/ibm/icu/impl/UtilityExtensions.java,com/ibm/icu/impl/BOCU.java,com/ibm/icu/impl/TrieBuilder.java,com/ibm/icu/impl/IntTrieBuilder.java"
@@ -812,7 +806,6 @@
             classpathref="build.classpath"
             debug="on" deprecation="off"/>
     </target>
-
     <target name="stringPrepTests" depends="stringPrep">
         <javac includes="com/ibm/icu/dev/test/TestFmwk.java,com/ibm/icu/dev/test/TestLog.java,com/ibm/icu/dev/test/TestUtil.java,com/ibm/icu/dev/test/UTF16Util.java,com/ibm/icu/dev/test/TestAll.java,com/ibm/icu/dev/test/stringprep/**/*"
             excludes="**/CVS/**/*"
@@ -827,7 +820,6 @@
             </patternset>
         </unjar>
     </target>
-
     <!-- build the extra Transliterator data pertaining to Han-Latin transliteration -->
     <target name="extraTransliteratorData" depends="init">
         <copy todir="${build.dir}/com/ibm/icu/impl/data">
