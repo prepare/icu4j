@@ -5,8 +5,8 @@
  *******************************************************************************
  *
  * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/test/translit/Attic/TransliteratorTest.java,v $ 
- * $Date: 2001/06/12 23:02:13 $ 
- * $Revision: 1.37 $
+ * $Date: 2001/03/30 22:56:47 $ 
+ * $Revision: 1.28 $
  *
  *****************************************************************************************
  */
@@ -683,197 +683,17 @@ public class TransliteratorTest extends TestFmwk {
     }
 
     /**
-     * Test IDs of inverses of compound transliterators. (J20)
-     */
-    public void TestCompoundInverseID() {
-        String ID = "Latin-Jamo;Jamo-Hangul";
-        Transliterator t = Transliterator.getInstance(ID);
-        Transliterator u = t.getInverse();
-        String exp = "Hangul-Jamo;Jamo-Latin";
-        String got = u.getID();
-        if (!got.equals(exp)) {
-            errln("FAIL: Inverse of " + ID + " is " + got +
-                  ", expected " + exp);
-        }
-    }
-
-    /**
-     * Inverse of "Null" should be "Null". (J21)
-     */
-    public void TestNullInverse() {
-        Transliterator t = Transliterator.getInstance("Null");
-        Transliterator u = t.getInverse();
-        if (!u.getID().equals("Null")) {
-            errln("FAIL: Inverse of Null should be Null");
-        }
-    }
-
-    /**
-     * Check ID of inverse of alias. (J22)
-     */
-    public void TestAliasInverseID() {
-        String ID = "Latin-Hangul"; // This should be any alias ID with an inverse
-        Transliterator t = Transliterator.getInstance(ID);
-        Transliterator u = t.getInverse();
-        String exp = "Hangul-Latin";
-        String got = u.getID();
-        if (!got.equals(exp)) {
-            errln("FAIL: Inverse of " + ID + " is " + got +
-                  ", expected " + exp);
-        }        
-    }
-
-    /**
-     * Test filter syntax in IDs. (J23)
+     * Test filter syntax in IDs.
      */
     public void TestFilterIDs() {
-        String[] DATA = {
-            "Unicode-Hex[aeiou]",
-            "Hex-Unicode[aeiou]",
-            "quizzical",
-            "q\\u0075\\u0069zz\\u0069c\\u0061l",
-            
-            "Unicode-Hex[aeiou];Hex-Unicode[^5]",
-            "Unicode-Hex[^5];Hex-Unicode[aeiou]",
-            "quizzical",
-            "q\\u0075izzical",
-            
-            "Null[abc]",
-            "Null[abc]",
-            "xyz",
-            "xyz",
-        };
-        
-        for (int i=0; i<DATA.length; i+=4) {
-            String ID = DATA[i];
-            Transliterator t = Transliterator.getInstance(ID);
-            expect(t, DATA[i+2], DATA[i+3]);
-
-            // Check the ID
-            if (!ID.equals(t.getID())) {
-                errln("FAIL: getInstance(" + ID + ").getID() => " +
-                      t.getID());
-            }
-
-            // Check the inverse
-            String uID = DATA[i+1];
-            Transliterator u = t.getInverse();
-            if (u == null) {
-                errln("FAIL: " + ID + ".getInverse() returned NULL");
-            } else if (!u.getID().equals(uID)) {
-                errln("FAIL: " + ID + ".getInverse().getID() => " +
-                      u.getID() + ", expected " + uID);
-            }
-        }
+        String ID = "Unicode-Hex[aeiou]";
+        expect(Transliterator.getInstance(ID), "quizzical",
+               "q\\u0075\\u0069zz\\u0069c\\u0061l");
+        ID = "Unicode-Hex[aeiou];Hex-Unicode[^5]";
+        expect(Transliterator.getInstance(ID), "quizzical",
+               "q\\u0075izzical");
     }
 
-    /**
-     * Test the "Remove" transliterator.
-     */
-    public void TestRemove() {
-        Transliterator t = Transliterator.getInstance("Remove[aeiou]");
-        expect(t, "The quick brown fox.",
-               "Th qck brwn fx.");
-    }
-
-    /**
-     * Test the case mapping transliterators.
-     */
-    public void TestCaseMap() {
-        Transliterator toUpper =
-            Transliterator.getInstance("Lower-Upper[^xyzXYZ]");
-        Transliterator toLower = toUpper.getInverse();
-        Transliterator toTitle =
-            Transliterator.getInstance("TitleCase[^xyzXYZ]");
-        
-        expect(toUpper, "The quick brown fox jumped over the lazy dogs.",
-               "THE QUICK BROWN FOx JUMPED OVER THE LAzy DOGS.");
-        expect(toLower, "The quIck brown fOX jUMPED OVER THE LAzY dogs.",
-               "the quick brown foX jumped over the lazY dogs.");
-        expect(toTitle, "the quick brown foX jumped over the laZy dogs.",
-               "The Quick Brown FoX Jumped Over The LaZy Dogs.");
-    }
-
-    /**
-     * Test the normalization transliterator.
-     */
-    public void TestNormalizationTransliterator() {
-        // THE FOLLOWING TWO TABLES ARE COPIED FROM com.ibm.test.normalizer.BasicTest
-        // PLEASE KEEP THEM IN SYNC WITH BasicTest.
-        String[][] CANON = {
-            // Input               Decomposed            Composed
-            {"cat",                "cat",                "cat"               },
-            {"\u00e0ardvark",      "a\u0300ardvark",     "\u00e0ardvark",    },
-                                                         
-            {"\u1e0a",             "D\u0307",            "\u1e0a"            }, // D-dot_above
-            {"D\u0307",            "D\u0307",            "\u1e0a"            }, // D dot_above
-                                                         
-            {"\u1e0c\u0307",       "D\u0323\u0307",      "\u1e0c\u0307"      }, // D-dot_below dot_above
-            {"\u1e0a\u0323",       "D\u0323\u0307",      "\u1e0c\u0307"      }, // D-dot_above dot_below
-            {"D\u0307\u0323",      "D\u0323\u0307",      "\u1e0c\u0307"      }, // D dot_below dot_above
-                                                         
-            {"\u1e10\u0307\u0323", "D\u0327\u0323\u0307","\u1e10\u0323\u0307"}, // D dot_below cedilla dot_above
-            {"D\u0307\u0328\u0323","D\u0328\u0323\u0307","\u1e0c\u0328\u0307"}, // D dot_above ogonek dot_below
-                                                         
-            {"\u1E14",             "E\u0304\u0300",      "\u1E14"            }, // E-macron-grave
-            {"\u0112\u0300",       "E\u0304\u0300",      "\u1E14"            }, // E-macron + grave
-            {"\u00c8\u0304",       "E\u0300\u0304",      "\u00c8\u0304"      }, // E-grave + macron
-                                                         
-            {"\u212b",             "A\u030a",            "\u00c5"            }, // angstrom_sign
-            {"\u00c5",             "A\u030a",            "\u00c5"            }, // A-ring
-                                                         
-            {"\u00fdffin",         "y\u0301ffin",        "\u00fdffin"        },	//updated with 3.0
-            {"\u00fd\uFB03n",      "y\u0301\uFB03n",     "\u00fd\uFB03n"     },	//updated with 3.0
-                                                         
-            {"Henry IV",           "Henry IV",           "Henry IV"          },
-            {"Henry \u2163",       "Henry \u2163",       "Henry \u2163"      },
-                                                         
-            {"\u30AC",             "\u30AB\u3099",       "\u30AC"            }, // ga (Katakana)
-            {"\u30AB\u3099",       "\u30AB\u3099",       "\u30AC"            }, // ka + ten
-            {"\uFF76\uFF9E",       "\uFF76\uFF9E",       "\uFF76\uFF9E"      }, // hw_ka + hw_ten
-            {"\u30AB\uFF9E",       "\u30AB\uFF9E",       "\u30AB\uFF9E"      }, // ka + hw_ten
-            {"\uFF76\u3099",       "\uFF76\u3099",       "\uFF76\u3099"      }, // hw_ka + ten
-                                                         
-            {"A\u0300\u0316",      "A\u0316\u0300",      "\u00C0\u0316"      },
-        };                                                
-                                                          
-        String[][] COMPAT = {                        
-            // Input               Decomposed            Composed
-            {"\uFB4f",             "\u05D0\u05DC",       "\u05D0\u05DC",     }, // Alef-Lamed vs. Alef, Lamed
-                                                         
-            {"\u00fdffin",         "y\u0301ffin",        "\u00fdffin"        },	//updated for 3.0
-            {"\u00fd\uFB03n",      "y\u0301ffin",        "\u00fdffin"        }, // ffi ligature -> f + f + i
-                                                         
-            {"Henry IV",           "Henry IV",           "Henry IV"          },
-            {"Henry \u2163",       "Henry IV",           "Henry IV"          },
-                                                         
-            {"\u30AC",             "\u30AB\u3099",       "\u30AC"            }, // ga (Katakana)
-            {"\u30AB\u3099",       "\u30AB\u3099",       "\u30AC"            }, // ka + ten
-                                                         
-            {"\uFF76\u3099",       "\u30AB\u3099",       "\u30AC"            }, // hw_ka + ten
-        };
-
-        Transliterator NFD = Transliterator.getInstance("NFD");
-        Transliterator NFC = Transliterator.getInstance("NFC");
-        for (int i=0; i<CANON.length; ++i) {
-            String in = CANON[i][0];
-            String expd = CANON[i][1];
-            String expc = CANON[i][2];
-            expect(NFD, in, expd);
-            expect(NFC, in, expc);
-        }
-
-        Transliterator NFKD = Transliterator.getInstance("NFKD");
-        Transliterator NFKC = Transliterator.getInstance("NFKC");
-        for (int i=0; i<COMPAT.length; ++i) {
-            String in = COMPAT[i][0];
-            String expkd = COMPAT[i][1];
-            String expkc = COMPAT[i][2];
-            expect(NFKD, in, expkd);
-            expect(NFKC, in, expkc);
-        }
-    }
-    
     //======================================================================
     // Support methods
     //======================================================================
