@@ -5,8 +5,8 @@
 *******************************************************************************
 *
 * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/dev/test/lang/UCharacterTest.java,v $
-* $Date: 2003/06/09 23:31:10 $
-* $Revision: 1.59 $
+* $Date: 2003/08/08 22:26:46 $
+* $Revision: 1.59.2.1 $
 *
 *******************************************************************************
 */
@@ -1563,7 +1563,8 @@ public final class UCharacterTest extends TestFmwk
 	        { 0x1D198, UProperty.EAST_ASIAN_WIDTH, UCharacter.EastAsianWidth.NEUTRAL },
 	        { 0x20000, UProperty.EAST_ASIAN_WIDTH, UCharacter.EastAsianWidth.WIDE },
 	        { 0x2F8C7, UProperty.EAST_ASIAN_WIDTH, UCharacter.EastAsianWidth.WIDE },
-	        { 0x3a5bd, UProperty.EAST_ASIAN_WIDTH, UCharacter.EastAsianWidth.NEUTRAL },
+	        { 0x3a5bd, UProperty.EAST_ASIAN_WIDTH, UCharacter.EastAsianWidth.WIDE },
+            { 0x5a5bd, UProperty.EAST_ASIAN_WIDTH, UCharacter.EastAsianWidth.NEUTRAL },
 	        { 0xFEEEE, UProperty.EAST_ASIAN_WIDTH, UCharacter.EastAsianWidth.AMBIGUOUS },
 	        { 0x10EEEE, UProperty.EAST_ASIAN_WIDTH, UCharacter.EastAsianWidth.AMBIGUOUS },
 	
