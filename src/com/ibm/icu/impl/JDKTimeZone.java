@@ -31,13 +31,10 @@ import java.io.IOException;
  */
 public class JDKTimeZone extends TimeZone {
 
-    private static final long serialVersionUID = -3724907649889455280L;
-
     /**
      * The java.util.TimeZone wrapped by this object.  Must not be null.
      */
-    // give access to SimpleTimeZone
-    protected transient java.util.TimeZone zone;
+    transient java.util.TimeZone zone;
 
     /**
      * Given a java.util.TimeZone, wrap it in the appropriate adapter
@@ -85,7 +82,6 @@ public class JDKTimeZone extends TimeZone {
      */
     public int getOffset(int era, int year, int month, int day,
                          int dayOfWeek, int milliseconds) {
-
         return unwrap().getOffset(era, year, month, day,
                                   dayOfWeek, milliseconds);
     }
@@ -186,38 +182,32 @@ public class JDKTimeZone extends TimeZone {
      */
     public int getDSTSavings() {
         if (useDaylightTime()) {
-	    if (System.getSecurityManager() == null) {
-		// assume if we have a security manager, we'll fail
-		try {   
-		    // This is only to make a 1.3 compiler happy.  JDKTimeZone
-		    // is only used in JDK 1.4, where TimeZone has the getDSTSavings
-		    // API on it, so a straight call to getDSTSavings would actually
-		    // work if we could compile it.  Since on 1.4 the time zone is
-		    // not a SimpleTimeZone, we can't downcast in order to make
-		    // the direct call that a 1.3 compiler would like, because at
-		    // runtime the downcast would fail.
-		    // todo: remove when we no longer support compiling under 1.3
+            try {   
+                // This is only to make a 1.3 compiler happy.  JDKTimeZone
+                // is only used in JDK 1.4, where TimeZone has the getDSTSavings
+                // API on it, so a straight call to getDSTSavings would actually
+                // work if we could compile it.  Since on 1.4 the time zone is
+                // not a SimpleTimeZone, we can't downcast in order to make
+                // the direct call that a 1.3 compiler would like, because at
+                // runtime the downcast would fail.
+                // todo: remove when we no longer support compiling under 1.3
 
-		    // The following works if getDSTSavings is declared in   
-		    // TimeZone (JDK 1.4) or SimpleTimeZone (JDK 1.3).   
-		    final Object[] args = new Object[0];
-		    final Class[] argtypes = new Class[0];
-		    Method m = zone.getClass().getMethod("getDSTSavings", argtypes); 
-		    int result = ((Integer) m.invoke(zone, args)).intValue();
-// 		    System.err.println("JDKTZ got " + (result/3600000f) + " hour daylight saving time");
-		    return result;
-		} catch (Exception e) {
-		    // if zone is in the sun.foo class hierarchy and we
-		    // are in a protection domain, we'll get a security
-		    // exception.  And if we claim to support DST, but 
-		    // return a value of 0, later java.util.SimpleTimeZone will
-		    // throw an illegalargument exception.  so... fake
-		    // the dstoffset;
-		}   
-	    }
-// 	    System.err.println("JDKTZ assume 1 hour daylight saving time");
-	    return 3600000;
-	}
+                // The following works if getDSTSavings is declared in   
+                // TimeZone (JDK 1.4) or SimpleTimeZone (JDK 1.3).   
+                final Object[] args = new Object[0];
+                final Class[] argtypes = new Class[0];
+                Method m = zone.getClass().getMethod("getDSTSavings", argtypes); 
+                return ((Integer) m.invoke(zone, args)).intValue();   
+            } catch (Exception e) {
+                // if zone is in the sun.foo class hierarchy and we
+                // are in a protection domain, we'll get a security
+                // exception.  And if we claim to support DST, but 
+                // return a value of 0, later java.util.SimpleTimeZone will
+                // throw an illegalargument exception.  so... fake
+                // the dstoffset;
+                return 3600000;
+            }   
+        }
         return 0;
     }
 
