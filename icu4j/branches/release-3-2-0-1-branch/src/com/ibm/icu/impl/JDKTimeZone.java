@@ -1,6 +1,6 @@
 /*
 **********************************************************************
-* Copyright (c) 2003-2004, International Business Machines
+* Copyright (c) 2003-2005, International Business Machines
 * Corporation and others.  All Rights Reserved.
 **********************************************************************
 * Author: Alan Liu
@@ -89,25 +89,33 @@ public class JDKTimeZone extends TimeZone {
     /**
      * Override TimeZone to handle wrapped ZoneInfo.
      */
+
     public void getOffset(long date, boolean local, int[] offsets) {
         // The following code works only on 1.4 or later.  We no longer support JDK 1.3.
-        try {
-            if (zone instanceof sun.util.calendar.ZoneInfo) {
-                ((sun.util.calendar.ZoneInfo) zone).getOffsets(date, offsets);
-                if (local) {
-                    date -= offsets[0] + offsets[1];
-                    ((sun.util.calendar.ZoneInfo) zone).getOffsets(date, offsets);
-                }
-                return;
-            } 
-        }
-        catch (SecurityException ex) {
-            // ok; fall through, we're running in a protected context
-        } 
-        catch (Throwable th) {
-            // System.out.println("caught: " + th);
-        }
+	// assume if we're running under a security manager, then we don't have access to
+	// sun classes
+	if (System.getSecurityManager() == null) {
+	    try {
+		if (zone instanceof sun.util.calendar.ZoneInfo) {
+		    ((sun.util.calendar.ZoneInfo) zone).getOffsets(date, offsets);
+		    if (local) {
+			date -= offsets[0] + offsets[1];
+			((sun.util.calendar.ZoneInfo) zone).getOffsets(date, offsets);
+		    }
+// 		    System.err.println("offsets: " + offsets[0] + ", " + offsets[1]);
+		    return;
+		} 
+	    }
+	    catch (SecurityException ex) {
+		// ok; fall through, we're running in a protected context
+	    } 
+	    catch (Throwable th) {
+		// System.out.println("caught: " + th);
+	    }
+	}
+	
         super.getOffset(date, local, offsets);
+// 	System.err.println("default offsets: " + offsets[0] + ", " + offsets[1]);
     }
  
     /**
