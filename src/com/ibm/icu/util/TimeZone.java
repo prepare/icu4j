@@ -12,9 +12,8 @@ import java.lang.ref.SoftReference;
 import java.util.Date;
 import java.util.Hashtable;
 import java.util.Locale;
-import java.util.MissingResourceException;
-
-import com.ibm.icu.impl.ICUResourceBundle;
+import com.ibm.icu.impl.JDKTimeZone;
+import com.ibm.icu.impl.TimeZoneAdapter;
 import com.ibm.icu.impl.ZoneMeta;
 import com.ibm.icu.text.SimpleDateFormat;
 
@@ -295,16 +294,11 @@ abstract public class TimeZone implements Serializable, Cloneable {
         //fields[4] = dayOfYear + 1; // Convert from 0-based to 1-based
     }
 
-
-    /**
-     * The number of milliseconds in an hour.
-     */
-    protected static final int MILLIS_PER_HOUR = 60*60*1000;
     /**
      * The number of milliseconds in one day.
      */
-    protected static final int MILLIS_PER_DAY = 24*MILLIS_PER_HOUR;
-    
+    static final int MILLIS_PER_DAY = 24*60*60*1000;
+
     /**
      * For each month, the days in a non-leap year before the start
      * the of month, and the days in a leap year before the start of
@@ -520,10 +514,10 @@ abstract public class TimeZone implements Serializable, Cloneable {
      * @stable ICU 2.8
      */
     public int getDSTSavings() {
-    	if (useDaylightTime()) {
-    	    return 3600000;
-    	}
-    	return 0;
+	if (useDaylightTime()) {
+	    return 3600000;
+	}
+	return 0;
     }
 
     /**
@@ -557,23 +551,8 @@ abstract public class TimeZone implements Serializable, Cloneable {
      * @stable ICU 2.0
      */
     public static synchronized TimeZone getTimeZone(String ID) {
-        /* We first try to lookup the zone ID in our system list.  If this
-         * fails, we try to parse it as a custom string GMT[+-]hh:mm.  If
-         * all else fails, we return GMT, which is probably not what the
-         * user wants, but at least is a functioning TimeZone object.
-         *
-         * We cannot return NULL, because that would break compatibility
-         * with the JDK.
-         */
-        TimeZone result = ZoneMeta.getSystemTimeZone(ID);
-
-        if (result == null) {
-            result = ZoneMeta.getCustomTimeZone(ID);
-        }
-        if (result == null) {
-            result = ZoneMeta.getGMT();
-        }
-        return result;
+        // (not for 3.4) ID = ZoneMeta.getCanonicalID(ID);
+        return JDKTimeZone.wrap(java.util.TimeZone.getTimeZone(ID));
     }
 
     /**
@@ -588,9 +567,7 @@ abstract public class TimeZone implements Serializable, Cloneable {
      */
     public static String[] getAvailableIDs(int rawOffset) {
         return java.util.TimeZone.getAvailableIDs(rawOffset);
-
     }
-
 
     /**
      * Return a new String array containing all system TimeZone IDs
@@ -669,8 +646,7 @@ abstract public class TimeZone implements Serializable, Cloneable {
      */
     public static synchronized TimeZone getDefault() {
         if (defaultZone == null) {
-            java.util.TimeZone temp=java.util.TimeZone.getDefault();
-            defaultZone = ZoneMeta.getSystemTimeZone(temp.getID());
+            defaultZone = JDKTimeZone.wrap(java.util.TimeZone.getDefault());
         }
         return (TimeZone) defaultZone.clone();
     }
@@ -687,11 +663,11 @@ abstract public class TimeZone implements Serializable, Cloneable {
         defaultZone = tz;
         // Keep java.util.TimeZone default in sync so java.util.Date
         // can interoperate with com.ibm.icu.util classes.
-        //java.util.TimeZone jdkZone = null;
+        java.util.TimeZone jdkZone = null;
         if (tz != null) {
-            //jdkZone = TimeZoneAdapter.wrap(tz);
+            jdkZone = TimeZoneAdapter.wrap(tz);
         }
-        //java.util.TimeZone.setDefault(jdkZone);
+        java.util.TimeZone.setDefault(jdkZone);
     }
 
     /**
@@ -722,14 +698,7 @@ abstract public class TimeZone implements Serializable, Cloneable {
             throw new InternalError();
         }
     }
-    public boolean equals(Object obj){
-        if (this == obj) return true;
-        if (obj == null || getClass() != obj.getClass()) return false;
-        return (ID.equals(((TimeZone)obj).ID));
-    }
-    public int hashCode(){
-    	return ID.hashCode();
-    }
+
     // =======================privates===============================
 
     /**
@@ -746,7 +715,6 @@ abstract public class TimeZone implements Serializable, Cloneable {
      * The default time zone, or null if not set.
      */
     private static TimeZone  defaultZone = null;
-
 }
 
 //eof

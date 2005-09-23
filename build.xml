@@ -546,6 +546,7 @@
     <target name="check" depends="tests" description="run standard icu4j test suite">
     <java classname="com.ibm.icu.dev.test.TestAll" fork="yes" failonerror="true">
         <jvmarg value="-ea"/>  <!-- enable assertion checks -->
+        <arg value="-w"/>
         <arg value="-n"/>
         <classpath>
             <pathelement path="${java.class.path}/"/>
@@ -618,8 +619,8 @@
             source="1.4">
             <doclet name="com.ibm.icu.dev.tool.docs.GatherAPIData"
                 path="${build.dir}">
-                <param name="-name" value="ICU4J 3.4"/>
-                <param name="-output" value="${api.dir}/icu4j34.api"/>
+                <param name="-name" value="ICU4J 3.4.1"/>
+                <param name="-output" value="${api.dir}/icu4j341.api"/>
                 <param name="-gzip"/>
             </doclet>
         </javadoc>
@@ -628,13 +629,13 @@
     <target name="apireport" depends="tools" if="version.1.4" description="run API report generator tool">
         <java classname="com.ibm.icu.dev.tool.docs.ReportAPI" classpath="${build.dir}" failonerror="true">
             <arg value="-old:"/>
-            <arg value="${api.dir}/icu4j32.api.gz"/>
-            <arg value="-new:"/>
             <arg value="${api.dir}/icu4j34.api.gz"/>
+            <arg value="-new:"/>
+            <arg value="${api.dir}/icu4j341.api.gz"/>
             <arg value="-html"/>
             <arg value="-out:"/>
-            <arg value="${api.dir}/icu4j_compare_32_34.html"/>
-            <!-- arg value="icu4j_compare_32_34.txt"/> -->
+            <arg value="${api.dir}/icu4j_compare_34_341.html"/>
+            <!-- arg value="icu4j_compare_34_31.txt"/> -->
         </java>
     </target>
 
@@ -1087,39 +1088,5 @@
             manifest="${cldr.util.manifest}"/>
      </target>
      <!--Target for building jars -->
-     <target name="distJars" depends="jarSrc, jar, jarDocs" />   
-     
-     <!-- Target for checking the loading of bundles from the default package.
-          This is hack to get around Eclipse's build problems. 
-     -->
-    <target name="testDefaultPackage" depends="tests" description="Tests for loading resources in the default package">
-        <copy file="${src.dir}/com/ibm/icu/dev/test/util/TestDefaultPackageLoading.jpp"
-            tofile="${src.dir}/TestDefaultPackageLoading.java"/>
-        <copy file="${src.dir}/com/ibm/icu/dev/test/util/TestData_en.jpp"
-            tofile="${src.dir}/TestData_en.java"/>
-        <javac includes="TestData_en.java, TestDefaultPackageLoading.java"
-            excludes="**/CVS/**/*"
-            srcdir="${src.dir}"
-            destdir="${build.dir}"
-            classpathref="build.classpath"
-            source="${icu4j.javac.source}"
-            target="${icu4j.javac.target}"
-            debug="on" deprecation="off"/>
-        <!-- copy the file to default package and test if we can load it -->
-        <copy file="${build.dir}/com/ibm/icu/dev/data/testdata/te.res"
-            todir="${build.dir}/"/>
-        <!-- copy the file up one level and test if java style base name loading works -->
-        <copy file="${build.dir}/com/ibm/icu/dev/data/testdata/te.res"
-            tofile="${build.dir}/com/ibm/icu/dev/data/TestData_bge.res"/>
-        <!--run the tests -->
-        <java classname="TestDefaultPackageLoading" fork="yes" failonerror="true">
-            <jvmarg value="-ea"/>  <!-- enable assertion checks -->
-            <arg value="-n"/>
-            <classpath>
-                <pathelement path="${java.class.path}/"/>
-                <pathelement location="clover.jar"/>
-                <pathelement path="${build.dir}"/>
-            </classpath>
-        </java>
-    </target>
+     <target name="distJars" depends="jarSrc, jar, jarDocs" />    
 </project>
