@@ -803,20 +803,23 @@ public class DateFormatSymbols implements Serializable, Cloneable {
         Map results = new LinkedHashMap();
         for (ULocale tempLocale = desiredLocale; tempLocale != null; tempLocale = tempLocale.getFallback()) {
             ICUResourceBundle rb = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, tempLocale);
-            ICUResourceBundle zoneObject = rb.get("zoneStrings");
-            for(int i =0; i< zoneObject.getSize(); i++){
-                ICUResourceBundle zoneArr = zoneObject.get(i);
-                String[] strings = new String[zoneArr.getSize()];
-                for(int j=0; j<zoneArr.getSize(); j++){
-                    strings[j]=zoneArr.get(j).getString();
+            if (rb.getLoadingStatus() != rb.FROM_ROOT && rb.getLoadingStatus() != rb.FROM_DEFAULT) {
+                ICUResourceBundle zoneObject = rb.get("zoneStrings");
+                for(int i =0; i< zoneObject.getSize(); i++){
+                    ICUResourceBundle zoneArr = zoneObject.get(i);
+                    String[] strings = new String[zoneArr.getSize()];
+                    for(int j=0; j<zoneArr.getSize(); j++){
+                        strings[j]=zoneArr.get(j).getString();
+                    }
+                    if (!results.containsKey(strings[0]))results.put(strings[0], strings); // only add if we don't have already
                 }
-                if (!results.containsKey(strings[0]))results.put(strings[0], strings); // only add if we don't have already
             }
         }
         zoneStrings = new String[results.size()][];
         int i = 0;
         for (Iterator it = results.keySet().iterator(); it.hasNext();) {
-            zoneStrings[i++] = (String[]) results.get(it.next());
+            String[] temp = (String[])results.get(it.next());
+            zoneStrings[i++] = temp;
         }
         
         ICUResourceBundle rb = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, desiredLocale);
