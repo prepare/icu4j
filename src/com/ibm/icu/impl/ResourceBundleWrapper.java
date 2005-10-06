@@ -1,6 +1,6 @@
 /*
 ******************************************************************************
-* Copyright (C) 2004-2005, International Business Machines Corporation and        *
+* Copyright (C) 2004, International Business Machines Corporation and        *
 * others. All Rights Reserved.                                               *
 ******************************************************************************
 */
@@ -22,7 +22,9 @@ import com.ibm.icu.util.UResourceBundle;
 public class ResourceBundleWrapper extends UResourceBundle {
     ResourceBundle bundle = null;
     public ResourceBundleWrapper(String baseName, String localeID, ClassLoader loader){
-        if(baseName.indexOf('/')>=0){
+        if(baseName.indexOf('.')>-1){
+            bundle = ResourceBundle.getBundle(baseName, LocaleUtility.getLocaleFromName(localeID), loader);   
+        }else{
             bundle = ICULocaleData.getResourceBundle(baseName, new ULocale(localeID));
             if(bundle==null){
                 throw new MissingResourceException("Can't find the bundle "
@@ -31,8 +33,6 @@ public class ResourceBundleWrapper extends UResourceBundle {
                         this.getClass().getName(),
                         localeID);  
             }
-        }else{
-            bundle = ResourceBundle.getBundle(baseName, LocaleUtility.getLocaleFromName(localeID), loader);   
         }
     }
     private int loadingStatus = -1;

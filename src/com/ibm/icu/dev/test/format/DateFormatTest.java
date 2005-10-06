@@ -339,10 +339,6 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             "y/M/d H:mm v", "pf", "2005/4/3 2:30 PDT", "2005 04 03 01:30 PST", "2005/4/3 1:30 PT",
             "y/M/d H:mm", "pf", "2005/4/3 2:30", "2005 04 03 01:30 PST", "2005/4/3 1:30",
             // time to parse is ambiguous, PT interpreted as earlier time (?)
-            "y/M/d H:mm zzz", "pf", "2005/4/3 1:30 PT", "2005 04 03 01:30 PST", "2005/4/3 1:30 PST",
-            "y/M/d H:mm v", "pf", "2005/4/3 1:30 PT", "2005 04 03  01:30 PST", "2005/4/3 1:30 PT",
-            "y/M/d H:mm", "pf", "2005/4/3 1:30 PT", "2005 04 03 01:30 PST", "2005/4/3 1:30",
-            
             "y/M/d H:mm zzz", "pf", "2004/10/31 1:30 PT", "2004 10 31 01:30 PDT", "2004/10/31 1:30 PDT",
             "y/M/d H:mm zzz", "pf", "2004/10/31 1:30 PST", "2004 10 31 01:30 PST", "2004/10/31 1:30 PST",
             "y/M/d H:mm zzz", "pf", "2004/10/31 1:30 PDT", "2004 10 31 01:30 PDT", "2004/10/31 1:30 PDT",
@@ -1536,7 +1532,7 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             Date tempDate = formatter.parse(temp);
             logln("Parsed to: " + tempDate);
             if (!tempDate.equals(date))
-                errln("FAIL: Expected " + date + " Got: " + tempDate);
+                errln("FAIL: Expected " + date);
         } catch (Throwable t) {
             System.out.println(t);
         }
@@ -1956,18 +1952,16 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                 logln("ok");
             }
             catch (ParseException e) {
-                errln("Parse of 07/10/53 GMT+10:00 for pattern MM/dd/yy z");
+                errln("whoops");
             }
             
             // cover invalid separator after GMT
-            {
-                ParsePosition pp = new ParsePosition(0);
-                String text = "07/10/53 GMT=10:00";
-                Date d = fmt.parse(text, pp);
-                if(pp.getIndex()!=12){
-                    errln("Parse of 07/10/53 GMT=10:00 for pattern MM/dd/yy z");
-                }
-                logln("Parsing of the text stopped at pos: " + pp.getIndex() + " as expected and length is "+text.length());
+            try {
+                Date d = fmt.parse("07/10/53 GMT=10:00");
+                logln("whoops");
+            }
+            catch (ParseException e) {
+                errln("ok");
             }
             
             // cover bad text after GMT+.
@@ -1994,7 +1988,7 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                 logln("ok");
             }
             catch (ParseException e) {
-                errln("Parse of 07/10/53 GMT+07 for pattern MM/dd/yy z");
+                errln("whoops");
             }
             
             // cover no ':' GMT+#, # > 24 (hhmm)
@@ -2003,7 +1997,7 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                 logln("ok");
             }
             catch (ParseException e) {
-                errln("Parse of 07/10/53 GMT+0730 for pattern MM/dd/yy z");
+                errln("whoops");
             }
             
             // cover no ':' GMT+#, # > 2400 (this should fail, i suspect, but doesn't)
@@ -2018,7 +2012,7 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             // cover raw digits with no leading sign (bad RFC822) 
             try {
                 Date d = fmt.parse("07/10/53 07");
-                errln("Parse of 07/10/53 07 for pattern MM/dd/yy z passed!");
+                errln("whoops");
             }
             catch (ParseException e) {
                 logln("ok");
@@ -2030,7 +2024,7 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                 logln("ok");
             }
             catch (ParseException e) {
-                errln("Parse of 07/10/53 +07 for pattern MM/dd/yy z failed");
+                errln("whoops");
             }
             
             // cover raw digits (RFC822) 
@@ -2039,7 +2033,7 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                 logln("ok");
             }
             catch (ParseException e) {
-                errln("Parse of 07/10/53 -00730 for pattern MM/dd/yy z failed");
+                errln("whoops");
             }
             
             // cover raw digits (RFC822) in DST
@@ -2049,7 +2043,7 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                 logln("ok");
             }
             catch (ParseException e) {
-                errln("Parse of 07/10/53 -0730 for pattern MM/dd/yy z failed");
+                errln("whoops");
             }
         }
         
@@ -2095,7 +2089,7 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             String text = "08/15/58 DBDY";
             try {
                 fmt.parse(text);
-                errln("Parse of 07/10/53 DBDY for pattern MM/dd/yy z passed");
+                errln("whoops");
             }
             catch (ParseException e) {
                 logln("time zone ex2 ok");
@@ -2125,7 +2119,7 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             String text = "08/15/58 DBDY"; // try to parse the bogus time zone
             try {
                 fmt.parse(text);
-                errln("Parse of 07/10/53 DBDY for pattern MM/dd/yy z passed");
+                errln("whoops again");
             }
             catch (ParseException e) {
                 logln("time zone ex3 ok");
@@ -2311,12 +2305,14 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
      * -- compare r0 and A, fail if not equal
      */
     void expect(String[] data, Locale loc) {
-        int i = 1;
+        int i = 0;
+
+        SimpleDateFormat fmt = new SimpleDateFormat("", loc);
+        SimpleDateFormat ref = new SimpleDateFormat(data[i++], loc);
         SimpleDateFormat univ = new SimpleDateFormat("EE G yyyy MM dd HH:mm:ss.SSS zzz", loc);
+
         String currentPat = null;
-        SimpleDateFormat ref = new SimpleDateFormat(data[0], loc);
         while (i<data.length) {
-            SimpleDateFormat fmt = new SimpleDateFormat("", loc);
             String pattern  = data[i++];
             if (pattern != null) {
                 fmt.applyPattern(pattern);
@@ -2399,8 +2395,5 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                 return;
             }
         }
-    }
-    public void TestJB4757(){
-        DateFormat dfmt = DateFormat.getDateInstance(DateFormat.FULL, ULocale.ROOT);
     }
 }
