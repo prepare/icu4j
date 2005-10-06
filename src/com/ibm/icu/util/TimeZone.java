@@ -12,9 +12,8 @@ import java.lang.ref.SoftReference;
 import java.util.Date;
 import java.util.Hashtable;
 import java.util.Locale;
-import java.util.MissingResourceException;
-
-import com.ibm.icu.impl.ICUResourceBundle;
+import com.ibm.icu.impl.JDKTimeZone;
+import com.ibm.icu.impl.TimeZoneAdapter;
 import com.ibm.icu.impl.ZoneMeta;
 import com.ibm.icu.text.SimpleDateFormat;
 
@@ -97,6 +96,16 @@ abstract public class TimeZone implements Serializable, Cloneable {
      * @stable ICU 2.0
      */
     public static final int LONG  = 1;
+
+    /**
+     * @internal
+     */
+    private static final int SHORT_GENERIC = 2;
+
+    /**
+     * @internal
+     */
+    private static final int LONG_GENERIC = 3;
 
     /**
      * Cache to hold the SimpleDateFormat objects for a Locale.
@@ -295,16 +304,11 @@ abstract public class TimeZone implements Serializable, Cloneable {
         //fields[4] = dayOfYear + 1; // Convert from 0-based to 1-based
     }
 
-
-    /**
-     * The number of milliseconds in an hour.
-     */
-    protected static final int MILLIS_PER_HOUR = 60*60*1000;
     /**
      * The number of milliseconds in one day.
      */
-    protected static final int MILLIS_PER_DAY = 24*MILLIS_PER_HOUR;
-    
+    static final int MILLIS_PER_DAY = 24*60*60*1000;
+
     /**
      * For each month, the days in a non-leap year before the start
      * the of month, and the days in a leap year before the start of
@@ -368,31 +372,29 @@ abstract public class TimeZone implements Serializable, Cloneable {
     /**
      * Returns a name of this time zone suitable for presentation to the user
      * in the default locale.
-     * This method returns the long name, not including daylight savings.
+     * This method returns the long generic name.
      * If the display name is not available for the locale,
-     * then this method returns a string in the format
-     * <code>GMT[+-]hh:mm</code>.
+     * a fallback based on the country, city, or time zone id will be used.
      * @return the human-readable name of this time zone in the default locale.
      * @stable ICU 2.0
      */
     public final String getDisplayName() {
-        return getDisplayName(false, LONG, ULocale.getDefault());
+        return _getDisplayName(false, LONG_GENERIC, ULocale.getDefault());
     }
 
     /**
      * Returns a name of this time zone suitable for presentation to the user
      * in the specified locale.
-     * This method returns the long name, not including daylight savings.
+     * This method returns the long generic name.
      * If the display name is not available for the locale,
-     * then this method returns a string in the format
-     * <code>GMT[+-]hh:mm</code>.
+     * a fallback based on the country, city, or time zone id will be used.
      * @param locale the locale in which to supply the display name.
      * @return the human-readable name of this time zone in the given locale
      * or in the default locale if the given locale is not recognized.
      * @stable ICU 2.0
      */
     public final String getDisplayName(Locale locale) {
-        return getDisplayName(false, LONG, ULocale.forLocale(locale));
+        return _getDisplayName(false, LONG_GENERIC, ULocale.forLocale(locale));
     }
 
     /**
@@ -400,8 +402,7 @@ abstract public class TimeZone implements Serializable, Cloneable {
      * in the specified locale.
      * This method returns the long name, not including daylight savings.
      * If the display name is not available for the locale,
-     * then this method returns a string in the format
-     * <code>GMT[+-]hh:mm</code>.
+     * a fallback based on the country, city, or time zone id will be used.
      * @param locale the ulocale in which to supply the display name.
      * @return the human-readable name of this time zone in the given locale
      * or in the default ulocale if the given ulocale is not recognized.
@@ -409,7 +410,7 @@ abstract public class TimeZone implements Serializable, Cloneable {
      * @deprecated This is a draft API and might change in a future release of ICU.
      */
     public final String getDisplayName(ULocale locale) {
-        return getDisplayName(false, LONG, locale);
+        return _getDisplayName(false, LONG_GENERIC, locale);
     }
 
     /**
@@ -461,6 +462,18 @@ abstract public class TimeZone implements Serializable, Cloneable {
      * @deprecated This is a draft API and might change in a future release of ICU.
      */
     public String getDisplayName(boolean daylight, int style, ULocale locale) {
+        if (style != SHORT && style != LONG) {
+            throw new IllegalArgumentException("Illegal style: " + style);
+        }
+        return _getDisplayName(daylight, style, locale);
+    }
+
+    /**
+     * The public version of this API only accepts LONG/SHORT, the
+     * internal version (which this calls) also accepts LONG_GENERIC/SHORT_GENERIC.
+     * @internal
+     */
+    private String _getDisplayName(boolean daylight, int style, ULocale locale) {
         /* NOTES:
          * (1) We use SimpleDateFormat for simplicity; we could do this
          * more efficiently but it would duplicate the SimpleDateFormat code
@@ -471,9 +484,7 @@ abstract public class TimeZone implements Serializable, Cloneable {
          * locale upon resurrection; and to somehow handle the special case of
          * construction from a DateFormatSymbols object.
          */
-        if (style != SHORT && style != LONG) {
-            throw new IllegalArgumentException("Illegal style: " + style);
-        }
+
         // We keep a cache, indexed by locale.  The cache contains a
         // SimpleDateFormat object, which we create on demand.
         SoftReference data = (SoftReference)cachedLocaleData.get(locale);
@@ -497,7 +508,8 @@ abstract public class TimeZone implements Serializable, Cloneable {
         } else {
             tz = new SimpleTimeZone(getRawOffset(), getID());
         }
-        format.applyPattern(style == LONG ? "zzzz" : "z");      
+        String[] patterns = { "z", "zzzz", "v", "vvvv" };
+        format.applyPattern(patterns[style]);      
         format.setTimeZone(tz);
         // Format a date in January.  We use the value 10*ONE_DAY == Jan 11 1970
         // 0:00 GMT.
@@ -520,10 +532,10 @@ abstract public class TimeZone implements Serializable, Cloneable {
      * @stable ICU 2.8
      */
     public int getDSTSavings() {
-    	if (useDaylightTime()) {
-    	    return 3600000;
-    	}
-    	return 0;
+	if (useDaylightTime()) {
+	    return 3600000;
+	}
+	return 0;
     }
 
     /**
@@ -557,23 +569,8 @@ abstract public class TimeZone implements Serializable, Cloneable {
      * @stable ICU 2.0
      */
     public static synchronized TimeZone getTimeZone(String ID) {
-        /* We first try to lookup the zone ID in our system list.  If this
-         * fails, we try to parse it as a custom string GMT[+-]hh:mm.  If
-         * all else fails, we return GMT, which is probably not what the
-         * user wants, but at least is a functioning TimeZone object.
-         *
-         * We cannot return NULL, because that would break compatibility
-         * with the JDK.
-         */
-        TimeZone result = ZoneMeta.getSystemTimeZone(ID);
-
-        if (result == null) {
-            result = ZoneMeta.getCustomTimeZone(ID);
-        }
-        if (result == null) {
-            result = ZoneMeta.getGMT();
-        }
-        return result;
+        // (not for 3.4) ID = ZoneMeta.getCanonicalID(ID);
+        return JDKTimeZone.wrap(java.util.TimeZone.getTimeZone(ID));
     }
 
     /**
@@ -588,9 +585,7 @@ abstract public class TimeZone implements Serializable, Cloneable {
      */
     public static String[] getAvailableIDs(int rawOffset) {
         return java.util.TimeZone.getAvailableIDs(rawOffset);
-
     }
-
 
     /**
      * Return a new String array containing all system TimeZone IDs
@@ -669,8 +664,7 @@ abstract public class TimeZone implements Serializable, Cloneable {
      */
     public static synchronized TimeZone getDefault() {
         if (defaultZone == null) {
-            java.util.TimeZone temp=java.util.TimeZone.getDefault();
-            defaultZone = ZoneMeta.getSystemTimeZone(temp.getID());
+            defaultZone = JDKTimeZone.wrap(java.util.TimeZone.getDefault());
         }
         return (TimeZone) defaultZone.clone();
     }
@@ -687,11 +681,11 @@ abstract public class TimeZone implements Serializable, Cloneable {
         defaultZone = tz;
         // Keep java.util.TimeZone default in sync so java.util.Date
         // can interoperate with com.ibm.icu.util classes.
-        //java.util.TimeZone jdkZone = null;
+        java.util.TimeZone jdkZone = null;
         if (tz != null) {
-            //jdkZone = TimeZoneAdapter.wrap(tz);
+            jdkZone = TimeZoneAdapter.wrap(tz);
         }
-        //java.util.TimeZone.setDefault(jdkZone);
+        java.util.TimeZone.setDefault(jdkZone);
     }
 
     /**
@@ -722,14 +716,7 @@ abstract public class TimeZone implements Serializable, Cloneable {
             throw new InternalError();
         }
     }
-    public boolean equals(Object obj){
-        if (this == obj) return true;
-        if (obj == null || getClass() != obj.getClass()) return false;
-        return (ID.equals(((TimeZone)obj).ID));
-    }
-    public int hashCode(){
-    	return ID.hashCode();
-    }
+
     // =======================privates===============================
 
     /**
@@ -746,7 +733,6 @@ abstract public class TimeZone implements Serializable, Cloneable {
      * The default time zone, or null if not set.
      */
     private static TimeZone  defaultZone = null;
-
 }
 
 //eof

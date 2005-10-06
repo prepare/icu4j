@@ -139,30 +139,15 @@ public class Currency extends MeasureUnit implements Serializable {
 
         // Do a linear search
         String curriso = null;
-        try {
+        try{
             curriso = cm.getString(country);
-            if (curriso != null) {
-                return new Currency(curriso);
-            }
-        } catch (MissingResourceException ex) {
-            try{
-                // a deprecated ISO code may have been passed
-                // try to get the current country code
-                String rep = ULocale.getCurrentCountryID(country);
-                if(DEBUG) System.out.println("DEBUG: oldID: "+country +" newID:" +rep);
-                // here pointer comparison is valid since getCurrentCountryID
-                // will return the input string if there is no replacement
-                if(rep != country){
-                    curriso = cm.getString(rep);
-                    if (curriso != null) {
-                        return new Currency(curriso);
-                    }
-                }
-            }catch(MissingResourceException e){
-                //do nothing
-            }
+        if (curriso != null) {
+        return new Currency(curriso);
         }
-        return null;
+        }catch(MissingResourceException ex){
+         //do nothing
+        }
+    return null;
         /*
         for (int i=0; i<cm.length; ++i) {
             if (country.equals((String) cm[i][0])) {
@@ -380,13 +365,23 @@ public class Currency extends MeasureUnit implements Serializable {
             throw new IllegalArgumentException();
         }
 
+        // In the future, resource bundles may implement multi-level
+        // fallback.  That is, if a currency is not found in the en_US
+        // Currencies data, then the en Currencies data will be searched.
+        // Currently, if a Currencies datum exists in en_US and en, the
+        // en_US entry hides that in en.
+
+        // We want multi-level fallback for this resource, so we implement
+        // it manually.
+
         String s = null;
 
+        // Multi-level resource inheritance fallback loop
          try {
-            ICUResourceBundle rb = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME,locale);
-            ICUResourceBundle currencies = rb.get("Currencies");
+             ICUResourceBundle rb = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME,locale);
+             // We can't cast this to String[][]; the cast has to happen later
 
-            // Fetch resource with multi-level resource inheritance fallback
+            ICUResourceBundle currencies = rb.get("Currencies");
             s = currencies.getWithFallback(isoCode).getString(nameStyle);
         }catch (MissingResourceException e) {
             //TODO what should be done here?

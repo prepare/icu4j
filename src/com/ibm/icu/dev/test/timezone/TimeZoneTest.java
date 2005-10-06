@@ -17,6 +17,7 @@ package com.ibm.icu.dev.test.timezone;
 import com.ibm.icu.dev.test.*;
 import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.util.*;
+import com.ibm.icu.text.SimpleDateFormat;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -104,10 +105,10 @@ public class TimeZoneTest extends TestFmwk
             new ZoneDescriptor("AST", -540, true),
             new ZoneDescriptor("PST", -480, true),
             new ZoneDescriptor("PNT", -420, false),
-            new ZoneDescriptor("MST", -420, false),// updated Aug 2003 aliu
+            new ZoneDescriptor("MST", -420, true),
             new ZoneDescriptor("CST", -360, true),
             new ZoneDescriptor("IET", -300, false),
-            new ZoneDescriptor("EST", -300, false),// updated Aug 2003 aliu
+            new ZoneDescriptor("EST", -300, true),
             new ZoneDescriptor("PRT", -240, false),
             new ZoneDescriptor("CNT", -210, true),
             new ZoneDescriptor("AGT", -180, false),
@@ -242,9 +243,8 @@ public class TimeZoneTest extends TestFmwk
         Object[] DATA = {
             // ID        Expected offset in minutes
             "GMT",       null,
-            "GMT-YOUR.AD.HERE", null,
-            // "GMT0",      null, // ICU 3.6: An Olson zone IDThis is parsed by some JDKs (Sun 1.4.1), but not by others
-          //  "GMT+0",     new Integer(0),// ICU 3.6: An Olson zone ID
+            // "GMT0",      null, // This is parsed by some JDKs (Sun 1.4.1), but not by others
+            "GMT+0",     new Integer(0),
             "GMT+1",     new Integer(60),
             "GMT-0030",  new Integer(-30),
             // Parsed in 1.3, parse failure in 1.4:
@@ -279,7 +279,6 @@ public class TimeZoneTest extends TestFmwk
                 String offset = formatMinutes(ioffset);
                 String genID = "GMT"+ offset;
                 logln(id + " -> " + zone.getID() + " " + genID);
-                String gotID = zone.getID();
                 if (exp == null) {
                     errln("Expected parse failure for " + id +
                           ", got offset of " + offset +
@@ -288,8 +287,8 @@ public class TimeZoneTest extends TestFmwk
                 // JDK 1.3 creates custom zones with the ID "Custom"
                 // JDK 1.4 creates custom zones with IDs of the form "GMT+02:00"
                 else if (ioffset != exp.intValue() ||
-                         !(gotID.equals(EXPECTED_CUSTOM_ID) /*||
-                           gotID.equals(genID)*/)) {
+                         !(zone.getID().equals(EXPECTED_CUSTOM_ID) ||
+                           zone.getID().equals(genID))) {
                     errln("Expected offset of " + formatMinutes(exp.intValue()) +
                           ", id Custom, for " + id +
                           ", got offset of " + offset +
@@ -314,8 +313,10 @@ public class TimeZoneTest extends TestFmwk
         TimeZone zone = TimeZone.getTimeZone("PST");
         String name = zone.getDisplayName(Locale.ENGLISH);
         logln("PST->" + name);
-        if (!name.equals("Pacific Standard Time"))
-            errln("Fail: Expected \"Pacific Standard Time\", got " + name +
+
+        // dlf - we now (3.4.1) return generic time
+        if (!name.equals("Pacific Time"))
+            errln("Fail: Expected \"Pacific Time\", got " + name +
                   " for " + zone);
 
         //*****************************************************************
@@ -342,14 +343,16 @@ public class TimeZoneTest extends TestFmwk
 
         // Make sure that we don't display the DST name by constructing a fake
         // PST zone that has DST all year long.
+        // dlf - this test is no longer relevant, we display generic time now
+        //    so the behavior of the timezone doesn't matter
         SimpleTimeZone zone2 = new SimpleTimeZone(0, "PST");
         zone2.setStartRule(Calendar.JANUARY, 1, 0);
         zone2.setEndRule(Calendar.DECEMBER, 31, 0);
         logln("Modified PST inDaylightTime->" + zone2.inDaylightTime(new Date()));
         name = zone2.getDisplayName(Locale.ENGLISH);
         logln("Modified PST->" + name);
-        if (!name.equals("Pacific Standard Time"))
-            errln("Fail: Expected \"Pacific Standard Time\"");
+        if (!name.equals("Pacific Time"))
+            errln("Fail: Expected \"Pacific Time\"");
 
         // Make sure we get the default display format for Locales
         // with no display name data.
@@ -376,16 +379,18 @@ public class TimeZoneTest extends TestFmwk
             if (!name.equals("Pacific Standard Time"))
                 errln("Fail: Expected Pacific Standard Time for PST in mt_MT but got ");
         }
-        else if(!name.equals("Pacific Standard Time") &&
+        // dlf - we will use generic time, or if unavailable, GMT for standard time in the zone 
+        //     - we now (3.4.1) have localizations for this zone, so change test string
+        else if(!name.equals("Los Angeles (Stati Uniti)") &&
             !name.equals("GMT-08:00") &&
             !name.equals("GMT-8:00") &&
             !name.equals("GMT-0800") &&
             !name.equals("GMT-800")) {
 
-            errln("Fail: Expected GMT-08:00 or something similar");
-            errln("************************************************************");
-            errln("THE ABOVE FAILURE MAY JUST MEAN THE LOCALE DATA HAS CHANGED");
-            errln("************************************************************");
+            errln("Fail: got '" + name + "', expected GMT-08:00 or something similar\n" +
+                  "************************************************************\n" +
+                  "THE ABOVE FAILURE MAY JUST MEAN THE LOCALE DATA HAS CHANGED\n" +
+                  "************************************************************");
         }
         
         // Now try a non-existent zone
@@ -409,6 +414,30 @@ public class TimeZoneTest extends TestFmwk
             !name.equals("GMT+130"))
             errln("Fail: Expected GMT+01:30 or something similar");        
         ULocale.setDefault(save);
+    }
+
+
+    public void TestDisplayName2() {
+        // Date now = new Date();
+        Date then = new Date(0, 1, 2005);
+
+        String[] timezones = {"America/Chicago", "Europe/Moscow", "Europe/Rome", "Asia/Shanghai", "WET" };
+        String[] locales = {"en", "fr", "de", "ja", "zh_TW", "zh_Hans" };
+        for (int j = 0; j < locales.length; ++j) {
+            ULocale locale = new ULocale(locales[j]);
+            for (int i = 0; i < timezones.length; ++i) {
+                TimeZone tz = TimeZone.getTimeZone(timezones[i]);
+                String displayName0 = tz.getDisplayName(locale); // doesn't work???
+                SimpleDateFormat dt = new SimpleDateFormat("vvvv", locale);
+                dt.setTimeZone(tz);
+                String displayName1 = dt.format(then);  // date value _does_ matter if we fallback to GMT
+                logln(locale.getDisplayName() + ", " + tz.getID() + ": " + displayName0);
+                if (!displayName1.equals(displayName0)) {
+                    errln(locale.getDisplayName() + ", " + tz.getID() + 
+                          ": expected " + displayName1 + " but got: " + displayName0);
+                }
+            }
+        }
     }
 
     public void TestGenericAPI() {
@@ -816,12 +845,11 @@ public class TimeZoneTest extends TestFmwk
                 tokyo = true;
             }
         }
-        if (!la ) {
+        if (!la || tokyo) {
             errln("FAIL: " + laZone + " in US = " + la);
-        }
-        if (tokyo) {
             errln("FAIL: " + tokyoZone + " in US = " + tokyo);
         }
+
         s = TimeZone.getAvailableIDs("JP");
         la = false; tokyo = false;
 
@@ -833,53 +861,51 @@ public class TimeZoneTest extends TestFmwk
                 tokyo = true;
             }
         }
-        if (la) {
+        if (la || !tokyo) {
             errln("FAIL: " + laZone + " in JP = " + la);
-        }
-        if (!tokyo) {
             errln("FAIL: " + tokyoZone + " in JP = " + tokyo);
         }
     }
 
     public void TestFractionalDST() {
-	    String tzName = "Australia/Lord_Howe"; // 30 min offset
-	    java.util.TimeZone tz_java = java.util.TimeZone.getTimeZone(tzName);
-	    int dst_java = 0;
-	    try {
-	        // hack so test compiles and runs in both JDK 1.3 and JDK 1.4
-	        final Object[] args = new Object[0];
-	        final Class[] argtypes = new Class[0];
-	        java.lang.reflect.Method m = tz_java.getClass().getMethod("getDSTSavings", argtypes); 
-	        dst_java = ((Integer) m.invoke(tz_java, args)).intValue();
-	        if (dst_java <= 0 || dst_java >= 3600000) { // didn't get the fractional time zone we wanted
-	        errln("didn't get fractional time zone!");
-	        }
-	    } catch (NoSuchMethodException e) {
-	        // see JDKTimeZone for the reason for this code
-	        dst_java = 3600000;
-	    } catch (IllegalAccessException e) {
-	        // see JDKTimeZone for the reason for this code
-	        errln(e.getMessage());
-	        dst_java = 3600000;
-	    } catch (InvocationTargetException e) {
-	        // see JDKTimeZone for the reason for this code
-	        errln(e.getMessage());
-	        dst_java = 3600000;
-	    } catch (SecurityException e) {
-	        warnln(e.getMessage());
-	        return;
-	    }
-	    
-	    com.ibm.icu.util.TimeZone tz_icu = com.ibm.icu.util.TimeZone.getTimeZone(tzName);
-	    int dst_icu = tz_icu.getDSTSavings();
-	
-	    if (dst_java != dst_icu) {
-	        errln("java reports dst savings of " + dst_java +
-	          " but icu reports " + dst_icu + 
-	          " for tz " + tz_icu.getID());
-	    } else {
-	        logln("both java and icu report dst savings of " + dst_java + " for tz " + tz_icu.getID());
-	    }
+    String tzName = "Australia/Lord_Howe"; // 30 min offset
+    java.util.TimeZone tz_java = java.util.TimeZone.getTimeZone(tzName);
+    int dst_java = 0;
+    try {
+        // hack so test compiles and runs in both JDK 1.3 and JDK 1.4
+        final Object[] args = new Object[0];
+        final Class[] argtypes = new Class[0];
+        java.lang.reflect.Method m = tz_java.getClass().getMethod("getDSTSavings", argtypes); 
+        dst_java = ((Integer) m.invoke(tz_java, args)).intValue();
+        if (dst_java <= 0 || dst_java >= 3600000) { // didn't get the fractional time zone we wanted
+        errln("didn't get fractional time zone!");
+        }
+    } catch (NoSuchMethodException e) {
+        // see JDKTimeZone for the reason for this code
+        dst_java = 3600000;
+    } catch (IllegalAccessException e) {
+        // see JDKTimeZone for the reason for this code
+        errln(e.getMessage());
+        dst_java = 3600000;
+    } catch (InvocationTargetException e) {
+        // see JDKTimeZone for the reason for this code
+        errln(e.getMessage());
+        dst_java = 3600000;
+    } catch (SecurityException e) {
+        warnln(e.getMessage());
+        return;
+    }
+    
+    com.ibm.icu.util.TimeZone tz_icu = com.ibm.icu.util.TimeZone.getTimeZone(tzName);
+    int dst_icu = tz_icu.getDSTSavings();
+
+    if (dst_java != dst_icu) {
+        errln("java reports dst savings of " + dst_java +
+          " but icu reports " + dst_icu + 
+          " for tz " + tz_icu.getID());
+    } else {
+        logln("both java and icu report dst savings of " + dst_java + " for tz " + tz_icu.getID());
+    }
     }
 
     public void TestGetOffsetDate() {
