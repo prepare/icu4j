@@ -983,7 +983,7 @@ public class TestFmwk extends AbstractTestLog {
         return cal.getTime();
     }
 
-    private static class NullWriter extends PrintWriter {
+    public static class NullWriter extends PrintWriter {
         public NullWriter() {
             super(System.out, false);
         }
@@ -997,7 +997,7 @@ public class TestFmwk extends AbstractTestLog {
         }
     }
 
-    private static class ASCIIWriter extends PrintWriter {
+    public static class ASCIIWriter extends PrintWriter {
         private Writer w;
         private StringBuffer buffer = new StringBuffer();
 
@@ -1075,16 +1075,16 @@ public class TestFmwk extends AbstractTestLog {
 
         private State stack;
 
-        private StringBuffer errorSummary;
+        public StringBuffer errorSummary;
 
-        private PrintWriter log = new ASCIIWriter(System.out, true);
+        public PrintWriter log = new ASCIIWriter(System.out, true);
         private int indentLevel;
         private boolean needLineFeed;
         private boolean suppressIndent;
-        private int errorCount;
-        private int warnCount;
-        private int invalidCount;
-        private int testCount;
+        public int errorCount;
+        public int warnCount;
+        public int invalidCount;
+        public int testCount;
         private NumberFormat tformat;
         public Random random;
 
