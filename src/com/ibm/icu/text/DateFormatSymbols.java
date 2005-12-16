@@ -7,6 +7,7 @@
 
 package com.ibm.icu.text;
 
+import com.ibm.icu.impl.ICULocaleData;
 import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.impl.CalendarData;
 import com.ibm.icu.impl.Utility;
@@ -1547,9 +1548,9 @@ public class DateFormatSymbols implements Serializable, Cloneable {
 
         String bundleName = className + "Symbols";
 
-        UResourceBundle result = null;
+        ResourceBundle result = null;
         try {
-            result = UResourceBundle.getBundleInstance(bundleName, locale);
+            result = ICULocaleData.getResourceBundle(bundleName, locale);
         }
         catch (MissingResourceException e) {
             ///CLOVER:OFF
