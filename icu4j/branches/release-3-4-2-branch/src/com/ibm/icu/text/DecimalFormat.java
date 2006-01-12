@@ -1,7 +1,7 @@
-//##header
+/##header
 /*
  *******************************************************************************
- * Copyright (C) 1996-2005, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -2295,7 +2295,6 @@ public class DecimalFormat extends NumberFormat {
 //#endif
     
     /**
-     * <strong><font face=helvetica color=red>NEW</font></strong>
      * Set the rounding increment.  This method also controls whether
      * rounding is enabled.
      * @param newValue A positive rounding increment, or <code>null</code> or
@@ -2304,7 +2303,7 @@ public class DecimalFormat extends NumberFormat {
      * @see #getRoundingIncrement
      * @see #getRoundingMode
      * @see #setRoundingMode
-     * @stable ICU 2.0
+     * @draft ICU 3.4.2
      */
     public void setRoundingIncrement(BigDecimal newValue) {
         int i = newValue == null

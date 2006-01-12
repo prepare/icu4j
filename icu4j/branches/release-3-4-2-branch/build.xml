@@ -1,7 +1,7 @@
 <!--
 /*
 *******************************************************************************
-* Copyright (C) 1997-2005, International Business Machines Corporation and    *
+* Copyright (C) 1997-2006, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 * This is the ant build file for ICU4J.  See readme.html for more information.
@@ -648,8 +648,8 @@
             source="1.4">
             <doclet name="com.ibm.icu.dev.tool.docs.GatherAPIData"
                 path="${build.dir}">
-                <param name="-name" value="ICU4J 3.4.1"/>
-                <param name="-output" value="${api.dir}/icu4j341.api"/>
+                <param name="-name" value="ICU4J 3.4.2"/>
+                <param name="-output" value="${api.dir}/icu4j342.api"/>
                 <param name="-gzip"/>
             </doclet>
         </javadoc>
@@ -658,12 +658,12 @@
     <target name="apireport" depends="tools" if="version.1.4" description="run API report generator tool">
         <java classname="com.ibm.icu.dev.tool.docs.ReportAPI" classpath="${build.dir}" failonerror="true">
             <arg value="-old:"/>
-            <arg value="${api.dir}/icu4j34.api.gz"/>
-            <arg value="-new:"/>
             <arg value="${api.dir}/icu4j341.api.gz"/>
+            <arg value="-new:"/>
+            <arg value="${api.dir}/icu4j342.api.gz"/>
             <arg value="-html"/>
             <arg value="-out:"/>
-            <arg value="${api.dir}/icu4j_compare_34_341.html"/>
+            <arg value="${api.dir}/icu4j_compare_341_342.html"/>
         </java>
     </target>
 
@@ -1274,4 +1274,5 @@
     <target name="eclipsePkgs" 
         depends="eclipseCorePkg,eclipseTestPkg,eclipseInterfacePkg"
         description="build all eclipse packages"/>
+        
 </project>
