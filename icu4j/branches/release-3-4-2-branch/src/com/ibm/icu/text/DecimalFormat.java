@@ -2304,6 +2304,7 @@ public class DecimalFormat extends NumberFormat {
      * @see #getRoundingMode
      * @see #setRoundingMode
      * @draft ICU 3.4.2
+     * @deprecated This is a draft API and might change in a future release of ICU.
      */
     public void setRoundingIncrement(BigDecimal newValue) {
         int i = newValue == null

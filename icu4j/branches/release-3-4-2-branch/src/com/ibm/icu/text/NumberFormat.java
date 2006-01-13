@@ -1,7 +1,7 @@
 //##header
 /*
  *******************************************************************************
- * Copyright (C) 1996-2005, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -1172,8 +1172,7 @@ public abstract class NumberFormat extends UFormat {
      * @param forLocale the locale of the data.
      * @param choice the pattern format.
      * @return the pattern
-     * @stable ICU 2.2
-     * @deprecated subclassers should override getPattern(ULocale, int) instead of this method.
+     * @deprecated ICU 3.4 subclassers should override getPattern(ULocale, int) instead of this method.
      */
     protected static String getPattern(Locale forLocale, int choice) {
         return getPattern(ULocale.forLocale(forLocale), choice);
