@@ -1143,16 +1143,6 @@ public abstract class NumberFormat extends UFormat {
     static NumberFormat createInstance(ULocale desiredLocale, int choice) {
         String pattern = getPattern(desiredLocale, choice);
         DecimalFormatSymbols symbols = new DecimalFormatSymbols(desiredLocale);
-        
-        // Here we assume that the locale passed in is in the canonical
-        // form, e.g: pt_PT_@currency=PTE not pt_PT_PREEURO
-        if(choice == CURRENCYSTYLE){
-            String temp = symbols.getCurrencyPattern();
-            if(temp!=null){
-                pattern = temp;
-            }
-        }
-        
         DecimalFormat format = new DecimalFormat(pattern, symbols);
         // System.out.println("loc: " + desiredLocale + " choice: " + choice + " pat: " + pattern + " sym: " + symbols + " result: " + format);
                                  
@@ -1182,8 +1172,7 @@ public abstract class NumberFormat extends UFormat {
      * @param forLocale the locale of the data.
      * @param choice the pattern format.
      * @return the pattern
-     * @stable ICU 2.2
-     * @deprecated subclassers should override getPattern(ULocale, int) instead of this method.
+     * @deprecated ICU 3.4 subclassers should override getPattern(ULocale, int) instead of this method.
      */
     protected static String getPattern(Locale forLocale, int choice) {
         return getPattern(ULocale.forLocale(forLocale), choice);
