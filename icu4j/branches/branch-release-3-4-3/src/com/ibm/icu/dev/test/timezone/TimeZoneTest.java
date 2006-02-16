@@ -1,6 +1,6 @@
 /**
  *******************************************************************************
- * Copyright (C) 2000-2005, International Business Machines Corporation and    *
+ * Copyright (C) 2000-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -109,7 +109,7 @@ public class TimeZoneTest extends TestFmwk
             new ZoneDescriptor("PNT", -420, false),
             new ZoneDescriptor("MST", -420, false),// updated Aug 2003 aliu
             new ZoneDescriptor("CST", -360, true),
-            new ZoneDescriptor("IET", -300, false),
+            new ZoneDescriptor("IET", -300, true), // updated Feb 2006 srl
             new ZoneDescriptor("EST", -300, false),// updated Aug 2003 aliu
             new ZoneDescriptor("PRT", -240, false),
             new ZoneDescriptor("CNT", -210, true),
