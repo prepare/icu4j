@@ -1060,6 +1060,8 @@ public class GlobalizationPreferences implements Freezable {
         }
     }
 
+    private boolean frozen;
+
     /**
      * @inheritDocs
      * @internal
