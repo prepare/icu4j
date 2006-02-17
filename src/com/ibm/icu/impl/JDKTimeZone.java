@@ -54,8 +54,8 @@ public class JDKTimeZone extends TimeZone {
      * which must not be null.
      * @param tz the time zone to wrap
      * 
-     * @internal
-     * @deprecated This is an internal API and should not be used by client code.
+     * @internal 
+     * @deprecated This API is ICU internal only.
      */
     public JDKTimeZone(java.util.TimeZone tz) {
         String id = tz.getID();
@@ -97,10 +97,7 @@ public class JDKTimeZone extends TimeZone {
             return zone.getOffset(era, year, month, day,
                                       dayOfWeek, milliseconds);
         }
-        // should never occur except 
-        // when old object of older version of JDKTimeZone are de-serialized.
-        // these objects may contain ids that OlsonTimeZone may not understand 
-        // in such cases zone will be null
+        //should never occur except while serializing JDKTimeZone object
         return 0;
     }
 
@@ -130,10 +127,7 @@ public class JDKTimeZone extends TimeZone {
         if(zone!=null){
             return zone.getRawOffset();
         }
-        // should never occur except 
-        // when old object of older version of JDKTimeZone are de-serialized.
-        // these objects may contain ids that OlsonTimeZone may not understand 
-        // in such cases zone will be null
+        // should never happen except when serializing the JDKTimeZone object
         return 0;
     }
 
@@ -144,10 +138,7 @@ public class JDKTimeZone extends TimeZone {
         if(zone!=null){
             return zone.useDaylightTime();
         }
-        // should never occur except 
-        // when old object of older version of JDKTimeZone are de-serialized.
-        // these objects may contain ids that OlsonTimeZone may not understand 
-        // in such cases zone will be null
+        // should never happen except when serializing the JDKTimeZone object
         return false;
     }
 
@@ -158,10 +149,7 @@ public class JDKTimeZone extends TimeZone {
         if(zone!=null){
             return zone.inDaylightTime(date);
         }
-        // should never occur except 
-        // when old object of older version of JDKTimeZone are de-serialized.
-        // these objects may contain ids that OlsonTimeZone may not understand 
-        // in such cases zone will be null
+        //should never happen except when serializing the JDKTimeZone object
         return false;
     }
 
@@ -249,9 +237,8 @@ public class JDKTimeZone extends TimeZone {
     private void writeObject(java.io.ObjectOutputStream out) throws IOException {
         if(zone!=null){
             out.writeObject(zone.getID());
-        }else{
-            out.writeObject(getID());
         }
+        out.writeObject(getID());
     }
 
     private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
