@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2003-2005, International Business Machines Corporation and         *
+ * Copyright (C) 2003-2006, International Business Machines Corporation and         *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
 */
@@ -153,6 +153,7 @@ public class LocaleDataTest extends TestFmwk{
         assertTrue("case-folded is sometimes a strict superset, and sometimes equal",
                    equalCount > 0 && equalCount < availableLocales.length);
     }
+    /*
     public void TestExemplarSet2(){
         int equalCount = 0;
         for(int i=0; i<availableLocales.length; i++){
@@ -229,6 +230,7 @@ public class LocaleDataTest extends TestFmwk{
         assertTrue("case-folded is sometimes a strict superset, and sometimes equal",
                    equalCount > 0 && equalCount < availableLocales.length * 2);
     }
+    */
     public void TestCoverage(){
         LocaleData ld = LocaleData.getInstance();
         boolean t = ld.getNoSubstitute();

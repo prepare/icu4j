@@ -121,7 +121,7 @@ public final class VersionInfo
      * @draft ICU 3.0
      * @deprecated This is a draft API and might change in a future release of ICU.
      */
-    public static final String ICU_DATA_VERSION = "35b";
+    public static final String ICU_DATA_VERSION = "34b";
 
     /**
      * ICU4J collator runtime version

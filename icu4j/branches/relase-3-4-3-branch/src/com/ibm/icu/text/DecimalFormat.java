@@ -2747,22 +2747,14 @@ public class DecimalFormat extends NumberFormat {
          * posPrefixPattern, posSuffixPattern, negPrefixPattern, negSuffixPattern.
          * [Richard/GCL]
          */
-        return ((posPrefixPattern == other.posPrefixPattern &&
-                 positivePrefix.equals(other.positivePrefix))
-                || (posPrefixPattern != null &&
-                    posPrefixPattern.equals(other.posPrefixPattern)))
-            && ((posSuffixPattern == other.posSuffixPattern &&
-                 positiveSuffix.equals(other.positiveSuffix))
-                || (posSuffixPattern != null &&
-                    posSuffixPattern.equals(other.posSuffixPattern)))
-            && ((negPrefixPattern == other.negPrefixPattern &&
-                 negativePrefix.equals(other.negativePrefix))
-                || (negPrefixPattern != null &&
-                    negPrefixPattern.equals(other.negPrefixPattern)))
-            && ((negSuffixPattern == other.negSuffixPattern &&
-                 negativeSuffix.equals(other.negativeSuffix))
-                || (negSuffixPattern != null &&
-                    negSuffixPattern.equals(other.negSuffixPattern)))
+        return (posPrefixPattern != null &&
+                    posPrefixPattern.equals(other.posPrefixPattern))
+            && (posSuffixPattern != null &&
+                    posSuffixPattern.equals(other.posSuffixPattern))
+            && (negPrefixPattern != null &&
+                    negPrefixPattern.equals(other.negPrefixPattern))
+            && (negSuffixPattern != null &&
+                    negSuffixPattern.equals(other.negSuffixPattern))
             && multiplier == other.multiplier
             && groupingSize == other.groupingSize
             && groupingSize2 == other.groupingSize2
