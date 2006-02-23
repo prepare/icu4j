@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2004, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -57,7 +57,7 @@ public class RuleBasedBreakIterator extends BreakIterator {
      * @return A RuleBasedBreakIterator based on the supplied break rules.
      * @throws IOException
      * @draft ICU 3.0
-     * @deprecated This is a draft API and might change in a future release of ICU.
+     * @provisional This API might change or be removed in a future release.
      */
     public static RuleBasedBreakIterator getInstanceFromCompiledRules(InputStream is) throws IOException {
         return RuleBasedBreakIterator_New.getInstanceFromCompiledRules(is);      
@@ -121,28 +121,28 @@ public class RuleBasedBreakIterator extends BreakIterator {
      * Tag value for "words" that do not fit into any of other categories. 
      * Includes spaces and most punctuation. 
      * @draft ICU 3.0 
-     * @deprecated This is a draft API and might change in a future release of ICU.
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int WORD_NONE           = 0;
 
     /**
      * Upper bound for tags for uncategorized words. 
      * @draft ICU 3.0 
-     * @deprecated This is a draft API and might change in a future release of ICU.
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int WORD_NONE_LIMIT     = 100;
 
     /**
      * Tag value for words that appear to be numbers, lower limit. 
      * @draft ICU 3.0 
-     * @deprecated This is a draft API and might change in a future release of ICU.
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int WORD_NUMBER         = 100;
 
     /** 
      * Tag value for words that appear to be numbers, upper limit.
      * @draft ICU 3.0 
-     * @deprecated This is a draft API and might change in a future release of ICU.
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int WORD_NUMBER_LIMIT   = 200;
 
@@ -150,42 +150,42 @@ public class RuleBasedBreakIterator extends BreakIterator {
      * Tag value for words that contain letters, excluding
      * hiragana, katakana or ideographic characters, lower limit. 
      * @draft ICU 3.0 
-     * @deprecated This is a draft API and might change in a future release of ICU.
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int WORD_LETTER         = 200;
 
     /** 
      * Tag value for words containing letters, upper limit 
      * @draft ICU 3.0 
-     * @deprecated This is a draft API and might change in a future release of ICU.
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int WORD_LETTER_LIMIT   = 300;
 
     /** 
      * Tag value for words containing kana characters, lower limit
      * @draft ICU 3.0 
-     * @deprecated This is a draft API and might change in a future release of ICU.
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int WORD_KANA           = 300;
 
     /** 
      * Tag value for words containing kana characters, upper limit
      * @draft ICU 3.0 
-     * @deprecated This is a draft API and might change in a future release of ICU.
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int WORD_KANA_LIMIT     = 400;
 
     /**
      * Tag value for words containing ideographic characters, lower limit
      * @draft ICU 3.0 
-     * @deprecated This is a draft API and might change in a future release of ICU.
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int WORD_IDEO           = 400;
 
     /**
      * Tag value for words containing ideographic characters, upper limit
      * @draft ICU 3.0 
-     * @deprecated This is a draft API and might change in a future release of ICU.
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int WORD_IDEO_LIMIT     = 500;
 
@@ -307,7 +307,7 @@ public class RuleBasedBreakIterator extends BreakIterator {
      * returned break position.
      *
      * @draft ICU 3.0
-     * @deprecated This is a draft API and might change in a future release of ICU.
+     * @provisional This API might change or be removed in a future release.
      */
     public int  getRuleStatus() {
         return delegatedThis.getRuleStatus();
@@ -333,7 +333,7 @@ public class RuleBasedBreakIterator extends BreakIterator {
      *                  is the total number of status values that were available,
      *                  not the reduced number that were actually returned.
      * @draft ICU 3.0
-     * @deprecated This is a draft API and might change in a future release of ICU.
+     * @provisional This API might change or be removed in a future release.
      */
     public int getRuleStatusVec(int[] fillInArray) {
         return delegatedThis.getRuleStatusVec(fillInArray);

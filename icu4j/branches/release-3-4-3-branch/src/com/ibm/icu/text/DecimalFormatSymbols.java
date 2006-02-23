@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2005, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -62,7 +62,7 @@ final public class DecimalFormatSymbols implements Cloneable, Serializable {
      * Create a DecimalFormatSymbols object for the given locale.
      * @param locale the locale
      * @draft ICU 3.2
-     * @deprecated This is a draft API and might change in a future release of ICU.
+     * @provisional This API might change or be removed in a future release.
      */
     public DecimalFormatSymbols( ULocale locale ) {
         initialize( locale );
@@ -90,7 +90,7 @@ final public class DecimalFormatSymbols implements Cloneable, Serializable {
      * Return the character used to represent a significant digit in a pattern.
      * @return the significant digit pattern character
      * @draft ICU 3.0
-     * @deprecated This is a draft API and might change in a future release of ICU.
+     * @provisional This API might change or be removed in a future release.
      */
     public char getSignificantDigit() {
         return sigDigit;
@@ -100,7 +100,7 @@ final public class DecimalFormatSymbols implements Cloneable, Serializable {
      * Set the character used to represent a significant digit in a pattern.
      * @param sigDigit the significant digit pattern character
      * @draft ICU 3.0
-     * @deprecated This is a draft API and might change in a future release of ICU.
+     * @provisional This API might change or be removed in a future release.
      */
     public void setSignificantDigit(char sigDigit) {
         this.sigDigit = sigDigit;
@@ -326,7 +326,7 @@ final public class DecimalFormatSymbols implements Cloneable, Serializable {
      * ICU clients should use the Currency API directly.
      * @return the currency used, or null
      * @draft ICU 3.4
-     * @deprecated This is a draft API and might change in a future release of ICU.
+     * @provisional This API might change or be removed in a future release.
      */
     public Currency getCurrency() {
         return currency;
@@ -347,7 +347,7 @@ final public class DecimalFormatSymbols implements Cloneable, Serializable {
      * @see #setInternationalCurrencySymbol
      *
      * @draft ICU 3.4
-     * @deprecated This is a draft API and might change in a future release of ICU.
+     * @provisional This API might change or be removed in a future release.
      */
     public void setCurrency(Currency currency) {
         if (currency == null) {
@@ -480,7 +480,7 @@ final public class DecimalFormatSymbols implements Cloneable, Serializable {
      * Returns the locale for which this object was constructed.
      * @return the locale for which this object was constructed
      * @draft ICU 3.2
-     * @deprecated This is a draft API and might change in a future release of ICU.
+     * @provisional This API might change or be removed in a future release.
      */
     public ULocale getULocale() {
         return ulocale;
@@ -893,7 +893,7 @@ final public class DecimalFormatSymbols implements Cloneable, Serializable {
      * @see com.ibm.icu.util.ULocale#VALID_LOCALE
      * @see com.ibm.icu.util.ULocale#ACTUAL_LOCALE
      * @draft ICU 2.8 (retain)
-     * @deprecated This is a draft API and might change in a future release of ICU.
+     * @provisional This API might change or be removed in a future release.
      */
     public final ULocale getLocale(ULocale.Type type) {
         return type == ULocale.ACTUAL_LOCALE ?

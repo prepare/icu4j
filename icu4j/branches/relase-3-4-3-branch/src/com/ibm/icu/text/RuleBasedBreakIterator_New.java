@@ -568,7 +568,7 @@ private void makeRuleStatusValid() {
  * returned break position.
  *
  * @draft ICU 3.0
- * @deprecated This is a draft API and might change in a future release of ICU.
+ * @provisional This API might change or be removed in a future release.
  */
 
 public int  getRuleStatus() {
@@ -609,7 +609,7 @@ public int  getRuleStatus() {
  *                  is the total number of status values that were available,
  *                  not the reduced number that were actually returned.
  * @draft ICU 3.0
- * @deprecated This is a draft API and might change in a future release of ICU.
+ * @provisional This API might change or be removed in a future release.
  */
 public int getRuleStatusVec(int[] fillInArray) {
     makeRuleStatusValid();

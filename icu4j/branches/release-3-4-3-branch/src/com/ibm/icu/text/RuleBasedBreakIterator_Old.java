@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2005, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -837,7 +837,7 @@ throws IOException {
      * <p>
      *
      * @draft ICU 3.0
-     * @deprecated This is a draft API and might change in a future release of ICU.
+     * @provisional This API might change or be removed in a future release.
      */
     public int  getRuleStatus() {
         return 0;
@@ -855,7 +855,7 @@ throws IOException {
      * status can be declared, and a status of zero is always assumed.
      * <p>
      * @draft ICU 3.0
-     * @deprecated This is a draft API and might change in a future release of ICU.
+     * @provisional This API might change or be removed in a future release.
      */
      public int getRuleStatusVec(int[] fillInArray) {
          if (fillInArray != null && fillInArray.length >= 1) {
