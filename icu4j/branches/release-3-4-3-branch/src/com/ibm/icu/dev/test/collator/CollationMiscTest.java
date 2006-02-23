@@ -1,6 +1,6 @@
  /*
  *******************************************************************************
- * Copyright (C) 2002-2005, International Business Machines Corporation and    *
+ * Copyright (C) 2002-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -2107,9 +2107,9 @@ public class CollationMiscTest extends TestFmwk {
         };
         /* TODO: port builder fixes to before */
         genericRulesStarter(rules, test);
-        genericLocaleStarter(new Locale("zh"), test);
+        genericLocaleStarter(new Locale("zh","",""), test);
         genericRulesStarter(rules, test2);
-        genericLocaleStarter(new Locale("zh"), test2);
+        genericLocaleStarter(new Locale("zh","",""), test2);
     }
 
     public void
@@ -2118,6 +2118,6 @@ public class CollationMiscTest extends TestFmwk {
       String tests[] = { "B", "b", "Bb", "bB" };
       String[] att = { "strength", "UpperFirst" };
       Object attVals[] = { new Integer(Collator.QUATERNARY), new Boolean(true) };
-      genericLocaleStarterWithOptions(new Locale("root"), tests, att, attVals);
+      genericLocaleStarterWithOptions(new Locale("root","",""), tests, att, attVals);
     }
 }

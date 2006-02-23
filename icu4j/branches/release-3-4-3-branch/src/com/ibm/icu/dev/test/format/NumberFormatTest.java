@@ -1,7 +1,7 @@
 //##header
 /*
  *******************************************************************************
- * Copyright (C) 2001-2005, International Business Machines Corporation and    *
+ * Copyright (C) 2001-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -1221,7 +1221,11 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                 }
             }
         } catch (java.io.IOException e) {
+//#ifndef FOUNDATION
             throw new RuntimeException(e);
+//#else
+//##        throw new RuntimeException(e.getMessage());
+//#endif
         }
     }
 
