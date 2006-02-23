@@ -1288,10 +1288,8 @@
     <target name="eclipsePkgs" 
         depends="eclipseCorePkg,eclipseTestPkg,eclipseInterfacePkg"
         description="build all eclipse packages"/>
-    
-    <target name="jdk13Compat" depends="init, eclipseCoreMangle, core" description="builds ICU4J core with JDK 1.3"/>
-    <target name="jdk13CompatTests" depends="init, jdk13Core, eclipseTestMangle, tests" description="builds ICU4J tests with JDK 1.3"/>
-    <target name="jdk13CompatCheck" depends="init, jdk13Tests, tests, jar, deleteCore" description="runs the tests with JDK 1.3">   
+
+    <target name="runCheck" >    
         <java classname="com.ibm.icu.dev.test.TestAll" fork="yes" failonerror="true">
             <arg value="-n"/>
             <classpath>
@@ -1302,4 +1300,12 @@
             </classpath>
         </java>
     </target>
+    
+    <target name="eclipseCompat" depends="init, eclipseCore"/>
+    <target name="eclipseCompatTests" depends="init, eclipseTestMangle, tests" />
+    <target name="eclipseCompatCheck" depends="init, eclipseCompatTests, jar, deleteCore, runCheck"/>
+
+    <target name="jdk13Compat" depends="init, eclipseCoreMangle, core" description="builds ICU4J core with JDK 1.3"/>
+    <target name="jdk13CompatTests" depends="init, jdk13Compat, eclipseTestMangle, tests" description="builds ICU4J tests with JDK 1.3"/>
+    <target name="jdk13CompatCheck" depends="init, jdk13CompatTests, jar, deleteCore, runCheck" description="runs the tests with JDK 1.3"/>
 </project>
