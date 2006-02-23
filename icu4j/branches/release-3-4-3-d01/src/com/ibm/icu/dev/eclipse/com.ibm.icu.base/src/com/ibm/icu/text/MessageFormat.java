@@ -360,7 +360,8 @@ public class MessageFormat extends Format {
      * @stable ICU 3.0
      */
     public MessageFormat(String pattern, Locale locale) {
-        this(new java.text.MessageFormat(pattern, locale));
+        // locale is ignored
+        this(new java.text.MessageFormat(pattern));
     }
 
     /**
@@ -377,7 +378,8 @@ public class MessageFormat extends Format {
      * @stable ICU 3.2
      */
     public MessageFormat(String pattern, ULocale locale) {
-        this(pattern, locale.toLocale());
+        // locale is ignored
+        this(pattern);
     }
 
     /**
@@ -457,6 +459,8 @@ public class MessageFormat extends Format {
    }
  
    /**
+    * omitted, not in Foundation 1.0
+    *
     * Sets the formats to use for the values passed into
     * <code>format</code> methods or returned from <code>parse</code>
     * methods. The indices of elements in <code>newFormats</code>
@@ -478,7 +482,6 @@ public class MessageFormat extends Format {
     * @param newFormats the new formats to use
     * @exception NullPointerException if <code>newFormats</code> is null
     * @stable ICU 3.0
-    */
    public void setFormatsByArgumentIndex(Format[] newFormats) {
        Format[] unwrapped = new Format[newFormats.length];
        for (int i = 0; i < newFormats.length; ++i) {
@@ -486,6 +489,7 @@ public class MessageFormat extends Format {
        }
        messageFormat.setFormatsByArgumentIndex(unwrapped);
    }
+    */
    
    /**
     * Sets the formats to use for the format elements in the
@@ -514,7 +518,9 @@ public class MessageFormat extends Format {
        messageFormat.setFormats(newFormats);
    }
 
-   /**
+   /*
+    * omitted, not in Foundation 1.0
+    *
     * Sets the format to use for the format elements within the
     * previously set pattern string that use the given argument
     * index.
@@ -531,10 +537,10 @@ public class MessageFormat extends Format {
     * @param argumentIndex the argument index for which to use the new format
     * @param newFormat the new format to use
     * @stable ICU 3.0
-    */
    public void setFormatByArgumentIndex(int argumentIndex, Format newFormat) {
        messageFormat.setFormatByArgumentIndex(argumentIndex, newFormat);
    }
+    */
 
    /**
     * Sets the format to use for the format element with the given
@@ -558,7 +564,9 @@ public class MessageFormat extends Format {
        messageFormat.setFormat(formatElementIndex, newFormat);
    }
 
-   /**
+   /*
+    * omitted, not in Foundation 1.0
+    *
     * Gets the formats used for the values passed into
     * <code>format</code> methods or returned from <code>parse</code>
     * methods. The indices of elements in the returned array
@@ -577,7 +585,6 @@ public class MessageFormat extends Format {
     *
     * @return the formats used for the arguments within the pattern
     * @stable ICU 3.0
-    */
    public Format[] getFormatsByArgumentIndex() {
        Format[] result = messageFormat.getFormatsByArgumentIndex();
        for (int i = 0; i < result.length; ++i) {
@@ -585,6 +592,7 @@ public class MessageFormat extends Format {
        }
        return result;
    }
+    */
 
    /**
     * Gets the formats used for the format elements in the

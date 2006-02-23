@@ -191,6 +191,7 @@ public class DateFormat extends Format {
 
     /**
      * Alias for FRACTIONAL_SECOND_FIELD.
+     * @stable ICU 3.4.3
      */
     public final static int MILLISECOND_FIELD = FRACTIONAL_SECOND_FIELD;
 
@@ -569,6 +570,7 @@ public class DateFormat extends Format {
      * SHORT for "M/d/yy" in the US locale.
      * @param aLocale the given locale.
      * @return a date formatter.
+     * @stable ICU 3.4.3
      */
     public final static DateFormat getDateInstance(int style, ULocale aLocale) {
         return new DateFormat(java.text.DateFormat.getDateInstance(style, aLocale.toLocale()));
@@ -618,6 +620,7 @@ public class DateFormat extends Format {
      * @param timeStyle the given time formatting style.
      * @param aLocale the given locale.
      * @return a date/time formatter.
+     * @stable ICU 3.4.3
      */
     public final static DateFormat getDateTimeInstance(int dateStyle, int timeStyle, ULocale aLocale) {
         return new DateFormat(java.text.DateFormat.getDateTimeInstance(dateStyle, timeStyle, aLocale.toLocale()));
@@ -644,6 +647,7 @@ public class DateFormat extends Format {
     /**
      * Gets the set of locales for which DateFormats are installed.
      * @return the set of locales for which DateFormats are installed.
+     * @stable ICU 3.4.3
      */
     public static ULocale[] getAvailableULocales() {
         Locale[] locales = java.text.DateFormat.getAvailableLocales();
@@ -936,6 +940,7 @@ public class DateFormat extends Format {
     /**
      * Return a string suitable for debugging.
      * @return a string suitable for debugging
+     * @stable ICU 3.4.3
      */
     public String toString() {
         return dateFormat.toString();
@@ -944,6 +949,7 @@ public class DateFormat extends Format {
     /**
      * Return a clone of this DateFormat.
      * @return a clone of this DateFormat
+     * @stable ICU 3.4.3
      */
     public Object clone() {
         return new DateFormat((java.text.DateFormat)dateFormat.clone());
@@ -952,6 +958,7 @@ public class DateFormat extends Format {
     /**
      * Return true if rhs is a DateFormatSymbols and has the same symbols as this.
      * @return true if rhs equals this
+     * @stable ICU 3.4.3
      */
     public boolean equals(Object arg0) {
         try {
@@ -965,6 +972,7 @@ public class DateFormat extends Format {
     /**
      * Return a hashCode.
      * @return a hashCode
+     * @stable ICU 3.4.3
      */
     public int hashCode() {
         return dateFormat.hashCode();

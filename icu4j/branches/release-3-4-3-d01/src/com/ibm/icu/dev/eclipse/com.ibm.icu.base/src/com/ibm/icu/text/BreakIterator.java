@@ -430,6 +430,7 @@ public final class BreakIterator implements Cloneable {
      * @param where A locale specifying the language of the text to be
      * analyzed.
      * @return An instance of BreakIterator that locates word boundaries.
+     * @stable ICU 3.4.3
      */
     public static BreakIterator getWordInstance(ULocale where) {
         return getBreakInstance(where.toLocale(), KIND_WORD);
@@ -465,7 +466,7 @@ public final class BreakIterator implements Cloneable {
      * @param where A Locale specifying the language of the text being broken.
      * @return A new instance of BreakIterator that locates legal
      * line-wrapping positions.
-     * @draft ICU 3.2
+     * @stable ICU 3.4.3
      */
     public static BreakIterator getLineInstance(ULocale where) {
         return getBreakInstance(where.toLocale(), KIND_LINE);
@@ -501,6 +502,7 @@ public final class BreakIterator implements Cloneable {
      * @param where A Locale specifying the language of the text being analyzed.
      * @return A new instance of BreakIterator that locates logical-character
      * boundaries.
+     * @draft ICU 3.2
      */
     public static BreakIterator getCharacterInstance(ULocale where) {
         return getBreakInstance(where.toLocale(), KIND_CHARACTER);
@@ -531,35 +533,10 @@ public final class BreakIterator implements Cloneable {
      * Returns a new instance of BreakIterator that locates sentence boundaries.
      * @param where A Locale specifying the language of the text being analyzed.
      * @return A new instance of BreakIterator that locates sentence boundaries.
+     * @stable ICU 3.4.3
      */
     public static BreakIterator getSentenceInstance(ULocale where) {
         return getBreakInstance(where.toLocale(), KIND_SENTENCE);
-    }
-        
-    /**
-     * Returns a new instance of BreakIterator that locates title boundaries.
-     * This function assumes the text being analyzed is in the default locale's
-     * language. The iterator returned locates title boundaries as described for 
-     * Unicode 3.2 only. For Unicode 4.0 and above title boundary iteration,
-     * please use a word boundary iterator. {@link #getWordInstance}
-     * @return A new instance of BreakIterator that locates title boundaries.
-     * @stable ICU 2.0
-     */
-    public static BreakIterator getTitleInstance() {
-        return getTitleInstance(Locale.getDefault());
-    }
-        
-    /**
-     * Returns a new instance of BreakIterator that locates title boundaries.
-     * The iterator returned locates title boundaries as described for 
-     * Unicode 3.2 only. For Unicode 4.0 and above title boundary iteration,
-     * please use Word Boundary iterator.{@link #getWordInstance}
-     * @param where A Locale specifying the language of the text being analyzed.
-     * @return A new instance of BreakIterator that locates title boundaries.
-     * @stable ICU 2.0
-     */
-    public static BreakIterator getTitleInstance(Locale where) {
-        return getBreakInstance(where, KIND_TITLE);
     }
         
     private static BreakIterator getBreakInstance(Locale where, int kind) {
@@ -568,7 +545,8 @@ public final class BreakIterator implements Cloneable {
         case KIND_CHARACTER: br = java.text.BreakIterator.getCharacterInstance(where); break;
         case KIND_WORD: br = java.text.BreakIterator.getWordInstance(where); break;
         case KIND_LINE: br = java.text.BreakIterator.getLineInstance(where); break;
-        case KIND_SENTENCE: br = java.text.BreakIterator.getSentenceInstance(where); break;             case KIND_TITLE: throw new UnsupportedOperationException();
+        case KIND_SENTENCE: br = java.text.BreakIterator.getSentenceInstance(where); break;             
+        case KIND_TITLE: throw new UnsupportedOperationException();
         }
         return new BreakIterator(br);
     }
@@ -577,7 +555,7 @@ public final class BreakIterator implements Cloneable {
      * Returns a list of locales for which BreakIterators can be used.
      * @return An array of Locales.  All of the locales in the array can
      * be used when creating a BreakIterator.
-     * @draft ICU 3.2
+     * @stable ICU 3.4.3
      */
     public static synchronized Locale[] getAvailableLocales() {
         return java.text.BreakIterator.getAvailableLocales();
@@ -587,7 +565,7 @@ public final class BreakIterator implements Cloneable {
      * Returns a list of locales for which BreakIterators can be used.
      * @return An array of ULocales.  All of the locales in the array can
      * be used when creating a BreakIterator.
-     * @draft ICU 3.2
+     * @stable ICU 3.4.3
      */
     public static synchronized ULocale[] getAvailableULocales() {
         Locale[] locales = java.text.BreakIterator.getAvailableLocales();
@@ -601,7 +579,7 @@ public final class BreakIterator implements Cloneable {
     /**
      * Return a string suitable for debugging.
      * @return a string suitable for debugging
-     * @draft ICU 3.4.2
+     * @stable ICU 3.4.3
      */
     public String toString() {
         return breakIterator.toString();
@@ -610,6 +588,7 @@ public final class BreakIterator implements Cloneable {
     /**
      * Return a clone of this BreakIterator.
      * @return a clone of this BreakIterator
+     * @stable ICU 3.4.3
      */
     public Object clone() {
         return new BreakIterator((java.text.BreakIterator)breakIterator.clone());
@@ -618,6 +597,7 @@ public final class BreakIterator implements Cloneable {
     /**
      * Return true if rhs is a BreakIterator with the same break behavior as this.
      * @return true if rhs equals this
+     * @stable ICU 3.4.3
      */
     public boolean equals(Object rhs) {
         try {
@@ -631,6 +611,7 @@ public final class BreakIterator implements Cloneable {
     /**
      * Return a hashCode.
      * @return a hashCode
+     * @stable ICU 3.4.3
      */
     public int hashCode() {
         return breakIterator.hashCode();

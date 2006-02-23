@@ -315,6 +315,7 @@ public class Collator implements Comparator, Cloneable
      * @see java.util.ResourceBundle
      * @see #getInstance(Locale)
      * @see #getInstance()
+     * @stable ICU 3.4.3
      */
     public static final Collator getInstance(ULocale locale) {
     	return getInstance(locale.toLocale());
@@ -355,6 +356,7 @@ public class Collator implements Comparator, Cloneable
      * @return the list of locales in which collators are installed.
      * This list includes any that have been registered, in addition to
      * those that are installed with ICU4J.
+     * @stable ICU 3.4.3
      */
     public static final ULocale[] getAvailableULocales() {
     	Locale[] locales = java.text.Collator.getAvailableLocales();
@@ -364,7 +366,6 @@ public class Collator implements Comparator, Cloneable
     	}
     	return ulocales;
     }
-    
  
     /**
      * Return an array of all possible keywords that are relevant to
@@ -372,6 +373,8 @@ public class Collator implements Comparator, Cloneable
      * service is "collation".
      * @return an array of valid collation keywords.
      * @see #getKeywordValues
+     * @draft ICU 3.0
+     * @provisional
      */
     public static final String[] getKeywords() {
         return new String[0];
@@ -382,11 +385,12 @@ public class Collator implements Comparator, Cloneable
      * that keyword that are currently in use.
      * @param keyword one of the keywords returned by getKeywords.
      * @see #getKeywords
+     * @draft ICU 3.0
+     * @provisional
      */
     public static final String[] getKeywordValues(String keyword) {
     	return new String[0];
     }
-
 
     /**
      * <p>Returns this Collator's strength property. The strength property
@@ -513,38 +517,41 @@ public class Collator implements Comparator, Cloneable
     /**
      * Return a string suitable for debugging.
      * @return a string suitable for debugging
+     * @stable ICU 3.4.3
      */
-	public String toString() {
-		return collator.toString();
-	}
+    public String toString() {
+        return collator.toString();
+    }
 	
    /**
      * Clone the collator.
-     * @stable ICU 2.6
      * @return a clone of this collator.
+     * @stable ICU 2.6
      */
     public Object clone() throws CloneNotSupportedException {
         return new Collator((java.text.Collator)collator.clone());
     }
 	
-	/**
+    /**
      * Return true if rhs is a Collator and compares the same as this.
      * @return true if rhs equals this
-	 */
-	public boolean equals(Object rhs) {
-		try {
-			return collator.equals(((Collator)rhs).collator);
-		}
-		catch (Exception e) {
-			return false;
-		}
-	}
+     * @stable ICU 3.4.3
+     */
+    public boolean equals(Object rhs) {
+        try {
+            return collator.equals(((Collator)rhs).collator);
+        }
+        catch (Exception e) {
+            return false;
+        }
+    }
 	
-	/**
+    /**
      * Return a hashCode.
      * @return a hashCode
-	 */
-	public int hashCode() {
-		return collator.hashCode();
-	}
+     * @stable ICU 3.4.3
+     */
+    public int hashCode() {
+        return collator.hashCode();
+    }
 }

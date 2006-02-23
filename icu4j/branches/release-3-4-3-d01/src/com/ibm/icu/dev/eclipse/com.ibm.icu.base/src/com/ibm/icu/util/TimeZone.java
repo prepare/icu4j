@@ -113,23 +113,6 @@ public class TimeZone implements Serializable, Cloneable {
     }
 
     /**
-     * Returns the offset of this time zone from UTC at the specified
-     * date. If Daylight Saving Time is in effect at the specified
-     * date, the offset value is adjusted with the amount of daylight
-     * saving.
-     *
-     * @param date the date represented in milliseconds since January 1, 1970 00:00:00 GMT
-     * @return the amount of time in milliseconds to add to UTC to get local time.
-     *
-     * @see Calendar#ZONE_OFFSET
-     * @see Calendar#DST_OFFSET
-     * @stable ICU 2.8
-     */
-    public int getOffset(long date) {
-        return timeZone.getOffset(date);
-    }
-
-    /**
      * Sets the base time zone offset to GMT.
      * This is the offset to add *to* UTC to get local time.
      * @param offsetMillis the given base time zone offset to GMT.
