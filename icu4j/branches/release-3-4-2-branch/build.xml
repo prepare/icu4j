@@ -63,7 +63,7 @@
         </condition>
         
         <condition property="doc.params"
-            value="-breakiterator -use -tagletpath ./classes -taglet com.ibm.icu.dev.tool.docs.ICUTaglet -group 'ICU Core' 'com.ibm.icu.lang*:com.ibm.icu.math*:com.ibm.icu.text*:com.ibm.icu.util*:com.ibm.icu.stringprep*' -group 'ICU Tests' 'com.ibm.icu.dev.test*' -group 'Demos' 'com.ibm.icu.dev.demo*' -group 'ICU Tools' 'com.ibm.icu.dev*'">
+            value="-breakiterator -use -tagletpath ./classes -taglet com.ibm.icu.dev.tool.docs.ICUTaglet -group 'ICU Core' 'com.ibm.icu.lang*:com.ibm.icu.math*:com.ibm.icu.text*:com.ibm.icu.util*' -group 'ICU Tests' 'com.ibm.icu.dev.test*' -group 'Demos' 'com.ibm.icu.dev.demo*' -group 'ICU Tools' 'com.ibm.icu.dev*'">
                 <equals arg1="${version.1.4}" arg2="true"/>
         </condition>
 
@@ -324,7 +324,7 @@
         <echo message="doc params: ${doc.params}"/>
         <mkdir dir="${doc.dir}"/>
         <javadoc
-            packagenames="com.ibm.icu.lang,com.ibm.icu.text,com.ibm.icu.util,com.ibm.icu.math,com.ibm.icu.stringprep,com.ibm.icu.dev"
+            packagenames="com.ibm.icu.lang,com.ibm.icu.text,com.ibm.icu.util,com.ibm.icu.math,com.ibm.icu.dev"
             sourcepath="${src.dir}"
             destdir="${doc.dir}"
             nodeprecatedlist="true"
@@ -332,7 +332,7 @@
             doctitle="icu4j"
             encoding="iso-8859-1"
             docencoding="iso-8859-1"
-            bottom="&lt;font size=-1>Copyright (c) 2005 IBM Corporation and others.&lt;/font>"
+            bottom="&lt;font size=-1>Copyright (c) 2006 IBM Corporation and others.&lt;/font>"
             additionalparam="${doc.params}"
             link="http://java.sun.com/j2se/1.5/docs/api"
             source="1.4"/>
