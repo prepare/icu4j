@@ -1357,7 +1357,7 @@
     
     <target name="eclipseCompat" depends="init, eclipseCore"/>
     <target name="eclipseCompatTests" depends="init, eclipseTestMangle, tests" />
-    <target name="eclipseCompatCheck" depends="init, eclipseCompatTests, jar, deleteCore, runCheck"/>
+    <target name="eclipseCompatCheck" depends="init, eclipseCompat, eclipseCompatTests, jar, deleteCore, runCheck"/>
 
     <target name="jdk13Compat" depends="init, eclipseCoreMangle, core" description="builds ICU4J core with JDK 1.3"/>
     <target name="jdk13CompatTests" depends="init, jdk13Compat, eclipseTestMangle, tests" description="builds ICU4J tests with JDK 1.3"/>
