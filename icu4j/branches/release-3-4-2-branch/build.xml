@@ -58,6 +58,7 @@
             <or>
                 <equals arg1="${ant.java.version}" arg2="1.4"/>
                 <equals arg1="${ant.java.version}" arg2="1.5"/>
+                <equals arg1="${ant.java.version}" arg2="1.6"/>
             </or>
         </condition>
         
@@ -1185,6 +1186,31 @@
         </java>
     </target>
 
+    <!-- convert @deprecated @draft tags to @provisional -->
+    <target name="swatDeprecated" depends="init, tools" if="version.1.4">
+        <java classname="com.ibm.icu.dev.tool.docs.SwatDeprecated" classpath="${build.dir}" failonerror="true">
+           <arg value="-src"/>
+           <arg value="${src.dir}"/>
+           <arg value="-dst"/>
+           <arg value="${src.dir}"/>
+           <arg value="-overwrite"/>
+           <arg value="-verbose"/>
+        </java>
+    </target>
+
+    <!-- convert @provisional tags to @deprecated -->
+    <target name="restoreDeprecated" depends="init, tools" if="version.1.4">
+        <java classname="com.ibm.icu.dev.tool.docs.SwatDeprecated" classpath="${build.dir}" failonerror="true">
+           <arg value="-prov"/>
+           <arg value="-src"/>
+           <arg value="${src.dir}"/>
+           <arg value="-dst"/>
+           <arg value="${src.dir}"/>
+           <arg value="-overwrite"/>
+           <arg value="-verbose"/>
+        </java>
+    </target>
+    
     <!-- for building eclipse distribution -->
     
     <target name="zipCoreSrc" depends="init" description="build zip of core sources for debugging">
