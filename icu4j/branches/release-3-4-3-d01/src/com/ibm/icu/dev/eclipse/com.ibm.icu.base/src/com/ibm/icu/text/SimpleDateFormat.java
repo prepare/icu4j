@@ -13,7 +13,6 @@ import java.util.Date;
 import java.util.Locale;
 
 import com.ibm.icu.util.ULocale;
-
 import com.ibm.icu.util.Calendar;
 
 /**
@@ -196,7 +195,7 @@ import com.ibm.icu.util.Calendar;
 public class SimpleDateFormat extends DateFormat {
     private static final long serialVersionUID = 1;
        
-    /*
+    /**
      * Construct a SimpleDateFormat using the default pattern for the default
      * locale.  <b>Note:</b> Not all locales support SimpleDateFormat; for full
      * generality, use the factory methods in the DateFormat class.
