@@ -11,7 +11,6 @@ package com.ibm.icu.text;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.math.BigInteger;
-import java.text.DateFormat;
 import java.text.DecimalFormatSymbols;
 import java.text.FieldPosition;
 import java.text.Format;

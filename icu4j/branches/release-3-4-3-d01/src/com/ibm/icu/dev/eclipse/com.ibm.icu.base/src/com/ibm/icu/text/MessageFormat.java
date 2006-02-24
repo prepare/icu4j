@@ -561,7 +561,7 @@ public class MessageFormat extends Format {
     * @stable ICU 3.0
     */
    public void setFormat(int formatElementIndex, Format newFormat) {
-       messageFormat.setFormat(formatElementIndex, newFormat);
+       messageFormat.setFormat(formatElementIndex, unwrap(newFormat));
    }
 
    /*
