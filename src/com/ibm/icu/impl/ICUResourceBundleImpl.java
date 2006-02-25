@@ -1,7 +1,10 @@
 //##header
 /*
+
  ******************************************************************************
+
  * Copyright (C) 2004-2006, International Business Machines Corporation and   *
+
  * others. All Rights Reserved.                                               *
  ******************************************************************************
  */
@@ -25,13 +28,19 @@ import java.nio.ByteBuffer;
  */
 public class ICUResourceBundleImpl extends ICUResourceBundle {
     //protected byte[] version;
+
     private byte[] rawData;
+
     private long rootResource;
+
     private boolean noFallback;
 
     private String localeID;
+
     private String baseName;
+
     private ULocale ulocale;
+
     private ClassLoader loader;
 
     private static final boolean ASSERT = false;
@@ -52,12 +61,18 @@ public class ICUResourceBundleImpl extends ICUResourceBundle {
         // could not open the .res file so return null
         if (reader == null) {
             return null;
+
         }
+
+
 
         ICUResourceBundleImpl bundle = new ICUResourceBundleImpl(reader,
                 baseName, localeID, root);
         return bundle.getBundle();
+
     }
+
+
 
     protected String getLocaleID() {
         return localeID;
@@ -77,7 +92,10 @@ public class ICUResourceBundleImpl extends ICUResourceBundle {
 
     protected void setParent(ResourceBundle parent) {
         this.parent = parent;
+
     }
+
+
 
     /**
      * Get the noFallback flag specified in the loaded bundle.
@@ -88,8 +106,11 @@ public class ICUResourceBundleImpl extends ICUResourceBundle {
     }
 
     private ICUResourceBundle getBundle() {
+
         int type = RES_GET_TYPE(rootResource);
+
         if (type == TABLE) {
+
             ResourceTable table = new ResourceTable(null, rootResource, "", true);
             if(table.size==1){
                 ICUResourceBundle b = table.handleGet(0, table);
@@ -112,16 +133,22 @@ public class ICUResourceBundleImpl extends ICUResourceBundle {
             return new ResourceTable32(null, rootResource, "", true);
         } else {
             throw new InternalError("Invalid format error");
+
         }
+
     }
+
     private ICUResourceBundleImpl(ICUResourceBundleReader reader, String baseName,
             String localeID, ClassLoader loader) {
         this.rawData = reader.getData();
         this.rootResource = (UNSIGNED_INT_MASK) & reader.getRootResource();
         this.noFallback = reader.getNoFallback();
         this.baseName = baseName;
+
         this.localeID = localeID;
+
         this.ulocale = new ULocale(localeID);
+
         this.loader = loader;
     }
     static final int RES_GET_TYPE(long res) {
@@ -524,15 +551,15 @@ public class ICUResourceBundleImpl extends ICUResourceBundle {
     private class ResourceBinary extends ICUResourceBundle {
         private byte[] value;
         public ByteBuffer getBinary() {
+
             return ByteBuffer.wrap(value);
-        }      
-        public byte [] getBinary(byte []ba) {
-            return value;
         }
-        
         private byte[] getValue() {
+
             int offset = RES_GET_OFFSET(resource);
+
             int length = ICUResourceBundleImpl.getInt(rawData,offset);
+
             int byteOffset = offset + getIntOffset(1);
             byte[] dst = new byte[length];
             if (ASSERT) Assert.assrt("byteOffset+length < rawData.length", byteOffset+length < rawData.length);
@@ -672,30 +699,30 @@ public class ICUResourceBundleImpl extends ICUResourceBundle {
             sub.resPath = "/" + sub.getLocaleID() + "/" + keyPath;
         }else{
             if (locale == null) {
-                // {dlf} must use requestor's class loader to get resources from same jar
-                bundle = (ICUResourceBundle) getBundleInstance(bundleName, "",
-                         loaderToUse, false); 
-            } else {
-                bundle = (ICUResourceBundle) getBundleInstance(bundleName, locale,
-                         loaderToUse, false);
-            }
-            if (keyPath != null) {
-                StringTokenizer st = new StringTokenizer(keyPath, "/");
-                ICUResourceBundle current = bundle;
-                while (st.hasMoreTokens()) {
-                    String subKey = st.nextToken();
-                    sub = current.getImpl(subKey, table, requested);
-                    if (sub == null) {
-                        break;
-                    }
-                    current = sub;
+            // {dlf} must use requestor's class loader to get resources from same jar
+            bundle = (ICUResourceBundle) getBundleInstance(bundleName, "",
+                     loaderToUse, false); 
+        } else {
+            bundle = (ICUResourceBundle) getBundleInstance(bundleName, locale,
+                     loaderToUse, false);
+        }
+        if (keyPath != null) {
+            StringTokenizer st = new StringTokenizer(keyPath, "/");
+            ICUResourceBundle current = bundle;
+            while (st.hasMoreTokens()) {
+                String subKey = st.nextToken();
+                sub = current.getImpl(subKey, table, requested);
+                if (sub == null) {
+                    break;
                 }
-            } else {
-                // if the sub resource is not found
-                // try fetching the sub resource with
-                // the key of this alias resource
-                sub = bundle.get(key);
+                current = sub;
             }
+        } else {
+            // if the sub resource is not found
+            // try fetching the sub resource with
+            // the key of this alias resource
+            sub = bundle.get(key);
+        }
             sub.resPath = resPath;
         }
         if (sub == null) {
