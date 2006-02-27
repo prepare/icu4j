@@ -1,7 +1,10 @@
 //##header
 /*
+
  * *****************************************************************************
+
  * Copyright (C) 2005-2006, International Business Machines Corporation and * others.
+
  * All Rights Reserved. *
  * *****************************************************************************
  */
@@ -172,8 +175,11 @@ public abstract class ICUResourceBundle extends UResourceBundle {
      *         FROM_DEFAULT if the resource is fetched from the default locale.
      */
     public int getLoadingStatus() {
+
         return loadingStatus;
+
     }
+
 
     /**
      * Get the noFallback flag specified in the loaded bundle.
@@ -244,24 +250,6 @@ public abstract class ICUResourceBundle extends UResourceBundle {
         throw new UResourceTypeMismatchException("");
     }
 
-    /**
-     * Returns a binary data from a binary resource.
-     *
-     * @param ba Establish the return type from this function.  The value of the parameter
-     *            is not used; a null variable is OK.  The thing that matters is the type
-     *            of the parameter
-     * @return an array unsigned bytes containing the binary data from the resource.
-     * @see #getIntVector
-     * @see #getInt
-     * @throws MissingResourceException
-     * @throws UResourceTypeMismatchException
-     * @draft ICU 3.6
-     */
-    public byte [] getBinary(byte []ba) {
-        throw new UResourceTypeMismatchException("");
-    }
-    
-    
     /**
      * Returns a 32 bit integer array from a resource.
      *
@@ -1140,7 +1128,7 @@ public abstract class ICUResourceBundle extends UResourceBundle {
         if (other instanceof ICUResourceBundle) {
             ICUResourceBundle o = (ICUResourceBundle) other;
             if (getBaseName().equals(o.getBaseName())
-                    && getULocale().equals(o.getULocale())) {
+                    && getLocaleID().equals(o.getLocaleID())) {
                 return true;
             }
         }
@@ -1181,18 +1169,26 @@ public abstract class ICUResourceBundle extends UResourceBundle {
         }
         if(DEBUG) System.out.println("Creating "+fullName+ " currently b is "+b);
         if (b == null) {
+
             b = ICUResourceBundleImpl.createBundle(baseName, localeName, root);
             
+            
+
             if(DEBUG)System.out.println("The bundle created is: "+b+" and disableFallback="+disableFallback+" and bundle.getNoFallback="+(b!=null && b.getNoFallback()));
             if(disableFallback || (b!=null && b.getNoFallback())){
                 // no fallback because the caller said so or because the bundle says so
                 return b;
+
             }
+
 
             // fallback to locale ID parent
             if(b == null){
+
                 int i = localeName.lastIndexOf('_');
+
                 if (i != -1) {
+
                     String temp = localeName.substring(0, i);
                     b = (ICUResourceBundle)instantiateBundle(baseName, temp, root, disableFallback);
                     if(b!=null && b.getULocale().equals(temp)){

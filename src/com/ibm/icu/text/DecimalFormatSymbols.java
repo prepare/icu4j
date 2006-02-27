@@ -17,7 +17,6 @@ import java.io.Serializable;
 import java.text.ChoiceFormat;
 import java.util.Hashtable;
 import java.util.Locale;
-import java.util.MissingResourceException;
 
 /**
  * This class represents the set of symbols (such as the decimal separator, the
@@ -63,7 +62,7 @@ final public class DecimalFormatSymbols implements Cloneable, Serializable {
      * Create a DecimalFormatSymbols object for the given locale.
      * @param locale the locale
      * @draft ICU 3.2
-     * @deprecated This is a draft API and might change in a future release of ICU.
+     * @provisional This API might change or be removed in a future release.
      */
     public DecimalFormatSymbols( ULocale locale ) {
         initialize( locale );
@@ -91,7 +90,7 @@ final public class DecimalFormatSymbols implements Cloneable, Serializable {
      * Return the character used to represent a significant digit in a pattern.
      * @return the significant digit pattern character
      * @draft ICU 3.0
-     * @deprecated This is a draft API and might change in a future release of ICU.
+     * @provisional This API might change or be removed in a future release.
      */
     public char getSignificantDigit() {
         return sigDigit;
@@ -101,7 +100,7 @@ final public class DecimalFormatSymbols implements Cloneable, Serializable {
      * Set the character used to represent a significant digit in a pattern.
      * @param sigDigit the significant digit pattern character
      * @draft ICU 3.0
-     * @deprecated This is a draft API and might change in a future release of ICU.
+     * @provisional This API might change or be removed in a future release.
      */
     public void setSignificantDigit(char sigDigit) {
         this.sigDigit = sigDigit;
@@ -327,7 +326,7 @@ final public class DecimalFormatSymbols implements Cloneable, Serializable {
      * ICU clients should use the Currency API directly.
      * @return the currency used, or null
      * @draft ICU 3.4
-     * @deprecated This is a draft API and might change in a future release of ICU.
+     * @provisional This API might change or be removed in a future release.
      */
     public Currency getCurrency() {
         return currency;
@@ -348,7 +347,7 @@ final public class DecimalFormatSymbols implements Cloneable, Serializable {
      * @see #setInternationalCurrencySymbol
      *
      * @draft ICU 3.4
-     * @deprecated This is a draft API and might change in a future release of ICU.
+     * @provisional This API might change or be removed in a future release.
      */
     public void setCurrency(Currency currency) {
         if (currency == null) {
@@ -370,25 +369,6 @@ final public class DecimalFormatSymbols implements Cloneable, Serializable {
     }
 
     /**
-     * Return the monetary decimal separator.
-     * @return the monetary decimal separator character
-     * @draft ICU 3.6
-     * @deprecated
-     */
-    public char getMonetaryGroupingSeparator()
-    {
-        return monetaryGroupingSeparator;
-    }
-    
-    /**
-     * Internal API for NumberFormat
-     * @return String currency pattern string	
-     * @internal
-     */
-    String getCurrencyPattern(){
-        return currencyPattern;
-    }
-    /**
      * Set the monetary decimal separator.
      * @param sep the monetary decimal separator character
      * @stable ICU 2.0
@@ -396,16 +376,6 @@ final public class DecimalFormatSymbols implements Cloneable, Serializable {
     public void setMonetaryDecimalSeparator(char sep)
     {
         monetarySeparator = sep;
-    }
-    /**
-     * Set the monetary decimal separator.
-     * @param sep the monetary decimal separator character
-     * @draft ICU 3.6
-     * @deprecated
-     */
-    public void setMonetaryGroupingSeparator(char sep)
-    {
-        monetaryGroupingSeparator = sep;
     }
 
     /**
@@ -510,7 +480,7 @@ final public class DecimalFormatSymbols implements Cloneable, Serializable {
      * Returns the locale for which this object was constructed.
      * @return the locale for which this object was constructed
      * @draft ICU 3.2
-     * @deprecated This is a draft API and might change in a future release of ICU.
+     * @provisional This API might change or be removed in a future release.
      */
     public ULocale getULocale() {
         return ulocale;
@@ -648,30 +618,8 @@ final public class DecimalFormatSymbols implements Cloneable, Serializable {
             currencySymbol = "\u00A4"; // 'OX' currency symbol
         }
         // If there is a currency decimal, use it.
-        monetarySeparator = decimalSeparator;
-        monetaryGroupingSeparator = groupingSeparator;
-        Currency curr = Currency.getInstance(locale);
-        if(curr!=null){
-            String currencyCode = curr.getCurrencyCode();
-            if(currencyCode != null) {
-                /* An explicit currency was requested */
-                ICUResourceBundle resource = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, locale);
-                ICUResourceBundle currency = resource.getWithFallback("Currencies");
-                try{
-                    currency = currency.getWithFallback(currencyCode);
-                    if(currency.getSize()>2) {
-                        currency = currency.get(2);
-                        currencyPattern = currency.getString(0);
-                        monetarySeparator = currency.getString(1).charAt(0);
-                        monetaryGroupingSeparator = currency.getString(2).charAt(0);
-                    }
-                }catch(MissingResourceException ex){
-                    /* else An explicit currency was requested and is unknown or locale data is malformed. */
-                    /* decimal format API will get the correct value later on. */
-                }
-            }
-            /* else no currency keyword used. */
-        }
+        monetarySeparator =
+            numberElements[0].charAt(0);
         //monetarySeparator = numberElements[11].charAt(0);
     }
 
@@ -719,10 +667,6 @@ final public class DecimalFormatSymbols implements Cloneable, Serializable {
         if (serialVersionOnStream < 4) {
             // use same default behavior as for versions with no Locale
             ulocale = ULocale.forLocale(locale);
-        }		   
-		if (serialVersionOnStream < 5) {
-			// use the same one for groupingSeparator
-			monetaryGroupingSeparator = groupingSeparator;
         }
         serialVersionOnStream = currentSerialVersion;
 
@@ -837,13 +781,6 @@ final public class DecimalFormatSymbols implements Cloneable, Serializable {
     private  char    monetarySeparator; // Field new in JDK 1.1.6
 
     /**
-     * The decimal separator used when formatting currency values.
-     * @serial
-     * @see #getMonetaryGroupingSeparator
-     */
-    private  char    monetaryGroupingSeparator; // Field new in JDK 1.1.6
-
-    /**
      * The character used to distinguish the exponent in a number formatted
      * in exponential notation, e.g. 'E' for a number such as "1.23E45".
      * <p>
@@ -906,8 +843,7 @@ final public class DecimalFormatSymbols implements Cloneable, Serializable {
     //     padEscape, exponentSeparator, and plusSign.
     // - 3 for ICU 2.2, which includes the locale field
     // - 4 for ICU 3.2, which includes the ULocale field
-    // - 5 for ICU 3.6, which includes the monetaryGroupingSeparator field
-    private static final int currentSerialVersion = 5;
+    private static final int currentSerialVersion = 4;
     
     /**
      * Describes the version of <code>DecimalFormatSymbols</code> present on the stream.
@@ -932,12 +868,7 @@ final public class DecimalFormatSymbols implements Cloneable, Serializable {
      * cache to hold the NumberElements of a Locale.
      */
     private static final Hashtable cachedLocaleData = new Hashtable(3);
-    
-    /**
-     * 
-     */
-    private String  currencyPattern = null;
-    
+ 
     // -------- BEGIN ULocale boilerplate --------
 
     /**
@@ -962,7 +893,7 @@ final public class DecimalFormatSymbols implements Cloneable, Serializable {
      * @see com.ibm.icu.util.ULocale#VALID_LOCALE
      * @see com.ibm.icu.util.ULocale#ACTUAL_LOCALE
      * @draft ICU 2.8 (retain)
-     * @deprecated This is a draft API and might change in a future release of ICU.
+     * @provisional This API might change or be removed in a future release.
      */
     public final ULocale getLocale(ULocale.Type type) {
         return type == ULocale.ACTUAL_LOCALE ?

@@ -10,7 +10,6 @@ package com.ibm.icu.text;
 import java.util.Vector;
 import java.util.Stack;
 import java.util.Hashtable;
-import com.ibm.icu.impl.Assert;
 import java.text.CharacterIterator;
 import java.io.InputStream;
 import java.io.IOException;
@@ -18,7 +17,7 @@ import java.io.IOException;
 import java.io.*;
 
 /**
- * A subclass of RuleBasedBreakIterator that adds the ability to use a dictionary
+ * A subclass of RuleBasedBreakIterator_Old that adds the ability to use a dictionary
  * to further subdivide ranges of text beyond what is possible using just the
  * state-table-based algorithm.  This is necessary, for example, to handle
  * word and line breaking in Thai, which doesn't use spaces between words.  The
@@ -42,7 +41,7 @@ import java.io.*;
  *
  * @stable ICU 2.0
  */
-public class DictionaryBasedBreakIterator extends RuleBasedBreakIterator {
+public class DictionaryBasedBreakIterator extends RuleBasedBreakIterator_Old {
 
     /**
      * a list of known words that is used to divide up contiguous ranges of letters,
@@ -57,6 +56,11 @@ public class DictionaryBasedBreakIterator extends RuleBasedBreakIterator {
      */
     private boolean[] categoryFlags;
 
+    /**
+     * a temporary hiding place for the number of dictionary characters in the
+     * last range passed over by next()
+     */
+    private int dictionaryCharCount;
 
     /**
      * when a range of characters is divided up using the dictionary, the break
@@ -75,40 +79,57 @@ public class DictionaryBasedBreakIterator extends RuleBasedBreakIterator {
     /**
      * Special variable name for characters in words in dictionary
      */
- 
+    private static final String DICTIONARY_VAR = "_dictionary_";
+
     /**
      * Constructs a DictionaryBasedBreakIterator.
-     * @param rules Same as the rules parameter on RuleBasedBreakIterator,
-     * except for the special meaning of "_dictionary_".  This parameter is just
-     * passed through to RuleBasedBreakIterator constructor.
+     * @param description Same as the description parameter on RuleBasedBreakIterator_Old,
+     * except for the special meaning of DICTIONARY_VAR.  This parameter is just
+     * passed through to RuleBasedBreakIterator_Old's constructor.
      * @param dictionaryStream the stream containing the dictionary data
      * @stable ICU 2.0
      */
-    public DictionaryBasedBreakIterator(String rules,
+    public DictionaryBasedBreakIterator(String description,
                                         InputStream dictionaryStream) throws IOException {
-        super(rules);
+        super(description);
         dictionary = new BreakDictionary(dictionaryStream);
     }
 
-    
     /**
-     * Construct a DictionarBasedBreakIterator from precompiled rules.
-     * @param compiledRules an input stream containing the binary (flattened) compiled rules.
-     * @param dictionaryStream an input stream containing the dictionary data
+     * Returns a Builder that is customized to build a DictionaryBasedBreakIterator.
+     * This is the same as RuleBasedBreakIterator_Old.Builder, except for the extra code
+     * to handle the DICTIONARY_VAR tag.
      * @internal
      */
-    public DictionaryBasedBreakIterator(InputStream compiledRules,
-                                         InputStream dictionaryStream) throws IOException {
-       fRData = RBBIDataWrapper.get(compiledRules);   // Init the RBBI part of this iterator.
-       dictionary = new BreakDictionary(dictionaryStream);
+    protected RuleBasedBreakIterator_Old.Builder makeBuilder() {
+        return new Builder();
     }
-                    
+    
+    /** @internal */
+    public void writeTablesToFile(FileOutputStream file, boolean littleEndian) throws IOException {
+        super.writeTablesToFile(file, littleEndian);
+        
+        DataOutputStream out = new DataOutputStream(file);
+        
+        // --- write index to fields (there's only one entry, but this allows subclassing of this class)
+        writeSwappedInt((short)8, out, littleEndian);
+        writeSwappedInt((short)(categoryFlags.length + 3 & 0x0f), out, littleEndian);
+        
+        for (int i = 0; i < categoryFlags.length; i++)
+            out.writeBoolean(categoryFlags[i]);
+        switch (categoryFlags.length % 4) {
+            case 1: out.write(0);
+            case 2: out.write(0);
+            case 3: out.write(0);
+            default: break;
+        }
+    }
 
     /** @stable ICU 2.0 */
     public void setText(CharacterIterator newText) {
         super.setText(newText);
         cachedBreakPositions = null;
-        fDictionaryCharCount = 0;
+        dictionaryCharCount = 0;
         positionInCache = 0;
     }
 
@@ -120,7 +141,7 @@ public class DictionaryBasedBreakIterator extends RuleBasedBreakIterator {
      */
     public int first() {
         cachedBreakPositions = null;
-        fDictionaryCharCount = 0;
+        dictionaryCharCount = 0;
         positionInCache = 0;
         return super.first();
     }
@@ -133,7 +154,7 @@ public class DictionaryBasedBreakIterator extends RuleBasedBreakIterator {
      */
     public int last() {
         cachedBreakPositions = null;
-        fDictionaryCharCount = 0;
+        dictionaryCharCount = 0;
         positionInCache = 0;
         return super.last();
     }
@@ -235,49 +256,6 @@ public class DictionaryBasedBreakIterator extends RuleBasedBreakIterator {
             return text.getIndex();
         }
     }
-    
-    
-    /**
-     * Return the status tag from the break rule that determined the most recently
-     * returned break position. 
-     * 
-     * TODO:  not supported with dictionary based break iterators.
-     *
-     * @return the status from the break rule that determined the most recently
-     * returned break position.
-     * @draft ICU 3.0
-     * @deprecated This is a draft API and might change in a future release of ICU.
-     */
-     public int getRuleStatus() {
-        return 0;
-     }
-
-
-    /**
-     * Get the status (tag) values from the break rule(s) that determined the most 
-     * recently returned break position.  The values appear in the rule source
-     * within brackets, {123}, for example.  The default status value for rules
-     * that do not explicitly provide one is zero.
-     * <p>
-     * TODO: not supported for dictionary based break iterator. 
-     *
-     * @param fillInArray an array to be filled in with the status values.  
-     * @return          The number of rule status values from rules that determined 
-     *                  the most recent boundary returned by the break iterator.
-     *                  In the event that the array is too small, the return value
-     *                  is the total number of status values that were available,
-     *                  not the reduced number that were actually returned.
-     * @draft ICU 3.0
-     * @deprecated This is a draft API and might change in a future release of ICU.
-     */
-    public int getRuleStatusVec(int[] fillInArray) {
-        if (fillInArray != null && fillInArray.length>=1) {  
-            fillInArray[0] = 0;
-        }
-        return 1;
-    }
-
-
 
     /**
      * This is the implementation function for next().
@@ -295,13 +273,13 @@ public class DictionaryBasedBreakIterator extends RuleBasedBreakIterator {
             // value.   dictionaryCharCount tells us how many dictionary characters
             // we passed over on our way to the tentative return value
             int startPos = text.getIndex();
-            fDictionaryCharCount = 0;
+            dictionaryCharCount = 0;
             int result = super.handleNext();
 
             // if we passed over more than one dictionary character, then we use
             // divideUpDictionaryRange() to regenerate the cached break positions
             // for the new range
-            if (fDictionaryCharCount > 1 && result - startPos > 1) {
+            if (dictionaryCharCount > 1 && result - startPos > 1) {
                 divideUpDictionaryRange(startPos, result);
             }
 
@@ -321,8 +299,24 @@ public class DictionaryBasedBreakIterator extends RuleBasedBreakIterator {
             text.setIndex(cachedBreakPositions[positionInCache]);
             return cachedBreakPositions[positionInCache];
         }
-        Assert.assrt(false);
         return -9999;   // SHOULD NEVER GET HERE!
+    }
+
+    /**
+     * Looks up a character category for a character.
+     * @internal
+     */
+    protected int lookupCategory(char c) {
+        // this override of lookupCategory() exists only to keep track of whether we've
+        // passed over any dictionary characters.  It calls the inherited lookupCategory()
+        // to do the real work, and then checks whether its return value is one of the
+        // categories represented in the dictionary.  If it is, bump the dictionary-
+        // character count.
+        int result = super.lookupCategory(c);
+        if (result != RuleBasedBreakIterator_Old.IGNORE && categoryFlags[result]) {
+            ++dictionaryCharCount;
+        }
+        return result;
     }
 
     /**
@@ -341,12 +335,13 @@ public class DictionaryBasedBreakIterator extends RuleBasedBreakIterator {
         // that needs to be kept with the word).  Seek from the beginning of the
         // range to the first dictionary character
         text.setIndex(startPos);
-        int c = CICurrent32(text);
-        while (isDictionaryChar(c) == false) {  
-            c = CINext32(text);
+        char c = text.current();
+        int category = lookupCategory(c);
+        while (category == IGNORE || !categoryFlags[category]) {
+            c = text.next();
+            category = lookupCategory(c);
         }
-        
-        //System.out.println("\nDividing up range from " + (text.getIndex() + 1) + " to " + endPos);
+//System.out.println("\nDividing up range from " + (text.getIndex() + 1) + " to " + endPos);
 
         // initialize.  We maintain two stacks: currentBreakPositions contains
         // the list of break positions that will be returned if we successfully
@@ -380,7 +375,7 @@ public class DictionaryBasedBreakIterator extends RuleBasedBreakIterator {
         Stack bestBreakPositions = null;
 
         // initialize (we always exit the loop with a break statement)
-        c = CICurrent32(text);
+        c = text.current();
         while (true) {
 //System.out.print("c = " + Integer.toString(c, 16) + ", pos = " + text.getIndex());
 
@@ -392,10 +387,7 @@ public class DictionaryBasedBreakIterator extends RuleBasedBreakIterator {
             }
 
             // look up the new state to transition to in the dictionary
-            //    There will be no supplementaries here because the Thai dictionary
-            //     does not include any.  This code is going away soon, not worth
-            //     fixing.
-            state = (dictionary.at(state, (char)c)) & 0xFFFF;  // TODO: fix supplementaries
+            state = (dictionary.at(state, c)) & 0xFFFF;
 //System.out.print(", state = " + state);
 
             // if the character we're sitting on causes us to transition to
@@ -457,7 +449,7 @@ public class DictionaryBasedBreakIterator extends RuleBasedBreakIterator {
                                 && text.getIndex() != startPos) {
                             currentBreakPositions.push(new Integer(text.getIndex()));
                         }
-                        CINext32(text);
+                        text.next();
                         currentBreakPositions.push(new Integer(text.getIndex()));
                     }
                 }
@@ -481,7 +473,7 @@ public class DictionaryBasedBreakIterator extends RuleBasedBreakIterator {
 
                 // re-sync "c" for the next go-round, and drop out of the loop if
                 // we've made it off the end of the range
-                c = CICurrent32(text);
+                c = text.current();
                 state = 0;
                 if (text.getIndex() >= endPos) {
                     break;
@@ -491,7 +483,7 @@ public class DictionaryBasedBreakIterator extends RuleBasedBreakIterator {
             // if we didn't hit any exceptional conditions on this last iteration,
             // just advance to the next character and loop
             else {
-                c = CINext32(text);
+                c = text.next();
             }
 //System.out.print(", possibleBreakPositions = { "); for (int i = 0; i < possibleBreakPositions.size(); i++) System.out.print(possibleBreakPositions.elementAt(i) + " "); System.out.print("}");
 //System.out.print(", currentBreakPositions = { "); for (int i = 0; i < currentBreakPositions.size(); i++) System.out.print(currentBreakPositions.elementAt(i) + " "); System.out.println("}");
@@ -520,4 +512,77 @@ public class DictionaryBasedBreakIterator extends RuleBasedBreakIterator {
         positionInCache = 0;
     }
 
+    /**
+     * The Builder class for DictionaryBasedBreakIterator inherits almost all of
+     * its functionality from the Builder class for RuleBasedBreakIterator_Old, but
+     * extends it with extra logic to handle the DICTIONARY_VAR token
+     * @internal
+     */
+    protected class Builder extends RuleBasedBreakIterator_Old.Builder {
+
+        /**
+         * A UnicodeSet that contains all the characters represented in the dictionary
+         */
+        private UnicodeSet dictionaryChars = new UnicodeSet();
+        private String dictionaryExpression = "";
+
+        /**
+         * No special initialization
+     * @internal
+         */
+        public Builder() {
+        }
+
+        /**
+         * We override handleSpecialSubstitution() to add logic to handle
+         * the $dictionary tag.  If we see a substitution named DICTIONARY_VAR,
+         * parse the substitution expression and store the result in
+         * dictionaryChars.
+     * @internal
+         */
+        protected void handleSpecialSubstitution(String replace, String replaceWith,
+                                                 int startPos, String description) {
+            super.handleSpecialSubstitution(replace, replaceWith, startPos, description);
+
+            if (replace.equals(DICTIONARY_VAR)) {
+                if (replaceWith.charAt(0) == '(') {
+                    error("Dictionary group can't be enclosed in (", startPos, description);
+                }
+                dictionaryExpression = replaceWith;
+                dictionaryChars = new UnicodeSet(replaceWith, false);
+            }
+        }
+
+        /**
+         * The other half of the logic to handle the dictionary characters happens here.
+         * After the inherited builder has derived the real character categories, we
+         * set up the categoryFlags array in the iterator.  This array contains "true"
+         * for every character category that includes a dictionary character.
+     * @internal
+         */
+        protected void buildCharCategories(Vector tempRuleList) {
+            super.buildCharCategories(tempRuleList);
+
+            categoryFlags = new boolean[categories.size()];
+            for (int i = 0; i < categories.size(); i++) {
+                UnicodeSet cs = (UnicodeSet)categories.elementAt(i);
+
+                cs.retainAll(dictionaryChars);
+                if (!cs.isEmpty()) {
+                    categoryFlags[i] = true;
+                }
+            }
+        }
+
+        // This function is actually called by RuleBasedBreakIterator.buildCharCategories(),
+        // which is called by the function above.  This gives us a way to create a separate
+        // character category for the dictionary characters even when RuleBasedBreakIterator
+        // isn't making a distinction
+    /**
+     * @internal
+     */
+        protected void mungeExpressionList(Hashtable expressions) {
+            expressions.put(dictionaryExpression, dictionaryChars);
+        }
+    }
 }
