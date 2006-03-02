@@ -89,6 +89,8 @@
         <property name="zipCoreSrc.file" value="icu4jcsrc.zip"/>
         <property name="zipTestSrc.file" value="icu4jtsrc.zip"/>
         <property name="eclipse.dir" value="${src.dir}/com/ibm/icu/dev/eclipse"/>
+        <property name="eclipse.wrapper.dir" value="eclipseWrapper"/>
+        <property name="eclipse.dist.dir" value="eclipseDist"/>
         <property name="jarDocs.file" value="icu4jdocs.jar"/>
         <property name="icu4j.manifest" value="${src.dir}/com/ibm/icu/manifest.stub"/>
         <property name="icu4j.module.manifest" value="${src.dir}/com/ibm/icu/manifest.module.stub"/>
@@ -101,6 +103,7 @@
         <property name="ime.indic.jar.file" value="icuindicime.jar"/>
         <property name="zip.file" value="../icu4j${DSTAMP}.zip"/>
         <property name="zipSrc.file" value="../icu4jSrc${DSTAMP}.zip"/>
+
         <!-- fix the data folder every time there is a version update-->
         <property name="icu4j.data.path" value="com/ibm/icu/impl/data/icudt34b/" />
         <property name="icu4j.testdata.path" value="com/ibm/icu/dev/data/testdata/" />
@@ -124,7 +127,9 @@
         <property name="env.COMPUTERNAME" value="${env.HOSTNAME}"/>
 
         <mkdir dir="${build.dir}"/>
-        <mkdir dir="${build.dir}/eclipse"/>
+        <mkdir dir="${eclipse.wrapper.dir}"/>
+        <mkdir dir="${eclipse.dist.dir}"/>
+
         <echo message="java home: ${java.home}"/>
         <echo message="java version: ${java.version}"/>
         <echo message="ant java version: ${ant.java.version}"/>
@@ -1300,13 +1305,29 @@
             includes="com.ibm.icu.tests,com.ibm.icu.tests/**/*"/>
     </target>
 
+    <target name="eclipseDistro" depends="init, eclipseCore">
+        <delete failonerror="no">
+            <fileset dir="${eclipse.dist.dir}"/>
+        </delete>
+        <copy todir="${eclipse.dist.dir}/src/com/ibm/icu">
+            <fileset dir="src/com/ibm/icu"
+            includes="impl/**/*,lang/**/*,math/**/*,text/**/*,util/**/*"
+            excludes="**/CVS/**/*,**/*.jar,**/Transliterator_Han_Latin*.txt"/>
+        </copy>
+        <copy todir="${eclipse.dist.dir}/src/com/ibm/icu/impl/data">
+            <fileset dir="${build.dir}/com/ibm/icu/impl/data" 
+                includes="**/*.brk,**/*.icu,**/*.res,**/*.spp,**/*.txt"
+                excludes="**/Transliterator_Han_Latin*.txt"/>
+        </copy>
+    </target>
+
     <!-- ensure eclipse wrapper code builds with foundation1.0/java1.3 -->
     <target name="eclipseWrapper" depends="init">
         <javac includes="com/ibm/icu/util/**/*.java,com/ibm/icu/text/**/*.java"
             excludes="**/CVS/**/*,**/GlobalizationPreferences*"
             compiler="javac1.3"
             srcdir="${src.dir}/com/ibm/icu/dev/eclipse/com.ibm.icu.base/src"
-            destdir="${build.dir}/eclipse"
+            destdir="${eclipse.wrapper.dir}"
             classpathref="build.classpath"
             bootclasspath="ee.foundation.jar"
             source="1.3"
