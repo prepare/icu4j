@@ -45,7 +45,7 @@ public final class ICUResourceBundleTest extends TestFmwk {
     }
     public void TestGetResources(){
         try{
-            Enumeration en = testLoader.getResources("META-INF");
+            Enumeration en = testLoader.getResources("com.ibm.icu.dev.data");
             for(;en.hasMoreElements();) {
                 URL url = (URL)en.nextElement();
                 if (url == null) {
