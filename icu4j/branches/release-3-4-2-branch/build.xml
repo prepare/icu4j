@@ -669,7 +669,7 @@
             source="1.4">
             <doclet name="com.ibm.icu.dev.tool.docs.GatherAPIData"
                 path="${build.dir}">
-                <param name="-name" value="ICU4J 3.4.3"/>
+                <param name="-name" value="ICU4J 3.4.4"/>
                 <param name="-output" value="${api.dir}/icu4j343.api"/>
                 <param name="-gzip"/>
             </doclet>
@@ -1344,7 +1344,7 @@
             source="1.4">
             <doclet name="com.ibm.icu.dev.tool.docs.GatherAPIData"
                 path="${build.dir}">
-                <param name="-name" value="ICU4J 3.4.3"/>
+                <param name="-name" value="ICU4J 3.4.4"/>
                 <param name="-base" value="com.ibm.icu"/>
                 <param name="-output" value="${api.dir}/icu4j343w_i.api"/>
                 <param name="-filter" value="BreakIterator|CollationKey|Collator|DateFormat|DecimalFormat|MessageFormat|NumberFormat|SimpleDateFormat|StringTokenizer|Calendar|TimeZone|ULocale|DateFormatSymbols|DecimalFormatSymbols|Calendar|TimeZone"/>
@@ -1360,7 +1360,7 @@
             source="1.4">
             <doclet name="com.ibm.icu.dev.tool.docs.GatherAPIData"
                 path="${build.dir}">
-                <param name="-name" value="ICU4J 3.4.3 Wrapper"/>
+                <param name="-name" value="ICU4J 3.4.4 Wrapper"/>
                 <param name="-base" value="com.ibm.icu"/>
                 <param name="-output" value="${api.dir}/icu4j343w_e.api"/>
                 <!-- param name="-gzip"/ -->
@@ -1390,7 +1390,7 @@
         depends="eclipseCorePkg,eclipseTestPkg,eclipseWrapperPkg"
         description="build all eclipse packages"/>
 
-    <target name="runCheck" >    
+    <target name="runCheck" depends="init,tests">    
         <java classname="com.ibm.icu.dev.test.TestAll" fork="yes" failonerror="true">
             <arg value="-n"/>
             <classpath>
