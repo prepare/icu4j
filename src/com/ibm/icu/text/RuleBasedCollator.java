@@ -856,7 +856,7 @@ public final class RuleBasedCollator extends Collator
      * @param addPrefixes add the prefix contextual elements to contractions
      * @throws Exception 
      * @draft ICU 3.4
-     * @deprecated This is a draft API and might change in a future release of ICU.
+     * @provisional This API might change or be removed in a future release.
      */
     public void
     getContractionsAndExpansions(UnicodeSet contractions, UnicodeSet expansions,
@@ -2804,10 +2804,7 @@ public final class RuleBasedCollator extends Collator
                 t = ce & CE_REMOVE_CONTINUATION_MASK_;
             }
 
-            if (m_utilCompare0_ && (!isPrimaryByteIgnorable || m_utilCompare2_)) {
-                // do the case level if we need to do it. We don't want to calculate
-                // case level for primary ignorables if we have only primary strength and case level
-                // otherwise we would break well formedness of CEs 
+            if (m_utilCompare0_) {
                 caseShift = doCaseBytes(t, notIsContinuation, caseShift);
             }
             else if (notIsContinuation) {
@@ -2851,19 +2848,18 @@ public final class RuleBasedCollator extends Collator
         // a key
         if (m_utilCompare2_) {
             doSecondary(doFrench);
-        }
-        // adding case level should be independent of secondary level
-        if (m_utilCompare0_) {
-            doCase();
-        }
-        if (m_utilCompare3_) {
-            doTertiary();
-            if (m_utilCompare4_) {
-                doQuaternary(commonBottom4, bottomCount4);
-                if (m_utilCompare5_) {
-                    doIdentical(source);
-                }
+            if (m_utilCompare0_) {
+                doCase();
+            }
+            if (m_utilCompare3_) {
+                doTertiary();
+                if (m_utilCompare4_) {
+                    doQuaternary(commonBottom4, bottomCount4);
+                    if (m_utilCompare5_) {
+                        doIdentical(source);
+                    }
 
+                }
             }
         }
         m_utilBytes1_ = append(m_utilBytes1_, m_utilBytesCount1_, (byte)0);
@@ -3625,9 +3621,7 @@ public final class RuleBasedCollator extends Collator
             while ((sorder & CE_REMOVE_CASE_)
                                     == CollationElementIterator.IGNORABLE) {
                 sorder = m_srcUtilCEBuffer_[soffset ++];
-                if (!isContinuation(sorder) && ((sorder & CE_PRIMARY_MASK_) != 0 || m_utilCompare2_ == true)) {
-                	// primary ignorables should not be considered on the case level when the strength is primary
-                	// otherwise, the CEs stop being well-formed
+                if (!isContinuation(sorder)) {
                     sorder &= CE_CASE_MASK_3_;
                     sorder ^= m_caseSwitch_;
                 }
@@ -3639,9 +3633,7 @@ public final class RuleBasedCollator extends Collator
             while ((torder & CE_REMOVE_CASE_)
                                     == CollationElementIterator.IGNORABLE) {
                 torder = m_tgtUtilCEBuffer_[toffset ++];
-                if (!isContinuation(torder) && ((torder & CE_PRIMARY_MASK_) != 0 || m_utilCompare2_ == true)) {
-                   	// primary ignorables should not be considered on the case level when the strength is primary
-                	// otherwise, the CEs stop being well-formed
+                if (!isContinuation(torder)) {
                     torder &= CE_CASE_MASK_3_;
                     torder ^= m_caseSwitch_;
                 }
