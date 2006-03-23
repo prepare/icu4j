@@ -109,7 +109,7 @@ public class TimeZoneTest extends TestFmwk
             new ZoneDescriptor("PNT", -420, false),
             new ZoneDescriptor("MST", -420, false),// updated Aug 2003 aliu
             new ZoneDescriptor("CST", -360, true),
-            new ZoneDescriptor("IET", -300, false),
+            new ZoneDescriptor("IET", -300, true), // updated Feb 2006 srl
             new ZoneDescriptor("EST", -300, false),// updated Aug 2003 aliu
             new ZoneDescriptor("PRT", -240, false),
             new ZoneDescriptor("CNT", -210, true),
@@ -1178,22 +1178,7 @@ public class TimeZoneTest extends TestFmwk
         if(!list.contains(tzid)){
             errln("Could create the time zone but it is not in getAvailableIDs");
         }
-    }
-    public void TestZoneMeta() {
-        java.util.TimeZone save = java.util.TimeZone.getDefault();
-        java.util.TimeZone newZone = java.util.TimeZone.getTimeZone("GMT-08:00");
-        com.ibm.icu.util.TimeZone.setDefault(null);
-        java.util.TimeZone.setDefault(newZone);
-        SimpleTimeZone zone = new SimpleTimeZone(0, "GMT");
-        com.ibm.icu.util.TimeZone defaultZone = com.ibm.icu.util.TimeZone.getDefault();
-        if(defaultZone==null){
-            errln("TimeZone.getDefault() failed for GMT-08:00");
-        }
-        if(zone==null){
-            errln("SimpleTimeZone(0, GMT-08:00) failed for GMT-08:00");
-        }
-        //reset
-        java.util.TimeZone.setDefault(save);
+
     }
 }
 

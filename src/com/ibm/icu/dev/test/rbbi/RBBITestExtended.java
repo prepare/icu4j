@@ -1,40 +1,43 @@
 /*
  * Created on May 5, 2004
  * 
- * Copyright (C) 2004-2006 International Business Machines Corporation and others.
+ * Copyright (C) 2004 International Business Machines Corporation and others.
  * All Rights Reserved.
  *
+ * TODO To change the template for this generated file go to
+ * Window - Preferences - Java - Code Generation - Code and Comments
  */
 package com.ibm.icu.dev.test.rbbi;
 
 import com.ibm.icu.dev.test.TestFmwk;
+import com.ibm.icu.impl.ICUData;
 import com.ibm.icu.impl.Utility;
 import com.ibm.icu.text.BreakIterator;
 import com.ibm.icu.text.RuleBasedBreakIterator;
 import com.ibm.icu.lang.UCharacter;
+import com.ibm.icu.lang.UProperty;
 import com.ibm.icu.text.UTF16;
-import com.ibm.icu.util.ULocale;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Locale;
 
 
 /**
- * Rule based break iterator data driven test.
- *      Perform the tests from the file rbbitst.txt.
- *      The test data file is common to both ICU4C and ICU4J.
- *      See the data file for a description of the tests.
+ * @author andy
  *
+ * TODO To change the template for this generated type comment go to
+ * Window - Preferences - Java - Code Generation - Code and Comments
  */
 public class RBBITestExtended extends TestFmwk {
-    
     public static void main(String[] args)throws Exception {
         new RBBITestExtended().run(args);
     }
+
     
     
-public RBBITestExtended() { 
+    public RBBITestExtended() { 
     }
 
 
@@ -45,12 +48,12 @@ static class TestParams {
     int[]           expectedBreaks = new int[1000];
     int[]           srcLine        = new int[1000];
     int[]           srcCol         = new int[1000];
-    ULocale         currentLocale  = new ULocale("en_US");
 };
 
 
 public void TestExtended() {
 
+    String             rules;
     TestParams     tp = new TestParams();
 
 
@@ -149,40 +152,28 @@ public void TestExtended() {
                 break;
             }
            if (testString.startsWith("<word>", charIdx-1)) {
-                tp.bi = BreakIterator.getWordInstance(tp.currentLocale);
+                tp.bi = BreakIterator.getWordInstance(Locale.US);
                 charIdx += 5;
                 break;
             }
             if (testString.startsWith("<char>", charIdx-1)) {
-                tp.bi = BreakIterator.getCharacterInstance(tp.currentLocale);
+                tp.bi = BreakIterator.getCharacterInstance(Locale.US);
                 charIdx += 5;
                 break;
             }
             if (testString.startsWith("<line>", charIdx-1)) {
-                tp.bi = BreakIterator.getLineInstance(tp.currentLocale);
+                tp.bi = BreakIterator.getLineInstance(Locale.US);
                 charIdx += 5;
                 break;
             }
             if (testString.startsWith("<sent>", charIdx-1)) {
-                tp.bi = BreakIterator.getSentenceInstance(tp.currentLocale);
+                tp.bi = BreakIterator.getSentenceInstance(Locale.US);
                 charIdx += 5;
                 break;
             }
             if (testString.startsWith("<title>", charIdx-1)) {
-                tp.bi = BreakIterator.getTitleInstance(tp.currentLocale);
+                tp.bi = BreakIterator.getTitleInstance(Locale.US);
                 charIdx += 6;
-                break;
-            }
-            if (testString.startsWith("<locale ", charIdx-1)) {
-                int closeIndex = testString.indexOf(">", charIdx);
-                if (closeIndex < 0) {
-                    errln("line" + lineNum + ": missing close on <locale  tag.");
-                    break;
-                }
-                String localeName = testString.substring(charIdx+6, closeIndex);
-                localeName = localeName.trim();
-                tp.currentLocale = new ULocale(localeName);
-                charIdx = closeIndex+1;
                 break;
             }
             if (testString.startsWith("<data>", charIdx-1)) {
@@ -200,6 +191,7 @@ public void TestExtended() {
             //parseState = PARSE_COMMENT;
             //savedState = PARSE_DATA;
             }
+            // break;   // TODO: don't stop on errors
 
         case PARSE_DATA:
             if (c == CH_BULLET) {
@@ -219,7 +211,7 @@ public void TestExtended() {
                 tp.srcCol[idx]  = column;
 
                 parseState = PARSE_TAG;
-                charIdx += 6;
+                charIdx += 7;
 
                 // RUN THE TEST!
                 executeTest(tp);
@@ -229,8 +221,7 @@ public void TestExtended() {
            if (testString.startsWith("\\N{", charIdx-1)) {
                int nameEndIdx = testString.indexOf('}', charIdx);
                if (nameEndIdx == -1) {
-                   errln("Error in named character in test file at line " + lineNum +
-                           ", col " + column);
+                   errln("foo");  // TODO:
                }
                 // Named character, e.g. \N{COMBINING GRAVE ACCENT}
                 // Get the code point from the name and insert it into the test data.
