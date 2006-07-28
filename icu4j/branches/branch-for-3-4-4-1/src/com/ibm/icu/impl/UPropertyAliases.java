@@ -1,6 +1,6 @@
 /*
 **********************************************************************
-* Copyright (c) 2002-2005, International Business Machines
+* Copyright (c) 2002-2006, International Business Machines
 * Corporation and others.  All Rights Reserved.
 **********************************************************************
 * Author: Alan Liu
@@ -160,7 +160,7 @@ public final class UPropertyAliases implements ICUBinary.Authenticate {
         // first.
         byte raw[] = new byte[total_size];
         d.reset();
-        d.read(raw);
+        d.readFully(raw);
         d.close();
 
         Builder builder = new Builder(raw);
