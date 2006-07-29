@@ -1,6 +1,6 @@
 /*
 ******************************************************************************
-* Copyright (C) 1996-2005, International Business Machines Corporation and   *
+* Copyright (C) 1996-2006, International Business Machines Corporation and   *
 * others. All Rights Reserved.                                               *
 ******************************************************************************
 */
@@ -550,7 +550,7 @@ public class IntTrieBuilder extends TrieBuilder
             block = allocDataBlock();
             if (block < 0) {
                 // data table overflow
-                throw new InternalError("Internal error: Out of memory space");
+                throw new IllegalStateException("Internal error: Out of memory space");
             }
             fillBlock(block, 0, DATA_BLOCK_LENGTH, m_leadUnitValue_, true);
             // negative block number to indicate that it is a repeat block
