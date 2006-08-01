@@ -496,7 +496,7 @@ final public class DecimalFormatSymbols implements Cloneable, Serializable {
             // other fields are bit-copied
         } catch (CloneNotSupportedException e) {
             ///CLOVER:OFF
-            throw new InternalError();
+            throw new IllegalStateException();
             ///CLOVER:ON
         }
     }
