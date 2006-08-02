@@ -229,7 +229,7 @@ public final class ULocale implements Serializable {
      * The root ULocale.
      * @stable ICU 2.8
      */ 
-    public static final ULocale ROOT = new ULocale(EMPTY_STRING, EMPTY_LOCALE);
+    public static final ULocale ROOT = new ULocale("root", EMPTY_LOCALE);
     
     private static final HashMap CACHE = new HashMap(20);
     static {
@@ -747,6 +747,9 @@ public final class ULocale implements Serializable {
     public static ULocale forLocale(Locale loc) {
         if (loc == null) {
             return null;
+        }
+        if (loc.toString().length() == 0) {
+            return ROOT;
         }
         ULocale result = (ULocale)CACHE.get(loc);
         if (result == null && defaultULocale != null && loc == defaultULocale.locale) {
