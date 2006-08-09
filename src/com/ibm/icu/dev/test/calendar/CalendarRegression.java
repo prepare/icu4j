@@ -1,6 +1,6 @@
 /**
  *******************************************************************************
- * Copyright (C) 2000-2006, International Business Machines Corporation and    *
+ * Copyright (C) 2000-2005, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -11,6 +11,7 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.MissingResourceException;
 
+import com.ibm.icu.impl.CalendarAstronomer;
 import com.ibm.icu.text.*;
 
 /**
@@ -1859,7 +1860,7 @@ public class CalendarRegression extends com.ibm.icu.dev.test.TestFmwk {
             
                 cal.getDateTimeFormat(DateFormat.SHORT, DateFormat.FULL, loc),
                 "cal.getDateTimeFormat(DateFormat.SHORT, DateFormat.FULL, loc)",
-                "4/5/01 5:43:53 PM PT",
+                "4/5/01 5:43:53 PM PDT",
 
                 cal.getDateTimeFormat(DateFormat.FULL, DateFormat.SHORT, loc),
                 "cal.getDateTimeFormat(DateFormat.FULL, DateFormat.SHORT, loc)",

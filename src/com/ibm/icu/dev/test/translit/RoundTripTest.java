@@ -1,6 +1,6 @@
 /**
  *******************************************************************************
- * Copyright (C) 2000-2006, International Business Machines Corporation and    *
+ * Copyright (C) 2000-2005, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -206,7 +206,7 @@ public class RoundTripTest extends TestFmwk {
 
     String getGreekSet() {
         // Time bomb
-        if (skipIfBeforeICU(3,6)) {
+        if (skipIfBeforeICU(3,5)) {
             // We temporarily filter against Unicode 4.1, but we only do this
             // before version 3.5.
             logln("TestGreek needs to be updated to remove delete the section marked [:Age=4.0:] filter");
@@ -268,7 +268,7 @@ public class RoundTripTest extends TestFmwk {
 
     public void TestHebrew() throws IOException {
         //      Time bomb
-        if (skipIfBeforeICU(3,6)) {
+        if (skipIfBeforeICU(3,5)) {
             // We temporarily filter against Unicode 4.1, but we only do this
             // before version 3.5.
             logln("TestHebrew needs to be updated to remove delete the section marked [:Age=4.0:] filter");
@@ -361,16 +361,9 @@ public class RoundTripTest extends TestFmwk {
               .test(latinForIndic, "[[:Devanagari:][\u094d][\u0964\u0965] & [:Age=3.2:]]", "[\u0965]", this, new LegalIndic());
 
         }else{
-            if (isICUVersionAtLeast(3,8)) {
-                // We temporarily filter against Unicode 4.1, but we only do this
-                // before version 3.4.
-                errln("FAIL: TestDevanagariLatin needs to be updated to remove delete the [:Age=4.1:] filter ");
-                return;
-            } else {
-                logln("Warning: TestDevanagariLatin needs to be updated to remove delete the section marked [:Age=4.1:] filter");
-            }
             new Test("Latin-DEVANAGARI", 50)
-              .test(latinForIndic, "[[[:Devanagari:][\u094d][\u0964\u0965]]&[:Age=4.1:]]", "[\u0965\u0904]", this, new LegalIndic());
+              .test(latinForIndic, "[[:Devanagari:][\u094d][\u0964\u0965]]", "[\u0965\u0904]", this, new LegalIndic());
+
         }
         showElapsed(start, "TestDevanagariLatin");
     }
@@ -735,14 +728,6 @@ public class RoundTripTest extends TestFmwk {
             logln("Testing only 5 of "+ interIndicArray.length+" Skipping rest (use -e for exhaustive)");
             num = 5;
         }
-        if (isICUVersionAtLeast(3,8)) {
-            // We temporarily filter against Unicode 4.1, but we only do this
-            // before version 3.4.
-            errln("FAIL: TestInterIndic needs to be updated to remove delete the [:Age=4.1:] filter ");
-            return;
-        } else {
-            logln("Warning: TestInterIndic needs to be updated to remove delete the section marked [:Age=4.1:] filter");
-        }
         for(int i=0; i<num;i++){
            logln("Testing " + interIndicArray[i][0] + " at index " + i   );
            if(skipIfBeforeICU(2,8)){
@@ -752,21 +737,11 @@ public class RoundTripTest extends TestFmwk {
                           interIndicArray[i][3],
                           this, new LegalIndic());
            }else{
-               /*TODO: uncomment the line below when the transliterator is fixed
                new Test(interIndicArray[i][0], 50)
                     .test(interIndicArray[i][1],
                           interIndicArray[i][2],
                           interIndicArray[i][3],
                           this, new LegalIndic());
-               */
-               /* comment lines below  when transliterator is fixed */
-               // start
-               new Test(interIndicArray[i][0], 50)
-               .test("["+interIndicArray[i][1]+" &[:Age=4.1:]]",
-                     "["+interIndicArray[i][2]+" &[:Age=4.1:]]",
-                     interIndicArray[i][3],
-                     this, new LegalIndic());
-               //end
            }
 
         }

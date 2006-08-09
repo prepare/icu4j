@@ -745,7 +745,7 @@ abstract public class TimeZone implements Serializable, Cloneable {
             other.ID = ID;
             return other;
         } catch (CloneNotSupportedException e) {
-            throw new IllegalStateException();
+            throw new InternalError();
         }
     }
 

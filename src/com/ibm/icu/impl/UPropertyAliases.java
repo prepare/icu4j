@@ -585,8 +585,8 @@ public final class UPropertyAliases implements ICUBinary.Authenticate {
                     return (short) ((offset < 0) ? -i : i);
                 }
             }
-            throw new IllegalStateException("Can't map string pool offset " + 
-                                            offset + " to index");
+            throw new InternalError("Can't map string pool offset " + offset +
+                                       " to index");
         }
 
         /**
@@ -612,8 +612,8 @@ public final class UPropertyAliases implements ICUBinary.Authenticate {
                     return i;
                 }
             }
-            throw new IllegalStateException("Can't map value map offset " + 
-                                            offset + " to index");
+            throw new InternalError("Can't map value map offset " + offset +
+                                       " to index");
         }
 
         /**

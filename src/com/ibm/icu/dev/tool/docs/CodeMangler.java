@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 2004-2006, International Business Machines Corporation and    *
+* Copyright (C) 2004-2006, International Business Machines Corporation and         *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 */
@@ -448,7 +448,7 @@ public class CodeMangler {
             State pop() {
                 return next;
             }
-        }
+        };
           
         HashMap oldMap = null;
         
@@ -722,7 +722,7 @@ public class CodeMangler {
                 }
                 return false;
             default:
-                throw new IllegalStateException();
+                throw new InternalError();
             }
         }
         if (state == 6) {
@@ -806,7 +806,7 @@ public class CodeMangler {
         case 4:
             keyRelVal[2] = line.substring(mark).trim(); break; // found a word, possible rel, and who knows what
         default: 
-            throw new IllegalStateException();
+            throw new InternalError();
         }
         return true;
     }

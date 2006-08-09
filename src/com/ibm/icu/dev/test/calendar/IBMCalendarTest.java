@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2000-2006, International Business Machines Corporation and
+ * Copyright (C) 2000-2005, International Business Machines Corporation and
  * others. All Rights Reserved.
  *******************************************************************************
  */
@@ -14,6 +14,7 @@ import com.ibm.icu.impl.LocaleUtility;
 import com.ibm.icu.impl.ZoneMeta;
 import com.ibm.icu.impl.CalendarAstronomer;
 import com.ibm.icu.text.DateFormat;
+import com.ibm.icu.text.DateFormatSymbols;
 import com.ibm.icu.text.SimpleDateFormat;
 import com.ibm.icu.util.*;
 
@@ -722,7 +723,7 @@ public class IBMCalendarTest extends CalendarTest {
         // CalendarAstronomer
         // (This class should probably be made package-private.)
         CalendarAstronomer astro = new CalendarAstronomer();
-        /*String s = */astro.local(0);
+        String s = astro.local(0);
 
         // ChineseCalendar
         ChineseCalendar ccal = new ChineseCalendar(TimeZone.getDefault(),

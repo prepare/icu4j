@@ -228,7 +228,7 @@ public abstract class BreakIterator implements Cloneable
         }
         catch (CloneNotSupportedException e) {
             ///CLOVER:OFF
-            throw new IllegalStateException();
+            throw new InternalError();
             ///CLOVER:ON
         }
     }

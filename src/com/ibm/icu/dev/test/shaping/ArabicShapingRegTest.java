@@ -1,6 +1,6 @@
 /*
 *******************************************************************************
-*   Copyright (C) 2001-2006, International Business Machines
+*   Copyright (C) 2001-2005, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 *******************************************************************************
 */
@@ -12,6 +12,8 @@ import java.util.MissingResourceException;
 import com.ibm.icu.dev.test.TestFmwk;
 import com.ibm.icu.text.ArabicShaping;
 import com.ibm.icu.text.ArabicShapingException;
+
+import java.util.MissingResourceException;
 
 /**
  * Regression test for Arabic shaping.
@@ -346,12 +348,12 @@ public class ArabicShapingRegTest extends TestFmwk {
             catch(MissingResourceException e){
                 throw e;
             }
-            catch (IllegalStateException ie){
-                warnln("IllegalStateException: "+ie.toString());
-                return;
-            }
             catch (Exception e) {
                 ex = e;
+            }
+            catch (InternalError ie){
+                warnln("InternalError: "+ie.toString());
+                return;
             }
 
             if (!test.result.equals(result)) {

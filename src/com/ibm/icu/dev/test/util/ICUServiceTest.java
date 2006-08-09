@@ -32,6 +32,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -901,7 +902,7 @@ public class ICUServiceTest extends TestFmwk
         rwlock.releaseRead();
         errln("no error thrown");
     }
-    catch (IllegalStateException e) {
+    catch (InternalError e) {
         logln("OK: " + e.getMessage());
     }
 
@@ -909,7 +910,7 @@ public class ICUServiceTest extends TestFmwk
         rwlock.releaseWrite();
         errln("no error thrown");
     }
-    catch (IllegalStateException e) {
+    catch (InternalError e) {
         logln("OK: " + e.getMessage());
     }
 
@@ -960,7 +961,7 @@ public class ICUServiceTest extends TestFmwk
         nf.addListener(new WrongListener());
         errln("added wrong listener");
     }
-    catch (IllegalStateException e) {
+    catch (InternalError e) {
         logln(e.getMessage());
     }
     catch (Exception e) {

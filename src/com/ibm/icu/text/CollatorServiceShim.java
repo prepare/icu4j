@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 2003-2006, International Business Machines Corporation and         *
+* Copyright (C) 2003-2005, International Business Machines Corporation and         *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 */
@@ -41,7 +41,7 @@ final class CollatorServiceShim extends Collator.ServiceShim {
         }
         catch (CloneNotSupportedException e) {
         ///CLOVER:OFF
-            throw new IllegalStateException(e.getMessage());
+            throw new InternalError(e.getMessage());
         ///CLOVER:ON
         }
     }

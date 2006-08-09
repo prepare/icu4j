@@ -350,30 +350,12 @@ public abstract class DateFormat extends UFormat {
     public final static int STANDALONE_MONTH_FIELD = 26;
     
     /**
-     * FieldPosition selector for 'Q' field alignment,
-     * corresponding to the {@link Calendar#MONTH} field.  
-     * This displays the quarter.
-     * @draft ICU 3.6
-     * @provisional This API might change or be removed in a future release.
-     */
-    public final static int QUARTER_FIELD = 27;
-    
-    /**
-     * FieldPosition selector for 'q' field alignment,
-     * corresponding to the {@link Calendar#MONTH} field.  
-     * This displays the stand alone quarter, if available.
-     * @draft ICU 3.6
-     * @provisional This API might change or be removed in a future release.
-     */
-    public final static int STANDALONE_QUARTER_FIELD = 28;
-    
-    /**
      * Number of FieldPosition selectors for DateFormat.
      * Valid selectors range from 0 to FIELD_COUNT-1.
      * @draft ICU 3.0
      * @provisional This API might change or be removed in a future release.
      */
-    public final static int FIELD_COUNT = 29; // must == DateFormatSymbols.patternChars.length()
+    public final static int FIELD_COUNT = 27; // must == DateFormatSymbols.patternChars.length()
 
     // Proclaim serial compatibility with 1.1 FCS
     private static final long serialVersionUID = 7218322306649953788L;
@@ -468,7 +450,7 @@ public abstract class DateFormat extends UFormat {
      * @return the formatted date/time string.
      * @stable ICU 2.0
      */
-    public final StringBuffer format(Date date, StringBuffer toAppendTo,
+    public StringBuffer format(Date date, StringBuffer toAppendTo,
                                      FieldPosition fieldPosition) {
         // Use our Calendar object
         calendar.setTime(date);
@@ -557,7 +539,7 @@ public abstract class DateFormat extends UFormat {
      * @return      A Date, or null if the input could not be parsed
      * @stable ICU 2.0
      */
-    public final Date parse(String text, ParsePosition pos) {
+    public Date parse(String text, ParsePosition pos) {
         int start = pos.getIndex();
         calendar.clear();
         parse(text, calendar, pos);

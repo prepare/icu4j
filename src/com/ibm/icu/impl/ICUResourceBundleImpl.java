@@ -1,7 +1,10 @@
 //##header
 /*
+
  ******************************************************************************
+
  * Copyright (C) 2004-2006, International Business Machines Corporation and   *
+
  * others. All Rights Reserved.                                               *
  ******************************************************************************
  */
@@ -25,13 +28,19 @@ import java.nio.ByteBuffer;
  */
 public class ICUResourceBundleImpl extends ICUResourceBundle {
     //protected byte[] version;
+
     private byte[] rawData;
+
     private long rootResource;
+
     private boolean noFallback;
 
     private String localeID;
+
     private String baseName;
+
     private ULocale ulocale;
+
     private ClassLoader loader;
 
     private static final boolean ASSERT = false;
@@ -52,12 +61,18 @@ public class ICUResourceBundleImpl extends ICUResourceBundle {
         // could not open the .res file so return null
         if (reader == null) {
             return null;
+
         }
+
+
 
         ICUResourceBundleImpl bundle = new ICUResourceBundleImpl(reader,
                 baseName, localeID, root);
         return bundle.getBundle();
+
     }
+
+
 
     protected String getLocaleID() {
         return localeID;
@@ -77,7 +92,10 @@ public class ICUResourceBundleImpl extends ICUResourceBundle {
 
     protected void setParent(ResourceBundle parent) {
         this.parent = parent;
+
     }
+
+
 
     /**
      * Get the noFallback flag specified in the loaded bundle.
@@ -88,8 +106,11 @@ public class ICUResourceBundleImpl extends ICUResourceBundle {
     }
 
     private ICUResourceBundle getBundle() {
+
         int type = RES_GET_TYPE(rootResource);
+
         if (type == TABLE) {
+
             ResourceTable table = new ResourceTable(null, rootResource, "", true);
             if(table.size==1){
                 ICUResourceBundle b = table.handleGet(0, table);
@@ -111,17 +132,23 @@ public class ICUResourceBundleImpl extends ICUResourceBundle {
             // genrb does not generate Table32 with %%ALIAS
             return new ResourceTable32(null, rootResource, "", true);
         } else {
-            throw new IllegalStateException("Invalid format error");
+            throw new InternalError("Invalid format error");
+
         }
+
     }
+
     private ICUResourceBundleImpl(ICUResourceBundleReader reader, String baseName,
             String localeID, ClassLoader loader) {
         this.rawData = reader.getData();
         this.rootResource = (UNSIGNED_INT_MASK) & reader.getRootResource();
         this.noFallback = reader.getNoFallback();
         this.baseName = baseName;
+
         this.localeID = localeID;
+
         this.ulocale = new ULocale(localeID);
+
         this.loader = loader;
     }
     static final int RES_GET_TYPE(long res) {
@@ -183,7 +210,7 @@ public class ICUResourceBundleImpl extends ICUResourceBundle {
                 return new ResourceTable(key, resPath, resource);
             }
             default :
-                throw new IllegalStateException("The resource type is unknown");
+                throw new InternalError("The resource type is unknown");
         }
         //}
         //return null;
@@ -524,14 +551,15 @@ public class ICUResourceBundleImpl extends ICUResourceBundle {
     private class ResourceBinary extends ICUResourceBundle {
         private byte[] value;
         public ByteBuffer getBinary() {
+
             return ByteBuffer.wrap(value);
-        }      
-        public byte [] getBinary(byte []ba) {
-            return value;
         }
         private byte[] getValue() {
+
             int offset = RES_GET_OFFSET(resource);
+
             int length = ICUResourceBundleImpl.getInt(rawData,offset);
+
             int byteOffset = offset + getIntOffset(1);
             byte[] dst = new byte[length];
             if (ASSERT) Assert.assrt("byteOffset+length < rawData.length", byteOffset+length < rawData.length);
@@ -599,16 +627,6 @@ public class ICUResourceBundleImpl extends ICUResourceBundle {
         }
     }
     private String getStringValue(long resource) {
-        if (resource == 0) { 
-            /*
-             * The data structure is documented as supporting resource==0 for empty strings.
-             * Return a fixed pointer in such a case.
-             * This was dropped in uresdata.c 1.17 as part of Jitterbug 1005 work
-             * on code coverage for ICU 2.0.
-             * Re-added for consistency with the design and with other code.
-             */
-            return "";
-        }
         int offset = RES_GET_OFFSET(resource);
         int length = getInt(rawData,offset);
         int stringOffset = offset + getIntOffset(1);
@@ -620,9 +638,7 @@ public class ICUResourceBundleImpl extends ICUResourceBundle {
         return new String(dst);
     }
     private static final char RES_PATH_SEP_CHAR = '/';
-    private static final String RES_PATH_SEP_STR = "/";
     private static final String ICUDATA = "ICUDATA";
-    private static final char HYPHEN = '-';
     private static final String LOCALE = "LOCALE";
     
     private static final int getIndex(String s) {
@@ -659,12 +675,6 @@ public class ICUResourceBundleImpl extends ICUResourceBundle {
             if (bundleName.equals(ICUDATA)) {
                 bundleName = ICU_BASE_NAME;
                 loaderToUse = ICU_DATA_CLASS_LOADER;
-            }else if(bundleName.indexOf(ICUDATA)>-1){
-                int idx = bundleName.indexOf(HYPHEN); 
-                if(idx>-1){
-                    bundleName = ICU_BASE_NAME+RES_PATH_SEP_STR+bundleName.substring(idx+1,bundleName.length());
-                    loaderToUse = ICU_DATA_CLASS_LOADER;
-                }
             }
         } else {
             //no path start with locale
@@ -689,30 +699,30 @@ public class ICUResourceBundleImpl extends ICUResourceBundle {
             sub.resPath = "/" + sub.getLocaleID() + "/" + keyPath;
         }else{
             if (locale == null) {
-                // {dlf} must use requestor's class loader to get resources from same jar
-                bundle = (ICUResourceBundle) getBundleInstance(bundleName, "",
-                         loaderToUse, false); 
-            } else {
-                bundle = (ICUResourceBundle) getBundleInstance(bundleName, locale,
-                         loaderToUse, false);
-            }
-            if (keyPath != null) {
-                StringTokenizer st = new StringTokenizer(keyPath, "/");
-                ICUResourceBundle current = bundle;
-                while (st.hasMoreTokens()) {
-                    String subKey = st.nextToken();
-                    sub = current.getImpl(subKey, table, requested);
-                    if (sub == null) {
-                        break;
-                    }
-                    current = sub;
+            // {dlf} must use requestor's class loader to get resources from same jar
+            bundle = (ICUResourceBundle) getBundleInstance(bundleName, "",
+                     loaderToUse, false); 
+        } else {
+            bundle = (ICUResourceBundle) getBundleInstance(bundleName, locale,
+                     loaderToUse, false);
+        }
+        if (keyPath != null) {
+            StringTokenizer st = new StringTokenizer(keyPath, "/");
+            ICUResourceBundle current = bundle;
+            while (st.hasMoreTokens()) {
+                String subKey = st.nextToken();
+                sub = current.getImpl(subKey, table, requested);
+                if (sub == null) {
+                    break;
                 }
-            } else {
-                // if the sub resource is not found
-                // try fetching the sub resource with
-                // the key of this alias resource
-                sub = bundle.get(key);
+                current = sub;
             }
+        } else {
+            // if the sub resource is not found
+            // try fetching the sub resource with
+            // the key of this alias resource
+            sub = bundle.get(key);
+        }
             sub.resPath = resPath;
         }
         if (sub == null) {
@@ -721,4 +731,3 @@ public class ICUResourceBundleImpl extends ICUResourceBundle {
         return sub;
     }
 }
-

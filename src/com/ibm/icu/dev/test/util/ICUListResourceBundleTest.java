@@ -1,14 +1,17 @@
 /**
  *******************************************************************************
- * Copyright (C) 2001-2006, International Business Machines Corporation and    *
+ * Copyright (C) 2001-2004, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
 package com.ibm.icu.dev.test.util;
 
+import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 
 import com.ibm.icu.dev.test.TestFmwk;
+import com.ibm.icu.impl.ICUListResourceBundle;
+import com.ibm.icu.impl.ICULocaleData;
 import com.ibm.icu.impl.Utility;
 
 
@@ -21,9 +24,9 @@ public final class ICUListResourceBundleTest extends TestFmwk
     }
 
     public void TestReferences() {
-       // ResourceBundle rb = ICULocaleData.getLocaleElements("th");
-        //logln("got rb:" + rb);
-        ResourceBundle rb = null;
+        ResourceBundle rb = ICULocaleData.getLocaleElements("th");
+        logln("got rb:" + rb);
+    
         byte[] binaryData = null;//(byte[])rb.getObject("%%CollationBin");
         Object colElem = rb.getObject("collations");
         if(colElem instanceof Object[][]){
@@ -150,7 +153,7 @@ public final class ICUListResourceBundleTest extends TestFmwk
         return isEqual;
     }
     
-    /* 
+    // 
     public void TestAliases(){
         ResourceBundle rb = ICULocaleData.getResourceBundle("com.ibm.icu.dev.data","TestDataElements","testaliases");
         //rb.getObject("CollationElements");
@@ -249,7 +252,7 @@ public final class ICUListResourceBundleTest extends TestFmwk
         }else{
             errln("Alias mechanism failed for testGetStringByKeyAliasing in TestAlias");
         }
-        /* should not get an exception
+        // should not get an exception
         rb = ICULocaleData.getResourceBundle("com.ibm.icu.impl.data","LocaleElements","fr_BE");
         Object o = rb.getObject("SpelloutRules");
         if(o instanceof String){
@@ -270,14 +273,12 @@ public final class ICUListResourceBundleTest extends TestFmwk
             errln("Did not get the expected object for collations");
         }
         
-        
     }
-    */
-    /*
+    
     public void TestCircularAliases(){
         try{
             ResourceBundle rb = ICULocaleData.getResourceBundle("com.ibm.icu.dev.data","TestDataElements","testcircularalias");
-            rb.getObject("aaa");
+           /* Object o =*/ rb.getObject("aaa");
         }catch(java.util.MissingResourceException e){
             if(e.toString().indexOf("ircular")==-1){
                 errln("Did not get the expected Exception for circular aliases");
@@ -285,8 +286,8 @@ public final class ICUListResourceBundleTest extends TestFmwk
             return;
         }
         errln("Did not get the expected Exception for circular aliases");
-    }*/
-    /*
+    }
+    
     public void TestGetObjectWithFallback(){
         ResourceBundle bundle = ICULocaleData.getResourceBundle("com.ibm.icu.impl.data","LocaleElements","te_IN");
         if(bundle instanceof ICUListResourceBundle){
@@ -354,6 +355,6 @@ public final class ICUListResourceBundleTest extends TestFmwk
         }else{
             errln("Did not get the expected bundle.");
         }        
-    }*/
+    }
     
 }

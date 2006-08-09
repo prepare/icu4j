@@ -21,6 +21,7 @@ import com.ibm.icu.impl.LocaleUtility;
 import com.ibm.icu.impl.data.ResourceReader;
 import com.ibm.icu.impl.data.TokenIterator;
 import com.ibm.icu.math.BigDecimal;
+import com.ibm.icu.math.MathContext;
 
 import java.math.BigInteger;
 import java.text.FieldPosition;
@@ -1482,123 +1483,6 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             logln("Ok   \"" + pat + "\"");
         } else {
             errln("FAIL \"" + pat + "\", expected \"" + exp + "\"");
-        }
-    }
-    
-    public void TestJB3832(){
-        ULocale locale = new ULocale("pt_PT@currency=PTE");
-        NumberFormat format = NumberFormat.getCurrencyInstance(locale);
-        Currency curr = Currency.getInstance(locale);
-        logln("\nName of the currency is: " + curr.getName(locale, Currency.LONG_NAME, new boolean[] {false}));
-        CurrencyAmount cAmt = new CurrencyAmount(1150.50, curr);
-        logln("CurrencyAmount object's hashCode is: " + cAmt.hashCode()); //cover hashCode
-        String str = format.format(cAmt);
-        String expected = "1,150$50 Esc.";
-        if(!expected.equals(str)){
-            errln("Did not get the expected output Expected: "+expected+" Got: "+ str);
-        }
-    }
-    
-    public void TestStrictParse() {
-        String[] pass = {
-            "0",           // single zero before end of text is not leading
-            "0 ",          // single zero at end of number is not leading
-            "0.",          // single zero before period (or decimal, it's ambiguous) is not leading
-            "0,",          // single zero before comma (not group separator) is not leading
-            "0.0",         // single zero before decimal followed by digit is not leading
-            "0. ",         // same as above before period (or decimal) is not leading
-            "0.100,5",     // comma stops parse of decimal (no grouping)
-            ".00",         // leading decimal is ok, even with zeros
-            "1234567",     // group separators are not required
-            "12345, ",     // comma not followed by digit is not a group separator, but end of number
-            "1,234, ",     // if group separator is present, group sizes must be appropriate
-            "1,234,567",   // ...secondary too
-            "0E",          // an exponnent not followed by zero or digits is not an exponent 
-        };
-        String[] fail = {
-            "00",        // leading zero before zero
-            "012",       // leading zero before digit
-            "0,456",     // leading zero before group separator
-            "1,2",       // wrong number of digits after group separator
-            ",0",        // leading group separator before zero
-            ",1",        // leading group separator before digit
-            ",.02",      // leading group separator before decimal
-            "1,.02",     // group separator before decimal
-            "1,,200",    // multiple group separators
-            "1,45",      // wrong number of digits in primary group
-            "1,45 that", // wrong number of digits in primary group
-            "1,45.34",   // wrong number of digits in primary group
-            "1234,567",  // wrong number of digits in secondary group
-            "12,34,567", // wrong number of digits in secondary group
-            "1,23,456,7890", // wrong number of digits in primary and secondary groups
-        };
-
-        DecimalFormat nf = (DecimalFormat) NumberFormat.getInstance(Locale.ENGLISH);
-        runStrictParseBatch(nf, pass, fail);
-
-        String[] scientificPass = {
-            "0E2",      // single zero before exponent is ok
-            "1234E2",   // any number of digits before exponent is ok
-            "1,234E",   // an exponent string not followed by zero or digits is not an exponent
-        };
-        String[] scientificFail = {
-            "00E2",     // double zeros fail
-            "1,234E2",  // group separators with exponent fail
-        };
-
-        nf = (DecimalFormat) NumberFormat.getInstance(Locale.ENGLISH);
-        runStrictParseBatch(nf, scientificPass, scientificFail);
-
-        String[] mixedPass = {
-            "12,34,567",
-            "12,34,567,",
-            "12,34,567, that",
-            "12,34,567 that",
-        };
-        String[] mixedFail = {
-            "12,34,56",
-            "12,34,56,",
-            "12,34,56, that ",
-            "12,34,56 that",
-        };
-
-        nf = new DecimalFormat("#,##,##0.#");
-        runStrictParseBatch(nf, mixedPass, mixedFail);
-    }
-
-    void runStrictParseBatch(DecimalFormat nf, String[] pass, String[] fail) {
-        nf.setParseStrict(false);
-        runStrictParseTests("should pass", nf, pass, true);
-        runStrictParseTests("should also pass", nf, fail, true);
-        nf.setParseStrict(true);
-        runStrictParseTests("should still pass", nf, pass, true);
-        runStrictParseTests("should fail", nf, fail, false);
-    }
-
-    void runStrictParseTests(String msg, DecimalFormat nf, String[] tests, boolean pass) {
-        logln("");
-        logln("pattern: '" + nf.toPattern() + "'");
-        logln(msg);
-        for (int i = 0; i < tests.length; ++i) {
-            String str = tests[i];
-            ParsePosition pp = new ParsePosition(0);
-            Number n = nf.parse(str, pp);
-            String formatted = n != null ? nf.format(n) : "null";
-            String err = pp.getErrorIndex() == -1 ? "" : "(error at " + pp.getErrorIndex() + ")";
-            if ((err.length() == 0) != pass) {
-                errln("'" + str + "' parsed '" + 
-                      str.substring(0, pp.getIndex()) + 
-                      "' returned " + n + " formats to '" + 
-                      formatted + "' " + err);
-            } else {
-                if (err.length() > 0) {
-                    err = "got expected " + err;
-                }
-                logln("'" + str + "' parsed '" +
-                      str.substring(0, pp.getIndex()) + 
-                      "' returned " + n + " formats to '" + 
-                      formatted + "' " + err);
-            }
         }
     }
 }

@@ -292,7 +292,7 @@ public abstract class UResourceBundle extends ResourceBundle{
      */
     protected static synchronized void addToCache(ClassLoader cl, String fullName, ULocale defaultLocale,  UResourceBundle b){
         cacheKey.setKeyValues(cl, fullName, defaultLocale);
-        addToCache((ResourceCacheKey)cacheKey.clone(), b);
+        addToCache(cacheKey, b);
     }
     /**
      * @internal revisit for ICU 3.6
@@ -372,7 +372,7 @@ public abstract class UResourceBundle extends ResourceBundle{
                 return super.clone();
             } catch (CloneNotSupportedException e) {
                 //this should never happen
-                throw new IllegalStateException();
+                throw new InternalError();
             }
         }
         ///CLOVER:ON

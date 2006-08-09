@@ -63,7 +63,7 @@ public class ICULocaleService extends ICUService {
      * getKey (stripping any prefix) into a ULocale.  
      */
     public Object get(ULocale locale, int kind, ULocale[] actualReturn) {
-        Key key = createKey(locale, kind);
+        Key key = createKey(locale.toString(), kind);
         if (actualReturn == null) {
             return getKey(key);
         }
@@ -191,17 +191,6 @@ public class ICULocaleService extends ICUService {
         }
             
         /**
-         * Create a LocaleKey with canonical primary and fallback IDs.
-         */
-        public static LocaleKey createWithCanonical(ULocale locale, String canonicalFallbackID, int kind) {
-            if (locale == null) {
-                return null;
-            }
-            String canonicalPrimaryID = locale.getName();
-            return new LocaleKey(canonicalPrimaryID, canonicalPrimaryID, canonicalFallbackID, kind);
-        }
-            
-        /**
          * PrimaryID is the user's requested locale string,
          * canonicalPrimaryID is this string in canonical form,
          * fallbackID is the current default locale's string in
@@ -299,8 +288,8 @@ public class ICULocaleService extends ICUService {
          * otherwise return false.</p>
          *
          * <p>First falls back through the primary ID, then through
-         * the fallbackID.  The final fallback is "root"
-         * unless the primary id was "root", in which case
+         * the fallbackID.  The final fallback is the empty string,
+         * unless the primary id was the empty string, in which case
          * there is no fallback.  
          */
         public boolean fallback() {
@@ -312,13 +301,8 @@ public class ICULocaleService extends ICUService {
                 return true;
             }
             if (fallbackID != null) {
-                if (fallbackID.length() == 0) {
-                    currentID = "root";
-                    fallbackID = null;
-                } else {
-                    currentID = fallbackID;
-                    fallbackID = "";
-                }
+                currentID = fallbackID;
+                fallbackID = fallbackID.length() == 0 ? null : "";
                 return true;
             }
             currentID = null;
@@ -603,9 +587,5 @@ public class ICULocaleService extends ICUService {
 
     public Key createKey(String id, int kind) {
         return LocaleKey.createWithCanonicalFallback(id, validateFallbackLocale(), kind);
-    }
-
-    public Key createKey(ULocale l, int kind) {
-        return LocaleKey.createWithCanonical(l, validateFallbackLocale(), kind);
     }
 }
