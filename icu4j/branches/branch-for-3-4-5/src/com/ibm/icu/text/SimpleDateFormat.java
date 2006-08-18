@@ -1020,6 +1020,11 @@ public class SimpleDateFormat extends DateFormat {
         buf.append(decimalBuf, index, limit - index);
     }
 
+    /**
+     * Allows you to set the number formatter.
+     * @param newNumberFormat the given new NumberFormat.
+     * @stable ICU 2.0
+     */
     public void setNumberFormat(NumberFormat newNumberFormat) {
     	super.setNumberFormat(newNumberFormat);
         if (newNumberFormat instanceof DecimalFormat) {
