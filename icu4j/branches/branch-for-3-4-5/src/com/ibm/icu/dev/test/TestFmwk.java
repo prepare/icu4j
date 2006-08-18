@@ -79,7 +79,7 @@ public class TestFmwk extends AbstractTestLog {
         //System.err.println("TF handleException msg: " + msg);
         if (    ex instanceof MissingResourceException || ex instanceof NoClassDefFoundError ||
                 //IBM JDK 1.5.0 SR2 deviates from Java spec and throws a Throwable object    
-                ((ex instanceof Throwable ) && ex.getMessage().indexOf("MissingResourceException")>0)
+                ((ex instanceof Throwable ) && ex.getMessage().indexOf("MissingResourceException")>0)) {
         
             if (params.warnings || params.nodata) {
                 warnln(msg);
