@@ -30,7 +30,6 @@ public abstract class MeasureFormat extends UFormat {
 
     /**
      * @internal
-     * @deprecated This API is ICU internal only.
      */
     protected MeasureFormat() {};
     

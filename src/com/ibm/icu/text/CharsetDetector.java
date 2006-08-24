@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 2005-2006, International Business Machines Corporation and    *
+* Copyright (C) 2006, International Business Machines Corporation and         *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 */
@@ -10,6 +10,7 @@ import java.io.InputStream;
 import java.io.Reader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Collections;
 import java.util.Arrays;
 
@@ -483,7 +484,7 @@ public class CharsetDetector {
         recognizers.add(new CharsetRecog_Unicode.CharsetRecog_UTF_16_BE());
         recognizers.add(new CharsetRecog_Unicode.CharsetRecog_UTF_16_LE());
         recognizers.add(new CharsetRecog_Unicode.CharsetRecog_UTF_32_BE());
-        recognizers.add(new CharsetRecog_Unicode.CharsetRecog_UTF_32_LE());
+        recognizers.add(new CharsetRecog_Unicode.CharsetRecog_UTF_32_LE());;
         
         recognizers.add(new CharsetRecog_mbcs.CharsetRecog_sjis());
         recognizers.add(new CharsetRecog_2022.CharsetRecog_2022JP());
@@ -492,7 +493,6 @@ public class CharsetDetector {
         recognizers.add(new CharsetRecog_mbcs.CharsetRecog_euc.CharsetRecog_gb_18030());
         recognizers.add(new CharsetRecog_mbcs.CharsetRecog_euc.CharsetRecog_euc_jp());
         recognizers.add(new CharsetRecog_mbcs.CharsetRecog_euc.CharsetRecog_euc_kr());
-        recognizers.add(new CharsetRecog_mbcs.CharsetRecog_big5());
         
         recognizers.add(new CharsetRecog_sbcs.CharsetRecog_8859_1_da());
         recognizers.add(new CharsetRecog_sbcs.CharsetRecog_8859_1_de());

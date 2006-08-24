@@ -13,7 +13,6 @@
 package com.ibm.icu.dev.test.collator;
 
 import com.ibm.icu.dev.test.TestFmwk;
-import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.UResourceBundle;
 import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.impl.ImplicitCEGenerator;
@@ -24,11 +23,7 @@ import com.ibm.icu.text.Collator;
 import com.ibm.icu.text.Normalizer;
 import com.ibm.icu.text.RuleBasedCollator;
 import com.ibm.icu.text.UTF16;
-
-import java.util.Set;
-import java.util.Arrays;
 import java.util.Locale;
-import java.util.TreeSet;
 
 public class CollationMiscTest extends TestFmwk {
 
@@ -162,9 +157,9 @@ public class CollationMiscTest extends TestFmwk {
             {"c", "b", "\\u0332", "a"},
             {"\\u0332", "\\u20e3", "c", "b", "a"},
             {"c", "b", "\\u0009", "a", "\\u000a"},
-            {"c", "b", "\\uD834\\uDF71", "a", "\\u02d0"},
+            {"c", "b", "\\uD802\\uDE47", "a", "\\u02d0"},
             {"b", "\\u02d0", "a", "\\u02d1"},
-            {"b", "\\ud808\\udf6e", "a", "\\u4e00"},
+            {"b", "\\ud800\\udfcf", "a", "\\u4e00"},
             {"b", "\\u4e00", "a", "\\u4e01"},
             {"b", "\\U0010FFFD", "a"},
             {"\ufffb",  "w", "y", "\u20e3", "x", "\u137c", "z", "u"},
@@ -176,10 +171,10 @@ public class CollationMiscTest extends TestFmwk {
     }
     
     void genericRulesStarter(String rules, String[] s) {
-        genericRulesStarterWithResult(rules, s, -1);
+        genericRulesTestWithResult(rules, s, -1);
     }
     
-    void genericRulesStarterWithResult(String rules, String[] s, int result) {
+    void genericRulesTestWithResult(String rules, String[] s, int result) {
         
         RuleBasedCollator coll = null;
         try {
@@ -191,16 +186,6 @@ public class CollationMiscTest extends TestFmwk {
         }
     }
     
-    void genericRulesStarterWithOptionsAndResult(String rules, String[] s, String[] atts, Object[] attVals, int result) {
-        RuleBasedCollator coll = null;
-        try {
-            coll = new RuleBasedCollator(rules);
-            genericOptionsSetter(coll, atts, attVals);
-            genericOrderingTestWithResult(coll, s, result);
-        } catch (Exception e) {
-            warnln("Unable to open collator with rules " + rules);
-        }
-    }
     void genericOrderingTestWithResult(Collator coll, String[] s, int result) {
         String t1 = "";
         String t2 = "";
@@ -320,7 +305,7 @@ public class CollationMiscTest extends TestFmwk {
         };
         
         for(int i = 0; i< rules.length; i++) {
-            genericRulesStarterWithResult(rules[i], data[i], 0);
+            genericRulesTestWithResult(rules[i], data[i], 0);
         }
     }
     
@@ -342,7 +327,7 @@ public class CollationMiscTest extends TestFmwk {
             "ab\ud9b0\udc70",
             "ab\ud9b0\udc71"
         };
-        genericRulesStarterWithResult(rule, test, 0);
+        genericRulesTestWithResult(rule, test, 0);
     }
     
     public void TestPrefix() {
@@ -508,10 +493,17 @@ public class CollationMiscTest extends TestFmwk {
     }
     
     void genericLocaleStarterWithOptions(Locale locale, String[] s, String[] attrs, Object[] values) {
-        genericLocaleStarterWithOptionsAndResult(locale, s, attrs, values, -1);
-    }
-    
-    private void genericOptionsSetter(RuleBasedCollator coll, String[] attrs, Object[] values) {
+        RuleBasedCollator coll = null;
+        try {
+            coll = (RuleBasedCollator)Collator.getInstance(locale);
+        } catch (Exception e) {
+            warnln("Unable to open collator for locale " + locale);
+            return;
+        }
+        // logln("Locale starter for " +locale);
+        
+        // logln("Setting attributes");
+        
         for(int i = 0; i < attrs.length; i++) {
             if (attrs[i].equals("strength")) {
                 coll.setStrength(((Integer)values[i]).intValue());
@@ -532,26 +524,9 @@ public class CollationMiscTest extends TestFmwk {
             else if (attrs[i].equals("LowerFirst")) {
                 coll.setLowerCaseFirst(((Boolean)values[i]).booleanValue());
             }
-            else if (attrs[i].equals("CaseLevel")) {
-                coll.setCaseLevel(((Boolean)values[i]).booleanValue());
-            }
-        }        
-    }
-    
-    void genericLocaleStarterWithOptionsAndResult(Locale locale, String[] s, String[] attrs, Object[] values, int result) {
-        RuleBasedCollator coll = null;
-        try {
-            coll = (RuleBasedCollator)Collator.getInstance(locale);
-        } catch (Exception e) {
-            warnln("Unable to open collator for locale " + locale);
-            return;
         }
-        // logln("Locale starter for " +locale);
         
-        // logln("Setting attributes");
-        genericOptionsSetter(coll, attrs, values);
-        
-        genericOrderingTestWithResult(coll, s, result);
+        genericOrderingTest(coll, s);
     }
     
     void genericOrderingTest(Collator coll, String[] s) {
@@ -2137,68 +2112,12 @@ public class CollationMiscTest extends TestFmwk {
         genericLocaleStarter(new Locale("zh","",""), test2);
     }
 
-    public void TestUpperFirstQuaternary()
+    public void
+    TestUpperFirstQuaternary()
     {
       String tests[] = { "B", "b", "Bb", "bB" };
       String[] att = { "strength", "UpperFirst" };
       Object attVals[] = { new Integer(Collator.QUATERNARY), new Boolean(true) };
       genericLocaleStarterWithOptions(new Locale("root","",""), tests, att, attVals);
     }
-    
-    public void TestJ4960()
-    {
-        String tests[] = { "\\u00e2T", "aT" };
-        String att[] = { "strength", "CaseLevel" };
-        Object attVals[] = { new Integer(Collator.PRIMARY), new Boolean(true) };
-        String tests2[] = { "a", "A" };
-        String rule = "&[first tertiary ignorable]=A=a";
-        String att2[] = { "CaseLevel" };        
-        Object attVals2[] = { new Boolean(true) };
-        // Test whether we correctly ignore primary ignorables on case level when
-        // we have only primary & case level
-        genericLocaleStarterWithOptionsAndResult(new Locale("root"), tests, att, attVals, 0);
-        // Test whether ICU4J will make case level for sortkeys that have primary strength
-        // and case level
-        genericLocaleStarterWithOptions(new Locale("root"), tests2, att, attVals);
-        // Test whether completely ignorable letters have case level info (they shouldn't)
-        genericRulesStarterWithOptionsAndResult(rule, tests2, att2, attVals2, 0);        
-    }
-    
-    public void TestJB5298(){
-        ULocale[] locales = Collator.getAvailableULocales();
-        logln("Number of collator locales returned : " + locales.length);
-        // double-check keywords
-        String[] keywords = Collator.getKeywords();
-        if (keywords.length != 1 || !keywords[0].equals("collation")) {
-            throw new IllegalArgumentException("internal collation error");
-        }
-    
-        String[] values = Collator.getKeywordValues("collation");
-
-        logln("Number of collator values returned : " + values.length);
-        
-        Set foundValues = new TreeSet(Arrays.asList(values));
-        
-        for (int i = 0; i < locales.length; ++i) {
-          for (int j = 0; j < values.length; ++j) {
-            ULocale tryLocale = values[j].equals("standard") 
-            ? locales[i] : new ULocale(locales[i] + "@collation=" + values[j]); 
-            // only append if not standard
-            ULocale canon = Collator.getFunctionalEquivalent("collation",tryLocale);
-            if (!canon.equals(tryLocale)) {
-                continue; // has a different 
-            }else {// functional equivalent, so skip
-                logln(tryLocale + " : "+canon+", ");
-            }
-            String can = canon.toString();
-            int idx = can.indexOf("@collation=");
-            String val = idx >= 0 ? can.substring(idx+11, can.length()) : "";
-            if(val.length()>0 && !foundValues.contains(val)){
-                errln("Unknown collation found "+ can);
-            }
-          }        
-        }
-        logln(" ");
-    }
-    
 }

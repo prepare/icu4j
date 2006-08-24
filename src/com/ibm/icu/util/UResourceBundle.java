@@ -31,14 +31,14 @@ import com.ibm.icu.util.ULocale;
  * 
  * <P>
  * Resource bundles in ICU are currently defined using text files which conform to the following
- * <a href="http://dev.icu-project.org/cgi-bin/viewcvs.cgi/icuhtml/design/bnf_rb.txt">BNF definition</a>.
+ * <a href="http://dev.icu-project.org/cgi-bin/viewcvs.cgi/~checkout~/icuhtml/design/bnf_rb.txt">BNF definition</a>.
  * More on resource bundle concepts and syntax can be found in the 
  * <a href="http://icu.sourceforge.net/userguide/ResourceManagement.html">Users Guide</a>.
  * <P>
  * 
  * The packaging of ICU *.res files can be of two types
  * ICU4C:
- * <pre>
+ * <code>
  *       root.res
  *         |
  *      --------
@@ -48,9 +48,9 @@ import com.ibm.icu.util.ULocale;
  *   --------
  *  |        |
  * fr_CA.res fr_FR.res     
- * </pre>
+ * </code>
  * JAVA/JDK:
- * <pre>
+ * <code>
  *    LocaleElements.res
  *         |
  *      -------------------
@@ -60,16 +60,16 @@ import com.ibm.icu.util.ULocale;
  *   ---------------------------
  *  |                            |
  * LocaleElements_fr_CA.res   LocaleElements_fr_FR.res
- * </pre>
+ * </code>
  * Depending on the organization of your resources, the syntax to getBundleInstance will change.
  * To open ICU style organization use:
- * <pre>
+ * <code>
  *      UResourceBundle bundle = UResourceBundle.getBundleInstance("com/ibm/icu/impl/data/icudt30b", "en_US");
- * </pre>
+ * </code>
  * To open Java/JDK style organization use:
- * <pre>
+ * <code>
  *      UResourceBundle bundle = UResourceBundle.getBundleInstance("com.ibm.icu.impl.data.LocaleElements", "en_US");
- * </pre>
+ * </code>
  * @draft ICU 3.0
  * @provisional This API might change or be removed in a future release.
  * @author ram
@@ -205,7 +205,7 @@ public abstract class UResourceBundle extends ResourceBundle{
      * @param loader  the loader to use
      * @return a resource bundle for the given base name and locale
      * @internal revisit for ICU 3.6
-     * @deprecated This API is ICU internal only.
+     * @provisional This API might change or be removed in a future release.
      */
     public static UResourceBundle getBundleInstance(String baseName, Locale locale, ClassLoader loader){
         return getBundleInstance(baseName, ULocale.forLocale(locale), loader);
@@ -289,7 +289,6 @@ public abstract class UResourceBundle extends ResourceBundle{
 
     /**
      * @internal revisit for ICU 3.6
-     * @deprecated This API is ICU internal only.
      */
     protected static synchronized void addToCache(ClassLoader cl, String fullName, ULocale defaultLocale,  UResourceBundle b){
         cacheKey.setKeyValues(cl, fullName, defaultLocale);
@@ -297,7 +296,6 @@ public abstract class UResourceBundle extends ResourceBundle{
     }
     /**
      * @internal revisit for ICU 3.6
-     * @deprecated This API is ICU internal only.
      */
     protected static synchronized UResourceBundle loadFromCache(ClassLoader cl, String fullName, ULocale defaultLocale){
         cacheKey.setKeyValues(cl, fullName, defaultLocale);
@@ -519,7 +517,8 @@ public abstract class UResourceBundle extends ResourceBundle{
     
     /**
      * @internal
-     * @deprecated This API is ICU internal only.
      */
     protected abstract void setLoadingStatus(int newStatus);
+    
+    
 }

@@ -1,7 +1,10 @@
 //##header
 /*
+
  * *****************************************************************************
+
  * Copyright (C) 2005-2006, International Business Machines Corporation and * others.
+
  * All Rights Reserved. *
  * *****************************************************************************
  */
@@ -61,19 +64,7 @@ public abstract class ICUResourceBundle extends UResourceBundle {
      * @draft ICU 3.0
      */
     public static final String ICU_COLLATION_BASE_NAME = ICU_BASE_NAME + "/coll";
-    
-    /**
-     * The base name of rbbi data to be used with getData API
-     * @draft ICU 3.6
-     */
-    public static final String ICU_BRKITR_NAME = "/brkitr";
-    
-    /**
-     * The base name of rbbi data to be used with getBundleInstance API
-     * @draft ICU 3.6
-     */
-    public static final String ICU_BRKITR_BASE_NAME = ICU_BASE_NAME + ICU_BRKITR_NAME;
-    
+
     /**
      * The base name of rbnf data to be used with getBundleInstance API
      * @draft ICU 3.0
@@ -184,8 +175,11 @@ public abstract class ICUResourceBundle extends UResourceBundle {
      *         FROM_DEFAULT if the resource is fetched from the default locale.
      */
     public int getLoadingStatus() {
+
         return loadingStatus;
+
     }
+
 
     /**
      * Get the noFallback flag specified in the loaded bundle.
@@ -256,23 +250,6 @@ public abstract class ICUResourceBundle extends UResourceBundle {
         throw new UResourceTypeMismatchException("");
     }
 
-    /**
-     * Returns a binary data from a binary resource.
-     *
-     * @param ba Establish the return type from this function.  The value of the parameter
-     *            is not used; a null variable is OK.  The thing that matters is the type
-     *            of the parameter
-     * @return an array unsigned bytes containing the binary data from the resource.
-     * @see #getIntVector
-     * @see #getInt
-     * @throws MissingResourceException
-     * @throws UResourceTypeMismatchException
-     * @draft ICU 3.6
-     */
-    public byte [] getBinary(byte []ba) {
-        throw new UResourceTypeMismatchException("");
-    }
-    
     /**
      * Returns a 32 bit integer array from a resource.
      *
@@ -789,18 +766,18 @@ public abstract class ICUResourceBundle extends UResourceBundle {
         if(keys!=null){
             return;
         }
-        //ICUResourceBundle current = this;
+        ICUResourceBundle current = this;
         keys = new Vector();
-        //while(current!=null){
-            Enumeration e = this.handleGetKeys();
+        while(current!=null){
+            Enumeration e = current.handleGetKeys();
             while(e.hasMoreElements()){
                 String elem = (String)e.nextElement();
                 if(!keys.contains(elem)){
                     keys.add(elem);
                 }
             }
-          //  current = (ICUResourceBundle)current.getParent();
-        //}
+            current = (ICUResourceBundle)current.getParent();
+        }
     }
     protected Enumeration handleGetKeys(){
         Vector keys = new Vector();
@@ -1192,18 +1169,26 @@ public abstract class ICUResourceBundle extends UResourceBundle {
         }
         if(DEBUG) System.out.println("Creating "+fullName+ " currently b is "+b);
         if (b == null) {
+
             b = ICUResourceBundleImpl.createBundle(baseName, localeName, root);
             
+            
+
             if(DEBUG)System.out.println("The bundle created is: "+b+" and disableFallback="+disableFallback+" and bundle.getNoFallback="+(b!=null && b.getNoFallback()));
             if(disableFallback || (b!=null && b.getNoFallback())){
                 // no fallback because the caller said so or because the bundle says so
                 return b;
+
             }
+
 
             // fallback to locale ID parent
             if(b == null){
+
                 int i = localeName.lastIndexOf('_');
+
                 if (i != -1) {
+
                     String temp = localeName.substring(0, i);
                     b = (ICUResourceBundle)instantiateBundle(baseName, temp, root, disableFallback);
                     if(b!=null && b.getULocale().equals(temp)){

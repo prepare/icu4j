@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2003-2006, International Business Machines Corporation and    *
+ * Copyright (C) 2003-2006, International Business Machines Corporation and         *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
 */
@@ -13,6 +13,7 @@ import com.ibm.icu.text.UnicodeSet;
 import com.ibm.icu.text.UnicodeSetIterator;
 import com.ibm.icu.util.LocaleData;
 import com.ibm.icu.util.ULocale;
+import com.ibm.icu.util.UResourceBundle;
 
 /**
  * @author ram
@@ -152,6 +153,7 @@ public class LocaleDataTest extends TestFmwk{
         assertTrue("case-folded is sometimes a strict superset, and sometimes equal",
                    equalCount > 0 && equalCount < availableLocales.length);
     }
+    /*
     public void TestExemplarSet2(){
         int equalCount = 0;
         for(int i=0; i<availableLocales.length; i++){
@@ -228,6 +230,7 @@ public class LocaleDataTest extends TestFmwk{
         assertTrue("case-folded is sometimes a strict superset, and sometimes equal",
                    equalCount > 0 && equalCount < availableLocales.length * 2);
     }
+    */
     public void TestCoverage(){
         LocaleData ld = LocaleData.getInstance();
         boolean t = ld.getNoSubstitute();

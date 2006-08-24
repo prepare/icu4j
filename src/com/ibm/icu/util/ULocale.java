@@ -16,7 +16,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.MissingResourceException;
 import java.util.TreeMap;
-import java.lang.ref.SoftReference;
 
 import com.ibm.icu.impl.LocaleUtility;
 import com.ibm.icu.impl.ICUResourceBundle;
@@ -1099,9 +1098,6 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public static String getBaseName(String localeID){
-        if (localeID.indexOf('@') == -1) {
-            return localeID;
-        }
         return new IDParser(localeID).getBaseName();
     }
 
@@ -1123,19 +1119,8 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public static String getName(String localeID){
-        HashMap cache = (HashMap)nameCacheRef.get();
-        if (cache == null) {
-            cache = new HashMap();
-            nameCacheRef = new SoftReference(cache);
-        }
-        String name = (String)cache.get(localeID);
-        if (name == null) {
-            name = new IDParser(localeID).getName();
-            cache.put(localeID, name);
-        }
-        return name;
+        return new IDParser(localeID).getName();
     }
-    private static SoftReference nameCacheRef = new SoftReference(new HashMap());
 
     /**
      * Returns a string representation of this object.
@@ -2822,8 +2807,9 @@ public final class ULocale implements Serializable {
     */
 
     public static ULocale acceptLanguage(ULocale[] acceptLanguageList, boolean[]
-                                         fallback) {
+    fallback) {
         return acceptLanguage(acceptLanguageList, ULocale.getAvailableLocales(),
 				fallback);
     }    
+    
 }

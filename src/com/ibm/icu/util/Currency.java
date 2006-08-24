@@ -433,7 +433,6 @@ public class Currency extends MeasureUnit implements Serializable {
      * null if there is no match
      *
      * @internal
-     * @deprecated This API is ICU internal only.
      */
     public static String parse(ULocale locale, String text, ParsePosition pos) {
 
@@ -696,10 +695,10 @@ public class Currency extends MeasureUnit implements Serializable {
      * @see com.ibm.icu.util.ULocale#VALID_LOCALE
      * @see com.ibm.icu.util.ULocale#ACTUAL_LOCALE
      * @obsolete ICU 3.2 to be removed
-     * @deprecated This API is obsolete.
+     * @provisional This API might change or be removed in a future release.
      */
     public final ULocale getLocale(ULocale.Type type) {
-	return ULocale.ROOT;
+    return ULocale.ROOT;
     }
 
     /**
@@ -718,7 +717,6 @@ public class Currency extends MeasureUnit implements Serializable {
      * @see com.ibm.icu.util.ULocale#VALID_LOCALE
      * @see com.ibm.icu.util.ULocale#ACTUAL_LOCALE
      * @internal
-     * @deprecated This API is ICU internal only.
      */
     final void setLocale(ULocale valid, ULocale actual) {
         // Change the following to an assertion later
@@ -737,7 +735,6 @@ public class Currency extends MeasureUnit implements Serializable {
      * The most specific locale containing any resource data, or null.
      * @see com.ibm.icu.util.ULocale
      * @internal
-     * @deprecated This API is ICU internal only.
      */
     private ULocale validLocale;
 
@@ -746,7 +743,6 @@ public class Currency extends MeasureUnit implements Serializable {
      * null.
      * @see com.ibm.icu.util.ULocale
      * @internal
-     * @deprecated This API is ICU internal only.
      */
     private ULocale actualLocale;
 

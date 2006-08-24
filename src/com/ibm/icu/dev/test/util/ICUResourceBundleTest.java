@@ -45,7 +45,7 @@ public final class ICUResourceBundleTest extends TestFmwk {
     }
     public void TestGetResources(){
         try{
-            Enumeration en = testLoader.getResources("META-INF");
+            Enumeration en = testLoader.getResources("com.ibm.icu.dev.data");
             for(;en.hasMoreElements();) {
                 URL url = (URL)en.nextElement();
                 if (url == null) {
@@ -488,16 +488,18 @@ public final class ICUResourceBundleTest extends TestFmwk {
         }
         {
             rb = (ICUResourceBundle)UResourceBundle.getBundleInstance("com/ibm/icu/dev/data/testdata","testaliases",testLoader);
-            sub = rb.get("boundaries");
-            String word = sub.getString("word");
-
-            if(word.equals("word_ja.brk")){
-                logln("Got the expected output for boundaries/word");
+            sub = rb.get("BreakDictionaryData");
+            if(sub.getType()!=ICUResourceBundle.BINARY){
+                errln("Did not get the expected type for BreakDictionaryData");
+            }
+            if(sub.getBinary().remaining()>0){
+                logln("Got the expected output for BreakDictionaryData");
             }else{
-                errln("Did not get the expected type for boundaries/word");
+                errln("Did not get the expected type for BreakDictionaryData");
             }
 
         }
+/* The format of time zone strings changed in the head .. comment these tests in 3.4.3
         {
             ICUResourceBundle rb1 = (ICUResourceBundle)UResourceBundle.getBundleInstance("com/ibm/icu/dev/data/testdata","testaliases",testLoader);
             if(rb1!=rb){
@@ -506,7 +508,6 @@ public final class ICUResourceBundleTest extends TestFmwk {
                 logln("Caching of resource bundle passed");
             }
             sub = rb1.get("testGetStringByKeyAliasing" );
-
             s1 = sub.get("KeyAlias0PST").getString();
             if(s1.equals("America/Los_Angeles")){
                 logln("Alias mechanism works for KeyAlias0PST");
@@ -562,12 +563,12 @@ public final class ICUResourceBundleTest extends TestFmwk {
                 errln("Did not get the expected output for testGetStringByIndexAliasing/3. Got: "+s1);
             }
         }
+*/
         {
-            sub = rb.get("testAliasToTree" );
-            
-            ByteBuffer buf = sub.get("standard").get("%%CollationBin").getBinary();
+            sub = rb.get("BreakDictionaryData" );
+            ByteBuffer buf = sub.getBinary();
             if(buf==null){
-                errln("Did not get the expected output for %%CollationBin");
+                errln("Did not get the expected output for BreakDictionaryData");
             }
         }
         // should not get an exception
@@ -851,7 +852,7 @@ public final class ICUResourceBundleTest extends TestFmwk {
             ICUResourceBundle root =(ICUResourceBundle) ICUResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, "root");
             ICUResourceBundle t = null;    
             try{
-                t = root.getWithFallback("calendar/islamic-civil/AmPmMarkers");
+                t = root.getWithFallback("calendar/islamic-civil/DateTimePatterns");
                 errln("Second resource does not exist. How did it get here?\n");
             }catch(MissingResourceException ex){
                 logln("Got the expected exception");
@@ -861,9 +862,6 @@ public final class ICUResourceBundleTest extends TestFmwk {
                 errln("Second resource does not exist. How did it get here?\n");
             }catch(MissingResourceException ex){
                 logln("Got the expected exception");
-            }
-            if(t!=null){
-                errln("t is not null!");
             }
         } catch (MissingResourceException e) {
            warnln("Could not load the locale data: " + e.getMessage());
@@ -1019,15 +1017,6 @@ public final class ICUResourceBundleTest extends TestFmwk {
         }
         if(bundle1!=bundle){
             errln("Did not load the bundle from cache");
-        }
-        
-        UResourceBundle bundle2 = UResourceBundle.getBundleInstance(baseName, "en_IN", testLoader);
-        if(!bundle2.getLocale().toString().equals("en")){
-            errln("Did not get the expected fallback locale. Expected: en Got: "+bundle2.getLocale().toString());    
-        }
-        UResourceBundle bundle3 = UResourceBundle.getBundleInstance(baseName, "te_IN", testLoader);
-        if(!bundle3.getLocale().toString().equals("te")){
-            errln("Did not get the expected fallback locale. Expected: te Got: "+bundle2.getLocale().toString());    
         }
         // non-existent bundle .. should return default
         UResourceBundle defaultBundle = UResourceBundle.getBundleInstance(baseName, "hi_IN", testLoader);

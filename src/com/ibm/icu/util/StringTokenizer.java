@@ -233,7 +233,6 @@ public final class StringTokenizer implements Enumeration
         if (delim != null && delim.length() > 0) {
             m_delimiters_ = new UnicodeSet();
             m_delimiters_.addAll(delim);
-            checkDelimiters();
         }
         m_coalesceDelimiters_ = coalescedelims;
         m_source_ = str;
@@ -319,10 +318,7 @@ public final class StringTokenizer implements Enumeration
             if (m_returnDelimiters_) {
                 int tokenlimit = 0;
                 int c = UTF16.charAt(m_source_, m_nextOffset_);
-                boolean contains = delims == null 
-                    ? m_delimiters_.contains(c) 
-                    : c < delims.length && delims[c];
-                if (contains) {
+                if (m_delimiters_.contains(c)) {
                      if (m_coalesceDelimiters_) {
                         tokenlimit = getNextNonDelimiter(m_nextOffset_);
                      } else {
@@ -421,7 +417,6 @@ public final class StringTokenizer implements Enumeration
     public String nextToken(UnicodeSet delim) 
     {
         m_delimiters_ = delim;
-        checkDelimiters();
         m_tokenOffset_ = -1;
         m_tokenSize_ = -1;
         if (!m_returnDelimiters_) {
@@ -495,22 +490,10 @@ public final class StringTokenizer implements Enumeration
                 }
                 m_tokenStart_[result] = m_nextOffset_;
                 if (m_returnDelimiters_) {
-                    int c = UTF16.charAt(m_source_, m_nextOffset_);
-                    boolean contains = delims == null 
-                        ? m_delimiters_.contains(c) 
-                        : c < delims.length && delims[c];
-                    if (contains) {
-                        if (m_coalesceDelimiters_) {
-                            m_tokenLimit_[result] = getNextNonDelimiter(
+                    if (m_delimiters_.contains(UTF16.charAt(m_source_, 
+                                                            m_nextOffset_))) {
+                        m_tokenLimit_[result] = getNextNonDelimiter(
                                                                 m_nextOffset_);
-                        } else {
-                            int p = m_nextOffset_ + 1;
-                            if (p == m_length_) {
-                                p = -1;
-                            }
-                            m_tokenLimit_[result] = p;
-
-                        }
                     }
                     else {
                         m_tokenLimit_[result] = getNextDelimiter(m_nextOffset_);
@@ -609,23 +592,13 @@ public final class StringTokenizer implements Enumeration
         if (offset >= 0) {
             int result = offset; 
             int c = 0;
-            if (delims == null) {
-                do {
-                    c = UTF16.charAt(m_source_, result);
-                    if (m_delimiters_.contains(c)) {
-                        break;
-                    }
-                    result ++;
-                } while (result < m_length_);
-            } else {
-                do {
-                    c = UTF16.charAt(m_source_, result);
-                    if (c < delims.length && delims[c]) {
-                        break;
-                    }
-                    result ++;
-                } while (result < m_length_);
-            }                
+            do {
+                c = UTF16.charAt(m_source_, result);
+                if (m_delimiters_.contains(c)) {
+                    break;
+                }
+                result ++;
+            } while (result < m_length_);
             if (result < m_length_) {
                 return result;
             }
@@ -645,44 +618,17 @@ public final class StringTokenizer implements Enumeration
         if (offset >= 0) {
             int result = offset; 
             int c = 0;
-            if (delims == null) {
-                do {
-                    c = UTF16.charAt(m_source_, result);
-                    if (!m_delimiters_.contains(c)) {
-                        break;
-                    }
-                    result ++;
-                } while (result < m_length_);
-            } else {
-                do {
-                    c = UTF16.charAt(m_source_, result);
-                    if (!(c < delims.length && delims[c])) {
-                        break;
-                    }
-                    result ++;
-                } while (result < m_length_);
-            }
+            do {
+                c = UTF16.charAt(m_source_, result);
+                if (!m_delimiters_.contains(c)) {
+                    break;
+                }
+                result ++;
+            } while (result < m_length_);
             if (result < m_length_) {
                 return result;
             }
         }
         return -1 - m_length_;
     }
-
-    void checkDelimiters() {
-        if (m_delimiters_ == null || m_delimiters_.size() == 0) {
-            delims = new boolean[0];
-        } else {
-            int maxChar = m_delimiters_.getRangeEnd(m_delimiters_.getRangeCount()-1);
-            if (maxChar < 0x7f) {
-                delims = new boolean[maxChar+1];
-                for (int i = 0, ch; -1 != (ch = m_delimiters_.charAt(i)); ++i) {
-                    delims[ch] = true;
-                }
-            } else {
-                delims = null;
-            }
-        }
-    }
-    private boolean[] delims;
 }

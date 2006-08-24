@@ -99,7 +99,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
     /**
      * Constant for context.
      * @internal revisit for ICU 3.6
-     * @deprecated This API is ICU internal only.
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int DT_CONTEXT_COUNT = 2;
 
@@ -129,7 +129,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
     /**
      * Constant for width.
      * @internal revisit for ICU 3.6
-     * @deprecated This API is ICU internal only.
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int DT_WIDTH_COUNT = 3;
 
@@ -189,13 +189,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * @serial
      */
     String eraNames[] = null;
-    
-    /**
-     * Narrow era names. For example: "A" and "B". An array of 2 strings,
-     * indexed by <code>Calendar.BC</code> and <code>Calendar.AD</code>.
-     * @serial
-     */
-    String narrowEras[] = null;
 
     /**
      * Month strings. For example: "January", "February", etc.  An array
@@ -310,34 +303,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * @serial
      */
     String ampms[] = null;
-    
-    /**
-     * Abbreviated quarter names. For example: "Q1", "Q2", "Q3", "Q4". An array
-     * of 4 strings indexed by the month divided by 3.
-     * @serial
-     */
-    String shortQuarters[] = null;
-    
-    /**
-     * Full quarter names. For example: "1st Quarter", "2nd Quarter", "3rd Quarter",
-     * "4th Quarter". An array of 4 strings, indexed by the month divided by 3.
-     * @serial
-     */
-    String quarters[] = null;
-    
-    /**
-     * Standalone abbreviated quarter names. For example: "Q1", "Q2", "Q3", "Q4". An array
-     * of 4 strings indexed by the month divided by 3.
-     * @serial
-     */
-    String standaloneShortQuarters[] = null;
-    
-    /**
-     * Standalone full quarter names. For example: "1st Quarter", "2nd Quarter", "3rd Quarter",
-     * "4th Quarter". An array of 4 strings, indexed by the month divided by 3.
-     * @serial
-     */
-    String standaloneQuarters[] = null;
 
     /**
      * Localized names of time zones in this locale.  This is a
@@ -375,7 +340,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * Unlocalized date-time pattern characters. For example: 'y', 'd', etc.
      * All locales use the same unlocalized pattern characters.
      */
-    static final String  patternChars = "GyMdkHmsSEDFwWahKzYeugAZvcLQq";
+    static final String  patternChars = "GyMdkHmsSEDFwWahKzYeugAZvcL";
 
     /**
      * Localized date-time pattern characters. For example, a locale may
@@ -424,12 +389,10 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * Sets era name strings. For example: "Anno Domini" and "Before Christ".
      * @param newEraNames the new era strings.
      * @internal revisit for ICU 3.6
-     * @deprecated This API is ICU internal only.
      */
     public void setEraNames(String[] newEraNames) {
         eraNames = duplicate(newEraNames);
     }
-
     /**
      * Gets month strings. For example: "January", "February", etc.
      * @return the month strings.
@@ -497,7 +460,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * @param width      The width of the month string,
      *                   either WIDE, ABBREVIATED, or NARROW.
      * @internal revisit for ICU 3.6
-     * @deprecated This API is ICU internal only.
+     * @provisional This API might change or be removed in a future release.
      */
     public void setMonths(String[] newMonths, int context, int width) {
         switch (context) {
@@ -608,7 +571,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * @param width       The width of the strings,
      *                    either WIDE, ABBREVIATED, or NARROW.
      * @internal revisit for ICU 3.6
-     * @deprecated This API is ICU internal only.
+     * @provisional This API might change or be removed in a future release.
      */
     public void setWeekdays(String[] newWeekdays, int context, int width) {
         switch (context) {
@@ -671,88 +634,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      */
     public void setShortWeekdays(String[] newShortWeekdays) {
         shortWeekdays = duplicate(newShortWeekdays);
-    }
-    /**
-     * Gets quarter strings. For example: "1st Quarter", "2nd Quarter", etc.
-     * @param context    The quarter context, FORMAT or STANDALONE.
-     * @param width      The width or the returned quarter string,
-     *                   either WIDE or ABBREVIATED. There are no NARROW quarters.
-     * @return the quarter strings.
-     * @draft ICU 3.6
-     * @provisional This API might change or be removed in a future release.
-     */
-    public String[] getQuarters(int context, int width) {
-        String [] returnValue = null;
-        switch (context) {
-           case FORMAT :
-              switch(width) {
-                 case WIDE :
-                    returnValue = quarters;
-                    break;
-                 case ABBREVIATED :
-                    returnValue = shortQuarters;
-                    break;
-                 case NARROW :
-                     returnValue = null;
-                     break;
-              }
-              break;
-              
-           case STANDALONE :
-              switch(width) {
-                 case WIDE :
-                    returnValue = standaloneQuarters;
-                    break;
-                 case ABBREVIATED :
-                    returnValue = standaloneShortQuarters;
-                    break;
-                 case NARROW: 
-                     returnValue = null;
-                     break;
-              }
-              break;
-        }
-        return duplicate(returnValue);
-    }
-
-    /**
-     * Sets quarter strings. For example: "1st Quarter", "2nd Quarter", etc.
-     * @param newQuarters the new quarter strings.
-     * @param context    The formatting context, FORMAT or STANDALONE.
-     * @param width      The width of the quarter string,
-     *                   either WIDE or ABBREVIATED. There are no NARROW quarters.
-     * @internal revisit for ICU 3.6
-     * @deprecated This API is ICU internal only.
-     */
-    public void setQuarters(String[] newQuarters, int context, int width) {
-        switch (context) {
-           case FORMAT :
-              switch(width) {
-                 case WIDE :
-                    quarters = duplicate(newQuarters);
-                    break;
-                 case ABBREVIATED :
-                    shortQuarters = duplicate(newQuarters);
-                    break;
-                 case NARROW :
-                    //narrowQuarters = duplicate(newQuarters);
-                    break;
-              }
-              break;
-           case STANDALONE :
-              switch(width) {
-                 case WIDE :
-                    standaloneQuarters = duplicate(newQuarters);
-                    break;
-                 case ABBREVIATED :
-                    standaloneShortQuarters = duplicate(newQuarters);
-                    break;
-                 case NARROW :
-                    //standaloneNarrowQuarters = duplicate(newQuarters);
-                    break;
-              }
-              break;
-        }
     }
 
     /**
@@ -931,14 +812,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
         catch (MissingResourceException e) {
            eraNames = calData.getEras("abbreviated");
         }
-        
-        // NOTE: since the above code assumes that abbreviated
-        // era names exist, we make the same assumption here too.
-        try {
-            narrowEras = calData.getEras("narrow");
-        } catch (MissingResourceException e) {
-            narrowEras = calData.getEras("abbreviated");
-        }
 
         months = calData.getStringArray("monthNames", "wide");
         shortMonths = calData.getStringArray("monthNames", "abbreviated");
@@ -947,12 +820,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
            narrowMonths = calData.getStringArray("monthNames", "narrow");
         } 
         catch (MissingResourceException e) {
-            try {
-                narrowMonths = calData.getStringArray("monthNames", "stand-alone", "narrow");
-            }
-            catch (MissingResourceException e1) {
-               narrowMonths = calData.getStringArray("monthNames", "abbreviated");
-            }
+           narrowMonths = calData.getStringArray("monthNames", "abbreviated");
         }
 
         try {
@@ -996,12 +864,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
            nWeekdays = calData.getStringArray("dayNames", "narrow");
         }
         catch (MissingResourceException e) {
-            try {
-                nWeekdays = calData.getStringArray("dayNames", "stand-alone", "narrow");
-            }
-            catch (MissingResourceException e1) {
-                nWeekdays = calData.getStringArray("dayNames", "abbreviated");
-            }
+           nWeekdays = calData.getStringArray("dayNames", "abbreviated");
         }
         narrowWeekdays = new String[8];
         narrowWeekdays[0] = "";  // 1-based
@@ -1046,24 +909,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
         System.arraycopy(snWeekdays, 0, standaloneNarrowWeekdays, 1, snWeekdays.length);
 
         ampms = calData.getStringArray("AmPmMarkers");
-        
-        quarters = calData.getStringArray("quarters", "wide");
-        shortQuarters = calData.getStringArray("quarters", "abbreviated");
 
-        try {
-           standaloneQuarters = calData.getStringArray("quarters", "stand-alone", "wide");
-        } 
-        catch (MissingResourceException e) {
-           standaloneQuarters = calData.getStringArray("quarters", "format", "wide");
-        }
-
-        try {
-           standaloneShortQuarters = calData.getStringArray("quarters", "stand-alone", "abbreviated");
-        } 
-        catch (MissingResourceException e) {
-            standaloneShortQuarters = calData.getStringArray("quarters", "format", "abbreviated");
-        }
-        
 /*  THE FOLLOWING DOESN'T WORK; A COUNTRY LOCALE WITH ONE ZONE BLOCKS THE LANGUAGE LOCALE
         // These really do use rb and not calData
         ICUResourceBundle rb = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, desiredLocale);
@@ -1440,7 +1286,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
     /**
      * The translation type of the translated zone strings
      * @internal ICU 3.6
-     * @deprecated This API is ICU internal only.
      */
      private static final String   SHORT_GENERIC  = "sg",
                                    SHORT_STANDARD = "ss",
@@ -1452,7 +1297,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
     /**
      * The translation type of the translated zone strings
      * @internal ICU 3.6
-     * @deprecated This API is ICU internal only.
      */
      static final int   TIMEZONE_SHORT_GENERIC  = 0,
                         TIMEZONE_SHORT_STANDARD = 1,
@@ -1877,7 +1721,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * @see com.ibm.icu.util.ULocale#VALID_LOCALE
      * @see com.ibm.icu.util.ULocale#ACTUAL_LOCALE
      * @internal
-     * @deprecated This API is ICU internal only.
      */
     final void setLocale(ULocale valid, ULocale actual) {
         // Change the following to an assertion later
@@ -1896,7 +1739,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * The most specific locale containing any resource data, or null.
      * @see com.ibm.icu.util.ULocale
      * @internal
-     * @deprecated This API is ICU internal only.
      */
     private ULocale validLocale;
 
@@ -1905,7 +1747,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * null.
      * @see com.ibm.icu.util.ULocale
      * @internal
-     * @deprecated This API is ICU internal only.
      */
     private ULocale actualLocale;
 

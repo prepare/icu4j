@@ -830,7 +830,6 @@ public class ChineseCalendar extends Calendar {
      * Return the current Calendar type.
      * @return type of calendar (gregorian, etc.)
      * @internal ICU 3.0
-     * @deprecated This API is ICU internal only.
      */
     public String getType() {
         return "chinese";

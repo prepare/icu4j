@@ -24,6 +24,7 @@ import com.ibm.icu.impl.UCharacterNameChoice;
 import com.ibm.icu.impl.UPropertyAliases;
 import com.ibm.icu.lang.UCharacterEnums.*;
 import com.ibm.icu.text.BreakIterator;
+import com.ibm.icu.text.Normalizer;
 import com.ibm.icu.text.UTF16;
 import com.ibm.icu.impl.UCharacterProperty;
 import com.ibm.icu.util.RangeValueIterator;
@@ -960,52 +961,6 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
         public static final UnicodeBlock VERTICAL_FORMS = new UnicodeBlock("VERTICAL_FORMS", 145); /*[FE10]*/
 
         /** 
-         * @draft ICU 3.6 
-         * @provisional This API might change or be removed in a future release.
-         */
-        public static final UnicodeBlock NKO = new UnicodeBlock( "NKO", 146); /*[07C0]*/
-        /** 
-         * @draft ICU 3.6 
-         * @provisional This API might change or be removed in a future release.
-         */
-        public static final UnicodeBlock BALINESE = new UnicodeBlock( "BALINESE", 147); /*[1B00]*/
-        /** 
-         * @draft ICU 3.6 
-         * @provisional This API might change or be removed in a future release.
-         */
-        public static final UnicodeBlock LATIN_EXTENDED_C = new UnicodeBlock( "LATIN_EXTENDED_C", 148); /*[2C60]*/
-        /** 
-         * @draft ICU 3.6 
-         * @provisional This API might change or be removed in a future release. 
-         */
-        public static final UnicodeBlock LATIN_EXTENDED_D = new UnicodeBlock( "LATIN_EXTENDED_D", 149); /*[A720]*/
-        /** 
-         * @draft ICU 3.6 
-         * @provisional This API might change or be removed in a future release.
-         */
-        public static final UnicodeBlock PHAGS_PA = new UnicodeBlock( "PHAGS_PA", 150); /*[A840]*/
-        /** 
-         * @draft ICU 3.6 
-         * @provisional This API might change or be removed in a future release.
-         */
-        public static final UnicodeBlock PHOENICIAN = new UnicodeBlock( "PHOENICIAN", 151); /*[10900]*/
-        /** 
-         * @draft ICU 3.6 
-         * @provisional This API might change or be removed in a future release.
-         */
-        public static final UnicodeBlock CUNEIFORM = new UnicodeBlock( "CUNEIFORM", 152); /*[12000]*/
-        /** 
-         * @draft ICU 3.6 
-         * @provisional This API might change or be removed in a future release.
-         */
-        public static final UnicodeBlock CUNEIFORM_NUMBERS_AND_PUNCTUATION = new UnicodeBlock( "CUNEIFORM_NUMBERS_AND_PUNCTUATION", 153); /*[12400]*/
-        /**
-         * @draft ICU 3.6 
-         * @provisional This API might change or be removed in a future release.
-         */
-        public static final UnicodeBlock COUNTING_ROD_NUMERALS = new UnicodeBlock( "COUNTING_ROD_NUMERALS", 154); /*[1D360]*/
-        
-        /** 
          * @stable ICU 2.4 
          */
         public static final UnicodeBlock INVALID_CODE 
@@ -1670,58 +1625,10 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
          */
         public static final int VERTICAL_FORMS_ID = 145; /*[FE10]*/
 
-        /* New blocks in Unicode 5.0 */
-
-        /** 
-         * @draft ICU 3.6 
-         * @provisional This API might change or be removed in a future release.
-         */
-        public static final int NKO_ID = 146; /*[07C0]*/
-        /** 
-         * @draft ICU 3.6 
-         * @provisional This API might change or be removed in a future release.
-         */
-        public static final int BALINESE_ID = 147; /*[1B00]*/
-        /** 
-         * @draft ICU 3.6 
-         * @provisional This API might change or be removed in a future release.
-         */
-        public static final int LATIN_EXTENDED_C_ID = 148; /*[2C60]*/
-        /** 
-         * @draft ICU 3.6 
-         * @provisional This API might change or be removed in a future release. 
-         */
-        public static final int LATIN_EXTENDED_D_ID = 149; /*[A720]*/
-        /** 
-         * @draft ICU 3.6 
-         * @provisional This API might change or be removed in a future release.
-         */
-        public static final int PHAGS_PA_ID = 150; /*[A840]*/
-        /** 
-         * @draft ICU 3.6 
-         * @provisional This API might change or be removed in a future release.
-         */
-        public static final int PHOENICIAN_ID = 151; /*[10900]*/
-        /** 
-         * @draft ICU 3.6 
-         * @provisional This API might change or be removed in a future release.
-         */
-        public static final int CUNEIFORM_ID = 152; /*[12000]*/
-        /** 
-         * @draft ICU 3.6 
-         * @provisional This API might change or be removed in a future release.
-         */
-        public static final int CUNEIFORM_NUMBERS_AND_PUNCTUATION_ID = 153; /*[12400]*/
-        /**
-         * @draft ICU 3.6 
-         * @provisional This API might change or be removed in a future release.
-         */
-        public static final int COUNTING_ROD_NUMERALS_ID = 154; /*[1D360]*/
-        
         /** 
          * @stable ICU 2.4 
          */
-        public static final int COUNT = 155;
+        public static final int COUNT = 146;
         
         // public methods --------------------------------------------------
         
@@ -1909,16 +1816,7 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
             SUPPLEMENTAL_PUNCTUATION,
             SYLOTI_NAGRI,
             TIFINAGH,
-            VERTICAL_FORMS,
-            NKO,
-            BALINESE,
-            LATIN_EXTENDED_C,
-            LATIN_EXTENDED_D,
-            PHAGS_PA,
-            PHOENICIAN,
-            CUNEIFORM,
-            CUNEIFORM_NUMBERS_AND_PUNCTUATION,
-            COUNTING_ROD_NUMERALS
+            VERTICAL_FORMS
         };
 
         static {
@@ -3762,7 +3660,6 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
      * @param separator string to go between names
      * @return string of names
      * @internal
-     * @deprecated This API is ICU internal only.
      */
     public static String getName(String s, String separator) {
         if (s.length() == 1) { // handle common case
@@ -4141,9 +4038,6 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
          * If the limit parameter is negative or past the string, then the
          * string length is restored as the iteration limit.
          *
-         * This limit does not affect the next() function which always
-         * iterates to the very end of the string.
-         *
          * @param lim The iteration limit.
          */
         public void setLimit(int lim) {
@@ -4160,17 +4054,13 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
          * Performance optimization, to save on function calls and redundant
          * tests. Combines UTF16.charAt(), UTF16.getCharCount(), and setIndex().
          *
-         * When the iteration limit is reached (and -1 is returned),
-         * getCPStart() will be at the iteration limit.
-         *
-         * Iteration with next() does not affect the position for nextCaseMapCP().
-         *
          * @return The next code point to be case-mapped, or <0 when the iteration is done.
          */
         public int nextCaseMapCP() {
-            cpStart=cpLimit;
+            int c;
             if(cpLimit<limit) {
-                int c=s.charAt(cpLimit++);
+                cpStart=cpLimit;
+                c=s.charAt(cpLimit++);
                 if(UTF16.LEAD_SURROGATE_MIN_VALUE<=c || c<=UTF16.TRAIL_SURROGATE_MAX_VALUE) {
                     char c2;
                     if( c<=UTF16.LEAD_SURROGATE_MAX_VALUE && cpLimit<limit &&
@@ -4187,14 +4077,6 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
             } else {
                 return -1;
             }
-        }
-
-        /**
-         * Get the start of the code point that was last returned
-         * by nextCaseMapCP().
-         */
-        public int getCPStart() {
-            return cpStart;
         }
 
         // implement UCaseProps.ContextIterator
@@ -4217,7 +4099,7 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
         public int next() {
             int c;
 
-            if(dir>0 && index<s.length()) {
+            if(dir>0 && index<limit) {
                 c=UTF16.charAt(s, index);
                 index+=UTF16.getCharCount(c);
                 return c;
@@ -4452,15 +4334,14 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
         }
         titleIter.setText(str);
 
-        int prev, titleStart, index;
+        int index;
         boolean isFirstIndex;
 
         /* set up local variables */
-        prev=0;
         isFirstIndex=true;
 
         /* titlecasing loop */
-        while(prev<srcLength) {
+        for(;;) {
             /* find next index where to titlecase */
             if(isFirstIndex) {
                 isFirstIndex=false;
@@ -4472,64 +4353,53 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
                 index=srcLength;
             }
 
-            /*
-             * Unicode 4 & 5 section 3.13 Default Case Operations:
-             *
-             * R3  toTitlecase(X): Find the word boundaries based on Unicode Standard Annex
-             * #29, "Text Boundaries." Between each pair of word boundaries, find the first
-             * cased character F. If F exists, map F to default_title(F); then map each
-             * subsequent character C to default_lower(C).
-             *
-             * In this implementation, segment [prev..index[ into 3 parts:
-             * a) uncased characters (copy as-is) [prev..titleStart[
-             * b) first case letter (titlecase)         [titleStart..titleLimit[
-             * c) subsequent characters (lowercase)                 [titleLimit..index[
-             */
-            if(prev<index) {
-                /* find and copy uncased characters [prev..titleStart[ */
-                iter.setLimit(index);
-                while((c=iter.nextCaseMapCP())>=0 && UCaseProps.NONE==gCsp.getType(c)) {}
-                titleStart=iter.getCPStart();
-                if(prev<titleStart) {
-                    // TODO: With Java 5, this would want to be result.append(str, prev, titleStart);
-                    result.append(str.substring(prev, titleStart));
+            /* lowercase up to index */
+            iter.setLimit(index);
+            while((c=iter.nextCaseMapCP())>=0) {
+                c=gCsp.toFullLower(c, iter, result, locale, locCache);
+
+                /* decode the result */
+                if(c<0) {
+                    /* (not) original code point */
+                    c=~c;
+                } else if(c<=UCaseProps.MAX_STRING_LENGTH) {
+                    /* mapping already appended to result */
+                    continue;
+                /* } else { append single-code point mapping */
                 }
-
-                if(titleStart<index) {
-                    /* titlecase c which is from titleStart */
-                    c=gCsp.toFullTitle(c, iter, result, locale, locCache);
-
-                    /* decode the result and lowercase up to index */
-                    for(;;) {
-                        if(c<0) {
-                            /* (not) original code point */
-                            c=~c;
-                            if(c<=0xffff) {
-                                result.append((char)c);
-                            } else {
-                                UTF16.append(result, c);
-                            }
-                        } else if(c<=UCaseProps.MAX_STRING_LENGTH) {
-                            /* mapping already appended to result */
-                        } else {
-                            /* append single-code point mapping */
-                            if(c<=0xffff) {
-                                result.append((char)c);
-                            } else {
-                                UTF16.append(result, c);
-                            }
-                        }
-                        
-                        if((c=iter.nextCaseMapCP())>=0) {
-                            c=gCsp.toFullLower(c, iter, result, locale, locCache);
-                        } else {
-                            break;
-                        }
-                    }
+                if(c<=0xffff) {
+                    result.append((char)c);
+                } else {
+                    UTF16.append(result, c);
                 }
             }
 
-            prev=index;
+            if(index>=srcLength) {
+                break;
+            }
+
+            /* titlecase the character at the found index */
+            iter.setLimit(srcLength);
+            c=iter.nextCaseMapCP();
+            if(c<0) {
+                break; // reached end of str
+            }
+            c=gCsp.toFullTitle(c, iter, result, locale, locCache);
+
+            /* decode the result */
+            if(c<0) {
+                /* (not) original code point */
+                c=~c;
+            } else if(c<=UCaseProps.MAX_STRING_LENGTH) {
+                /* mapping already appended to result */
+                continue;
+            /* } else { append single-code point mapping */
+            }
+            if(c<=0xffff) {
+                result.append((char)c);
+            } else {
+                UTF16.append(result, c);
+            }
         }
         return result.toString();
     }
