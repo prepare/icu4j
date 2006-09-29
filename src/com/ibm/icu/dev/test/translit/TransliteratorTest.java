@@ -2406,18 +2406,19 @@ public class TransliteratorTest extends TestFmwk {
      */
      public void TestScriptAllCodepoints(){
             int code;
-            HashSet  scriptIdsChecked   = new HashSet();
-            HashSet  scriptAbbrsChecked = new HashSet();
+             String oldId="";
+             String oldAbbrId="";
             for( int i =0; i <= 0x10ffff; i++){
+                code =UScript.INVALID_CODE;
                 code = UScript.getScript(i);
                 if(code==UScript.INVALID_CODE){
                     errln("UScript.getScript for codepoint 0x"+ hex(i)+" failed");
                 }
                  String id =UScript.getName(code);
                  String abbr = UScript.getShortName(code);
-                 if (!scriptIdsChecked.contains(id)) {
-                     scriptIdsChecked.add(id);
-                     String newId ="[:"+id+":];NFD";
+                 String newId ="[:"+id+":];NFD";
+                 String newAbbrId ="[:"+abbr+":];NFD";
+                 if(!oldId.equals(newId)){
                      try{
                          Transliterator t = Transliterator.getInstance(newId);
                          if(t==null){
@@ -2430,9 +2431,8 @@ public class TransliteratorTest extends TestFmwk {
                                  + " Exception: "+e.getMessage());
                      }
                  }
-                 if (!scriptAbbrsChecked.contains(abbr)) {
-                     scriptAbbrsChecked.add(abbr);
-                     String newAbbrId ="[:"+abbr+":];NFD";
+                 oldId = newId;
+                 if(!oldAbbrId.equals(newAbbrId)){
                      try{
                          Transliterator t = Transliterator.getInstance(newAbbrId);
                          if(t==null){
@@ -2445,6 +2445,7 @@ public class TransliteratorTest extends TestFmwk {
                                  + " Exception: "+e.getMessage());
                      }
                  }
+                 oldAbbrId = newAbbrId;
             }
     }
 

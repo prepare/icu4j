@@ -13,12 +13,10 @@ package com.ibm.icu.dev.test.format;
 import com.ibm.icu.dev.test.TestFmwk;
 import com.ibm.icu.impl.PatternTokenizer;
 import com.ibm.icu.impl.Utility;
-import com.ibm.icu.text.DateFormat;
 import com.ibm.icu.text.DateTimePatternGenerator;
 import com.ibm.icu.text.SimpleDateFormat;
 import com.ibm.icu.text.UTF16;
 import com.ibm.icu.text.UnicodeSet;
-import com.ibm.icu.util.TimeZone;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.UResourceBundle;
 
@@ -34,38 +32,6 @@ public class DateTimeGeneratorTest extends TestFmwk {
     
     public static void main(String[] args) throws Exception {
         new DateTimeGeneratorTest().run(args);
-    }
-    
-    public void TestSimple() {
-      
-      // some simple use cases
-      Date sampleDate = new Date(99, 9, 13, 23, 58, 59);
-      ULocale locale = ULocale.GERMANY;
-      TimeZone zone = TimeZone.getTimeZone("Europe/Paris");
-      // make from locale
-      DateTimePatternGenerator gen = DateTimePatternGenerator.getInstance(locale);
-      SimpleDateFormat format = new SimpleDateFormat(gen.getBestPattern("MMMddHmm"), locale);
-      format.setTimeZone(zone);
-      assertEquals("simple format: MMMddHmm", "8:58 14. Okt", format.format(sampleDate));
-      // (a generator can be built from scratch, but that is not a typical use case)
-      
-      // modify the generator by adding patterns
-      DateTimePatternGenerator.PatternInfo returnInfo = new DateTimePatternGenerator.PatternInfo();
-      gen.add("d'. von' MMMM", true, returnInfo); 
-      // the returnInfo is mostly useful for debugging problem cases
-      format.applyPattern(gen.getBestPattern("MMMMddHmm"));
-      assertEquals("modified format: MMMddHmm", "8:58 14. von Oktober", format.format(sampleDate));
-      
-      // get a pattern and modify it
-      format = (SimpleDateFormat)DateFormat.getDateTimeInstance(DateFormat.FULL, DateFormat.FULL, locale);
-      format.setTimeZone(zone);
-      String pattern = format.toPattern();
-      assertEquals("full-date", "Donnerstag, 14. Oktober 1999 8:58 Uhr GMT+02:00", format.format(sampleDate));
-      
-      // modify it to change the zone.
-      String newPattern = gen.replaceFieldTypes(pattern, "vvvv");
-      format.applyPattern(newPattern);
-      assertEquals("full-date: modified zone", "Donnerstag, 14. Oktober 1999 8:58 Uhr Frankreich", format.format(sampleDate));
     }
     
     public void TestPatternParser() {
@@ -213,11 +179,11 @@ public class DateTimeGeneratorTest extends TestFmwk {
         new String[] {"mmss", "58:59"},
         new ULocale("zh_Hans_CN"),
         new String[] {"yM", "1999-1"},
-        new String[] {"yMMM", "1999-01"},
+        new String[] {"yMMM", "1999-\u4E00\u6708"},
         new String[] {"yMd", "1999\u5E741\u670813\u65E5"},
-        new String[] {"yMMMd", "1999\u5E7401\u670813\u65E5"},
+        new String[] {"yMMMd", "1999\u5E74\u4E00\u6708\u670813\u65E5"},
         new String[] {"Md", "1-13"},
-        new String[] {"MMMd", "01-13"},
+        new String[] {"MMMd", "\u4E00\u6708-13"},
         new String[] {"yQQQ", "1\u5B63 1999"},
         new String[] {"hhmm", "\u4E0B\u534811:58"},
         new String[] {"HHmm", "\u4E0B\u534811:58"},

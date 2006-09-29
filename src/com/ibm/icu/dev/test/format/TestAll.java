@@ -69,7 +69,6 @@ public class TestAll extends TestGroup {
                 "IntlTestDateFormatAPI",
                 "IntlTestDateFormatAPIC",
                 "IntlTestDateFormatSymbols",
-                "DateTimeGeneratorTest",
                 "IntlTestSimpleDateFormatAPI",
                 "DateFormatRegressionTestJ",
             });
