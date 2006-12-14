@@ -79,6 +79,8 @@
 
     <target name="init">
         <tstamp/>
+        <!-- <defaultexcludes echo="true"/> -->
+
         <property name="src.dir" value="src"/>
         <property name="build.dir" value="classes"/>
         <property name="api.dir" value="${src.dir}/com/ibm/icu/dev/tool/docs"/>
@@ -87,9 +89,9 @@
         <property name="jar.file" value="icu4j.jar"/>
         <property name="charsets.jar.file" value="icu4j-charsets.jar"/>
         <property name="jarSrc.file" value="icu4jsrc.jar"/>
-        <property name="zipCoreSrc.file" value="icu4jcsrc.zip"/>
         <property name="zipTestSrc.file" value="icu4jtsrc.zip"/>
         <property name="jdk.wrapper.jar.file" value="icu4jwrapper.jar"/>
+        <property name="fragment.jar.file" value="icu4jfragment.jar"/>
         <property name="eclipse.dir" value="${src.dir}/com/ibm/icu/dev/eclipse"/>
         <property name="eclipse.projects.dir" value="eclipseProjects"/>
         <property name="wrapper.build.dir" value="classes.wrapper"/>
@@ -176,7 +178,6 @@
     <!-- core does not build richedit or tests -->
     <target name="core" depends="init,coreData,icudata" description="build core classes and data">
         <javac includes="com/ibm/icu/util/**/*.java,com/ibm/icu/text/**/*.java,com/ibm/icu/math/**/*.java,com/ibm/icu/impl/**/*.java,com/ibm/icu/lang/*.java,com/ibm/icu/charset/**/*.java"
-            excludes="**/CVS/**/*"
             srcdir="${src.dir}"
             destdir="${build.dir}"
             classpathref="build.classpath"
@@ -188,7 +189,6 @@
 
     <target name="tests" depends="core,testdata" description="build tests">
         <javac includes="com/ibm/icu/dev/test/calendar/**/*.java"
-            excludes="**/CVS/**/*"
             srcdir="${src.dir}"
             destdir="${build.dir}"
             classpathref="build.classpath"
@@ -196,7 +196,6 @@
             target="${icu4j.javac.target}"
             debug="on" deprecation="off"/>
         <javac includes="com/ibm/icu/dev/test/collator/**/*.java"
-            excludes="**/CVS/**/*"
             srcdir="${src.dir}"
             destdir="${build.dir}"
             classpathref="build.classpath"
@@ -204,7 +203,6 @@
             target="${icu4j.javac.target}"
             debug="on" deprecation="off"/>
         <javac includes="com/ibm/icu/dev/test/format/**/*.java"
-            excludes="**/CVS/**/*"
             srcdir="${src.dir}"
             destdir="${build.dir}"
             classpathref="build.classpath"
@@ -212,7 +210,6 @@
             target="${icu4j.javac.target}"
             debug="on" deprecation="off"/>
         <javac includes="com/ibm/icu/dev/test/translit/**/*.java"
-            excludes="**/CVS/**/*"
             srcdir="${src.dir}"
             destdir="${build.dir}"
             classpathref="build.classpath"
@@ -220,7 +217,6 @@
             target="${icu4j.javac.target}"
             debug="on" deprecation="off"/>
         <javac includes="com/ibm/icu/dev/test/lang/**/*.java, com/ibm/icu/dev/test/normalizer/**/*.java"
-            excludes="**/CVS/**/*"
             srcdir="${src.dir}"
             destdir="${build.dir}"
             classpathref="build.classpath"
@@ -228,15 +224,13 @@
             target="${icu4j.javac.target}"
             debug="on" deprecation="off"/>
         <javac includes="com/ibm/icu/dev/test/serializable/**/*.java"
-            excludes="**/CVS/**/*"
             srcdir="${src.dir}"
             destdir="${build.dir}"
             classpathref="build.classpath"
             source="${icu4j.javac.source}"
             target="${icu4j.javac.target}"
-            debug="on" deprecation="off"/>            
+            debug="on" deprecation="off"/>
         <javac includes="com/ibm/icu/dev/test/**/*.java"
-            excludes="**/CVS/**/*"
             srcdir="${src.dir}"
             destdir="${build.dir}"
             classpathref="build.classpath"
@@ -247,7 +241,6 @@
 
     <target name="demos" depends="core,testdata" description="build demos">
         <javac includes="com/ibm/icu/dev/demo/**/*.java"
-            excludes="**/CVS/**/*"
             srcdir="${src.dir}"
             destdir="${build.dir}"
             classpathref="build.classpath"
@@ -291,7 +284,6 @@
 
     <target name="one4tools" depends="anthack1,anthack2,mangle" if="version.1.4">
         <javac includes="com/ibm/icu/dev/localeconverter/docs/*.java,com/ibm/icu/dev/tool/docs/*.java"
-            excludes="**/CVS/**/*"
             srcdir="${src.dir}"
             destdir="${build.dir}"
             classpathref="build.classpath"
@@ -302,7 +294,7 @@
 
     <target name="tools" depends="core,one4tools" description="build tools">
         <javac includes="com/ibm/icu/dev/tool/**/*.java"
-            excludes="com/ibm/icu/dev/tool/cldr/*,com/ibm/icu/dev/tool/localeconverter/*,com/ibm/icu/dev/tool/docs/*,**/CVS/**/*"
+            excludes="com/ibm/icu/dev/tool/cldr/*,com/ibm/icu/dev/tool/localeconverter/*,com/ibm/icu/dev/tool/docs/*"
             srcdir="${src.dir}"
             destdir="${build.dir}"
             classpathref="build.classpath"
@@ -362,7 +354,7 @@
         <copy todir="${build.dir}/com/ibm/icu/impl/data">
             <fileset dir="${src.dir}/com/ibm/icu/impl/data"
                 includes="*.icu,*.spp,*.brk"
-                excludes="**/CVS/**/*,Transliterator_Han_Latin_*.txt"/>
+                excludes="Transliterator_Han_Latin_*.txt"/>
         </copy>
     </target>
 
@@ -383,7 +375,6 @@
         <copy file="${src.dir}/com/ibm/icu/dev/data/IDNATestInput.txt"
             todir="${build.dir}/com/ibm/icu/dev/data"/>
         <javac includes="com/ibm/icu/dev/data/*.java, com/ibm/icu/dev/data/resources/*.java"
-            excludes="**/CVS/**/*"
             srcdir="${src.dir}"
             destdir="${build.dir}"
             classpathref="build.classpath"
@@ -412,7 +403,6 @@
     <!-- builds richedit and richedit tests -->
     <target name="richedit" depends="init" description="build richedit classes and tests">
         <javac includes="com/ibm/richtext/**/*.java"
-            excludes="**/CVS/**/*"
             srcdir="${src.dir}"
             destdir="${build.dir}"
             classpathref="build.classpath"
@@ -502,7 +492,7 @@
         <jar jarfile="${jarSrc.file}"
             compress="true"
             basedir="."
-            excludes="${richedit.dir}/**/*,test_*,${src.dir}/com/ibm/icu/dev/data/unicode//UnicodeData-*.txt,${src.dir}/com/ibm/icu/dev/data/unicode/SpecialCasing-*.txt,${src.dir}/com/ibm/icu/dev/data/unicode/CompositionExclusions-*.txt,${obsolete.dir}/**,**/*~,${src.dir}/**/*.class,${build.dir}/**,**/CVS/**/*,${doc.dir}/**,*.jar,*.zip, *.gz">
+            excludes="${richedit.dir}/**/*,test_*,${src.dir}/com/ibm/icu/dev/data/unicode//UnicodeData-*.txt,${src.dir}/com/ibm/icu/dev/data/unicode/SpecialCasing-*.txt,${src.dir}/com/ibm/icu/dev/data/unicode/CompositionExclusions-*.txt,${obsolete.dir}/**,**/*~,${src.dir}/**/*.class,${build.dir}/**,${doc.dir}/**,*.jar,*.zip, *.gz">
             <manifest>
                 <attribute name="Built-By" value="${corp}"/>
                 <section name="common">
@@ -543,7 +533,6 @@
 
     <target name="translitIMEJar" depends="collator, transliterator" description="build transliterator IME 'icutransime.jar' jar file">
         <javac includes="com/ibm/icu/dev/tool/ime/translit/*.java"
-            excludes="**/CVS/**/*"
             srcdir="${src.dir}"
             destdir="${build.dir}"
             classpathref="build.classpath"
@@ -563,7 +552,6 @@
 
     <target name="indicIMEJar" depends="init" description="build indic IME 'icuindicime.jar' jar file">
         <javac includes="com/ibm/icu/dev/tool/ime/indic/*.java"
-            excludes="**/CVS/**/*"
             srcdir="${src.dir}"
             destdir="${build.dir}"
             classpathref="build.classpath"
@@ -584,7 +572,6 @@
 <!--
     <target name="translitimeStandaloneJar" depends="collator, transliterator">
         <javac includes="com/ibm/icu/dev/tool/ime/translit/*.java"
-            excludes="**/CVS/**/*"
             srcdir="${src.dir}"
             destdir="${build.dir}"
             classpathref="build.classpath"
@@ -792,9 +779,9 @@
 
         <delete dir="${eclipse.projects.dir}"/>
         <delete dir="${wrapper.build.dir}"/>
-        <delete file="${zipCoreSrc.file}"/>
         <delete file="${zipTestSrc.file}"/>
         <delete file="${jdk.wrapper.jar.file}"/>
+        <delete file="${fragment.jar.file}"/>
     </target>
 
     <!--
@@ -940,7 +927,7 @@
 
     <target name="normalizer" depends="init,normalizerData" description="modular build of normalizer services">
         <javac includes="com/ibm/icu/text/Normalizer.java,com/ibm/icu/text/CanonicalIterator.java,com/ibm/icu/text/UTF16.java,com/ibm/icu/text/UCharacterIterator.java,com/ibm/icu/text/UForwardCharacterIterator.java,com/ibm/icu/text/Replaceable.java,com/ibm/icu/text/ReplaceableString.java,com/ibm/icu/text/UnicodeFilter.java,com/ibm/icu/text/UnicodeSetIterator.java,com/ibm/icu/lang/**/*"
-            excludes="**/CVS/**/*,com/ibm/icu/lang/UScriptRun.java, com/ibm/icu/impl/ICUListResourceBundle.java, com/ibm/icu/impl/UtilityExtensions.java,com/ibm/icu/impl/TrieBuilder.java,com/ibm/icu/impl/IntTrieBuilder.java,com/ibm/icu/impl/BOCU.java,com/ibm/icu/impl/UnicodeCharacterIterator.java"
+            excludes="com/ibm/icu/lang/UScriptRun.java, com/ibm/icu/impl/ICUListResourceBundle.java, com/ibm/icu/impl/UtilityExtensions.java,com/ibm/icu/impl/TrieBuilder.java,com/ibm/icu/impl/IntTrieBuilder.java,com/ibm/icu/impl/BOCU.java,com/ibm/icu/impl/UnicodeCharacterIterator.java"
             srcdir="${src.dir}"
             destdir="${build.dir}"
             source="${icu4j.javac.source}"
@@ -951,7 +938,7 @@
 
     <target name="normalizerTests" depends="normalizer">
         <javac includes="com/ibm/icu/dev/test/TestFmwk.java,com/ibm/icu/dev/test/TestLog.java,com/ibm/icu/dev/test/TestUtil.java,com/ibm/icu/dev/test/UTF16Util.java,com/ibm/icu/dev/test/TestAll.java,com/ibm/icu/dev/test/normalizer/**/*.java"
-            excludes="**/CVS/**/*,com/ibm/icu/dev/test/normalizer/TestDeprecatedNormalizerAPI.java"
+            excludes="com/ibm/icu/dev/test/normalizer/TestDeprecatedNormalizerAPI.java"
             srcdir="${src.dir}"
             destdir="${build.dir}"
             source="${icu4j.javac.source}"
@@ -966,7 +953,7 @@
 
     <target name="collator" depends="init,copyCollatorData" description="modular build of collator services">
          <javac includes="com/ibm/icu/text/*Collator*.java,com/ibm/icu/text/*Collation*.java,com/ibm/icu/text/*BreakIterator*.java,com/ibm/icu/text/Normalizer.java,com/ibm/icu/text/UTF16.java,com/ibm/icu/text/Replaceable.java,com/ibm/icu/text/ReplaceableString.java,com/ibm/icu/text/UnicodeFilter.java,com/ibm/icu/text/UnicodeSetIterator.java, com/ibm/icu/impl/data/*Break*.java"
-            excludes="**/CVS/**/*, com/ibm/icu/lang/UScriptRun.java,com/ibm/icu/impl/UtilityExtensions.java,com/ibm/icu/impl/UnicodeCharacterIterator.java"
+            excludes="com/ibm/icu/lang/UScriptRun.java,com/ibm/icu/impl/UtilityExtensions.java,com/ibm/icu/impl/UnicodeCharacterIterator.java"
             srcdir="${src.dir}"
             destdir="${build.dir}"
             classpathref="build.classpath"
@@ -976,7 +963,7 @@
     </target>
    <target name="collatorTests" depends="collator, testdata" description="test collator modular build target">
         <javac includes="com/ibm/icu/dev/test/TestFmwk.java,com/ibm/icu/dev/test/TestLog.java,com/ibm/icu/dev/test/TestUtil.java,com/ibm/icu/dev/test/UTF16Util.java,com/ibm/icu/dev/test/TestAll.java,com/ibm/icu/dev/test/collator/**/*.java,com/ibm/icu/dev/test/search/**/*.java"
-            excludes="**/CVS/**/*, com/ibm/icu/dev/test/collator/RandomCollator.java"
+            excludes="com/ibm/icu/dev/test/collator/RandomCollator.java"
             srcdir="${src.dir}"
             destdir="${build.dir}"
             classpathref="build.classpath"
@@ -997,7 +984,7 @@
     
     <target name="propertiesClasses">
         <javac includes="com/ibm/icu/lang/**/*, com/ibm/icu/text/*BreakIterator*.java,com/ibm/icu/text/*BreakDictionary*.java,com/ibm/icu/impl/data/*Break*.java,com/ibm/icu/text/UnicodeSetIterator.java,"
-            excludes="**/CVS/**/*,com/ibm/icu/impl/UtilityExtensions.java"
+            excludes="com/ibm/icu/impl/UtilityExtensions.java"
             srcdir="${src.dir}"
             destdir="${build.dir}"
             source="${icu4j.javac.source}"
@@ -1009,7 +996,7 @@
         <copy file="${src.dir}/com/ibm/icu/dev/data/unicode/SpecialCasing.txt"
             todir="${build.dir}/com/ibm/icu/dev/data/unicode/"/>
         <javac includes="com/ibm/icu/dev/test/TestFmwk.java,com/ibm/icu/dev/test/TestLog.java,com/ibm/icu/dev/test/TestUtil.java,com/ibm/icu/dev/test/UTF16Util.java,com/ibm/icu/dev/test/TestAll.java,com/ibm/icu/dev/test/lang/**/*.java"
-            excludes="**/CVS/**/*,com/ibm/icu/dev/test/lang/TestUScriptRun.java"
+            excludes="com/ibm/icu/dev/test/lang/TestUScriptRun.java"
             srcdir="${src.dir}"
             destdir="${build.dir}"
             classpathref="build.classpath"
@@ -1022,7 +1009,7 @@
         <copy file="${src.dir}/com/ibm/icu/dev/data/unicode/SpecialCasing.txt"
             todir="${build.dir}/com/ibm/icu/dev/data/unicode/"/>
         <javac includes="com/ibm/icu/dev/test/TestFmwk.java,com/ibm/icu/dev/test/TestLog.java,com/ibm/icu/dev/test/TestUtil.java,com/ibm/icu/dev/test/UTF16Util.java,com/ibm/icu/dev/test/TestAll.java,com/ibm/icu/dev/test/lang/**/*.java"
-            excludes="**/CVS/**/*,com/ibm/icu/dev/test/lang/TestUScriptRun.java"
+            excludes="com/ibm/icu/dev/test/lang/TestUScriptRun.java"
             srcdir="${src.dir}"
             destdir="${build.dir}"
             classpathref="build.classpath"
@@ -1036,7 +1023,6 @@
      -->
     <target name="compression" depends="init" description="modular build of compression services">
         <javac includes="com/ibm/icu/text/SCSU.java, com/ibm/icu/text/UnicodeCompressor.java, com/ibm/icu/text/UnicodeDecompressor.java"
-            excludes="**/CVS/**/*"
             srcdir="${src.dir}"
             destdir="${build.dir}"
             source="${icu4j.javac.source}"
@@ -1047,7 +1033,6 @@
 
     <target name="compressionTests" depends="compression" description="test compression modular build target">
         <javac includes="com/ibm/icu/dev/test/TestFmwk.java,com/ibm/icu/dev/test/TestLog.java,com/ibm/icu/dev/test/TestUtil.java,com/ibm/icu/dev/test/UTF16Util.java,com/ibm/icu/dev/test/TestAll.java,com/ibm/icu/dev/test/compression/**/*.java"
-            excludes="**/CVS/**/*"
             srcdir="${src.dir}"
             destdir="${build.dir}"
             classpathref="build.classpath"
@@ -1061,7 +1046,7 @@
      -->
     <target name="calendar" depends="init,copyCalendarData" description="modular build of calendar services">
         <javac includes="com/ibm/icu/util/*Calendar*.java,com/ibm/icu/lang/UCharacter.java,com/ibm/icu/text/UnicodeSetIterator.java,com/ibm/icu/text/NumberFormat*Shim.java,com/ibm/icu/impl/data/*Calendar*.java,com/ibm/icu/impl/data/*Holiday*.java"
-            excludes="**/CVS/**/*, com/ibm/icu/lang/UScriptRun.java,com/ibm/icu/impl/UtilityExtensions.java,com/ibm/icu/impl/BOCU.java,com/ibm/icu/impl/TrieBuilder.java,com/ibm/icu/impl/IntTrieBuilder.java"
+            excludes="com/ibm/icu/lang/UScriptRun.java,com/ibm/icu/impl/UtilityExtensions.java,com/ibm/icu/impl/BOCU.java,com/ibm/icu/impl/TrieBuilder.java,com/ibm/icu/impl/IntTrieBuilder.java"
             srcdir="${src.dir}"
             destdir="${build.dir}"
             source="${icu4j.javac.source}"
@@ -1072,7 +1057,6 @@
 
     <target name="calendarTests" depends="calendar" description="test calendar modular build target">
         <javac includes="com/ibm/icu/dev/test/TestFmwk.java,com/ibm/icu/dev/test/TestLog.java,com/ibm/icu/dev/test/TestUtil.java,com/ibm/icu/dev/test/UTF16Util.java,com/ibm/icu/dev/test/TestAll.java,com/ibm/icu/dev/test/calendar/**/*"
-            excludes="**/CVS/**/*"
             srcdir="${src.dir}"
             destdir="${build.dir}"
             classpathref="build.classpath"
@@ -1087,7 +1071,7 @@
 
     <target name="transliterator" depends="init,propertiesClasses,copyTranslitData" description="modular build of unicode transform services">
         <javac includes="com/ibm/icu/text/*Transliterator*.java,com/ibm/icu/text/UnicodeSetIterator.java,com/ibm/icu/impl/*Property*.java,com/ibm/icu/impl/*Iterator*.java,com/ibm/icu/impl/data/ResourceReader.java,com/ibm/icu/impl/UtilityExtensions.java"
-            excludes="**/CVS/**/*, com/ibm/icu/lang/UScriptRun.java,com/ibm/icu/impl/BOCU.java,com/ibm/icu/impl/TrieBuilder.java,com/ibm/icu/impl/IntTrieBuilder.java,com/ibm/icu/text/UnicodeFilterLogic*.java"
+            excludes="com/ibm/icu/lang/UScriptRun.java,com/ibm/icu/impl/BOCU.java,com/ibm/icu/impl/TrieBuilder.java,com/ibm/icu/impl/IntTrieBuilder.java,com/ibm/icu/text/UnicodeFilterLogic*.java"
             srcdir="${src.dir}"
             destdir="${build.dir}"
             source="${icu4j.javac.source}"
@@ -1098,7 +1082,7 @@
 
     <target name="transliteratorTests" depends="transliterator" description = "test transliterator modular build target">
         <javac includes="com/ibm/icu/dev/test/TestFmwk.java,com/ibm/icu/dev/test/TestLog.java,com/ibm/icu/dev/test/TestUtil.java,com/ibm/icu/dev/test/UTF16Util.java,com/ibm/icu/dev/test/TestAll.java,com/ibm/icu/dev/test/translit/**/*"
-            excludes="**/CVS/**/*,com/ibm/icu/dev/test/translit/UnicodeFilterLogic*.java"
+            excludes="com/ibm/icu/dev/test/translit/UnicodeFilterLogic*.java"
             srcdir="${src.dir}"
             destdir="${build.dir}"
             classpathref="build.classpath"
@@ -1113,7 +1097,7 @@
 
     <target name="format" depends="init,copyFormatData" description="modular build of formatting services">
         <javac includes="com/ibm/icu/text/*Format*.java,com/ibm/icu/lang/UCharacter.java,com/ibm/icu/text/*Collator*.java,com/ibm/icu/text/UnicodeSetIterator.java,com/ibm/icu/impl/data/CalendarData*.java"
-            excludes="**/CVS/**/*, com/ibm/icu/lang/UScriptRun.java,com/ibm/icu/impl/UtilityExtensions.java,com/ibm/icu/impl/BOCU.java,com/ibm/icu/impl/TrieBuilder.java,com/ibm/icu/impl/IntTrieBuilder.java"
+            excludes="com/ibm/icu/lang/UScriptRun.java,com/ibm/icu/impl/UtilityExtensions.java,com/ibm/icu/impl/BOCU.java,com/ibm/icu/impl/TrieBuilder.java,com/ibm/icu/impl/IntTrieBuilder.java"
             srcdir="${src.dir}"
             destdir="${build.dir}"
             source="${icu4j.javac.source}"
@@ -1124,7 +1108,7 @@
 
     <target name="formatTests" depends="format" description="test format modular build target">
         <javac includes="com/ibm/icu/dev/test/TestFmwk.java,com/ibm/icu/dev/test/TestLog.java,com/ibm/icu/dev/test/TestUtil.java,com/ibm/icu/dev/test/UTF16Util.java,com/ibm/icu/dev/test/TestAll.java,com/ibm/icu/dev/test/format/**/*"
-            excludes="**/CVS/**/*,com/ibm/icu/dev/test/format/GlobalizationPreferencesTest.java"
+            excludes="com/ibm/icu/dev/test/format/GlobalizationPreferencesTest.java"
             srcdir="${src.dir}"
             destdir="${build.dir}"
             classpathref="build.classpath"
@@ -1141,7 +1125,7 @@
 
     <target name="breakIterator" depends="init,copyFullPropsData" description="modular build of break iterator services">
         <javac includes="com/ibm/icu/text/*BreakIterator*.java,com/ibm/icu/impl/data/*Break*.java,com/ibm/icu/lang/**/*,com/ibm/icu/impl/UCharacterName.java,com/ibm/icu/text/UnicodeSetIterator.java"
-            excludes="**/CVS/**/*, com/ibm/icu/lang/UScriptRun.java,com/ibm/icu/impl/UtilityExtensions.java,com/ibm/icu/impl/BOCU.java,com/ibm/icu/impl/TrieBuilder.java,com/ibm/icu/impl/IntTrieBuilder.java"
+            excludes="com/ibm/icu/lang/UScriptRun.java,com/ibm/icu/impl/UtilityExtensions.java,com/ibm/icu/impl/BOCU.java,com/ibm/icu/impl/TrieBuilder.java,com/ibm/icu/impl/IntTrieBuilder.java"
             srcdir="${src.dir}"
             destdir="${build.dir}"
             source="${icu4j.javac.source}"
@@ -1154,7 +1138,6 @@
 
     <target name="breakIteratorTests" depends="breakIterator" description="test breakIterator modular build target">
         <javac includes="com/ibm/icu/dev/test/TestFmwk.java,com/ibm/icu/dev/test/TestLog.java,com/ibm/icu/dev/test/TestUtil.java,com/ibm/icu/dev/test/UTF16Util.java,com/ibm/icu/dev/test/TestAll.java,com/ibm/icu/dev/test/rbbi/**/*"
-            excludes="**/CVS/**/*"
             srcdir="${src.dir}"
             destdir="${build.dir}"
             classpathref="build.classpath"
@@ -1185,7 +1168,7 @@
 
     <target name="stringPrep" depends="init,normalizer,copyStringPrepData" description="modular build of stringprep services">
         <javac includes="com/ibm/icu/text/*StringPrep*.java,com/ibm/icu/text/*IDNA*.java,com/ibm/icu/impl/*StringPrep*.java"
-            excludes="**/CVS/**/*, com/ibm/icu/lang/UScriptRun.java,com/ibm/icu/impl/UtilityExtensions.java,com/ibm/icu/impl/BOCU.java,com/ibm/icu/impl/TrieBuilder.java,com/ibm/icu/impl/IntTrieBuilder.java, com/ibm/icu/impl/Calendar*.java"
+            excludes="com/ibm/icu/lang/UScriptRun.java,com/ibm/icu/impl/UtilityExtensions.java,com/ibm/icu/impl/BOCU.java,com/ibm/icu/impl/TrieBuilder.java,com/ibm/icu/impl/IntTrieBuilder.java, com/ibm/icu/impl/Calendar*.java"
             srcdir="${src.dir}"
             destdir="${build.dir}"
             source="${icu4j.javac.source}"
@@ -1196,7 +1179,6 @@
 
     <target name="stringPrepTests" depends="stringPrep" description="test stringPrep modular build target">
         <javac includes="com/ibm/icu/dev/test/TestFmwk.java,com/ibm/icu/dev/test/TestLog.java,com/ibm/icu/dev/test/TestUtil.java,com/ibm/icu/dev/test/UTF16Util.java,com/ibm/icu/dev/test/TestAll.java,com/ibm/icu/dev/test/stringprep/**/*"
-            excludes="**/CVS/**/*"
             srcdir="${src.dir}"
             destdir="${build.dir}"
             classpathref="build.classpath"
@@ -1337,7 +1319,6 @@
         <copy file="${src.dir}/com/ibm/icu/dev/test/util/TestData_en.jpp"
             tofile="${src.dir}/TestData_en.java"/>
         <javac includes="TestData_en.java, TestDefaultPackageLoading.java"
-            excludes="**/CVS/**/*"
             srcdir="${src.dir}"
             destdir="${build.dir}"
             classpathref="build.classpath"
@@ -1391,14 +1372,22 @@
     </target>
     
     <!-- for building eclipse distribution -->
+    <target name="initIcuEclipseVersion" depends="init">
+        <tstamp>
+            <format property="build.date" pattern="yyyyMMdd"/>
+        </tstamp>
+        <property name="icu4j.eclipse.build.version.string" value="${icu4j.eclipse.spec.version.string}.${build.date}"/>
+    </target>
+
     <target name="eclipseProjects" 
-        depends="eclipseCoreProject,eclipseTestProject,eclipseWrapperProject"
+        depends="eclipseCoreProject,eclipseTestProject,eclipseWrapperProject,eclipseFragmentProject"
         description="create all eclipse icu projects"/>
 
     <target name="undoEclipseMangle" depends="buildmangle" description="preprocess files back to default)">
         <java classname="com.ibm.icu.dev.tool.docs.CodeMangler" classpath="${build.dir}" logError="true">
             <arg value="@eclipseCoreArgs.txt"/>
             <arg value="@eclipseTestArgs.txt"/>
+            <arg value="@eclipseFragmentArgs.txt"/>
         </java>
     </target>
 
@@ -1445,7 +1434,7 @@
         </jar>
     </target>
 
-    <target name="eclipseCoreProject" depends="eclipseCore" description="gather eclipse icu core project files">
+    <target name="eclipseCoreProject" depends="eclipseCore,initIcuEclipseVersion" description="gather eclipse icu core project files">
         <delete failonerror="no">
             <fileset dir="${eclipse.projects.dir}/com.ibm.icu"/>
             <fileset dir="${eclipse.projects.dir}/com.ibm.icu-feature"/>
@@ -1454,7 +1443,7 @@
         <copy toDir="${eclipse.projects.dir}/com.ibm.icu/src/com/ibm/icu">
             <fileset dir="src/com/ibm/icu"
             includes="impl/**/*,lang/**/*,math/**/*,text/**/*,util/**/*"
-            excludes="**/CVS/**/*,**/*.jar,**/Transliterator_Han_Latin*.txt"/>
+            excludes="**/*.jar,**/Transliterator_Han_Latin*.txt"/>
         </copy>
         <!-- collect icu data files -->
         <copy todir="${eclipse.projects.dir}/com.ibm.icu/src/com/ibm/icu/impl/data">
@@ -1465,8 +1454,13 @@
         <!-- collect eclipse project files -->
         <copy todir="${eclipse.projects.dir}">
             <fileset dir="${eclipse.dir}"
-            includes="com.ibm.icu/**/*,com.ibm.icu-feature/**/*"
-            excludes="**/CVS/**/*"/>
+            includes="com.ibm.icu/**/*,com.ibm.icu-feature/**/*"/>
+            <filterset>
+                <filter token="BUILD_VERSION" value="${icu4j.eclipse.build.version.string}"/>
+                <filter token="COPYRIGHT" value="${copyright.eclipse}"/>
+                <filter token="SPEC_VERSION" value="${icu4j.eclipse.spec.version.string}"/>
+                <filter token="VERSION_NUMBER" value="${icu4j.version.number}"/>
+            </filterset>
         </copy>
         <!-- copy ICU license file -->
         <copy file="license.html"
@@ -1505,7 +1499,7 @@
         <!-- TODO: build the wrapper test code this ant target -->
     </target>
 
-    <target name="eclipseWrapperProject" depends="eclipseWrapper,eclipseWrapperTest" description="gather eclipse icu core project files">
+    <target name="eclipseWrapperProject" depends="eclipseWrapper,eclipseWrapperTest,initIcuEclipseVersion" description="gather eclipse icu core project files">
         <delete failonerror="no">
             <fileset dir="${eclipse.projects.dir}/com.ibm.icu.base"/>
             <fileset dir="${eclipse.projects.dir}/com.ibm.icu.base-feature"/>
@@ -1514,8 +1508,13 @@
         <!-- collect eclipse project files -->
         <copy todir="${eclipse.projects.dir}">
             <fileset dir="${eclipse.dir}"
-            includes="com.ibm.icu.base/**/*,com.ibm.icu.base-feature/**/*,com.ibm.icu.base.tests/**/*"
-            excludes="**/CVS/**/*"/>
+            includes="com.ibm.icu.base/**/*,com.ibm.icu.base-feature/**/*,com.ibm.icu.base.tests/**/*"/>
+            <filterset>
+                <filter token="BUILD_VERSION" value="${icu4j.eclipse.build.version.string}"/>
+                <filter token="COPYRIGHT" value="${copyright.eclipse}"/>
+                <filter token="SPEC_VERSION" value="${icu4j.eclipse.spec.version.string}"/>
+                <filter token="VERSION_NUMBER" value="${icu4j.version.number}"/>
+            </filterset>
         </copy>
         <!-- copy ICU license file -->
         <copy file="license.html"
@@ -1539,7 +1538,7 @@
     <target name="eclipseTests" depends="eclipseCore,testdata,eclipseTestMangle" description="build tests trimmed for eclipse API">
     	<!-- TODO: we should actually use ee.foundation.jar for eclipse env -->
         <javac includes="com/ibm/icu/dev/test/**/*.java"
-            excludes="**/CVS/**/*,com/ibm/icu/dev/test/charset/**/*.*,com/ibm/icu/dev/test/perf/**/*.*"
+            excludes="com/ibm/icu/dev/test/charset/**/*.*,com/ibm/icu/dev/test/perf/**/*.*"
             srcdir="${src.dir}"
             destdir="${build.dir}"
             source="1.3"
@@ -1575,8 +1574,7 @@
         <!-- copy eclipse test source and project files -->
         <copy toDir="${eclipse.projects.dir}/com.ibm.icu.tests">
             <fileset dir="${eclipse.dir}/com.ibm.icu.tests"
-            includes="**/*"
-            excludes="**/CVS/**/"/>
+            includes="**/*"/>
         </copy>
         <!-- copy icu test jar -->
         <copy toDir="${eclipse.projects.dir}/com.ibm.icu.tests" file="${testjar.file}"/>
@@ -1584,12 +1582,93 @@
         <copy toDir="${eclipse.projects.dir}/com.ibm.icu.tests" file="${zipTestSrc.file}"/>
     </target>
 
-    <target name="zipCoreSrc" depends="init" description="build zip of core sources for debugging">
-        <!-- for eclipse -->
-        <zip destfile="${zipCoreSrc.file}"
-            compress="true"
-            basedir="${src.dir}"
-            includes="../license.html,../Copyright_Assignment.rtf,com/ibm/icu/impl/**/*,com/ibm/icu/lang/**/*,com/ibm/icu/math/**/*,com/ibm/icu/text/**/*,com/ibm/icu/util/**/*"/>
+    <target name="eclipseFragmentMangle" depends="eclipseCoreMangle">
+        <java classname="com.ibm.icu.dev.tool.docs.CodeMangler" classpath="${build.dir}" logError="true">
+            <arg value="-dECLIPSE_FRAGMENT"/>
+            <arg value="-t"/>
+            <arg value="@eclipseFragmentArgs.txt"/>
+         </java>
+    </target>
+
+    <target name="eclipseFragment" depends="eclipseCore,eclipseFragmentMangle">
+        <property name="timepattern" value="yyyyMMdd'T'HHmmss','SSS"/>
+        <tstamp>
+            <format property="time.before.compile" pattern="${timepattern}"/>
+        </tstamp>
+        <!--
+            Note: *.class files compiled by the target "eclipseCore" are in ${build.dir} directory.
+            The target "eclipseFragmentMangle" updates timestamp of .java files, so only modified files
+            should be compiled.
+        -->
+        <javac includes="com/ibm/icu/util/**/*.java,com/ibm/icu/text/**/*.java,com/ibm/icu/math/**/*.java,com/ibm/icu/impl/**/*.java,com/ibm/icu/lang/*.java"
+            compiler="javac1.4"
+            srcdir="${src.dir}"
+            destdir="${build.dir}"
+            classpathref="build.classpath"
+            source="1.3"
+            target="1.2"
+            debug="on"
+            deprecation="off"
+            encoding="ascii"
+            listfiles="true"/>
+        <tstamp>
+            <format property="time.after.compile" pattern="${timepattern}"/>
+        </tstamp>
+        <!-- collect only class files updated, which are fragment specific files -->
+        <jar jarfile="${fragment.jar.file}" compress="true">
+            <fileset dir="${build.dir}" includes="**/*.class">
+                <date datetime="${time.before.compile}" pattern="${timepattern}" when="after"/>
+            </fileset>
+        </jar>
+    </target>
+
+    <target name="eclipseFragmentProject" depends="eclipseFragment,initIcuEclipseVersion" description="gather eclipse icu fragment project files">
+        <delete failonerror="no">
+            <fileset dir="${eclipse.projects.dir}/com.ibm.icu.jse4"/>
+            <fileset dir="${eclipse.projects.dir}/com.ibm.icu.jse4-feature"/>
+        </delete>
+        <!-- collect source files -->
+        <copy toDir="${eclipse.projects.dir}/com.ibm.icu.jse4/src">
+            <!-- TODO: Use a single file list as input.  The list is identical with eclipseFragmentArgs.txt -->
+            <fileset dir="${src.dir}">
+                <include name="com/ibm/icu/impl/CollectionUtilities.java"/>
+                <include name="com/ibm/icu/impl/PatternTokenizer.java"/>
+                <include name="com/ibm/icu/impl/Utility.java"/>
+                <include name="com/ibm/icu/lang/UCharacter.java"/>
+                <include name="com/ibm/icu/math/BigDecimal.java"/>
+                <include name="com/ibm/icu/text/DateTimePatternGenerator.java"/>
+                <include name="com/ibm/icu/text/DecimalFormat.java"/>
+                <include name="com/ibm/icu/text/DigitList.java"/>
+                <include name="com/ibm/icu/text/NumberFormat.java"/>
+                <include name="com/ibm/icu/text/RuleBasedNumberFormat.java"/>
+                <include name="com/ibm/icu/text/UnicodeSet.java"/>
+                <include name="com/ibm/icu/text/UTF16.java"/>
+                <include name="com/ibm/icu/util/GlobalizationPreferences.java"/>
+            </fileset>
+        </copy>
+        <!-- collect eclipse project files -->
+        <copy todir="${eclipse.projects.dir}">
+            <fileset dir="${eclipse.dir}"
+            includes="com.ibm.icu.jse4/**/*,com.ibm.icu.jse4-feature/**/*"/>
+            <filterset>
+                <filter token="BUILD_VERSION" value="${icu4j.eclipse.build.version.string}"/>
+                <filter token="COPYRIGHT" value="${copyright.eclipse}"/>
+                <filter token="SPEC_VERSION" value="${icu4j.eclipse.spec.version.string}"/>
+                <filter token="VERSION_NUMBER" value="${icu4j.version.number}"/>
+            </filterset>
+        </copy>
+        <!-- copy ICU license file -->
+        <copy file="license.html"
+        todir="${eclipse.projects.dir}/com.ibm.icu.jse4/about_files"/>
+        <!-- ucd terms -->
+        <copy file="src/com/ibm/icu/dev/data/unicode/ucdterms.txt"
+        todir="${eclipse.projects.dir}/com.ibm.icu.jse4/about_files"/>
+        <!-- copy ICU about file -->
+        <copy file="${eclipse.dir}/misc/about_icu.html"
+        tofile="${eclipse.projects.dir}/com.ibm.icu.jse4/about.html"/>
+        <!-- common eclipse about file -->
+        <copy file="${eclipse.dir}/misc/about.html"
+        todir="${eclipse.projects.dir}/com.ibm.icu.jse4-feature/sourceTemplatePlugin"/>
     </target>
 
     <target name="zipTestSrc" depends="init" description="build zip of test sources for debugging">
@@ -1662,7 +1741,7 @@
             <arg value="-n"/>
             <classpath>
                 <pathelement path="${java.class.path}/"/>
-                <pathelement location="icu4j.jar"/>
+                <pathelement location="${jar.file}"/>
                 <pathelement location="clover.jar"/>
                 <pathelement path="${build.dir}"/>
             </classpath>
@@ -1673,10 +1752,22 @@
     <target name="eclipseCompatTests" depends="init, eclipseTestMangle, eclipseTests" />
     <target name="eclipseCompatCheck" depends="init, eclipseCompat, eclipseCompatTests, deleteCore, eclipseRunCheck"/>
 
+    <target name="eclipseFragmentCheck" depends="eclipseCompat,eclipseFragment,eclipseCompatTests,deleteCore">
+        <java classname="com.ibm.icu.dev.test.TestAll" fork="yes" failonerror="true">
+            <arg value="-n"/>
+            <classpath>
+                <pathelement path="${java.class.path}/"/>
+                <pathelement location="${fragment.jar.file}"/>
+                <pathelement location="${jar.file}"/>
+                <pathelement location="clover.jar"/>
+                <pathelement path="${build.dir}"/>
+            </classpath>
+        </java>
+    </target>
 
     <target name="core13" depends="init,coreData,icudata" description="build core classes and data">
         <javac includes="com/ibm/icu/util/**/*.java,com/ibm/icu/text/**/*.java,com/ibm/icu/math/**/*.java,com/ibm/icu/impl/**/*.java,com/ibm/icu/lang/*.java,com/ibm/icu/charset/**/*.java"
-            excludes="**/CVS/**/*,com/ibm/icu/charset/**/*.*"
+            excludes="com/ibm/icu/charset/**/*.*"
             srcdir="${src.dir}"
             destdir="${build.dir}"
             classpathref="build.classpath"
