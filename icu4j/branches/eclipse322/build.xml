@@ -1225,6 +1225,15 @@
     </target>
     
     <!-- for building eclipse distribution -->
+    <target name="initIcuEclipseVersion" depends="init">
+        <property name="icu4j.eclipse.spec.version.string" value="3.4.5"/>
+        <tstamp>
+            <format property="build.date" pattern="yyyyMMdd"/>
+        </tstamp>
+        <property name="icu4j.eclipse.build.version.string" value="${icu4j.eclipse.spec.version.string}.${build.date}"/>
+        <property name="icu4j.version.number" value="34"/>
+        <property name="copyright.eclipse" value="Licensed Materials - Property of IBM &#x0D;&#x0A; (C) Copyright IBM Corp. 2000, 2006. All Rights Reserved. &#x0D;&#x0A; IBM is a registered trademark of IBM Corp."/>
+    </target>
     <target name="eclipseProjects" 
         depends="eclipseCoreProject,eclipseTestProject,eclipseWrapperProject"
         description="create all eclipse icu projects"/>
@@ -1265,7 +1274,7 @@
             manifest="${icu4j.manifest}"/>
     </target>
 
-    <target name="eclipseCoreProject" depends="eclipseCore" description="gather eclipse icu core project files">
+    <target name="eclipseCoreProject" depends="eclipseCore,initIcuEclipseVersion" description="gather eclipse icu core project files">
         <delete failonerror="no">
             <fileset dir="${eclipse.projects.dir}/com.ibm.icu"/>
             <fileset dir="${eclipse.projects.dir}/com.ibm.icu-feature"/>
@@ -1287,6 +1296,12 @@
             <fileset dir="${eclipse.dir}"
             includes="com.ibm.icu/**/*,com.ibm.icu-feature/**/*"
             excludes="**/CVS/**/*"/>
+            <filterset>
+                <filter token="BUILD_VERSION" value="${icu4j.eclipse.build.version.string}"/>
+                <filter token="COPYRIGHT" value="${copyright.eclipse}"/>
+                <filter token="SPEC_VERSION" value="${icu4j.eclipse.spec.version.string}"/>
+                <filter token="VERSION_NUMBER" value="${icu4j.version.number}"/>
+            </filterset>
         </copy>
         <!-- copy ICU license file -->
         <copy file="license.html"
@@ -1326,7 +1341,7 @@
         <!-- TODO: build the wrapper test code this ant target -->
     </target>
 
-    <target name="eclipseWrapperProject" depends="eclipseWrapper,eclipseWrapperTest" description="gather eclipse icu core project files">
+    <target name="eclipseWrapperProject" depends="eclipseWrapper,eclipseWrapperTest,initIcuEclipseVersion" description="gather eclipse icu core project files">
         <delete failonerror="no">
             <fileset dir="${eclipse.projects.dir}/com.ibm.icu.base"/>
             <fileset dir="${eclipse.projects.dir}/com.ibm.icu.base-feature"/>
@@ -1337,6 +1352,12 @@
             <fileset dir="${eclipse.dir}"
             includes="com.ibm.icu.base/**/*,com.ibm.icu.base-feature/**/*,com.ibm.icu.base.tests/**/*"
             excludes="**/CVS/**/*"/>
+            <filterset>
+                <filter token="BUILD_VERSION" value="${icu4j.eclipse.build.version.string}"/>
+                <filter token="COPYRIGHT" value="${copyright.eclipse}"/>
+                <filter token="SPEC_VERSION" value="${icu4j.eclipse.spec.version.string}"/>
+                <filter token="VERSION_NUMBER" value="${icu4j.version.number}"/>
+            </filterset>
         </copy>
         <!-- copy ICU license file -->
         <copy file="license.html"
