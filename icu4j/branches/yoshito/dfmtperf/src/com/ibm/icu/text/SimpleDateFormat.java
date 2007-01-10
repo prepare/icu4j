@@ -7,25 +7,24 @@
 
 package com.ibm.icu.text;
 
-import com.ibm.icu.util.Calendar;
-import com.ibm.icu.lang.UCharacter;
-import com.ibm.icu.impl.CalendarData;
-import com.ibm.icu.impl.UCharacterProperty;
-import com.ibm.icu.impl.ZoneMeta;
-import com.ibm.icu.util.TimeZone;
-import com.ibm.icu.util.ULocale;
-
 import java.io.IOException;
 import java.io.ObjectInputStream;
-import java.lang.ref.SoftReference;
+import java.io.ObjectOutputStream;
 import java.text.FieldPosition;
 import java.text.MessageFormat;
 import java.text.ParsePosition;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.Locale;
-import java.util.Map;
+import java.util.MissingResourceException;
+
+import com.ibm.icu.impl.CalendarData;
+import com.ibm.icu.impl.DateNumberFormat;
+import com.ibm.icu.impl.UCharacterProperty;
+import com.ibm.icu.impl.ZoneMeta;
+import com.ibm.icu.lang.UCharacter;
+import com.ibm.icu.util.Calendar;
+import com.ibm.icu.util.TimeZone;
+import com.ibm.icu.util.ULocale;
 
 
 /**
@@ -257,7 +256,11 @@ public class SimpleDateFormat extends DateFormat {
      */
     private Date defaultCenturyStart;
 
-    transient private int defaultCenturyStartYear;
+    private transient int defaultCenturyStartYear;
+
+    // defaultCenturyBase is set when an instance is created
+    // and may be used for calculating defaultCenturyStart when needed.
+    private transient long defaultCenturyBase;
 
     private transient TimeZone parsedTimeZone;
 
@@ -276,23 +279,11 @@ public class SimpleDateFormat extends DateFormat {
     private static final String SUPPRESS_NEGATIVE_PREFIX = "\uAB00";
 
     /**
-     * Cache to hold the DateTimePatterns of a Locale.
-     */
-    private static Hashtable cachedLocaleData = new Hashtable(3);
-
-    /**
      * If true, this object supports fast formatting using the
      * subFormat variant that takes a StringBuffer.
      */
     private transient boolean useFastFormat;
 
-    /**
-     * If true, this object supports fast number format
-     */
-    private transient boolean useFastZeroPaddingNumber;
-    private transient char zeroDigit;
-    private char[] decimalBuf = new char[10]; // 10 digit is good enough to store Interger.MAX_VALUE
-    
     /**
      * Construct a SimpleDateFormat using the default pattern for the default
      * locale.  <b>Note:</b> Not all locales support SimpleDateFormat; for full
@@ -302,7 +293,7 @@ public class SimpleDateFormat extends DateFormat {
      * @stable ICU 2.0
      */
     public SimpleDateFormat() {
-        this(SHORT, SHORT, ULocale.getDefault());
+        this(getDefaultPattern(), null, null, null, null, true);
     }
 
     /**
@@ -313,7 +304,7 @@ public class SimpleDateFormat extends DateFormat {
      */
     public SimpleDateFormat(String pattern)
     {
-        this(pattern, ULocale.getDefault());
+        this(pattern, null, null, null, null, true);
     }
 
     /**
@@ -324,7 +315,7 @@ public class SimpleDateFormat extends DateFormat {
      */
     public SimpleDateFormat(String pattern, Locale loc)
     {
-        this(pattern, ULocale.forLocale(loc));
+        this(pattern, null, null, null, ULocale.forLocale(loc), true);
     }
 
     /**
@@ -336,9 +327,7 @@ public class SimpleDateFormat extends DateFormat {
      */
     public SimpleDateFormat(String pattern, ULocale loc)
     {
-        this.pattern = pattern;
-        this.formatData = new DateFormatSymbols(loc);
-        initialize(loc);
+        this(pattern, null, null, null, loc, true);
     }
 
     /**
@@ -349,7 +338,7 @@ public class SimpleDateFormat extends DateFormat {
      */
     public SimpleDateFormat(String pattern, DateFormatSymbols formatData)
     {
-        this(pattern, formatData, ULocale.getDefault());
+        this(pattern, (DateFormatSymbols)formatData.clone(), null, null, null, true);
     }
 
     /**
@@ -358,10 +347,7 @@ public class SimpleDateFormat extends DateFormat {
      */
     public SimpleDateFormat(String pattern, DateFormatSymbols formatData, ULocale loc)
     {
-        this.pattern = pattern;
-        this.formatData = (DateFormatSymbols) formatData.clone();
-
-        initialize(loc);
+        this(pattern, (DateFormatSymbols)formatData.clone(), null, null, loc, true);
     }
 
     /**
@@ -370,140 +356,80 @@ public class SimpleDateFormat extends DateFormat {
      *
      * TODO make this API public.
      */
-    SimpleDateFormat(String pattern, DateFormatSymbols formatData,
+    SimpleDateFormat(String pattern, DateFormatSymbols formatData, Calendar calendar, ULocale locale,
                      boolean useFastFormat) {
-        this.pattern = pattern;
-        this.formatData = (DateFormatSymbols) formatData.clone();
-        initialize(ULocale.getDefault());
-        // this.useFastFormat is set by initialize(); fix it up afterwards
-        this.useFastFormat = useFastFormat;
+        this(pattern, (DateFormatSymbols)formatData.clone(), (Calendar)calendar.clone(), null, locale, useFastFormat);
     }
 
-    // try caching
-    private static final boolean CACHE = true;
-    private static long cacheAge;
-    private static SoftReference highCacheRef;
-
-    /* Package-private, called by DateFormat factory methods */
-    SimpleDateFormat(int timeStyle, int dateStyle, ULocale loc) {
-        // try a high level cache first!
-
-        Map map = null;
-        String key = null;
-        if (CACHE) {
-            // age test is so we don't have to compute the century start all the time... once a day is enough.
-            long time = System.currentTimeMillis();
-            if (((time - cacheAge) < 1000*60*60*24L) && highCacheRef != null) {
-                map = (Map)highCacheRef.get();
-            }
-            if (map == null) {
-                map = new HashMap(3);
-                highCacheRef = new SoftReference(map);
-                cacheAge = time;
-            }
-            key = loc.toString() + timeStyle + dateStyle;
-            SimpleDateFormat target = (SimpleDateFormat)map.get(key);
-            if (target != null) { // kindof skanky
-                //          if ("en_US22".equals(key))
-                //              System.out.println("\nfound key: " + key + " pat: " + target.pattern +
-                //                         " cal: " + target.calendar + " fmt: " + target.numberFormat);
-                this.pattern = target.pattern;
-                this.formatData = target.formatData;
-                this.defaultCenturyStart = target.defaultCenturyStart;
-                this.defaultCenturyStartYear = target.defaultCenturyStartYear;
-                this.calendar = (Calendar)target.calendar.clone();
-                this.calendar.setTimeZone(TimeZone.getDefault()); // might have changed since cached
-                this.numberFormat = (NumberFormat)target.numberFormat.clone();
-                return;
-            }
-        }
-
-        /* try the cache first */
-        String[] dateTimePatterns = (String[]) cachedLocaleData.get(loc);
-        if (dateTimePatterns == null) { /* cache miss */
-            CalendarData calData = new CalendarData(loc, null); // TODO: type?
-            // TODO: get correct actual/valid locale here
-            ULocale uloc = calData.getULocale();
-            setLocale(uloc, uloc);
-
-            dateTimePatterns = calData.getStringArray("DateTimePatterns");
-            /* update cache */
-            cachedLocaleData.put(loc, dateTimePatterns);
-        } else {
-        // for now, just assume this is correct, so we have non-null locale info.
-        // we may have to cache the result of calData.getULocale with the pattern strings
-        // and set the locale with that.
-        setLocale(loc, loc);
-    }
-        formatData = new DateFormatSymbols(loc);
-        if ((timeStyle >= 0) && (dateStyle >= 0)) {
-            Object[] dateTimeArgs = {dateTimePatterns[timeStyle],
-                                     dateTimePatterns[dateStyle + 4]};
-            pattern = MessageFormat.format(dateTimePatterns[8], dateTimeArgs);
-        }
-        else if (timeStyle >= 0) {
-            pattern = dateTimePatterns[timeStyle];
-        }
-        else if (dateStyle >= 0) {
-            pattern = dateTimePatterns[dateStyle + 4];
-        }
-        else {
-            throw new IllegalArgumentException("No date or time style specified");
-        }
-
-        initialize(loc);
-
-        if (CACHE) {
-            //          if ("en_US22".equals(key))
-            //          System.out.println("\nregister key: " + key + " pat: " + this.pattern +
-            //                     " cal: " + this.calendar + " fmt: " + this.numberFormat);
-            map.put(key, this.clone()); // ok if we stomp existing target due to threading
-        }
-    }
-
-    /* Initialize calendar and numberFormat fields */
-    private void initialize(ULocale loc) {
-        // time zone formatting
-        locale = loc;
-
-        // The format object must be constructed using the symbols for this zone.
-        // However, the calendar should use the current default TimeZone.
-        // If this is not contained in the locale zone strings, then the zone
-        // will be formatted using generic GMT+/-H:MM nomenclature.
-        calendar = Calendar.getInstance(TimeZone.getDefault(), loc);
-        // TODO: convert to use ULocale APIs when we get to the text package
-        numberFormat = NumberFormat.getInstance(loc);
-        numberFormat.setGroupingUsed(false);
-        useFastZeroPaddingNumber = false;
-        ///CLOVER:OFF
-        // difficult to test for case where NumberFormat.getInstance does not
-        // return a DecimalFormat
-        if (numberFormat instanceof DecimalFormat) {
-            ((DecimalFormat)numberFormat).setDecimalSeparatorAlwaysShown(false);
-            zeroDigit = ((DecimalFormat)numberFormat).getDecimalFormatSymbols().getZeroDigit();
-            if (numberFormat.getClass().getName().equals("com.ibm.icu.text.DecimalFormat")) {
-                useFastZeroPaddingNumber = true;
-            }
-        }
-        ///CLOVER:ON
-        numberFormat.setParseIntegerOnly(true); /* So that dd.MM.yy can be parsed */
-        numberFormat.setMinimumFractionDigits(0); // To prevent "Jan 1.00, 1997.00"
-
-        initializeDefaultCentury();
-
-        // Currently, we only support fast formatting in SimpleDateFormat
-        // itself.  TODO add constructor parameters to allow subclasses
-        // to say that they implement fast formatting.
-        useFastFormat = (getClass() == SimpleDateFormat.class);
-    }
-
-    /* Initialize the fields we use to disambiguate ambiguous years. Separate
-     * so we can call it from readObject().
+    /*
+     * The constructor called from all other SimpleDateFormat constructors
      */
-    private void initializeDefaultCentury() {
-        calendar.setTime( new Date() );
-        calendar.add( Calendar.YEAR, -80 );
-        parseAmbiguousDatesAsAfter(calendar.getTime());
+    private SimpleDateFormat(String pattern, DateFormatSymbols formatData, Calendar calendar,
+            NumberFormat numberFormat, ULocale locale, boolean useFastFormat) {
+        this.pattern = pattern;
+        this.formatData = formatData;
+        this.calendar = calendar;
+        this.numberFormat = numberFormat;
+        this.locale = locale; // time zone formatting
+        this.useFastFormat = useFastFormat;
+        initialize();
+    }
+
+    public static SimpleDateFormat getInstance(Calendar.FormatConfiguration formatConfig) {
+        return new SimpleDateFormat(formatConfig.getPatternString(),
+                    formatConfig.getDateFormatSymbols(),
+                    formatConfig.getCalendar(),
+                    null,
+                    formatConfig.getLocale(),
+                    true);
+    }
+
+    /*
+     * Initialized fields
+     */
+    private void initialize() {
+        if (locale == null) {
+            locale = ULocale.getDefault();
+        }
+        if (formatData == null) {
+            formatData = new DateFormatSymbols(locale);
+        }
+        if (calendar == null) {
+            calendar = Calendar.getInstance(locale);
+        }
+        if (numberFormat == null) {
+            // Use a NumberFormat optimized for date formatting
+            numberFormat = new DateNumberFormat(locale);
+        }
+        // Note: deferring calendar calculation until when we really need it.
+        // Instead, we just record time of construction for backward compatibility.
+        defaultCenturyBase = System.currentTimeMillis();
+    }
+
+    // privates for the default pattern
+    private static ULocale cachedDefaultLocale = null;
+    private static String cachedDefaultPattern = null;
+    private static final String FALLBACKPATTERN = "yy/MM/dd HH:mm";
+
+    /*
+     * Returns the default date and time pattern (SHORT) for the default locale.
+     * This method is only used by the default SimpleDateFormat constructor.
+     */
+    private static synchronized String getDefaultPattern() {
+        ULocale defaultLocale = ULocale.getDefault();
+        if (cachedDefaultLocale == null || !cachedDefaultLocale.equals(defaultLocale)) {
+            cachedDefaultLocale = defaultLocale;
+            Calendar cal = Calendar.getInstance(cachedDefaultLocale);
+            try {
+                CalendarData calData = new CalendarData(cachedDefaultLocale, cal.getType());
+                String[] dateTimePatterns = calData.getStringArray("DateTimePatterns");
+                cachedDefaultPattern = MessageFormat.format(dateTimePatterns[8],
+                        new Object[] {dateTimePatterns[SHORT], dateTimePatterns[SHORT + 4]});
+            } catch (MissingResourceException e) {
+                cachedDefaultPattern = FALLBACKPATTERN;
+            }
+        }
+        return cachedDefaultPattern;
     }
 
     /* Define one-century window into which to disambiguate dates using
@@ -513,6 +439,38 @@ public class SimpleDateFormat extends DateFormat {
         defaultCenturyStart = startDate;
         calendar.setTime(startDate);
         defaultCenturyStartYear = calendar.get(Calendar.YEAR);
+    }
+
+    /* Initialize defaultCenturyStart and defaultCenturyStartYear by base time.
+     * The default start time is 80 years before the creation time of this object.
+     */
+    private void initializeDefaultCenturyStart(long baseTime) {
+        defaultCenturyBase = baseTime;
+        // clone to avoid messing up date stored in calendar object
+        // when this method is called while parsing
+        Calendar tmpCal = (Calendar)calendar.clone();
+        tmpCal.setTimeInMillis(baseTime);
+        tmpCal.add(Calendar.YEAR, -80);
+        defaultCenturyStart = tmpCal.getTime();
+        defaultCenturyStartYear = tmpCal.get(Calendar.YEAR);
+    }
+
+    /* Gets the default century start date for this object */
+    private Date getDefaultCenturyStart() {
+        if (defaultCenturyStart == null) {
+            // not yet initialized
+            initializeDefaultCenturyStart(defaultCenturyBase);
+        }
+        return defaultCenturyStart;
+    }
+
+    /* Gets the default century start year for this object */
+    private int getDefaultCenturyStartYear() {
+        if (defaultCenturyStart == null) {
+            // not yet initialized
+            initializeDefaultCenturyStart(defaultCenturyBase);
+        }
+        return defaultCenturyStartYear;
     }
 
     /**
@@ -900,7 +858,16 @@ public class SimpleDateFormat extends DateFormat {
                     }
                     val = (val / 60) * 100 + (val % 60); // minutes => KKmm
                     buf.append(sign);
-                    fastZeroPaddingNubmer(buf, (int)val, 4, 4, '0');
+
+                    // Always use ASCII numbers
+                    int num = (int)(val % 10000);
+                    int denom = 1000;
+                    while (denom >= 1) {
+                        char digit = (char)((num / denom) + '0');
+                        buf.append(digit);
+                        num = num % denom;
+                        denom /= 10;
+                    }
                 } else {
                     // long form, localized GMT pattern
                     // not in 3.4 locale data, need to add, so use same default as for general time zone names
@@ -1003,65 +970,34 @@ public class SimpleDateFormat extends DateFormat {
         return null;
     }*/
 
+    /* FieldPostion instance is required for NumberFormat#format taking
+     * StringBuffer as an argument.  However, it is actually not used
+     * in this implementation.  Create one and reuse this.
+     */
+    private transient FieldPosition zeroPaddingPos = new FieldPosition(-1);
+
     /**
      * Internal high-speed method.  Reuses a StringBuffer for results
      * instead of creating a String on the heap for each call.
      * @internal
      * @deprecated This API is ICU internal only.
      */
+    char[] decimalBuf = new char[20];
+    char zeroDigit = '0';
     protected void zeroPaddingNumber(StringBuffer buf, int value,
                                      int minDigits, int maxDigits) {
-    	if (useFastZeroPaddingNumber) {
-    		fastZeroPaddingNubmer(buf, value, minDigits, maxDigits, zeroDigit);
-    		return;
-    	}
-        FieldPosition pos = new FieldPosition(-1);
         numberFormat.setMinimumIntegerDigits(minDigits);
         numberFormat.setMaximumIntegerDigits(maxDigits);
-        numberFormat.format(value, buf, pos);
+        numberFormat.format(value, buf, zeroPaddingPos);
     }
 
-    /**
-     * Internal faster method.  This method does not use NumberFormat
-     * to format digits.
-     * @internal
-     * @deprecated This API is ICU internal only.
-     */
-    private void fastZeroPaddingNubmer(StringBuffer buf, int value,
-            int minDigits, int maxDigits, char zero) {
-    	value = value < 0 ? -value : value; //??
-        minDigits = minDigits < maxDigits ? minDigits : maxDigits;
-        int limit = decimalBuf.length < maxDigits ? decimalBuf.length : maxDigits;
-        int index = limit - 1;
-        while (true) {
-            decimalBuf[index] = (char)((value % 10) + zero);
-            value /= 10;
-            if (index == 0 || value == 0) {
-                break;
-            }
-            index--;
-        }
-        int padding = minDigits - (limit - index);
-        for (; padding > 0; padding--) {
-            decimalBuf[--index] = zero;
-        }
-        buf.append(decimalBuf, index, limit - index);
-    }
-
-    /**
-     * Overrides superclass method
-     * @stable ICU 2.0
-     */
-    public void setNumberFormat(NumberFormat newNumberFormat) {
-    	super.setNumberFormat(newNumberFormat);
-        if (newNumberFormat instanceof DecimalFormat) {
-            zeroDigit = ((DecimalFormat)newNumberFormat).getDecimalFormatSymbols().getZeroDigit();
-            useFastZeroPaddingNumber = true;
-        }
-        else {
-            useFastZeroPaddingNumber = false;
-        }    	
-    }
+//    /**
+//     * Overrides superclass method
+//     * @stable ICU 2.0
+//     */
+//    public void setNumberFormat(NumberFormat newNumberFormat) {
+//    	super.setNumberFormat(newNumberFormat);
+//    }
 
     /**
      * Formats a number with the specified minimum and maximum number of digits.
@@ -1283,7 +1219,7 @@ public class SimpleDateFormat extends DateFormat {
         // a Saturday, so it can have a 2:30 am -- and it should. [LIU]
         /*
           Date parsedDate = cal.getTime();
-          if( ambiguousYear[0] && !parsedDate.after(defaultCenturyStart) ) {
+          if( ambiguousYear[0] && !parsedDate.after(getDefaultCenturyStart()) ) {
           cal.add(Calendar.YEAR, 100);
           parsedDate = cal.getTime();
           }
@@ -1304,9 +1240,9 @@ public class SimpleDateFormat extends DateFormat {
                 Calendar copy = (Calendar)cal.clone();
                 if (ambiguousYear[0]) { // the two-digit year == the default start year
                     Date parsedDate = copy.getTime();
-                    if (parsedDate.before(defaultCenturyStart)) {
+                    if (parsedDate.before(getDefaultCenturyStart())) {
                         // We can't use add here because that does a complete() first.
-                        cal.set(Calendar.YEAR, defaultCenturyStartYear + 100);
+                        cal.set(Calendar.YEAR, getDefaultCenturyStartYear() + 100);
                     }
                 }
 
@@ -1582,9 +1518,9 @@ public class SimpleDateFormat extends DateFormat {
                         // other fields specify a date before 6/18, or 1903 if they specify a
                         // date afterwards.  As a result, 03 is an ambiguous year.  All other
                         // two-digit years are unambiguous.
-                        int ambiguousTwoDigitYear = defaultCenturyStartYear % 100;
+                        int ambiguousTwoDigitYear = getDefaultCenturyStartYear() % 100;
                         ambiguousYear[0] = value == ambiguousTwoDigitYear;
-                        value += (defaultCenturyStartYear/100)*100 +
+                        value += (getDefaultCenturyStartYear()/100)*100 +
                             (value < ambiguousTwoDigitYear ? 100 : 0);
                     }
                 cal.set(Calendar.YEAR, value);
@@ -1895,18 +1831,26 @@ public class SimpleDateFormat extends DateFormat {
     private Number parseInt(String text,
                             ParsePosition pos,
                             boolean allowNegative) {
-        String oldPrefix = null;
-        DecimalFormat df = null;
-        if (!allowNegative) {
-            try {
-                df = (DecimalFormat)numberFormat;
-                oldPrefix = df.getNegativePrefix();
-                df.setNegativePrefix(SUPPRESS_NEGATIVE_PREFIX);
-            } catch (ClassCastException e1) {}
-        }
-        Number number = numberFormat.parse(text, pos);
-        if (df != null) {
-            df.setNegativePrefix(oldPrefix);
+        Number number;        
+        if (allowNegative) {
+            number = numberFormat.parse(text, pos);
+        } else {
+            // Invalidate negative numbers
+            if (numberFormat instanceof DecimalFormat) {
+                String oldPrefix = ((DecimalFormat)numberFormat).getNegativePrefix();
+                ((DecimalFormat)numberFormat).setNegativePrefix(SUPPRESS_NEGATIVE_PREFIX);
+                number = numberFormat.parse(text, pos);
+                ((DecimalFormat)numberFormat).setNegativePrefix(oldPrefix);
+            } else {
+                boolean dateNumberFormat = (numberFormat instanceof DateNumberFormat);
+                if (dateNumberFormat) {
+                    ((DateNumberFormat)numberFormat).setParsePositiveOnly(true);                    
+                }
+                number = numberFormat.parse(text, pos);                
+                if (dateNumberFormat) {
+                    ((DateNumberFormat)numberFormat).setParsePositiveOnly(false);                    
+                }
+            }
         }
         return number;
     }
@@ -2045,6 +1989,18 @@ public class SimpleDateFormat extends DateFormat {
     }
 
     /**
+     * Override writeObject.
+     */
+    private void writeObject(ObjectOutputStream stream) throws IOException{
+        if (defaultCenturyStart == null) {
+            // if defaultCenturyStart is not yet initialized,
+            // calculate and set value before serialization.
+            initializeDefaultCenturyStart(defaultCenturyBase);
+        }
+        stream.defaultWriteObject();
+    }
+    
+    /**
      * Override readObject.
      */
     private void readObject(ObjectInputStream stream)
@@ -2054,7 +2010,7 @@ public class SimpleDateFormat extends DateFormat {
         // don't have old serial data to test with
         if (serialVersionOnStream < 1) {
             // didn't have defaultCenturyStart field
-            initializeDefaultCentury();
+            defaultCenturyBase = System.currentTimeMillis();
         }
         ///CLOVER:ON
         else {
@@ -2063,5 +2019,7 @@ public class SimpleDateFormat extends DateFormat {
         }
         serialVersionOnStream = currentSerialVersion;
         locale = getLocale(ULocale.VALID_LOCALE);
+
+        zeroPaddingPos = new FieldPosition(-1);
     }
 }
