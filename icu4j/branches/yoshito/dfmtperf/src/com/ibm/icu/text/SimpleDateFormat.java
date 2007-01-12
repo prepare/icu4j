@@ -13,12 +13,16 @@ import java.io.ObjectOutputStream;
 import java.text.FieldPosition;
 import java.text.MessageFormat;
 import java.text.ParsePosition;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 import java.util.MissingResourceException;
 
 import com.ibm.icu.impl.CalendarData;
 import com.ibm.icu.impl.DateNumberFormat;
+import com.ibm.icu.impl.ICUCache;
+import com.ibm.icu.impl.SimpleCache;
 import com.ibm.icu.impl.UCharacterProperty;
 import com.ibm.icu.impl.ZoneMeta;
 import com.ibm.icu.lang.UCharacter;
@@ -404,6 +408,8 @@ public class SimpleDateFormat extends DateFormat {
         // Note: deferring calendar calculation until when we really need it.
         // Instead, we just record time of construction for backward compatibility.
         defaultCenturyBase = System.currentTimeMillis();
+
+        initLocalZeroPaddingNumberFormat();
     }
 
     // privates for the default pattern
@@ -511,10 +517,6 @@ public class SimpleDateFormat extends DateFormat {
      */
     public StringBuffer format(Calendar cal, StringBuffer toAppendTo,
                                FieldPosition pos) {
-        if (!useFastFormat) {
-            return slowFormat(cal, toAppendTo, pos);
-        }
-
         // Initialize
         pos.setBeginIndex(0);
         pos.setEndIndex(0);
@@ -523,107 +525,36 @@ public class SimpleDateFormat extends DateFormat {
         // to StringBuffer.append() by consolidating appends when
         // possible.
 
-        int j, n = pattern.length();
-        for (int i=0; i<n; ) {
-            char ch = pattern.charAt(i);
-            if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')) {
-                // ch is a date-time pattern character to be interpreted
-                // by subFormat(); count the number of times it is repeated
-                for (j=i+1; j<n && pattern.charAt(j)==ch; ++j) {}
-                subFormat(toAppendTo, ch, j-i, toAppendTo.length(), pos, cal);
-                i = j;
-            } else if (ch == '\'') {
-                // Handle an entire quoted string, included embedded
-                // doubled apostrophes (as in 'o''clock').
-                int start = i+1;
-                for (;;) {
-                    ++i; // i points after '
-                    if (i==n) { // trailing ' (pathological)
-                        break;
-                    }
-
-                    for (j=i; j<n && pattern.charAt(j)!='\''; ++j) {}
-                    // j points to next ' or EOS
-
-                    if (j==start) { // '' outside of quotes
-                        toAppendTo.append('\'');
-                        ++i;
-                        break;
-                    }
-
-                    // look ahead to detect '' within quotes
-                    int k = j, jj = j+1;
-                    if (jj<n && pattern.charAt(jj)=='\'') {
-                        ++k;
-                    }
-
-                    // append this run, and if there is '' within
-                    // quotes, append a trailing ' as well
-                    toAppendTo.append(pattern.substring(i, k));
-
-                    i = jj;
-
-                    if (k==j) {
-                        break;
-                    }
-                }
+        Object[] items = getPatternItems();
+        for (int i = 0; i < items.length; i++) {
+            if (items[i] instanceof String) {
+                toAppendTo.append((String)items[i]);
             } else {
-                // Append unquoted literal characters
-                toAppendTo.append(ch);
-                ++i;
-            }
-        }
-
-        return toAppendTo;
-    }
-
-    private StringBuffer slowFormat(Calendar cal, StringBuffer toAppendTo,
-                                    FieldPosition pos) {
-        // Initialize
-        pos.setBeginIndex(0);
-        pos.setEndIndex(0);
-
-        boolean inQuote = false; // true when between single quotes
-        char prevCh = 0; // previous pattern character
-        int count = 0;  // number of time prevCh repeated
-        for (int i=0; i<pattern.length(); ++i) {
-            char ch = pattern.charAt(i);
-            // Use subFormat() to format a repeated pattern character
-            // when a different pattern or non-pattern character is seen
-            if (ch != prevCh && count > 0) {
-                toAppendTo.append(
-                                  subFormat(prevCh, count, toAppendTo.length(), pos, formatData, cal));
-                count = 0;
-            }
-            if (ch == '\'') {
-                // Consecutive single quotes are a single quote literal,
-                // either outside of quotes or between quotes
-                if ((i+1)<pattern.length() && pattern.charAt(i+1) == '\'') {
-                    toAppendTo.append('\'');
-                    ++i;
+                PatternItem item = (PatternItem)items[i];
+                if (useFastFormat) {
+                    subFormat(toAppendTo, item.type, item.length, toAppendTo.length(), pos, cal);
                 } else {
-                    inQuote = !inQuote;
+                    toAppendTo.append(subFormat(item.type, item.length, toAppendTo.length(), pos, formatData, cal));
                 }
-            } else if (!inQuote
-                       && (ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z')) {
-                // ch is a date-time pattern character to be interpreted
-                // by subFormat(); count the number of times it is repeated
-                prevCh = ch;
-                ++count;
             }
-            else {
-                // Append quoted characters and unquoted non-pattern characters
-                toAppendTo.append(ch);
-            }
-        }
-        // Format the last item in the pattern, if any
-        if (count > 0) {
-            toAppendTo.append(
-                              subFormat(prevCh, count, toAppendTo.length(), pos, formatData, cal));
         }
         return toAppendTo;
     }
 
+    // Map pattern character to index
+    private static final int PATTERN_CHAR_BASE = 0x40;
+    private static final int[] PATTERN_CHAR_TO_INDEX =
+    {
+    //       A   B   C   D   E   F   G   H   I   J   K   L   M   N   O
+        -1, 22, -1, -1, 10,  9, 11,  0,  5, -1, -1, 16, 26,  2, -1, -1,
+    //   P   Q   R   S   T   U   V   W   X   Y   Z
+        -1, 27, -1,  8, -1, -1, -1, 13, -1, 18, 23, -1, -1, -1, -1, -1,
+    //       a   b   c   d   e   f   g   h   i   j   k   l   m   n   o
+        -1, 14, -1, 25,  3, 19, -1, 21, 15, -1, -1,  4, -1,  6, -1, -1,
+    //   p   q   r   s   t   u   v   w   x   y   z
+        -1, 28, -1,  7, -1, 20, 24, 12, -1,  1, 17, -1, -1, -1, -1, -1
+    };
+    
     // Map index into pattern character string to Calendar field number
     private static final int[] PATTERN_INDEX_TO_CALENDAR_FIELD =
     {
@@ -702,7 +633,12 @@ public class SimpleDateFormat extends DateFormat {
         final int maxIntCount = Integer.MAX_VALUE;
         final int bufstart = buf.length();
 
-        final int patternCharIndex = DateFormatSymbols.patternChars.indexOf(ch);
+        // final int patternCharIndex = DateFormatSymbols.patternChars.indexOf(ch);
+        int patternCharIndex = -1;
+        if ('A' <= ch && ch <= 'z') {
+            patternCharIndex = PATTERN_CHAR_TO_INDEX[(int)ch - PATTERN_CHAR_BASE];
+        }
+
         if (patternCharIndex == -1) {
             throw new IllegalArgumentException("Illegal pattern character " +
                                                "'" + ch + "' in \"" +
@@ -941,6 +877,108 @@ public class SimpleDateFormat extends DateFormat {
         }
     }
 
+    /*
+     * PatternItem store parsed date/time field pattern information.
+     */
+    private static class PatternItem {
+    	char type;
+    	int length;
+
+        PatternItem(char type, int length) {
+    		this.type = type;
+    		this.length = length;
+    	}
+    }
+
+    private static ICUCache PARSED_PATTERN_CACHE = new SimpleCache();
+    private transient Object[] patternItems;
+
+    /*
+     * Returns parsed pattern items.  Each item is either String or
+     * PatternItem.
+     */
+    private Object[] getPatternItems() {
+        if (patternItems != null) {
+            return patternItems;
+        }
+
+        patternItems = (Object[])PARSED_PATTERN_CACHE.get(pattern);
+        if (patternItems != null) {
+            return patternItems;
+        }
+
+        boolean isPrevQuote = false;
+        boolean inQuote = false;
+        StringBuffer text = new StringBuffer();
+        char itemType = 0;  // 0 for string literal, otherwise date/time pattern character
+        int itemLength = 1;
+
+        List items = new ArrayList();
+
+        for (int i = 0; i < pattern.length(); i++) {
+            char ch = pattern.charAt(i);
+            if (ch == '\'') {
+                if (isPrevQuote) {
+                    text.append('\'');
+                    isPrevQuote = false;
+                } else {
+                    isPrevQuote = true;
+                    if (itemType != 0) {
+                        items.add(new PatternItem(itemType, itemLength));
+                        itemType = 0;
+                    }
+                }
+                inQuote = !inQuote;
+            } else {
+                isPrevQuote = false;
+                if (inQuote) {
+                    text.append(ch);
+                } else {
+                	if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')) {
+                    	// a date/time pattern character
+                    	if (ch == itemType) {
+                    		itemLength++;
+                    	} else {
+                            if (itemType == 0) {
+                                if (text.length() > 0) {
+                                    items.add(text.toString());
+                                    text.setLength(0);
+                                }
+                            } else {
+                                items.add(new PatternItem(itemType, itemLength));
+                            }
+                            itemType = ch;
+                            itemLength = 1;
+                        }
+                    } else {
+                    	// a string literal
+                        if (itemType != 0) {
+                            items.add(new PatternItem(itemType, itemLength));
+                            itemType = 0;
+                        }
+                        text.append(ch);
+                    }
+                }
+            }
+        }
+        // handle last item
+        if (itemType == 0) {
+            if (text.length() > 0) {
+                items.add(text.toString());
+                text.setLength(0);
+            }
+        } else {
+            items.add(new PatternItem(itemType, itemLength));
+        }
+
+        patternItems = new Object[items.size()];
+        items.toArray(patternItems);
+
+        PARSED_PATTERN_CACHE.put(pattern, patternItems);
+        
+        return patternItems;
+    }
+
     private void appendGMT(StringBuffer buf, Calendar cal){
         int value = cal.get(Calendar.ZONE_OFFSET) +
         cal.get(Calendar.DST_OFFSET);
@@ -970,34 +1008,83 @@ public class SimpleDateFormat extends DateFormat {
         return null;
     }*/
 
-    /* FieldPostion instance is required for NumberFormat#format taking
-     * StringBuffer as an argument.  However, it is actually not used
-     * in this implementation.  Create one and reuse this.
-     */
-    private transient FieldPosition zeroPaddingPos = new FieldPosition(-1);
-
     /**
      * Internal high-speed method.  Reuses a StringBuffer for results
      * instead of creating a String on the heap for each call.
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    char[] decimalBuf = new char[20];
-    char zeroDigit = '0';
     protected void zeroPaddingNumber(StringBuffer buf, int value,
                                      int minDigits, int maxDigits) {
-        numberFormat.setMinimumIntegerDigits(minDigits);
-        numberFormat.setMaximumIntegerDigits(maxDigits);
-        numberFormat.format(value, buf, zeroPaddingPos);
+        if (useLocalZeroPaddingNumberFormat) {
+            fastZeroPaddingNumber(buf, value, minDigits, maxDigits);
+        } else {
+            numberFormat.setMinimumIntegerDigits(minDigits);
+            numberFormat.setMaximumIntegerDigits(maxDigits);
+            numberFormat.format(value, buf, new FieldPosition(-1));
+        }
     }
 
-//    /**
-//     * Overrides superclass method
-//     * @stable ICU 2.0
-//     */
-//    public void setNumberFormat(NumberFormat newNumberFormat) {
-//    	super.setNumberFormat(newNumberFormat);
-//    }
+    /**
+     * Overrides superclass method
+     * @stable ICU 2.0
+     */
+    public void setNumberFormat(NumberFormat newNumberFormat) {
+        // Override this method to update local zero padding number formatter
+        super.setNumberFormat(newNumberFormat);
+        initLocalZeroPaddingNumberFormat();
+    }
+
+    private void initLocalZeroPaddingNumberFormat() {
+        if (numberFormat instanceof DecimalFormat) {
+            zeroDigit = ((DecimalFormat)numberFormat).getDecimalFormatSymbols().getZeroDigit();
+            useLocalZeroPaddingNumberFormat = true;
+        } else if (numberFormat instanceof DateNumberFormat) {
+            zeroDigit = ((DateNumberFormat)numberFormat).getZeroDigit();
+            useLocalZeroPaddingNumberFormat = true;
+        } else {
+            useLocalZeroPaddingNumberFormat = false;
+        }
+
+        if (useLocalZeroPaddingNumberFormat) {
+            decimalBuf = new char[10];  // sufficient for int numbers
+        }
+    }
+
+    // If true, use local version of zero padding number format
+    private transient boolean useLocalZeroPaddingNumberFormat;
+    private transient char zeroDigit;
+    private transient char[] decimalBuf;
+
+    /*
+     * Lightweight zero padding integer number format function.
+     * 
+     * Note: This implementation is almost equivalent to format method in DateNumberFormat.
+     * In the method zeroPaddingNumber above should be able to use the one in DateNumberFormat,
+     * but, it does not help IBM J9's JIT to optimize the performance much.  In simple repeative
+     * date format test case, having local implementation is ~10% faster than using one in
+     * DateNumberFormat on IBM J9 VM.  On Sun Hotspot VM, I do not see such difference.
+     * 
+     * -Yoshito
+     */
+    private void fastZeroPaddingNumber(StringBuffer buf, int value, int minDigits, int maxDigits) {
+        int limit = decimalBuf.length < maxDigits ? decimalBuf.length : maxDigits;
+        int index = limit - 1;
+        while (true) {
+            decimalBuf[index] = (char)((value % 10) + zeroDigit);
+            value /= 10;
+            if (index == 0 || value == 0) {
+                break;
+            }
+            index--;
+        }
+        int padding = minDigits - (limit - index);
+        for (; padding > 0; padding--) {
+            decimalBuf[--index] = zeroDigit;
+        }
+        int length = limit - index;
+        buf.append(decimalBuf, index, length);        
+    }
 
     /**
      * Formats a number with the specified minimum and maximum number of digits.
@@ -1445,7 +1532,11 @@ public class SimpleDateFormat extends DateFormat {
         int value = 0;
         int i;
         ParsePosition pos = new ParsePosition(0);
-        int patternCharIndex = DateFormatSymbols.patternChars.indexOf(ch);
+        //int patternCharIndex = DateFormatSymbols.patternChars.indexOf(ch);c
+        int patternCharIndex = -1;
+        if ('A' <= ch && ch <= 'z') {
+            patternCharIndex = PATTERN_CHAR_TO_INDEX[(int)ch - PATTERN_CHAR_BASE];
+        }
 
         if (patternCharIndex == -1) {
             return -start;
@@ -1913,6 +2004,8 @@ public class SimpleDateFormat extends DateFormat {
     {
         this.pattern = pattern;
         setLocale(null, null);
+        // reset parsed pattern items
+        patternItems = null;
     }
 
     /**
@@ -2020,6 +2113,6 @@ public class SimpleDateFormat extends DateFormat {
         serialVersionOnStream = currentSerialVersion;
         locale = getLocale(ULocale.VALID_LOCALE);
 
-        zeroPaddingPos = new FieldPosition(-1);
+        initLocalZeroPaddingNumberFormat();
     }
 }

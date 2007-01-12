@@ -81,7 +81,11 @@ public final class DateNumberFormat extends NumberFormat {
     public void setParsePositiveOnly(boolean isPositiveOnly) {
         positiveOnly = isPositiveOnly;
     }
-    
+
+    public char getZeroDigit() {
+        return zeroDigit;
+    }
+
     public StringBuffer format(double number, StringBuffer toAppendTo,
             FieldPosition pos) {
         throw new UnsupportedOperationException("StringBuffer format(double, StringBuffer, FieldPostion) is not implemented");
