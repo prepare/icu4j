@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2006, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2007, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -16,8 +16,8 @@ import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 
 import com.ibm.icu.impl.CalendarData;
-import com.ibm.icu.impl.SimpleCache;
 import com.ibm.icu.impl.ICUResourceBundle;
+import com.ibm.icu.impl.SimpleCache;
 import com.ibm.icu.impl.TextTrieMap;
 import com.ibm.icu.impl.Utility;
 import com.ibm.icu.impl.ZoneMeta;

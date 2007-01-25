@@ -1,6 +1,6 @@
 /**
  *******************************************************************************
- * Copyright (C) 2001-2006, International Business Machines Corporation and    *
+ * Copyright (C) 2001-2007, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -272,7 +272,7 @@ public class ICULocaleService extends ICUService {
                 buf.append('/');
                 buf.append(result);
                 if (varstart != -1) {
-                    buf.append(primaryID.subSequence(varstart, primaryID.length()));
+                    buf.append(primaryID.substring(varstart, primaryID.length()));
                 }
                 result = buf.toString();
             }

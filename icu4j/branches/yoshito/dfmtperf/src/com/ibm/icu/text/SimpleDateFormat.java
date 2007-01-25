@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2006, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2007, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -423,7 +423,7 @@ public class SimpleDateFormat extends DateFormat {
      */
     private static synchronized String getDefaultPattern() {
         ULocale defaultLocale = ULocale.getDefault();
-        if (cachedDefaultLocale == null || !cachedDefaultLocale.equals(defaultLocale)) {
+        if (!defaultLocale.equals(cachedDefaultLocale)) {
             cachedDefaultLocale = defaultLocale;
             Calendar cal = Calendar.getInstance(cachedDefaultLocale);
             try {
@@ -881,13 +881,15 @@ public class SimpleDateFormat extends DateFormat {
      * PatternItem store parsed date/time field pattern information.
      */
     private static class PatternItem {
-    	char type;
-    	int length;
+    	final char type;
+    	final int length;
+        final boolean isNumeric;
 
         PatternItem(char type, int length) {
     		this.type = type;
     		this.length = length;
-    	}
+    		isNumeric = isNumeric(type, length);
+        }
     }
 
     private static ICUCache PARSED_PATTERN_CACHE = new SimpleCache();
@@ -1122,172 +1124,119 @@ public class SimpleDateFormat extends DateFormat {
         int pos = parsePos.getIndex();
         int start = pos;
         boolean[] ambiguousYear = { false };
-        int count = 0;
 
         // hack, clear parsedTimeZone
         parsedTimeZone = null;
 
-        // For parsing abutting numeric fields. 'abutPat' is the
-        // offset into 'pattern' of the first of 2 or more abutting
-        // numeric fields.  'abutStart' is the offset into 'text'
-        // where parsing the fields begins. 'abutPass' starts off as 0
-        // and increments each time we try to parse the fields.
-        int abutPat = -1; // If >=0, we are in a run of abutting numeric fields
-        int abutStart = 0;
-        int abutPass = 0;
-        boolean inQuote = false;
+        // item index for the first numeric field within a countiguous numeric run
+        int numericFieldStart = -1;
+        // item length for the first numeric field within a countiguous numeric run
+        int numericFieldLength = 0;
+        // start index of numeric text run in the input text
+        int numericStartPos = 0;
 
-        for (int i=0; i<pattern.length(); ++i) {
-            char ch = pattern.charAt(i);
-
-            // Handle alphabetic field characters.
-            if (!inQuote && (ch >= 'A' && ch <= 'Z' || ch >= 'a' && ch <= 'z')) {
-                int fieldPat = i;
-
-                // Count the length of this field specifier
-                count = 1;
-                while ((i+1)<pattern.length() &&
-                       pattern.charAt(i+1) == ch) {
-                    ++count;
-                    ++i;
-                }
-
-                if (isNumeric(ch, count)) {
-                    if (abutPat < 0) {
-                        // Determine if there is an abutting numeric field.  For
-                        // most fields we can just look at the next characters,
-                        // but the 'm' field is either numeric or text,
-                        // depending on the count, so we have to look ahead for
-                        // that field.
-                        if ((i+1)<pattern.length()) {
-                            boolean abutting;
-                            char nextCh = pattern.charAt(i+1);
-                            int k = NUMERIC_FORMAT_CHARS.indexOf(nextCh);
-                            if (k == 0) {
-                                int j = i+2;
-                                while (j<pattern.length() &&
-                                       pattern.charAt(j) == nextCh) {
-                                    ++j;
-                                }
-                                abutting = (j-i) < 4; // nextCount < 3
-                            } else {
-                                abutting = k > 0;
-                            }
-
-                            // Record the start of a set of abutting numeric
-                            // fields.
-                            if (abutting) {
-                                abutPat = fieldPat;
-                                abutStart = pos;
-                                abutPass = 0;
-                            }
+        Object[] items = getPatternItems();
+        int i = 0;
+        while (i < items.length) {
+            if (items[i] instanceof PatternItem) {
+                // Handle pattern field
+                PatternItem field = (PatternItem)items[i];
+                if (field.isNumeric) {
+                    // Handle fields within a run of abutting numeric fields.  Take
+                    // the pattern "HHmmss" as an example. We will try to parse
+                    // 2/2/2 characters of the input text, then if that fails,
+                    // 1/2/2.  We only adjust the width of the leftmost field; the
+                    // others remain fixed.  This allows "123456" => 12:34:56, but
+                    // "12345" => 1:23:45.  Likewise, for the pattern "yyyyMMdd" we
+                    // try 4/2/2, 3/2/2, 2/2/2, and finally 1/2/2.
+                    if (numericFieldStart == -1) {
+                        // check if this field is followed by abutting another numeric field
+                        if ((i + 1) < items.length 
+                                && (items[i + 1] instanceof PatternItem)
+                                && ((PatternItem)items[i + 1]).isNumeric) {
+                            // record the first numeric field within a numeric text run
+                            numericFieldStart = i;
+                            numericFieldLength = field.length;
+                            numericStartPos = pos; 
                         }
                     }
-                } else {
-                    abutPat = -1; // End of any abutting fields
                 }
+                if (numericFieldStart != -1) {
+                    // Handle a numeric field within abutting numeric fields
+                    int len = field.length;
+                    if (numericFieldStart == i) {
+                        len = numericFieldLength;
+                    }
 
-                // Handle fields within a run of abutting numeric fields.  Take
-                // the pattern "HHmmss" as an example. We will try to parse
-                // 2/2/2 characters of the input text, then if that fails,
-                // 1/2/2.  We only adjust the width of the leftmost field; the
-                // others remain fixed.  This allows "123456" => 12:34:56, but
-                // "12345" => 1:23:45.  Likewise, for the pattern "yyyyMMdd" we
-                // try 4/2/2, 3/2/2, 2/2/2, and finally 1/2/2.
-                if (abutPat >= 0) {
-                    // If we are at the start of a run of abutting fields, then
-                    // shorten this field in each pass.  If we can't shorten
-                    // this field any more, then the parse of this set of
-                    // abutting numeric fields has failed.
-                    if (fieldPat == abutPat) {
-                        count -= abutPass++;
-                        if (count == 0) {
+                    // Parse a numeric field
+                    pos = subParse(text, pos, field.type, len,
+                            true, false, ambiguousYear, cal);
+
+                    if (pos < 0) {
+                        // If the parse fails anywhere in the numeric run, back up to the
+                        // start of the run and use shorter pattern length for the first
+                        // numeric field.
+                        --numericFieldLength;
+                        if (numericFieldLength == 0) {
+                            // can not make shorter any more
                             parsePos.setIndex(start);
                             parsePos.setErrorIndex(pos);
                             return;
                         }
-                    }
-
-                    pos = subParse(text, pos, ch, count,
-                                   true, false, ambiguousYear, cal);
-
-                    // If the parse fails anywhere in the run, back up to the
-                    // start of the run and retry.
-                    if (pos < 0) {
-                        i = abutPat - 1;
-                        pos = abutStart;
+                        i = numericFieldStart;
+                        pos = numericStartPos;
                         continue;
                     }
-                }
 
-                // Handle non-numeric fields and non-abutting numeric
-                // fields.
-                else {
+                } else {
+                    // Handle a non-numeric field or a non-abutting numeric field
+                    numericFieldStart = -1;
+
                     int s = pos;
-                    pos = subParse(text, pos, ch, count,
-                                   false, true, ambiguousYear, cal);
-
+                    pos = subParse(text, pos, field.type, field.length,
+                            false, true, ambiguousYear, cal);
                     if (pos < 0) {
-                        parsePos.setErrorIndex(s);
                         parsePos.setIndex(start);
+                        parsePos.setErrorIndex(s);
                         return;
                     }
                 }
-            }
+            } else {
+                // Handle literal pattern text literal
+                numericFieldStart = -1;
 
-            // Handle literal pattern characters.  These are any
-            // quoted characters and non-alphabetic unquoted
-            // characters.
-            else {
-
-                abutPat = -1; // End of any abutting fields
-
-                // Handle quotes.  Two consecutive quotes is a quote
-                // literal, inside or outside of quotes.  Otherwise a
-                // quote indicates entry or exit from a quoted region.
-                if (ch == '\'') {
-                    // Match a quote literal '' within OR outside of quotes
-                    if ((i+1)<pattern.length() && pattern.charAt(i+1)==ch) {
-                        ++i; // Skip over doubled quote
-                        // Fall through and treat quote as a literal
-                    } else {
-                        // Enter or exit quoted region
-                        inQuote = !inQuote;
-                        continue;
+                String patl = (String)items[i];
+                int idx = 0;
+                boolean fail = false;
+                while (idx < patl.length() && pos < text.length()) {
+                    char pch = patl.charAt(idx);
+                    char ich = text.charAt(pos);
+                    if (UCharacterProperty.isRuleWhiteSpace(pch) && UCharacterProperty.isRuleWhiteSpace(ich)) {
+                        // White space characters found in both patten and input.
+                        // Skip contiguous white spaces.
+                        while ((idx + 1) < patl.length() &&
+                                UCharacterProperty.isRuleWhiteSpace(pattern.charAt(idx + 1))) {
+                             ++idx;
+                        }
+                        while ((pos + 1) < text.length() &&
+                                UCharacterProperty.isRuleWhiteSpace(text.charAt(pos + 1))) {
+                             ++pos;
+                        }
+                    } else if (pch != ich) {
+                        fail = false;
+                        break;
                     }
-                }
-
-                // A run of white space in the pattern matches a run
-                // of white space in the input text.
-                if (UCharacterProperty.isRuleWhiteSpace(ch)) {
-                    // Advance over run in pattern
-                    while ((i+1)<pattern.length() &&
-                           UCharacterProperty.isRuleWhiteSpace(pattern.charAt(i+1))) {
-                        ++i;
-                    }
-
-                    // Advance over run in input text
-                    int s = pos;
-                    while (pos<text.length() &&
-                           UCharacter.isUWhiteSpace(text.charAt(pos))) {
-                        ++pos;
-                    }
-
-                    // Must see at least one white space char in input
-                    if (pos > s) {
-                        continue;
-                    }
-                } else if (pos<text.length() && text.charAt(pos)==ch) {
-                    // Match a literal
+                    ++idx;
                     ++pos;
-                    continue;
                 }
-
-                // We fall through to this point if the match fails
-                parsePos.setIndex(start);
-                parsePos.setErrorIndex(pos);
-                return;
+                if (fail) {
+                    // Set the position of mismatch
+                    parsePos.setIndex(start);
+                    parsePos.setErrorIndex(pos);
+                    return;
+                }
             }
+            ++i;
         }
 
         // At this point the fields of Calendar have been set.  Calendar
@@ -1355,7 +1304,7 @@ public class SimpleDateFormat extends DateFormat {
             parsePos.setIndex(start);
         }
     }
-
+    
     /**
      * Attempt to match the text at a given position against an array of
      * strings.  Since multiple strings in the array may match (for
