@@ -1,6 +1,6 @@
 /**
  *******************************************************************************
- * Copyright (C) 2001-2006, International Business Machines Corporation and    *
+ * Copyright (C) 2001-2005, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -11,6 +11,7 @@ import com.ibm.icu.dev.test.TestLog;
 import com.ibm.icu.impl.ICUService;
 import com.ibm.icu.impl.ICUService.Factory;
 import com.ibm.icu.impl.ICUService.SimpleFactory;
+import com.ibm.icu.impl.LocaleUtility;
 import com.ibm.icu.impl.ICULocaleService;
 import com.ibm.icu.text.Collator;
 import com.ibm.icu.util.ULocale;
@@ -292,14 +293,7 @@ public class ICUServiceThreadTest extends TestFmwk
                 String dname = (String)e.getKey();
                 String id = (String)e.getValue();
                 Object result = service.get(id);
-
-                // Note: IllegalMonitorStateException is thrown by the code
-                // below on IBM JRE5 for AIX 64bit.  For some reason, converting
-                // int to String out of this statement resolves the issue.
-
-                //log.logln(" iter: " + n + 
-                String num = Integer.toString(n);
-                log.logln(" iter: " + num + 
+                log.logln(" iter: " + n + 
                           " dname: " + dname + 
                           " id: " + id + 
                           " result: " + result);

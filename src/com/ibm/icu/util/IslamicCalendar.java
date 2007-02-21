@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -77,6 +77,8 @@ import java.util.Locale;
 public class IslamicCalendar extends Calendar {
     // jdk1.4.2 serialver
     private static final long serialVersionUID = -6253365474073869325L;
+
+    private static String copyright = "Copyright \u00a9 1997-1998 IBM Corp. All Rights Reserved.";
 
     //-------------------------------------------------------------------------
     // Constants...
@@ -373,6 +375,7 @@ public class IslamicCalendar extends Calendar {
 //     * @param day   The # of days since the start of the Islamic calendar.
 //     */
 //    // private and uncalled, perhaps not used yet?
+//    ///CLOVER:OFF
 //    private static final int absoluteDayToDayOfWeek(long day)
 //    {
 //        // Calculate the day of the week.
@@ -383,6 +386,7 @@ public class IslamicCalendar extends Calendar {
 //        }
 //        return dayOfWeek;
 //    }
+//    ///CLOVER:ON
 
     /**
      * Determine whether a year is a leap year in the Islamic civil calendar
@@ -410,7 +414,7 @@ public class IslamicCalendar extends Calendar {
      * from the Hijri epoch, origin 0.
      *
      * @param year  The hijri year
-     * @param month  The hijri month, 0-based
+     * @param year  The hijri month, 0-based
      */
     private long monthStart(int year, int month) {
         if (civil) {
@@ -642,7 +646,6 @@ public class IslamicCalendar extends Calendar {
      * Return the current Calendar type.
      * @return type of calendar (gregorian, etc.)
      * @internal ICU 3.0
-     * @deprecated This API is ICU internal only.
      */
     public String getType() {
         return "islamic";

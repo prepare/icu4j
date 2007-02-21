@@ -1,7 +1,7 @@
 //##header
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -494,6 +494,12 @@ public class RuleBasedNumberFormat extends NumberFormat {
     static final long serialVersionUID = -7664252765575395068L;
     
     /**
+     * Puts a copyright in the .class file
+     */
+    private static final String copyrightNotice
+        = "Copyright \u00a91997-2004 IBM Corp.  All rights reserved.";
+
+    /**
      * Selector code that tells the constructor to create a spellout formatter
      * @stable ICU 2.0
      */
@@ -741,7 +747,7 @@ public class RuleBasedNumberFormat extends NumberFormat {
 
         try {
             description = bundle.getString(rulenames[format-1]);
-            UResourceBundle locb = bundle.get(locnames[format-1]);
+            ICUResourceBundle locb = bundle.get(locnames[format-1]);
             localizations = new String[locb.getSize()][];
             for (int i = 0; i < localizations.length; ++i) {
                 localizations[i] = locb.get(i).getStringArray();
@@ -1278,7 +1284,8 @@ public class RuleBasedNumberFormat extends NumberFormat {
     /**
      * Return the name of the current default rule set.
      * @return the name of the current default rule set, if it is public, else the empty string.
-     * @stable ICU 3.0
+     * @draft ICU 3.0
+     * @provisional This API might change or be removed in a future release.
      */
     public String getDefaultRuleSetName() {
         if (defaultRuleSet != null && defaultRuleSet.isPublic()) {
@@ -1604,25 +1611,25 @@ public class RuleBasedNumberFormat extends NumberFormat {
         return result;
     }
 
-//    /**
-//     * This function is called ONLY DURING CONSTRUCTION to fill in the
-//     * defaultRuleSet variable once we've set up all the rule sets.
-//     * The default rule set is the last public rule set in the description.
-//     * (It's the last rather than the first so that a caller can append
-//     * text to the end of an existing formatter description to change its
-//     * behavior.)
-//     */
-//    private void initDefaultRuleSet() {
-//        // seek backward from the end of the list until we reach a rule set
-//        // whose name DOESN'T begin with %%.  That's the default rule set
-//        for (int i = ruleSets.length - 1; i >= 0; --i) {
-//            if (!ruleSets[i].getName().startsWith("%%")) {
-//                defaultRuleSet = ruleSets[i];
-//                return;
-//            }
-//        }
-//        defaultRuleSet = ruleSets[ruleSets.length - 1];
-//    }
+    /**
+     * This function is called ONLY DURING CONSTRUCTION to fill in the
+     * defaultRuleSet variable once we've set up all the rule sets.
+     * The default rule set is the last public rule set in the description.
+     * (It's the last rather than the first so that a caller can append
+     * text to the end of an existing formatter description to change its
+     * behavior.)
+     */
+    private void initDefaultRuleSet() {
+        // seek backward from the end of the list until we reach a rule set
+        // whose name DOESN'T begin with %%.  That's the default rule set
+        for (int i = ruleSets.length - 1; i >= 0; --i) {
+            if (!ruleSets[i].getName().startsWith("%%")) {
+                defaultRuleSet = ruleSets[i];
+                return;
+            }
+        }
+        defaultRuleSet = ruleSets[ruleSets.length - 1];
+    }
 
     //-----------------------------------------------------------------------
     // formatting implementation
@@ -1691,7 +1698,7 @@ public class RuleBasedNumberFormat extends NumberFormat {
                 }
                 catch (Exception e) {
                     // if debug, print it out
-                    if (DEBUG) System.out.println("could not locate " + ppClassName + ", error " +
+                    System.out.println("could not locate " + ppClassName + ", error " +
                                        e.getClass().getName() + ", " + e.getMessage());
                     postProcessor = null;
                     postProcessRules = null; // don't try again

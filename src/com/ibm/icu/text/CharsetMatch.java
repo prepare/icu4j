@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 2005-2006, International Business Machines Corporation and    *
+* Copyright (C) 2006, International Business Machines Corporation and         *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 */
@@ -259,7 +259,7 @@ public class CharsetMatch implements Comparable {
             //   not if is just the head of a stream.
             fRawInput    = det.fRawInput;
             fRawLength   = det.fRawLength;
-        }
+        };
         fInputStream = det.fInputStream;
     }
 

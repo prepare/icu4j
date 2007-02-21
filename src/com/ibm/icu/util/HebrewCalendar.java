@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -73,6 +73,8 @@ import java.util.Locale;
 public class HebrewCalendar extends Calendar {
     // jdk1.4.2 serialver
     private static final long serialVersionUID = -1952524560588825816L;
+
+    private static String copyright = "Copyright \u00a9 1997-1998 IBM Corp. All Rights Reserved.";
 
     //-------------------------------------------------------------------------
     // Tons o' Constants...
@@ -632,17 +634,19 @@ public class HebrewCalendar extends Calendar {
         return day;
     }
 
-    /*
+    /**
      * Find the day of the week for a given day
      *
      * @param day   The # of days since the start of the Hebrew calendar,
      *              1-based (i.e. 1/1/1 AM is day 1).
      */
-    /*private static int absoluteDayToDayOfWeek(long day)
+    ///CLOVER:OFF
+    private static int absoluteDayToDayOfWeek(long day)
     {
         // We know that 1/1/1 AM is a Monday, which makes the math easy...
         return (int)(day % 7) + 1;
-    }*/
+    }
+    ///CLOVER:ON
 
     /**
      * Returns the the type of a given year.
@@ -839,7 +843,6 @@ public class HebrewCalendar extends Calendar {
      * Return the current Calendar type.
      * @return type of calendar (gregorian, etc.)
      * @internal ICU 3.0
-     * @deprecated This API is ICU internal only.
      */
     public String getType() {
         return "hebrew";

@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2003-2006, International Business Machines Corporation and    *
+ * Copyright (C) 2003-2005, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -40,16 +40,16 @@ import com.ibm.icu.impl.ICUResourceBundle;
 public final class IDNA {
 
     /* IDNA ACE Prefix is "xn--" */
-    private static char[] ACE_PREFIX                = new char[]{ 0x0078,0x006E,0x002d,0x002d } ;
-    private static final int ACE_PREFIX_LENGTH      = ACE_PREFIX.length;
+    private static char[] ACE_PREFIX = new char[]{ 0x0078,0x006E,0x002d,0x002d } ;
+    private static final int ACE_PREFIX_LENGTH  = 4;
 
-    private static final int MAX_LABEL_LENGTH       = 63;
-    private static final int HYPHEN                 = 0x002D;
-    private static final int CAPITAL_A              = 0x0041;
-    private static final int CAPITAL_Z              = 0x005A;
-    private static final int LOWER_CASE_DELTA       = 0x0020;
-    private static final int FULL_STOP              = 0x002E;
-    private static final int MAX_DOMAIN_NAME_LENGTH = 255;
+    private static final int MAX_LABEL_LENGTH   = 63;
+    private static final int HYPHEN             = 0x002D;
+    private static final int CAPITAL_A          = 0x0041;
+    private static final int CAPITAL_Z          = 0x005A;
+    private static final int LOWER_CASE_DELTA   = 0x0020;
+    private static final int FULL_STOP          = 0x002E;
+
     /** 
      * Option to prohibit processing of unassigned codepoints in the input and
      * do not check if the input conforms to STD-3 ASCII rules.
@@ -399,7 +399,7 @@ public final class IDNA {
             }
         }
         if(dest.length() > MAX_LABEL_LENGTH){
-            throw new StringPrepParseException("The labels in the input are too long. Length > 63.", 
+            throw new StringPrepParseException("The labels in the input are too long. Length > 64.", 
                                      StringPrepParseException.LABEL_TOO_LONG_ERROR,dest.toString(),0);
         }
         return dest;
@@ -529,9 +529,6 @@ public final class IDNA {
             oldSepIndex = sepIndex;
             result.append((char)FULL_STOP);
         }
-        if(result.length() > MAX_DOMAIN_NAME_LENGTH){
-            throw new StringPrepParseException("The output exceed the max allowed length.", StringPrepParseException.DOMAIN_NAME_TOO_LONG_ERROR);
-        }
         return result;
     }
 
@@ -599,7 +596,7 @@ public final class IDNA {
     }
        
     /**
-     * Function that implements the ToUnicode operation as defined in the IDNA RFC.
+     * This function implements the ToUnicode operation as defined in the IDNA RFC.
      * This operation is done on <b>single labels</b> before sending it to something that expects
      * Unicode names. A label is an individual part of a domain name. Labels are usually
      * separated by dots; for e.g." "www.example.com" is composed of 3 labels 
@@ -650,13 +647,9 @@ public final class IDNA {
         StringBuffer processOut;
         
         if(srcIsASCII == false){
-            try {
-                // step 2: process the string
-                src.setIndex(saveIndex);
-                processOut = singleton.namePrep.prepare(src,options);
-            } catch (StringPrepParseException ex) {
-                return new StringBuffer(src.getText());
-            }
+            // step 2: process the string
+            src.setIndex(saveIndex);
+            processOut = singleton.namePrep.prepare(src,options);
 
         }else{
             //just point to source
@@ -671,66 +664,53 @@ public final class IDNA {
         
         //step 3: verify ACE Prefix
         if(startsWithPrefix(processOut)){
-            StringBuffer decodeOut = null;
 
             //step 4: Remove the ACE Prefix
             String temp = processOut.substring(ACE_PREFIX_LENGTH,processOut.length());
 
             //step 5: Decode using punycode
-            try {
-                decodeOut = Punycode.decode(new StringBuffer(temp),caseFlags);
-            } catch (StringPrepParseException e) {
-                decodeOut = null;
-            }
+            StringBuffer decodeOut = Punycode.decode(new StringBuffer(temp),caseFlags);
         
             //step 6:Apply toASCII
-            if (decodeOut != null) {
-                StringBuffer toASCIIOut = convertToASCII(decodeOut, options);
-    
-                //step 7: verify
-                if(compareCaseInsensitiveASCII(processOut, toASCIIOut) !=0){
-//                    throw new StringPrepParseException("The verification step prescribed by the RFC 3491 failed",
-//                                             StringPrepParseException.VERIFICATION_ERROR); 
-                    decodeOut = null;
-                }
+            StringBuffer toASCIIOut = convertToASCII(decodeOut, options);
+
+            //step 7: verify
+            if(compareCaseInsensitiveASCII(processOut, toASCIIOut) !=0){
+                throw new StringPrepParseException("The verification step prescribed by the RFC 3491 failed",
+                                         StringPrepParseException.VERIFICATION_ERROR); 
             }
 
             //step 8: return output of step 5
-             if (decodeOut != null) {
-                 return decodeOut;
-             }
-        }
+            return decodeOut;
             
-//        }else{
-//            // verify that STD3 ASCII rules are satisfied
-//            if(useSTD3ASCIIRules == true){
-//                if( srcIsLDH == false /* source contains some non-LDH characters */
-//                    || processOut.charAt(0) ==  HYPHEN 
-//                    || processOut.charAt(processOut.length()-1) == HYPHEN){
-//    
-//                    if(srcIsLDH==false){
-//                        throw new StringPrepParseException("The input does not conform to the STD 3 ASCII rules",
-//                                                 StringPrepParseException.STD3_ASCII_RULES_ERROR,processOut.toString(),
-//                                                 (failPos>0) ? (failPos-1) : failPos);
-//                    }else if(processOut.charAt(0) == HYPHEN){
-//                        throw new StringPrepParseException("The input does not conform to the STD 3 ASCII rules",
-//                                                 StringPrepParseException.STD3_ASCII_RULES_ERROR,
-//                                                 processOut.toString(),0);
-//         
-//                    }else{
-//                        throw new StringPrepParseException("The input does not conform to the STD 3 ASCII rules",
-//                                                 StringPrepParseException.STD3_ASCII_RULES_ERROR,
-//                                                 processOut.toString(),
-//                                                 processOut.length());
-//    
-//                    }
-//                }
-//            }
-//            // just return the source
-//            return new StringBuffer(src.getText());
-//        }  
-        
-        return new StringBuffer(src.getText());
+        }else{
+            // verify that STD3 ASCII rules are satisfied
+            if(useSTD3ASCIIRules == true){
+                if( srcIsLDH == false /* source contains some non-LDH characters */
+                    || processOut.charAt(0) ==  HYPHEN 
+                    || processOut.charAt(processOut.length()-1) == HYPHEN){
+    
+                    if(srcIsLDH==false){
+                        throw new StringPrepParseException("The input does not conform to the STD 3 ASCII rules",
+                                                 StringPrepParseException.STD3_ASCII_RULES_ERROR,processOut.toString(),
+                                                 (failPos>0) ? (failPos-1) : failPos);
+                    }else if(processOut.charAt(0) == HYPHEN){
+                        throw new StringPrepParseException("The input does not conform to the STD 3 ASCII rules",
+                                                 StringPrepParseException.STD3_ASCII_RULES_ERROR,
+                                                 processOut.toString(),0);
+         
+                    }else{
+                        throw new StringPrepParseException("The input does not conform to the STD 3 ASCII rules",
+                                                 StringPrepParseException.STD3_ASCII_RULES_ERROR,
+                                                 processOut.toString(),
+                                                 processOut.length());
+    
+                    }
+                }
+            }
+            // just return the source
+            return new StringBuffer(src.getText());
+        }  
     }
     
     /**
@@ -846,9 +826,6 @@ public final class IDNA {
             sepIndex++;
             oldSepIndex =sepIndex;
             result.append((char)FULL_STOP);
-        }
-        if(result.length() > MAX_DOMAIN_NAME_LENGTH){
-            throw new StringPrepParseException("The output exceed the max allowed length.", StringPrepParseException.DOMAIN_NAME_TOO_LONG_ERROR);
         }
         return result;
     }

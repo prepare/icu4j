@@ -1,7 +1,7 @@
 //##header
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -14,12 +14,12 @@ import java.io.ObjectOutput;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
-//import java.util.LinkedHashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.SortedSet;
-//import java.util.TreeSet;
+import java.util.TreeSet;
 
-//import com.ibm.icu.impl.Utility;
+import com.ibm.icu.impl.Utility;
 import com.ibm.icu.text.UTF16;
 
 /**
@@ -159,6 +159,7 @@ public final class DataOutputCompressor implements ObjectOutput {
         int i = 0;
         object_index.put(null, new Integer(i++));
         WritePool trailingPool = new WritePool();
+        int poolCount = 0;
         String lastString = "";
         for (Iterator it = c.iterator(); it.hasNext();) {
             String s = (String) it.next();

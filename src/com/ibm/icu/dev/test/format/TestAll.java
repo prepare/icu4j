@@ -1,7 +1,6 @@
-//##header
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2004, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -25,8 +24,7 @@ public class TestAll extends TestGroup {
                   "TestAll$NumberFormat",
                   "TestAll$DateFormat",
                   "TestAll$MessageFormat",
-                  "com.ibm.icu.dev.test.format.BigNumberFormatTest",
-                  "com.ibm.icu.dev.test.format.GlobalizationPreferencesTest",
+                  "com.ibm.icu.dev.test.format.BigNumberFormatTest"
               },
               "Formatting Tests");
     }
@@ -70,9 +68,6 @@ public class TestAll extends TestGroup {
                 "IntlTestDateFormatAPI",
                 "IntlTestDateFormatAPIC",
                 "IntlTestDateFormatSymbols",
-//#ifndef FOUNDATION
-                "DateTimeGeneratorTest",
-//#endif
                 "IntlTestSimpleDateFormatAPI",
                 "DateFormatRegressionTestJ",
             });

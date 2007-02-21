@@ -1,15 +1,37 @@
 //##header
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
 //#ifndef FOUNDATION
 package com.ibm.icu.dev.test.util;
 
-import java.io.*;
-import java.util.*;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectInput;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutput;
+import java.io.ObjectOutputStream;
+import java.io.OutputStream;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
 import com.ibm.icu.impl.Utility;
 import com.ibm.icu.text.UTF16;
@@ -448,7 +470,6 @@ public final class UnicodeMap implements Cloneable, Freezable, Externalizable {
         }
         return result;
     }
-
     public UnicodeSet getSet(Object value) {
         return getSet(value,null);
     }
@@ -498,26 +519,6 @@ public final class UnicodeMap implements Cloneable, Freezable, Externalizable {
         return values[_findIndex(codepoint)];
     }
     
-    /**
-     * Change a new string from the source string according to the mappings. For each code point cp, if getValue(cp) is null, append the character, otherwise append getValue(cp).toString()
-     * @param source
-     * @return
-     */
-    public String fold(String source) {
-        StringBuffer result = new StringBuffer();
-        int cp;
-        for (int i = 0; i < source.length(); i += UTF16.getCharCount(cp)) {
-          cp = UTF16.charAt(source, i);
-          Object mResult = getValue(cp);
-          if (mResult != null) {
-            result.append(mResult);
-          } else {
-            UTF16.append(result, cp);
-          }
-        }
-        return result.toString();
-      }
-    
     public interface Composer {
     	Object compose(int codePoint, Object a, Object b);
     }
@@ -527,16 +528,6 @@ public final class UnicodeMap implements Cloneable, Freezable, Externalizable {
     		Object v1 = getValue(i);
     		Object v2 = other.getValue(i);
     		Object v3 = composer.compose(i, v1, v2);
-    		if (v1 != v3 && (v1 == null || !v1.equals(v3))) put(i, v3);
-    	}
-    	return this;
-    }
-    
-    public UnicodeMap composeWith(UnicodeSet set, Object value, Composer composer) {
-    	for (UnicodeSetIterator it = new UnicodeSetIterator(set); it.next();) {
-    		int i = it.codepoint;
-    		Object v1 = getValue(i);
-    		Object v3 = composer.compose(i, v1, value);
     		if (v1 != v3 && (v1 == null || !v1.equals(v3))) put(i, v3);
     	}
     	return this;

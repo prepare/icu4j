@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2005, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -271,11 +271,13 @@ import java.util.Hashtable;
  *
  * @author Alan Liu
  * @internal
- * @deprecated This API is ICU internal only.
  */
-public class RuleBasedTransliterator extends Transliterator {
+class RuleBasedTransliterator extends Transliterator {
 
     private Data data;
+
+    private static final String COPYRIGHT =
+        "\u00A9 IBM Corporation 1999. All rights reserved.";
 
     /**
      * Constructs a new transliterator from the given rules.
@@ -284,7 +286,6 @@ public class RuleBasedTransliterator extends Transliterator {
      * @exception IllegalArgumentException if rules are malformed
      * or direction is invalid.
      * @internal
-     * @deprecated This API is ICU internal only.
      */
     public RuleBasedTransliterator(String ID, String rules, int direction,
                                    UnicodeFilter filter) {
@@ -311,7 +312,6 @@ public class RuleBasedTransliterator extends Transliterator {
      * @exception IllegalArgumentException if rules are malformed
      * or direction is invalid.
      * @internal
-     * @deprecated This API is ICU internal only.
      */
     public RuleBasedTransliterator(String ID, String rules) {
         this(ID, rules, FORWARD, null);
@@ -326,7 +326,6 @@ public class RuleBasedTransliterator extends Transliterator {
     /**
      * Implements {@link Transliterator#handleTransliterate}.
      * @internal
-     * @deprecated This API is ICU internal only.
      */
     protected synchronized void handleTransliterate(Replaceable text,
                                        Position index, boolean incremental) {
@@ -440,7 +439,6 @@ public class RuleBasedTransliterator extends Transliterator {
      * U+000A, U+0020..U+007E.
      * @return rules string
      * @internal
-     * @deprecated This API is ICU internal only.
      */
     public String toRules(boolean escapeUnprintable) {
         return data.ruleSet.toRules(escapeUnprintable);
@@ -450,7 +448,6 @@ public class RuleBasedTransliterator extends Transliterator {
      * Return the set of all characters that may be modified by this
      * Transliterator, ignoring the effect of our filter.
      * @internal
-     * @deprecated This API is ICU internal only.
      */
     protected UnicodeSet handleGetSourceSet() {
         return data.ruleSet.getSourceTargetSet(false);
@@ -460,7 +457,6 @@ public class RuleBasedTransliterator extends Transliterator {
      * Returns the set of all characters that may be generated as
      * replacement text by this transliterator.
      * @internal
-     * @deprecated This API is ICU internal only.
      */
     public UnicodeSet getTargetSet() {
         return data.ruleSet.getSourceTargetSet(true);

@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2003-2007, International Business Machines Corporation and    *
+ * Copyright (C) 2003-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -30,7 +30,7 @@ final class Punycode {
     private static final int DELIMITER      = HYPHEN;
     
     private static final int ZERO           = 0x30;
-    //private static final int NINE           = 0x39;
+    private static final int NINE           = 0x39;
     
     private static final int SMALL_A        = 0x61;
     private static final int SMALL_Z        = 0x7a;
@@ -38,8 +38,8 @@ final class Punycode {
     private static final int CAPITAL_A      = 0x41;
     private static final int CAPITAL_Z      = 0x5a;
     private static final int MAX_CP_COUNT   = 200;
-    //private static final int UINT_MAGIC     = 0x80000000;
-    //private static final long ULONG_MAGIC   = 0x8000000000000000L;
+    private static final int UINT_MAGIC     = 0x80000000;
+    private static final long ULONG_MAGIC   = 0x8000000000000000L;
     
     private static int adaptBias(int delta, int length, boolean firstTime){
         if(firstTime){
@@ -358,7 +358,7 @@ final class Punycode {
                     throw new StringPrepParseException("Illegal char found", StringPrepParseException.ILLEGAL_CHAR_FOUND);
                 }
 
-                digit=basicToDigit[src.charAt(in++) & 0xFF];
+                digit=basicToDigit[(byte)src.charAt(in++)];
                 if(digit<0) {
                     throw new StringPrepParseException("Invalid char found", StringPrepParseException.INVALID_CHAR_FOUND);
                 }

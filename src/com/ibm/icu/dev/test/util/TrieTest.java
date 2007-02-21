@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 1996-2007, International Business Machines Corporation and    *
+* Copyright (C) 1996-2005, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 */
@@ -64,7 +64,7 @@ public final class TrieTest extends TestFmwk
         int start, limit;
         int value;
         boolean overwrite;
-    }
+    };
     
     /**
      * Values for testing:
@@ -81,7 +81,14 @@ public final class TrieTest extends TestFmwk
         
         int limit;
         int value;
-    }
+    };
+    
+    private static final class storageHolder
+    {
+        double bogus; // needed for aligining the storage
+        byte storage[] = new byte[10000000];
+    };
+    
     
     private static final class _testFoldedValue 
                                         implements TrieBuilder.DataManipulate  

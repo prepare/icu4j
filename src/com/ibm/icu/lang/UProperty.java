@@ -317,7 +317,8 @@ public interface UProperty
      * Binary property STerm (new in Unicode 4.0.1).
      * Sentence Terminal. Used in UAX #29: Text Boundaries
      * (http://www.unicode.org/reports/tr29/)
-     * @stable ICU 3.0
+     * @draft ICU 3.0
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int S_TERM = 35;
 
@@ -326,7 +327,8 @@ public interface UProperty
      * Indicates all those characters that qualify as Variation Selectors.
      * For details on the behavior of these characters,
      * see StandardizedVariants.html and 15.6 Variation Selectors.
-     * @stable ICU 3.0
+     * @draft ICU 3.0
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int VARIATION_SELECTOR = 36;
 
@@ -352,7 +354,8 @@ public interface UProperty
      *
      * See also com.ibm.text.UCD.NFSkippable in the ICU4J repository,
      * and icu/source/common/unormimp.h .
-     * @stable ICU 3.0
+     * @draft ICU 3.0
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int NFD_INERT = 37;
 
@@ -364,7 +367,8 @@ public interface UProperty
      * to find the boundary of safely normalizable text despite possible
      * text additions.
      * @see #NFD_INERT
-     * @stable ICU 3.0 
+     * @draft ICU 3.0 
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int NFKD_INERT = 38;
 
@@ -376,7 +380,8 @@ public interface UProperty
      * to find the boundary of safely normalizable text despite possible
      * text additions.
      * @see #NFD_INERT
-     * @stable ICU 3.0 
+     * @draft ICU 3.0 
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int NFC_INERT = 39;
 
@@ -388,7 +393,8 @@ public interface UProperty
      * to find the boundary of safely normalizable text despite possible
      * text additions.
      * @see #NFD_INERT
-     * @stable ICU 3.0 
+     * @draft ICU 3.0 
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int NFKC_INERT = 40;
 
@@ -402,7 +408,8 @@ public interface UProperty
      * ICU uses this property for segmenting a string for generating a set of
      * canonically equivalent strings, e.g. for canonical closure while
      * processing collation tailoring rules.
-     * @stable ICU 3.0 
+     * @draft ICU 3.0 
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int SEGMENT_STARTER = 41;
 
@@ -570,28 +577,32 @@ public interface UProperty
     /**
      * Enumerated property NFD_Quick_Check.
      * Returns numeric values compatible with Normalizer.QuickCheckResult.
-     * @stable ICU 3.0
+     * @draft ICU 3.0
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int NFD_QUICK_CHECK = 0x100C;
 
     /**
      * Enumerated property NFKD_Quick_Check.
      * Returns numeric values compatible with Normalizer.QuickCheckResult.
-     * @stable ICU 3.0
+     * @draft ICU 3.0
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int NFKD_QUICK_CHECK = 0x100D;
 
     /**
      * Enumerated property NFC_Quick_Check.
      * Returns numeric values compatible with Normalizer.QuickCheckResult.
-     * @stable ICU 3.0
+     * @draft ICU 3.0
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int NFC_QUICK_CHECK = 0x100E;
 
     /**
      * Enumerated property NFKC_Quick_Check.
      * Returns numeric values compatible with Normalizer.QuickCheckResult.
-     * @stable ICU 3.0
+     * @draft ICU 3.0
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int NFKC_QUICK_CHECK = 0x100F;
 
@@ -602,7 +613,8 @@ public interface UProperty
      * Useful for checking for canonically ordered text;
      * see Normalizer.FCD and http://www.unicode.org/notes/tn5/#FCD .
      * Returns 8-bit numeric values like CANONICAL_COMBINING_CLASS.
-     * @stable ICU 3.0
+     * @draft ICU 3.0
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int LEAD_CANONICAL_COMBINING_CLASS = 0x1010;
 
@@ -613,7 +625,8 @@ public interface UProperty
      * Useful for checking for canonically ordered text;
      * see Normalizer.FCD and http://www.unicode.org/notes/tn5/#FCD .
      * Returns 8-bit numeric values like CANONICAL_COMBINING_CLASS.
-     * @stable ICU 3.0
+     * @draft ICU 3.0
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int TRAIL_CANONICAL_COMBINING_CLASS = 0x1011;
 

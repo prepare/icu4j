@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 2004-2006, International Business Machines Corporation and    *
+* Copyright (C) 2004-2005, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 */
@@ -21,25 +21,19 @@ public final class APIData {
     String base;
     TreeSet set;
 
-    static APIData read(BufferedReader br, boolean internal) {
+    static APIData read(BufferedReader br) {
         try {
             APIData data = new APIData();
 
             data.version = Integer.parseInt(APIInfo.readToken(br)); // version
-            if (data.version > APIInfo.VERSION) {
-                throw new IllegalArgumentException("data version " + data.version + " is newer than current version (" + APIInfo.VERSION + ")");
-            }
             data.name = APIInfo.readToken(br);
             data.base = APIInfo.readToken(br); // base
             br.readLine();
 
             data.set = new TreeSet(APIInfo.defaultComparator());
             for (APIInfo info = new APIInfo(); info.read(br); info = new APIInfo()) {
-                if (internal || !info.isInternal()) {
-                    data.set.add(info);
-                }
+                data.set.add(info);
             }
-            // System.out.println("read " + data.set.size() + " record(s)");
             return data;
         }
         catch (IOException e) {
@@ -49,7 +43,7 @@ public final class APIData {
         }
     }
 
-    static APIData read(File file, boolean internal) {
+    static APIData read(File file) {
         String fileName = file.getName();
         try {
             InputStream is;
@@ -70,7 +64,7 @@ public final class APIData {
                 }
             }
             InputStreamReader isr = new InputStreamReader(is);
-            return read(new BufferedReader(isr), internal);
+            return read(new BufferedReader(isr));
         }
         catch (IOException e) {
             RuntimeException re = new RuntimeException("error getting info stream: " + fileName);
@@ -79,18 +73,18 @@ public final class APIData {
         }
     }
 
-    static APIData read(String fileName, boolean internal) {
-        return read(new File(fileName), internal);
+    static APIData read(String fileName) {
+        return read(new File(fileName));
     }
 
-    private static final String[] stanames = { "draft", "stable", "deprecated", "obsolete", "internal" };
+    private static final String[] stanames = { "draft", "stable", "deprecated", "obsolete" };
     private static final String[] catnames = { "classes", "fields", "constructors", "methods" };
 
     public void printStats(PrintWriter pw) {
         // classes, methods, fields
         // draft, stable, other
 
-        int[] stats = new int[catnames.length * stanames.length];
+        int[] stats = new int[16];
 
         Iterator iter = set.iterator();
         while (iter.hasNext()) {
@@ -99,16 +93,16 @@ public final class APIData {
             if (info.isPublic() || info.isProtected()) {
                 int sta = info.getVal(APIInfo.STA);
                 int cat = info.getVal(APIInfo.CAT);
-                stats[cat * stanames.length + sta] += 1;
+                stats[cat * 4 + sta] += 1;
             }
         }
 
         int tt = 0;
-        for (int cat = 0; cat < catnames.length; ++cat) {
+        for (int cat = 0; cat < 4; ++cat) {
             pw.println(catnames[cat]);
             int t = 0;
-            for (int sta = 0; sta < stanames.length; ++sta) {
-                int v = stats[cat * stanames.length + sta];
+            for (int sta = 0; sta < 4; ++sta) {
+                int v = stats[cat * 4 + sta];
                 t += v;
                 pw.println("   " + stanames[sta] + ": " + v);
             }
@@ -122,25 +116,20 @@ public final class APIData {
     public static void main(String[] args) {
         PrintWriter pw = new PrintWriter(System.out);
 
-        boolean internal = false;
         String path = "src/com/ibm/icu/dev/tool/docs/";
-
         String fn = "icu4j341.api.gz";
         if (args.length == 0) {
             args = new String[] { "-file", fn };
         }
-
         for (int i = 0; i < args.length; ++i) {
             String arg = args[i];
-            if (arg.equals("-path:")) {
+            if (arg.equals("-path")) {
                 path = args[++i];
-            } else if (arg.equals("-internal:")) {
-                internal = args[++i].toLowerCase().charAt(0) == 't';
             } else if (arg.equals("-file")) {
                 fn = args[++i];
 
                 File f = new File(path, fn);
-                read(f,internal).printStats(pw);
+                read(f).printStats(pw);
                 pw.flush();
             }
         }

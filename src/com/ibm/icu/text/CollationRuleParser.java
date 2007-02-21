@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 1996-2007, International Business Machines Corporation and    *
+* Copyright (C) 1996-2005, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 */
@@ -107,7 +107,7 @@ final class CollationRuleParser
          * attribute for special Hiragana
          */
         boolean m_isHiragana4_;
-    }
+    };
 
     /**
      * List of tokens used by the collation rules
@@ -130,7 +130,7 @@ final class CollationRuleParser
         int m_numStr_[] = new int[3 * (Collator.TERTIARY + 1)];
         Token m_fStrToken_[] = new Token[Collator.TERTIARY + 1];
         Token m_lStrToken_[] = new Token[Collator.TERTIARY + 1];
-    }
+    };
 
     /**
      * Token wrapper for collation rules
@@ -232,7 +232,7 @@ final class CollationRuleParser
            }
            return false;
         }
-    }
+    };
 
     // package private data member -------------------------------------------
 
@@ -317,7 +317,7 @@ final class CollationRuleParser
         int m_prefixLen_;
         char m_flags_;
         char m_indirectIndex_;
-    }
+    };
 
     /**
      * Boundary wrappers
@@ -348,7 +348,7 @@ final class CollationRuleParser
         int m_startContCE_;
         int m_limitCE_;
         int m_limitContCE_;
-    }
+    };
 
     /**
      * Collation option rule tag
@@ -372,7 +372,7 @@ final class CollationRuleParser
         private int m_attribute_;
         private String m_subOptions_[];
         private int m_subOptionAttributeValues_[];
-    }
+    };
 
     // private variables -----------------------------------------------------
 
@@ -390,10 +390,10 @@ final class CollationRuleParser
      * Need it for UnicodeSet reading support.
      */
     private int m_optionEnd_;
-    /*
+    /**
      * Current offset in m_source
      */
-    //private int m_sourceLimit_;
+    private int m_sourceLimit_;
     /**
      * Offset to m_source_ ofr the extra expansion characters
      */
@@ -410,20 +410,20 @@ final class CollationRuleParser
      * the UCA.
      */
     UnicodeSet m_removeSet_;
-    /*
+    /**
      * This is space for the extra strings that need to be unquoted during the
      * parsing of the rules
      */
-    //private static final int TOKEN_EXTRA_RULE_SPACE_SIZE_ = 2048;
+    private static final int TOKEN_EXTRA_RULE_SPACE_SIZE_ = 2048;
     /**
      * Indicator that the token is not set yet
      */
     private static final int TOKEN_UNSET_ = 0xFFFFFFFF;
-    /*
+    /**
      * Indicator that the rule is in the > polarity, ie everything on the
      * right of the rule is less than
      */
-    //private static final int TOKEN_POLARITY_NEGATIVE_ = 0;
+    private static final int TOKEN_POLARITY_NEGATIVE_ = 0;
     /**
      * Indicator that the rule is in the < polarity, ie everything on the
      * right of the rule is greater than
@@ -463,12 +463,12 @@ final class CollationRuleParser
      */
     private static final IndirectBoundaries INDIRECT_BOUNDARIES_[];
 
-//    /**
-//     * Inverse UCA constants
-//     */
-//    private static final int INVERSE_SIZE_MASK_ = 0xFFF00000;
-//    private static final int INVERSE_OFFSET_MASK_ = 0x000FFFFF;
-//    private static final int INVERSE_SHIFT_VALUE_ = 20;
+    /**
+     * Inverse UCA constants
+     */
+    private static final int INVERSE_SIZE_MASK_ = 0xFFF00000;
+    private static final int INVERSE_OFFSET_MASK_ = 0x000FFFFF;
+    private static final int INVERSE_SHIFT_VALUE_ = 20;
 
     /**
      * Collation option tags
@@ -658,7 +658,7 @@ final class CollationRuleParser
         RULES_OPTIONS_[18] = new TokenOption("charset",
                                   RuleBasedCollator.Attribute.LIMIT_,
                                   null, null);
-    }
+    };
 
     /**
      * Utility data members
@@ -672,6 +672,7 @@ final class CollationRuleParser
 
     /**
      * Assembles the token list
+     * @param
      * @exception ParseException thrown when rules syntax fails
      */
     int assembleTokenList() throws ParseException
@@ -1617,7 +1618,7 @@ final class CollationRuleParser
         } else {
 
             // first ce and second ce m_utilCEBuffer_
-            /*int invpos = */CollationParsedRuleBuilder.INVERSE_UCA_.getInversePrevCE(
+            int invpos = CollationParsedRuleBuilder.INVERSE_UCA_.getInversePrevCE(
                                                          basece, basecontce,
                                                          strength, m_utilCEBuffer_);
             // we got the previous CE. Now we need to see if the difference between
@@ -1864,6 +1865,7 @@ final class CollationRuleParser
     }
     /**
      * Reads and set collation options
+     * @param optionend offset to the end of the option in rules
      * @return TOKEN_SUCCESS if option is set correct, 0 otherwise
      * @exception ParseException thrown when options in rules are wrong
      */

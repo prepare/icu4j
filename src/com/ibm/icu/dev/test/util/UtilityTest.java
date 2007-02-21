@@ -1,7 +1,7 @@
 //##header
 /*
 **********************************************************************
-* Copyright (c) 2003-2006, International Business Machines
+* Copyright (c) 2003-2005, International Business Machines
 * Corporation and others.  All Rights Reserved.
 **********************************************************************
 * Author: Alan Liu
@@ -16,12 +16,9 @@ import java.util.List;
 import java.util.Set;
 
 import com.ibm.icu.dev.test.TestFmwk;
-import com.ibm.icu.impl.Assert;
-import com.ibm.icu.impl.InvalidFormatException;
 import com.ibm.icu.impl.Utility;
 import com.ibm.icu.text.UnicodeSet;
 import com.ibm.icu.util.ByteArrayWrapper;
-import com.ibm.icu.util.CaseInsensitiveString;
 
 /**
  * @test
@@ -172,62 +169,5 @@ public class UtilityTest extends TestFmwk {
         logln(" *** After addAll, the UnicodeSet size is: " + set.size());
     //The size should also read 4, but 0 is seen instead
 
-    }
-
-    public void TestAssert(){
-        try {
-            Assert.assrt(false);
-            errln("FAIL: Assert.assrt(false)");
-        }
-        catch (IllegalStateException e) {
-            if (e.getMessage().equals("assert failed")) {
-            	logln("Assert.assrt(false) works");
-            }
-            else {
-                errln("FAIL: Assert.assrt(false) returned " + e.getMessage());
-            }
-        }
-        try {
-            Assert.assrt("Assert message", false);
-            errln("FAIL: Assert.assrt(false)");
-        }
-        catch (IllegalStateException e) {
-            if (e.getMessage().equals("assert 'Assert message' failed")) {
-                logln("Assert.assrt(false) works");
-            }
-            else {
-                errln("FAIL: Assert.assrt(false) returned " + e.getMessage());
-            }
-        }
-        try {
-            Assert.fail("Assert message");
-            errln("FAIL: Assert.fail");
-        }
-        catch (IllegalStateException e) {
-            if (e.getMessage().equals("failure 'Assert message'")) {
-                logln("Assert.fail works");
-            }
-            else {
-                errln("FAIL: Assert.fail returned " + e.getMessage());
-            }
-        }
-        try {
-            Assert.fail(new InvalidFormatException());
-            errln("FAIL: Assert.fail with an exception");
-        }
-        catch (IllegalStateException e) {
-            logln("Assert.fail works");
-        }
-    }
-    
-    public void TestCaseInsensitiveString() {
-    	CaseInsensitiveString str1 = new CaseInsensitiveString("ThIs is A tEst");
-        CaseInsensitiveString str2 = new CaseInsensitiveString("This IS a test");
-        if (!str1.equals(str2)
-            || !str1.toString().equals(str1.getString())
-            || str1.toString().equals(str2.toString()))
-        {
-            errln("FAIL: str1("+str1+") != str2("+str2+")");
-        }
     }
 }

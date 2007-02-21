@@ -1,76 +1,84 @@
 /*
 **********************************************************************
-* Copyright (c) 2002-2007, International Business Machines
+* Copyright (c) 2002-2004, International Business Machines
 * Corporation and others.  All Rights Reserved.
 **********************************************************************
 */
 package com.ibm.icu.dev.test.perf;
+import com.ibm.icu.dev.tool.UOption;
+import com.ibm.icu.impl.LocaleUtility;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Iterator;
+import java.util.TreeSet;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-
-import com.ibm.icu.dev.tool.UOption;
-import com.ibm.icu.impl.LocaleUtility;
+import java.lang.reflect.*;
 
 /**
- * Base class for performance testing framework. To use, the subclass can simply
- * define one or more instance methods with names beginning with "test" (case
- * ignored). The prototype of the method is
- * 
- * PerfTest.Function testTheName()
- * 
- * The actual performance test will execute on the returned Commond object
- * (refer to Command Pattern). To call a test from command line, the 'test'
- * prefix of the test method name can be ignored/removed.
- * 
- * In addition, the subclass should define a main() method that calls
- * PerfTest.run() as defined here.
- * 
- * If the subclasses uses any command line arguments (beyond those handled
- * automatically by this calss) then it should override PerfTest.setup() to
- * handle its arguments. If the subclasse needs more sophisticated management
- * for controlling finding/calling test method, it can replace the default
- * implementation for PerfTest.testProvider before calling PerfTest.run().
- * 
- * Example invocation: java -cp classes -verbose:gc
- * com.ibm.icu.dev.test.perf.UnicodeSetPerf --gc --passes 4 --iterations 100
- * UnicodeSetAdd [[:l:][:c:]]
- * 
- * Example output: [GC 511K->192K(1984K), 0.0086170 secs] [GC 704K->353K(1984K),
- * 0.0059619 secs] [Full GC 618K->371K(1984K), 0.0242779 secs] [Full GC
- * 371K->371K(1984K), 0.0228649 secs] = testUnicodeSetAdd begin 100 =
- * testUnicodeSetAdd end 11977 1109044 = testUnicodeSetAdd begin 100 =
- * testUnicodeSetAdd end 12047 1109044 = testUnicodeSetAdd begin 100 =
- * testUnicodeSetAdd end 11987 1109044 = testUnicodeSetAdd begin 100 =
- * testUnicodeSetAdd end 11978 1109044
- * 
- * The [] lines are emitted by the JVM as a result of the -verbose:gc switch.
- * 
- * Lines beginning with '=' are emitted by PerfTest: = testUnicodeSetAdd begin
- * 100 A 'begin' statement contains the name of the setup method, which
- * determines what test function is measures, and the number of iterations that
- * will be times. = testUnicodeSetAdd end 12047 1109044 An 'end' statement gives
- * the name of the setup method again, and then two integers. The first is the
- * total elapsed time in milliseconds, and the second is the number of events
- * per iteration. In this example, the time per event is 12047 / (100 * 1109044)
- * or 108.6 ns/event.
- * 
- * Raw times are given as integer ms, because this is what the system measures.
- * 
+ * Base class for performance testing framework.  To use, subclass and
+ * define one or more instance methods with names beginning with
+ * "test" (case ignored).  Each such method must then call two
+ * functions, setTestFunction(), and setEventsPerCall().  In addition,
+ * the subclass should define a main() method that calls run() as
+ * defined here.  If the subclasses uses any command line arguments
+ * (beyond those handled automatically by this calss) then it should
+ * override setup() to handle its arguments.
+ *
+ * Example invocation:
+ * java -cp classes -verbose:gc com.ibm.icu.dev.test.perf.UnicodeSetPerf --gc --passes 4 --iterations 100 UnicodeSetAdd [[:l:][:c:]]
+ *
+ * Example output:
+ * [GC 511K->192K(1984K), 0.0086170 secs]
+ * [GC 704K->353K(1984K), 0.0059619 secs]
+ * [Full GC 618K->371K(1984K), 0.0242779 secs]
+ * [Full GC 371K->371K(1984K), 0.0228649 secs]
+ * = testUnicodeSetAdd begin 100
+ * = testUnicodeSetAdd end 11977 1109044
+ * = testUnicodeSetAdd begin 100
+ * = testUnicodeSetAdd end 12047 1109044
+ * = testUnicodeSetAdd begin 100
+ * = testUnicodeSetAdd end 11987 1109044
+ * = testUnicodeSetAdd begin 100
+ * = testUnicodeSetAdd end 11978 1109044
+ *
+ * The [] lines are emitted by the JVM as a result of the -verbose:gc
+ * switch.
+ *
+ * Lines beginning with '=' are emitted by PerfTest:
+ *
+ * = testUnicodeSetAdd begin 100
+ * A 'begin' statement contains the name of the setup method, which
+ * determines what test function is measures, and the number of
+ * iterations that will be times.
+ *
+ * = testUnicodeSetAdd end 12047 1109044
+ * An 'end' statement gives the name of the setup method again, and
+ * then two integers.  The first is the total elapsed time in
+ * milliseconds, and the second is the number of events per iteration.
+ * In this example, the time per event is 12047 / (100 * 1109044) or
+ * 108.6 ns/event.
+ *
+ * Raw times are given as integer ms, because this is what the system
+ * measures.
+ *
  * @author Alan Liu
  * @since ICU 2.4
  */
-public abstract class PerfTest{
+public abstract class PerfTest {
+
+    /**
+     * A map of munged names to Method objects.  All available methods
+     * in the current object beginning with "test" (case ignored).
+     */
+    private Map availableTests; // NOT static
+
     // Command-line options set these:
     protected boolean        verbose;
     protected String         sourceDir;
@@ -85,99 +93,6 @@ public abstract class PerfTest{
     protected boolean        bulk_mode;
     protected Locale         locale;
     protected boolean        doPriorGC;
-    protected TestCmdProvider testProvider = new TestPrefixProvider(this);
-    
-    static interface TestCmdProvider {
-        /**
-         * @return The names for all available test.
-         */
-        public Set getAllTestCmdNames();
-        
-        /**
-         * @param name
-         * @return Whether the given name is a test name. The implementation may
-         *         have more sophisticated naming control here.
-         *         TestCmdProvider.isTestCmd() != Set.contains()
-         */
-        public boolean isTestCmd(String name);
-        
-        /**
-         * @param name
-         * @return the test Command or null
-         */
-        public PerfTest.Function getTestCmd(String name);
-    }
-    
-    /**
-     * Treat all method beginning with 'test' prefix (ignoring case)
-     * for given object as the test methods.
-     */
-    static class TestPrefixProvider implements TestCmdProvider{
-        private Map theTests = null; // Map<string(no case), string(with case)> 
-        private Set orgNames = null; // shadow reference, ==theTests, for better output
-        private Object refer;
-        
-        TestPrefixProvider(Object theProvider){
-            refer = theProvider;
-        }
-        
-        public Set getAllTestCmdNames() {
-            if (theTests == null) {
-                theTests = new HashMap();
-                orgNames = new HashSet();
-                Method[] methods = refer.getClass().getDeclaredMethods();
-                for (int i=0; i<methods.length; i++) {
-                    String org = methods[i].getName();
-                    String name = org.toLowerCase();    // ignoring case
-                    // beginning with 'test'
-                    // Note: methods named 'test()' are ignored
-                    if (name.length() > 4 && name.startsWith("test")) { 
-                        if (theTests.containsKey(name)) {
-                            throw new Error("Duplicate method name ignoring case: " + name);
-                        }
-                        theTests.put(name,org);
-                        orgNames.add(org);
-                    }
-                }
-            }
-            return orgNames; // beggining with 'test', keeping case
-        }
-        
-        /**
-         * The given name will map to a method of the same name, or a method
-         * named "test" + name. Case is ignored.
-         */
-        private String isTestCmd_impl(String name){
-            getAllTestCmdNames();
-            String tn1 = name.toLowerCase();
-            String tn2 = "test" + tn1;
-            if (theTests.containsKey(tn1)){
-                return tn1;
-            } else if (theTests.containsKey(tn2)){
-                return tn2;
-            }
-            return null;
-        }
-        
-        public boolean isTestCmd(String name){
-            return isTestCmd_impl(name)!=null;
-        }
-        
-        public Function getTestCmd(String aname){
-            String name = (String) theTests.get(isTestCmd_impl(aname));
-            if (name == null){
-                return null;
-            }
-            
-            try {
-                Method m = refer.getClass().getDeclaredMethod(name,(Class[])null);
-                return (Function) m.invoke(refer, new Object[]{});
-            } catch (Exception e) {
-                throw new Error("TestPrefixProvider implementation error. Finding: " + name,e);
-            }
-        }
-    };
-    
 
     /**
      * Subclasses of PerfTest will need to create subclasses of
@@ -316,71 +231,10 @@ public abstract class PerfTest{
      * description for details.
      */
     protected final void run(String[] args) throws Exception {
-        Set testList = parseOptions(args);
+        ArrayList methodList = new ArrayList();
+        Method meth = null;
 
-        // Run the tests
-        for (Iterator iter = testList.iterator(); iter.hasNext();) {
-            String meth = (String) iter.next();
-
-            // Call meth to set up the test
-           // long eventsPerCall = -1;
-            Function testFunction = testProvider.getTestCmd(meth);
-            if (testFunction == null) {
-                throw new RuntimeException(meth + " failed to return a test function");
-            }
-            if (testFunction.getOperationsPerIteration() < 1) {
-                throw new RuntimeException(meth + " returned an illegal operations/iteration()");
-            }
-
-            long t;
-            //long b = System.currentTimeMillis();
-            long loops = getIteration(meth, testFunction);
-            //System.out.println("The guess cost: " + (System.currentTimeMillis() - b)/1000. + " s.");
-            
-            for (int j=0; j<passes; ++j) {
-                long events = -1;
-                if (verbose) {
-                    if (iterations > 0) {
-                        System.out.println("= " + meth + " begin " + iterations);
-                    } else {
-                        System.out.println("= " + meth + " begin " + time + " seconds");
-                    }
-                } else {
-                    System.out.println("= " + meth + " begin " );
-                }
-
-                t = testFunction.time(loops);   //ms
-                events = testFunction.getEventsPerIteration();
-
-                if (verbose) {
-                    if (events == -1){
-                        System.out.println("= " + meth + " end " + (t/1000.0) + " loops: " + loops +
-                                                " operations: " + testFunction.getOperationsPerIteration());
-                    } else {
-                        System.out.println("= " + meth + " end " + (t/1000.0) + " loops: " + loops +
-                                                " operations: " + testFunction.getOperationsPerIteration() +" events: " + events);
-                    }
-                } else {
-                    if (events == -1){
-                        System.out.println("= " + meth + " end " + (t/1000.0) + " " + loops +
-                                                " " + testFunction.getOperationsPerIteration());
-                    } else {
-                        System.out.println("= " + meth + " end " + (t/1000.0) + " " + loops +
-                                                " " + testFunction.getOperationsPerIteration() + " " + events);
-                    }
-                }
-
-            }
-        }
-    }
-
-    /**
-     * @param args
-     * @return                  the method list to call
-     * @throws UsageException
-     */
-    private Set parseOptions(String[] args) throws UsageException {
-        
+        availableTests = null;
         doPriorGC = false;
         encoding = "";
         uselen = false;
@@ -392,7 +246,7 @@ public abstract class PerfTest{
         //bufferLen = 0;
         verbose = false;
         bulk_mode = false;
-        passes = iterations = time = -1;
+        passes = iterations = time = 0;
         locale = null;
 
         UOption[] options = getOptions();
@@ -423,25 +277,21 @@ public abstract class PerfTest{
         }
 
         if (options[TIME].doesOccur && options[ITERATIONS].doesOccur) {
-            throw new UsageException("Cannot specify both '-t time' and '-i iterations'");
+            throw new UsageException("Cannot specify both time and iterations");
         }
 
-        if (!options[TIME].doesOccur && !options[ITERATIONS].doesOccur) {
-            throw new UsageException("Either '-t time' or '-i iteration' must be specified");
-        }
-        
         if(options[PASSES].doesOccur) {
             passes = Integer.parseInt(options[PASSES].value);
-        } else {
-            throw new UsageException("'-p pass' must be specified");
         }
 
         if(options[ITERATIONS].doesOccur) {
             iterations = Integer.parseInt(options[ITERATIONS].value);
+            time =0;
         }
 
         if(options[TIME].doesOccur) {
             time = Integer.parseInt(options[TIME].value);
+            iterations = 0;
         }
 
         if (options[LINE_MODE].doesOccur && options[BULK_MODE].doesOccur) {
@@ -466,37 +316,37 @@ public abstract class PerfTest{
             doPriorGC = true;
         }
 
-        if (options[LIST].doesOccur){
-            System.err.println("Available tests:");
-            Set testNames = testProvider.getAllTestCmdNames();
-            for (Iterator iter = testNames.iterator(); iter.hasNext();) {
-                String name = (String) iter.next();
-                System.err.println(" " + name);
-            }
-            System.exit(0);
-        }
-
-        Set testList = new HashSet();
         int i, j;
         for (i=0; i<remainingArgc; ++i) {
 
             // is args[i] a method name?
-            if (testProvider.isTestCmd(args[i])){
-                testList.add(args[i]);
-            } else {
-                // args[i] is neither a method name nor a number.  Pass
-                // everything from here on through to the subclass via
-                // setup().
-                break;
+            Method m = getTestMethod(args[i]);
+            if (m != null) {
+                methodList.add(m);
+                continue;
             }
+
+            // args[i] is neither a method name nor a number.  Pass
+            // everything from here on through to the subclass via
+            // setup().
+            break;
         }
 
-        if (testList.size() < 1) { // run all tests
-            Set testNames = testProvider.getAllTestCmdNames();
-            for (Iterator iter = testNames.iterator(); iter.hasNext();) {
-                String name = (String) iter.next();
-                testList.add(name);
+        if (methodList.size() < 1 || options[LIST].doesOccur) {
+            System.err.println("Available tests:");
+            Iterator methods = getAvailableTests().values().iterator();
+            TreeSet methodNames = new TreeSet();
+            while (methods.hasNext()) {
+                methodNames.add(((Method)methods.next()).getName());
             }
+            Iterator tests = methodNames.iterator();
+            while (tests.hasNext()) {
+                System.err.println(" " + tests.next());
+            }
+            if (options[LIST].doesOccur) {
+                System.exit(0);
+            }
+            throw new UsageException("Must specify at least one method name");
         }
 
         // Pass remaining arguments, if any, through to the subclass
@@ -511,57 +361,99 @@ public abstract class PerfTest{
             // Put the heap in a consistent state
             gc();
         }
-        return testList;
-    }
 
-    /**
-     * Translate '-t time' to iterations (or just return '-i iteration')
-     * 
-     * @param meth
-     * @param fn
-     * @return
-     */
-    private long getIteration(String methName, Function fn) {
-        long iter = 0;
-        if(time < 0) { // && iterations > 0
-            iter = iterations;
-        } else {  // && iterations < 0
-            // Translate time to iteration
-            // Assuming there is a linear relation between time and iterations
+        final Object[] NO_ARGS = new Object[0];
 
-            if(verbose){
-                System.out.println("= " + methName + " calibrating " + time + " seconds" );
+        // Run the tests
+        for (i=0; i<methodList.size(); ++i) {
+            meth = (Method) methodList.get(i);
+
+            // Call meth to set up the test
+           // long eventsPerCall = -1;
+            Function testFunction = (Function)meth.invoke(this, NO_ARGS);
+            if (testFunction == null) {
+                throw new RuntimeException(meth.getName() + " failed to return a test function");
+            }
+            if (testFunction.getOperationsPerIteration() < 1) {
+                throw new RuntimeException(meth.getName() + " returned an illegal operations/iteration()");
             }
 
-            long base = time * 1000;
-//            System.out.println("base :" + base);
-            long seed = 1;               
-            long t=0;
-            while (t < base * 0.9 || base * 1.1 < t) { // + - 10%  
-                if (iter == 0 || t == 0) {
-                    iter = seed;    // start up from 1
-                    seed *= 100;    // if the method is too fast (t == 0), multiply 100 times
-                    // 100 is rational because 'base' is always larger than 1000
+            int n;
+            long t;
+            // ---------------------------------------------------------------------------------------------------
+            //The rest of this method is modified by GCL Shanghai. To synchronize this class with ICU4C's uperf.cpp
+            //----------------------------------------------------------------------------------------------------
+            long loops = 0;
+            //for (j=0; j<passes; ++j) {
+                if (iterations > 0) {
+                    // Run specified number of iterations
+                    loops = iterations;
+//                    System.out.println("= " + meth.getName() + " begin " + iterations + " iterations");
+//                    t = testFunction.time(iterations);
+//                    System.out.println("= " + meth.getName() + " end " + (t/1000.0) + " " + testFunction.getOperationsPerIteration());
                 } else {
-                    // If 't' is large enough, use linear function to calculate new iteration
-                    //
-                    // new iter(base)    old iter
-                    // -------------- = -------- = k
-                    // new time          old time
-                    //
-//                    System.out.println("before guess t: " + t);
-//                    System.out.println("before guess iter: " + iter);
-                    iter = (long) ((double)iter / t * base) ;  // avoid long cut, eg. 1/10 == 0
-                    if (iter == 0) {
-                        throw new RuntimeException("Unable to converge on desired duration");
+                    // Run for specified duration in seconds
+                    //first calibrate to determine iterations/pass
+                    if (verbose) {
+                        System.out.println("= " + meth.getName() + " calibrating " + time + " seconds" );
+                    }
+                    n = time * 1000; // s => ms
+                    //System.out.println("# " + meth.getName() + " " + n + " sec");
+
+                    int failsafe = 1; // last resort for very fast methods
+                    t = 0;
+                    while (t < (int)(n * 0.9)) { // 90% is close enough
+                        if (loops == 0 || t == 0) {
+                            loops = failsafe;
+                            failsafe *= 10;
+                        } else {
+                            //System.out.println("# " + meth.getName() + " x " + loops + " = " + t);
+                            loops = (int)((double)n / t * loops + 0.5);
+                            if (loops == 0) {
+                                throw new RuntimeException("Unable to converge on desired duration");
+                            }
+                        }
+                        //System.out.println("# " + meth.getName() + " x " + loops);
+                        t = testFunction.time(loops);
+                    }
+
+                }
+            //}
+            for (j=0; j<passes; ++j) {
+                long events = -1;
+                if (verbose) {
+                    if (iterations > 0) {
+                        System.out.println("= " + meth.getName() + " begin " + iterations);
+                    } else {
+                        System.out.println("= " + meth.getName() + " begin " + time + " seconds");
+                    }
+                } else {
+                    System.out.println("= " + meth.getName() + " begin " );
+                }
+
+                t = testFunction.time(loops);   //ms
+                events = testFunction.getEventsPerIteration();
+
+                if (verbose) {
+                    if (events == -1){
+                        System.out.println("= " + meth.getName() + " end " + (t/1000.0) + " loops: " + loops +
+                                                " operations: " + testFunction.getOperationsPerIteration());
+                    } else {
+                        System.out.println("= " + meth.getName() + " end " + (t/1000.0) + " loops: " + loops +
+                                                " operations: " + testFunction.getOperationsPerIteration() +" events: " + events);
+                    }
+                } else {
+                    if (events == -1){
+                        System.out.println("= " + meth.getName() + " end " + (t/1000.0) + " " + loops +
+                                                " " + testFunction.getOperationsPerIteration());
+                    } else {
+                        System.out.println("= " + meth.getName() + " end " + (t/1000.0) + " " + loops +
+                                                " " + testFunction.getOperationsPerIteration() + " " + events);
                     }
                 }
-                t = fn.time(iter);
+
             }
-//            System.out.println("final t : " + t);
-//            System.out.println("final i : " + iter);
         }
-        return iter;    
     }
 
     /**
@@ -597,18 +489,55 @@ public abstract class PerfTest{
         } catch (InterruptedException e) {}
     }
 
+    /**
+     * Return a map of String to Method objects.  Each string is a
+     * munged all-lowercase name.  For this reason, test methods
+     * (beginning with "test", ignoring case) must not collide when
+     * case folded.
+     */
+    private Map getAvailableTests() {
+        if (availableTests == null) {
+            availableTests = new HashMap();
+            Method[] methods = getClass().getDeclaredMethods();
+            for (int i=0; i<methods.length; i++) {
+                String name = methods[i].getName().toLowerCase();
+                // Note: methods named "test()" are ignored
+                if (name.length() > 4 && name.startsWith("test")) {
+                    if (availableTests.get(name) != null) {
+                        throw new RuntimeException("Duplicate method name ignoring case: " + name);
+                    }
+                    availableTests.put(name, methods[i]);
+                }
+            }
+        }
+        return availableTests;
+    }
 
-    /*
+    /**
+     * Given a name, return the associated Method object, or null if
+     * not found.  The given name will map to a method of the same
+     * name, or a method named "test" + name.  Case is ignored.
+     */
+    private Method getTestMethod(String name) {
+        Map avail = getAvailableTests();
+        String key = name.toLowerCase();
+        Method m = (Method) avail.get(key);
+        if (m != null) {
+            return m;
+        }
+        return (Method) avail.get("test" + key);
+    }
+
+    /**
      * Private utility to convert a List of Integer objects to int[].
      */
-    /*private static int[] toIntArray(List list) {
+    private static int[] toIntArray(List list) {
         int[] result = new int[list.size()];
         for (int i=0; i<list.size(); ++i) {
             result[i] = ((Integer) list.get(i)).intValue();
         }
         return result;
-    }*/
-    
+    }
     public static char[] readToEOS(InputStreamReader stream) {
         ArrayList vec = new ArrayList();
         int count = 0;
@@ -747,7 +676,6 @@ public abstract class PerfTest{
         }
         return line;
     }
-
 }
 
 //eof

@@ -1,7 +1,7 @@
 //##header
 /*
  *******************************************************************************
- * Copyright (C) 2001-2007, International Business Machines Corporation and    *
+ * Copyright (C) 2001-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -21,15 +21,16 @@ import com.ibm.icu.impl.LocaleUtility;
 import com.ibm.icu.impl.data.ResourceReader;
 import com.ibm.icu.impl.data.TokenIterator;
 import com.ibm.icu.math.BigDecimal;
+import com.ibm.icu.math.MathContext;
 
 import java.math.BigInteger;
 import java.text.FieldPosition;
 import java.text.ParsePosition;
 import java.text.ParseException;
 import java.util.Locale;
-import java.util.ArrayList;
 
 public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
+    private static final char EURO = '\u20ac';
 
     public static void main(String[] args) throws Exception {
         new NumberFormatTest().run(args);
@@ -833,7 +834,7 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             errln("numberformat of string did not throw exception");
         }
         catch (Exception e) {
-            logln("PASS: numberformat of string failed as expected");
+        	logln("PASS: numberformat of string failed as expected");
         }
 
         int hash = fmt.hashCode();
@@ -1250,7 +1251,7 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             }
         }
     }
-
+	
     void checkRounding(DecimalFormat nf, BigDecimal base, int iterations, BigDecimal increment) {
 //#ifdef FOUNDATION
 //##        nf.setRoundingIncrement(increment);
@@ -1258,7 +1259,7 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         nf.setRoundingIncrement(increment.toBigDecimal());
 //#endif
         BigDecimal lastParsed = new BigDecimal(Integer.MIN_VALUE); // used to make sure that rounding is monotonic
-        for (int i = -iterations; i <= iterations; ++i) {
+        for (int i = -iterations; i <= iterations; ++i) {			
             BigDecimal iValue = base.add(increment.multiply(new BigDecimal(i)).movePointLeft(1));
             BigDecimal smallIncrement = new BigDecimal("0.00000001");
             if (iValue.signum() != 0) {
@@ -1270,7 +1271,7 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             lastParsed = checkRound(nf, iValue.add(smallIncrement), lastParsed);
         }
     }
-
+	
     private BigDecimal checkRound(DecimalFormat nf, BigDecimal iValue, BigDecimal lastParsed) {
         String formatedBigDecimal = nf.format(iValue);
         String formattedDouble = nf.format(iValue.doubleValue());
@@ -1299,7 +1300,7 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         }
         return lastParsed;
     }
-
+	
     static BigDecimal toBigDecimal(Number number) {
         return number instanceof BigDecimal ? (BigDecimal) number
             : number instanceof BigInteger ? new BigDecimal((BigInteger)number)
@@ -1316,7 +1317,7 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         "ROUND_HALF_UP", "ROUND_HALF_DOWN", "ROUND_HALF_EVEN",
         "ROUND_UNNECESSARY"
     };
-
+	
     private static boolean equalButForTrailingZeros(String formatted1, String formatted2) {
         if (formatted1.length() == formatted2.length()) return formatted1.equals(formatted2);
         return stripFinalZeros(formatted1).equals(stripFinalZeros(formatted2));
@@ -1482,266 +1483,6 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             logln("Ok   \"" + pat + "\"");
         } else {
             errln("FAIL \"" + pat + "\", expected \"" + exp + "\"");
-        }
-    }
-    
-    public void TestJB3832(){
-        ULocale locale = new ULocale("pt_PT@currency=PTE");
-        NumberFormat format = NumberFormat.getCurrencyInstance(locale);
-        Currency curr = Currency.getInstance(locale);
-        logln("\nName of the currency is: " + curr.getName(locale, Currency.LONG_NAME, new boolean[] {false}));
-        CurrencyAmount cAmt = new CurrencyAmount(1150.50, curr);
-        logln("CurrencyAmount object's hashCode is: " + cAmt.hashCode()); //cover hashCode
-        String str = format.format(cAmt);
-        String expected = "1,150$50 Esc.";
-        if(!expected.equals(str)){
-            errln("Did not get the expected output Expected: "+expected+" Got: "+ str);
-        }
-    }
-    
-    public void TestStrictParse() {
-        String[] pass = {
-            "0",           // single zero before end of text is not leading
-            "0 ",          // single zero at end of number is not leading
-            "0.",          // single zero before period (or decimal, it's ambiguous) is not leading
-            "0,",          // single zero before comma (not group separator) is not leading
-            "0.0",         // single zero before decimal followed by digit is not leading
-            "0. ",         // same as above before period (or decimal) is not leading
-            "0.100,5",     // comma stops parse of decimal (no grouping)
-            ".00",         // leading decimal is ok, even with zeros
-            "1234567",     // group separators are not required
-            "12345, ",     // comma not followed by digit is not a group separator, but end of number
-            "1,234, ",     // if group separator is present, group sizes must be appropriate
-            "1,234,567",   // ...secondary too
-            "0E",          // an exponnent not followed by zero or digits is not an exponent 
-        };
-        String[] fail = {
-            "00",        // leading zero before zero
-            "012",       // leading zero before digit
-            "0,456",     // leading zero before group separator
-            "1,2",       // wrong number of digits after group separator
-            ",0",        // leading group separator before zero
-            ",1",        // leading group separator before digit
-            ",.02",      // leading group separator before decimal
-            "1,.02",     // group separator before decimal
-            "1,,200",    // multiple group separators
-            "1,45",      // wrong number of digits in primary group
-            "1,45 that", // wrong number of digits in primary group
-            "1,45.34",   // wrong number of digits in primary group
-            "1234,567",  // wrong number of digits in secondary group
-            "12,34,567", // wrong number of digits in secondary group
-            "1,23,456,7890", // wrong number of digits in primary and secondary groups
-        };
-
-        DecimalFormat nf = (DecimalFormat) NumberFormat.getInstance(Locale.ENGLISH);
-        runStrictParseBatch(nf, pass, fail);
-
-        String[] scientificPass = {
-            "0E2",      // single zero before exponent is ok
-            "1234E2",   // any number of digits before exponent is ok
-            "1,234E",   // an exponent string not followed by zero or digits is not an exponent
-        };
-        String[] scientificFail = {
-            "00E2",     // double zeros fail
-            "1,234E2",  // group separators with exponent fail
-        };
-
-        nf = (DecimalFormat) NumberFormat.getInstance(Locale.ENGLISH);
-        runStrictParseBatch(nf, scientificPass, scientificFail);
-
-        String[] mixedPass = {
-            "12,34,567",
-            "12,34,567,",
-            "12,34,567, that",
-            "12,34,567 that",
-        };
-        String[] mixedFail = {
-            "12,34,56",
-            "12,34,56,",
-            "12,34,56, that ",
-            "12,34,56 that",
-        };
-
-        nf = new DecimalFormat("#,##,##0.#");
-        runStrictParseBatch(nf, mixedPass, mixedFail);
-    }
-
-    void runStrictParseBatch(DecimalFormat nf, String[] pass, String[] fail) {
-        nf.setParseStrict(false);
-        runStrictParseTests("should pass", nf, pass, true);
-        runStrictParseTests("should also pass", nf, fail, true);
-        nf.setParseStrict(true);
-        runStrictParseTests("should still pass", nf, pass, true);
-        runStrictParseTests("should fail", nf, fail, false);
-    }
-
-    void runStrictParseTests(String msg, DecimalFormat nf, String[] tests, boolean pass) {
-        logln("");
-        logln("pattern: '" + nf.toPattern() + "'");
-        logln(msg);
-        for (int i = 0; i < tests.length; ++i) {
-            String str = tests[i];
-            ParsePosition pp = new ParsePosition(0);
-            Number n = nf.parse(str, pp);
-            String formatted = n != null ? nf.format(n) : "null";
-            String err = pp.getErrorIndex() == -1 ? "" : "(error at " + pp.getErrorIndex() + ")";
-            if ((err.length() == 0) != pass) {
-                errln("'" + str + "' parsed '" + 
-                      str.substring(0, pp.getIndex()) + 
-                      "' returned " + n + " formats to '" + 
-                      formatted + "' " + err);
-            } else {
-                if (err.length() > 0) {
-                    err = "got expected " + err;
-                }
-                logln("'" + str + "' parsed '" +
-                      str.substring(0, pp.getIndex()) + 
-                      "' returned " + n + " formats to '" + 
-                      formatted + "' " + err);
-            }
-        }
-    }
-    public void TestJB5251(){
-        //save default locale
-        ULocale defaultLocale = ULocale.getDefault();
-        ULocale.setDefault(new ULocale("qr_QR"));
-        NumberFormat nf1 = NumberFormat.getInstance();
-        //reset default locale
-        ULocale.setDefault(defaultLocale);
-    }
-
-    public void TestParseReturnType() {
-        String[] defaultNonBigDecimals = {
-            "123",      // Long
-            "123.0",    // Long
-            "0.0",      // Long
-            "12345678901234567890"      // BigInteger
-        };
-
-        String[] doubles = {
-            "-0.0",
-            "NaN",
-            "\u221E"    // Infinity
-        };
-
-        DecimalFormatSymbols sym = new DecimalFormatSymbols(Locale.US);
-        DecimalFormat nf = new DecimalFormat("#.#", sym);
-
-        if (nf.isParseBigDecimal()) {
-            errln("FAIL: isParseDecimal() must return false by default");
-        }
-
-        // isParseBigDecimal() is false
-        for (int i = 0; i < defaultNonBigDecimals.length; i++) {
-            try {
-                Number n = nf.parse(defaultNonBigDecimals[i]);
-                if (n instanceof BigDecimal) {
-                    errln("FAIL: parse returns BigDecimal instance");
-                }
-            } catch (ParseException e) {
-                errln("parse of '" + defaultNonBigDecimals[i] + "' threw exception: " + e);
-            }
-        }
-        // parse results for doubls must be always Double
-        for (int i = 0; i < doubles.length; i++) {
-            try {
-                Number n = nf.parse(doubles[i]);
-                if (!(n instanceof Double)) {
-                    errln("FAIL: parse does not return Double instance");
-                }
-            } catch (ParseException e) {
-                errln("parse of '" + doubles[i] + "' threw exception: " + e);
-            }
-        }
-
-        // force this DecimalFormat to return BigDecimal
-        nf.setParseBigDecimal(true);
-        if (!nf.isParseBigDecimal()) {
-            errln("FAIL: isParseBigDecimal() must return true");
-        }
-
-        // isParseBigDecimal() is true
-        for (int i = 0; i < defaultNonBigDecimals.length; i++) {
-            try {
-                Number n = nf.parse(defaultNonBigDecimals[i]);
-                if (!(n instanceof BigDecimal)) {
-                    errln("FAIL: parse does not return BigDecimal instance");
-                }
-            } catch (ParseException e) {
-                errln("parse of '" + defaultNonBigDecimals[i] + "' threw exception: " + e);
-            }
-        }
-        // parse results for doubls must be always Double
-        for (int i = 0; i < doubles.length; i++) {
-            try {
-                Number n = nf.parse(doubles[i]);
-                if (!(n instanceof Double)) {
-                    errln("FAIL: parse does not return Double instance");
-                }
-            } catch (ParseException e) {
-                errln("parse of '" + doubles[i] + "' threw exception: " + e);
-            }
-        }
-    }
-
-    public void TestJB5358() {
-        int numThreads = 10;
-        String numstr = "12345";
-        double expected = 12345;
-        DecimalFormatSymbols sym = new DecimalFormatSymbols(Locale.US);
-        DecimalFormat fmt = new DecimalFormat("#.#", sym);
-        ArrayList errors = new ArrayList();
-
-        ParseThreadJB5358[] threads = new ParseThreadJB5358[numThreads];
-        for (int i = 0; i < numThreads; i++) {
-            threads[i] = new ParseThreadJB5358((DecimalFormat)fmt.clone(), numstr, expected, errors);
-            threads[i].start();
-        }
-        for (int i = 0; i < numThreads; i++) {
-            try {
-                threads[i].join();
-            } catch (InterruptedException ie) {
-                ie.printStackTrace();
-            }
-        }
-        if (errors.size() != 0) {
-            StringBuffer errBuf = new StringBuffer();
-            for (int i = 0; i < errors.size(); i++) {
-                errBuf.append((String)errors.get(i));
-                errBuf.append("\n");
-            }
-            errln("FAIL: " + errBuf);
-        }
-    }
-
-    static private class ParseThreadJB5358 extends Thread {
-        private DecimalFormat decfmt;
-        private String numstr;
-        private double expect;
-        private ArrayList errors;
-
-        public ParseThreadJB5358(DecimalFormat decfmt, String numstr, double expect, ArrayList errors) {
-            this.decfmt = decfmt;
-            this.numstr = numstr;
-            this.expect = expect;
-            this.errors = errors;
-        }
-
-        public void run() {
-            for (int i = 0; i < 10000; i++) {
-                try {
-                    Number n = decfmt.parse(numstr);
-                    if (n.doubleValue() != expect) {
-                        synchronized(errors) {
-                            errors.add(new String("Bad parse result - expected:" + expect + " actual:" + n.doubleValue()));
-                        }
-                    }
-                } catch (Throwable t) {
-                    synchronized(errors) {
-                        errors.add(new String(t.getClass().getName() + " - " + t.getMessage()));
-                    }
-                }
-            }
         }
     }
 }

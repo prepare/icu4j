@@ -13,7 +13,6 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.math.BigInteger;
 import java.text.FieldPosition;
-import java.text.Format;
 import java.text.ParseException;
 import java.text.ParsePosition;
 import java.util.Collections;
@@ -21,11 +20,14 @@ import java.util.Locale;
 import java.util.MissingResourceException;
 import java.util.Set;
 
+//import com.ibm.icu.impl.ICULocaleData;
 import com.ibm.icu.impl.ICUResourceBundle;
+import com.ibm.icu.impl.LocaleUtility;
 import com.ibm.icu.util.Currency;
 import com.ibm.icu.util.CurrencyAmount;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.UResourceBundle;
+import com.ibm.icu.text.UFormat;
 
 /**
  * <code>NumberFormat</code> is the abstract base class for all number
@@ -184,8 +186,8 @@ public abstract class NumberFormat extends UFormat {
      * @stable ICU 2.0
      */
     public StringBuffer format(Object number,
-                               StringBuffer toAppendTo,
-                               FieldPosition pos)
+			       StringBuffer toAppendTo,
+			       FieldPosition pos)
     {
         if (number instanceof Long) {
             return format(((Long)number).longValue(), toAppendTo, pos);
@@ -272,7 +274,8 @@ public abstract class NumberFormat extends UFormat {
     /**
      * <strong><font face=helvetica color=red>NEW</font></strong>
      * Convenience method to format a CurrencyAmount.
-     * @stable ICU 3.0
+     * @draft ICU 3.0
+     * @provisional This API might change or be removed in a future release.
      */
     public final String format(CurrencyAmount currAmt) {
         return format(currAmt, new StringBuffer(),
@@ -332,7 +335,8 @@ public abstract class NumberFormat extends UFormat {
      * <strong><font face=helvetica color=red>NEW</font></strong>
      * Format a CurrencyAmount.
      * @see java.text.Format#format(Object, StringBuffer, FieldPosition)
-     * @stable ICU 3.0
+     * @draft ICU 3.0
+     * @provisional This API might change or be removed in a future release.
      */
     public StringBuffer format(CurrencyAmount currAmt,
                                StringBuffer toAppendTo,
@@ -399,7 +403,6 @@ public abstract class NumberFormat extends UFormat {
      * the parse fails, the position in unchanged upon output.
      * @return a CurrencyAmount, or null upon failure
      * @internal
-     * @deprecated This API is ICU internal only.
      */
     CurrencyAmount parseCurrency(String text, ParsePosition pos) {
         // Default implementation only -- subclasses should override
@@ -429,41 +432,6 @@ public abstract class NumberFormat extends UFormat {
      */
     public void setParseIntegerOnly(boolean value) {
         parseIntegerOnly = value;
-    }
-
-    /**
-     * Sets whether strict parsing is in effect.  When this is true, the
-     * following conditions cause a parse failure (examples use the pattern "#,##0.#"):<ul>
-     * <li>Leading zeros<br>
-     * '00', '0123' fail the parse, but '0' and '0.001' pass</li>
-     * <li>Leading or doubled grouping separators<br>
-     * ',123' and '1,,234" fail</li>
-     * <li>Groups of incorrect length when grouping is used<br>
-     * '1,23' and '1234,567' fail, but '1234' passes</li>
-     * <li>Grouping separators used in numbers followed by exponents<br>
-     * '1,234E5' fails, but '1234E5' and '1,234E' pass ('E' is not an exponent when
-     * not followed by a number)</li>
-     * </ul>
-     * When strict parsing is off, leading zeros and all grouping separators are ignored.
-     * This is the default behavior.
-     * @param value True to enable strict parsing.  Default is false.
-     * @see #isParseStrict
-     * @draft ICU 3.6
-     * @provisional This API might change or be removed in a future release.
-     */
-    public void setParseStrict(boolean value) {
-        parseStrict = value;
-    }
-
-    /**
-     * Return whether strict parsing is in effect.
-     * @return true if strict parsing is in effect
-     * @see #setParseStrict
-     * @draft ICU 3.6
-     * @provisional This API might change or be removed in a future release.
-     */
-    public boolean isParseStrict() {
-        return parseStrict;
     }
 
     //============== Locale Stuff =====================
@@ -806,7 +774,7 @@ public abstract class NumberFormat extends UFormat {
         
         /**
          * @draft ICU 3.2
-         * @provisional This API might change or be removed in a future release.
+	 * @provisional This API might change or be removed in a future release.
          */
         public SimpleNumberFormatFactory(ULocale locale, boolean visible) {
             localeNames = Collections.singleton(locale.getBaseName());
@@ -951,8 +919,7 @@ public abstract class NumberFormat extends UFormat {
             && maximumFractionDigits == other.maximumFractionDigits
             && minimumFractionDigits == other.minimumFractionDigits
             && groupingUsed == other.groupingUsed
-            && parseIntegerOnly == other.parseIntegerOnly
-            && parseStrict == other.parseStrict;
+            && parseIntegerOnly == other.parseIntegerOnly;
     }
 
     /**
@@ -1146,7 +1113,6 @@ public abstract class NumberFormat extends UFormat {
      * this method should never return null.
      * @return a non-null Currency
      * @internal
-     * @deprecated This API is ICU internal only.
      */
     protected Currency getEffectiveCurrency() {
         Currency c = getCurrency();
@@ -1177,16 +1143,6 @@ public abstract class NumberFormat extends UFormat {
     static NumberFormat createInstance(ULocale desiredLocale, int choice) {
         String pattern = getPattern(desiredLocale, choice);
         DecimalFormatSymbols symbols = new DecimalFormatSymbols(desiredLocale);
-        
-        // Here we assume that the locale passed in is in the canonical
-        // form, e.g: pt_PT_@currency=PTE not pt_PT_PREEURO
-        if(choice == CURRENCYSTYLE){
-            String temp = symbols.getCurrencyPattern();
-            if(temp!=null){
-                pattern = temp;
-            }
-        }
-        
         DecimalFormat format = new DecimalFormat(pattern, symbols);
         // System.out.println("loc: " + desiredLocale + " choice: " + choice + " pat: " + pattern + " sym: " + symbols + " result: " + format);
                                  
@@ -1534,119 +1490,4 @@ public abstract class NumberFormat extends UFormat {
      */
     public NumberFormat() {
     }
-
-    // new in ICU4J 3.6
-    private boolean parseStrict;
-
-//#ifndef FOUNDATION
-    /**
-     * [Spark/CDL] The instances of this inner class are used as attribute keys and values
-     * in AttributedCharacterIterator that
-     * NumberFormat.formatToCharacterIterator() method returns.
-     * <p>
-     * There is no public constructor to this class, the only instances are the
-     * constants defined here.
-     * <p>
-     * @stable ICU 3.6
-     */
-    public static class Field extends Format.Field {
-        // generated by serialver from JDK 1.4.1_01
-        static final long serialVersionUID = -4516273749929385842L;
-        
-        /**
-         * @stable ICU 3.6
-         */
-        public static final Field SIGN = new Field("sign");
-
-        /**
-         * @stable ICU 3.6
-         */
-        public static final Field INTEGER = new Field("integer");
-
-        /**
-         * @stable ICU 3.6
-         */
-        public static final Field FRACTION = new Field("fraction");
-
-        /**
-         * @stable ICU 3.6
-         */
-        public static final Field EXPONENT = new Field("exponent");
-
-        /**
-         * @stable ICU 3.6
-         */
-        public static final Field EXPONENT_SIGN = new Field("exponent sign");
-
-        /**
-         * @stable ICU 3.6
-         */
-        public static final Field EXPONENT_SYMBOL = new Field("exponent symbol");
-
-        /**
-         * @stable ICU 3.6
-         */
-        public static final Field DECIMAL_SEPARATOR = new Field("decimal separator");
-        /**
-         * @stable ICU 3.6
-         */
-        public static final Field GROUPING_SEPARATOR = new Field("grouping separator");
-
-        /**
-         * @stable ICU 3.6
-         */
-        public static final Field PERCENT = new Field("percent");
-
-        /**
-         * @stable ICU 3.6
-         */
-        public static final Field PERMILLE = new Field("per mille");
-
-        /**
-         * @stable ICU 3.6
-         */
-        public static final Field CURRENCY = new Field("currency");
-
-        /**
-         * Constructs a new instance of NumberFormat.Field with the given field
-         * name.
-         * @stable ICU 3.6
-         */
-        protected Field(String fieldName) {
-            super(fieldName);
-        }
-
-        /**
-         * serizalization method resolve instances to the constant
-         * NumberFormat.Field values
-         * @stable ICU 3.6
-         */
-        protected Object readResolve() throws InvalidObjectException {
-            if (this.getName().equals(INTEGER.getName()))
-                return INTEGER;
-            if (this.getName().equals(FRACTION.getName()))
-                return FRACTION;
-            if (this.getName().equals(EXPONENT.getName()))
-                return EXPONENT;
-            if (this.getName().equals(EXPONENT_SIGN.getName()))
-                return EXPONENT_SIGN;
-            if (this.getName().equals(EXPONENT_SYMBOL.getName()))
-                return EXPONENT_SYMBOL;
-            if (this.getName().equals(CURRENCY.getName()))
-                return CURRENCY;
-            if (this.getName().equals(DECIMAL_SEPARATOR.getName()))
-                return DECIMAL_SEPARATOR;
-            if (this.getName().equals(GROUPING_SEPARATOR.getName()))
-                return GROUPING_SEPARATOR;
-            if (this.getName().equals(PERCENT.getName()))
-                return PERCENT;
-            if (this.getName().equals(PERMILLE.getName()))
-                return PERMILLE;
-            if (this.getName().equals(SIGN.getName()))
-                return SIGN;
-
-            throw new InvalidObjectException("An invalid object.");
-        }
-    }
-//#endif
 }

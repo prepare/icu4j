@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2003-2007, International Business Machines Corporation and    *
+ * Copyright (C) 2003-2005, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
 */
@@ -349,7 +349,7 @@ public class TestIDNA extends TestFmwk {
             }
             
             //TestToUnicode
-            if(false && errCase.testToUnicode==true){
+            if(errCase.testToUnicode==true){
                 if(errCase.useSTD3ASCIIRules!=true){
                     // Test IDNToUnicode
                     doTestIDNToUnicode(errCase.ascii,new String(errCase.unicode),IDNA.DEFAULT,errCase.expected);
@@ -719,21 +719,21 @@ public class TestIDNA extends TestFmwk {
             "\u0b47\u0300\u0b3e\u0327"
         };
 
-        String ascii = null, unicode = null;
+        String ascii, unicode;
+        StringPrepParseException ex2;
         int i;
 
         for(i=0; i<strings.length; ++i) {
+            ex2=null;
             try {
                 ascii=IDNA.convertToASCII(strings[i], 0).toString();
                 unicode=IDNA.convertToUnicode(ascii, 0).toString();
             } catch(StringPrepParseException ex) {
-                errln("string " + i + " gets exception " + ex.toString());
+                ex2=ex;
             }
-            
-            if(unicode == null || unicode.compareTo(ascii) != 0) {
-                String uc = unicode == null? "(null)" : unicode;
-                
-                errln("string " + i + " yields " + uc +" instead of " + ascii);
+            if(ex2==null || ex2.getMessage().indexOf("verification")<0) {
+                String es= ex2==null ? "null" : ex2.toString();
+                errln("string "+i+" yields "+es+" instead of VERIFICATION_ERROR");
             }
         }
     }
@@ -773,23 +773,6 @@ public class TestIDNA extends TestFmwk {
         }
             
     }
-    
-    public void TestJB5273()
-    {
-        String INVALID_DOMAIN_NAME = "xn--m\u00FCller.de";
-
-        try {
-            IDNA.convertIDNToUnicode(INVALID_DOMAIN_NAME, IDNA.DEFAULT);
-            IDNA.convertIDNToUnicode(INVALID_DOMAIN_NAME, IDNA.USE_STD3_RULES);
-
-        } catch (StringPrepParseException ex) {
-            errln("Unexpected exceptoin: " + ex.getMessage());
-        } catch (ArrayIndexOutOfBoundsException ex) {
-            errln("Got an ArrayIndexOutOfBoundsException calling convertIDNToUnicode(\"" + INVALID_DOMAIN_NAME + "\")");
-        }
- 
-    }
-    
     public void TestDebug(){     
         try{
             String src = "\u00ED4dn";
@@ -808,107 +791,5 @@ public class TestIDNA extends TestFmwk {
         }catch(StringPrepParseException ex){
             logln("Got the expected exception: " + ex.getMessage());
         }
-    }
-    public void TestJB5275(){
-        String domain = "xn--m\u00FCller.de";
-        try{
-            IDNA.convertIDNToUnicode(domain, IDNA.DEFAULT);
-        }catch(StringPrepParseException ex){
-            logln("Got the expected exception. "+ex.getMessage());
-        }catch (Exception ex){
-            errln("Did not get the expected exception "+ex.getMessage());
-        }
-        try{
-            IDNA.convertIDNToUnicode(domain, IDNA.USE_STD3_RULES);
-        }catch(StringPrepParseException ex){
-            logln("Got the expected exception. "+ex.getMessage());
-        }catch (Exception ex){
-            errln("Did not get the expected exception "+ex.getMessage());
-        }
-        try{
-            IDNA.convertToUnicode("xn--m\u00FCller", IDNA.DEFAULT);
-        }catch(Exception ex){
-            errln("ToUnicode operation failed! "+ex.getMessage());
-        }
-        try{
-            IDNA.convertToUnicode("xn--m\u00FCller", IDNA.USE_STD3_RULES);
-        }catch(Exception ex){
-            errln("ToUnicode operation failed! "+ex.getMessage());
-        }
-        try{
-            IDNA.convertIDNToUnicode("xn--m\u1234ller", IDNA.USE_STD3_RULES);
-        }catch(StringPrepParseException ex){
-            errln("ToUnicode operation failed! "+ex.getMessage());
-        }
-    }
-    
-    public void TestLength(){
-        String ul = "my_very_very_very_very_very_very_very_very_very_very_very_very_very_long_and_incredibly_uncreative_domain_label";
-
-        /* this unicode string is longer than MAX_LABEL_BUFFER_SIZE and produces an 
-           IDNA prepared string (including xn--)that is exactly 63 bytes long */
-        String ul1 ="\uC138\uACC4\uC758\uBAA8\uB4E0\uC0AC\uB78C\uB4E4\uC774"+
-                    "\uD55C\uAD6D\uC5B4\uB97C\uC774\u00AD\u034F\u1806\u180B"+
-                    "\u180C\u180D\u200B\u200C\u200D\u2060\uFE00\uFE01\uFE02"+
-                    "\uFE03\uFE04\uFE05\uFE06\uFE07\uFE08\uFE09\uFE0A\uFE0B"+
-                    "\uFE0C\uFE0D\uFE0E\uFE0F\uFEFF\uD574\uD55C\uB2E4\uBA74"+
-                    "\uC138\u0041\u00AD\u034F\u1806\u180B\u180C\u180D\u200B"+
-                    "\u200C\u200D\u2060\uFE00\uFE01\uFE02\uFE03\uFE04\uFE05"+
-                    "\uFE06\uFE07\uFE08\uFE09\uFE0A\uFE0B\uFE0C\uFE0D\uFE0E"+
-                    "\uFE0F\uFEFF\u00AD\u034F\u1806\u180B\u180C\u180D\u200B"+
-                    "\u200C\u200D\u2060\uFE00\uFE01\uFE02\uFE03\uFE04\uFE05"+
-                    "\uFE06\uFE07\uFE08\uFE09\uFE0A\uFE0B\uFE0C\uFE0D\uFE0E"+
-                    "\uFE0F\uFEFF\u00AD\u034F\u1806\u180B\u180C\u180D\u200B"+
-                    "\u200C\u200D\u2060\uFE00\uFE01\uFE02\uFE03\uFE04\uFE05"+
-                    "\uFE06\uFE07\uFE08\uFE09\uFE0A\uFE0B\uFE0C\uFE0D\uFE0E"+
-                    "\uFE0F\uFEFF";
-        try{
-            IDNA.convertToASCII(ul, IDNA.DEFAULT);
-            errln("IDNA.convertToUnicode did not fail!");
-        }catch (StringPrepParseException ex){
-            if(ex.getError()!= StringPrepParseException.LABEL_TOO_LONG_ERROR){
-                errln("IDNA.convertToASCII failed with error: "+ex.toString());
-            }else{
-                logln("IDNA.convertToASCII(ul, IDNA.DEFAULT) Succeeded");
-            }
-        }
-        try{
-            IDNA.convertToASCII(ul1, IDNA.DEFAULT);
-        }catch (StringPrepParseException ex){
-            errln("IDNA.convertToASCII failed with error: "+ex.toString());
-        }
-        try{
-            IDNA.convertToUnicode(ul1, IDNA.DEFAULT);
-        }catch (StringPrepParseException ex){
-            errln("IDNA.convertToASCII failed with error: "+ex.toString());
-        }
-        try{
-            IDNA.convertToUnicode(ul, IDNA.DEFAULT);
-        }catch (StringPrepParseException ex){
-            errln("IDNA.convertToASCII failed with error: "+ex.toString());
-        }
-        
-        String idn = "my_very_very_long_and_incredibly_uncreative_domain_label.my_very_very_long_and_incredibly_uncreative_domain_label.my_very_very_long_and_incredibly_uncreative_domain_label.my_very_very_long_and_incredibly_uncreative_domain_label.my_very_very_long_and_incredibly_uncreative_domain_label.my_very_very_long_and_incredibly_uncreative_domain_label.ibm.com";
-        try{
-            IDNA.convertIDNToASCII(idn, IDNA.DEFAULT);
-            errln("IDNA.convertToUnicode did not fail!");
-        }catch (StringPrepParseException ex){
-            if(ex.getError()!= StringPrepParseException.DOMAIN_NAME_TOO_LONG_ERROR){
-                errln("IDNA.convertToASCII failed with error: "+ex.toString());
-            }else{
-                logln("IDNA.convertToASCII(idn, IDNA.DEFAULT) Succeeded");
-            }
-        }
-        try{
-            IDNA.convertIDNToUnicode(idn, IDNA.DEFAULT);
-            errln("IDNA.convertToUnicode did not fail!");  
-        }catch (StringPrepParseException ex){
-            if(ex.getError()!= StringPrepParseException.DOMAIN_NAME_TOO_LONG_ERROR){
-                errln("IDNA.convertToUnicode failed with error: "+ex.toString());
-            }else{
-                logln("IDNA.convertToUnicode(idn, IDNA.DEFAULT) Succeeded");
-            }
-        }
-        
     }
 }

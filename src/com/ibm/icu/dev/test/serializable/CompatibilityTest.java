@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2005, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  *
@@ -21,10 +21,14 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
 import com.ibm.icu.dev.test.TestFmwk;
+import com.ibm.icu.dev.test.TestFmwk.Target;
 //import com.ibm.icu.dev.test.serializable.SerializableTest;
 
 /**
  * @author emader
+ *
+ * TODO To change the template for this generated type comment go to
+ * Window - Preferences - Java - Code Style - Code Templates
  */
 public class CompatibilityTest extends TestFmwk
 {
@@ -95,6 +99,7 @@ public class CompatibilityTest extends TestFmwk
                     ObjectInputStream in = new ObjectInputStream(inputStream);
                     Object inputObjects[] = (Object[]) in.readObject();
                     Object testObjects[] = handler.getTestObjects();
+                    boolean passed = true;
                     
                     in.close();
                     inputStream.close();

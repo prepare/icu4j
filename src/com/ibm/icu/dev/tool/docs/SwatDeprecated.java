@@ -7,8 +7,6 @@
 package com.ibm.icu.dev.tool.docs;
 
 import java.io.*;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 
 public class SwatDeprecated {
     private File srcFile;
@@ -22,7 +20,6 @@ public class SwatDeprecated {
     private int verbosity;
     private int cc; // changed file count
     private boolean inPlace;
-    private String copyYear;
 
     private PrintWriter pw = new PrintWriter(System.out);
 
@@ -87,7 +84,6 @@ public class SwatDeprecated {
         this.dstFile = new File(dst);
         this.overwrite = overwrite;
         this.verbosity = verbosity;
-        this.copyYear = new SimpleDateFormat("yyyy").format(new Date());
 
         this.srcTag = "@deprecated This is a draft API and might change in a future release of ICU.";
         this.trgTag = "@provisional This API might change or be removed in a future release.";
@@ -211,7 +207,7 @@ public class SwatDeprecated {
                     
                     ++tc;
                 } else if (n < 20) {
-                    // swat copyrights in the first 20 lines while we're at it
+                    // swat copyrights while we're at it
                     ix = line.indexOf("opyright");
                     if (ix != -1) {
                         String nline = null;
@@ -221,31 +217,27 @@ public class SwatDeprecated {
                             }
                             ix = line.indexOf("-200");
                             if (ix != -1) {
-                                nline = line.substring(0, ix) + "-" + copyYear + line.substring(ix+5);
+                                nline = line.substring(0, ix) + "-2006" + line.substring(ix+5);
                                 break;
                             }
                             ix = line.indexOf("- 200");
                             if (ix != -1) {
-                                nline = line.substring(0, ix) + "-" + copyYear + line.substring(ix+6);
+                                nline = line.substring(0, ix) + "-2006" + line.substring(ix+6);
                                 break;
                             }
                             ix = line.indexOf("-199");
                             if (ix != -1) {
-                                nline = line.substring(0, ix) + "-" + copyYear + line.substring(ix+5);
+                                nline = line.substring(0, ix) + "-2006" + line.substring(ix+5);
                                 break;
-                            }
-                            ix = line.indexOf(copyYear);
-                            if (ix != -1) {
-                                break; // nothing needs changing
                             }
                             ix = line.indexOf("200");
                             if (ix != -1) {
-                                nline = line.substring(0, ix+4) + "-" + copyYear + line.substring(ix+4);
+                                nline = line.substring(0, ix) + "2006" + line.substring(ix+4);
                                 break;
                             }
                             ix = line.indexOf("199");
                             if (ix != -1) {
-                                nline = line.substring(0, ix+4) + "-" + copyYear + line.substring(ix+4);
+                                nline = line.substring(0, ix) + "2006" + line.substring(ix+4);
                                 break;
                             }
                         } while (false);

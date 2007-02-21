@@ -13,7 +13,9 @@ import java.util.Set;
 
 import com.ibm.icu.impl.ICUDebug;
 import com.ibm.icu.impl.ICUResourceBundle;
+import com.ibm.icu.impl.LocaleUtility;
 import com.ibm.icu.util.ULocale;
+import com.ibm.icu.util.UResourceBundle;
 import com.ibm.icu.util.VersionInfo;
 
 /**
@@ -474,7 +476,8 @@ public abstract class Collator implements Comparator, Cloneable
      * @see java.util.ResourceBundle
      * @see #getInstance(Locale)
      * @see #getInstance()
-     * @stable ICU 3.0
+     * @draft ICU 3.0
+     * @provisional This API might change or be removed in a future release.
      */
     public static final Collator getInstance(ULocale locale) {
         // fetching from service cache is faster than instantiation
@@ -560,7 +563,8 @@ public abstract class Collator implements Comparator, Cloneable
      * @return the list of locales in which collators are installed.
      * This list includes any that have been registered, in addition to
      * those that are installed with ICU4J.
-     * @stable ICU 3.0
+     * @draft ICU 3.0
+     * @provisional This API might change or be removed in a future release.
      */
     public static final ULocale[] getAvailableULocales() {
         if (shim == null) {
@@ -595,7 +599,8 @@ public abstract class Collator implements Comparator, Cloneable
      * service is "collation".
      * @return an array of valid collation keywords.
      * @see #getKeywordValues
-     * @stable ICU 3.0
+     * @draft ICU 3.0
+     * @provisional This API might change or be removed in a future release.
      */
     public static final String[] getKeywords() {
         return KEYWORDS;
@@ -606,7 +611,8 @@ public abstract class Collator implements Comparator, Cloneable
      * that keyword that are currently in use.
      * @param keyword one of the keywords returned by getKeywords.
      * @see #getKeywords
-     * @stable ICU 3.0
+     * @draft ICU 3.0
+     * @provisional This API might change or be removed in a future release.
      */
     public static final String[] getKeywordValues(String keyword) {
         if (!keyword.equals(KEYWORDS[0])) {
@@ -639,7 +645,8 @@ public abstract class Collator implements Comparator, Cloneable
      * 'available' if it physically exists within the collation locale
      * data.  If non-null, isAvailable must have length >= 1.
      * @return the locale
-     * @stable ICU 3.0
+     * @draft ICU 3.0
+     * @provisional This API might change or be removed in a future release.
      */
     public static final ULocale getFunctionalEquivalent(String keyword,
                                                         ULocale locID,
@@ -657,7 +664,8 @@ public abstract class Collator implements Comparator, Cloneable
      * @param locID The requested locale
      * @return the locale
      * @see #getFunctionalEquivalent(String,ULocale,boolean[])
-     * @stable ICU 3.0
+     * @draft ICU 3.0
+     * @provisional This API might change or be removed in a future release.
      */
     public static final ULocale getFunctionalEquivalent(String keyword,
                                                         ULocale locID) {

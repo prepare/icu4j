@@ -1,6 +1,6 @@
 /*
 **********************************************************************
-* Copyright (c) 2004-2006, International Business Machines
+* Copyright (c) 2006, International Business Machines
 * Corporation and others.  All Rights Reserved.
 **********************************************************************
 * Author: Alan Liu
@@ -16,12 +16,12 @@ package com.ibm.icu.util;
  *
  * @see com.ibm.icu.util.Measure
  * @author Alan Liu
- * @stable ICU 3.0
+ * @draft ICU 3.0
+ * @provisional This API might change or be removed in a future release.
  */
 public abstract class MeasureUnit {
     /**
      * @internal
-     * @deprecated This API is ICU internal only.
      */
     protected MeasureUnit() {};
 }

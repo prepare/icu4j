@@ -1,4 +1,3 @@
-//##header
 /**
 *******************************************************************************
 * Copyright (C) 1996-2006, International Business Machines Corporation and    *
@@ -229,73 +228,6 @@ public final class UTF16
             }
         return single; // return unmatched surrogate
     }
-
-//#ifndef FOUNDATION
-    /**
-     * Extract a single UTF-32 value from a string.
-     * Used when iterating forwards or backwards (with
-     * <code>UTF16.getCharCount()</code>, as well as random access. If a
-     * validity check is required, use
-     * <code><a href="../lang/UCharacter.html#isLegal(char)">
-     * UCharacter.isLegal()</a></code> on the return value.
-     * If the char retrieved is part of a surrogate pair, its supplementary
-     * character will be returned. If a complete supplementary character is
-     * not found the incomplete character will be returned
-     * @param source array of UTF-16 chars
-     * @param offset16 UTF-16 offset to the start of the character.
-     * @return UTF-32 value for the UTF-32 value that contains the char at
-     *         offset16. The boundaries of that codepoint are the same as in
-     *         <code>bounds32()</code>.
-     * @exception IndexOutOfBoundsException thrown if offset16 is out of
-     *            bounds.
-     * @stable ICU 2.1
-     */
-    public static int charAt(CharSequence source, int offset16)
-    {
-        char single = source.charAt(offset16);
-        if (single < UTF16.LEAD_SURROGATE_MIN_VALUE) {
-            return single;
-        }
-        return _charAt(source, offset16, single);
-    }
-
-    private static int _charAt(CharSequence source, int offset16, char single)
-    {
-        if (single > UTF16.TRAIL_SURROGATE_MAX_VALUE) {
-            return single;
-        }
-
-        // Convert the UTF-16 surrogate pair if necessary.
-        // For simplicity in usage, and because the frequency of pairs is
-        // low, look both directions.
-
-        if (single <= UTF16.LEAD_SURROGATE_MAX_VALUE) {
-            ++ offset16;
-            if (source.length() != offset16) {
-                char trail = source.charAt(offset16);
-                if (trail >= UTF16.TRAIL_SURROGATE_MIN_VALUE &&
-                    trail <= UTF16.TRAIL_SURROGATE_MAX_VALUE) {
-                    return UCharacterProperty.getRawSupplementary(single,
-                                                                  trail);
-                }
-            }
-        }
-        else
-            {
-                -- offset16;
-                if (offset16 >= 0) {
-                    // single is a trail surrogate so
-                    char lead = source.charAt(offset16);
-                    if (lead >= UTF16.LEAD_SURROGATE_MIN_VALUE &&
-                        lead <= UTF16.LEAD_SURROGATE_MAX_VALUE) {
-                        return UCharacterProperty.getRawSupplementary(lead,
-                                                                      single);
-                    }
-                }
-            }
-        return single; // return unmatched surrogate
-    }
-//#endif
 
     /**
      * Extract a single UTF-32 value from a string.
@@ -1139,7 +1071,8 @@ public final class UTF16
      * @param cp the code point to append
      * @return the updated StringBuffer
      * @throws IllegalArgumentException if cp is not a valid code point
-     * @stable ICU 3.0
+     * @draft ICU 3.0
+     * @provisional This API might change or be removed in a future release.
      */
     public static StringBuffer appendCodePoint(StringBuffer target, int cp) {
         return append(target, cp);
@@ -2451,7 +2384,8 @@ public final class UTF16
      * @return a String representing the code points between offset and count
      * @throws IllegalArgumentException if an invalid code point is encountered
      * @throws IndexOutOfBoundsException  if the offset or count are out of bounds.
-     * @stable ICU 3.0
+     * @draft ICU 3.0
+     * @provisional This API might change or be removed in a future release.
      */
     public static String newString(int[] codePoints, int offset, int count) {
         if (count < 0) {
@@ -2852,4 +2786,3 @@ public final class UTF16
         return result.toString();
     }
 }
-//eof

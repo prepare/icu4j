@@ -1,27 +1,23 @@
 /**
  *******************************************************************************
- * Copyright (C) 2003-2007, International Business Machines Corporation and         *
+ * Copyright (C) 2003-2004, International Business Machines Corporation and         *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
 package com.ibm.icu.dev.test;
 
-import java.util.Date;
-
-import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.VersionInfo;
 
 public abstract class AbstractTestLog implements TestLog {
 
     public static boolean dontSkipForVersion = false;
-    public boolean skipIfBeforeICU(int major, int minor, int micro) {
-        if (dontSkipForVersion || VersionInfo.ICU_VERSION.compareTo(VersionInfo.getInstance(major, minor, micro)) > 0) {
+    public boolean skipIfBeforeICU(int major, int minor) {
+        if (dontSkipForVersion || VersionInfo.ICU_VERSION.compareTo(VersionInfo.getInstance(major, minor)) > 0) {
             return false;
         } 
         logln("Test skipped before ICU release " + major + "." + minor);
         return true;
     }
-
     
     /**
      * Add a message.
@@ -93,13 +89,5 @@ public abstract class AbstractTestLog implements TestLog {
                 delegate.msg(message, level, incCount, newln);
             }
         }
-    }
-    public boolean isDateAtLeast(int year, int month, int day){
-        Calendar c = Calendar.getInstance();
-        Date dt = new Date(year, month, day);
-        if(c.getTime().compareTo(dt)>=0){
-            return true;
-        }
-        return false;
     }
 }

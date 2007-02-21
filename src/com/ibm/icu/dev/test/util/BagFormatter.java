@@ -1,7 +1,7 @@
 //##header
 /*
  *******************************************************************************
- * Copyright (C) 2002-2007, International Business Machines Corporation and    *
+ * Copyright (C) 2002-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -59,13 +59,12 @@ public class BagFormatter {
     private UnicodeLabel valueSource;
     private String propName = "";
     private boolean showCount = true;
+    private boolean skipNullValues = true;
     //private boolean suppressReserved = true;
     private boolean hexValue = false;
     private static final String NULL_VALUE = "_NULL_VALUE_";
     private int fullTotal = -1;
-    private boolean showTotal = true;
     private String lineSeparator = "\r\n";
-    private Tabber tabber = new Tabber.MonoTabber();
 
     /**
      * Compare two UnicodeSets, and show the differences
@@ -113,6 +112,7 @@ public class BagFormatter {
      * @param set1 first set
      * @param name2 name of second set to be compared
      * @param set2 second set
+     * @return formatted string
      */
     public void showSetDifferences(
         PrintWriter pw,
@@ -318,7 +318,7 @@ public class BagFormatter {
     }
 
     public String getName(String separator, int start, int end) {
-        if (getNameSource() == null || getNameSource() == UnicodeLabel.NULL) return "";
+        if (getNameSource() == null || getNameSource() == UnicodeProperty.NULL) return "";
         String result = getName(start, false);
         if (start == end) return separator + result;
         String endString = getName(end, false);
@@ -331,14 +331,14 @@ public class BagFormatter {
         return getName(s, false);
     }
 
-    public static class NameLabel extends UnicodeLabel {
+    class NameLabel extends UnicodeLabel {
         UnicodeProperty nameProp;
         UnicodeSet control;
         UnicodeSet private_use;
         UnicodeSet noncharacter;
         UnicodeSet surrogate;
 
-        public NameLabel(UnicodeProperty.Factory source) {
+        NameLabel(UnicodeProperty.Factory source) {
             nameProp = source.getProperty("Name");
             control = source.getSet("gc=Cc");
             private_use = source.getSet("gc=Co");
@@ -467,67 +467,41 @@ public class BagFormatter {
 
     private class MyVisitor extends Visitor {
         private PrintWriter output;
+        Tabber.MonoTabber myTabber;
         String commentSeparator;
         int counter;
         int valueSize;
         int labelSize;
-        boolean isHtml;
-        boolean inTable = false;
-        
-        public void toOutput(String s) {
-          if (isHtml) {
-            if (inTable) {
-              output.print("</table>");
-              inTable = false;
-            }
-            output.print("<p>");
-          }
-          output.print(s);
-          if (isHtml)
-            output.println("</p>");
-          else
-            output.print(lineSeparator);
-        }
-        
-        public void toTable(String s) {
-          if (isHtml && !inTable) {
-            output.print("<table>");
-            inTable = true;
-          }
-          output.print(tabber.process(s) +  lineSeparator);
-        }
 
         public void doAt(Object c, PrintWriter output) {
             this.output = output;
-            isHtml = tabber instanceof Tabber.HTMLTabber;
             counter = 0;
-            
-            tabber.clear();
-            tabber.add(mergeRanges ? 14 : 6,Tabber.LEFT);
+            myTabber = new Tabber.MonoTabber();
+            myTabber.add(mergeRanges ? 14 : 6,Tabber.LEFT);
 
-            if (propName.length() > 0) tabber.add(propName.length() + 2,Tabber.LEFT);
+            if (propName.length() > 0) myTabber.add(propName.length() + 2,Tabber.LEFT);
 
             valueSize = getValueSource().getMaxWidth(shortValue);
             if (DEBUG) System.out.println("ValueSize: " + valueSize);
-            if (getValueSource() != UnicodeLabel.NULL) tabber.add(valueSize + 2,Tabber.LEFT); // value
+            if (valueSize > 0) myTabber.add(valueSize + 2,Tabber.LEFT); // value
 
-            tabber.add(3,Tabber.LEFT); // comment character
+            myTabber.add(3,Tabber.LEFT); // comment character
 
             labelSize = getLabelSource(true).getMaxWidth(shortLabel);
-            if (labelSize > 0) tabber.add(labelSize + 1,Tabber.LEFT); // value
+            if (labelSize > 0) myTabber.add(labelSize + 1,Tabber.LEFT); // value
 
-            if (mergeRanges && showCount) tabber.add(5,Tabber.RIGHT);
+            if (mergeRanges && showCount) myTabber.add(5,Tabber.RIGHT);
 
-            if (showLiteral != null) tabber.add(4,Tabber.LEFT);
+            if (showLiteral != null) myTabber.add(4,Tabber.LEFT);
             //myTabber.add(7,Tabber.LEFT);
 
             commentSeparator = (showCount || showLiteral != null
-              || getLabelSource(true) != UnicodeLabel.NULL
-              || getNameSource() != UnicodeLabel.NULL)
+              || getLabelSource(true) != UnicodeProperty.NULL
+              || getNameSource() != UnicodeProperty.NULL)
             ? "\t #" : "";
 
-            if (DEBUG) System.out.println("Tabber: " + tabber.toString());
-            if (DEBUG) System.out.println("Tabber: " + tabber.process("a\tb\td\td\tf\tg\th"));
+            if (DEBUG) System.out.println("Tabber: " + myTabber.toString());
+            if (DEBUG) System.out.println("Tabber: " + myTabber.process("a\tb\td\td\tf\tg\th"));
             doAt(c);
         }
 
@@ -543,7 +517,7 @@ public class BagFormatter {
 
         protected void doBefore(Object container, Object o) {
             if (showSetAlso && container instanceof UnicodeSet) {
-              toOutput("#" + container);
+                output.print("#" + container +  lineSeparator );
             }
         }
 
@@ -552,15 +526,13 @@ public class BagFormatter {
 
         protected void doAfter(Object container, Object o) {
             if (fullTotal != -1 && fullTotal != counter) {
-                if (showTotal) {
-                    toOutput("");
-                    toOutput("# The above property value applies to " + nf.format(fullTotal-counter) + " code points not listed here.");
-                    toOutput("# Total code points: " + nf.format(fullTotal));
-                }
+                output.print(lineSeparator);
+                output.print("# The above property value applies to " + nf.format(fullTotal-counter) + " code points not listed here." + lineSeparator);
+                output.print("# Total code points: " + nf.format(fullTotal) + lineSeparator);
                 fullTotal = -1;
-            } else if (showTotal) {
-                toOutput("");
-                toOutput("# Total code points: " + nf.format(counter));
+            } else {
+                output.print(lineSeparator);
+                output.print("# Total code points: " + nf.format(counter) + lineSeparator);
             }
         }
 
@@ -571,7 +543,7 @@ public class BagFormatter {
                 Object value = oo.getValue();
                 doBefore(o, key);
                 doAt(key);
-                output.println("\u2192");
+                output.print("->");
                 doAt(value);
                 doAfter(o, value);
                 counter++;
@@ -580,17 +552,19 @@ public class BagFormatter {
             } else {
                 String thing = o.toString();
                 String value = getValueSource() == UnicodeLabel.NULL ? "" : getValueSource().getValue(thing, ",", true);
-                if (getValueSource() != UnicodeLabel.NULL) value = "\t; " + value;
-                String label = getLabelSource(true) == UnicodeLabel.NULL ? "" : getLabelSource(true).getValue(thing, ",", true);
+                if (value.length() != 0) value = "\t; " + value;
+                String label = getLabelSource(true).getValue(thing, ",", true);
                 if (label.length() != 0) label = " " + label;
-                toTable(
-                    hex(thing)
-                    + value
-                    + commentSeparator
-                    + label
-                    + insertLiteral(thing)
-                    + "\t"
-                    + getName(thing));
+                output.print(
+                    myTabber.process(
+                        hex(thing)
+							+ value
+                            + commentSeparator
+							+ label
+                            + insertLiteral(thing)
+                            + "\t"
+                            + getName(thing))
+                    +  lineSeparator );
                 counter++;
             }
         }
@@ -635,15 +609,17 @@ public class BagFormatter {
                 else count = "\t ["+ nf.format(end - start + 1)+ "]";
            }
 
-            toTable(
-                hex(start, end)
-                + pn
-                + value
-                + commentSeparator
-                + label
-                + count
-                + insertLiteral(start, end)
-                + getName("\t ", start, end));
+            output.print(
+                myTabber.process(
+                    hex(start, end)
+                        + pn
+                        + value
+                        + commentSeparator
+                        + label
+                        + count
+                        + insertLiteral(start, end)
+                        + getName("\t ", start, end))
+                +  lineSeparator );
         }
 
         private String insertLiteral(String thing) {
@@ -1108,21 +1084,5 @@ public class BagFormatter {
 	public void setFixName(Transliterator fixName) {
 		this.fixName = fixName;
 	}
-
-    public Tabber getTabber() {
-        return tabber;
-    }
-
-    public void setTabber(Tabber tabber) {
-        this.tabber = tabber;
-    }
-
-    public boolean isShowTotal() {
-        return showTotal;
-    }
-
-    public void setShowTotal(boolean showTotal) {
-        this.showTotal = showTotal;
-    }
 }
 //#endif

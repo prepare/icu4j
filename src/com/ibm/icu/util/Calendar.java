@@ -1,28 +1,42 @@
 /*
-*   Copyright (C) 1996-2007, International Business Machines
+*   Copyright (C) 1996-2006, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 */
 
 package com.ibm.icu.util;
 
+import com.ibm.icu.impl.ICULocaleService;
+import com.ibm.icu.impl.ICULocaleService.LocaleKeyFactory;
+import com.ibm.icu.impl.ICUResourceBundle;
+import com.ibm.icu.impl.ICUService.Factory;
+import com.ibm.icu.impl.CalendarData;
+import com.ibm.icu.text.DateFormat;
+import com.ibm.icu.text.DateFormatSymbols;
+import com.ibm.icu.text.SimpleDateFormat;
+import com.ibm.icu.util.TimeZone;
+import com.ibm.icu.util.BuddhistCalendar;
+import com.ibm.icu.util.ChineseCalendar;
+import com.ibm.icu.util.CopticCalendar;
+import com.ibm.icu.util.EthiopicCalendar;
+import com.ibm.icu.util.GregorianCalendar;
+import com.ibm.icu.util.HebrewCalendar;
+import com.ibm.icu.util.IslamicCalendar;
+import com.ibm.icu.util.JapaneseCalendar;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.text.MessageFormat;
+import java.util.Collections;
 import java.util.Date;
 import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 import java.util.MissingResourceException;
+import java.util.ResourceBundle;
 import java.util.Set;
-
-import com.ibm.icu.impl.CalendarData;
-import com.ibm.icu.impl.ICUCache;
-import com.ibm.icu.impl.ICUResourceBundle;
-import com.ibm.icu.impl.SimpleCache;
-import com.ibm.icu.text.DateFormat;
-import com.ibm.icu.text.DateFormatSymbols;
-import com.ibm.icu.text.MessageFormat;
-import com.ibm.icu.text.SimpleDateFormat;
 
 /**
  * <code>Calendar</code> is an abstract base class for converting between
@@ -1562,7 +1576,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
      */
     public static synchronized Calendar getInstance()
     {
-        return getInstanceInternal(null, null);
+        return getInstance(TimeZone.getDefault(), ULocale.getDefault(), null);
     }
 
     /**
@@ -1573,7 +1587,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
      */
     public static synchronized Calendar getInstance(TimeZone zone)
     {
-        return getInstanceInternal(zone, null);
+        return getInstance(zone, ULocale.getDefault(), null);
     }
 
     /**
@@ -1584,7 +1598,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
      */
     public static synchronized Calendar getInstance(Locale aLocale)
     {
-        return getInstanceInternal(null, ULocale.forLocale(aLocale));
+        return getInstance(TimeZone.getDefault(), ULocale.forLocale(aLocale), null);
     }
 
     /**
@@ -1596,7 +1610,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
      */
     public static synchronized Calendar getInstance(ULocale locale)
     {
-        return getInstanceInternal(null, locale);
+        return getInstance(TimeZone.getDefault(), locale, null);
     }
 
     /**
@@ -1608,7 +1622,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
      */
     public static synchronized Calendar getInstance(TimeZone zone,
                                                     Locale aLocale) {
-        return getInstanceInternal(zone, ULocale.forLocale(aLocale));
+        return getInstance(zone, ULocale.forLocale(aLocale), null);
     }
 
     /**
@@ -1621,26 +1635,69 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
      */
     public static synchronized Calendar getInstance(TimeZone zone,
                                                     ULocale locale) {
-        return getInstanceInternal(zone, locale);
+        return getInstance(zone, locale, null);
     }
 
-    /*
-     * All getInstance implementations call this private method to create a new
-     * Calendar instance.
-     */ 
-    private static Calendar getInstanceInternal(TimeZone tz, ULocale locale) {
-        if (locale == null) {
-            locale = ULocale.getDefault();
+    // ==== Factory Stuff ====
+    ///CLOVER:OFF
+    /**
+     * Return a calendar of for the TimeZone and locale.  If factoryName is
+     * not null, looks in the collection of CalendarFactories for a match
+     * and uses that factory to instantiate the calendar.  Otherwise, it
+     * uses the default factory that has been registered for the locale.
+     * @prototype
+     */
+    /* public */ static synchronized Calendar getInstance(TimeZone zone,
+                                                    ULocale locale,
+                                                    String factoryName)
+    {
+        CalendarFactory factory = null;
+        if (factoryName != null) {
+            factory = (CalendarFactory)getFactoryMap().get(factoryName);
         }
-        if (tz == null) {
-            tz = TimeZone.getDefault();
-        }
-        Calendar cal = getShim().createInstance(locale);
-        cal.setTimeZone(tz);
-        cal.setTimeInMillis(System.currentTimeMillis());
-        return cal;
-    }
 
+        ULocale[] actualReturn = new ULocale[1];
+        if (factory == null && service != null) {
+            factory = (CalendarFactory)service.get(locale, actualReturn);
+        }
+
+        if (factory == null) {
+            int calType = getCalendarType(locale);
+            switch (calType) {
+            case BUDDHIST:
+                return new BuddhistCalendar(zone, locale);
+            case CHINESE:
+                return new ChineseCalendar(zone, locale);
+            case COPTIC:
+                return new CopticCalendar(zone, locale);
+            case ETHIOPIC:
+                return new EthiopicCalendar(zone, locale);
+            case GREGORIAN:
+                return new GregorianCalendar(zone, locale);
+            case HEBREW:
+                return new HebrewCalendar(zone, locale);
+            case ISLAMIC:
+            case ISLAMIC_CIVIL: {
+                IslamicCalendar result = new IslamicCalendar(zone, locale);
+                result.setCivil(calType == ISLAMIC_CIVIL);
+                return result;
+            }
+            case JAPANESE:
+                return new JapaneseCalendar(zone, locale);
+            default:
+                throw new IllegalStateException();
+            }
+        } else {
+            Calendar result = factory.create(zone, locale);
+
+            // TODO: get the actual/valid locale properly
+            ULocale uloc = actualReturn[0];
+            result.setLocale(uloc, uloc);
+
+            return result;
+        }
+    }
+    
     private static final int BUDDHIST = 0;
     private static final int CHINESE = 1;
     private static final int COPTIC = 2;
@@ -1678,6 +1735,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
         return GREGORIAN;
     }
 
+    ///CLOVER:ON
     /**
      * Gets the list of locales for which Calendars are installed.
      * @return the list of locales for which Calendars are installed.
@@ -1685,10 +1743,9 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
      */
     public static Locale[] getAvailableLocales()
     {
-        if (shim == null) {
-            return ICUResourceBundle.getAvailableLocales(ICUResourceBundle.ICU_BASE_NAME);
-        }
-        return getShim().getAvailableLocales();
+        return service == null
+            ? ICUResourceBundle.getAvailableLocales(ICUResourceBundle.ICU_BASE_NAME)
+            : service.getAvailableLocales();
     }
 
     /**
@@ -1699,103 +1756,75 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
      */
     public static ULocale[] getAvailableULocales()
     {
-        if (shim == null) {
-            return ICUResourceBundle.getAvailableULocales(ICUResourceBundle.ICU_BASE_NAME);
-        }
-        return getShim().getAvailableULocales();
-    }
-
-    // ==== Factory Stuff ====
-    /**
-     * A CalendarFactory is used to register new calendar implementation.
-     * The factory should be able to create a calendar instance for the
-     * specified locale.
-     *
-     * @prototype
-     */
-    /* public */ static abstract class CalendarFactory {
-        public boolean visible() {
-            return true;
-        }
-
-        public abstract Set getSupportedLocaleNames();
-
-        public Calendar createCalendar(ULocale loc) {
-            return null;
-        }
-
-        protected CalendarFactory() {
-        }
-    }
-
-    //  shim so we can build without service code
-    static abstract class CalendarShim {
-        abstract Locale[] getAvailableLocales();
-        abstract ULocale[] getAvailableULocales();
-        abstract Object registerFactory(CalendarFactory factory);
-        abstract boolean unregister(Object k);
-        abstract Calendar createInstance(ULocale l);
-    }
-
-    private static CalendarShim shim;
-    private static CalendarShim getShim() {
-        if (shim == null) {
-            try {
-                Class cls = Class.forName("com.ibm.icu.util.CalendarServiceShim");
-                shim = (CalendarShim)cls.newInstance();
-            }
-            catch (MissingResourceException e) {
-                throw e;
-            }
-            catch (Exception e) {
-                throw new RuntimeException(e.getMessage());
-            }
-        }
-        return shim;
-    }
-
-    static Calendar createInstance(ULocale locale) {
-        int calType = getCalendarType(locale);
-        TimeZone zone = TimeZone.getDefault();
-
-        switch (calType) {
-        case BUDDHIST:
-            return new BuddhistCalendar(zone, locale);
-        case CHINESE:
-            return new ChineseCalendar(zone, locale);
-        case COPTIC:
-            return new CopticCalendar(zone, locale);
-        case ETHIOPIC:
-            return new EthiopicCalendar(zone, locale);
-        case GREGORIAN:
-            return new GregorianCalendar(zone, locale);
-        case HEBREW:
-            return new HebrewCalendar(zone, locale);
-        case ISLAMIC:
-        case ISLAMIC_CIVIL: {
-            IslamicCalendar result = new IslamicCalendar(zone, locale);
-            result.setCivil(calType == ISLAMIC_CIVIL);
-            return result;
-        }
-        case JAPANESE:
-            return new JapaneseCalendar(zone, locale);
-        default:
-            throw new IllegalStateException();
-        }
+        return service == null
+            ? ICUResourceBundle.getAvailableULocales(ICUResourceBundle.ICU_BASE_NAME)
+            : service.getAvailableULocales();
     }
 
     ///CLOVER:OFF
+    private static Map factoryMap;
+    private static Map getFactoryMap() {
+        if (factoryMap == null) {
+            Map m = new HashMap(5);
+            /*
+            addFactory(m, BuddhistCalendar.factory());
+            addFactory(m, ChineseCalendar.factory());
+            addFactory(m, GregorianCalendar.factory());
+            addFactory(m, HebrewCalendar.factory());
+            addFactory(m, IslamicCalendar.factory());
+            addFactory(m, JapaneseCalendar.factory());
+            */
+            factoryMap = m;
+        }
+        return factoryMap;
+    }
+
+// Never used -- why is this here? Alan 2003-05
+//    private static void addFactory(Map m, CalendarFactory f) {
+//        m.put(f.factoryName(), f);
+//    }
+
+    /**
+     * Return a set of all the registered calendar factory names.
+     * @prototype
+     */
+    /* public */ static Set getCalendarFactoryNames() {
+        return Collections.unmodifiableSet(getFactoryMap().keySet());
+    }
+
     /**
      * Register a new CalendarFactory.  getInstance(TimeZone, ULocale, String) will
      * try to locate a registered factories matching the factoryName.  Only registered
      * factories will be found.
      * @prototype
      */
-    /* public */ static Object registerFactory(CalendarFactory factory) {
+    private static void registerFactory(CalendarFactory factory) {
         if (factory == null) {
-            throw new IllegalArgumentException("factory must not be null");
+            throw new IllegalArgumentException("Factory must not be null");
         }
-        return getShim().registerFactory(factory);
+        getFactoryMap().put(factory.factoryName(), factory);
+    }
+
+    /**
+     * Convenience override of register(CalendarFactory, ULocale, boolean);
+     * @prototype
+     */
+    /* public */ static Object register(CalendarFactory factory, ULocale locale) {
+        return register(factory, locale, true);
+    }
+
+    /**
+     * Registers a default CalendarFactory for the provided locale.
+     * If the factory has not already been registered with
+     * registerFactory, it will be.
+     * @prototype
+     */
+    /* public */ static Object register(CalendarFactory factory, ULocale locale, boolean visible) {
+        if (factory == null) {
+            throw new IllegalArgumentException("calendar must not be null");
+        }
+        registerFactory(factory);
+        return getService().registerObject(factory, locale, visible);
     }
 
     /**
@@ -1804,17 +1833,20 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
      * @prototype
      */
     /* public */ static boolean unregister(Object registryKey) {
-        if (registryKey == null) {
-            throw new IllegalArgumentException("registryKey must not be null");
-        }
-
-        if (shim == null) {
-            return false;
-        }
-
-        return shim.unregister(registryKey);
+        return service == null
+            ? false
+            : service.unregisterFactory((Factory)registryKey);
     }
 
+    private static ICULocaleService service = null;
+    private static ICULocaleService getService() {
+        synchronized (Calendar.class) {
+            if (service == null) {
+                service = new ICULocaleService("Calendar");
+            }
+        }
+        return service;
+    }
     ///CLOVER:ON
     // ==== End of factory Stuff ====
 
@@ -3016,94 +3048,49 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
      * @provisional This API might change or be removed in a future release.
      */
     protected DateFormat handleGetDateFormat(String pattern, ULocale locale) {
-        FormatConfiguration fmtConfig = new FormatConfiguration();
-        fmtConfig.pattern = pattern;
-        fmtConfig.formatData = new DateFormatSymbols(this, locale);
-        fmtConfig.loc = locale;
-        fmtConfig.cal = this;
-
-        return SimpleDateFormat.getInstance(fmtConfig);
+        DateFormatSymbols symbols = new DateFormatSymbols(this, locale);
+        return new SimpleDateFormat(pattern, symbols, locale);
     }
 
-    // date format pattern cache
-    private static final ICUCache PATTERN_CACHE = new SimpleCache();
-    // final fallback patterns
-    private static final String[] DEFAULT_PATTERNS = {
-        "HH:mm:ss z",
-        "HH:mm:ss z",
-        "HH:mm:ss",
-        "HH:mm",
-        "EEEE, yyyy MMMM dd",
-        "yyyy MMMM d",
-        "yyyy MMM d",
-        "yy/MM/dd",
-        "{1} {0}"
-    };
-
-    static private DateFormat formatHelper(Calendar cal, ULocale loc, int dateStyle, int timeStyle) {
-        // First, try to get a pattern from PATTERN_CACHE
-        String key = loc.toString() + cal.getType();
-        String[] patterns = (String[])PATTERN_CACHE.get(key);
-        if (patterns == null) {
-            // Cache missed.  Get one from bundle
+    static private DateFormat formatHelper(Calendar cal, ULocale loc,
+                                            int dateStyle, int timeStyle)
+    {
+        // See if there are any custom resources for this calendar
+        // If not, just use the default DateFormat
+        DateFormat result = null;
+ 
             try {
                 CalendarData calData = new CalendarData(loc, cal.getType());
-                patterns = calData.get("DateTimePatterns").getStringArray();
+               String[] patterns = calData.get("DateTimePatterns").getStringArray();
+
+                String pattern = null;
+                if ((timeStyle >= 0) && (dateStyle >= 0)) {
+                    Object[] dateTimeArgs = { patterns[timeStyle],
+                                              patterns[dateStyle + 4] };
+                    pattern = MessageFormat.format(patterns[8], dateTimeArgs);
+                }
+                else if (timeStyle >= 0) {
+                    pattern = patterns[timeStyle];
+                }
+                else if (dateStyle >= 0) {
+                    pattern = patterns[dateStyle + 4];
+                }
+                else {
+                    throw new IllegalArgumentException("No date or time style specified");
+                }
+                result = cal.handleGetDateFormat(pattern, loc);
             } catch (MissingResourceException e) {
-                patterns = DEFAULT_PATTERNS;
+                // !!! need dateformat subclass appropriate to calendar type here!
+                // No custom patterns
+                // !!! note: possible circularity here, if getDateTimeInstance calls us because of
+                // loc specifying a calendar.
+                result = DateFormat.getDateTimeInstance(dateStyle, timeStyle, loc);
+
+                DateFormatSymbols symbols = new DateFormatSymbols(cal, loc);
+                ((SimpleDateFormat) result).setDateFormatSymbols(symbols); // aliu
             }
-            PATTERN_CACHE.put(key, patterns);
-        }
-        // Resolve a pattern for the date/time style
-        String pattern = null;
-        if ((timeStyle >= 0) && (dateStyle >= 0)) {
-            pattern = MessageFormat.format(patterns[8],
-                    new Object[] {patterns[timeStyle], patterns[dateStyle + 4]});
-        } else if (timeStyle >= 0) {
-            pattern = patterns[timeStyle];
-        } else if (dateStyle >= 0) {
-            pattern = patterns[dateStyle + 4];
-        } else {
-            throw new IllegalArgumentException("No date or time style specified");
-        }
-        DateFormat result = cal.handleGetDateFormat(pattern, loc);
         result.setCalendar(cal);
         return result;
-    }
-
-    /**
-     * An instance of FormatConfiguration represents calendar specific
-     * date format configuration and used for calling the ICU private
-     * SimpleDateFormat factory method.
-     * 
-     * @internal
-     * @deprecated This API is ICU internal only.
-     */
-    public static class FormatConfiguration {
-        private String pattern;
-        private DateFormatSymbols formatData;
-        private Calendar cal;
-        private ULocale loc;
-
-        // Only Calendar can instantiate
-        private FormatConfiguration() {
-        }
-
-        public String getPatternString() {
-            return pattern;
-        }
-
-        public Calendar getCalendar() {
-            return cal;
-        }
-
-        public ULocale getLocale() {
-            return loc;
-        }
-
-        public DateFormatSymbols getDateFormatSymbols() {
-            return formatData;
-        }
     }
 
     //-------------------------------------------------------------------------
@@ -4632,36 +4619,6 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
     protected int[] handleCreateFields() {
         return new int[BASE_FIELD_COUNT];
     }
-    
-    /**
-     * Subclasses may override this. 
-     * Called by handleComputeJulianDay.  Returns the default month (0-based) for the year,
-     * taking year and era into account.  Defaults to 0 (JANUARY) for Gregorian.
-     * @param extendedYear the extendedYear, as returned by handleGetExtendedYear
-     * @return the default month
-     * @provisional ICU 3.6
-     * @draft ICU 3.6
-     * @see #MONTH
-     */
-    protected int getDefaultMonthInYear(int extendedYear) {
-        return Calendar.JANUARY;
-    }
-
-    /**
-     * Subclasses may override this. 
-     * Called by handleComputeJulianDay.  Returns the default day (1-based) for the month,
-     * taking currently-set year and era into account.  Defaults to 1 for Gregorian.
-     * @param extendedYear the extendedYear, as returned by handleGetExtendedYear
-     * @param month the month, as returned by getDefaultMonthInYear
-     * @return the default day of the month
-     * @draft ICU 3.6
-     * @provisional ICU 3.6
-     * @see #DAY_OF_MONTH
-     */
-    protected int getDefaultDayInMonth(int extendedYear, int month) {
-        return 1;
-    }
-
 
     /**
      * Subclasses may override this.  This method calls
@@ -4678,20 +4635,12 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
         int year = handleGetExtendedYear();
         internalSet(EXTENDED_YEAR, year);
 
-        int month = useMonth ? internalGet(MONTH, getDefaultMonthInYear(year)) : 0;
-        
-        int dom = internalGet(DAY_OF_MONTH, getDefaultDayInMonth(year, month));
-        
         // Get the Julian day of the day BEFORE the start of this year.
         // If useMonth is true, get the day before the start of the month.
-        int julianDay = handleComputeMonthStart(year, month, useMonth);
+        int julianDay = handleComputeMonthStart(year, useMonth ? internalGet(MONTH) : 0, useMonth);
 
         if (bestField == DAY_OF_MONTH) {
-            if(isSet(DAY_OF_MONTH)) {
-                return julianDay + internalGet(DAY_OF_MONTH, getDefaultDayInMonth(year, month));
-            } else {
-                return julianDay + getDefaultDayInMonth(year, month);
-            }
+            return julianDay + internalGet(DAY_OF_MONTH, 1);
         }
 
         if (bestField == DAY_OF_YEAR) {
@@ -5147,7 +5096,6 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
      * Note, in 3.0 this function will return 'gregorian' in Calendar to emulate legacy behavior
      * @return type of calendar (gregorian, etc)
      * @internal ICU 3.0
-     * @deprecated This API is ICU internal only.
      */
     public String getType() {
         return "gregorian";

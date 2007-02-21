@@ -1,6 +1,6 @@
 /**
  *******************************************************************************
- * Copyright (C) 2001-2006, International Business Machines Corporation and    *
+ * Copyright (C) 2001-2004, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -62,12 +62,5 @@ public class CaseInsensitiveString {
             hash = UCharacter.foldCase(string, true).hashCode();
         }
         return hash;
-    }
-    /**
-     * Overrides superclass method
-     * @stable ICU 3.6
-     */
-    public String toString() {
-    	return string;
     }
 }

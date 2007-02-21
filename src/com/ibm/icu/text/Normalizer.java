@@ -1760,7 +1760,7 @@ public final class Normalizer implements Cloneable {
      * @param c The code point whose closure set is to be retrieved
      * @param dest The char array to recive the closure set
      * @internal
-     * @deprecated This API is ICU internal only.
+     * @stable ICU 2.4
      */
     public static int getFC_NFKC_Closure(int c,char[] dest) {
         return NormalizerImpl.getFC_NFKC_Closure(c,dest);
@@ -1770,7 +1770,7 @@ public final class Normalizer implements Cloneable {
      * @param c The the code point whose closure set is to be retrieved
      * @return String representation of the closure set
      * @internal
-     * @deprecated This API is ICU internal only.
+     * @stable ICU 2.4
      */ 
     public static String getFC_NFKC_Closure(int c) {
         char[] dest = new char[10];
@@ -2689,7 +2689,6 @@ public final class Normalizer implements Cloneable {
     /**
      * Internal API
      * @internal
-     * @deprecated This API is ICU internal only.
      */
     public static boolean isNFSkippable(int c, Mode mode) {
         return mode.isNFSkippable(c);
@@ -2800,6 +2799,7 @@ public final class Normalizer implements Cloneable {
                 
         }
         
+
         result=NormalizerImpl.cmpEquivFold(s1, s1Start, s1Limit, 
                                            s2, s2Start, s2Limit, options);
         return result;
@@ -2809,7 +2809,7 @@ public final class Normalizer implements Cloneable {
      * Fetches the Unicode version burned into the Normalization data file
      * @return VersionInfo version information of the normalizer
      * @internal
-     * @deprecated This API is ICU internal only.
+     * @author ram
      */
     static VersionInfo getUnicodeVersion() {
         return NormalizerImpl.getUnicodeVersion();

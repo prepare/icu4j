@@ -1,12 +1,10 @@
 /*
  *******************************************************************************
- * Copyright (C) 2004-2007, International Business Machines Corporation and    *
+ * Copyright (C) 2004-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
 */
 package com.ibm.icu.util;
-
-import java.util.MissingResourceException;
 
 import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.text.UnicodeSet;
@@ -99,7 +97,8 @@ public final class LocaleData {
      *                  IGNORE_SPACE bit is always set, regardless of the
      *                  value of 'options'.
      * @return          The set of exemplar characters for the given locale.
-     * @stable ICU 3.0
+     * @draft ICU 3.0
+     * @provisional This API might change or be removed in a future release.
      */
     public static UnicodeSet getExemplarSet(ULocale locale, int options) {
         ICUResourceBundle bundle = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, locale);
@@ -126,19 +125,12 @@ public final class LocaleData {
      */
     public UnicodeSet getExemplarSet(int options, int extype) {
         String [] exemplarSetTypes = { "ExemplarCharacters", "AuxExemplarCharacters" };
-        try{
-            ICUResourceBundle stringBundle = (ICUResourceBundle) bundle.get(exemplarSetTypes[extype]);
-    
-            if ( noSubstitute && (stringBundle.getLoadingStatus() == ICUResourceBundle.FROM_ROOT) )
-               return null;
-    
-            return new UnicodeSet(stringBundle.getString(), UnicodeSet.IGNORE_SPACE | options);
-        }catch(MissingResourceException ex){
-            if(extype==LocaleData.ES_AUXILIARY){
-                return new UnicodeSet();
-            }
-            throw ex;
-        }
+        ICUResourceBundle stringBundle = bundle.get(exemplarSetTypes[extype]);
+
+        if ( noSubstitute && (stringBundle.getLoadingStatus() == ICUResourceBundle.FROM_ROOT) )
+           return null;
+
+        return new UnicodeSet(stringBundle.getString(), UnicodeSet.IGNORE_SPACE | options);
     }
 
     /**
@@ -211,7 +203,7 @@ public final class LocaleData {
                                      "alternateQuotationStart", 
                                      "alternateQuotationEnd" };
 
-        ICUResourceBundle stringBundle = (ICUResourceBundle) bundle.get("delimiters").get(delimiterTypes[type]);
+        ICUResourceBundle stringBundle = bundle.get("delimiters").get(delimiterTypes[type]);
 
         if ( noSubstitute && (stringBundle.getLoadingStatus() == ICUResourceBundle.FROM_ROOT) )
            return null;
@@ -252,11 +244,12 @@ public final class LocaleData {
      *
      * @param locale      The locale for which the measurement system to be retrieved.
      * @return MeasurementSystem the measurement system used in the locale.
-     * @stable ICU 3.0
+     * @draft ICU 3.0
+     * @provisional This API might change or be removed in a future release.
      */
     public static final MeasurementSystem getMeasurementSystem(ULocale locale){
-        UResourceBundle bundle = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, locale);
-        UResourceBundle sysBundle = bundle.get(MEASUREMENT_SYSTEM);
+        ICUResourceBundle bundle = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, locale);
+        ICUResourceBundle sysBundle = bundle.get(MEASUREMENT_SYSTEM);
         
         int system = sysBundle.getInt();
         if(MeasurementSystem.US.equals(system)){
@@ -306,11 +299,12 @@ public final class LocaleData {
      * <em> milli-meters<em>.
      * @param locale The locale for which the measurement system to be retrieved. 
      * @return The paper size used in the locale
-     * @stable ICU 3.0
+     * @draft ICU 3.0
+     * @provisional This API might change or be removed in a future release.
      */
     public static final PaperSize getPaperSize(ULocale locale){
-        UResourceBundle bundle = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, locale);
-        UResourceBundle obj = bundle.get(PAPER_SIZE);
+        ICUResourceBundle bundle = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, locale);
+        ICUResourceBundle obj = bundle.get(PAPER_SIZE);
         int[] size = obj.getIntVector();
         return new PaperSize(size[0], size[1]);
     }

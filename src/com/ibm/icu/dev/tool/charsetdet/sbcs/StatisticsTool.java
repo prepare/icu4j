@@ -1,7 +1,7 @@
 /*
  ***********************************************************************
- * Copyright (C) 2005-2007, International Business Machines            *
- * Corporation and others. All Rights Reserved.                        *
+ * Copyright (C) 2005, International Business Machines Corporation and *
+ * others. All Rights Reserved.                                        *
  ***********************************************************************
  *
  */
@@ -102,10 +102,10 @@ public class StatisticsTool implements NGramParser.NGramParserClient, NGramList.
         System.out.println(usageString);
     }
     
-//    private static void exceptionError(Exception e)
-//    {
-//        System.err.println("ioError: " + e.toString());
-//    }
+    private static void exceptionError(Exception e)
+    {
+        System.err.println("ioError: " + e.toString());
+    }
 
     private int nextBuffer(InputFile inputFile)
     {
@@ -257,7 +257,7 @@ public class StatisticsTool implements NGramParser.NGramParserClient, NGramList.
     
     public NGramList collectStatistics(InputFile file)
     {
-        if (!file.open()) {
+        if (!file.open()) {;
             return null;
         }
         

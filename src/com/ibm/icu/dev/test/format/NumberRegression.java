@@ -1,7 +1,7 @@
 //##header
 /*****************************************************************************************
  *
- * Copyright (C) 1996-2007, International Business Machines
+ * Copyright (C) 1996-2005, International Business Machines
  * Corporation and others.  All Rights Reserved.
  **/
 
@@ -470,7 +470,7 @@ public class NumberRegression extends com.ibm.icu.dev.test.TestFmwk {
         */
         String expectedDefault = "-5\u00a0789,988";
         String expectedCurrency = "5\u00a0789,99 " + EURO; // euro
-        String expectedPercent = "-578\u00a0999\u00a0%";
+        String expectedPercent = "-578\u00a0999%";
 
         formatter = NumberFormat.getNumberInstance(Locale.FRANCE);
         tempString = formatter.format (-5789.9876);
@@ -521,7 +521,7 @@ public class NumberRegression extends com.ibm.icu.dev.test.TestFmwk {
     */
         String expectedDefault = "-5\u00a0789,988";
         String expectedCurrency = "5\u00a0789,99 $";
-        String expectedPercent = "-578\u00a0999\u00A0%";
+        String expectedPercent = "-578\u00a0999%";
 
         formatter = NumberFormat.getNumberInstance(Locale.CANADA_FRENCH);
         tempString = formatter.format (-5789.9876);
@@ -953,14 +953,14 @@ public class NumberRegression extends com.ibm.icu.dev.test.TestFmwk {
         Locale[] locales = NumberFormat.getAvailableLocales();
         
         for (int i = 0; i < locales.length; i++) {
-            UResourceBundle rb = UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME,locales[i]);
+            ICUResourceBundle rb = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME,locales[i]);
 
             //
             // Get the currency pattern for this locale.  We have to fish it
             // out of the ResourceBundle directly, since DecimalFormat.toPattern
             // will return the localized symbol, not \00a4
             //
-            UResourceBundle numPatterns = rb.get("NumberPatterns");
+            ICUResourceBundle numPatterns = rb.get("NumberPatterns");
             String pattern = numPatterns.getString(1);
             
             if (pattern.indexOf('\u00A4') == -1 ) { // 'x' not "x" -- workaround bug in IBM JDK 1.4.1
@@ -1561,26 +1561,11 @@ public class NumberRegression extends com.ibm.icu.dev.test.TestFmwk {
 
                 // Test toLocalizedPattern/applyLocalizedPattern round trip
                 pat = df.toLocalizedPattern();
-                try{
-                    f2.applyLocalizedPattern(pat);
-                    
-                    String s1 = f2.format(123456);
-                    String s2 = df.format(123456);
-                    if(!s1.equals(s2)){
-                        errln("FAIL: " + avail[i] + " #" + j + " -> localized \"" + s2 +
-                                "\" -> \"" + s2 + '"'+ " in locale "+df.getLocale(ULocale.ACTUAL_LOCALE));
-  
-                    }
-                    if (!df.equals(f2)) {
-                        errln("FAIL: " + avail[i] + " #" + j + " -> localized \"" + pat +
-                              "\" -> \"" + f2.toLocalizedPattern() + '"'+ " in locale "+df.getLocale(ULocale.ACTUAL_LOCALE));
-                        errln("s1: "+s1+" s2: "+s2);
-                    }
-                   
-                }catch(IllegalArgumentException ex){
-                    errln(ex.getMessage()+" for locale "+ df.getLocale(ULocale.ACTUAL_LOCALE));
+                f2.applyLocalizedPattern(pat);
+                if (!df.equals(f2)) {
+                    errln("FAIL: " + avail[i] + " #" + j + " -> localized \"" + pat +
+                          "\" -> \"" + f2.toLocalizedPattern() + '"');
                 }
-                
 
                 // Test writeObject/readObject round trip
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();

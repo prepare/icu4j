@@ -1,7 +1,7 @@
 //##header
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -43,6 +43,11 @@ import java.util.Random;
  */
 public class TestFmwk extends AbstractTestLog {
     /**
+     * Puts a copyright in the .class file
+     */
+    private static final String copyrightNotice = "Copyright \u00a91997-2003 IBM Corp.  All rights reserved.";
+
+    /**
      * The default time zone for all of our tests. Used in Target.run();
      */
     private final static TimeZone defaultTimeZone = TimeZone.getTimeZone("PST");
@@ -69,12 +74,13 @@ public class TestFmwk extends AbstractTestLog {
         if(ex instanceof ExceptionInInitializerError){
             ex = ((ExceptionInInitializerError)ex).getException();
         }
+        
         String msg = ex.getMessage();
-        if(msg==null){
-            msg = "";
-        }
         //System.err.println("TF handleException msg: " + msg);
-        if (ex instanceof MissingResourceException || ex instanceof NoClassDefFoundError || msg.indexOf("java.util.MissingResourceException")>=0) {
+        if (ex instanceof MissingResourceException || ex instanceof NoClassDefFoundError ||
+                //IBM JDK 1.5.0 SR2 deviates from Java spec and throws a Throwable object    
+                ((ex instanceof Throwable) && (msg != null) && (msg.indexOf("MissingResourceException") > 0))) {
+        
             if (params.warnings || params.nodata) {
                 warnln(msg);
             } else if (params.nothrow) {
@@ -189,8 +195,9 @@ public class TestFmwk extends AbstractTestLog {
                     if (cls == null) { // hack no warning for missing tests
                         if (params.warnings) {
                             continue;
+                        } else {
+                            newTarget = this.new Target(names[i]);
                         }
-                        newTarget = this.new Target(names[i]);
                     } else {
                         TestFmwk test = getSubtest(i, groupOnly);
                         if (test != null) {
@@ -372,16 +379,11 @@ public class TestFmwk extends AbstractTestLog {
                     handleException(e);
                 }catch (NoClassDefFoundError e) {
                     handleException(e);
-                }catch (Exception e){
-                    /*errln("Encountered: "+ e.toString());
-                    e.printStackTrace(System.err);
-                    */
-                    handleException(e);
                 }
             }
         }
 
-        protected String getStackTrace(InvocationTargetException e) {
+        private String getStackTrace(InvocationTargetException e) {
             ByteArrayOutputStream bs = new ByteArrayOutputStream();
             PrintStream ps = new PrintStream(bs);
             e.getTargetException().printStackTrace(ps);
@@ -672,7 +674,7 @@ public class TestFmwk extends AbstractTestLog {
         Class cls = getClass();
         if (targetName != null) {
             try {
-                Method method = cls.getMethod(targetName, (Class[])null);
+                Method method = cls.getMethod(targetName, null);
                 return new MethodTarget(targetName, method);
             } catch (NoSuchMethodException e) {
                 return new Target(targetName); // invalid target
@@ -826,22 +828,7 @@ public class TestFmwk extends AbstractTestLog {
         pw.println(" If multiple targets are provided, each is executed in order.");
         pw.flush();
     }
-    public static String hex(char[] s){
-        StringBuffer result = new StringBuffer();
-        for (int i = 0; i < s.length; ++i) {
-            if (i != 0) result.append(',');
-            result.append(hex(s[i]));
-        }
-        return result.toString();
-    }
-    public static String hex(byte[] s){
-        StringBuffer result = new StringBuffer();
-        for (int i = 0; i < s.length; ++i) {
-            if (i != 0) result.append(',');
-            result.append(hex(s[i]));
-        }
-        return result.toString();
-    }
+
     public static String hex(char ch) {
         StringBuffer result = new StringBuffer();
         String foo = Integer.toString(ch, 16).toUpperCase();
@@ -1031,15 +1018,12 @@ public class TestFmwk extends AbstractTestLog {
         }
         
         public static TestParams create(String arglist, PrintWriter log) {
-            String[] args = null;
-            if (arglist != null && arglist.length() > 0) {
 //#ifndef FOUNDATION
-                args = arglist.split("\\s");
+            return create(arglist.split("\\s"), log);
 //#else
-//##            args = Utility.split(arglist, '\u0020');
+//##        return create(Utility.split(arglist, '\u0020'), log);
 //#endif
-            }
-            return create(args, log);
+
         }
         
         /**
@@ -1048,7 +1032,7 @@ public class TestFmwk extends AbstractTestLog {
          * Arguments and values understood by this method will be removed from the args array
          * and existing args will be shifted down, to be filled by nulls at the end.
          * @param args the list of arguments
-         * @param log the error log, or null if no error log is desired
+         * @param errlog the error log, or null if no error log is desired
          * @return the new TestParams object, or null if error
          */
         public static TestParams create(String[] args, PrintWriter log) {
@@ -1063,115 +1047,113 @@ public class TestFmwk extends AbstractTestLog {
             boolean usageError = false;
             String filter = null;
             int wx = 0; // write argets.
-            if (args != null) {
-                for (int i = 0; i < args.length; i++) {
-                    String arg = args[i];
-                    if (arg == null || arg.length() == 0) {
-                        continue;
-                    }
-                    if (arg.charAt(0) == '-') {
-                        arg = arg.toLowerCase();
-                        if (arg.equals("-verbose") || arg.equals("-v")) {
-                            params.verbose = true;
-                            params.quiet = false;
-                        } else if (arg.equals("-quiet") || arg.equals("-q")) {
-                            params.quiet = true;
-                            params.verbose = false;
-                        } else if (arg.equals("-help") || arg.equals("-h")) {
-                            usageError = true;
-                        } else if (arg.equals("-warning") || arg.equals("-w")) {
-                            params.warnings = true;
-                        } else if (arg.equals("-nodata") || arg.equals("-nd")) {
-                            params.nodata = true;
-                        } else if (arg.equals("-list") || arg.equals("-l")) {
-                            params.listlevel = 1;
-                        } else if (arg.equals("-listall") || arg.equals("-la")) {
-                            params.listlevel = 2;
-                        } else if (arg.equals("-listexaustive") || arg.equals("-le")) {
-                            params.listlevel = 3;
-                        } else if (arg.equals("-memory") || arg.equals("-m")) {
-                            params.memusage = true;
-                        } else if (arg.equals("-nothrow") || arg.equals("-n")) {
-                            params.nothrow = true;
-                            params.errorSummary = new StringBuffer();
-                        } else if (arg.equals("-describe") || arg.equals("-d")) {
-                            params.describe = true;
-                        } else if (arg.startsWith("-r")) {
-                            String s = null;
-                            int n = arg.indexOf(':');
-                            if (n != -1) {
-                                s = arg.substring(n + 1);
-                                arg = arg.substring(0, n);
-                            }
+            for (int i = 0; i < args.length; i++) {
+                String arg = args[i];
+                if (arg == null) {
+                    continue;
+                }
+                if (arg.charAt(0) == '-') {
+                    arg = arg.toLowerCase();
+                    if (arg.equals("-verbose") || arg.equals("-v")) {
+                        params.verbose = true;
+                        params.quiet = false;
+                    } else if (arg.equals("-quiet") || arg.equals("-q")) {
+                        params.quiet = true;
+                        params.verbose = false;
+                    } else if (arg.equals("-help") || arg.equals("-h")) {
+                        usageError = true;
+                    } else if (arg.equals("-warning") || arg.equals("-w")) {
+                        params.warnings = true;
+                    } else if (arg.equals("-nodata") || arg.equals("-nd")) {
+                        params.nodata = true;
+                    } else if (arg.equals("-list") || arg.equals("-l")) {
+                        params.listlevel = 1;
+                    } else if (arg.equals("-listall") || arg.equals("-la")) {
+                        params.listlevel = 2;
+                    } else if (arg.equals("-listexaustive") || arg.equals("-le")) {
+                        params.listlevel = 3;
+                    } else if (arg.equals("-memory") || arg.equals("-m")) {
+                        params.memusage = true;
+                    } else if (arg.equals("-nothrow") || arg.equals("-n")) {
+                        params.nothrow = true;
+                        params.errorSummary = new StringBuffer();
+                    } else if (arg.equals("-describe") || arg.equals("-d")) {
+                        params.describe = true;
+                    } else if (arg.startsWith("-r")) {
+                        String s = null;
+                        int n = arg.indexOf(':');
+                        if (n != -1) {
+                            s = arg.substring(n + 1);
+                            arg = arg.substring(0, n);
+                        }
 
-                            if (arg.equals("-r") || arg.equals("-random")) {
-                                if (s == null) {
-                                    params.seed = System.currentTimeMillis();
-                                } else {
-                                    params.seed = Long.parseLong(s);
-                                }
+                        if (arg.equals("-r") || arg.equals("-random")) {
+                            if (s == null) {
+                                params.seed = System.currentTimeMillis();
                             } else {
-                                log.println("*** Error: unrecognized argument: " + arg);
-                                usageError = true;
-                                break;
+                                params.seed = Long.parseLong(s);
                             }
-                        } else if (arg.startsWith("-e")) {
-                            // see above
-                            params.inclusion = (arg.length() == 2) 
-                                ? 5 
-                                : Integer.parseInt(arg.substring(2));
-                            if (params.inclusion < 0 || params.inclusion > 10) {
-                                usageError = true;
-                                break;
-                            }
-                        } else if (arg.startsWith("-tfilter:")) {
-                            params.tfilter = arg.substring(8);
-                        } else if (arg.startsWith("-time") || arg.startsWith("-t")) {
-                            long val = 0;
-                            int inx = arg.indexOf(':');
-                            if (inx > 0) {
-                                String num = arg.substring(inx + 1);
-                                try {
-                                    val = Long.parseLong(num);
-                                } catch (Exception e) {
-                                    log.println("*** Error: could not parse time threshold '"
-                                                + num + "'");
-                                    usageError = true;
-                                    break;
-                                }
-                            }
-                            params.timing = val;
-                            String fmt = "#,00s";
-                            if (val <= 10) {
-                                fmt = "#,##0.000s";
-                            } else if (val <= 100) {
-                                fmt = "#,##0.00s";
-                            } else if (val <= 1000) {
-                                fmt = "#,##0.0s";
-                            }
-                            params.tformat = new DecimalFormat(fmt);
-                        } else if (arg.startsWith("-filter:")) {
-                            String temp = arg.substring(8).toLowerCase();
-                            filter = filter == null ? temp : filter + "," + temp;
-                        } else if (arg.startsWith("-f:")) {
-                            String temp = arg.substring(3).toLowerCase();
-                            filter = filter == null ? temp : filter + "," + temp;
-                        } else if (arg.startsWith("-s")) {
-                            params.log = new NullWriter();
                         } else {
-                            log.println("*** Error: unrecognized argument: "
-                                        + args[i]);
+                            log.println("*** Error: unrecognized argument: " + arg);
                             usageError = true;
                             break;
                         }
+                    } else if (arg.startsWith("-e")) {
+                        // see above
+                        params.inclusion = (arg.length() == 2) 
+                            ? 5 
+                            : Integer.parseInt(arg.substring(2));
+                        if (params.inclusion < 0 || params.inclusion > 10) {
+                            usageError = true;
+                            break;
+                        }
+                    } else if (arg.startsWith("-tfilter:")) {
+                        params.tfilter = arg.substring(8);
+                    } else if (arg.startsWith("-time") || arg.startsWith("-t")) {
+                        long val = 0;
+                        int inx = arg.indexOf(':');
+                        if (inx > 0) {
+                            String num = arg.substring(inx + 1);
+                            try {
+                                val = Long.parseLong(num);
+                            } catch (Exception e) {
+                                log.println("*** Error: could not parse time threshold '"
+                                                + num + "'");
+                                usageError = true;
+                                break;
+                            }
+                        }
+                        params.timing = val;
+                        String fmt = "#,00s";
+                        if (val <= 10) {
+                            fmt = "#,##0.000s";
+                        } else if (val <= 100) {
+                            fmt = "#,##0.00s";
+                        } else if (val <= 1000) {
+                            fmt = "#,##0.0s";
+                        }
+                        params.tformat = new DecimalFormat(fmt);
+                    } else if (arg.startsWith("-filter:")) {
+                        String temp = arg.substring(8).toLowerCase();
+                        filter = filter == null ? temp : filter + "," + temp;
+                    } else if (arg.startsWith("-f:")) {
+                        String temp = arg.substring(3).toLowerCase();
+                        filter = filter == null ? temp : filter + "," + temp;
+                    } else if (arg.startsWith("-s")) {
+                        params.log = new NullWriter();
                     } else {
-                        args[wx++] = arg; // shift down
+                        log.println("*** Error: unrecognized argument: "
+                                + args[i]);
+                        usageError = true;
+                        break;
                     }
+                } else {
+                    args[wx++] = arg; // shift down
                 }
+            }
 
-                while (wx < args.length) {
-                    args[wx++] = null;
-                }
+            while (wx < args.length) {
+                args[wx++] = null;
             }
             
             if (usageError) {
@@ -1344,7 +1326,10 @@ public class TestFmwk extends AbstractTestLog {
 
         /**
          * Log access.
-         * @param msg The string message to write
+         * @param message
+         * @param level
+         * @param incCount
+         * @param newln
          */
         public void write(String msg) {
             write(msg, false);
@@ -1773,5 +1758,4 @@ public class TestFmwk extends AbstractTestLog {
     protected TestParams params = null;
 
     private final static String spaces = "                                          ";
-    
 }

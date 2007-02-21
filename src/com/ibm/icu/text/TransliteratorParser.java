@@ -1,11 +1,12 @@
 /*
 **********************************************************************
-*   Copyright (c) 2001-2006, International Business Machines
+*   Copyright (c) 2001-2005, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 **********************************************************************
 */
 package com.ibm.icu.text;
 
+import com.ibm.icu.impl.data.ResourceReader;
 import com.ibm.icu.impl.Utility;
 import java.util.Vector;
 import java.util.Hashtable;
@@ -332,10 +333,10 @@ class TransliteratorParser {
         }
     }
 
-    /*
+    /**
      * RuleBody subclass for a ResourceReader.
      */
-/*    private static class RuleReader extends RuleBody {
+    private static class RuleReader extends RuleBody {
         ResourceReader reader;
         public RuleReader(ResourceReader reader) { this.reader = reader; }
         public String handleNextLine() {
@@ -347,7 +348,7 @@ class TransliteratorParser {
         public void reset() {
             reader.reset();
         }
-    }*/
+    }
 
     //----------------------------------------------------------------------
     // class RuleHalf
@@ -697,13 +698,9 @@ class TransliteratorParser {
                             qlimit = qstart + 1;
                         }
 
-                        UnicodeMatcher m;
-						try {
-							m = new StringMatcher(buf.toString(), qstart, qlimit,
+                        UnicodeMatcher m =
+                            new StringMatcher(buf.toString(), qstart, qlimit,
                                               0, parser.curData);
-						} catch (RuntimeException e) {
-							throw new IllegalArgumentException("Failure in rule: " + rule.substring(pos, limit));
-						}
                         int min = 0;
                         int max = Quantifier.MAX;
                         switch (c) {
@@ -854,13 +851,13 @@ class TransliteratorParser {
         parseRules(new RuleArray(new String[] { rules }), direction);
     }
    
-    /*
+    /**
      * Parse a set of rules.  After the parse completes, examine the public
      * data members for results.
      */
-/*    public void parse(ResourceReader rules, int direction) {
+    public void parse(ResourceReader rules, int direction) {
         parseRules(new RuleReader(rules), direction);
-    }*/
+    }
 
     //----------------------------------------------------------------------
     // PRIVATE methods
@@ -881,6 +878,7 @@ class TransliteratorParser {
      */
     void parseRules(RuleBody ruleArray, int dir) {
         boolean parsingIDs = true;
+        boolean inBeginEndBlock = false;
         int ruleCount = 0;
 
         dataVector = new Vector();

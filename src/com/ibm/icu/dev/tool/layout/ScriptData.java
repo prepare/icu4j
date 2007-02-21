@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1998-2006, International Business Machines Corporation and    *
+ * Copyright (C) 1998-2005, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -68,50 +68,6 @@ public class ScriptData extends TagValueData
         }
     }
     
-    // TODO: Exceptions could be generated algorithmically
-    private static class TagException
-    {
-        private String icuTag;
-        private String otTag;
-        
-        public TagException(String icu, String ot)
-        {
-            icuTag = icu;
-            otTag  = ot;
-        }
-        
-        public String getICUTag()
-        {
-            return icuTag;
-        }
-        
-        public String getOTTag()
-        {
-            return otTag;
-        }
-    }
-    
-    // TODO: short name longer than long name, replace repeated chars w/ space...
-    private ScriptData.TagException exceptions[] = {
-            new ScriptData.TagException("laoo", "lao "),
-            new ScriptData.TagException("nkoo", "nko "), // New code from ISO 15924, not sure this will be OT tag
-            new ScriptData.TagException("vaii", "vai "), // New code from ISO 15924, not sure this will be OT tag
-            new ScriptData.TagException("yiii", "yi  ")
-        };
-        
-    
-    // TODO: binary search the exceptions list?
-    private String getException(String icu)
-    {
-        for(int i = 0; i < exceptions.length; i += 1) {
-            if (exceptions[i].getICUTag().equals(icu)) {
-                return exceptions[i].getOTTag();
-            }
-        }
-        
-        return icu;
-    }
-        
     //
     // Straight insertion sort from Knuth vol. III, pg. 81
     //
@@ -153,7 +109,7 @@ public class ScriptData extends TagValueData
             fScriptTags[script - fMinScript]  = UScript.getShortName(script).toLowerCase();
             
             if (script != commonScript) {
-                UnicodeSet scriptSet  = new UnicodeSet("\\p{" + fScriptTags[script - fMinScript] + "}");
+                UnicodeSet scriptSet  = new UnicodeSet("\\p{" + fScriptTags[script] + "}");
                 UnicodeSetIterator it = new UnicodeSetIterator(scriptSet);
             
                 while (it.nextRange()) {
@@ -194,7 +150,7 @@ public class ScriptData extends TagValueData
     public String getTag(int value)
     {
         if (value >= fMinScript && value <= fMaxScript) {
-            return getException(fScriptTags[value - fMinScript]);
+            return fScriptTags[value - fMinScript];
         }
         
         return "zyyx";
@@ -202,19 +158,13 @@ public class ScriptData extends TagValueData
     
     public String getTagLabel(int value)
     {
-        if (value >= fMinScript && value <= fMaxScript) {
-            return fScriptTags[value - fMinScript];
-        }
-        
-        return "zyyx";
+        return getTag(value);
     }
     
     public String makeTag(int value)
     {
         if (value >= fMinScript && value <= fMaxScript) {
-            String tag = getException(fScriptTags[value - fMinScript]);
-            
-            return TagUtilities.makeTag(tag);
+            return TagUtilities.makeTag(fScriptTags[value - fMinScript]);
         } else {
             return "0x00000000";
         }

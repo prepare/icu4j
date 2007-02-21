@@ -86,17 +86,11 @@ public class ChineseDateFormatSymbols extends DateFormatSymbols {
     }
 
     /**
-     * @stable ICU 3.0
+     * @draft ICU 3.0
+     * @provisional This API might change or be removed in a future release.
      */
     protected void initializeData(ULocale loc, CalendarData calData) {
         super.initializeData(loc, calData);
         isLeapMonth = calData.getStringArray("isLeapMonth");
-    }
-
-    void initializeData(DateFormatSymbols dfs) {
-        super.initializeData(dfs);
-        if (dfs instanceof ChineseDateFormatSymbols) {
-            this.isLeapMonth = ((ChineseDateFormatSymbols)dfs).isLeapMonth;
-        }
     }
 }

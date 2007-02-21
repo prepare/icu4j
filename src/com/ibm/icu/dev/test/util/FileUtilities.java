@@ -13,6 +13,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Locale;
+import java.util.regex.Pattern;
 
 public class FileUtilities {
     public static void appendFile(String filename, String encoding, PrintWriter output) throws IOException {
@@ -72,10 +73,7 @@ public class FileUtilities {
     }
     
     public static String anchorize(String source) {
-        String result = source.toLowerCase(Locale.ENGLISH).replaceAll("[^\\p{L}\\p{N}]+", "_");
-        if (result.endsWith("_")) result = result.substring(0,result.length()-1);
-        if (result.startsWith("_")) result = result.substring(1);
-    	return result;
+    	return source.toLowerCase(Locale.ENGLISH).replaceAll("\\P{L}", "_");
     }
 }
 //#endif

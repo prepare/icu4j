@@ -51,7 +51,8 @@ public class ChineseDateFormat extends SimpleDateFormat {
      * @stable ICU 2.0
      */
    public ChineseDateFormat(String pattern, Locale locale) {
-       this(pattern, ULocale.forLocale(locale));
+       // TODO: convert to use ULocale
+        super(pattern, new ChineseDateFormatSymbols(locale), true);
     }
 
     /**
@@ -62,8 +63,9 @@ public class ChineseDateFormat extends SimpleDateFormat {
      * @provisional This API might change or be removed in a future release.
      */
    public ChineseDateFormat(String pattern, ULocale locale) {
-       super(pattern, new ChineseDateFormatSymbols(locale), 
-               new ChineseCalendar(TimeZone.getDefault(), locale), locale, true);
+       // TODO: convert CDFS to use ULocale
+        //super(pattern, new ChineseDateFormatSymbols(locale.toLocale()), true);
+       super(pattern, new ChineseDateFormatSymbols(locale), locale);
     }
 
 // NOTE: This API still exists; we just inherit it from SimpleDateFormat
@@ -91,7 +93,6 @@ public class ChineseDateFormat extends SimpleDateFormat {
 
     /**
      * @internal
-     * @deprecated This API is ICU internal only.
      */
     protected void subFormat(StringBuffer buf,
                              char ch, int count, int beginOffset,

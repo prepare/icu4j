@@ -1,7 +1,7 @@
 /*
  * @(#)TimeZone.java    1.51 00/01/19
  *
- * Copyright (C) 1996-2007, International Business Machines
+ * Copyright (C) 1996-2006, International Business Machines
  * Corporation and others.  All Rights Reserved.
  */
 
@@ -12,7 +12,9 @@ import java.lang.ref.SoftReference;
 import java.util.Date;
 import java.util.Hashtable;
 import java.util.Locale;
+import java.util.MissingResourceException;
 
+import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.impl.TimeZoneAdapter;
 import com.ibm.icu.impl.ZoneMeta;
 import com.ibm.icu.text.SimpleDateFormat;
@@ -99,13 +101,11 @@ abstract public class TimeZone implements Serializable, Cloneable {
 
     /**
      * @internal
-     * @deprecated This API is ICU internal only.
      */
     private static final int SHORT_GENERIC = 2;
 
     /**
      * @internal
-     * @deprecated This API is ICU internal only.
      */
     private static final int LONG_GENERIC = 3;
 
@@ -310,14 +310,12 @@ abstract public class TimeZone implements Serializable, Cloneable {
     /**
      * The number of milliseconds in an hour.
      * @internal
-     * @deprecated This API is ICU internal only.
      */
     protected static final int MILLIS_PER_HOUR = 60*60*1000;
 
     /**
      * The number of milliseconds in one day.
      * @internal
-     * @deprecated This API is ICU internal only.
      */
     protected static final int MILLIS_PER_DAY = 24*MILLIS_PER_HOUR;
     
@@ -484,7 +482,6 @@ abstract public class TimeZone implements Serializable, Cloneable {
      * The public version of this API only accepts LONG/SHORT, the
      * internal version (which this calls) also accepts LONG_GENERIC/SHORT_GENERIC.
      * @internal
-     * @deprecated This API is ICU internal only.
      */
     private String _getDisplayName(boolean daylight, int style, ULocale locale) {
         /* NOTES:

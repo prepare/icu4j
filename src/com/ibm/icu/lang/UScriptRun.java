@@ -1,7 +1,7 @@
 /*
  *******************************************************************************
  *
- *   Copyright (C) 1999-2006, International Business Machines
+ *   Copyright (C) 1999-2004, International Business Machines
  *   Corporation and others.  All Rights Reserved.
  *
  *******************************************************************************
@@ -47,16 +47,20 @@ import com.ibm.icu.text.UTF16;
  * </pre>
  *
  * @internal
- * @deprecated This API is ICU internal only.
  */
 public final class UScriptRun
 {
+    /**
+     * Puts a copyright in the .class file
+     */
+    private static final String copyrightNotice
+        = "Copyright \u00a91999-2002 IBM Corp.  All rights reserved.";
+
     /**
      * Construct an empty <code>UScriptRun</code> object. The <code>next()</code>
      * method will return <code>false</code> the first time it is called.
      *
      * @internal
-     * @deprecated This API is ICU internal only.
      */
     public UScriptRun()
     {
@@ -72,7 +76,6 @@ public final class UScriptRun
      * @param text the string of characters over which to iterate.
      *
      * @internal
-     * @deprecated This API is ICU internal only.
      */
     public UScriptRun(String text)
     {
@@ -88,7 +91,6 @@ public final class UScriptRun
      * @param count the number of characters over which to iterate
      *
      * @internal
-     * @deprecated This API is ICU internal only.
      */
     public UScriptRun(String text, int start, int count)
     {
@@ -102,7 +104,6 @@ public final class UScriptRun
      * @param chars the array of characters over which to iterate.
      *
      * @internal
-     * @deprecated This API is ICU internal only.
      */
     public UScriptRun(char[] chars)
     {
@@ -118,7 +119,6 @@ public final class UScriptRun
      * @param count the number of characters over which to iterate
      *
      * @internal
-     * @deprecated This API is ICU internal only.
      */
     public UScriptRun(char[] chars, int start, int count)
     {
@@ -130,7 +130,6 @@ public final class UScriptRun
      * Reset the iterator to the start of the text.
      *
      * @internal
-     * @deprecated This API is ICU internal only.
      */
     public final void reset()
     {
@@ -161,7 +160,6 @@ public final class UScriptRun
      * @exception IllegalArgumentException
      *
      * @internal
-     * @deprecated This API is ICU internal only.
      */
     public final void reset(int start, int count)
     throws IllegalArgumentException
@@ -192,7 +190,6 @@ public final class UScriptRun
      * @param count the number of characters over which to iterate.
      *
      * @internal
-     * @deprecated This API is ICU internal only.
      */
     public final void reset(char[] chars, int start, int count)
     {
@@ -212,7 +209,6 @@ public final class UScriptRun
      * @param chars the new array of characters over which to iterate.
      *
      * @internal
-     * @deprecated This API is ICU internal only.
      */
     public final void reset(char[] chars)
     {
@@ -235,7 +231,6 @@ public final class UScriptRun
      * @param count the nuber of characters over which to iterate.
      *
      * @internal
-     * @deprecated This API is ICU internal only.
      */
     public final void reset(String text, int start, int count)
     {
@@ -255,7 +250,6 @@ public final class UScriptRun
      * @param text the new string of characters over which to iterate.
      *
      * @internal
-     * @deprecated This API is ICU internal only.
      */
     public final void reset(String text)
     {
@@ -276,7 +270,6 @@ public final class UScriptRun
      * @return the index of the first character in the current script run.
      *
      * @internal
-     * @deprecated This API is ICU internal only.
      */
     public final int getScriptStart()
     {
@@ -289,7 +282,6 @@ public final class UScriptRun
      * @return the index of the first character after the current script run.
      *
      * @internal
-     * @deprecated This API is ICU internal only.
      */
     public final int getScriptLimit()
     {
@@ -303,7 +295,6 @@ public final class UScriptRun
      * @see com.ibm.icu.lang.UScript
      *
      * @internal
-     * @deprecated This API is ICU internal only.
      */
     public final int getScriptCode()
     {
@@ -317,7 +308,6 @@ public final class UScriptRun
      * @return <code>false</code> if there isn't another run, <code>true</code> if there is.
      *
      * @internal
-     * @deprecated This API is ICU internal only.
      */
     public final boolean next()
     {
