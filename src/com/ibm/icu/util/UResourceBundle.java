@@ -1,7 +1,6 @@
-//##header
 /*
  *******************************************************************************
- * Copyright (C) 2004-2007, International Business Machines Corporation and    *
+ * Copyright (C) 2004-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -9,24 +8,16 @@
 package com.ibm.icu.util;
 
 import java.lang.ref.SoftReference;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.MissingResourceException;
 import java.util.ResourceBundle;
-import java.util.Vector;
 
 import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.impl.ICUResourceBundleReader;
 import com.ibm.icu.impl.ResourceBundleWrapper;
 import com.ibm.icu.util.ULocale;
-
-//#ifndef FOUNDATION
-import java.nio.ByteBuffer;
-//#else
-//##import com.ibm.icu.impl.ByteBuffer;
-//#endif
 
 /**
  * A class representing a collection of resource information pertaining to a given
@@ -73,17 +64,12 @@ import java.nio.ByteBuffer;
  * Depending on the organization of your resources, the syntax to getBundleInstance will change.
  * To open ICU style organization use:
  * <pre>
- *      UResourceBundle bundle = UResourceBundle.getBundleInstance("com/mycompany/resources", "en_US", myClassLoader);
+ *      UResourceBundle bundle = UResourceBundle.getBundleInstance("com/ibm/icu/impl/data/icudt30b", "en_US");
  * </pre>
  * To open Java/JDK style organization use:
  * <pre>
- *      UResourceBundle bundle = UResourceBundle.getBundleInstance("com.mycompany.resources.LocaleElements", "en_US", myClassLoader);
+ *      UResourceBundle bundle = UResourceBundle.getBundleInstance("com.ibm.icu.impl.data.LocaleElements", "en_US");
  * </pre>
- * <note>
- * Please use pass a class loader for loading non-ICU resources. Java security does not
- * allow loading of resources across jar files. You must provide your class loader
- * to load the resources
- * </note>
  * @stable ICU 3.0
  * @author ram
  */
@@ -219,9 +205,6 @@ public abstract class UResourceBundle extends ResourceBundle{
     /**
      * Creates a UResourceBundle, from which users can extract resources by using
      * their corresponding keys.
-     * @note Please use this API for loading non-ICU resources. Java security does not
-     * allow loading of resources across jar files. You must provide your class loader
-     * to load the resources
      * @param baseName string containing the name of the data package.
      *                    If null the default ICU package name is used.
      * @param locale  specifies the locale for which we want to open the resource.
@@ -258,7 +241,6 @@ public abstract class UResourceBundle extends ResourceBundle{
      * @stable ICU 3.0
      */
     protected abstract String getBaseName();
-    
     /**
      * Gets the parent bundle
      * @return The parent bundle
@@ -292,26 +274,20 @@ public abstract class UResourceBundle extends ResourceBundle{
     }
 
     /**
-     * Method used by subclasses to add the a particular resource bundle object to the managed cache
      * @internal revisit for ICU 3.6
      * @deprecated This API is ICU internal only.
      */
-    protected static void addToCache(ClassLoader cl, String fullName, ULocale defaultLocale,  UResourceBundle b){
-        synchronized(cacheKey){
-            cacheKey.setKeyValues(cl, fullName, defaultLocale);
-            addToCache((ResourceCacheKey)cacheKey.clone(), b);
-        }
+    protected static synchronized void addToCache(ClassLoader cl, String fullName, ULocale defaultLocale,  UResourceBundle b){
+        cacheKey.setKeyValues(cl, fullName, defaultLocale);
+        addToCache((ResourceCacheKey)cacheKey.clone(), b);
     }
     /**
-     * Method used by sub classes to load a resource bundle object from the managed cache
      * @internal revisit for ICU 3.6
      * @deprecated This API is ICU internal only.
      */
-    protected static UResourceBundle loadFromCache(ClassLoader cl, String fullName, ULocale defaultLocale){
-        synchronized(cacheKey){
-            cacheKey.setKeyValues(cl, fullName, defaultLocale);
-            return loadFromCache(cacheKey);
-        }
+    protected static synchronized UResourceBundle loadFromCache(ClassLoader cl, String fullName, ULocale defaultLocale){
+        cacheKey.setKeyValues(cl, fullName, defaultLocale);
+        return loadFromCache(cacheKey);
     }
     private static UResourceBundle loadFromCache(ResourceCacheKey key) {
         if (BUNDLE_CACHE != null) {
@@ -388,7 +364,7 @@ public abstract class UResourceBundle extends ResourceBundle{
             }
         }
         ///CLOVER:ON
-        private synchronized void setKeyValues(ClassLoader root, String searchName, ULocale defaultLocale) {
+        private void setKeyValues(ClassLoader root, String searchName, ULocale defaultLocale) {
             this.searchName = searchName;
             hashCodeCache = searchName.hashCode();
             this.defaultLocale = defaultLocale;
@@ -402,9 +378,11 @@ public abstract class UResourceBundle extends ResourceBundle{
                 hashCodeCache ^= root.hashCode();
             }
         }
-        /*private void clear() {
+        ///CLOVER:OFF
+        private void clear() {
             setKeyValues(null, "", null);
-        }*/
+        }
+        ///CLOVER:ON
     }
     
     private static final ResourceCacheKey cacheKey = new ResourceCacheKey();
@@ -433,13 +411,14 @@ public abstract class UResourceBundle extends ResourceBundle{
         
         if (rootType == null) {
             String rootLocale = (baseName.indexOf('.')==-1) ? "root" : "";
-            int rt = ROOT_MISSING; // value set on success
+            int rt = ROOT_MISSING;
+            UResourceBundle b = null;  
             try{
-                ICUResourceBundle.getBundleInstance(baseName, rootLocale, root, true);
+                b = ICUResourceBundle.getBundleInstance(baseName, rootLocale, root, true);
                 rt = ROOT_ICU; 
             }catch(MissingResourceException ex){
                 try{
-                    ResourceBundleWrapper.getBundleInstance(baseName, rootLocale, root, true);
+                    b = ResourceBundleWrapper.getBundleInstance(baseName, rootLocale, root, true);
                     rt = ROOT_JAVA;
                 }catch(MissingResourceException e){
                     //throw away the exception
@@ -480,8 +459,9 @@ public abstract class UResourceBundle extends ResourceBundle{
      * @return a resource bundle for the given base name and locale
      * @stable ICU 3.0
      */
-    protected static UResourceBundle instantiateBundle(String baseName, String localeName, 
-                                                       ClassLoader root, boolean disableFallback){
+    protected static synchronized UResourceBundle instantiateBundle(
+        String baseName, String localeName, ClassLoader root, boolean disableFallback)
+    {
         UResourceBundle b = null;
         int rootType = getRootType(baseName, root);
 
@@ -492,14 +472,13 @@ public abstract class UResourceBundle extends ResourceBundle{
         case ROOT_ICU:
             if(disableFallback) {
                 String fullName = ICUResourceBundleReader.getFullName(baseName, localeName);        
-                synchronized(cacheKey){
-                    cacheKey.setKeyValues(root, fullName, defaultLocale);
-                    b = loadFromCache(cacheKey);     
-                }
+                
+                cacheKey.setKeyValues(root, fullName, defaultLocale);
+                b = loadFromCache(cacheKey);
                 
                 if (b == null) {
                     b = ICUResourceBundle.getBundleInstance(baseName, localeName, root, disableFallback);
-                    //cacheKey.setKeyValues(root, fullName, defaultLocale);
+                    cacheKey.setKeyValues(root, fullName, defaultLocale);
                     addToCache(cacheKey, b);
                 }
             } else {
@@ -522,451 +501,8 @@ public abstract class UResourceBundle extends ResourceBundle{
             return b;
         }
     }
-
-    
-       /**
-      * Returns a binary data from a binary resource.
-      *
-      * @return a pointer to a chuck of unsigned bytes which live in a memory mapped/DLL file.
-      * @see #getIntVector
-      * @see #getInt
-      * @throws MissingResourceException
-      * @throws UResourceTypeMismatchException
-      * @draft ICU 3.8
-      */
-    public ByteBuffer getBinary() {
-        throw new UResourceTypeMismatchException("");
-    }
     
     /**
-      * Returns a string from a string resource type
-      *
-      * @return a string
-      * @see #getBinary()
-      * @see #getIntVector
-      * @see #getInt
-      * @throws MissingResourceException
-      * @throws UResourceTypeMismatchException
-      * @draft ICU 3.8
-      */
-    public String getString() {
-        throw new UResourceTypeMismatchException("");
-    }
-
-    /**
-      * Returns a string array from a array resource type
-      *
-      * @return a string
-      * @see #getString()
-      * @see #getIntVector
-      * @throws MissingResourceException
-      * @throws UResourceTypeMismatchException
-      * @draft ICU 3.8
-      */
-    public String[] getStringArray() {
-        throw new UResourceTypeMismatchException("");
-    }
-
-    /**
-      * Returns a binary data from a binary resource.
-      *
-      * @param ba  The byte array to write the bytes to. A null variable is OK.  
-      * @return an array bytes containing the binary data from the resource.
-      * @see #getIntVector
-      * @see #getInt
-      * @throws MissingResourceException
-      * @throws UResourceTypeMismatchException
-      * @draft ICU 3.8
-      */
-    public byte[] getBinary(byte[] ba) {
-        throw new UResourceTypeMismatchException("");
-    }
-    
-    /**
-      * Returns a 32 bit integer array from a resource.
-      *
-      * @return a pointer to a chunk of unsigned bytes which live in a memory mapped/DLL file.
-      * @see #getBinary()
-      * @see #getInt
-      * @throws MissingResourceException
-      * @throws UResourceTypeMismatchException
-      * @draft ICU 3.8
-      */
-    public int[] getIntVector() {
-        throw new UResourceTypeMismatchException("");
-    }
-
-    /**
-      * Returns a signed integer from a resource.
-      *
-      * @return an integer value
-      * @see #getIntVector
-      * @see #getBinary()
-      * @throws MissingResourceException
-      * @throws UResourceTypeMismatchException
-      * @draft ICU 3.8
-      */
-    public int getInt() {
-        throw new UResourceTypeMismatchException("");
-    }
-
-    /**
-      * Returns a unsigned integer from a resource.
-      * This integer is originally 28 bit and the sign gets propagated.
-      *
-      * @return an integer value
-      * @see #getIntVector
-      * @see #getBinary()
-      * @throws MissingResourceException
-      * @throws UResourceTypeMismatchException
-      * @draft ICU 3.8
-      */
-    public int getUInt() {
-        throw new UResourceTypeMismatchException("");
-    }
-    
-    /**
-      * Returns a resource in a given resource that has a given key.
-      *
-      * @param key               a key associated with the wanted resource
-      * @return                  a resource bundle object representing rhe resource
-      * @throws MissingResourceException
-      * @draft ICU 3.8
-      */
-    public UResourceBundle get(String key) {
-        UResourceBundle obj = handleGet(key, null, this);
-        UResourceBundle res = this;
-        if (obj == null) {
-            while((res=res.getParent())!=null && obj==null){
-                //call the get method to recursively fetch the resource
-                obj = res.handleGet(key, null, this);
-            }
-            if (obj == null) {
-                String fullName = ICUResourceBundleReader.getFullName(
-                        getBaseName(), getLocaleID());
-                throw new MissingResourceException(
-                        "Can't find resource for bundle " + fullName + ", key "
-                                + key, this.getClass().getName(), key);
-            }
-        }
-        ICUResourceBundle.setLoadingStatus(obj, getLocaleID());
-        return obj;
-    }
-    
-    /**
-      * Returns the string in a given resource at the specified index.
-      *
-      * @param index            an index to the wanted string.
-      * @return                  a string which lives in the resource.
-      * @throws IndexOutOfBoundsException
-      * @throws UResourceTypeMismatchException
-      * @draft ICU 3.8
-      */
-    public String getString(int index) {
-        ICUResourceBundle temp = (ICUResourceBundle)get(index);
-        if (temp.getType() == STRING) {
-            return temp.getString();
-        }
-        throw new UResourceTypeMismatchException("");
-    }
-
-    /**
-      * Returns the resource in a given resource at the specified index.
-      *
-      * @param index             an index to the wanted resource.
-      * @return                  the sub resource UResourceBundle object
-      * @throws IndexOutOfBoundsException
-      * @throws MissingResourceException
-      * @draft ICU 3.8
-      */
-    public UResourceBundle get(int index) {
-        UResourceBundle obj = handleGet(index, null, this);
-        if (obj == null) {
-            obj = (ICUResourceBundle) getParent();
-            if (obj != null) {
-                obj = obj.get(index);
-            }
-            if (obj == null)
-                throw new MissingResourceException(
-                        "Can't find resource for bundle "
-                                + this.getClass().getName() + ", key "
-                                + getKey(), this.getClass().getName(), getKey());
-        }
-        ICUResourceBundle.setLoadingStatus(obj, getLocaleID());
-        return obj;
-    }
-    /**
-      * Returns the keys in this bundle as an enumeration
-      * @return an enumeration containing key strings
-      * @draft ICU 3.8
-      */
-    public Enumeration getKeys() {
-        initKeysVector();
-        return keys.elements();
-    }
-    
-    private Vector keys = null;
-    private synchronized void initKeysVector(){
-        if(keys!=null){
-            return;
-        }
-        //ICUResourceBundle current = this;
-        keys = new Vector();
-        Enumeration e = this.handleGetKeys();
-        while(e.hasMoreElements()){
-            String elem = (String)e.nextElement();
-            if(!keys.contains(elem)){
-                keys.add(elem);
-            }
-        }
-    }
-    
-    /**
-      * Returns the size of a resource. Size for scalar types is always 1,
-      * and for vector/table types is the number of child resources.
-      * <br><b><font color='red'>Warning: </font></b> Integer array is treated as a scalar type. There are no
-      *          APIs to access individual members of an integer array. It
-      *          is always returned as a whole.
-      * @return number of resources in a given resource.
-      * @draft ICU 3.8
-      */
-    public int getSize() {
-        return size;
-    }
-
-    /**
-      * Returns the type of a resource.
-      * Available types are {@link #INT INT}, {@link #ARRAY ARRAY},
-      * {@link #BINARY BINARY}, {@link #INT_VECTOR INT_VECTOR},
-      * {@link #STRING STRING}, {@link #TABLE TABLE}.
-      *
-      * @return type of the given resource.
-      * @draft ICU 3.8
-      */
-    public int getType() {
-        int type = ICUResourceBundle.RES_GET_TYPE(resource);
-        if(type==TABLE32){
-            return TABLE; //Mask the table32's real type
-        }
-        return type;
-    }
-
-    /**
-      * Return the version number associated with this UResourceBundle as an
-      * VersionInfo object.
-      * @return VersionInfo object containing the version of the bundle
-      * @draft ICU 3.8
-      */
-    public VersionInfo getVersion() {
-        return null;
-    }
-    
-    /**
-      * Returns the iterator which iterates over this
-      * resource bundle
-      * @draft ICU 3.8
-      * @return UResourceBundleIterator that iterates over the resources in the bundle
-      */
-    public UResourceBundleIterator getIterator() {
-        return new UResourceBundleIterator(this);
-    }
-    /**
-      * Returns the key associated with a given resource. Not all the resources have a key - only
-      * those that are members of a table.
-      * @return a key associated to this resource, or null if it doesn't have a key
-      * @draft ICU 3.8
-      */
-    public String getKey() {
-        return key;
-    }
-    /**
-      * Resource type constant for "no resource".
-      * @draft ICU 3.8
-      */
-    public static final int NONE = -1;
-
-    /**
-      * Resource type constant for strings.
-      * @draft ICU 3.8
-      */
-    public static final int STRING = 0;
-
-    /**
-      * Resource type constant for binary data.
-      * @draft ICU 3.8
-      */
-    public static final int BINARY = 1;
-
-    /**
-      * Resource type constant for tables of key-value pairs.
-      * @draft ICU 3.8
-      */
-    public static final int TABLE = 2;
-
-    /**
-      * Resource type constant for aliases;
-      * internally stores a string which identifies the actual resource
-      * storing the data (can be in a different resource bundle).
-      * Resolved internally before delivering the actual resource through the API.
-      * @draft ICU 3.8
-      * @internal
-      */
-    protected static final int ALIAS = 3;
-
-    /**
-      * Internal use only.
-      * Alternative resource type constant for tables of key-value pairs.
-      * Never returned by getType().
-      * @internal
-      * @draft ICU 3.8
-      */
-    protected static final int TABLE32 = 4;
-
-    /**
-      * Resource type constant for a single 28-bit integer, interpreted as
-      * signed or unsigned by the getInt() function.
-      * @see #getInt
-      * @draft ICU 3.8
-      */
-    public static final int INT = 7;
-
-    /**
-      * Resource type constant for arrays of resources.
-      * @draft ICU 3.8
-      */
-    public static final int ARRAY = 8;
-
-    /**
-      * Resource type constant for vectors of 32-bit integers.
-      * @see #getIntVector
-      * @draft ICU 3.8
-      */
-    public static final int INT_VECTOR = 14;
-
-    //====== protected members ==============
-    /**
-     * Data member where the subclasses store the key
-     */
-    protected String key;
-    protected int size = 1;
-    protected long resource = RES_BOGUS;
-    protected boolean isTopLevel = false;
-
-    private static final long RES_BOGUS = 0xffffffff;
-
-    /**
-     * Actual worker method for fetching a resource based on the given key.
-     * Sub classes must override this method if they support resources with keys.
-     * @param key the key string of the resource to be fetched
-     * @param table hastable object to hold references of resources already seen
-     * @param requested the original resource bundle object on which the get method was invoked.
-     *                  The requested bundle and the bundle on which this method is invoked
-     *                  are the same, except in the cases where aliases are involved.
-     * @return UResourceBundle a resource assoicated with the key 
-     */
-    protected UResourceBundle handleGet(String key, HashMap table, UResourceBundle requested) {
-        return null;
-    }
-    
-    /**
-     * Actual worker method for fetching a resource based on the given index.
-     * Sub classes must override this method if they support arrays of resources.
-     * @param index the index of the resource to be fetched
-     * @param table hastable object to hold references of resources already seen
-     * @param requested the original resource bundle object on which the get method was invoked.
-     *                  The requested bundle and the bundle on which this method is invoked
-     *                  are the same, except in the cases where aliases are involved.
-     * @return UResourceBundle a resource assoicated with the index 
-     */
-    protected UResourceBundle handleGet(int index, HashMap table, UResourceBundle requested) {
-        return null;
-    }
-    
-    /**
-     * Actual worker method for fetching the array of strings in a resource.
-     * Sub classes must override this method if they support arrays of strings.
-     * @return String[] An array of strings containing strings 
-     */
-    protected String[] handleGetStringArray() {
-        return null;
-    }
-    
-    /**
-     * Actual worker method for fetching the keys of resources contained in the resource.
-     * Sub classes must override this method if they support keys and associated resources.
-     * 
-     * @return Enumeration An enumeration of all the keys in this resource.
-     */
-    protected Enumeration handleGetKeys(){
-        Vector keys = new Vector();
-        UResourceBundle item = null;
-        for (int i = 0; i < size; i++) {
-            item = get(i);
-            keys.add(item.getKey());
-        }
-        return keys.elements();
-    }
-    
-    /**
-     * Override the superclass method
-     */
-    // this method is declared in ResourceBundle class
-    // so cannot change the signature
-    // Override this method
-    protected Object handleGetObject(String key) {
-        return handleGetObjectImpl(key, this);
-    }
-
-    /**
-     * Override the superclass method
-     */
-    // To facilitate XPath style aliases we need a way to pass the reference
-    // to requested locale. The only way I could figure out is to implement
-    // the look up logic here. This has a disadvantage that if the client
-    // loads an ICUResourceBundle, calls ResourceBundle.getObject method
-    // with a key that does not exist in the bundle then the lookup is
-    // done twice before throwing a MissingResourceExpection.
-    private Object handleGetObjectImpl(String key, UResourceBundle requested) {
-        Object obj = resolveObject(key, requested);
-        if (obj == null) {
-            UResourceBundle parent = getParent();
-            if (parent != null) {
-                obj = parent.handleGetObjectImpl(key, requested);
-            }
-            if (obj == null)
-                throw new MissingResourceException(
-                    "Can't find resource for bundle "
-                    + this.getClass().getName() + ", key " + key,
-                    this.getClass().getName(), key);
-        }
-        return obj;
-    }
-    
-    // Routine for figuring out the type of object to be returned
-    // string or string array
-    private Object resolveObject(String key, UResourceBundle requested) {
-        if (getType() == STRING) {
-            return getString();
-        }
-        UResourceBundle obj = handleGet(key, null, requested);
-        if (obj != null) {
-            if (obj.getType() == STRING) {
-                return obj.getString();
-            }
-            try {
-                if (obj.getType() == ARRAY) {
-                    return obj.handleGetStringArray();
-                }
-            } catch (UResourceTypeMismatchException ex) {
-                return obj;
-            }
-        }
-        return obj;
-    }
-
-    /**
-     * This method is for setting the loading status of the resource. 
-     * The status is analogous to the warning status in ICU4C.
      * @internal
      * @deprecated This API is ICU internal only.
      */

@@ -92,11 +92,4 @@ public class ChineseDateFormatSymbols extends DateFormatSymbols {
         super.initializeData(loc, calData);
         isLeapMonth = calData.getStringArray("isLeapMonth");
     }
-
-    void initializeData(DateFormatSymbols dfs) {
-        super.initializeData(dfs);
-        if (dfs instanceof ChineseDateFormatSymbols) {
-            this.isLeapMonth = ((ChineseDateFormatSymbols)dfs).isLeapMonth;
-        }
-    }
 }

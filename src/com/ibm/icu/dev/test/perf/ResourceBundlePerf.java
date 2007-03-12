@@ -1,6 +1,6 @@
 /*
 **********************************************************************
-* Copyright (c) 2006-2007, International Business Machines
+* Copyright (c) 2006, International Business Machines
 * Corporation and others.  All Rights Reserved.
 **********************************************************************
 */
@@ -11,11 +11,12 @@ import java.nio.ByteBuffer;
 import java.util.ResourceBundle;
 
 import com.ibm.icu.impl.ICULocaleData;
+import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.util.UResourceBundle;
 
 public class ResourceBundlePerf extends PerfTest {
     
-    private UResourceBundle icuRes  = null;
+    private ICUResourceBundle icuRes  = null;
     private ResourceBundle javaRes = null;
     
     public static void main(String[] org_args) throws Exception {
@@ -23,7 +24,7 @@ public class ResourceBundlePerf extends PerfTest {
     }
     
     protected void setup(String[] args) {
-        icuRes = UResourceBundle.getBundleInstance("com/ibm/icu/dev/data/testdata", "testtypes");
+        icuRes = (ICUResourceBundle)UResourceBundle.getBundleInstance("com/ibm/icu/dev/data/testdata", "testtypes");
         javaRes = ICULocaleData.getResourceBundle("com.ibm.icu.dev.data","TestDataElements","testtypes");
     }    
 
@@ -131,7 +132,7 @@ public class ResourceBundlePerf extends PerfTest {
             this.expected = expected;
         }
         public void call() {
-            UResourceBundle temp = icuRes.get(key);
+            ICUResourceBundle temp = icuRes.get(key);
             int t = temp.getInt();
             if (t != expected) throw new Error("not equal");
         }
@@ -189,7 +190,7 @@ public class ResourceBundlePerf extends PerfTest {
     PerfTest.Function TestGetMinusOneUintICU(){
         return new PerfTest.Function(){
             public void call(){
-                UResourceBundle sub = icuRes.get("minusone");
+                ICUResourceBundle sub = icuRes.get("minusone");
                 int t = sub.getUInt();
                 if (t != 0xFFFFFFF) throw new Error("not equal");
             }
@@ -220,7 +221,7 @@ public class ResourceBundlePerf extends PerfTest {
             this.expected = expected;
         }
         public void call() {
-            UResourceBundle temp = icuRes.get(key);
+            ICUResourceBundle temp = icuRes.get(key);
             int[] iv = temp.getIntVector();
             for (int i = 0; i < iv.length; i++){
                 if (expected[i] != iv[i]) throw new Error("not equal"); 
@@ -253,7 +254,7 @@ public class ResourceBundlePerf extends PerfTest {
             this.expected_len = expected_len;
         }
         public void call() {
-            UResourceBundle temp = icuRes.get(key);
+            ICUResourceBundle temp = icuRes.get(key);
             ByteBuffer got = temp.getBinary();
             if(got.remaining() != expected_len) throw new Error("not the expected len");
             for(int i=0; i< got.remaining(); i++){
@@ -326,16 +327,16 @@ public class ResourceBundlePerf extends PerfTest {
         }
         public void call() {
             int p = 0;
-            UResourceBundle menus = icuRes.get(key);
+            ICUResourceBundle menus = icuRes.get(key);
             int sizei = menus.getSize();
             for (int i=0; i<sizei; i++){
-                UResourceBundle menu = menus.get(i);
+                ICUResourceBundle menu = menus.get(i);
                 String menu_name = menu.getKey();
                 if (!expected[p++].equals(menu_name)) throw new Error("not equal");
                 
                 int sizej = menu.getSize();
                 for (int j=0; j< sizej; j++){
-                    UResourceBundle menu_item = menu.get(j);
+                    ICUResourceBundle menu_item = menu.get(j);
                     String key = menu_item.getKey();
                     String value = menu_item.getString();
                     if(!expected[p++].equals(key)) throw new Error("not equal");

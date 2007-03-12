@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2002-2007, International Business Machines Corporation and    *
+ * Copyright (C) 2002-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -8,11 +8,14 @@ package com.ibm.icu.text;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ByteArrayInputStream;
 
 import java.util.Locale;
 import java.util.MissingResourceException;
+import java.util.ResourceBundle;
 
 import com.ibm.icu.impl.ICUData;
+import com.ibm.icu.impl.ICULocaleData;
 import com.ibm.icu.impl.ICULocaleService;
 import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.impl.ICUService;
@@ -106,9 +109,9 @@ final class BreakIteratorFactory extends BreakIterator.BreakIteratorServiceShim 
 
 
     private static BreakIterator createBreakInstance(ULocale locale, int kind) {
-
+        
         BreakIterator    iter       = null;
-        ICUResourceBundle rb        = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BRKITR_BASE_NAME, locale);
+        UResourceBundle  rb         = UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BRKITR_BASE_NAME, locale);
         
         //
         //  Get the binary rules.  These are needed for both normal RulesBasedBreakIterators
@@ -116,8 +119,9 @@ final class BreakIteratorFactory extends BreakIterator.BreakIteratorServiceShim 
         //
         InputStream      ruleStream = null;
         try {
+            ResourceBundle boundaries    = (ResourceBundle)rb.getObject("boundaries"); 
             String         typeKey       = KIND_NAMES[kind];
-            String         brkfname      = rb.getStringWithFallback("boundaries/" + typeKey);
+            String         brkfname      = boundaries.getString(typeKey);
             String         rulesFileName = ICUResourceBundle.ICU_BUNDLE +ICUResourceBundle.ICU_BRKITR_NAME+ "/" + brkfname;
                            ruleStream    = ICUData.getStream(rulesFileName);
         }

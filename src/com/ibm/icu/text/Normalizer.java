@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2000-2007, International Business Machines Corporation and    *
+ * Copyright (C) 2000-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -157,9 +157,9 @@ public final class Normalizer implements Cloneable {
      * @stable ICU 2.8
      */
     public static class Mode {
-        //private int modeValue;
+        private int modeValue;
         private Mode(int value) {
-            //modeValue = value;
+            modeValue = value;
         }
 
         /**
@@ -256,13 +256,13 @@ public final class Normalizer implements Cloneable {
      * No decomposition/composition.  
      * @stable ICU 2.8
      */
-    public static final Mode NONE = new Mode(COMPAT_BIT);
+    public static final Mode NONE = new Mode(1);
 
     /** 
      * Canonical decomposition.  
      * @stable ICU 2.8
      */
-    public static final Mode NFD = new NFDMode(DECOMP_BIT);
+    public static final Mode NFD = new NFDMode(2);
     
     private static final class NFDMode extends Mode {
         private NFDMode(int value) {
@@ -386,7 +386,7 @@ public final class Normalizer implements Cloneable {
      * Canonical decomposition followed by canonical composition.  
      * @stable ICU 2.8
      */
-    public static final Mode NFC = new NFCMode(COMPOSE_BIT);
+    public static final Mode NFC = new NFCMode(4);
     
     private static final class NFCMode extends Mode{
         private NFCMode(int value) {
@@ -439,7 +439,7 @@ public final class Normalizer implements Cloneable {
                                                   )
                                                 );
         } 
-    }
+    };
                                          
     /** 
      * Default normalization.  
@@ -503,7 +503,7 @@ public final class Normalizer implements Cloneable {
                                                   )
                                                 );
         } 
-    }
+    };
                                         
     /** 
      * "Fast C or D" form. 
@@ -545,7 +545,7 @@ public final class Normalizer implements Cloneable {
             /* FCD: skippable if lead cc==0 and trail cc<=1 */
             return (NormalizerImpl.getFCD16(c)>1);
         }   
-    }
+    };
 
     
     /**
@@ -662,9 +662,9 @@ public final class Normalizer implements Cloneable {
      * @stable ICU 2.8
      */
     public static final class QuickCheckResult{
-        //private int resultValue;
+        private int resultValue;
         private QuickCheckResult(int value) {
-            //resultValue=value;
+            resultValue=value;
         }
     }
     /** 

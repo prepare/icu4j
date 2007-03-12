@@ -13,6 +13,7 @@ import java.io.Reader;
 import java.io.UnsupportedEncodingException;
 
 import com.ibm.icu.dev.test.TestFmwk;
+import com.ibm.icu.impl.UTF32;
 import com.ibm.icu.text.CharsetDetector;
 import com.ibm.icu.text.CharsetMatch;
 
@@ -26,6 +27,9 @@ import org.w3c.dom.*;
 
 /**
  * @author andy
+ *
+ * TODO To change the template for this generated type comment go to
+ * Window - Preferences - Java - Code Style - Code Templates
  */
 public class TestCharsetDetector extends TestFmwk
 {
@@ -97,11 +101,7 @@ public class TestCharsetDetector extends TestFmwk
             return;
         }
         
-        String charsetMatchLanguage = m.getLanguage();
-        if ((language != null && !charsetMatchLanguage.equals(language))
-            || (language == null && charsetMatchLanguage != null)
-            || (language != null && charsetMatchLanguage == null))
-        {
+        if (! (language == null || m.getLanguage().equals(language))) {
             errln(id + ", " + encoding + ": language detection failure - expected " + language + ", got " + m.getLanguage());
         }
         
@@ -141,11 +141,11 @@ public class TestCharsetDetector extends TestFmwk
             CharsetDetector det = new CharsetDetector();
             byte[] bytes;
             
-            //if (enc.startsWith("UTF-32")) {
-            //    UTF32 utf32 = UTF32.getInstance(enc);
+            if (enc.startsWith("UTF-32")) {
+                UTF32 utf32 = UTF32.getInstance(enc);
                 
-            //    bytes = utf32.toBytes(testString);
-            //} else {
+                bytes = utf32.toBytes(testString);
+            } else {
                 String from = enc;
 
                 while (true) {
@@ -171,7 +171,7 @@ public class TestCharsetDetector extends TestFmwk
                     
                     break;
                 }
-            //}
+            }
         
             det.setText(bytes);
             checkMatch(det, testString, enc, lang, id);
@@ -179,8 +179,7 @@ public class TestCharsetDetector extends TestFmwk
             det.setText(new ByteArrayInputStream(bytes));
             checkMatch(det, testString, enc, lang, id);
          } catch (Exception e) {
-            errln(id + ": " + e.toString() + "enc=" + enc);
-            e.printStackTrace();
+            errln(id + ": " + e.toString());
         }
     }
     

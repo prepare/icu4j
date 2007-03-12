@@ -10,6 +10,7 @@
 */
 package com.ibm.icu.impl;
 import com.ibm.icu.util.TimeZone;
+import com.ibm.icu.util.SimpleTimeZone;
 import java.util.Date;
 import java.io.IOException;
 
@@ -33,19 +34,19 @@ public class JDKTimeZone extends TimeZone {
      */
     // give access to SimpleTimeZone
     protected transient OlsonTimeZone zone;
-    /*
+    /**
      * Given a java.util.TimeZone, wrap it in the appropriate adapter
      * subclass of com.ibm.icu.util.TimeZone and return the adapter.
      */
-//    public static TimeZone wrap(java.util.TimeZone tz) {
-//        if (tz instanceof TimeZoneAdapter) {
-//            return ((TimeZoneAdapter) tz).unwrap();
-//        }
-//        if (tz instanceof java.util.SimpleTimeZone) {
-//            return new SimpleTimeZone((java.util.SimpleTimeZone) tz, tz.getID());
-//        }
-//        return new JDKTimeZone(tz);
-//    }
+    public static TimeZone wrap(java.util.TimeZone tz) {
+        if (tz instanceof TimeZoneAdapter) {
+            return ((TimeZoneAdapter) tz).unwrap();
+        }
+        if (tz instanceof java.util.SimpleTimeZone) {
+            return new SimpleTimeZone((java.util.SimpleTimeZone) tz, tz.getID());
+        }
+        return new JDKTimeZone(tz);
+    }
 
 
     /**

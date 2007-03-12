@@ -1,7 +1,7 @@
 //##header
 /*
  *******************************************************************************
- * Copyright (C) 2002-2007, International Business Machines Corporation and    *
+ * Copyright (C) 2002-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -59,6 +59,7 @@ public class BagFormatter {
     private UnicodeLabel valueSource;
     private String propName = "";
     private boolean showCount = true;
+    private boolean skipNullValues = true;
     //private boolean suppressReserved = true;
     private boolean hexValue = false;
     private static final String NULL_VALUE = "_NULL_VALUE_";
@@ -471,35 +472,9 @@ public class BagFormatter {
         int counter;
         int valueSize;
         int labelSize;
-        boolean isHtml;
-        boolean inTable = false;
-        
-        public void toOutput(String s) {
-          if (isHtml) {
-            if (inTable) {
-              output.print("</table>");
-              inTable = false;
-            }
-            output.print("<p>");
-          }
-          output.print(s);
-          if (isHtml)
-            output.println("</p>");
-          else
-            output.print(lineSeparator);
-        }
-        
-        public void toTable(String s) {
-          if (isHtml && !inTable) {
-            output.print("<table>");
-            inTable = true;
-          }
-          output.print(tabber.process(s) +  lineSeparator);
-        }
 
         public void doAt(Object c, PrintWriter output) {
             this.output = output;
-            isHtml = tabber instanceof Tabber.HTMLTabber;
             counter = 0;
             
             tabber.clear();
@@ -509,7 +484,7 @@ public class BagFormatter {
 
             valueSize = getValueSource().getMaxWidth(shortValue);
             if (DEBUG) System.out.println("ValueSize: " + valueSize);
-            if (getValueSource() != UnicodeLabel.NULL) tabber.add(valueSize + 2,Tabber.LEFT); // value
+            if (valueSize > 0) tabber.add(valueSize + 2,Tabber.LEFT); // value
 
             tabber.add(3,Tabber.LEFT); // comment character
 
@@ -543,7 +518,7 @@ public class BagFormatter {
 
         protected void doBefore(Object container, Object o) {
             if (showSetAlso && container instanceof UnicodeSet) {
-              toOutput("#" + container);
+                output.print("#" + container +  lineSeparator );
             }
         }
 
@@ -553,14 +528,14 @@ public class BagFormatter {
         protected void doAfter(Object container, Object o) {
             if (fullTotal != -1 && fullTotal != counter) {
                 if (showTotal) {
-                    toOutput("");
-                    toOutput("# The above property value applies to " + nf.format(fullTotal-counter) + " code points not listed here.");
-                    toOutput("# Total code points: " + nf.format(fullTotal));
+                    output.print(lineSeparator);
+                    output.print("# The above property value applies to " + nf.format(fullTotal-counter) + " code points not listed here." + lineSeparator);
+                    output.print("# Total code points: " + nf.format(fullTotal) + lineSeparator);
                 }
                 fullTotal = -1;
             } else if (showTotal) {
-                toOutput("");
-                toOutput("# Total code points: " + nf.format(counter));
+                output.print(lineSeparator);
+                output.print("# Total code points: " + nf.format(counter) + lineSeparator);
             }
         }
 
@@ -571,7 +546,7 @@ public class BagFormatter {
                 Object value = oo.getValue();
                 doBefore(o, key);
                 doAt(key);
-                output.println("\u2192");
+                output.print("->");
                 doAt(value);
                 doAfter(o, value);
                 counter++;
@@ -580,17 +555,19 @@ public class BagFormatter {
             } else {
                 String thing = o.toString();
                 String value = getValueSource() == UnicodeLabel.NULL ? "" : getValueSource().getValue(thing, ",", true);
-                if (getValueSource() != UnicodeLabel.NULL) value = "\t; " + value;
+                if (value.length() != 0) value = "\t; " + value;
                 String label = getLabelSource(true) == UnicodeLabel.NULL ? "" : getLabelSource(true).getValue(thing, ",", true);
                 if (label.length() != 0) label = " " + label;
-                toTable(
-                    hex(thing)
-                    + value
-                    + commentSeparator
-                    + label
-                    + insertLiteral(thing)
-                    + "\t"
-                    + getName(thing));
+                output.print(
+                    tabber.process(
+                        hex(thing)
+							+ value
+                            + commentSeparator
+							+ label
+                            + insertLiteral(thing)
+                            + "\t"
+                            + getName(thing))
+                    +  lineSeparator );
                 counter++;
             }
         }
@@ -635,15 +612,17 @@ public class BagFormatter {
                 else count = "\t ["+ nf.format(end - start + 1)+ "]";
            }
 
-            toTable(
-                hex(start, end)
-                + pn
-                + value
-                + commentSeparator
-                + label
-                + count
-                + insertLiteral(start, end)
-                + getName("\t ", start, end));
+            output.print(
+                tabber.process(
+                    hex(start, end)
+                        + pn
+                        + value
+                        + commentSeparator
+                        + label
+                        + count
+                        + insertLiteral(start, end)
+                        + getName("\t ", start, end))
+                +  lineSeparator );
         }
 
         private String insertLiteral(String thing) {

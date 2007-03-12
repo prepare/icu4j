@@ -1,7 +1,7 @@
 //##header
 /*
  *******************************************************************************
- * Copyright (C) 2001-2007, International Business Machines Corporation and    *
+ * Copyright (C) 2001-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -30,6 +30,7 @@ import java.util.Locale;
 import java.util.ArrayList;
 
 public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
+    private static final char EURO = '\u20ac';
 
     public static void main(String[] args) throws Exception {
         new NumberFormatTest().run(args);
@@ -309,13 +310,13 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         expectCurrency(fmt, null, 1234.56, "1 234,56 \u20AC");
 
         expectCurrency(fmt, Currency.getInstance(Locale.JAPAN),
-                       1234.56, "1 235 JP\u00A5"); // Yen
+                       1234.56, "1 235 \u00A5"); // Yen
 
         expectCurrency(fmt, Currency.getInstance(new Locale("fr", "CH", "")),
                        1234.56, "1 234,55 sFr."); // 0.25 rounding
 
         expectCurrency(fmt, Currency.getInstance(Locale.US),
-                       1234.56, "1 234,56 US$");
+                       1234.56, "1 234,56 $");
 
         expectCurrency(fmt, Currency.getInstance(Locale.FRANCE),
                        1234.56, "1 234,56 \u20AC"); // Euro
@@ -1605,12 +1606,7 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         //save default locale
         ULocale defaultLocale = ULocale.getDefault();
         ULocale.setDefault(new ULocale("qr_QR"));
-        try {
-            NumberFormat.getInstance();
-        }
-        catch (Exception e) {
-            errln("Numberformat threw exception for non-existent locale. It should use the default.");
-        }
+        NumberFormat nf1 = NumberFormat.getInstance();
         //reset default locale
         ULocale.setDefault(defaultLocale);
     }

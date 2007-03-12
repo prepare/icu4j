@@ -1,31 +1,32 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
 
 package com.ibm.icu.text;
 
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.MissingResourceException;
-import java.util.ResourceBundle;
-
-import com.ibm.icu.impl.CalendarData;
-import com.ibm.icu.impl.ICUCache;
 import com.ibm.icu.impl.ICUResourceBundle;
-import com.ibm.icu.impl.SimpleCache;
+import com.ibm.icu.impl.CalendarData;
 import com.ibm.icu.impl.TextTrieMap;
 import com.ibm.icu.impl.Utility;
-import com.ibm.icu.impl.ZoneMeta;
 import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.GregorianCalendar;
 import com.ibm.icu.util.TimeZone;
-import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.UResourceBundle;
+import com.ibm.icu.impl.ZoneMeta;
+import com.ibm.icu.util.ULocale;
+import com.ibm.icu.impl.SoftCache;
+
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Locale;
+import java.util.MissingResourceException;
+import java.util.ResourceBundle;
 
 /**
  * <code>DateFormatSymbols</code> is a public class for encapsulating
@@ -341,7 +342,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
     /**
      * Localized names of time zones in this locale.  This is a
      * two-dimensional array of strings of size <em>n</em> by <em>m</em>,
-     * where <em>m</em> is at least 5 and up to 38.  Each of the <em>n</em> rows is an
+     * where <em>m</em> is at least 5 and up to 8.  Each of the <em>n</em> rows is an
      * entry containing the localized names for a single <code>TimeZone</code>.
      * Each such row contains (with <code>i</code> ranging from
      * 0..<em>n</em>-1):
@@ -800,10 +801,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
 
     /**
      * Gets localized date-time pattern characters. For example: 'u', 't', etc.
-     * <p>
-     * Note: ICU no longer provides localized date-time pattern characters for a locale
-     * starting ICU 3.8.  This method returns the non-localized date-time pattern
-     * characters unless user defined localized data is set by setLocalPatternChars.
      * @return the localized date-time pattern characters.
      * @stable ICU 2.0
      */
@@ -829,6 +826,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
     {
         try {
             DateFormatSymbols other = (DateFormatSymbols)super.clone();
+            copyMembers(this, other);
             return other;
         } catch (CloneNotSupportedException e) {
             ///CLOVER:OFF
@@ -899,10 +897,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * Useful constant for defining timezone offsets.
      */
     static final int millisPerHour = 60*60*1000;
-
-    // DateFormatSymbols cache
-    private static ICUCache DFSCACHE = new SimpleCache();
-
     /**
      * 
      * @param desiredLocale
@@ -911,54 +905,10 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      */
     protected void initializeData(ULocale desiredLocale, String type)
     {
-        String key = desiredLocale.toString() + "+" + type;
-        DateFormatSymbols dfs = (DateFormatSymbols)DFSCACHE.get(key);
-        if (dfs == null) {
-            // Initialize data from scratch put a clone of this instance into the cache
-            CalendarData calData = new CalendarData(desiredLocale, type);
-            initializeData(desiredLocale, calData);
-            dfs = (DateFormatSymbols)this.clone();
-            DFSCACHE.put(key, dfs);
-        } else {
-            initializeData(dfs);
-        }
+        CalendarData calData = new CalendarData(desiredLocale, type);
+        initializeData(desiredLocale, calData);
     }
 
-    /* 
-     * Initialize format symbols using another instance.
-     * 
-     * TODO Clean up initialization methods for subclasses
-     */
-    void initializeData(DateFormatSymbols dfs) {
-        this.eras = dfs.eras;
-        this.eraNames = dfs.eraNames;
-        this.narrowEras = dfs.narrowEras;
-        this.months = dfs.months;
-        this.shortMonths = dfs.shortMonths;
-        this.narrowMonths = dfs.narrowMonths;
-        this.standaloneMonths = dfs.standaloneMonths;
-        this.standaloneShortMonths = dfs.standaloneShortMonths;
-        this.standaloneNarrowMonths = dfs.standaloneNarrowMonths;
-        this.weekdays = dfs.weekdays;
-        this.shortWeekdays = dfs.shortWeekdays;
-        this.narrowWeekdays = dfs.narrowWeekdays;
-        this.standaloneWeekdays = dfs.standaloneWeekdays;
-        this.standaloneShortWeekdays = dfs.standaloneShortWeekdays;
-        this.standaloneNarrowWeekdays = dfs.standaloneNarrowWeekdays;
-        this.ampms = dfs.ampms;
-        this.shortQuarters = dfs.shortQuarters;
-        this.quarters = dfs.quarters;
-        this.standaloneShortQuarters = dfs.standaloneShortQuarters;
-        this.standaloneQuarters = dfs.standaloneQuarters;
-
-        this.zoneStrings = dfs.zoneStrings; // always null at initialization time for now
-        this.localPatternChars = dfs.localPatternChars;
-
-        this.actualLocale = dfs.actualLocale;
-        this.validLocale = dfs.validLocale;
-        this.requestedLocale = dfs.requestedLocale;
-    }
-    
     /**
      * 
      * @param desiredLocale
@@ -1129,15 +1079,9 @@ public class DateFormatSymbols implements Serializable, Cloneable {
         }
 */        
         requestedLocale = desiredLocale;
-
+     
         ICUResourceBundle rb = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, desiredLocale);
-
-        // Because localized date/time pattern characters will be obsolete in CLDR,
-        // we decided not to maintain localized pattern characters in ICU any more.
-        // We always use the base pattern characters by default. (ticket#5597)
-
-        //localPatternChars = rb.getString("localPatternChars");
-        localPatternChars = patternChars;
+        localPatternChars = rb.getString("localPatternChars");
 
         // TODO: obtain correct actual/valid locale later
         ULocale uloc = rb.getULocale();
@@ -1206,69 +1150,27 @@ public class DateFormatSymbols implements Serializable, Cloneable {
                 index = 4;
                 break;
             case TIMEZONE_EXEMPLAR_CITY:
-                index = 5;
+                if (names.length == 6 || names.length == 8) {
+                    index = 5;
+                }
                 break;
             case TIMEZONE_LONG_GENERIC:
-                index = 6;
+                if (names.length == 8) {
+                    index = 6;
+                } else {
+                    index = 5;
+                }
                 break;
             case TIMEZONE_SHORT_GENERIC:
-                index = 7;
-                break;
-            case TIMEZONE_METAZONE_MAPPING:
-                index = 8;
-                break;
+                if (names.length == 8) {
+                    index = 7;
+                } else {
+                    index = 6;
+                }
             }
             if (index < names.length) {
                 return names[index];
             }
-        }
-        return null;
-    }
-
-    /**
-     * Package private: used by SimpleDateFormat.
-     * Gets the string for the specified time zone.
-     * @param zid The time zone ID
-     * @param type The type of zone string
-     * @return The zone string, or null if not available.
-     */
-    String getMetazoneString(String zid, int type, Calendar cal) {
-        // Try local zone item info first
-        String zoneString = getMetazoneString(getLocalZoneItemInfo(), zid, type, cal);
-        if (zoneString == null) {
-            // Fallback to the default info
-            zoneString = getMetazoneString(getDefaultZoneItemInfo(), zid, type, cal);
-        }
-        return zoneString;
-    }
-
-    /**
-     * Gets the zone string from the specified zone item info
-     */
-    private String getMetazoneString(ZoneItemInfo zinfo, String zid, int type, Calendar cal) {
-
-        if (zinfo == null) {
-            return null;
-        }
-        String mzid;
-        String[] names = (String[])zinfo.tzidMap.get(zid);
-        if ( names == null ) {
-           return null;
-        }
-
-        SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm");
-        df.setTimeZone(TimeZone.getTimeZone(zid));
-        String theTime = df.format(cal.getTime());
-        int mz_index = 8;
-        while ( mz_index < names.length ) {
-	   if ( names[mz_index] != null && 
-                names[mz_index+1].compareTo(theTime) <= 0 &&  
-                names[mz_index+2].compareTo(theTime) >  0 ) {
-                 mzid = "meta/"+names[mz_index];
-                 String mz_string = getZoneString(zinfo,mzid,type);
-                 return mz_string;
-           } 
-           mz_index += 3;
         }
         return null;
     }
@@ -1321,122 +1223,12 @@ public class DateFormatSymbols implements Serializable, Cloneable {
             // clone the last match for next time
             // only when the substring completely matches
             // with the value resolved
-            if (item.zid.startsWith("meta")) {
-                item.zid = resolveParsedMetazone(item.zid);
-            } 
             lastZoneItem = new ZoneItem();
             lastZoneItem.type = item.type;
             lastZoneItem.value = item.value;
             lastZoneItem.zid = item.zid;
         }
         return item;
-    }
-
-//  This function is a temporary hack until we figure out what to do with metazone parsing...
-//  It's not very efficient either, so need to do something more useful.
-// 
-    private String resolveParsedMetazone( String zid ) {
-       if ( zid.equals("meta/America_Pacific")) return("America/Los_Angeles");
-       if ( zid.equals("meta/America_Mountain")) return("America/Denver");
-       if ( zid.equals("meta/America_Central")) return("America/Chicago");
-       if ( zid.equals("meta/America_Eastern")) return("America/New_York");
-       if ( zid.equals("meta/Acre")) return("America/Rio_Branco");
-       if ( zid.equals("meta/Africa_Central")) return("Africa/Maputo");
-       if ( zid.equals("meta/Africa_Eastern")) return("Africa/Nairobi");
-       if ( zid.equals("meta/Africa_Southern")) return("Africa/Johannesburg");
-       if ( zid.equals("meta/Africa_Western")) return("Africa/Lagos");
-       if ( zid.equals("meta/Alaska")) return("America/Anchorage");
-       if ( zid.equals("meta/Alaska_Hawaii")) return("America/Anchorage");
-       if ( zid.equals("meta/Amazon")) return("America/Manaus");
-       if ( zid.equals("meta/Aqtau")) return("Asia/Aqtau");
-       if ( zid.equals("meta/Aqtobe")) return("Asia/Aqtobe");
-       if ( zid.equals("meta/Arabian")) return("Asia/Riyadh");
-       if ( zid.equals("meta/Argentina")) return("America/Buenos_Aires");
-       if ( zid.equals("meta/Argentina_Western")) return("America/Catamarca");
-       if ( zid.equals("meta/Armenia")) return("Asia/Yerevan");
-       if ( zid.equals("meta/Ashkhabad")) return("Asia/Ashgabat");
-       if ( zid.equals("meta/Atlantic")) return("America/Halifax");
-       if ( zid.equals("meta/Australia_Central")) return("Australia/Adelaide");
-       if ( zid.equals("meta/Australia_Eastern")) return("Australia/Sydney");
-       if ( zid.equals("meta/Australia_Western")) return("Australia/Perth");
-       if ( zid.equals("meta/Azores")) return("Atlantic/Azores");
-       if ( zid.equals("meta/Baku")) return("Asia/Baku");
-       if ( zid.equals("meta/Bangladesh")) return("Asia/Dhaka");
-       if ( zid.equals("meta/Bering")) return("America/Adak");
-       if ( zid.equals("meta/Bhutan")) return("Asia/Thimphu");
-       if ( zid.equals("meta/Borneo")) return("Asia/Kuching");
-       if ( zid.equals("meta/Brasilia")) return("America/Sao_Paulo");
-       if ( zid.equals("meta/Chamorro")) return("Pacific/Saipan");
-       if ( zid.equals("meta/Changbai")) return("Asia/Harbin");
-       if ( zid.equals("meta/Chile")) return("America/Santiago");
-       if ( zid.equals("meta/China")) return("Asia/Shanghai");
-       if ( zid.equals("meta/Choibalsan")) return("Asia/Choibalsan");
-       if ( zid.equals("meta/Dacca")) return("Asia/Dhaka");
-       if ( zid.equals("meta/Dushanbe")) return("Asia/Dushanbe");
-       if ( zid.equals("meta/Dutch_Guiana")) return("America/Paramaribo");
-       if ( zid.equals("meta/East_Timor")) return("Asia/Dili");
-       if ( zid.equals("meta/Ecuador")) return("America/Guayaquil");
-       if ( zid.equals("meta/Europe_Central")) return("Europe/Paris");
-       if ( zid.equals("meta/Europe_Eastern")) return("Europe/Bucharest");
-       if ( zid.equals("meta/Europe_Western")) return("Europe/Lisbon");
-       if ( zid.equals("meta/Frunze")) return("Asia/Bishkek");
-       if ( zid.equals("meta/GMT")) return("Europe/London");
-       if ( zid.equals("meta/Galapagos")) return("Pacific/Galapagos");
-       if ( zid.equals("meta/Georgia")) return("Asia/Tbilisi");
-       if ( zid.equals("meta/Greenland_Central")) return("America/Scoresbysund");
-       if ( zid.equals("meta/Greenland_Eastern")) return("America/Scoresbysund");
-       if ( zid.equals("meta/Greenland_Western")) return("America/Godthab");
-       if ( zid.equals("meta/Guam")) return("Pacific/Guam");
-       if ( zid.equals("meta/Gulf")) return("Asia/Dubai");
-       if ( zid.equals("meta/Hawaii")) return("Pacific/Honolulu");
-       if ( zid.equals("meta/Hawaii_Aleutian")) return("America/Adak");
-       if ( zid.equals("meta/India")) return("Asia/Calcutta");
-       if ( zid.equals("meta/Indonesia_Central")) return("Asia/Makassar");
-       if ( zid.equals("meta/Indonesia_Eastern")) return("Asia/Jayapura");
-       if ( zid.equals("meta/Indonesia_Western")) return("Asia/Jakarta");
-       if ( zid.equals("meta/Israel")) return("Asia/Jerusalem");
-       if ( zid.equals("meta/Karachi")) return("Asia/Karachi");
-       if ( zid.equals("meta/Kashgar")) return("Asia/Kashgar");
-       if ( zid.equals("meta/Kazakhstan_Eastern")) return("Asia/Almaty");
-       if ( zid.equals("meta/Kazakhstan_Western")) return("Asia/Aqtau");
-       if ( zid.equals("meta/Kizilorda")) return("Asia/Qyzylorda");
-       if ( zid.equals("meta/Korea")) return("Asia/Seoul");
-       if ( zid.equals("meta/Kuybyshev")) return("Europe/Samara");
-       if ( zid.equals("meta/Kwajalein")) return("Pacific/Kwajalein");
-       if ( zid.equals("meta/Kyrgystan")) return("Asia/Bishkek");
-       if ( zid.equals("meta/Lanka")) return("Asia/Colombo");
-       if ( zid.equals("meta/Long_Shu")) return("Asia/Chongqing");
-       if ( zid.equals("meta/Lord_Howe")) return("Australia/Lord_Howe");
-       if ( zid.equals("meta/Macau")) return("Asia/Macau");
-       if ( zid.equals("meta/Malaya")) return("Asia/Kuala_Lumpur");
-       if ( zid.equals("meta/Malaysia")) return("Asia/Kuala_Lumpur");
-       if ( zid.equals("meta/Marshall_Islands")) return("Pacific/Majuro");
-       if ( zid.equals("meta/Mongolia")) return("Asia/Ulaanbaatar");
-       if ( zid.equals("meta/New_Zealand")) return("Pacific/Auckland");
-       if ( zid.equals("meta/Newfoundland")) return("America/St_Johns");
-       if ( zid.equals("meta/North_Mariana")) return("Pacific/Saipan");
-       if ( zid.equals("meta/Pakistan")) return("Asia/Karachi");
-       if ( zid.equals("meta/Pierre_Miquelon")) return("America/Miquelon");
-       if ( zid.equals("meta/Qyzylorda")) return("Asia/Qyzylorda");
-       if ( zid.equals("meta/Samara")) return("Europe/Samara");
-       if ( zid.equals("meta/Samarkand")) return("Asia/Samarkand");
-       if ( zid.equals("meta/Samoa")) return("Pacific/Apia");
-       if ( zid.equals("meta/Shevchenko")) return("Asia/Aqtau");
-       if ( zid.equals("meta/Suriname")) return("America/Paramaribo");
-       if ( zid.equals("meta/Sverdlovsk")) return("Asia/Yekaterinburg");
-       if ( zid.equals("meta/Tajikistan")) return("Asia/Dushanbe");
-       if ( zid.equals("meta/Tashkent")) return("Asia/Tashkent");
-       if ( zid.equals("meta/Tbilisi")) return("Asia/Tbilisi");
-       if ( zid.equals("meta/Turkey")) return("Europe/Istanbul");
-       if ( zid.equals("meta/Turkmenistan")) return("Asia/Ashgabat");
-       if ( zid.equals("meta/Uralsk")) return("Asia/Oral");
-       if ( zid.equals("meta/Urumqi")) return("Asia/Urumqi");
-       if ( zid.equals("meta/Uzbekistan")) return("Asia/Tashkent");
-       if ( zid.equals("meta/Yekaterinburg")) return("Asia/Yekaterinburg");
-       if ( zid.equals("meta/Yerevan")) return("Asia/Yerevan");
-       if ( zid.equals("meta/Yukon")) return("America/Dawson");
-
-       return zid;
     }
 
     /**
@@ -1451,7 +1243,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
     /**
      * A cache for ZoneItemInfo objects, shared by class instances.
      */
-    private static ICUCache zoneItemInfoCache = new SimpleCache();
+    private static SoftCache zoneItemInfoCache = new SoftCache();
 
     /**
      * A ZoneItemInfo instance which holds custom timezone strings
@@ -1473,42 +1265,29 @@ public class DateFormatSymbols implements Serializable, Cloneable {
             return zii;
         }
         zii = getZoneItemInfo(getDefaultZoneStrings(requestedLocale));
+        // Add fallback display names
+        String[] zoneIDs = TimeZone.getAvailableIDs();
+        for (int i = 0; i < zoneIDs.length; i++) {
+            Object o = zii.tzidMap.get(zoneIDs[i]);
+            if (o != null) {
+                // Already has names
+                continue;
+            }
+            String value = ZoneMeta.displayFallback(zoneIDs[i], null, requestedLocale);
+            if (value != null) {
+                String[] strings = new String[8];
+                strings[5] = value;
+                zii.tzidMap.put(zoneIDs[i], strings);
+                
+                ZoneItem item = new ZoneItem();
+                item.zid = zoneIDs[i];
+                item.value = value;
+                item.type = TIMEZONE_EXEMPLAR_CITY;
+                zii.tzStringMap.put(item.value, item);
+            }
+        }
         zoneItemInfoCache.put(requestedLocale, zii);
         return zii;
-    }
-
-    private static String getZoneStringFromBundles(ICUResourceBundle [] z, String zone, String type) {
-    
-       String zoneKey = zone.replaceAll("/",":");
-       for ( int i = 0 ; i < z.length ; i++ ) {
-          ICUResourceBundle zoneTable = z[i];
-          String result = null;
-          try {
-             result = zoneTable.getStringWithFallback(zoneKey+"/"+type);
-          } catch (MissingResourceException ex) {
-                    // throw away the exception   
-          }
-          if ( result != null )
-            return result;
-       }
-       return null;
-    }
-
-    private static ICUResourceBundle getUsesMetazoneFromBundles(ICUResourceBundle [] z, String zone) {
-    
-       String zoneKey = zone.replaceAll("/",":");
-       for ( int i = 0 ; i < z.length ; i++ ) {
-          ICUResourceBundle zoneTable = z[i];
-          ICUResourceBundle result = null;
-          try {
-             result = zoneTable.getWithFallback(zoneKey+"/"+USES_METAZONE);
-          } catch (MissingResourceException ex) {
-                    // throw away the exception   
-          }
-          if ( result != null )
-            return result;
-       }
-       return null;
     }
 
     /**
@@ -1516,86 +1295,64 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      */
     private static String[][] getDefaultZoneStrings(ULocale locale) {
         ArrayList tmpList = new ArrayList();
-        ArrayList zoneStringsBundleList = new ArrayList();
-
+        HashSet tmpSet = new HashSet();
         for (ULocale tempLocale = locale; tempLocale != null; tempLocale = tempLocale.getFallback()) {
             ICUResourceBundle bundle = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, tempLocale);
             ICUResourceBundle zoneStringsBundle = bundle.getWithFallback("zoneStrings");
-            if (zoneStringsBundle != null)
-               zoneStringsBundleList.add(zoneStringsBundle);
+            for(int i = 0; i < zoneStringsBundle.getSize(); i++){
+                ICUResourceBundle zoneTable = zoneStringsBundle.get(i);
+                String key = Utility.replaceAll(zoneTable.getKey(), ":", "/");
+                // hack for the root zone strings
+                if(key.length() == 0|| zoneTable.getType() != ICUResourceBundle.TABLE){
+                    continue;
+                }
+                if (tmpSet.contains(key)) {
+                    // only add if we don't have already
+                    continue;
+                }
+                String[] strings = new String[8];
+                strings[0] = key;
+                try {
+                    strings[1] = zoneTable.getStringWithFallback(LONG_STANDARD);
+                } catch (MissingResourceException ex) {
+                    // throw away the exception   
+                }
+                try {
+                    strings[2] = zoneTable.getStringWithFallback(SHORT_STANDARD);
+                } catch (MissingResourceException ex) {
+                    // throw away the exception   
+                }
+                try {
+                    strings[3] = zoneTable.getStringWithFallback(LONG_DAYLIGHT);
+                } catch (MissingResourceException ex) {
+                    // throw away the exception   
+                }
+                try {
+                    strings[4] = zoneTable.getStringWithFallback(SHORT_DAYLIGHT);
+                } catch (MissingResourceException ex) {
+                    //  throw away the exception    
+                }
+                try {
+                    String city = zoneTable.getStringWithFallback(EXEMPLAR_CITY);
+                    strings[5] = ZoneMeta.displayFallback(key, city, tempLocale);
+                } catch (MissingResourceException ex) {
+                    // throw away the exception   
+                }
+                try {
+                    strings[6] = zoneTable.getStringWithFallback(LONG_GENERIC);
+                } catch (MissingResourceException ex) {
+                    // throw away the exception                 
+                }
+                try {
+                    strings[7] = zoneTable.getStringWithFallback(SHORT_GENERIC);
+                } catch (MissingResourceException ex) {
+                    // throw away the exception   
+                }
+                tmpList.add(strings);
+            }
         }
-
-        ICUResourceBundle [] zoneStringsBundles = new ICUResourceBundle[zoneStringsBundleList.size()];
-        zoneStringsBundleList.toArray(zoneStringsBundles);
-
-        String[] zoneIDs = TimeZone.getAvailableIDs();
-
-        ArrayList usedMetazones = new ArrayList();
-
-        for(int i = 0; i < zoneIDs.length; i++){
-           // Skip IDs that are not canonicalized...
-           if ( ! zoneIDs[i].equals(ZoneMeta.getCanonicalID(zoneIDs[i])))
-              continue;
-
-           String[] strings = new String[38];
-           strings[0] = zoneIDs[i];
-           strings[1] = getZoneStringFromBundles(zoneStringsBundles,zoneIDs[i],LONG_STANDARD);
-           strings[2] = getZoneStringFromBundles(zoneStringsBundles,zoneIDs[i],SHORT_STANDARD);
-           strings[3] = getZoneStringFromBundles(zoneStringsBundles,zoneIDs[i],LONG_DAYLIGHT);
-           strings[4] = getZoneStringFromBundles(zoneStringsBundles,zoneIDs[i],SHORT_DAYLIGHT);
-           String city = getZoneStringFromBundles(zoneStringsBundles,zoneIDs[i],EXEMPLAR_CITY);
-           strings[5] = ZoneMeta.displayFallback(zoneIDs[i],city,locale);
-           strings[6] = getZoneStringFromBundles(zoneStringsBundles,zoneIDs[i],LONG_GENERIC);
-           strings[7] = getZoneStringFromBundles(zoneStringsBundles,zoneIDs[i],SHORT_GENERIC);
-
-           int mz=0;
-           int zstring_pos = 8;
-           boolean mz_done = false;
-           ICUResourceBundle uses_mz = null;
-
-           if ( ! zoneIDs[i].startsWith("meta") ) {
-              uses_mz = getUsesMetazoneFromBundles(zoneStringsBundles,zoneIDs[i]);
-           } 
-
-           while ( (uses_mz != null) && !mz_done) {
-              ICUResourceBundle current_mz = null;
-              try {
-                 current_mz = uses_mz.getWithFallback(METAZONE+String.valueOf(mz)); 
-              } catch (MissingResourceException ex) {
-                 mz_done = true;
-              }
-
-              if ( !mz_done ) {
-                 String [] um_str = current_mz.getStringArray();
-                 strings[zstring_pos++] = um_str[0];
-                 strings[zstring_pos++] = um_str[1];
-                 strings[zstring_pos++] = um_str[2];
-                 if (!usedMetazones.contains(um_str[0]))
-                    usedMetazones.add(um_str[0]);
-              }
-              mz++; 
-           }
-
-           tmpList.add(strings);
-        }
-
-        for( int i = 0; i < usedMetazones.size(); i++) {
-           String[] strings = new String[38];
-           String key = "meta/"+usedMetazones.get(i);
-           strings[0] = key;
-           strings[1] = getZoneStringFromBundles(zoneStringsBundles,key,LONG_STANDARD);
-           strings[2] = getZoneStringFromBundles(zoneStringsBundles,key,SHORT_STANDARD);
-           strings[3] = getZoneStringFromBundles(zoneStringsBundles,key,LONG_DAYLIGHT);
-           strings[4] = getZoneStringFromBundles(zoneStringsBundles,key,SHORT_DAYLIGHT);
-           strings[6] = getZoneStringFromBundles(zoneStringsBundles,key,LONG_GENERIC);
-           strings[7] = getZoneStringFromBundles(zoneStringsBundles,key,SHORT_GENERIC);
-
-           tmpList.add(strings);
-        }
-
-        String[][] array = new String[tmpList.size()][38];
+        String[][] array = new String[tmpList.size()][8];
         tmpList.toArray(array);
-
         return array;
     }
 
@@ -1622,7 +1379,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
             String zid = strings[i][0];
             if (zid != null && zid.length() > 0) {
                 zii.tzidMap.put(zid, strings[i]);
-                int nameCount = strings[i].length < 38 ? strings[i].length : 38;
+                int nameCount = strings[i].length < 8 ? strings[i].length : 8;
                 for (int j = 1; j < nameCount; j++) {
                     if (strings[i][j] != null) {
                         // map zoneStrings array index to timezone name type
@@ -1641,17 +1398,25 @@ public class DateFormatSymbols implements Serializable, Cloneable {
                             type = TIMEZONE_SHORT_DAYLIGHT;
                             break;
                         case 5:
-                            type = TIMEZONE_EXEMPLAR_CITY;
+                            if (nameCount == 6 || nameCount == 8) {
+                                type = TIMEZONE_EXEMPLAR_CITY;
+                            } else {
+                                type = TIMEZONE_LONG_GENERIC;
+                            }
                             break;
                         case 6:
-                            type = TIMEZONE_LONG_GENERIC;
+                            if (nameCount == 8) {
+                                type = TIMEZONE_LONG_GENERIC;
+                            } else {
+                                type = TIMEZONE_SHORT_GENERIC;
+                            }
                             break;
                         case 7:
                             type = TIMEZONE_SHORT_GENERIC;
                             break;
                         default:
-                            type = TIMEZONE_METAZONE_MAPPING;
-                            break;
+                            // never occur
+                            continue;
                         }
                         ZoneItem item = new ZoneItem();
                         item.zid = zid;
@@ -1681,10 +1446,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
                                    LONG_GENERIC   = "lg",
                                    LONG_STANDARD  = "ls",
                                    LONG_DAYLIGHT  = "ld",
-                                   EXEMPLAR_CITY  = "ec",
-                                   USES_METAZONE  = "um",
-                                   METAZONE       = "mz",
-                                   COMMONLY_USED  = "cu";
+                                   EXEMPLAR_CITY  = "ec";
     /**
      * The translation type of the translated zone strings
      * @internal ICU 3.6
@@ -1697,10 +1459,9 @@ public class DateFormatSymbols implements Serializable, Cloneable {
                         TIMEZONE_LONG_STANDARD  = 4,
                         TIMEZONE_LONG_DAYLIGHT  = 5,
                         TIMEZONE_EXEMPLAR_CITY  = 6,
-                        TIMEZONE_METAZONE_MAPPING  = 7,
-                        TIMEZONE_COUNT          = 8;
+                        TIMEZONE_COUNT          = 7;
 
-     /*
+     /**
      * Package private: used by SimpleDateFormat
      * Gets the index for the given time zone ID to obtain the timezone
      * strings for formatting. The time zone ID is just for programmatic
@@ -1710,7 +1471,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * the given time zone ID can't be located in the DateFormatSymbols object.
      * @see com.ibm.icu.util.SimpleTimeZone
      */
-/*    final int getZoneIndex(String ID) {
+    final int getZoneIndex(String ID) {
         int result = _getZoneIndex(ID);
         if (result >= 0) {
             return result;
@@ -1729,22 +1490,23 @@ public class DateFormatSymbols implements Serializable, Cloneable {
             }
         }
         return -1;
-    }*/
+    }
     
-    /*
+    /**
      * Lookup the given ID.  Do NOT do an equivalency search.
      */
-/*    private int _getZoneIndex(String ID)
+    private int _getZoneIndex(String ID)
     {
         for (int index=0; index<zoneStrings.length; index++) {
             if (ID.equalsIgnoreCase(zoneStrings[index][0])) return index;
         }
         return -1;
-    }*/
+    }
 
     /**
      * Clones an array of Strings.
      * @param srcArray the source array to be cloned.
+     * @param count the number of elements in the given source array.
      * @return a cloned array.
      */
     private final String[] duplicate(String[] srcArray)
@@ -1758,6 +1520,36 @@ public class DateFormatSymbols implements Serializable, Cloneable {
         for (int i = 0; i < srcArray.length; ++i)
             aCopy[i] = duplicate(srcArray[i]);
         return aCopy;
+    }
+
+    /**
+     * Clones all the data members from the source DateFormatSymbols to
+     * the target DateFormatSymbols. This is only for subclasses.
+     * @param src the source DateFormatSymbols.
+     * @param dst the target DateFormatSymbols.
+     */
+    private final void copyMembers(DateFormatSymbols src, DateFormatSymbols dst)
+    {
+        dst.eras = duplicate(src.eras);
+        dst.eraNames = duplicate(src.eraNames);
+        dst.months = duplicate(src.months);
+        dst.shortMonths = duplicate(src.shortMonths);
+        dst.narrowMonths = duplicate(src.narrowMonths);
+        dst.standaloneMonths = duplicate(src.standaloneMonths);
+        dst.standaloneShortMonths = duplicate(src.standaloneShortMonths);
+        dst.standaloneNarrowMonths = duplicate(src.standaloneNarrowMonths);
+        dst.weekdays = duplicate(src.weekdays);
+        dst.shortWeekdays = duplicate(src.shortWeekdays);
+        dst.narrowWeekdays = duplicate(src.narrowWeekdays);
+        dst.standaloneWeekdays = duplicate(src.standaloneWeekdays);
+        dst.standaloneShortWeekdays = duplicate(src.standaloneShortWeekdays);
+        dst.standaloneNarrowWeekdays = duplicate(src.standaloneNarrowWeekdays);
+        dst.ampms = duplicate(src.ampms);
+        if (src.zoneStrings != null) {
+            dst.zoneStrings = duplicate(src.zoneStrings);
+        }
+        dst.requestedLocale = new ULocale(src.requestedLocale.toString());
+        dst.localPatternChars = new String (src.localPatternChars);
     }
 
     /**
@@ -1936,7 +1728,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * Fetch a custom calendar's DateFormatSymbols out of the given resource
      * bundle.  Symbols that are not overridden are inherited from the
      * default DateFormatSymbols for the locale.
-     * @see DateFormatSymbols#DateFormatSymbols(java.util.Locale)
+     * @see DateFormatSymbols#DateFormatSymbols
      * @stable ICU 2.0
      */
     public DateFormatSymbols(ResourceBundle bundle, Locale locale) {
@@ -1947,7 +1739,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * Fetch a custom calendar's DateFormatSymbols out of the given resource
      * bundle.  Symbols that are not overridden are inherited from the
      * default DateFormatSymbols for the locale.
-     * @see DateFormatSymbols#DateFormatSymbols(java.util.Locale)
+     * @see DateFormatSymbols#DateFormatSymbols
      * @draft ICU 3.2
      * @provisional This API might change or be removed in a future release.
      */

@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2005, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -41,6 +41,8 @@ public class TestCanonicalIterator extends TestFmwk {
      
     public void TestExhaustive() {
         int counter = 0;
+        int mixedCounter = 0;
+        int lastMixedCounter = -1;
         CanonicalIterator it = new CanonicalIterator("");
         /*
         CanonicalIterator slowIt = new CanonicalIterator("");
@@ -62,7 +64,7 @@ public class TestCanonicalIterator extends TestFmwk {
             
             String s = UTF16.valueOf(i);
             
-            if (! skipIfBeforeICU(3, 4,0)) {
+            if (! skipIfBeforeICU(3, 4)) {
                 characterTest(s, i, it);
             }
             
@@ -193,6 +195,7 @@ public class TestCanonicalIterator extends TestFmwk {
     
     public void characterTest(String s, int ch, CanonicalIterator it)
     {
+        int counter = 0;
         int mixedCounter = 0;
         int lastMixedCounter = -1;
         boolean gotDecomp = false;

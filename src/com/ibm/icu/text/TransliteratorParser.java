@@ -6,6 +6,7 @@
 */
 package com.ibm.icu.text;
 
+import com.ibm.icu.impl.data.ResourceReader;
 import com.ibm.icu.impl.Utility;
 import java.util.Vector;
 import java.util.Hashtable;
@@ -332,10 +333,10 @@ class TransliteratorParser {
         }
     }
 
-    /*
+    /**
      * RuleBody subclass for a ResourceReader.
      */
-/*    private static class RuleReader extends RuleBody {
+    private static class RuleReader extends RuleBody {
         ResourceReader reader;
         public RuleReader(ResourceReader reader) { this.reader = reader; }
         public String handleNextLine() {
@@ -347,7 +348,7 @@ class TransliteratorParser {
         public void reset() {
             reader.reset();
         }
-    }*/
+    }
 
     //----------------------------------------------------------------------
     // class RuleHalf
@@ -854,13 +855,13 @@ class TransliteratorParser {
         parseRules(new RuleArray(new String[] { rules }), direction);
     }
    
-    /*
+    /**
      * Parse a set of rules.  After the parse completes, examine the public
      * data members for results.
      */
-/*    public void parse(ResourceReader rules, int direction) {
+    public void parse(ResourceReader rules, int direction) {
         parseRules(new RuleReader(rules), direction);
-    }*/
+    }
 
     //----------------------------------------------------------------------
     // PRIVATE methods
@@ -881,6 +882,7 @@ class TransliteratorParser {
      */
     void parseRules(RuleBody ruleArray, int dir) {
         boolean parsingIDs = true;
+        boolean inBeginEndBlock = false;
         int ruleCount = 0;
 
         dataVector = new Vector();

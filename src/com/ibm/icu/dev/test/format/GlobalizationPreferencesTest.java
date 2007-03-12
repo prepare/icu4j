@@ -1,7 +1,7 @@
 //##header
 /*
  *******************************************************************************
- * Copyright (C) 2004-2007, International Business Machines Corporation and    *
+ * Copyright (C) 2004-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
 */
@@ -1099,8 +1099,7 @@ public class GlobalizationPreferencesTest extends TestFmwk {
 
         logln("Currency symbol[USD]: " + name1 + " | " + name2 + " | " + name3);
         String dollar = "$";
-        String us_dollar = "US$";
-        if (!name1.equals(dollar) || !name2.equals(us_dollar) || !name3.equals(us_dollar)) {
+        if (!name1.equals(dollar) || !name2.equals(dollar) || !name3.equals(dollar)) {
             errln("FAIL: Currency symbol ID");
         }
 
@@ -1171,8 +1170,8 @@ public class GlobalizationPreferencesTest extends TestFmwk {
         df = gp.getDateFormat(GlobalizationPreferences.DF_SHORT, GlobalizationPreferences.DF_NONE);
         pattern = ((SimpleDateFormat)df).toPattern();
         // root pattern must be used
-        if (!pattern.equals("yyyy-MM-dd")) {
-            errln("FAIL: SHORT date pattern is " + pattern + " Expected: yyyy-MM-dd");
+        if (!pattern.equals("yy/MM/dd")) {
+            errln("FAIL: SHORT date pattern is " + pattern + " Expected: yy/MM/dd");
         }
 
         // Set locale - fr, fr_CA, fr_FR
@@ -1187,7 +1186,7 @@ public class GlobalizationPreferencesTest extends TestFmwk {
         pattern = ((SimpleDateFormat)df).toPattern();
         // fr_CA pattern must be used
         if (!pattern.equals("yy-MM-dd")) {
-            errln("FAIL: SHORT date pattern is " + pattern + " Expected: yy-MM-dd");
+            errln("FAIL: FULL date pattern is " + pattern + " Expected: yy-MM-dd");
         }
 
 
@@ -1226,8 +1225,8 @@ public class GlobalizationPreferencesTest extends TestFmwk {
         // Time - full
         df = gp.getDateFormat(GlobalizationPreferences.DF_NONE, GlobalizationPreferences.DF_FULL);
         pattern = ((SimpleDateFormat)df).toPattern();
-        if (!pattern.equals("HH:mm:ss v")) {
-            errln("FAIL: FULL time pattern is " + pattern + " Expected: HH:mm:ss v");
+        if (!pattern.equals("HH:mm:ss z")) {
+            errln("FAIL: FULL time pattern is " + pattern + " Expected: HH:mm:ss z");
         }
 
         // Time - long
@@ -1254,8 +1253,8 @@ public class GlobalizationPreferencesTest extends TestFmwk {
         // Date/Time - full
         df = gp.getDateFormat(GlobalizationPreferences.DF_FULL, GlobalizationPreferences.DF_FULL);
         pattern = ((SimpleDateFormat)df).toPattern();
-        if (!pattern.equals("EEEE, d MMMM yyyy HH:mm:ss v")) {
-            errln("FAIL: FULL date/time pattern is " + pattern + " Expected: EEEE, d MMMM yyyy HH:mm:ss v");
+        if (!pattern.equals("EEEE, d MMMM yyyy HH:mm:ss z")) {
+            errln("FAIL: FULL date/time pattern is " + pattern + " Expected: EEEE, d MMMM yyyy HH:mm:ss z");
         }
 
         // Invalid style
@@ -1456,8 +1455,8 @@ public class GlobalizationPreferencesTest extends TestFmwk {
         gp.setTerritory("US");
         nf = gp.getNumberFormat(GlobalizationPreferences.NF_CURRENCY);
         numStr = nf.format(num);
-        if (!numStr.equals("123.456,79 US$")) {
-            errln("FAIL: Number string is " + numStr + " Expected: 123.456,79 US$");
+        if (!numStr.equals("123.456,79 $")) {
+            errln("FAIL: Number string is " + numStr + " Expected: 123.456,79 $");
         }
 
         // Set explicit currency
@@ -1465,8 +1464,8 @@ public class GlobalizationPreferencesTest extends TestFmwk {
         gp.setCurrency(Currency.getInstance("GBP"));
         nf = gp.getNumberFormat(GlobalizationPreferences.NF_CURRENCY);
         numStr = nf.format(num);
-        if (!numStr.equals("123.456,79 UK\u00A3")) {
-            errln("FAIL: Number string is " + numStr + " Expected: 123.456,79 UK\u00A3");
+        if (!numStr.equals("123.456,79 \u00A3")) {
+            errln("FAIL: Number string is " + numStr + " Expected: 123.456,79 \u00A3");
         }
 
         // Set exliplicit NumberFormat
@@ -1554,7 +1553,7 @@ public class GlobalizationPreferencesTest extends TestFmwk {
         Calendar cal = gp.getCalendar();
         // Calendar instance returned from GP should be initialized
         // by the current time
-        long timeDiff = System.currentTimeMillis() - cal.getTimeInMillis();
+        long timeDiff = System.currentTimeMillis() - gp.getCalendar().getTimeInMillis();
         if (Math.abs(timeDiff) > 1000) {
             // if difference is more than 1 second..
             errln("FAIL: The Calendar was not initialized by current time - difference:" + timeDiff);

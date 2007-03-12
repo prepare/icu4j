@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2005, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -35,9 +35,10 @@ public class RBBIDemo extends DemoApplet
 
 class RBBIFrame extends Frame implements ItemListener
 {
-    //private static final String creditString = "v1.1a9, Demo";
+    private static final String creditString =
+        "v1.1a9, Demo";
 
-    //private static final int FIELD_COLUMNS = 45;
+    private static final int FIELD_COLUMNS = 45;
     private static final Font choiceFont = null;
     private static final boolean DEBUG = false;
     private DemoApplet applet;
@@ -48,7 +49,7 @@ class RBBIFrame extends Frame implements ItemListener
     private BreakIterator iter;
     private boolean       isctrldown_ = false;
 
-    JTextArea text;
+JTextArea text;
 //    TextArea text;
     Choice bound;
 
@@ -245,7 +246,7 @@ class RBBIFrame extends Frame implements ItemListener
         public void keyPressed(KeyEvent e) {
             if (e.isControlDown()) {
             int kc = e.getKeyCode();
-            switch (kc) {
+            switch (e.getKeyCode()) {
             case KeyEvent.VK_N:
             case KeyEvent.VK_RIGHT:
                 handleForward();
