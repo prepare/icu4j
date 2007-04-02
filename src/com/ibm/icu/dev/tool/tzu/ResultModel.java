@@ -51,7 +51,7 @@ class ResultModel extends AbstractTableModel {
     /**
      * A list of names of the columns in a result model.
      */
-    public static final String[] COLUMN_NAMES = new String[] { "Filename", "Path",
+    public static final String[] COLUMN_NAMES = new String[] { "Path", "Name",
             "ICU Version", "TZ Version" };
 
     /**
