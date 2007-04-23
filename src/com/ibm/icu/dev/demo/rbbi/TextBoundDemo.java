@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2005, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -20,11 +20,6 @@ import com.ibm.icu.text.BreakIterator;
 
 public class TextBoundDemo extends DemoApplet
 {
-    /**
-     * For serialization
-     */
-    private static final long serialVersionUID = 8123658019297481938L;
-
     public static void main(String argv[]) {
         new TextBoundDemo().showDemo();
     }
@@ -38,14 +33,10 @@ public class TextBoundDemo extends DemoApplet
 
 class TextBoundFrame extends Frame implements ItemListener
 {
-    /**
-     * For serialization
-     */
-    private static final long serialVersionUID = 4829041307280329194L;
-//    private static final String creditString =
-//        "v1.1a9, Demo";
+    private static final String creditString =
+        "v1.1a9, Demo";
 
-//    private static final int FIELD_COLUMNS = 45;
+    private static final int FIELD_COLUMNS = 45;
     private static final Font choiceFont = null;
     private static final boolean DEBUG = false;
     private DemoApplet applet;
@@ -87,7 +78,7 @@ JTextArea text;
         */
     }
 
-    int start, end;
+    int s, e;
     int ts, te;
 
     public void checkChange()
@@ -117,9 +108,9 @@ JTextArea text;
 
     public void select(int sIn, int eIn)
     {
-        start = sIn;
-        end = eIn;
-        text.select(start, end);
+        s = sIn;
+        e = eIn;
+        text.select(s, e);
         ts = text.getSelectionStart() & 0x7FFF;
         te = text.getSelectionEnd() & 0x7FFF;
 //        if (s != ts || e != te) {
@@ -253,7 +244,7 @@ text.setWrapStyleWord(true);
         public void keyPressed(KeyEvent e) {
             if (e.isControlDown()) {
             int kc = e.getKeyCode();
-            switch (kc) {
+            switch (e.getKeyCode()) {
             case KeyEvent.VK_N:
             case KeyEvent.VK_RIGHT:
                 handleForward();
@@ -382,7 +373,7 @@ text.setWrapStyleWord(true);
             }
             //text.select(s, e);
             errorText("<" + oldStart + "," + oldEnd + "> -> <" +
-                start + "," + end + ">");
+                s + "," + e + ">");
         }
         catch (Exception exp) {
             errorText(exp.toString());
@@ -404,7 +395,7 @@ text.setWrapStyleWord(true);
                 selectRange(s, e);
             }
             //text.select(s, e);
-            errorText("<" + oldStart + "," + oldEnd + "> -> <" + start + "," + end + ">");
+            errorText("<" + oldStart + "," + oldEnd + "> -> <" + s + "," + e + ">");
         }
         catch (Exception exp) {
             errorText(exp.toString());

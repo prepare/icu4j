@@ -134,16 +134,6 @@ public final class UniversalTimeScale
      * @provisional This API might change or be removed in a future release.
      */
     public static final int DB2_TIME = 8;
-
-    /**
-     * Data is a <code>long</code>. Value is microseconds since January 1, 1970.
-     * Similar to Unix time (linear value from 1970) and struct timeval
-     * (microseconds resolution).
-     *
-     * @draft ICU 3.8
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final int UNIX_MICROSECONDS_TIME = 9;
     
     /**
      * This is the first unused time scale value.
@@ -151,7 +141,7 @@ public final class UniversalTimeScale
      * @draft ICU 3.2
      * @provisional This API might change or be removed in a future release.
      */
-    public static final int MAX_SCALE = 10;
+    public static final int MAX_SCALE = 9;
     
     /**
      * The constant used to select the units value
@@ -363,20 +353,17 @@ public final class UniversalTimeScale
         new TimeScaleData(seconds,      600527520000000000L, -9223372036854775808L, 9223372036854775807L, -982389955685L,               862284451685L), // MAC_OLD_TIME
         new TimeScaleData(seconds,      631139040000000000L, -9223372036854775808L, 9223372036854775807L, -985451107685L,               859223299685L), // MAC_TIME
         new TimeScaleData(days,         599265216000000000L, -9223372036854775808L, 9223372036854775807L, -11368793L,                        9981605L), // EXCEL_TIME
-        new TimeScaleData(days,         599265216000000000L, -9223372036854775808L, 9223372036854775807L, -11368793L,                        9981605L), // DB2_TIME
-        new TimeScaleData(microseconds, 621355968000000000L, -9223372036854775804L, 9223372036854775804L, -984472800485477580L,   860201606885477580L)  // UNIX_MICROSECONDS_TIME
+        new TimeScaleData(days,         599265216000000000L, -9223372036854775808L, 9223372036854775807L, -11368793L,                        9981605L)  // DB2_TIME
     };
     
     
     /*
      * Prevent construction of this class.
      */
-    ///CLOVER:OFF
     private UniversalTimeScale()
     {
         // nothing to do
     }
-    ///CLOVER:ON
     
     /**
      * Convert a <code>long</code> datetime from the given time scale to the universal time scale.

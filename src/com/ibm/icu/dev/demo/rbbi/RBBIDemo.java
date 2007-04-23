@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2005, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -21,11 +21,6 @@ import com.ibm.icu.text.BreakIterator;
 
 public class RBBIDemo extends DemoApplet
 {
-    /**
-     * For serialization
-     */
-    private static final long serialVersionUID = 728543547366617131L;
-
     public static void main(String argv[]) {
         Locale.setDefault(new Locale("en", "US"));
         new RBBIDemo().showDemo();
@@ -40,13 +35,10 @@ public class RBBIDemo extends DemoApplet
 
 class RBBIFrame extends Frame implements ItemListener
 {
-    /**
-     * For serialization
-     */
-    private static final long serialVersionUID = 5986183892855142947L;
-    //private static final String creditString = "v1.1a9, Demo";
+    private static final String creditString =
+        "v1.1a9, Demo";
 
-    //private static final int FIELD_COLUMNS = 45;
+    private static final int FIELD_COLUMNS = 45;
     private static final Font choiceFont = null;
     private static final boolean DEBUG = false;
     private DemoApplet applet;
@@ -57,7 +49,7 @@ class RBBIFrame extends Frame implements ItemListener
     private BreakIterator iter;
     private boolean       isctrldown_ = false;
 
-    JTextArea text;
+JTextArea text;
 //    TextArea text;
     Choice bound;
 
@@ -88,7 +80,7 @@ class RBBIFrame extends Frame implements ItemListener
         */
     }
 
-    int start, end;
+    int s, e;
     int ts, te;
 
     public void checkChange()
@@ -118,9 +110,9 @@ class RBBIFrame extends Frame implements ItemListener
 
     public void select(int sIn, int eIn)
     {
-        start = sIn;
-        end = eIn;
-        text.select(start, end);
+        s = sIn;
+        e = eIn;
+        text.select(s, e);
         ts = text.getSelectionStart() & 0x7FFF;
         te = text.getSelectionEnd() & 0x7FFF;
 //        if (s != ts || e != te) {
@@ -254,7 +246,7 @@ class RBBIFrame extends Frame implements ItemListener
         public void keyPressed(KeyEvent e) {
             if (e.isControlDown()) {
             int kc = e.getKeyCode();
-            switch (kc) {
+            switch (e.getKeyCode()) {
             case KeyEvent.VK_N:
             case KeyEvent.VK_RIGHT:
                 handleForward();
@@ -355,7 +347,7 @@ class RBBIFrame extends Frame implements ItemListener
             }
             //text.select(s, e);
             errorText("<" + oldStart + "," + oldEnd + "> -> <" +
-                start + "," + end + ">");
+                s + "," + e + ">");
         }
         catch (Exception exp) {
             errorText(exp.toString());
@@ -377,7 +369,7 @@ class RBBIFrame extends Frame implements ItemListener
                 selectRange(s, e);
             }
             //text.select(s, e);
-            errorText("<" + oldStart + "," + oldEnd + "> -> <" + start + "," + end + ">");
+            errorText("<" + oldStart + "," + oldEnd + "> -> <" + s + "," + e + ">");
         }
         catch (Exception exp) {
             errorText(exp.toString());

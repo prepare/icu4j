@@ -1,6 +1,6 @@
 /**
  *******************************************************************************
- * Copyright (C) 2001-2007, International Business Machines Corporation and    *
+ * Copyright (C) 2001-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -14,6 +14,7 @@ import java.util.MissingResourceException;
 
 import com.ibm.icu.impl.ICUDebug;
 import com.ibm.icu.impl.ICUResourceBundle;
+import com.ibm.icu.impl.LocaleUtility;
 
 /**
  * A class encapsulating a currency, as defined by ISO 4217.  A
@@ -134,7 +135,7 @@ public class Currency extends MeasureUnit implements Serializable {
         if(bundle==null){
             //throw new MissingResourceException()
         }
-        UResourceBundle cm = bundle.get("CurrencyMap");
+        ICUResourceBundle cm = bundle.get("CurrencyMap");
 
         // Do a linear search
         String curriso = null;
@@ -382,8 +383,8 @@ public class Currency extends MeasureUnit implements Serializable {
         String s = null;
 
          try {
-            UResourceBundle rb = UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME,locale);
-            ICUResourceBundle currencies = (ICUResourceBundle)rb.get("Currencies");
+            ICUResourceBundle rb = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME,locale);
+            ICUResourceBundle currencies = rb.get("Currencies");
 
             // Fetch resource with multi-level resource inheritance fallback
             s = currencies.getWithFallback(isoCode).getString(nameStyle);
@@ -473,15 +474,15 @@ public class Currency extends MeasureUnit implements Serializable {
         // Multi-level resource inheritance fallback loop
 
         while (locale != null) {
-            UResourceBundle rb = UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME,locale);
+            ICUResourceBundle rb = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME,locale);
             // We can't cast this to String[][]; the cast has to happen later
 
             try {
-                UResourceBundle currencies = rb.get("Currencies");
+                ICUResourceBundle currencies = rb.get("Currencies");
                 // Do a linear search
                 for (int i=0; i<currencies.getSize(); ++i) {
                     //String name = ((String[]) currencies[i][1])[0];
-                    UResourceBundle item = currencies.get(i);
+                    ICUResourceBundle item = currencies.get(i);
                     String name = item.getString(0);
                     if (name.length() < 1) {
                         // Ignore zero-length names -- later, change this
@@ -621,8 +622,8 @@ public class Currency extends MeasureUnit implements Serializable {
             // Get CurrencyMeta resource out of root locale file.  [This may
             // move out of the root locale file later; if it does, update this
             // code.]
-            UResourceBundle root = ICUResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME,"CurrencyData", ICUResourceBundle.ICU_DATA_CLASS_LOADER);
-            UResourceBundle currencyMeta = root.get("CurrencyMeta");
+            ICUResourceBundle root = (ICUResourceBundle)ICUResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME,"CurrencyData", ICUResourceBundle.ICU_DATA_CLASS_LOADER);
+            ICUResourceBundle currencyMeta = root.get("CurrencyMeta");
 
             //Integer[] i = null;
             //int defaultPos = -1;

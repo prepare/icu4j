@@ -1,7 +1,6 @@
-//##header
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -70,9 +69,6 @@ public class TestAll extends TestGroup {
                 "IntlTestDateFormatAPI",
                 "IntlTestDateFormatAPIC",
                 "IntlTestDateFormatSymbols",
-//#ifndef FOUNDATION
-                "DateTimeGeneratorTest",
-//#endif
                 "IntlTestSimpleDateFormatAPI",
                 "DateFormatRegressionTestJ",
             });

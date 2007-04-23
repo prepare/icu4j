@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -354,7 +354,7 @@ final public class DecimalFormatSymbols implements Cloneable, Serializable {
         }
         this.currency = currency;
         intlCurrencySymbol = currency.getCurrencyCode();
-        currencySymbol = currency.getSymbol(requestedLocale);
+        currencySymbol = currency.getSymbol(locale);
     }
     
     /**
@@ -501,7 +501,7 @@ final public class DecimalFormatSymbols implements Cloneable, Serializable {
      * @stable ICU 2.0
      */
     public Locale getLocale() {
-        return requestedLocale;
+        return locale;
     }
 
     /**
@@ -572,7 +572,7 @@ final public class DecimalFormatSymbols implements Cloneable, Serializable {
      * cleaned up.
      */
     private void initialize( ULocale locale ) {
-        this.requestedLocale = locale.toLocale();
+        this.locale = locale.toLocale();
         this.ulocale = locale;
 
         /* try the cache first */
@@ -654,14 +654,14 @@ final public class DecimalFormatSymbols implements Cloneable, Serializable {
             if(currencyCode != null) {
                 /* An explicit currency was requested */
                 ICUResourceBundle resource = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, locale);
-                ICUResourceBundle currencyRes = resource.getWithFallback("Currencies");
+                ICUResourceBundle currency = resource.getWithFallback("Currencies");
                 try{
-                    currencyRes = currencyRes.getWithFallback(currencyCode);
-                    if(currencyRes.getSize()>2) {
-                        currencyRes = (ICUResourceBundle)currencyRes.get(2);
-                        currencyPattern = currencyRes.getString(0);
-                        monetarySeparator = currencyRes.getString(1).charAt(0);
-                        monetaryGroupingSeparator = currencyRes.getString(2).charAt(0);
+                    currency = currency.getWithFallback(currencyCode);
+                    if(currency.getSize()>2) {
+                        currency = currency.get(2);
+                        currencyPattern = currency.getString(0);
+                        monetarySeparator = currency.getString(1).charAt(0);
+                        monetaryGroupingSeparator = currency.getString(2).charAt(0);
                     }
                 }catch(MissingResourceException ex){
                     /* else An explicit currency was requested and is unknown or locale data is malformed. */
@@ -712,11 +712,11 @@ final public class DecimalFormatSymbols implements Cloneable, Serializable {
             // 90% fix is to construct a mapping of data back to
             // locale, perhaps a hash of all our members.  This is
             // expensive and doesn't seem worth it.
-            requestedLocale = Locale.getDefault();
+            locale = Locale.getDefault();
         }
         if (serialVersionOnStream < 4) {
             // use same default behavior as for versions with no Locale
-            ulocale = ULocale.forLocale(requestedLocale);
+            ulocale = ULocale.forLocale(locale);
         }		   
 		if (serialVersionOnStream < 5) {
 			// use the same one for groupingSeparator
@@ -885,7 +885,7 @@ final public class DecimalFormatSymbols implements Cloneable, Serializable {
      * default locale for objects resurrected from old streams.
      * @since ICU 2.2
      */
-    private Locale requestedLocale;
+    private Locale locale;
 
     /**
      * The requested ULocale.  We keep the old locale for serialization compatibility.

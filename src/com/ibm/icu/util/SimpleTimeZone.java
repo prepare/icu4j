@@ -1,16 +1,18 @@
  /*
-*   Copyright (C) 1996-2007, International Business Machines
+*   Copyright (C) 1996-2006, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 */
 
 package com.ibm.icu.util;
-
-import com.ibm.icu.impl.Grego;
 import com.ibm.icu.impl.JDKTimeZone;
 
 import java.io.IOException;
 import java.util.Date;
 
+import com.ibm.icu.impl.OlsonTimeZone;
+import com.ibm.icu.impl.Utility;
+
+///CLOVER:USECLASS
 /**
  * <code>SimpleTimeZone</code> is a concrete subclass of <code>TimeZone</code>
  * that represents a time zone for use with a Gregorian calendar. This
@@ -32,24 +34,6 @@ public class SimpleTimeZone extends JDKTimeZone {
     private static final long serialVersionUID = -7034676239311322769L;
 
     /**
-     * Constant for a mode of start or end time specified as local wall time.
-     * @stable ICU 3.8
-     */
-    public static final int WALL_TIME = 0;
-
-    /**
-     * Constant for a mode of start or end time specified as local standard time.
-     * @stable ICU 3.8
-     */
-    public static final int STANDARD_TIME = 1;
-
-    /**
-     * Constant for a mode of start or end time specified as UTC.
-     * @stable ICU 3.8
-     */
-    public static final int UTC_TIME = 2;
-
-    /**
      * Constructs a SimpleTimeZone with the given base time zone offset from GMT
      * and time zone ID. Timezone IDs can be obtained from
      * TimeZone.getAvailableIDs. Normally you should use TimeZone.getDefault to
@@ -61,6 +45,8 @@ public class SimpleTimeZone extends JDKTimeZone {
      * @stable ICU 2.0
      */
     public SimpleTimeZone(int rawOffset, String ID) {
+        //this(new java.util.SimpleTimeZone(rawOffset, ID), ID);
+        //super(ID);
         construct(rawOffset, 0, 0, 0,
                 0, WALL_TIME,
                 0, 0, 0,
@@ -130,62 +116,18 @@ public class SimpleTimeZone extends JDKTimeZone {
     public SimpleTimeZone(int rawOffset, String ID,
                           int startMonth, int startDay, int startDayOfWeek, int startTime,
                           int endMonth, int endDay, int endDayOfWeek, int endTime) {
+/*        this(new java.util.SimpleTimeZone(rawOffset, ID, startMonth, startDay,
+                                          startDayOfWeek, startTime, endMonth,
+                                          endDay, endDayOfWeek, endTime), ID);*/
+       // STZInfo xinfo = getSTZInfo();
+       // xinfo.setStart(startMonth, startDay, startDayOfWeek, startTime, -1, false);
+       // xinfo.setEnd(endMonth, endDay, endDayOfWeek, endTime, -1, false);
         construct(rawOffset,
                 startMonth, startDay, startDayOfWeek,
                 startTime, WALL_TIME,
                 endMonth, endDay, endDayOfWeek,
                 endTime, WALL_TIME,
                 MILLIS_PER_HOUR);
-        super.setID(ID);
-    }
-
-    /**
-     * Construct a SimpleTimeZone with the given base time zone offset from
-     * GMT, time zone ID, time and its mode to start and end the daylight time.
-     * The mode specifies either {@link #WALL_TIME} or {@link #STANDARD_TIME}
-     * or {@link #UTC_TIME}.
-     * 
-     * @param rawOffset       The given base time zone offset to GMT.
-     * @param ID              The time zone ID which is obtained from
-     *                        TimeZone.getAvailableIDs.
-     * @param startMonth      The daylight savings starting month. Month is
-     *                        0-based. eg, 0 for January.
-     * @param startDay        The daylight savings starting
-     *                        day-of-week-in-month. Please see the member
-     *                        description for an example.
-     * @param startDayOfWeek  The daylight savings starting day-of-week. Please
-     *                        see the member description for an example.
-     * @param startTime       The daylight savings starting time in local wall
-     *                        time, which is standard time in this case. Please see the
-     *                        member description for an example.
-     * @param startTimeMode   The mode of the start time specified by startTime.
-     * @param endMonth        The daylight savings ending month. Month is
-     *                        0-based. eg, 0 for January.
-     * @param endDay          The daylight savings ending day-of-week-in-month.
-     *                        Please see the member description for an example.
-     * @param endDayOfWeek    The daylight savings ending day-of-week. Please
-     *                        see the member description for an example.
-     * @param endTime         The daylight savings ending time in local wall time,
-     *                        which is daylight time in this case. Please see the
-     *                        member description for an example.
-     * @param endTimeMode     The mode of the end time specified by endTime.
-     * @exception IllegalArgumentException the month, day, dayOfWeek, or time
-     * parameters are out of range for the start or end rule
-     * @stable ICU 3.8
-     */
-    public SimpleTimeZone(int raw,  String ID,
-                          int startMonth, int startDay,
-                          int startDayOfWeek, int startTime,
-                          int startTimeMode,
-                          int endMonth, int endDay,
-                          int endDayOfWeek, int endTime,
-                          int endTimeMode,int dst){
-        construct(raw,
-                  startMonth, startDay, startDayOfWeek,
-                  startTime, startTimeMode,
-                  endMonth, endDay, endDayOfWeek,
-                  endTime, endTimeMode,
-                  dst);
         super.setID(ID);
     }
 
@@ -201,6 +143,17 @@ public class SimpleTimeZone extends JDKTimeZone {
                           int startMonth, int startDay, int startDayOfWeek, int startTime,
                           int endMonth, int endDay, int endDayOfWeek, int endTime,
                           int dstSavings) {
+        /*this(new java.util.SimpleTimeZone(rawOffset, ID, startMonth, startDay,
+                                          startDayOfWeek, startTime, endMonth,
+                                          endDay, endDayOfWeek, endTime, dstSavings), ID);*/
+        this.raw = rawOffset;
+        this.dst = dstSavings;
+        /*
+        STZInfo xinfo = getSTZInfo();
+        xinfo.setStart(startMonth, startDay, startDayOfWeek, startTime, -1, false);
+        xinfo.setEnd(endMonth, endDay, endDayOfWeek, endTime, -1, false);
+        */
+
         construct(rawOffset,
                 startMonth, startDay, startDayOfWeek,
                 startTime, WALL_TIME,
@@ -212,21 +165,22 @@ public class SimpleTimeZone extends JDKTimeZone {
     
 
     /**
-     * Overrides TimeZone
-     * Sets the base time zone offset to GMT.
-     * This is the offset to add "to" UTC to get local time.
+     * Set the raw offset.
+     *
      * @param offsetMillis the raw offset of the time zone
-     * @stable ICU 2.0
+     * @draft ICU 3.4
+     * @provisional This API might change or be removed in a future release.
      */
     public void setRawOffset(int offsetMillis) {
         raw = offsetMillis;
     }
   
     /**
-     * Overrides TimeZone
-     * Gets the GMT offset for this time zone.
+     * get the raw offset.
+     *
      * @return the raw offset
-     * @stable ICU 2.0
+     * @internal revisit for ICU 3.6
+     * @deprecated This API is ICU internal only.
      */
     public int getRawOffset() {
         return raw;
@@ -268,6 +222,8 @@ public class SimpleTimeZone extends JDKTimeZone {
      */
     public void setStartRule(int month, int dayOfWeekInMonth, int dayOfWeek,
                              int time) {
+        //unwrapSTZ().setStartRule(month, dayOfWeekInMonth, dayOfWeek, time);
+
         getSTZInfo().setStart(month, dayOfWeekInMonth, dayOfWeek, time, -1, false);
         setStartRule(month, dayOfWeekInMonth, dayOfWeek, time, WALL_TIME);
     }
@@ -356,9 +312,12 @@ public class SimpleTimeZone extends JDKTimeZone {
      * @stable ICU 2.0
      */
     public void setStartRule(int month, int dayOfMonth, int dayOfWeek, int time, boolean after) {
+        //unwrapSTZ().setStartRule(month, dayOfMonth, dayOfWeek, time, after);
+
         getSTZInfo().setStart(month, -1, dayOfWeek, time, dayOfMonth, after);
         setStartRule(month, after ? dayOfMonth : -dayOfMonth,
                 -dayOfWeek, time, WALL_TIME);
+
     }
 
     /**
@@ -382,6 +341,8 @@ public class SimpleTimeZone extends JDKTimeZone {
      * @stable ICU 2.0
      */
     public void setEndRule(int month, int dayOfWeekInMonth, int dayOfWeek, int time) {
+        //unwrapSTZ().setEndRule(month, dayOfWeekInMonth, dayOfWeek, time);
+
         getSTZInfo().setEnd(month, dayOfWeekInMonth, dayOfWeek, time, -1, false);
         setEndRule(month, dayOfWeekInMonth, dayOfWeek, time, WALL_TIME);        
     }
@@ -399,6 +360,8 @@ public class SimpleTimeZone extends JDKTimeZone {
      * @stable ICU 2.0
      */
     public void setEndRule(int month, int dayOfMonth, int time) {
+        //unwrapSTZ().setEndRule(month, dayOfMonth, time);
+
         getSTZInfo().setEnd(month, -1, -1, time, dayOfMonth, false);
         setEndRule(month, dayOfMonth, WALL_TIME, time);
     }
@@ -421,6 +384,8 @@ public class SimpleTimeZone extends JDKTimeZone {
      * @stable ICU 2.0
      */
     public void setEndRule(int month, int dayOfMonth, int dayOfWeek, int time, boolean after) {
+       // unwrapSTZ().setEndRule(month, dayOfMonth, dayOfWeek, time, after);
+
         getSTZInfo().setEnd(month, -1, dayOfWeek, time, dayOfMonth, after);
         setEndRule(month, dayOfMonth, dayOfWeek, time, WALL_TIME, after);
     }
@@ -461,6 +426,7 @@ public class SimpleTimeZone extends JDKTimeZone {
      * @stable ICU 2.0
      */
     public void setDSTSavings(int millisSavedDuringDST) {
+        //unwrapSTZ().setDSTSavings(millisSavedDuringDST);
         if (millisSavedDuringDST <= 0) {
             throw new IllegalArgumentException();
         }
@@ -479,6 +445,20 @@ public class SimpleTimeZone extends JDKTimeZone {
     }
 
     /**
+     * Constructs a SimpleTimeZone that wraps the given
+     * java.util.SimpleTimeZone.  Do not call; use the TimeZone
+     * API.
+     * @internal
+     * @deprecated This API is ICU internal only.
+     */
+    public SimpleTimeZone(java.util.SimpleTimeZone tz, String ID) {
+        super(tz);
+        super.setID(ID);
+        dst = tz.getDSTSavings();
+        raw = tz.getRawOffset();
+    }
+    
+    /**
      * Returns the java.util.SimpleTimeZone that this class wraps.
      *
     java.util.SimpleTimeZone unwrapSTZ() {
@@ -488,8 +468,8 @@ public class SimpleTimeZone extends JDKTimeZone {
     // on JDK 1.4 and later, can't deserialize a SimpleTimeZone as a SimpleTimeZone...
     private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
         in.defaultReadObject();
-        /*
         String id = getID();
+        /*
         if (id!=null && !(zone instanceof java.util.SimpleTimeZone && zone.getID().equals(id))) {
             // System.out.println("*** readjust " + zone.getClass().getName() + " " + zone.getID() + " ***");
             java.util.SimpleTimeZone stz = 
@@ -530,18 +510,16 @@ public class SimpleTimeZone extends JDKTimeZone {
         }
         return xinfo;
     }
-
-    //  Use only for decodeStartRule() and decodeEndRule() where the year is not
-    //  available. Set February to 29 days to accomodate rules with that date
-    //  and day-of-week-on-or-before-that-date mode (DOW_LE_DOM_MODE).
-    //  The compareToRule() method adjusts to February 28 in non-leap years.
-    //
-    //  For actual getOffset() calculations, use TimeZone::monthLength() and
-    //  TimeZone::previousMonthLength() which take leap years into account.
-    //  We handle leap years assuming always
-    //  Gregorian, since we know they didn't have daylight time when
-    //  Gregorian calendar started.
+//  WARNING: assumes that no rule is measured from the end of February,
+//  since we don't handle leap years. Could handle assuming always
+//  Gregorian, since we know they didn't have daylight time when
+//  Gregorian calendar started.
+  //  private static final int[] STATICMONTHLENGTH = new int[]{31,29,31,30,31,30,31,31,30,31,30,31};
+    private final byte monthLength[] = staticMonthLength;
     private final static byte staticMonthLength[] = {31,29,31,30,31,30,31,31,30,31,30,31};
+    private final static byte staticLeapMonthLength[] = {31,29,31,30,31,30,31,31,30,31,30,31};
+
+//  -------------------------------------
 
     /**
      * @internal revisit for ICU 3.6
@@ -550,7 +528,7 @@ public class SimpleTimeZone extends JDKTimeZone {
     public int getOffset(int era, int year, int month, int day,
                          int dayOfWeek, int millis) 
     {
-        // Check the month before calling Grego.monthLength(). This
+        // Check the month before indexing into STATICMONTHLENGTH. This
         // duplicates the test that occurs in the 7-argument getOffset(),
         // however, this is unavoidable. We don't mind because this method, in
         // fact, should not be called; internal code should always call the
@@ -561,7 +539,7 @@ public class SimpleTimeZone extends JDKTimeZone {
             throw new IllegalArgumentException();
         }
 
-        return getOffset(era, year, month, day, dayOfWeek, millis, Grego.monthLength(year, month));
+        return getOffset(era, year, month, day, dayOfWeek, millis, staticMonthLength[month]);
     }
 
     /**
@@ -571,7 +549,7 @@ public class SimpleTimeZone extends JDKTimeZone {
     public int getOffset(int era, int year, int month, int day,
                               int dayOfWeek, int millis, 
                               int monthLength)  {
-        // Check the month before calling Grego.monthLength(). This
+        // Check the month before indexing into STATICMONTHLENGTH. This
         // duplicates a test that occurs in the 9-argument getOffset(),
         // however, this is unavoidable. We don't mind because this method, in
         // fact, should not be called; internal code should always call the
@@ -582,8 +560,11 @@ public class SimpleTimeZone extends JDKTimeZone {
             throw new IllegalArgumentException();
         }
         
+        // TODO FIX We don't handle leap years yet!
+        int prevMonthLength = (month >= 1) ? staticMonthLength[month - 1] : 31;
+
         return getOffset(era, year, month, day, dayOfWeek, millis,
-                         Grego.monthLength(year, month), Grego.previousMonthLength(year, month));
+                         monthLength, prevMonthLength);
     }
 
     int getOffset(int era, int year, int month, int day,
@@ -689,11 +670,27 @@ public class SimpleTimeZone extends JDKTimeZone {
         return result;
     }
 
+//     -------------------------------------
     private static final int
         DOM_MODE = 1,
         DOW_IN_MONTH_MODE=2,
         DOW_GE_DOM_MODE=3,
         DOW_LE_DOM_MODE=4;
+
+    /**
+     * TimeMode is used, together with a millisecond offset after
+     * midnight, to specify a rule transition time.  Most rules
+     * transition at a local wall time, that is, according to the
+     * current time in effect, either standard, or DST.  However, some
+     * rules transition at local standard time, and some at a specific
+     * UTC time.  Although it might seem that all times could be
+     * converted to wall time, thus eliminating the need for this
+     * parameter, this is not the case.
+     * @draft ICU 3.6
+     */
+     private static final int WALL_TIME = 0,
+                              STANDARD_TIME = 1,
+                              UTC_TIME = 2;
 
     /**
      * Compare a given date in the year to a rule. Return 1, 0, or -1, depending
@@ -720,7 +717,7 @@ public class SimpleTimeZone extends JDKTimeZone {
             dayOfWeek = 1 + (dayOfWeek % 7); // dayOfWeek is one-based
             if (dayOfMonth > monthLen) {
                 dayOfMonth = 1;
-                /* When incrementing the month, it is desirable to overflow
+                /* When incrementing the month, it is desirible to overflow
                  * from DECEMBER to DECEMBER+1, since we use the result to
                  * compare against a real month. Wraparound of the value
                  * leads to bug 4173604. */
@@ -741,12 +738,6 @@ public class SimpleTimeZone extends JDKTimeZone {
         else if (month > ruleMonth) return 1;
 
         int ruleDayOfMonth = 0;
-
-        // Adjust the ruleDay to the monthLen, for non-leap year February 29 rule days.
-        if (ruleDay > monthLen) {
-            ruleDay = monthLen;
-        }
-
         switch (ruleMode)
         {
         case DOM_MODE:
@@ -786,7 +777,6 @@ public class SimpleTimeZone extends JDKTimeZone {
                 return 0;
         }
     }
-
     // data needed for streaming mutated SimpleTimeZones in JDK14
     private int raw;// the TimeZone's raw GMT offset 
     private int dst = 3600000;
@@ -801,18 +791,16 @@ public class SimpleTimeZone extends JDKTimeZone {
     private int startMode, endMode;   // flags indicating what kind of rules the DST rules are
     
     /**
-     * Overrides TimeZone
-     * Queries if this time zone uses Daylight Saving Time.
-     * @stable ICU 2.0
+     * @internal revisit for ICU 3.6
+     * @deprecated This API is ICU internal only.
      */
     public boolean useDaylightTime(){
         return useDaylight;
     }
-
+    
     /**
-     * Overrides TimeZone
-     * Queries if the give date is in Daylight Saving Time.
-     * @stable ICU 2.0
+     * @internal revisit for ICU 3.6
+     * @deprecated This API is ICU internal only.
      */
     public boolean inDaylightTime(Date date){
         GregorianCalendar gc = new GregorianCalendar(this);
@@ -820,6 +808,61 @@ public class SimpleTimeZone extends JDKTimeZone {
         return gc.inDaylightTime();
     }
 
+    /**
+     * @internal revisit for ICU 3.6
+     * @deprecated This API is ICU internal only.
+     */
+    public SimpleTimeZone(int raw,  String ID,
+                          int startMonth, int startDay,
+                          int startDayOfWeek, int startTime,
+                          int startTimeMode,
+                          int endMonth, int endDay,
+                          int endDayOfWeek, int endTime,
+                          int endTimeMode,int dst){
+        /*this(new java.util.SimpleTimeZone(rawOffsetGMT, ID, savingsStartMonth, savingsStartDay,
+                savingsStartDayOfWeek, savingsStartTime, savingsEndMonth,
+                savingsEndDay, savingsEndDayOfWeek, savingsEndTime, savingsDST), ID);*/
+        construct(raw,
+                  startMonth, startDay, startDayOfWeek,
+                  startTime, startTimeMode,
+                  endMonth, endDay, endDayOfWeek,
+                  endTime, endTimeMode,
+                  dst);
+    }
+
+//  -------------------------------------
+/*
+    SimpleTimeZone(int rawOffsetGMT, String ID,
+        int savingsStartMonth, int savingsStartDay,
+        int savingsStartDayOfWeek, int savingsStartTime,
+        int savingsEndMonth, int savingsEndDay,
+        int savingsEndDayOfWeek, int savingsEndTime)
+    {
+        construct(rawOffsetGMT,
+                  savingsStartMonth, savingsStartDay, savingsStartDayOfWeek,
+                  savingsStartTime, WALL_TIME,
+                  savingsEndMonth, savingsEndDay, savingsEndDayOfWeek,
+                  savingsEndTime, WALL_TIME,
+                  TimeZone.MILLIS_PER_DAY);
+    }
+*/
+//     -------------------------------------
+/*
+    SimpleTimeZone(int rawOffsetGMT, String ID,
+        int savingsStartMonth, int savingsStartDay,
+        int savingsStartDayOfWeek, int savingsStartTime,
+        int savingsEndMonth, int savingsEndDay,
+        int savingsEndDayOfWeek, int savingsEndTime,
+        int savingsDST)
+    {
+        construct(rawOffsetGMT,
+                  savingsStartMonth, savingsStartDay, savingsStartDayOfWeek,
+                  savingsStartTime, WALL_TIME,
+                  savingsEndMonth, savingsEndDay, savingsEndDayOfWeek,
+                  savingsEndTime, WALL_TIME,
+                  savingsDST);
+    }
+    */
     /**
      * Internal construction method.
      */
@@ -1071,10 +1114,8 @@ public class SimpleTimeZone extends JDKTimeZone {
     }
 
     /**
-     * Return true if this zone has the same rules and offset as another zone.
-     * @param othr the TimeZone object to be compared with
-     * @return true if the given zone has the same rules and offset as this one
-     * @stable ICU 2.0
+     * @internal revisit for ICU 3.6
+     * @deprecated This API is ICU internal only.
      */
     public boolean hasSameRules(TimeZone othr) {
         if(!(othr instanceof SimpleTimeZone)){

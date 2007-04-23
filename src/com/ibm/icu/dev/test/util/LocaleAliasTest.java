@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2005-2007, International Business Machines Corporation and    *
+ * Copyright (C) 2005-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -91,7 +91,7 @@ public class LocaleAliasTest extends com.ibm.icu.dev.test.TestFmwk {
             }
             logln("Calendar(getLocale) old:"+l1+"   new:"+l2);    
         }
-        ULocale.setDefault(defLoc);
+
     }
     
     public void  TestDateFormat() {
@@ -130,7 +130,6 @@ public class LocaleAliasTest extends com.ibm.icu.dev.test.TestFmwk {
     //        }
     //        this.logln("DateFormat(format) old:"+d1+"   new:"+d2);
         }
-        ULocale.setDefault(defLoc);
     }
     
     public void TestCollation() {
@@ -152,7 +151,6 @@ public class LocaleAliasTest extends com.ibm.icu.dev.test.TestFmwk {
  
             logln("Collation old:"+oldLoc+"   new:"+newLoc);
         }
-        ULocale.setDefault(defLoc);
     }
     
     public void TestULocale() {
@@ -175,7 +173,6 @@ public class LocaleAliasTest extends com.ibm.icu.dev.test.TestFmwk {
             }
             logln("ULocale(getDisplayName) old:"+name1+"   new:"+name2);
         }
-        ULocale.setDefault(defLoc);
     }
     
     public void TestDisplayName() {
@@ -205,7 +202,6 @@ public class LocaleAliasTest extends com.ibm.icu.dev.test.TestFmwk {
                }
             }
         }
-        ULocale.setDefault(defLoc);
     }
     public void TestUResourceBundle() {
         ULocale defLoc = ULocale.getDefault();
@@ -232,6 +228,5 @@ public class LocaleAliasTest extends com.ibm.icu.dev.test.TestFmwk {
             }
             this.logln("UResourceBundle old:"+l1+"   new:"+l2);
         }
-        ULocale.setDefault(defLoc);
     }
 }

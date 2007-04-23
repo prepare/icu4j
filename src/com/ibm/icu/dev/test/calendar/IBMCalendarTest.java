@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2000-2007, International Business Machines Corporation and
+ * Copyright (C) 2000-2006, International Business Machines Corporation and
  * others. All Rights Reserved.
  *******************************************************************************
  */
@@ -18,6 +18,7 @@ import com.ibm.icu.text.SimpleDateFormat;
 import com.ibm.icu.util.*;
 
 /**
+ * @test
  * @summary Tests of new functionality in IBMCalendar
  */
 public class IBMCalendarTest extends CalendarTest {
@@ -771,10 +772,6 @@ public class IBMCalendarTest extends CalendarTest {
 
         // Jitterbug 4451, for coverage
         class StubCalendar extends Calendar{
-            /**
-             * For serialization
-             */
-            private static final long serialVersionUID = -4558903444622684759L;
             protected int handleGetLimit(int field, int limitType) {return 0;}
             protected int handleComputeMonthStart(int eyear, int month, boolean useMonth) {return 0;}
             protected int handleGetExtendedYear() {return 0;}

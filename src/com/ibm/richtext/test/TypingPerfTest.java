@@ -1,5 +1,5 @@
 /*
- * (C) Copyright IBM Corp. 1998-2007.  All Rights Reserved.
+ * (C) Copyright IBM Corp. 1998-2004.  All Rights Reserved.
  *
  * The program is provided "as is" without any warranty express or
  * implied, including the warranty of non-infringement and the implied
@@ -24,6 +24,7 @@ import java.awt.event.WindowEvent;
 
 import java.io.File;
 import java.io.PrintWriter;
+import java.io.IOException;
 
 import java.text.DateFormat;
 import java.util.Date;
@@ -37,12 +38,15 @@ import com.ibm.richtext.demo.EditDemo;
 import com.ibm.richtext.demo.TextDocument;
 
 public class TypingPerfTest implements ActionListener {
+
+    static final String COPYRIGHT =
+                "(C) Copyright IBM Corp. 1998-1999 - All Rights Reserved";
     private TextFrame fTextFrame;
     private KeyEventForwarder fKeyEventForwarder;
     private PrintWriter fOut;
 
-    //private static final String fgAtStartCommand = "Insert at start";
-    //private static final String fgAtEndCommand = "Insert at end";
+    private static final String fgAtStartCommand = "Insert at start";
+    private static final String fgAtEndCommand = "Insert at end";
     private static final String fgFwdDelete = "Forward delete";
     private static final String fgBackspace = "Backspace";
     private static final String fgAtCurrentPosCommand = "Insert at current position";
@@ -51,7 +55,7 @@ public class TypingPerfTest implements ActionListener {
     private static final String USAGE = "Usage: java com.ibm.richtext.test.TypingPerfTest [file] [-insertionText text]";
     private char[] fInsText;
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
 
         // not used OutputStream outStream = null;
         PrintWriter writer = new PrintWriter(System.out);
@@ -84,7 +88,7 @@ public class TypingPerfTest implements ActionListener {
         new TypingPerfTest(writer, text, insText);
     }
 
-    public TypingPerfTest(PrintWriter out, MConstText text, char[] insText) {
+    public TypingPerfTest(PrintWriter out, MConstText text, char[] insText) throws IOException {
 
         fInsText = insText;
         fTextFrame = new TextFrame(text, "", null);
@@ -142,21 +146,31 @@ public class TypingPerfTest implements ActionListener {
     }
 
     public void actionPerformed(ActionEvent evt) {
-        if (evt.getActionCommand().equals(fgAtCurrentPosCommand)) {
-            insertAtCurrentPos(1);
+
+        try {
+            if (evt.getActionCommand().equals(fgAtCurrentPosCommand)) {
+
+                insertAtCurrentPos(1);
+            }
+            else if (evt.getActionCommand().equals(fgLotsOfTextCommand)) {
+
+                insertAtCurrentPos(8);
+            }
+            else if (evt.getActionCommand().equals(fgFwdDelete)) {
+
+                forwardDelete(1);
+            }
+            else if (evt.getActionCommand().equals(fgBackspace)) {
+
+                backspace(1);
+            }
         }
-        else if (evt.getActionCommand().equals(fgLotsOfTextCommand)) {
-            insertAtCurrentPos(8);
-        }
-        else if (evt.getActionCommand().equals(fgFwdDelete)) {
-            forwardDelete(1);
-        }
-        else if (evt.getActionCommand().equals(fgBackspace)) {
-            backspace(1);
+        catch(IOException e) {
+            System.out.println("Caught exception: " + e);
         }
     }
 
-    private void insertAtCurrentPos(final int times) {
+    private void insertAtCurrentPos(final int times) throws IOException {
 
         fTextFrame.toFront();
 
@@ -179,7 +193,7 @@ public class TypingPerfTest implements ActionListener {
         fOut.flush();
     }
 
-    private void forwardDelete(final int times) {
+    private void forwardDelete(final int times) throws IOException {
 
         System.gc();
 
@@ -200,7 +214,7 @@ public class TypingPerfTest implements ActionListener {
         fOut.flush();
     }
 
-    private void backspace(final int times) {
+    private void backspace(final int times) throws IOException {
 
         System.gc();
 

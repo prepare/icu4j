@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 2006-2007, International Business Machines Corporation and    *
+* Copyright (C) 2006, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 *
@@ -27,7 +27,7 @@ class CharsetUTF8 extends CharsetICU {
     
     public CharsetUTF8(String icuCanonicalName, String javaCanonicalName, String[] aliases){
         super(icuCanonicalName, javaCanonicalName, aliases);
-        maxBytesPerChar = 3; /* max 3 bytes per code unit from UTF-8 (4 bytes from surrogate _pair_) */
+        maxBytesPerChar = 4;
         minBytesPerChar = 1;
         maxCharsPerByte = 1;
     }
@@ -59,8 +59,6 @@ class CharsetUTF8 extends CharsetICU {
 	 */
 	private static final long UTF8_MIN_CHAR32[] = { 0L, 0L, 0x80L, 0x800L, 0x10000L, 0xffffffffL, 0xffffffffL };
 
-    protected boolean isCESU8 = false;
-    
     class CharsetDecoderUTF8 extends CharsetDecoderICU{
 
         public CharsetDecoderUTF8(CharsetICU cs) {
@@ -72,8 +70,9 @@ class CharsetUTF8 extends CharsetICU {
         
             int sourceArrayIndex = source.position();
             
-            // TODO: CESU8 implementation
+            // Todo: CESU8 implementation
             // boolean isCESU8 = args.converter.sharedData == _CESU8Data;
+            boolean isCESU8 = (UConverterSharedData._CESU8Data != null);
             int ch, ch2 = 0;
     	    int i, inBytes;    	  
     	    
@@ -280,6 +279,7 @@ class CharsetUTF8 extends CharsetICU {
 
             // Todo: CESU8 implementation
             // boolean isCESU8 = args.converter.sharedData == _CESU8Data;
+            boolean isCESU8 = (UConverterSharedData._CESU8Data != null);
             
             int ch;
             short indexToWrite;
@@ -477,12 +477,5 @@ class CharsetUTF8 extends CharsetICU {
 
     public CharsetEncoder newEncoder() {
         return new CharsetEncoderUTF8(this);
-    }
-}
-
-class CharsetCESU8 extends CharsetUTF8 {
-    public CharsetCESU8(String icuCanonicalName, String javaCanonicalName, String[] aliases){
-        super(icuCanonicalName, javaCanonicalName, aliases);
-        isCESU8 = true;
     }
 }

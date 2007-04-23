@@ -28,6 +28,8 @@ import com.ibm.icu.util.VersionInfo;
 
 import com.ibm.icu.text.BreakIterator;
 
+import java.util.Map;
+import java.util.HashMap;
 import java.util.MissingResourceException;
 import java.util.TreeSet;
 import java.util.Iterator;
@@ -1192,7 +1194,7 @@ public class UnicodeSet extends UnicodeFilter implements Freezable {
         }
         return this;
     }
-    
+
     /**
      * @return a code point IF the string consists of a single one.
      * otherwise returns -1.
@@ -1713,80 +1715,19 @@ public class UnicodeSet extends UnicodeFilter implements Freezable {
      * @return true if the test condition is met
      * @stable ICU 2.0
      */
-    public boolean containsAll(UnicodeSet b) {
-      // The specified set is a subset if all of its pairs are contained in
-      // this set. This implementation accesses the lists directly for speed.
-      // TODO: this could be faster if size() were cached. But that would affect building speed
-      // so it needs investigation.
-      int[] listB = b.list;
-      boolean needA = true;
-      boolean needB = true;
-      int aPtr = 0;
-      int bPtr = 0;
-      int aLen = len - 1;
-      int bLen = b.len - 1;
-      int startA = 0, startB = 0, limitA = 0, limitB = 0;
-      while (true) {
-        // double iterations are such a pain...
-        if (needA) {
-          if (aPtr >= aLen) {
-            // ran out of A. If B is also exhausted, then break;
-            if (needB && bPtr >= bLen) {
-              break;
+    public boolean containsAll(UnicodeSet c) {
+        // The specified set is a subset if all of its pairs are contained in
+        // this set.  It's possible to code this more efficiently in terms of
+        // direct manipulation of the inversion lists if the need arises.
+        int n = c.getRangeCount();
+        for (int i=0; i<n; ++i) {
+            if (!contains(c.getRangeStart(i), c.getRangeEnd(i))) {
+                return false;
             }
-            return false;
-          }
-          startA = list[aPtr++];
-          limitA = list[aPtr++];
         }
-        if (needB) {
-          if (bPtr >= bLen) {
-            // ran out of B. Since we got this far, we have an A and we are ok so far
-            break;
-          }
-          startB = listB[bPtr++];
-          limitB = listB[bPtr++];
-        }
-        // if B doesn't overlap and is greater than A, get new A
-        if (startB >= limitA) {
-          needA = true;
-          needB = false;
-          continue;
-        }
-        // if B is wholy contained in A, then get a new B
-        if (startB >= startA && limitB <= limitA) {
-          needA = false;
-          needB = true;
-          continue;
-        }
-        // all other combinations mean we fail
-        return false;
-      }
-
-      if (!strings.containsAll(b.strings)) return false;
-      return true;
-  }
-
-//    /**
-//     * Returns true if this set contains all the characters and strings
-//     * of the given set.
-//     * @param c set to be checked for containment
-//     * @return true if the test condition is met
-//     * @stable ICU 2.0
-//     */
-//    public boolean containsAllOld(UnicodeSet c) {
-//        // The specified set is a subset if all of its pairs are contained in
-//        // this set.  It's possible to code this more efficiently in terms of
-//        // direct manipulation of the inversion lists if the need arises.
-//        int n = c.getRangeCount();
-//        for (int i=0; i<n; ++i) {
-//            if (!contains(c.getRangeStart(i), c.getRangeEnd(i))) {
-//                return false;
-//            }
-//        }
-//        if (!strings.containsAll(c.strings)) return false;
-//        return true;
-//    }
+        if (!strings.containsAll(c.strings)) return false;
+        return true;
+    }
 
     /**
      * Returns true if there is a partition of the string such that this set contains each of the partitioned strings.
@@ -1885,77 +1826,19 @@ public class UnicodeSet extends UnicodeFilter implements Freezable {
      * @return true if the test condition is met
      * @stable ICU 2.0
      */
-    public boolean containsNone(UnicodeSet b) {
-      // The specified set is a subset if some of its pairs overlap with some of this set's pairs.
-      // This implementation accesses the lists directly for speed.
-      int[] listB = b.list;
-      boolean needA = true;
-      boolean needB = true;
-      int aPtr = 0;
-      int bPtr = 0;
-      int aLen = len - 1;
-      int bLen = b.len - 1;
-      int startA = 0, startB = 0, limitA = 0, limitB = 0;
-      while (true) {
-        // double iterations are such a pain...
-        if (needA) {
-          if (aPtr >= aLen) {
-            // ran out of A: break so we test strings
-            break;
-          }
-          startA = list[aPtr++];
-          limitA = list[aPtr++];
+    public boolean containsNone(UnicodeSet c) {
+        // The specified set is a subset if all of its pairs are contained in
+        // this set.  It's possible to code this more efficiently in terms of
+        // direct manipulation of the inversion lists if the need arises.
+        int n = c.getRangeCount();
+        for (int i=0; i<n; ++i) {
+            if (!containsNone(c.getRangeStart(i), c.getRangeEnd(i))) {
+                return false;
+            }
         }
-        if (needB) {
-          if (bPtr >= bLen) {
-            // ran out of B: break so we test strings
-            break;
-          }
-          startB = listB[bPtr++];
-          limitB = listB[bPtr++];
-        }
-        // if B is higher than any part of A, get new A
-        if (startB >= limitA) {
-          needA = true;
-          needB = false;
-          continue;
-        }
-        // if A is higher than any part of B, get new B
-        if (startA >= limitB) {
-          needA = false;
-          needB = true;
-          continue;
-        }
-        // all other combinations mean we fail
-        return false;
-      }
-
-      if (!SortedSetRelation.hasRelation(strings, SortedSetRelation.DISJOINT, b.strings)) return false;
-      return true;
-  }
-
-//    /**
-//     * Returns true if none of the characters or strings in this UnicodeSet appears in the string.
-//     * For example, for the Unicode set [a{bc}{cd}]<br>
-//     * containsNone is true for: "xy", "cb"<br>
-//     * containsNone is false for: "a", "bc", "bcd"<br>
-//     * @param c set to be checked for containment
-//     * @return true if the test condition is met
-//     * @stable ICU 2.0
-//     */
-//    public boolean containsNoneOld(UnicodeSet c) {
-//        // The specified set is a subset if all of its pairs are contained in
-//        // this set.  It's possible to code this more efficiently in terms of
-//        // direct manipulation of the inversion lists if the need arises.
-//        int n = c.getRangeCount();
-//        for (int i=0; i<n; ++i) {
-//            if (!containsNone(c.getRangeStart(i), c.getRangeEnd(i))) {
-//                return false;
-//            }
-//        }
-//        if (!SortedSetRelation.hasRelation(strings, SortedSetRelation.DISJOINT, c.strings)) return false;
-//        return true;
-//    }
+        if (!SortedSetRelation.hasRelation(strings, SortedSetRelation.DISJOINT, c.strings)) return false;
+        return true;
+    }
 
     /**
      * Returns true if this set contains none of the characters
@@ -3196,9 +3079,7 @@ public class UnicodeSet extends UnicodeFilter implements Freezable {
                         v = Integer.parseInt(Utility.deleteRuleWhiteSpace(valueAlias));
                         // If the resultant set is empty then the numeric value
                         // was invalid.
-                        //mustNotBeEmpty = true;
-                        // old code was wrong; anything between 0 and 255 is valid even if unused.
-                        if (v < 0 || v > 255) throw e;
+                        mustNotBeEmpty = true;
                     } else {
                         throw e;
                     }

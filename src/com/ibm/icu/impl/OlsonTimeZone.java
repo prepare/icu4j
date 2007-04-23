@@ -1,6 +1,6 @@
  /*
   *******************************************************************************
-  * Copyright (C) 2005-2007, International Business Machines Corporation and         *
+  * Copyright (C) 2005-2006, International Business Machines Corporation and         *
   * others. All Rights Reserved.                                                *
   *******************************************************************************
   */
@@ -12,8 +12,6 @@ import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.GregorianCalendar;
 import com.ibm.icu.util.SimpleTimeZone;
 import com.ibm.icu.util.TimeZone;
-import com.ibm.icu.util.ULocale;
-import com.ibm.icu.util.UResourceBundle;
 
 /**
  * A time zone based on the Olson database.  Olson time zones change
@@ -119,7 +117,7 @@ public class OlsonTimeZone extends TimeZone {
         if (month < Calendar.JANUARY || month > Calendar.DECEMBER) {
             throw new IllegalArgumentException("Month is not in the legal range: " +month);
         } else {
-            return getOffset(era, year, month, day, dayOfWeek, milliseconds, Grego.monthLength(year, month));
+            return getOffset(era, year, month, day, dayOfWeek, milliseconds,MONTH_LENGTH[month + (isLeapYear(year)?12:0)]);
         }
     }
 
@@ -164,21 +162,7 @@ public class OlsonTimeZone extends TimeZone {
      * @see com.ibm.icu.util.TimeZone#setRawOffset(int)
      */
     public void setRawOffset(int offsetMillis) {
-        GregorianCalendar cal = new GregorianCalendar(ULocale.ROOT);
-        cal.setTimeZone(this);
-        int tmpFinalYear = cal.get(Calendar.YEAR) - 1;
-
-        // Apply the raw offset starting current year and beyond
-        if (finalYear > tmpFinalYear) {
-            finalYear = tmpFinalYear;
-            finalMillis = fieldsToDay(tmpFinalYear, 0, 1) * TimeZone.MILLIS_PER_DAY;
-        }
-        if (finalZone == null) {
-            // Create SimpleTimeZone instance to store the offset
-            finalZone = new SimpleTimeZone(offsetMillis, getID());
-        } else {
-            finalZone.setRawOffset(offsetMillis);
-        }
+        finalZone.setRawOffset(offsetMillis);
     }
     public Object clone() {
         OlsonTimeZone other = (OlsonTimeZone) super.clone();
@@ -354,10 +338,10 @@ public class OlsonTimeZone extends TimeZone {
      * to lookup the rule that `res' may refer to, if there is one.
      * @param res the resource bundle of the zone to be constructed
      */
-    public OlsonTimeZone(UResourceBundle top, UResourceBundle res){
+    public OlsonTimeZone(ICUResourceBundle top, ICUResourceBundle res){
         construct(top, res);
     }
-    private void construct(UResourceBundle top, UResourceBundle res){
+    private void construct(ICUResourceBundle top, ICUResourceBundle res){
         
         if ((top == null || res == null)) {
             throw new IllegalArgumentException();
@@ -382,7 +366,7 @@ public class OlsonTimeZone extends TimeZone {
         }
 
         // Transitions list may be empty
-        UResourceBundle r = res.get(0);
+        ICUResourceBundle r = res.get(0);
         transitionTimes = r.getIntVector();
         
         if ((transitionTimes.length<0 || transitionTimes.length>0x7FFF) ) {
@@ -460,8 +444,8 @@ public class OlsonTimeZone extends TimeZone {
 
 
     public OlsonTimeZone(String id){
-        UResourceBundle top = (UResourceBundle) UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, "zoneinfo", ICUResourceBundle.ICU_DATA_CLASS_LOADER);
-        UResourceBundle res = ZoneMeta.openOlsonResource(id);
+        ICUResourceBundle top = (ICUResourceBundle)ICUResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, "zoneinfo", ICUResourceBundle.ICU_DATA_CLASS_LOADER);
+        ICUResourceBundle res = ZoneMeta.openOlsonResource(id);
         construct(top, res);
         if(finalZone!=null){
             finalZone.setID(id);
@@ -636,11 +620,13 @@ public class OlsonTimeZone extends TimeZone {
      * If and only if finalYear == INT32_MAX then finalZone == 0.
      */
     private SimpleTimeZone finalZone = null; // owned, may be NULL
- 
+    
     private static final boolean DEBUG = ICUDebug.enabled("olson");
     private static final int[] DAYS_BEFORE = new int[] {0,31,59,90,120,151,181,212,243,273,304,334,
                                            0,31,60,91,121,152,182,213,244,274,305,335};
 
+    private static final int[] MONTH_LENGTH = new int[]{31,28,31,30,31,30,31,31,30,31,30,31,
+                                        31,29,31,30,31,30,31,31,30,31,30,31};
     private static final int JULIAN_1_CE    = 1721426; // January 1, 1 CE Gregorian
     private static final int JULIAN_1970_CE = 2440588; // January 1, 1970 CE Gregorian
     private static final int MILLIS_PER_SECOND  = 1000;
@@ -650,13 +636,17 @@ public class OlsonTimeZone extends TimeZone {
         int y = year - 1;
         double julian = 365 * y + myFloorDivide(y, 4) + (JULIAN_1_CE - 3) + // Julian cal
         myFloorDivide(y, 400) - myFloorDivide(y, 100) + 2 + // => Gregorian cal
-            DAYS_BEFORE[month + (Grego.isLeapYear(year) ? 12 : 0)] + dom; // => month/dom
+            DAYS_BEFORE[month + (isLeapYear(year) ? 12 : 0)] + dom; // => month/dom
     
         return julian - JULIAN_1970_CE; // JD => epoch day
     }
+    private static final boolean isLeapYear(int year) {
+        // year&0x3 == year%4
+        return ((year&0x3) == 0) && ((year%100 != 0) || (year%400 == 0));
+    }
 
-    private static UResourceBundle loadRule(UResourceBundle top, String ruleid) {
-        UResourceBundle r = top.get("Rules");
+    private static ICUResourceBundle loadRule(ICUResourceBundle top, String ruleid) {
+        ICUResourceBundle r = top.get("Rules");
         r = r.get(ruleid);
         return r;
     }
@@ -709,7 +699,7 @@ public class OlsonTimeZone extends TimeZone {
             ++year;
         }
     
-        boolean isLeap = Grego.isLeapYear(year);
+        boolean isLeap = isLeapYear(year);
         
         // Gregorian day zero is a Monday.
         dow = (int) ((day + 1) % 7);

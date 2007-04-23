@@ -1,7 +1,7 @@
 //##header
 /*****************************************************************************************
  *
- * Copyright (C) 1996-2007, International Business Machines
+ * Copyright (C) 1996-2006, International Business Machines
  * Corporation and others.  All Rights Reserved.
  **/
 
@@ -953,14 +953,14 @@ public class NumberRegression extends com.ibm.icu.dev.test.TestFmwk {
         Locale[] locales = NumberFormat.getAvailableLocales();
         
         for (int i = 0; i < locales.length; i++) {
-            UResourceBundle rb = UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME,locales[i]);
+            ICUResourceBundle rb = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME,locales[i]);
 
             //
             // Get the currency pattern for this locale.  We have to fish it
             // out of the ResourceBundle directly, since DecimalFormat.toPattern
             // will return the localized symbol, not \00a4
             //
-            UResourceBundle numPatterns = rb.get("NumberPatterns");
+            ICUResourceBundle numPatterns = rb.get("NumberPatterns");
             String pattern = numPatterns.getString(1);
             
             if (pattern.indexOf('\u00A4') == -1 ) { // 'x' not "x" -- workaround bug in IBM JDK 1.4.1
@@ -1816,10 +1816,6 @@ public class NumberRegression extends com.ibm.icu.dev.test.TestFmwk {
 
 class myformat implements Serializable
 {
-    /**
-     * For serialization
-     */
-    private static final long serialVersionUID = 4120813612616076506L;
     DateFormat _dateFormat = DateFormat.getDateInstance();
 
     public String Now()
@@ -1832,10 +1828,6 @@ class myformat implements Serializable
 }
 
 class MyNumberFormatTest extends NumberFormat {
-    /**
-     * For serialization
-     */
-    private static final long serialVersionUID = 1251303884737169952L;
     public StringBuffer format(double number, StringBuffer toAppendTo, FieldPosition pos) {
         return new StringBuffer("");
     }

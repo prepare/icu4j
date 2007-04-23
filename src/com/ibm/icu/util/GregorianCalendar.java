@@ -718,14 +718,6 @@ public class GregorianCalendar extends Calendar {
      * @stable ICU 2.0
      */
     protected int handleGetMonthLength(int extendedYear, int month) {
-        // If the month is out of range, adjust it into range, and
-        // modify the extended year value accordingly.
-        if (month < 0 || month > 11) {
-            int[] rem = new int[1];
-            extendedYear += floorDivide(month, 12, rem);
-            month = rem[0];
-        }
-
         return MONTH_COUNT[month][isLeapYear(extendedYear)?1:0];
     }
 
@@ -885,9 +877,9 @@ public class GregorianCalendar extends Calendar {
 
     /**
      * Return the current Calendar type.
-     * @return type of calendar
-     * @draft ICU 3.8
-     * @provisional This API might change or be removed in a future release.
+     * @return type of calendar (gregorian, etc.)
+     * @internal ICU 3.0
+     * @deprecated This API is ICU internal only.
      */
     public String getType() {
         return "gregorian";

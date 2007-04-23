@@ -1,6 +1,6 @@
 /*
 **********************************************************************
-* Copyright (c) 2004-2007, International Business Machines
+* Copyright (c) 2004-2006, International Business Machines
 * Corporation and others.  All Rights Reserved.
 **********************************************************************
 * Author: Alan Liu
@@ -472,39 +472,39 @@ public class ULocaleTest extends TestFmwk {
             "\\u0399\\u03B1\\u03C0\\u03C9\\u03BD\\u03B9\\u03BA\\u03AC (\\u0399\\u03B1\\u03C0\\u03C9\\u03BD\\u03AF\\u03B1, CALENDAR=JAPANESE)"
         }
     };
-//    private static final int ENGLISH = 0;
-//    private static final int FRENCH = 1;
-//    private static final int CATALAN = 2;
-//    private static final int GREEK = 3;
-//    private static final int NORWEGIAN = 4;
+    private static final int ENGLISH = 0;
+    private static final int FRENCH = 1;
+    private static final int CATALAN = 2;
+    private static final int GREEK = 3;
+    private static final int NORWEGIAN = 4;
     private static final int LANG = 0;
     private static final int SCRIPT = 1;
     private static final int CTRY = 2;
     private static final int VAR = 3;
     private static final int NAME = 4;
-//    private static final int LANG3 = 5;
-//    private static final int CTRY3 = 6;
-//    private static final int LCID = 7;
-//    private static final int DLANG_EN = 8;
-//    private static final int DSCRIPT_EN = 9;
-//    private static final int DCTRY_EN = 10;
-//    private static final int DVAR_EN = 11;
-//    private static final int DNAME_EN = 12;
-//    private static final int DLANG_FR = 13;
-//    private static final int DSCRIPT_FR = 14;
-//    private static final int DCTRY_FR = 15;
-//    private static final int DVAR_FR = 16;
-//    private static final int DNAME_FR = 17;
-//    private static final int DLANG_CA = 18;
-//    private static final int DSCRIPT_CA = 19;
-//    private static final int DCTRY_CA = 20;
-//    private static final int DVAR_CA = 21;
-//    private static final int DNAME_CA = 22;
-//    private static final int DLANG_EL = 23;
-//    private static final int DSCRIPT_EL = 24;
-//    private static final int DCTRY_EL = 25;
-//    private static final int DVAR_EL = 26;
-//    private static final int DNAME_EL = 27;
+    private static final int LANG3 = 5;
+    private static final int CTRY3 = 6;
+    private static final int LCID = 7;
+    private static final int DLANG_EN = 8;
+    private static final int DSCRIPT_EN = 9;
+    private static final int DCTRY_EN = 10;
+    private static final int DVAR_EN = 11;
+    private static final int DNAME_EN = 12;
+    private static final int DLANG_FR = 13;
+    private static final int DSCRIPT_FR = 14;
+    private static final int DCTRY_FR = 15;
+    private static final int DVAR_FR = 16;
+    private static final int DNAME_FR = 17;
+    private static final int DLANG_CA = 18;
+    private static final int DSCRIPT_CA = 19;
+    private static final int DCTRY_CA = 20;
+    private static final int DVAR_CA = 21;
+    private static final int DNAME_CA = 22;
+    private static final int DLANG_EL = 23;
+    private static final int DSCRIPT_EL = 24;
+    private static final int DCTRY_EL = 25;
+    private static final int DVAR_EL = 26;
+    private static final int DNAME_EL = 27;
 
     public void TestBasicGetters() {
         int i;
@@ -1030,10 +1030,6 @@ public class ULocaleTest extends TestFmwk {
             //it and it2 are not equal here. No way to verify their equivalence yet.
             while(it.hasNext()) {
                 String key = (String)it.next();
-                String key2 = (String)it2.next();
-                if (!key.equals(key2)) {
-                    errln("FAIL: static and non-static getKeywords returned different results.");
-                }
 
                 //To verify display of Keyword
                 // display the above key in English
@@ -1042,9 +1038,6 @@ public class ULocaleTest extends TestFmwk {
                 String s2 = ULocale.getDisplayKeyword(key, "en_US");
                 if (!s1.equals(s2)) {
                     errln ("FAIL: one of the getDisplayKeyword methods failed.");
-                }
-                if (ULocale.getDefault().equals(ULocale.US) && !s1.equals(s0)) {
-                    errln ("FAIL: getDisplayKeyword methods failed for the default locale.");
                 }
                 if (!s1.equals(h[0].get(key))) {
                     warnln("Locale " + localeID + " getDisplayKeyword for key: " + key +
@@ -1075,9 +1068,6 @@ public class ULocaleTest extends TestFmwk {
                 String ss3 = ULocale.getDisplayKeywordValue(localeID, key, ULocale.US);
                 if (!ss1.equals(ss2) || !ss1.equals(ss3)) {
                     errln ("FAIL: one of the getDisplayKeywordValue methods failed.");
-                }
-                if (ULocale.getDefault().equals(ULocale.US) && !ss1.equals(ss0)) {
-                    errln ("FAIL: getDisplayKeyword methods failed for the default locale.");
                 }
                 if (!ss1.equals(h[0].get(type))) {
                     warnln(" Locale " + localeID + " getDisplayKeywordValue for key: " + key +
@@ -1232,6 +1222,7 @@ public class ULocaleTest extends TestFmwk {
         
         final int l = acceptLanguageList.length();
         int n;
+        int last=-1;
         for(n=0;n<l;n++) {
             int itemEnd = acceptLanguageList.indexOf(',',n);
             if(itemEnd == -1) {

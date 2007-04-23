@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2003-2007, International Business Machines Corporation and    *
+ * Copyright (C) 2003-2005, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -39,9 +39,6 @@ public class CollationServiceTest extends TestFmwk {
 
             // coverage
             Collator test = Collator.getInstance(ULocale.GERMANY); // CollatorFactory.handleCreate
-            if (!test.getLocale(ULocale.VALID_LOCALE).equals(ULocale.GERMANY)) {
-                errln("Collation from Germany is really " + test.getLocale(ULocale.VALID_LOCALE));
-            }
 
             if (!Collator.unregister(key)) {
                 errln("failed to unregister french collator");
@@ -104,9 +101,6 @@ public class CollationServiceTest extends TestFmwk {
             ULocale[] locales = Collator.getAvailableULocales();
     
             Collator ncol = Collator.getInstance(ULocale.US);
-            if (!ncol.getLocale(ULocale.VALID_LOCALE).equals(ULocale.US)) {
-                errln("Collation from US is really " + ncol.getLocale(ULocale.VALID_LOCALE));
-            }
         }
     }
 
@@ -234,11 +228,7 @@ public class CollationServiceTest extends TestFmwk {
             logln("*** default name: " + name);
             Collator.unregister(key);
     
-            ULocale bar_BAR = new ULocale("bar_BAR");
-            Collator col = Collator.getInstance(bar_BAR);
-            if (!col.getLocale(ULocale.VALID_LOCALE).equals(ULocale.getDefault())) {
-                errln("Collation from bar_BAR is really " + col.getLocale(ULocale.VALID_LOCALE));
-            }
+            Collator col = Collator.getInstance(new ULocale("bar_BAR"));
         }
 
         int n1 = checkAvailable("before registerFactory");

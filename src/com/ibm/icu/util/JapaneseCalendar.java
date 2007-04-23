@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -49,6 +49,8 @@ import java.util.Locale;
 public class JapaneseCalendar extends GregorianCalendar {
     // jdk1.4.2 serialver
     private static final long serialVersionUID = -2977189902603704691L;
+
+    private static String copyright = "Copyright \u00a9 1998 IBM Corp. All Rights Reserved.";
 
     //-------------------------------------------------------------------------
     // Constructors...
@@ -643,9 +645,9 @@ public class JapaneseCalendar extends GregorianCalendar {
 
     /**
      * Return the current Calendar type.
-     * @return type of calendar
-     * @draft ICU 3.8
-     * @provisional This API might change or be removed in a future release.
+     * @return type of calendar (gregorian, etc.)
+     * @internal ICU 3.0
+     * @deprecated This API is ICU internal only.
      */
     public String getType() {
         return "japanese";

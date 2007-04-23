@@ -3757,8 +3757,8 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
      * @param s string to format
      * @param separator string to go between names
      * @return string of names
-     * @draft ICU 3.8
-     * @provisional This API might change or be removed in a future release.
+     * @internal
+     * @deprecated This API is ICU internal only.
      */
     public static String getName(String s, String separator) {
         if (s.length() == 1) { // handle common case
@@ -5376,11 +5376,24 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
      * @return the code point at the index
      * @stable ICU 3.0
      */
-//#ifndef FOUNDATION
-    public static final int codePointAt(CharSequence seq, int index) {
-//#else
+//#ifdef FOUNDATION
 //##    public static final int codePointAt(String seq, int index) {
-//#endif
+//##        char c1 = seq.charAt(index++);
+//##        if (isHighSurrogate(c1)) {
+//##            if (index < seq.length()) {
+//##                char c2 = seq.charAt(index);
+//##                if (isLowSurrogate(c2)) {
+//##                    return toCodePoint(c1, c2);
+//##                }
+//##            }
+//##        }
+//##        return c1;
+//##    }
+//##    public static final int codePointAt(StringBuffer seq, int index) {
+//##        return codePointAt(seq.toString(), index);
+//##    }
+//#else
+    public static final int codePointAt(CharSequence seq, int index) {
         char c1 = seq.charAt(index++);
         if (isHighSurrogate(c1)) {
             if (index < seq.length()) {
@@ -5392,9 +5405,13 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
         }
         return c1;
     }
-//#ifdef FOUNDATION
+//#endif
+//#ifdef ECLIPSE_FRAGMENT
+//##    public static final int codePointAt(String seq, int index) {
+//##        return codePointAt((CharSequence)seq, index);
+//##    }
 //##    public static final int codePointAt(StringBuffer seq, int index) {
-//##        return codePointAt(seq.toString(), index);
+//##        return codePointAt((CharSequence)seq, index);
 //##    }
 //#endif
 
@@ -5455,11 +5472,24 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
      * @return the code point before the index
      * @stable ICU 3.0
      */
-//#ifndef FOUNDATION
-    public static final int codePointBefore(CharSequence seq, int index) {
-//#else
+//#ifdef FOUNDATION
+//##    public static final int codePointBefore(StringBuffer seq, int index) {
+//##        return codePointBefore(seq.toString(), index);
+//##    }
 //##    public static final int codePointBefore(String seq, int index) {
-//#endif
+//##        char c2 = seq.charAt(--index);
+//##        if (isLowSurrogate(c2)) {
+//##            if (index > 0) {
+//##                char c1 = seq.charAt(--index);
+//##                if (isHighSurrogate(c1)) {
+//##                    return toCodePoint(c1, c2);
+//##                }
+//##            }
+//##        }
+//##        return c2;
+//##    }
+//#else
+    public static final int codePointBefore(CharSequence seq, int index) {
         char c2 = seq.charAt(--index);
         if (isLowSurrogate(c2)) {
             if (index > 0) {
@@ -5471,9 +5501,13 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
         }
         return c2;
     }
-//#ifdef FOUNDATION
+//#endif
+//#ifdef ECLIPSE_FRAGMENT
+//##    public static final int codePointBefore(String seq, int index) {
+//##        return codePointBefore((CharSequence)seq, index);
+//##    }
 //##    public static final int codePointBefore(StringBuffer seq, int index) {
-//##        return codePointBefore(seq.toString(), index);
+//##        return codePointBefore((CharSequence)seq, index);
 //##    }
 //#endif
 
@@ -5598,11 +5632,29 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
      * @return the number of code points in the range
      * @stable ICU 3.0
      */
-//#ifndef FOUNDATION
-    public static int codePointCount(CharSequence text, int start, int limit) {
-//#else
+//#ifdef FOUNDATION
 //##    public static int codePointCount(String text, int start, int limit) {
-//#endif
+//##        if (start < 0 || limit < start || limit > text.length()) {
+//##            throw new IndexOutOfBoundsException("start (" + start +
+//##                ") or limit (" + limit +
+//##                ") invalid or out of range 0, " + text.length());
+//##        }
+//##
+//##        int len = limit - start;
+//##        while (limit > start) {
+//##            char ch = text.charAt(--limit);
+//##            while (ch >= MIN_LOW_SURROGATE && ch <= MAX_LOW_SURROGATE && limit > start) {
+//##                ch = text.charAt(--limit);
+//##                if (ch >= MIN_HIGH_SURROGATE && ch <= MAX_HIGH_SURROGATE) {
+//##                    --len;
+//##                    break;
+//##                }
+//##            }
+//##        }
+//##        return len;
+//##    }
+//#else
+    public static int codePointCount(CharSequence text, int start, int limit) {
         if (start < 0 || limit < start || limit > text.length()) {
             throw new IndexOutOfBoundsException("start (" + start +
                 ") or limit (" + limit +
@@ -5622,6 +5674,12 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
         }
         return len;
     }
+//#endif
+//#ifdef ECLIPSE_FRAGMENT
+//##    public static int codePointCount(String text, int start, int limit) {
+//##        return codePointCount((CharSequence)text, start, limit);
+//##    }
+//#endif
 
     /**
      * Cover the JDK API, for convenience.  Count the number of code points in the range of text.
@@ -5660,11 +5718,44 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
      * @return the adjusted index
      * @stable ICU 3.0
      */
-//#ifndef FOUNDATION
-    public static int offsetByCodePoints(CharSequence text, int index, int codePointOffset) {
-//#else
+//#ifdef FOUNDATION
 //##    public static int offsetByCodePoints(String text, int index, int codePointOffset) {
-//#endif
+//##        if (index < 0 || index > text.length()) {
+//##            throw new IndexOutOfBoundsException("index ( " + index +
+//##                                                ") out of range 0, " + text.length());
+//##        }
+//##
+//##        if (codePointOffset < 0) {
+//##            while (++codePointOffset <= 0) {
+//##                char ch = text.charAt(--index);
+//##                while (ch >= MIN_LOW_SURROGATE && ch <= MAX_LOW_SURROGATE && index > 0) {
+//##                    ch = text.charAt(--index);
+//##                    if (ch < MIN_HIGH_SURROGATE || ch > MAX_HIGH_SURROGATE) {
+//##                        if (++codePointOffset > 0) {
+//##                            return index+1;
+//##                        }
+//##                    }
+//##                }
+//##            }
+//##        } else {
+//##            int limit = text.length();
+//##            while (--codePointOffset >= 0) {
+//##                char ch = text.charAt(index++);
+//##                while (ch >= MIN_HIGH_SURROGATE && ch <= MAX_HIGH_SURROGATE && index < limit) {
+//##                    ch = text.charAt(index++);
+//##                    if (ch < MIN_LOW_SURROGATE || ch > MAX_LOW_SURROGATE) {
+//##                        if (--codePointOffset < 0) {
+//##                            return index-1;
+//##                        }
+//##                    }
+//##                }
+//##            }
+//##        }
+//##
+//##        return index;
+//##    }
+//#else
+    public static int offsetByCodePoints(CharSequence text, int index, int codePointOffset) {
         if (index < 0 || index > text.length()) {
             throw new IndexOutOfBoundsException("index ( " + index +
                                                 ") out of range 0, " + text.length());
@@ -5699,7 +5790,12 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
 
         return index;
     }
-
+//#endif
+//#ifdef ECLIPSE_FRAGMENT
+//##    public static int offsetByCodePoints(String text, int index, int codePointOffset) {
+//##        return offsetByCodePoints((CharSequence)text, index, codePointOffset);
+//##    }
+//#endif
     /**
      * Cover the JDK API, for convenience.  Adjust the char index by a code point offset.
      * @param text the characters to check
@@ -5863,25 +5959,25 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
      */
     private static final int LAST_CHAR_MASK_ = 0xFFFF;
       
-//    /**
-//     * To get the last byte out from a data type
-//     */
-//    private static final int LAST_BYTE_MASK_ = 0xFF;
-//      
-//    /**
-//     * Shift 16 bits
-//     */
-//    private static final int SHIFT_16_ = 16;
-//      
-//    /**
-//     * Shift 24 bits
-//     */
-//    private static final int SHIFT_24_ = 24;  
-//    
-//    /**
-//     * Decimal radix
-//     */
-//    private static final int DECIMAL_RADIX_ = 10;
+    /**
+     * To get the last byte out from a data type
+     */
+    private static final int LAST_BYTE_MASK_ = 0xFF;
+      
+    /**
+     * Shift 16 bits
+     */
+    private static final int SHIFT_16_ = 16;
+      
+    /**
+     * Shift 24 bits
+     */
+    private static final int SHIFT_24_ = 24;  
+    
+    /**
+     * Decimal radix
+     */
+    private static final int DECIMAL_RADIX_ = 10;
       
     /**
      * No break space code point
@@ -5962,10 +6058,10 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
      * Delete code point
      */
     private static final int DELETE_ = 0x007F;
-    /*
+    /**
      * ISO control character first range upper limit 0x0 - 0x1F
      */
-    //private static final int ISO_CONTROL_FIRST_RANGE_MAX_ = 0x1F;
+    private static final int ISO_CONTROL_FIRST_RANGE_MAX_ = 0x1F;
     /**
      * Shift to get numeric type
      */
@@ -5976,25 +6072,25 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
     private static final int NUMERIC_TYPE_MASK_ = 0x7 << NUMERIC_TYPE_SHIFT_;
       
     /* encoding of fractional and large numbers */
-    //private static final int MAX_SMALL_NUMBER=0xff;
+    private static final int MAX_SMALL_NUMBER=0xff;
 
     private static final int FRACTION_NUM_SHIFT=3;        /* numerator: bits 7..3 */
     private static final int FRACTION_DEN_MASK=7;         /* denominator: bits 2..0 */
 
-    //private static final int FRACTION_MAX_NUM=31;
+    private static final int FRACTION_MAX_NUM=31;
     private static final int FRACTION_DEN_OFFSET=2;       /* denominator values are 2..9 */
 
-    //private static final int FRACTION_MIN_DEN=FRACTION_DEN_OFFSET;
-    //private static final int FRACTION_MAX_DEN=FRACTION_MIN_DEN+FRACTION_DEN_MASK;
+    private static final int FRACTION_MIN_DEN=FRACTION_DEN_OFFSET;
+    private static final int FRACTION_MAX_DEN=FRACTION_MIN_DEN+FRACTION_DEN_MASK;
 
     private static final int LARGE_MANT_SHIFT=4;          /* mantissa: bits 7..4 */
     private static final int LARGE_EXP_MASK=0xf;          /* exponent: bits 3..0 */
     private static final int LARGE_EXP_OFFSET=2;          /* regular exponents 2..17 */
     private static final int LARGE_EXP_OFFSET_EXTRA=18;   /* extra large exponents 18..33 */
 
-    //private static final int LARGE_MIN_EXP=LARGE_EXP_OFFSET;
-    //private static final int LARGE_MAX_EXP=LARGE_MIN_EXP+LARGE_EXP_MASK;
-    //private static final int LARGE_MAX_EXP_EXTRA=LARGE_EXP_OFFSET_EXTRA+LARGE_EXP_MASK;
+    private static final int LARGE_MIN_EXP=LARGE_EXP_OFFSET;
+    private static final int LARGE_MAX_EXP=LARGE_MIN_EXP+LARGE_EXP_MASK;
+    private static final int LARGE_MAX_EXP_EXTRA=LARGE_EXP_OFFSET_EXTRA+LARGE_EXP_MASK;
 
     /**
      * Han digit characters
@@ -6018,16 +6114,16 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
     private static final int CJK_IDEOGRAPH_TEN_THOUSAND_     = 0x824c;    
     private static final int CJK_IDEOGRAPH_HUNDRED_MILLION_  = 0x5104;
 
-//    /**
-//     * Zero Width Non Joiner.
-//     * Equivalent to icu4c ZWNJ.
-//     */
-//    private static final int ZERO_WIDTH_NON_JOINER_ = 0x200c;
-//    /**
-//     * Zero Width Joiner
-//     * Equivalent to icu4c ZWJ. 
-//     */
-//    private static final int ZERO_WIDTH_JOINER_ = 0x200d;
+    /**
+     * Zero Width Non Joiner.
+     * Equivalent to icu4c ZWNJ.
+     */
+    private static final int ZERO_WIDTH_NON_JOINER_ = 0x200c;
+    /**
+     * Zero Width Joiner
+     * Equivalent to icu4c ZWJ. 
+     */
+    private static final int ZERO_WIDTH_JOINER_ = 0x200d;
 
     /*
      * Properties in vector word 2

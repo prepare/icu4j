@@ -3089,42 +3089,18 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
         private FormatConfiguration() {
         }
 
-        /**
-         * Gets the pattern string
-         * @return the format pattern string
-         * @internal
-         * @deprecated This API is ICU internal only.
-         */
         public String getPatternString() {
             return pattern;
         }
 
-        /**
-         * Gets the calendar
-         * @return the calendar
-         * @internal
-         * @deprecated This API is ICU internal only.
-         */
         public Calendar getCalendar() {
             return cal;
         }
 
-        /**
-         * Gets the locale
-         * @return the locale
-         * @internal
-         * @deprecated This API is ICU internal only.
-         */
         public ULocale getLocale() {
             return loc;
         }
 
-        /**
-         * Gets the format symbols
-         * @return the format symbols
-         * @internal
-         * @deprecated This API is ICU internal only.
-         */
         public DateFormatSymbols getDateFormatSymbols() {
             return formatData;
         }
@@ -4704,6 +4680,8 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
 
         int month = useMonth ? internalGet(MONTH, getDefaultMonthInYear(year)) : 0;
         
+        int dom = internalGet(DAY_OF_MONTH, getDefaultDayInMonth(year, month));
+        
         // Get the Julian day of the day BEFORE the start of this year.
         // If useMonth is true, get the day before the start of the month.
         int julianDay = handleComputeMonthStart(year, month, useMonth);
@@ -5168,8 +5146,8 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
      * Return the current Calendar type.
      * Note, in 3.0 this function will return 'gregorian' in Calendar to emulate legacy behavior
      * @return type of calendar (gregorian, etc)
-     * @draft ICU 3.8
-     * @provisional This API might change or be removed in a future release.
+     * @internal ICU 3.0
+     * @deprecated This API is ICU internal only.
      */
     public String getType() {
         return "gregorian";

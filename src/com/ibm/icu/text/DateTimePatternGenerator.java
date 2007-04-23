@@ -2,8 +2,14 @@
 //#ifndef FOUNDATION
 /*
  *******************************************************************************
- * Copyright (C) 2006-2007, Google, International Business Machines Corporation *
- * and others. All Rights Reserved.                                            *
+ * Copyright (C) 2006, Google, International Business Machines Corporation and    *
+ * others. All Rights Reserved.                                                *
+ *******************************************************************************
+ *
+ * $Source: /xsrl/Nsvn/icu/icu4j/src/com/ibm/icu/text/DateTimePatternGenerator.java,v $
+ * $Date: 2006/09/15 18:09:24 $
+ * $Revision: 1.9 $
+ *
  *******************************************************************************
  */
 package com.ibm.icu.text;
@@ -12,7 +18,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -21,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 
 //import org.unicode.cldr.util.Utility;
 
@@ -36,57 +45,13 @@ import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.UResourceBundle;
 
 /**
- * This class provides flexible generation of date format patterns, like
- * "yy-MM-dd". The user can build up the generator by adding successive
- * patterns. Once that is done, a query can be made using a "skeleton", which is
- * a pattern which just includes the desired fields and lengths. The generator
- * will return the "best fit" pattern corresponding to that skeleton.
- * <p>
- * The main method people will use is getBestPattern(String skeleton), since
- * normally this class is pre-built with data from a particular locale. However,
- * generators can be built directly from other data as well.
- * <pre>
- * // some simple use cases
- * Date sampleDate = new Date(99, 9, 13, 23, 58, 59);
- * ULocale locale = ULocale.GERMANY;
- * TimeZone zone = TimeZone.getTimeZone(&quot;Europe/Paris&quot;);
- * 
- * // make from locale
- * 
- * DateTimePatternGenerator gen = DateTimePatternGenerator.getInstance(locale);
- * SimpleDateFormat format = new SimpleDateFormat(gen.getBestPattern(&quot;MMMddHmm&quot;),
- *     locale);
- * format.setTimeZone(zone);
- * assertEquals(&quot;simple format: MMMddHmm&quot;, 
- *     &quot;8:58 14. Okt&quot;,
- *     format.format(sampleDate));
- * // (a generator can be built from scratch, but that is not a typical use case)
- * 
- * // modify the generator by adding patterns
- * DateTimePatternGenerator.PatternInfo returnInfo = new DateTimePatternGenerator.PatternInfo();
- * gen.add(&quot;d'. von' MMMM&quot;, true, returnInfo);
- * // the returnInfo is mostly useful for debugging problem cases
- * format.applyPattern(gen.getBestPattern(&quot;MMMMddHmm&quot;));
- * assertEquals(&quot;modified format: MMMddHmm&quot;,
- *     &quot;8:58 14. von Oktober&quot;,
- *     format.format(sampleDate));
- * 
- * // get a pattern and modify it
- * format = (SimpleDateFormat) DateFormat.getDateTimeInstance(DateFormat.FULL,
- *     DateFormat.FULL, locale);
- * format.setTimeZone(zone);
- * String pattern = format.toPattern();
- * assertEquals(&quot;full-date&quot;,
- *     &quot;Donnerstag, 14. Oktober 1999 8:58 Uhr GMT+02:00&quot;,
- *     format.format(sampleDate));
- * 
- * // modify it to change the zone.
- * String newPattern = gen.replaceFieldTypes(pattern, &quot;vvvv&quot;);
- * format.applyPattern(newPattern);
- * assertEquals(&quot;full-date, modified zone&quot;,
- *     &quot;Donnerstag, 14. Oktober 1999 8:58 Uhr Frankreich&quot;,
- *     format.format(sampleDate));
- * </pre>
+ * This class provides flexible generation of date format patterns, like "yy-MM-dd". The user can build up the generator
+ * by adding successive patterns. Once that is done, a query can be made using a "skeleton", which is a pattern which just
+ * includes the desired fields and lengths. The generator will return the "best fit" pattern corresponding to that skeleton.
+ * <p>The main method people will use is getBestPattern(String skeleton),
+ * since normally this class is pre-built with data from a particular locale. However, generators can be built directly from other data as well.
+ * <p><i>Issue: may be useful to also have a function that returns the list of fields in a pattern, in order, since we have that internally.
+ * That would be useful for getting the UI order of field elements.</i>
  * @draft ICU 3.6
  * @provisional This API might change or be removed in a future release.
  */
@@ -130,10 +95,6 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
      */
     public static DateTimePatternGenerator getInstance(ULocale uLocale) {
         DateTimePatternGenerator result = new DateTimePatternGenerator();
-        String lang = uLocale.getLanguage();
-        if (lang.equals("zh") || lang.equals("ko") || lang.equals("ja")) {
-          result.chineseMonthHack = true;
-        }
         PatternInfo returnInfo = new PatternInfo();
         String hackPattern = null;
         // first load with the ICU patterns
@@ -270,9 +231,6 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
      * @provisional This API might change or be removed in a future release.
      */
     public String getBestPattern(String skeleton) {
-      if (chineseMonthHack) {
-        skeleton = skeleton.replaceAll("MMM+", "MM");
-      }
         //if (!isComplete) complete();
         current.set(skeleton, fp);
         String best = getBestRaw(current, -1, _distanceInfo);
@@ -358,7 +316,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
     public DateTimePatternGenerator add(String pattern, boolean override, PatternInfo returnInfo) {
         checkFrozen();
         if (pattern.indexOf("\\u") >= 0) {
-            //String oldPattern = pattern;
+            String oldPattern = pattern;
             pattern = fromHex.transliterate(pattern);
         }
         DateTimeMatcher matcher = new DateTimeMatcher().set(pattern, fp);
@@ -1135,8 +1093,6 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
     private transient DateTimeMatcher skipMatcher = null; // only used temporarily, for internal purposes
     private transient boolean frozen = false;
     
-    private transient boolean chineseMonthHack = false;
-    
     private static final int FRACTIONAL_MASK = 1<<FRACTIONAL_SECOND;
     private static final int SECOND_AND_FRACTIONAL_MASK = (1<<SECOND) | (1<<FRACTIONAL_SECOND);
     
@@ -1185,14 +1141,14 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         return appendItemFormats[foundMask];
     }
     
-//    /**
-//     * @param current2
-//     * @return
-//     */
-//    private String adjustSeconds(DateTimeMatcher current2) {
-//        // TODO Auto-generated method stub
-//        return null;
-//    }
+    /**
+     * @param current2
+     * @return
+     */
+    private String adjustSeconds(DateTimeMatcher current2) {
+        // TODO Auto-generated method stub
+        return null;
+    }
     
     /**
      * @param foundMask
@@ -1214,7 +1170,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         PatternInfo patternInfo = new PatternInfo();
         // make sure that every valid field occurs once, with a "default" length
         for (int i = 0; i < CANONICAL_ITEMS.length; ++i) {
-            //char c = (char)types[i][0];
+            char c = (char)types[i][0];
             add(String.valueOf(CANONICAL_ITEMS[i]), false, patternInfo);
         }
         isComplete = true;
@@ -1484,7 +1440,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         
         DateTimeMatcher set(String pattern, FormatParser fp) {
             if (pattern.indexOf("\\u") >= 0) {
-                //String oldPattern = pattern;
+                String oldPattern = pattern;
                 pattern = fromHex.transliterate(pattern);
             }
             for (int i = 0; i < TYPE_LIMIT; ++i) {
