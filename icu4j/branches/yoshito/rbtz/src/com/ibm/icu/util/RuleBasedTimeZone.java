@@ -33,16 +33,20 @@ public class RuleBasedTimeZone extends TimeZone implements HasTimeZoneTransition
     private static final int MILLIS_PER_DAY = 24 * 60 * 60 * 1000;
 
     /**
-     * Constructs a RuleBasedTimeZone object with the ID.
+     * Constructs a RuleBasedTimeZone object with the ID, initial name, standard offset
+     * and daylight saving amount
      * 
-     * @param id The time zone ID.
-      * 
+     * @param id                The time zone ID.
+     * @param initialName       The name of initial time.
+     * @param initialStdOffset  The initial UTC offset in milliseconds.
+     * @param initialDstSaving  The initial daylight saving amount in milliseconds.
+     * 
      * @draft ICU 3.8
      * @provisional This API might change or be removed in a future release.
     */
-    public RuleBasedTimeZone(String id, String initialName, int initialRawOffset, int initialDstSaving) {
+    public RuleBasedTimeZone(String id, String initialName, int initialStdOffset, int initialDstSaving) {
         super.setID(id);
-        initialRule = new TimeZoneRule(initialName, initialRawOffset, initialDstSaving);
+        initialRule = new TimeZoneRule(initialName, initialStdOffset, initialDstSaving);
     }
 
     /**
