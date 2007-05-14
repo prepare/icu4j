@@ -50,7 +50,7 @@ public class TimeZoneRule {
      * @draft ICU 3.8
      * @provisional This API might change or be removed in a future release.
      */
-    public String getZoneName() {
+    public String getName() {
         return name;
     }
 
