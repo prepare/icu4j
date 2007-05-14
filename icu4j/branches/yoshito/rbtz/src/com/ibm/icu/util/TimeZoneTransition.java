@@ -1,3 +1,9 @@
+/*
+ *******************************************************************************
+ * Copyright (C) 2007, International Business Machines Corporation and         *
+ * others. All Rights Reserved.                                                *
+ *******************************************************************************
+ */
 package com.ibm.icu.util;
 /**
  * TimeZoneTransition is a class representing a time zone transition.
