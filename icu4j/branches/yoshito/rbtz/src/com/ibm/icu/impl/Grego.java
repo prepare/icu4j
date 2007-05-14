@@ -15,6 +15,8 @@
  */
 package com.ibm.icu.impl;
 
+import com.ibm.icu.util.Calendar;
+
 /**
  * A utility class providing proleptic Gregorian calendar functions
  * used by time zone and calendar code.  Do not instantiate.
@@ -23,6 +25,25 @@ package com.ibm.icu.impl;
  * class occur in the pure proleptic GregorianCalendar.
  */
 public class Grego {
+
+    public static final long MIN_MILLIS = -184303902528000000L;
+    public static final long MAX_MILLIS = 183882168921600000L;
+    
+    //  January 1, 1 CE Gregorian
+    private static final int JULIAN_1_CE = 1721426;
+
+    //  January 1, 1970 CE Gregorian
+    private static final int JULIAN_1970_CE = 2440588;
+
+    private static final int[] MONTH_LENGTH = new int[] {
+        31,28,31,30,31,30,31,31,30,31,30,31,
+        31,29,31,30,31,30,31,31,30,31,30,31
+    };
+
+    private static final int[] DAYS_BEFORE = new int[] {
+        0,31,59,90,120,151,181,212,243,273,304,334,
+        0,31,60,91,121,152,182,213,244,274,305,335 };
+
     /**
      * Return true if the given year is a leap year.
      * @param year Gregorian year, with 0 == 1 BCE, -1 == 2 BCE, etc.
@@ -32,11 +53,6 @@ public class Grego {
         // year&0x3 == year%4
         return ((year&0x3) == 0) && ((year%100 != 0) || (year%400 == 0));
     }
-
-    private static final int[] MONTH_LENGTH = new int[] {
-        31,28,31,30,31,30,31,31,30,31,30,31,
-        31,29,31,30,31,30,31,31,30,31,30,31
-    };
 
     /**
      * Return the number of days in the given month.
@@ -50,11 +66,102 @@ public class Grego {
 
     /**
      * Return the length of a previous month of the Gregorian calendar.
-     * @param y the extended year
-     * @param m the 0-based month number
+     * @param year Gregorian year, with 0 == 1 BCE, -1 == 2 BCE, etc.
+     * @param month 0-based month, with 0==Jan
      * @return the number of days in the month previous to the given month
      */
-    public static final int previousMonthLength(int y, int m) {
-        return (m > 0) ? monthLength(y, m-1) : 31;
+    public static final int previousMonthLength(int year, int month) {
+        return (month > 0) ? monthLength(year, month-1) : 31;
+    }
+
+    /**
+     * Convert a year, month, and day-of-month, given in the proleptic
+     * Gregorian calendar, to 1970 epoch days.
+     * @param year Gregorian year, with 0 == 1 BCE, -1 == 2 BCE, etc.
+     * @param month 0-based month, with 0==Jan
+     * @param dom 1-based day of month
+     * @return the day number, with day 0 == Jan 1 1970
+     */
+    public static long fieldsToDay(int year, int month, int dom) {
+        int y = year - 1;
+        long julian =
+            365 * y + floorDivide(y, 4) + (JULIAN_1_CE - 3) +    // Julian cal
+            floorDivide(y, 400) - floorDivide(y, 100) + 2 +   // => Gregorian cal
+            DAYS_BEFORE[month + (isLeapYear(year) ? 12 : 0)] + dom; // => month/dom
+        return julian - JULIAN_1970_CE; // JD => epoch day
+    }
+
+    /**
+     * Return the day of week on the 1970-epoch day
+     * @param day the 1970-epoch day (integral value)
+     * @return the day of week
+     */
+    public static int dayOfWeek(long day) {
+        int dayOfWeek = (int)((day + Calendar.THURSDAY) % 7);  // day 0 of 1970-epoch day is Thursday
+        dayOfWeek = (dayOfWeek == 0) ? 7 : dayOfWeek;
+        return dayOfWeek;
+    }
+
+    private static final int NUM_DATE_FIELDS = 5;
+
+    public static int[] dayToFields(long day, int[] fields) {
+        if (fields == null || fields.length < NUM_DATE_FIELDS) {
+            fields = new int[NUM_DATE_FIELDS];
+        }
+        // Convert from 1970 CE epoch to 1 CE epoch (Gregorian calendar)
+        day += JULIAN_1970_CE - JULIAN_1_CE;
+
+        long[] rem = new long[1];
+        long n400 = floorDivide(day, 146097, rem);
+        long n100 = floorDivide(rem[0], 36524, rem);
+        long n4 = floorDivide(rem[0], 1461, rem);
+        long n1 = floorDivide(rem[0], 365, rem);
+
+        int year = (int)(400 * n400 + 100 * n100 + 4 * n4 + n1);
+        int dayOfYear = (int)rem[0];
+        if (n100 == 4 || n1 == 4) {
+            dayOfYear = 365;    // Dec 31 at end of 4- or 400-yr cycle
+        }
+        else {
+            ++year;
+        }
+
+        boolean isLeap = isLeapYear(year);
+        int correction = 0;
+        int march1 = isLeap ? 60 : 59;  // zero-based DOY for March 1
+        if (dayOfYear >= march1) {
+            correction = isLeap ? 1 : 2;
+        }
+        int month = (12 * (dayOfYear + correction) + 6) / 367;  // zero-based month
+        int dayOfMonth = dayOfYear - DAYS_BEFORE[isLeap ? month + 12 : month] + 1; // one-based DOM
+        int dayOfWeek = (int)((day + 2) % 7);  // day 0 is Monday(2)
+        dayOfWeek = (dayOfWeek == 0) ? 7 : dayOfWeek;
+        dayOfYear++; // 1-based day of year
+
+        fields[0] = year;
+        fields[1] = month;
+        fields[2] = dayOfMonth;
+        fields[3] = dayOfWeek;
+        fields[4] = dayOfYear;
+
+        return fields;
+    }
+    
+    private static long floorDivide(long numerator, long denominator) {
+        // We do this computation in order to handle
+        // a numerator of Long.MIN_VALUE correctly
+        return (numerator >= 0) ?
+            numerator / denominator :
+            ((numerator + 1) / denominator) - 1;
+    }
+
+    private static long floorDivide(long numerator, long denominator, long[] remainder) {
+        if (numerator >= 0) {
+            remainder[0] = numerator % denominator;
+            return numerator / denominator;
+        }
+        long quotient = ((numerator + 1) / denominator) - 1;
+        remainder[0] = numerator - (quotient * denominator);
+        return quotient;
     }
 }
