@@ -184,12 +184,12 @@ public class RuleBasedTimeZone extends TimeZone implements HasTimeZoneTransition
             return null;
         }
         TimeZoneTransition tt = (TimeZoneTransition)historicTransitions.get(0);
-        if (getTransitionTime(tt, true) > base) {
+        if (getTransitionTime(tt, false) > base) {
             return tt;
         }
         int idx = historicTransitions.size() - 1;        
         tt = (TimeZoneTransition)historicTransitions.get(idx);
-        if (getTransitionTime(tt, true) <= base) {
+        if (getTransitionTime(tt, false) <= base) {
             if (finalRules != null) {
                 // Find a transion time with finalRules
                 Date start0 = finalRules[0].getNextStart(base,
@@ -202,6 +202,7 @@ public class RuleBasedTimeZone extends TimeZone implements HasTimeZoneTransition
                 } else {
                     tt = new TimeZoneTransition(start1.getTime(), finalRules[0], finalRules[1]);
                 }
+                return tt;
             } else {
                 return null;
             }
@@ -211,7 +212,7 @@ public class RuleBasedTimeZone extends TimeZone implements HasTimeZoneTransition
         TimeZoneTransition prev = tt;
         while (idx > 0) {
             tt = (TimeZoneTransition)historicTransitions.get(idx);
-            if (getTransitionTime(tt, true) < base) {
+            if (getTransitionTime(tt, false) <= base) {
                 break;
             }
             idx--;
@@ -229,12 +230,12 @@ public class RuleBasedTimeZone extends TimeZone implements HasTimeZoneTransition
             return null;
         }
         TimeZoneTransition tt = (TimeZoneTransition)historicTransitions.get(0);
-        if (getTransitionTime(tt, true) <= base) {
+        if (getTransitionTime(tt, false) >= base) {
             return null;
         }
         int idx = historicTransitions.size() - 1;        
         tt = (TimeZoneTransition)historicTransitions.get(idx);
-        if (getTransitionTime(tt, true) < base) {
+        if (getTransitionTime(tt, false) < base) {
             if (finalRules != null) {
                 // Find a transion time with finalRules
                 Date start0 = finalRules[0].getLastStart(base,
@@ -247,15 +248,14 @@ public class RuleBasedTimeZone extends TimeZone implements HasTimeZoneTransition
                 } else {
                     tt = new TimeZoneTransition(start1.getTime(), finalRules[0], finalRules[1]);
                 }
-            } else {
-                return tt;
             }
+            return tt;
         }
         // Find a transition within the historic transitions
         idx--;
         while (idx >= 0) {
             tt = (TimeZoneTransition)historicTransitions.get(idx);
-            if (getTransitionTime(tt, true) < base) {
+            if (getTransitionTime(tt, false) < base) {
                 break;
             }
             idx--;
@@ -301,6 +301,9 @@ public class RuleBasedTimeZone extends TimeZone implements HasTimeZoneTransition
                             continue;
                         }
                         TimeZoneRule r = (TimeZoneRule)historicRules.get(i);
+                        if (r == curRule) {
+                            continue;
+                        }
                         if (r instanceof AnnualTimeZoneRule) {
                             d = ((AnnualTimeZoneRule)r).getNextStart(lastTransitionTime, curStdOffset, curDstSaving, false);
                         } else if (r instanceof TimeArrayTimeZoneRule) {
@@ -328,6 +331,9 @@ public class RuleBasedTimeZone extends TimeZone implements HasTimeZoneTransition
                     if (finalRules != null) {
                         // Check if one of final rules has earlier transition date
                         for (int i = 0; i < 2 /* finalRules.length */; i++) {
+                            if (finalRules[i] == curRule) {
+                                continue;
+                            }
                             d = finalRules[i].getNextStart(lastTransitionTime, curStdOffset, curDstSaving, false);
                             if (d != null) {
                                 tt = d.getTime();

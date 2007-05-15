@@ -70,4 +70,15 @@ public class TimeZoneTransition {
     public TimeZoneRule getFrom() {
         return from;
     }
+
+    /* (non-Javadoc)
+     * @see java.lang.Object#toString()
+     */
+    public String toString() {
+        StringBuffer buf = new StringBuffer();
+        buf.append("time=" + time);
+        buf.append(", from={" + from + "}");
+        buf.append(", to={" + to + "}");
+        return buf.toString();
+    }
 }

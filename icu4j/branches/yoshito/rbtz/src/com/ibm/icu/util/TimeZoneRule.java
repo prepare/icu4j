@@ -78,4 +78,15 @@ public class TimeZoneRule {
     public int getDstSaving() {
         return dstSaving;
     }
+
+    /* (non-Javadoc)
+     * @see java.lang.Object#toString()
+     */
+    public String toString() {
+        StringBuffer buf = new StringBuffer();
+        buf.append("name=" + getName());
+        buf.append(", stdOffset=" + getStdOffset());
+        buf.append(", dstSaving=" + getDstSaving());
+        return buf.toString();
+    }
 }

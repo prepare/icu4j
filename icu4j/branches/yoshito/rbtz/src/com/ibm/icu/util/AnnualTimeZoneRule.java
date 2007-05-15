@@ -54,7 +54,7 @@ public class AnnualTimeZoneRule extends TimeZoneRule {
         super(name, stdOffset, dstSaving);
         this.dateTimeRule = dateTimeRule;
         this.startYear = startYear;
-        this.endYear = endYear;
+        this.endYear = endYear > MAX_YEAR ? MAX_YEAR : endYear;
     }
 
     /**
@@ -137,7 +137,7 @@ public class AnnualTimeZoneRule extends TimeZoneRule {
                 }
             } else {
                 ruleDay = Grego.fieldsToDay(year, dateTimeRule.getRuleMonth(), dateTimeRule.getRuleDayOfMonth());
-                after = (type == AnnualDateTimeRule.DOM_GEQ_DOM);
+                after = (type == AnnualDateTimeRule.DOW_GEQ_DOM);
             }
 
             int dow = Grego.dayOfWeek(ruleDay);
@@ -254,5 +254,23 @@ public class AnnualTimeZoneRule extends TimeZoneRule {
             d = getStartInYear(year - 1, prevStdOffset, prevDstSaving);
         }
         return d;
+    }
+
+
+    /* (non-Javadoc)
+     * @see java.lang.Object#toString()
+     */
+    public String toString() {
+        StringBuffer buf = new StringBuffer();
+        buf.append(super.toString());
+        buf.append(", rule={" + dateTimeRule + "}");
+        buf.append(", startYear=" + startYear);
+        buf.append(", endYear=");
+        if (endYear == MAX_YEAR) {
+            buf.append("max");
+        } else {
+            buf.append(endYear);
+        }
+        return buf.toString();
     }
 }

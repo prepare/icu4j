@@ -95,4 +95,11 @@ public class TimeArrayTimeZoneRule extends TimeZoneRule {
         }
         return new Date(startTimes[i + 1]);
     }
+
+    public String toString() {
+        StringBuffer buf = new StringBuffer();
+        buf.append(super.toString());
+        buf.append(", startTimes={" + startTimes + "}");
+        return buf.toString();
+    }
 }

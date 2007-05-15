@@ -40,7 +40,7 @@ public class AnnualDateTimeRule {
      * @draft ICU 3.8
      * @provisional This API might change or be removed in a future release.
      */
-    public static final int DOM_GEQ_DOM = 2;
+    public static final int DOW_GEQ_DOM = 2;
 
     /**
      * Date rule type defined by last day of week on or
@@ -50,7 +50,7 @@ public class AnnualDateTimeRule {
      * @draft ICU 3.8
      * @provisional This API might change or be removed in a future release.
      */
-    public static final int DOM_LEQ_DOM = 3;
+    public static final int DOW_LEQ_DOM = 3;
     
     /**
      * Time rule type for local wall time.
@@ -161,7 +161,7 @@ public class AnnualDateTimeRule {
      */
     public AnnualDateTimeRule(int month, int dayOfMonth, int dayOfWeek, boolean after,
             int millisInDay, int timeType) {
-        this.dateRuleType = after ? DOM_GEQ_DOM : DOM_LEQ_DOM;
+        this.dateRuleType = after ? DOW_GEQ_DOM : DOW_LEQ_DOM;
         this.month = month;
         this.dayOfMonth = dayOfMonth;
         this.dayOfWeek = dayOfWeek;
@@ -260,5 +260,72 @@ public class AnnualDateTimeRule {
      */
     public int getRuleMillisInDay() {
         return millisInDay;
+    }
+
+    private static final String[] DOWSTR = {"", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
+    private static final String[] MONSTR = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+    /* (non-Javadoc)
+     * @see java.lang.Object#toString()
+     */
+    public String toString() {
+        String sDate = null;
+        String sTimeRuleType = null;
+
+        switch (dateRuleType) {
+        case DOM:
+            sDate = Integer.toString(dayOfMonth);
+            break;
+        case DOW:
+            sDate = Integer.toString(weekInMonth) + DOWSTR[dayOfWeek];
+            break;
+        case DOW_GEQ_DOM:
+            sDate = DOWSTR[dayOfWeek] + ">=" + Integer.toString(dayOfMonth);
+            break;
+        case DOW_LEQ_DOM:
+            sDate = DOWSTR[dayOfWeek] + "<=" + Integer.toString(dayOfMonth);
+            break;
+        }
+
+        switch (timeRuleType) {
+        case WALL_TIME:
+            sTimeRuleType = "WALL";
+            break;
+        case STANDARD_TIME:
+            sTimeRuleType = "STD";
+            break;
+        case UNIVERSAL_TIME:
+            sTimeRuleType = "UTC";
+            break;
+        }
+
+        int time = millisInDay;
+        int millis = time % 1000;
+        time /= 1000;
+        int secs = time % 60;
+        time /= 60;
+        int mins = time % 60;
+        int hours = time / 60;
+
+        StringBuffer buf = new StringBuffer();
+        buf.append("month=");
+        buf.append(MONSTR[month]);
+        buf.append(", date=");
+        buf.append(sDate);
+        buf.append(", time=");
+        buf.append(hours);
+        buf.append(":");
+        buf.append(mins/10);
+        buf.append(mins%10);
+        buf.append(":");
+        buf.append(secs/10);
+        buf.append(secs%10);
+        buf.append(".");
+        buf.append(millis/100);
+        buf.append((millis/10)%10);
+        buf.append(millis%10);
+        buf.append("(");
+        buf.append(sTimeRuleType);
+        buf.append(")");
+        return buf.toString();
     }
 }
