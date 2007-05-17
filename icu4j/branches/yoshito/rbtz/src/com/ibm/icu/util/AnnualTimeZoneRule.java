@@ -122,11 +122,10 @@ public class AnnualTimeZoneRule extends TimeZoneRule {
         if (type == AnnualDateTimeRule.DOM) {
             ruleDay = Grego.fieldsToDay(year, dateTimeRule.getRuleMonth(), dateTimeRule.getRuleDayOfMonth());
         } else {
-            boolean after;
+            boolean after = true;
             if (type == AnnualDateTimeRule.DOW) {
                 int weeks = dateTimeRule.getRuleWeekInMonth();
                 if (weeks > 0) {
-                    after = true;
                     ruleDay = Grego.fieldsToDay(year, dateTimeRule.getRuleMonth(), 1);
                     ruleDay += 7 * (weeks - 1);
                 } else {
@@ -136,8 +135,16 @@ public class AnnualTimeZoneRule extends TimeZoneRule {
                     ruleDay += 7 * (weeks + 1);
                 }
             } else {
-                ruleDay = Grego.fieldsToDay(year, dateTimeRule.getRuleMonth(), dateTimeRule.getRuleDayOfMonth());
-                after = (type == AnnualDateTimeRule.DOW_GEQ_DOM);
+                int month = dateTimeRule.getRuleMonth();
+                int dom = dateTimeRule.getRuleDayOfMonth();
+                if (type == AnnualDateTimeRule.DOW_LEQ_DOM) {
+                    after = false;
+                    // Handle Feb <=29
+                    if (month == Calendar.FEBRUARY && dom == 29 && !Grego.isLeapYear(year)) {
+                        dom--;
+                    }
+                }
+                ruleDay = Grego.fieldsToDay(year, month, dom);
             }
 
             int dow = Grego.dayOfWeek(ruleDay);
