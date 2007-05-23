@@ -241,7 +241,7 @@ public class OlsonTimeZone extends ICUTimeZone {
             return;
         }
 
-        double secs = Math.floor(date / MILLIS_PER_SECOND);
+        double secs = Math.floor((double)date/MILLIS_PER_SECOND);
         getHistoricalOffset(secs, local, offsets);
         return;
     }
@@ -848,7 +848,8 @@ public class OlsonTimeZone extends ICUTimeZone {
                 return firstFinalTZTransition;
             } else if (base >= firstFinalTZTransition.getTime()) {
                 if (finalZone.useDaylightTime()) {
-                    return finalZone.getNextTransition(base, inclusive);
+                    //return finalZone.getNextTransition(base, inclusive);
+                    return finalZoneWithStartYear.getNextTransition(base, inclusive);
                 } else {
                     // No more transitions
                     return null;
@@ -897,7 +898,8 @@ public class OlsonTimeZone extends ICUTimeZone {
                 return firstFinalTZTransition;
             } else if (base > firstFinalTZTransition.getTime()) {
                 if (finalZone.useDaylightTime()) {
-                    return finalZone.getPreviousTransition(base, inclusive);
+                    //return finalZone.getPreviousTransition(base, inclusive);
+                    return finalZoneWithStartYear.getPreviousTransition(base, inclusive);
                 } else {
                     return firstFinalTZTransition;
                 }                
@@ -972,20 +974,8 @@ public class OlsonTimeZone extends ICUTimeZone {
          }
 
         if (finalZone != null) {
-            /*
-             * Note: When an OlsonTimeZone is constructed, we should set the final year
-             * as the start year of finalZone.  However, the bounday condition used for
-             * getting offset from finalZone has some problems.  So setting the start year
-             * in the finalZone will cause a problem.  For now, we do not set the valid
-             * start year when the construction time and create a clone and set the
-             * start year when extracting rules.
-             */
             if (finalZone.useDaylightTime()) {
-                SimpleTimeZone tmpstz = (SimpleTimeZone)finalZone.clone();
-                // finalYear is 1 year before the actual final year.
-                // See the comment in the construction method.
-                tmpstz.setStartYear(finalYear + 1);
-                TimeZoneRule[] stzr = tmpstz.getTimeZoneRules();
+                TimeZoneRule[] stzr = finalZoneWithStartYear.getTimeZoneRules();
                 // Adding only transition rules
                 rules[idx++] = stzr[1];
                 rules[idx++] = stzr[2];
@@ -1003,6 +993,7 @@ public class OlsonTimeZone extends ICUTimeZone {
     private transient int firstTZTransitionIdx;
     private transient TimeZoneTransition firstFinalTZTransition;
     private transient TimeArrayTimeZoneRule[] historicRules;
+    private transient SimpleTimeZone finalZoneWithStartYear; // hack
 
     private transient boolean transitionRulesInitialized;
 
@@ -1016,6 +1007,7 @@ public class OlsonTimeZone extends ICUTimeZone {
         firstFinalTZTransition = null;
         historicRules = null;
         firstTZTransitionIdx = 0;
+        finalZoneWithStartYear = null;
 
         String stdName = getID() + "(STD)";
         String dstName = getID() + "(DST)";
@@ -1089,10 +1081,24 @@ public class OlsonTimeZone extends ICUTimeZone {
             long startTime = (long)finalMillis;
             TimeZoneRule firstFinalRule;
             if (finalZone.useDaylightTime()) {
-                TimeZoneTransition tzt = finalZone.getNextTransition(startTime, false);
+                /*
+                 * Note: When an OlsonTimeZone is constructed, we should set the final year
+                 * as the start year of finalZone.  However, the bounday condition used for
+                 * getting offset from finalZone has some problems.  So setting the start year
+                 * in the finalZone will cause a problem.  For now, we do not set the valid
+                 * start year when the construction time and create a clone and set the
+                 * start year when extracting rules.
+                 */
+                finalZoneWithStartYear = (SimpleTimeZone)finalZone.clone();
+                // finalYear is 1 year before the actual final year.
+                // See the comment in the construction method.
+                finalZoneWithStartYear.setStartYear(finalYear + 1);
+
+                TimeZoneTransition tzt = finalZoneWithStartYear.getNextTransition(startTime, false);
                 firstFinalRule  = tzt.getTo();
                 startTime = tzt.getTime();
             } else {
+                finalZoneWithStartYear = finalZone;
                 firstFinalRule = new TimeArrayTimeZoneRule(finalZone.getID(),
                         finalZone.getRawOffset(), 0, new long[] {startTime});
             }

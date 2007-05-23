@@ -55,18 +55,25 @@ public abstract class ICUTimeZone extends TimeZone implements HasTimeZoneRules {
             TimeZoneTransition tr1 = getNextTransition(time, false);
             TimeZoneTransition tr2 = ((HasTimeZoneRules)tz).getNextTransition(time, false);
 
-            if (tr1 == null && tr2 == null) {
+            boolean inRange1 = false;
+            boolean inRange2 = false;
+            if (tr1 != null) {
+                if (tr1.getTime() <=end) {
+                    inRange1 = true;
+                }
+            }
+            if (tr2 != null) {
+                if (tr2.getTime() <= end) {
+                    inRange2 = true;
+                }
+            }
+            if (!inRange1 && !inRange2) {
+                // No more transition in the range
                 break;
             }
-            if ((tr1 == null && tr2.getTime() <= end) || (tr2 == null && tr1.getTime() <= end)) {
+            if (!inRange1 || !inRange2) {
                 return false;
             }
-            if (tr1.getTime() > end) {
-                if (tr2.getTime() <= end) {
-                    return false;
-                }
-                break;
-            }                
             if (tr1.getTime() != tr2.getTime() ||
                     tr1.getTo().getRawOffset() != tr2.getTo().getRawOffset() ||
                     tr1.getTo().getDSTSavings() != tr2.getTo().getDSTSavings()) {
