@@ -6,6 +6,8 @@
  */
 package com.ibm.icu.util;
 
+import java.io.Serializable;
+
 /**
  * AnnualDateTimeRule is a class representing a rule for
  * annually repeating date and time.
@@ -13,7 +15,10 @@ package com.ibm.icu.util;
  * @draft ICU 3.8
  * @provisional This API might change or be removed in a future release.
  */
-public class AnnualDateTimeRule {
+public class AnnualDateTimeRule implements Serializable {
+
+    private static final long serialVersionUID = 2183055795738051443L;
+
     /**
      * Date rule type defined by exact day of month.
      * For example, March 14.
@@ -261,7 +266,7 @@ public class AnnualDateTimeRule {
     public int getRuleMillisInDay() {
         return millisInDay;
     }
-
+    
     private static final String[] DOWSTR = {"", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
     private static final String[] MONSTR = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
     /* (non-Javadoc)

@@ -20,6 +20,8 @@ import com.ibm.icu.impl.Grego;
  */
 public class AnnualTimeZoneRule extends TimeZoneRule {
 
+    private static final long serialVersionUID = -2419464960618908799L;
+
     /**
      * The constant representing the maximum year used for designating a rule is permanent.
      */
@@ -37,8 +39,8 @@ public class AnnualTimeZoneRule extends TimeZoneRule {
      * the annual start time rule and the start/until years.
      * 
      * @param name          The time zone name.
-     * @param stdOffset     The GMT offset of its standard time in milliseconds.
-     * @param dstSaving     The amount of daylight saving offset adjustment in
+     * @param rawOffset     The GMT offset of its standard time in milliseconds.
+     * @param dstSavings    The amount of daylight saving offset adjustment in
      *                      milliseconds.  If this ia a rule for standard time,
      *                      the value of this argument is 0.
      * @param dateTimeRule  The start date/time rule repeated annually.
@@ -49,9 +51,9 @@ public class AnnualTimeZoneRule extends TimeZoneRule {
      * @draft ICU 3.8
      * @provisional This API might change or be removed in a future release.
      */
-    public AnnualTimeZoneRule(String name, int stdOffset, int dstSaving,
+    public AnnualTimeZoneRule(String name, int rawOffset, int dstSavings,
             AnnualDateTimeRule dateTimeRule, int startYear, int endYear) {
-        super(name, stdOffset, dstSaving);
+        super(name, rawOffset, dstSavings);
         this.dateTimeRule = dateTimeRule;
         this.startYear = startYear;
         this.endYear = endYear > MAX_YEAR ? MAX_YEAR : endYear;
@@ -100,9 +102,9 @@ public class AnnualTimeZoneRule extends TimeZoneRule {
      * Gets the time when this rule takes effect in the given year.
      * 
      * @param year              The Gregorian year, with 0 == 1 BCE, -1 == 2 BCE, etc.
-     * @param prevStdOffset     The offset from UTC before this rule takes effect
-     *                          in milliseconds.
-     * @param prevDstSaving     The amount of daylight saving offset from the
+     * @param prevRawOffset     The standard time offset from UTC before this rule
+     *                          takes effect in milliseconds.
+     * @param prevDSTSavings    The amount of daylight saving offset from the
      *                          standard time.
      * 
      * @return  The time when this rule takes effect in the year, or
@@ -111,7 +113,7 @@ public class AnnualTimeZoneRule extends TimeZoneRule {
      * @draft ICU 3.8
      * @provisional This API might change or be removed in a future release.
      */
-    public Date getStartInYear(int year, int prevStdOffset, int prevDstSaving) {
+    public Date getStartInYear(int year, int prevRawOffset, int prevDSTSavings) {
         if (year < startYear || year > endYear) {
             return null;
         }
@@ -159,10 +161,10 @@ public class AnnualTimeZoneRule extends TimeZoneRule {
 
         long ruleTime = ruleDay * MILLIS_PER_DAY + dateTimeRule.getRuleMillisInDay();
         if (dateTimeRule.getTimeRuleType() != AnnualDateTimeRule.UNIVERSAL_TIME) {
-            ruleTime -= prevStdOffset;
+            ruleTime -= prevRawOffset;
         }
         if (dateTimeRule.getTimeRuleType() == AnnualDateTimeRule.WALL_TIME) {
-            ruleTime -= prevDstSaving;
+            ruleTime -= prevDSTSavings;
         }
         return new Date(ruleTime);
     }
@@ -170,9 +172,9 @@ public class AnnualTimeZoneRule extends TimeZoneRule {
     /**
      * Gets the very first time when this rule takes effect.
      * 
-     * @param prevStdOffset     The offset from UTC before this rule takes effect
-     *                          in milliseconds.
-     * @param prevDstSaving     The amount of daylight saving offset from the
+     * @param prevRawOffset     The standard time offset from UTC before this rule
+     *                          takes effect in milliseconds.
+     * @param prevDSTSavings    The amount of daylight saving offset from the
      *                          standard time. 
      * 
      * @return  The very first time when this rule takes effect.
@@ -180,17 +182,17 @@ public class AnnualTimeZoneRule extends TimeZoneRule {
      * @draft ICU 3.8
      * @provisional This API might change or be removed in a future release.
      */
-    public Date getFirstStart(int prevStdOffset, int prevDstSaving) {
-        return getStartInYear(startYear, prevStdOffset, prevDstSaving);
+    public Date getFirstStart(int prevRawOffset, int prevDSTSavings) {
+        return getStartInYear(startYear, prevRawOffset, prevDSTSavings);
     }
 
     /**
      * Gets the final time when this rule takes effect.
      * 
-     * @param prevStdOffset     The offset from UTC before this rule takes effect
-     *                          in milliseconds.
-     * @param prevDstSaving     The amount of daylight saving offset from the
-     *                          standard time.
+     * @param prevRawOffset     The standard time offset from UTC before this rule
+     *                          takes effect in milliseconds.
+     * @param prevDSTSavings    The amount of daylight saving offset from the
+     *                          standard time. 
      * 
      * @return  The very last time when this rule takes effect,
      *          or null if this rule is applied for future dates infinitely.
@@ -198,21 +200,21 @@ public class AnnualTimeZoneRule extends TimeZoneRule {
      * @draft ICU 3.8
      * @provisional This API might change or be removed in a future release.
      */
-    public Date getFinalStart(int prevStdOffset, int prevDstSaving) {
+    public Date getFinalStart(int prevRawOffset, int prevDSTSavings) {
         if (endYear == MAX_YEAR) {
             return null;
         }
-        return getStartInYear(endYear, prevStdOffset, prevDstSaving);
+        return getStartInYear(endYear, prevRawOffset, prevDSTSavings);
     }
 
     /**
      * Gets the first time when this rule takes effect after the specified time.
      * 
      * @param base              The first time after this time is returned.
-     * @param prevStdOffset     The offset from UTC before this rule takes effect
-     *                          in milliseconds.
-     * @param prevDstSaving     The amount of daylight saving offset from the
-     *                          standard time.
+     * @param prevRawOffset     The standard time offset from UTC before this rule
+     *                          takes effect in milliseconds.
+     * @param prevDSTSavings    The amount of daylight saving offset from the
+     *                          standard time. 
      * @param inclusive         Whether the base time is inclusive or not.
      * 
      * @return  The first time when this rule takes effect after the specified time,
@@ -221,48 +223,55 @@ public class AnnualTimeZoneRule extends TimeZoneRule {
      * @draft ICU 3.8
      * @provisional This API might change or be removed in a future release.
      */
-    public Date getNextStart(long base, int prevStdOffset, int prevDstSaving, boolean inclusive) {
-        int[] fields = Grego.dayToFields(base/MILLIS_PER_DAY, null);
+    public Date getNextStart(long base, int prevRawOffset, int prevDSTSavings, boolean inclusive) {
+        int[] fields = Grego.dayToFields(Grego.timeToDay(base), null);
         int year = fields[0];
         if (year < startYear) {
-            return getFirstStart(prevStdOffset, prevDstSaving);
+            return getFirstStart(prevRawOffset, prevDSTSavings);
         }
-        Date d = getStartInYear(year, prevStdOffset, prevDstSaving);
+        Date d = getStartInYear(year, prevRawOffset, prevDSTSavings);
         if (d != null && (d.getTime() < base || (!inclusive && (d.getTime() == base)))) {
-            d = getStartInYear(year + 1, prevStdOffset, prevDstSaving);
+            d = getStartInYear(year + 1, prevRawOffset, prevDSTSavings);
         }
         return d;
     }
 
     /**
-     * Gets the last time when this rule takes effect before the specified time.
+     * Gets the most recent time when this rule takes effect before the specified time.
      * 
-     * @param base              The last time before this time is returned.
-     * @param prevStdOffset     The offset from UTC before this rule takes effect
-     *                          in milliseconds.
-     * @param prevDstSaving     The amount of daylight saving offset from the
-     *                          standard time.
+     * @param base              The most recent time when this rule takes effect before
+     *                          this time is returned.
+     * @param prevRawOffset     The standard time offset from UTC before this rule
+     *                          takes effect in milliseconds.
+     * @param prevDSTSavings    The amount of daylight saving offset from the
+     *                          standard time. 
      * @param inclusive         Whether the base time is inclusive or not.
      * 
-     * @return  The first time when this rule takes effect after the specified time,
-     *          or null when this rule never takes effect after the specified time.
+     * @return  The most recent time when this rule takes effect before the specified time,
+     *          or null when this rule never takes effect before the specified time.
      * 
      * @draft ICU 3.8
      * @provisional This API might change or be removed in a future release.
      */
-    public Date getLastStart(long base, int prevStdOffset, int prevDstSaving, boolean inclusive) {
-        int[] fields = Grego.dayToFields(base/MILLIS_PER_DAY, null);
+    public Date getPreviousStart(long base, int prevRawOffset, int prevDSTSavings, boolean inclusive) {
+        int[] fields = Grego.dayToFields(Grego.timeToDay(base), null);
         int year = fields[0];
         if (year > endYear) {
-            return getFinalStart(prevStdOffset, prevDstSaving);
+            return getFinalStart(prevRawOffset, prevDSTSavings);
         }
-        Date d = getStartInYear(year, prevStdOffset, prevDstSaving);
+        Date d = getStartInYear(year, prevRawOffset, prevDSTSavings);
         if (d != null && (d.getTime() > base || (!inclusive && (d.getTime() == base)))) {
-            d = getStartInYear(year - 1, prevStdOffset, prevDstSaving);
+            d = getStartInYear(year - 1, prevRawOffset, prevDSTSavings);
         }
         return d;
     }
 
+    /* (non-Javadoc)
+     * @see com.ibm.icu.util.TimeZoneRule#hasStartTimes()
+     */
+    public boolean hasStartTimes() {
+        return true;
+    }
 
     /* (non-Javadoc)
      * @see java.lang.Object#toString()

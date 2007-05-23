@@ -24,6 +24,8 @@ import java.util.Date;
  */
 public class VTimeZone extends TimeZone {
 
+    private static final long serialVersionUID = 1L; //TODO
+
     private TimeZone tz;
 
     /**
@@ -37,7 +39,11 @@ public class VTimeZone extends TimeZone {
      * @provisional This API might change or be removed in a future release.
      */
     public static VTimeZone create(String tzid) {
-        return null;
+        VTimeZone vtz = new VTimeZone();
+        vtz.tz = TimeZone.getTimeZone(tzid);
+        vtz.setID(tzid);
+
+        return vtz;
     }
     
     /**

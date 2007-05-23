@@ -5,11 +5,11 @@
 
 package com.ibm.icu.util;
 
-import com.ibm.icu.impl.Grego;
-import com.ibm.icu.impl.JDKTimeZone;
-
 import java.io.IOException;
 import java.util.Date;
+
+import com.ibm.icu.impl.Grego;
+import com.ibm.icu.impl.ICUTimeZone;
 
 /**
  * <code>SimpleTimeZone</code> is a concrete subclass of <code>TimeZone</code>
@@ -28,7 +28,7 @@ import java.util.Date;
  * @author   David Goldsmith, Mark Davis, Chen-Lieh Huang, Alan Liu
  * @stable ICU 2.0
  */
-public class SimpleTimeZone extends JDKTimeZone implements HasTimeZoneTransitions {
+public class SimpleTimeZone extends ICUTimeZone {
     private static final long serialVersionUID = -7034676239311322769L;
 
     /**
@@ -1121,22 +1121,23 @@ public class SimpleTimeZone extends JDKTimeZone implements HasTimeZoneTransition
              startYear      == other.startYear));
     }
 
-    // HasTimeZoneTransition methods
+    // HasTimeZoneRules methods
 
     /* (non-Javadoc)
-     * @see com.ibm.icu.util.HasTimeZoneTransitions#getNextTransition(long)
+     * @see com.ibm.icu.util.HasTimeZoneRules#getNextTransition(long, boolean)
      */
-    public TimeZoneTransition getNextTransition(long base) {
+    public TimeZoneTransition getNextTransition(long base, boolean inclusive) {
         if (startMonth == 0) {
             return null;
         }
 
         initTransitionRules();
-        if (base < firstDstStart) {
-            return new TimeZoneTransition(firstDstStart, initialRule, dstRule);
+        long firstTransitionTime = firstTransition.getTime();
+        if (base < firstTransitionTime || (inclusive && base == firstTransitionTime)) {
+            return firstTransition;
         }
-        Date stdDate = stdRule.getNextStart(base, dstRule.getStdOffset(), dstRule.getDstSaving(), false);
-        Date dstDate = dstRule.getNextStart(base, stdRule.getStdOffset(), stdRule.getDstSaving(), false);
+        Date stdDate = stdRule.getNextStart(base, dstRule.getRawOffset(), dstRule.getDSTSavings(), inclusive);
+        Date dstDate = dstRule.getNextStart(base, stdRule.getRawOffset(), stdRule.getDSTSavings(), inclusive);
         if (stdDate.before(dstDate)) {
             return new TimeZoneTransition(stdDate.getTime(), dstRule, stdRule);
         }
@@ -1144,32 +1145,45 @@ public class SimpleTimeZone extends JDKTimeZone implements HasTimeZoneTransition
     }
 
     /* (non-Javadoc)
-     * @see com.ibm.icu.util.HasTimeZoneTransitions#getPreviousTransition(long)
+     * @see com.ibm.icu.util.HasTimeZoneRules#getPreviousTransition(long, boolean)
      */
-    public TimeZoneTransition getPreviousTransition(long base) {
+    public TimeZoneTransition getPreviousTransition(long base, boolean inclusive) {
         if (startMonth == 0) {
             return null;
         }
 
         initTransitionRules();
-        if (base <= firstDstStart) {
+        long firstTransitionTime = firstTransition.getTime();
+        if (base < firstTransitionTime || (!inclusive && base == firstTransitionTime)) {
             return null;
         }
-        if (base <= firstStdStart) {
-            return new TimeZoneTransition(firstDstStart, initialRule, dstRule);
+        Date stdDate = stdRule.getPreviousStart(base, dstRule.getRawOffset(), dstRule.getDSTSavings(), false);
+        Date dstDate = dstRule.getPreviousStart(base, stdRule.getRawOffset(), stdRule.getDSTSavings(), false);
+        if (stdDate == null || (dstDate != null && dstDate.after(stdDate))) {
+            return new TimeZoneTransition(dstDate.getTime(), stdRule, dstRule);            
         }
-        Date stdDate = stdRule.getLastStart(base, dstRule.getStdOffset(), dstRule.getDstSaving(), false);
-        Date dstDate = dstRule.getLastStart(base, stdRule.getStdOffset(), stdRule.getDstSaving(), false);
-        if (stdDate.after(dstDate)) {
-            return new TimeZoneTransition(stdDate.getTime(), dstRule, stdRule);
+        return new TimeZoneTransition(stdDate.getTime(), dstRule, stdRule);
+    }
+
+    /* (non-Javadoc)
+     * @see com.ibm.icu.util.HasTimeZoneRules#getTimeZoneRules()
+     */
+    public TimeZoneRule[] getTimeZoneRules() {
+        initTransitionRules();
+
+        int size = (startMonth == 0) ? 1 : 3;
+        TimeZoneRule[] rules = new TimeZoneRule[size];
+        rules[0] = initialRule;
+        if (startMonth != 0) {
+            rules[1] = stdRule;
+            rules[2] = dstRule;
         }
-        return new TimeZoneTransition(dstDate.getTime(), stdRule, dstRule);
+        return rules;
     }
 
     private transient boolean transitionRulesInitialized;
-    private transient long firstStdStart;
-    private transient long firstDstStart;
     private transient TimeZoneRule initialRule;
+    private transient TimeZoneTransition firstTransition;
     private transient AnnualTimeZoneRule stdRule;
     private transient AnnualTimeZoneRule dstRule;
 
@@ -1177,60 +1191,72 @@ public class SimpleTimeZone extends JDKTimeZone implements HasTimeZoneTransition
         if (transitionRulesInitialized) {
             return;
         }
-        // Create a TimeZoneRule for initial time
-        initialRule = new TimeZoneRule(getID(), getRawOffset(), 0);
+        if (startMonth != 0) {
+            AnnualDateTimeRule dtRule = null;
+            int timeRuleType;
+            long firstStdStart, firstDstStart;
 
-        AnnualDateTimeRule dtRule = null;
-        int timeRuleType;
+            // Create a TimeZoneRule for daylight saving time
+            timeRuleType = (startTimeMode == STANDARD_TIME) ? AnnualDateTimeRule.STANDARD_TIME :
+                ((startTimeMode == UTC_TIME) ? AnnualDateTimeRule.UNIVERSAL_TIME : AnnualDateTimeRule.WALL_TIME);
+            switch (startMode) {
+            case DOM_MODE:
+             dtRule = new AnnualDateTimeRule(startMonth, startDay, startTime, timeRuleType);
+             break;
+            case DOW_IN_MONTH_MODE:
+             dtRule = new AnnualDateTimeRule(startMonth, startDay, startDayOfWeek, startTime, timeRuleType);
+             break;
+            case DOW_GE_DOM_MODE:
+             dtRule = new AnnualDateTimeRule(startMonth, startDay, startDayOfWeek, true, startTime, timeRuleType);
+             break;
+            case DOW_LE_DOM_MODE:
+             dtRule = new AnnualDateTimeRule(startMonth, startDay, startDayOfWeek, false, startTime, timeRuleType);
+             break;
+            }
+            // For now, use ID + "(DST)" as the name
+            dstRule = new AnnualTimeZoneRule(getID() + "(DST)", getRawOffset(), getDSTSavings(),
+                 dtRule, startYear, AnnualTimeZoneRule.MAX_YEAR);
+     
+            // Calculate the first DST start time
+            firstDstStart = dstRule.getFirstStart(getRawOffset(), 0).getTime();
 
-        // Create a TimeZoneRule for daylight saving time
-        timeRuleType = (startTimeMode == STANDARD_TIME) ? AnnualDateTimeRule.STANDARD_TIME :
-            ((startTimeMode == UTC_TIME) ? AnnualDateTimeRule.UNIVERSAL_TIME : AnnualDateTimeRule.WALL_TIME);
-        switch (startMode) {
-        case DOM_MODE:
-         dtRule = new AnnualDateTimeRule(startMonth, startDay, startTime, timeRuleType);
-         break;
-        case DOW_IN_MONTH_MODE:
-         dtRule = new AnnualDateTimeRule(startMonth, startDay, startDayOfWeek, startTime, timeRuleType);
-         break;
-        case DOW_GE_DOM_MODE:
-         dtRule = new AnnualDateTimeRule(startMonth, startDay, startDayOfWeek, true, startTime, timeRuleType);
-         break;
-        case DOW_LE_DOM_MODE:
-         dtRule = new AnnualDateTimeRule(startMonth, startDay, startDayOfWeek, false, startTime, timeRuleType);
-         break;
+            // Create a TimeZoneRule for standard time
+            timeRuleType = (endTimeMode == STANDARD_TIME) ? AnnualDateTimeRule.STANDARD_TIME :
+                ((endTimeMode == UTC_TIME) ? AnnualDateTimeRule.UNIVERSAL_TIME : AnnualDateTimeRule.WALL_TIME);
+            switch (endMode) {
+            case DOM_MODE:
+                dtRule = new AnnualDateTimeRule(endMonth, endDay, endTime, timeRuleType);
+                break;
+            case DOW_IN_MONTH_MODE:
+                dtRule = new AnnualDateTimeRule(endMonth, endDay, endDayOfWeek, endTime, timeRuleType);
+                break;
+            case DOW_GE_DOM_MODE:
+                dtRule = new AnnualDateTimeRule(endMonth, endDay, endDayOfWeek, true, endTime, timeRuleType);
+                break;
+            case DOW_LE_DOM_MODE:
+                dtRule = new AnnualDateTimeRule(endMonth, endDay, endDayOfWeek, false, endTime, timeRuleType);
+                break;
+            }
+            // For now, use ID + "(STD)" as the name
+            stdRule = new AnnualTimeZoneRule(getID() + "(STD)", getRawOffset(), 0,
+                    dtRule, startYear, AnnualTimeZoneRule.MAX_YEAR);
+
+            // Calculate the first STD start time
+            firstStdStart = stdRule.getFirstStart(dstRule.getRawOffset(), dstRule.getDSTSavings()).getTime();
+
+            // Create a TimeZoneRule for initial time
+            if (firstStdStart < firstDstStart) {
+                initialRule = new InitialTimeZoneRule(getID() + "(DST)", getRawOffset(), dstRule.getDSTSavings());                
+                firstTransition = new TimeZoneTransition(firstStdStart, initialRule, stdRule);
+            } else {
+                initialRule = new InitialTimeZoneRule(getID() + "(STD)", getRawOffset(), 0);
+                firstTransition = new TimeZoneTransition(firstDstStart, initialRule, dstRule);
+            }
+            
+        } else {
+            // Create a TimeZoneRule for initial time
+            initialRule = new InitialTimeZoneRule(getID(), getRawOffset(), 0);
         }
-        // For now, use ID + "(DST)" as the name
-        dstRule = new AnnualTimeZoneRule(getID() + "(DST)", getRawOffset(), getDSTSavings(),
-             dtRule, startYear, AnnualTimeZoneRule.MAX_YEAR);
- 
-        // Calculate the first DST start time
-        firstDstStart = dstRule.getFirstStart(getRawOffset(), 0).getTime();
-
-        // Create a TimeZoneRule for standard time
-        timeRuleType = (endTimeMode == STANDARD_TIME) ? AnnualDateTimeRule.STANDARD_TIME :
-            ((endTimeMode == UTC_TIME) ? AnnualDateTimeRule.UNIVERSAL_TIME : AnnualDateTimeRule.WALL_TIME);
-        switch (endMode) {
-        case DOM_MODE:
-            dtRule = new AnnualDateTimeRule(endMonth, endDay, endTime, timeRuleType);
-            break;
-        case DOW_IN_MONTH_MODE:
-            dtRule = new AnnualDateTimeRule(endMonth, endDay, endDayOfWeek, endTime, timeRuleType);
-            break;
-        case DOW_GE_DOM_MODE:
-            dtRule = new AnnualDateTimeRule(endMonth, endDay, endDayOfWeek, true, endTime, timeRuleType);
-            break;
-        case DOW_LE_DOM_MODE:
-            dtRule = new AnnualDateTimeRule(endMonth, endDay, endDayOfWeek, false, endTime, timeRuleType);
-            break;
-        }
-        // For now, use ID + "(STD)" as the name
-        stdRule = new AnnualTimeZoneRule(getID() + "(STD)", getRawOffset(), 0,
-                dtRule, startYear, AnnualTimeZoneRule.MAX_YEAR);
-
-        // Calculate the first STD start time
-        firstStdStart = stdRule.getFirstStart(dstRule.getStdOffset(), dstRule.getDstSaving()).getTime();
-        
         transitionRulesInitialized = true;
     }
 }

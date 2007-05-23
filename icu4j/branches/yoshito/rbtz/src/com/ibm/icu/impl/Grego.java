@@ -146,6 +146,10 @@ public class Grego {
 
         return fields;
     }
+
+    public static long timeToDay(long time) {
+        return floorDivide(time, 24*60*60*1000 /* milliseconds per day */);
+    }
     
     private static long floorDivide(long numerator, long denominator) {
         // We do this computation in order to handle
