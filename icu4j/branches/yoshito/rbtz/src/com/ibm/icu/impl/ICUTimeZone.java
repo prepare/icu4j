@@ -6,9 +6,10 @@
  */
 package com.ibm.icu.impl;
 
-import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
 
 import com.ibm.icu.util.AnnualTimeZoneRule;
 import com.ibm.icu.util.HasTimeZoneRules;
@@ -58,7 +59,7 @@ public abstract class ICUTimeZone extends TimeZone implements HasTimeZoneRules {
             boolean inRange1 = false;
             boolean inRange2 = false;
             if (tr1 != null) {
-                if (tr1.getTime() <=end) {
+                if (tr1.getTime() <= end) {
                     inRange1 = true;
                 }
             }
@@ -96,7 +97,7 @@ public abstract class ICUTimeZone extends TimeZone implements HasTimeZoneRules {
         }
 
         BitSet isProcessed = new BitSet(all.length);
-        ArrayList filteredRules = new ArrayList();
+        List filteredRules = new LinkedList();
 
         // Create initial rule
         InitialTimeZoneRule initial = new InitialTimeZoneRule(tzt.getTo().getName(),

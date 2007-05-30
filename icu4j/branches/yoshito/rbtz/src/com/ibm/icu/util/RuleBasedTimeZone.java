@@ -8,6 +8,7 @@ package com.ibm.icu.util;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
 
 import com.ibm.icu.impl.Grego;
@@ -216,6 +217,65 @@ public class RuleBasedTimeZone extends ICUTimeZone {
         return false;
     }
 
+    /* (non-Javadoc)
+     * @see com.ibm.icu.util.TimeZone#hasSameRules(com.ibm.icu.util.TimeZone)
+     */
+    public boolean hasSameRules(TimeZone other) {
+        if (!(other instanceof RuleBasedTimeZone)) {
+            // We cannot reasonably compare rules in different types
+            return false;
+        }
+        RuleBasedTimeZone otherRBTZ = (RuleBasedTimeZone)other;
+
+        // initial rule
+        if (!initialRule.isSameAs(otherRBTZ.initialRule)) {
+            return false;
+        }
+
+        // final rules
+        if (finalRules != null && otherRBTZ.finalRules != null) {
+            for (int i = 0; i < finalRules.length; i++) {
+                if (finalRules[i] == null && otherRBTZ.finalRules[i] == null) {
+                    continue;
+                }
+                if (finalRules[i] != null && otherRBTZ.finalRules[i] != null
+                        && finalRules[i].isSameAs(otherRBTZ.finalRules[i])) {
+                    continue;
+                    
+                }
+                return false;
+            }
+        } else if (finalRules != null || otherRBTZ.finalRules != null) {
+            return false;
+        }
+
+        // historic rules
+        if (historicRules != null && otherRBTZ.historicRules != null) {
+            if (historicRules.size() != otherRBTZ.historicRules.size()) {
+                return false;
+            }
+            Iterator it = historicRules.iterator();
+            while (it.hasNext()) {
+                TimeZoneRule rule = (TimeZoneRule)it.next();
+                Iterator oit = otherRBTZ.historicRules.iterator();
+                boolean foundSameRule = false;
+                while (oit.hasNext()) {
+                    TimeZoneRule orule = (TimeZoneRule)oit.next();
+                    if (rule.isSameAs(orule)) {
+                        foundSameRule = true;
+                        break;
+                    }
+                }
+                if (!foundSameRule) {
+                    return false;
+                }
+            }
+        } else if (historicRules != null || otherRBTZ.historicRules != null) {
+            return false;
+        }
+        return true;
+    }
+
     // HasReadableTimeZoneTransition implementation
 
     /* (non-Javadoc)
@@ -226,47 +286,61 @@ public class RuleBasedTimeZone extends ICUTimeZone {
         if (historicTransitions == null) {
             return null;
         }
+        TimeZoneTransition result = null;
         TimeZoneTransition tzt = (TimeZoneTransition)historicTransitions.get(0);
         long tt = getTransitionTime(tzt, false);
         if (tt > base || (inclusive && tt == base)) {
-            return tzt;
-        }
-        int idx = historicTransitions.size() - 1;        
-        tzt = (TimeZoneTransition)historicTransitions.get(idx);
-        tt = getTransitionTime(tzt, false);
-        if (inclusive && tt == base) {
-            return tzt;
-        } else if (tt <= base) {
-            if (finalRules != null) {
-                // Find a transion time with finalRules
-                Date start0 = finalRules[0].getNextStart(base,
-                        finalRules[1].getRawOffset(), finalRules[1].getDSTSavings(), inclusive);
-                Date start1 = finalRules[1].getNextStart(base,
-                        finalRules[0].getRawOffset(), finalRules[0].getDSTSavings(), inclusive);
-
-                if (start1.after(start0)) {
-                    tzt = new TimeZoneTransition(start0.getTime(), finalRules[1], finalRules[0]);
-                } else {
-                    tzt = new TimeZoneTransition(start1.getTime(), finalRules[0], finalRules[1]);
-                }
-                return tzt;
-            } else {
-                return null;
-            }
-        }
-        // Find a transition within the historic transitions
-        idx--;
-        TimeZoneTransition prev = tzt;
-        while (idx > 0) {
+            result = tzt;
+        } else {
+            int idx = historicTransitions.size() - 1;        
             tzt = (TimeZoneTransition)historicTransitions.get(idx);
             tt = getTransitionTime(tzt, false);
-            if (tt < base || (!inclusive && tt == base)) {
-                break;
+            if (inclusive && tt == base) {
+                return tzt;
+            } else if (tt <= base) {
+                if (finalRules != null) {
+                    // Find a transion time with finalRules
+                    Date start0 = finalRules[0].getNextStart(base,
+                            finalRules[1].getRawOffset(), finalRules[1].getDSTSavings(), inclusive);
+                    Date start1 = finalRules[1].getNextStart(base,
+                            finalRules[0].getRawOffset(), finalRules[0].getDSTSavings(), inclusive);
+
+                    if (start1.after(start0)) {
+                        tzt = new TimeZoneTransition(start0.getTime(), finalRules[1], finalRules[0]);
+                    } else {
+                        tzt = new TimeZoneTransition(start1.getTime(), finalRules[0], finalRules[1]);
+                    }
+                    result = tzt;
+                } else {
+                    return null;
+                }
+            } else {
+                // Find a transition within the historic transitions
+                idx--;
+                TimeZoneTransition prev = tzt;
+                while (idx > 0) {
+                    tzt = (TimeZoneTransition)historicTransitions.get(idx);
+                    tt = getTransitionTime(tzt, false);
+                    if (tt < base || (!inclusive && tt == base)) {
+                        break;
+                    }
+                    idx--;
+                    prev = tzt;
+                }
+                result = prev;
             }
-            idx--;
-            prev = tzt;
         }
-        return prev;
+        if (result != null) {
+            // For now, this implementation ignore transitions with only zone name changes.
+            TimeZoneRule from = result.getFrom();
+            TimeZoneRule to = result.getTo();
+            if (from.getRawOffset() == to.getRawOffset()
+                    && from.getDSTSavings() == to.getDSTSavings()) {
+                // No offset changes.  Try next one
+                result = getNextTransition(result.getTime(), false /* always exclusive */);
+            }
+        }
+        return result;
     }
 
     /* (non-Javadoc)
@@ -277,45 +351,59 @@ public class RuleBasedTimeZone extends ICUTimeZone {
         if (historicTransitions == null) {
             return null;
         }
+        TimeZoneTransition result = null;
         TimeZoneTransition tzt = (TimeZoneTransition)historicTransitions.get(0);
         long tt = getTransitionTime(tzt, false);
         if (inclusive && tt == base) {
-            return tzt;
+            result = tzt;
         } else if (tt >= base) {
             return null;
-        }
-        int idx = historicTransitions.size() - 1;        
-        tzt = (TimeZoneTransition)historicTransitions.get(idx);
-        tt = getTransitionTime(tzt, false);
-        if (inclusive && tt == base) {
-            return tzt;
-        } else if (tt < base) {
-            if (finalRules != null) {
-                // Find a transion time with finalRules
-                Date start0 = finalRules[0].getPreviousStart(base,
-                        finalRules[1].getRawOffset(), finalRules[1].getDSTSavings(), inclusive);
-                Date start1 = finalRules[1].getPreviousStart(base,
-                        finalRules[0].getRawOffset(), finalRules[0].getDSTSavings(), inclusive);
-
-                if (start1.before(start0)) {
-                    tzt = new TimeZoneTransition(start0.getTime(), finalRules[1], finalRules[0]);
-                } else {
-                    tzt = new TimeZoneTransition(start1.getTime(), finalRules[0], finalRules[1]);
-                }
-            }
-            return tzt;
-        }
-        // Find a transition within the historic transitions
-        idx--;
-        while (idx >= 0) {
+        } else {
+            int idx = historicTransitions.size() - 1;        
             tzt = (TimeZoneTransition)historicTransitions.get(idx);
             tt = getTransitionTime(tzt, false);
-            if (tt < base || (inclusive && tt == base)) {
-                break;
+            if (inclusive && tt == base) {
+                result = tzt;
+            } else if (tt < base) {
+                if (finalRules != null) {
+                    // Find a transion time with finalRules
+                    Date start0 = finalRules[0].getPreviousStart(base,
+                            finalRules[1].getRawOffset(), finalRules[1].getDSTSavings(), inclusive);
+                    Date start1 = finalRules[1].getPreviousStart(base,
+                            finalRules[0].getRawOffset(), finalRules[0].getDSTSavings(), inclusive);
+
+                    if (start1.before(start0)) {
+                        tzt = new TimeZoneTransition(start0.getTime(), finalRules[1], finalRules[0]);
+                    } else {
+                        tzt = new TimeZoneTransition(start1.getTime(), finalRules[0], finalRules[1]);
+                    }
+                }
+                result = tzt;
+            } else {
+                // Find a transition within the historic transitions
+                idx--;
+                while (idx >= 0) {
+                    tzt = (TimeZoneTransition)historicTransitions.get(idx);
+                    tt = getTransitionTime(tzt, false);
+                    if (tt < base || (inclusive && tt == base)) {
+                        break;
+                    }
+                    idx--;
+                }
+                result = tzt;                
             }
-            idx--;
         }
-        return tzt;
+        if (result != null) {
+            // For now, this implementation ignore transitions with only zone name changes.
+            TimeZoneRule from = result.getFrom();
+            TimeZoneRule to = result.getTo();
+            if (from.getRawOffset() == to.getRawOffset()
+                    && from.getDSTSavings() == to.getDSTSavings()) {
+                // No offset changes.  Try previous one
+                result = getPreviousTransition(result.getTime(), false /* always exclusive */);
+            }
+        }
+        return result;
     }
     
     // private stuff
@@ -354,12 +442,6 @@ public class RuleBasedTimeZone extends ICUTimeZone {
                             continue;
                         }
                         TimeZoneRule r = (TimeZoneRule)historicRules.get(i);
-                        if (r == curRule ||
-                                (r.getName().equals(curRule.getName())
-                                        && r.getRawOffset() == curRule.getRawOffset()
-                                        && r.getDSTSavings() == curRule.getDSTSavings())) {
-                            continue;
-                        }
                         if (r instanceof AnnualTimeZoneRule) {
                             d = ((AnnualTimeZoneRule)r).getNextStart(lastTransitionTime, curStdOffset, curDstSaving, false);
                         } else if (r instanceof TimeArrayTimeZoneRule) {
@@ -371,6 +453,12 @@ public class RuleBasedTimeZone extends ICUTimeZone {
                             // No more transitions from this rule - skip this rule next time
                             done.set(i);
                         } else {
+                            if (r == curRule ||
+                                    (r.getName().equals(curRule.getName())
+                                            && r.getRawOffset() == curRule.getRawOffset()
+                                            && r.getDSTSavings() == curRule.getDSTSavings())) {
+                                continue;
+                            }
                             tt = d.getTime();
                             if (tt < nextTransitionTime) {
                                 nextTransitionTime = tt;
@@ -379,9 +467,22 @@ public class RuleBasedTimeZone extends ICUTimeZone {
                         }
                     }
 
-                    if (nextRule == null) {
-                        // All historic rules were processed.
-                        break;
+//                    if (nextRule == null) {
+//                        // All historic rules were processed.
+//                        break;
+//                    }
+                    if (nextRule ==  null) {
+                        // Check if all historic rules are done
+                        boolean bDoneAll = true;
+                        for (int j = 0; j < historicRules.size(); j++) {
+                            if (!done.get(j)) {
+                                bDoneAll = false;
+                                break;
+                            }
+                        }
+                        if (bDoneAll) {
+                            break;
+                        }
                     }
 
                     if (finalRules != null) {
@@ -399,6 +500,11 @@ public class RuleBasedTimeZone extends ICUTimeZone {
                                 }
                             }
                         }
+                    }
+
+                    if (nextRule == null) {
+                        // Nothing more
+                        break;
                     }
 
                     if (historicTransitions == null) {

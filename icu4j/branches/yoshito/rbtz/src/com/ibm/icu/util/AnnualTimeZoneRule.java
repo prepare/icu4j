@@ -267,6 +267,22 @@ public class AnnualTimeZoneRule extends TimeZoneRule {
     }
 
     /* (non-Javadoc)
+     * @see com.ibm.icu.util.TimeZoneRule#isSameAs(com.ibm.icu.util.TimeZoneRule)
+     */
+    public boolean isSameAs(TimeZoneRule other) {
+        if (!(other instanceof AnnualTimeZoneRule)) {
+            return false;
+        }
+        AnnualTimeZoneRule otherRule = (AnnualTimeZoneRule)other;
+        if (startYear == otherRule.startYear
+                || endYear == otherRule.endYear
+                || dateTimeRule.equals(otherRule.dateTimeRule)) {
+            return super.isSameAs(other);
+        }
+        return false;
+    }
+    
+    /* (non-Javadoc)
      * @see com.ibm.icu.util.TimeZoneRule#hasStartTimes()
      */
     public boolean hasStartTimes() {

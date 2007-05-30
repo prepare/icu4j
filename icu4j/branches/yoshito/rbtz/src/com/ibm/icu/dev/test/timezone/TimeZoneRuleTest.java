@@ -156,6 +156,16 @@ public class TimeZoneRuleTest extends TestFmwk {
         if (((HasTimeZoneRules)ny).hasEquivalentTransitions(rbtz, jan1_1950, jan1_2010)) {
             errln("FAIL: The RBTZ must not be equivalent to America/New_York between 1950 and 2010");
         }
+
+        // Same with above, but calling RBTZ#hasEquivalentTransitions against OlsonTimeZone
+        if (!rbtz.hasEquivalentTransitions(ny, jan1_1967, jan1_2010)) {
+            errln("FAIL: The RBTZ must be equivalent to America/New_York between 1967 and 2010");
+        }
+        if (rbtz.hasEquivalentTransitions(ny, jan1_1950, jan1_2010)) {
+            errln("FAIL: The RBTZ must not be equivalent to America/New_York between 1950 and 2010");
+        }
+
+    
     }
 
     /*

@@ -126,7 +126,20 @@ public class TimeArrayTimeZoneRule extends TimeZoneRule {
     public long[] getStartTimes() {
         return (long[])startTimes.clone();
     }
-    
+
+    /* (non-Javadoc)
+     * @see com.ibm.icu.util.TimeZoneRule#isSameAs(com.ibm.icu.util.TimeZoneRule)
+     */
+    public boolean isSameAs(TimeZoneRule other) {
+        if (!(other instanceof TimeArrayTimeZoneRule)) {
+            return false;
+        }
+        if (Arrays.equals(startTimes, ((TimeArrayTimeZoneRule)other).startTimes)) {
+            return super.isSameAs(other);
+        }
+        return false;
+    }
+
     /* (non-Javadoc)
      * @see com.ibm.icu.util.TimeZoneRule#hasStartTimes()
      */

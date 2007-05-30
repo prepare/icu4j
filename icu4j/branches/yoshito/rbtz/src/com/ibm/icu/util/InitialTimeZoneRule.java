@@ -34,6 +34,16 @@ public class InitialTimeZoneRule extends TimeZoneRule {
     }
 
     /* (non-Javadoc)
+     * @see com.ibm.icu.util.TimeZoneRule#isSameAs(com.ibm.icu.util.TimeZoneRule)
+     */
+    public boolean isSameAs(TimeZoneRule other) {
+        if (!(other instanceof InitialTimeZoneRule)) {
+            return false;
+        }
+        return super.isSameAs(other);
+    }
+    
+    /* (non-Javadoc)
      * @see com.ibm.icu.util.TimeZoneRule#hasStartTimes()
      */
     public boolean hasStartTimes() {

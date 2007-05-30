@@ -81,6 +81,21 @@ public abstract class TimeZoneRule implements Serializable {
     }
 
     /**
+     * Returns if this rule represents the same rule and offsets as another.
+     * When two TimeZoneRule objects differ only its names, this method returns
+     * true.
+     *
+     * @param other The TimeZoneRule object to be compared with.
+     * @return true if the other TimeZoneRule is the same as this one.
+     */
+    public boolean isSameAs(TimeZoneRule other) {
+        if (rawOffset == other.rawOffset && dstSavings == other.dstSavings) {
+            return true;
+        }
+        return false;
+    }
+    
+    /**
      * Returns whether the rule has start times.
      * 
      * @return true if this rule has start times.
