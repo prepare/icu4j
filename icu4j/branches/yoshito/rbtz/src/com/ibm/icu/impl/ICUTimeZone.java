@@ -12,12 +12,14 @@ import java.util.LinkedList;
 import java.util.List;
 
 import com.ibm.icu.util.AnnualTimeZoneRule;
+import com.ibm.icu.util.DateTimeRule;
 import com.ibm.icu.util.HasTimeZoneRules;
 import com.ibm.icu.util.InitialTimeZoneRule;
 import com.ibm.icu.util.TimeArrayTimeZoneRule;
 import com.ibm.icu.util.TimeZone;
 import com.ibm.icu.util.TimeZoneRule;
 import com.ibm.icu.util.TimeZoneTransition;
+import com.ibm.icu.util.TimeZoneTransitionRule;
 
 /**
  * ICUTimeZone is an abstract class extends TimeZone and
@@ -108,13 +110,11 @@ public abstract class ICUTimeZone extends TimeZone implements HasTimeZoneRules {
         // Mark rules which does not need to be processed
         for (int i = 1; i < all.length; i++) {
             Date d;
-            if (all[i] instanceof TimeArrayTimeZoneRule) {
-                d = ((TimeArrayTimeZoneRule)all[i]).getNextStart(start, false);
-            } else if (all[i] instanceof AnnualTimeZoneRule) {
-                d = ((AnnualTimeZoneRule)all[i]).getNextStart(start, initial.getRawOffset(),
+            if (all[i] instanceof TimeZoneTransitionRule) {
+                d = ((TimeZoneTransitionRule)all[i]).getNextStart(start, initial.getRawOffset(),
                         initial.getDSTSavings(), false);
             } else {
-                throw new IllegalStateException("Unknown TimeZoneRule type");
+                throw new IllegalStateException("Illegal TimeZoneRule type");
             }
             if (d == null) {
                 isProcessed.set(i);
@@ -145,27 +145,51 @@ public abstract class ICUTimeZone extends TimeZone implements HasTimeZoneRules {
             }
             if (toRule instanceof TimeArrayTimeZoneRule) {
                 TimeArrayTimeZoneRule tar = (TimeArrayTimeZoneRule)toRule;
-                Date firstStart = tar.getFirstStart();
-                if (firstStart.getTime() > start) {
-                    // Just add the rule as is
-                    filteredRules.add(tar);
-                } else {
-                    // Collect transitions after the start time
-                    long[] times = tar.getStartTimes();
-                    int idx;
-                    for (idx = 0; idx < times.length; idx++) {
-                        if (times[idx] > start) {
-                            break;
+
+                // Get the previous raw offset and DST savings before the very first start time
+                long t = start;
+                while(true) {
+                    tzt = getNextTransition(t, false);
+                    if (tzt == null) {
+                        break;
+                    }
+                    if (tzt.getTo().equals(tar)) {
+                        break;
+                    }
+                    t = tzt.getTime();
+                }
+                if (tzt != null) {
+                    // Check if the entire start times to be added
+                    Date firstStart = tar.getFirstStart(tzt.getFrom().getRawOffset(), tzt.getFrom().getDSTSavings());
+                    if (firstStart.getTime() > start) {
+                        // Just add the rule as is
+                        filteredRules.add(tar);
+                    } else {
+                        // Collect transitions after the start time
+                        long[] times = tar.getStartTimes();
+                        int timeType = tar.getTimeType();
+                        int idx;
+                        for (idx = 0; idx < times.length; idx++) {
+                            t = times[idx];
+                            if (timeType == DateTimeRule.STANDARD_TIME) {
+                                t -= tzt.getFrom().getRawOffset();
+                            }
+                            if (timeType == DateTimeRule.WALL_TIME) {
+                                t -= tzt.getFrom().getDSTSavings();
+                            }
+                            if (t > start) {
+                                break;
+                            }
+                        }
+                        int asize = times.length - idx;
+                        if (asize > 0) {
+                            long[] newtimes = new long[asize];
+                            System.arraycopy(times, idx, newtimes, 0, asize);
+                            TimeArrayTimeZoneRule newtar = new TimeArrayTimeZoneRule(tar.getName(),
+                                    tar.getRawOffset(), tar.getDSTSavings(), newtimes, tar.getTimeType());
+                            filteredRules.add(newtar);
                         }
                     }
-                    int asize = times.length - idx;
-                    if (asize > 0) {
-                        long[] newtimes = new long[asize];
-                        System.arraycopy(times, idx, newtimes, 0, asize);
-                        TimeArrayTimeZoneRule newtar = new TimeArrayTimeZoneRule(tar.getName(),
-                                tar.getRawOffset(), tar.getDSTSavings(), newtimes);
-                        filteredRules.add(newtar);
-                    }                    
                 }
             } else if (toRule instanceof AnnualTimeZoneRule) {
                 AnnualTimeZoneRule ar = (AnnualTimeZoneRule)toRule;
@@ -175,8 +199,8 @@ public abstract class ICUTimeZone extends TimeZone implements HasTimeZoneRules {
                     filteredRules.add(ar);
                 } else {
                     // Calculate the transition year
-                    int[] dfields = new int[5];
-                    Grego.dayToFields(Grego.timeToDay(tzt.getTime()), dfields);
+                    int[] dfields = new int[6];
+                    Grego.timeToFields(tzt.getTime(), dfields);
                     // Recreate the rule
                     AnnualTimeZoneRule newar = new AnnualTimeZoneRule(ar.getName(), ar.getRawOffset(), ar.getDSTSavings(),
                             ar.getRule(), dfields[0], ar.getEndYear());

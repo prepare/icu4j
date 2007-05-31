@@ -8,9 +8,9 @@ package com.ibm.icu.dev.test.timezone;
 
 import com.ibm.icu.dev.test.TestFmwk;
 import com.ibm.icu.impl.ICUTimeZone;
-import com.ibm.icu.util.AnnualDateTimeRule;
 import com.ibm.icu.util.AnnualTimeZoneRule;
 import com.ibm.icu.util.Calendar;
+import com.ibm.icu.util.DateTimeRule;
 import com.ibm.icu.util.GregorianCalendar;
 import com.ibm.icu.util.HasTimeZoneRules;
 import com.ibm.icu.util.InitialTimeZoneRule;
@@ -19,6 +19,7 @@ import com.ibm.icu.util.SimpleTimeZone;
 import com.ibm.icu.util.TimeZone;
 import com.ibm.icu.util.TimeZoneRule;
 import com.ibm.icu.util.TimeZoneTransition;
+import com.ibm.icu.util.TimeZoneTransitionRule;
 import com.ibm.icu.util.ULocale;
 
 /**
@@ -42,7 +43,7 @@ public class TimeZoneRuleTest extends TestFmwk {
                 1*HOUR);
 
 
-        AnnualDateTimeRule dtr;
+        DateTimeRule dtr;
         AnnualTimeZoneRule atzr;
         final int STARTYEAR = 2000;
 
@@ -50,34 +51,34 @@ public class TimeZoneRuleTest extends TestFmwk {
 
         // Original rules
         RuleBasedTimeZone rbtz1 = new RuleBasedTimeZone("RBTZ1", ir);
-        dtr = new AnnualDateTimeRule(Calendar.SEPTEMBER, 30, Calendar.SATURDAY, false,
-                1*HOUR, AnnualDateTimeRule.WALL_TIME);
+        dtr = new DateTimeRule(Calendar.SEPTEMBER, 30, Calendar.SATURDAY, false,
+                1*HOUR, DateTimeRule.WALL_TIME);
         atzr = new AnnualTimeZoneRule("RBTZ_DST1", -1*HOUR, 1*HOUR, dtr, STARTYEAR, AnnualTimeZoneRule.MAX_YEAR);
         rbtz1.addTransitionRule(atzr);
-        dtr = new AnnualDateTimeRule(Calendar.FEBRUARY, 2, Calendar.SUNDAY,
-                1*HOUR, AnnualDateTimeRule.WALL_TIME);
+        dtr = new DateTimeRule(Calendar.FEBRUARY, 2, Calendar.SUNDAY,
+                1*HOUR, DateTimeRule.WALL_TIME);
         atzr = new AnnualTimeZoneRule("RBTZ_STD1", -1*HOUR, 0, dtr, STARTYEAR, AnnualTimeZoneRule.MAX_YEAR);
         rbtz1.addTransitionRule(atzr);
 
         // Equivalent, but different date rule type
         RuleBasedTimeZone rbtz2 = new RuleBasedTimeZone("RBTZ2", ir);
-        dtr = new AnnualDateTimeRule(Calendar.SEPTEMBER, -1, Calendar.SATURDAY,
-                1*HOUR, AnnualDateTimeRule.WALL_TIME);
+        dtr = new DateTimeRule(Calendar.SEPTEMBER, -1, Calendar.SATURDAY,
+                1*HOUR, DateTimeRule.WALL_TIME);
         atzr = new AnnualTimeZoneRule("RBTZ_DST2", -1*HOUR, 1*HOUR, dtr, STARTYEAR, AnnualTimeZoneRule.MAX_YEAR);
         rbtz2.addTransitionRule(atzr);
-        dtr = new AnnualDateTimeRule(Calendar.FEBRUARY, 8, Calendar.SUNDAY, true,
-                1*HOUR, AnnualDateTimeRule.WALL_TIME);
+        dtr = new DateTimeRule(Calendar.FEBRUARY, 8, Calendar.SUNDAY, true,
+                1*HOUR, DateTimeRule.WALL_TIME);
         atzr = new AnnualTimeZoneRule("RBTZ_STD2", -1*HOUR, 0, dtr, STARTYEAR, AnnualTimeZoneRule.MAX_YEAR);
         rbtz2.addTransitionRule(atzr);
 
         // Equivalent, but different time rule type
         RuleBasedTimeZone rbtz3 = new RuleBasedTimeZone("RBTZ3", ir);
-        dtr = new AnnualDateTimeRule(Calendar.SEPTEMBER, 30, Calendar.SATURDAY, false,
-                2*HOUR, AnnualDateTimeRule.UNIVERSAL_TIME);
+        dtr = new DateTimeRule(Calendar.SEPTEMBER, 30, Calendar.SATURDAY, false,
+                2*HOUR, DateTimeRule.UNIVERSAL_TIME);
         atzr = new AnnualTimeZoneRule("RBTZ_DST3", -1*HOUR, 1*HOUR, dtr, STARTYEAR, AnnualTimeZoneRule.MAX_YEAR);
         rbtz3.addTransitionRule(atzr);
-        dtr = new AnnualDateTimeRule(Calendar.FEBRUARY, 2, Calendar.SUNDAY,
-                0*HOUR, AnnualDateTimeRule.STANDARD_TIME);
+        dtr = new DateTimeRule(Calendar.FEBRUARY, 2, Calendar.SUNDAY,
+                0*HOUR, DateTimeRule.STANDARD_TIME);
         atzr = new AnnualTimeZoneRule("RBTZ_STD3", -1*HOUR, 0, dtr, STARTYEAR, AnnualTimeZoneRule.MAX_YEAR);
         rbtz3.addTransitionRule(atzr);
 
@@ -108,40 +109,40 @@ public class TimeZoneRuleTest extends TestFmwk {
         InitialTimeZoneRule ir = new InitialTimeZoneRule("EST", -5*HOUR, 0);
         RuleBasedTimeZone rbtz = new RuleBasedTimeZone("EST5EDT", ir);
 
-        AnnualDateTimeRule dtr;
+        DateTimeRule dtr;
         AnnualTimeZoneRule tzr;
 
         // Standard time
-        dtr = new AnnualDateTimeRule(Calendar.OCTOBER, -1, Calendar.SUNDAY, 2*HOUR, AnnualDateTimeRule.WALL_TIME);
+        dtr = new DateTimeRule(Calendar.OCTOBER, -1, Calendar.SUNDAY, 2*HOUR, DateTimeRule.WALL_TIME);
         tzr = new AnnualTimeZoneRule("EST", -5*HOUR, 0, dtr, 1967, 2006);
         rbtz.addTransitionRule(tzr);
 
-        dtr = new AnnualDateTimeRule(Calendar.NOVEMBER, 1, Calendar.SUNDAY, true, 2*HOUR, AnnualDateTimeRule.WALL_TIME);
+        dtr = new DateTimeRule(Calendar.NOVEMBER, 1, Calendar.SUNDAY, true, 2*HOUR, DateTimeRule.WALL_TIME);
         tzr = new AnnualTimeZoneRule("EST", -5*HOUR, 0, dtr, 2007, AnnualTimeZoneRule.MAX_YEAR);
         rbtz.addTransitionRule(tzr);
 
         // Daylight saving time
-        dtr = new AnnualDateTimeRule(Calendar.APRIL, -1, Calendar.SUNDAY, 2*HOUR, AnnualDateTimeRule.WALL_TIME);
+        dtr = new DateTimeRule(Calendar.APRIL, -1, Calendar.SUNDAY, 2*HOUR, DateTimeRule.WALL_TIME);
         tzr = new AnnualTimeZoneRule("EDT", -5*HOUR, 1*HOUR, dtr, 1967, 1973);
         rbtz.addTransitionRule(tzr);
 
-        dtr = new AnnualDateTimeRule(Calendar.JANUARY, 6, 2*HOUR, AnnualDateTimeRule.WALL_TIME);
+        dtr = new DateTimeRule(Calendar.JANUARY, 6, 2*HOUR, DateTimeRule.WALL_TIME);
         tzr = new AnnualTimeZoneRule("EDT", -5*HOUR, 1*HOUR, dtr, 1974, 1974);
         rbtz.addTransitionRule(tzr);
         
-        dtr = new AnnualDateTimeRule(Calendar.FEBRUARY, 23, 2*HOUR, AnnualDateTimeRule.WALL_TIME);
+        dtr = new DateTimeRule(Calendar.FEBRUARY, 23, 2*HOUR, DateTimeRule.WALL_TIME);
         tzr = new AnnualTimeZoneRule("EDT", -5*HOUR, 1*HOUR, dtr, 1975, 1975);
         rbtz.addTransitionRule(tzr);
 
-        dtr = new AnnualDateTimeRule(Calendar.APRIL, -1, Calendar.SUNDAY, 2*HOUR, AnnualDateTimeRule.WALL_TIME);
+        dtr = new DateTimeRule(Calendar.APRIL, -1, Calendar.SUNDAY, 2*HOUR, DateTimeRule.WALL_TIME);
         tzr = new AnnualTimeZoneRule("EDT", -5*HOUR, 1*HOUR, dtr, 1976, 1986);
         rbtz.addTransitionRule(tzr);
 
-        dtr = new AnnualDateTimeRule(Calendar.APRIL, 1, Calendar.SUNDAY, true, 2*HOUR, AnnualDateTimeRule.WALL_TIME);
+        dtr = new DateTimeRule(Calendar.APRIL, 1, Calendar.SUNDAY, true, 2*HOUR, DateTimeRule.WALL_TIME);
         tzr = new AnnualTimeZoneRule("EDT", -5*HOUR, 1*HOUR, dtr, 1987, 2006);
         rbtz.addTransitionRule(tzr);
 
-        dtr = new AnnualDateTimeRule(Calendar.MARCH, 8, Calendar.SUNDAY, true, 2*HOUR, AnnualDateTimeRule.WALL_TIME);
+        dtr = new DateTimeRule(Calendar.MARCH, 8, Calendar.SUNDAY, true, 2*HOUR, DateTimeRule.WALL_TIME);
         tzr = new AnnualTimeZoneRule("EDT", -5*HOUR, 1*HOUR, dtr, 2007, AnnualTimeZoneRule.MAX_YEAR);
         rbtz.addTransitionRule(tzr);
 
@@ -213,7 +214,7 @@ public class TimeZoneRuleTest extends TestFmwk {
                 TimeZoneRule[] rules = ((ICUTimeZone)tz).getTimeZoneRules(startTime);
                 RuleBasedTimeZone rbtz = new RuleBasedTimeZone(tz.getID() + "(RBTZ)", (InitialTimeZoneRule)rules[0]);
                 for (int k = 1; k < rules.length; k++) {
-                    rbtz.addTransitionRule(rules[k]);
+                    rbtz.addTransitionRule((TimeZoneTransitionRule)rules[k]);
                 }
 
                 // Compare the original OlsonTimeZone with the RBTZ starting the startTime for 20 years

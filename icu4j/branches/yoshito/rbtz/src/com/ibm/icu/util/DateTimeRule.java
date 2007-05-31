@@ -9,13 +9,14 @@ package com.ibm.icu.util;
 import java.io.Serializable;
 
 /**
- * AnnualDateTimeRule is a class representing a rule for
- * annually repeating date and time.
+ * DateTimeRule is a class representing a time in a year by
+ * a rule specified by month, day of month, day of week and
+ * time in the day.
  * 
  * @draft ICU 3.8
  * @provisional This API might change or be removed in a future release.
  */
-public class AnnualDateTimeRule implements Serializable {
+public class DateTimeRule implements Serializable {
 
     private static final long serialVersionUID = 2183055795738051443L;
 
@@ -104,7 +105,7 @@ public class AnnualDateTimeRule implements Serializable {
      * @draft ICU 3.8
      * @provisional This API might change or be removed in a future release.
      */
-    public AnnualDateTimeRule(int month, int dayOfMonth,
+    public DateTimeRule(int month, int dayOfMonth,
             int millisInDay, int timeType) {
         dateRuleType = DOM;
         this.month = month;
@@ -119,7 +120,7 @@ public class AnnualDateTimeRule implements Serializable {
     }
 
     /**
-     * Constructs an AnnualDateTimeRule by the day of week and its oridinal
+     * Constructs a DateTimeRule by the day of week and its oridinal
      * number and the time rule.  The date rule type for an instance created
      * by this constructor is DOW.
      * 
@@ -134,7 +135,7 @@ public class AnnualDateTimeRule implements Serializable {
      * @draft ICU 3.8
      * @provisional This API might change or be removed in a future release.
      */
-    public AnnualDateTimeRule(int month, int weekInMonth, int dayOfWeek,
+    public DateTimeRule(int month, int weekInMonth, int dayOfWeek,
             int millisInDay, int timeType) {
         dateRuleType = DOW;
         this.month = month;
@@ -149,7 +150,7 @@ public class AnnualDateTimeRule implements Serializable {
     }
 
     /**
-     * Constructs an AnnualDateTimeRule by the first/last day of week
+     * Constructs a DateTimeRule by the first/last day of week
      * on or after/before the day of month and the time rule.  The date rule
      * type for an instance created by this constructor is either
      * DOM_GEQ_DOM or DOM_LEQ_DOM.
@@ -164,7 +165,7 @@ public class AnnualDateTimeRule implements Serializable {
      * @draft ICU 3.8
      * @provisional This API might change or be removed in a future release.
      */
-    public AnnualDateTimeRule(int month, int dayOfMonth, int dayOfWeek, boolean after,
+    public DateTimeRule(int month, int dayOfMonth, int dayOfWeek, boolean after,
             int millisInDay, int timeType) {
         this.dateRuleType = after ? DOW_GEQ_DOM : DOW_LEQ_DOM;
         this.month = month;

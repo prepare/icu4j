@@ -20,7 +20,7 @@ import com.ibm.icu.impl.OlsonTimeZone;
 import com.ibm.icu.impl.TimeZoneAdapter;
 import com.ibm.icu.math.BigDecimal;
 import com.ibm.icu.math.MathContext;
-import com.ibm.icu.util.AnnualDateTimeRule;
+import com.ibm.icu.util.DateTimeRule;
 import com.ibm.icu.util.AnnualTimeZoneRule;
 import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.Currency;
@@ -186,35 +186,35 @@ public class SerializableTest extends TestFmwk.TestGroup
     private static final int HOUR = 60*60*1000;
     private static final AnnualTimeZoneRule[] TEST_US_EASTERN = {
         new AnnualTimeZoneRule("EST", -5*HOUR, 0,
-                new AnnualDateTimeRule(Calendar.OCTOBER, -1, Calendar.SUNDAY, 2*HOUR, AnnualDateTimeRule.WALL_TIME),
+                new DateTimeRule(Calendar.OCTOBER, -1, Calendar.SUNDAY, 2*HOUR, DateTimeRule.WALL_TIME),
                 1967, 2006),
         
         new AnnualTimeZoneRule("EST", -5*HOUR, 0,
-                new AnnualDateTimeRule(Calendar.NOVEMBER, 1, Calendar.SUNDAY, true, 2*HOUR, AnnualDateTimeRule.WALL_TIME),
+                new DateTimeRule(Calendar.NOVEMBER, 1, Calendar.SUNDAY, true, 2*HOUR, DateTimeRule.WALL_TIME),
                 2007, AnnualTimeZoneRule.MAX_YEAR),
         
         new AnnualTimeZoneRule("EDT", -5*HOUR, 1*HOUR,
-                new AnnualDateTimeRule(Calendar.APRIL, -1, Calendar.SUNDAY, 2*HOUR, AnnualDateTimeRule.WALL_TIME),
+                new DateTimeRule(Calendar.APRIL, -1, Calendar.SUNDAY, 2*HOUR, DateTimeRule.WALL_TIME),
                 1967, 1973),
 
         new AnnualTimeZoneRule("EDT", -5*HOUR, 1*HOUR,
-                new AnnualDateTimeRule(Calendar.JANUARY, 6, 2*HOUR, AnnualDateTimeRule.WALL_TIME),
+                new DateTimeRule(Calendar.JANUARY, 6, 2*HOUR, DateTimeRule.WALL_TIME),
                 1974, 1974),
 
         new AnnualTimeZoneRule("EDT", -5*HOUR, 1*HOUR,
-                new AnnualDateTimeRule(Calendar.FEBRUARY, 23, 2*HOUR, AnnualDateTimeRule.WALL_TIME),
+                new DateTimeRule(Calendar.FEBRUARY, 23, 2*HOUR, DateTimeRule.WALL_TIME),
                 1975, 1975),
 
         new AnnualTimeZoneRule("EDT", -5*HOUR, 1*HOUR,
-                new AnnualDateTimeRule(Calendar.APRIL, -1, Calendar.SUNDAY, 2*HOUR, AnnualDateTimeRule.WALL_TIME),
+                new DateTimeRule(Calendar.APRIL, -1, Calendar.SUNDAY, 2*HOUR, DateTimeRule.WALL_TIME),
                 1976, 1986),
 
         new AnnualTimeZoneRule("EDT", -5*HOUR, 1*HOUR,
-                new AnnualDateTimeRule(Calendar.APRIL, 1, Calendar.SUNDAY, true, 2*HOUR, AnnualDateTimeRule.WALL_TIME),
+                new DateTimeRule(Calendar.APRIL, 1, Calendar.SUNDAY, true, 2*HOUR, DateTimeRule.WALL_TIME),
                 1987, 2006),
 
         new AnnualTimeZoneRule("EDT", -5*HOUR, 1*HOUR,
-                new AnnualDateTimeRule(Calendar.MARCH, 8, Calendar.SUNDAY, true, 2*HOUR, AnnualDateTimeRule.WALL_TIME),
+                new DateTimeRule(Calendar.MARCH, 8, Calendar.SUNDAY, true, 2*HOUR, DateTimeRule.WALL_TIME),
                 2007, AnnualTimeZoneRule.MAX_YEAR)
     };
     
@@ -241,45 +241,45 @@ public class SerializableTest extends TestFmwk.TestGroup
         }
     }
 
-    private static class AnnualDateTimeRuleHandler implements Handler {
+    private static class DateTimeRuleHandler implements Handler {
         public Object[] getTestObjects() {
-            AnnualDateTimeRule[] rules = new AnnualDateTimeRule[4];
+            DateTimeRule[] rules = new DateTimeRule[4];
 
             // DOM + UTC
-            rules[0] = new AnnualDateTimeRule(Calendar.OCTOBER, 10, 13*HOUR, AnnualDateTimeRule.UNIVERSAL_TIME);
+            rules[0] = new DateTimeRule(Calendar.OCTOBER, 10, 13*HOUR, DateTimeRule.UNIVERSAL_TIME);
 
             // DOW + WALL
-            rules[1] = new AnnualDateTimeRule(Calendar.MARCH, 2, Calendar.SUNDAY, 2*HOUR, AnnualDateTimeRule.WALL_TIME);
+            rules[1] = new DateTimeRule(Calendar.MARCH, 2, Calendar.SUNDAY, 2*HOUR, DateTimeRule.WALL_TIME);
 
             // DOW_GEQ_DOM + STD
-            rules[2] = new AnnualDateTimeRule(Calendar.MAY, 1, Calendar.MONDAY, true, 0*HOUR, AnnualDateTimeRule.STANDARD_TIME);
+            rules[2] = new DateTimeRule(Calendar.MAY, 1, Calendar.MONDAY, true, 0*HOUR, DateTimeRule.STANDARD_TIME);
 
             // DOW_LEQ_DOM + WALL
-            rules[3] = new AnnualDateTimeRule(Calendar.AUGUST, 31, Calendar.SATURDAY, false, 1*HOUR, AnnualDateTimeRule.WALL_TIME);
+            rules[3] = new DateTimeRule(Calendar.AUGUST, 31, Calendar.SATURDAY, false, 1*HOUR, DateTimeRule.WALL_TIME);
 
             return rules;
         }
 
         public boolean hasSameBehavior(Object a, Object b) {
-            return hasSameRule((AnnualDateTimeRule)a, (AnnualDateTimeRule)b);
+            return hasSameRule((DateTimeRule)a, (DateTimeRule)b);
         }
 
-        static boolean hasSameRule(AnnualDateTimeRule dtra, AnnualDateTimeRule dtrb) {
+        static boolean hasSameRule(DateTimeRule dtra, DateTimeRule dtrb) {
             boolean bSame = false;
             if (dtra.getDateRuleType() == dtrb.getDateRuleType()
                     && dtra.getRuleMonth() == dtrb.getRuleMonth()
                     && dtra.getTimeRuleType() == dtrb.getTimeRuleType()
                     && dtra.getRuleMillisInDay() == dtrb.getRuleMillisInDay()) {
                 switch (dtra.getDateRuleType()) {
-                case AnnualDateTimeRule.DOM:
+                case DateTimeRule.DOM:
                     bSame = (dtra.getRuleDayOfMonth() == dtrb.getRuleDayOfMonth());
                     break;
-                case AnnualDateTimeRule.DOW:
+                case DateTimeRule.DOW:
                     bSame = (dtra.getRuleDayOfWeek() == dtrb.getRuleDayOfWeek() &&
                                 dtra.getRuleWeekInMonth() == dtrb.getRuleWeekInMonth());
                     break;
-                case AnnualDateTimeRule.DOW_GEQ_DOM:
-                case AnnualDateTimeRule.DOW_LEQ_DOM:
+                case DateTimeRule.DOW_GEQ_DOM:
+                case DateTimeRule.DOW_LEQ_DOM:
                     bSame = (dtra.getRuleDayOfMonth() == dtrb.getRuleDayOfMonth() &&
                                 dtra.getRuleDayOfWeek() == dtrb.getRuleDayOfWeek());
                     break;
@@ -292,8 +292,7 @@ public class SerializableTest extends TestFmwk.TestGroup
     private static boolean compareTimeZoneRules(TimeZoneRule ra, TimeZoneRule rb) {
         if (ra.getName().equals(rb.getName()) &&
                 ra.getRawOffset() == rb.getRawOffset() &&
-                ra.getDSTSavings() == rb.getDSTSavings() &&
-                ra.hasStartTimes() == rb.hasStartTimes()) {
+                ra.getDSTSavings() == rb.getDSTSavings()) {
             return true;
         }
         return false;        
@@ -307,7 +306,7 @@ public class SerializableTest extends TestFmwk.TestGroup
         public boolean hasSameBehavior(Object a, Object b) {
             AnnualTimeZoneRule ra = (AnnualTimeZoneRule)a;
             AnnualTimeZoneRule rb = (AnnualTimeZoneRule)b;
-            if (AnnualDateTimeRuleHandler.hasSameRule(ra.getRule(), rb.getRule()) &&
+            if (DateTimeRuleHandler.hasSameRule(ra.getRule(), rb.getRule()) &&
                     ra.getStartYear() == rb.getStartYear() &&
                     ra.getEndYear() == rb.getEndYear()) {
                 return compareTimeZoneRules(ra, rb);
@@ -333,7 +332,7 @@ public class SerializableTest extends TestFmwk.TestGroup
         public Object[] getTestObjects() {
             TimeArrayTimeZoneRule[] rules = new TimeArrayTimeZoneRule[1];
             long[] ttime = new long[] {-631152000000L, 0L, 946684800000L}; /* {1950-1-1, 1970-1-1, 2000-1-1} */
-            rules[0] = new TimeArrayTimeZoneRule("Foo", 1*HOUR, 1*HOUR, ttime);
+            rules[0] = new TimeArrayTimeZoneRule("Foo", 1*HOUR, 1*HOUR, ttime, DateTimeRule.UNIVERSAL_TIME);
 
             return rules;
         }
@@ -341,17 +340,17 @@ public class SerializableTest extends TestFmwk.TestGroup
             TimeArrayTimeZoneRule ra = (TimeArrayTimeZoneRule)a;
             TimeArrayTimeZoneRule rb = (TimeArrayTimeZoneRule)b;
 
-            Date da = ra.getFirstStart();
-            Date db = rb.getFirstStart();
+            Date da = ra.getFirstStart(0, 0);
+            Date db = rb.getFirstStart(0, 0);
             long t = da.getTime();
             if (da.equals(db)) {
-                da = ra.getFinalStart();
-                db = rb.getFinalStart();
+                da = ra.getFinalStart(0, 0);
+                db = rb.getFinalStart(0, 0);
                 long end = da.getTime();
                 if (da.equals(db)) {
                     while (t < end) {
-                        da = ra.getNextStart(t, false);
-                        db = ra.getNextStart(t, false);
+                        da = ra.getNextStart(t, 0, 0, false);
+                        db = ra.getNextStart(t, 0, 0, false);
                         if (da == null || db == null || !da.equals(db)) {
                             break;
                         }
@@ -619,7 +618,7 @@ public class SerializableTest extends TestFmwk.TestGroup
         map.put("com.ibm.icu.util.SimpleTimeZone", new SimpleTimeZoneHandler());
         map.put("com.ibm.icu.util.RuleBasedTimeZone", new RuleBasedTimeZoneHandler());
         map.put("com.ibm.icu.util.VTimeZone", new VTimeZoneHandler());
-        map.put("com.ibm.icu.util.AnnualDateTimeRule", new AnnualDateTimeRuleHandler());
+        map.put("com.ibm.icu.util.DateTimeRule", new DateTimeRuleHandler());
         map.put("com.ibm.icu.util.AnnualTimeZoneRule", new AnnualTimeZoneRuleHandler());
         map.put("com.ibm.icu.util.InitialTimeZoneRule", new InitialTimeZoneRuleHandler());
         map.put("com.ibm.icu.util.TimeArrayTimeZoneRule", new TimeArrayTimeZoneRuleHandler());

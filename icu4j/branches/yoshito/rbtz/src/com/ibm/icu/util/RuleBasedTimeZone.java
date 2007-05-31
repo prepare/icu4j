@@ -23,7 +23,7 @@ import com.ibm.icu.impl.ICUTimeZone;
  */
 public class RuleBasedTimeZone extends ICUTimeZone {
 
-    private static final long serialVersionUID = 1L; //TODO
+    private static final long serialVersionUID = 7580833058949327935L;
 
     private final InitialTimeZoneRule initialRule;
     private List historicRules;
@@ -50,19 +50,14 @@ public class RuleBasedTimeZone extends ICUTimeZone {
     }
 
     /**
-     * Adds the TimeZoneRule which represents transitions.  The instance of
-     * TimeZoneRule must have start times, that is, hasStartTimes() must be
-     * true.  Otherwise, IllegalArgumentException is thrown.
+     * Adds the TimeZoneTransitionRule which represents time transitions.
      * 
-     * @param rule The TimeZoneRule.
+     * @param rule The TimeZoneTransitionRule.
      * 
      * @draft ICU 3.8
      * @provisional This API might change or be removed in a future release.
      */
-    public void addTransitionRule(TimeZoneRule rule) {
-        if (!rule.hasStartTimes()) {
-            throw new IllegalArgumentException("The rule does not have start times");
-        }
+    public void addTransitionRule(TimeZoneTransitionRule rule) {
         if (rule instanceof AnnualTimeZoneRule
                 && ((AnnualTimeZoneRule)rule).getEndYear() == AnnualTimeZoneRule.MAX_YEAR) {
             // One of the final rules applicable in future forever
@@ -431,7 +426,7 @@ public class RuleBasedTimeZone extends ICUTimeZone {
 
                 while (true) {
                     int curStdOffset = curRule.getRawOffset();
-                    int curDstSaving = curRule.getDSTSavings();
+                    int curDstSavings = curRule.getDSTSavings();
                     long nextTransitionTime = Grego.MAX_MILLIS;
                     TimeZoneRule nextRule = null;
                     Date d;
@@ -441,14 +436,8 @@ public class RuleBasedTimeZone extends ICUTimeZone {
                         if (done.get(i)) {
                             continue;
                         }
-                        TimeZoneRule r = (TimeZoneRule)historicRules.get(i);
-                        if (r instanceof AnnualTimeZoneRule) {
-                            d = ((AnnualTimeZoneRule)r).getNextStart(lastTransitionTime, curStdOffset, curDstSaving, false);
-                        } else if (r instanceof TimeArrayTimeZoneRule) {
-                            d = ((TimeArrayTimeZoneRule)r).getNextStart(lastTransitionTime, false);
-                        } else {
-                            throw new IllegalStateException("Unknow time zone rule type");
-                        }
+                        TimeZoneTransitionRule r = (TimeZoneTransitionRule)historicRules.get(i);
+                        d = r.getNextStart(lastTransitionTime, curStdOffset, curDstSavings, false);
                         if (d == null) {
                             // No more transitions from this rule - skip this rule next time
                             done.set(i);
@@ -467,10 +456,6 @@ public class RuleBasedTimeZone extends ICUTimeZone {
                         }
                     }
 
-//                    if (nextRule == null) {
-//                        // All historic rules were processed.
-//                        break;
-//                    }
                     if (nextRule ==  null) {
                         // Check if all historic rules are done
                         boolean bDoneAll = true;
@@ -491,7 +476,7 @@ public class RuleBasedTimeZone extends ICUTimeZone {
                             if (finalRules[i] == curRule) {
                                 continue;
                             }
-                            d = finalRules[i].getNextStart(lastTransitionTime, curStdOffset, curDstSaving, false);
+                            d = finalRules[i].getNextStart(lastTransitionTime, curStdOffset, curDstSavings, false);
                             if (d != null) {
                                 tt = d.getTime();
                                 if (tt < nextTransitionTime) {

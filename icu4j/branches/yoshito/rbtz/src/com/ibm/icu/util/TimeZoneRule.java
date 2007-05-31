@@ -12,9 +12,9 @@ import java.io.Serializable;
  * TimeZoneRule is an abstract class representing a rule for time zone.
  * TimeZoneRule has a set of time zone attributes, such as zone name,
  * raw offset (UTC offset for standard time) and daylight saving time offset.
- * There are 3 known subclasses which exnted TimeZoneRule.  InitialTimeZoneRule
- * represents the iniital offsets and name.  AnnualTimeZoneRule and
- * TimeArrayTimeZoneRule have rules for start times in addition to
+ * There are 3 known concrete subclasses which exnted TimeZoneRule.
+ * InitialTimeZoneRule represents the iniital offsets and name.  AnnualTimeZoneRule
+ * and TimeArrayTimeZoneRule have rules for start times in addition to
  * offsets and name.
  * 
  * @draft ICU 3.8
@@ -36,7 +36,7 @@ public abstract class TimeZoneRule implements Serializable {
      * 
      * @draft ICU 3.8
      * @provisional This API might change or be removed in a future release.
-    */
+     */
     public TimeZoneRule(String name, int rawOffset, int dstSavings) {
         this.name = name;
         this.rawOffset = rawOffset;
@@ -94,13 +94,6 @@ public abstract class TimeZoneRule implements Serializable {
         }
         return false;
     }
-    
-    /**
-     * Returns whether the rule has start times.
-     * 
-     * @return true if this rule has start times.
-     */
-    public abstract boolean hasStartTimes();
     
     /* (non-Javadoc)
      * @see java.lang.Object#toString()

@@ -15,11 +15,12 @@ import java.util.Date;
  * @draft ICU 3.8
  * @provisional This API might change or be removed in a future release.
  */
-public class TimeArrayTimeZoneRule extends TimeZoneRule {
+public class TimeArrayTimeZoneRule extends TimeZoneTransitionRule {
 
-    private static final long serialVersionUID = 1067689314077468618L;
+    private static final long serialVersionUID = -1117109130077415245L;
 
     private final long[] startTimes;
+    private final int timeType;
 
     /**
      * Constructs a TimeArrayTimeZoneRule with the name, the GMT offset of its
@@ -32,12 +33,14 @@ public class TimeArrayTimeZoneRule extends TimeZoneRule {
      *                      milliseconds.  If this ia a rule for standard time,
      *                      the value of this argument is 0.
      * @param startTimes    The start times in milliseconds since the base time
-     *                      (January 1, 1970, 00:00:00 GMT).
+     *                      (January 1, 1970, 00:00:00).
+     * @param timeType      The time type of the start times, which is one of
+     *                      DataTimeRule.WALL_TIME, STANDARD_TIME and UNIVERSAL_TIME.
      * 
      * @draft ICU 3.8
      * @provisional This API might change or be removed in a future release.
      */
-    public TimeArrayTimeZoneRule(String name, int rawOffset, int dstSavings, long[] startTimes) {
+    public TimeArrayTimeZoneRule(String name, int rawOffset, int dstSavings, long[] startTimes, int timeType) {
         super(name, rawOffset, dstSavings);
         if (startTimes == null || startTimes.length == 0) {
             throw new IllegalArgumentException("No start times are specified.");
@@ -45,76 +48,7 @@ public class TimeArrayTimeZoneRule extends TimeZoneRule {
             this.startTimes = (long[])startTimes.clone();
             Arrays.sort(this.startTimes);
         }
-    }
-
-    /**
-     * Gets the very first time when this rule starts.
-     * 
-     * @return  The very first time when this rule starts.
-     * 
-     * @draft ICU 3.8
-     * @provisional This API might change or be removed in a future release.
-     */
-    public Date getFirstStart() {
-        return new Date(startTimes[0]);
-    }
-
-    /**
-     * Gets the very last time when this rule starts.
-     * 
-     * @return  The very last time when this rule starts.
-     * 
-     * @draft ICU 3.8
-     * @provisional This API might change or be removed in a future release.
-     */
-    public Date getFinalStart() {
-        return new Date(startTimes[startTimes.length - 1]);
-    }
-
-    /**
-     * Gets the very first time when this rule starts after the specified time.
-     * 
-     * @param base      The very first time after this time is returned.
-     * @param inclusive Whether the base time is inclusive or not.
-     * @return  The very first time when this rule starts after the specified time,
-     *          or null when this rule never starts after the specified time.
-     * 
-     * @draft ICU 3.8
-     * @provisional This API might change or be removed in a future release.
-     */
-    public Date getNextStart(long base, boolean inclusive) {
-        int i = startTimes.length - 1;
-        for (; i >= 0; i--) {
-            if (startTimes[i] < base || (!inclusive && startTimes[i] == base)) {
-                break;
-            }
-        }
-        if (i == startTimes.length - 1) {
-            return null;
-        }
-        return new Date(startTimes[i + 1]);
-    }
-
-    /**
-     * Gets the most recent time when this rule starts before the specified time.
-     * 
-     * @param base      The most recent time before this time is returned.
-     * @param inclusive Whether the base time is inclusive or not.
-     * @return  The most recent time when this rule starts before the specified time,
-     *          or null when this rule never starts before the specified time.
-     * 
-     * @draft ICU 3.8
-     * @provisional This API might change or be removed in a future release.
-     */
-    public Date getPreviousStart(long base, boolean inclusive) {
-        int i = startTimes.length - 1;
-
-        for (; i >= 0; i--) {
-            if (startTimes[i] < base || (inclusive && startTimes[i] == base)) {
-                return new Date(startTimes[i]);
-            }
-        }
-        return null;
+        this.timeType = timeType;
     }
 
     /**
@@ -127,6 +61,62 @@ public class TimeArrayTimeZoneRule extends TimeZoneRule {
         return (long[])startTimes.clone();
     }
 
+    /**
+     * Gets the time type of the start times used by this rule.  The return value
+     * is either DateTimeRule.WALL_TIME or DateTimeRule.STANDARD_TIME or
+     * DateTimeRule.UNIVERSAL_TIME.
+     * 
+     * @return The time type used of the start times used by this rule.
+     */
+    public int getTimeType() {
+        return timeType;
+    }
+
+    /* (non-Javadoc)
+     * @see com.ibm.icu.util.TimeZoneTransitionRule#getFirstStart(int, int)
+     */
+    public Date getFirstStart(int prevRawOffset, int prevDSTSavings) {
+        return new Date(getUTC(startTimes[0], prevRawOffset, prevDSTSavings));
+    }
+
+    /* (non-Javadoc)
+     * @see com.ibm.icu.util.TimeZoneTransitionRule#getFinalStart(int, int)
+     */
+    public Date getFinalStart(int prevRawOffset, int prevDSTSavings) {
+        return new Date(getUTC(startTimes[startTimes.length - 1], prevRawOffset, prevDSTSavings));
+    }
+
+    /* (non-Javadoc)
+     * @see com.ibm.icu.util.TimeZoneTransitionRule#getNextStart(long, int, int, boolean)
+     */
+    public Date getNextStart(long base, int prevOffset, int prevDSTSavings, boolean inclusive) {
+        int i = startTimes.length - 1;
+        for (; i >= 0; i--) {
+            long time = getUTC(startTimes[i], prevOffset, prevDSTSavings);
+            if (time < base || (!inclusive && time == base)) {
+                break;
+            }
+        }
+        if (i == startTimes.length - 1) {
+            return null;
+        }
+        return new Date(getUTC(startTimes[i + 1], prevOffset, prevDSTSavings));
+    }
+
+    /* (non-Javadoc)
+     * @see com.ibm.icu.util.TimeZoneTransitionRule#getPreviousStart(long, int, int, boolean)
+     */
+    public Date getPreviousStart(long base, int prevOffset, int prevDSTSavings, boolean inclusive) {
+        int i = startTimes.length - 1;
+        for (; i >= 0; i--) {
+            long time = getUTC(startTimes[i], prevOffset, prevDSTSavings);
+            if (time < base || (inclusive && time == base)) {
+                return new Date(time);
+            }
+        }
+        return null;
+    }
+
     /* (non-Javadoc)
      * @see com.ibm.icu.util.TimeZoneRule#isSameAs(com.ibm.icu.util.TimeZoneRule)
      */
@@ -134,26 +124,34 @@ public class TimeArrayTimeZoneRule extends TimeZoneRule {
         if (!(other instanceof TimeArrayTimeZoneRule)) {
             return false;
         }
-        if (Arrays.equals(startTimes, ((TimeArrayTimeZoneRule)other).startTimes)) {
+        if (timeType == ((TimeArrayTimeZoneRule)other).timeType
+                && Arrays.equals(startTimes, ((TimeArrayTimeZoneRule)other).startTimes)) {
             return super.isSameAs(other);
         }
         return false;
     }
 
-    /* (non-Javadoc)
-     * @see com.ibm.icu.util.TimeZoneRule#hasStartTimes()
-     */
-    public boolean hasStartTimes() {
-        return true;
+    /* Get UTC of the time with the raw/dst offset */
+    private long getUTC(long time, int raw, int dst) {
+        if (timeType == DateTimeRule.STANDARD_TIME) {
+            time -= raw;
+        }
+        if (timeType == DateTimeRule.WALL_TIME) {
+            time -= dst;
+        }
+        return time;
     }
-    
+
     /* (non-Javadoc)
      * @see com.ibm.icu.util.TimeZoneRule#toString()
      */
     public String toString() {
         StringBuffer buf = new StringBuffer();
         buf.append(super.toString());
-        buf.append(", startTimes=" + Arrays.toString(startTimes));
+        buf.append(", timeType=");
+        buf.append(timeType);
+        buf.append(", startTimes=");
+        buf.append(Arrays.toString(startTimes));
         return buf.toString();
     }
 }

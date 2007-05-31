@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.Date;
 
 import com.ibm.icu.util.Calendar;
+import com.ibm.icu.util.DateTimeRule;
 import com.ibm.icu.util.GregorianCalendar;
 import com.ibm.icu.util.InitialTimeZoneRule;
 import com.ibm.icu.util.SimpleTimeZone;
@@ -982,7 +983,7 @@ public class OlsonTimeZone extends ICUTimeZone {
             } else {
                 // Create a TimeArrayTimeZoneRule at finalMillis
                 rules[idx++] = new TimeArrayTimeZoneRule(getID() + "(STD)", finalZone.getRawOffset(), 0,
-                        new long[] {(long)finalMillis});                
+                        new long[] {(long)finalMillis}, DateTimeRule.UNIVERSAL_TIME);                
             }
         }
         return rules;
@@ -1057,7 +1058,8 @@ public class OlsonTimeZone extends ICUTimeZone {
                         if (historicRules == null) {
                             historicRules = new TimeArrayTimeZoneRule[typeCount];
                         }
-                        historicRules[typeIdx] = new TimeArrayTimeZoneRule((dst == 0 ? stdName : dstName), raw, dst, startTimes);
+                        historicRules[typeIdx] = new TimeArrayTimeZoneRule((dst == 0 ? stdName : dstName),
+                                raw, dst, startTimes, DateTimeRule.UNIVERSAL_TIME);
                     }
                 }
 
@@ -1100,7 +1102,7 @@ public class OlsonTimeZone extends ICUTimeZone {
             } else {
                 finalZoneWithStartYear = finalZone;
                 firstFinalRule = new TimeArrayTimeZoneRule(finalZone.getID(),
-                        finalZone.getRawOffset(), 0, new long[] {startTime});
+                        finalZone.getRawOffset(), 0, new long[] {startTime}, DateTimeRule.UNIVERSAL_TIME);
             }
             TimeZoneRule prevRule = null;
             if (transitionCount > 0) {

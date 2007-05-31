@@ -18,16 +18,16 @@ import com.ibm.icu.impl.Grego;
  * @draft ICU 3.8
  * @provisional This API might change or be removed in a future release.
  */
-public class AnnualTimeZoneRule extends TimeZoneRule {
+public class AnnualTimeZoneRule extends TimeZoneTransitionRule {
 
-    private static final long serialVersionUID = -2419464960618908799L;
+    private static final long serialVersionUID = -477964194195641183L;
 
     /**
      * The constant representing the maximum year used for designating a rule is permanent.
      */
     public static final int MAX_YEAR = Integer.MAX_VALUE;
 
-    private final AnnualDateTimeRule dateTimeRule;
+    private final DateTimeRule dateTimeRule;
     private final int startYear;
     private final int endYear;
 
@@ -52,7 +52,7 @@ public class AnnualTimeZoneRule extends TimeZoneRule {
      * @provisional This API might change or be removed in a future release.
      */
     public AnnualTimeZoneRule(String name, int rawOffset, int dstSavings,
-            AnnualDateTimeRule dateTimeRule, int startYear, int endYear) {
+            DateTimeRule dateTimeRule, int startYear, int endYear) {
         super(name, rawOffset, dstSavings);
         this.dateTimeRule = dateTimeRule;
         this.startYear = startYear;
@@ -68,7 +68,7 @@ public class AnnualTimeZoneRule extends TimeZoneRule {
      * @draft ICU 3.8
      * @provisional This API might change or be removed in a future release.
      */
-    public AnnualDateTimeRule getRule() {
+    public DateTimeRule getRule() {
         return dateTimeRule;
     }
 
@@ -121,11 +121,11 @@ public class AnnualTimeZoneRule extends TimeZoneRule {
         long ruleDay;
         int type = dateTimeRule.getDateRuleType();
 
-        if (type == AnnualDateTimeRule.DOM) {
+        if (type == DateTimeRule.DOM) {
             ruleDay = Grego.fieldsToDay(year, dateTimeRule.getRuleMonth(), dateTimeRule.getRuleDayOfMonth());
         } else {
             boolean after = true;
-            if (type == AnnualDateTimeRule.DOW) {
+            if (type == DateTimeRule.DOW) {
                 int weeks = dateTimeRule.getRuleWeekInMonth();
                 if (weeks > 0) {
                     ruleDay = Grego.fieldsToDay(year, dateTimeRule.getRuleMonth(), 1);
@@ -139,7 +139,7 @@ public class AnnualTimeZoneRule extends TimeZoneRule {
             } else {
                 int month = dateTimeRule.getRuleMonth();
                 int dom = dateTimeRule.getRuleDayOfMonth();
-                if (type == AnnualDateTimeRule.DOW_LEQ_DOM) {
+                if (type == DateTimeRule.DOW_LEQ_DOM) {
                     after = false;
                     // Handle Feb <=29
                     if (month == Calendar.FEBRUARY && dom == 29 && !Grego.isLeapYear(year)) {
@@ -160,45 +160,24 @@ public class AnnualTimeZoneRule extends TimeZoneRule {
         }
 
         long ruleTime = ruleDay * MILLIS_PER_DAY + dateTimeRule.getRuleMillisInDay();
-        if (dateTimeRule.getTimeRuleType() != AnnualDateTimeRule.UNIVERSAL_TIME) {
+        if (dateTimeRule.getTimeRuleType() != DateTimeRule.UNIVERSAL_TIME) {
             ruleTime -= prevRawOffset;
         }
-        if (dateTimeRule.getTimeRuleType() == AnnualDateTimeRule.WALL_TIME) {
+        if (dateTimeRule.getTimeRuleType() == DateTimeRule.WALL_TIME) {
             ruleTime -= prevDSTSavings;
         }
         return new Date(ruleTime);
     }
     
-    /**
-     * Gets the very first time when this rule takes effect.
-     * 
-     * @param prevRawOffset     The standard time offset from UTC before this rule
-     *                          takes effect in milliseconds.
-     * @param prevDSTSavings    The amount of daylight saving offset from the
-     *                          standard time. 
-     * 
-     * @return  The very first time when this rule takes effect.
-     * 
-     * @draft ICU 3.8
-     * @provisional This API might change or be removed in a future release.
+    /* (non-Javadoc)
+     * @see com.ibm.icu.util.TimeZoneTransitionRule#getFirstStart(int, int)
      */
     public Date getFirstStart(int prevRawOffset, int prevDSTSavings) {
         return getStartInYear(startYear, prevRawOffset, prevDSTSavings);
     }
 
-    /**
-     * Gets the final time when this rule takes effect.
-     * 
-     * @param prevRawOffset     The standard time offset from UTC before this rule
-     *                          takes effect in milliseconds.
-     * @param prevDSTSavings    The amount of daylight saving offset from the
-     *                          standard time. 
-     * 
-     * @return  The very last time when this rule takes effect,
-     *          or null if this rule is applied for future dates infinitely.
-     * 
-     * @draft ICU 3.8
-     * @provisional This API might change or be removed in a future release.
+    /* (non-Javadoc)
+     * @see com.ibm.icu.util.TimeZoneTransitionRule#getFinalStart(int, int)
      */
     public Date getFinalStart(int prevRawOffset, int prevDSTSavings) {
         if (endYear == MAX_YEAR) {
@@ -207,24 +186,11 @@ public class AnnualTimeZoneRule extends TimeZoneRule {
         return getStartInYear(endYear, prevRawOffset, prevDSTSavings);
     }
 
-    /**
-     * Gets the first time when this rule takes effect after the specified time.
-     * 
-     * @param base              The first time after this time is returned.
-     * @param prevRawOffset     The standard time offset from UTC before this rule
-     *                          takes effect in milliseconds.
-     * @param prevDSTSavings    The amount of daylight saving offset from the
-     *                          standard time. 
-     * @param inclusive         Whether the base time is inclusive or not.
-     * 
-     * @return  The first time when this rule takes effect after the specified time,
-     *          or null when this rule never takes effect after the specified time.
-     * 
-     * @draft ICU 3.8
-     * @provisional This API might change or be removed in a future release.
+    /* (non-Javadoc)
+     * @see com.ibm.icu.util.TimeZoneTransitionRule#getNextStart(long, int, int, boolean)
      */
     public Date getNextStart(long base, int prevRawOffset, int prevDSTSavings, boolean inclusive) {
-        int[] fields = Grego.dayToFields(Grego.timeToDay(base), null);
+        int[] fields = Grego.timeToFields(base, null);
         int year = fields[0];
         if (year < startYear) {
             return getFirstStart(prevRawOffset, prevDSTSavings);
@@ -236,25 +202,11 @@ public class AnnualTimeZoneRule extends TimeZoneRule {
         return d;
     }
 
-    /**
-     * Gets the most recent time when this rule takes effect before the specified time.
-     * 
-     * @param base              The most recent time when this rule takes effect before
-     *                          this time is returned.
-     * @param prevRawOffset     The standard time offset from UTC before this rule
-     *                          takes effect in milliseconds.
-     * @param prevDSTSavings    The amount of daylight saving offset from the
-     *                          standard time. 
-     * @param inclusive         Whether the base time is inclusive or not.
-     * 
-     * @return  The most recent time when this rule takes effect before the specified time,
-     *          or null when this rule never takes effect before the specified time.
-     * 
-     * @draft ICU 3.8
-     * @provisional This API might change or be removed in a future release.
+    /* (non-Javadoc)
+     * @see com.ibm.icu.util.TimeZoneTransitionRule#getPreviousStart(long, int, int, boolean)
      */
     public Date getPreviousStart(long base, int prevRawOffset, int prevDSTSavings, boolean inclusive) {
-        int[] fields = Grego.dayToFields(Grego.timeToDay(base), null);
+        int[] fields = Grego.timeToFields(base, null);
         int year = fields[0];
         if (year > endYear) {
             return getFinalStart(prevRawOffset, prevDSTSavings);
@@ -280,13 +232,6 @@ public class AnnualTimeZoneRule extends TimeZoneRule {
             return super.isSameAs(other);
         }
         return false;
-    }
-    
-    /* (non-Javadoc)
-     * @see com.ibm.icu.util.TimeZoneRule#hasStartTimes()
-     */
-    public boolean hasStartTimes() {
-        return true;
     }
 
     /* (non-Javadoc)

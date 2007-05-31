@@ -102,11 +102,9 @@ public class Grego {
         return dayOfWeek;
     }
 
-    private static final int NUM_DATE_FIELDS = 5;
-
     public static int[] dayToFields(long day, int[] fields) {
-        if (fields == null || fields.length < NUM_DATE_FIELDS) {
-            fields = new int[NUM_DATE_FIELDS];
+        if (fields == null || fields.length < 5) {
+            fields = new int[5];
         }
         // Convert from 1970 CE epoch to 1 CE epoch (Gregorian calendar)
         day += JULIAN_1970_CE - JULIAN_1_CE;
@@ -147,10 +145,27 @@ public class Grego {
         return fields;
     }
 
-    public static long timeToDay(long time) {
-        return floorDivide(time, 24*60*60*1000 /* milliseconds per day */);
+    /*
+     * Convert long time to date/time fields
+     * 
+     * result[0] : year
+     * result[1] : month
+     * result[2] : dayOfMonth
+     * result[3] : dayOfWeek
+     * result[4] : dayOfYear
+     * result[5] : millisecond in day
+     */
+    public static int[] timeToFields(long time, int[] fields) {
+        if (fields == null || fields.length < 6) {
+            fields = new int[6];
+        }
+        long[] remainder = new long[1];
+        long day = floorDivide(time, 24*60*60*1000 /* milliseconds per day */, remainder);
+        dayToFields(day, fields);
+        fields[5] = (int)remainder[0];
+        return fields;
     }
-    
+
     private static long floorDivide(long numerator, long denominator) {
         // We do this computation in order to handle
         // a numerator of Long.MIN_VALUE correctly

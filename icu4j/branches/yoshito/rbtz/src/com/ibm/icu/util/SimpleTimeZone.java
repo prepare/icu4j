@@ -1192,25 +1192,25 @@ public class SimpleTimeZone extends ICUTimeZone {
             return;
         }
         if (startMonth != 0) {
-            AnnualDateTimeRule dtRule = null;
+            DateTimeRule dtRule = null;
             int timeRuleType;
             long firstStdStart, firstDstStart;
 
             // Create a TimeZoneRule for daylight saving time
-            timeRuleType = (startTimeMode == STANDARD_TIME) ? AnnualDateTimeRule.STANDARD_TIME :
-                ((startTimeMode == UTC_TIME) ? AnnualDateTimeRule.UNIVERSAL_TIME : AnnualDateTimeRule.WALL_TIME);
+            timeRuleType = (startTimeMode == STANDARD_TIME) ? DateTimeRule.STANDARD_TIME :
+                ((startTimeMode == UTC_TIME) ? DateTimeRule.UNIVERSAL_TIME : DateTimeRule.WALL_TIME);
             switch (startMode) {
             case DOM_MODE:
-             dtRule = new AnnualDateTimeRule(startMonth, startDay, startTime, timeRuleType);
+             dtRule = new DateTimeRule(startMonth, startDay, startTime, timeRuleType);
              break;
             case DOW_IN_MONTH_MODE:
-             dtRule = new AnnualDateTimeRule(startMonth, startDay, startDayOfWeek, startTime, timeRuleType);
+             dtRule = new DateTimeRule(startMonth, startDay, startDayOfWeek, startTime, timeRuleType);
              break;
             case DOW_GE_DOM_MODE:
-             dtRule = new AnnualDateTimeRule(startMonth, startDay, startDayOfWeek, true, startTime, timeRuleType);
+             dtRule = new DateTimeRule(startMonth, startDay, startDayOfWeek, true, startTime, timeRuleType);
              break;
             case DOW_LE_DOM_MODE:
-             dtRule = new AnnualDateTimeRule(startMonth, startDay, startDayOfWeek, false, startTime, timeRuleType);
+             dtRule = new DateTimeRule(startMonth, startDay, startDayOfWeek, false, startTime, timeRuleType);
              break;
             }
             // For now, use ID + "(DST)" as the name
@@ -1221,20 +1221,20 @@ public class SimpleTimeZone extends ICUTimeZone {
             firstDstStart = dstRule.getFirstStart(getRawOffset(), 0).getTime();
 
             // Create a TimeZoneRule for standard time
-            timeRuleType = (endTimeMode == STANDARD_TIME) ? AnnualDateTimeRule.STANDARD_TIME :
-                ((endTimeMode == UTC_TIME) ? AnnualDateTimeRule.UNIVERSAL_TIME : AnnualDateTimeRule.WALL_TIME);
+            timeRuleType = (endTimeMode == STANDARD_TIME) ? DateTimeRule.STANDARD_TIME :
+                ((endTimeMode == UTC_TIME) ? DateTimeRule.UNIVERSAL_TIME : DateTimeRule.WALL_TIME);
             switch (endMode) {
             case DOM_MODE:
-                dtRule = new AnnualDateTimeRule(endMonth, endDay, endTime, timeRuleType);
+                dtRule = new DateTimeRule(endMonth, endDay, endTime, timeRuleType);
                 break;
             case DOW_IN_MONTH_MODE:
-                dtRule = new AnnualDateTimeRule(endMonth, endDay, endDayOfWeek, endTime, timeRuleType);
+                dtRule = new DateTimeRule(endMonth, endDay, endDayOfWeek, endTime, timeRuleType);
                 break;
             case DOW_GE_DOM_MODE:
-                dtRule = new AnnualDateTimeRule(endMonth, endDay, endDayOfWeek, true, endTime, timeRuleType);
+                dtRule = new DateTimeRule(endMonth, endDay, endDayOfWeek, true, endTime, timeRuleType);
                 break;
             case DOW_LE_DOM_MODE:
-                dtRule = new AnnualDateTimeRule(endMonth, endDay, endDayOfWeek, false, endTime, timeRuleType);
+                dtRule = new DateTimeRule(endMonth, endDay, endDayOfWeek, false, endTime, timeRuleType);
                 break;
             }
             // For now, use ID + "(STD)" as the name
