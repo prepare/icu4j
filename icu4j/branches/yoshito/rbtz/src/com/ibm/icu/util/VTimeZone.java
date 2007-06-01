@@ -31,7 +31,7 @@ import com.ibm.icu.impl.ICUTimeZone;
  */
 public class VTimeZone extends ICUTimeZone {
 
-    private static final long serialVersionUID = 1L; //TODO
+    private static final long serialVersionUID = -6851467294127795902L;
 
     private ICUTimeZone tz;
     private List vtzlines;
@@ -78,6 +78,13 @@ public class VTimeZone extends ICUTimeZone {
     public int getOffset(int era, int year, int month, int day, int dayOfWeek,
             int milliseconds) {
         return tz.getOffset(era, year, month, day, dayOfWeek, milliseconds);
+    }
+
+    /* (non-Javadoc)
+     * @see com.ibm.icu.util.TimeZone#getOffset(long, boolean, int[])
+     */
+    public void getOffset(long date, boolean local, int[] offsets) {
+        tz.getOffset(date, local, offsets);
     }
 
     /* (non-Javadoc)
@@ -241,6 +248,11 @@ public class VTimeZone extends ICUTimeZone {
     // Month length in regular year
     private static final int[] MONTHLENGTH = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
+    private static final int MILLIS_PER_DAY = 24*60*60*1000;
+    private static final int MILLIS_PER_HOUR = 60*60*1000;
+    private static final int MILLIS_PER_MINUTE = 60*1000;
+    private static final int MILLIS_PER_SECOND = 1000;
+
     /*
      * Read the input stream to locate the VTIMEZONE block and
      * parse the contents to initialze this VTimeZone object.
@@ -351,7 +363,8 @@ public class VTimeZone extends ICUTimeZone {
         boolean isRRULE = false;// true if the rule is described by RRULE
         List dates = null;      // list of RDATE or RRULE strings
         List rules = new LinkedList();   // rule list
-        int initialOffset = 0;  // initial offset
+        int initialRawOffset = 0;  // initial offset
+        int initialDSTSavings = 0;  // initial offset
         long firstStart = MAX_TIME; // the earliest rule start time
 
         Iterator it = vtzlines.iterator();
@@ -505,7 +518,21 @@ public class VTimeZone extends ICUTimeZone {
                             if (actualStart.getTime() < firstStart) {
                                 // save from offset information for the earliest rule
                                 firstStart = actualStart.getTime();
-                                initialOffset = fromOffset;
+                                // If this is STD, assume the time before this transtion
+                                // is DST.  This might not be accurate, but VTIMEZONE data
+                                // does not have such info.
+                                if (dstSavings > 0) {
+                                    initialRawOffset = fromOffset;
+                                    initialDSTSavings = 0;
+                                } else {
+                                    if (fromOffset - toOffset > 0) {
+                                        initialRawOffset = toOffset;
+                                        initialDSTSavings = fromOffset - toOffset;
+                                    } else {
+                                        initialRawOffset = fromOffset - DEF_DSTSAVINGS;
+                                        initialDSTSavings = DEF_DSTSAVINGS;
+                                    }
+                                }
                             }
                         }
                     } catch (IllegalArgumentException iae) {
@@ -539,7 +566,7 @@ public class VTimeZone extends ICUTimeZone {
 
         // Create a initial rule
         InitialTimeZoneRule initialRule = new InitialTimeZoneRule(getDefaultTZName(tzid, false),
-                initialOffset, 0);
+                initialRawOffset, initialDSTSavings);
 
         // Finally, create the RuleBasedTimeZone
         RuleBasedTimeZone rbtz = new RuleBasedTimeZone(tzid, initialRule);
@@ -960,13 +987,8 @@ public class VTimeZone extends ICUTimeZone {
         return new TimeArrayTimeZoneRule(tzname, rawOffset, dstSavings, times, DateTimeRule.UNIVERSAL_TIME);
     }
 
-    private static final int MILLIS_PER_DAY = 24*60*60*1000;
-    private static final int MILLIS_PER_HOUR = 60*60*1000;
-    private static final int MILLIS_PER_MINUTE = 60*1000;
-    private static final int MILLIS_PER_SECOND = 1000;
-
     /*
-     * Write out the time zone rules in RFC2445 VTIMEZONE format
+     * Write the time zone rules in RFC2445 VTIMEZONE format
      */
     private static void writeZone(ICUTimeZone tz, Writer w) throws IOException {
         // Write the header
@@ -975,6 +997,7 @@ public class VTimeZone extends ICUTimeZone {
         long t = MIN_TIME;
         String dstName = null;
         int dstFromOffset = 0;
+        int dstFromDSTSavings = 0;
         int dstToOffset = 0;
         int dstStartYear = 0;
         int dstMonth = 0;
@@ -988,6 +1011,7 @@ public class VTimeZone extends ICUTimeZone {
 
         String stdName = null;
         int stdFromOffset = 0;
+        int stdFromDSTSavings = 0;
         int stdToOffset = 0;
         int stdStartYear = 0;
         int stdMonth = 0;
@@ -1013,6 +1037,7 @@ public class VTimeZone extends ICUTimeZone {
             String name = tzt.getTo().getName();
             boolean isDst = (tzt.getTo().getDSTSavings() != 0);
             int fromOffset = tzt.getFrom().getRawOffset() + tzt.getFrom().getDSTSavings();
+            int fromDSTSavings = tzt.getFrom().getDSTSavings();
             int toOffset = tzt.getTo().getRawOffset() + tzt.getTo().getDSTSavings();
             Grego.timeToFields(tzt.getTime() + fromOffset, dtfields);
             int weekInMonth = getWeekInMonth(dtfields[0], dtfields[1], dtfields[2]);
@@ -1051,6 +1076,7 @@ public class VTimeZone extends ICUTimeZone {
                     // Reset this DST information
                     dstName = name;
                     dstFromOffset = fromOffset;
+                    dstFromDSTSavings = fromDSTSavings;
                     dstToOffset = toOffset;
                     dstStartYear = year;
                     dstMonth = dtfields[1];
@@ -1096,6 +1122,7 @@ public class VTimeZone extends ICUTimeZone {
                     // Reset this STD information
                     stdName = name;
                     stdFromOffset = fromOffset;
+                    stdFromDSTSavings = fromDSTSavings;
                     stdToOffset = toOffset;
                     stdStartYear = year;
                     stdMonth = dtfields[1];
@@ -1125,7 +1152,8 @@ public class VTimeZone extends ICUTimeZone {
                     }
                 } else {
                     if (dstCount == 1) {
-                        writeFinalRule(w, true, finalDstRule, dstFromOffset, dstStartTime);
+                        writeFinalRule(w, true, finalDstRule,
+                                dstFromOffset - dstFromDSTSavings, dstFromDSTSavings, dstStartTime);
                     } else {
                         // Use a single rule if possible
                         if (isEquivalentDateRule(dstMonth, dstWeekInMonth, dstDayOfWeek, finalDstRule.getRule())) {
@@ -1135,7 +1163,8 @@ public class VTimeZone extends ICUTimeZone {
                             // Not equivalent rule - write out two different rules
                             writeZonePropsByDOW(w, true, dstName, dstFromOffset, dstToOffset,
                                     dstMonth, dstWeekInMonth, dstDayOfWeek, dstStartTime, dstUntilTime);
-                            writeFinalRule(w, true, finalDstRule, dstFromOffset, dstStartTime);
+                            writeFinalRule(w, true, finalDstRule,
+                                    dstFromOffset - dstFromDSTSavings, dstFromDSTSavings, dstStartTime);
                         }
                     }
                 }
@@ -1150,7 +1179,8 @@ public class VTimeZone extends ICUTimeZone {
                     }
                 } else {
                     if (stdCount == 1) {
-                        writeFinalRule(w, false, finalStdRule, stdFromOffset, stdStartTime);
+                        writeFinalRule(w, false, finalStdRule,
+                                stdFromOffset - stdFromDSTSavings, stdFromDSTSavings, stdStartTime);
                     } else {
                         // Use a single rule if possible
                         if (isEquivalentDateRule(stdMonth, stdWeekInMonth, stdDayOfWeek, finalStdRule.getRule())) {
@@ -1160,7 +1190,8 @@ public class VTimeZone extends ICUTimeZone {
                             // Not equivalent rule - write out two different rules
                             writeZonePropsByDOW(w, false, stdName, stdFromOffset, stdToOffset,
                                     stdMonth, stdWeekInMonth, stdDayOfWeek, stdStartTime, stdUntilTime);
-                            writeFinalRule(w, false, finalStdRule, stdFromOffset, stdStartTime);
+                            writeFinalRule(w, false, finalStdRule,
+                                    stdFromOffset - stdFromDSTSavings, stdFromDSTSavings, stdStartTime);
                         }
                     }
                 }
@@ -1169,10 +1200,13 @@ public class VTimeZone extends ICUTimeZone {
         writeFooter(w);
     }
 
+    /*
+     * Returns the week number in month for the specified date
+     */
     private static int getWeekInMonth(int year, int month, int dayOfMonth) {
         int weekInMonth = (dayOfMonth + 6)/7;
         if (weekInMonth == 4) {
-            if (dayOfMonth + 7 < Grego.monthLength(year, month)) {
+            if (dayOfMonth + 7 > Grego.monthLength(year, month)) {
                 weekInMonth = -1;
             }
         } else if (weekInMonth == 5) {
@@ -1181,12 +1215,16 @@ public class VTimeZone extends ICUTimeZone {
         return weekInMonth;
     }
 
+    /*
+     * Check if the DOW rule specified by month, weekInMonth and dayOfWeek is equivalent
+     * to the DateTimerule.
+     */
     private static boolean isEquivalentDateRule(int month, int weekInMonth, int dayOfWeek, DateTimeRule dtrule) {
         if (month != dtrule.getRuleMonth() || dayOfWeek != dtrule.getRuleDayOfWeek()) {
             return false;
         }
         if (dtrule.getTimeRuleType() != DateTimeRule.WALL_TIME) {
-            //TODO
+            // Do not try to do more intelligent comparison for now.
             return false;
         }
         if (dtrule.getDateRuleType() == DateTimeRule.DOW
@@ -1215,6 +1253,9 @@ public class VTimeZone extends ICUTimeZone {
         return false;
     }
 
+    /*
+     * Write a single start time using VTIMEZONE RDATE
+     */
     private static void writeZonePropsByTime(Writer writer, boolean isDst, String tzname, int fromOffset, int toOffset, long time) throws IOException {
         beginZoneProps(writer, isDst, tzname, fromOffset, toOffset, time);
         writer.write(ICAL_RDATE);
@@ -1224,6 +1265,9 @@ public class VTimeZone extends ICUTimeZone {
         endZoneProps(writer, isDst);
     }
 
+    /*
+     * Write start times defined by a DOM rule using VTIMEZONE RRULE
+     */
     private static void writeZonePropsByDOM(Writer writer, boolean isDst, String tzname, int fromOffset, int toOffset,
             int month, int dayOfMonth, long startTime, long untilTime) throws IOException {
         beginZoneProps(writer, isDst, tzname, fromOffset, toOffset, startTime);
@@ -1241,6 +1285,9 @@ public class VTimeZone extends ICUTimeZone {
         endZoneProps(writer, isDst);
     }
 
+    /*
+     * Write start times defined by a DOW rule using VTIMEZONE RRULE
+     */
     private static void writeZonePropsByDOW(Writer writer, boolean isDst, String tzname, int fromOffset, int toOffset,
             int month, int weekInMonth, int dayOfWeek, long startTime, long untilTime) throws IOException {
         beginZoneProps(writer, isDst, tzname, fromOffset, toOffset, startTime);
@@ -1259,6 +1306,9 @@ public class VTimeZone extends ICUTimeZone {
         endZoneProps(writer, isDst);
     }
 
+    /*
+     * Write start times defined by a DOW_GEQ_DOM rule using VTIMEZONE RRULE
+     */
     private static void writeZonePropsByDOW_GEQ_DOM(Writer writer, boolean isDst, String tzname, int fromOffset, int toOffset,
             int month, int dayOfMonth, int dayOfWeek, long startTime, long untilTime) throws IOException {
         // Check if this rule can be converted to DOW rule
@@ -1271,7 +1321,7 @@ public class VTimeZone extends ICUTimeZone {
             writeZonePropsByDOW(writer, isDst, tzname, fromOffset, toOffset,
                     month, -1*((MONTHLENGTH[month] - dayOfMonth + 1)/7), dayOfWeek, startTime, untilTime);
         } else {
-            // Otherwise, use BYMONTHDAY to include all pssible dates
+            // Otherwise, use BYMONTHDAY to include all possible dates
             beginZoneProps(writer, isDst, tzname, fromOffset, toOffset, startTime);
 
             // Check if all days are in the same month
@@ -1304,6 +1354,7 @@ public class VTimeZone extends ICUTimeZone {
                 writeZonePropsByDOW_GEQ_DOM_sub(writer, nextMonth, 1, dayOfWeek, nextMonthDays, MAX_TIME /* Do not use UNTIL */, fromOffset);
             }
             writeZonePropsByDOW_GEQ_DOM_sub(writer, month, startDay, dayOfWeek, currentMonthDays, untilTime, fromOffset);
+            endZoneProps(writer, isDst);
         }
     }
  
@@ -1339,7 +1390,9 @@ public class VTimeZone extends ICUTimeZone {
         writer.write(NEWLINE);
     }
 
-    
+    /*
+     * Write start times defined by a DOW_LEQ_DOM rule using VTIMEZONE RRULE
+     */
     private static void writeZonePropsByDOW_LEQ_DOM(Writer writer, boolean isDst, String tzname, int fromOffset, int toOffset,
             int month, int dayOfMonth, int dayOfWeek, long startTime, long untilTime) throws IOException {
         // Check if this rule can be converted to DOW rule
@@ -1351,6 +1404,10 @@ public class VTimeZone extends ICUTimeZone {
             // Can be represented by DOW rule with negative week number
             writeZonePropsByDOW(writer, isDst, tzname, fromOffset, toOffset,
                     month, -1*((MONTHLENGTH[month] - dayOfMonth)/7 + 1), dayOfWeek, startTime, untilTime);
+        } else if (month == Calendar.FEBRUARY && dayOfMonth == 29) {
+            // Specical case for February
+            writeZonePropsByDOW(writer, isDst, tzname, fromOffset, toOffset,
+                    Calendar.FEBRUARY, -1, dayOfWeek, startTime, untilTime);
         } else {
             // Otherwise, convert this to DOW_GEQ_DOM rule
             writeZonePropsByDOW_GEQ_DOM(writer, isDst, tzname, fromOffset, toOffset,
@@ -1358,29 +1415,110 @@ public class VTimeZone extends ICUTimeZone {
         }
     }
 
-    private static void writeFinalRule(Writer writer, boolean isDst, AnnualTimeZoneRule rule, int fromOffset, long startTime) throws IOException{
-        DateTimeRule dtrule = rule.getRule();
+    /*
+     * Write the final time zone rule using RRULE, with no UNTIL attribute
+     */
+    private static void writeFinalRule(Writer writer, boolean isDst, AnnualTimeZoneRule rule,
+            int fromRawOffset, int fromDSTSavings, long startTime) throws IOException{
+        DateTimeRule dtrule = toWallTimeRule(rule.getRule(), fromRawOffset, fromDSTSavings);
         int toOffset = rule.getRawOffset() + rule.getDSTSavings();
         switch (dtrule.getDateRuleType()) {
         case DateTimeRule.DOM:
-            writeZonePropsByDOM(writer, isDst, rule.getName(), fromOffset, toOffset,
+            writeZonePropsByDOM(writer, isDst, rule.getName(), fromRawOffset + fromDSTSavings, toOffset,
                     dtrule.getRuleMonth(), dtrule.getRuleDayOfMonth(), startTime, MAX_TIME);
             break;
         case DateTimeRule.DOW:
-            writeZonePropsByDOW(writer, isDst, rule.getName(), fromOffset, toOffset,
+            writeZonePropsByDOW(writer, isDst, rule.getName(), fromRawOffset + fromDSTSavings, toOffset,
                     dtrule.getRuleMonth(), dtrule.getRuleWeekInMonth(), dtrule.getRuleDayOfWeek(), startTime, MAX_TIME);
             break;
         case DateTimeRule.DOW_GEQ_DOM:
-            writeZonePropsByDOW_GEQ_DOM(writer, isDst, rule.getName(), fromOffset, toOffset,
+            writeZonePropsByDOW_GEQ_DOM(writer, isDst, rule.getName(), fromRawOffset + fromDSTSavings, toOffset,
                     dtrule.getRuleMonth(), dtrule.getRuleDayOfMonth(), dtrule.getRuleDayOfWeek(), startTime, MAX_TIME);
             break;
         case DateTimeRule.DOW_LEQ_DOM:
-            writeZonePropsByDOW_LEQ_DOM(writer, isDst, rule.getName(), fromOffset, toOffset,
+            writeZonePropsByDOW_LEQ_DOM(writer, isDst, rule.getName(), fromRawOffset + fromDSTSavings, toOffset,
                     dtrule.getRuleMonth(), dtrule.getRuleDayOfMonth(), dtrule.getRuleDayOfWeek(), startTime, MAX_TIME);
             break;
         }
     }
 
+    /*
+     * Convert the rule to its equivalent rule using WALL_TIME mode
+     */
+    private static DateTimeRule toWallTimeRule(DateTimeRule rule, int rawOffset, int dstSavings) {
+        if (rule.getTimeRuleType() == DateTimeRule.WALL_TIME) {
+            return rule;
+        }
+        int wallt = rule.getRuleMillisInDay();
+        if (rule.getTimeRuleType() == DateTimeRule.UNIVERSAL_TIME) {
+            wallt += (rawOffset + dstSavings);
+        } else if (rule.getTimeRuleType() == DateTimeRule.STANDARD_TIME) {
+            wallt += dstSavings;
+        }
+
+        int month = -1, dom = 0, dow = 0, dtype = -1;
+        int dshift = 0;
+        if (wallt < 0) {
+            dshift = -1;
+            wallt += MILLIS_PER_DAY;
+        } else if (wallt >= MILLIS_PER_DAY) {
+            dshift = 1;
+            wallt -= MILLIS_PER_DAY;
+        }
+
+        month = rule.getRuleMonth();
+        dom = rule.getRuleDayOfMonth();
+        dow = rule.getRuleDayOfWeek();
+        dtype = rule.getDateRuleType();
+
+        if (dshift != 0) {
+            if (dtype == DateTimeRule.DOW) {
+                // Convert to DOW_GEW_DOM or DOW_LEQ_DOM rule first
+                int wim = rule.getRuleWeekInMonth();
+                if (wim > 0) {
+                    dtype = DateTimeRule.DOW_GEQ_DOM;
+                    dom = 7 * (wim - 1) + 1;
+                } else {
+                    dtype = DateTimeRule.DOW_LEQ_DOM;
+                    dom = MONTHLENGTH[month] + 7 * (wim + 1);
+                }
+
+            }
+            // Shift one day before or after
+            dom += dshift;
+            if (dom == 0) {
+                month--;
+                month = month < Calendar.JANUARY ? Calendar.DECEMBER : month;
+                dom = MONTHLENGTH[month];
+            } else if (dom > MONTHLENGTH[month]) {
+                month++;
+                month = month > Calendar.DECEMBER ? Calendar.JANUARY : month;
+                dom = 1;
+            }
+            if (dtype != DateTimeRule.DOM) {
+                // Adjust day of week
+                dow += dshift;
+                if (dow < Calendar.SUNDAY) {
+                    dow = Calendar.SATURDAY;
+                } else if (dow > Calendar.SATURDAY) {
+                    dow = Calendar.SUNDAY;
+                }
+            }
+        }
+        // Create a new rule
+        DateTimeRule modifiedRule;
+        if (dtype == DateTimeRule.DOM) {
+            modifiedRule = new DateTimeRule(month, dom, wallt, DateTimeRule.WALL_TIME);
+        } else {
+            modifiedRule = new DateTimeRule(month, dom, dow,
+                    (dtype == DateTimeRule.DOW_GEQ_DOM), wallt, DateTimeRule.WALL_TIME);
+        }
+        return modifiedRule;
+    }
+
+    /*
+     * Write the opening section of zone properties
+     */
     private static void beginZoneProps(Writer writer, boolean isDst, String tzname, int fromOffset, int toOffset, long startTime) throws IOException {
         writer.write(ICAL_BEGIN);
         writer.write(COLON);
@@ -1417,6 +1555,9 @@ public class VTimeZone extends ICUTimeZone {
         writer.write(NEWLINE);        
     }
 
+    /*
+     * Writes the closing section of zone properties
+     */
     private static void endZoneProps(Writer writer, boolean isDst) throws IOException{
         // END:STANDARD or END:DAYLIGHT
         writer.write(ICAL_END);
@@ -1431,7 +1572,7 @@ public class VTimeZone extends ICUTimeZone {
     }
 
     /*
-     * Writes out the beggining part of RRULE line
+     * Write the beggining part of RRULE line
      */
     private static void beginRRULE(Writer writer, int month) throws IOException {
         writer.write(ICAL_RRULE);
@@ -1447,7 +1588,7 @@ public class VTimeZone extends ICUTimeZone {
     }
 
     /*
-     * Appends UNTIL attribute after RRULE line
+     * Append the UNTIL attribute after RRULE line
      */
     private static void appendUNTIL(Writer writer, String until) throws IOException {
         if (until != null) {
@@ -1459,7 +1600,7 @@ public class VTimeZone extends ICUTimeZone {
     }
 
     /*
-     * Writes out the first part of VTIMEZONE definition block
+     * Write the opening section of the VTIMEZONE block
      */
     private static void writeHeader(Writer writer, String tzid) throws IOException {
         writer.write(ICAL_BEGIN);
@@ -1473,7 +1614,7 @@ public class VTimeZone extends ICUTimeZone {
     }
 
     /*
-     * Writes out the last part of VTIMEZONE definition block
+     * Write the closing section of the VTIMEZONE definition block
      */
     private static void writeFooter(Writer writer) throws IOException {
         writer.write(ICAL_END);

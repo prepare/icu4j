@@ -6,6 +6,12 @@
  */
 package com.ibm.icu.dev.test.timezone;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+
 import com.ibm.icu.dev.test.TestFmwk;
 import com.ibm.icu.impl.ICUTimeZone;
 import com.ibm.icu.util.AnnualTimeZoneRule;
@@ -21,6 +27,7 @@ import com.ibm.icu.util.TimeZoneRule;
 import com.ibm.icu.util.TimeZoneTransition;
 import com.ibm.icu.util.TimeZoneTransitionRule;
 import com.ibm.icu.util.ULocale;
+import com.ibm.icu.util.VTimeZone;
 
 /**
  * Test cases for TimeZoneRule and RuleBasedTimeZone
@@ -265,6 +272,85 @@ public class TimeZoneRuleTest extends TestFmwk {
     }
 
     /*
+     * Write out time zone rules of OlsonTimeZone into VTIMEZONE format, create a new
+     * VTimeZone from the VTIMEZONE data, then compare transitions
+     */
+    public void TestVTimeZoneRoundTrip() {
+        long startTime = getUTCMillis(1850, Calendar.JANUARY, 1);
+        long endTime = getUTCMillis(2050, Calendar.JANUARY, 1);
+
+        String[] tzids = getTestZIDs();
+        for (int i = 0; i < tzids.length; i++) {
+            TimeZone olsontz = TimeZone.getTimeZone(tzids[i]);
+            VTimeZone vtz_org = VTimeZone.create(tzids[i]);
+            VTimeZone vtz_new = null;
+            try {
+                // Write out VTIMEZONE
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                OutputStreamWriter writer = new OutputStreamWriter(baos);
+                vtz_org.write(writer);
+                writer.close();
+                byte[] vtzdata = baos.toByteArray();
+                // Read VTIMEZONE
+                ByteArrayInputStream bais = new ByteArrayInputStream(vtzdata);
+                InputStreamReader reader = new InputStreamReader(bais);
+                vtz_new = VTimeZone.create(reader);
+                reader.close();
+
+            } catch (IOException ioe) {
+                errln("FAIL: IO error while writing/reading VTIMEZONE data");
+            }
+            // Check equivalency
+            if (!vtz_new.hasEquivalentTransitions(olsontz, startTime, endTime, true)) {
+                errln("FAIL: VTimeZone for " + tzids[i] + " is not equivalent to its OlsonTimeZone corresponding.");
+            }
+        }
+    }
+
+    /*
+     * Write out time zone rules of OlsonTimeZone after a cutover date into VTIMEZONE format,
+     * create a new VTimeZone from the VTIMEZONE data, then compare transitions
+     */
+    public void TestVTimeZoneRoundTripPartial() {
+        long[] cutoverTimes = new long[] {
+            getUTCMillis(1900, Calendar.JANUARY, 1),
+            getUTCMillis(1950, Calendar.JANUARY, 1),
+            getUTCMillis(2020, Calendar.JANUARY, 1),
+        };
+        long endTime = getUTCMillis(2050, Calendar.JANUARY, 1);
+
+        String[] tzids = getTestZIDs();
+        for (int n = 0; n < cutoverTimes.length; n++) {
+            long startTime = cutoverTimes[n];
+            for (int i = 0; i < tzids.length; i++) {
+                TimeZone olsontz = TimeZone.getTimeZone(tzids[i]);
+                VTimeZone vtz_org = VTimeZone.create(tzids[i]);
+                VTimeZone vtz_new = null;
+                try {
+                    // Write out VTIMEZONE
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    OutputStreamWriter writer = new OutputStreamWriter(baos);
+                    vtz_org.write(writer, startTime);
+                    writer.close();
+                    byte[] vtzdata = baos.toByteArray();
+                    // Read VTIMEZONE
+                    ByteArrayInputStream bais = new ByteArrayInputStream(vtzdata);
+                    InputStreamReader reader = new InputStreamReader(bais);
+                    vtz_new = VTimeZone.create(reader);
+                    reader.close();
+
+                } catch (IOException ioe) {
+                    errln("FAIL: IO error while writing/reading VTIMEZONE data");
+                }
+                // Check equivalency
+                if (!vtz_new.hasEquivalentTransitions(olsontz, startTime, endTime, true)) {
+                    errln("FAIL: VTimeZone for " + tzids[i] + "(>=" + startTime + ") is not equivalent to its OlsonTimeZone corresponding.");
+                }
+            }            
+        }
+    }
+
+    /*
      * Check if a time shift really happens on each transition returned by getNextTransition or
      * getPreviousTransition in the specified time range
      */
@@ -432,6 +518,7 @@ public class TimeZoneRuleTest extends TestFmwk {
     }
 
     private static final String[] TESTZIDS = {
+        "AGT",
         "America/New_York",
         "America/Los_Angeles",
         "America/Indiana/Indianapolis",
@@ -440,6 +527,7 @@ public class TimeZoneRuleTest extends TestFmwk {
         "Europe/Paris",
         "Asia/Tokyo",
         "Asia/Sakhalin",
+        "Africa/Cairo",
         "Africa/Windhoek",
         "Australia/Sydney",
         "Etc/GMT+8"

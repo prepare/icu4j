@@ -97,7 +97,9 @@ public class Grego {
      * @return the day of week
      */
     public static int dayOfWeek(long day) {
-        int dayOfWeek = (int)((day + Calendar.THURSDAY) % 7);  // day 0 of 1970-epoch day is Thursday
+        long[] remainder = new long[1];
+        floorDivide(day + Calendar.THURSDAY, 7, remainder);
+        int dayOfWeek = (int)remainder[0];
         dayOfWeek = (dayOfWeek == 0) ? 7 : dayOfWeek;
         return dayOfWeek;
     }

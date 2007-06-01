@@ -34,6 +34,34 @@ public abstract class ICUTimeZone extends TimeZone implements HasTimeZoneRules {
      * @see com.ibm.icu.util.HasTimeZoneTransitions#hasEquivalentTransitions(com.ibm.icu.util.TimeZone, long, long)
      */
     public boolean hasEquivalentTransitions(TimeZone tz, long start, long end) {
+        return hasEquivalentTransitions(tz, start, end, false);
+    }
+
+    /**
+     * Checks if the time zone has equivalent transitions in the time range.
+     * This method returns true when all of transition times, from/to standard
+     * offsets and DST savings used by this time zone match the other in the
+     * time range.
+     * 
+     * @param tz    The instance of TimeZone
+     * @param start The start time of the evaluated time range (inclusive)
+     * @param end   The end time of the evaluated time range (inclusive)
+     * @param ignoreDstAmount
+     *              When true, any transitions with only daylight saving amount
+     *              changes will be ignored, except either of them is zero.
+     *              For example, a transition from rawoffset 3:00/dstsavings 1:00
+     *              to rawoffset 2:00/dstsavings 2:00 is excluded from the comparison,
+     *              but a transtion from rawoffset 2:00/dstsavings 1:00 to
+     *              rawoffset 3:00/dstsavings 0:00 is included.
+     * 
+     * @return true if the other time zone has the equivalent transitions in the
+     * time range.  When tz is not implementing HasTimeZoneTransitions, this method
+     * returns false.
+     * 
+     * @internal ICU 3.8
+     * @deprecated This API is for internal ICU use only
+     */
+    public boolean hasEquivalentTransitions(TimeZone tz, long start, long end, boolean ignoreDstAmount) {
         if (hasSameRules(tz)) {
             return true;
         }
@@ -48,8 +76,16 @@ public abstract class ICUTimeZone extends TimeZone implements HasTimeZoneRules {
         getOffset(start, false, offsets1);
         tz.getOffset(start, false, offsets2);
 
-        if (offsets1[0] != offsets2[0] || offsets1[1] != offsets2[1]) {
-            return false;
+        if (ignoreDstAmount) {
+            if ((offsets1[0] + offsets1[1] != offsets2[0] + offsets2[1])
+                || (offsets1[1] != 0 && offsets2[1] == 0)
+                || (offsets1[1] == 0 && offsets2[1] != 0)) {
+                return false;
+            }
+        } else {
+            if (offsets1[0] != offsets2[0] || offsets1[1] != offsets2[1]) {
+                return false;
+            }            
         }
 
         // Check transitions in the range
@@ -57,6 +93,22 @@ public abstract class ICUTimeZone extends TimeZone implements HasTimeZoneRules {
         while (true) {
             TimeZoneTransition tr1 = getNextTransition(time, false);
             TimeZoneTransition tr2 = ((HasTimeZoneRules)tz).getNextTransition(time, false);
+
+            if (ignoreDstAmount) {
+                // Skip a transition which only differ the amount of DST savings
+                if (tr1 != null
+                        && (tr1.getFrom().getRawOffset() + tr1.getFrom().getDSTSavings()
+                                == tr1.getTo().getRawOffset() + tr1.getTo().getDSTSavings())
+                        && (tr1.getFrom().getDSTSavings() != 0 && tr1.getTo().getDSTSavings() != 0)) {
+                    tr1 = getNextTransition(tr1.getTime(), false);
+                }
+                if (tr2 != null
+                        && (tr2.getFrom().getRawOffset() + tr2.getFrom().getDSTSavings()
+                                == tr2.getTo().getRawOffset() + tr2.getTo().getDSTSavings())
+                        && (tr2.getFrom().getDSTSavings() != 0 && tr2.getTo().getDSTSavings() != 0)) {
+                    tr2 = getNextTransition(tr2.getTime(), false);
+                }
+            }
 
             boolean inRange1 = false;
             boolean inRange2 = false;
@@ -77,10 +129,21 @@ public abstract class ICUTimeZone extends TimeZone implements HasTimeZoneRules {
             if (!inRange1 || !inRange2) {
                 return false;
             }
-            if (tr1.getTime() != tr2.getTime() ||
-                    tr1.getTo().getRawOffset() != tr2.getTo().getRawOffset() ||
-                    tr1.getTo().getDSTSavings() != tr2.getTo().getDSTSavings()) {
+            if (tr1.getTime() != tr2.getTime()) {
                 return false;
+            }
+            if (ignoreDstAmount) {
+                if (tr1.getTo().getRawOffset() + tr1.getTo().getDSTSavings()
+                            != tr2.getTo().getRawOffset() + tr2.getTo().getDSTSavings()
+                        || tr1.getTo().getDSTSavings() != 0 &&  tr2.getTo().getDSTSavings() == 0
+                        || tr1.getTo().getDSTSavings() == 0 &&  tr2.getTo().getDSTSavings() != 0) {
+                    return false;
+                }
+            } else {
+                if (tr1.getTo().getRawOffset() != tr2.getTo().getRawOffset() ||
+                    tr1.getTo().getDSTSavings() != tr2.getTo().getDSTSavings()) {
+                    return false;
+                }
             }
             time = tr1.getTime();
         }
