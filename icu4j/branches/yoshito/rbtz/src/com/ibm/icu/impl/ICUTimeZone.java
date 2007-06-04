@@ -286,4 +286,121 @@ public abstract class ICUTimeZone extends TimeZone implements HasTimeZoneRules {
         filteredRules.toArray(rules);
         return rules;
     }
+
+    private static final long MILLIS_PER_YEAR = 365*24*60*60*1000L;
+
+    /* (non-Javadoc)
+     * @see com.ibm.icu.util.HasTimeZoneRules#getSimpleTimeZoneRules(long)
+     */
+    public TimeZoneRule[] getSimpleTimeZoneRules(long date) {
+        AnnualTimeZoneRule[] annualRules = null;
+        InitialTimeZoneRule initialRule = null;
+        // Get the next transition
+        TimeZoneTransition tr = getNextTransition(date, false);
+        if (tr != null) {
+            String initialName = tr.getFrom().getName();
+            int initialRaw = tr.getFrom().getRawOffset();
+            int initialDst = tr.getFrom().getDSTSavings();
+
+            // Check if the next transition is either DST->STD or STD->DST and
+            // within roughly 1 year from the specified date
+            long nextTransitionTime = tr.getTime();
+            if (((tr.getFrom().getDSTSavings() == 0 && tr.getTo().getDSTSavings() != 0)
+                    || (tr.getFrom().getDSTSavings() != 0 && tr.getTo().getDSTSavings() == 0))
+                        && date + MILLIS_PER_YEAR > nextTransitionTime) {
+                // Get the next next transition
+                annualRules = new AnnualTimeZoneRule[2];
+                // Get local wall time for the transition time
+                int dtfields[] = Grego.timeToFields(nextTransitionTime + tr.getFrom().getRawOffset() + tr.getFrom().getDSTSavings(), null);
+                int weekInMonth = Grego.getDayOfWeekInMonth(dtfields[0], dtfields[1], dtfields[2]);
+                // Create DOW rule
+                DateTimeRule dtr = new DateTimeRule(dtfields[1], weekInMonth, dtfields[3], dtfields[5], DateTimeRule.WALL_TIME);
+                annualRules[0] = new AnnualTimeZoneRule(tr.getTo().getName(), tr.getTo().getRawOffset(), tr.getTo().getDSTSavings(),
+                        dtr, dtfields[0], AnnualTimeZoneRule.MAX_YEAR);
+
+                tr = getNextTransition(nextTransitionTime, false);
+                AnnualTimeZoneRule secondRule = null;
+                if (tr != null) {
+                    // Check if the next next transition is either DST->STD or STD->DST
+                    // and within roughly 1 year from the next transition
+                    if (((tr.getFrom().getDSTSavings() == 0 && tr.getTo().getDSTSavings() != 0)
+                            || (tr.getFrom().getDSTSavings() != 0 && tr.getTo().getDSTSavings() == 0))
+                                && nextTransitionTime + MILLIS_PER_YEAR > tr.getTime()) {
+                        // Generate another DOW rule
+                        dtfields = Grego.timeToFields(tr.getTime() + tr.getFrom().getRawOffset() + tr.getFrom().getDSTSavings(), dtfields);
+                        weekInMonth = Grego.getDayOfWeekInMonth(dtfields[0], dtfields[1], dtfields[2]);
+                        dtr = new DateTimeRule(dtfields[1], weekInMonth, dtfields[3], dtfields[5], DateTimeRule.WALL_TIME);
+                        secondRule = new AnnualTimeZoneRule(tr.getTo().getName(), tr.getTo().getRawOffset(), tr.getTo().getDSTSavings(),
+                                dtr, dtfields[0] - 1, AnnualTimeZoneRule.MAX_YEAR);
+                        // Make sure this rule can be applied to the specified date
+                        Date d = secondRule.getPreviousStart(date, tr.getFrom().getRawOffset(), tr.getFrom().getDSTSavings(), true);
+                        if (d != null && d.getTime() <= date
+                                && initialRaw == tr.getTo().getRawOffset()
+                                && initialDst == tr.getTo().getDSTSavings()) {
+                            // We can use this rule as the second transition rule
+                            annualRules[1] = secondRule;
+                        }
+                    }
+                }
+                if (annualRules[1] == null) {
+                    // Try previous transition
+                    tr = getPreviousTransition(date, true);
+                    if (tr != null) {
+                        // Check if the previous transition is either DST->STD or STD->DST.
+                        // The actual transition time does not matter here.
+                        if ((tr.getFrom().getDSTSavings() == 0 && tr.getTo().getDSTSavings() != 0)
+                                || (tr.getFrom().getDSTSavings() != 0 && tr.getTo().getDSTSavings() == 0)) {
+                            // Generate another DOW rule
+                            dtfields = Grego.timeToFields(tr.getTime() + tr.getFrom().getRawOffset() + tr.getFrom().getDSTSavings(), dtfields);
+                            weekInMonth = Grego.getDayOfWeekInMonth(dtfields[0], dtfields[1], dtfields[2]);
+                            dtr = new DateTimeRule(dtfields[1], weekInMonth, dtfields[3], dtfields[5], DateTimeRule.WALL_TIME);
+                            secondRule = new AnnualTimeZoneRule(tr.getTo().getName(), tr.getTo().getRawOffset(), tr.getTo().getDSTSavings(),
+                                    dtr, annualRules[0].getStartYear() - 1, AnnualTimeZoneRule.MAX_YEAR);
+                            // Check if this rule start after the first rule after the specified date
+                            Date d = secondRule.getNextStart(date, tr.getFrom().getRawOffset(), tr.getFrom().getDSTSavings(), false);
+                            if (d.getTime() > nextTransitionTime) {
+                                // We can use this rule as the second transition rule
+                                annualRules[1] = secondRule;
+                            }
+                        }
+                    }
+                }
+                if (annualRules[1] == null) {
+                    // Cannot generate a good pair of AnnualTimeZoneRule
+                    annualRules = null;
+                } else {
+                    // The initial rule should represent the rule before the previous transition
+                    initialName = annualRules[0].getName();
+                    initialRaw = annualRules[0].getRawOffset();
+                    initialDst = annualRules[0].getDSTSavings();
+                }
+            }
+            initialRule = new InitialTimeZoneRule(initialName, initialRaw, initialDst);
+        } else {
+            // Try the previous one
+            tr = getPreviousTransition(date, true);
+            if (tr != null) {
+                initialRule = new InitialTimeZoneRule(tr.getTo().getName(),
+                        tr.getTo().getRawOffset(), tr.getTo().getDSTSavings());
+            } else {
+                // No transitions in the past.  Just use the current offsets
+                int[] offsets = new int[2];
+                getOffset(date, false, offsets);
+                initialRule = new InitialTimeZoneRule(getID(), offsets[0], offsets[1]);
+            }
+        }
+
+        TimeZoneRule[] result = null;
+        if (annualRules == null) {
+            result = new TimeZoneRule[1];
+            result[0] = initialRule;
+        } else {
+            result = new TimeZoneRule[3];
+            result[0] = initialRule;
+            result[1] = annualRules[0];
+            result[2] = annualRules[1];
+        }
+
+        return result;
+    }
 }

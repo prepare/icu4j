@@ -351,6 +351,107 @@ public class TimeZoneRuleTest extends TestFmwk {
     }
 
     /*
+     * Write out simple time zone rules from an OlsonTimeZone at various time into VTIMEZONE
+     * format and create a new VTimeZone from the VTIMEZONE data, then make sure the raw offset
+     * and DST savings are same in these two time zones.
+     */
+    public void TestVTimeZoneSimpleWrite() {
+        long[] testTimes = new long[] {
+                getUTCMillis(2006, Calendar.JANUARY, 1),
+                getUTCMillis(2006, Calendar.MARCH, 15),
+                getUTCMillis(2006, Calendar.MARCH, 31),
+                getUTCMillis(2006, Calendar.APRIL, 5),
+                getUTCMillis(2006, Calendar.OCTOBER, 25),
+                getUTCMillis(2006, Calendar.NOVEMBER, 1),
+                getUTCMillis(2006, Calendar.NOVEMBER, 5),
+                getUTCMillis(2007, Calendar.JANUARY, 1)
+        };
+
+        String[] tzids = getTestZIDs();
+        for (int n = 0; n < testTimes.length; n++) {
+            long time = testTimes[n];
+
+            int[] offsets1 = new int[2];
+            int[] offsets2 = new int[2];
+
+            for (int i = 0; i < tzids.length; i++) {
+                VTimeZone vtz_org = VTimeZone.create(tzids[i]);
+                VTimeZone vtz_new = null;
+                try {
+                    // Write out VTIMEZONE
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    OutputStreamWriter writer = new OutputStreamWriter(baos);
+                    vtz_org.writeSimple(writer, time);
+                    writer.close();
+                    byte[] vtzdata = baos.toByteArray();
+                    // Read VTIMEZONE
+                    ByteArrayInputStream bais = new ByteArrayInputStream(vtzdata);
+                    InputStreamReader reader = new InputStreamReader(bais);
+                    vtz_new = VTimeZone.create(reader);
+                    reader.close();
+                } catch (IOException ioe) {
+                    errln("FAIL: IO error while writing/reading VTIMEZONE data");
+                }
+
+                // Check equivalency
+                vtz_org.getOffset(time, false, offsets1);
+                vtz_new.getOffset(time, false, offsets2);
+                if (offsets1[0] != offsets2[0] || offsets1[1] != offsets2[1]) {
+                    errln("FAIL: VTimeZone writeSimple for " + tzids[i] + " at time " + time + " failed to the round trip.");
+                }
+            }            
+        }
+    }
+
+    /*
+     * Extract simple rules from an OlsonTimeZone and make sure the rule format matches
+     * the expected format.
+     */
+    public void TestGetSimpleRules() {
+        long[] testTimes = new long[] {
+                getUTCMillis(1970, Calendar.JANUARY, 1),
+                getUTCMillis(2000, Calendar.MARCH, 31),
+                getUTCMillis(2005, Calendar.JULY, 1),
+                getUTCMillis(2010, Calendar.NOVEMBER, 1),
+            };
+
+        String[] tzids = getTestZIDs();
+        for (int n = 0; n < testTimes.length; n++) {
+            long time = testTimes[n];
+            for (int i = 0; i < tzids.length; i++) {
+                ICUTimeZone tz = (ICUTimeZone)TimeZone.getTimeZone(tzids[i]);
+                TimeZoneRule[] rules = tz.getSimpleTimeZoneRules(time);
+                if (rules == null) {
+                    errln("FAIL: Failed to extract simple rules for " + tzids[i] + " at " + time);
+                } else {
+                    if (rules.length == 1) {
+                        if (!(rules[0] instanceof InitialTimeZoneRule)) {
+                            errln("FAIL: Unexpected rule object type is returned for " + tzids[i] + " at " + time);
+                        }
+                    } else if (rules.length == 3) {
+                        if (!(rules[0] instanceof InitialTimeZoneRule)
+                                || !(rules[1] instanceof AnnualTimeZoneRule)
+                                || !(rules[2] instanceof AnnualTimeZoneRule)) {
+                            errln("FAIL: Unexpected rule object type is returned for " + tzids[i] + " at " + time);
+                        }
+                        for (int idx = 1; idx <= 2; idx++) {
+                            DateTimeRule dtr = ((AnnualTimeZoneRule)rules[idx]).getRule();
+                            if (dtr.getTimeRuleType() != DateTimeRule.WALL_TIME) {
+                                errln("FAIL: WALL_TIME is not used as the time rule in the time zone rule(" + idx + ") for " + tzids[i] + " at " + time);
+                            }
+                            if (dtr.getDateRuleType() != DateTimeRule.DOW) {
+                                errln("FAIL: DOW is not used as the date rule in the time zone rule(" + idx + ") for " + tzids[i] + " at " + time);
+                            }
+                        }
+                    } else {
+                        errln("FAIL: Unexpected number of rules returned for " + tzids[i] + " at " + time);
+                    }
+                }
+            }
+        }
+    }
+    
+    /*
      * Check if a time shift really happens on each transition returned by getNextTransition or
      * getPreviousTransition in the specified time range
      */

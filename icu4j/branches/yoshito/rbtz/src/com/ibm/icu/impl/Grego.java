@@ -185,4 +185,20 @@ public class Grego {
         remainder[0] = numerator - (quotient * denominator);
         return quotient;
     }
+
+    /*
+     * Returns the ordinal number for the specified day of week in the month.
+     * The valid return value is 1, 2, 3, 4 or -1.
+     */
+    public static int getDayOfWeekInMonth(int year, int month, int dayOfMonth) {
+        int weekInMonth = (dayOfMonth + 6)/7;
+        if (weekInMonth == 4) {
+            if (dayOfMonth + 7 > monthLength(year, month)) {
+                weekInMonth = -1;
+            }
+        } else if (weekInMonth == 5) {
+            weekInMonth = -1;
+        }
+        return weekInMonth;
+    }
 }

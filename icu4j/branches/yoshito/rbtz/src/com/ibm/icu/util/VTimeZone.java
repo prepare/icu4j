@@ -161,6 +161,35 @@ public class VTimeZone extends ICUTimeZone {
         writeZone(rbtz, writer);
     }
 
+    /**
+     * Writes RFC2445 VTIMEZONE data applicalbe for the specified date.
+     * Some common iCalendar implementations can only handle a single time
+     * zone property or a pair of standard and daylight time properties using
+     * BYDAY rule with day of week (such as BYDAY=1SUN).  This method produce
+     * the VTIMEZONE data which can be handled these implementations.  The rules
+     * produced by this method can be used only for calculating time zone offset
+     * around the specified date.
+     * 
+     * @param writer    The Writer used for the output
+     * @param time      The date
+     * 
+     * @throws IOException
+     * 
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
+     */
+    public void writeSimple(Writer writer, long time) throws IOException {
+        // Extract simple rules
+        TimeZoneRule[] rules = tz.getSimpleTimeZoneRules(time);
+
+        // Create a RuleBasedTimeZone with the subset rule
+        RuleBasedTimeZone rbtz = new RuleBasedTimeZone(tz.getID(), (InitialTimeZoneRule)rules[0]);
+        for (int i = 1; i < rules.length; i++) {
+            rbtz.addTransitionRule((TimeZoneTransitionRule)rules[i]);
+        }
+        writeZone(rbtz, writer);
+    }
+
     /* (non-Javadoc)
      * @see com.ibm.icu.util.HasTimeZoneRules#getNextTransition(long, boolean)
      */
@@ -1040,7 +1069,7 @@ public class VTimeZone extends ICUTimeZone {
             int fromDSTSavings = tzt.getFrom().getDSTSavings();
             int toOffset = tzt.getTo().getRawOffset() + tzt.getTo().getDSTSavings();
             Grego.timeToFields(tzt.getTime() + fromOffset, dtfields);
-            int weekInMonth = getWeekInMonth(dtfields[0], dtfields[1], dtfields[2]);
+            int weekInMonth = Grego.getDayOfWeekInMonth(dtfields[0], dtfields[1], dtfields[2]);
             int year = dtfields[0];
             boolean sameRule = false;
             if (isDst) {
@@ -1139,8 +1168,10 @@ public class VTimeZone extends ICUTimeZone {
         }
         if (!hasTransitions) {
             // No transition - put a single non transition RDATE
-            int offset = tz.getRawOffset();
-            writeZonePropsByTime(w, false, tz.getID() + "(STD)", offset, offset, DEF_TZSTARTTIME - offset);
+            int offset = tz.getOffset(0 /* any time */);
+            boolean isDst = (offset != tz.getRawOffset());
+            writeZonePropsByTime(w, isDst, getDefaultTZName(tz.getID(), isDst),
+                    offset, offset, DEF_TZSTARTTIME - offset);                
         } else {
             if (dstCount > 0) {
                 if (finalDstRule == null) {
@@ -1198,21 +1229,6 @@ public class VTimeZone extends ICUTimeZone {
             }            
         }
         writeFooter(w);
-    }
-
-    /*
-     * Returns the week number in month for the specified date
-     */
-    private static int getWeekInMonth(int year, int month, int dayOfMonth) {
-        int weekInMonth = (dayOfMonth + 6)/7;
-        if (weekInMonth == 4) {
-            if (dayOfMonth + 7 > Grego.monthLength(year, month)) {
-                weekInMonth = -1;
-            }
-        } else if (weekInMonth == 5) {
-            weekInMonth = -1;
-        }
-        return weekInMonth;
     }
 
     /*
