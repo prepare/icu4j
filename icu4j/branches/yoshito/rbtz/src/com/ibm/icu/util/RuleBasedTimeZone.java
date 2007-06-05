@@ -104,11 +104,11 @@ public class RuleBasedTimeZone extends ICUTimeZone {
         int idx = 1;
         if (historicRules != null) {
             for (; idx < historicRules.size() + 1; idx++) {
-                rules[idx] = (TimeZoneRule)historicRules.get(idx);
+                rules[idx] = (TimeZoneRule)historicRules.get(idx - 1);
             }
         }
         if (finalRules != null) {
-            rules[idx] = finalRules[0];
+            rules[idx++] = finalRules[0];
             if (finalRules[1] != null) {
                 rules[idx] = finalRules[1];
             }

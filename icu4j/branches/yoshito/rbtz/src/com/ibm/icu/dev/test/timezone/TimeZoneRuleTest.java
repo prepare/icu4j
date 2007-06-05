@@ -11,6 +11,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.util.Date;
 
 import com.ibm.icu.dev.test.TestFmwk;
 import com.ibm.icu.impl.ICUTimeZone;
@@ -230,11 +231,11 @@ public class TimeZoneRuleTest extends TestFmwk {
                 // Ascending
                 compareTransitionsAscending(tz, rbtz, startTime, until, false);
                 // Ascending/inclusive
-                compareTransitionsAscending(tz, rbtz, startTime, until, true);
+                compareTransitionsAscending(tz, rbtz, startTime + 1, until, true);
                 // Descending
                 compareTransitionsDescending(tz, rbtz, startTime, until, false);
                 // Descending/inclusive
-                compareTransitionsDescending(tz, rbtz, startTime, until, true);
+                compareTransitionsDescending(tz, rbtz, startTime + 1, until, true);
             }
             
         }
@@ -401,6 +402,80 @@ public class TimeZoneRuleTest extends TestFmwk {
                 }
             }            
         }
+    }
+
+    /*
+     * Write out time zone rules of OlsonTimeZone into VTIMEZONE format with RFC2445 header TZURL and
+     * LAST-MODIFIED, create a new VTimeZone from the VTIMEZONE data to see if the headers are preserved.
+     */
+    public void TestVTimeZoneHeaderProps() {
+        String tzid = "America/Chicago";
+        String tzurl = "http://source.icu-project.org";
+        Date lastmod = new Date(getUTCMillis(2007, Calendar.JUNE, 1));
+
+        VTimeZone vtz = VTimeZone.create(tzid);
+        vtz.setTZURL(tzurl);
+        vtz.setLastModified(lastmod);
+
+        // Roundtrip conversion
+        VTimeZone newvtz1 = null;
+        try {
+            // Write out VTIMEZONE
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            OutputStreamWriter writer = new OutputStreamWriter(baos);
+            vtz.write(writer);
+            writer.close();
+            byte[] vtzdata = baos.toByteArray();
+            // Read VTIMEZONE
+            ByteArrayInputStream bais = new ByteArrayInputStream(vtzdata);
+            InputStreamReader reader = new InputStreamReader(bais);
+            newvtz1 = VTimeZone.create(reader);
+            reader.close();
+
+            // Check if TZURL and LAST-MODIFIED headers are preserved
+            if (!(tzurl.equals(newvtz1.getTZURL()))) {
+                errln("FAIL: TZURL property is not preserved during the roundtrip conversion.  Before:"
+                        + tzurl + "/After:" + newvtz1.getTZURL());
+            }
+            if (!(lastmod.equals(newvtz1.getLastModified()))) {
+                errln("FAIL: LAST-MODIFIED property is not preserved during the roundtrip conversion.  Before:"
+                        + lastmod.getTime() + "/After:" + newvtz1.getLastModified().getTime());
+            }
+        } catch (IOException ioe) {
+            errln("FAIL: IO error while writing/reading VTIMEZONE data");
+        }
+
+        // Second roundtrip, with a cutover
+        VTimeZone newvtz2 = null;
+        try {
+            // Set different tzurl
+            String newtzurl = "http://www.ibm.com";
+            newvtz1.setTZURL(newtzurl);
+            // Write out VTIMEZONE
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            OutputStreamWriter writer = new OutputStreamWriter(baos);
+            newvtz1.write(writer, getUTCMillis(2000, Calendar.JANUARY, 1));
+            writer.close();
+            byte[] vtzdata = baos.toByteArray();
+            // Read VTIMEZONE
+            ByteArrayInputStream bais = new ByteArrayInputStream(vtzdata);
+            InputStreamReader reader = new InputStreamReader(bais);
+            newvtz2 = VTimeZone.create(reader);
+            reader.close();
+
+            // Check if TZURL and LAST-MODIFIED headers are preserved
+            if (!(newtzurl.equals(newvtz2.getTZURL()))) {
+                errln("FAIL: TZURL property is not preserved during the second roundtrip conversion.  Before:"
+                        + newtzurl + "/After:" + newvtz2.getTZURL());
+            }
+            if (!(lastmod.equals(newvtz2.getLastModified()))) {
+                errln("FAIL: LAST-MODIFIED property is not preserved during the second roundtrip conversion.  Before:"
+                        + lastmod.getTime() + "/After:" + newvtz2.getLastModified().getTime());
+            }
+        } catch (IOException ioe) {
+            errln("FAIL: IO error while writing/reading VTIMEZONE data");
+        }
+        
     }
 
     /*
@@ -672,6 +747,7 @@ public class TimeZoneRuleTest extends TestFmwk {
         if (utcCal == null) {
             utcCal = new GregorianCalendar(TimeZone.getTimeZone("UTC"), ULocale.ROOT);
         }
+        utcCal.clear();
         utcCal.set(year, month, dayOfMonth);
         return utcCal.getTimeInMillis();
     }

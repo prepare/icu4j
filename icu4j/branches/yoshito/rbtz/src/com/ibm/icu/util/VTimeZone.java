@@ -14,9 +14,11 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.MissingResourceException;
 
 import com.ibm.icu.impl.Grego;
 import com.ibm.icu.impl.ICUTimeZone;
+import com.ibm.icu.impl.OlsonTimeZone;
 
 /**
  * VTimeZone is a class implementing RFC2445 VTIMEZONE.  You can create a
@@ -33,9 +35,6 @@ public class VTimeZone extends ICUTimeZone {
 
     private static final long serialVersionUID = -6851467294127795902L;
 
-    private ICUTimeZone tz;
-    private List vtzlines;
-
     /**
      * Create a VTimeZone instance by the time zone ID.
      * 
@@ -49,6 +48,7 @@ public class VTimeZone extends ICUTimeZone {
     public static VTimeZone create(String tzid) {
         VTimeZone vtz = new VTimeZone();
         vtz.tz = (ICUTimeZone)TimeZone.getTimeZone(tzid);
+        vtz.olsonzid = vtz.tz.getID();
         vtz.setID(tzid);
 
         return vtz;
@@ -116,6 +116,58 @@ public class VTimeZone extends ICUTimeZone {
     }
 
     /**
+     * Gets the RFC2445 TZURL property value.  When a VTimeZone instance was created from
+     * VTIMEZONE data, the value is set by the TZURL property value in the data.  Otherwise,
+     * the initial value is null.
+     * 
+     * @return The RFC2445 TZURL property value
+     * 
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
+     */
+    public String getTZURL() {
+        return tzurl;
+    }
+
+    /**
+     * Sets the RFC2445 TZURL property value.
+     * 
+     * @param url The TZURL property value.
+     * 
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
+     */
+    public void setTZURL(String url) {
+        tzurl = url;
+    }
+
+    /**
+     * Gets the RFC2445 LAST-MODIFIED property value.  When a VTimeZone instance was created
+     * from VTIMEZONE data, the value is set by the LAST-MODIFIED property value in the data.
+     * Otherwise, the initial value is null.
+     * 
+     * @return The Date represents the RFC2445 LAST-MODIFIED date.
+     * 
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
+     */
+    public Date getLastModified() {
+        return lastmod;
+    }
+
+    /**
+     * Sets the date used for RFC2445 LAST-MODIFIED property value.
+     * 
+     * @param date The Date object represents the date for RFC2445 LAST-MODIFIED property value.
+     * 
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
+     */
+    public void setLastModified(Date date) {
+        lastmod = date;
+    }
+
+    /**
      * Writes RFC2445 VTIMEZONE data for this time zone
      * 
      * @param writer A Writer used for the output
@@ -129,12 +181,34 @@ public class VTimeZone extends ICUTimeZone {
         if (vtzlines != null) {
             Iterator it = vtzlines.iterator();
             while (it.hasNext()) {
-                bw.write((String)it.next());
+                String line = (String)it.next();
+                if (line.startsWith(ICAL_TZURL + COLON)) {
+                    if (tzurl != null) {
+                        bw.write(ICAL_TZURL);
+                        bw.write(COLON);
+                        bw.write(tzurl);
+                        bw.write(NEWLINE);
+                    }
+                } else if (line.startsWith(ICAL_LASTMOD + COLON)) {
+                    if (lastmod != null) {
+                        bw.write(ICAL_LASTMOD);
+                        bw.write(COLON);
+                        bw.write(getUTCDateTimeString(lastmod.getTime()));
+                        bw.write(NEWLINE);
+                    }
+                } else {
+                    bw.write(line);
+                }
             }
             bw.flush();
-            return;
+        } else {
+            String[] customHeaders = null;
+            if (olsonzid != null && ICU_TZVERSION != null) {
+                customHeaders = new String[1];
+                customHeaders[0] = ICU_TZINFO_HEADER + COLON + olsonzid + "[" + ICU_TZVERSION + "]";
+            }
+            writeZone(writer, tz, customHeaders);
         }
-        writeZone(tz, writer);
     }
 
     /**
@@ -158,7 +232,13 @@ public class VTimeZone extends ICUTimeZone {
         for (int i = 1; i < rules.length; i++) {
             rbtz.addTransitionRule((TimeZoneTransitionRule)rules[i]);
         }
-        writeZone(rbtz, writer);
+        String[] customHeaders = null;
+        if (olsonzid != null && ICU_TZVERSION != null) {
+            customHeaders = new String[1];
+            customHeaders[0] = ICU_TZINFO_HEADER + COLON + olsonzid + "[" + ICU_TZVERSION + 
+                "/Partial@" + cutover + "]";
+        }
+        writeZone(writer, rbtz, customHeaders);
     }
 
     /**
@@ -187,7 +267,13 @@ public class VTimeZone extends ICUTimeZone {
         for (int i = 1; i < rules.length; i++) {
             rbtz.addTransitionRule((TimeZoneTransitionRule)rules[i]);
         }
-        writeZone(rbtz, writer);
+        String[] customHeaders = null;
+        if (olsonzid != null && ICU_TZVERSION != null) {
+            customHeaders = new String[1];
+            customHeaders[0] = ICU_TZINFO_HEADER + COLON + olsonzid + "[" + ICU_TZVERSION + 
+                "/Simple@" + time + "]";
+        }
+        writeZone(writer, rbtz, customHeaders);
     }
 
     /* (non-Javadoc)
@@ -227,9 +313,14 @@ public class VTimeZone extends ICUTimeZone {
 
     // private stuff ------------------------------------------------------
 
-    /* Hide the constructor */
-    private VTimeZone() {
-    }
+    private ICUTimeZone tz;
+    private List vtzlines;
+    private String olsonzid = null;
+    private String tzurl = null;
+    private Date lastmod = null;
+
+    private static String ICU_TZVERSION;
+    private static final String ICU_TZINFO_HEADER = "X-TZINFO";
 
     // Default DST savings
     private static final int DEF_DSTSAVINGS = 60*60*1000; // 1 hour
@@ -263,6 +354,8 @@ public class VTimeZone extends ICUTimeZone {
     private static final String ICAL_RDATE = "RDATE";
     private static final String ICAL_RRULE = "RRULE";
     private static final String ICAL_TZNAME = "TZNAME";
+    private static final String ICAL_TZURL = "TZURL";
+    private static final String ICAL_LASTMOD = "LAST-MODIFIED";
 
     private static final String ICAL_FREQ = "FREQ";
     private static final String ICAL_UNTIL = "UNTIL";
@@ -281,6 +374,21 @@ public class VTimeZone extends ICUTimeZone {
     private static final int MILLIS_PER_HOUR = 60*60*1000;
     private static final int MILLIS_PER_MINUTE = 60*1000;
     private static final int MILLIS_PER_SECOND = 1000;
+
+    static {
+        // Initialize ICU_TZVERSION
+        try {
+            UResourceBundle tzbundle = UResourceBundle.getBundleInstance(
+                    "com/ibm/icu/impl/data/icudt" + VersionInfo.ICU_DATA_VERSION, "zoneinfo");
+                ICU_TZVERSION = tzbundle.getString("TZVersion");
+        } catch (MissingResourceException e) {
+            ICU_TZVERSION = null;
+        }
+    }
+    
+    /* Hide the constructor */
+    private VTimeZone() {
+    }
 
     /*
      * Read the input stream to locate the VTIMEZONE block and
@@ -329,8 +437,7 @@ public class VTimeZone extends ICUTimeZone {
                         }
                     }
                     eol = false;
-                }
-                else {
+                } else {
                     if (ch == 0x0A) {
                         // LF
                         eol = true;
@@ -340,8 +447,7 @@ public class VTimeZone extends ICUTimeZone {
                                 success = true;
                                 break;
                             }
-                        }
-                        else {
+                        } else {
                             if (line.indexOf(ICAL_BEGIN_VTIMEZONE) == 0) {
                                 vtzlines.add(line.toString());
                                 line.setLength(0);
@@ -349,8 +455,7 @@ public class VTimeZone extends ICUTimeZone {
                                 eol = false;
                             }
                         }
-                    }
-                    else {
+                    } else {
                         line.append((char)ch);
                     }
                 }
@@ -358,8 +463,7 @@ public class VTimeZone extends ICUTimeZone {
             if (!success) {
                 return false;
             }
-        }
-        catch (IOException ioe) {
+        } catch (IOException ioe) {
             return false;
         }
         return parse();
@@ -412,8 +516,7 @@ public class VTimeZone extends ICUTimeZone {
             case INI:
                 if (name.equals(ICAL_BEGIN) && value.equals(ICAL_VTIMEZONE)) {
                     state = VTZ;
-                }
-                else {
+                } else {
                     // remove leading lines
                     it.remove();
                 }
@@ -421,8 +524,13 @@ public class VTimeZone extends ICUTimeZone {
             case VTZ:
                 if (name.equals(ICAL_TZID)) {
                     tzid = value;
-                }
-                else if (name.equals(ICAL_BEGIN)) {
+                } else if (name.equals(ICAL_TZURL)) {
+                    tzurl = value;
+                } else if (name.equals(ICAL_LASTMOD)) {
+                    // Always in 'Z' format, so the offset argument for the parse method
+                    // can be any value.
+                    lastmod = new Date(parseDateTimeString(value, 0));
+                } else if (name.equals(ICAL_BEGIN)) {
                     boolean isDST = value.equals(ICAL_DAYLIGHT);
                     if (value.equals(ICAL_STANDARD) || isDST) {
                         // tzid must be ready at this point
@@ -438,15 +546,13 @@ public class VTimeZone extends ICUTimeZone {
                         tzname = null;
                         dst = isDST;
                         state = TZI;
-                    }
-                    else {
+                    } else {
                         // BEGIN property other than STANDARD/DAYLIGHT
                         // must not be there.
                         state = ERR;
                         break;
                     }
-                }
-                else if (name.equals(ICAL_END) /* && value.equals(ICAL_VTIMEZONE) */) {
+                } else if (name.equals(ICAL_END) /* && value.equals(ICAL_VTIMEZONE) */) {
                     state = END;
                 }
                 break;
@@ -454,17 +560,13 @@ public class VTimeZone extends ICUTimeZone {
             case TZI:
                 if (name.equals(ICAL_DTSTART)) {
                     dtstart = value;
-                }
-                else if (name.equals(ICAL_TZNAME)) {
+                } else if (name.equals(ICAL_TZNAME)) {
                     tzname = value;
-                }
-                else if (name.equals(ICAL_TZOFFSETFROM)) {
+                } else if (name.equals(ICAL_TZOFFSETFROM)) {
                     from = value;
-                }
-                else if (name.equals(ICAL_TZOFFSETTO)) {
+                } else if (name.equals(ICAL_TZOFFSETTO)) {
                     to = value;
-                }
-                else if (name.equals(ICAL_RDATE)) {
+                } else if (name.equals(ICAL_RDATE)) {
                     // RDATE mixed with RRULE is not supported
                     if (isRRULE) {
                         state = ERR;
@@ -480,20 +582,17 @@ public class VTimeZone extends ICUTimeZone {
                         String date = st.nextToken();
                         dates.add(date);
                     }
-                }
-                else if (name.equals(ICAL_RRULE)) {
+                } else if (name.equals(ICAL_RRULE)) {
                     // RRULE mixed with RDATE is not supported
                     if (!isRRULE && dates != null) {
                         state = ERR;
                         break;
-                    }
-                    else if (dates == null) {
+                    } else if (dates == null) {
                         dates = new LinkedList();
                     }
                     isRRULE = true;
                     dates.add(value);
-                }
-                else if (name.equals(ICAL_END)) {
+                } else if (name.equals(ICAL_END)) {
                     // Mandatory properties
                     if (dtstart == null || from == null || to == null || dates == null) {
                         state = ERR;
@@ -532,14 +631,13 @@ public class VTimeZone extends ICUTimeZone {
                         }
 
                         // start time
-                        start = parseICalDateTimeString(dtstart, fromOffset);
+                        start = parseDateTimeString(dtstart, fromOffset);
 
                         // Create the rule
                         Date actualStart = null;
                         if (isRRULE) {
                             rule = createRuleByRRULE(tzname, rawOffset, dstSavings, start, dates, fromOffset);
-                        }
-                        else {
+                        } else {
                             rule = createRuleByRDATE(tzname, rawOffset, dstSavings, start, dates, fromOffset);
                         }
                         if (rule != null) {
@@ -677,8 +775,7 @@ public class VTimeZone extends ICUTimeZone {
                 // Use DOW_GEQ_DOM rule with firstDay as the start date
                 dayOfMonth = firstDay;
             }
-        }
-        else {
+        } else {
             // Check if BYMONTH + BYMONTHDAY + BYDAY rule with multiple RRULE lines.
             // Otherwise, not supported.
             if (month == -1 || dayOfWeek == 0 || dayOfMonth == 0) {
@@ -740,17 +837,14 @@ public class VTimeZone extends ICUTimeZone {
                             earliestMonth = anotherMonth;
                             // Reset earliest day
                             earliestDay = 31;
-                        }
-                        else if (diff == 11 || diff == 1) {
+                        } else if (diff == 11 || diff == 1) {
                             // Next month
                             anotherMonth = fields[0];
-                        }
-                        else {
+                        } else {
                             // The day range cannot exceed more than 2 months
                             return null;
                         }
-                    }
-                    else if (fields[0] != month && fields[0] != anotherMonth) {
+                    } else if (fields[0] != month && fields[0] != anotherMonth) {
                         // The day range cannot exceed more than 2 months
                         return null;
                     }
@@ -797,17 +891,14 @@ public class VTimeZone extends ICUTimeZone {
         if (dayOfWeek == 0 && nthDayOfWeek == 0 && dayOfMonth != 0) {
             // Day in month rule, for example, 15th day in the month
             adtr = new DateTimeRule(month, dayOfMonth, timeInDay, DateTimeRule.WALL_TIME);
-        }
-        else if (dayOfWeek != 0 && nthDayOfWeek != 0 && dayOfMonth == 0) {
+        } else if (dayOfWeek != 0 && nthDayOfWeek != 0 && dayOfMonth == 0) {
             // Nth day of week rule, for example, last Sunday
             adtr = new DateTimeRule(month, nthDayOfWeek, dayOfWeek, timeInDay, DateTimeRule.WALL_TIME);
-        }
-        else if (dayOfWeek != 0 && nthDayOfWeek == 0 && dayOfMonth != 0) {
+        } else if (dayOfWeek != 0 && nthDayOfWeek == 0 && dayOfMonth != 0) {
             // First day of week after day of month rule, for example,
             // first Sunday after 15th day in the month
             adtr = new DateTimeRule(month, dayOfMonth, dayOfWeek, true, timeInDay, DateTimeRule.WALL_TIME);
-        }
-        else {
+        } else {
             // RRULE attributes are insufficient
             return null;
         }
@@ -850,8 +941,7 @@ public class VTimeZone extends ICUTimeZone {
             if (sep != -1) {
                 attr = prop.substring(0, sep);
                 value = prop.substring(sep + 1);
-            }
-            else {
+            } else {
                 parseError = true;
                 break;
             }
@@ -860,22 +950,19 @@ public class VTimeZone extends ICUTimeZone {
                 // only support YEARLY frequency type
                 if (value.equals(ICAL_YEARLY)) {
                     yearly = true;
-                }
-                else {
+                } else {
                     parseError = true;
                     break;                        
                 }
-            }
-            else if (attr.equals(ICAL_UNTIL)) {
+            } else if (attr.equals(ICAL_UNTIL)) {
                 // ISO8601 UTC format, for example, "20060315T020000Z"
                 try {
-                    untilTime = parseICalDateTimeString(value, 0);
+                    untilTime = parseDateTimeString(value, 0);
                 } catch (IllegalArgumentException iae) {
                     parseError = true;
                     break;
                 }
-            }
-            else if (attr.equals(ICAL_BYMONTH)) {
+            } else if (attr.equals(ICAL_BYMONTH)) {
                 // Note: BYMONTH may contain multiple months, but only single month make sense for
                 // VTIMEZONE property.
                 if (value.length() > 2) {
@@ -887,13 +974,11 @@ public class VTimeZone extends ICUTimeZone {
                     if (month < 0 || month >= 12) {
                         parseError = true;
                     }
-                }
-                catch (NumberFormatException nfe) {
+                } catch (NumberFormatException nfe) {
                     parseError = true;
                     break;
                 }
-            }
-            else if (attr.equals(ICAL_BYDAY)) {
+            } else if (attr.equals(ICAL_BYDAY)) {
                 // Note: BYDAY may contain multiple day of week separated by comma.  It is unlikely used for
                 // VTIMEZONE property.  We do not support the case.
 
@@ -909,11 +994,9 @@ public class VTimeZone extends ICUTimeZone {
                     int sign = 1;
                     if (value.charAt(0) == '+') {
                         sign = 1;
-                    }
-                    else if (value.charAt(0) == '-') {
+                    } else if (value.charAt(0) == '-') {
                         sign = -1;
-                    }
-                    else if (length == 4) {
+                    } else if (length == 4) {
                         parseError = true;
                         break;
                     }
@@ -924,8 +1007,7 @@ public class VTimeZone extends ICUTimeZone {
                             break;
                         }
                         nthDayOfWeek = n * sign;
-                    }
-                    catch(NumberFormatException nfe) {
+                    } catch(NumberFormatException nfe) {
                         parseError = true;
                         break;
                     }
@@ -940,13 +1022,11 @@ public class VTimeZone extends ICUTimeZone {
                 if (wday < ICAL_DOW_NAMES.length) {
                     // Sunday(1) - Saturday(7)
                     dayOfWeek = wday + 1;
-                }
-                else {
+                } else {
                     parseError = true;
                     break;
                 }
-            }
-            else if (attr.equals(ICAL_BYMONTHDAY)) {
+            } else if (attr.equals(ICAL_BYMONTHDAY)) {
                 // Note: BYMONTHDAY may contain multiple days delimitted by comma
                 //
                 // A value of BYMONTHDAY could be negative, for example, -1 means
@@ -958,8 +1038,7 @@ public class VTimeZone extends ICUTimeZone {
                 while(days.hasMoreTokens()) {
                     try {
                         dayOfMonth[index++] = Integer.parseInt(days.nextToken());
-                    }
-                    catch (NumberFormatException nfe) {
+                    } catch (NumberFormatException nfe) {
                         parseError = true;
                         break;
                     }
@@ -981,8 +1060,7 @@ public class VTimeZone extends ICUTimeZone {
         if (dayOfMonth == null) {
             results = new int[4];
             results[3] = 0;
-        }
-        else {
+        } else {
             results = new int[3 + dayOfMonth.length];
             for (int i = 0; i < dayOfMonth.length; i++) {
                 results[3 + i] = dayOfMonth[i];
@@ -1008,7 +1086,7 @@ public class VTimeZone extends ICUTimeZone {
         int idx = 0;
         try {
             while(it.hasNext()) {
-                times[idx++] = parseICalDateTimeString((String)it.next(), fromOffset);
+                times[idx++] = parseDateTimeString((String)it.next(), fromOffset);
             }
         } catch (IllegalArgumentException iae) {
             return null;
@@ -1019,9 +1097,18 @@ public class VTimeZone extends ICUTimeZone {
     /*
      * Write the time zone rules in RFC2445 VTIMEZONE format
      */
-    private static void writeZone(ICUTimeZone tz, Writer w) throws IOException {
+    private void writeZone(Writer w, ICUTimeZone icutz, String[] customHeaders) throws IOException {
         // Write the header
-        writeHeader(w, tz.getID());
+        writeHeader(w);
+
+        if (customHeaders != null && customHeaders.length > 0) {
+            for (int i = 0; i < customHeaders.length; i++) {
+                if (customHeaders[i] != null) {
+                    w.write(customHeaders[i]);
+                    w.write(NEWLINE);
+                }
+            }
+        }
 
         long t = MIN_TIME;
         String dstName = null;
@@ -1057,7 +1144,7 @@ public class VTimeZone extends ICUTimeZone {
 
         // Going through all transitions
         while(true) {
-            TimeZoneTransition tzt = tz.getNextTransition(t, false);
+            TimeZoneTransition tzt = icutz.getNextTransition(t, false);
             if (tzt == null) {
                 break;
             }
@@ -1168,9 +1255,9 @@ public class VTimeZone extends ICUTimeZone {
         }
         if (!hasTransitions) {
             // No transition - put a single non transition RDATE
-            int offset = tz.getOffset(0 /* any time */);
-            boolean isDst = (offset != tz.getRawOffset());
-            writeZonePropsByTime(w, isDst, getDefaultTZName(tz.getID(), isDst),
+            int offset = icutz.getOffset(0 /* any time */);
+            boolean isDst = (offset != icutz.getRawOffset());
+            writeZonePropsByTime(w, isDst, getDefaultTZName(icutz.getID(), isDst),
                     offset, offset, DEF_TZSTARTTIME - offset);                
         } else {
             if (dstCount > 0) {
@@ -1358,8 +1445,7 @@ public class VTimeZone extends ICUTimeZone {
 
                 // Start from 1 for the rest
                 startDay = 1;
-            }
-            else if (dayOfMonth + 6 > MONTHLENGTH[month]) {
+            } else if (dayOfMonth + 6 > MONTHLENGTH[month]) {
                 // Note: This code does not actually work well in February.  For now, days in month in
                 // non-leap year.
                 int nextMonthDays = dayOfMonth + 6 - MONTHLENGTH[month];
@@ -1540,8 +1626,7 @@ public class VTimeZone extends ICUTimeZone {
         writer.write(COLON);
         if (isDst) {
             writer.write(ICAL_DAYLIGHT);
-        }
-        else {
+        } else {
             writer.write(ICAL_STANDARD);
         }
         writer.write(NEWLINE);
@@ -1580,8 +1665,7 @@ public class VTimeZone extends ICUTimeZone {
         writer.write(COLON);
         if (isDst) {
             writer.write(ICAL_DAYLIGHT);
-        }
-        else {
+        } else {
             writer.write(ICAL_STANDARD);
         }
         writer.write(NEWLINE);
@@ -1618,15 +1702,27 @@ public class VTimeZone extends ICUTimeZone {
     /*
      * Write the opening section of the VTIMEZONE block
      */
-    private static void writeHeader(Writer writer, String tzid) throws IOException {
+    private void writeHeader(Writer writer)throws IOException {
         writer.write(ICAL_BEGIN);
         writer.write(COLON);
         writer.write(ICAL_VTIMEZONE);
         writer.write(NEWLINE);
         writer.write(ICAL_TZID);
         writer.write(COLON);
-        writer.write(tzid);
+        writer.write(tz.getID());
         writer.write(NEWLINE);
+        if (tzurl != null) {
+            writer.write(ICAL_TZURL);
+            writer.write(COLON);
+            writer.write(tzurl);
+            writer.write(NEWLINE);
+        }
+        if (lastmod != null) {
+            writer.write(ICAL_LASTMOD);
+            writer.write(COLON);
+            writer.write(getUTCDateTimeString(lastmod.getTime()));
+            writer.write(NEWLINE);
+        }
     }
 
     /*
@@ -1664,10 +1760,17 @@ public class VTimeZone extends ICUTimeZone {
     }
 
     /*
+     * Convert date/time to RFC2445 Date-Time form #2 DATE WITH UTC TIME
+     */
+    private static String getUTCDateTimeString(long time) {
+        return getDateTimeString(time) + "Z";
+    }
+
+    /*
      * Parse RFC2445 Date-Time form #1 DATE WITH LOCAL TIME and
      * #2 DATE WITH UTC TIME
      */
-    private static long parseICalDateTimeString(String str, int offset) {
+    private static long parseDateTimeString(String str, int offset) {
         int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0;
         boolean isUTC = false;
         boolean isValid = false;
@@ -1701,8 +1804,7 @@ public class VTimeZone extends ICUTimeZone {
                 hour = Integer.parseInt(str.substring(9, 11));
                 min = Integer.parseInt(str.substring(11, 13));
                 sec = Integer.parseInt(str.substring(13, 15));
-            }
-            catch (NumberFormatException nfe) {
+            } catch (NumberFormatException nfe) {
                 break;
             }
 
@@ -1748,11 +1850,9 @@ public class VTimeZone extends ICUTimeZone {
             char s = str.charAt(0);
             if (s == '+') {
                 sign = 1;
-            }
-            else if (s == '-') {
+            } else if (s == '-') {
                 sign = -1;
-            }
-            else {
+            } else {
                 // utf-offset must start with "+" or "-"
                 break;
             }
@@ -1763,8 +1863,7 @@ public class VTimeZone extends ICUTimeZone {
                 if (length == 7) {
                     sec = Integer.parseInt(str.substring(5, 7));
                 }
-            }
-            catch (NumberFormatException nfe) {
+            } catch (NumberFormatException nfe) {
                 break;
             }
             isValid = true;
@@ -1784,8 +1883,7 @@ public class VTimeZone extends ICUTimeZone {
         StringBuffer sb = new StringBuffer(7);
         if (millis >= 0) {
             sb.append('+');
-        }
-        else {
+        } else {
             sb.append('-');
             millis = -millis;
         }
