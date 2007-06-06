@@ -11,7 +11,7 @@ import com.ibm.icu.impl.Grego;
 
 
 /**
- * AnnualTimeZoneRule is a class used for representing a time zone
+ * <code>AnnualTimeZoneRule</code> is a class used for representing a time zone
  * rule which takes effect annually.  Years used in this class are
  * all Gregorian calendar years.
  * 
@@ -31,10 +31,8 @@ public class AnnualTimeZoneRule extends TimeZoneTransitionRule {
     private final int startYear;
     private final int endYear;
 
-    private static final int MILLIS_PER_DAY = 24 * 60 * 60 * 1000;
-
     /**
-     * Constructs a TimeZoneRule with the name, the GMT offset of its
+     * Constructs a <code>AnnualTimeZoneRule</code> with the name, the GMT offset of its
      * standard time, the amount of daylight saving offset adjustment,
      * the annual start time rule and the start/until years.
      * 
@@ -62,7 +60,7 @@ public class AnnualTimeZoneRule extends TimeZoneTransitionRule {
     /**
      * Gets the start date/time rule associated used by this rule.
      * 
-     * @return  An AnnualDateTimeRule which represents the start date/time
+     * @return  An <code>AnnualDateTimeRule</code> which represents the start date/time
      *          rule used by this time zone rule.
      * 
      * @draft ICU 3.8
@@ -159,7 +157,7 @@ public class AnnualTimeZoneRule extends TimeZoneTransitionRule {
             ruleDay += delta;
         }
 
-        long ruleTime = ruleDay * MILLIS_PER_DAY + dateTimeRule.getRuleMillisInDay();
+        long ruleTime = ruleDay * Grego.MILLIS_PER_DAY + dateTimeRule.getRuleMillisInDay();
         if (dateTimeRule.getTimeRuleType() != DateTimeRule.UNIVERSAL_TIME) {
             ruleTime -= prevRawOffset;
         }
@@ -168,16 +166,20 @@ public class AnnualTimeZoneRule extends TimeZoneTransitionRule {
         }
         return new Date(ruleTime);
     }
-    
-    /* (non-Javadoc)
-     * @see com.ibm.icu.util.TimeZoneTransitionRule#getFirstStart(int, int)
+
+    /**
+     * {@inheritDoc}
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public Date getFirstStart(int prevRawOffset, int prevDSTSavings) {
         return getStartInYear(startYear, prevRawOffset, prevDSTSavings);
     }
 
-    /* (non-Javadoc)
-     * @see com.ibm.icu.util.TimeZoneTransitionRule#getFinalStart(int, int)
+    /**
+     * {@inheritDoc}
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public Date getFinalStart(int prevRawOffset, int prevDSTSavings) {
         if (endYear == MAX_YEAR) {
@@ -186,8 +188,10 @@ public class AnnualTimeZoneRule extends TimeZoneTransitionRule {
         return getStartInYear(endYear, prevRawOffset, prevDSTSavings);
     }
 
-    /* (non-Javadoc)
-     * @see com.ibm.icu.util.TimeZoneTransitionRule#getNextStart(long, int, int, boolean)
+    /**
+     * {@inheritDoc}
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public Date getNextStart(long base, int prevRawOffset, int prevDSTSavings, boolean inclusive) {
         int[] fields = Grego.timeToFields(base, null);
@@ -202,8 +206,10 @@ public class AnnualTimeZoneRule extends TimeZoneTransitionRule {
         return d;
     }
 
-    /* (non-Javadoc)
-     * @see com.ibm.icu.util.TimeZoneTransitionRule#getPreviousStart(long, int, int, boolean)
+    /**
+     * {@inheritDoc}
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public Date getPreviousStart(long base, int prevRawOffset, int prevDSTSavings, boolean inclusive) {
         int[] fields = Grego.timeToFields(base, null);
@@ -218,8 +224,10 @@ public class AnnualTimeZoneRule extends TimeZoneTransitionRule {
         return d;
     }
 
-    /* (non-Javadoc)
-     * @see com.ibm.icu.util.TimeZoneRule#isSameAs(com.ibm.icu.util.TimeZoneRule)
+    /**
+     * {@inheritDoc}
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public boolean isSameAs(TimeZoneRule other) {
         if (!(other instanceof AnnualTimeZoneRule)) {
@@ -234,8 +242,10 @@ public class AnnualTimeZoneRule extends TimeZoneTransitionRule {
         return false;
     }
 
-    /* (non-Javadoc)
-     * @see java.lang.Object#toString()
+    /**
+     * Returns a <code>String</code> representation of this <code>AnnualTimeZoneRule</code> object.
+     * @internal
+     * @deprecated This API is ICU internal only.
      */
     public String toString() {
         StringBuffer buf = new StringBuffer();

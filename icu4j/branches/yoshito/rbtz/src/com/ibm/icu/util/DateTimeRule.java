@@ -9,7 +9,7 @@ package com.ibm.icu.util;
 import java.io.Serializable;
 
 /**
- * DateTimeRule is a class representing a time in a year by
+ * <code>DateTimeRule</code> is a class representing a time in a year by
  * a rule specified by month, day of month, day of week and
  * time in the day.
  * 
@@ -93,14 +93,15 @@ public class DateTimeRule implements Serializable {
     private final int millisInDay;
 
     /**
-     * Constructs an AnnualDateTimeRule by the day of month and
+     * Constructs a <code>DateTimeRule</code> by the day of month and
      * the time rule.  The date rule type for an instance created by
-     * this constructor is DOM.
+     * this constructor is <code>DOM</code>.
      * 
-     * @param month         The rule month, for example, Calendar.JANUARY
+     * @param month         The rule month, for example, <code>Calendar.JANUARY</code>
      * @param dayOfMonth    The day of month, 1-based.
      * @param millisInDay   The milliseconds in the rule date.
-     * @param timeType      The time type, WALL_TIME or STANDARD_TIME or UNIVERSAL_TIME.
+     * @param timeType      The time type, <code>WALL_TIME</code> or <code>STANDARD_TIME</code>
+     *                      or <code>UNIVERSAL_TIME</code>.
      * 
      * @draft ICU 3.8
      * @provisional This API might change or be removed in a future release.
@@ -120,17 +121,18 @@ public class DateTimeRule implements Serializable {
     }
 
     /**
-     * Constructs a DateTimeRule by the day of week and its oridinal
+     * Constructs a <code>DateTimeRule</code> by the day of week and its oridinal
      * number and the time rule.  The date rule type for an instance created
-     * by this constructor is DOW.
+     * by this constructor is <code>DOW</code>.
      * 
-     * @param month         The rule month, for example, Calendar.JANUARY.
+     * @param month         The rule month, for example, <code>Calendar.JANUARY</code>.
      * @param weekInMonth   The ordinal number of the day of week.  Negative number
      *                      may be used for specifying a rule date counted from the
      *                      end of the rule month.
-     * @param dayOfWeek     The day of week, for example, Calendar.SUNDAY.
+     * @param dayOfWeek     The day of week, for example, <code>Calendar.SUNDAY</code>.
      * @param millisInDay   The milliseconds in the rule date.
-     * @param timeType      The time type, WALL_TIME or STANDARD_TIME or UNIVERSAL_TIME.
+     * @param timeType      The time type, <code>WALL_TIME</code> or <code>STANDARD_TIME</code>
+     *                      or <code>UNIVERSAL_TIME</code>.
      * 
      * @draft ICU 3.8
      * @provisional This API might change or be removed in a future release.
@@ -150,17 +152,18 @@ public class DateTimeRule implements Serializable {
     }
 
     /**
-     * Constructs a DateTimeRule by the first/last day of week
+     * Constructs a <code>DateTimeRule</code> by the first/last day of week
      * on or after/before the day of month and the time rule.  The date rule
      * type for an instance created by this constructor is either
-     * DOM_GEQ_DOM or DOM_LEQ_DOM.
+     * <code>DOM_GEQ_DOM</code> or <code>DOM_LEQ_DOM</code>.
      * 
-     * @param month         The rule month, for example, Calendar.JANUARY
+     * @param month         The rule month, for example, <code>Calendar.JANUARY</code>
      * @param dayOfMonth    The day of month, 1-based.
-     * @param dayOfWeek     The day of week, for example, Calendar.SUNDAY.
+     * @param dayOfWeek     The day of week, for example, <code>Calendar.SUNDAY</code>.
      * @param after         true if the rule date is on or after the day of month.
      * @param millisInDay   The milliseconds in the rule date.
-     * @param timeType      The time type, WALL_TIME or STANDARD_TIME or UNIVERSAL_TIME.
+     * @param timeType      The time type, <code>WALL_TIME</code> or <code>STANDARD_TIME</code>
+     *                      or <code>UNIVERSAL_TIME</code>.
      * 
      * @draft ICU 3.8
      * @provisional This API might change or be removed in a future release.
@@ -180,7 +183,7 @@ public class DateTimeRule implements Serializable {
     }
 
     /**
-     * Gets the date rule type, such as DOM
+     * Gets the date rule type, such as <code>DOM</code>
      * 
      * @return The date rule type.
      * 
@@ -205,7 +208,7 @@ public class DateTimeRule implements Serializable {
 
     /**
      * Gets the rule day of month.  When the date rule type
-     * is DOW, the value is always 0.
+     * is <code>DOW</code>, the value is always 0.
      * 
      * @return The rule day of month
      * 
@@ -218,7 +221,7 @@ public class DateTimeRule implements Serializable {
 
     /**
      * Gets the rule day of week.  When the date rule type
-     * is DOM, the value is always 0.
+     * is <code>DOM</code>, the value is always 0.
      * 
      * @return The rule day of week.
      * 
@@ -231,7 +234,7 @@ public class DateTimeRule implements Serializable {
 
     /**
      * Gets the rule day of week ordinal number in the month.
-     * When the date rule type is not DOW, the value is
+     * When the date rule type is not <code>DOW</code>, the value is
      * always 0.
      * 
      * @return The rule day of week ordinal number in the month.
@@ -246,8 +249,8 @@ public class DateTimeRule implements Serializable {
     /**
      * Gets the time rule type
      * 
-     * @return The time rule type, either WALL_TIME or STANDARD_TIME
-     *         or UNIVERSAL_TIME.
+     * @return The time rule type, either <code>WALL_TIME</code> or <code>STANDARD_TIME</code>
+     *         or <code>UNIVERSAL_TIME</code>.
      * 
      * @draft ICU 3.8
      * @provisional This API might change or be removed in a future release.
@@ -270,8 +273,11 @@ public class DateTimeRule implements Serializable {
     
     private static final String[] DOWSTR = {"", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
     private static final String[] MONSTR = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
-    /* (non-Javadoc)
-     * @see java.lang.Object#toString()
+
+    /**
+     * Returns a <code>String</code> representation of this <code>DateTimeRule</code> object.
+     * @internal
+     * @deprecated This API is ICU internal only.
      */
     public String toString() {
         String sDate = null;

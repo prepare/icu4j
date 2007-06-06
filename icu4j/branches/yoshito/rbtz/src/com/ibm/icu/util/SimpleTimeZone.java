@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.util.Date;
 
 import com.ibm.icu.impl.Grego;
-import com.ibm.icu.impl.ICUTimeZone;
 
 /**
  * <code>SimpleTimeZone</code> is a concrete subclass of <code>TimeZone</code>
@@ -28,7 +27,7 @@ import com.ibm.icu.impl.ICUTimeZone;
  * @author   David Goldsmith, Mark Davis, Chen-Lieh Huang, Alan Liu
  * @stable ICU 2.0
  */
-public class SimpleTimeZone extends ICUTimeZone {
+public class SimpleTimeZone extends BasicTimeZone {
     private static final long serialVersionUID = -7034676239311322769L;
 
     /**
@@ -65,7 +64,7 @@ public class SimpleTimeZone extends ICUTimeZone {
                 0, WALL_TIME,
                 0, 0, 0,
                 0, WALL_TIME,
-                MILLIS_PER_HOUR);
+                Grego.MILLIS_PER_HOUR);
         super.setID(ID);
     }
 
@@ -135,7 +134,7 @@ public class SimpleTimeZone extends ICUTimeZone {
                 startTime, WALL_TIME,
                 endMonth, endDay, endDayOfWeek,
                 endTime, WALL_TIME,
-                MILLIS_PER_HOUR);
+                Grego.MILLIS_PER_HOUR);
         super.setID(ID);
     }
 
@@ -173,14 +172,14 @@ public class SimpleTimeZone extends ICUTimeZone {
      * parameters are out of range for the start or end rule
      * @stable ICU 3.8
      */
-    public SimpleTimeZone(int raw,  String ID,
+    public SimpleTimeZone(int rawOffset,  String ID,
                           int startMonth, int startDay,
                           int startDayOfWeek, int startTime,
                           int startTimeMode,
                           int endMonth, int endDay,
                           int endDayOfWeek, int endTime,
                           int endTimeMode,int dst){
-        construct(raw,
+        construct(rawOffset,
                   startMonth, startDay, startDayOfWeek,
                   startTime, startTimeMode,
                   endMonth, endDay, endDayOfWeek,
@@ -621,7 +620,7 @@ public class SimpleTimeZone extends ICUTimeZone {
                 || dayOfWeek < Calendar.SUNDAY
                 || dayOfWeek > Calendar.SATURDAY
                 || millis < 0
-                || millis >= MILLIS_PER_DAY
+                || millis >= Grego.MILLIS_PER_DAY
                 || monthLength < 28
                 || monthLength > 31
                 || prevMonthLength < 28
@@ -648,7 +647,7 @@ public class SimpleTimeZone extends ICUTimeZone {
                 throw new IllegalArgumentException("Illegal day of week " + dayOfWeek);
             }
             if (millis < 0
-                || millis >= MILLIS_PER_DAY) {
+                || millis >= Grego.MILLIS_PER_DAY) {
                 throw new IllegalArgumentException("Illegal millis " + millis);
             }
             if (monthLength < 28
@@ -733,8 +732,8 @@ public class SimpleTimeZone extends ICUTimeZone {
         
         millis += millisDelta;
         
-        while (millis >= MILLIS_PER_DAY) {
-            millis -= MILLIS_PER_DAY;
+        while (millis >= Grego.MILLIS_PER_DAY) {
+            millis -= Grego.MILLIS_PER_DAY;
             ++dayOfMonth;
             dayOfWeek = 1 + (dayOfWeek % 7); // dayOfWeek is one-based
             if (dayOfMonth > monthLen) {
@@ -747,7 +746,7 @@ public class SimpleTimeZone extends ICUTimeZone {
             }
         }
         while (millis < 0) {
-            millis += MILLIS_PER_DAY;
+            millis += Grego.MILLIS_PER_DAY;
             --dayOfMonth;
             dayOfWeek = 1 + ((dayOfWeek+5) % 7); // dayOfWeek is one-based
             if (dayOfMonth < 1) {
@@ -909,13 +908,13 @@ public class SimpleTimeZone extends ICUTimeZone {
 
         useDaylight = (boolean)((startDay != 0) && (endDay != 0) ? true : false  );
         if (useDaylight && dst == 0) {
-            dst = TimeZone.MILLIS_PER_DAY;
+            dst = Grego.MILLIS_PER_DAY;
         }
         if (startDay != 0) {
             if (startMonth < Calendar.JANUARY || startMonth > Calendar.DECEMBER) {
                 throw new IllegalArgumentException();
             }
-            if (startTime < 0 || startTime >= TimeZone.MILLIS_PER_DAY ||
+            if (startTime < 0 || startTime >= Grego.MILLIS_PER_DAY ||
                 startTimeMode < WALL_TIME || startTimeMode > UTC_TIME) {
                 throw new IllegalArgumentException();
             }
@@ -955,13 +954,13 @@ public class SimpleTimeZone extends ICUTimeZone {
     private void decodeEndRule() {
         useDaylight = (boolean)((startDay != 0) && (endDay != 0) ? true : false);
         if (useDaylight && dst == 0) {
-            dst = TimeZone.MILLIS_PER_DAY;
+            dst = Grego.MILLIS_PER_DAY;
         }
         if (endDay != 0) {
             if (endMonth < Calendar.JANUARY || endMonth > Calendar.DECEMBER) {
                 throw new IllegalArgumentException();
             }
-            if (endTime < 0 || endTime > TimeZone.MILLIS_PER_DAY ||
+            if (endTime < 0 || endTime > Grego.MILLIS_PER_DAY ||
                 endTimeMode < WALL_TIME || endTimeMode > UTC_TIME) {
                 throw new IllegalArgumentException();
             }
@@ -1121,10 +1120,20 @@ public class SimpleTimeZone extends ICUTimeZone {
              startYear      == other.startYear));
     }
 
-    // HasTimeZoneRules methods
+    // BasicTimeZone methods
 
-    /* (non-Javadoc)
-     * @see com.ibm.icu.util.HasTimeZoneRules#getNextTransition(long, boolean)
+    /**
+     * Gets the first time zone transition after the base time.
+     * 
+     * @param base      The base time.
+     * @param inclusive Whether the base time is inclusive or not.
+     *               
+     * @return  A Date holding the first time zone transition time after the given
+     *          base time, or null if no time zone transitions are available after
+     *          the base time.
+     * 
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public TimeZoneTransition getNextTransition(long base, boolean inclusive) {
         if (startMonth == 0) {
@@ -1144,8 +1153,18 @@ public class SimpleTimeZone extends ICUTimeZone {
         return new TimeZoneTransition(dstDate.getTime(), stdRule, dstRule);
     }
 
-    /* (non-Javadoc)
-     * @see com.ibm.icu.util.HasTimeZoneRules#getPreviousTransition(long, boolean)
+    /**
+     * Gets the last time zone transition before the base time.
+     * 
+     * @param base      The base time.
+     * @param inclusive Whether the base time is inclusive or not.
+     *               
+     * @return  A Date holding the last time zone transition time before the given
+     *          base time, or null if no time zone transitions are available before
+     *          the base time.
+     * 
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public TimeZoneTransition getPreviousTransition(long base, boolean inclusive) {
         if (startMonth == 0) {
@@ -1165,8 +1184,16 @@ public class SimpleTimeZone extends ICUTimeZone {
         return new TimeZoneTransition(stdDate.getTime(), dstRule, stdRule);
     }
 
-    /* (non-Javadoc)
-     * @see com.ibm.icu.util.HasTimeZoneRules#getTimeZoneRules()
+    /**
+     * Gets the array of TimeZoneRule which represents the rule of this time zone
+     * object.  The first element in the result array will be always an instance of
+     * InitialTimeZoneRule.  The rest are either AnnualTimeZoneRule or
+     * TimeArrayTimeZoneRule instances.
+     * 
+     * @return The array of TimeZoneRule which represents this time zone.
+     * 
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public TimeZoneRule[] getTimeZoneRules() {
         initTransitionRules();

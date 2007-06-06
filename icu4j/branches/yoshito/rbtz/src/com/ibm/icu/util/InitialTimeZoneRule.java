@@ -7,8 +7,8 @@
 package com.ibm.icu.util;
 
 /**
- * InitialTimeZoneRule is a subclass of TimeZoneRule and used for initial
- * rule in a TimeZone implementation.
+ * <code>InitialTimeZoneRule</code> is a subclass of <code>TimeZoneRule</code> and used for initial
+ * rule in ICU <code>TimeZone</code> concrete classes.
  * 
  * @draft ICU 3.8
  * @provisional This API might change or be removed in a future release.
@@ -18,7 +18,7 @@ public class InitialTimeZoneRule extends TimeZoneRule {
     private static final long serialVersionUID = -1284335506635215178L;
 
     /**
-     * Constructs an InitialTimeZoneRule with the name, the GMT offset of its
+     * Constructs an <code>InitialTimeZoneRule</code> with the name, the GMT offset of its
      * standard time and the amount of daylight saving offset adjustment.
      * 
      * @param name          The time zone name.
@@ -33,20 +33,15 @@ public class InitialTimeZoneRule extends TimeZoneRule {
         super(name, rawOffset, dstSavings);
     }
 
-    /* (non-Javadoc)
-     * @see com.ibm.icu.util.TimeZoneRule#isSameAs(com.ibm.icu.util.TimeZoneRule)
+    /**
+     * {@inheritDoc}
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public boolean isSameAs(TimeZoneRule other) {
         if (!(other instanceof InitialTimeZoneRule)) {
             return false;
         }
         return super.isSameAs(other);
-    }
-    
-    /* (non-Javadoc)
-     * @see com.ibm.icu.util.TimeZoneRule#hasStartTimes()
-     */
-    public boolean hasStartTimes() {
-        return false;
     }
 }

@@ -12,16 +12,15 @@ import java.util.Iterator;
 import java.util.List;
 
 import com.ibm.icu.impl.Grego;
-import com.ibm.icu.impl.ICUTimeZone;
 
 /**
- * RuleBasedTimeZone is a concrete subclass of TimeZone that allows users to define
+ * <code>RuleBasedTimeZone</code> is a concrete subclass of <code>TimeZone</code> that allows users to define
  * custom historic time transition rules.
  * 
  * @draft ICU 3.8
  * @provisional This API might change or be removed in a future release.
  */
-public class RuleBasedTimeZone extends ICUTimeZone {
+public class RuleBasedTimeZone extends BasicTimeZone {
 
     private static final long serialVersionUID = 7580833058949327935L;
 
@@ -32,10 +31,8 @@ public class RuleBasedTimeZone extends ICUTimeZone {
     private transient List historicTransitions;
     private transient boolean upToDate;
 
-    private static final int MILLIS_PER_DAY = 24 * 60 * 60 * 1000;
-
     /**
-     * Constructs a RuleBasedTimeZone object with the ID, initial name, standard offset
+     * Constructs a <code>RuleBasedTimeZone</code> object with the ID, initial name, standard offset
      * and daylight saving amount
      * 
      * @param id                The time zone ID.
@@ -43,16 +40,16 @@ public class RuleBasedTimeZone extends ICUTimeZone {
      * 
      * @draft ICU 3.8
      * @provisional This API might change or be removed in a future release.
-    */
+     */
     public RuleBasedTimeZone(String id, InitialTimeZoneRule initialRule) {
         super.setID(id);
         this.initialRule = initialRule;
     }
 
     /**
-     * Adds the TimeZoneTransitionRule which represents time transitions.
+     * Adds the <code>TimeZoneTransitionRule</code> which represents time transitions.
      * 
-     * @param rule The TimeZoneTransitionRule.
+     * @param rule The <code>TimeZoneTransitionRule</code>.
      * 
      * @draft ICU 3.8
      * @provisional This API might change or be removed in a future release.
@@ -82,42 +79,9 @@ public class RuleBasedTimeZone extends ICUTimeZone {
         upToDate = false;
     }
 
-    /* (non-Javadoc)
-     * @see com.ibm.icu.util.HasTimeZoneRules#getTimeZoneRules()
-     */
-    public TimeZoneRule[] getTimeZoneRules() {
-        int size = 1;
-        if (historicRules != null) {
-            size += historicRules.size();
-        }
-
-        if (finalRules != null) {
-            if (finalRules[1] != null) {
-                size += 2;
-            } else {
-                size++;
-            }
-        }
-        TimeZoneRule[] rules = new TimeZoneRule[size];
-        rules[0] = initialRule;
-        
-        int idx = 1;
-        if (historicRules != null) {
-            for (; idx < historicRules.size() + 1; idx++) {
-                rules[idx] = (TimeZoneRule)historicRules.get(idx - 1);
-            }
-        }
-        if (finalRules != null) {
-            rules[idx++] = finalRules[0];
-            if (finalRules[1] != null) {
-                rules[idx] = finalRules[1];
-            }
-        }
-        return rules;
-    }
-
-    /* (non-Javadoc)
-     * @see com.ibm.icu.util.TimeZone#getOffset(int, int, int, int, int, int)
+    /**
+     * {@inheritDoc}
+     * @stable ICU 2.0
      */
     public int getOffset(int era, int year, int month, int day, int dayOfWeek,
             int milliseconds) {
@@ -125,14 +89,15 @@ public class RuleBasedTimeZone extends ICUTimeZone {
             // Convert to extended year
             year = 1 - year;
         }
-        long time = Grego.fieldsToDay(year, month, day) * MILLIS_PER_DAY + milliseconds;
+        long time = Grego.fieldsToDay(year, month, day) * Grego.MILLIS_PER_DAY + milliseconds;
         int[] offsets = new int[2];
         getOffset(time, true, offsets);
         return (offsets[0] + offsets[1]);
     }
 
-    /* (non-Javadoc)
-     * @see com.ibm.icu.util.TimeZone#getOffset(long, boolean, int[])
+    /**
+     * {@inheritDoc}
+     * @stable ICU 2.8
      */
     public void getOffset(long time, boolean local, int[] offsets) {
         update();
@@ -169,8 +134,9 @@ public class RuleBasedTimeZone extends ICUTimeZone {
         offsets[1] = rule.getDSTSavings();
     }
 
-    /* (non-Javadoc)
-     * @see com.ibm.icu.util.TimeZone#getRawOffset()
+    /**
+     * {@inheritDoc}
+     * @stable ICU 2.0
      */
     public int getRawOffset() {
         // Note: This implementation returns standard GMT offset
@@ -181,8 +147,9 @@ public class RuleBasedTimeZone extends ICUTimeZone {
         return offsets[0];
     }
 
-    /* (non-Javadoc)
-     * @see com.ibm.icu.util.TimeZone#inDaylightTime(java.util.Date)
+    /**
+     * {@inheritDoc}
+     * @stable ICU 2.0
      */
     public boolean inDaylightTime(Date date) {
         int[] offsets = new int[2];
@@ -190,15 +157,17 @@ public class RuleBasedTimeZone extends ICUTimeZone {
         return (offsets[1] != 0);
     }
 
-    /* (non-Javadoc)
-     * @see com.ibm.icu.util.TimeZone#setRawOffset(int)
+    /**
+     * {@inheritDoc}
+     * @stable ICU 2.0
      */
     public void setRawOffset(int offsetMillis) {
         // TODO: Do nothing for now..
     }
 
-    /* (non-Javadoc)
-     * @see com.ibm.icu.util.TimeZone#useDaylightTime()
+    /**
+     * {@inheritDoc}
+     * @stable ICU 2.0
      */
     public boolean useDaylightTime() {
         // Note: This implementation returns true when
@@ -212,8 +181,9 @@ public class RuleBasedTimeZone extends ICUTimeZone {
         return false;
     }
 
-    /* (non-Javadoc)
-     * @see com.ibm.icu.util.TimeZone#hasSameRules(com.ibm.icu.util.TimeZone)
+    /**
+     * {@inheritDoc}
+     * @stable ICU 2.0
      */
     public boolean hasSameRules(TimeZone other) {
         if (!(other instanceof RuleBasedTimeZone)) {
@@ -271,10 +241,48 @@ public class RuleBasedTimeZone extends ICUTimeZone {
         return true;
     }
 
-    // HasReadableTimeZoneTransition implementation
+    // BasicTimeZone methods
 
-    /* (non-Javadoc)
-     * @see com.ibm.icu.util.HasTimeZoneRules#getNextTransition(long, boolean)
+    /**
+     * {@inheritDoc}
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
+     */
+    public TimeZoneRule[] getTimeZoneRules() {
+        int size = 1;
+        if (historicRules != null) {
+            size += historicRules.size();
+        }
+
+        if (finalRules != null) {
+            if (finalRules[1] != null) {
+                size += 2;
+            } else {
+                size++;
+            }
+        }
+        TimeZoneRule[] rules = new TimeZoneRule[size];
+        rules[0] = initialRule;
+        
+        int idx = 1;
+        if (historicRules != null) {
+            for (; idx < historicRules.size() + 1; idx++) {
+                rules[idx] = (TimeZoneRule)historicRules.get(idx - 1);
+            }
+        }
+        if (finalRules != null) {
+            rules[idx++] = finalRules[0];
+            if (finalRules[1] != null) {
+                rules[idx] = finalRules[1];
+            }
+        }
+        return rules;
+    }
+
+    /**
+     * {@inheritDoc}
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public TimeZoneTransition getNextTransition(long base, boolean inclusive) {
         update();
@@ -338,8 +346,10 @@ public class RuleBasedTimeZone extends ICUTimeZone {
         return result;
     }
 
-    /* (non-Javadoc)
-     * @see com.ibm.icu.util.HasTimeZoneRules#getPreviousTransition(long, boolean)
+    /**
+     * {@inheritDoc}
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public TimeZoneTransition getPreviousTransition(long base, boolean inclusive) {
         update();
@@ -402,6 +412,11 @@ public class RuleBasedTimeZone extends ICUTimeZone {
     }
     
     // private stuff
+
+    /*
+     * Resolve historic transition times and update fields used for offset
+     * calculation.
+     */
     private void update() {
         if (upToDate) {
             // No rules were added since last time.
@@ -521,6 +536,9 @@ public class RuleBasedTimeZone extends ICUTimeZone {
         upToDate = true;
     }
 
+    /*
+     * Find a time zone rule applicable to the specified time
+     */
     private TimeZoneRule findRuleInFinal(long time, boolean local) {
         if (finalRules == null || finalRules.length != 2 || finalRules[0] == null || finalRules[1] == null) {
             return null;
@@ -538,6 +556,9 @@ public class RuleBasedTimeZone extends ICUTimeZone {
         return start0.after(start1) ? finalRules[0] : finalRules[1];
     }
 
+    /*
+     * Get the transition time in local wall clock
+     */
     private static long getTransitionTime(TimeZoneTransition tzt, boolean local) {
         long time = tzt.getTime();
         if (local) {

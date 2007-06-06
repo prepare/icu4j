@@ -9,7 +9,7 @@ import java.util.Arrays;
 import java.util.Date;
 
 /**
- * TimeArrayTimeZoneRule represents a time zone rule whose start times are
+ * <code>TimeArrayTimeZoneRule</code> represents a time zone rule whose start times are
  * defined by an array of milliseconds since the standard base time.
  * 
  * @draft ICU 3.8
@@ -23,7 +23,7 @@ public class TimeArrayTimeZoneRule extends TimeZoneTransitionRule {
     private final int timeType;
 
     /**
-     * Constructs a TimeArrayTimeZoneRule with the name, the GMT offset of its
+     * Constructs a <code>TimeArrayTimeZoneRule</code> with the name, the GMT offset of its
      * standard time, the amount of daylight saving offset adjustment and
      * the array of times when this rule takes effect.
      * 
@@ -35,7 +35,8 @@ public class TimeArrayTimeZoneRule extends TimeZoneTransitionRule {
      * @param startTimes    The start times in milliseconds since the base time
      *                      (January 1, 1970, 00:00:00).
      * @param timeType      The time type of the start times, which is one of
-     *                      DataTimeRule.WALL_TIME, STANDARD_TIME and UNIVERSAL_TIME.
+     *                      <code>DataTimeRule.WALL_TIME</code>, <code>STANDARD_TIME</code>
+     *                      and <code>UNIVERSAL_TIME</code>.
      * 
      * @draft ICU 3.8
      * @provisional This API might change or be removed in a future release.
@@ -63,8 +64,8 @@ public class TimeArrayTimeZoneRule extends TimeZoneTransitionRule {
 
     /**
      * Gets the time type of the start times used by this rule.  The return value
-     * is either DateTimeRule.WALL_TIME or DateTimeRule.STANDARD_TIME or
-     * DateTimeRule.UNIVERSAL_TIME.
+     * is either <code>DateTimeRule.WALL_TIME</code> or <code>DateTimeRule.STANDARD_TIME</code>
+     * or <code>DateTimeRule.UNIVERSAL_TIME</code>.
      * 
      * @return The time type used of the start times used by this rule.
      */
@@ -72,22 +73,28 @@ public class TimeArrayTimeZoneRule extends TimeZoneTransitionRule {
         return timeType;
     }
 
-    /* (non-Javadoc)
-     * @see com.ibm.icu.util.TimeZoneTransitionRule#getFirstStart(int, int)
+    /**
+     * {@inheritDoc}
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public Date getFirstStart(int prevRawOffset, int prevDSTSavings) {
         return new Date(getUTC(startTimes[0], prevRawOffset, prevDSTSavings));
     }
 
-    /* (non-Javadoc)
-     * @see com.ibm.icu.util.TimeZoneTransitionRule#getFinalStart(int, int)
+    /**
+     * {@inheritDoc}
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public Date getFinalStart(int prevRawOffset, int prevDSTSavings) {
         return new Date(getUTC(startTimes[startTimes.length - 1], prevRawOffset, prevDSTSavings));
     }
 
-    /* (non-Javadoc)
-     * @see com.ibm.icu.util.TimeZoneTransitionRule#getNextStart(long, int, int, boolean)
+    /**
+     * {@inheritDoc}
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public Date getNextStart(long base, int prevOffset, int prevDSTSavings, boolean inclusive) {
         int i = startTimes.length - 1;
@@ -103,8 +110,10 @@ public class TimeArrayTimeZoneRule extends TimeZoneTransitionRule {
         return new Date(getUTC(startTimes[i + 1], prevOffset, prevDSTSavings));
     }
 
-    /* (non-Javadoc)
-     * @see com.ibm.icu.util.TimeZoneTransitionRule#getPreviousStart(long, int, int, boolean)
+    /**
+     * {@inheritDoc}
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public Date getPreviousStart(long base, int prevOffset, int prevDSTSavings, boolean inclusive) {
         int i = startTimes.length - 1;
@@ -117,8 +126,10 @@ public class TimeArrayTimeZoneRule extends TimeZoneTransitionRule {
         return null;
     }
 
-    /* (non-Javadoc)
-     * @see com.ibm.icu.util.TimeZoneRule#isSameAs(com.ibm.icu.util.TimeZoneRule)
+    /**
+     * {@inheritDoc}
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public boolean isSameAs(TimeZoneRule other) {
         if (!(other instanceof TimeArrayTimeZoneRule)) {
@@ -142,8 +153,10 @@ public class TimeArrayTimeZoneRule extends TimeZoneTransitionRule {
         return time;
     }
 
-    /* (non-Javadoc)
-     * @see com.ibm.icu.util.TimeZoneRule#toString()
+    /**
+     * Returns a <code>String</code> representation of this <code>TimeArrayTimeZoneRule</code> object.
+     * @internal
+     * @deprecated This API is ICU internal only.
      */
     public String toString() {
         StringBuffer buf = new StringBuffer();

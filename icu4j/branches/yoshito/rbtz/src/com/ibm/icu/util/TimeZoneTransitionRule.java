@@ -9,12 +9,12 @@ package com.ibm.icu.util;
 import java.util.Date;
 
 /**
- * TimeZoneTransitionRule is an abstract class extending TimeZoneRule
- * and representing time zone transitions.  A concrete subclass will
- * provide methods to access times when the rule takes effect.  There
- * are two known concrete subclases - AnnualTimeZoneRule, which defines
- * the start times by annually repeated date time rule, and
- * TimeArrayTimeZoneRule, which defines the start times by a simple
+ * <code>TimeZoneTransitionRule</code> is an abstract class extending
+ * <code>TimeZoneRule</code> and representing time zone transitions.
+ * A concrete subclass will provide methods to access times when the rule
+ * takes effect.  There are two known concrete subclases - <code>AnnualTimeZoneRule</code>,
+ * which defines the start times by annually repeated date time rule, and
+ * <code>TimeArrayTimeZoneRule</code>, which defines the start times by a simple
  * array of times.
  * 
  * @draft ICU 3.8
@@ -23,13 +23,13 @@ import java.util.Date;
 public abstract class TimeZoneTransitionRule extends TimeZoneRule {
 
     /**
-     * Constructs a TimeZoneTransitionRule with the name, the GMT offset
+     * Constructs a <code>TimeZoneTransitionRule</code> with the name, the GMT offset
      * of its standard time and the amount of daylight saving offset adjustment.
      * 
-     * @param name      The time zone name.
-     * @param rawOffset The UTC offset of its standard time in milliseconds.
-     * @param dstSaving The amount of daylight saving offset adjustment in milliseconds.
-     *                  If this ia a rule for standard time, the value of this argument is 0.
+     * @param name          The time zone name.
+     * @param rawOffset     The UTC offset of its standard time in milliseconds.
+     * @param dstSavings    The amount of daylight saving offset adjustment in milliseconds.
+     *                      If this ia a rule for standard time, the value of this argument is 0.
      * 
      * @draft ICU 3.8
      * @provisional This API might change or be removed in a future release.
@@ -105,5 +105,4 @@ public abstract class TimeZoneTransitionRule extends TimeZoneRule {
      * @provisional This API might change or be removed in a future release.
      */
     public abstract Date getPreviousStart(long base, int prevRawOffset, int prevDSTSavings, boolean inclusive);
-
 }

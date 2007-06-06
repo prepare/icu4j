@@ -6,7 +6,7 @@
  */
 package com.ibm.icu.util;
 /**
- * TimeZoneTransition is a class representing a time zone transition.
+ * <code>TimeZoneTransition</code> is a class representing a time zone transition.
  * An instance has a time of transition and rules for both before and
  * after the transition.
  * 
@@ -19,7 +19,7 @@ public class TimeZoneTransition {
     private final long time;
 
     /**
-     * Constructs a TimeZoneTransition with the time and the rules before/after
+     * Constructs a <code>TimeZoneTransition</code> with the time and the rules before/after
      * the transition.
      * 
      * @param time  The time of transition in milliseconds since the base time.
@@ -71,8 +71,10 @@ public class TimeZoneTransition {
         return from;
     }
 
-    /* (non-Javadoc)
-     * @see java.lang.Object#toString()
+    /**
+     * Returns a <code>String</code> representation of this <code>TimeZoneTransition</code> object.
+     * @internal
+     * @deprecated This API is ICU internal only.
      */
     public String toString() {
         StringBuffer buf = new StringBuffer();

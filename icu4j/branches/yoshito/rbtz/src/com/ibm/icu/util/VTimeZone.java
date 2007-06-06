@@ -17,29 +17,27 @@ import java.util.List;
 import java.util.MissingResourceException;
 
 import com.ibm.icu.impl.Grego;
-import com.ibm.icu.impl.ICUTimeZone;
-import com.ibm.icu.impl.OlsonTimeZone;
 
 /**
- * VTimeZone is a class implementing RFC2445 VTIMEZONE.  You can create a
- * VTimeZone instance from a time zone ID supported by ICU TimeZone.  With
- * the VTimeZone instance created from the ID, you can write out the rule
- * in RFC2445 VTIMEZONE format.  Also, you can create a VTimeZone instance
+ * <code>VTimeZone</code> is a class implementing RFC2445 VTIMEZONE.  You can create a
+ * <code>VTimeZone</code> instance from a time zone ID supported by <code>TimeZone</code>.  With
+ * the <code>VTimeZone</code> instance created from the ID, you can write out the rule
+ * in RFC2445 VTIMEZONE format.  Also, you can create a <code>VTimeZone</code> instance
  * from RFC2445 VTIMEZONE data stream, which allows you to calculate time
  * zone offset by the rules defined by the data.
  * 
  * @draft ICU 3.8
  * @provisional This API might change or be removed in a future release.
  */
-public class VTimeZone extends ICUTimeZone {
+public class VTimeZone extends BasicTimeZone {
 
     private static final long serialVersionUID = -6851467294127795902L;
 
     /**
-     * Create a VTimeZone instance by the time zone ID.
+     * Create a <code>VTimeZone</code> instance by the time zone ID.
      * 
      * @param tzid The time zone ID, such as America/New_York
-     * @return A VTimeZone initialized by the time zone ID, or null
+     * @return A <code>VTimeZone</code> initialized by the time zone ID, or null
      * when the ID is unknown.
      * 
      * @draft ICU 3.8
@@ -47,7 +45,7 @@ public class VTimeZone extends ICUTimeZone {
      */
     public static VTimeZone create(String tzid) {
         VTimeZone vtz = new VTimeZone();
-        vtz.tz = (ICUTimeZone)TimeZone.getTimeZone(tzid);
+        vtz.tz = (BasicTimeZone)TimeZone.getTimeZone(tzid);
         vtz.olsonzid = vtz.tz.getID();
         vtz.setID(tzid);
 
@@ -55,10 +53,10 @@ public class VTimeZone extends ICUTimeZone {
     }
     
     /**
-     * Create a VTimeZone instance by RFC2445 VTIMEZONE data
+     * Create a <code>VTimeZone</code> instance by RFC2445 VTIMEZONE data
      * 
      * @param reader The Reader for VTIMEZONE data input stream
-     * @return A VTimeZone initialized by the VTIMEZONE data or
+     * @return A <code>VTimeZone</code> initialized by the VTIMEZONE data or
      * null if failed to load the rule from the VTIMEZONE data.
      * 
      * @draft ICU 3.8
@@ -72,51 +70,57 @@ public class VTimeZone extends ICUTimeZone {
         return null;
     }
 
-    /* (non-Javadoc)
-     * @see com.ibm.icu.util.TimeZone#getOffset(int, int, int, int, int, int)
+    /**
+     * {@inheritDoc}
+     * @stable ICU 2.0
      */
     public int getOffset(int era, int year, int month, int day, int dayOfWeek,
             int milliseconds) {
         return tz.getOffset(era, year, month, day, dayOfWeek, milliseconds);
     }
 
-    /* (non-Javadoc)
-     * @see com.ibm.icu.util.TimeZone#getOffset(long, boolean, int[])
+    /**
+     * {@inheritDoc}
+     * @stable ICU 2.8
      */
     public void getOffset(long date, boolean local, int[] offsets) {
         tz.getOffset(date, local, offsets);
     }
 
-    /* (non-Javadoc)
-     * @see com.ibm.icu.util.TimeZone#getRawOffset()
+    /**
+     * {@inheritDoc}
+     * @stable ICU 2.0
      */
     public int getRawOffset() {
         return tz.getRawOffset();
     }
 
-    /* (non-Javadoc)
-     * @see com.ibm.icu.util.TimeZone#inDaylightTime(java.util.Date)
+    /**
+     * {@inheritDoc}
+     * @stable ICU 2.0
      */
     public boolean inDaylightTime(Date date) {
         return tz.inDaylightTime(date);
     }
 
-    /* (non-Javadoc)
-     * @see com.ibm.icu.util.TimeZone#setRawOffset(int)
+    /**
+     * {@inheritDoc}
+     * @stable ICU 2.0
      */
     public void setRawOffset(int offsetMillis) {
         tz.setRawOffset(offsetMillis);
     }
 
-    /* (non-Javadoc)
-     * @see com.ibm.icu.util.TimeZone#useDaylightTime()
+    /**
+     * {@inheritDoc}
+     * @stable ICU 2.0
      */
     public boolean useDaylightTime() {
         return tz.useDaylightTime();
     }
 
     /**
-     * Gets the RFC2445 TZURL property value.  When a VTimeZone instance was created from
+     * Gets the RFC2445 TZURL property value.  When a <code>VTimeZone</code> instance was created from
      * VTIMEZONE data, the value is set by the TZURL property value in the data.  Otherwise,
      * the initial value is null.
      * 
@@ -142,7 +146,7 @@ public class VTimeZone extends ICUTimeZone {
     }
 
     /**
-     * Gets the RFC2445 LAST-MODIFIED property value.  When a VTimeZone instance was created
+     * Gets the RFC2445 LAST-MODIFIED property value.  When a <code>VTimeZone</code> instance was created
      * from VTIMEZONE data, the value is set by the LAST-MODIFIED property value in the data.
      * Otherwise, the initial value is null.
      * 
@@ -158,7 +162,7 @@ public class VTimeZone extends ICUTimeZone {
     /**
      * Sets the date used for RFC2445 LAST-MODIFIED property value.
      * 
-     * @param date The Date object represents the date for RFC2445 LAST-MODIFIED property value.
+     * @param date The <code>Date</code> object represents the date for RFC2445 LAST-MODIFIED property value.
      * 
      * @draft ICU 3.8
      * @provisional This API might change or be removed in a future release.
@@ -170,7 +174,7 @@ public class VTimeZone extends ICUTimeZone {
     /**
      * Writes RFC2445 VTIMEZONE data for this time zone
      * 
-     * @param writer A Writer used for the output
+     * @param writer A <code>Writer</code> used for the output
      * @throws IOException
      * 
      * @draft ICU 3.8
@@ -215,7 +219,7 @@ public class VTimeZone extends ICUTimeZone {
      * Writes RFC2445 VTIMEZONE data applicalbe for dates after
      * the specified cutover time.
      * 
-     * @param writer    The Writer used for the output
+     * @param writer    The <code>Writer</code> used for the output
      * @param cutover   The cutover time
      * 
      * @throws IOException
@@ -250,7 +254,7 @@ public class VTimeZone extends ICUTimeZone {
      * produced by this method can be used only for calculating time zone offset
      * around the specified date.
      * 
-     * @param writer    The Writer used for the output
+     * @param writer    The <code>Writer</code> used for the output
      * @param time      The date
      * 
      * @throws IOException
@@ -276,44 +280,56 @@ public class VTimeZone extends ICUTimeZone {
         writeZone(writer, rbtz, customHeaders);
     }
 
-    /* (non-Javadoc)
-     * @see com.ibm.icu.util.HasTimeZoneRules#getNextTransition(long, boolean)
+    // BasicTimeZone methods
+
+    /**
+     * {@inheritDoc}
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public TimeZoneTransition getNextTransition(long base, boolean inclusive) {
-        return ((HasTimeZoneRules)tz).getNextTransition(base, inclusive);
+        return tz.getNextTransition(base, inclusive);
     }
 
-    /* (non-Javadoc)
-     * @see com.ibm.icu.util.HasTimeZoneRules#getPreviousTransition(long, boolean)
+    /**
+     * {@inheritDoc}
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public TimeZoneTransition getPreviousTransition(long base, boolean inclusive) {
-        return ((HasTimeZoneRules)tz).getPreviousTransition(base, inclusive);
+        return tz.getPreviousTransition(base, inclusive);
     }
 
-    /* (non-Javadoc)
-     * @see com.ibm.icu.impl.ICUTimeZone#hasEquivalentTransitions(com.ibm.icu.util.TimeZone, long, long)
+    /**
+     * {@inheritDoc}
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public boolean hasEquivalentTransitions(TimeZone other, long start, long end) {
-        return ((HasTimeZoneRules)tz).hasEquivalentTransitions(other, start, end);
+        return tz.hasEquivalentTransitions(other, start, end);
     }
 
-    /* (non-Javadoc)
-     * @see com.ibm.icu.util.HasTimeZoneRules#getTimeZoneRules()
+    /**
+     * {@inheritDoc}
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public TimeZoneRule[] getTimeZoneRules() {
-        return ((HasTimeZoneRules)tz).getTimeZoneRules();
+        return tz.getTimeZoneRules();
     }
 
-    /* (non-Javadoc)
-     * @see com.ibm.icu.impl.ICUTimeZone#getTimeZoneRules(long)
+    /**
+     * {@inheritDoc}
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public TimeZoneRule[] getTimeZoneRules(long start) {
-        return ((HasTimeZoneRules)tz).getTimeZoneRules(start);
+        return tz.getTimeZoneRules(start);
     }
 
     // private stuff ------------------------------------------------------
 
-    private ICUTimeZone tz;
+    private BasicTimeZone tz;
     private List vtzlines;
     private String olsonzid = null;
     private String tzurl = null;
@@ -369,11 +385,6 @@ public class VTimeZone extends ICUTimeZone {
 
     // Month length in regular year
     private static final int[] MONTHLENGTH = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
-
-    private static final int MILLIS_PER_DAY = 24*60*60*1000;
-    private static final int MILLIS_PER_HOUR = 60*60*1000;
-    private static final int MILLIS_PER_MINUTE = 60*1000;
-    private static final int MILLIS_PER_SECOND = 1000;
 
     static {
         // Initialize ICU_TZVERSION
@@ -1097,7 +1108,7 @@ public class VTimeZone extends ICUTimeZone {
     /*
      * Write the time zone rules in RFC2445 VTIMEZONE format
      */
-    private void writeZone(Writer w, ICUTimeZone icutz, String[] customHeaders) throws IOException {
+    private void writeZone(Writer w, BasicTimeZone icutz, String[] customHeaders) throws IOException {
         // Write the header
         writeHeader(w);
 
@@ -1562,10 +1573,10 @@ public class VTimeZone extends ICUTimeZone {
         int dshift = 0;
         if (wallt < 0) {
             dshift = -1;
-            wallt += MILLIS_PER_DAY;
-        } else if (wallt >= MILLIS_PER_DAY) {
+            wallt += Grego.MILLIS_PER_DAY;
+        } else if (wallt >= Grego.MILLIS_PER_DAY) {
             dshift = 1;
-            wallt -= MILLIS_PER_DAY;
+            wallt -= Grego.MILLIS_PER_DAY;
         }
 
         month = rule.getRuleMonth();
@@ -1747,11 +1758,11 @@ public class VTimeZone extends ICUTimeZone {
         sb.append('T');
 
         int t = fields[5];
-        int hour = t / MILLIS_PER_HOUR;
-        t %= MILLIS_PER_HOUR;
-        int min = t / MILLIS_PER_MINUTE;
-        t %= MILLIS_PER_MINUTE;
-        int sec = t / MILLIS_PER_SECOND;
+        int hour = t / Grego.MILLIS_PER_HOUR;
+        t %= Grego.MILLIS_PER_HOUR;
+        int min = t / Grego.MILLIS_PER_MINUTE;
+        t %= Grego.MILLIS_PER_MINUTE;
+        int sec = t / Grego.MILLIS_PER_SECOND;
         
         sb.append(numToString(hour, 2));
         sb.append(numToString(min, 2));
@@ -1822,8 +1833,8 @@ public class VTimeZone extends ICUTimeZone {
             throw new IllegalArgumentException("Invalid date time string format");
         }
         // Calculate the time
-        long time = Grego.fieldsToDay(year, month, day) * MILLIS_PER_DAY;
-        time += (hour*MILLIS_PER_HOUR + min*MILLIS_PER_MINUTE + sec*MILLIS_PER_SECOND);
+        long time = Grego.fieldsToDay(year, month, day) * Grego.MILLIS_PER_DAY;
+        time += (hour*Grego.MILLIS_PER_HOUR + min*Grego.MILLIS_PER_MINUTE + sec*Grego.MILLIS_PER_SECOND);
         if (!isUTC) {
             time -= offset;
         }

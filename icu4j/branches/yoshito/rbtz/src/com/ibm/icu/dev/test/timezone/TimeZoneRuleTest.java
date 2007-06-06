@@ -14,12 +14,11 @@ import java.io.OutputStreamWriter;
 import java.util.Date;
 
 import com.ibm.icu.dev.test.TestFmwk;
-import com.ibm.icu.impl.ICUTimeZone;
 import com.ibm.icu.util.AnnualTimeZoneRule;
+import com.ibm.icu.util.BasicTimeZone;
 import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.DateTimeRule;
 import com.ibm.icu.util.GregorianCalendar;
-import com.ibm.icu.util.HasTimeZoneRules;
 import com.ibm.icu.util.InitialTimeZoneRule;
 import com.ibm.icu.util.RuleBasedTimeZone;
 import com.ibm.icu.util.SimpleTimeZone;
@@ -94,13 +93,13 @@ public class TimeZoneRuleTest extends TestFmwk {
         long start = getUTCMillis(STARTYEAR, Calendar.JANUARY, 1);
         long until = getUTCMillis(STARTYEAR + 10, Calendar.JANUARY, 1);
 
-        if (!((HasTimeZoneRules)stz).hasEquivalentTransitions(rbtz1, start, until)) {
+        if (!(stz.hasEquivalentTransitions(rbtz1, start, until))) {
             errln("FAIL: rbtz1 must be equivalent to the SimpleTimeZone in the time range.");
         }
-        if (!((HasTimeZoneRules)stz).hasEquivalentTransitions(rbtz2, start, until)) {
+        if (!(stz.hasEquivalentTransitions(rbtz2, start, until))) {
             errln("FAIL: rbtz2 must be equivalent to the SimpleTimeZone in the time range.");
         }
-        if (!((HasTimeZoneRules)stz).hasEquivalentTransitions(rbtz3, start, until)) {
+        if (!(stz.hasEquivalentTransitions(rbtz3, start, until))) {
             errln("FAIL: rbtz3 must be equivalent to the SimpleTimeZone in the time range.");
         }
     }
@@ -159,10 +158,10 @@ public class TimeZoneRuleTest extends TestFmwk {
         long jan1_1967 = getUTCMillis(1971, Calendar.JANUARY, 1);
         long jan1_2010 = getUTCMillis(2010, Calendar.JANUARY, 1);        
 
-        if (!((HasTimeZoneRules)ny).hasEquivalentTransitions(rbtz, jan1_1967, jan1_2010)) {
+        if (!(((BasicTimeZone)ny).hasEquivalentTransitions(rbtz, jan1_1967, jan1_2010))) {
             errln("FAIL: The RBTZ must be equivalent to America/New_York between 1967 and 2010");
         }
-        if (((HasTimeZoneRules)ny).hasEquivalentTransitions(rbtz, jan1_1950, jan1_2010)) {
+        if (((BasicTimeZone)ny).hasEquivalentTransitions(rbtz, jan1_1950, jan1_2010)) {
             errln("FAIL: The RBTZ must not be equivalent to America/New_York between 1950 and 2010");
         }
 
@@ -219,7 +218,7 @@ public class TimeZoneRuleTest extends TestFmwk {
             }
             for (int j = 0; j < STARTYEARS.length; j++) {
                 long startTime = getUTCMillis(STARTYEARS[j], Calendar.JANUARY, 1);
-                TimeZoneRule[] rules = ((ICUTimeZone)tz).getTimeZoneRules(startTime);
+                TimeZoneRule[] rules = ((BasicTimeZone)tz).getTimeZoneRules(startTime);
                 RuleBasedTimeZone rbtz = new RuleBasedTimeZone(tz.getID() + "(RBTZ)", (InitialTimeZoneRule)rules[0]);
                 for (int k = 1; k < rules.length; k++) {
                     rbtz.addTransitionRule((TimeZoneTransitionRule)rules[k]);
@@ -257,17 +256,17 @@ public class TimeZoneRuleTest extends TestFmwk {
         long jan1_2007 = getUTCMillis(2007, Calendar.JANUARY, 1);
         long jan1_2011 = getUTCMillis(2010, Calendar.JANUARY, 1);
         
-        if (((HasTimeZoneRules)newyork).hasEquivalentTransitions(indianapolis, jan1_2005, jan1_2011)) {
+        if (((BasicTimeZone)newyork).hasEquivalentTransitions(indianapolis, jan1_2005, jan1_2011)) {
             errln("FAIL: New_York is not equivalent to Indianapolis between 2005 and 2010");
         }
-        if (!((HasTimeZoneRules)newyork).hasEquivalentTransitions(indianapolis, jan1_2006, jan1_2011)) {
+        if (!((BasicTimeZone)newyork).hasEquivalentTransitions(indianapolis, jan1_2006, jan1_2011)) {
             errln("FAIL: New_York is equivalent to Indianapolis between 2006 and 2010");
         }
 
-        if (!((HasTimeZoneRules)indianapolis).hasEquivalentTransitions(gmt_5, jan1_1971, jan1_2006)) {
+        if (!((BasicTimeZone)indianapolis).hasEquivalentTransitions(gmt_5, jan1_1971, jan1_2006)) {
             errln("FAIL: Indianapolis is equivalent to GMT+5 between 1971 and 2005");
         }
-        if (((HasTimeZoneRules)indianapolis).hasEquivalentTransitions(gmt_5, jan1_1971, jan1_2007)) {
+        if (((BasicTimeZone)indianapolis).hasEquivalentTransitions(gmt_5, jan1_1971, jan1_2007)) {
             errln("FAIL: Indianapolis is not equivalent to GMT+5 between 1971 and 2006");
         }
     }
@@ -494,7 +493,7 @@ public class TimeZoneRuleTest extends TestFmwk {
         for (int n = 0; n < testTimes.length; n++) {
             long time = testTimes[n];
             for (int i = 0; i < tzids.length; i++) {
-                ICUTimeZone tz = (ICUTimeZone)TimeZone.getTimeZone(tzids[i]);
+                BasicTimeZone tz = (BasicTimeZone)TimeZone.getTimeZone(tzids[i]);
                 TimeZoneRule[] rules = tz.getSimpleTimeZoneRules(time);
                 if (rules == null) {
                     errln("FAIL: Failed to extract simple rules for " + tzids[i] + " at " + time);
@@ -531,7 +530,7 @@ public class TimeZoneRuleTest extends TestFmwk {
      * getPreviousTransition in the specified time range
      */
     private void verifyTransitions(TimeZone tz, long start, long end) {
-        ICUTimeZone icutz = (ICUTimeZone)tz;
+        BasicTimeZone icutz = (BasicTimeZone)tz;
         long time;
         int[] before = new int[2];
         int[] after = new int[2];
@@ -598,8 +597,8 @@ public class TimeZoneRuleTest extends TestFmwk {
      * Compare all time transitions in 2 time zones in the specified time range in ascending order
      */
     private void compareTransitionsAscending(TimeZone tz1, TimeZone tz2, long start, long end, boolean inclusive) {
-        ICUTimeZone z1 = (ICUTimeZone)tz1;
-        ICUTimeZone z2 = (ICUTimeZone)tz2;
+        BasicTimeZone z1 = (BasicTimeZone)tz1;
+        BasicTimeZone z2 = (BasicTimeZone)tz2;
         String zid1 = tz1.getID();
         String zid2 = tz2.getID();
 
@@ -648,8 +647,8 @@ public class TimeZoneRuleTest extends TestFmwk {
      * Compare all time transitions in 2 time zones in the specified time range in descending order
      */
     private void compareTransitionsDescending(TimeZone tz1, TimeZone tz2, long start, long end, boolean inclusive) {
-        ICUTimeZone z1 = (ICUTimeZone)tz1;
-        ICUTimeZone z2 = (ICUTimeZone)tz2;
+        BasicTimeZone z1 = (BasicTimeZone)tz1;
+        BasicTimeZone z2 = (BasicTimeZone)tz2;
         String zid1 = tz1.getID();
         String zid2 = tz2.getID();
         long time = end;

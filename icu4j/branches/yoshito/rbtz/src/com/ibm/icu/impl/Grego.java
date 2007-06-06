@@ -26,8 +26,14 @@ import com.ibm.icu.util.Calendar;
  */
 public class Grego {
 
+    // Max/min milliseconds 
     public static final long MIN_MILLIS = -184303902528000000L;
     public static final long MAX_MILLIS = 183882168921600000L;
+
+    public static final int MILLIS_PER_SECOND = 1000;
+    public static final int MILLIS_PER_MINUTE = 60*MILLIS_PER_SECOND;
+    public static final int MILLIS_PER_HOUR = 60*MILLIS_PER_MINUTE;
+    public static final int MILLIS_PER_DAY = 24*MILLIS_PER_HOUR;
     
     //  January 1, 1 CE Gregorian
     private static final int JULIAN_1_CE = 1721426;

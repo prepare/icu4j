@@ -4,34 +4,73 @@
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
-package com.ibm.icu.impl;
+package com.ibm.icu.util;
 
 import java.util.BitSet;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
-import com.ibm.icu.util.AnnualTimeZoneRule;
-import com.ibm.icu.util.DateTimeRule;
-import com.ibm.icu.util.HasTimeZoneRules;
-import com.ibm.icu.util.InitialTimeZoneRule;
-import com.ibm.icu.util.TimeArrayTimeZoneRule;
-import com.ibm.icu.util.TimeZone;
-import com.ibm.icu.util.TimeZoneRule;
-import com.ibm.icu.util.TimeZoneTransition;
-import com.ibm.icu.util.TimeZoneTransitionRule;
+import com.ibm.icu.impl.Grego;
 
 /**
- * ICUTimeZone is an abstract class extends TimeZone and
- * implements HasTimeZoneTransitions.  ICU TimeZone implementation
- * classes should extend this abstract class.
+ * <code>BasicTimeZone</code> is an abstract class extending <code>TimeZone</code>.  This class provides
+ * some additional methods to access time zone transitions and rules.  All ICU
+ * <code>TimeZone</code> concrete subclasses extend this class.
+ * 
+ * @draft ICU 3.8
+ * @provisional This API might change or be removed in a future release.
  */
-public abstract class ICUTimeZone extends TimeZone implements HasTimeZoneRules {
+public abstract class BasicTimeZone extends TimeZone {
 
-    protected final int MILLIS_PER_DAY = 24*60*60*1000;
+    private static final long MILLIS_PER_YEAR = 365*24*60*60*1000L;
 
-    /* (non-Javadoc)
-     * @see com.ibm.icu.util.HasTimeZoneTransitions#hasEquivalentTransitions(com.ibm.icu.util.TimeZone, long, long)
+    /**
+     * Gets the first time zone transition after the base time.
+     * 
+     * @param base      The base time.
+     * @param inclusive Whether the base time is inclusive or not.
+     *               
+     * @return  A <code>Date</code> holding the first time zone transition time after the given
+     *          base time, or null if no time zone transitions are available after
+     *          the base time.
+     * 
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
+     */
+    public abstract TimeZoneTransition getNextTransition(long base, boolean inclusive);
+
+    /**
+     * Gets the last time zone transition before the base time.
+     * 
+     * @param base      The base time.
+     * @param inclusive Whether the base time is inclusive or not.
+     *               
+     * @return  A <code>Date</code> holding the last time zone transition time before the given
+     *          base time, or null if no time zone transitions are available before
+     *          the base time.
+     * 
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
+     */
+    public abstract TimeZoneTransition getPreviousTransition(long base, boolean inclusive);
+
+    /**
+     * Checks if the time zone has equivalent transitions in the time range.
+     * This method returns true when all of transition times, from/to standard
+     * offsets and DST savings used by this time zone match the other in the
+     * time range.
+     * 
+     * @param tz    The instance of <code>TimeZone</code>
+     * @param start The start time of the evaluated time range (inclusive)
+     * @param end   The end time of the evaluated time range (inclusive)
+     * 
+     * @return true if the other time zone has the equivalent transitions in the
+     * time range.  When tz is not a <code>BasicTimeZone</code>, this method
+     * returns false.
+     * 
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public boolean hasEquivalentTransitions(TimeZone tz, long start, long end) {
         return hasEquivalentTransitions(tz, start, end, false);
@@ -43,7 +82,7 @@ public abstract class ICUTimeZone extends TimeZone implements HasTimeZoneRules {
      * offsets and DST savings used by this time zone match the other in the
      * time range.
      * 
-     * @param tz    The instance of TimeZone
+     * @param tz    The instance of <code>TimeZone</code>
      * @param start The start time of the evaluated time range (inclusive)
      * @param end   The end time of the evaluated time range (inclusive)
      * @param ignoreDstAmount
@@ -55,17 +94,17 @@ public abstract class ICUTimeZone extends TimeZone implements HasTimeZoneRules {
      *              rawoffset 3:00/dstsavings 0:00 is included.
      * 
      * @return true if the other time zone has the equivalent transitions in the
-     * time range.  When tz is not implementing HasTimeZoneTransitions, this method
+     * time range.  When tz is not a <code>BasicTimeZone</code>, this method
      * returns false.
      * 
-     * @internal ICU 3.8
-     * @deprecated This API is for internal ICU use only
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public boolean hasEquivalentTransitions(TimeZone tz, long start, long end, boolean ignoreDstAmount) {
         if (hasSameRules(tz)) {
             return true;
         }
-        if (!(tz instanceof HasTimeZoneRules)) {
+        if (!(tz instanceof BasicTimeZone)) {
             return false;
         }
 
@@ -92,7 +131,7 @@ public abstract class ICUTimeZone extends TimeZone implements HasTimeZoneRules {
         long time = start;
         while (true) {
             TimeZoneTransition tr1 = getNextTransition(time, false);
-            TimeZoneTransition tr2 = ((HasTimeZoneRules)tz).getNextTransition(time, false);
+            TimeZoneTransition tr2 = ((BasicTimeZone)tz).getNextTransition(time, false);
 
             if (ignoreDstAmount) {
                 // Skip a transition which only differ the amount of DST savings
@@ -150,8 +189,31 @@ public abstract class ICUTimeZone extends TimeZone implements HasTimeZoneRules {
         return true;
     }
 
-    /* (non-Javadoc)
-     * @see com.ibm.icu.util.HasTimeZoneRules#getTimeZoneRules(long)
+    /**
+     * Gets the array of <code>TimeZoneRule</code> which represents the rule of this time zone
+     * object.  The first element in the result array will be always an instance of
+     * <code>InitialTimeZoneRule</code>.  The rest are either <code>AnnualTimeZoneRule</code> or
+     * <code>TimeArrayTimeZoneRule</code> instances.
+     * 
+     * @return The array of <code>TimeZoneRule</code> which represents this time zone.
+     * 
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
+     */
+    public abstract TimeZoneRule[] getTimeZoneRules();
+    
+    /**
+     * Gets the array of <code>TimeZoneRule</code> which represents the rule of this time zone
+     * object since the specified cut over time.  The first element in the result
+     * array will be always an instance of <code>InitialTimeZoneRule</code>.  The rest are
+     * either <code>AnnualTimeZoneRule</code> or <code>TimeArrayTimeZoneRule</code> instances.
+     * 
+     * @param start The cut over time (inclusive).
+     * @return The array of <code>TimeZoneRule</code> which represents this time zone since
+     * the cut over time.
+     * 
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public TimeZoneRule[] getTimeZoneRules(long start) {
         TimeZoneRule[] all = getTimeZoneRules();
@@ -287,10 +349,26 @@ public abstract class ICUTimeZone extends TimeZone implements HasTimeZoneRules {
         return rules;
     }
 
-    private static final long MILLIS_PER_YEAR = 365*24*60*60*1000L;
 
-    /* (non-Javadoc)
-     * @see com.ibm.icu.util.HasTimeZoneRules#getSimpleTimeZoneRules(long)
+    /**
+     * Gets the array of <code>TimeZoneRule</code> which represents the rule of this time zone
+     * object at the specified date.  Some applications are not capable to handle
+     * historic time zone rule changes.  Also some applications can only handle
+     * certain type of rule definitions.  This method returns either a single
+     * <code>InitialTimeZoneRule</code> if this time zone does not have any daylight saving time
+     * within 1 year from the specified time, or a pair of <code>AnnualTimeZoneRule</code> whose
+     * rule type is <code>DateTimeRule.DOW</code> for date and <code>DateTimeRule.WALL_TIME</code> for time with
+     * a single <code>InitialTimeZoneRule</code> when this time zone observes daylight saving time
+     * within 1 year.  Thus, the result may be only valid for dates around the
+     * specified date.
+     *
+     * @param date The date to be used for <code>TimeZoneRule</code> extraction.
+     * @return The array of <code>TimeZoneRule</code>, either a single <code>InitialTimeZoneRule</code> object
+     * or a pair of <code>AnnualTimeZoneRule</code> with a single <code>InitialTimeZoneRule</code>.  The first
+     * element in the array is always an <code>InitialTimeZoneRule</code>.
+     * 
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public TimeZoneRule[] getSimpleTimeZoneRules(long date) {
         AnnualTimeZoneRule[] annualRules = null;
