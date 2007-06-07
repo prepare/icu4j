@@ -20,8 +20,8 @@ import com.ibm.icu.impl.Grego;
 
 /**
  * <code>VTimeZone</code> is a class implementing RFC2445 VTIMEZONE.  You can create a
- * <code>VTimeZone</code> instance from a time zone ID supported by <code>TimeZone</code>.  With
- * the <code>VTimeZone</code> instance created from the ID, you can write out the rule
+ * <code>VTimeZone</code> instance from a time zone ID supported by <code>TimeZone</code>.
+ * With the <code>VTimeZone</code> instance created from the ID, you can write out the rule
  * in RFC2445 VTIMEZONE format.  Also, you can create a <code>VTimeZone</code> instance
  * from RFC2445 VTIMEZONE data stream, which allows you to calculate time
  * zone offset by the rules defined by the data.
@@ -232,7 +232,7 @@ public class VTimeZone extends BasicTimeZone {
         TimeZoneRule[] rules = tz.getTimeZoneRules(cutover);
 
         // Create a RuleBasedTimeZone with the subset rule
-        RuleBasedTimeZone rbtz = new RuleBasedTimeZone(tz.getID(), (InitialTimeZoneRule)rules[0]);
+        RuleBasedTimeZone rbtz = new RuleBasedTimeZone(tz.getID(), rules[0]);
         for (int i = 1; i < rules.length; i++) {
             rbtz.addTransitionRule((TimeZoneTransitionRule)rules[i]);
         }
@@ -267,7 +267,7 @@ public class VTimeZone extends BasicTimeZone {
         TimeZoneRule[] rules = tz.getSimpleTimeZoneRules(time);
 
         // Create a RuleBasedTimeZone with the subset rule
-        RuleBasedTimeZone rbtz = new RuleBasedTimeZone(tz.getID(), (InitialTimeZoneRule)rules[0]);
+        RuleBasedTimeZone rbtz = new RuleBasedTimeZone(tz.getID(), rules[0]);
         for (int i = 1; i < rules.length; i++) {
             rbtz.addTransitionRule((TimeZoneTransitionRule)rules[i]);
         }
@@ -703,7 +703,7 @@ public class VTimeZone extends BasicTimeZone {
         }
 
         // Create a initial rule
-        InitialTimeZoneRule initialRule = new InitialTimeZoneRule(getDefaultTZName(tzid, false),
+        TimeZoneRule initialRule = new TimeZoneRule(getDefaultTZName(tzid, false),
                 initialRawOffset, initialDSTSavings);
 
         // Finally, create the RuleBasedTimeZone

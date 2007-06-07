@@ -13,7 +13,6 @@ import com.ibm.icu.util.BasicTimeZone;
 import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.DateTimeRule;
 import com.ibm.icu.util.GregorianCalendar;
-import com.ibm.icu.util.InitialTimeZoneRule;
 import com.ibm.icu.util.SimpleTimeZone;
 import com.ibm.icu.util.TimeArrayTimeZoneRule;
 import com.ibm.icu.util.TimeZone;
@@ -990,7 +989,7 @@ public class OlsonTimeZone extends BasicTimeZone {
         return rules;
     }
 
-    private transient InitialTimeZoneRule initialRule;
+    private transient TimeZoneRule initialRule;
     private transient TimeZoneTransition firstTZTransition;
     private transient int firstTZTransitionIdx;
     private transient TimeZoneTransition firstFinalTZTransition;
@@ -1025,7 +1024,7 @@ public class OlsonTimeZone extends BasicTimeZone {
             typeIdx = getInt(typeData[0]); // initial type
             raw = typeOffsets[typeIdx*2]*MILLIS_PER_SECOND;
             dst = typeOffsets[typeIdx*2 + 1]*MILLIS_PER_SECOND;
-            initialRule = new InitialTimeZoneRule((dst == 0 ? stdName : dstName), raw, dst);
+            initialRule = new TimeZoneRule((dst == 0 ? stdName : dstName), raw, dst);
 
             for (transitionIdx = 1; transitionIdx < transitionCount; transitionIdx++) {
                 firstTZTransitionIdx++;
@@ -1076,7 +1075,7 @@ public class OlsonTimeZone extends BasicTimeZone {
             // No historic transitions
             raw = typeOffsets[0]*MILLIS_PER_SECOND;
             dst = typeOffsets[1]*MILLIS_PER_SECOND;
-            initialRule = new InitialTimeZoneRule((dst == 0 ? stdName : dstName), raw, dst);
+            initialRule = new TimeZoneRule((dst == 0 ? stdName : dstName), raw, dst);
         }
 
         if (finalZone != null) {

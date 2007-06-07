@@ -1123,15 +1123,7 @@ public class SimpleTimeZone extends BasicTimeZone {
     // BasicTimeZone methods
 
     /**
-     * Gets the first time zone transition after the base time.
-     * 
-     * @param base      The base time.
-     * @param inclusive Whether the base time is inclusive or not.
-     *               
-     * @return  A Date holding the first time zone transition time after the given
-     *          base time, or null if no time zone transitions are available after
-     *          the base time.
-     * 
+     * {@inheritDoc}
      * @draft ICU 3.8
      * @provisional This API might change or be removed in a future release.
      */
@@ -1154,15 +1146,7 @@ public class SimpleTimeZone extends BasicTimeZone {
     }
 
     /**
-     * Gets the last time zone transition before the base time.
-     * 
-     * @param base      The base time.
-     * @param inclusive Whether the base time is inclusive or not.
-     *               
-     * @return  A Date holding the last time zone transition time before the given
-     *          base time, or null if no time zone transitions are available before
-     *          the base time.
-     * 
+     * {@inheritDoc}
      * @draft ICU 3.8
      * @provisional This API might change or be removed in a future release.
      */
@@ -1185,13 +1169,7 @@ public class SimpleTimeZone extends BasicTimeZone {
     }
 
     /**
-     * Gets the array of TimeZoneRule which represents the rule of this time zone
-     * object.  The first element in the result array will be always an instance of
-     * InitialTimeZoneRule.  The rest are either AnnualTimeZoneRule or
-     * TimeArrayTimeZoneRule instances.
-     * 
-     * @return The array of TimeZoneRule which represents this time zone.
-     * 
+     * {@inheritDoc}
      * @draft ICU 3.8
      * @provisional This API might change or be removed in a future release.
      */
@@ -1273,16 +1251,16 @@ public class SimpleTimeZone extends BasicTimeZone {
 
             // Create a TimeZoneRule for initial time
             if (firstStdStart < firstDstStart) {
-                initialRule = new InitialTimeZoneRule(getID() + "(DST)", getRawOffset(), dstRule.getDSTSavings());                
+                initialRule = new TimeZoneRule(getID() + "(DST)", getRawOffset(), dstRule.getDSTSavings());                
                 firstTransition = new TimeZoneTransition(firstStdStart, initialRule, stdRule);
             } else {
-                initialRule = new InitialTimeZoneRule(getID() + "(STD)", getRawOffset(), 0);
+                initialRule = new TimeZoneRule(getID() + "(STD)", getRawOffset(), 0);
                 firstTransition = new TimeZoneTransition(firstDstStart, initialRule, dstRule);
             }
             
         } else {
             // Create a TimeZoneRule for initial time
-            initialRule = new InitialTimeZoneRule(getID(), getRawOffset(), 0);
+            initialRule = new TimeZoneRule(getID(), getRawOffset(), 0);
         }
         transitionRulesInitialized = true;
     }

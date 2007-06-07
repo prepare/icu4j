@@ -19,7 +19,6 @@ import com.ibm.icu.util.BasicTimeZone;
 import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.DateTimeRule;
 import com.ibm.icu.util.GregorianCalendar;
-import com.ibm.icu.util.InitialTimeZoneRule;
 import com.ibm.icu.util.RuleBasedTimeZone;
 import com.ibm.icu.util.SimpleTimeZone;
 import com.ibm.icu.util.TimeZone;
@@ -54,7 +53,7 @@ public class TimeZoneRuleTest extends TestFmwk {
         AnnualTimeZoneRule atzr;
         final int STARTYEAR = 2000;
 
-        InitialTimeZoneRule ir = new InitialTimeZoneRule("RBTZ_Initial", -1*HOUR, 1*HOUR); // starts with DST
+        TimeZoneRule ir = new TimeZoneRule("RBTZ_Initial", -1*HOUR, 1*HOUR); // starts with DST
 
         // Original rules
         RuleBasedTimeZone rbtz1 = new RuleBasedTimeZone("RBTZ1", ir);
@@ -113,7 +112,7 @@ public class TimeZoneRuleTest extends TestFmwk {
         TimeZone ny = TimeZone.getTimeZone("America/New_York");
 
         //RBTZ
-        InitialTimeZoneRule ir = new InitialTimeZoneRule("EST", -5*HOUR, 0);
+        TimeZoneRule ir = new TimeZoneRule("EST", -5*HOUR, 0);
         RuleBasedTimeZone rbtz = new RuleBasedTimeZone("EST5EDT", ir);
 
         DateTimeRule dtr;
@@ -219,7 +218,7 @@ public class TimeZoneRuleTest extends TestFmwk {
             for (int j = 0; j < STARTYEARS.length; j++) {
                 long startTime = getUTCMillis(STARTYEARS[j], Calendar.JANUARY, 1);
                 TimeZoneRule[] rules = ((BasicTimeZone)tz).getTimeZoneRules(startTime);
-                RuleBasedTimeZone rbtz = new RuleBasedTimeZone(tz.getID() + "(RBTZ)", (InitialTimeZoneRule)rules[0]);
+                RuleBasedTimeZone rbtz = new RuleBasedTimeZone(tz.getID() + "(RBTZ)", rules[0]);
                 for (int k = 1; k < rules.length; k++) {
                     rbtz.addTransitionRule((TimeZoneTransitionRule)rules[k]);
                 }
@@ -499,11 +498,11 @@ public class TimeZoneRuleTest extends TestFmwk {
                     errln("FAIL: Failed to extract simple rules for " + tzids[i] + " at " + time);
                 } else {
                     if (rules.length == 1) {
-                        if (!(rules[0] instanceof InitialTimeZoneRule)) {
+                        if (rules[0] instanceof TimeZoneTransitionRule) {
                             errln("FAIL: Unexpected rule object type is returned for " + tzids[i] + " at " + time);
                         }
                     } else if (rules.length == 3) {
-                        if (!(rules[0] instanceof InitialTimeZoneRule)
+                        if (rules[0] instanceof TimeZoneTransitionRule
                                 || !(rules[1] instanceof AnnualTimeZoneRule)
                                 || !(rules[2] instanceof AnnualTimeZoneRule)) {
                             errln("FAIL: Unexpected rule object type is returned for " + tzids[i] + " at " + time);

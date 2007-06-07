@@ -24,7 +24,7 @@ public class RuleBasedTimeZone extends BasicTimeZone {
 
     private static final long serialVersionUID = 7580833058949327935L;
 
-    private final InitialTimeZoneRule initialRule;
+    private final TimeZoneRule initialRule;
     private List historicRules;
     private AnnualTimeZoneRule[] finalRules;
 
@@ -32,8 +32,8 @@ public class RuleBasedTimeZone extends BasicTimeZone {
     private transient boolean upToDate;
 
     /**
-     * Constructs a <code>RuleBasedTimeZone</code> object with the ID, initial name, standard offset
-     * and daylight saving amount
+     * Constructs a <code>RuleBasedTimeZone</code> object with the ID and the initial
+     * <code>TimeZoneRule</code>
      * 
      * @param id                The time zone ID.
      * @param initialRule       The initial time zone rule.
@@ -41,7 +41,7 @@ public class RuleBasedTimeZone extends BasicTimeZone {
      * @draft ICU 3.8
      * @provisional This API might change or be removed in a future release.
      */
-    public RuleBasedTimeZone(String id, InitialTimeZoneRule initialRule) {
+    public RuleBasedTimeZone(String id, TimeZoneRule initialRule) {
         super.setID(id);
         this.initialRule = initialRule;
     }

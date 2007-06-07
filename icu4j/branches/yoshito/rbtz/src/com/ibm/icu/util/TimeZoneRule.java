@@ -9,18 +9,17 @@ package com.ibm.icu.util;
 import java.io.Serializable;
 
 /**
- * <code>TimeZoneRule</code> is an abstract class representing a rule for time zone.
+ * <code>TimeZoneRule</code> is a class representing a rule for time zone.
  * <code>TimeZoneRule</code> has a set of time zone attributes, such as zone name,
  * raw offset (UTC offset for standard time) and daylight saving time offset.
- * There are 3 known concrete subclasses which exnted <code>TimeZoneRule</code>.
- * <code>InitialTimeZoneRule</code> represents the iniital offsets and name.
- * <code>AnnualTimeZoneRule</code> and <code>TimeArrayTimeZoneRule</code> have rules
- * for start times in addition to offsets and name.
  * 
  * @draft ICU 3.8
  * @provisional This API might change or be removed in a future release.
  */
-public abstract class TimeZoneRule implements Serializable {
+public class TimeZoneRule implements Serializable {
+
+    private static final long serialVersionUID = 2668190543824667172L;
+
     private final String name;
     private final int rawOffset;
     private final int dstSavings;
