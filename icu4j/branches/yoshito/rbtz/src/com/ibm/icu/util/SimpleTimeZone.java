@@ -1187,7 +1187,7 @@ public class SimpleTimeZone extends BasicTimeZone {
     }
 
     private transient boolean transitionRulesInitialized;
-    private transient TimeZoneRule initialRule;
+    private transient InitialTimeZoneRule initialRule;
     private transient TimeZoneTransition firstTransition;
     private transient AnnualTimeZoneRule stdRule;
     private transient AnnualTimeZoneRule dstRule;
@@ -1251,16 +1251,16 @@ public class SimpleTimeZone extends BasicTimeZone {
 
             // Create a TimeZoneRule for initial time
             if (firstStdStart < firstDstStart) {
-                initialRule = new TimeZoneRule(getID() + "(DST)", getRawOffset(), dstRule.getDSTSavings());                
+                initialRule = new InitialTimeZoneRule(getID() + "(DST)", getRawOffset(), dstRule.getDSTSavings());                
                 firstTransition = new TimeZoneTransition(firstStdStart, initialRule, stdRule);
             } else {
-                initialRule = new TimeZoneRule(getID() + "(STD)", getRawOffset(), 0);
+                initialRule = new InitialTimeZoneRule(getID() + "(STD)", getRawOffset(), 0);
                 firstTransition = new TimeZoneTransition(firstDstStart, initialRule, dstRule);
             }
             
         } else {
             // Create a TimeZoneRule for initial time
-            initialRule = new TimeZoneRule(getID(), getRawOffset(), 0);
+            initialRule = new InitialTimeZoneRule(getID(), getRawOffset(), 0);
         }
         transitionRulesInitialized = true;
     }

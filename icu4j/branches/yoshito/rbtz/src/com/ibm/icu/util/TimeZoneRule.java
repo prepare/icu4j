@@ -7,18 +7,20 @@
 package com.ibm.icu.util;
 
 import java.io.Serializable;
+import java.util.Date;
 
 /**
- * <code>TimeZoneRule</code> is a class representing a rule for time zone.
+ * <code>TimeZoneRule</code> is an abstract class representing a rule for time zone.
  * <code>TimeZoneRule</code> has a set of time zone attributes, such as zone name,
  * raw offset (UTC offset for standard time) and daylight saving time offset.
+ * 
+ * @see com.ibm.icu.util.TimeZoneTransition
+ * @see com.ibm.icu.util.RuleBasedTimeZone
  * 
  * @draft ICU 3.8
  * @provisional This API might change or be removed in a future release.
  */
-public class TimeZoneRule implements Serializable {
-
-    private static final long serialVersionUID = 2668190543824667172L;
+public abstract class TimeZoneRule implements Serializable {
 
     private final String name;
     private final int rawOffset;
@@ -90,12 +92,80 @@ public class TimeZoneRule implements Serializable {
      * @draft ICU 3.8
      * @provisional This API might change or be removed in a future release.
      */
-    public boolean isSameAs(TimeZoneRule other) {
+    public boolean isEquivalentTo(TimeZoneRule other) {
         if (rawOffset == other.rawOffset && dstSavings == other.dstSavings) {
             return true;
         }
         return false;
     }
+ 
+    /**
+     * Gets the very first time when this rule takes effect.
+     * 
+     * @param prevRawOffset     The standard time offset from UTC before this rule
+     *                          takes effect in milliseconds.
+     * @param prevDSTSavings    The amount of daylight saving offset from the
+     *                          standard time. 
+     * 
+     * @return  The very first time when this rule takes effect.
+     * 
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
+     */
+    public abstract Date getFirstStart(int prevRawOffset, int prevDSTSavings);
+
+    /**
+     * Gets the final time when this rule takes effect.
+     * 
+     * @param prevRawOffset     The standard time offset from UTC before this rule
+     *                          takes effect in milliseconds.
+     * @param prevDSTSavings    The amount of daylight saving offset from the
+     *                          standard time. 
+     * 
+     * @return  The very last time when this rule takes effect,
+     *          or null if this rule is applied for future dates infinitely.
+     * 
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
+     */
+    public abstract Date getFinalStart(int prevRawOffset, int prevDSTSavings);
+
+    /**
+     * Gets the first time when this rule takes effect after the specified time.
+     * 
+     * @param base              The first time after this time is returned.
+     * @param prevRawOffset     The standard time offset from UTC before this rule
+     *                          takes effect in milliseconds.
+     * @param prevDSTSavings    The amount of daylight saving offset from the
+     *                          standard time. 
+     * @param inclusive         Whether the base time is inclusive or not.
+     * 
+     * @return  The first time when this rule takes effect after the specified time,
+     *          or null when this rule never takes effect after the specified time.
+     * 
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
+     */
+    public abstract Date getNextStart(long base, int prevRawOffset, int prevDSTSavings, boolean inclusive);
+
+    /**
+     * Gets the most recent time when this rule takes effect before the specified time.
+     * 
+     * @param base              The most recent time when this rule takes effect before
+     *                          this time is returned.
+     * @param prevRawOffset     The standard time offset from UTC before this rule
+     *                          takes effect in milliseconds.
+     * @param prevDSTSavings    The amount of daylight saving offset from the
+     *                          standard time. 
+     * @param inclusive         Whether the base time is inclusive or not.
+     * 
+     * @return  The most recent time when this rule takes effect before the specified time,
+     *          or null when this rule never takes effect before the specified time.
+     * 
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
+     */
+    public abstract Date getPreviousStart(long base, int prevRawOffset, int prevDSTSavings, boolean inclusive);
     
     /**
      * Returns a <code>String</code> representation of this <code>TimeZoneRule</code> object.

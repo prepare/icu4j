@@ -24,6 +24,7 @@ import com.ibm.icu.util.AnnualTimeZoneRule;
 import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.Currency;
 import com.ibm.icu.util.DateTimeRule;
+import com.ibm.icu.util.InitialTimeZoneRule;
 import com.ibm.icu.util.RuleBasedTimeZone;
 import com.ibm.icu.util.SimpleTimeZone;
 import com.ibm.icu.util.TimeArrayTimeZoneRule;
@@ -225,7 +226,7 @@ public class SerializableTest extends TestFmwk.TestGroup
         {
             RuleBasedTimeZone ruleBasedTimeZones[] = new RuleBasedTimeZone[2];
 
-            TimeZoneRule ir = new TimeZoneRule("GMT-5", -5*HOUR, 0);
+            InitialTimeZoneRule ir = new InitialTimeZoneRule("GMT-5", -5*HOUR, 0);
 
             // GMT-5, no transition
             ruleBasedTimeZones[0] = new RuleBasedTimeZone("GMT-5", ir);
@@ -314,11 +315,11 @@ public class SerializableTest extends TestFmwk.TestGroup
         }
     }
 
-    private static class TimeZoneRuleHandler implements Handler {
+    private static class InitialTimeZoneRuleHandler implements Handler {
         public Object[] getTestObjects() {
             TimeZoneRule[] rules = new TimeZoneRule[2];
-            rules[0] = new TimeZoneRule("EST", -5*HOUR, 0);
-            rules[1] = new TimeZoneRule("PST", -8*HOUR, 0);
+            rules[0] = new InitialTimeZoneRule("EST", -5*HOUR, 0);
+            rules[1] = new InitialTimeZoneRule("PST", -8*HOUR, 0);
             return rules;
         }
 
@@ -619,7 +620,7 @@ public class SerializableTest extends TestFmwk.TestGroup
         map.put("com.ibm.icu.util.VTimeZone", new VTimeZoneHandler());
         map.put("com.ibm.icu.util.DateTimeRule", new DateTimeRuleHandler());
         map.put("com.ibm.icu.util.AnnualTimeZoneRule", new AnnualTimeZoneRuleHandler());
-        map.put("com.ibm.icu.util.TimeZoneRule", new TimeZoneRuleHandler());
+        map.put("com.ibm.icu.util.InitialTimeZoneRule", new InitialTimeZoneRuleHandler());
         map.put("com.ibm.icu.util.TimeArrayTimeZoneRule", new TimeArrayTimeZoneRuleHandler());
         map.put("com.ibm.icu.util.ULocale", new ULocaleHandler());
         map.put("com.ibm.icu.util.Currency", new CurrencyHandler());

@@ -19,12 +19,12 @@ import com.ibm.icu.util.BasicTimeZone;
 import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.DateTimeRule;
 import com.ibm.icu.util.GregorianCalendar;
+import com.ibm.icu.util.InitialTimeZoneRule;
 import com.ibm.icu.util.RuleBasedTimeZone;
 import com.ibm.icu.util.SimpleTimeZone;
 import com.ibm.icu.util.TimeZone;
 import com.ibm.icu.util.TimeZoneRule;
 import com.ibm.icu.util.TimeZoneTransition;
-import com.ibm.icu.util.TimeZoneTransitionRule;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.VTimeZone;
 
@@ -53,7 +53,7 @@ public class TimeZoneRuleTest extends TestFmwk {
         AnnualTimeZoneRule atzr;
         final int STARTYEAR = 2000;
 
-        TimeZoneRule ir = new TimeZoneRule("RBTZ_Initial", -1*HOUR, 1*HOUR); // starts with DST
+        InitialTimeZoneRule ir = new InitialTimeZoneRule("RBTZ_Initial", -1*HOUR, 1*HOUR); // starts with DST
 
         // Original rules
         RuleBasedTimeZone rbtz1 = new RuleBasedTimeZone("RBTZ1", ir);
@@ -112,7 +112,7 @@ public class TimeZoneRuleTest extends TestFmwk {
         TimeZone ny = TimeZone.getTimeZone("America/New_York");
 
         //RBTZ
-        TimeZoneRule ir = new TimeZoneRule("EST", -5*HOUR, 0);
+        InitialTimeZoneRule ir = new InitialTimeZoneRule("EST", -5*HOUR, 0);
         RuleBasedTimeZone rbtz = new RuleBasedTimeZone("EST5EDT", ir);
 
         DateTimeRule dtr;
@@ -218,9 +218,10 @@ public class TimeZoneRuleTest extends TestFmwk {
             for (int j = 0; j < STARTYEARS.length; j++) {
                 long startTime = getUTCMillis(STARTYEARS[j], Calendar.JANUARY, 1);
                 TimeZoneRule[] rules = ((BasicTimeZone)tz).getTimeZoneRules(startTime);
-                RuleBasedTimeZone rbtz = new RuleBasedTimeZone(tz.getID() + "(RBTZ)", rules[0]);
+                RuleBasedTimeZone rbtz = new RuleBasedTimeZone(tz.getID() + "(RBTZ)",
+                        (InitialTimeZoneRule)rules[0]);
                 for (int k = 1; k < rules.length; k++) {
-                    rbtz.addTransitionRule((TimeZoneTransitionRule)rules[k]);
+                    rbtz.addTransitionRule(rules[k]);
                 }
 
                 // Compare the original OlsonTimeZone with the RBTZ starting the startTime for 20 years
@@ -498,11 +499,11 @@ public class TimeZoneRuleTest extends TestFmwk {
                     errln("FAIL: Failed to extract simple rules for " + tzids[i] + " at " + time);
                 } else {
                     if (rules.length == 1) {
-                        if (rules[0] instanceof TimeZoneTransitionRule) {
+                        if (!(rules[0] instanceof InitialTimeZoneRule)) {
                             errln("FAIL: Unexpected rule object type is returned for " + tzids[i] + " at " + time);
                         }
                     } else if (rules.length == 3) {
-                        if (rules[0] instanceof TimeZoneTransitionRule
+                        if (!(rules[0] instanceof InitialTimeZoneRule)
                                 || !(rules[1] instanceof AnnualTimeZoneRule)
                                 || !(rules[2] instanceof AnnualTimeZoneRule)) {
                             errln("FAIL: Unexpected rule object type is returned for " + tzids[i] + " at " + time);

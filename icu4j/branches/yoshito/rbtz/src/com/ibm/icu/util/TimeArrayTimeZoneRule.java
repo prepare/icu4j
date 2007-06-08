@@ -15,7 +15,7 @@ import java.util.Date;
  * @draft ICU 3.8
  * @provisional This API might change or be removed in a future release.
  */
-public class TimeArrayTimeZoneRule extends TimeZoneTransitionRule {
+public class TimeArrayTimeZoneRule extends TimeZoneRule {
 
     private static final long serialVersionUID = -1117109130077415245L;
 
@@ -131,13 +131,13 @@ public class TimeArrayTimeZoneRule extends TimeZoneTransitionRule {
      * @draft ICU 3.8
      * @provisional This API might change or be removed in a future release.
      */
-    public boolean isSameAs(TimeZoneRule other) {
+    public boolean isEquivalentTo(TimeZoneRule other) {
         if (!(other instanceof TimeArrayTimeZoneRule)) {
             return false;
         }
         if (timeType == ((TimeArrayTimeZoneRule)other).timeType
                 && Arrays.equals(startTimes, ((TimeArrayTimeZoneRule)other).startTimes)) {
-            return super.isSameAs(other);
+            return super.isEquivalentTo(other);
         }
         return false;
     }

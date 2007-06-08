@@ -18,9 +18,9 @@ import com.ibm.icu.impl.Grego;
  * @draft ICU 3.8
  * @provisional This API might change or be removed in a future release.
  */
-public class AnnualTimeZoneRule extends TimeZoneTransitionRule {
+public class AnnualTimeZoneRule extends TimeZoneRule {
 
-    private static final long serialVersionUID = -477964194195641183L;
+    private static final long serialVersionUID = -8870666707791230688L;
 
     /**
      * The constant representing the maximum year used for designating a rule is permanent.
@@ -229,7 +229,7 @@ public class AnnualTimeZoneRule extends TimeZoneTransitionRule {
      * @draft ICU 3.8
      * @provisional This API might change or be removed in a future release.
      */
-    public boolean isSameAs(TimeZoneRule other) {
+    public boolean isEquivalentTo(TimeZoneRule other) {
         if (!(other instanceof AnnualTimeZoneRule)) {
             return false;
         }
@@ -237,7 +237,7 @@ public class AnnualTimeZoneRule extends TimeZoneTransitionRule {
         if (startYear == otherRule.startYear
                 || endYear == otherRule.endYear
                 || dateTimeRule.equals(otherRule.dateTimeRule)) {
-            return super.isSameAs(other);
+            return super.isEquivalentTo(other);
         }
         return false;
     }

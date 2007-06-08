@@ -18,6 +18,9 @@ import com.ibm.icu.impl.Grego;
  * This class provides some additional methods to access time zone transitions and rules.
  * All ICU <code>TimeZone</code> concrete subclasses extend this class.
  * 
+ * @see com.ibm.icu.util.TimeZoneRule
+ * @see com.ibm.icu.util.TimeZoneTransition
+ * 
  * @draft ICU 3.8
  * @provisional This API might change or be removed in a future release.
  */
@@ -228,20 +231,14 @@ public abstract class BasicTimeZone extends TimeZone {
         List filteredRules = new LinkedList();
 
         // Create initial rule
-        TimeZoneRule initial = new TimeZoneRule(tzt.getTo().getName(),
+        TimeZoneRule initial = new InitialTimeZoneRule(tzt.getTo().getName(),
                 tzt.getTo().getRawOffset(), tzt.getTo().getDSTSavings());
         filteredRules.add(initial);
         isProcessed.set(0);
 
         // Mark rules which does not need to be processed
         for (int i = 1; i < all.length; i++) {
-            Date d;
-            if (all[i] instanceof TimeZoneTransitionRule) {
-                d = ((TimeZoneTransitionRule)all[i]).getNextStart(start, initial.getRawOffset(),
-                        initial.getDSTSavings(), false);
-            } else {
-                throw new IllegalStateException("Illegal TimeZoneRule type");
-            }
+            Date d = all[i].getNextStart(start, initial.getRawOffset(), initial.getDSTSavings(), false);
             if (d == null) {
                 isProcessed.set(i);
             }
@@ -453,18 +450,18 @@ public abstract class BasicTimeZone extends TimeZone {
                     initialDst = annualRules[0].getDSTSavings();
                 }
             }
-            initialRule = new TimeZoneRule(initialName, initialRaw, initialDst);
+            initialRule = new InitialTimeZoneRule(initialName, initialRaw, initialDst);
         } else {
             // Try the previous one
             tr = getPreviousTransition(date, true);
             if (tr != null) {
-                initialRule = new TimeZoneRule(tr.getTo().getName(),
+                initialRule = new InitialTimeZoneRule(tr.getTo().getName(),
                         tr.getTo().getRawOffset(), tr.getTo().getDSTSavings());
             } else {
                 // No transitions in the past.  Just use the current offsets
                 int[] offsets = new int[2];
                 getOffset(date, false, offsets);
-                initialRule = new TimeZoneRule(getID(), offsets[0], offsets[1]);
+                initialRule = new InitialTimeZoneRule(getID(), offsets[0], offsets[1]);
             }
         }
 

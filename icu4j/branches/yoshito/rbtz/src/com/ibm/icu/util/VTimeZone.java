@@ -232,9 +232,9 @@ public class VTimeZone extends BasicTimeZone {
         TimeZoneRule[] rules = tz.getTimeZoneRules(cutover);
 
         // Create a RuleBasedTimeZone with the subset rule
-        RuleBasedTimeZone rbtz = new RuleBasedTimeZone(tz.getID(), rules[0]);
+        RuleBasedTimeZone rbtz = new RuleBasedTimeZone(tz.getID(), (InitialTimeZoneRule)rules[0]);
         for (int i = 1; i < rules.length; i++) {
-            rbtz.addTransitionRule((TimeZoneTransitionRule)rules[i]);
+            rbtz.addTransitionRule(rules[i]);
         }
         String[] customHeaders = null;
         if (olsonzid != null && ICU_TZVERSION != null) {
@@ -267,9 +267,9 @@ public class VTimeZone extends BasicTimeZone {
         TimeZoneRule[] rules = tz.getSimpleTimeZoneRules(time);
 
         // Create a RuleBasedTimeZone with the subset rule
-        RuleBasedTimeZone rbtz = new RuleBasedTimeZone(tz.getID(), rules[0]);
+        RuleBasedTimeZone rbtz = new RuleBasedTimeZone(tz.getID(), (InitialTimeZoneRule)rules[0]);
         for (int i = 1; i < rules.length; i++) {
-            rbtz.addTransitionRule((TimeZoneTransitionRule)rules[i]);
+            rbtz.addTransitionRule(rules[i]);
         }
         String[] customHeaders = null;
         if (olsonzid != null && ICU_TZVERSION != null) {
@@ -615,7 +615,7 @@ public class VTimeZone extends BasicTimeZone {
                     }
 
                     // create a time zone rule
-                    TimeZoneTransitionRule rule = null;
+                    TimeZoneRule rule = null;
                     int fromOffset = 0;
                     int toOffset = 0;
                     int rawOffset = 0;
@@ -703,14 +703,14 @@ public class VTimeZone extends BasicTimeZone {
         }
 
         // Create a initial rule
-        TimeZoneRule initialRule = new TimeZoneRule(getDefaultTZName(tzid, false),
+        InitialTimeZoneRule initialRule = new InitialTimeZoneRule(getDefaultTZName(tzid, false),
                 initialRawOffset, initialDSTSavings);
 
         // Finally, create the RuleBasedTimeZone
         RuleBasedTimeZone rbtz = new RuleBasedTimeZone(tzid, initialRule);
         Iterator rit = rules.iterator();
         while(rit.hasNext()) {
-            rbtz.addTransitionRule((TimeZoneTransitionRule)rit.next());
+            rbtz.addTransitionRule((TimeZoneRule)rit.next());
         }
         tz = rbtz;
         return true;
@@ -729,7 +729,7 @@ public class VTimeZone extends BasicTimeZone {
     /*
      * Create a TimeZoneRule by the RRULE definition
      */
-    private static TimeZoneTransitionRule createRuleByRRULE(String tzname,
+    private static TimeZoneRule createRuleByRRULE(String tzname,
             int rawOffset, int dstSavings, long start, List dates, int fromOffset) {
         if (dates == null || dates.size() == 0) {
             return null;
@@ -1086,7 +1086,7 @@ public class VTimeZone extends BasicTimeZone {
     /*
      * Create a TimeZoneRule by the RDATE definition
      */
-    private static TimeZoneTransitionRule createRuleByRDATE(String tzname,
+    private static TimeZoneRule createRuleByRDATE(String tzname,
             int rawOffset, int dstSavings, long start, List dates, int fromOffset) {
         if (dates == null || dates.size() == 0) {
             return null;

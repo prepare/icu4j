@@ -17,6 +17,8 @@ import com.ibm.icu.impl.Grego;
  * <code>RuleBasedTimeZone</code> is a concrete subclass of <code>TimeZone</code> that allows users to define
  * custom historic time transition rules.
  * 
+ * @see com.ibm.icu.util.TimeZoneRule
+ * 
  * @draft ICU 3.8
  * @provisional This API might change or be removed in a future release.
  */
@@ -24,7 +26,7 @@ public class RuleBasedTimeZone extends BasicTimeZone {
 
     private static final long serialVersionUID = 7580833058949327935L;
 
-    private final TimeZoneRule initialRule;
+    private final InitialTimeZoneRule initialRule;
     private List historicRules;
     private AnnualTimeZoneRule[] finalRules;
 
@@ -32,8 +34,8 @@ public class RuleBasedTimeZone extends BasicTimeZone {
     private transient boolean upToDate;
 
     /**
-     * Constructs a <code>RuleBasedTimeZone</code> object with the ID and the initial
-     * <code>TimeZoneRule</code>
+     * Constructs a <code>RuleBasedTimeZone</code> object with the ID and the
+     * <code>InitialTimeZoneRule</code>
      * 
      * @param id                The time zone ID.
      * @param initialRule       The initial time zone rule.
@@ -41,7 +43,7 @@ public class RuleBasedTimeZone extends BasicTimeZone {
      * @draft ICU 3.8
      * @provisional This API might change or be removed in a future release.
      */
-    public RuleBasedTimeZone(String id, TimeZoneRule initialRule) {
+    public RuleBasedTimeZone(String id, InitialTimeZoneRule initialRule) {
         super.setID(id);
         this.initialRule = initialRule;
     }
@@ -54,7 +56,7 @@ public class RuleBasedTimeZone extends BasicTimeZone {
      * @draft ICU 3.8
      * @provisional This API might change or be removed in a future release.
      */
-    public void addTransitionRule(TimeZoneTransitionRule rule) {
+    public void addTransitionRule(TimeZoneRule rule) {
         if (rule instanceof AnnualTimeZoneRule
                 && ((AnnualTimeZoneRule)rule).getEndYear() == AnnualTimeZoneRule.MAX_YEAR) {
             // One of the final rules applicable in future forever
@@ -193,7 +195,7 @@ public class RuleBasedTimeZone extends BasicTimeZone {
         RuleBasedTimeZone otherRBTZ = (RuleBasedTimeZone)other;
 
         // initial rule
-        if (!initialRule.isSameAs(otherRBTZ.initialRule)) {
+        if (!initialRule.isEquivalentTo(otherRBTZ.initialRule)) {
             return false;
         }
 
@@ -204,7 +206,7 @@ public class RuleBasedTimeZone extends BasicTimeZone {
                     continue;
                 }
                 if (finalRules[i] != null && otherRBTZ.finalRules[i] != null
-                        && finalRules[i].isSameAs(otherRBTZ.finalRules[i])) {
+                        && finalRules[i].isEquivalentTo(otherRBTZ.finalRules[i])) {
                     continue;
                     
                 }
@@ -226,7 +228,7 @@ public class RuleBasedTimeZone extends BasicTimeZone {
                 boolean foundSameRule = false;
                 while (oit.hasNext()) {
                     TimeZoneRule orule = (TimeZoneRule)oit.next();
-                    if (rule.isSameAs(orule)) {
+                    if (rule.isEquivalentTo(orule)) {
                         foundSameRule = true;
                         break;
                     }
@@ -451,7 +453,7 @@ public class RuleBasedTimeZone extends BasicTimeZone {
                         if (done.get(i)) {
                             continue;
                         }
-                        TimeZoneTransitionRule r = (TimeZoneTransitionRule)historicRules.get(i);
+                        TimeZoneRule r = (TimeZoneRule)historicRules.get(i);
                         d = r.getNextStart(lastTransitionTime, curStdOffset, curDstSavings, false);
                         if (d == null) {
                             // No more transitions from this rule - skip this rule next time
