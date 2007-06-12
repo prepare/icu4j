@@ -85,6 +85,7 @@ public class TestAll extends TestGroup {
             super(new String[] {
                 "PluralFormatUnitTest",
                 "PluralFormatTest",
+                "PluralRulesTest",
             });
         }
     }

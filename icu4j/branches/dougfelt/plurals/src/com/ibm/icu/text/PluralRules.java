@@ -29,7 +29,7 @@ public class PluralRules implements Serializable {
 
     private final RuleList rules;
     private final Set keywords;
-    private long signature; // cache
+    private int repeatLimit; // for equality test
 
     /**
      * Standard keywords.
@@ -136,10 +136,7 @@ public class PluralRules implements Serializable {
     private interface Constraint extends Serializable {
         /** Returns true if the number fulfills the constraint. */
         boolean isFulfilled(long n);
-        /** Returns the least common multiple of limit and the value at which 
-            this constraint repeats(if is is a repeating constraint) or the 
-            value at which the constraint matches (if is matches a single
-            value). */
+        /** Returns the larger of limit or the limit of this constraint. */
         int updateRepeatLimit(int limit);
     }
 
@@ -151,7 +148,7 @@ public class PluralRules implements Serializable {
         String getKeyword();
         /** Returns true if the rule applies to the number. */
         boolean appliesTo(long n);
-        /** Returns the lcm of limit and this rule's limit. */
+        /** Returns the larger of limit and this rule's limit. */
         int updateRepeatLimit(int limit);
     }
 
@@ -414,7 +411,7 @@ public class PluralRules implements Serializable {
 
         public int updateRepeatLimit(int limit) {
           int mylimit = mod == 0 ? (int)upperBound : mod;
-            return lcd(mylimit, limit);
+          return Math.max(mylimit, limit);
         }
 
         public String toString() {
@@ -423,34 +420,9 @@ public class PluralRules implements Serializable {
         }
     }
 
-    // euclidean method for determining lcd
-    private static int lcd(int m, int n) {
-      if (m == n) { // common case
-        return n;
-      }
-      if (n < m) {
-        int temp = n; n = m; m = temp;
-      }
-      if (m == 0) { // ignore zeros
-        return n;
-      }
-      int tn = n;
-      int tm = m;
-      do {
-        int q = (int)Math.floor(tn/tm);
-        int r = tn - tm * q;
-        tn = tm;
-        tm = r;
-      } while (tm != 0);
-
-      // tn is gcd
-      
-      return n * m / tn; // lcm
-    }
-
     /** Convenience base class for and/or constraints. */
-  private static abstract class BinaryConstraint implements Constraint, 
-                                                 Serializable {
+    private static abstract class BinaryConstraint implements Constraint, 
+                                                   Serializable {
         private static final long serialVersionUID = 1;
         protected final Constraint a;
         protected final Constraint b;
@@ -680,12 +652,12 @@ public class PluralRules implements Serializable {
 
 
     public String toString() {
-        return "keywords: " + keywords + " rules: " + rules.toString();
+      return "keywords: " + keywords + " rules: " + rules.toString() + 
+          " limit: " + getRepeatLimit();
     }
 
     public int hashCode() {
-      long sig = getSignature();
-      return (int)((sig >>> 32) ^ sig & 0xffffffff);
+      return keywords.hashCode();
     }
 
     public boolean equals(Object rhs) {
@@ -693,30 +665,29 @@ public class PluralRules implements Serializable {
     }
     
     public boolean equals(PluralRules rhs) {
-      return getSignature() == rhs.getSignature();
+      if (rhs == null) {
+        return false;
+      }
+      if (rhs == this) { 
+        return true;
+      }
+      if (!rhs.getKeywords().equals(keywords)) {
+        return false;
+      }
+
+      int limit = Math.max(getRepeatLimit(), rhs.getRepeatLimit());
+      for (int i = 0; i < limit; ++i) {
+        if (!select(i).equals(rhs.select(i))) {
+          return false;
+        }
+      }
+      return true;
     }
 
-    // The idea is that this is sufficiently random and large that we can cache
-    // the value and just compare it for equality.  It is expensive and
-    // difficult to test for real equality.
-    private long getSignature() {
-      if (signature == 0) {
-          // expensive, but hey, we only do it once
-        int limit = rules.getRepeatLimit();
-        String last = null;
-        long result = 0;
-        for (int i = 0; i < limit; ++i) {
-          String s = rules.select(i);
-          if (s != last) {
-            last = s;
-            result = (result << 2) ^ s.hashCode() ^ i;
-          }
-        }
-        if (result == 0) {
-          result = 1;
-        }
-        signature = result;
+    private int getRepeatLimit() {
+      if (repeatLimit == 0) {
+        repeatLimit = rules.getRepeatLimit() + 1;
       }
-      return signature;
+      return repeatLimit;
     }
 }
