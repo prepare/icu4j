@@ -561,7 +561,7 @@ public class PluralRules implements Serializable {
           int result = 0;
           RuleChain rc = this;
           while (rc != null) {
-            result = rule.updateRepeatLimit(result);
+            result = rc.rule.updateRepeatLimit(result);
             rc = rc.next;
           }
           return result;
@@ -690,4 +690,9 @@ public class PluralRules implements Serializable {
       }
       return repeatLimit;
     }
+
+  public static void main(String[] args) {
+    System.out.println(PluralRules.createRules(
+        "b: n is 13; a: n in 12..13; b: n mod 10 is 2 or n mod 10 is 3"));
+  }
 }
