@@ -144,7 +144,7 @@ public class TimeArrayTimeZoneRule extends TimeZoneRule {
 
     /* Get UTC of the time with the raw/dst offset */
     private long getUTC(long time, int raw, int dst) {
-        if (timeType == DateTimeRule.STANDARD_TIME) {
+        if (timeType != DateTimeRule.UNIVERSAL_TIME) {
             time -= raw;
         }
         if (timeType == DateTimeRule.WALL_TIME) {

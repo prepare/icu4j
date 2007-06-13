@@ -15,7 +15,6 @@ import java.util.Date;
  * 
  * @draft ICU 3.8
  * @provisional This API might change or be removed in a future release.
-
  */
 public class InitialTimeZoneRule extends TimeZoneRule {
 

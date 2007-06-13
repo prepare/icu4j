@@ -999,7 +999,7 @@ public class OlsonTimeZone extends BasicTimeZone {
 
     private transient boolean transitionRulesInitialized;
 
-    private void initTransitionRules() {
+    private synchronized void initTransitionRules() {
         if (transitionRulesInitialized) {
             return;
         }

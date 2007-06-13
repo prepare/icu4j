@@ -1139,10 +1139,13 @@ public class SimpleTimeZone extends BasicTimeZone {
         }
         Date stdDate = stdRule.getNextStart(base, dstRule.getRawOffset(), dstRule.getDSTSavings(), inclusive);
         Date dstDate = dstRule.getNextStart(base, stdRule.getRawOffset(), stdRule.getDSTSavings(), inclusive);
-        if (stdDate.before(dstDate)) {
+        if (stdDate != null && (dstDate == null || stdDate.before(dstDate))) {
             return new TimeZoneTransition(stdDate.getTime(), dstRule, stdRule);
         }
-        return new TimeZoneTransition(dstDate.getTime(), stdRule, dstRule);
+        if (dstDate != null && (stdDate == null || dstDate.before(stdDate))) {
+            return new TimeZoneTransition(dstDate.getTime(), stdRule, dstRule);
+        }
+        return null;
     }
 
     /**
@@ -1162,10 +1165,13 @@ public class SimpleTimeZone extends BasicTimeZone {
         }
         Date stdDate = stdRule.getPreviousStart(base, dstRule.getRawOffset(), dstRule.getDSTSavings(), false);
         Date dstDate = dstRule.getPreviousStart(base, stdRule.getRawOffset(), stdRule.getDSTSavings(), false);
-        if (stdDate == null || (dstDate != null && dstDate.after(stdDate))) {
+        if (stdDate != null && (dstDate == null || stdDate.after(dstDate))) {
+            return new TimeZoneTransition(stdDate.getTime(), dstRule, stdRule);
+        }
+        if (dstDate != null && (stdDate == null || dstDate.after(stdDate))) {
             return new TimeZoneTransition(dstDate.getTime(), stdRule, dstRule);            
         }
-        return new TimeZoneTransition(stdDate.getTime(), dstRule, stdRule);
+        return null;
     }
 
     /**
@@ -1192,7 +1198,7 @@ public class SimpleTimeZone extends BasicTimeZone {
     private transient AnnualTimeZoneRule stdRule;
     private transient AnnualTimeZoneRule dstRule;
 
-    private void initTransitionRules() {
+    private synchronized void initTransitionRules() {
         if (transitionRulesInitialized) {
             return;
         }
@@ -1247,7 +1253,7 @@ public class SimpleTimeZone extends BasicTimeZone {
                     dtRule, startYear, AnnualTimeZoneRule.MAX_YEAR);
 
             // Calculate the first STD start time
-            firstStdStart = stdRule.getFirstStart(dstRule.getRawOffset(), dstRule.getDSTSavings()).getTime();
+            firstStdStart = stdRule.getFirstStart(getRawOffset(), dstRule.getDSTSavings()).getTime();
 
             // Create a TimeZoneRule for initial time
             if (firstStdStart < firstDstStart) {
