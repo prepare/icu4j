@@ -166,7 +166,14 @@ public abstract class TimeZoneRule implements Serializable {
      * @provisional This API might change or be removed in a future release.
      */
     public abstract Date getPreviousStart(long base, int prevRawOffset, int prevDSTSavings, boolean inclusive);
-    
+
+    /**
+     * Returns if this <code>TimeZoneRule</code> has one or more start times.
+     * 
+     * @return true if this <TimeZoneRule</code> has one or more start times.
+     */
+    public abstract boolean isTransitionRule();
+
     /**
      * Returns a <code>String</code> representation of this <code>TimeZoneRule</code> object.
      * @internal

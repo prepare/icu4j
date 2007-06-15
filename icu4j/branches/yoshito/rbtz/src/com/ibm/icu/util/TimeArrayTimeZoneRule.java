@@ -142,6 +142,16 @@ public class TimeArrayTimeZoneRule extends TimeZoneRule {
         return false;
     }
 
+    /**
+     * {@inheritDoc}<br><br>
+     * Note: This method in <code>TimeArrayTimeZoneRule</code> always returns true.
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
+     */
+    public boolean isTransitionRule() {
+        return true;
+    }
+
     /* Get UTC of the time with the raw/dst offset */
     private long getUTC(long time, int raw, int dst) {
         if (timeType != DateTimeRule.UNIVERSAL_TIME) {

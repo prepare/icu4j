@@ -99,4 +99,13 @@ public class InitialTimeZoneRule extends TimeZoneRule {
         return null;
     }
 
+    /**
+     * {@inheritDoc}<br><br>
+     * Note: This method in <code>InitialTimeZoneRule</code> always returns false.
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
+     */
+    public boolean isTransitionRule() {
+        return false;
+    }
 }

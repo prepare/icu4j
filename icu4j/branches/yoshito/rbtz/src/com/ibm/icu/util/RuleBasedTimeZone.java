@@ -49,14 +49,20 @@ public class RuleBasedTimeZone extends BasicTimeZone {
     }
 
     /**
-     * Adds the <code>TimeZoneTransitionRule</code> which represents time transitions.
+     * Adds the <code>TimeZoneRule</code> which represents time transitions.
+     * The <code>TimeZoneRule</code> must have start times, that is, the result
+     * of {@link com.ibm.icu.util.TimeZoneRule#isTransitionRule()} must be true.
+     * Otherwise, <code>IllegalArgumentException</code> is thrown.
      * 
-     * @param rule The <code>TimeZoneTransitionRule</code>.
+     * @param rule The <code>TimeZoneRule</code>.
      * 
      * @draft ICU 3.8
      * @provisional This API might change or be removed in a future release.
      */
     public void addTransitionRule(TimeZoneRule rule) {
+        if (!rule.isTransitionRule()) {
+            throw new IllegalArgumentException("Rule must be a transition rule");
+        }
         if (rule instanceof AnnualTimeZoneRule
                 && ((AnnualTimeZoneRule)rule).getEndYear() == AnnualTimeZoneRule.MAX_YEAR) {
             // One of the final rules applicable in future forever
@@ -165,6 +171,7 @@ public class RuleBasedTimeZone extends BasicTimeZone {
      */
     public void setRawOffset(int offsetMillis) {
         // TODO: Do nothing for now..
+        throw new UnsupportedOperationException("setRawOffset in RuleBasedTimeZone is not supported.");
     }
 
     /**
@@ -176,8 +183,14 @@ public class RuleBasedTimeZone extends BasicTimeZone {
         // daylight saving time is used as of now or
         // after the next transition.
         long now = System.currentTimeMillis();
+        int[] offsets = new int[2];
+        getOffset(now, false, offsets);
+        if (offsets[1] != 0) {
+            return true;
+        }
+        // If DST is not used now, check if DST is used after the next transition
         TimeZoneTransition tt = getNextTransition(now, false);
-        if (tt != null && (tt.getTo().getDSTSavings() != 0 || tt.getFrom().getDSTSavings() != 0)) {
+        if (tt != null && tt.getTo().getDSTSavings() != 0) {
             return true;
         }
         return false;
@@ -291,6 +304,7 @@ public class RuleBasedTimeZone extends BasicTimeZone {
         if (historicTransitions == null) {
             return null;
         }
+        boolean isFinal = false;
         TimeZoneTransition result = null;
         TimeZoneTransition tzt = (TimeZoneTransition)historicTransitions.get(0);
         long tt = getTransitionTime(tzt, false);
@@ -301,7 +315,7 @@ public class RuleBasedTimeZone extends BasicTimeZone {
             tzt = (TimeZoneTransition)historicTransitions.get(idx);
             tt = getTransitionTime(tzt, false);
             if (inclusive && tt == base) {
-                return tzt;
+                result = tzt;
             } else if (tt <= base) {
                 if (finalRules != null) {
                     // Find a transion time with finalRules
@@ -316,6 +330,7 @@ public class RuleBasedTimeZone extends BasicTimeZone {
                         tzt = new TimeZoneTransition(start1.getTime(), finalRules[0], finalRules[1]);
                     }
                     result = tzt;
+                    isFinal = true;
                 } else {
                     return null;
                 }
@@ -341,8 +356,12 @@ public class RuleBasedTimeZone extends BasicTimeZone {
             TimeZoneRule to = result.getTo();
             if (from.getRawOffset() == to.getRawOffset()
                     && from.getDSTSavings() == to.getDSTSavings()) {
-                // No offset changes.  Try next one
-                result = getNextTransition(result.getTime(), false /* always exclusive */);
+                // No offset changes.  Try next one if not final
+                if (isFinal) {
+                    return null;
+                } else {
+                    result = getNextTransition(result.getTime(), false /* always exclusive */);
+                }
             }
         }
         return result;

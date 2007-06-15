@@ -243,6 +243,16 @@ public class AnnualTimeZoneRule extends TimeZoneRule {
     }
 
     /**
+     * {@inheritDoc}<br><br>
+     * Note: This method in <code>AnnualTimeZoneRule</code> always returns true.
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
+     */
+    public boolean isTransitionRule() {
+        return true;
+    }
+
+    /**
      * Returns a <code>String</code> representation of this <code>AnnualTimeZoneRule</code> object.
      * @internal
      * @deprecated This API is ICU internal only.
