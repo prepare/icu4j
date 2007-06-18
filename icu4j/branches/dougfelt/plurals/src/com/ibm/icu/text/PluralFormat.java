@@ -1,4 +1,4 @@
-package com.ibm.icu.text;
+epackage com.ibm.icu.text;
 
 import com.ibm.icu.impl.UCharacterProperty;
 import com.ibm.icu.util.ULocale;
@@ -13,36 +13,36 @@ import java.util.Set;
 
 /**
  * <p>
- * The <code>PluralFormat</code> supports the creation of internationalized
- * messages with plural inflection. Its idea is based on <i>plural
- * selection</i>, i.e. the caller specifies messages for each grammatical number
- * (plural case) that might appear in the used language and the
- * <code>PluralFormat</code> selects the appropriate message.
+ * <code>PluralFormat</code> supports the creation of internationalized
+ * messages with plural inflection. It is based on <i>plural
+ * selection</i>, i.e. the caller specifies messages for each 
+ * plural case that can appear in the users language and the
+ * <code>PluralFormat</code> selects the appropriate message based on
+ * the number.
  * </p>
  * <h4>The Problem of Plural Forms in Internationalized Messages</h4>
  * </p><p>
- * Many languages have very different ways of plural inflection. Creating
- * internationalized messages that include plural forms is only feasible when
- * the used framework is able to handle plural forms of <i>all</i> languages
- * correctly. A first approach to create messages that take care of plural
- * inflection was to use the <code>ChoiceFormat</code>. The idea of the
- * <code>ChoiceFormat</code> is, to attach one number interval to each message
- * and select the message whose interval contains a given number. The problem
- * with this approach is, that <code>ChoiceFormat</code> obviously can only
- * handle a finite number of intervals. However, there are some languages like
- * Polish for instance, where one plural case applies for infinite many number
- * intervals (e.g., paucal applies for all numbers ending with 2,3,4 except
- * those ending with 12,13,14). Thus using <code>ChoiceFormat</code> is not a
- * feasible way to handle this kind of messages.
+ * Different languages have different ways to inflect
+ * plurals. Creating internationalized messages that include plural
+ * forms is only feasible when the framework is able to handle plural
+ * forms of <i>all</i> languages correctly. <code>ChoiceFormat</code>
+ * doesn't handle this well, because it attaches a number interval to
+ * each message and selects the message whose interval contains a
+ * given number. This can only handle a finite number of
+ * intervals. But in some languages, like Polish, one plural case
+ * applies to infinitely many intervals (e.g., paucal applies for to
+ * numbers ending with 2, 3, or 4 except those ending with 12, 13, or
+ * 14). Thus <code>ChoiceFormat</code> is not adequate.
  * </p><p>
- * <code>PluralFormat</code> enhances this approach in two ways:
+ * <code>PluralFormat</code> deals with this by breaking the problem
+ * into two parts:
  * <ul>
- * <li>It uses <code>PluralRules</code> that are able to define more complex
+ * <li>It uses <code>PluralRules</code> that can define more complex
  *     conditions for a plural case than just a single interval. These plural
- *     rules define both what kind of plural cases exist in a language, and for
+ *     rules define both what plural cases exist in a language, and to
  *     which numbers these cases apply.
  * <li>It provides predfined plural rules for many locales. Thus, the programmer
- *     has not to worry about the plural cases of a language. On the other side,
+ *     need not worry about the plural cases of a language. On the flip side,
  *     the localizer does not have to specify the plural cases; he can simply
  *     use the predefined keywords. The whole plural formatting of messages can
  *     be done using localized patterns from resource bundles.
@@ -50,14 +50,14 @@ import java.util.Set;
  * </p>
  * <h4>Usage of <code>PluralFormat</code></h4>
  * <p>
- * In this section, we assume that you use the <code>PluralFormat</code> with
- * a predefined set of plural rules. You can create such a
- * <code>PluralFormat</code> object using one if its constructors taking a
- * <code>ULocale</code> object. To specify the message pattern you can either
- * pass it to the constructor or set it explicitly using the
- * <code>applyPattern()</code> method. The <code>format()</code> method takes a
- * number object and selects the message of the matching plural case. This
- * message will be returned.
+ * This discussion assumes that you use <code>PluralFormat</code> with
+ * a predefined set of plural rules. You can create one using one of
+ * the constructors that takes a <code>ULocale</code> object. To
+ * specify the message pattern, you can either pass it to the
+ * constructor or set it explicitly using the
+ * <code>applyPattern()</code> method. The <code>format()</code>
+ * method takes a number object and selects the message of the
+ * matching plural case. This message will be returned.
  * </p>
  * <h5>Patterns and Their Interpretation</h5>
  * <p>
@@ -67,7 +67,7 @@ import java.util.Set;
  * space characters. Each clause assigns the message <code><i>message</i></code>
  * to the plural case identified by <code><i>caseKeyword</i></code>.
  * </p><p>
- * You always have to define a message text for the "default" plural case
+ * You always have to define a message text for the default plural case
  * "<code>other</code>" which is contained in every rule set. If the plural
  * rules of the <code>PluralFormat</code> object do not contain a plural case
  * identified by <code><i>caseKeyword</i></code>, an
@@ -82,7 +82,7 @@ import java.util.Set;
  * <code><i>message</i></code> will be preserved.
  * </p> <p> 
  * The message text for a particular plural case may contain other message
- * format patterns. <code>PluralFormat</code> preserves these texts so that you
+ * format patterns. <code>PluralFormat</code> preserves these so that you
  * can use the strings produced by <code>PluralFormat</code> with other
  * formatters. If you are using <code>PluralFormat</code> inside a
  * <code>MessageFormat</code> pattern, <code>MessageFormat</code> will
@@ -95,15 +95,15 @@ import java.util.Set;
  * replace each of those pound signs by the number passed to the
  * <code>format()</code> method. It will be formatted using a
  * <code>NumberFormat</code> for the <code>PluralFormat</code>'s locale. If you
- * need special number formatting, you have to explicitly use a
- * <code>NumberFormat</code>.
+ * need special number formatting, you have to explicitly specify a
+ * <code>NumberFormat</code> for the <code>PluralFormat</code> to use.
  * </p>
- * Example:
+ * Example
  * <pre>
- * MessageFormat msgFmt = new MessageFormat(
- *              "{0, plural, singular{{0, number, C''''est #,##0.0#  fichier}} " +
- *                "other {Ce sont # fichiers}} dans la liste.",
- *              new ULocale("fr"));
+ * MessageFormat msgFmt = new MessageFormat("{0, plural, " +
+ *     "singular{{0, number, C''''est #,##0.0#  fichier}} " +
+ *     "other {Ce sont # fichiers}} dans la liste.",
+ *     new ULocale("fr"));
  * Object args[] = {new Long(0)};
  * System.out.println(msgFmt.format(args));
  * args = {new Long(3)};
@@ -115,36 +115,30 @@ import java.util.Set;
  * <p>
  * <strong>Note:</strong><br />
  *   Currently (as of Mar 2007), <code>PluralFormat</code>
- *   does not make use of quotes like <code>MessageFormat</code> for example.
+ *   does not make use of quotes like <code>MessageFormat</code>.
  *   If you use plural format strings with <code>MessageFormat</code> and want
  *   to use a quote sign "<code>'</code>", you have to write "<code>'</code>".
  *   <code>MessageFormat</code> unquotes this pattern and  passes the unquoted
- *   pattern to <code>PluralFormat</code>. It's getting a bit trickier if we use
- *   nested formats that do quoting. In the example above, we want to insert
+ *   pattern to <code>PluralFormat</code>. It's a bit trickier if you use
+ *   nested formats that do quoting. In the example above, we wanted to insert
  *   "<code>'</code>" in the number format pattern. Since
  *   <code>NumberFormat</code> supports quotes, we had to insert
  *   "<code>''</code>". But since <code>MessageFormat</code> unquotes the
  *   pattern before it gets passed to <code>PluralFormat</code>, we have to
  *   double these quotes, i.e. write "<code>''''</code>".
- * </p><p> 
- * <strong>TODO: </strong>
- *     What happens to the <code>_format</code> keyword?
- *     Will it be support in the final API?
- * 
- * </p><p>
+ * </p>
  * <h4>Defining Custom Plural Rules</h4>
- * If you need to use <code>PluralFormat</code> with custom rules, you can
+ * <p>If you need to use <code>PluralFormat</code> with custom rules, you can
  * create a <code>PluralRules</code> object and pass it to
  * <code>PluralFormat</code>'s constructor. If you also specify a locale in this
  * constructor, this locale will be used to format the number in the message
  * texts.
  * </p><p>
  * For more information about <code>PluralRules</code>, see
- * <code>PluralRules</code>'s JavaDoc. 
+ * {@link PluralRules}.
  * </p>
  * 
  * @author tschumann (Tim Schumann)
- *
  */
 public class PluralFormat extends UFormat {
     private static final long serialVersionUID = 1L;
@@ -219,7 +213,7 @@ public class PluralFormat extends UFormat {
      * The default locale will be used to get the set of plural rules and for
      * standard number formatting.
      * @param  pattern the pattern for this <code>PluralFormat</code>.
-     * @exception IllegalArgumentException if the pattern is invalid.
+     * @throws IllegalArgumentException if the pattern is invalid.
      */
     public PluralFormat(String pattern) {
         init(null, ULocale.getDefault());
@@ -229,13 +223,13 @@ public class PluralFormat extends UFormat {
     /**
      * Creates a new <code>PluralFormat</code> for a given pattern string and 
      * locale.
-     * The default locale will be used to get the set of plural rules and for
+     * The locale will be used to get the set of plural rules and for
      * standard number formatting.
      * @param ulocale the <code>PluralFormat</code> will be configured with
      *        rules for this locale. This locale will also be used for standard
      *        number formatting.
      * @param  pattern the pattern for this <code>PluralFormat</code>.
-     * @exception IllegalArgumentException if the pattern is invalid.
+     * @throws IllegalArgumentException if the pattern is invalid.
      */
     public PluralFormat(ULocale ulocale, String pattern) {
         init(null, ulocale);
@@ -249,7 +243,7 @@ public class PluralFormat extends UFormat {
      * @param rules defines the behavior of the <code>PluralFormat</code>
      *        object.
      * @param  pattern the pattern for this <code>PluralFormat</code>.
-     * @exception IllegalArgumentException if the pattern is invalid.
+     * @throws IllegalArgumentException if the pattern is invalid.
      */    
     public PluralFormat(PluralRules rules, String pattern) {
         init(rules, ULocale.getDefault());
@@ -258,14 +252,14 @@ public class PluralFormat extends UFormat {
     
     /**
      * Creates a new <code>PluralFormat</code> for a given set of rules, a 
-     * pattern and a locale
+     * pattern and a locale.
      * @param ulocale the <code>PluralFormat</code> will be configured with
      *        rules for this locale. This locale will also be used for standard
      *        number formatting.
      * @param rules defines the behavior of the <code>PluralFormat</code>
      *        object.
      * @param  pattern the pattern for this <code>PluralFormat</code>.
-     * @exception IllegalArgumentException if the pattern is invalid.
+     * @throws IllegalArgumentException if the pattern is invalid.
      */
     public PluralFormat(ULocale ulocale, PluralRules rules, String pattern) {
         init(rules, ulocale);
@@ -301,7 +295,7 @@ public class PluralFormat extends UFormat {
      * Patterns and their interpretation are specified in the class description.
      * 
      * @param pattern the pattern for this plural format
-     * @exception IllegalArgumentException if the pattern is invalid.
+     * @throws IllegalArgumentException if the pattern is invalid.
      *
      */
     public void applyPattern(String pattern) {
@@ -451,7 +445,7 @@ public class PluralFormat extends UFormat {
      * and upon return, the position where parsing left off.  If the position
      * has not changed upon return, then parsing failed.
      * @return nothing because this method is not yet implemented.
-     * @exception UnsupportedOperationException
+     * @throws UnsupportedOperationException
      *     will always be thrown by this method.
      */
     public Number parse(String text, ParsePosition parsePosition) {
@@ -465,7 +459,7 @@ public class PluralFormat extends UFormat {
      * and upon return, the position where parsing left off.  If the position
      * has not changed upon return, then parsing failed.
      * @return nothing because this method is not yet implemented.
-     * @exception UnsupportedOperationException
+     * @throws UnsupportedOperationException
      *     will always be thrown by this method.
      */
     public Object parseObject(String source, ParsePosition pos) {
@@ -477,7 +471,8 @@ public class PluralFormat extends UFormat {
      * Note: Calling this method resets this <code>PluraFormat</code> object,
      *     i.e., a pattern that was applied previously will be removed,
      *     and the NumberFormat is set to the default number format for
-     *     the locale.
+     *     the locale.  The resulting format behaves the same as one
+     *     constructed from {@link #PluralFormat(ULocale)}.
      * @param ulocale the <code>ULocale</code> to use to configure the
      *     formatter. If <code>ulocale</code> is <code>null</code>, the
      *     default locale will be used.
@@ -504,11 +499,11 @@ public class PluralFormat extends UFormat {
      * i.e., if the attribute <code>parsedValues</code> stores enough
      * information for plural formatting.
      * Will be called at the end of pattern parsing.
-     * @exception IllegalArgumentException if there's not sufficient information
+     * @throws IllegalArgumentException if there's not sufficient information
      *     provided.
      */
     private void checkSufficientDefinition() {
-        // Check, that at least the default rule is defined.
+        // Check that at least the default rule is defined.
         if (parsedValues.get(PluralRules.KEYWORD_OTHER) == null) {
             parsingFailure("Malformed formatting expression.\n"
                     + "Value for case \"" + PluralRules.KEYWORD_OTHER
@@ -520,7 +515,7 @@ public class PluralFormat extends UFormat {
      * Helper method that resets the <code>PluralFormat</code> object and throws
      * an <code>IllegalArgumentException</code> with a given error text.
      * @param errorText the error text of the exception message.
-     * @exception IllegalArgumentException will always be thrown by this method.
+     * @throws IllegalArgumentException will always be thrown by this method.
      */
     private void parsingFailure(String errorText) {
         // Set PluralFormat to a valid state.
@@ -574,6 +569,11 @@ public class PluralFormat extends UFormat {
     return rhs instanceof PluralFormat && equals((PluralFormat) rhs);
   }
 
+  /**
+   * Returns true if this equals the provided PluralFormat.
+   * @param rhs the PluralFormat to compare against
+   * @return true if this equals rhs
+   */
   public boolean equals(PluralFormat rhs) {
     return pluralRules.equals(rhs.pluralRules) &&
         parsedValues.equals(rhs.parsedValues) &&
@@ -584,6 +584,10 @@ public class PluralFormat extends UFormat {
     return pluralRules.hashCode() ^ parsedValues.hashCode();
   }
 
+/**
+ * For debugging purposes only
+ * @return a text representation of the format data.
+ */
   public String toString() {
     StringBuffer buf = new StringBuffer();
     buf.append("locale=" + ulocale);
