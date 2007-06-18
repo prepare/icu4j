@@ -117,7 +117,7 @@ import java.util.Set;
  *   Currently (as of Mar 2007), <code>PluralFormat</code>
  *   does not make use of quotes like <code>MessageFormat</code>.
  *   If you use plural format strings with <code>MessageFormat</code> and want
- *   to use a quote sign "<code>'</code>", you have to write "<code>'</code>".
+ *   to use a quote sign "<code>'</code>", you have to write "<code>''</code>".
  *   <code>MessageFormat</code> unquotes this pattern and  passes the unquoted
  *   pattern to <code>PluralFormat</code>. It's a bit trickier if you use
  *   nested formats that do quoting. In the example above, we wanted to insert
