@@ -1,5 +1,5 @@
 /**
- * 
+ * Copyright 2007, Google, Inc.  All Rights Reserved.
  */
 package com.ibm.icu.text;
 
@@ -22,6 +22,55 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+/** 
+ * <p>Defines rules for mapping positive long values onto a small set of
+ * keywords. Serializable so can be used in formatters, which are
+ * serializable. Rules are constructed from a text description, consisting
+ * of a series of keywords and conditions.  The {@link #select} method
+ * examines each condition in order and returns the keyword for the
+ * first condition that matches the number.  If none match,
+ * {@link KEYWORD_OTHER} is returned.</p>
+ * <p>
+ * Examples:<pre>
+ *   "one: n is 1; few: n in 2..4"</pre></p>
+ * <p>
+ * This defines two rules, for 'one' and 'few'.  The condition for
+ * 'one' is "n is 1" which means that the number must be equal to
+ * 1 for this condition to pass.  The condition for 'few' is
+ * "n in 2..4" which means that the number must be between 2 and
+ * 4 inclusive for this condition to pass.  All other numbers
+ * are assigned the keyword "other" by the default rule.</p>
+ * <p><pre>
+ *   "zero: n is 0; one: n is 1; zero: n mod 100 in 1..19"</pre>
+ * This illustrates that the same keyword can be defined multiple times.
+ * Each rule is examined in order, and the first keyword whose condition
+ * passes is the one returned.  Also notes that a modulus is applied
+ * to n in the last rule.  Thus its condition holds for 119, 219, 319...</p>
+ * <p><pre>
+ *   "one: n is 1; few: n mod 10 in 2..4 and n mod 100 not in 12..14"</pre></p>
+ * <p>
+ * This illustrates conjunction and negation.  The condition for 'few'
+ * has two parts, both of which must be met: "n mod 10 in 2..4" and
+ * "n mod 100 not in 12..14".  The first part applies a modulus to n
+ * before the test as in the previous example.  The second part applies
+ * a different modulus and also uses negation, thus it matches all
+ * numbers _not_ in 12, 13, 14, 112, 113, 114, 212, 213, 214...</p>
+ * <p>
+ * Syntax:<pre>
+ * rules         = rule (';' rule)*
+ * rule          = keyword ':' condition
+ * keyword       = <identifier>
+ * condition     = and_condition ('or' and_condition)*
+ * and_condition = relation ('and' relation)*
+ * relation      = is_relation | in_relation | 'n' <EOL>
+ * is_relation   = expr 'is' ('not')? value
+ * in_relation   = expr ('not')? 'in' range
+ * expr          = 'n' ('mod' value)?
+ * value         = digit+
+ * digit         = 0|1|2|3|4|5|6|7|8|9
+ * range         = value'..'value
+ * </pre></p>
+ */
 public class PluralRules implements Serializable {
     private static final long serialVersionUID = 1;
 
@@ -31,17 +80,27 @@ public class PluralRules implements Serializable {
     private final Set keywords;
     private int repeatLimit; // for equality test
 
-    /**
-     * Standard keywords.
-     */
+  // Standard keywords.
+
+  /** Common name for the 'zero' plural form. */
     public static final String KEYWORD_ZERO = "zero";
+
+  /** Common name for the 'singular' plural form. */
     public static final String KEYWORD_ONE = "one";
-    public static final String KEYWORD_TWO = "two"; // aka dual
-    public static final String KEYWORD_FEW = "few"; // aka paucal, special
-    public static final String KEYWORD_MANY = "many"; // aka 11..99
+
+  /** Common name for the 'dual' plural form. */
+    public static final String KEYWORD_TWO = "two";
+
+  /** Common name for the 'paucal' or other special plural form. */
+    public static final String KEYWORD_FEW = "few";
+
+  /** Common name for the arabic (11 to 99) plural form. */
+    public static final String KEYWORD_MANY = "many";
 
     /**
-     * The reserved keyword for defining the default case.
+     * Common name for the default plural form.  This name is returned
+     * for values to which no other form in the rule applies.  It 
+     * can additionally be assigned rules of its own.
      */
     public static final String KEYWORD_OTHER = "other";
 
@@ -97,13 +156,15 @@ public class PluralRules implements Serializable {
 
 
     /**
-     * The default rules that accept any number and return "other".
+     * The default rules that accept any number and return 
+     * {@link #KEYWORD_OTHER}.
      */
     public static final PluralRules DEFAULT =
         new PluralRules(new RuleChain(DEFAULT_RULE));
 
     /**
      * Parses a plural rules description and returns a PluralRules.
+     * @param description the rule description.
      * @throws ParseException if the description cannot be parsed.
      *    The exception index is typically not set, it will be -1.
      */
@@ -121,6 +182,8 @@ public class PluralRules implements Serializable {
     /**
      * Creates a PluralRules from a description if it is parsable,
      * otherwise returns null.
+     * @param description the rule description.
+     * @return the PluralRules
      */
     public static PluralRules createRules(String description) {
         try {
@@ -134,9 +197,20 @@ public class PluralRules implements Serializable {
      * A constraint on a number.
      */
     private interface Constraint extends Serializable {
-        /** Returns true if the number fulfills the constraint. */
+        /** 
+         * Returns true if the number fulfills the constraint.
+         * @param n the number to test, >= 0.
+         */
         boolean isFulfilled(long n);
-        /** Returns the larger of limit or the limit of this constraint. */
+
+        /** 
+         * Returns the larger of limit or the limit of this constraint.
+         * If the constraint is a simple range test, this is the higher
+         * end of the range; if it is a modulo test, this is the modulus.
+         *
+         * @param limit the target limit
+         * @return the new limit
+         */
         int updateRepeatLimit(int limit);
     }
 
@@ -589,7 +663,7 @@ public class PluralRules implements Serializable {
      * @return The predefined <code>PluralRules</code> object for this locale.
      *   If there's no predefined rules for this locale, the rules
      *   for the closest parent in the locale hierarchy that has one will
-     *   be returned.  The final fallback always returns the default 'other' 
+     *   be returned.  The final fallback always returns the default
      *   rules.
      */
     public static PluralRules forLocale(ULocale locale) {
@@ -650,7 +724,6 @@ public class PluralRules implements Serializable {
         return keywords;
     }
 
-
     public String toString() {
       return "keywords: " + keywords + " rules: " + rules.toString() + 
           " limit: " + getRepeatLimit();
@@ -663,7 +736,12 @@ public class PluralRules implements Serializable {
     public boolean equals(Object rhs) {
         return rhs instanceof PluralRules && equals((PluralRules)rhs);
     }
-    
+
+  /**
+   * Return tif rhs is equal to this.
+   * @param rhs the PluralRules to compare to.
+   * @return true if this and rhs are equal.
+   */
     public boolean equals(PluralRules rhs) {
       if (rhs == null) {
         return false;
@@ -690,9 +768,4 @@ public class PluralRules implements Serializable {
       }
       return repeatLimit;
     }
-
-  public static void main(String[] args) {
-    System.out.println(PluralRules.createRules(
-        "b: n is 13; a: n in 12..13; b: n mod 10 is 2 or n mod 10 is 3"));
-  }
 }
