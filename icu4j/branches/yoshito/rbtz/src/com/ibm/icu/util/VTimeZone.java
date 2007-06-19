@@ -206,12 +206,12 @@ public class VTimeZone extends BasicTimeZone {
             }
             bw.flush();
         } else {
-            String[] customHeaders = null;
+            String[] customProperties = null;
             if (olsonzid != null && ICU_TZVERSION != null) {
-                customHeaders = new String[1];
-                customHeaders[0] = ICU_TZINFO_HEADER + COLON + olsonzid + "[" + ICU_TZVERSION + "]";
+                customProperties = new String[1];
+                customProperties[0] = ICU_TZINFO_PROP + COLON + olsonzid + "[" + ICU_TZVERSION + "]";
             }
-            writeZone(writer, tz, customHeaders);
+            writeZone(writer, tz, customProperties);
         }
     }
 
@@ -236,13 +236,13 @@ public class VTimeZone extends BasicTimeZone {
         for (int i = 1; i < rules.length; i++) {
             rbtz.addTransitionRule(rules[i]);
         }
-        String[] customHeaders = null;
+        String[] customProperties = null;
         if (olsonzid != null && ICU_TZVERSION != null) {
-            customHeaders = new String[1];
-            customHeaders[0] = ICU_TZINFO_HEADER + COLON + olsonzid + "[" + ICU_TZVERSION + 
+            customProperties = new String[1];
+            customProperties[0] = ICU_TZINFO_PROP + COLON + olsonzid + "[" + ICU_TZVERSION + 
                 "/Partial@" + cutover + "]";
         }
-        writeZone(writer, rbtz, customHeaders);
+        writeZone(writer, rbtz, customProperties);
     }
 
     /**
@@ -271,13 +271,13 @@ public class VTimeZone extends BasicTimeZone {
         for (int i = 1; i < rules.length; i++) {
             rbtz.addTransitionRule(rules[i]);
         }
-        String[] customHeaders = null;
+        String[] customProperties = null;
         if (olsonzid != null && ICU_TZVERSION != null) {
-            customHeaders = new String[1];
-            customHeaders[0] = ICU_TZINFO_HEADER + COLON + olsonzid + "[" + ICU_TZVERSION + 
+            customProperties = new String[1];
+            customProperties[0] = ICU_TZINFO_PROP + COLON + olsonzid + "[" + ICU_TZVERSION + 
                 "/Simple@" + time + "]";
         }
-        writeZone(writer, rbtz, customHeaders);
+        writeZone(writer, rbtz, customProperties);
     }
 
     // BasicTimeZone methods
@@ -336,7 +336,7 @@ public class VTimeZone extends BasicTimeZone {
     private Date lastmod = null;
 
     private static String ICU_TZVERSION;
-    private static final String ICU_TZINFO_HEADER = "X-TZINFO";
+    private static final String ICU_TZINFO_PROP = "X-TZINFO";
 
     // Default DST savings
     private static final int DEF_DSTSAVINGS = 60*60*1000; // 1 hour
@@ -423,7 +423,7 @@ public class VTimeZone extends BasicTimeZone {
                 int ch = reader.read();
                 if (ch == -1) {
                     // end of file
-                    if (start && line.indexOf(ICAL_END_VTIMEZONE) == 0) {
+                    if (start && line.toString().startsWith(ICAL_END_VTIMEZONE)) {
                         vtzlines.add(line.toString());
                         success = true;
                     }
@@ -453,13 +453,13 @@ public class VTimeZone extends BasicTimeZone {
                         // LF
                         eol = true;
                         if (start) {
-                            if (line.indexOf(ICAL_END_VTIMEZONE) == 0) {
+                            if (line.toString().startsWith(ICAL_END_VTIMEZONE)) {
                                 vtzlines.add(line.toString());
                                 success = true;
                                 break;
                             }
                         } else {
-                            if (line.indexOf(ICAL_BEGIN_VTIMEZONE) == 0) {
+                            if (line.toString().startsWith(ICAL_BEGIN_VTIMEZONE)) {
                                 vtzlines.add(line.toString());
                                 line.setLength(0);
                                 start = true;
@@ -484,8 +484,7 @@ public class VTimeZone extends BasicTimeZone {
     private static final int INI = 0;   // Initial state
     private static final int VTZ = 1;   // In VTIMEZONE
     private static final int TZI = 2;   // In STANDARD or DAYLIGHT
-    private static final int END = 3;   // End state
-    private static final int ERR = 4;   // Error state
+    private static final int ERR = 3;   // Error state
 
     /*
      * Parse VTIMEZONE data and create a RuleBasedTimeZone
@@ -527,9 +526,6 @@ public class VTimeZone extends BasicTimeZone {
             case INI:
                 if (name.equals(ICAL_BEGIN) && value.equals(ICAL_VTIMEZONE)) {
                     state = VTZ;
-                } else {
-                    // remove leading lines
-                    it.remove();
                 }
                 break;
             case VTZ:
@@ -564,7 +560,7 @@ public class VTimeZone extends BasicTimeZone {
                         break;
                     }
                 } else if (name.equals(ICAL_END) /* && value.equals(ICAL_VTIMEZONE) */) {
-                    state = END;
+                    break;
                 }
                 break;
 
@@ -685,10 +681,6 @@ public class VTimeZone extends BasicTimeZone {
                     state = VTZ;
                 }
                 break;
-
-            case END:
-                // just removing trailing lines
-                it.remove();
             }
 
             if (state == ERR) {
@@ -864,7 +856,7 @@ public class VTimeZone extends BasicTimeZone {
                 if (fields[0] == earliestMonth) {
                     for (int j = 0; j < count; j++) {
                         int dom = fields[3 + j];
-                        dom = dom > 0 ? dom : MONTHLENGTH[month] + dom + 1;
+                        dom = dom > 0 ? dom : MONTHLENGTH[fields[0]] + dom + 1;
                         earliestDay = dom < earliestDay ? dom : earliestDay;
                     }
                 }
@@ -984,6 +976,7 @@ public class VTimeZone extends BasicTimeZone {
                     month = Integer.parseInt(value) - 1;
                     if (month < 0 || month >= 12) {
                         parseError = true;
+                        break;
                     }
                 } catch (NumberFormatException nfe) {
                     parseError = true;
@@ -1108,14 +1101,14 @@ public class VTimeZone extends BasicTimeZone {
     /*
      * Write the time zone rules in RFC2445 VTIMEZONE format
      */
-    private void writeZone(Writer w, BasicTimeZone icutz, String[] customHeaders) throws IOException {
+    private void writeZone(Writer w, BasicTimeZone basictz, String[] customProperties) throws IOException {
         // Write the header
         writeHeader(w);
 
-        if (customHeaders != null && customHeaders.length > 0) {
-            for (int i = 0; i < customHeaders.length; i++) {
-                if (customHeaders[i] != null) {
-                    w.write(customHeaders[i]);
+        if (customProperties != null && customProperties.length > 0) {
+            for (int i = 0; i < customProperties.length; i++) {
+                if (customProperties[i] != null) {
+                    w.write(customProperties[i]);
                     w.write(NEWLINE);
                 }
             }
@@ -1155,7 +1148,7 @@ public class VTimeZone extends BasicTimeZone {
 
         // Going through all transitions
         while(true) {
-            TimeZoneTransition tzt = icutz.getNextTransition(t, false);
+            TimeZoneTransition tzt = basictz.getNextTransition(t, false);
             if (tzt == null) {
                 break;
             }
@@ -1266,9 +1259,9 @@ public class VTimeZone extends BasicTimeZone {
         }
         if (!hasTransitions) {
             // No transition - put a single non transition RDATE
-            int offset = icutz.getOffset(0 /* any time */);
-            boolean isDst = (offset != icutz.getRawOffset());
-            writeZonePropsByTime(w, isDst, getDefaultTZName(icutz.getID(), isDst),
+            int offset = basictz.getOffset(0 /* any time */);
+            boolean isDst = (offset != basictz.getRawOffset());
+            writeZonePropsByTime(w, isDst, getDefaultTZName(basictz.getID(), isDst),
                     offset, offset, DEF_TZSTARTTIME - offset);                
         } else {
             if (dstCount > 0) {

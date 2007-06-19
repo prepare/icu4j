@@ -177,7 +177,7 @@ public class TimeZoneRuleTest extends TestFmwk {
 
     /*
      * Check if transitions returned by getNextTransition/getPreviousTransition
-     * are real time transtions.
+     * are actual time transitions.
      */
     public void TestOlsonTransition() {
         String[] zids = getTestZIDs();
