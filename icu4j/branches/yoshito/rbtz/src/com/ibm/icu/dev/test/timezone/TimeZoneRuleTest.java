@@ -276,7 +276,7 @@ public class TimeZoneRuleTest extends TestFmwk {
      * VTimeZone from the VTIMEZONE data, then compare transitions
      */
     public void TestVTimeZoneRoundTrip() {
-        long startTime = getUTCMillis(1850, Calendar.JANUARY, 1);
+        long startTime = getUTCMillis(1950, Calendar.JANUARY, 1);
         long endTime = getUTCMillis(2050, Calendar.JANUARY, 1);
 
         String[] tzids = getTestZIDs();

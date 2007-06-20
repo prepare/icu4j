@@ -120,6 +120,14 @@ public class VTimeZone extends BasicTimeZone {
     }
 
     /**
+     * {@inheritDoc}
+     * @stable ICU 2.0
+     */
+    public boolean hasSameRules(TimeZone other) {
+        return tz.hasSameRules(other);
+    }
+
+    /**
      * Gets the RFC2445 TZURL property value.  When a <code>VTimeZone</code> instance was created from
      * VTIMEZONE data, the value is set by the TZURL property value in the data.  Otherwise,
      * the initial value is null.
