@@ -661,18 +661,18 @@ public class VTimeZone extends BasicTimeZone {
                                 // save from offset information for the earliest rule
                                 firstStart = actualStart.getTime();
                                 // If this is STD, assume the time before this transtion
-                                // is DST.  This might not be accurate, but VTIMEZONE data
-                                // does not have such info.
+                                // is DST when the difference is 1 hour.  This might not be
+                                // accurate, but VTIMEZONE data does not have such info.
                                 if (dstSavings > 0) {
                                     initialRawOffset = fromOffset;
                                     initialDSTSavings = 0;
                                 } else {
-                                    if (fromOffset - toOffset > 0) {
-                                        initialRawOffset = toOffset;
-                                        initialDSTSavings = fromOffset - toOffset;
-                                    } else {
+                                    if (fromOffset - toOffset == DEF_DSTSAVINGS) {
                                         initialRawOffset = fromOffset - DEF_DSTSAVINGS;
                                         initialDSTSavings = DEF_DSTSAVINGS;
+                                    } else {
+                                        initialRawOffset = fromOffset;
+                                        initialDSTSavings = 0;
                                     }
                                 }
                             }

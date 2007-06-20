@@ -276,12 +276,12 @@ public class TimeZoneRuleTest extends TestFmwk {
      * VTimeZone from the VTIMEZONE data, then compare transitions
      */
     public void TestVTimeZoneRoundTrip() {
-        long startTime = getUTCMillis(1950, Calendar.JANUARY, 1);
+        long startTime = getUTCMillis(1850, Calendar.JANUARY, 1);
         long endTime = getUTCMillis(2050, Calendar.JANUARY, 1);
 
         String[] tzids = getTestZIDs();
         for (int i = 0; i < tzids.length; i++) {
-            TimeZone olsontz = TimeZone.getTimeZone(tzids[i]);
+            BasicTimeZone olsontz = (BasicTimeZone)TimeZone.getTimeZone(tzids[i]);
             VTimeZone vtz_org = VTimeZone.create(tzids[i]);
             VTimeZone vtz_new = null;
             try {
@@ -300,9 +300,19 @@ public class TimeZoneRuleTest extends TestFmwk {
             } catch (IOException ioe) {
                 errln("FAIL: IO error while writing/reading VTIMEZONE data");
             }
-            // Check equivalency
-            if (!vtz_new.hasEquivalentTransitions(olsontz, startTime, endTime, true)) {
-                errln("FAIL: VTimeZone for " + tzids[i] + " is not equivalent to its OlsonTimeZone corresponding.");
+            // Check equivalency after the first transition.
+            // The DST information before the first transition might be lost
+            // because there is no good way to represent the initial time with
+            // VTIMEZONE.
+            if (vtz_new.getOffset(startTime) != olsontz.getOffset(startTime)) {
+                errln("FAIL: VTimeZone for " + tzids[i]
+                         + " is not equivalent to its OlsonTimeZone corresponding at " + startTime);
+            }
+            TimeZoneTransition tzt = olsontz.getNextTransition(startTime, false);
+            if (tzt != null) {
+                if (!vtz_new.hasEquivalentTransitions(olsontz, tzt.getTime(), endTime, true)) {
+                    errln("FAIL: VTimeZone for " + tzids[i] + " is not equivalent to its OlsonTimeZone corresponding.");
+                }
             }
         }
     }
@@ -315,7 +325,7 @@ public class TimeZoneRuleTest extends TestFmwk {
         long[] cutoverTimes = new long[] {
             getUTCMillis(1900, Calendar.JANUARY, 1),
             getUTCMillis(1950, Calendar.JANUARY, 1),
-            getUTCMillis(2020, Calendar.JANUARY, 1),
+            getUTCMillis(2020, Calendar.JANUARY, 1)
         };
         long endTime = getUTCMillis(2050, Calendar.JANUARY, 1);
 
@@ -323,7 +333,7 @@ public class TimeZoneRuleTest extends TestFmwk {
         for (int n = 0; n < cutoverTimes.length; n++) {
             long startTime = cutoverTimes[n];
             for (int i = 0; i < tzids.length; i++) {
-                TimeZone olsontz = TimeZone.getTimeZone(tzids[i]);
+                BasicTimeZone olsontz = (BasicTimeZone)TimeZone.getTimeZone(tzids[i]);
                 VTimeZone vtz_org = VTimeZone.create(tzids[i]);
                 VTimeZone vtz_new = null;
                 try {
@@ -342,9 +352,19 @@ public class TimeZoneRuleTest extends TestFmwk {
                 } catch (IOException ioe) {
                     errln("FAIL: IO error while writing/reading VTIMEZONE data");
                 }
-                // Check equivalency
-                if (!vtz_new.hasEquivalentTransitions(olsontz, startTime, endTime, true)) {
-                    errln("FAIL: VTimeZone for " + tzids[i] + "(>=" + startTime + ") is not equivalent to its OlsonTimeZone corresponding.");
+                // Check equivalency after the first transition.
+                // The DST information before the first transition might be lost
+                // because there is no good way to represent the initial time with
+                // VTIMEZONE.
+                if (vtz_new.getOffset(startTime) != olsontz.getOffset(startTime)) {
+                    errln("FAIL: VTimeZone for " + tzids[i]
+                             + " is not equivalent to its OlsonTimeZone corresponding at " + startTime);
+                }
+                TimeZoneTransition tzt = olsontz.getNextTransition(startTime, false);
+                if (tzt != null) {
+                    if (!vtz_new.hasEquivalentTransitions(olsontz, tzt.getTime(), endTime, true)) {
+                        errln("FAIL: VTimeZone for " + tzids[i] + "(>=" + startTime + ") is not equivalent to its OlsonTimeZone corresponding.");
+                    }
                 }
             }            
         }
