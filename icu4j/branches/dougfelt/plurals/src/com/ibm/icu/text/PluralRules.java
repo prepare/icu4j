@@ -244,6 +244,8 @@ public class PluralRules implements Serializable {
     static {
         String[] ruledata = {
           "other: n/ja,ko,tr,vi",  // not strictly necessary, default for all
+          "zero: n is 0; one: n is 1; two: n is 2; few: n in 3..10; " +
+          "many: n in 11..99/ar",
             "one: n is 1/da,de,el,en,eo,es,et,fi,fo,he,hu,it,nb,nl,nn,no,pt,sv",
             "one: n in 0..1/fr,pt_BR",
             "zero: n is 0; one: n mod 10 is 1 and n mod 100 is not 11/lv",
