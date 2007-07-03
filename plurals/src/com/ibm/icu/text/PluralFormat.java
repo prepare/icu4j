@@ -433,9 +433,8 @@ public class PluralFormat extends UFormat {
             toAppendTo.append(format(((Number) number).longValue()));
             return toAppendTo;
         }
-        // TODO: Document this. Should we better throw an
-        // IllegalArgumentException?
-        return toAppendTo;
+        throw new IllegalArgumentException("'" + number + 
+                                           "' is not a Number");
     }
 
     /**
