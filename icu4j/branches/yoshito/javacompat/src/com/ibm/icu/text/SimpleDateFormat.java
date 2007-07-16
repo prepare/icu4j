@@ -634,7 +634,7 @@ public class SimpleDateFormat extends DateFormat {
         /*Yeu*/ DateFormat.Field.YEAR_WOY, DateFormat.Field.DOW_LOCAL, DateFormat.Field.EXTENDED_YEAR,
         /*gAZ*/ DateFormat.Field.JULIAN_DAY, DateFormat.Field.MILLISECONDS_IN_DAY, DateFormat.Field.TIME_ZONE,
         /*v*/   DateFormat.Field.TIME_ZONE,
-        /*c*/   DateFormat.Field.DOW_LOCAL,
+        /*c*/   DateFormat.Field.DAY_OF_WEEK,
         /*L*/   DateFormat.Field.MONTH,
         /*Qq*/  DateFormat.Field.QUARTER, DateFormat.Field.QUARTER,
     };

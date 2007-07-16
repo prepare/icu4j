@@ -1471,6 +1471,8 @@ public abstract class DateFormat extends UFormat {
         /**
          * Resolves instances being deserialized to the predefined constants.
          * 
+         * @throws InvalidObjectException if the constant could not be resolved.
+         * 
          * @stable ICU 3.8
          */
         protected Object readResolve() throws InvalidObjectException {
