@@ -897,7 +897,22 @@ public class FormatTests
             return mfa.format(arguments) != mfb.format(arguments);
         }
     }
-    
+
+//#ifndef FOUNDATION
+    public static class MessageFormatFieldHandler implements SerializableTest.Handler
+    {
+        public Object[] getTestObjects()
+        {
+            return new Object[] {MessageFormat.Field.ARGUMENT};
+        }
+
+        public boolean hasSameBehavior(Object a, Object b)
+        {
+            return (a == b);
+        }
+    }
+//#endif
+
     public static class DateFormatHandler implements SerializableTest.Handler
     {
         public Object[] getTestObjects()
