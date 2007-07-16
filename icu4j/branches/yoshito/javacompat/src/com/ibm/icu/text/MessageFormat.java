@@ -1,3 +1,4 @@
+//#header
 /*
 **********************************************************************
 * Copyright (c) 2004-2007, International Business Machines
@@ -23,6 +24,8 @@ import java.util.Locale;
 
 import com.ibm.icu.impl.Utility;
 import com.ibm.icu.text.RuleBasedNumberFormat;
+import com.ibm.icu.text.DateFormat.Field;
+import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.ULocale;
 
 /**
@@ -1713,4 +1716,58 @@ public class MessageFormat extends UFormat {
         }
         return new String(buf);
     }
+
+//#ifndef FOUNDATION
+    /**
+     * The instances of this inner class are used as attribute keys and values
+     * in AttributedCharacterIterator that
+     * MessageFormat.formatToCharacterIterator() method returns.
+     * <p>
+     * There is no public constructor to this class, the only instances are the
+     * constants defined here.
+     * <p>
+     * @stable ICU 3.8
+     */
+    public static class Field extends Format.Field {
+
+        private static final long serialVersionUID = 7510380454602616157L;
+
+        /**
+         * Constant identifying a portion of a message that was generated from an argument
+         * passed into <code>formatToCharacterIterator</code>.
+         * 
+         * @stable ICU 3.8
+         */
+        public static final Field ARGUMENT = new Field("message argument field");
+
+        /**
+         * Create a <code>Field</code> with the specified name.
+         * 
+         * @param name The name of the attribute
+         * 
+         * @stable ICU 3.8
+         */
+        protected Field(String name) {
+            super(name);
+        }
+
+        /**
+         * Resolves instances being deserialized to the predefined constants.
+         * 
+         * @throws InvalidObjectException if the constant could not be resolved.
+         * 
+         * @stable ICU 3.8
+         */
+        protected Object readResolve() throws InvalidObjectException {
+            if (this.getClass() != MessageFormat.Field.class) {
+                throw new InvalidObjectException("A subclass of MessageFormat.Field must implement readResolve.");
+            }
+            if (this.getName().equals(ARGUMENT.getName())) {
+                return ARGUMENT;
+            } else {
+                throw new InvalidObjectException("Unknown attribute name.");
+            }
+        }
+    }
+//#endif
 }
