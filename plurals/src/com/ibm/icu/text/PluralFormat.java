@@ -1,4 +1,11 @@
-epackage com.ibm.icu.text;
+/*
+ *******************************************************************************
+ * Copyright (C) 2007, International Business Machines Corporation and         *
+ * others. All Rights Reserved.                                                *
+ *******************************************************************************
+ */
+
+package com.ibm.icu.text;
 
 import com.ibm.icu.impl.UCharacterProperty;
 import com.ibm.icu.util.ULocale;
