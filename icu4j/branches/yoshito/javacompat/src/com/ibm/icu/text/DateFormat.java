@@ -1476,13 +1476,17 @@ public abstract class DateFormat extends UFormat {
          * @stable ICU 3.8
          */
         protected Object readResolve() throws InvalidObjectException {
+            ///CLOVER:OFF
             if (this.getClass() != DateFormat.Field.class) {
                 throw new InvalidObjectException("A subclass of DateFormat.Field must implement readResolve.");
             }
+            ///CLOVER:ON
             Object o = FIELD_NAME_MAP.get(this.getName());
+            ///CLOVER:OFF
             if (o == null) {
                 throw new InvalidObjectException("Unknown attribute name.");
             }
+            ///CLOVER:ON
             return o;
         }
     }

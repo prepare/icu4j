@@ -3024,6 +3024,18 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             }
         }
 
+        // IllegalArgument for ofCalendarField
+        isException = false;
+        try {
+            DateFormat.Field.ofCalendarField(-1);
+        } catch (IllegalArgumentException iae) {
+            logln("IllegalArgumentException is thrown by ofCalendarField");
+            isException = true;
+        }
+        if (!isException) {
+            errln("FAIL: IllegalArgumentException must be thrown by ofCalendarField for calendar field value -1");
+        }
+
         // ChineseDateFormat.Field#ofCalendarField and getCalendarField
         int ccalField = ChineseDateFormat.Field.IS_LEAP_MONTH.getCalendarField();
         if (ccalField != ChineseCalendar.IS_LEAP_MONTH) {
