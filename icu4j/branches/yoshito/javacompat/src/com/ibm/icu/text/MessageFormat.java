@@ -1,4 +1,4 @@
-//#header
+//##header
 /*
 **********************************************************************
 * Copyright (c) 2004-2007, International Business Machines
@@ -1354,10 +1354,10 @@ public class MessageFormat extends UFormat {
                     last = result.length();
                 }
 //#else
-                if (subFormatter != null) {
-                    arg = subFormatter.format(obj);
-                }
-                result.append(arg);
+//##                if (subFormatter != null) {
+//##                    arg = subFormatter.format(obj);
+//##                }
+//##                result.append(arg);
 //#endif
             }
         }
@@ -1779,11 +1779,12 @@ public class MessageFormat extends UFormat {
                                 offset, offset + len);
                     }
                 }
+                offset += len;
+                start += len;
+                iterators[i].setIndex(start);
                 if (iterators[i].current() == CharacterIterator.DONE) {
                     break;
                 }
-                offset += len;
-                start += len;
             }
         }
 

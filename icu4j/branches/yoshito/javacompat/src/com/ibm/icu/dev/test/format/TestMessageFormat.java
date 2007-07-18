@@ -1,3 +1,4 @@
+//##header
 /*
 **********************************************************************
 * Copyright (c) 2004-2007, International Business Machines
@@ -10,18 +11,23 @@
 */
 package com.ibm.icu.dev.test.format;
 
+import java.text.AttributedCharacterIterator;
+import java.text.AttributedString;
 import java.text.ChoiceFormat;
 import java.text.FieldPosition;
 import java.text.Format;
 import java.text.ParseException;
 import java.text.ParsePosition;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
+import com.ibm.icu.text.DateFormat;
 import com.ibm.icu.text.DecimalFormat;
 import com.ibm.icu.text.MessageFormat;
 import com.ibm.icu.text.NumberFormat;
-import com.ibm.icu.text.DateFormat;
 import com.ibm.icu.text.UFormat;
 import com.ibm.icu.util.ULocale;
 
@@ -929,4 +935,98 @@ public class TestMessageFormat extends com.ibm.icu.dev.test.TestFmwk {
             assertEquals("[" + (i/2) + "] \"" + patterns[i] + "\"", patterns[i+1], MessageFormat.autoQuoteApostrophe(patterns[i]));
         }
     }
+
+//#ifndef FOUNDATION
+    // Test case for formatToCharacterIterator
+    public void TestFormatToCharacterIterator() {
+        String[] patterns = {
+            "The {3,ordinal} folder ''{0}'' contains {2,number} file(s), created at {1,time} on {1,date}."
+        };
+
+        Object[][] args = {
+            {"tmp", new Date(1184777888000L), new Integer(15), new Integer(2)}
+        };
+
+        String[] expectedStrings = {
+            "The 2nd folder 'tmp' contains 15 file(s), created at 9:58:08 AM on Jul 18, 2007."
+        };
+
+        AttributedString[] expectedAttributedStrings = {
+            new AttributedString(expectedStrings[0])
+        };
+
+        // Add expected attributes to the expectedAttributedStrings[0]
+        expectedAttributedStrings[0].addAttribute(MessageFormat.Field.ARGUMENT, new Integer(3), 4, 7);
+        expectedAttributedStrings[0].addAttribute(MessageFormat.Field.ARGUMENT, new Integer(0), 16, 19);
+        expectedAttributedStrings[0].addAttribute(MessageFormat.Field.ARGUMENT, new Integer(2), 30, 32);
+        expectedAttributedStrings[0].addAttribute(NumberFormat.Field.INTEGER, NumberFormat.Field.INTEGER, 30, 32);
+        expectedAttributedStrings[0].addAttribute(MessageFormat.Field.ARGUMENT, new Integer(1), 53, 63);
+        expectedAttributedStrings[0].addAttribute(DateFormat.Field.HOUR1, DateFormat.Field.HOUR1, 53, 54);
+        expectedAttributedStrings[0].addAttribute(DateFormat.Field.MINUTE, DateFormat.Field.MINUTE, 55, 57);
+        expectedAttributedStrings[0].addAttribute(DateFormat.Field.SECOND, DateFormat.Field.SECOND, 58, 60);
+        expectedAttributedStrings[0].addAttribute(DateFormat.Field.AM_PM, DateFormat.Field.AM_PM, 61, 63);
+        expectedAttributedStrings[0].addAttribute(MessageFormat.Field.ARGUMENT, new Integer(1), 67, 79);
+        expectedAttributedStrings[0].addAttribute(DateFormat.Field.MONTH, DateFormat.Field.MONTH, 67, 70);
+        expectedAttributedStrings[0].addAttribute(DateFormat.Field.DAY_OF_MONTH, DateFormat.Field.DAY_OF_MONTH, 71, 73);
+        expectedAttributedStrings[0].addAttribute(DateFormat.Field.YEAR, DateFormat.Field.YEAR, 75, 79);
+
+        for (int i = 0; i < patterns.length; i++) {
+            MessageFormat msg = new MessageFormat(patterns[i]);
+            AttributedCharacterIterator acit = msg.formatToCharacterIterator(args[i]);
+            AttributedCharacterIterator expectedAcit = expectedAttributedStrings[i].getIterator();
+
+            // Check available attributes
+            Set attrSet = acit.getAllAttributeKeys();
+            Set expectedAttrSet = expectedAcit.getAllAttributeKeys();
+            if (attrSet.size() != expectedAttrSet.size()) {
+                errln("FAIL: Number of attribute keys is " + attrSet.size() + " expected: " + expectedAttrSet.size());
+            }
+            Iterator attrIterator = attrSet.iterator();
+            while (attrIterator.hasNext()) {
+                AttributedCharacterIterator.Attribute attr = (AttributedCharacterIterator.Attribute)attrIterator.next();
+                if (!expectedAttrSet.contains(attr)) {
+                    errln("FAIL: The attribute " + attr + " is not expected.");
+                }
+            }
+
+            StringBuffer buf = new StringBuffer();
+            int index = acit.getBeginIndex();
+            int end = acit.getEndIndex();
+            int indexExp = expectedAcit.getBeginIndex();
+            int expectedLen = expectedAcit.getEndIndex() - indexExp;
+            if (end - index != expectedLen) {
+                errln("FAIL: Length of the result attributed string is " + (end - index) + " expected: " + expectedLen);
+            } else {
+                // Check attributes associated with each character
+                while (index < end) {
+                    char c = acit.setIndex(index);
+                    buf.append(c);
+                    expectedAcit.setIndex(indexExp);
+
+                    Map attrs = acit.getAttributes();
+                    Map attrsExp = expectedAcit.getAttributes();
+                    if (attrs.size() != attrsExp.size()) {
+                        errln("FAIL: Number of attributes associated with index " + index + " is " + attrs.size()
+                                + " expected: " + attrsExp.size());
+                    } else {
+                        // Check all attributes at the index
+                        Iterator entryIterator = attrsExp.entrySet().iterator();
+                        while (entryIterator.hasNext()) {
+                            Map.Entry entry = (Map.Entry)entryIterator.next();
+                            if (attrs.containsKey(entry.getKey())) {
+                                Object value = attrs.get(entry.getKey());
+                                assertEquals("Attribute value at index " + index, entry.getValue(), value);
+                            } else {
+                                errln("FAIL: Attribute " + entry.getKey() + " is missing at index " + index);
+                            }
+                        }
+                    }
+                    index++;
+                    indexExp++;
+                }
+                assertEquals("AttributedString contents", expectedStrings[i], buf.toString());
+            }
+        }
+    }
+//#endif
 }
