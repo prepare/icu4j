@@ -1,12 +1,14 @@
-/**
- * 
+/*
+ *******************************************************************************
+ * Copyright (C) 2007, International Business Machines Corporation and         *
+ * others. All Rights Reserved.                                                *
+ *******************************************************************************
  */
 package com.ibm.icu.dev.test.format;
 
 import com.ibm.icu.dev.test.TestFmwk;
 import com.ibm.icu.text.PluralFormat;
 import com.ibm.icu.util.ULocale;
-
 
 import java.util.HashMap;
 import java.util.Map;
