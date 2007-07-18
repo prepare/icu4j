@@ -940,7 +940,7 @@ public class FormatTests
         
     }
 
-//#infndef FOUNDATION
+//#ifndef FOUNDATION
     public static class DateFormatFieldHandler implements SerializableTest.Handler
     {
         public Object[] getTestObjects() {

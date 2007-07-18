@@ -12,7 +12,7 @@ src/com/ibm/icu/impl/ByteBuffer.java
 src/com/ibm/icu/lang/UCharacter.java
 src/com/ibm/icu/math/BigDecimal.java
 src/com/ibm/icu/text/Bidi.java
-src/com/ibm/icu/text/ChineseDateTimeFormat.java
+src/com/ibm/icu/text/ChineseDateFormat.java
 src/com/ibm/icu/text/DateFormat.java
 src/com/ibm/icu/text/DateTimePatternGenerator.java
 src/com/ibm/icu/text/DecimalFormat.java

@@ -272,6 +272,7 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
      */
     static final String PATTERN_CHARS = "GyMdkHmsSEDFwWahKzYeugAZvcLQq";
 
+//#ifndef FOUNDATION
     /**
      * A list of the DateFormat.Field.
      * This MUST be kept in sync with PATTERN_CHARS above.
@@ -307,6 +308,7 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         DateFormat.Field.QUARTER,       // Q
         DateFormat.Field.QUARTER,       // q
     };
+//#endif
 
     /**
      * A list of the names of all the fields in DateFormat.

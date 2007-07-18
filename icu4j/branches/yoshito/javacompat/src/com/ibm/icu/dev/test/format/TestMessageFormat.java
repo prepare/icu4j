@@ -199,7 +199,6 @@ public class TestMessageFormat extends com.ibm.icu.dev.test.TestFmwk {
             assertEquals("format", testResultStrings[i], result.toString());
 
             //it_out << "Result:  " << result);
-    //#if 0
     //        /* TODO: Look at this test and see if this is still a valid test */
     //        logln("---------------- test parse ----------------");
     //
@@ -225,7 +224,6 @@ public class TestMessageFormat extends com.ibm.icu.dev.test.TestFmwk {
     //        }
     //        if (failed)
     //            errln("MessageFormat failed test #6");
-    //#endif
         }
     }
 
