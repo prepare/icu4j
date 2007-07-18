@@ -1,6 +1,10 @@
-/**
- * Copyright 2007, Google, Inc.  All Rights Reserved.
+/*
+ *******************************************************************************
+ * Copyright (C) 2007, International Business Machines Corporation and         *
+ * others. All Rights Reserved.                                                *
+ *******************************************************************************
  */
+
 package com.ibm.icu.text;
 
 import com.ibm.icu.util.ULocale;
