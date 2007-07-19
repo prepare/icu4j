@@ -36,7 +36,7 @@ class CharsetMBCS extends CharsetICU {
      * Fallbacks to Unicode are stored outside the normal state table and code point structures
      * in a vector of items of this type. They are sorted by offset.
      */
-    final class MBCSToUFallback {
+    final static class MBCSToUFallback {
         int offset;
         int codePoint;
     }
@@ -100,7 +100,7 @@ class CharsetMBCS extends CharsetICU {
     /**
      * MBCS data header. See data format description above.
      */
-    final class MBCSHeader {
+    final static class MBCSHeader {
         byte version[/*U_MAX_VERSION_LENGTH*/];
         int countStates, countToUFallbacks, offsetToUCodeUnits, offsetFromUTable, offsetFromUBytes;
         int flags;
@@ -137,7 +137,7 @@ class CharsetMBCS extends CharsetICU {
         this(icuCanonicalName, javaCanonicalName, aliases, ICUResourceBundle.ICU_BUNDLE, null);
     }
     
-    class LoadArguments
+    static class LoadArguments
     {
         int nestedLoads;        /* count nested loadConverter() calls */
         // int reserved;        /* reserved - for good alignment of the pointers */
@@ -156,9 +156,14 @@ class CharsetMBCS extends CharsetICU {
         }
     }
 
-    private UConverterSharedData loadConverter(LoadArguments args) throws InvalidFormatException
-    {        
-        // Read converter data from file        
+    private static UConverterSharedData loadConverter(LoadArguments args) throws InvalidFormatException
+    {
+        // Read converter data from file.
+        // This corresponds more-or-less with the function ucnv_MBCSLoad in ICU4C, with the main
+        //   difference being that ICU4C is just setting up reference to already memory-mapped data,
+        //   while in Java we must copy the data values from a stream (corresponding to the C data)
+        //   to Java variables.
+        //
         UConverterStaticData staticData = new UConverterStaticData();
         UConverterDataReader reader = null;
         try {

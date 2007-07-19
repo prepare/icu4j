@@ -38,6 +38,9 @@ public abstract class CharsetICU extends Charset{
 
      float  maxCharsPerByte;
     
+     // The following data members with the +xx offsets correspond directly to 
+     //   fields from struct UconverterStaticData in icu4c, 
+     //   source/common/ucnv_bld.h
      String name; /* +4: 60  internal name of the converter- invariant chars */
 
      int codepage;               /* +64: 4 codepage # (now IBM-$codepage) */
