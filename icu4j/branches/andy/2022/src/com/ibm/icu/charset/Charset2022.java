@@ -139,11 +139,21 @@ public class Charset2022 extends CharsetICU {
 
 
     //
-    //  One of these set up at the time a Charset is opened.
-    //    TODO:  from, to stuff probably wants to be moved to Encoder, Decoder.
-    //           It's here from the C heritage.
+    //  UConverterDataISO2022
+    //
+    //      Corresponds to the C struct of the same name.
+    //
+    //      Contains both unchanging data relating to the 2022 charset and
+    //      state pertaining to a conversion.  This works for C, where a converter represents both, but
+    //      less well for the Java encoder/decoder architecture.
+    //
+    //      This structure is left as it is in C for ease of porting.
+    //      The initial values are set up here.
+    //      A copy from this common master is made into each encoder and decoder.
+    //    
     class UConverterDataISO2022 {
-        UConverterSharedData[] myConverterArray;    // Sub-converters.
+        // UConverterSharedData[] myConverterArray;    // Sub-converters.
+        CharsetICU[]           myConverterArray;    // Sub-converters.
         CharsetICU             currentConverter;
         int                    currentType;        // enum Cnv2022Type
         ISO2022State           toU2022State;
@@ -154,11 +164,12 @@ public class Charset2022 extends CharsetICU {
         String                 locale;
         
         UConverterDataISO2022() {
-            myConverterArray = new UConverterSharedData[UCNV_2022_MAX_CONVERTERS];
+            myConverterArray = new CharsetICU[UCNV_2022_MAX_CONVERTERS];
             toU2022State     = new ISO2022State();
             fromU2022State   = new ISO2022State();
         }
     };
+    UConverterDataISO2022  myConverterData;   // This variable name comes from C++
 
     static final int ESC_2022 = 0x1B; /*ESC*/
 
@@ -287,16 +298,47 @@ public class Charset2022 extends CharsetICU {
      static final int ISO_2022_JP=1;
      static final int ISO_2022_KR=2;
      static final int ISO_2022_CN=3;
-
-   
     
-     /*const UConverterSharedData _ISO2022Data;*/
-     static UConverterSharedData _ISO2022JPData;
-     static UConverterSharedData _ISO2022KRData;
-     static UConverterSharedData _ISO2022CNData;
      
-     
-     
+     /* ************** to unicode *******************/
+     /* ***************************************************************************
+      * Recognized escape sequences are
+      * <ESC>(B  ASCII
+      * <ESC>.A  ISO-8859-1
+      * <ESC>.F  ISO-8859-7
+      * <ESC>(J  JISX-201
+      * <ESC>(I  JISX-201
+      * <ESC>$B  JISX-208
+      * <ESC>$@  JISX-208
+      * <ESC>$(D JISX-212
+      * <ESC>$A  GB2312
+      * <ESC>$(C KSC5601
+      */
+     static final short nextStateToUnicode[] = new short[/*MAX_STATES_2022*/] {
+     //      0                1               2               3               4               5               6               7               8               9    
+         INVALID_STATE   ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,SS2_STATE      ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE
+         ,ASCII          ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,JISX201        ,HWKANA_7BIT    ,JISX201        ,INVALID_STATE
+         ,INVALID_STATE  ,INVALID_STATE  ,JISX208        ,GB2312         ,JISX208        ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE
+         ,ISO8859_1      ,ISO8859_7      ,JISX208        ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,KSC5601        ,JISX212        ,INVALID_STATE
+         ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE
+         ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE
+         ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE
+         ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE
+     };
+
+     /* ************** to unicode *******************/
+     static final short nextStateToUnicodeCN[] = new short[/*MAX_STATES_2022*/] {
+     //      0                1               2               3               4               5               6               7               8               9   
+          INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,SS2_STATE      ,SS3_STATE      ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE
+         ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE
+         ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE
+         ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE
+         ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,GB2312_1       ,INVALID_STATE  ,ISO_IR_165
+         ,CNS_11643_1    ,CNS_11643_2    ,CNS_11643_3    ,CNS_11643_4    ,CNS_11643_5    ,CNS_11643_6    ,CNS_11643_7    ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE
+         ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE
+         ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE
+     };
+
      
     //  ======================
     public Charset2022(String icuCanonicalName, String javaCanonicalName, String[] aliases) {
@@ -326,58 +368,51 @@ public class Charset2022 extends CharsetICU {
 
     }
     
-    void 
-    _ISO2022Open(String name, String locale, int options) {
-    /*
+    private void   _ISO2022Open(String name, String locale, int options) {
 
-
-        cnv->extraInfo = uprv_malloc (sizeof (UConverterDataISO2022));
-        if(cnv->extraInfo != NULL) {
-            UConverterDataISO2022 *myConverterData=(UConverterDataISO2022 *) cnv->extraInfo;
-            uint32_t version;
-
-            uprv_memset(myConverterData, 0, sizeof(UConverterDataISO2022));
-            myConverterData->currentType = ASCII1;
-            cnv->fromUnicodeStatus =FALSE;
-            if(locale){
-                uprv_strncpy(myLocale, locale, sizeof(myLocale));
+        String myLocale;
+        myConverterData = new UConverterDataISO2022();
+        int version;
+        
+        myConverterData.currentType = ASCII1;
+        myLocale = locale;
+        
+        version = options & UCNV_OPTIONS_VERSION_MASK;
+        myConverterData.version = version;
+        if (myLocale.equals("jap") || myLocale.startsWith("jap_")) {
+            int len=0;
+            // open the required converters and cache them 
+            if((jpCharsetMasks[version]&CSM(ISO8859_7))!=0) {
+                myConverterData.myConverterArray[ISO8859_7] = (CharsetICU)CharsetICU.forNameICU("ISO8859_7");
             }
-            version = options & UCNV_OPTIONS_VERSION_MASK;
-            myConverterData->version = version;
-            if(myLocale[0]=='j' && (myLocale[1]=='a'|| myLocale[1]=='p') && 
-                (myLocale[2]=='_' || myLocale[2]=='\0'))
-            {
-                size_t len=0;
-                // open the required converters and cache them 
-                if(jpCharsetMasks[version]&CSM(ISO8859_7)) {
-                    myConverterData->myConverterArray[ISO8859_7]= ucnv_loadSharedData("ISO8859_7", NULL, errorCode);
-                }
-                myConverterData->myConverterArray[JISX201]      = ucnv_loadSharedData("JISX0201", NULL, errorCode);
-                myConverterData->myConverterArray[JISX208]      = ucnv_loadSharedData("jisx-208", NULL, errorCode);
-                if(jpCharsetMasks[version]&CSM(JISX212)) {
-                    myConverterData->myConverterArray[JISX212]  = ucnv_loadSharedData("jisx-212", NULL, errorCode);
-                }
-                if(jpCharsetMasks[version]&CSM(GB2312)) {
-                    myConverterData->myConverterArray[GB2312]   = ucnv_loadSharedData("ibm-5478", NULL, errorCode);   // gb_2312_80-1 
-                }
-                if(jpCharsetMasks[version]&CSM(KSC5601)) {
-                    myConverterData->myConverterArray[KSC5601]  = ucnv_loadSharedData("ksc_5601", NULL, errorCode);
-                }
-
-                // set the function pointers to appropriate funtions 
-                cnv->sharedData=(UConverterSharedData*)(&_ISO2022JPData);
-                uprv_strcpy(myConverterData->locale,"ja");
-
-                uprv_strcpy(myConverterData->name,"ISO_2022,locale=ja,version=");
-                len = uprv_strlen(myConverterData->name);
-                myConverterData->name[len]=(char)(myConverterData->version+(int)'0');
-                myConverterData->name[len+1]='\0';
+            myConverterData.myConverterArray[JISX201] = (CharsetICU)CharsetICU.forNameICU("jisx-201");
+            myConverterData.myConverterArray[JISX208] = (CharsetICU)CharsetICU.forNameICU("jisx-208");
+            if((jpCharsetMasks[version]&CSM(JISX212))!=0) {
+                myConverterData.myConverterArray[JISX212] = (CharsetICU)CharsetICU.forNameICU("jisx-212");
             }
-            else if(myLocale[0]=='k' && (myLocale[1]=='o'|| myLocale[1]=='r') && 
-                (myLocale[2]=='_' || myLocale[2]=='\0'))
-            {
+            if((jpCharsetMasks[version]&CSM(GB2312))!=0) {
+                myConverterData.myConverterArray[GB2312] = (CharsetICU)CharsetICU.forNameICU("ibm-5478");   // gb_2312_80-1
+            }
+            if((jpCharsetMasks[version]&CSM(KSC5601))!=0) {
+                myConverterData.myConverterArray[KSC5601] = (CharsetICU)CharsetICU.forNameICU("ksc_5601");
+            }
+
+            // set the function pointers to appropriate functions 
+            /*
+            cnv.sharedData=(UConverterSharedData*)(&_ISO2022JPData);
+            uprv_strcpy(myConverterData.locale,"ja");
+
+            uprv_strcpy(myConverterData.name,"ISO_2022,locale=ja,version=");
+            len = uprv_strlen(myConverterData.name);
+            myConverterData.name[len]=(char)(myConverterData.version+(int)'0');
+            myConverterData.name[len+1]='\0';
+            */
+        }
+        else if(myLocale.equals("kor") || myLocale.startsWith("kor_"))
+        {
+            /*
                 if (version==1){
-                    myConverterData->currentConverter=
+                    myConverterData.currentConverter=
                         ucnv_open("icu-internal-25546",errorCode);
 
                     if (U_FAILURE(*errorCode)) {
@@ -385,19 +420,19 @@ public class Charset2022 extends CharsetICU {
                         return;
                     }
 
-                    uprv_strcpy(myConverterData->name,"ISO_2022,locale=ko,version=1");
-                    uprv_memcpy(cnv->subChars, myConverterData->currentConverter->subChars, 4);
-                    cnv->subCharLen = myConverterData->currentConverter->subCharLen;
+                    uprv_strcpy(myConverterData.name,"ISO_2022,locale=ko,version=1");
+                    uprv_memcpy(cnv.subChars, myConverterData.currentConverter.subChars, 4);
+                    cnv.subCharLen = myConverterData.currentConverter.subCharLen;
                 }else{
-                    myConverterData->currentConverter=ucnv_open("ibm-949",errorCode);
+                    myConverterData.currentConverter=ucnv_open("ibm-949",errorCode);
 
                     if (U_FAILURE(*errorCode)) {
                         _ISO2022Close(cnv);
                         return;
                     }
 
-                    myConverterData->version = 0;
-                    uprv_strcpy(myConverterData->name,"ISO_2022,locale=ko,version=0");
+                    myConverterData.version = 0;
+                    uprv_strcpy(myConverterData.name,"ISO_2022,locale=ko,version=0");
                 }
 
                 // initialize the state variables 
@@ -405,47 +440,45 @@ public class Charset2022 extends CharsetICU {
                 setInitialStateFromUnicodeKR(cnv, myConverterData);
 
                 // set the function pointers to appropriate funtions
-                cnv->sharedData=(UConverterSharedData*)&_ISO2022KRData;
-                uprv_strcpy(myConverterData->locale,"ko");
+                cnv.sharedData=(UConverterSharedData*)&_ISO2022KRData;
+                uprv_strcpy(myConverterData.locale,"ko");
+                */
             }
-            else if(((myLocale[0]=='z' && myLocale[1]=='h') || (myLocale[0]=='c'&& myLocale[1]=='n'))&& 
-                (myLocale[2]=='_' || myLocale[2]=='\0'))
+            else if (myLocale.equals("zh") || myLocale.equals("zh_") || myLocale.equals("cn") || myLocale.startsWith("cn_"))
             {
+              /*
 
                 // open the required converters and cache them 
-                myConverterData->myConverterArray[GB2312_1]         = ucnv_loadSharedData("ibm-5478", NULL, errorCode);
+                myConverterData.myConverterArray[GB2312_1]         = ucnv_loadSharedData("ibm-5478", NULL, errorCode);
                 if(version==1) {
-                    myConverterData->myConverterArray[ISO_IR_165]   = ucnv_loadSharedData("iso-ir-165", NULL, errorCode);
+                    myConverterData.myConverterArray[ISO_IR_165]   = ucnv_loadSharedData("iso-ir-165", NULL, errorCode);
                 }
-                myConverterData->myConverterArray[CNS_11643]        = ucnv_loadSharedData("cns-11643-1992", NULL, errorCode);
+                myConverterData.myConverterArray[CNS_11643]        = ucnv_loadSharedData("cns-11643-1992", NULL, errorCode);
 
 
                 // set the function pointers to appropriate funtions 
-                cnv->sharedData=(UConverterSharedData*)&_ISO2022CNData;
-                uprv_strcpy(myConverterData->locale,"cn");
+                cnv.sharedData=(UConverterSharedData*)&_ISO2022CNData;
+                uprv_strcpy(myConverterData.locale,"cn");
 
                 if (version==1){
-                    uprv_strcpy(myConverterData->name,"ISO_2022,locale=zh,version=1");
+                    uprv_strcpy(myConverterData.name,"ISO_2022,locale=zh,version=1");
                 }else{
-                    myConverterData->version = 0;
-                    uprv_strcpy(myConverterData->name,"ISO_2022,locale=zh,version=0");
+                    myConverterData.version = 0;
+                    uprv_strcpy(myConverterData.name,"ISO_2022,locale=zh,version=0");
                 }
+              */
             }
-            else{
-                *errorCode = U_UNSUPPORTED_ERROR;
-                return;
+            else {
+                // TODO:  is this the best exception to use here?
+                // TODO:  close of open converters?
+                throw new IllegalArgumentException();    
             }
 
-            cnv->maxBytesPerUChar=cnv->sharedData->staticData->maxBytesPerChar;
+            // TODO: something for this line...
+            // cnv.maxBytesPerUChar=cnv.sharedData.staticData.maxBytesPerChar;
 
-            if(U_FAILURE(*errorCode)) {
-                _ISO2022Close(cnv);
             }
-        } else {
-            *errorCode = U_MEMORY_ALLOCATION_ERROR;
-        }
-        */
-    }
+    
 
 
     class CharsetDecoder2022 extends CharsetDecoderICU {
@@ -454,7 +487,7 @@ public class Charset2022 extends CharsetICU {
             super(cs);
         }
 
-        void  setInitialStateToUnicodeKR(Charset2022 converter, UConverterDataISO2022 myConverterData) {
+        void  setInitialStateToUnicodeKR(Charset2022 converter, Charset2022.UConverterDataISO2022 myConverterData) {
             if(myConverterData.version == 1) {
                 toUnicodeStatus = 0;     // offset,    field of CharsetICU 
                 mode            = 0;     // state,     field of CharsetICU 
@@ -462,10 +495,7 @@ public class Charset2022 extends CharsetICU {
             }
         }
         
-      
-
-  
-        
+          
 
         protected CoderResult decodeLoop(ByteBuffer source, CharBuffer target, IntBuffer offsets,
                 boolean flush) {
@@ -594,6 +624,7 @@ public class Charset2022 extends CharsetICU {
             return CoderResult.malformedForLength(toULength = 1);
         }
     }
+    
 
 
 
@@ -606,7 +637,7 @@ public class Charset2022 extends CharsetICU {
             implReset();
         }
         
-        void setInitialStateFromUnicodeKR(Charset2022 converter, UConverterDataISO2022 myConverterData) {
+        void setInitialStateFromUnicodeKR(Charset2022 converter, Charset2022.UConverterDataISO2022 myConverterData) {
             /* in ISO-2022-KR the designator sequence appears only once
              * in a file so we append it only once
              */

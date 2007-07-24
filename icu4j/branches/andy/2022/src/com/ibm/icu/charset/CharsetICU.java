@@ -142,8 +142,12 @@ public abstract class CharsetICU extends Charset{
     /*public*/ static final Charset getCharset(String icuCanonicalName, String javaCanonicalName, String[] aliases){
        String className = (String) algorithmicCharsets.get(icuCanonicalName);
        if(className==null){
-           //all the cnv files are loaded as MBCS
-           className = "com.ibm.icu.charset.CharsetMBCS";
+           if (icuCanonicalName.startsWith("ISO-2022")) {
+               className = "com.ibm.icu.charset.Charset2022.java";
+           } else {
+               // all other cnv files are loaded as MBCS
+               className = "com.ibm.icu.charset.CharsetMBCS";
+           }
        }
        try{
            CharsetICU conv = null;
