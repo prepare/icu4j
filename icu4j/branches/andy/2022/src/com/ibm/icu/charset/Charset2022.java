@@ -21,6 +21,7 @@ import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CoderResult;
 
 import com.ibm.icu.charset.CharsetMBCS.LoadArguments;
+import com.ibm.icu.impl.InvalidFormatException;
 import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.text.UTF16;
 import com.ibm.icu.util.ULocale;
@@ -47,7 +48,7 @@ public class Charset2022 extends CharsetICU {
     }
 
     /* for ISO-2022-JP and -CN implementations */
-    //  typedef enum  {
+    //  enum StateEnum {
             /* shared values */
             private static final short INVALID_STATE=-1;
             private static final short ASCII = 0;
@@ -159,6 +160,7 @@ public class Charset2022 extends CharsetICU {
         ISO2022State           toU2022State;
         ISO2022State           fromU2022State;
         int                    key;                // TODO:  double check signed issues.  Was unsigned in C
+        int                    offset;             //  offset associated with ketKey_2022(c, key, offset)
         int                    version;
         String                 name;
         String                 locale;
@@ -300,45 +302,6 @@ public class Charset2022 extends CharsetICU {
      static final int ISO_2022_CN=3;
     
      
-     /* ************** to unicode *******************/
-     /* ***************************************************************************
-      * Recognized escape sequences are
-      * <ESC>(B  ASCII
-      * <ESC>.A  ISO-8859-1
-      * <ESC>.F  ISO-8859-7
-      * <ESC>(J  JISX-201
-      * <ESC>(I  JISX-201
-      * <ESC>$B  JISX-208
-      * <ESC>$@  JISX-208
-      * <ESC>$(D JISX-212
-      * <ESC>$A  GB2312
-      * <ESC>$(C KSC5601
-      */
-     static final short nextStateToUnicode[] = new short[/*MAX_STATES_2022*/] {
-     //      0                1               2               3               4               5               6               7               8               9    
-         INVALID_STATE   ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,SS2_STATE      ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE
-         ,ASCII          ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,JISX201        ,HWKANA_7BIT    ,JISX201        ,INVALID_STATE
-         ,INVALID_STATE  ,INVALID_STATE  ,JISX208        ,GB2312         ,JISX208        ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE
-         ,ISO8859_1      ,ISO8859_7      ,JISX208        ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,KSC5601        ,JISX212        ,INVALID_STATE
-         ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE
-         ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE
-         ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE
-         ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE
-     };
-
-     /* ************** to unicode *******************/
-     static final short nextStateToUnicodeCN[] = new short[/*MAX_STATES_2022*/] {
-     //      0                1               2               3               4               5               6               7               8               9   
-          INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,SS2_STATE      ,SS3_STATE      ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE
-         ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE
-         ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE
-         ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE
-         ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,GB2312_1       ,INVALID_STATE  ,ISO_IR_165
-         ,CNS_11643_1    ,CNS_11643_2    ,CNS_11643_3    ,CNS_11643_4    ,CNS_11643_5    ,CNS_11643_6    ,CNS_11643_7    ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE
-         ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE
-         ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE
-     };
-
      
     //  ======================
     public Charset2022(String icuCanonicalName, String javaCanonicalName, String[] aliases) {
@@ -481,11 +444,288 @@ public class Charset2022 extends CharsetICU {
     
 
 
+    /* ************** to unicode *******************/
+    /* ***************************************************************************
+     * Recognized escape sequences are
+     * <ESC>(B  ASCII
+     * <ESC>.A  ISO-8859-1
+     * <ESC>.F  ISO-8859-7
+     * <ESC>(J  JISX-201
+     * <ESC>(I  JISX-201
+     * <ESC>$B  JISX-208
+     * <ESC>$@  JISX-208
+     * <ESC>$(D JISX-212
+     * <ESC>$A  GB2312
+     * <ESC>$(C KSC5601
+     */
+    static final short nextStateToUnicodeJP[] = new short[/*MAX_STATES_2022*/] {
+    //      0                1               2               3               4               5               6               7               8               9    
+        INVALID_STATE   ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,SS2_STATE      ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE
+        ,ASCII          ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,JISX201        ,HWKANA_7BIT    ,JISX201        ,INVALID_STATE
+        ,INVALID_STATE  ,INVALID_STATE  ,JISX208        ,GB2312         ,JISX208        ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE
+        ,ISO8859_1      ,ISO8859_7      ,JISX208        ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,KSC5601        ,JISX212        ,INVALID_STATE
+        ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE
+        ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE
+        ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE
+        ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE
+    };
+
+    /* ************** to unicode *******************/
+    static final short nextStateToUnicodeCN[] = new short[/*MAX_STATES_2022*/] {
+    //      0                1               2               3               4               5               6               7               8               9   
+         INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,SS2_STATE      ,SS3_STATE      ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE
+        ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE
+        ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE
+        ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE
+        ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,GB2312_1       ,INVALID_STATE  ,ISO_IR_165
+        ,CNS_11643_1    ,CNS_11643_2    ,CNS_11643_3    ,CNS_11643_4    ,CNS_11643_5    ,CNS_11643_6    ,CNS_11643_7    ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE
+        ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE
+        ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE  ,INVALID_STATE
+    };
+
+
+    //  getKey_2022
+    //    c:      an input byte
+    //    myData: we need fields key & offset.  Awkward translation from C
+    //    Returns one of (INVALID_2022, VALID_NON_TERMINAL_2022, VALID_TERMINAL_2022, VALID_MAYBE_TERMINAL_2022)
+    //       was enum UCONV_TaableStates2022 in C++
+    //
+    static int
+    getKey_2022(byte c, UConverterDataISO2022 myData) {
+        int togo;
+        int low = 0;
+        int hi = MAX_STATES_2022;
+        int oldmid=0;
+
+        togo = normalize_esq_chars_2022[((int)c) & 0x000000ff];
+        if(togo == 0) {
+            /* not a valid character anywhere in an escape sequence */
+            myData.key = 0;
+            myData.offset = 0;
+            return INVALID_2022;
+        }
+        togo = (myData.key << 5) + togo;
+
+        while (hi != low)  /*binary search*/{
+            int mid = (hi+low) >> 1; /*Finds median*/
+            if (mid == oldmid)
+                break;
+            if (escSeqStateTable_Key_2022[mid] > togo){
+                hi = mid;
+            }
+            else if (escSeqStateTable_Key_2022[mid] < togo){
+                low = mid;
+            }
+            else /*we found it*/{
+                myData.key    = togo;
+                myData.offset = mid;
+                return escSeqStateTable_Value_2022[mid];
+            }
+            oldmid = mid;
+        }
+
+        myData.key = 0;
+        myData.offset = 0;
+        return INVALID_2022;
+    }
+
+    
+
+    
     class CharsetDecoder2022 extends CharsetDecoderICU {
 
         public CharsetDecoder2022(CharsetICU cs) {
             super(cs);
+        };
+
+        Charset2022.UConverterDataISO2022    myData2022;   // TODO:  needs initialization
+        
+        //
+        //  changeState_2022()
+        //     runs through a state machine to determine the escape sequence - codepage correspondance
+        //
+        void changeState_2022( ByteBuffer  source,
+                int         variant        // enum (ISO_2022_JP, ISO_2022_KR, ISO_2022_CN)
+        ) throws InvalidFormatException {
+            int    value;   // enum UCNV_TableStates_2022
+            int    key =    myData2022.key;
+            int    offset = 0;
+            byte   c;
+
+            value = VALID_NON_TERMINAL_2022;
+
+            whileLoop:
+                while (source.hasRemaining()) {
+                    c = source.get();
+                    toUBytesArray[toULength++] = c;
+                    value = getKey_2022(c, myData2022);
+
+                    switch (value){
+
+                    case VALID_NON_TERMINAL_2022 :
+                        /* continue with the loop */
+                        break;
+
+                    case VALID_TERMINAL_2022:
+                        myData2022.key = 0;
+                        break whileLoop;
+
+                    case INVALID_2022:
+                        break whileLoop;
+
+                    case VALID_MAYBE_TERMINAL_2022:
+                    {
+                        /* not ISO_2022 itself, finish here */
+                        value = VALID_TERMINAL_2022;
+                        myData2022.key = 0;
+                        break whileLoop;
+                    }
+                    }
+                }
+
+            if (value == VALID_NON_TERMINAL_2022) {
+                /* indicate that the escape sequence is incomplete: key!=0 */
+                return;
+            } 
+            if (value == INVALID_2022 ) {
+                throw new InvalidFormatException("U_ILLEGAL_ESCAPE_SEQUENCE");
+            }
+
+            /* value == VALID_TERMINAL_2022 */ {
+                switch(variant) {
+                case ISO_2022_JP:
+                {
+                    short tempState = nextStateToUnicodeJP[offset];
+                    switch (tempState) {
+                    case INVALID_STATE:
+                        throw new InvalidFormatException("U_UNSUPPORTED_ESCAPE_SEQUENCE");
+                    case SS2_STATE:
+                        if(myData2022.toU2022State.cs[2] != 0) {
+                            if(myData2022.toU2022State.g < 2) {
+                                myData2022.toU2022State.prevG = myData2022.toU2022State.g;
+                            }
+                            myData2022.toU2022State.g = 2;
+                        } else {
+                            /* illegal to have SS2 before a matching designator */
+                            throw new InvalidFormatException("U_ILLEGAL_ESCAPE_SEQUENCE");
+                        }
+                        break;
+                        /* case SS3_STATE: not used in ISO-2022-JP-x */
+                    case ISO8859_1:
+                    case ISO8859_7:
+                        if((jpCharsetMasks[myData2022.version] & CSM(tempState)) == 0) {
+                            throw new InvalidFormatException("U_UNSUPPORTED_ESCAPE_SEQUENCE");
+                        }
+                        /* G2 charset for SS2 */
+                        myData2022.toU2022State.cs[2] = (byte)tempState;
+                        break;
+                    default:
+                        if((jpCharsetMasks[myData2022.version] & CSM(tempState)) == 0) {
+                            throw new InvalidFormatException("U_UNSUPPORTED_ESCAPE_SEQUENCE");
+                        }
+                    /* G0 charset */
+                    myData2022.toU2022State.cs[0] = (byte)tempState;
+                    break;
+                    }
+                }
+                break;
+                case ISO_2022_CN:
+                {
+                    short  tempState = nextStateToUnicodeCN[offset];
+                    switch(tempState) {
+                    case INVALID_STATE:
+                        throw new InvalidFormatException("U_UNSUPPORTED_ESCAPE_SEQUENCE");
+                    case SS2_STATE:
+                        if(myData2022.toU2022State.cs[2] == 0) {
+                            /* illegal to have SS2 before a matching designator */
+                            throw new InvalidFormatException("U_ILLEGAL_ESCAPE_SEQUENCE");
+                        }
+                        if (myData2022.toU2022State.g < 2 ) {
+                            myData2022.toU2022State.prevG = myData2022.toU2022State.g;
+                        }
+                        myData2022.toU2022State.g = 2;
+                        break;
+                    case SS3_STATE:
+                        if(myData2022.toU2022State.cs[3] != 0) {
+                            if(myData2022.toU2022State.g < 2) {
+                                myData2022.toU2022State.prevG = myData2022.toU2022State.g;
+                            }
+                            myData2022.toU2022State.g = 3;
+                        } else {
+                            /* illegal to have SS3 before a matching designator */
+                            throw new InvalidFormatException("U_ILLEGAL_ESCAPE_SEQUENCE");
+                        }
+                        break;
+                    case ISO_IR_165:
+                        if(myData2022.version==0) {
+                            throw new InvalidFormatException("U_UNSUPPORTED_ESCAPE_SEQUENCE");
+                        }
+                        /*fall through*/
+                    case GB2312_1:
+                        /*fall through*/
+                    case CNS_11643_1:
+                        myData2022.toU2022State.cs[1]=(byte)tempState;
+                        break;
+                    case CNS_11643_2:
+                        myData2022.toU2022State.cs[2]=(byte)tempState;
+                        break;
+                    default:
+                        /* other CNS 11643 planes */
+                        if(myData2022.version==0) {
+                            throw new InvalidFormatException("U_UNSUPPORTED_ESCAPE_SEQUENCE");
+                        } 
+                    myData2022.toU2022State.cs[3]=(byte)tempState;
+                    break;
+                    }
+                }
+                break;
+                case ISO_2022_KR:
+                    if(offset==0x30){
+                        /* nothing to be done, just accept this one escape sequence */
+                    } else {
+                        throw new InvalidFormatException("U_UNSUPPORTED_ESCAPE_SEQUENCE");
+                    }
+                    break;
+
+                default:
+                    throw new InvalidFormatException("U_ILLEGAL_ESCAPE_SEQUENCE");
+                }
+            }
+
+            toULength = 0;
         }
+        
+        
+        // getEndOfBuffer_2022()
+        //
+        //   Checks the bytes of the buffer against valid 2022 escape sequences
+        //   if the match we return a pointer to the initial start of the sequence otherwise
+        //   we return sourceLimit.
+        //
+        // The current position of in the ByteBuffer is left unaltered.
+        // 
+        // for 2022 looks ahead in the stream
+        // to determine the longest possible convertible
+        // data stream
+        // 
+         int getEndOfBuffer_2022(ByteBuffer source,  boolean flush) {
+
+             int initialPosition = source.position();
+             int returnIndex = 0;
+
+             try {
+                 while ( source.get() != ESC_2022) {}
+                 returnIndex = source.position() - 1;
+             }
+             catch (BufferUnderflowException e) {
+                 returnIndex = source.limit();
+             }
+             source.position(initialPosition);
+             return returnIndex;
+        }
+
+
+
 
         void  setInitialStateToUnicodeKR(Charset2022 converter, Charset2022.UConverterDataISO2022 myConverterData) {
             if(myConverterData.version == 1) {
