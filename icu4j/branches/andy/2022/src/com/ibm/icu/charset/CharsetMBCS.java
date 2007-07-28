@@ -112,7 +112,8 @@ class CharsetMBCS extends CharsetICU {
         }
     }
 
-    public CharsetMBCS(String icuCanonicalName, String javaCanonicalName, String[] aliases, String classPath, ClassLoader loader) throws InvalidFormatException{
+    public CharsetMBCS(String icuCanonicalName, String javaCanonicalName, String[] aliases, String classPath, ClassLoader loader) 
+               throws InvalidFormatException {
         super(icuCanonicalName, javaCanonicalName, aliases);
         
         // now try to load the data   
@@ -245,7 +246,13 @@ class CharsetMBCS extends CharsetICU {
         /*if(mbcsTable.extIndexes != null) {
             
             try {
-                //int nbytes = mbcsTable.extIndexes[UConverterExt.UCNV_EXT_TO_U_LENGTH]*4 + mbcsTable.extIndexes[UConverterExt.UCNV_EXT_TO_U_UCHARS_LENGTH]*2 + mbcsTable.extIndexes[UConverterExt.UCNV_EXT_FROM_U_LENGTH]*6 + mbcsTable.extIndexes[UConverterExt.UCNV_EXT_FROM_U_BYTES_LENGTH] + mbcsTable.extIndexes[UConverterExt.UCNV_EXT_FROM_U_STAGE_12_LENGTH]*2 + mbcsTable.extIndexes[UConverterExt.UCNV_EXT_FROM_U_STAGE_3_LENGTH]*2 + mbcsTable.extIndexes[UConverterExt.UCNV_EXT_FROM_U_STAGE_3B_LENGTH]*4; 
+                //int nbytes = mbcsTable.extIndexes[UConverterExt.UCNV_EXT_TO_U_LENGTH]*4 + 
+                //             mbcsTable.extIndexes[UConverterExt.UCNV_EXT_TO_U_UCHARS_LENGTH]*2 + 
+                //             mbcsTable.extIndexes[UConverterExt.UCNV_EXT_FROM_U_LENGTH]*6 + 
+                //             mbcsTable.extIndexes[UConverterExt.UCNV_EXT_FROM_U_BYTES_LENGTH] + 
+                //             bcsTable.extIndexes[UConverterExt.UCNV_EXT_FROM_U_STAGE_12_LENGTH]*2 + 
+                //             mbcsTable.extIndexes[UConverterExt.UCNV_EXT_FROM_U_STAGE_3_LENGTH]*2 + 
+                //             mbcsTable.extIndexes[UConverterExt.UCNV_EXT_FROM_U_STAGE_3B_LENGTH]*4; 
                 //int nbytes = mbcsTable.extIndexes[UConverterExt.UCNV_EXT_SIZE] 
                 //byte[] extTables = dataReader.readExtTables(nbytes);
                 //mbcsTable.extTables = ByteBuffer.wrap(extTables);
@@ -294,7 +301,9 @@ class CharsetMBCS extends CharsetICU {
             }
     
             /* copy the base table data */
-            //agljport:comment deep copy in C changes mbcs through local reference mbcsTable; in java we probably don't need the deep copy so can just make sure mbcs and its local reference both refer to the same new object
+            //agljport:comment deep copy in C changes mbcs through local reference mbcsTable; 
+            //  in java we probably don't need the deep copy so can just make sure mbcs and its 
+            // local reference both refer to the same new object
             mbcsTable = data.mbcs = baseSharedData.mbcs;
     
             /* overwrite values with relevant ones for the extension converter */
@@ -510,18 +519,21 @@ class CharsetMBCS extends CharsetICU {
      * MBCS output types for conversions from Unicode.
      * These per-converter types determine the storage method in stage 3 of the lookup table,
      * mostly how many bytes are stored per entry.
+     * 
+     * Note that these are also referenced by the ISO-2022 converter, which replicates
+     *   some of the MBCS_FromUChar32 code.
      */
-    private static final int MBCS_OUTPUT_1 = 0;          /* 0 */
-    private static final int MBCS_OUTPUT_2 = MBCS_OUTPUT_1 + 1;          /* 1 */
-    private static final int MBCS_OUTPUT_3 = MBCS_OUTPUT_2 + 1;          /* 2 */
-    private static final int MBCS_OUTPUT_4 = MBCS_OUTPUT_3 + 1;          /* 3 */
-    private static final int MBCS_OUTPUT_3_EUC=8;    /* 8 */
-    private static final int MBCS_OUTPUT_4_EUC = MBCS_OUTPUT_3_EUC + 1;      /* 9 */
-    private static final int MBCS_OUTPUT_2_SISO=12;  /* c */
-    private static final int MBCS_OUTPUT_2_HZ = MBCS_OUTPUT_2_SISO + 1;       /* d */
-    private static final int MBCS_OUTPUT_EXT_ONLY = MBCS_OUTPUT_2_HZ + 1;   /* e */
+    static final int MBCS_OUTPUT_1 = 0;          /* 0 */
+    static final int MBCS_OUTPUT_2 = MBCS_OUTPUT_1 + 1;          /* 1 */
+    static final int MBCS_OUTPUT_3 = MBCS_OUTPUT_2 + 1;          /* 2 */
+    static final int MBCS_OUTPUT_4 = MBCS_OUTPUT_3 + 1;          /* 3 */
+    static final int MBCS_OUTPUT_3_EUC=8;    /* 8 */
+    static final int MBCS_OUTPUT_4_EUC = MBCS_OUTPUT_3_EUC + 1;      /* 9 */
+    static final int MBCS_OUTPUT_2_SISO=12;  /* c */
+    static final int MBCS_OUTPUT_2_HZ = MBCS_OUTPUT_2_SISO + 1;       /* d */
+    static final int MBCS_OUTPUT_EXT_ONLY = MBCS_OUTPUT_2_HZ + 1;   /* e */
     //private static final int MBCS_OUTPUT_COUNT = MBCS_OUTPUT_EXT_ONLY + 1;
-    private static final int MBCS_OUTPUT_DBCS_ONLY=0xdb;  /* runtime-only type for DBCS-only handling of SISO tables */
+    static final int MBCS_OUTPUT_DBCS_ONLY=0xdb;  /* runtime-only type for DBCS-only handling of SISO tables */
     
     /* GB 18030 data ------------------------------------------------------------ */
     
@@ -599,7 +611,7 @@ class CharsetMBCS extends CharsetICU {
     }
     
     /* single-byte fromUnicode: get the 16-bit result word */
-    private static char MBCS_SINGLE_RESULT_FROM_U(char[] table, byte[] results, int c) 
+    static char MBCS_SINGLE_RESULT_FROM_U(char[] table, byte[] results, int c) 
     {
         int i1 = table[c>>>10] +((c>>>4)&0x3f);
         int i = 2* (table[i1] +(c&0xf)); // used as index into byte[] array treated as char[] array
@@ -607,7 +619,7 @@ class CharsetMBCS extends CharsetICU {
     }
     
     /* multi-byte fromUnicode: get the 32-bit stage 2 entry */
-    private static int MBCS_STAGE_2_FROM_U(char[] table, int c)
+    static int MBCS_STAGE_2_FROM_U(char[] table, int c)
     {
         int i = 2 * (table[(c)>>>10] +((c>>>4)&0x3f)); // 2x because used as index into char[] array treated as int[] array
         return ((table[i] & UConverterConstants.UNSIGNED_SHORT_MASK) <<16) | (table[i+1] & UConverterConstants.UNSIGNED_SHORT_MASK);
@@ -615,13 +627,13 @@ class CharsetMBCS extends CharsetICU {
     
     private static boolean MBCS_FROM_U_IS_ROUNDTRIP(int stage2Entry, int c) {return ( ((stage2Entry) & (1<< (16+((c)&0xf)) )) !=0);}
     
-    private static char MBCS_VALUE_2_FROM_STAGE_2(byte[] bytes, int stage2Entry, int c)
+    static char MBCS_VALUE_2_FROM_STAGE_2(byte[] bytes, int stage2Entry, int c)
     {
         int i = 2 * (16*((char)stage2Entry & UConverterConstants.UNSIGNED_SHORT_MASK)+(c&0xf));
         return (char)(((bytes[i] & UConverterConstants.UNSIGNED_BYTE_MASK) <<8) | (bytes[i+1] & UConverterConstants.UNSIGNED_BYTE_MASK));
     }
     
-    private static int MBCS_VALUE_4_FROM_STAGE_2(byte[] bytes, int stage2Entry, int c)
+    static int MBCS_VALUE_4_FROM_STAGE_2(byte[] bytes, int stage2Entry, int c)
     {
         int i = 4 * (16*((char)stage2Entry & UConverterConstants.UNSIGNED_SHORT_MASK)+(c&0xf));
         return ((bytes[i] & UConverterConstants.UNSIGNED_BYTE_MASK) <<24) | 
@@ -630,7 +642,7 @@ class CharsetMBCS extends CharsetICU {
             (bytes[i+3] & UConverterConstants.UNSIGNED_BYTE_MASK);
     }
     
-    private static int MBCS_POINTER_3_FROM_STAGE_2(byte[] bytes, int stage2Entry, int c)
+    static int MBCS_POINTER_3_FROM_STAGE_2(byte[] bytes, int stage2Entry, int c)
     {
         return ((16*((char)(stage2Entry) & UConverterConstants.UNSIGNED_SHORT_MASK)+((c)&0xf))*3);
     }
@@ -746,7 +758,9 @@ class CharsetMBCS extends CharsetICU {
     /* trie access, returns the stage 3 value=index to stage 3b; s1Index=c>>10 */
     private static int FROM_U(CharBuffer stage12, CharBuffer stage3, int s1Index, int c)
     {
-        return stage3.get(stage3.position() + ((int)stage12.get( stage12.position() + (stage12.get(stage12.position()+s1Index) +((c>>>4)&0x3f)) )<<STAGE_2_LEFT_SHIFT) +(c&0xf) );
+        return stage3.get(stage3.position() + 
+                ((int)stage12.get( stage12.position() + (stage12.get(stage12.position()+s1Index) +((c>>>4)&0x3f)) )<<STAGE_2_LEFT_SHIFT) +
+                (c&0xf) );
     }
     
     private static final int FROM_U_LENGTH_SHIFT = 24;
@@ -1654,7 +1668,13 @@ class CharsetMBCS extends CharsetICU {
         /*
          * target<targetLimit; set error code for overflow
          */
-        private boolean initialMatchToU(int firstLength, ByteBuffer source, CharBuffer target, IntBuffer offsets, int srcIndex, boolean flush, CoderResult[] cr)
+        private boolean initialMatchToU(int firstLength, 
+                                        ByteBuffer source, 
+                                        CharBuffer target, 
+                                        IntBuffer offsets, 
+                                        int srcIndex, 
+                                        boolean flush, 
+                                        CoderResult[] cr)
         {
             int[] value = new int[1];
             int match = 0;
@@ -2282,7 +2302,9 @@ class CharsetMBCS extends CharsetICU {
                                 case MBCS_OUTPUT_3:
                                     pArray = bytes;
                                     pArrayIndex = MBCS_POINTER_3_FROM_STAGE_2(bytes, stage2Entry, c);
-                                    value = ((pArray[pArrayIndex]&UConverterConstants.UNSIGNED_BYTE_MASK)<<16)|((pArray[pArrayIndex+1]&UConverterConstants.UNSIGNED_BYTE_MASK)<<8)|(pArray[pArrayIndex+2]&UConverterConstants.UNSIGNED_BYTE_MASK);
+                                    value = ((pArray[pArrayIndex]&UConverterConstants.UNSIGNED_BYTE_MASK)<<16) |
+                                             ((pArray[pArrayIndex+1]&UConverterConstants.UNSIGNED_BYTE_MASK)<<8) |
+                                             (pArray[pArrayIndex+2]&UConverterConstants.UNSIGNED_BYTE_MASK);
                                     if((value & UConverterConstants.UNSIGNED_INT_MASK) <=0xff) {
                                         length = 1;
                                     } 
@@ -2329,7 +2351,9 @@ class CharsetMBCS extends CharsetICU {
                                 case MBCS_OUTPUT_4_EUC:
                                     pArray = bytes;
                                     pArrayIndex = MBCS_POINTER_3_FROM_STAGE_2(bytes, stage2Entry, c);
-                                    value = ((pArray[pArrayIndex]&UConverterConstants.UNSIGNED_BYTE_MASK)<<16)|((pArray[pArrayIndex+1]&UConverterConstants.UNSIGNED_BYTE_MASK)<<8)|(pArray[pArrayIndex+2]&UConverterConstants.UNSIGNED_BYTE_MASK);
+                                    value = ((pArray[pArrayIndex]&UConverterConstants.UNSIGNED_BYTE_MASK)<<16) |
+                                            ((pArray[pArrayIndex+1]&UConverterConstants.UNSIGNED_BYTE_MASK)<<8) |
+                                            (pArray[pArrayIndex+2]&UConverterConstants.UNSIGNED_BYTE_MASK);
                                     /* EUC 16-bit fixed-length representation applied to the first two bytes */
                                     if((value & UConverterConstants.UNSIGNED_INT_MASK) <=0xff) {
                                         length = 1;
@@ -2645,8 +2669,17 @@ class CharsetMBCS extends CharsetICU {
          *         the matchLength is 2 if only firstCP matched, and >2 if firstCP and
          *         further code units matched
          */
-        //static int32_t ucnv_extMatchFromU(const int32_t *cx, UChar32 firstCP, const UChar *pre, int32_t preLength, const UChar *src, int32_t srcLength, uint32_t *pMatchValue, UBool useFallback, UBool flush)
-        private int matchFromU(int firstCP, char[] preArray, int preArrayBegin, int preLength, CharBuffer source, ByteBuffer target, int[] pMatchValue, boolean flush)
+        //static int32_t ucnv_extMatchFromU(const int32_t  *cx, 
+        //                                  UChar32        firstCP, 
+        //                                  const UChar   *pre, 
+        //                                  int32_t        preLength, 
+        //                                  const UChar   *src, 
+        //                                  int32_t        srcLength,
+        //                                  uint32_t      *pMatchValue, 
+        //                                  UBool          useFallback,
+        //                                  UBool          flush)
+        private int matchFromU(int firstCP, char[] preArray, int preArrayBegin, int preLength,
+                               CharBuffer source, ByteBuffer target, int[] pMatchValue, boolean flush)
         {
             ByteBuffer cx = sharedData.mbcs.extIndexes;
             
@@ -2994,10 +3027,12 @@ class CharsetMBCS extends CharsetICU {
             table = sharedData.mbcs.fromUnicodeTable;
         
             if((options&UConverterConstants.OPTION_SWAP_LFNL)!=0) {
-                results = sharedData.mbcs.swapLFNLFromUnicodeBytes; //agljport:comment should swapLFNLFromUnicodeBytes be a ByteBuffer so results can be a 16-bit view of it?
+                results = sharedData.mbcs.swapLFNLFromUnicodeBytes; //agljport:comment should swapLFNLFromUnicodeBytes be a ByteBuffer 
+                                                                    //                 so results can be a 16-bit view of it?
             } 
             else {
-                results = sharedData.mbcs.fromUnicodeBytes; //agljport:comment should swapLFNLFromUnicodeBytes be a ByteBuffer so results can be a 16-bit view of it?
+                results = sharedData.mbcs.fromUnicodeBytes; //agljport:comment should swapLFNLFromUnicodeBytes be a ByteBuffer 
+                                                            //                 so results can be a 16-bit view of it?
             }
         
             if(useFallback) {
@@ -3168,10 +3203,12 @@ class CharsetMBCS extends CharsetICU {
             table = sharedData.mbcs.fromUnicodeTable;
         
             if((options&UConverterConstants.OPTION_SWAP_LFNL)!=0) {
-                results = sharedData.mbcs.swapLFNLFromUnicodeBytes; //agljport:comment should swapLFNLFromUnicodeBytes be a ByteBuffer so results can be a 16-bit view of it?
+                results = sharedData.mbcs.swapLFNLFromUnicodeBytes; //agljport:comment should swapLFNLFromUnicodeBytes be a ByteBuffer 
+                                                                    //         so results can be a 16-bit view of it?
             } 
             else {
-                results = sharedData.mbcs.fromUnicodeBytes; //agljport:comment should swapLFNLFromUnicodeBytes be a ByteBuffer so results can be a 16-bit view of it?
+                results = sharedData.mbcs.fromUnicodeBytes; //agljport:comment should swapLFNLFromUnicodeBytes be a ByteBuffer 
+                                                            //         so results can be a 16-bit view of it?
             }
         
             if(useFallback) {

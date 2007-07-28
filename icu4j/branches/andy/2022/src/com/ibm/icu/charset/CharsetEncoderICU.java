@@ -122,6 +122,17 @@ public abstract class CharsetEncoderICU extends CharsetEncoder {
     }
     
     /**
+     * Use fallbacks from Unicode to codepage when useFallback or for private-use code points
+     *     Corresponds  to FROM_U_USE_FALLBACK in icu4c ucnv_cnv.h
+     * @param c A codepoint
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
+     */
+    static boolean fromUUseFallback(boolean useFallback, int c) {
+        return (useFallback) || (UCharacter.getType(c) == UCharacter.PRIVATE_USE);
+    }
+    
+    /**
      * Sets the action to be taken if an illegal sequence is encountered
      * 
      * @param newAction
