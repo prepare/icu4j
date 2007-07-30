@@ -156,7 +156,7 @@ class CharsetASCII extends CharsetICU {
 
             /*
              * if we reach here, it's because a character was not in the correct range, and we need
-             * to deak with this by calling decodeMalformedOrUnmappable
+             * to deal with this by calling decodeMalformedOrUnmappable
              */
             return decodeMalformedOrUnmappable(ch);
         }

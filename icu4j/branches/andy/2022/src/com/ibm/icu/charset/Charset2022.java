@@ -28,6 +28,38 @@ import com.ibm.icu.util.ULocale;
 
 public class Charset2022 extends CharsetICU {
     
+    public Charset2022(String icuCanonicalName, String javaCanonicalName, String[] aliases) {
+        super(icuCanonicalName, javaCanonicalName, aliases);
+        
+        String locale = ULocale.getDefault().getLanguage();
+        
+        this._ISO2022Open(icuCanonicalName, locale, options);
+
+        maxBytesPerChar = 3;  // TODO: these are stubs
+        minBytesPerChar = 1;
+        maxCharsPerByte = 1;
+        
+        /*
+        CharsetMBCS.LoadArguments args = new CharsetMBCS.LoadArguments(1, icuCanonicalName);
+        sharedData = CharsetMBCS.loadConverter(args);
+           
+        maxBytesPerChar = sharedData.staticData.maxBytesPerChar;
+        minBytesPerChar = sharedData.staticData.minBytesPerChar;
+        maxCharsPerByte = 1;
+        fromUSubstitution = sharedData.staticData.subChar;
+        subChar = sharedData.staticData.subChar;
+        subCharLen = sharedData.staticData.subCharLen;
+        subChar1 = sharedData.staticData.subChar1;
+        fromUSubstitution = new byte[sharedData.staticData.subCharLen];
+        System.arraycopy(sharedData.staticData.subChar, 0, fromUSubstitution, 0, sharedData.staticData.subCharLen);
+        
+        // Todo: pass options
+        initializeConverter(0);
+        */
+
+    }
+
+    
     static final String SHIFT_IN_STR  = "\u000F";
     static final String SHIFT_OUT_STR = "\u000E";
 
@@ -304,35 +336,12 @@ public class Charset2022 extends CharsetICU {
      
      
     //  ======================
-    public Charset2022(String icuCanonicalName, String javaCanonicalName, String[] aliases) {
-        super(icuCanonicalName, javaCanonicalName, aliases);
-        
-        String locale = ULocale.getDefault().getLanguage();
-        
-       this._ISO2022Open(icuCanonicalName, locale, options);
-
-        /*
-        CharsetMBCS.LoadArguments args = new CharsetMBCS.LoadArguments(1, icuCanonicalName);
-        sharedData = CharsetMBCS.loadConverter(args);
-           
-        maxBytesPerChar = sharedData.staticData.maxBytesPerChar;
-        minBytesPerChar = sharedData.staticData.minBytesPerChar;
-        maxCharsPerByte = 1;
-        fromUSubstitution = sharedData.staticData.subChar;
-        subChar = sharedData.staticData.subChar;
-        subCharLen = sharedData.staticData.subCharLen;
-        subChar1 = sharedData.staticData.subChar1;
-        fromUSubstitution = new byte[sharedData.staticData.subCharLen];
-        System.arraycopy(sharedData.staticData.subChar, 0, fromUSubstitution, 0, sharedData.staticData.subCharLen);
-        
-        // Todo: pass options
-        initializeConverter(0);
-        */
-
-    }
     
     private void   _ISO2022Open(String name, String locale, int options) {
 
+        // TODO:  need to look at the name we are being asked for.
+        //        May be specific for JP or whatever, may include a version.
+        
         String myLocale;
         myConverterData = new UConverterDataISO2022();
         int version;
@@ -342,7 +351,8 @@ public class Charset2022 extends CharsetICU {
         
         version = options & UCNV_OPTIONS_VERSION_MASK;
         myConverterData.version = version;
-        if (myLocale.equals("jap") || myLocale.startsWith("jap_")) {
+        
+        if (/* myLocale.equals("jap") || myLocale.startsWith("jap_")*/ true) {
             int len=0;
             // open the required converters and cache them 
             if((jpCharsetMasks[version]&CSM(ISO8859_7))!=0) {

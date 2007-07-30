@@ -23,7 +23,7 @@ import java.util.HashMap;
  * from UTF-16. You can open a converter with {@link Charset#forName } and {@link #forNameICU }. With that
  * converter, you can get its properties, set options, convert your data.</p>
  *
- * <p>Since many software programs recogize different converter names for
+ * <p>Since many software programs recognize different converter names for
  * different types of converters, there are other functions in this API to
  * iterate over the converter aliases. 
  * 
@@ -142,14 +142,14 @@ public abstract class CharsetICU extends Charset{
     /*public*/ static final Charset getCharset(String icuCanonicalName, String javaCanonicalName, String[] aliases){
        String className = (String) algorithmicCharsets.get(icuCanonicalName);
        if(className==null){
-           if (icuCanonicalName.startsWith("ISO-2022")) {
-               className = "com.ibm.icu.charset.Charset2022.java";
+           if (icuCanonicalName.startsWith("ISO_2022")) {
+               className = "com.ibm.icu.charset.Charset2022";
            } else {
                // all other cnv files are loaded as MBCS
                className = "com.ibm.icu.charset.CharsetMBCS";
            }
        }
-       try{
+       try {
            CharsetICU conv = null;
            Class cs = Class.forName(className);
            Class[] paramTypes = new Class[]{ String.class, String.class,  String[].class};
@@ -159,7 +159,7 @@ public abstract class CharsetICU extends Charset{
            // Run constructor
            try {
                Object obj = c.newInstance(params);
-               if(obj!=null && obj instanceof CharsetICU){
+               if(obj!=null && obj instanceof CharsetICU) {
                    conv = (CharsetICU)obj;
                    return conv;
                }

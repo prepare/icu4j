@@ -38,7 +38,7 @@ public abstract class CharsetEncoderICU extends CharsetEncoder {
     
     /** these are for encodeLoopICU */
     int fromUnicodeStatus;
-    int fromUChar32;
+    int fromUChar32;            // When a lead surrogate is the last thing in a 
     boolean useSubChar1;
     boolean useFallback;
     
@@ -198,9 +198,9 @@ public abstract class CharsetEncoderICU extends CharsetEncoder {
     }
 
 	/**
-	 * Encodes one or more chars. The default behaviour of the
+	 * Encodes one or more chars. The default behavior of the
 	 * converter is stop and report if an error in input stream is encountered.
-	 * To set different behaviour use @see CharsetEncoder.onMalformedInput()
+	 * To set different behavior use @see CharsetEncoder.onMalformedInput()
 	 * @param in buffer to decode
 	 * @param out buffer to populate with decoded result
 	 * @return result of decoding action. Returns CoderResult.UNDERFLOW if the decoding
@@ -563,7 +563,8 @@ public abstract class CharsetEncoderICU extends CharsetEncoder {
                     fromUChar32=0;
     
                     /* call the callback function */
-                    cr = fromCharErrorBehaviour.call(this, fromUContext, source, target, offsets, invalidUCharBuffer, invalidUCharLength, fromUChar32, cr);
+                    cr = fromCharErrorBehaviour.call(this, fromUContext, source, target, offsets,
+                            invalidUCharBuffer, invalidUCharLength, fromUChar32, cr);
                 }
     
                 /*
