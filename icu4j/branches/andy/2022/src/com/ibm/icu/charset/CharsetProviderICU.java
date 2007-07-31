@@ -50,9 +50,9 @@ public final class CharsetProviderICU extends CharsetProvider{
     
                 // create the converter object and return it
             if(icuCanonicalName==null || icuCanonicalName.length()==0){
-                // this would make the Charset API to throw 
-                // unsupported encoding exception
-                return null;
+                // Try the original name, may be something added and not in the alias table. 
+                // Will get an unsupported encoding exception if it doesn't work.
+                return getCharset(charsetName);
             }
             return getCharset(icuCanonicalName);
         }catch(UnsupportedCharsetException ex){

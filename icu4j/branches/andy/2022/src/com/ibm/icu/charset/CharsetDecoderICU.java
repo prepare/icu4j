@@ -28,7 +28,7 @@ import com.ibm.icu.impl.Assert;
  */
 public abstract class CharsetDecoderICU extends CharsetDecoder{ 
 
-    int    toUnicodeStatus;
+    int    toUnicodeStatus;                  // Holds a (possibly partial) UChar32 value between decode calls
     byte[] toUBytesArray = new byte[128];
     int    toUBytesBegin = 0;
     int    toULength;

@@ -47,6 +47,7 @@ public class TestISO2022 extends TestFmwk {
     public void TestCreation() {
         Charset aCharset = createCharset2022();
         CharsetDecoder decoder = aCharset.newDecoder();
+        CharsetEncoder encoder = aCharset.newEncoder();
     }
 
 

@@ -861,7 +861,7 @@ public class Charset2022 extends CharsetICU {
 
         void  setInitialStateToUnicodeKR(Charset2022 converter, Charset2022.UConverterDataISO2022 myConverterData) {
             if(myConverterData.version == 1) {
-                toUnicodeStatus = 0;     // offset,    field of CharsetICU 
+                toUnicodeStatus = 0;     // offset,    field of CharsetDecoderICU 
                 mode            = 0;     // state,     field of CharsetICU 
                 toULength       = 0;     // byteIndex, field of CharsetICU 
             }
