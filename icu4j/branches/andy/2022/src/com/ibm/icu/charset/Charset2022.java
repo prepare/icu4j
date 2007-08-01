@@ -871,7 +871,7 @@ public class Charset2022 extends CharsetICU {
 
         protected CoderResult decodeLoop(ByteBuffer source, CharBuffer target, IntBuffer offsets,
                 boolean flush) {
-            if (!source.hasRemaining() && toUnicodeStatus == 0) {
+            if (!source.hasRemaining()) {
                 /* no input, nothing to do */
                 return CoderResult.UNDERFLOW;
             }
@@ -880,113 +880,41 @@ public class Charset2022 extends CharsetICU {
                 return CoderResult.OVERFLOW;
             }
 
-            CoderResult cr;
-            int oldSource = source.position();
-            int oldTarget = target.position();
+            int initialSourcePosition = source.position();
+            int initialTargetPosition = target.position();
 
-            if (source.hasArray() && target.hasArray()) {
-                /* optimized loop */
-
-                /*
-                 * extract arrays from the buffers and obtain various constant values that will be
-                 * necessary in the core loop
-                 */
-                byte[] sourceArray = source.array();
-                char[] targetArray = target.array();
-                int offset = oldTarget - oldSource;
-                int sourceLength = source.limit() - oldSource;
-                int targetLength = target.limit() - oldTarget;
-                int limit = ((sourceLength < targetLength) ? sourceLength : targetLength)
-                        + oldSource;
-
-                /*
-                 * perform the core loop... if it returns null, it must be due to an overflow or
-                 * underflow
-                 */
-                if ((cr = decodeLoopCoreOptimized(source, target, sourceArray, targetArray,
-                        oldSource, offset, limit)) == null) {
-                    if (sourceLength <= targetLength) {
-                        source.position(oldSource + sourceLength);
-                        target.position(oldTarget + sourceLength);
-                        cr = CoderResult.UNDERFLOW;
-                    } else {
-                        source.position(oldSource + targetLength + 1);
-                        target.position(oldTarget + targetLength);
-                        cr = CoderResult.OVERFLOW;
-                    }
-                }
-            } else {
-                /* unoptimized loop */
-
-                try {
-                    /*
-                     * perform the core loop... if it throws an exception, it must be due to an
-                     * overflow or underflow
-                     */
-                    cr = decodeLoopCoreUnoptimized(source, target);
-
-                } catch (BufferUnderflowException ex) {
-                    /* all of the source has been read */
-                    cr = CoderResult.UNDERFLOW;
-                } catch (BufferOverflowException ex) {
-                    /* the target is full */
-                    cr = CoderResult.OVERFLOW;
-                }
-            }
-
+            int segmentStart = 0;
+            do  {
+                segmentStart = source.position();
+                int segmentLimit = scanBytesUntilEscape(source);
+                convertSegmentToU(source, target, segmentLimit);
+                handle2022EscapeSequence();
+            } while (segmentStart < source.position())
+  
+ 
             /* set offsets since the start */
             if (offsets != null) {
-                int count = target.position() - oldTarget;
-                int sourceIndex = -1;
-                while (--count >= 0)
-                    offsets.put(++sourceIndex);
+                // TODO:  offsets computation.  Really Needed?
             }
 
             return cr;
         }
 
-        protected CoderResult decodeLoopCoreOptimized(ByteBuffer source, CharBuffer target,
-                byte[] sourceArray, char[] targetArray, int oldSource, int offset, int limit) {
-            int i, ch = 0;
-
-            /*
-             * perform ascii conversion from the source array to the target array, making sure each
-             * byte in the source is within the correct range
-             */
-            for (i = oldSource; i < limit && (((ch = (sourceArray[i] & 0xff)) & 0x80) == 0); i++)
-                targetArray[i + offset] = (char) ch;
-
-            /*
-             * if some byte was not in the correct range, we need to deal with this byte by calling
-             * decodeMalformedOrUnmappable and move the source and target positions to reflect the
-             * early termination of the loop
-             */
-            if ((ch & 0x80) != 0) {
-                source.position(i + 1);
-                target.position(i + offset);
-                return decodeMalformedOrUnmappable(ch);
-            } else
-                return null;
+        int scanBytesUntilEscape(ByteBuffer source) {
+            return 0;
         }
-
-        protected CoderResult decodeLoopCoreUnoptimized(ByteBuffer source, CharBuffer target)
-                throws BufferUnderflowException, BufferOverflowException {
-            int ch = 0;
-
-            /*
-             * perform ascii conversion from the source buffer to the target buffer, making sure
-             * each byte in the source is within the correct range
-             */
-            while (((ch = (source.get() & 0xff)) & 0x80) == 0)
-                target.put((char) ch);
-
-            /*
-             * if we reach here, it's because a character was not in the correct range, and we need
-             * to deak with this by calling decodeMalformedOrUnmappable
-             */
-            return decodeMalformedOrUnmappable(ch);
+        
+        void convertSegmentToU(ByteBuffer source, CharBuffer dest,  int limit) {
         }
-
+        
+        //
+        //  handle202EscapeSequence
+        //     Parse through a 2022 escape sequence starting at the current position of the
+        //     input byte buffer.
+        //     If a
+        void handle2022EscapeSequence(source)
+        
+ 
         protected CoderResult decodeMalformedOrUnmappable(int ch) {
             /*
              * put the guilty character into toUBytesArray and return a message saying that the
