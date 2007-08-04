@@ -30,7 +30,7 @@ import com.ibm.icu.text.UTF16;
 class CharsetMBCS extends CharsetICU {
 
     private byte[]                fromUSubstitution = null;
-    private UConverterSharedData  sharedData = null;
+            UConverterSharedData  sharedData = null;
     private static final int MAX_VERSION_LENGTH=4;
     /**
      * Fallbacks to Unicode are stored outside the normal state table and code point structures

@@ -63,11 +63,11 @@ public class Charset2022 extends CharsetICU {
     static final String SHIFT_IN_STR  = "\u000F";
     static final String SHIFT_OUT_STR = "\u000E";
 
-    static char  CR    = '\r';
-    static char  LF    = '\n';
-    static char  H_TAB = '\u0009';
-    static char  V_TAB = '\u000B';
-    static char  SPACE = '\u0020';
+    static final char  CR    = '\r';
+    static final char  LF    = '\n';
+    static final char  H_TAB = '\u0009';
+    static final char  V_TAB = '\u000B';
+    static final char  SPACE = '\u0020';
     
     /*
      * ISO 2022 control codes must not be converted from Unicode
@@ -119,7 +119,7 @@ public class Charset2022 extends CharsetICU {
     //  } StateEnum;
             
    /* is the StateEnum charset value for a DBCS charset? */
-   private static boolean IS_JP_DBCS(short cs) {
+   private static boolean IS_JP_DBCS(int cs) {
        return  (JISX208<=cs && cs<=KSC5601);
    }
 
@@ -185,16 +185,17 @@ public class Charset2022 extends CharsetICU {
     //      A copy from this common master is made into each encoder and decoder.
     //    
     class UConverterDataISO2022 {
+        // TODO: change this back to a lighter weight data-only item.
         // UConverterSharedData[] myConverterArray;    // Sub-converters.
-        CharsetICU[]           myConverterArray;    // Sub-converters.
-        CharsetICU             currentConverter;
+        CharsetMBCS[]           myConverterArray;    // Sub-converters.
+        CharsetMBCS             currentConverter;
         int                    currentType;        // enum Cnv2022Type
         int                    version;
         String                 name;
         String                 locale;
         
         UConverterDataISO2022() {
-            myConverterArray = new CharsetICU[UCNV_2022_MAX_CONVERTERS];
+            myConverterArray = new CharsetMBCS[UCNV_2022_MAX_CONVERTERS];
         }
     };
     UConverterDataISO2022  myConverterData;   // This variable name comes from C++
@@ -356,18 +357,18 @@ public class Charset2022 extends CharsetICU {
             int len=0;
             // open the required converters and cache them 
             if((jpCharsetMasks[version]&CSM(ISO8859_7))!=0) {
-                myConverterData.myConverterArray[ISO8859_7] = (CharsetICU)CharsetICU.forNameICU("ISO8859_7");
+                myConverterData.myConverterArray[ISO8859_7] = (CharsetMBCS)CharsetICU.forNameICU("ISO8859_7");
             }
-            myConverterData.myConverterArray[JISX201] = (CharsetICU)CharsetICU.forNameICU("jisx-201");
-            myConverterData.myConverterArray[JISX208] = (CharsetICU)CharsetICU.forNameICU("jisx-208");
+            myConverterData.myConverterArray[JISX201] = (CharsetMBCS)CharsetICU.forNameICU("jisx-201");
+            myConverterData.myConverterArray[JISX208] = (CharsetMBCS)CharsetICU.forNameICU("jisx-208");
             if((jpCharsetMasks[version]&CSM(JISX212))!=0) {
-                myConverterData.myConverterArray[JISX212] = (CharsetICU)CharsetICU.forNameICU("jisx-212");
+                myConverterData.myConverterArray[JISX212] = (CharsetMBCS)CharsetICU.forNameICU("jisx-212");
             }
             if((jpCharsetMasks[version]&CSM(GB2312))!=0) {
-                myConverterData.myConverterArray[GB2312] = (CharsetICU)CharsetICU.forNameICU("ibm-5478");   // gb_2312_80-1
+                myConverterData.myConverterArray[GB2312] = (CharsetMBCS)CharsetICU.forNameICU("ibm-5478");   // gb_2312_80-1
             }
             if((jpCharsetMasks[version]&CSM(KSC5601))!=0) {
-                myConverterData.myConverterArray[KSC5601] = (CharsetICU)CharsetICU.forNameICU("ksc_5601");
+                myConverterData.myConverterArray[KSC5601] = (CharsetMBCS)CharsetICU.forNameICU("ksc_5601");
             }
 
             // set the function pointers to appropriate functions 
@@ -882,11 +883,15 @@ public class Charset2022 extends CharsetICU {
             Boolean hardSegmentEnd = new Boolean(false);
 
             int segmentStart = 0;
+            try {
             do  {
                 segmentStart = source.position();
-                targetOverflow = convertSegmentToU(source, target, segmentLimit);
-                c();
-            } while (segmentStart < source.position() && targetOverflow == false);
+                targetOverflow = convertSegmentToU(source, target);
+                changeState_2022(source, toU2022State, ISO_2022_JP, myData2022.version);
+             } while (segmentStart < source.position() && targetOverflow == false);
+            } catch (InvalidFormatException e) {
+                // TODO:  handle this
+            }
   
  
             /* set offsets since the start */
@@ -898,44 +903,134 @@ public class Charset2022 extends CharsetICU {
             return cr;
         }
 
-        //
-        // scanBytesUntilEscape  Scan the input byte buffer for an escape character.
-        //                       Leave the ByteBuffer position unchanged, 
-        //                       Return the index of the escape char if found, or the limit of the buffer otherwise.
-        //
-        //                       Parameters
-        //                           escapeSequenceFound (out parameter)  Return true if a complete escape sequence
-        //                              was found.  Return false if the scan is stopped by the end of a buffer; this
-        //                              includes the case of an incomplete escape sequence appearing at the end of
-        //                              the buffer.
-        //                           flush
-        //                              Controls handling of incomplete sequences at the end of a buffer.
-        //                                 false:  Scan returns the position of the start of an incomplete
-        //                                         escape sequence at the buffer end.
-        //                                 true:   Scan treats the incomplete sequence the same as an invalid
-        //                                         sequence, and returns the buffer end position.
-        //
-        ///                       Return the position in the byteBuffer of the escape sequence terminating the scan.
-        //                        If the scan is terminated by running off the end of the byte buffer, return
-        //                            byteBuffer.limit().
-        //                        If an incomplete escape sequence is at the end of the buffer, return the position of
-        //                            the start of that escape sequence.
-        int scanBytesUntilEscape(ByteBuffer source, Boolean escapeSequenceFound, boolean flush) {
-            return 0;
-        }
-        
+         
         //
         // convertSegmentToU     Convert a segment of bytes to Unicode using the currently selected
         //                       sub-codepage.
-        //                       The specified range will not include 2022 escape sequences, and no
-        //                           checking for escapes should be done in this function.  If any escapes
-        //                           make it this far, just convert them like any other character.
+        //                       Stop when one of these conditions occurs
+        //                          - An escape is encountered in the input bytes.
+        //                          - The output buffer can not hold the next character to be produced.
+        //                          - The input buffer underflows.
         //                       Return FALSE if the output buffer overflows, forcing the conversion operation
         //                           to stop prematurely.
         //                       Advance the input byte buffer position only over completely processed
-        //                           characters - ones whose converted output has been fully written to the
+        //                           bytes - ones whose converted output has been fully written to the
         //                           target output buffer.
-        boolean convertSegmentToU(ByteBuffer source, CharBuffer dest,  int limit) {
+        //                       Put only complete characters into the output bufer.  If an input character
+        //                           will produce multiple output characters, write either all of them
+        //                           or none of them.
+        boolean convertSegmentToU(ByteBuffer source, CharBuffer dest) {
+            while (source.hasRemaining()) {
+                int   inputByte = (source.get() & UConverterConstants.UNSIGNED_BYTE_MASK);
+                int   targetUniChar = UConverterConstants.missingCharMarker;
+                
+                switch (inputByte) {
+                case UConverterConstants.SI:
+                    if (myData2022.version==3) {
+                        toU2022State.g =0;
+                        continue;
+                    }
+                    /* only JIS7 uses SI/SO, not ISO-2022-JP-x */
+                    break;                        
+                
+                case UConverterConstants.SO:
+                    if (myData2022.version==3) {
+                        /* JIS7: switch to G1 half-width Katakana */
+                        toU2022State.cs[1] = HWKANA_7BIT;
+                        toU2022State.g=1;
+                        continue;
+                     } 
+                     /* only JIS7 uses SI/SO, not ISO-2022-JP-x */
+                     break;
+
+                case  ESC_2022:
+                    // Escape sequence start.
+                    // Stops the conversion within this function; dealing with it
+                    //    is handled elsewhere.
+                    source.position(source.position()-1);
+                    return true;
+                    
+                case CR:
+                case LF:
+                    /* automatically reset to single-byte mode */
+                    if(toU2022State.cs[0] != ASCII && toU2022State.cs[0] != JISX201) {
+                        toU2022State.cs[0] = ASCII;
+                    }
+                    toU2022State.cs[2] = 0;
+                    toU2022State.g = 0;
+                    break;
+                    
+                default:
+                    break;   
+                }
+                
+             int cs = toU2022State.cs[toU2022State.g];
+             if (inputByte >= 0xa1 && inputByte <= 0xdf && myData2022.version==4 && !Charset2022.IS_JP_DBCS(cs)) {
+                 /* 8-bit halfwidth katakana in any single-byte mode for JIS8 */
+                 targetUniChar = inputByte + (0x0000ff61 - 0xa1);
+
+                 /* return from a single-shift state to the previous one */
+                 if(toU2022State.g >= 2) {
+                     toU2022State.g = toU2022State.prevG;
+                 }
+             } else switch(cs) {
+             case ASCII:
+                 if(inputByte <= 0x7f) {
+                     targetUniChar = inputByte;
+                 }
+                 break;
+             case ISO8859_1:
+                 if(inputByte <= 0x7f) {
+                     targetUniChar = inputByte + 0x80;
+                 }
+                 /* return from a single-shift state to the previous one */
+                 toU2022State.g=toU2022State.prevG;
+                 break;
+             case ISO8859_7:
+                 if(inputByte <= 0x7f) {
+                     /* convert mySourceChar+0x80 to use a normal 8-bit table */
+                     targetUniChar =
+                         CharsetMBCS.MBCS_SINGLE_SIMPLE_GET_NEXT_BMP(
+                             myData2022.myConverterArray[cs].sharedData.mbcs,
+                             inputByte + 0x80);
+                 }
+                 /* return from a single-shift state to the previous one */
+                 toU2022State.g=toU2022State.prevG;
+                 break;
+             case JISX201:
+                 if(inputByte <= 0x7f) {
+                     targetUniChar =
+                         CharsetMBCS.MBCS_SINGLE_SIMPLE_GET_NEXT_BMP(
+                             myData2022.myConverterArray[cs].sharedData.mbcs,
+                             inputByte);
+                 }
+                 break;
+             case HWKANA_7BIT:
+                 if((inputByte >= 0x21) && (inputByte <= 0x5f)) {
+                     /* 7-bit halfwidth Katakana */
+                     targetUniChar = inputByte + (0x0000ff61 - 0x21);
+                 }
+                 break;
+             default:
+                 /* G0 DBCS */
+                 if(mySource < mySourceLimit) {
+                     char trailByte;
+getTrailByte:
+                     tempBuf[0] = (char) (inputByte);
+                     tempBuf[1] = trailByte = *mySource++;
+                     mySourceChar = (inputByte << 8) | (uint8_t)(trailByte);
+                     targetUniChar = ucnv_MBCSSimpleGetNextUChar(myData.myConverterArray[cs], tempBuf, 2, FALSE);
+                 } else {
+                     args.converter.toUBytes[0] = (uint8_t)mySourceChar;
+                     args.converter.toULength = 1;
+                     goto endloop;
+                 }
+             }
+             break;
+         }
+             
+             }
+            return false;
         }
         
         
@@ -1153,7 +1248,7 @@ public class Charset2022 extends CharsetICU {
     }
 
     public CharsetDecoder newDecoder() {
-        return new CharsetDecoder2022(this);
+        return new CharsetDecoder2022JP(this);
     }
 
     public CharsetEncoder newEncoder() {
