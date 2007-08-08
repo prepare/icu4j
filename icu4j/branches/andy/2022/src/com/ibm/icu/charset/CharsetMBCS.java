@@ -964,6 +964,169 @@ class CharsetMBCS extends CharsetICU {
          sharedData.mbcs.outputType==MBCS_OUTPUT_DBCS_ONLY ? 1 : -1;
     }
     
+    
+    private static int getFallback(UConverterMBCSTable mbcsTable, int offset) 
+    {
+        MBCSToUFallback[] toUFallbacks;
+        int i, start, limit;
+    
+        limit = mbcsTable.countToUFallbacks;
+        if(limit>0) {
+            /* do a binary search for the fallback mapping */
+            toUFallbacks = mbcsTable.toUFallbacks;
+            start = 0;
+            while(start<limit-1) {
+                i = (start+limit)/2;
+                if(offset<toUFallbacks[i].offset) {
+                    limit = i;
+                } 
+                else {
+                    start = i;
+                }
+            }
+    
+            /* did we really find it? */
+            if(offset==toUFallbacks[start].offset) {
+                return toUFallbacks[start].codePoint;
+            }
+        }
+    
+        return 0xfffe;
+    }
+    
+
+    
+    
+    /*
+     * This is a simple version of _MBCSGetNextUChar() that is used
+     * by other converter implementations.
+     * It only returns an "assigned" result if it consumes the entire input.
+     * It does not use state from the converter, nor error codes.
+     * It does not handle the EBCDIC swaplfnl option (set in UConverter).
+     * It handles conversion extensions but not GB 18030.
+     *
+     * Return value:
+     * U+fffe   unassigned
+     * U+ffff   illegal
+     * otherwise the Unicode code point
+     */
+     static int MBCSSimpleGetNextUChar(UConverterSharedData sharedData,
+                               ByteBuffer   source, 
+                               boolean      useFallback) {
+        int[][] stateTable;
+        char[]  unicodeCodeUnits;
+
+        int   offset;
+        int   state;
+        int   action;
+
+        int   c;
+        int   entry;
+
+        /* set up the local pointers */
+        stateTable=sharedData.mbcs.stateTable;
+        unicodeCodeUnits=sharedData.mbcs.unicodeCodeUnits;
+
+        /* converter state */
+        offset=0;
+        state=sharedData.mbcs.dbcsOnlyState;
+
+        /* conversion loop */
+        for(;;) {
+            if (source.hasRemaining() == false) {
+                /* no input at all: "illegal" */
+                return 0xffff;
+            }
+            int sourceByte = source.get() & UConverterConstants.UNSIGNED_BYTE_MASK;
+            entry = stateTable[state][sourceByte];
+            if (MBCS_ENTRY_IS_TRANSITION(entry)) {
+                state = MBCS_ENTRY_TRANSITION_STATE(entry);
+                offset+=MBCS_ENTRY_TRANSITION_OFFSET(entry);
+            } else {
+                /*
+                 * An if-else-if chain provides more reliable performance for
+                 * the most common cases compared to a switch.
+                 */
+                action = MBCS_ENTRY_FINAL_ACTION(entry);
+                if(action==MBCS_STATE_VALID_16) {
+                    offset+=MBCS_ENTRY_FINAL_VALUE_16(entry);
+                    c=unicodeCodeUnits[offset];
+                    if(c!=0xfffe) {
+                        /* done */
+                    } else if (useFallback) {
+                        c = getFallback(sharedData.mbcs, offset);
+                    /* else done with 0xfffe */
+                    }
+                    break;
+                } else if(action==MBCS_STATE_VALID_DIRECT_16) {
+                    /* output BMP code point */
+                    c = MBCS_ENTRY_FINAL_VALUE_16(entry);
+                    break;
+                } else if (action==MBCS_STATE_VALID_16_PAIR) {
+                    offset += MBCS_ENTRY_FINAL_VALUE_16(entry);
+                    c=unicodeCodeUnits[offset++];
+                    if(c<0xd800) {
+                        /* output BMP code point below 0xd800 */
+                    } else if (useFallback ? c<=0xdfff : c<=0xdbff) {
+                        /* output roundtrip or fallback supplementary code point */
+                        c = (((c&0x3ff)<<10) + unicodeCodeUnits[offset] + (0x10000-0xdc00));
+                    } else if(useFallback ? (c&0xfffe)==0xe000 : c==0xe000) {
+                        /* output roundtrip BMP code point above 0xd800 or fallback BMP code point */
+                        c=unicodeCodeUnits[offset];
+                    } else if(c==0xffff) {
+                        return 0xffff;
+                    } else {
+                        c=0xfffe;
+                    }
+                    break;
+                } else if(action==MBCS_STATE_VALID_DIRECT_20) {
+                    /* output supplementary code point */
+                    c=0x10000+MBCS_ENTRY_FINAL_VALUE(entry);
+                    break;
+                } else if(action==MBCS_STATE_FALLBACK_DIRECT_16) {
+                    if(!useFallback) {
+                        c=0xfffe;
+                        break;
+                    }
+                    /* output BMP code point */
+                    c=MBCS_ENTRY_FINAL_VALUE_16(entry);
+                    break;
+                } else if(action==MBCS_STATE_FALLBACK_DIRECT_20) {
+                    if(!useFallback) {
+                        c=0xfffe;
+                        break;
+                    }
+                    /* output supplementary code point */
+                    c=0x10000+MBCS_ENTRY_FINAL_VALUE(entry);
+                    break;
+                } else if(action==MBCS_STATE_UNASSIGNED) {
+                    c=0xfffe;
+                    break;
+                }
+
+                /*
+                 * forbid MBCS_STATE_CHANGE_ONLY for this function,
+                 * and MBCS_STATE_ILLEGAL and reserved action codes
+                 */
+                c =  0xffff;
+                break;
+            }
+        }
+
+        if(c==0xfffe) {
+            /* try an extension mapping */
+            ByteBuffer cx=sharedData.mbcs.extIndexes;
+            if(cx != null) {
+                return /*ucnv_extSimpleMatchToU(cx, source, length, useFallback); */ 0xffff;  // TODO:  PORT THIS
+            }
+        }
+
+        return c;
+    }
+    
+    
+    
+    
     class CharsetDecoderMBCS extends CharsetDecoderICU{
 
         CharsetDecoderMBCS(CharsetICU cs) {

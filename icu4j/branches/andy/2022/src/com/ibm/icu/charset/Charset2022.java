@@ -692,7 +692,6 @@ public class Charset2022 extends CharsetICU {
     
     
 
-    // TODO:  we probably want three pairs of subclasses, one each for JP, KR, CN
     class CharsetDecoder2022JP extends CharsetDecoderICU {
 
         public CharsetDecoder2022JP(CharsetICU cs) {
@@ -701,175 +700,12 @@ public class Charset2022 extends CharsetICU {
 
         Charset2022.UConverterDataISO2022    myData2022;   // TODO:  needs initialization
         
-        ISO2022State           toU2022State = new ISO2022State();
-        
-        
-        
-        // getEndOfBuffer_2022()
-        //
-        //   Checks the bytes of the buffer against valid 2022 escape sequences
-        //   if the match we return a pointer to the initial start of the sequence otherwise
-        //   we return sourceLimit.
-        //
-        // The current position of in the ByteBuffer is left unaltered.
-        // 
-        // for 2022 looks ahead in the stream
-        // to determine the longest possible convertible
-        // data stream
-        // 
-         int getEndOfBuffer_2022(ByteBuffer source,  boolean flush) {
-
-             int initialPosition = source.position();
-             int returnIndex = 0;
-
-             try {
-                 while ( source.get() != ESC_2022) {}
-                 returnIndex = source.position() - 1;
-             }
-             catch (BufferUnderflowException e) {
-                 returnIndex = source.limit();
-             }
-             source.position(initialPosition);
-             return returnIndex;
-        }
-
-
-
-         /*
-          * This is another simple conversion function for internal use by other
-          * conversion implementations.
-          * It does not use the converter state nor call callbacks.
-          * It does not handle the EBCDIC swaplfnl option (set in UConverter).
-          * It handles conversion extensions but not GB 18030.
-          *
-          * It converts one single Unicode code point into codepage bytes, encoded
-          * as one 32-bit value. The function returns the number of bytes in *pValue:
-          * 1..4 the number of bytes in *pValue
-          * 0    unassigned (*pValue undefined)
-          * -1   illegal (currently not used, *pValue undefined)
-          *
-          * *pValue will contain the resulting bytes with the last byte in bits 7..0,
-          * the second to last byte in bits 15..8, etc.
-          * Currently, the function assumes but does not check that 0<=c<=0x10ffff.
-          * 
-          * TODO:  move up, so this can be declared to be static.
-          */
-        int
-        MBCSFromUChar32_ISO2022(UConverterSharedData sharedData,
-                                   int                  c,
-                                   int[]                value,
-                                   boolean              useFallback,
-                                   int                  outputType   // Output Type from MBCS, e.g. CharsetMBCS.MBCS_OUTPUT_2
-                                   )
-         {
-             ByteBuffer   cx;
-             char[]  table;
-             int     stage2Entry;
-             int     myValue;
-             int     p;
-             int     length;
-             /* BMP-only codepages are stored without stage 1 entries for supplementary code points */
-             if(c<0x10000 || (sharedData.mbcs.unicodeMask & UConverterConstants.HAS_SUPPLEMENTARY)!=0) {
-                 table=sharedData.mbcs.fromUnicodeTable;
-                 stage2Entry = CharsetMBCS.MBCS_STAGE_2_FROM_U(table, c);
-                 /* get the bytes and the length for the output */
-                 if(outputType==CharsetMBCS.MBCS_OUTPUT_2){
-                     myValue=CharsetMBCS.MBCS_VALUE_2_FROM_STAGE_2(sharedData.mbcs.fromUnicodeBytes, stage2Entry, c);
-                     if(myValue<=0xff) {
-                         length=1;
-                     } else {
-                         length=2;
-                     }
-                 } else /* outputType==MBCS_OUTPUT_3 */ {
-                     byte[] bytes = sharedData.mbcs.fromUnicodeBytes;
-                     p=CharsetMBCS.MBCS_POINTER_3_FROM_STAGE_2(bytes, stage2Entry, c);
-                     myValue = ((bytes[p]   & UConverterConstants.UNSIGNED_BYTE_MASK) <<16) | 
-                               ((bytes[p+1] & UConverterConstants.UNSIGNED_BYTE_MASK) << 8) | 
-                                (bytes[p+2] & UConverterConstants.UNSIGNED_BYTE_MASK);
-                     if(myValue<=0xff) {
-                         length=1;
-                     } else if(myValue<=0xffff) {
-                         length=2;
-                     } else {
-                         length=3;
-                     }
-                 }
-                 /* is this code point assigned, or do we use fallbacks? */
-                 if( (stage2Entry&(1<<(16+(c&0xf))))!=0 ||
-                     (CharsetEncoderICU.fromUUseFallback(useFallback, c) && myValue!=0)) {
-                     /*
-                      * We allow a 0 byte output if the "assigned" bit is set for this entry.
-                      * There is no way with this data structure for fallback output
-                      * to be a zero byte.
-                      */
-                     /* assigned */
-                     value[0] = myValue;
-                     return length;
-                 }
-             }
-
-             cx=sharedData.mbcs.extIndexes;
-             if(cx!=null) {
-                 // TODO:  need to port this function
-                 // *length=ucnv_extSimpleMatchFromU(cx, c, value, useFallback);
-                 System.err.println("Need port of ucnv_extSimpleMatchFromU()\n");
-                 return -1;
-             }
-
-             /* unassigned */
-             return 0;
-         }
-        
-        
-        //
-        // MBCS_SingleFromUChar32
-        //
-        //   corresponds to the inline func MBCS_SINGLE_FROM_UCHAR32() in ICU4C, file ucnv2022.c
-        //
-        //  Comment from ICU4C:
-        //     This function replicates code in _MBCSSingleFromUChar32() function in ucnvmbcs.c
-        //     any future change in _MBCSSingleFromUChar32() function should be reflected in
-        //     this macro
-        //  Not quite true for ICU4J, since the corresponding function from class CharsetMBCS has
-        //  not been ported.
-        //
-        //  TODO:  hoist up a level (or move to CharsetMBCS)  and make static.
-        //
-        int MBCS_SingleFromUChar32(UConverterSharedData sharedData,
-                                   int                  c,
-                                   boolean              useFallback) {
-            char[]  table;
-            int     value;
-            /* BMP-only codepages are stored without stage 1 entries for supplementary code points */
-            if(c>=0x10000 && (sharedData.mbcs.unicodeMask & UConverterConstants.HAS_SUPPLEMENTARY)==0) {
-                return -1;
-            }
-            /* convert the Unicode code point in c into codepage bytes (same as in _MBCSFromUnicodeWithOffsets) */
-            table=sharedData.mbcs.fromUnicodeTable;
-            /* get the byte for the output */
-            value=CharsetMBCS.MBCS_SINGLE_RESULT_FROM_U(table, sharedData.mbcs.fromUnicodeBytes, c);
-            /* is this code point assigned, or do we use fallbacks? */
-            if(useFallback ? value>=0x800 : value>=0xc00) {
-                value &=0xff;
-            } else {
-                value= -1;
-            }
-            return value;
-        }
-
-
-        void  setInitialStateToUnicodeKR(Charset2022 converter, Charset2022.UConverterDataISO2022 myConverterData) {
-            if(myConverterData.version == 1) {
-                toUnicodeStatus = 0;     // offset,    field of CharsetDecoderICU 
-                mode            = 0;     // state,     field of CharsetICU 
-                toULength       = 0;     // byteIndex, field of CharsetICU 
-            }
-        }
-        
-          
+        ISO2022State           toU2022State = new ISO2022State();          
 
         protected CoderResult decodeLoop(ByteBuffer source, CharBuffer target, IntBuffer offsets,
                 boolean flush) {
+            CoderResult cr = null;
+            
             if (!source.hasRemaining()) {
                 /* no input, nothing to do */
                 return CoderResult.UNDERFLOW;
@@ -884,13 +720,14 @@ public class Charset2022 extends CharsetICU {
 
             int segmentStart = 0;
             try {
-            do  {
-                segmentStart = source.position();
-                targetOverflow = convertSegmentToU(source, target);
-                changeState_2022(source, toU2022State, ISO_2022_JP, myData2022.version);
-             } while (segmentStart < source.position() && targetOverflow == false);
+                do  {
+                    segmentStart = source.position();
+                    targetOverflow = convertSegmentToU(source, target);
+                    changeState_2022(source, toU2022State, ISO_2022_JP, myData2022.version);
+                } while (segmentStart < source.position() && targetOverflow == false);
             } catch (InvalidFormatException e) {
-                // TODO:  handle this
+                cr = CoderResult.malformedForLength(1);   // TODO: get a real length value.
+                return cr;
             }
   
  
@@ -916,11 +753,17 @@ public class Charset2022 extends CharsetICU {
         //                       Advance the input byte buffer position only over completely processed
         //                           bytes - ones whose converted output has been fully written to the
         //                           target output buffer.
-        //                       Put only complete characters into the output bufer.  If an input character
+        //                       Put only complete characters into the output buffer.  If an input character
         //                           will produce multiple output characters, write either all of them
         //                           or none of them.
         boolean convertSegmentToU(ByteBuffer source, CharBuffer dest) {
             while (source.hasRemaining()) {
+                
+                // Remember the buffer positions at the start of each character.
+                //   In the case of overflow or underflow, the buffers are restored to these positions.
+                int   startingSourcePosition = source.position();
+                int   startingDestPosition   = dest.position();
+                
                 int   inputByte = (source.get() & UConverterConstants.UNSIGNED_BYTE_MASK);
                 int   targetUniChar = UConverterConstants.missingCharMarker;
                 
@@ -947,7 +790,7 @@ public class Charset2022 extends CharsetICU {
                     // Escape sequence start.
                     // Stops the conversion within this function; dealing with it
                     //    is handled elsewhere.
-                    source.position(source.position()-1);
+                    source.position(startingSourcePosition);
                     return true;
                     
                 case CR:
@@ -1013,24 +856,38 @@ public class Charset2022 extends CharsetICU {
                  break;
              default:
                  /* G0 DBCS */
-                 if(mySource < mySourceLimit) {
-                     char trailByte;
-getTrailByte:
-                     tempBuf[0] = (char) (inputByte);
-                     tempBuf[1] = trailByte = *mySource++;
-                     mySourceChar = (inputByte << 8) | (uint8_t)(trailByte);
-                     targetUniChar = ucnv_MBCSSimpleGetNextUChar(myData.myConverterArray[cs], tempBuf, 2, FALSE);
+                 if (source.hasRemaining() == false) {
+                     // The input contains only the first byte of a double byte character.
+                     //   Back up the input position so that we will the leading byte
+                     //   again after fetching more input.
+                     source.position(source.position()-1);
+                     return true;
+                 }
+                                      
+                 // Move the source position back to the first byte of the DBCS character so that
+                 // the mbcs conversion sees the whole thing.
+                 source.position(source.position()-1);
+                 targetUniChar = CharsetMBCS.MBCSSimpleGetNextUChar(myData2022.myConverterArray[cs].sharedData, source, false);
+             }
+             
+             // We have converted a complete Unicode Character, now put it to the output buffer.
+             try {
+                 if (targetUniChar <= 0xffff) {
+                     dest.put((char)targetUniChar);
                  } else {
-                     args.converter.toUBytes[0] = (uint8_t)mySourceChar;
-                     args.converter.toULength = 1;
-                     goto endloop;
+                     dest.put(UTF16.getLeadSurrogate(targetUniChar));
+                     dest.put(UTF16.getTrailSurrogate(targetUniChar));
                  }
              }
-             break;
+             catch (IndexOutOfBoundsException e) {
+                 // The output buffer overflowed.
+                 dest.position(startingDestPosition);
+                 source.position(startingSourcePosition);
+                 return false;
+             }
          }
              
-             }
-            return false;
+        return true;
         }
         
         
@@ -1045,6 +902,125 @@ getTrailByte:
         }
     }
     
+
+
+    /*
+     * This is another simple conversion function for internal use by other
+     * conversion implementations.
+     * It does not use the converter state nor call callbacks.
+     * It does not handle the EBCDIC swaplfnl option (set in UConverter).
+     * It handles conversion extensions but not GB 18030.
+     *
+     * It converts one single Unicode code point into codepage bytes, encoded
+     * as one 32-bit value. The function returns the number of bytes in *pValue:
+     * 1..4 the number of bytes in *pValue
+     * 0    unassigned (*pValue undefined)
+     * -1   illegal (currently not used, *pValue undefined)
+     *
+     * *pValue will contain the resulting bytes with the last byte in bits 7..0,
+     * the second to last byte in bits 15..8, etc.
+     * Currently, the function assumes but does not check that 0<=c<=0x10ffff.
+     * 
+     */
+  static int MBCSFromUChar32_ISO2022(UConverterSharedData sharedData,
+                              int                  c,
+                              int[]                value,
+                              boolean              useFallback,
+                              int                  outputType   // Output Type from MBCS, e.g. CharsetMBCS.MBCS_OUTPUT_2
+                              )
+    {
+        ByteBuffer   cx;
+        char[]  table;
+        int     stage2Entry;
+        int     myValue;
+        int     p;
+        int     length;
+        /* BMP-only codepages are stored without stage 1 entries for supplementary code points */
+        if(c<0x10000 || (sharedData.mbcs.unicodeMask & UConverterConstants.HAS_SUPPLEMENTARY)!=0) {
+            table=sharedData.mbcs.fromUnicodeTable;
+            stage2Entry = CharsetMBCS.MBCS_STAGE_2_FROM_U(table, c);
+            /* get the bytes and the length for the output */
+            if(outputType==CharsetMBCS.MBCS_OUTPUT_2){
+                myValue=CharsetMBCS.MBCS_VALUE_2_FROM_STAGE_2(sharedData.mbcs.fromUnicodeBytes, stage2Entry, c);
+                if(myValue<=0xff) {
+                    length=1;
+                } else {
+                    length=2;
+                }
+            } else /* outputType==MBCS_OUTPUT_3 */ {
+                byte[] bytes = sharedData.mbcs.fromUnicodeBytes;
+                p=CharsetMBCS.MBCS_POINTER_3_FROM_STAGE_2(bytes, stage2Entry, c);
+                myValue = ((bytes[p]   & UConverterConstants.UNSIGNED_BYTE_MASK) <<16) | 
+                          ((bytes[p+1] & UConverterConstants.UNSIGNED_BYTE_MASK) << 8) | 
+                           (bytes[p+2] & UConverterConstants.UNSIGNED_BYTE_MASK);
+                if(myValue<=0xff) {
+                    length=1;
+                } else if(myValue<=0xffff) {
+                    length=2;
+                } else {
+                    length=3;
+                }
+            }
+            /* is this code point assigned, or do we use fallbacks? */
+            if( (stage2Entry&(1<<(16+(c&0xf))))!=0 ||
+                (CharsetEncoderICU.fromUUseFallback(useFallback, c) && myValue!=0)) {
+                /*
+                 * We allow a 0 byte output if the "assigned" bit is set for this entry.
+                 * There is no way with this data structure for fallback output
+                 * to be a zero byte.
+                 */
+                /* assigned */
+                value[0] = myValue;
+                return length;
+            }
+        }
+
+        cx=sharedData.mbcs.extIndexes;
+        if(cx!=null) {
+            // TODO:  need to port this function
+            // *length=ucnv_extSimpleMatchFromU(cx, c, value, useFallback);
+            System.err.println("Need port of ucnv_extSimpleMatchFromU()\n");
+            return -1;
+        }
+
+        /* unassigned */
+        return 0;
+    }
+   
+   
+  //
+  // MBCS_SingleFromUChar32
+  //
+  //   corresponds to the inline func MBCS_SINGLE_FROM_UCHAR32() in ICU4C, file ucnv2022.c
+  //
+  //  Comment from ICU4C:
+  //     This function replicates code in _MBCSSingleFromUChar32() function in ucnvmbcs.c
+  //     any future change in _MBCSSingleFromUChar32() function should be reflected in
+  //     this macro
+  //  Not quite true for ICU4J, since the corresponding function from class CharsetMBCS has
+  //  not been ported.
+  //
+  static int MBCS_SingleFromUChar32(UConverterSharedData sharedData,
+                             int                  c,
+                             boolean              useFallback) {
+      char[]  table;
+      int     value;
+      /* BMP-only codepages are stored without stage 1 entries for supplementary code points */
+      if(c>=0x10000 && (sharedData.mbcs.unicodeMask & UConverterConstants.HAS_SUPPLEMENTARY)==0) {
+          return -1;
+      }
+      /* convert the Unicode code point in c into codepage bytes (same as in _MBCSFromUnicodeWithOffsets) */
+      table=sharedData.mbcs.fromUnicodeTable;
+      /* get the byte for the output */
+      value=CharsetMBCS.MBCS_SINGLE_RESULT_FROM_U(table, sharedData.mbcs.fromUnicodeBytes, c);
+      /* is this code point assigned, or do we use fallbacks? */
+      if(useFallback ? value>=0x800 : value>=0xc00) {
+          value &=0xff;
+      } else {
+          value= -1;
+      }
+      return value;
+  }
 
 
 
