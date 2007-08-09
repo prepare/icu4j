@@ -31,7 +31,6 @@ public class TestISO2022 extends TestFmwk {
         try {
         CharsetProviderICU provider = new CharsetProviderICU();
         charset = provider.charsetForName("ISO-2022-JP");
-        // charset = provider.charsetForName("ASCII");
 
         if (charset==null) {
             errln("TestISO2022.createCharset2022, provider.charsetForName(ISO-2022-JP) returned null");
