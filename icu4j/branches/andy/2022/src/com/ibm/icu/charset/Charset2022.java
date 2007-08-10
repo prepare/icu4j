@@ -1175,7 +1175,7 @@ public class Charset2022 extends CharsetICU {
             int   cs;               // Identifies an output character set
             int   g;
             int   len;              // number of bytes needed for the current Unicode character.
-            int   targetValue;      // The output bytes for one character, packed into an int.
+            int   targetValue = 0;  // The output bytes for one character, packed into an int.
             
             if (!source.hasRemaining()) {
                 /* no input, nothing to do */
@@ -1187,11 +1187,11 @@ public class Charset2022 extends CharsetICU {
             }
 
             while (source.hasRemaining()) {
-                
+                int sourcePositionAtStartOfChar = source.position();
                 sourceChar = source.get();
                 if (UTF16.isSurrogate((char)sourceChar)) {
                     sourceChar = getSupplementary(source, sourceChar, flush);
-                    if (encoderResult != null) {
+                    if (encoderResult != null) {   // Back Door out parameter form getSupplementary
                         return encoderResult;
                     }
                 }
@@ -1263,7 +1263,7 @@ public class Charset2022 extends CharsetICU {
                         break;
                     case ISO8859_7:
                         /* G0 SBCS forced to 7-bit output */
-                       targetValue = MBCS_SingleFromUChar32(myConverterData.myConverterArray[cs].sharedData,
+                        targetValue = MBCS_SingleFromUChar32(myConverterData.myConverterArray[cs].sharedData,
                                 sourceChar, useFallback);
                         if(0x80 <= targetValue && targetValue <= 0xff) {
                             targetValue -= 0x80;
@@ -1274,35 +1274,63 @@ public class Charset2022 extends CharsetICU {
                     default:
                         /* G0 DBCS */
                         len = MBCSFromUChar32_ISO2022(
-                            myConverterData.myConverterArray[cs].sharedData,
-                            sourceChar, mbcsByteValues,
-                            useFallback, CharsetMBCS.MBCS_OUTPUT_2);
-                        targetValue = mbcsByteValues[0];
-                        if(len != 2) {
-                            len = 0;
-                        }
-                        break;
+                                myConverterData.myConverterArray[cs].sharedData,
+                                sourceChar, mbcsByteValues,
+                                useFallback, CharsetMBCS.MBCS_OUTPUT_2);
+                    targetValue = mbcsByteValues[0];
+                    if(len != 2) {
+                        len = 0;
+                    }
+                    break;
                     }
                 }
-                
+
                 //
                 //  At this point, either the Unicode character has been converted to byte(s), or
                 //    we've tried all possible converters and failed.
                 if (len==0) {
-                    return CoderResult.unmappableForLength(sourceChar>=0x10000? 2 : 1);
+                    return CoderResult.unmappableForLength(source.position() - sourcePositionAtStartOfChar);
                 }
 
+                //  Write the output bytes, both state change (if any) and the character bytes.
+                //  Do this inside a try.  If the buffer overflows, restore both source and target buffers
+                //    and the converter state info, to their orginal position.  The next level up in the
+                //    framework will then redo the entire character from the beginning.
+                //
                 int outputPositionAtStartOfChar = target.position();
-                
-                //
-                //  Output any 2022 state changing shift or escape sequences that need to 
-                //    precede the character bytes themselves.
-                //
-                
+                try {
+                    //
+                    //  Output any 2022 state changing shift or escape sequences that need to 
+                    //    precede the character bytes themselves.
+                    //
+                    OutputStateChange(fromU2022State, saved2022State, target,  sourceChar, g, cs);
 
-                
-            }
-            return CoderResult.unmappableForLength(1);  // TODO:  stub
+
+                    /* write the output bytes */
+                    if(len == 1) {
+                        target.put((byte)targetValue);
+                    } else /* len == 2 */ {
+                        target.put((byte)(targetValue>>8));
+                        target.put((byte)targetValue);
+                    }
+                }
+                catch (BufferOverflowException e) {
+                    target.position(outputPositionAtStartOfChar);
+                    source.position(sourcePositionAtStartOfChar);
+                    if (saved2022State.g != -1) {
+                        fromU2022State.copyFrom(saved2022State);
+                    }
+                    if (flush) {
+                        return CoderResult.malformedForLength(???)
+                    }
+                    return CoderResult.OVERFLOW;
+                }
+
+
+            } /* end if(myTargetIndex<myTargetLength) */
+
+            return CoderResult.UNDERFLOW;
+
         }
 
         //
@@ -1393,13 +1421,12 @@ public class Charset2022 extends CharsetICU {
         //                      the output of the bytes for the next character.  Adjust the
         //                      current 2022 state to reflect this.  Save the previous
         //                      state for use in the event that a buffer overflow requires
-        //                      backing out of the operation.
+        //                      backing out of the operation.  Buffer overflows throw
+        //                      normal Java buffer overflow exceptions
         
-        boolean OutputStateChange(ISO2022State state, ISO2022State bkupState, ByteBuffer target,
-                int  g,  int  cs) {
-            
-            boolean invalidateChoices = false;
-            
+        private void OutputStateChange(ISO2022State state, ISO2022State bkupState, ByteBuffer target,
+                int sourceChar, int  g,  int  cs) {
+                        
             // flag the backup state to indicate no changes made, no need to restore
             bkupState.g = -1;
             
@@ -1434,16 +1461,19 @@ public class Charset2022 extends CharsetICU {
                     state.g = 1;
                     break;
                 default: /* case 2 */
-                    buffer[outLen++] = 0x1b;
-                    buffer[outLen++] = 0x4e;
+                    target.put((byte)ESC_2022);
+                    target.put((byte)0x4e);
                     break;
                 /* no case 3: no SS3 in ISO-2022-JP-x */
                 }
-               // TODO:  catch buffer overflow exceptions.
             }
-
             
-            return true;
+            if(sourceChar == CR || sourceChar == LF) {
+                /* reset the G2 state at the end of a line (conversion got us into ASCII or JISX201 already) */
+                bkupState.copyFrom(state);
+                state.cs[2] = 0;
+                choiceCount = 0;
+            }          
         }
  
 
