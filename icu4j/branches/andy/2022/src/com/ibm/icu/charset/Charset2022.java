@@ -26,6 +26,7 @@ import com.ibm.icu.impl.InvalidFormatException;
 import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.text.UTF16;
 import com.ibm.icu.util.ULocale;
+import com.ibm.icu.impl.UCharacterProperty;
 
 public class Charset2022 extends CharsetICU {
     
@@ -70,6 +71,8 @@ public class Charset2022 extends CharsetICU {
     static final char  V_TAB = '\u000B';
     static final char  SPACE = '\u0020';
     static final int   ESC_2022 = 0x1B; /*ESC*/
+    static final int   UCNV_SI = 0x0F;
+    static final int   UCNV_SO = 0x0E;
 
     
     /*
@@ -78,7 +81,7 @@ public class Charset2022 extends CharsetICU {
      * The bit mask 0x0800c000 has bits set at bit positions 0xe, 0xf, 0x1b
      * corresponding to SO, SI, and ESC.
      */
-    private static boolean  IS_2022_CONTROL(char c) {
+    private static boolean  IS_2022_CONTROL(int c) {
        return (((c)<(char)0x20) && (1<<((int)c)&0x0800c000)!=0);
     }
 
@@ -166,6 +169,13 @@ public class Charset2022 extends CharsetICU {
         
         ISO2022State() {
             cs = new byte[4];
+        }
+        
+        void copyFrom(ISO2022State other) {
+            for (int i=0; i<cs.length; i++) {cs[i] = other.cs[i];
+            g = other.g;
+            prevG = other.prevG;
+            }
         }
     }
 
@@ -1050,6 +1060,79 @@ public class Charset2022 extends CharsetICU {
   }
 
 
+  /***************************************************************************************************
+  * Rules for ISO-2022-jp encoding
+  * (i)   Escape sequences must be fully contained within a line they should not
+  *       span new lines or CRs
+  * (ii)  If the last character on a line is represented by two bytes then an ASCII or
+  *       JIS-Roman character escape sequence should follow before the line terminates
+  * (iii) If the first character on the line is represented by two bytes then a two
+  *       byte character escape sequence should precede it
+  * (iv)  If no escape sequence is encountered then the characters are ASCII
+  * (v)   Latin(ISO-8859-1) and Greek(ISO-8859-7) characters must be designated to G2,
+  *       and invoked with SS2 (ESC N).
+  * (vi)  If there is any G0 designation in text, there must be a switch to
+  *       ASCII or to JIS X 0201-Roman before a space character (but not
+  *       necessarily before "ESC 4/14 2/0" or "ESC N ' '") or control
+  *       characters such as tab or CRLF.
+  * (vi)  Supported encodings:
+  *          ASCII, JISX201, JISX208, JISX212, GB2312, KSC5601, ISO-8859-1,ISO-8859-7
+  *
+  *  source : RFC-1554
+  *
+  *          JISX201, JISX208,JISX212 : new .cnv data files created
+  *          KSC5601 : alias to ibm-949 mapping table
+  *          GB2312 : alias to ibm-1386 mapping table
+  *          ISO-8859-1 : Algorithmic implemented as LATIN1 case
+  *          ISO-8859-7 : alisas to ibm-9409 mapping table
+  */
+  
+ /* preference order of JP charsets */
+  static final int[] jpCharsetPref = new int[] {
+      ASCII,
+      JISX201,
+      ISO8859_1,
+      ISO8859_7,
+      JISX208,
+      JISX212,
+      GB2312,
+      KSC5601,
+      HWKANA_7BIT
+  };
+  
+  /*
+   * The escape sequences must be in order of the enum constants like JISX201  = 3,
+   * not in order of jpCharsetPref[]!
+   */
+  static final byte[][] escSeqChars  = new byte [][] {
+      new byte[] {0x1B, 0x28, 0x42},         /* <ESC>(B  ASCII       */
+      new byte[] {0x1B, 0x2E, 0x41},         /* <ESC>.A  ISO-8859-1  */
+      new byte[] {0x1B, 0x2E, 0x46},         /* <ESC>.F  ISO-8859-7  */
+      new byte[] {0x1B, 0x28, 0x4A},         /* <ESC>(J  JISX-201    */
+      new byte[] {0x1B, 0x24, 0x42},         /* <ESC>$B  JISX-208    */
+      new byte[] {0x1B, 0x24, 0x28, 0x44},   /* <ESC>$(D JISX-212    */
+      new byte[] {0x1B, 0x24, 0x41},         /* <ESC>$A  GB2312      */
+      new byte[] {0x1B, 0x24, 0x28, 0x43},   /* <ESC>$(C KSC5601     */
+      new byte[] {0x1B, 0x28, 0x49}          /* <ESC>(I  HWKANA_7BIT */
+  };
+  
+
+  /*
+  * The iteration over various code pages works this way:
+  * i)   Get the currentState from myConverterData->currentState
+  * ii)  Check if the character is mapped to a valid character in the currentState
+  *      Yes ->  a) set the initIterState to currentState
+  *       b) remain in this state until an invalid character is found
+  *      No  ->  a) go to the next code page and find the character
+  * iii) Before changing the state increment the current state check if the current state
+  *      is equal to the intitIteration state
+  *      Yes ->  A character that cannot be represented in any of the supported encodings
+  *       break and return a U_INVALID_CHARACTER error
+  *      No  ->  Continue and find the character in next code page
+  *
+  *
+  * TODO: Implement a priority technique where the users are allowed to set the priority of code pages
+  */
 
     protected byte[] fromUSubstitution = new byte[] { (byte) 0x1a };
     
@@ -1060,13 +1143,25 @@ public class Charset2022 extends CharsetICU {
             implReset();
         }
         
-       ISO2022State fromU2022State = new ISO2022State();
-       // boolean useFallback   inherited from CharsetEncoderICU, delete this line.
+        
+       ISO2022State fromU2022State = new ISO2022State();  // Current state (which charsets are active) in the output
+                                                          //   stream.
        
-       CoderResult  encoderResult;   // result status, used by internal functions.
-                                     //   null is used to signal success.
-                                     //   Class scope, to sidestep out-parameter limitations.
-    
+       ISO2022State saved2022State = new ISO2022State();  // A back-up state, for use if the output byte buffer
+                                                          //   overflows and we need to revert the current state
+                                                          //   because of discarding a partially output escape sequence.
+       
+       CoderResult  encoderResult;         // result status, used by internal functions.
+                                           //   null is used to signal success.
+                                           //   Class scope, to sidestep out-parameter limitations.
+       
+       int [] choices = new int[10];       // The ordered list of charsets to try when converting a char from Unicode.
+       int    choiceCount = 0;             //  and the number of charsets in the list
+                                           //  The list gets dynamically re-arranged based on the current state
+                                           //    of the conversion.
+       
+       int [] mbcsByteValues = new int[1]; // Receives the result of a Unicode -> MBCS conversion.
+                                           //   (Conversion function needs an array as an out param.)
 
        protected void implReset() {
             super.implReset();
@@ -1077,6 +1172,10 @@ public class Charset2022 extends CharsetICU {
                 boolean flush) {
             
             int   sourceChar;    
+            int   cs;               // Identifies an output character set
+            int   g;
+            int   len;              // number of bytes needed for the current Unicode character.
+            int   targetValue;      // The output bytes for one character, packed into an int.
             
             if (!source.hasRemaining()) {
                 /* no input, nothing to do */
@@ -1096,13 +1195,255 @@ public class Charset2022 extends CharsetICU {
                         return encoderResult;
                     }
                 }
+                
+                if(IS_2022_CONTROL(sourceChar)) {
+                    return CoderResult.unmappableForLength(1);
+                }
+                
+                if (choiceCount == 0) {
+                    rebuildChoiceList();
+                }
+
+                
+                //
+                //  Find the first available charset from the choices[] list that
+                //   can convert the Unicode character we've got.
+                //
+                cs = g = 0;
+                len = 0;
+                for(int i = 0; i < choiceCount && len == 0; ++i) {
+                    cs = choices[i];
+                    switch(cs) {
+                    case ASCII:
+                        if(sourceChar <= 0x7f) {
+                            targetValue = sourceChar;
+                            len = 1;
+                        }
+                        break;
+                    case ISO8859_1:
+                        if(0x80 <= sourceChar && sourceChar <= 0xff) {
+                            targetValue = sourceChar - 0x80;
+                            len = 1;
+                            g = 2;
+                        }
+                        break;
+                    case HWKANA_7BIT:
+                        if (sourceChar>=0x0000ff61 && sourceChar<=0x0000ff9f) {
+                            targetValue = (sourceChar - (0xff61 - 0x21));
+                            len = 1;
+
+                            if(myConverterData.version==3) {
+                                /* JIS7: use G1 (SO) */
+                                fromU2022State.cs[1] = (byte)cs; /* do not output an escape sequence */
+                                g = 1;
+                            } else if(myConverterData.version==4) {
+                                /* JIS8: use 8-bit bytes with any single-byte charset, see escape sequence output below */
+                                int cs0;
+
+                                targetValue += 0x80;
+
+                                cs0 = fromU2022State.cs[0];
+                                if(IS_JP_DBCS(cs0)) {
+                                    /* switch from a DBCS charset to JISX201 */
+                                    cs = JISX201;
+                                } else {
+                                    /* stay in the current G0 charset */
+                                    cs = cs0;
+                                }
+                            }
+                        }
+                        break;
+                    case JISX201:
+                        /* G0 SBCS */
+                        targetValue = MBCS_SingleFromUChar32(myConverterData.myConverterArray[cs].sharedData,
+                                                             sourceChar, useFallback);
+                        if(targetValue >= 0) {
+                            len = 1;
+                        }
+                        break;
+                    case ISO8859_7:
+                        /* G0 SBCS forced to 7-bit output */
+                       targetValue = MBCS_SingleFromUChar32(myConverterData.myConverterArray[cs].sharedData,
+                                sourceChar, useFallback);
+                        if(0x80 <= targetValue && targetValue <= 0xff) {
+                            targetValue -= 0x80;
+                            len = 1;
+                            g = 2;
+                        }
+                        break;
+                    default:
+                        /* G0 DBCS */
+                        len = MBCSFromUChar32_ISO2022(
+                            myConverterData.myConverterArray[cs].sharedData,
+                            sourceChar, mbcsByteValues,
+                            useFallback, CharsetMBCS.MBCS_OUTPUT_2);
+                        targetValue = mbcsByteValues[0];
+                        if(len != 2) {
+                            len = 0;
+                        }
+                        break;
+                    }
+                }
+                
+                //
+                //  At this point, either the Unicode character has been converted to byte(s), or
+                //    we've tried all possible converters and failed.
+                if (len==0) {
+                    return CoderResult.unmappableForLength(sourceChar>=0x10000? 2 : 1);
+                }
+
+                int outputPositionAtStartOfChar = target.position();
+                
+                //
+                //  Output any 2022 state changing shift or escape sequences that need to 
+                //    precede the character bytes themselves.
+                //
+                
+
+                
             }
-            source.get(); 
             return CoderResult.unmappableForLength(1);  // TODO:  stub
         }
 
-        private int getSupplementary(CharBuffer source, int sourceChar) {
+        //
+        //   getSupplementary()  Finish up fetching a supplementary character after a surrogate has
+        //                       been encountered.  
+        //
+        //            source:       The source Char Buffer
+        //            sourceChar:   The surrogate char that was encountered in the source
+        //            flush:        Flag controlling behavior if an unpaired lead surrogate
+        //                          appears a at the end of the source buffer.
+        //
+        //            Return:       The supplementary character.
+        //            encoderResult (object scope) CoderResult value in the event of an error.
+        //                          null if supplementary fetch was successful.
+        //
+        private int getSupplementary(CharBuffer source, int sourceChar, boolean flush) {
+            if (UTF16.isTrailSurrogate((char)sourceChar)) {
+                encoderResult = CoderResult.malformedForLength(1);
+                return sourceChar;
+            }
+            if (source.hasRemaining() == false) {
+                if (flush) {
+                    encoderResult = CoderResult.malformedForLength(1);
+                    return sourceChar;
+                } else {
+                    encoderResult = CoderResult.UNDERFLOW;
+                    return sourceChar;
+                }
+            }
+            char trailSurrogate = source.get();
+            if (UTF16.isTrailSurrogate(trailSurrogate) == false) {
+                source.position(source.position()-1);
+                encoderResult = CoderResult.malformedForLength(1);
+                return sourceChar;
+            }
+            int supplementaryChar = UCharacterProperty.getRawSupplementary((char)sourceChar, trailSurrogate);
+            encoderResult = null;
+            return supplementaryChar;
+        }
+        
+        // CSM - character set mask (bit set)
+        private int CSM(int cs) {return 1 << cs;}
+        
+        
+        //
+        //  rebuildChoiceList   Reconstruct the preference-ordered list of charsets to
+        //                      try when converting a character from Unicode.
+        //
+        void rebuildChoiceList() {
+            int csm;
+            int cs;
+
+            /*
+             * The csm variable keeps track of which charsets are allowed
+             * and not used yet while building the choices[].
+             */
+            csm = jpCharsetMasks[myConverterData.version];
+            choiceCount = 0;
+
+            /* JIS7/8: try single-byte half-width Katakana before JISX208 */
+            if(myConverterData.version == 3 || myConverterData.version == 4) {
+                choices[choiceCount++] = cs = HWKANA_7BIT;
+                csm &= ~CSM(cs);
+            }
+
+            /* try the current G0 charset */
+            choices[choiceCount++] = cs = fromU2022State.cs[0];
+            csm &= ~CSM(cs);
+
+            /* try the current G2 charset */
+            if((cs = fromU2022State.cs[2]) != 0) {
+                choices[choiceCount++] = cs;
+                csm &= ~CSM(cs);
+            }
+
+            /* try all the other possible charsets */
+            for(int i = 0; i < jpCharsetPref.length; ++i) {
+                cs = jpCharsetPref[i];
+                if((CSM(cs) & csm)!=0) {
+                    choices[choiceCount++] = cs;
+                    csm &= ~CSM(cs);
+                }
+            }
+        }
+        
+        //
+        //  OutputStateChange   Output any shift or escape sequences that need to precede
+        //                      the output of the bytes for the next character.  Adjust the
+        //                      current 2022 state to reflect this.  Save the previous
+        //                      state for use in the event that a buffer overflow requires
+        //                      backing out of the operation.
+        
+        boolean OutputStateChange(ISO2022State state, ISO2022State bkupState, ByteBuffer target,
+                int  g,  int  cs) {
             
+            boolean invalidateChoices = false;
+            
+            // flag the backup state to indicate no changes made, no need to restore
+            bkupState.g = -1;
+            
+            /* write SI if necessary (only for JIS7) */
+            if(state.g == 1 && g == 0) {
+                bkupState.copyFrom(state);
+                target.put((byte)UCNV_SI);
+                state.g = 0;
+            }
+
+            /* write the designation sequence if necessary */
+            if(cs != state.cs[g]) {
+                bkupState.copyFrom(state);
+                int escLen = escSeqChars[cs].length;
+                for (int i=0; i<escLen; i++) {
+                    target.put(escSeqChars[cs][i]);
+                }
+                state.cs[g] = (byte)cs;
+
+                // invalidate the choices[]
+                //  Note: choiceCount is up at object scope. 
+                choiceCount = 0;
+            }
+
+            /* write the shift sequence if necessary */
+            if(g != state.g) {
+               bkupState.copyFrom(state);
+               switch(g) {
+                /* case 0 handled before writing escapes */
+                case 1:
+                    target.put((byte)UCNV_SO);
+                    state.g = 1;
+                    break;
+                default: /* case 2 */
+                    buffer[outLen++] = 0x1b;
+                    buffer[outLen++] = 0x4e;
+                    break;
+                /* no case 3: no SS3 in ISO-2022-JP-x */
+                }
+               // TODO:  catch buffer overflow exceptions.
+            }
+
+            
+            return true;
         }
  
 
