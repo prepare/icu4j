@@ -20,6 +20,7 @@ import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CoderResult;
 import java.nio.charset.UnsupportedCharsetException;
+import java.util.Arrays;
 
 import com.ibm.icu.charset.CharsetMBCS.LoadArguments;
 import com.ibm.icu.impl.InvalidFormatException;
@@ -30,17 +31,44 @@ import com.ibm.icu.impl.UCharacterProperty;
 
 public class Charset2022 extends CharsetICU {
     
+    // TODO: change converterArray back to an array of UConverterSharedData, which is lighter weight.
+    int                    variant;           // one of enum {ISO_2022_JP, ISO_2022_KR, or ISO_2022_CN}
+    CharsetMBCS[]          converterArray = new CharsetMBCS[UCNV_2022_MAX_CONVERTERS];
+    int                    version2022;
+
+    
+    
     public Charset2022(String icuCanonicalName, String javaCanonicalName, String[] aliases) {
         super(icuCanonicalName, javaCanonicalName, aliases);
         
+        int version = 0;
+        int versionIndex = icuCanonicalName.indexOf("version=");
+        if (versionIndex>0) {
+            versionIndex += "version=".length();
+            try {
+                version = Integer.decode(icuCanonicalName.substring(versionIndex+8, versionIndex+9));
+            } catch (NumberFormatException e) {
+                throw new UnsupportedCharsetException(icuCanonicalName);
+            }
+        }
+            
         String locale = ULocale.getDefault().getLanguage();
-        
-        this._ISO2022Open(icuCanonicalName, locale, options);
-
-        maxBytesPerChar = 3;  // TODO: these are stubs
-        minBytesPerChar = 1;
-        maxCharsPerByte = 1;
-        
+        if (icuCanonicalName.indexOf("locale=ja")>0) {
+            ISO2022InitJP(version);
+        } else if (icuCanonicalName.indexOf("locale=zh")>0) {
+            ISO2022InitCN(version);
+        } else if (icuCanonicalName.indexOf("locale=ko")>0) {
+            ISO2022InitKR(version);
+        } else if (locale.equals("ja")) {
+            ISO2022InitJP(version);
+        } else if (locale.equals("zh")) {
+            ISO2022InitCN(version);
+        } else if (locale.equals("ko")) {
+            ISO2022InitKR(version);
+        } else {
+            throw new UnsupportedCharsetException(icuCanonicalName);
+        }
+         
         /*
         CharsetMBCS.LoadArguments args = new CharsetMBCS.LoadArguments(1, icuCanonicalName);
         sharedData = CharsetMBCS.loadConverter(args);
@@ -171,11 +199,16 @@ public class Charset2022 extends CharsetICU {
             cs = new byte[4];
         }
         
+        void reset() {
+            Arrays.fill(this.cs, (byte)(0));
+            this.g = 0;
+            this.prevG = 0;
+        }
+        
         void copyFrom(ISO2022State other) {
-            for (int i=0; i<cs.length; i++) {cs[i] = other.cs[i];
+            for (int i=0; i<cs.length; i++) {cs[i] = other.cs[i];}
             g = other.g;
             prevG = other.prevG;
-            }
         }
     }
 
@@ -317,82 +350,33 @@ public class Charset2022 extends CharsetICU {
      static final int ISO_2022_CN=3;
     
      
-     //
-     //  UConverterDataISO2022
-     //
-     //      Corresponds to the C struct of the same name.
-     //
-     //      Contains both unchanging data relating to the 2022 charset and
-     //      state pertaining to a conversion.  This works for C, where a converter represents both, but
-     //      less well for the Java encoder/decoder architecture.
-     //
-     //      This structure is left as it is in C for ease of porting.
-     //      The initial values are set up here.
-     //      A copy from this common master is made into each encoder and decoder.
-     //    
-     class UConverterDataISO2022 {
-         // TODO: change this back to a lighter weight data-only item.
-         // UConverterSharedData[] myConverterArray;    // Sub-converters.
-         CharsetMBCS[]           myConverterArray;    // Sub-converters.
-         int                     version;
-         int                     variant;              // ISO_2022_JP or ISO_2022_KR or ISO_2022_CN
-         String                  name;
-         String                  locale;
-         
-         UConverterDataISO2022() {
-             myConverterArray = new CharsetMBCS[UCNV_2022_MAX_CONVERTERS];
+    
+     private void   ISO2022InitJP(int version) {
+         version2022 = version;
+
+         variant = ISO_2022_JP;
+         // open the required converters and cache them 
+         if((jpCharsetMasks[version]&CSM(ISO8859_7))!=0) {
+             converterArray[ISO8859_7] = (CharsetMBCS)CharsetICU.forNameICU("ISO8859_7");
+         }
+         converterArray[JISX201] = (CharsetMBCS)CharsetICU.forNameICU("jisx-201");
+         converterArray[JISX208] = (CharsetMBCS)CharsetICU.forNameICU("jisx-208");
+         if((jpCharsetMasks[version]&CSM(JISX212))!=0) {
+             converterArray[JISX212] = (CharsetMBCS)CharsetICU.forNameICU("jisx-212");
+         }
+         if((jpCharsetMasks[version]&CSM(GB2312))!=0) {
+             converterArray[GB2312] = (CharsetMBCS)CharsetICU.forNameICU("ibm-5478");   // gb_2312_80-1
+         }
+         if((jpCharsetMasks[version]&CSM(KSC5601))!=0) {
+             converterArray[KSC5601] = (CharsetMBCS)CharsetICU.forNameICU("ksc_5601");
          }
      }
-     UConverterDataISO2022  myConverterData;   // This variable name comes from C++
 
-     
-    //  ======================
-    
-    private void   _ISO2022Open(String name, String locale, int options) {
 
-        // TODO:  need to look at the name we are being asked for.
-        //        May be specific for JP or whatever, may include a version.
-        
-        String myLocale;
-        myConverterData = new UConverterDataISO2022();
-        int version;
-        
-        myLocale = locale;
-        
-        version = options & UCNV_OPTIONS_VERSION_MASK;
-        myConverterData.version = version;
-        
-        if (/* myLocale.equals("jap") || myLocale.startsWith("jap_")*/ true) {
-            myConverterData.variant = ISO_2022_JP;
-            // open the required converters and cache them 
-            if((jpCharsetMasks[version]&CSM(ISO8859_7))!=0) {
-                myConverterData.myConverterArray[ISO8859_7] = (CharsetMBCS)CharsetICU.forNameICU("ISO8859_7");
-            }
-            myConverterData.myConverterArray[JISX201] = (CharsetMBCS)CharsetICU.forNameICU("jisx-201");
-            myConverterData.myConverterArray[JISX208] = (CharsetMBCS)CharsetICU.forNameICU("jisx-208");
-            if((jpCharsetMasks[version]&CSM(JISX212))!=0) {
-                myConverterData.myConverterArray[JISX212] = (CharsetMBCS)CharsetICU.forNameICU("jisx-212");
-            }
-            if((jpCharsetMasks[version]&CSM(GB2312))!=0) {
-                myConverterData.myConverterArray[GB2312] = (CharsetMBCS)CharsetICU.forNameICU("ibm-5478");   // gb_2312_80-1
-            }
-            if((jpCharsetMasks[version]&CSM(KSC5601))!=0) {
-                myConverterData.myConverterArray[KSC5601] = (CharsetMBCS)CharsetICU.forNameICU("ksc_5601");
-            }
-
-            // set the function pointers to appropriate functions 
-            /*
-            cnv.sharedData=(UConverterSharedData*)(&_ISO2022JPData);
-            uprv_strcpy(myConverterData.locale,"ja");
-
-            uprv_strcpy(myConverterData.name,"ISO_2022,locale=ja,version=");
-            len = uprv_strlen(myConverterData.name);
-            myConverterData.name[len]=(char)(myConverterData.version+(int)'0');
-            myConverterData.name[len+1]='\0';
-            */
-        }
-        else if(myLocale.equals("kor") || myLocale.startsWith("kor_"))
-        {
+            
+            
+     private void   ISO2022InitKR(int version) {
+         throw new UnsupportedCharsetException(icuCanonicalName);
             /*
                 if (version==1){
                     myConverterData.currentConverter=
@@ -427,8 +411,11 @@ public class Charset2022 extends CharsetICU {
                 uprv_strcpy(myConverterData.locale,"ko");
                 */
             }
-            else if (myLocale.equals("zh") || myLocale.equals("zh_") || myLocale.equals("cn") || myLocale.startsWith("cn_"))
-            {
+     
+     
+     private void   ISO2022InitCN(int version) {
+         throw new UnsupportedCharsetException(icuCanonicalName);
+
               /*
 
                 // open the required converters and cache them 
@@ -451,20 +438,10 @@ public class Charset2022 extends CharsetICU {
                 }
               */
             }
-            else {
-                // TODO:  is this the best exception to use here?
-                // TODO:  close of open converters?
-                throw new IllegalArgumentException();    
-            }
-
-            // TODO: something for this line...
-            // cnv.maxBytesPerUChar=cnv.sharedData.staticData.maxBytesPerChar;
-
-            }
-    
+     
     
     public CharsetDecoder newDecoder() {
-        switch (myConverterData.variant) {
+        switch (variant) {
         case ISO_2022_JP:
             return new CharsetDecoder2022JP(this);
         case ISO_2022_CN:
@@ -478,7 +455,7 @@ public class Charset2022 extends CharsetICU {
 
     
     public CharsetEncoder newEncoder() {
-        switch (myConverterData.variant) {
+        switch (variant) {
         case ISO_2022_JP:
             return new CharsetEncoder2022JP(this);
         case ISO_2022_CN:
@@ -733,12 +710,15 @@ public class Charset2022 extends CharsetICU {
 
         public CharsetDecoder2022JP(CharsetICU cs) {
             super(cs);
-        };
-
-        Charset2022.UConverterDataISO2022    myData2022;   // TODO:  needs initialization
+        }
         
-        ISO2022State           toU2022State = new ISO2022State();          
+        private ISO2022State           toU2022State = new ISO2022State();          
 
+        protected void implReset() {
+            toU2022State.reset();
+        }
+        
+        
         protected CoderResult decodeLoop(ByteBuffer source, CharBuffer target, IntBuffer offsets,
                 boolean flush) {
             CoderResult cr = null;
@@ -753,14 +733,13 @@ public class Charset2022 extends CharsetICU {
             }
 
             boolean targetOverflow = false;
-            Boolean hardSegmentEnd = new Boolean(false);
 
             int segmentStart = 0;
             try {
                 do  {
                     segmentStart = source.position();
                     targetOverflow = convertSegmentToU(source, target);
-                    changeState_2022(source, toU2022State, ISO_2022_JP, myData2022.version);
+                    changeState_2022(source, toU2022State, ISO_2022_JP, version2022);
                 } while (segmentStart < source.position() && targetOverflow == false);
             } catch (InvalidFormatException e) {
                 cr = CoderResult.malformedForLength(1);   // TODO: get a real length value.
@@ -793,7 +772,7 @@ public class Charset2022 extends CharsetICU {
         //                       Put only complete characters into the output buffer.  If an input character
         //                           will produce multiple output characters, write either all of them
         //                           or none of them.
-        boolean convertSegmentToU(ByteBuffer source, CharBuffer dest) {
+        private boolean convertSegmentToU(ByteBuffer source, CharBuffer dest) {
             while (source.hasRemaining()) {
                 
                 // Remember the buffer positions at the start of each character.
@@ -806,7 +785,7 @@ public class Charset2022 extends CharsetICU {
                 
                 switch (inputByte) {
                 case UConverterConstants.SI:
-                    if (myData2022.version==3) {
+                    if (version2022==3) {
                         toU2022State.g =0;
                         continue;
                     }
@@ -814,7 +793,7 @@ public class Charset2022 extends CharsetICU {
                     break;                        
                 
                 case UConverterConstants.SO:
-                    if (myData2022.version==3) {
+                    if (version2022==3) {
                         /* JIS7: switch to G1 half-width Katakana */
                         toU2022State.cs[1] = HWKANA_7BIT;
                         toU2022State.g=1;
@@ -845,7 +824,7 @@ public class Charset2022 extends CharsetICU {
                 }
                 
              int cs = toU2022State.cs[toU2022State.g];
-             if (inputByte >= 0xa1 && inputByte <= 0xdf && myData2022.version==4 && !Charset2022.IS_JP_DBCS(cs)) {
+             if (inputByte >= 0xa1 && inputByte <= 0xdf && version2022==4 && !Charset2022.IS_JP_DBCS(cs)) {
                  /* 8-bit halfwidth katakana in any single-byte mode for JIS8 */
                  targetUniChar = inputByte + (0x0000ff61 - 0xa1);
 
@@ -871,7 +850,7 @@ public class Charset2022 extends CharsetICU {
                      /* convert mySourceChar+0x80 to use a normal 8-bit table */
                      targetUniChar =
                          CharsetMBCS.MBCS_SINGLE_SIMPLE_GET_NEXT_BMP(
-                             myData2022.myConverterArray[cs].sharedData.mbcs,
+                             converterArray[cs].sharedData.mbcs,
                              inputByte + 0x80);
                  }
                  /* return from a single-shift state to the previous one */
@@ -881,7 +860,7 @@ public class Charset2022 extends CharsetICU {
                  if(inputByte <= 0x7f) {
                      targetUniChar =
                          CharsetMBCS.MBCS_SINGLE_SIMPLE_GET_NEXT_BMP(
-                             myData2022.myConverterArray[cs].sharedData.mbcs,
+                             converterArray[cs].sharedData.mbcs,
                              inputByte);
                  }
                  break;
@@ -904,7 +883,7 @@ public class Charset2022 extends CharsetICU {
                  // Move the source position back to the first byte of the DBCS character so that
                  // the mbcs conversion sees the whole thing.
                  source.position(source.position()-1);
-                 targetUniChar = CharsetMBCS.MBCSSimpleGetNextUChar(myData2022.myConverterArray[cs].sharedData, source, false);
+                 targetUniChar = CharsetMBCS.MBCSSimpleGetNextUChar(converterArray[cs].sharedData, source, false);
              }
              
              // We have converted a complete Unicode Character, now put it to the output buffer.
@@ -926,20 +905,9 @@ public class Charset2022 extends CharsetICU {
              
         return true;
         }
-        
-        
- 
-        protected CoderResult decodeMalformedOrUnmappable(int ch) {
-            /*
-             * put the guilty character into toUBytesArray and return a message saying that the
-             * character was malformed and of length 1.
-             */
-            toUBytesArray[0] = (byte) ch;
-            return CoderResult.malformedForLength(toULength = 1);
-        }
     }
-    
-
+        
+        
 
     /*
      * This is another simple conversion function for internal use by other
@@ -1134,12 +1102,16 @@ public class Charset2022 extends CharsetICU {
   * TODO: Implement a priority technique where the users are allowed to set the priority of code pages
   */
 
-    protected byte[] fromUSubstitution = new byte[] { (byte) 0x1a };
+    // Default Substitution string for unmappable characters.
+    //    Substitution is handled completely by the Java framework classes.  This string is
+    //    used only to initialize the Java stuff, which then handles everything else.
+    //
+    byte[] fromUSubstitutionDefault = new byte[] { (byte) 0x1a };
     
     public class CharsetEncoder2022JP extends CharsetEncoderICU {
 
         public CharsetEncoder2022JP(CharsetICU cs) {
-            super(cs, fromUSubstitution);
+            super(cs, fromUSubstitutionDefault);
             implReset();
         }
         
@@ -1163,10 +1135,11 @@ public class Charset2022 extends CharsetICU {
        int [] mbcsByteValues = new int[1]; // Receives the result of a Unicode -> MBCS conversion.
                                            //   (Conversion function needs an array as an out param.)
 
+       
        protected void implReset() {
-            super.implReset();
-            fromUnicodeStatus = NEED_TO_WRITE_BOM;
-        }
+           super.implReset();
+           fromU2022State.reset();
+       }
 
         protected CoderResult encodeLoop(CharBuffer source, ByteBuffer target, IntBuffer offsets,
                 boolean flush) {
@@ -1232,11 +1205,11 @@ public class Charset2022 extends CharsetICU {
                             targetValue = (sourceChar - (0xff61 - 0x21));
                             len = 1;
 
-                            if(myConverterData.version==3) {
+                            if(version2022==3) {
                                 /* JIS7: use G1 (SO) */
                                 fromU2022State.cs[1] = (byte)cs; /* do not output an escape sequence */
                                 g = 1;
-                            } else if(myConverterData.version==4) {
+                            } else if(version2022==4) {
                                 /* JIS8: use 8-bit bytes with any single-byte charset, see escape sequence output below */
                                 int cs0;
 
@@ -1255,7 +1228,7 @@ public class Charset2022 extends CharsetICU {
                         break;
                     case JISX201:
                         /* G0 SBCS */
-                        targetValue = MBCS_SingleFromUChar32(myConverterData.myConverterArray[cs].sharedData,
+                        targetValue = MBCS_SingleFromUChar32(converterArray[cs].sharedData,
                                                              sourceChar, useFallback);
                         if(targetValue >= 0) {
                             len = 1;
@@ -1263,7 +1236,7 @@ public class Charset2022 extends CharsetICU {
                         break;
                     case ISO8859_7:
                         /* G0 SBCS forced to 7-bit output */
-                        targetValue = MBCS_SingleFromUChar32(myConverterData.myConverterArray[cs].sharedData,
+                        targetValue = MBCS_SingleFromUChar32(converterArray[cs].sharedData,
                                 sourceChar, useFallback);
                         if(0x80 <= targetValue && targetValue <= 0xff) {
                             targetValue -= 0x80;
@@ -1274,7 +1247,7 @@ public class Charset2022 extends CharsetICU {
                     default:
                         /* G0 DBCS */
                         len = MBCSFromUChar32_ISO2022(
-                                myConverterData.myConverterArray[cs].sharedData,
+                                converterArray[cs].sharedData,
                                 sourceChar, mbcsByteValues,
                                 useFallback, CharsetMBCS.MBCS_OUTPUT_2);
                     targetValue = mbcsByteValues[0];
@@ -1320,17 +1293,15 @@ public class Charset2022 extends CharsetICU {
                     if (saved2022State.g != -1) {
                         fromU2022State.copyFrom(saved2022State);
                     }
-                    if (flush) {
-                        return CoderResult.malformedForLength(???)
-                    }
-                    return CoderResult.OVERFLOW;
+                   return CoderResult.OVERFLOW;
                 }
 
+            } /* end while (source.hasRemaining()) */
 
-            } /* end if(myTargetIndex<myTargetLength) */
-
+            // The conversion loop only comes out the bottom, to here, if the source input
+            //   is exhausted.  All other cases for stopping (output buffer full, conversion failure)
+            //   return from within the body of the loop.
             return CoderResult.UNDERFLOW;
-
         }
 
         //
@@ -1357,6 +1328,7 @@ public class Charset2022 extends CharsetICU {
                     return sourceChar;
                 } else {
                     encoderResult = CoderResult.UNDERFLOW;
+                    source.position(source.position()-1);
                     return sourceChar;
                 }
             }
@@ -1387,11 +1359,11 @@ public class Charset2022 extends CharsetICU {
              * The csm variable keeps track of which charsets are allowed
              * and not used yet while building the choices[].
              */
-            csm = jpCharsetMasks[myConverterData.version];
+            csm = jpCharsetMasks[version2022];
             choiceCount = 0;
 
             /* JIS7/8: try single-byte half-width Katakana before JISX208 */
-            if(myConverterData.version == 3 || myConverterData.version == 4) {
+            if(version2022 == 3 || version2022 == 4) {
                 choices[choiceCount++] = cs = HWKANA_7BIT;
                 csm &= ~CSM(cs);
             }
@@ -1439,7 +1411,9 @@ public class Charset2022 extends CharsetICU {
 
             /* write the designation sequence if necessary */
             if(cs != state.cs[g]) {
-                bkupState.copyFrom(state);
+                if (bkupState.g == -1) {
+                    bkupState.copyFrom(state);
+                }
                 int escLen = escSeqChars[cs].length;
                 for (int i=0; i<escLen; i++) {
                     target.put(escSeqChars[cs][i]);
@@ -1453,8 +1427,10 @@ public class Charset2022 extends CharsetICU {
 
             /* write the shift sequence if necessary */
             if(g != state.g) {
-               bkupState.copyFrom(state);
-               switch(g) {
+                if (bkupState.g == -1) {
+                    bkupState.copyFrom(state);
+                }
+                switch(g) {
                 /* case 0 handled before writing escapes */
                 case 1:
                     target.put((byte)UCNV_SO);
@@ -1462,22 +1438,22 @@ public class Charset2022 extends CharsetICU {
                     break;
                 default: /* case 2 */
                     target.put((byte)ESC_2022);
-                    target.put((byte)0x4e);
-                    break;
+                target.put((byte)0x4e);
+                break;
                 /* no case 3: no SS3 in ISO-2022-JP-x */
                 }
             }
             
             if(sourceChar == CR || sourceChar == LF) {
                 /* reset the G2 state at the end of a line (conversion got us into ASCII or JISX201 already) */
-                bkupState.copyFrom(state);
+                if (bkupState.g == -1) {
+                    bkupState.copyFrom(state);
+                }
                 state.cs[2] = 0;
                 choiceCount = 0;
             }          
         }
  
-
-
     }
 
 
