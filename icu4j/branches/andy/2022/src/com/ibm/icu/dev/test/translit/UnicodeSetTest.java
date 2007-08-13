@@ -5,15 +5,33 @@
  *******************************************************************************
  */
 package com.ibm.icu.dev.test.translit;
-import com.ibm.icu.lang.*;
-import com.ibm.icu.lang.UCharacterEnums.ECharacterCategory;
-import com.ibm.icu.text.*;
-import com.ibm.icu.dev.test.*;
-import com.ibm.icu.impl.PrettyPrinter;
-import com.ibm.icu.impl.Utility;
-import com.ibm.icu.impl.SortedSetRelation;
-import java.util.*;
+
 import java.text.ParsePosition;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Random;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
+
+import com.ibm.icu.dev.test.TestFmwk;
+import com.ibm.icu.dev.test.util.PrettyPrinter;
+import com.ibm.icu.impl.SortedSetRelation;
+import com.ibm.icu.impl.Utility;
+import com.ibm.icu.lang.UCharacter;
+import com.ibm.icu.lang.UProperty;
+import com.ibm.icu.lang.UScript;
+import com.ibm.icu.lang.UCharacterEnums.ECharacterCategory;
+import com.ibm.icu.text.SymbolTable;
+import com.ibm.icu.text.UTF16;
+import com.ibm.icu.text.UnicodeMatcher;
+import com.ibm.icu.text.UnicodeSet;
+import com.ibm.icu.text.UnicodeSetIterator;
 
 /**
  * @test
@@ -60,10 +78,10 @@ public class UnicodeSetTest extends TestFmwk {
             // HACK for now
             
             if (propNum == 4098 && e1 instanceof NullPointerException) {
-              if (skipIfBeforeICU(3,7,2)) continue;
+              if (skipIfBeforeICU(3,8,0)) continue;
             }
             if (propNum == 4112 || propNum == 4113) {
-              if (skipIfBeforeICU(3,7,2)) continue;
+              if (skipIfBeforeICU(3,8,0)) continue;
             }
             
             errln("Can't get property value name for: "
@@ -92,7 +110,7 @@ public class UnicodeSetTest extends TestFmwk {
             }
           }
           if (collectedErrors.size() != 0) {
-            if (propNum == 4107 && valueNum == 0 && skipIfBeforeICU(3,7,2)) {
+            if (propNum == 4107 && valueNum == 0 && skipIfBeforeICU(3,8,0)) {
               continue; 
             }
             errln("Property Value Differs: " 

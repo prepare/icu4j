@@ -931,9 +931,9 @@ public class TestMessageFormat extends com.ibm.icu.dev.test.TestFmwk {
             "{'", "{'",
             "{'a", "{'a",
             "{'a{}'a}'a", "{'a{}'a}''a",
-	    "'}'", "'}'",
-	    "'} '{'}'", "'} '{'}''",
-	    "'} {{{''", "'} {{{'''",
+            "'}'", "'}'",
+            "'} '{'}'", "'} '{'}''",
+            "'} {{{''", "'} {{{'''",
         };
         for (int i = 0; i < patterns.length; i += 2) {
             assertEquals("[" + (i/2) + "] \"" + patterns[i] + "\"", patterns[i+1], MessageFormat.autoQuoteApostrophe(patterns[i]));
@@ -1130,8 +1130,14 @@ public class TestMessageFormat extends com.ibm.icu.dev.test.TestFmwk {
         } catch (IllegalArgumentException e) {}
         
         // Test named arguments.
-        new MessageFormat("Number of files in folder {folder}: {numfiles}");
-        new MessageFormat("Wavelength:  {\u028EValue\uFF14}");
+        MessageFormat mf = new MessageFormat("Number of files in folder {folder}: {numfiles}");
+        if (!mf.usesNamedArguments()) {
+            errln("message format 1 should have used named arguments");
+        }
+        mf = new MessageFormat("Wavelength:  {\u028EValue\uFF14}");
+        if (!mf.usesNamedArguments()) {
+            errln("message format 2 should have used named arguments");
+        }
         
         // Test argument names with invalid start characters.
         try {
@@ -1159,26 +1165,86 @@ public class TestMessageFormat extends com.ibm.icu.dev.test.TestFmwk {
             "should throw an IllegalArgumentException but did not!");
         } catch (IllegalArgumentException e) {}        
     }
+
+    public void testNumericFormatWithMap() {
+        MessageFormat mf = new MessageFormat("X:{2} Y:{1}");
+        if (mf.usesNamedArguments()) {
+            errln("should not use named arguments");
+        }
+
+        Map map12 = new HashMap();
+        map12.put("1", "one");
+        map12.put("2", "two");
+
+        String target = "X:two Y:one";
+        String result = mf.format(map12);
+        if (!target.equals(result)) {
+            errln("expected '" + target + "' but got '" + result + "'");
+        }
+
+        try {
+            Map mapResult = mf.parseToMap(target);
+            if (!map12.equals(mapResult)) {
+                errln("expected " + map12 + " but got " + mapResult);
+            }
+        } catch (ParseException e) {
+            errln("unexpected exception: " + e.getMessage());
+        }
+
+        Map map10 = new HashMap();
+        map10.put("1", "one");
+        map10.put("0", "zero");
+        target = "X:{2} Y:one";
+        result = mf.format(map10);
+        if (!target.equals(result)) {
+            errln("expected '" + target + "' but got '" + result + "'");
+        }
+
+        DateFormat dateFormat = DateFormat.getDateInstance(DateFormat.MEDIUM);
+        DateFormat timeFormat = DateFormat.getTimeInstance(DateFormat.MEDIUM);
+        Map fmtMap = new HashMap();
+        fmtMap.put("1", dateFormat);
+        fmtMap.put("2", timeFormat);
+        mf.setFormatsByArgumentName(fmtMap);
+        Date date = new Date(661439820000L);
+
+        try {
+            result = mf.format(map12); // should fail, wrong argument type
+            fail("expected exception but got '" + result + "'");
+        } catch (IllegalArgumentException e) {
+            // expect this
+        }
+
+        Map argMap = new HashMap();
+        argMap.put("1", date);
+        argMap.put("2", date);
+        target = "X:5:17:00 AM Y:Dec 17, 1990";
+        result = mf.format(argMap);
+        if (!target.equals(result)) {
+            errln("expected '" + target + "' but got '" + result + "'");
+        }
+    }
+
     // This tests nested Formats inside PluralFormat.
     public void testNestedFormatsInPluralFormat() {
-      try {
-        MessageFormat msgFmt = new MessageFormat(
-                "{0, plural, one {{0, number,C''''est #,##0.0# fichier}} " +
-                  "other {Ce sont # fichiers}} dans la liste.",
-                new ULocale("fr"));
-        Object objArray[] = {new Long(0)};
-        HashMap objMap = new HashMap();
-        objMap.put("argument", objArray[0]);
-        String result = msgFmt.format(objArray);
-        if (!result.equals("C'est 0,0 fichier dans la liste.")) {
-            errln("PluralFormat produced wrong message string.");
+        try {
+            MessageFormat msgFmt = new MessageFormat(
+                    "{0, plural, one {{0, number,C''''est #,##0.0# fichier}} " +
+                    "other {Ce sont # fichiers}} dans la liste.",
+                    new ULocale("fr"));
+            Object objArray[] = {new Long(0)};
+            HashMap objMap = new HashMap();
+            objMap.put("argument", objArray[0]);
+            String result = msgFmt.format(objArray);
+            if (!result.equals("C'est 0,0 fichier dans la liste.")) {
+                errln("PluralFormat produced wrong message string.");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException(e.getMessage());
         }
-      } catch (Exception e) {
-        e.printStackTrace();
-        throw new RuntimeException(e);
-      }
     }
-    
+
     // This tests PluralFormats used inside MessageFormats.
     public void testPluralFormat() {
         {

@@ -48,7 +48,7 @@ public class DateTimeGeneratorTest extends TestFmwk {
       
       // modify the generator by adding patterns
       DateTimePatternGenerator.PatternInfo returnInfo = new DateTimePatternGenerator.PatternInfo();
-      gen.add("d'. von' MMMM", true, returnInfo); 
+      gen.addPattern("d'. von' MMMM", true, returnInfo); 
       // the returnInfo is mostly useful for debugging problem cases
       format.applyPattern(gen.getBestPattern("MMMMddHmm"));
       assertEquals("modified format: MMMddHmm", "8:58 14. von Oktober", format.format(sampleDate));
@@ -173,7 +173,8 @@ public class DateTimeGeneratorTest extends TestFmwk {
                 if (GENERATE_TEST_DATA) {
                     logln("new String[] {\"" + testSkeleton + "\", \"" + Utility.escape(formatted) + "\"},");
                 } else if (!formatted.equals(testFormatted)) {
-                    if(skipIfBeforeICU(3,7,2)&& uLocale.equals("zh_Hans_CN")){
+                    if(skipIfBeforeICU(3,8,0)&& uLocale.equals("zh_Hans_CN") && testSkeleton.equals("HHmm")){
+                        logln(uLocale + "\tformatted string doesn't match test case: " + testSkeleton + "\t generated: " +  pattern + "\t expected: " + testFormatted + "\t got: " + formatted);
                         continue;
                     }
                         
@@ -219,7 +220,7 @@ public class DateTimeGeneratorTest extends TestFmwk {
         new String[] {"yMMMd", "1999\u5E7401\u670813\u65E5"},
         new String[] {"Md", "1-13"},
         new String[] {"MMMd", "01-13"},
-        new String[] {"yQQQ", "1\u5B63 1999"},
+        new String[] {"yQQQ", "1999 Q1"},
         new String[] {"hhmm", "\u4E0B\u534811:58"},
         new String[] {"HHmm", "\u4E0B\u534811:58"},
         new String[] {"mmss", "58:59"},
@@ -228,20 +229,20 @@ public class DateTimeGeneratorTest extends TestFmwk {
         new String[] {"yMMM", "Jan 1999"},
         new String[] {"yMd", "13.1.1999"},
         new String[] {"yMMMd", "13. Jan 1999"},
-        new String[] {"Md", "13.1"},
+        new String[] {"Md", "13.1."},   // 13.1
         new String[] {"MMMd", "13. Jan"},
         new String[] {"yQQQ", "Q1 1999"},
-        new String[] {"hhmm", "11:58 nachm."},
+        new String[] {"hhmm", "23:58"},  // 11:58 nachm.
         new String[] {"HHmm", "23:58"},
         new String[] {"mmss", "58:59"},
         new ULocale("fi"),
-        new String[] {"yM", "1.1999"},
-        new String[] {"yMMM", "tammita 1999"},
+        new String[] {"yM", "1/1999"},   // 1.1999
+        new String[] {"yMMM", "tammi 1999"},  // tammita 1999
         new String[] {"yMd", "13.1.1999"},
         new String[] {"yMMMd", "13. tammita 1999"},
-        new String[] {"Md", "13.1"},
+        new String[] {"Md", "13.1."},
         new String[] {"MMMd", "13. tammita"},
-        new String[] {"yQQQ", "1. nelj. 1999"},
+        new String[] {"yQQQ", "1. nelj./1999"},  // 1. nelj. 1999
         new String[] {"hhmm", "23.58"},
         new String[] {"HHmm", "23.58"},
         new String[] {"mmss", "58.59"},

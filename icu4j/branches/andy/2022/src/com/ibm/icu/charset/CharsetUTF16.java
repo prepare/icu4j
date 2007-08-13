@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 2006, International Business Machines Corporation and    *
+* Copyright (C) 2006-2007, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 *
@@ -76,7 +76,7 @@ class CharsetUTF16 extends CharsetICU {
                         if(pos!=source.position()) {
                             /* just reset the source */
                             pos=source.position();
-                        } /*else { //this code is unreachable
+                        } else {
                             boolean oldFlush=flush;
                             int bomIndex = state&4;
                             ByteBuffer oldSource = source;
@@ -88,7 +88,7 @@ class CharsetUTF16 extends CharsetICU {
                             // restore real pointers; pArgs->source will be set in case 8/9 
                             flush = oldFlush;
                             source = oldSource;
-                        }*/
+                        }
                         state=8;
                         continue;
                     }
@@ -590,6 +590,7 @@ class CharsetUTF16 extends CharsetICU {
             super.implReset();
         }
     }
+    private static final byte UTF16BE_BOM[]={ (byte)0xfe, (byte)0xff };
     class CharsetEncoderUTF16 extends CharsetEncoderICU{
 
         public CharsetEncoderUTF16(CharsetICU cs) {
@@ -611,8 +612,7 @@ class CharsetUTF16 extends CharsetICU {
             char c;
             /* write the BOM if necessary */
             if(fromUnicodeStatus==NEED_TO_WRITE_BOM && writeBOM) {
-                byte bom[]={ (byte)0xfe, (byte)0xff };
-                cr = fromUWriteBytes(this,bom, 0, bom.length, target, offsets, -1);
+                cr = fromUWriteBytes(this, UTF16BE_BOM, 0, UTF16BE_BOM.length, target, offsets, -1);
                 if(cr.isError()){
                     return cr;
                 }

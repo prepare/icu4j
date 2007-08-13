@@ -244,7 +244,7 @@ import java.util.Vector;
  * @author Alan Liu
  * @stable ICU 2.0
  */
-public abstract class Transliterator {
+public abstract class Transliterator implements StringTransform  {
     /**
      * Direction constant indicating the forward direction in a transliterator,
      * e.g., the forward rules of a RuleBasedTransliterator.  An "A-B"
@@ -1225,8 +1225,7 @@ public abstract class Transliterator {
      * @param inLocale the ULocale in which the display name should be
      * localized.
      * @see java.text.MessageFormat
-     * @draft ICU 3.2
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 3.8
      */
     public static String getDisplayName(String id, ULocale inLocale) {
 
@@ -1675,8 +1674,7 @@ public abstract class Transliterator {
      * This is generally used to create short aliases of compound IDs.
      * @param aliasID The new ID being registered.
      * @param realID The existing ID that the new ID should be an alias of.
-     * @draft ICU 3.4.1
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 3.8
      */
     public static void registerAlias(String aliasID, String realID) {
         registry.put(aliasID, realID, true);
@@ -1898,5 +1896,14 @@ public abstract class Transliterator {
          * @stable ICU 2.0
          */
         Transliterator getInstance(String ID);
+    }
+    
+    /**
+     * Implements StringTransform via this method.
+     * @param source text to be transformed (eg lowercased)
+     * @return result
+     */
+    public String transform(String source) {
+        return transliterate(source);
     }
 }

@@ -97,22 +97,19 @@ public final class VersionInfo
 
     /**
      * Unicode 4.0.1 version
-     * @draft ICU 3.4
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 3.8
      */
     public static final VersionInfo UNICODE_4_0_1;
 
     /**
      * Unicode 4.1 version
-     * @draft ICU 3.4
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 3.8
      */
     public static final VersionInfo UNICODE_4_1;
 
     /**
      * Unicode 5.0 version
-     * @draft ICU 3.4
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 3.8
      */
     public static final VersionInfo UNICODE_5_0;
 
@@ -127,7 +124,7 @@ public final class VersionInfo
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    public static final String ICU_DATA_VERSION = "37b";
+    public static final String ICU_DATA_VERSION = "38b";
 
     /**
      * ICU4J collator runtime version
@@ -448,7 +445,7 @@ public final class VersionInfo
         UNICODE_4_0_1 = getInstance(4, 0, 1, 0);
         UNICODE_4_1   = getInstance(4, 1, 0, 0);
         UNICODE_5_0   = getInstance(4, 1, 0, 0);
-        ICU_VERSION   = getInstance(3, 7, 2, 0);
+        ICU_VERSION   = getInstance(3, 8, 0, 0);
         UCOL_RUNTIME_VERSION = getInstance(6);
         UCOL_BUILDER_VERSION = getInstance(7);
         UCOL_TAILORINGS_VERSION = getInstance(1);

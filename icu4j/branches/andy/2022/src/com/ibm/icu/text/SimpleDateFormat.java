@@ -335,8 +335,7 @@ public class SimpleDateFormat extends DateFormat {
      * Construct a SimpleDateFormat using the given pattern and locale.
      * <b>Note:</b> Not all locales support SimpleDateFormat; for full
      * generality, use the factory methods in the DateFormat class.
-     * @draft ICU 3.2
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 3.8
      */
     public SimpleDateFormat(String pattern, ULocale loc)
     {
@@ -388,6 +387,13 @@ public class SimpleDateFormat extends DateFormat {
         initialize();
     }
 
+    /**
+     * Create an instance of SimpleDateForamt for the given format configuration
+     * @param formatConfig the format configuration
+     * @return A SimpleDateFormat instance
+     * @internal ICU 3.8
+     * @deprecated This API is for internal ICU use only
+     */
     public static SimpleDateFormat getInstance(Calendar.FormatConfiguration formatConfig) {
         return new SimpleDateFormat(formatConfig.getPatternString(),
                     formatConfig.getDateFormatSymbols(),
@@ -563,9 +569,9 @@ public class SimpleDateFormat extends DateFormat {
                 if (attributes != null) {
                     // Check the sub format length
                     int end = toAppendTo.length();
-                    DateFormat.Field attr = patternCharToDateFormatField(item.type);
                     if (end - start > 0) {
                         // Append the attribute to the list
+                        DateFormat.Field attr = patternCharToDateFormatField(item.type);
                         FieldPosition fp = new FieldPosition(attr);
                         fp.setBeginIndex(start);
                         fp.setEndIndex(end);
@@ -969,14 +975,14 @@ public class SimpleDateFormat extends DateFormat {
      * PatternItem store parsed date/time field pattern information.
      */
     private static class PatternItem {
-    	final char type;
-    	final int length;
+        final char type;
+        final int length;
         final boolean isNumeric;
 
         PatternItem(char type, int length) {
-    		this.type = type;
-    		this.length = length;
-    		isNumeric = isNumeric(type, length);
+            this.type = type;
+            this.length = length;
+            isNumeric = isNumeric(type, length);
         }
     }
 
@@ -1024,11 +1030,11 @@ public class SimpleDateFormat extends DateFormat {
                 if (inQuote) {
                     text.append(ch);
                 } else {
-                	if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')) {
-                    	// a date/time pattern character
-                    	if (ch == itemType) {
-                    		itemLength++;
-                    	} else {
+                    if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')) {
+                        // a date/time pattern character
+                        if (ch == itemType) {
+                            itemLength++;
+                        } else {
                             if (itemType == 0) {
                                 if (text.length() > 0) {
                                     items.add(text.toString());
@@ -1041,7 +1047,7 @@ public class SimpleDateFormat extends DateFormat {
                             itemLength = 1;
                         }
                     } else {
-                    	// a string literal
+                        // a string literal
                         if (itemType != 0) {
                             items.add(new PatternItem(itemType, itemLength));
                             itemType = 0;

@@ -151,7 +151,6 @@ public final class CanonicalIterator {
      * @param skipZeros set to true to skip characters with canonical combining class zero
      * @param output the set to add the results to
      * @internal
-     * @deprecated This API is ICU internal only.
      */
     public static void permute(String source, boolean skipZeros, Set output) {
         // TODO: optimize
@@ -301,24 +300,24 @@ public final class CanonicalIterator {
             // if so, see which decompositions match
             int rangeCount = starts.countRanges();
             for(j = 0; j < rangeCount; ++j) {
-            	starts.getRange(j, range);
+                starts.getRange(j, range);
                 int end=range[1];
                 for (int cp2 = range[0]; cp2 <= end; ++cp2) {
-	                Set remainder = extract(cp2, segment, i, workingBuffer);
-	                if (remainder == null) continue;
-	
-	                // there were some matches, so add all the possibilities to the set.
-	                String prefix= segment.substring(0,i);
-	                prefix += UTF16.valueOf(cp2);
-	                //int el = -1;
-	                Iterator iter = remainder.iterator();
-	                while (iter.hasNext()) {
-	                    String item = (String) iter.next();
-	                    String toAdd = new String(prefix);
-	                    toAdd += item;
-	                    result.add(toAdd);
-	                    //if (PROGRESS) printf("Adding: %s\n", UToS(Tr(*toAdd)));
-	                }
+                    Set remainder = extract(cp2, segment, i, workingBuffer);
+                    if (remainder == null) continue;
+
+                    // there were some matches, so add all the possibilities to the set.
+                    String prefix= segment.substring(0,i);
+                    prefix += UTF16.valueOf(cp2);
+                    //int el = -1;
+                    Iterator iter = remainder.iterator();
+                    while (iter.hasNext()) {
+                        String item = (String) iter.next();
+                        String toAdd = new String(prefix);
+                        toAdd += item;
+                        result.add(toAdd);
+                        //if (PROGRESS) printf("Adding: %s\n", UToS(Tr(*toAdd)));
+                    }
                 }
             }
         }

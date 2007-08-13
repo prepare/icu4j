@@ -167,14 +167,94 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * @throws  java.util.MissingResourceException
      *          if the resources for the specified locale cannot be
      *          found or cannot be loaded.
-     * @draft ICU 3.2
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 3.8
      */
     public DateFormatSymbols(ULocale locale)
     {
         initializeData(locale, ""); // TODO: type?
     }
 
+    /**
+     * Gets a DateFormatSymbols instance for the default locale.
+     * <br><br>
+     * <b>Note:</b> Unlike <code>java.text.DateFormatSymbols#getInstance</code>,
+     * this method simply returns <code>new com.ibm.icu.text.DateFormatSymbols()</code>.
+     * ICU does not support <code>DateFormatSymbolsProvider</code> introduced in Java 6
+     * or its equivalent implementation for now.
+     * 
+     * @return A DateFormatSymbols instance.
+     * @stable ICU 3.8
+     */
+    public static DateFormatSymbols getInstance() {
+        return new DateFormatSymbols();
+    }
+
+    /**
+     * Gets a DateFormatSymbols instance for the given locale.
+     * <br><br>
+     * <b>Note:</b> Unlike <code>java.text.DateFormatSymbols#getInstance</code>,
+     * this method simply returns <code>new com.ibm.icu.text.DateFormatSymbols(locale)</code>.
+     * ICU does not support <code>DateFormatSymbolsProvider</code> introduced in Java 6
+     * or its equivalent implementation for now.
+     * 
+     * @param locale the locale.
+     * @return A DateFormatSymbols instance.
+     * @stable ICU 3.8
+     */
+    public static DateFormatSymbols getInstance(Locale locale) {
+        return new DateFormatSymbols(locale);
+    }
+
+    /**
+     * Gets a DateFormatSymbols instance for the given locale.
+     * <br><br>
+     * <b>Note:</b> Unlike <code>java.text.DateFormatSymbols#getInstance</code>,
+     * this method simply returns <code>new com.ibm.icu.text.DateFormatSymbols(locale)</code>.
+     * ICU does not support <code>DateFormatSymbolsProvider</code> introduced in Java 6
+     * or its equivalent implementation for now.
+     * 
+     * @param locale the locale.
+     * @return A DateFormatSymbols instance.
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
+     */
+    public static DateFormatSymbols getInstance(ULocale locale) {
+        return new DateFormatSymbols(locale);
+    }
+
+    /**
+     * Returns an array of all locales for which the <code>getInstance</code> methods of this
+     * class can return localized instances.
+     * <br><br>
+     * <b>Note:</b> Unlike <code>java.text.DateFormatSymbols#getAvailableLocales</code>,
+     * this method simply returns the array of <code>Locale</code>s available in this class.
+     * ICU does not support <code>DateFormatSymbolsProvider</code> introduced in Java 6
+     * or its equivalent implementation for now.
+     * 
+     * @return An array of <code>Locale</code>s for which localized <code>DateFormatSymbols</code> instances are available.
+     * @stable ICU 3.8
+     */
+    public static Locale[] getAvailableLocales() {
+        return ICUResourceBundle.getAvailableLocales(ICUResourceBundle.ICU_BASE_NAME);
+    }
+
+    /**
+     * Returns an array of all locales for which the <code>getInstance</code> methods of this
+     * class can return localized instances.
+     * <br><br>
+     * <b>Note:</b> Unlike <code>java.text.DateFormatSymbols#getAvailableLocales</code>,
+     * this method simply returns the array of <code>ULocale</code>s available in this class.
+     * ICU does not support <code>DateFormatSymbolsProvider</code> introduced in Java 6
+     * or its equivalent implementation for now.
+     * 
+     * @return An array of <code>ULocale</code>s for which localized <code>DateFormatSymbols</code> instances are available.
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
+     */
+    public static ULocale[] getAvailableULocales() {
+        return ICUResourceBundle.getAvailableULocales(ICUResourceBundle.ICU_BASE_NAME);        
+    }
+    
     /**
      * Era strings. For example: "AD" and "BC".  An array of 2 strings,
      * indexed by <code>Calendar.BC</code> and <code>Calendar.AD</code>.
@@ -417,8 +497,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
     /**
      * Gets era name strings. For example: "Anno Domini" and "Before Christ".
      * @return the era strings.
-     * @draft ICU 3.4
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 3.8
      */
     public String[] getEraNames() {
         return duplicate(eraNames);
@@ -427,8 +506,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
     /**
      * Sets era name strings. For example: "Anno Domini" and "Before Christ".
      * @param newEraNames the new era strings.
-     * @draft ICU 3.8
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 3.8
      */
     public void setEraNames(String[] newEraNames) {
         eraNames = duplicate(newEraNames);
@@ -449,8 +527,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * @param width      The width or the returned month string,
      *                   either WIDE, ABBREVIATED, or NARROW.
      * @return the month strings.
-     * @draft ICU 3.4
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 3.8
      */
     public String[] getMonths(int context, int width) {
         String [] returnValue = null;
@@ -500,8 +577,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * @param context    The formatting context, FORMAT or STANDALONE.
      * @param width      The width of the month string,
      *                   either WIDE, ABBREVIATED, or NARROW.
-     * @draft ICU 3.8
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 3.8
      */
     public void setMonths(String[] newMonths, int context, int width) {
         switch (context) {
@@ -569,8 +645,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * @param context    Formatting context, either FORMAT or STANDALONE.
      * @param width      Width of strings to be returned, either
      *                   WIDE, ABBREVIATED, or NARROW
-     * @draft ICU 3.4
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 3.8
      */
     public String[] getWeekdays(int context, int width) {
         String [] returnValue = null;
@@ -611,8 +686,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * @param context     The formatting context, FORMAT or STANDALONE.
      * @param width       The width of the strings,
      *                    either WIDE, ABBREVIATED, or NARROW.
-     * @draft ICU 3.8
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 3.8
      */
     public void setWeekdays(String[] newWeekdays, int context, int width) {
         switch (context) {
@@ -856,11 +930,11 @@ public class DateFormatSymbols implements Serializable, Cloneable {
             tzStrings = zii.tzStrings;
         }
         for(int i = 0; i < tzStrings.length; i++) {
-        	for (int j = 0; j < tzStrings[i].length; j++) {
-        		if (tzStrings[i][j] != null) {
-            		hashcode ^= tzStrings[i][j].hashCode();
-        		}
-        	}
+            for (int j = 0; j < tzStrings[i].length; j++) {
+                if (tzStrings[i][j] != null) {
+                    hashcode ^= tzStrings[i][j].hashCode();
+                }
+            }
         }
         return hashcode;
     }
@@ -1272,7 +1346,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
         String theTime = df.format(cal.getTime());
         int mz_index = 8;
         while ( mz_index < names.length ) {
-	   if ( names[mz_index] != null && 
+       if ( names[mz_index] != null && 
                 names[mz_index+1].compareTo(theTime) <= 0 &&  
                 names[mz_index+2].compareTo(theTime) >  0 ) {
                  mzid = "meta/"+names[mz_index];
@@ -1612,8 +1686,8 @@ public class DateFormatSymbols implements Serializable, Cloneable {
                                    LONG_DAYLIGHT  = "ld",
                                    EXEMPLAR_CITY  = "ec",
                                    USES_METAZONE  = "um",
-                                   METAZONE       = "mz",
-                                   COMMONLY_USED  = "cu";
+                                   METAZONE       = "mz";
+                                   //COMMONLY_USED  = "cu";
     /*
      * The translation type of the translated zone strings
      */
@@ -1826,8 +1900,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * @param locale    The ulocale whose symbols are desired.
      *
      * @see DateFormatSymbols#DateFormatSymbols(java.util.Locale)
-     * @draft ICU 3.2
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 3.8
      */
     public DateFormatSymbols(Calendar cal, ULocale locale) {
         initializeData(locale, cal.getType());
@@ -1847,8 +1920,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * Variant of DateFormatSymbols(Calendar, ULocale) that takes the Calendar class
      * instead of a Calandar instance.
      * @see #DateFormatSymbols(Calendar, Locale)
-     * @draft ICU 3.2
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 3.8
      */
     public DateFormatSymbols(Class calendarClass, ULocale locale) {
         String fullName = calendarClass.getName();
@@ -1875,8 +1947,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * bundle.  Symbols that are not overridden are inherited from the
      * default DateFormatSymbols for the locale.
      * @see DateFormatSymbols#DateFormatSymbols(java.util.Locale)
-     * @draft ICU 3.2
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 3.8
      */
     public DateFormatSymbols(ResourceBundle bundle, ULocale locale) {
         initializeData(locale, 
@@ -1908,8 +1979,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * (just before the class name) and "Symbols" appended to the end.
      * For example, the bundle corresponding to "com.ibm.icu.util.HebrewCalendar"
      * is "com.ibm.icu.impl.data.HebrewCalendarSymbols".
-     * @draft ICU 3.2
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 3.8
      */
     static public ResourceBundle getDateFormatBundle(Class calendarClass, ULocale locale)
         throws MissingResourceException {
@@ -1955,8 +2025,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * Variant of getDateFormatBundle(java.lang.Class, java.util.Locale) that takes
      * a Calendar instance instead of a Calendar class.
      * @see #getDateFormatBundle(java.lang.Class, java.util.Locale)
-     * @draft ICU 3.2
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 3.8
      */
     public static ResourceBundle getDateFormatBundle(Calendar cal, ULocale locale)
         throws MissingResourceException {

@@ -708,122 +708,102 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
         /* New blocks in Unicode 4.1 */
 
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int ANCIENT_GREEK_MUSICAL_NOTATION_ID = 126; /*[1D200]*/
 
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int ANCIENT_GREEK_NUMBERS_ID = 127; /*[10140]*/
 
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int ARABIC_SUPPLEMENT_ID = 128; /*[0750]*/
 
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int BUGINESE_ID = 129; /*[1A00]*/
 
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int CJK_STROKES_ID = 130; /*[31C0]*/
 
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int COMBINING_DIACRITICAL_MARKS_SUPPLEMENT_ID = 131; /*[1DC0]*/
 
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int COPTIC_ID = 132; /*[2C80]*/
 
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int ETHIOPIC_EXTENDED_ID = 133; /*[2D80]*/
 
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int ETHIOPIC_SUPPLEMENT_ID = 134; /*[1380]*/
 
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int GEORGIAN_SUPPLEMENT_ID = 135; /*[2D00]*/
 
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int GLAGOLITIC_ID = 136; /*[2C00]*/
 
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int KHAROSHTHI_ID = 137; /*[10A00]*/
 
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int MODIFIER_TONE_LETTERS_ID = 138; /*[A700]*/
 
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int NEW_TAI_LUE_ID = 139; /*[1980]*/
 
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int OLD_PERSIAN_ID = 140; /*[103A0]*/
 
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int PHONETIC_EXTENSIONS_SUPPLEMENT_ID = 141; /*[1D80]*/
 
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int SUPPLEMENTAL_PUNCTUATION_ID = 142; /*[2E00]*/
 
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int SYLOTI_NAGRI_ID = 143; /*[A800]*/
 
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int TIFINAGH_ID = 144; /*[2D30]*/
 
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int VERTICAL_FORMS_ID = 145; /*[FE10]*/
 
@@ -1550,122 +1530,102 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
         /* New blocks in Unicode 4.1 */
 
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final UnicodeBlock ANCIENT_GREEK_MUSICAL_NOTATION = new UnicodeBlock("ANCIENT_GREEK_MUSICAL_NOTATION", ANCIENT_GREEK_MUSICAL_NOTATION_ID); /*[1D200]*/
 
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final UnicodeBlock ANCIENT_GREEK_NUMBERS = new UnicodeBlock("ANCIENT_GREEK_NUMBERS", ANCIENT_GREEK_NUMBERS_ID); /*[10140]*/
 
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final UnicodeBlock ARABIC_SUPPLEMENT = new UnicodeBlock("ARABIC_SUPPLEMENT", ARABIC_SUPPLEMENT_ID); /*[0750]*/
 
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final UnicodeBlock BUGINESE = new UnicodeBlock("BUGINESE", BUGINESE_ID); /*[1A00]*/
 
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final UnicodeBlock CJK_STROKES = new UnicodeBlock("CJK_STROKES", CJK_STROKES_ID); /*[31C0]*/
 
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final UnicodeBlock COMBINING_DIACRITICAL_MARKS_SUPPLEMENT = new UnicodeBlock("COMBINING_DIACRITICAL_MARKS_SUPPLEMENT", COMBINING_DIACRITICAL_MARKS_SUPPLEMENT_ID); /*[1DC0]*/
 
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final UnicodeBlock COPTIC = new UnicodeBlock("COPTIC", COPTIC_ID); /*[2C80]*/
 
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final UnicodeBlock ETHIOPIC_EXTENDED = new UnicodeBlock("ETHIOPIC_EXTENDED", ETHIOPIC_EXTENDED_ID); /*[2D80]*/
 
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final UnicodeBlock ETHIOPIC_SUPPLEMENT = new UnicodeBlock("ETHIOPIC_SUPPLEMENT", ETHIOPIC_SUPPLEMENT_ID); /*[1380]*/
 
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final UnicodeBlock GEORGIAN_SUPPLEMENT = new UnicodeBlock("GEORGIAN_SUPPLEMENT", GEORGIAN_SUPPLEMENT_ID); /*[2D00]*/
 
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final UnicodeBlock GLAGOLITIC = new UnicodeBlock("GLAGOLITIC", GLAGOLITIC_ID); /*[2C00]*/
 
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final UnicodeBlock KHAROSHTHI = new UnicodeBlock("KHAROSHTHI", KHAROSHTHI_ID); /*[10A00]*/
 
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final UnicodeBlock MODIFIER_TONE_LETTERS = new UnicodeBlock("MODIFIER_TONE_LETTERS", MODIFIER_TONE_LETTERS_ID); /*[A700]*/
 
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final UnicodeBlock NEW_TAI_LUE = new UnicodeBlock("NEW_TAI_LUE", NEW_TAI_LUE_ID); /*[1980]*/
 
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final UnicodeBlock OLD_PERSIAN = new UnicodeBlock("OLD_PERSIAN", OLD_PERSIAN_ID); /*[103A0]*/
 
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final UnicodeBlock PHONETIC_EXTENSIONS_SUPPLEMENT = new UnicodeBlock("PHONETIC_EXTENSIONS_SUPPLEMENT", PHONETIC_EXTENSIONS_SUPPLEMENT_ID); /*[1D80]*/
 
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final UnicodeBlock SUPPLEMENTAL_PUNCTUATION = new UnicodeBlock("SUPPLEMENTAL_PUNCTUATION", SUPPLEMENTAL_PUNCTUATION_ID); /*[2E00]*/
 
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final UnicodeBlock SYLOTI_NAGRI = new UnicodeBlock("SYLOTI_NAGRI", SYLOTI_NAGRI_ID); /*[A800]*/
 
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final UnicodeBlock TIFINAGH = new UnicodeBlock("TIFINAGH", TIFINAGH_ID); /*[2D30]*/
 
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final UnicodeBlock VERTICAL_FORMS = new UnicodeBlock("VERTICAL_FORMS", VERTICAL_FORMS_ID); /*[FE10]*/
 
@@ -2335,63 +2295,51 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
     /**
      * Grapheme Cluster Break constants.
      * @see UProperty#GRAPHEME_CLUSTER_BREAK
-     * @draft ICU 3.4
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 3.8
      */
     public static interface GraphemeClusterBreak {
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int OTHER = 0;
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int CONTROL = 1;
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int CR = 2;
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int EXTEND = 3;
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int L = 4;
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int LF = 5;
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int LV = 6;
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int LVT = 7;
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int T = 8;
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int V = 9;
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int COUNT = 10;
     }
@@ -2399,53 +2347,43 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
     /**
      * Word Break constants.
      * @see UProperty#WORD_BREAK
-     * @draft ICU 3.4
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 3.8
      */
     public static interface WordBreak {
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int OTHER = 0;
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int ALETTER = 1;
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int FORMAT = 2;
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int KATAKANA = 3;
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int MIDLETTER = 4;
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int MIDNUM = 5;
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int NUMERIC = 6;
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int EXTENDNUMLET = 7;
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int COUNT = 8;
     }
@@ -2453,68 +2391,55 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
     /**
      * Sentence Break constants.
      * @see UProperty#SENTENCE_BREAK
-     * @draft ICU 3.4
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 3.8
      */
     public static interface SentenceBreak {
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int OTHER = 0;
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int ATERM = 1;
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int CLOSE = 2;
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int FORMAT = 3;
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int LOWER = 4;
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int NUMERIC = 5;
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int OLETTER = 6;
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int SEP = 7;
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int SP = 8;
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int STERM = 9;
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int UPPER = 10;
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int COUNT = 11;
     }
@@ -2662,28 +2587,23 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
         /* from here on: new in Unicode 4.1/ICU 3.4 */
 
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int  H2 = 31;
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int  H3 = 32;
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int  JL = 33;
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int  JT = 34;
         /**
-         * @draft ICU 3.4
-         * @provisional This API might change or be removed in a future release.
+         * @stable ICU 3.8
          */
         public static final int  JV = 35;
 
@@ -2801,17 +2721,52 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
 
     /**
      * Compatibility constant for Java Character's MIN_RADIX.
-     * @draft ICU 3.4
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 3.8
      */
     public static final int MIN_RADIX = java.lang.Character.MIN_RADIX;
 
     /**
      * Compatibility constant for Java Character's MAX_RADIX.
-     * @draft ICU 3.4
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 3.8
      */
     public static final int MAX_RADIX = java.lang.Character.MAX_RADIX;
+
+    /**
+     * Do not lowercase non-initial parts of words when titlecasing.
+     * Option bit for titlecasing APIs that take an options bit set.
+     *
+     * By default, titlecasing will titlecase the first cased character
+     * of a word and lowercase all other characters.
+     * With this option, the other characters will not be modified.
+     *
+     * @see #toTitleCase
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
+     */
+    public static final int TITLECASE_NO_LOWERCASE = 0x100;
+
+    /**
+     * Do not adjust the titlecasing indexes from BreakIterator::next() indexes;
+     * titlecase exactly the characters at breaks from the iterator.
+     * Option bit for titlecasing APIs that take an options bit set.
+     *
+     * By default, titlecasing will take each break iterator index,
+     * adjust it by looking for the next cased character, and titlecase that one.
+     * Other characters are lowercased.
+     *
+     * This follows Unicode 4 & 5 section 3.13 Default Case Operations:
+     *
+     * R3  toTitlecase(X): Find the word boundaries based on Unicode Standard Annex
+     * #29, "Text Boundaries." Between each pair of word boundaries, find the first
+     * cased character F. If F exists, map F to default_title(F); then map each
+     * subsequent character C to default_lower(C).
+     *
+     * @see #toTitleCase
+     * @see #TITLECASE_NO_LOWERCASE
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
+     */
+    public static final int TITLECASE_NO_BREAK_ADJUSTMENT = 0x200;
 
     // public methods ----------------------------------------------------
       
@@ -3048,8 +3003,8 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
      * @deprecated ICU 3.4 (Java)
      */
     public static boolean isSpace(int ch) {
-    	return ch <= 0x20 &&
-    		(ch == 0x20 || ch == 0x09 || ch == 0x0a || ch == 0x0c || ch == 0x0d);
+        return ch <= 0x20 &&
+            (ch == 0x20 || ch == 0x09 || ch == 0x0a || ch == 0x0c || ch == 0x0d);
     }
 
     /**
@@ -3167,7 +3122,7 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
      * @deprecated ICU 3.4 (Java)
      */
     public static boolean isJavaLetter(int cp) {
-	return isJavaIdentifierStart(cp);
+        return isJavaIdentifierStart(cp);
     }
 
     /**
@@ -3179,7 +3134,7 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
      * @deprecated ICU 3.4 (Java)
      */
     public static boolean isJavaLetterOrDigit(int cp) {
-	return isJavaIdentifierPart(cp);
+        return isJavaIdentifierPart(cp);
     }
 
     /**
@@ -3187,12 +3142,11 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
      * java.lang.Character.isJavaIdentifierStart.
      * @param cp the code point
      * @return true if the code point can start a java identifier.
-     * @draft ICU 3.4
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 3.8
      */
     public static boolean isJavaIdentifierStart(int cp) {
-	// note, downcast to char for jdk 1.4 compatibility
-	return java.lang.Character.isJavaIdentifierStart((char)cp);
+        // note, downcast to char for jdk 1.4 compatibility
+        return java.lang.Character.isJavaIdentifierStart((char)cp);
     }
 
     /**
@@ -3200,12 +3154,11 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
      * java.lang.Character.isJavaIdentifierPart.
      * @param cp the code point
      * @return true if the code point can continue a java identifier.
-     * @draft ICU 3.4
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 3.8
      */
     public static boolean isJavaIdentifierPart(int cp) {
-	// note, downcast to char for jdk 1.4 compatibility
-	return java.lang.Character.isJavaIdentifierPart((char)cp);
+        // note, downcast to char for jdk 1.4 compatibility
+        return java.lang.Character.isJavaIdentifierPart((char)cp);
     }
 
     /**
@@ -4147,6 +4100,13 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
         }
 
         /**
+         * Move to the iteration limit without fetching code points up to there.
+         */
+        public void moveToLimit() {
+            cpStart=cpLimit=limit;
+        }
+
+        /**
          * Iterate forward through the string to fetch the next code point
          * to be case-mapped, and set the context indexes for it.
          * Performance optimization, to save on function calls and redundant
@@ -4187,6 +4147,14 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
          */
         public int getCPStart() {
             return cpStart;
+        }
+
+        /**
+         * Get the limit of the code point that was last returned
+         * by nextCaseMapCP().
+         */
+        public int getCPLimit() {
+            return cpLimit;
         }
 
         // implement UCaseProps.ContextIterator
@@ -4254,7 +4222,7 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
     /**
      * <p>Gets the titlecase version of the argument string.</p>
      * <p>Position for titlecasing is determined by the argument break 
-     * iterator, hence the user can customized his break iterator for 
+     * iterator, hence the user can customize his break iterator for 
      * a specialized titlecasing. In this case only the forward iteration 
      * needs to be implemented.
      * If the break iterator passed in is null, the default Unicode algorithm
@@ -4293,8 +4261,7 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
      * @param locale which string is to be converted in
      * @param str source string to be performed on
      * @return uppercase version of the argument string
-     * @draft ICU 3.2
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 3.8
      */
     public static String toUpperCase(ULocale locale, String str) {
         StringContextIterator iter = new StringContextIterator(str);
@@ -4347,8 +4314,7 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
      * @param locale which string is to be converted in
      * @param str source string to be performed on
      * @return lowercase version of the argument string
-     * @draft ICU 3.2
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 3.8
      */
     public static String toLowerCase(ULocale locale, String str) {
         StringContextIterator iter = new StringContextIterator(str);
@@ -4385,7 +4351,7 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
     /**
      * <p>Gets the titlecase version of the argument string.</p>
      * <p>Position for titlecasing is determined by the argument break 
-     * iterator, hence the user can customized his break iterator for 
+     * iterator, hence the user can customize his break iterator for 
      * a specialized titlecasing. In this case only the forward iteration 
      * needs to be implemented.
      * If the break iterator passed in is null, the default Unicode algorithm
@@ -4410,7 +4376,7 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
     /**
      * <p>Gets the titlecase version of the argument string.</p>
      * <p>Position for titlecasing is determined by the argument break 
-     * iterator, hence the user can customized his break iterator for 
+     * iterator, hence the user can customize his break iterator for 
      * a specialized titlecasing. In this case only the forward iteration 
      * needs to be implemented.
      * If the break iterator passed in is null, the default Unicode algorithm
@@ -4424,11 +4390,39 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
      * @param titleIter break iterator to determine the positions in which
      *        the character should be title cased.
      * @return lowercase version of the argument string
-     * @draft ICU 3.2
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 3.8
      */
     public static String toTitleCase(ULocale locale, String str, 
                                      BreakIterator titleIter) {
+        return toTitleCase(locale, str, titleIter, 0);
+    }
+
+    /**
+     * <p>Gets the titlecase version of the argument string.</p>
+     * <p>Position for titlecasing is determined by the argument break 
+     * iterator, hence the user can customize his break iterator for 
+     * a specialized titlecasing. In this case only the forward iteration 
+     * needs to be implemented.
+     * If the break iterator passed in is null, the default Unicode algorithm
+     * will be used to determine the titlecase positions.
+     * </p>
+     * <p>Only positions returned by the break iterator will be title cased,
+     * character in between the positions will all be in lower case.</p>
+     * <p>Casing is dependent on the argument locale and context-sensitive</p>
+     * @param locale which string is to be converted in
+     * @param str source string to be performed on
+     * @param titleIter break iterator to determine the positions in which
+     *        the character should be title cased.
+     * @param options bit set to modify the titlecasing operation
+     * @return lowercase version of the argument string
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
+     * @see #TITLECASE_NO_LOWERCASE
+     * @see #TITLECASE_NO_BREAK_ADJUSTMENT
+     */
+    public static String toTitleCase(ULocale locale, String str, 
+                                     BreakIterator titleIter,
+                                     int options) {
         StringContextIterator iter = new StringContextIterator(str);
         StringBuffer result = new StringBuffer(str.length());
         int[] locCache = new int[1];
@@ -4480,11 +4474,16 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
             if(prev<index) {
                 /* find and copy uncased characters [prev..titleStart[ */
                 iter.setLimit(index);
-                while((c=iter.nextCaseMapCP())>=0 && UCaseProps.NONE==gCsp.getType(c)) {}
-                titleStart=iter.getCPStart();
-                if(prev<titleStart) {
-                    // TODO: With Java 5, this would want to be result.append(str, prev, titleStart);
-                    result.append(str.substring(prev, titleStart));
+                c=iter.nextCaseMapCP();
+                if((options&TITLECASE_NO_BREAK_ADJUSTMENT)==0 && UCaseProps.NONE==gCsp.getType(c)) {
+                    while((c=iter.nextCaseMapCP())>=0 && UCaseProps.NONE==gCsp.getType(c)) {}
+                    titleStart=iter.getCPStart();
+                    if(prev<titleStart) {
+                        // TODO: With Java 5, this would want to be result.append(str, prev, titleStart);
+                        result.append(str.substring(prev, titleStart));
+                    }
+                } else {
+                    titleStart=prev;
                 }
 
                 if(titleStart<index) {
@@ -4511,8 +4510,18 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
                                 UTF16.append(result, c);
                             }
                         }
-                        
-                        if((c=iter.nextCaseMapCP())>=0) {
+
+                        if((options&TITLECASE_NO_LOWERCASE)!=0) {
+                            /* Optionally just copy the rest of the word unchanged. */
+                            int titleLimit=iter.getCPLimit();
+                            if(titleLimit<index) {
+                                // TODO: With Java 5, this would want to be result.append(str, titleLimit, index);
+                                result.append(str.substring(titleLimit, index));
+                                iter.moveToLimit();
+                                break;
+                            }
+                        } else if((c=iter.nextCaseMapCP())>=0) {
+                            /* Normal operation: Lowercase the rest of the word. */
                             c=gCsp.toFullLower(c, iter, result, locale, locCache);
                         } else {
                             break;

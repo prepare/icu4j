@@ -1,6 +1,6 @@
 /**
  *******************************************************************************
- * Copyright (C) 2001-2004, International Business Machines Corporation and    *
+ * Copyright (C) 2001-2007, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -15,7 +15,7 @@ import java.util.*;
  */
 public class JamoTest extends TransliteratorTest {
 
-    private static final char SEP = '\'';
+    private static final char SEP = '-';
 
     public static void main(String[] args) throws Exception {
         new JamoTest().run(args);
@@ -34,25 +34,45 @@ public class JamoTest extends TransliteratorTest {
 
             // Column 3 is expected value of L2.  If the expected
             // value of L2 is L1, then L2 is null.
+ 
+                // add tests for the update to fix problems where it didn't follow the standard
+                // see also http://www.unicode.org/cldr/data/charts/transforms/Latin-Hangul.html
+                "gach", "(Gi)(A)(Cf)", null,
+                "geumhui", "(Gi)(EU)(Mf)(Hi)(YI)", null,
+                "choe", "(Ci)(OE)", null,
+                "wo", "(IEUNG)(WEO)", null,
+                "Wonpil", "(IEUNG)(WEO)(Nf)(Pi)(I)(L)", "wonpil",
+                "GIPPEUM", "(Gi)(I)(BB)(EU)(Mf)", "gippeum",
+                "EUTTEUM", "(IEUNG)(EU)(DD)(EU)(Mf)", "eutteum",
+                "KKOTNAE", "(GGi)(O)(Tf)(Ni)(AE)", "kkotnae",
+                "gaga", "(Gi)(A)(Gi)(A)", null,
+                "gag-a", "(Gi)(A)(Gf)(IEUNG)(A)", null,
+                "gak-ka", "(Gi)(A)(Kf)(Ki)(A)", null,
+                "gakka", "(Gi)(A)(GGi)(A)", null,
+                "gakk-a", "(Gi)(A)(GGf)(IEUNG)(A)", null,
+                "gakkka", "(Gi)(A)(GGf)(Ki)(A)", null,
+                "gak-kka", "(Gi)(A)(Kf)(GGi)(A)", null,
+
             "bab", "(Bi)(A)(Bf)", null,
-            "babb", "(Bi)(A)(Bf)(Bi)(EU)", "bab"+SEP+"beu",
-            "babbba", "(Bi)(A)(Bf)(BB)(A)", null,
-            "bagg", "(Bi)(A)(GGf)", null,
-            "baggga", "(Bi)(A)(GGf)(Gi)(A)", null,
-            "bag"+SEP+"gga", "(Bi)(A)(Gf)(GGi)(A)", null,
+            "babb", "(Bi)(A)(Bf)(Bi)(EU)", "babbeu",
+            "babbba", "(Bi)(A)(Bf)(Bi)(EU)(Bi)(A)", "babbeuba",
+            "bagg", "(Bi)(A)(Gf)(Gi)(EU)", "baggeu",
+            "baggga", "(Bi)(A)(Gf)(Gi)(EU)(Gi)(A)", "baggeuga",
+            //"bag"+SEP+"gga", "(Bi)(A)(Gf)"+SEP+"(Gi)(EU)(Gi)(A)", "bag"+SEP+"geuga",
             "kabsa", "(Ki)(A)(Bf)(Si)(A)", null,
             "kabska", "(Ki)(A)(BS)(Ki)(A)", null,
             "gabsbka", "(Gi)(A)(BS)(Bi)(EU)(Ki)(A)", "gabsbeuka", // not (Kf)
-            "gga", "(GGi)(A)", null,
+            "gga", "(Gi)(EU)(Gi)(A)", "geuga",
             "bsa", "(Bi)(EU)(Si)(A)", "beusa",
-            "agg", "(IEUNG)(A)(GGf)", null,
-            "agga", "(IEUNG)(A)(GGi)(A)", null,
-            "la", "(R)(A)", "ra",
+            "agg", "(IEUNG)(A)(Gf)(Gi)(EU)", "aggeu",
+            "agga", "(IEUNG)(A)(Gf)(Gi)(A)", null,
+            "la", "(R)(A)", null,
             "bs", "(Bi)(EU)(Sf)", "beus",
-            "kalgga", "(Ki)(A)(L)(GGi)(A)", null,
+            "kalgga", "(Ki)(A)(L)(Gi)(EU)(Gi)(A)", "kalgeuga",
 
             // 'r' in a final position is treated like 'l'
             "karka", "(Ki)(A)(L)(Ki)(A)", "kalka",
+            
         };
 
         for (int i=0; i<CASE.length; i+=3) {
@@ -109,6 +129,7 @@ public class JamoTest extends TransliteratorTest {
         String hangul = "\uBC0F";
         String jamo = nameToJamo("(Mi)(I)(Cf)");
         String latin = "mic";
+        String latin2 = "mich";
 
         Transliterator t = null;
 
@@ -122,10 +143,10 @@ public class JamoTest extends TransliteratorTest {
         expect(t, latin, jamo);
 
         t = Transliterator.getInstance("Jamo-Latin");
-        expect(t, jamo, latin);
+        expect(t, jamo, latin2);
 
         t = Transliterator.getInstance("Hangul-Latin");
-        expect(t, hangul, latin);
+        expect(t, hangul, latin2);
 
         t = Transliterator.getInstance("Latin-Hangul");
         expect(t, latin, hangul);
@@ -299,8 +320,12 @@ public class JamoTest extends TransliteratorTest {
         "\ubd80\ubd84\uc744 \ucc28\uc9c0\ud558\uace0 \uc788\uc2b5\ub2c8\ub2e4. " +
         
         "\uc720\ub2c8\ucf54\ub4dc\ub97c " +
-        "\ud074\ub77c\uc774\uc5b8\ud2b8-\uc11c\ubc84 \ub610\ub294 " +
-        "\ub2e4\uc911-\uc5f0\uacb0 \uc751\uc6a9 \ud504\ub85c\uadf8\ub7a8\uacfc " +
+// Replaced a hyphen with a space to make the test case work with CLDR1.5
+//        "\ud074\ub77c\uc774\uc5b8\ud2b8-\uc11c\ubc84 \ub610\ub294 " +
+        "\ud074\ub77c\uc774\uc5b8\ud2b8 \uc11c\ubc84 \ub610\ub294 " +
+// Replaced a hyphen with a space.
+//        "\ub2e4\uc911-\uc5f0\uacb0 \uc751\uc6a9 \ud504\ub85c\uadf8\ub7a8\uacfc " +
+        "\ub2e4\uc911 \uc5f0\uacb0 \uc751\uc6a9 \ud504\ub85c\uadf8\ub7a8\uacfc " +
         "\uc6f9 \uc0ac\uc774\ud2b8\uc5d0 \ud1b5\ud569\ud558\uba74 " +
         "\ub808\uac70\uc2dc \ubb38\uc790 \uc138\ud2b8 \uc0ac\uc6a9\uc5d0 " +
         "\uc788\uc5b4\uc11c \uc0c1\ub2f9\ud55c \ube44\uc6a9 \uc808\uac10 " +

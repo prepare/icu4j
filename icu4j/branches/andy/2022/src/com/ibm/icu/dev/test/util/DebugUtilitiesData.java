@@ -5,24 +5,27 @@
 package com.ibm.icu.dev.test.util;
 
 public class DebugUtilitiesData extends Object {
-    public static final String ICU4C_VERSION="3.7.2";
+    public static final String ICU4C_VERSION="3.8";
     public static final int UDebugEnumType = 0;
     public static final int UCalendarDateFields = 1;
     public static final int UCalendarMonths = 2;
+    public static final int UDateFormatStyle = 3;
     public static final String [] TYPES = { 
         "UDebugEnumType", /* 0 */
         "UCalendarDateFields", /* 1 */
         "UCalendarMonths", /* 2 */
+        "UDateFormatStyle", /* 3 */
     };
 
     public static final String [][] NAMES = { 
-        /* UDebugEnumType */
+        /* UDebugEnumType, 0 */
         { 
            "UDebugEnumType", /* 0 */ 
            "UCalendarDateFields", /* 1 */ 
            "UCalendarMonths", /* 2 */ 
+           "UDateFormatStyle", /* 3 */ 
         },
-        /* UCalendarDateFields */
+        /* UCalendarDateFields, 1 */
         { 
            "ERA", /* 0 */ 
            "YEAR", /* 1 */ 
@@ -47,7 +50,7 @@ public class DebugUtilitiesData extends Object {
            "JULIAN_DAY", /* 20 */ 
            "MILLISECONDS_IN_DAY", /* 21 */ 
         },
-        /* UCalendarMonths */
+        /* UCalendarMonths, 2 */
         { 
            "JANUARY", /* 0 */ 
            "FEBRUARY", /* 1 */ 
@@ -63,16 +66,24 @@ public class DebugUtilitiesData extends Object {
            "DECEMBER", /* 11 */ 
            "UNDECIMBER", /* 12 */ 
         },
+        /* UDateFormatStyle, 3 */
+        { 
+           "FULL", /* 0 */ 
+           "LONG", /* 1 */ 
+           "MEDIUM", /* 2 */ 
+           "SHORT", /* 3 */ 
+        },
     };
 
     public static final int [][] VALUES = { 
-        /* UDebugEnumType */
+        /* UDebugEnumType, 0 */
         { 
            0, /* UDebugEnumType */
            1, /* UCalendarDateFields */
            2, /* UCalendarMonths */
+           3, /* UDateFormatStyle */
         },
-        /* UCalendarDateFields */
+        /* UCalendarDateFields, 1 */
         { 
            com.ibm.icu.util.Calendar.ERA, /* 0 */
            com.ibm.icu.util.Calendar.YEAR, /* 1 */
@@ -97,7 +108,7 @@ public class DebugUtilitiesData extends Object {
            com.ibm.icu.util.Calendar.JULIAN_DAY, /* 20 */
            com.ibm.icu.util.Calendar.MILLISECONDS_IN_DAY, /* 21 */
         },
-        /* UCalendarMonths */
+        /* UCalendarMonths, 2 */
         { 
            com.ibm.icu.util.Calendar.JANUARY, /* 0 */
            com.ibm.icu.util.Calendar.FEBRUARY, /* 1 */
@@ -112,6 +123,13 @@ public class DebugUtilitiesData extends Object {
            com.ibm.icu.util.Calendar.NOVEMBER, /* 10 */
            com.ibm.icu.util.Calendar.DECEMBER, /* 11 */
            com.ibm.icu.util.Calendar.UNDECIMBER, /* 12 */
+        },
+        /* UDateFormatStyle, 3 */
+        { 
+           0, /* FULL */
+           1, /* LONG */
+           2, /* MEDIUM */
+           3, /* SHORT */
         },
     };
 

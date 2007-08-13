@@ -30,22 +30,23 @@ public class TestInverse extends BidiTest {
         "\u0061\u0062\u0020\u0061\u0062\u0020\u0661\u0662"
     };
 
-    public void testInverseBidi() {
+    public void testInverse() {
         Bidi bidi;
         int i;
 
         logln("\nEntering TestInverse\n");
         bidi = new Bidi();
-        log("inverse Bidi: testInverseBidi(L) with " + testCases.length +
+        log("inverse Bidi: testInverse(L) with " + testCases.length +
             " test cases ---\n");
         for(i = 0; i < testCases.length; ++i) {
+            logln("Testing case " + i);
             _testInverseBidi(bidi, testCases[i], Bidi.DIRECTION_LEFT_TO_RIGHT);
         }
 
-        log("inverse BiDi: testInverseBiDi(R) with " + testCases.length +
+        log("inverse Bidi: testInverse(R) with " + testCases.length +
             " test cases ---\n");
         for (i = 0; i < testCases.length; ++i) {
-        logln("Testing case " + i);
+            logln("Testing case " + i);
             _testInverseBidi(bidi, testCases[i], Bidi.DIRECTION_RIGHT_TO_LEFT);
         }
 
@@ -56,6 +57,10 @@ public class TestInverse extends BidiTest {
               "   non-roundtrips: " + countNonRoundtrips);
 
         _testWriteReverse();
+
+        _testManyAddedPoints();
+
+        _testMisc();
 
         logln("\nExiting TestInverse\n");
     }
@@ -75,10 +80,9 @@ public class TestInverse extends BidiTest {
         int i, j, k;
 
         log("inverse Bidi: testManyInverseBiDi(" +
-              (direction == Bidi.DIRECTION_LEFT_TO_RIGHT ? 'L' : 'R') +
-              " - test permutations of text snippets ---\n");
+            (direction == Bidi.DIRECTION_LEFT_TO_RIGHT ? 'L' : 'R') +
+            ") - test permutations of text snippets ---\n");
         for (i = 0; i < COUNT_REPEAT_SEGMENTS; ++i) {
-            logln("Testing case " + i);
             text[0] = repeatSegments[i][0];
             text[1] = repeatSegments[i][1];
             for (j = 0; j < COUNT_REPEAT_SEGMENTS; ++j) {
@@ -100,7 +104,7 @@ public class TestInverse extends BidiTest {
         String visualLTR, logicalDest, visualDest;
         try {
             if (direction == Bidi.DIRECTION_LEFT_TO_RIGHT) {
-                log("inverse BiDi: testInverseBiDi(L)\n");
+                log("inverse Bidi: testInverse(L)\n");
 
                 /* convert visual to logical */
                 bidi.setInverse(true);
@@ -114,8 +118,8 @@ public class TestInverse extends BidiTest {
                 if (!src.equals(bidi.getTextAsString())) {
                     err("Wrong value returned by getTextAsString\n");
                 }
-                logicalDest = bidi.writeReordered((short)(Bidi.DO_MIRRORING |
-                                                 Bidi.INSERT_LRM_FOR_NUMERIC));
+                logicalDest = bidi.writeReordered(Bidi.DO_MIRRORING |
+                                                  Bidi.INSERT_LRM_FOR_NUMERIC);
                 log("  v ");
                 printUnicode(src.toCharArray(), bidi.getLevels());
                 log("\n");
@@ -126,13 +130,13 @@ public class TestInverse extends BidiTest {
                     err("Error while doing setInverse(false)\n");
                 }
                 bidi.setPara(logicalDest, Bidi.LTR, null);
-                visualDest = bidi.writeReordered((short)(Bidi.DO_MIRRORING |
-                                                   Bidi.REMOVE_BIDI_CONTROLS));
+                visualDest = bidi.writeReordered(Bidi.DO_MIRRORING |
+                                                 Bidi.REMOVE_BIDI_CONTROLS);
             } else {
-                logln("inverse BiDi: testInverseBiDi(R)\n");
+                logln("inverse Bidi: testInverse(R)\n");
 
                 /* reverse visual from RTL to LTR */
-                visualLTR = Bidi.writeReverse(src, (short)0);
+                visualLTR = Bidi.writeReverse(src, 0);
                 log("  vr");
                 printUnicode(src.toCharArray(), null);
                 log("\n");
@@ -140,8 +144,8 @@ public class TestInverse extends BidiTest {
                 /* convert visual RTL to logical */
                 bidi.setInverse(true);
                 bidi.setPara(visualLTR, Bidi.LTR, null);
-                logicalDest = bidi.writeReordered((short)(Bidi.DO_MIRRORING |
-                                                 Bidi.INSERT_LRM_FOR_NUMERIC));
+                logicalDest = bidi.writeReordered(Bidi.DO_MIRRORING |
+                                                  Bidi.INSERT_LRM_FOR_NUMERIC);
                 log("  vl");
                 printUnicode(visualLTR.toCharArray(), bidi.getLevels());
                 log("\n");
@@ -149,8 +153,8 @@ public class TestInverse extends BidiTest {
                 /* convert back to visual RTL */
                 bidi.setInverse(false);
                 bidi.setPara(logicalDest, Bidi.LTR, null);
-                visualDest = bidi.writeReordered((short)(Bidi.DO_MIRRORING |
-                             Bidi.REMOVE_BIDI_CONTROLS | Bidi.OUTPUT_REVERSE));
+                visualDest = bidi.writeReordered(Bidi.DO_MIRRORING |
+                             Bidi.REMOVE_BIDI_CONTROLS | Bidi.OUTPUT_REVERSE);
             }
             log("  l ");
             printUnicode(logicalDest.toCharArray(), bidi.getLevels());
@@ -196,8 +200,8 @@ public class TestInverse extends BidiTest {
                      reverse, forward, null, "KEEP_BASE_COMBINING", null);
 
         try {
-            reverse = Bidi.writeReverse(forward, (short)(Bidi.REMOVE_BIDI_CONTROLS |
-                                     Bidi.DO_MIRRORING | Bidi.KEEP_BASE_COMBINING));
+            reverse = Bidi.writeReverse(forward, Bidi.REMOVE_BIDI_CONTROLS |
+                                        Bidi.DO_MIRRORING | Bidi.KEEP_BASE_COMBINING);
         } catch (Exception e) {
             errln("Failure in Bidi.writeReverse(KEEP_BASE_COMBINING)");
         }
@@ -221,6 +225,38 @@ public class TestInverse extends BidiTest {
             log("   ");
         }
         log(" }");
+    }
+
+    private void _testManyAddedPoints() {
+        Bidi bidi = new Bidi();
+        char[] text = new char[90];
+        for (int i = 0; i < text.length; i+=3) {
+            text[i] = 'a';
+            text[i+1] = '\u05d0';
+            text[i+2] = '3';
+        }
+        bidi.setReorderingMode(Bidi.REORDER_INVERSE_LIKE_DIRECT);
+        bidi.setReorderingOptions(Bidi.OPTION_INSERT_MARKS);
+        bidi.setPara(text, Bidi.LTR, null);
+        String out = bidi.writeReordered(0);
+        char[] expected = new char[120];
+        for (int i = 0; i < expected.length; i+=4) {
+            expected[i] = 'a';
+            expected[i+1] = '\u05d0';
+            expected[i+2] = '\u200e';
+            expected[i+3] = '3';
+        }
+        assertEquals("\nInvalid output with many added points",
+                     new String(expected), out);
+    }
+
+    private void _testMisc() {
+        Bidi bidi = new Bidi();
+        bidi.setInverse(true);
+        bidi.setPara("   ", Bidi.RTL, null);
+        String out = bidi.writeReordered(Bidi.OUTPUT_REVERSE | Bidi.INSERT_LRM_FOR_NUMERIC);
+        assertEquals("\nInvalid output with RLM at both sides",
+                     "\u200f   \u200f", out);
     }
 
 

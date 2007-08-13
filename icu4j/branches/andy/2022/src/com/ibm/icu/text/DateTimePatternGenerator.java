@@ -8,11 +8,19 @@
  */
 package com.ibm.icu.text;
 
+import com.ibm.icu.impl.CalendarData;
+import com.ibm.icu.impl.ICUResourceBundle;
+import com.ibm.icu.impl.PatternTokenizer;
+import com.ibm.icu.impl.Utility;
+import com.ibm.icu.util.Calendar;
+import com.ibm.icu.util.Freezable;
+import com.ibm.icu.util.ULocale;
+import com.ibm.icu.util.UResourceBundle;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
-import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -21,19 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-
-//import org.unicode.cldr.util.Utility;
-
-import com.ibm.icu.impl.CalendarData;
-import com.ibm.icu.impl.PatternTokenizer;
-import com.ibm.icu.impl.Utility;
-import com.ibm.icu.text.MessageFormat;
-import com.ibm.icu.text.Transliterator;
-import com.ibm.icu.text.UnicodeSet;
-import com.ibm.icu.util.Calendar;
-import com.ibm.icu.util.Freezable;
-import com.ibm.icu.util.ULocale;
-import com.ibm.icu.util.UResourceBundle;
 
 /**
  * This class provides flexible generation of date format patterns, like
@@ -101,7 +96,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
      * @draft ICU 3.6
      * @provisional This API might change or be removed in a future release.
      */
-    public static DateTimePatternGenerator newInstance() {
+    public static DateTimePatternGenerator getEmptyInstance() {
         return new DateTimePatternGenerator();
     }
     
@@ -139,27 +134,77 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         // first load with the ICU patterns
         for (int i = DateFormat.FULL; i <= DateFormat.SHORT; ++i) {
             SimpleDateFormat df = (SimpleDateFormat) DateFormat.getDateInstance(i, uLocale);
-            result.add(df.toPattern(), false, returnInfo);
+            result.addPattern(df.toPattern(), false, returnInfo);
             df = (SimpleDateFormat) DateFormat.getTimeInstance(i, uLocale);
-            result.add(df.toPattern(), false, returnInfo);
+            result.addPattern(df.toPattern(), false, returnInfo);
             // HACK for hh:ss
             if (i == DateFormat.MEDIUM) {
                 hackPattern = df.toPattern();
             }
         }
-        UResourceBundle rb = UResourceBundle.getBundleInstance("com.ibm.icu.impl.data.DateData$MyDateResources", uLocale);
-        //ResourceBundle rb = ResourceBundle.getBundle("com.ibm.icu.impl.data.DateData$MyDateResources", ULocale.FRENCH.toLocale());
-        for (Enumeration en = rb.getKeys(); en.hasMoreElements();) {
-            String key = (String) en.nextElement();
-            String value = rb.getString(key);
-            String [] keyParts = key.split("/");
-            if (keyParts[0].equals("pattern")) {
-                result.add(value, false, returnInfo);
-            } else if  (keyParts[0].equals("append")) {
-                result.setAppendItemFormats(getAppendFormatNumber(keyParts[1]), value);
-            } else if  (keyParts[0].equals("field")) {
-                result.setAppendItemNames(getAppendNameNumber(keyParts[1]), value);
-            }
+
+        ICUResourceBundle rb = (ICUResourceBundle) UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, uLocale);
+        rb = rb.getWithFallback("calendar");
+        ICUResourceBundle gregorianBundle = rb.getWithFallback("gregorian");
+        // CLDR item formats
+        
+        ICUResourceBundle itemBundle = gregorianBundle.getWithFallback("appendItems");
+        for (int i=0; i<itemBundle.getSize(); ++i) {
+            ICUResourceBundle formatBundle = (ICUResourceBundle)itemBundle.get(i);
+            String formatName = itemBundle.get(i).getKey();
+            String value = formatBundle.getString();
+            result.setAppendItemFormat(getAppendFormatNumber(formatName), value);
+        }
+        
+        // CLDR item names
+        itemBundle = gregorianBundle.getWithFallback("fields");
+        ICUResourceBundle fieldBundle, dnBundle;
+        for (int i=0; i<TYPE_LIMIT; ++i) {
+            if ( isCLDRFieldName(i) ) {
+                fieldBundle = itemBundle.getWithFallback(CLDR_FIELD_NAME[i]);
+                dnBundle = fieldBundle.getWithFallback("dn");
+                String value = dnBundle.getString();
+                //System.out.println("Field name:"+value);
+                result.setAppendItemName(i, value);      		
+        	}
+        }
+          
+        // set the AvailableFormat in CLDR
+        try {
+           ICUResourceBundle formatBundle =  gregorianBundle.getWithFallback("availableFormats");
+           //System.out.println("available format from current locale:"+uLocale.getName());
+           for (int i=0; i<formatBundle.getSize(); ++i) { 
+               String formatKey = formatBundle.get(i).getKey();
+               String formatValue = formatBundle.get(i).getString();
+               //System.out.println(" availableFormat:"+formatValue);
+               result.setAvailableFormat(formatKey);
+               result.addPattern(formatValue, false, returnInfo);
+           } 
+        }catch(Exception e) {
+        }
+       
+        ULocale parentLocale=uLocale;
+        while ( (parentLocale=parentLocale.getFallback()) != null) {
+            ICUResourceBundle prb = (ICUResourceBundle) UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, parentLocale);
+            prb = prb.getWithFallback("calendar");
+            ICUResourceBundle pGregorianBundle = prb.getWithFallback("gregorian");
+            try {
+                ICUResourceBundle formatBundle =  pGregorianBundle.getWithFallback("availableFormats");
+                //System.out.println("available format from parent locale:"+parentLocale.getName());
+                for (int i=0; i<formatBundle.getSize(); ++i) { 
+                    String formatKey = formatBundle.get(i).getKey();
+                    String formatValue = formatBundle.get(i).getString();
+                    //System.out.println(" availableFormat:"+formatValue);
+                    if (!result.isAvailableFormatSet(formatKey)) {
+                        result.setAvailableFormat(formatKey);
+                        result.addPattern(formatValue, false, returnInfo);
+                        //System.out.println(" availableFormat:"+formatValue);
+                    }
+                } 
+              
+             }catch(Exception e) {
+             }
+             
         }
         
         // assume it is always big endian (ok for CLDR right now)
@@ -201,7 +246,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
                         break; // failed
                     }
                     mmss += item;
-                    result.add(mmss, false, returnInfo);
+                    result.addPattern(mmss, false, returnInfo);
                     break;
                 } else if (gotMm || ch == 'z' || ch == 'Z' || ch == 'v' || ch == 'V') {
                     break; // failed
@@ -227,7 +272,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
             }
         }
         String hhmm = getFilteredPattern(result.fp, nuke);
-        result.add(hhmm, false, returnInfo);
+        result.addPattern(hhmm, false, returnInfo);
     }
     
     private static String getFilteredPattern(FormatParser fp, BitSet nuke) {
@@ -244,12 +289,12 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         return result;
     }
     
-    private static int getAppendNameNumber(String string) {
+    /*private static int getAppendNameNumber(String string) {
         for (int i = 0; i < CLDR_FIELD_NAME.length; ++i) {
             if (CLDR_FIELD_NAME[i].equals(string)) return i;
         }
         return -1;
-    }
+    }*/
     
     private static int getAppendFormatNumber(String string) {
         for (int i = 0; i < CLDR_FIELD_APPEND.length; ++i) {
@@ -258,6 +303,19 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         return -1;
         
     }
+
+    private static boolean isCLDRFieldName(int index) {
+        if ((index<0) && (index>=TYPE_LIMIT)) {
+            return false;
+        }
+        if (CLDR_FIELD_NAME[index].charAt(0) == '*') {
+            return false;
+        }
+        else {
+            return true;
+        }
+    }
+    
     
     /**
      * Return the best pattern matching the input skeleton. It is guaranteed to
@@ -338,8 +396,6 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         }
     }
     
-    static Transliterator fromHex = Transliterator.getInstance("hex-any");
-    
     /**
      * Adds a pattern to the generator. If the pattern has the same skeleton as
      * an existing pattern, and the override parameter is set, then the previous
@@ -355,12 +411,8 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
      * @draft ICU 3.6
      * @provisional This API might change or be removed in a future release.
      */
-    public DateTimePatternGenerator add(String pattern, boolean override, PatternInfo returnInfo) {
+    public DateTimePatternGenerator addPattern(String pattern, boolean override, PatternInfo returnInfo) {
         checkFrozen();
-        if (pattern.indexOf("\\u") >= 0) {
-            //String oldPattern = pattern;
-            pattern = fromHex.transliterate(pattern);
-        }
         DateTimeMatcher matcher = new DateTimeMatcher().set(pattern, fp);
         String basePattern = matcher.getBasePattern();
         String previousPatternWithSameBase = (String)basePattern_pattern.get(basePattern);
@@ -580,7 +632,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
                     if (trial.equals(pattern)) {
                         output.add(pattern);
                     } else {
-                        results.add(pattern, false, pinfo);
+                        results.addPattern(pattern, false, pinfo);
                     }
                 }
             }
@@ -713,7 +765,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
      * @draft ICU 3.6
      * @provisional This API might change or be removed in a future release.
      */
-    public void setAppendItemFormats(int field, String value) {
+    public void setAppendItemFormat(int field, String value) {
         checkFrozen();
         appendItemFormats[field] = value;
     }
@@ -727,7 +779,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
      * @draft ICU 3.6
      * @provisional This API might change or be removed in a future release.
      */
-    public String getAppendItemFormats(int field) {
+    public String getAppendItemFormat(int field) {
         return appendItemFormats[field];
     }
     
@@ -743,7 +795,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
      * @draft ICU 3.6
      * @provisional This API might change or be removed in a future release.
      */
-    public void setAppendItemNames(int field, String value) {
+    public void setAppendItemName(int field, String value) {
         checkFrozen();
         appendItemNames[field] = value;
     }
@@ -757,7 +809,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
      * @draft ICU 3.6
      * @provisional This API might change or be removed in a future release.
      */
-    public String getAppendItemNames(int field) {
+    public String getAppendItemName(int field) {
         return appendItemNames[field];
     }
     
@@ -777,6 +829,34 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         return true;
     }
     
+     /**
+     * Add key to HashSet cldrAvailableFormatKeys.
+     * 
+     * @param key of the availableFormats in CLDR
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
+     */
+    private void setAvailableFormat(String key) {
+        checkFrozen();
+        cldrAvailableFormatKeys.add(key);
+    }
+    
+    /**
+     * This function checks the corresponding slot of CLDR_AVAIL_FORMAT_KEY[]
+     * has been added to DateTimePatternGenerator.
+     * The function is to avoid the duplicate availableFomats added to
+     * the pattern map from parent locales.
+     * 
+     * @param key of the availableFormatMask in CLDR
+     * @return TRUE if the corresponding slot of CLDR_AVAIL_FORMAT_KEY[]
+     * has been added to DateTimePatternGenerator.
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
+     */
+    private boolean isAvailableFormatSet(String key) {
+        return cldrAvailableFormatKeys.contains(key);
+    }
+
     /**
      * Boilerplate for Freezable
      * @draft ICU 3.6
@@ -864,6 +944,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
     static public class FormatParser {
         private transient PatternTokenizer tokenizer = new PatternTokenizer()
         .setSyntaxCharacters(new UnicodeSet("[a-zA-Z]"))
+        .setExtraQuotingCharacters(new UnicodeSet("[[[:script=Latn:][:script=Cyrl:]]&[[:L:][:M:]]]"))
         //.setEscapeCharacters(new UnicodeSet("[^\\u0020-\\u007E]")) // WARNING: DateFormat doesn't accept \\uXXXX
         .setUsingQuote(true);
         private List items = new ArrayList();
@@ -973,7 +1054,13 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         public String toString(int start, int limit) {
             StringBuffer result = new StringBuffer();
             for (int i = start; i < limit; ++i) {
-                result.append(items.get(i).toString());
+                Object item = items.get(i);
+                if (item instanceof String) {
+                    String itemString = (String) item;
+                    result.append(tokenizer.quoteLiteral(itemString));
+                } else {
+                    result.append(items.get(i).toString());
+                }
             }
             return result.toString();
         }
@@ -1215,7 +1302,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         // make sure that every valid field occurs once, with a "default" length
         for (int i = 0; i < CANONICAL_ITEMS.length; ++i) {
             //char c = (char)types[i][0];
-            add(String.valueOf(CANONICAL_ITEMS[i]), false, patternInfo);
+            addPattern(String.valueOf(CANONICAL_ITEMS[i]), false, patternInfo);
         }
         isComplete = true;
     }
@@ -1333,7 +1420,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
     };
     
     static private String[] CLDR_FIELD_NAME = {
-        "era", "year", "quarter", "month", "week", "*", "weekday", 
+        "era", "year", "*", "month", "week", "*", "weekday", 
         "day", "*", "*", "dayperiod", 
         "hour", "minute", "second", "*", "zone"
     };
@@ -1352,6 +1439,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
     };
     
     static private Set CANONICAL_SET = new HashSet(Arrays.asList(CANONICAL_ITEMS));
+    private Set cldrAvailableFormatKeys = new HashSet(20);
     
     static final private int 
     DATE_MASK = (1<<DAYPERIOD) - 1,
@@ -1483,10 +1571,6 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         }
         
         DateTimeMatcher set(String pattern, FormatParser fp) {
-            if (pattern.indexOf("\\u") >= 0) {
-                //String oldPattern = pattern;
-                pattern = fromHex.transliterate(pattern);
-            }
             for (int i = 0; i < TYPE_LIMIT; ++i) {
                 type[i] = NONE;
                 original[i] = "";

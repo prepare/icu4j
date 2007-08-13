@@ -168,7 +168,6 @@ public class TestCharset extends TestFmwk {
             smBufEncode(e2, "UTF-16LE", us, newBS);
             
         }
-        
     }
     public void TestUTF32Converter(){
         CharsetProvider icu = new CharsetProviderICU();
@@ -247,19 +246,19 @@ public class TestCharset extends TestFmwk {
             smBufEncode(e2, "UTF-32LE", us, newBS);
 
         }
-        
     }
     public void TestASCIIConverter() {
-        runASCIIBasedConverterTest("ASCII", 0x80);
+        runTestASCIIBasedConverter("ASCII", 0x80);
     }    
     public void Test88591Converter() {
-        runASCIIBasedConverterTest("iso-8859-1", 0x100);
+        runTestASCIIBasedConverter("iso-8859-1", 0x100);
     }
-    public void runASCIIBasedConverterTest(String converter, int limit){
+    public void runTestASCIIBasedConverter(String converter, int limit){
         CharsetProvider icu = new CharsetProviderICU();
         Charset icuChar = icu.charsetForName(converter);
         CharsetEncoder encoder = icuChar.newEncoder();
         CharsetDecoder decoder = icuChar.newDecoder();
+        CoderResult cr;
 
         /* test with and without array-backed buffers */ 
         
@@ -470,7 +469,7 @@ public class TestCharset extends TestFmwk {
                 CoderResult.unmappableForLength(1),
         };
         for (int index = 0; index < input.length; index++) {
-            CoderResult cr = encoder.encode(CharBuffer.wrap(input[index]), bs, true);
+            cr = encoder.encode(CharBuffer.wrap(input[index]), bs, true);
             bs.rewind();
             encoder.reset();
 
@@ -481,9 +480,421 @@ public class TestCharset extends TestFmwk {
                     || (cr.isUnmappable() && result[index].isUnmappable()))
                     || (cr.isError() && cr.length() != result[index].length())) {
                 errln("Incorrect result in " + converter + " for \"" + input[index] + "\"");
+                break;
+            }
+
+            cr = encoder.encode(CharBuffer.wrap(input[index].toCharArray()), bs, true);
+            bs.rewind();
+            encoder.reset();
+
+            // if cr != results[x]
+            if (!((cr.isUnderflow() && result[index].isUnderflow())
+                    || (cr.isOverflow() && result[index].isOverflow())
+                    || (cr.isMalformed() && result[index].isMalformed())
+                    || (cr.isUnmappable() && result[index].isUnmappable()))
+                    || (cr.isError() && cr.length() != result[index].length())) {
+                errln("Incorrect result in " + converter + " for \"" + input[index] + "\"");
+                break;
             }
         }
     }
+    public void TestUTF8Converter() {
+        String converter = "UTF-8";
+        CharsetProvider icu = new CharsetProviderICU();
+        Charset icuChar = icu.charsetForName(converter);
+        CharsetEncoder encoder = icuChar.newEncoder();
+        CharsetDecoder decoder = icuChar.newDecoder();
+        ByteBuffer bs;
+        CharBuffer us;
+        CoderResult cr;
+
+        
+        int[] size = new int[] { 1<<7, 1<<11, 1<<16 }; // # of 1,2,3 byte combinations
+        byte[] bytes = new byte[size[0] + size[1]*2 + size[2]*3];
+        char[] chars = new char[size[0] + size[1] + size[2]];
+        int i = 0;
+        int x, y;
+
+        // 0 to 1 << 7 (1 byters)
+        for (; i < size[0]; i++) {
+            bytes[i] = (byte) i;
+            chars[i] = (char) i;
+            bs = ByteBuffer.wrap(bytes, i, 1).slice();
+            us = CharBuffer.wrap(chars, i, 1).slice();
+            try {
+                smBufDecode(decoder, converter, bs, us, true, false, true);
+                smBufDecode(decoder, converter, bs, us, true, false, false);
+                smBufEncode(encoder, converter, us, bs, true, false, true);
+                smBufEncode(encoder, converter, us, bs, true, false, false);
+            } catch (Exception ex) {
+                errln("Incorrect result in " + converter + " for 0x"
+                        + Integer.toHexString(i));
+                break;
+            }
+        }
+
+        // 1 << 7 to 1 << 11 (2 byters)
+        for (; i < size[1]; i++) {
+            x = size[0] + i*2;
+            y = size[0] + i;
+            bytes[x + 0] = (byte) (0xc0 | ((i >> 6) & 0x1f));
+            bytes[x + 1] = (byte) (0x80 | ((i >> 0) & 0x3f));
+            chars[y] = (char) i;
+            bs = ByteBuffer.wrap(bytes, x, 2).slice();
+            us = CharBuffer.wrap(chars, y, 1).slice();
+            try {
+                smBufDecode(decoder, converter, bs, us, true, false, true);
+                smBufDecode(decoder, converter, bs, us, true, false, false);
+                smBufEncode(encoder, converter, us, bs, true, false, true);
+                smBufEncode(encoder, converter, us, bs, true, false, false);
+            } catch (Exception ex) {
+                errln("Incorrect result in " + converter + " for 0x"
+                        + Integer.toHexString(i));
+                break;
+            }
+        }
+
+        // 1 << 11 to 1 << 16 (3 byters and surrogates)
+        for (; i < size[2]; i++) {
+            x = size[0] + size[1] * 2 + i * 3;
+            y = size[0] + size[1] + i;
+            bytes[x + 0] = (byte) (0xe0 | ((i >> 12) & 0x0f));
+            bytes[x + 1] = (byte) (0x80 | ((i >> 6) & 0x3f));
+            bytes[x + 2] = (byte) (0x80 | ((i >> 0) & 0x3f));
+            chars[y] = (char) i;
+            if (!UTF16.isSurrogate((char)i)) {
+                bs = ByteBuffer.wrap(bytes, x, 3).slice();
+                us = CharBuffer.wrap(chars, y, 1).slice();
+                try {
+                    smBufDecode(decoder, converter, bs, us, true, false, true);
+                    smBufDecode(decoder, converter, bs, us, true, false, false);
+                    smBufEncode(encoder, converter, us, bs, true, false, true);
+                    smBufEncode(encoder, converter, us, bs, true, false, false);
+                } catch (Exception ex) {
+                    errln("Incorrect result in " + converter + " for 0x"
+                            + Integer.toHexString(i));
+                    break;
+                }
+            } else {
+                bs = ByteBuffer.wrap(bytes, x, 3).slice();
+                us = CharBuffer.wrap(chars, y, 1).slice();
+                
+                decoder.reset();
+                cr = decoder.decode(bs, us, true);
+                bs.rewind();
+                us.rewind();
+                if (!cr.isMalformed() || cr.length() != 3) {
+                    errln("Incorrect result in " + converter + " decoder for 0x"
+                            + Integer.toHexString(i) + " received " + cr);
+                    break;
+                }
+                encoder.reset();
+                cr = encoder.encode(us, bs, true);
+                bs.rewind();
+                us.rewind();
+                if (!cr.isMalformed() || cr.length() != 1) {
+                    errln("Incorrect result in " + converter + " encoder for 0x"
+                            + Integer.toHexString(i) + " received " + cr);
+                    break;
+                }
+                
+                bs = ByteBuffer.wrap(bytes, x, 3).slice();
+                us = CharBuffer.wrap(new String(chars, y, 1));
+                
+                decoder.reset();
+                cr = decoder.decode(bs, us, true);
+                bs.rewind();
+                us.rewind();
+                if (!cr.isMalformed() || cr.length() != 3) {
+                    errln("Incorrect result in " + converter + " decoder for 0x"
+                            + Integer.toHexString(i) + " received " + cr);
+                    break;
+                }
+                encoder.reset();
+                cr = encoder.encode(us, bs, true);
+                bs.rewind();
+                us.rewind();
+                if (!cr.isMalformed() || cr.length() != 1) {
+                    errln("Incorrect result in " + converter + " encoder for 0x"
+                            + Integer.toHexString(i) + " received " + cr);
+                    break;
+                }
+                
+                
+            }
+        }
+        if (true)
+            return;
+    }
+    
+    
+//    public void TestCharsetCallback() {
+//        String currentTest = "initialization";
+//        try {
+//            Class[] params;
+//            
+//            // get the classes
+//            Class CharsetCallback = Class.forName("com.ibm.icu.charset.CharsetCallback");
+//            Class Decoder = Class.forName("com.ibm.icu.charset.CharsetCallback$Decoder");
+//            Class Encoder = Class.forName("com.ibm.icu.charset.CharsetCallback$Encoder");
+//            
+//            // set up encoderCall
+//            params = new Class[] {CharsetEncoderICU.class, Object.class, 
+//                    CharBuffer.class, ByteBuffer.class, IntBuffer.class, 
+//                    char[].class, int.class, int.class, CoderResult.class };
+//            Method encoderCall = Encoder.getDeclaredMethod("call", params);
+//            
+//            // set up decoderCall
+//            params = new Class[] {CharsetDecoderICU.class, Object.class, 
+//                    ByteBuffer.class, CharBuffer.class, IntBuffer.class,
+//                    char[].class, int.class, CoderResult.class};
+//            Method decoderCall = Decoder.getDeclaredMethod("call", params);
+//            
+//            // get relevant fields
+//            Object SUB_STOP_ON_ILLEGAL = getFieldValue(CharsetCallback, "SUB_STOP_ON_ILLEGAL", null);
+//            
+//            // set up a few arguments
+//            CharsetProvider provider = new CharsetProviderICU();
+//            Charset charset = provider.charsetForName("UTF-8");
+//            CharsetEncoderICU encoder = (CharsetEncoderICU)charset.newEncoder();
+//            CharsetDecoderICU decoder = (CharsetDecoderICU)charset.newDecoder();
+//            CharBuffer chars = CharBuffer.allocate(10);
+//            chars.put('o');
+//            chars.put('k');
+//            ByteBuffer bytes = ByteBuffer.allocate(10);
+//            bytes.put((byte)'o');
+//            bytes.put((byte)'k');
+//            IntBuffer offsets = IntBuffer.allocate(10);
+//            offsets.put(0);
+//            offsets.put(1);
+//            char[] buffer = null;
+//            Integer length = new Integer(2);
+//            Integer cp = new Integer(0);
+//            CoderResult unmap = CoderResult.unmappableForLength(2);
+//            CoderResult malf = CoderResult.malformedForLength(2);
+//            CoderResult under = CoderResult.UNDERFLOW;
+//            
+//            // set up error arrays
+//            Integer invalidCharLength = new Integer(1);
+//            Byte subChar1 = new Byte((byte)0);
+//            Byte subChar1_alternate = new Byte((byte)1); // for TO_U_CALLBACK_SUBSTITUTE
+//            
+//            // set up chars and bytes backups and expected values for certain cases
+//            CharBuffer charsBackup = bufferCopy(chars);
+//            ByteBuffer bytesBackup = bufferCopy(bytes);
+//            IntBuffer offsetsBackup = bufferCopy(offsets);
+//            CharBuffer encoderCharsExpected = bufferCopy(chars);
+//            ByteBuffer encoderBytesExpected = bufferCopy(bytes);
+//            IntBuffer encoderOffsetsExpected = bufferCopy(offsets);
+//            CharBuffer decoderCharsExpected1 = bufferCopy(chars);
+//            CharBuffer decoderCharsExpected2 = bufferCopy(chars);
+//            IntBuffer decoderOffsetsExpected1 = bufferCopy(offsets);
+//            IntBuffer decoderOffsetsExpected2 = bufferCopy(offsets);
+//            
+//            // initialize fields to obtain expected data
+//            setFieldValue(CharsetDecoderICU.class, "invalidCharLength", decoder, invalidCharLength);
+//            setFieldValue(CharsetICU.class, "subChar1", ((CharsetICU) decoder.charset()), subChar1);
+//            
+//            // run cbFromUWriteSub
+//            Method cbFromUWriteSub = CharsetEncoderICU.class.getDeclaredMethod("cbFromUWriteSub", new Class[] { CharsetEncoderICU.class, CharBuffer.class, ByteBuffer.class, IntBuffer.class});
+//            cbFromUWriteSub.setAccessible(true);
+//            CoderResult encoderResultExpected = (CoderResult)cbFromUWriteSub.invoke(encoder, new Object[] {encoder, encoderCharsExpected, encoderBytesExpected, encoderOffsetsExpected});
+//            
+//            // run toUWriteUChars with normal data
+//            Method toUWriteUChars = CharsetDecoderICU.class.getDeclaredMethod("toUWriteUChars", new Class[] { CharsetDecoderICU.class, char[].class, int.class, int.class, CharBuffer.class, IntBuffer.class, int.class});
+//            toUWriteUChars.setAccessible(true);
+//            CoderResult decoderResultExpected1 = (CoderResult)toUWriteUChars.invoke(decoder, new Object[] {decoder, new char[] {0xFFFD}, new Integer(0), new Integer(1), decoderCharsExpected1, decoderOffsetsExpected1, new Integer(bytes.position())});
+//            
+//            // reset certain fields
+//            setFieldValue(CharsetDecoderICU.class, "invalidCharLength", decoder, invalidCharLength);
+//            setFieldValue(CharsetICU.class, "subChar1", ((CharsetICU) decoder.charset()), subChar1_alternate);
+//            
+//            // run toUWriteUChars again
+//            CoderResult decoderResultExpected2 = (CoderResult)toUWriteUChars.invoke(decoder, new Object[] {decoder, new char[] {0x1A}, new Integer(0), new Integer(1), decoderCharsExpected2, decoderOffsetsExpected2, new Integer(bytes.position())});
+//            
+//            // begin creating the tests array
+//            ArrayList tests = new ArrayList();
+//            
+//            // create tests for FROM_U_CALLBACK_SKIP   0
+//            tests.add(new Object[] {encoderCall, "FROM_U_CALLBACK_SKIP", new Object[] { encoder, null, chars, bytes, offsets, buffer, length, cp, null }, under, charsBackup, bytesBackup, offsetsBackup, new Object[] { }});
+//            tests.add(new Object[] {encoderCall, "FROM_U_CALLBACK_SKIP", new Object[] { encoder, SUB_STOP_ON_ILLEGAL, chars, bytes, offsets, buffer, length, cp, malf }, malf, charsBackup, bytesBackup, offsetsBackup, new Object[] { }});
+//            tests.add(new Object[] {encoderCall, "FROM_U_CALLBACK_SKIP", new Object[] { encoder, SUB_STOP_ON_ILLEGAL, chars, bytes, offsets, buffer, length, cp, unmap }, under, charsBackup, bytesBackup, offsetsBackup, new Object[] { }});
+//            tests.add(new Object[] {encoderCall, "FROM_U_CALLBACK_SKIP", new Object[] { encoder, SUB_STOP_ON_ILLEGAL + "xx", chars, bytes, offsets, buffer, length, cp, null }, null, charsBackup, bytesBackup, offsetsBackup, new Object[] { }});
+//            
+//            // create tests for TO_U_CALLBACK_SKIP    4
+//            tests.add(new Object[] {decoderCall, "TO_U_CALLBACK_SKIP", new Object[] { decoder, null, bytes, chars, offsets, buffer, length, null }, under, charsBackup, bytesBackup, offsetsBackup, new Object[] { invalidCharLength, subChar1 }});
+//            tests.add(new Object[] {decoderCall, "TO_U_CALLBACK_SKIP", new Object[] { decoder, SUB_STOP_ON_ILLEGAL, bytes, chars, offsets, buffer, length, malf }, malf, charsBackup, bytesBackup, offsetsBackup, new Object[] { invalidCharLength, subChar1 }});
+//            tests.add(new Object[] {decoderCall, "TO_U_CALLBACK_SKIP", new Object[] { decoder, SUB_STOP_ON_ILLEGAL, bytes, chars, offsets, buffer, length, unmap }, under, charsBackup, bytesBackup, offsetsBackup, new Object[] { invalidCharLength, subChar1 }});
+//            tests.add(new Object[] {decoderCall, "TO_U_CALLBACK_SKIP", new Object[] { decoder, SUB_STOP_ON_ILLEGAL + "xx", bytes, chars, offsets, buffer, length, null }, null, charsBackup, bytesBackup, offsetsBackup, new Object[] { invalidCharLength, subChar1 }});
+//            
+//            // create tests for FROM_U_CALLBACK_STOP   8
+//            tests.add(new Object[] {encoderCall, "FROM_U_CALLBACK_STOP", new Object[] { encoder, null, chars, bytes, offsets, buffer, length, cp, null }, null, charsBackup, bytesBackup, offsetsBackup, new Object[] { }});
+//            tests.add(new Object[] {encoderCall, "FROM_U_CALLBACK_STOP", new Object[] { encoder, SUB_STOP_ON_ILLEGAL, chars, bytes, offsets, buffer, length, cp, malf }, malf, charsBackup, bytesBackup, offsetsBackup, new Object[] { }});
+//            tests.add(new Object[] {encoderCall, "FROM_U_CALLBACK_STOP", new Object[] { encoder, SUB_STOP_ON_ILLEGAL, chars, bytes, offsets, buffer, length, cp, unmap }, unmap, charsBackup, bytesBackup, offsetsBackup, new Object[] { }});
+//            tests.add(new Object[] {encoderCall, "FROM_U_CALLBACK_STOP", new Object[] { encoder, SUB_STOP_ON_ILLEGAL + "xx", chars, bytes, offsets, buffer, length, cp, null }, null, charsBackup, bytesBackup, offsetsBackup, new Object[] { }});
+//            
+//            // create tests for TO_U_CALLBACK_STOP   12
+//            tests.add(new Object[] {decoderCall, "TO_U_CALLBACK_STOP", new Object[] { decoder, null, bytes, chars, offsets, buffer, length, null }, null, charsBackup, bytesBackup, offsetsBackup, new Object[] { invalidCharLength, subChar1 }});
+//            tests.add(new Object[] {decoderCall, "TO_U_CALLBACK_STOP", new Object[] { decoder, SUB_STOP_ON_ILLEGAL, bytes, chars, offsets, buffer, length, malf }, malf, charsBackup, bytesBackup, offsetsBackup, new Object[] { invalidCharLength, subChar1 }});
+//            tests.add(new Object[] {decoderCall, "TO_U_CALLBACK_STOP", new Object[] { decoder, SUB_STOP_ON_ILLEGAL, bytes, chars, offsets, buffer, length, unmap }, unmap, charsBackup, bytesBackup, offsetsBackup, new Object[] { invalidCharLength, subChar1 }});
+//            tests.add(new Object[] {decoderCall, "TO_U_CALLBACK_STOP", new Object[] { decoder, SUB_STOP_ON_ILLEGAL + "xx", bytes, chars, offsets, buffer, length, null }, null, charsBackup, bytesBackup, offsetsBackup, new Object[] { invalidCharLength, subChar1 }});
+//            
+//            // create tests for FROM_U_CALLBACK_SUBSTITUTE  16
+//            tests.add(new Object[] {encoderCall, "FROM_U_CALLBACK_SUBSTITUTE", new Object[] { encoder, null, chars, bytes, offsets, buffer, length, cp, null }, encoderResultExpected, encoderCharsExpected, encoderBytesExpected, encoderOffsetsExpected, new Object[] { }});
+//            tests.add(new Object[] {encoderCall, "FROM_U_CALLBACK_SUBSTITUTE", new Object[] { encoder, SUB_STOP_ON_ILLEGAL, chars, bytes, offsets, buffer, length, cp, malf }, malf, charsBackup, bytesBackup, offsetsBackup, new Object[] { }});
+//            tests.add(new Object[] {encoderCall, "FROM_U_CALLBACK_SUBSTITUTE", new Object[] { encoder, SUB_STOP_ON_ILLEGAL, chars, bytes, offsets, buffer, length, cp, unmap }, encoderResultExpected, encoderCharsExpected, encoderBytesExpected, encoderOffsetsExpected, new Object[] { }});
+//            tests.add(new Object[] {encoderCall, "FROM_U_CALLBACK_SUBSTITUTE", new Object[] { encoder, SUB_STOP_ON_ILLEGAL + "xx", chars, bytes, offsets, buffer, length, cp, null }, null, charsBackup, bytesBackup, offsetsBackup, new Object[] { }});
+//            
+//            // create tests for TO_U_CALLBACK_SUBSTITUTE   20
+//            tests.add(new Object[] {decoderCall, "TO_U_CALLBACK_SUBSTITUTE", new Object[] { decoder, null, bytes, chars, offsets, buffer, length, null }, decoderResultExpected1, decoderCharsExpected1, bytesBackup, decoderOffsetsExpected1, new Object[] { invalidCharLength, subChar1 }});
+//            tests.add(new Object[] {decoderCall, "TO_U_CALLBACK_SUBSTITUTE", new Object[] { decoder, null, bytes, chars, offsets, buffer, length, null }, decoderResultExpected2, decoderCharsExpected2, bytesBackup, decoderOffsetsExpected2, new Object[] { invalidCharLength, subChar1_alternate }});
+//            
+//            Iterator iter = tests.iterator();
+//            for (int i=0; iter.hasNext(); i++) {
+//                // get the data out of the map
+//                Object[] next = (Object[])iter.next();
+//                
+//                Method method = (Method)next[0];
+//                String fieldName = (String)next[1];
+//                Object field = getFieldValue(CharsetCallback, fieldName, null);
+//                Object[] args = (Object[])next[2];
+//                CoderResult expected = (CoderResult)next[3];
+//                CharBuffer charsExpected = (CharBuffer)next[4];
+//                ByteBuffer bytesExpected = (ByteBuffer)next[5];
+//                IntBuffer offsetsExpected = (IntBuffer)next[6];
+//                
+//                // set up error arrays and certain fields
+//                Object[] values = (Object[])next[7];
+//                if (method == decoderCall) {
+//                    decoder.reset();
+//                    setFieldValue(CharsetDecoderICU.class, "invalidCharLength", decoder, values[0]);
+//                    setFieldValue(CharsetICU.class, "subChar1", ((CharsetICU) decoder.charset()), values[1]);
+//                } else if (method == encoderCall) {
+//                    encoder.reset();
+//                }
+//                
+//                try {
+//                    // invoke the method
+//                    CoderResult actual = (CoderResult)method.invoke(field, args);
+//                    
+//                    // if expected != actual
+//                    if (!coderResultsEqual(expected, actual)) {
+//                        // case #i refers to the index in the arraylist tests
+//                        errln(fieldName + " failed to return the correct result for case #" + i + ".");
+//                    }
+//                    // if the expected buffers != actual buffers
+//                    else if (!(buffersEqual(chars, charsExpected) && 
+//                            buffersEqual(bytes, bytesExpected) &&
+//                            buffersEqual(offsets, offsetsExpected))) {
+//                        // case #i refers to the index in the arraylist tests
+//                        errln(fieldName + " did not perform the correct operation on the buffers for case #" + i + ".");
+//                    }
+//                } catch (InvocationTargetException ex)  {
+//                    // case #i refers to the index in the arraylist tests
+//                    errln(fieldName + " threw an exception for case #" + i + ": " + ex.getCause());
+//                    //ex.getCause().printStackTrace();
+//                }
+//                
+//                // reset the buffers
+//                System.arraycopy(bytesBackup.array(), 0, bytes.array(), 0, 10);
+//                System.arraycopy(charsBackup.array(), 0, chars.array(), 0, 10);
+//                System.arraycopy(offsetsBackup.array(), 0, offsets.array(), 0, 10);
+//                bytes.position(bytesBackup.position());
+//                chars.position(charsBackup.position());
+//                offsets.position(offsetsBackup.position());
+//            }
+//            
+//        } catch (Exception ex) {
+//            errln("TestCharsetCallback skipped due to " + ex.toString());
+//            ex.printStackTrace();
+//        }
+//    }
+//    
+//    private Object getFieldValue(Class c, String name, Object instance) throws Exception {
+//        Field field = c.getDeclaredField(name);
+//        field.setAccessible(true);
+//        return field.get(instance);
+//    }
+//    private void setFieldValue(Class c, String name, Object instance, Object value) throws Exception {
+//        Field field = c.getDeclaredField(name);
+//        field.setAccessible(true);
+//        if (value instanceof Boolean)
+//            field.setBoolean(instance, ((Boolean)value).booleanValue());
+//        else if (value instanceof Byte)
+//            field.setByte(instance, ((Byte)value).byteValue());
+//        else if (value instanceof Character)
+//            field.setChar(instance, ((Character)value).charValue());
+//        else if (value instanceof Double)
+//            field.setDouble(instance, ((Double)value).doubleValue());
+//        else if (value instanceof Float)
+//            field.setFloat(instance, ((Float)value).floatValue());
+//        else if (value instanceof Integer)
+//            field.setInt(instance, ((Integer)value).intValue());
+//        else if (value instanceof Long)
+//            field.setLong(instance, ((Long)value).longValue());
+//        else if (value instanceof Short)
+//            field.setShort(instance, ((Short)value).shortValue());
+//        else
+//            field.set(instance, value);
+//    }
+//    private boolean coderResultsEqual(CoderResult a, CoderResult b) {
+//        if (a == null && b == null)
+//            return true;
+//        if (a == null || b == null)
+//            return false;
+//        if ((a.isUnderflow() && b.isUnderflow()) || (a.isOverflow() && b.isOverflow()))
+//            return true;
+//        if (a.length() != b.length())
+//            return false;
+//        if ((a.isMalformed() && b.isMalformed()) || (a.isUnmappable() && b.isUnmappable()))
+//            return true;
+//        return false;
+//    }
+//    private boolean buffersEqual(ByteBuffer a, ByteBuffer b) {
+//        if (a.position() != b.position())
+//            return false;
+//        int limit = a.position();
+//        for (int i=0; i<limit; i++)
+//            if (a.get(i) != b.get(i))
+//                return false;
+//        return true;
+//    }
+//    private boolean buffersEqual(CharBuffer a, CharBuffer b) {
+//        if (a.position() != b.position())
+//            return false;
+//        int limit = a.position();
+//        for (int i=0; i<limit; i++)
+//            if (a.get(i) != b.get(i))
+//                return false;
+//        return true;
+//    }
+//    private boolean buffersEqual(IntBuffer a, IntBuffer b) {
+//        if (a.position() != b.position())
+//            return false;
+//        int limit = a.position();
+//        for (int i=0; i<limit; i++)
+//            if (a.get(i) != b.get(i))
+//                return false;
+//        return true;
+//    }
+//    private ByteBuffer bufferCopy(ByteBuffer src) {
+//        ByteBuffer dest = ByteBuffer.allocate(src.limit());
+//        System.arraycopy(src.array(), 0, dest.array(), 0, src.limit());
+//        dest.position(src.position());
+//        return dest;
+//    }
+//    private CharBuffer bufferCopy(CharBuffer src) {
+//        CharBuffer dest = CharBuffer.allocate(src.limit());
+//        System.arraycopy(src.array(), 0, dest.array(), 0, src.limit());
+//        dest.position(src.position());
+//        return dest;
+//    }
+//    private IntBuffer bufferCopy(IntBuffer src) {
+//        IntBuffer dest = IntBuffer.allocate(src.limit());
+//        System.arraycopy(src.array(), 0, dest.array(), 0, src.limit());
+//        dest.position(src.position());
+//        return dest;
+//    }
     
 
     public void TestAPISemantics(/*String encoding*/) 
@@ -1043,11 +1454,11 @@ public class TestCharset extends TestFmwk {
         }
         
     }
-    public  void TestUTF8Encode() {
+    public void TestUTF8Encode() {
         CharsetEncoder encoderICU = new CharsetProviderICU().charsetForName("utf-8").newEncoder();
         ByteBuffer out = ByteBuffer.allocate(30);
         CoderResult result = encoderICU.encode(CharBuffer.wrap("\ud800"), out, true);
-       
+        
         if (result.isMalformed()) {
             logln("\\ud800 is malformed for ICU4JNI utf-8 encoder");
         } else if (result.isUnderflow()) {
@@ -1128,34 +1539,35 @@ public class TestCharset extends TestFmwk {
         }
     }
      
-    private void smBufDecode(CharsetDecoder decoder, String encoding, ByteBuffer source,
-            CharBuffer target, boolean throwException, boolean flush)
-            throws BufferOverflowException, Exception {
-      smBufDecode(decoder, encoding, source, target, throwException, flush, true);
+    private void smBufDecode(CharsetDecoder decoder, String encoding, ByteBuffer source, CharBuffer target,
+            boolean throwException, boolean flush) throws BufferOverflowException, Exception {
+        smBufDecode(decoder, encoding, source, target, throwException, flush, true);
     }
-    private void smBufDecode(CharsetDecoder decoder, String encoding, ByteBuffer source,
-            CharBuffer target, boolean throwException, boolean flush, boolean backedByArray)
-            throws BufferOverflowException, Exception {
-      smBufDecode(decoder, encoding, source, target, throwException, flush, backedByArray, -1);
+
+    private void smBufDecode(CharsetDecoder decoder, String encoding, ByteBuffer source, CharBuffer target,
+            boolean throwException, boolean flush, boolean backedByArray) throws BufferOverflowException, Exception {
+        smBufDecode(decoder, encoding, source, target, throwException, flush, backedByArray, -1);
     }
-    private void smBufDecode(CharsetDecoder decoder, String encoding, ByteBuffer source,
-            CharBuffer target, boolean throwException, boolean flush, boolean backedByArray,
-            int targetLimit) throws BufferOverflowException, Exception {
+
+    private void smBufDecode(CharsetDecoder decoder, String encoding, ByteBuffer source, CharBuffer target,
+            boolean throwException, boolean flush, boolean backedByArray, int targetLimit)
+            throws BufferOverflowException, Exception {
         ByteBuffer mySource;
         CharBuffer myTarget;
         if (backedByArray) {
             mySource = ByteBuffer.allocate(source.capacity());
             myTarget = CharBuffer.allocate(target.capacity());
         } else {
-            // this does not guarantee by any means that mySource and myTarget are not backed by arrays
+            // this does not guarantee by any means that mySource and myTarget
+            // are not backed by arrays
             mySource = ByteBuffer.allocateDirect(source.capacity());
             myTarget = ByteBuffer.allocateDirect(target.capacity() * 2).asCharBuffer();
         }
         mySource.position(source.position());
-        for (int i=source.position(); i<source.limit(); i++)
+        for (int i = source.position(); i < source.limit(); i++)
             mySource.put(i, source.get(i));
-        
-        {            
+
+        {
             decoder.reset();
             myTarget.limit(target.limit());
             mySource.limit(source.limit());
@@ -1169,7 +1581,7 @@ public class TestCharset extends TestFmwk {
                 if (throwException) {
                     throw new Exception();
                 }
-                errln("Test complete buffers while decoding failed. "+result.toString());
+                errln("Test complete buffers while decoding failed. " + result.toString());
                 return;
             }
             if (result.isOverflow()) {
@@ -1183,13 +1595,10 @@ public class TestCharset extends TestFmwk {
             myTarget.position(0);
             target.position(0);
             if (result.isUnderflow() && !equals(myTarget, target, targetLimit)) {
-                errln(
-                    " Test complete buffers while decoding  "
-                        + encoding
-                        + " TO Unicode--failed");
+                errln(" Test complete buffers while decoding  " + encoding + " TO Unicode--failed");
             }
         }
-        if(isQuick()){
+        if (isQuick()) {
             return;
         }
         {
@@ -1199,19 +1608,19 @@ public class TestCharset extends TestFmwk {
             mySource.position(source.position());
             myTarget.clear();
             myTarget.position(0);
-            
+
             int inputLen = mySource.remaining();
 
             CoderResult result = CoderResult.UNDERFLOW;
-            for(int i=1; i<=inputLen; i++) {
+            for (int i = 1; i <= inputLen; i++) {
                 mySource.limit(i);
-                if(i==inputLen){
+                if (i == inputLen) {
                     result = decoder.decode(mySource, myTarget, true);
-                }else{
+                } else {
                     result = decoder.decode(mySource, myTarget, false);
                 }
                 if (result.isError()) {
-                    errln("Test small input buffers while decoding failed. "+result.toString());
+                    errln("Test small input buffers while decoding failed. " + result.toString());
                     break;
                 }
                 if (result.isOverflow()) {
@@ -1224,10 +1633,7 @@ public class TestCharset extends TestFmwk {
 
             }
             if (result.isUnderflow() && !equals(myTarget, target, targetLimit)) {
-                errln(
-                    "Test small input buffers while decoding "
-                        + encoding
-                        + " TO Unicode--failed");
+                errln("Test small input buffers while decoding " + encoding + " TO Unicode--failed");
             }
         }
         {
@@ -1237,49 +1643,48 @@ public class TestCharset extends TestFmwk {
             mySource.position(source.position());
             myTarget.clear();
             while (true) {
-                int pos = myTarget.position();
-                myTarget.limit(++pos);
+                int pos = myTarget.position() + 1;
+                if (myTarget.capacity() < pos)
+                    break;
+                myTarget.limit(pos);
                 CoderResult result = decoder.decode(mySource, myTarget, false);
                 if (result.isError()) {
-                    errln("Test small output buffers while decoding "+ result.toString());
+                    errln("Test small output buffers while decoding " + result.toString());
                 }
-                if (mySource.position()== mySource.limit()) {
+                if (mySource.position() == mySource.limit()) {
                     result = decoder.decode(mySource, myTarget, true);
                     if (result.isError()) {
-                        errln("Test small output buffers while decoding "+result.toString());
+                        errln("Test small output buffers while decoding " + result.toString());
                     }
                     result = decoder.flush(myTarget);
                     if (result.isError()) {
-                        errln("Test small output buffers while decoding "+ result.toString());
+                        errln("Test small output buffers while decoding " + result.toString());
                     }
                     break;
                 }
             }
 
             if (!equals(myTarget, target, targetLimit)) {
-                errln(
-                    "Test small output buffers "
-                        + encoding
-                        + " TO Unicode failed");
+                errln("Test small output buffers " + encoding + " TO Unicode failed");
             }
         }
     }
 
-    private void smBufEncode(CharsetEncoder encoder, String encoding, CharBuffer source,
-            ByteBuffer target, boolean throwException, boolean flush) throws Exception,
+    private void smBufEncode(CharsetEncoder encoder, String encoding, CharBuffer source, ByteBuffer target,
+            boolean throwException, boolean flush) throws Exception, BufferOverflowException {
+        smBufEncode(encoder, encoding, source, target, throwException, flush, true);
+    }
+
+    private void smBufEncode(CharsetEncoder encoder, String encoding, CharBuffer source, ByteBuffer target,
+            boolean throwException, boolean flush, boolean backedByArray) throws Exception, BufferOverflowException {
+        smBufEncode(encoder, encoding, source, target, throwException, flush, true, -1);
+    }
+
+    private void smBufEncode(CharsetEncoder encoder, String encoding, CharBuffer source, ByteBuffer target,
+            boolean throwException, boolean flush, boolean backedByArray, int targetLimit) throws Exception,
             BufferOverflowException {
-        smBufEncode(encoder, encoding, source, target, throwException, flush, true); 
-    }
-    private void smBufEncode(CharsetEncoder encoder, String encoding, CharBuffer source,
-            ByteBuffer target, boolean throwException, boolean flush, boolean backedByArray)
-            throws Exception, BufferOverflowException {
-        smBufEncode(encoder, encoding, source, target, throwException, flush, true, -1); 
-    }
-    private void smBufEncode(CharsetEncoder encoder, String encoding, CharBuffer source,
-            ByteBuffer target, boolean throwException, boolean flush, boolean backedByArray,
-            int targetLimit) throws Exception, BufferOverflowException {
-        logln("Running smBufEncode for "+ encoding + " with class " + encoder);
-        
+        logln("Running smBufEncode for " + encoding + " with class " + encoder);
+
         CharBuffer mySource;
         ByteBuffer myTarget;
         if (backedByArray) {
@@ -1290,18 +1695,18 @@ public class TestCharset extends TestFmwk {
             myTarget = ByteBuffer.allocateDirect(target.capacity());
         }
         mySource.position(source.position());
-        for (int i=source.position(); i<source.limit(); i++)
+        for (int i = source.position(); i < source.limit(); i++)
             mySource.put(i, source.get(i));
-        
+
         myTarget.clear();
         {
-            logln("Running tests on small input buffers for "+ encoding);
+            logln("Running tests on small input buffers for " + encoding);
             encoder.reset();
             myTarget.limit(target.limit());
             mySource.limit(source.limit());
             mySource.position(source.position());
-            CoderResult result=null;
-            
+            CoderResult result = null;
+
             result = encoder.encode(mySource, myTarget, true);
             if (flush) {
                 result = encoder.flush(myTarget);
@@ -1311,7 +1716,7 @@ public class TestCharset extends TestFmwk {
                 if (throwException) {
                     throw new Exception();
                 }
-                errln("Test complete while encoding failed. "+result.toString());
+                errln("Test complete while encoding failed. " + result.toString());
             }
             if (result.isOverflow()) {
                 if (throwException) {
@@ -1320,33 +1725,29 @@ public class TestCharset extends TestFmwk {
                 errln("Test complete while encoding threw overflow exception");
             }
             if (!equals(myTarget, target, targetLimit)) {
-                // TODO: REMOVE output
-                System.out.println(source.limit() + " " + mySource.limit() + " " + target.limit() + " " + myTarget.limit() + " " + targetLimit);
-                System.out.println((char)target.get(0) + " " + myTarget.get(0) + " " + targetLimit);
-                errln("Test complete buffers while encoding for "+ encoding+ " failed");
+                errln("Test complete buffers while encoding for " + encoding + " failed");
 
-            }
-            else{
-                logln("Tests complete buffers for "+ encoding +" passed");
+            } else {
+                logln("Tests complete buffers for " + encoding + " passed");
             }
         }
-        if(isQuick()){
+        if (isQuick()) {
             return;
         }
         {
-            logln("Running tests on small input buffers for "+ encoding);
+            logln("Running tests on small input buffers for " + encoding);
             encoder.reset();
             myTarget.clear();
             myTarget.limit(target.limit());
             mySource.limit(source.limit());
             mySource.position(source.position());
             int inputLen = mySource.limit();
-            CoderResult result=null;
-            for(int i=1; i<=inputLen; i++) {
+            CoderResult result = null;
+            for (int i = 1; i <= inputLen; i++) {
                 mySource.limit(i);
                 result = encoder.encode(mySource, myTarget, false);
                 if (result.isError()) {
-                    errln("Test small input buffers while encoding failed. "+result.toString());
+                    errln("Test small input buffers while encoding failed. " + result.toString());
                 }
                 if (result.isOverflow()) {
                     if (throwException) {
@@ -1356,13 +1757,13 @@ public class TestCharset extends TestFmwk {
                 }
             }
             if (!equals(myTarget, target, targetLimit)) {
-                errln("Test small input buffers "+ encoding+ " From Unicode failed");
-            }else{
-                logln("Tests on small input buffers for "+ encoding +" passed");
+                errln("Test small input buffers " + encoding + " From Unicode failed");
+            } else {
+                logln("Tests on small input buffers for " + encoding + " passed");
             }
         }
         {
-            logln("Running tests on small output buffers for "+ encoding);
+            logln("Running tests on small output buffers for " + encoding);
             encoder.reset();
             myTarget.clear();
             myTarget.limit(target.limit());
@@ -1370,40 +1771,40 @@ public class TestCharset extends TestFmwk {
             mySource.position(source.position());
             mySource.position(0);
             myTarget.position(0);
-            
+
             logln("myTarget.limit: " + myTarget.limit() + " myTarget.capcity: " + myTarget.capacity());
-            
+
             while (true) {
                 int pos = myTarget.position();
 
                 CoderResult result = encoder.encode(mySource, myTarget, false);
-                logln("myTarget.Position: "+ pos + " myTarget.limit: " + myTarget.limit());
+                logln("myTarget.Position: " + pos + " myTarget.limit: " + myTarget.limit());
                 logln("mySource.position: " + mySource.position() + " mySource.limit: " + mySource.limit());
-                
+
                 if (result.isError()) {
-                    errln("Test small output buffers while encoding "+result.toString());
+                    errln("Test small output buffers while encoding " + result.toString());
                 }
                 if (mySource.position() == mySource.limit()) {
                     result = encoder.encode(mySource, myTarget, true);
                     if (result.isError()) {
-                        errln("Test small output buffers while encoding "+result.toString());
+                        errln("Test small output buffers while encoding " + result.toString());
                     }
-                    
+
                     myTarget.limit(myTarget.capacity());
                     result = encoder.flush(myTarget);
                     if (result.isError()) {
-                        errln("Test small output buffers while encoding "+result.toString());
+                        errln("Test small output buffers while encoding " + result.toString());
                     }
                     break;
                 }
             }
             if (!equals(myTarget, target, targetLimit)) {
-                errln("Test small output buffers "+ encoding+ " From Unicode failed.");
+                errln("Test small output buffers " + encoding + " From Unicode failed.");
             }
-            logln("Tests on small output buffers for "+ encoding +" passed");
-
+            logln("Tests on small output buffers for " + encoding + " passed");
         }
     }
+
     public void convertAllTest(ByteBuffer bSource, CharBuffer uSource) throws Exception {
         {
             try {
@@ -2576,13 +2977,14 @@ public class TestCharset extends TestFmwk {
         }
         
         //Test new characters in the ISCII charset
-        encoder = cs.newEncoder();
-        decoder = cs.newDecoder();
+        encoder = provider.charsetForName("ISCII,version=0").newEncoder();
+        decoder = provider.charsetForName("ISCII,version=0").newDecoder();
         char u_pts[] = {
                 /* DEV */ (char)0x0904,
                 /* PNJ */ (char)0x0A01, (char)0x0A03, (char)0x0A33, (char)0x0A70
             };
         byte b_pts[] = {
+                                (byte)0xef, (byte)0x42,
                 /* DEV */ (byte)0xa4, (byte)0xe0,
                 /* PNJ */ (byte)0xef, (byte)0x4b, (byte)0xa1, (byte)0xa3, (byte)0xd2, (byte)0xf0, (byte)0xbf
             };
@@ -3431,7 +3833,6 @@ public class TestCharset extends TestFmwk {
     
     //this method provides better code coverage decoding UTF32 LE/BE
     public void TestDecodeUTF32LEBE() {
-        CoderResult result = CoderResult.UNDERFLOW;
         CharsetProvider provider = new CharsetProviderICU();       
         CharsetDecoder decoder;
         CharBuffer us = CharBuffer.allocate(0x10);
