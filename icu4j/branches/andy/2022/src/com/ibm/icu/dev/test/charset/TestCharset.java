@@ -922,6 +922,10 @@ public class TestCharset extends TestFmwk {
         Object[] charsets = CharsetProviderICU.getAvailableNames();
         for(int i=0;i<charsets.length;i++){
             Charset cs = icu.charsetForName((String)charsets[i]);
+            if (cs==null) {
+                errln("TestICUAvailableCharsets: CarsetProviderICU.charsetForName(\"" + (String)charsets[i] + "\") returned null");
+                continue;
+            }
             try{
                 CharsetEncoder encoder = cs.newEncoder();
                 if(encoder!=null){
@@ -1718,6 +1722,10 @@ public class TestCharset extends TestFmwk {
                     continue;
                 }
                 Charset cs = provider.charsetForName((String)available[i]);
+                if (cs==null) {
+                    errln("TestAllNames:  CharsetProviderICU.charsetForName(\"" + (String)available[i] + "\") returned null.");
+                    continue;
+                }
               
                 Object[] javaAliases =  cs.aliases().toArray();
                 //seach for ICU canonical name in javaAliases

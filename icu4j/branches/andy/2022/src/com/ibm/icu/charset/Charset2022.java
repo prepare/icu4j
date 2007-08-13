@@ -44,16 +44,19 @@ public class Charset2022 extends CharsetICU {
         int version = 0;
         int versionIndex = icuCanonicalName.indexOf("version=");
         if (versionIndex>0) {
-            versionIndex += "version=".length();
             try {
-                version = Integer.decode(icuCanonicalName.substring(versionIndex+8, versionIndex+9));
+                version = Integer.decode(icuCanonicalName.substring(versionIndex+8, versionIndex+9)).intValue();
             } catch (NumberFormatException e) {
                 throw new UnsupportedCharsetException(icuCanonicalName);
             }
         }
             
         String locale = ULocale.getDefault().getLanguage();
-        if (icuCanonicalName.indexOf("locale=ja")>0) {
+        if (icuCanonicalName.equals("JIS7")) {
+            ISO2022InitJP(3);
+        } else if (icuCanonicalName.equals("JIS8")) {
+            ISO2022InitJP(4);
+        } else if (icuCanonicalName.indexOf("locale=ja")>0) {
             ISO2022InitJP(version);
         } else if (icuCanonicalName.indexOf("locale=zh")>0) {
             ISO2022InitCN(version);
@@ -353,8 +356,12 @@ public class Charset2022 extends CharsetICU {
     
      private void   ISO2022InitJP(int version) {
          version2022 = version;
+         variant     = ISO_2022_JP;
+         
+         maxBytesPerChar = 6;  // 4 byte escape sequence + DBCS         
+         minBytesPerChar = 1;
+         maxCharsPerByte = 1;
 
-         variant = ISO_2022_JP;
          // open the required converters and cache them 
          if((jpCharsetMasks[version]&CSM(ISO8859_7))!=0) {
              converterArray[ISO8859_7] = (CharsetMBCS)CharsetICU.forNameICU("ISO8859_7");
@@ -559,20 +566,27 @@ public class Charset2022 extends CharsetICU {
     //
     //  changeState_2022()
     //     runs through a state machine to determine the escape sequence - codepage correspondance
+    //     Return a CoderResult indicating the problem if the source underflowed or an illegal 
+    //          sequence was encountered.  Return null if valid sequence was consumed.
     //
-    static void changeState_2022( ByteBuffer  source,
-                           ISO2022State state,
-                           int         variant,        // enum (ISO_2022_JP, ISO_2022_KR, ISO_2022_CN)
-                           int         version
-    ) throws InvalidFormatException {
+    static CoderResult changeState_2022( 
+            ByteBuffer  source,
+            ISO2022State state,         // Current state, will be updated according to sequence found.
+            int         variant,        // enum (ISO_2022_JP, ISO_2022_KR, ISO_2022_CN)
+            int         version
+    )  {
         int    value;   // enum UCNV_TableStates_2022
         int    offset = -1;
         byte   c;
 
-        value = VALID_NON_TERMINAL_2022;
         int initialPosition = source.position();
+        value = VALID_NON_TERMINAL_2022;
 
-        while (source.hasRemaining() && value==VALID_NON_TERMINAL_2022) {
+        while (value==VALID_NON_TERMINAL_2022) {
+            if (source.hasRemaining() == false) {
+                source.position(initialPosition);
+                return CoderResult.UNDERFLOW;
+            }
             c = source.get();
             offset = getKey_2022(c, offset);
             if (offset<0) {
@@ -588,120 +602,115 @@ public class Charset2022 extends CharsetICU {
             value = VALID_TERMINAL_2022;
         }
 
-        if (value == VALID_NON_TERMINAL_2022) {
-            // indicate that the escape sequence is incomplete.
-            // The only way we get here is if the input buffer underflowed, otherwise
-            //   the above loop would have run until we either got a complete sequence or
-            //   it went invalid.
-            source.position(initialPosition);
-        } 
-
         if (value == INVALID_2022 ) {
-            throw new InvalidFormatException("U_ILLEGAL_ESCAPE_SEQUENCE");
+            return CoderResult.malformedForLength(source.position()-initialPosition);
         }
 
         /* value == VALID_TERMINAL_2022 */ {
-        switch(variant) {
-        // TODO:  the code inside this switch should be factored out into a function with separate impls for
-        //        each of the three classes of decoders.
-        case ISO_2022_JP:
-        {
-            short tempState = nextStateToUnicodeJP[offset];
-            switch (tempState) {
-            case INVALID_STATE:
-                throw new InvalidFormatException("U_UNSUPPORTED_ESCAPE_SEQUENCE");
-            case SS2_STATE:
-                if(state.cs[2] != 0) {
-                    if(state.g < 2) {
+            switch(variant) {
+            // TODO:  the code inside this switch should be factored out into a function with separate impls for
+            //        each of the three classes of decoders.
+            case ISO_2022_JP:
+            {
+                short tempState = nextStateToUnicodeJP[offset];
+                switch (tempState) {
+                case INVALID_STATE:
+                    return CoderResult.malformedForLength(source.position()-initialPosition);
+                case SS2_STATE:
+                    if(state.cs[2] != 0) {
+                        if(state.g < 2) {
+                            state.prevG = state.g;
+                        }
+                        state.g = 2;
+                    } else {
+                        /* illegal to have SS2 before a matching designator */
+                        return CoderResult.malformedForLength(source.position()-initialPosition);
+                    }
+                    break;
+                    /* case SS3_STATE: not used in ISO-2022-JP-x */
+                case ISO8859_1:
+                case ISO8859_7:
+                    if((jpCharsetMasks[version] & CSM(tempState)) == 0) {
+                        return CoderResult.malformedForLength(source.position()-initialPosition);
+                    }
+                    /* G2 charset for SS2 */
+                    state.cs[2] = (byte)tempState;
+                    break;
+                default:
+                    if((jpCharsetMasks[version] & CSM(tempState)) == 0) {
+                        return CoderResult.malformedForLength(source.position()-initialPosition);
+                    }
+                /* G0 charset */
+                state.cs[0] = (byte)tempState;
+                break;
+                }
+            }
+            break;
+            case ISO_2022_CN:
+            {
+                short  tempState = nextStateToUnicodeCN[offset];
+                switch(tempState) {
+                case INVALID_STATE:
+                    return CoderResult.malformedForLength(source.position()-initialPosition);
+                case SS2_STATE:
+                    if(state.cs[2] == 0) {
+                        /* illegal to have SS2 before a matching designator */
+                        return CoderResult.malformedForLength(source.position()-initialPosition);
+                    }
+                    if (state.g < 2 ) {
                         state.prevG = state.g;
                     }
                     state.g = 2;
-                } else {
-                    /* illegal to have SS2 before a matching designator */
-                    throw new InvalidFormatException("U_ILLEGAL_ESCAPE_SEQUENCE");
-                }
-                break;
-                /* case SS3_STATE: not used in ISO-2022-JP-x */
-            case ISO8859_1:
-            case ISO8859_7:
-                if((jpCharsetMasks[version] & CSM(tempState)) == 0) {
-                    throw new InvalidFormatException("U_UNSUPPORTED_ESCAPE_SEQUENCE");
-                }
-                /* G2 charset for SS2 */
-                state.cs[2] = (byte)tempState;
-                break;
-            default:
-                if((jpCharsetMasks[version] & CSM(tempState)) == 0) {
-                    throw new InvalidFormatException("U_UNSUPPORTED_ESCAPE_SEQUENCE");
-                }
-            /* G0 charset */
-            state.cs[0] = (byte)tempState;
-            break;
-            }
-        }
-        break;
-        case ISO_2022_CN:
-        {
-            short  tempState = nextStateToUnicodeCN[offset];
-            switch(tempState) {
-            case INVALID_STATE:
-                throw new InvalidFormatException("U_UNSUPPORTED_ESCAPE_SEQUENCE");
-            case SS2_STATE:
-                if(state.cs[2] == 0) {
-                    /* illegal to have SS2 before a matching designator */
-                    throw new InvalidFormatException("U_ILLEGAL_ESCAPE_SEQUENCE");
-                }
-                if (state.g < 2 ) {
-                    state.prevG = state.g;
-                }
-                state.g = 2;
-                break;
-            case SS3_STATE:
-                if(state.cs[3] != 0) {
-                    if(state.g < 2) {
-                        state.prevG = state.g;
+                    break;
+                case SS3_STATE:
+                    if(state.cs[3] != 0) {
+                        if(state.g < 2) {
+                            state.prevG = state.g;
+                        }
+                        state.g = 3;
+                    } else {
+                        /* illegal to have SS3 before a matching designator */
+                        return CoderResult.malformedForLength(source.position()-initialPosition);
                     }
-                    state.g = 3;
+                    break;
+                case ISO_IR_165:
+                    if(version==0) {
+                        return CoderResult.malformedForLength(source.position()-initialPosition);
+                    }
+                    /*fall through*/
+                case GB2312_1:
+                    /*fall through*/
+                case CNS_11643_1:
+                    state.cs[1]=(byte)tempState;
+                    break;
+                case CNS_11643_2:
+                    state.cs[2]=(byte)tempState;
+                    break;
+                default:
+                    /* other CNS 11643 planes */
+                    if(version==0) {
+                        return CoderResult.malformedForLength(source.position()-initialPosition);
+                    } 
+                state.cs[3]=(byte)tempState;
+                break;
+                }
+            }
+            break;
+            case ISO_2022_KR:
+                if(offset==0x30){
+                    /* nothing to be done, just accept this one escape sequence */
                 } else {
-                    /* illegal to have SS3 before a matching designator */
-                    throw new InvalidFormatException("U_ILLEGAL_ESCAPE_SEQUENCE");
+                    return CoderResult.malformedForLength(source.position()-initialPosition);
                 }
                 break;
-            case ISO_IR_165:
-                if(version==0) {
-                    throw new InvalidFormatException("U_UNSUPPORTED_ESCAPE_SEQUENCE");
-                }
-                /*fall through*/
-            case GB2312_1:
-                /*fall through*/
-            case CNS_11643_1:
-                state.cs[1]=(byte)tempState;
-                break;
-            case CNS_11643_2:
-                state.cs[2]=(byte)tempState;
-                break;
-            default:
-                /* other CNS 11643 planes */
-                if(version==0) {
-                    throw new InvalidFormatException("U_UNSUPPORTED_ESCAPE_SEQUENCE");
-                } 
-            state.cs[3]=(byte)tempState;
-            break;
-            }
-        }
-        break;
-        case ISO_2022_KR:
-            if(offset==0x30){
-                /* nothing to be done, just accept this one escape sequence */
-            } else {
-                throw new InvalidFormatException("U_UNSUPPORTED_ESCAPE_SEQUENCE");
-            }
-            break;
 
-        default:
-            throw new InvalidFormatException("U_ILLEGAL_ESCAPE_SEQUENCE");
+            default:
+                return CoderResult.malformedForLength(source.position()-initialPosition);
+            }
         }
-    }
+        // Completely handled a valid escape sequence.
+        //   return null for CoderResult, indicating success.
+        return null;
     }
     
     
@@ -723,57 +732,47 @@ public class Charset2022 extends CharsetICU {
                 boolean flush) {
             CoderResult cr = null;
             
-            if (!source.hasRemaining()) {
-                /* no input, nothing to do */
-                return CoderResult.UNDERFLOW;
+            for (;;)  {
+                cr = convertSegmentToU(source, target);
+                if (cr != null) {
+                    break;
+                }
+                cr = changeState_2022(source, toU2022State, ISO_2022_JP, version2022);
+                if (cr != null) {
+                    break;
+                }
             }
-            if (!target.hasRemaining()) {
-                /* no output available, can't do anything */
-                return CoderResult.OVERFLOW;
-            }
-
-            boolean targetOverflow = false;
-
-            int segmentStart = 0;
-            try {
-                do  {
-                    segmentStart = source.position();
-                    targetOverflow = convertSegmentToU(source, target);
-                    changeState_2022(source, toU2022State, ISO_2022_JP, version2022);
-                } while (segmentStart < source.position() && targetOverflow == false);
-            } catch (InvalidFormatException e) {
-                cr = CoderResult.malformedForLength(1);   // TODO: get a real length value.
-                return cr;
-            }
-  
- 
-            /* set offsets since the start */
+   
+             /* set offsets since the start */
             if (offsets != null) {
                 // TODO:  offsets computation.  Really Needed?
             }
-            
-            cr = targetOverflow ? CoderResult.OVERFLOW :CoderResult.UNDERFLOW;
             return cr;
         }
 
          
         //
         // convertSegmentToU     Convert a segment of bytes to Unicode using the currently selected
-        //                       sub-codepage.
+        //                       sub-codepage according to the 2022 state.
         //                       Stop when one of these conditions occurs
         //                          - An escape is encountered in the input bytes.
         //                          - The output buffer can not hold the next character to be produced.
         //                          - The input buffer underflows.
-        //                       Return FALSE if the output buffer overflows, forcing the conversion operation
-        //                           to stop prematurely.
+        //                          - Conversion fails
+        //                       Return a CoderResult indicating the reason for stopping.
+        //                          In the event of an escape, return null.  This is a situation that
+        //                          CoderResult is not setup to represent.
         //                       Advance the input byte buffer position only over completely processed
         //                           bytes - ones whose converted output has been fully written to the
         //                           target output buffer.
         //                       Put only complete characters into the output buffer.  If an input character
         //                           will produce multiple output characters, write either all of them
         //                           or none of them.
-        private boolean convertSegmentToU(ByteBuffer source, CharBuffer dest) {
-            while (source.hasRemaining()) {
+        private CoderResult convertSegmentToU(ByteBuffer source, CharBuffer dest) {
+            for (;;) {
+                if (source.hasRemaining() == false) {
+                    return CoderResult.UNDERFLOW;
+                }
                 
                 // Remember the buffer positions at the start of each character.
                 //   In the case of overflow or underflow, the buffers are restored to these positions.
@@ -807,7 +806,7 @@ public class Charset2022 extends CharsetICU {
                     // Stops the conversion within this function; dealing with it
                     //    is handled elsewhere.
                     source.position(startingSourcePosition);
-                    return true;
+                    return null;
                     
                 case CR:
                 case LF:
@@ -824,12 +823,16 @@ public class Charset2022 extends CharsetICU {
                 }
                 
              int cs = toU2022State.cs[toU2022State.g];
+             boolean  needToRestoreState_g = false;
+             byte  savedState_g = 0;
              if (inputByte >= 0xa1 && inputByte <= 0xdf && version2022==4 && !Charset2022.IS_JP_DBCS(cs)) {
                  /* 8-bit halfwidth katakana in any single-byte mode for JIS8 */
                  targetUniChar = inputByte + (0x0000ff61 - 0xa1);
 
                  /* return from a single-shift state to the previous one */
                  if(toU2022State.g >= 2) {
+                     needToRestoreState_g = true;
+                     savedState_g = toU2022State.g;
                      toU2022State.g = toU2022State.prevG;
                  }
              } else switch(cs) {
@@ -877,7 +880,7 @@ public class Charset2022 extends CharsetICU {
                      //   Back up the input position so that we will the leading byte
                      //   again after fetching more input.
                      source.position(source.position()-1);
-                     return true;
+                     return CoderResult.UNDERFLOW;
                  }
                                       
                  // Move the source position back to the first byte of the DBCS character so that
@@ -897,14 +900,17 @@ public class Charset2022 extends CharsetICU {
              }
              catch (IndexOutOfBoundsException e) {
                  // The output buffer overflowed.
+                 if (needToRestoreState_g) {
+                     toU2022State.g = savedState_g;
+                 }
                  dest.position(startingDestPosition);
                  source.position(startingSourcePosition);
-                 return false;
+                 return CoderResult.OVERFLOW;
              }
          }
-             
-        return true;
         }
+        
+        // This point is unreachable.  No break from the above loop, only returns.
     }
         
         
@@ -1140,6 +1146,27 @@ public class Charset2022 extends CharsetICU {
            super.implReset();
            fromU2022State.reset();
        }
+       
+       protected CoderResult implFlush(ByteBuffer target) {
+           // ISO-2022-JP conversion needs to be in ASCII mode at the very end.
+           int restorePosition = target.position();
+           try {
+               saved2022State.copyFrom(fromU2022State);
+               if(fromU2022State.g != 0) {
+                   target.put((byte)UCNV_SI);
+                   fromU2022State.g = 0;
+               }
+               if(fromU2022State.cs[0] != ASCII) {
+                   target.put(escSeqChars[ASCII]);
+                   fromU2022State.cs[0] = ASCII;
+               }
+           } catch (BufferOverflowException e) {
+               target.position(restorePosition);
+               fromU2022State.copyFrom(saved2022State);
+               return CoderResult.OVERFLOW;
+           }
+           return CoderResult.UNDERFLOW;         
+       }
 
         protected CoderResult encodeLoop(CharBuffer source, ByteBuffer target, IntBuffer offsets,
                 boolean flush) {
@@ -1301,6 +1328,12 @@ public class Charset2022 extends CharsetICU {
             // The conversion loop only comes out the bottom, to here, if the source input
             //   is exhausted.  All other cases for stopping (output buffer full, conversion failure)
             //   return from within the body of the loop.
+            
+            if (flush) {
+                // ISO-2022-JP conversion needs to be in ASCII mode at the very end.
+                implFlush(target);
+            }
+                        
             return CoderResult.UNDERFLOW;
         }
 

@@ -136,13 +136,15 @@ public abstract class CharsetICU extends Charset{
         algorithmicCharsets.put("ISCII,version=6",       "com.ibm.icu.charset.CharsetISCII" );
         algorithmicCharsets.put("ISCII,version=7",       "com.ibm.icu.charset.CharsetISCII" );
         algorithmicCharsets.put("ISCII,version=8",       "com.ibm.icu.charset.CharsetISCII" );
-        algorithmicCharsets.put("IMAP-mailbox-name",      "com.ibm.icu.charset.CharsetUTF7" );
+        algorithmicCharsets.put("IMAP-mailbox-name",     "com.ibm.icu.charset.CharsetUTF7" );
+        algorithmicCharsets.put("JIS7",                  "com.ibm.icu.charset.Charset2022" );
+        algorithmicCharsets.put("JIS8",                  "com.ibm.icu.charset.Charset2022" );
         }
 
     /*public*/ static final Charset getCharset(String icuCanonicalName, String javaCanonicalName, String[] aliases){
        String className = (String) algorithmicCharsets.get(icuCanonicalName);
        if(className==null){
-           if (icuCanonicalName.startsWith("ISO_2022")) {
+           if (icuCanonicalName!=null && icuCanonicalName.startsWith("ISO_2022")) {
                className = "com.ibm.icu.charset.Charset2022";
            } else {
                // all other cnv files are loaded as MBCS
