@@ -715,7 +715,7 @@ public class Charset2022 extends CharsetICU {
     
     
 
-    class CharsetDecoder2022JP extends CharsetDecoderICU {
+    public class CharsetDecoder2022JP extends CharsetDecoderICU {
 
         public CharsetDecoder2022JP(CharsetICU cs) {
             super(cs);
@@ -1168,7 +1168,7 @@ public class Charset2022 extends CharsetICU {
            return CoderResult.UNDERFLOW;         
        }
 
-        protected CoderResult encodeLoop(CharBuffer source, ByteBuffer target, IntBuffer offsets,
+        CoderResult encodeLoop(CharBuffer source, ByteBuffer target, IntBuffer offsets,
                 boolean flush) {
             
             int   sourceChar;    

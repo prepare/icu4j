@@ -27,7 +27,7 @@ import com.ibm.icu.impl.InvalidFormatException;
 import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.text.UTF16;
 
-class CharsetMBCS extends CharsetICU {
+public class CharsetMBCS extends CharsetICU {
 
     private byte[]                fromUSubstitution = null;
             UConverterSharedData  sharedData = null;

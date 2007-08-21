@@ -25,22 +25,22 @@ import com.ibm.icu.dev.test.TestDataModule.DataMap;
 import com.ibm.icu.impl.ICUResourceBundle;
 
 /**
- * This maps to convtest.c which tests the test file for data-driven conversion tests. 
- * 
+ * This maps to convtest.c which tests the test file for data-driven conversion tests.
+ *
  */
 public class TestConversion extends ModuleTest {
     /**
      * This maps to the C struct of conversion case in convtest.h that stores the
      * data for a conversion test
-     * 
+     *
      */
     private class ConversionCase {
-        int caseNr;                                             // testcase index   
+        int caseNr;                                             // testcase index
         String option = null;                                   // callback options
         CodingErrorAction cbErrorAction = null;                 // callback action type
         CharBuffer toUnicodeResult = null;
         ByteBuffer fromUnicodeResult = null;
-        
+
         // data retrieved from a test case conversion.txt
         String charset;                                         // charset
         String unicode;                                         // unicode string
@@ -49,12 +49,14 @@ public class TestConversion extends ModuleTest {
         boolean finalFlush;                                     // flush
         boolean fallbacks;                                      // fallback
         String outErrorCode;                                    // errorCode
-        String cbopt;                                           // callback 
-        
+        String cbopt;                                           // callback
+
         // TestGetUnicodeSet variables
         String map;
         String mapnot;
         int which;
+
+        String caseNrAsString() { return "[" + caseNr + "]"; }
     }
 
     // public methods --------------------------------------------------------
@@ -103,12 +105,12 @@ public class TestConversion extends ModuleTest {
 
     // private methods -------------------------------------------------------
 
-    
-    // fromUnicode test worker functions --------------------------------------- 
+
+    // fromUnicode test worker functions ---------------------------------------
     private void TestFromUnicode(DataMap testcase, int caseNr) {
 
         ConversionCase cc = new ConversionCase();
-        
+
         try {
             // retrieve test case data
             cc.caseNr = caseNr;
@@ -167,7 +169,7 @@ public class TestConversion extends ModuleTest {
                 break;
             }
 
-            // check for any options for the callback value -- 
+            // check for any options for the callback value --
             cc.option = cc.cbErrorAction == null ? cc.cbopt : cc.cbopt
                     .substring(1);
             if (cc.option == null) {
@@ -177,7 +179,7 @@ public class TestConversion extends ModuleTest {
         FromUnicodeCase(cc);
     }
 
-    
+
     private void FromUnicodeCase(ConversionCase cc) {
 
         // create charset encoder for conversion test
@@ -198,7 +200,7 @@ public class TestConversion extends ModuleTest {
                     errln("Fallback could not be set for " + cc.charset);
                 }
             }
-            
+
         } catch (Exception e) {
             // TODO implement loading of test data.
             if (skipIfBeforeICU(3,8,0)) {
@@ -208,11 +210,11 @@ public class TestConversion extends ModuleTest {
             }
             return;
         }
-        
-        
-        
-        
-        // set the callback for the encoder 
+
+
+
+
+        // set the callback for the encoder
         if (cc.cbErrorAction != null) {
             encoder.onUnmappableCharacter(cc.cbErrorAction);
             encoder.onMalformedInput(cc.cbErrorAction);
@@ -310,83 +312,91 @@ public class TestConversion extends ModuleTest {
             break;
         }
     }
+    
+    
     private int stepFromUnicode(ConversionCase cc, CharsetEncoder encoder,
             int step) {
 
-        CharBuffer source;
-        ByteBuffer target;
-        int sourceLen;
-        boolean flush;
-        source = CharBuffer.wrap(cc.unicode.toCharArray());
-        sourceLen = cc.unicode.length();
+        CharBuffer source = CharBuffer.wrap(cc.unicode.toCharArray());
+        int sourceLen = cc.unicode.length();
 
-        target = ByteBuffer.allocate(cc.bytes.capacity() + 4/* for BOM */);
+        int targetLen = cc.bytes.capacity() + 20;  // for BOM, and to let failures produce excess output
+        ByteBuffer target = ByteBuffer.allocate(targetLen);
         target.position(0);
         source.position(0);
         cc.fromUnicodeResult = null;
         encoder.reset();
 
-        if (step >= 0) {
+        if (step<0) {
+            errln("Negative step size, test internal error.");
+            return 0;
+        }
 
-            int iStep = step;
-            int oStep = step;
+        int currentSourceLimit = sourceLen;
+        int currentTargetLimit = targetLen;
+        if (step > 0) {
+            currentSourceLimit = Math.min(step, sourceLen);
+            currentTargetLimit = Math.min(step, targetLen);
+        }
+        boolean flush      = false;   //  flush on this loop iteration?
+        boolean forceFlush = false;   //  Flags a need for a flush if the previous iteration of the
+                                      //    loop exhausted the source but did not flush
+        CoderResult cr = null;
 
+        for (;;) {
+            source.limit(currentSourceLimit);
+            target.limit(currentTargetLimit);
+            flush = forceFlush || (cc.finalFlush && currentSourceLimit == sourceLen);
+
+            cr = encoder.encode(source, target, flush);
+            if (cr.isUnderflow()) {
+                if ((currentSourceLimit == sourceLen) && flush) {
+                    break;
+
+                }
+                forceFlush = (currentSourceLimit == sourceLen);
+                currentSourceLimit = Math.min(currentSourceLimit+step, sourceLen);
+            } else if (cr.isOverflow()) {
+                if (currentTargetLimit==targetLen) {
+                    errln(cc.caseNrAsString() + " encode() is producing excessive output");
+                    break;
+                }
+                currentTargetLimit = Math.min(currentTargetLimit+step, targetLen);
+            } else {
+                // check the error code to see if it matches
+                // cc.errorCode
+                logln("Encoder returned an error code");
+                logln("ErrorCode expected is: " + cc.outErrorCode);
+                logln("Error Result is: " + cr.toString());
+                break;
+            }
+        }
+
+        // Do a final flush for cleanup, but only if there was no preceding encoding error.
+        // Encode loop, exits with cr==underflow in normal operation.
+        if (cr.isUnderflow()) {
             for (;;) {
-
-                if (step != 0) {
-                    source.limit((iStep < sourceLen) ? iStep : sourceLen);
-                    target.limit((oStep < target.capacity()) ? oStep : target
-                            .capacity());
-                    flush = (cc.finalFlush && source.limit() == sourceLen);
-                } else {
-                    source.limit(sourceLen);
-                    target.limit(target.capacity());
-                    flush = cc.finalFlush;
-                }
-                CoderResult cr = null;
-                // convert
-                if (source.hasRemaining()) {
-
-                    cr = encoder.encode(source, target, flush);
-
-                    // check pointers and errors
-                    if (cr.isOverflow()) {
-                        // the partial target is filled, set a new limit, reset
-                        // the error and continue
-                        target.limit(((target.position() + step) < target
-                                .capacity()) ? target.position() + step
-                                : target.capacity());
-
-                    } else if (cr.isError()) {
-                        // check the error code to see if it matches
-                        // cc.errorCode
-                        logln("Encoder returned an error code");
-                        logln("ErrorCode expected is: " + cc.outErrorCode);
-                        logln("Error Result is: " + cr.toString());
+                cr = encoder.flush(target);
+                if (cr.isUnderflow()) {
+                    break;
+                } else if (cr.isOverflow()) {
+                    if (currentTargetLimit==targetLen) {
+                        errln(cc.caseNrAsString() + " Flush is producing excessive output");
                         break;
                     }
+                    currentTargetLimit = Math.min(currentTargetLimit+step, targetLen);
+                    target.limit(currentTargetLimit);
                 } else {
-
-                    if (source.limit() == sourceLen) {
-                        cr = encoder.encode(source, target, true);
-                        if (target.limit() != target.capacity()) {
-                            target.limit(target.capacity());
-                        }
-                        cr = encoder.flush(target);
-
-                        if (cr.isError()) {
-                            errln("Flush operation failed");
-                        }
-                        break;
-                    }
+                    errln(cc.caseNrAsString() + " Flush operation failed.  CoderResult = \"" + cr.toString() + "\"");
+                    break;
                 }
-                iStep += step;
-                oStep += step;
             }
         }
         cc.fromUnicodeResult = target;
         return target.position();
     }
+        
+        
     private boolean checkFromUnicode(ConversionCase cc, int resultLength) {
         return checkResultsFromUnicode(cc, cc.bytes, cc.fromUnicodeResult);
     }
@@ -434,7 +444,7 @@ public class TestConversion extends ModuleTest {
             logln("Skipping test due to limitation in Java API - callback replacement value");
             return;
         }
-        
+
         // process the retrieved test data case
         if (cc.offsets.length == 0) {
             cc.offsets = null;
@@ -538,13 +548,13 @@ public class TestConversion extends ModuleTest {
             }
         }
 
-        //      Check the step to unicode    
+        //      Check the step to unicode
         boolean ok;
         int resultLength;
 
         String steps[][] = { { "0", "bulk" }, // must be first for offsets to be checked
                 { "1", "step=1" }, { "3", "step=3" }, { "7", "step=7" } };
-        /* TODO: currently not supported test steps, getNext API is not supported for now  
+        /* TODO: currently not supported test steps, getNext API is not supported for now
          { "-1", "getNext" },
          { "-2", "toU(bulk)+getNext" },
          { "-3", "getNext+toU(bulk)" },
@@ -563,7 +573,7 @@ public class TestConversion extends ModuleTest {
                 continue;
             }
             logln("Testing step:[" + step + "]");
-            
+
             try {
                 resultLength = stepToUnicode(cc, decoder, step);
                 ok = checkToUnicode(cc, resultLength);
@@ -615,7 +625,7 @@ public class TestConversion extends ModuleTest {
 
 
 
-    
+
     private int stepToUnicode(ConversionCase cc, CharsetDecoder decoder,
             int step)
 
@@ -651,14 +661,14 @@ public class TestConversion extends ModuleTest {
                     target.limit(target.capacity());
                     flush = cc.finalFlush;
                 }
-                // convert 
+                // convert
                 CoderResult cr = null;
                 if (source.hasRemaining()) {
 
                     cr = decoder.decode(source, target, flush);
                     // check pointers and errors
                     if (cr.isOverflow()) {
-                        // the partial target is filled, set a new limit, 
+                        // the partial target is filled, set a new limit,
                         oStep = (target.position() + step);
                         target.limit((oStep < target.capacity()) ? oStep
                                 : target.capacity());
@@ -682,7 +692,7 @@ public class TestConversion extends ModuleTest {
 
                         cr = decoder.decode(source, target, true);
 
-                        //due to limitation of the API we need to check for target limit for expected 
+                        //due to limitation of the API we need to check for target limit for expected
                         if (target.limit() != cc.unicode.length()) {
                             target.limit(cc.unicode.length());
                             cr = decoder.flush(target);
@@ -729,7 +739,7 @@ public class TestConversion extends ModuleTest {
                         if (cr.isOverflow()) {
 
                             if (target.limit() >= target.capacity()) {
-                                // target has reached its limit, an error occurred 
+                                // target has reached its limit, an error occurred
                                 logln("UnExpected error: Target Buffer is larger than capacity");
                                 break;
                             } else {
@@ -789,7 +799,7 @@ public class TestConversion extends ModuleTest {
                     }
                     CoderResult cr = decoder.decode(source, target, source
                             .limit() == sourceLen);
-                    // check pointers and errors 
+                    // check pointers and errors
                     if (cr.isOverflow()) {
                         // one character has been consumed
                         if (target.limit() >= target.capacity()) {
@@ -816,7 +826,7 @@ public class TestConversion extends ModuleTest {
     }
 
 
-   
+
     private boolean checkToUnicode(ConversionCase cc, int resultLength) {
         return checkResultsToUnicode(cc, cc.unicode, cc.toUnicodeResult);
     }
@@ -847,11 +857,11 @@ public class TestConversion extends ModuleTest {
      * This follows ucnv.c method ucnv_detectUnicodeSignature() to detect the
      * start of the stream for example U+FEFF (the Unicode BOM/signature
      * character) that can be ignored.
-     * 
+     *
      * Detects Unicode signature byte sequences at the start of the byte stream
      * and returns number of bytes of the BOM of the indicated Unicode charset.
      * 0 is returned when no Unicode signature is recognized.
-     * 
+     *
      */
 
     private String detectUnicodeSignature(ByteBuffer source) {
@@ -967,7 +977,7 @@ public class TestConversion extends ModuleTest {
         expected.rewind();
         output.limit(output.position());
         output.rewind();
-        
+
         // remove any BOM signature before checking
         detectUnicodeSignature(output); // sets the position to after the BOM
         output = output.slice(); // removes anything before the current position
@@ -986,7 +996,7 @@ public class TestConversion extends ModuleTest {
                 }
             }
         }
-        
+
         if (res) {
             logln("[" + cc.caseNr + "]:" + cc.charset);
             logln("Input:       " + printchars(CharBuffer.wrap(cc.unicode), cc.unicode.length()));
@@ -1024,7 +1034,7 @@ public class TestConversion extends ModuleTest {
                 }
             }
         }
-        
+
         if (res) {
             logln("[" + cc.caseNr + "]:" + cc.charset);
             logln("Input:       " + printbytes(cc.bytes, cc.bytes.limit()));

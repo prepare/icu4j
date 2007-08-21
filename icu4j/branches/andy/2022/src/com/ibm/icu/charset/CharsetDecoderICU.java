@@ -469,10 +469,24 @@ public abstract class CharsetDecoderICU extends CharsetDecoder{
                 /* update pointers */
                 s=source.position();
                 t=target.position();
-    
+
                 if(cr.isUnderflow()) {
                     if(s<source.limit())
-                                    {
+                    {
+                        // Underflow of the source was reported, but not all input from the source
+                        //   was consumed.  Charset Decoders are allowed to report underflow without
+                        //   completely emptying the source buffer, if what remains is too little
+                        //   to be converted.  This function needs to return; the underflow
+                        //   will request additional input from the caller.
+                        //
+                        // TODO: an earlier version always continued the conversion with
+                        //       the original (not refilled) source buffer at this point.
+                        //       Definitely wrong, but unknown whether some ICU decoders
+                        //       required that for some reason.
+                        if (realSource==null && toULength==0 && flush==false) {
+                            return cr;
+                        }
+                        
                         /*
                          * continue with the conversion loop while there is still input left
                          * (continue converting by breaking out of only the inner loop)
