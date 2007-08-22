@@ -24,6 +24,8 @@ import com.ibm.icu.dev.test.ModuleTest;
 import com.ibm.icu.dev.test.TestDataModule.DataMap;
 import com.ibm.icu.impl.ICUResourceBundle;
 
+import com.ibm.icu.charset.Charset2022;
+
 /**
  * This maps to convtest.c which tests the test file for data-driven conversion tests.
  *
@@ -67,6 +69,11 @@ public class TestConversion extends ModuleTest {
 
     public TestConversion() {
         super("com/ibm/icu/dev/data/testdata/", "conversion");
+        
+        // Hack to try to convince Eclipse debugger to work
+        try {
+            Charset loadHack = new Charset2022("JIS8", "JIS8", null);
+        } catch (Exception e) {};
     }
 
     /*
@@ -372,25 +379,32 @@ public class TestConversion extends ModuleTest {
             }
         }
 
-        // Do a final flush for cleanup, but only if there was no preceding encoding error.
-        // Encode loop, exits with cr==underflow in normal operation.
-        if (cr.isUnderflow()) {
-            for (;;) {
-                cr = encoder.flush(target);
-                if (cr.isUnderflow()) {
-                    break;
-                } else if (cr.isOverflow()) {
-                    if (currentTargetLimit==targetLen) {
-                        errln(cc.caseNrAsString() + " Flush is producing excessive output");
+        // Do a final flush for cleanup.
+        // Flush, according to Sun's docs, is only legal if the preceding encode()
+        //    operation had the end-of-input parameter (flush) set true.
+        //
+        try {
+            if (flush) {
+                for (;;) {
+                    cr = encoder.flush(target);
+                    if (cr.isUnderflow()) {
+                        break;
+                    } else if (cr.isOverflow()) {
+                        if (currentTargetLimit==targetLen) {
+                            errln(cc.caseNrAsString() + " Flush is producing excessive output");
+                            break;
+                        }
+                        currentTargetLimit = Math.min(currentTargetLimit+step, targetLen);
+                        target.limit(currentTargetLimit);
+                    } else {
+                        errln(cc.caseNrAsString() + " Flush operation failed.  CoderResult = \"" + cr.toString() + "\"");
                         break;
                     }
-                    currentTargetLimit = Math.min(currentTargetLimit+step, targetLen);
-                    target.limit(currentTargetLimit);
-                } else {
-                    errln(cc.caseNrAsString() + " Flush operation failed.  CoderResult = \"" + cr.toString() + "\"");
-                    break;
                 }
             }
+        }
+        catch (IllegalStateException e) {
+            errln(cc.caseNrAsString() + "Unexpected Exception from flush(): \"" + e.toString() + "\"");
         }
         cc.fromUnicodeResult = target;
         return target.position();
