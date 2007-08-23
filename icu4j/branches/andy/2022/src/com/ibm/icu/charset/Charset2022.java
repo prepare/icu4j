@@ -15,6 +15,7 @@ import java.nio.BufferOverflowException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
+import java.nio.charset.Charset;
 import java.nio.IntBuffer;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CharsetEncoder;
@@ -91,7 +92,6 @@ public class Charset2022 extends CharsetICU {
         */
 
     }
-
     
     static final String SHIFT_IN_STR  = "\u000F";
     static final String SHIFT_OUT_STR = "\u000E";
@@ -715,10 +715,13 @@ public class Charset2022 extends CharsetICU {
     
     
 
-    public class CharsetDecoder2022JP extends CharsetDecoderICU {
+    public class CharsetDecoder2022JP extends CharsetDecoder {
 
-        public CharsetDecoder2022JP(CharsetICU cs) {
-            super(cs);
+        //public CharsetDecoder2022JP(CharsetICU cs) {
+        //    super(cs);
+        //}
+        CharsetDecoder2022JP(CharsetICU cs) {
+            super(cs, (minBytesPerChar+maxBytesPerChar)/2, maxBytesPerChar);
         }
         
         private ISO2022State           toU2022State = new ISO2022State();          
@@ -728,10 +731,8 @@ public class Charset2022 extends CharsetICU {
         }
         
         
-        protected CoderResult decodeLoop(ByteBuffer source, CharBuffer target, IntBuffer offsets,
-                boolean flush) {
-            CoderResult cr = null;
-            
+        protected CoderResult decodeLoop(ByteBuffer source, CharBuffer target) {
+            CoderResult cr = null;           
             for (;;)  {
                 cr = convertSegmentToU(source, target);
                 if (cr != null) {
@@ -743,10 +744,6 @@ public class Charset2022 extends CharsetICU {
                 }
             }
    
-             /* set offsets since the start */
-            if (offsets != null) {
-                // TODO:  offsets computation.  Really Needed?
-            }
             return cr;
         }
 
@@ -1114,12 +1111,27 @@ public class Charset2022 extends CharsetICU {
     //
     byte[] fromUSubstitutionDefault = new byte[] { (byte) 0x1a };
     
-    public class CharsetEncoder2022JP extends CharsetEncoderICU {
+    public class CharsetEncoder2022JP extends CharsetEncoder {
 
         public CharsetEncoder2022JP(CharsetICU cs) {
-            super(cs, fromUSubstitutionDefault);
+            //super(cs, fromUSubstitutionDefault);
+            super(cs, (minBytesPerChar + maxBytesPerChar)/2, maxBytesPerChar, fromUSubstitutionDefault);
             implReset();
         }
+        
+        
+       private  boolean useFallback = true;     // TODO:  fall back control should be in CharsetEncoderICU, once the class
+                                                //        structure is straightened out.
+
+       public boolean isFallbackUsed() {
+           return useFallback;
+       }
+       
+       public void setFallbackUsed(boolean usesFallback) {
+           useFallback = usesFallback;
+       }
+
+
         
         
        ISO2022State fromU2022State = new ISO2022State();  // Current state (which charsets are active) in the output
@@ -1144,14 +1156,17 @@ public class Charset2022 extends CharsetICU {
        
        protected void implReset() {
            super.implReset();
+           useFallback = true;
            fromU2022State.reset();
+           saved2022State.reset();
+           choiceCount = 0;
        }
        
        protected CoderResult implFlush(ByteBuffer target) {
            // ISO-2022-JP conversion needs to be in ASCII mode at the very end.
            int restorePosition = target.position();
+           saved2022State.copyFrom(fromU2022State);
            try {
-               saved2022State.copyFrom(fromU2022State);
                if(fromU2022State.g != 0) {
                    target.put((byte)UCNV_SI);
                    fromU2022State.g = 0;
@@ -1168,8 +1183,7 @@ public class Charset2022 extends CharsetICU {
            return CoderResult.UNDERFLOW;         
        }
 
-        CoderResult encodeLoop(CharBuffer source, ByteBuffer target, IntBuffer offsets,
-                boolean flush) {
+       protected CoderResult encodeLoop(CharBuffer source, ByteBuffer target) {
             
             int   sourceChar;    
             int   cs;               // Identifies an output character set
@@ -1177,26 +1191,20 @@ public class Charset2022 extends CharsetICU {
             int   len;              // number of bytes needed for the current Unicode character.
             int   targetValue = 0;  // The output bytes for one character, packed into an int.
             
-            if (!source.hasRemaining()) {
-                /* no input, nothing to do */
-                return CoderResult.UNDERFLOW;
-            }
-            if (!target.hasRemaining()) {
-                /* no output available, can't do anything */
-                return CoderResult.OVERFLOW;
-            }
-
             while (source.hasRemaining()) {
                 int sourcePositionAtStartOfChar = source.position();
                 sourceChar = source.get();
                 if (UTF16.isSurrogate((char)sourceChar)) {
-                    sourceChar = getSupplementary(source, sourceChar, flush);
-                    if (encoderResult != null) {   // Back Door out parameter form getSupplementary
+                    sourceChar = getSupplementary(source, sourceChar);
+                    if (sourceChar == 0) {   
+                        //  Error, could be either underflow or invalid (unpaired surrogate)
+                        source.position(sourcePositionAtStartOfChar);
                         return encoderResult;
                     }
                 }
                 
                 if(IS_2022_CONTROL(sourceChar)) {
+                    source.position(source.position()-1);
                     return CoderResult.unmappableForLength(1);
                 }
                 
@@ -1257,7 +1265,7 @@ public class Charset2022 extends CharsetICU {
                         /* G0 SBCS */
                         targetValue = MBCS_SingleFromUChar32(converterArray[cs].sharedData,
                                                              sourceChar, useFallback);
-                        if(targetValue >= 0) {
+                        if(targetValue>=0 && targetValue <= 0x7f) {
                             len = 1;
                         }
                         break;
@@ -1289,7 +1297,9 @@ public class Charset2022 extends CharsetICU {
                 //  At this point, either the Unicode character has been converted to byte(s), or
                 //    we've tried all possible converters and failed.
                 if (len==0) {
-                    return CoderResult.unmappableForLength(source.position() - sourcePositionAtStartOfChar);
+                    int invalidLength = source.position() - sourcePositionAtStartOfChar;
+                    source.position(sourcePositionAtStartOfChar);
+                    return CoderResult.unmappableForLength(invalidLength);
                 }
 
                 //  Write the output bytes, both state change (if any) and the character bytes.
@@ -1328,12 +1338,7 @@ public class Charset2022 extends CharsetICU {
             // The conversion loop only comes out the bottom, to here, if the source input
             //   is exhausted.  All other cases for stopping (output buffer full, conversion failure)
             //   return from within the body of the loop.
-            
-            if (flush) {
-                // ISO-2022-JP conversion needs to be in ASCII mode at the very end.
-                implFlush(target);
-            }
-                        
+                                    
             return CoderResult.UNDERFLOW;
         }
 
@@ -1343,33 +1348,29 @@ public class Charset2022 extends CharsetICU {
         //
         //            source:       The source Char Buffer
         //            sourceChar:   The surrogate char that was encountered in the source
-        //            flush:        Flag controlling behavior if an unpaired lead surrogate
-        //                          appears a at the end of the source buffer.
-        //
-        //            Return:       The supplementary character.
+        //            Return:       The supplementary character, or 0 if there was an error
         //            encoderResult (object scope) CoderResult value in the event of an error.
-        //                          null if supplementary fetch was successful.
         //
-        private int getSupplementary(CharBuffer source, int sourceChar, boolean flush) {
+        private int getSupplementary(CharBuffer source, int sourceChar) {
             if (UTF16.isTrailSurrogate((char)sourceChar)) {
+                // Trail surrogate without a preceding lead.
+                //   Report it as mal-formed.
                 encoderResult = CoderResult.malformedForLength(1);
-                return sourceChar;
+                return 0;
             }
             if (source.hasRemaining() == false) {
-                if (flush) {
-                    encoderResult = CoderResult.malformedForLength(1);
-                    return sourceChar;
-                } else {
-                    encoderResult = CoderResult.UNDERFLOW;
-                    source.position(source.position()-1);
-                    return sourceChar;
-                }
+                // This buffer contains a leading surrogate at the end.
+                // Report underflow.  Both halves of the 
+                //   surrogate pair should be present next time around.
+                encoderResult = CoderResult.UNDERFLOW;
+                return 0;
             }
             char trailSurrogate = source.get();
             if (UTF16.isTrailSurrogate(trailSurrogate) == false) {
-                source.position(source.position()-1);
+                // Lead surrogate followed by something other than a trail.
+                //   Report the lead alone as mal-formed.
                 encoderResult = CoderResult.malformedForLength(1);
-                return sourceChar;
+                return 0;
             }
             int supplementaryChar = UCharacterProperty.getRawSupplementary((char)sourceChar, trailSurrogate);
             encoderResult = null;

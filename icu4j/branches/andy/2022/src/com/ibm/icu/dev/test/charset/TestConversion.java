@@ -169,8 +169,9 @@ public class TestConversion extends ModuleTest {
                 cc.cbErrorAction = CodingErrorAction.REPORT;
                 break;
             case '&':
-                cc.cbErrorAction = CodingErrorAction.REPORT;
-                break;
+                //  Escape action, not supported by Java
+                logln(cc.caseNrAsString() + "Escaping callback not supported. Skipping test.");
+                return;
             default:
                 cc.cbErrorAction = null;
                 break;
@@ -204,6 +205,14 @@ public class TestConversion extends ModuleTest {
             if (encoder instanceof CharsetEncoderICU) {
                 ((CharsetEncoderICU)encoder).setFallbackUsed(cc.fallbacks);
                 if (((CharsetEncoderICU)encoder).isFallbackUsed() != cc.fallbacks) {
+                    errln("Fallback could not be set for " + cc.charset);
+                }
+            }
+            
+            // TODO: a temporary handling of fallback for 2022.
+            if (encoder instanceof Charset2022.CharsetEncoder2022JP) {
+                ((Charset2022.CharsetEncoder2022JP)encoder).setFallbackUsed(cc.fallbacks);
+                if (((Charset2022.CharsetEncoder2022JP)encoder).isFallbackUsed() != cc.fallbacks) {
                     errln("Fallback could not be set for " + cc.charset);
                 }
             }
@@ -277,6 +286,9 @@ public class TestConversion extends ModuleTest {
             try {
                 resultLength = stepFromUnicode(cc, encoder, step);
                 ok = checkFromUnicode(cc, resultLength);
+                if (!ok) {
+                    errln(cc.caseNrAsString() + " failed with step == " + step);
+                }
             } catch (Exception ex) {
                 errln("Test failed: " + ex.getClass().getName() + " thrown: " + cc.charset+ " [" + cc.caseNr + "]");
                 ex.printStackTrace(System.out);
@@ -345,23 +357,17 @@ public class TestConversion extends ModuleTest {
             currentSourceLimit = Math.min(step, sourceLen);
             currentTargetLimit = Math.min(step, targetLen);
         }
-        boolean flush      = false;   //  flush on this loop iteration?
-        boolean forceFlush = false;   //  Flags a need for a flush if the previous iteration of the
-                                      //    loop exhausted the source but did not flush
         CoderResult cr = null;
 
         for (;;) {
             source.limit(currentSourceLimit);
             target.limit(currentTargetLimit);
-            flush = forceFlush || (cc.finalFlush && currentSourceLimit == sourceLen);
 
-            cr = encoder.encode(source, target, flush);
+            cr = encoder.encode(source, target, false);
             if (cr.isUnderflow()) {
-                if ((currentSourceLimit == sourceLen) && flush) {
+                if (currentSourceLimit == sourceLen)  {
                     break;
-
                 }
-                forceFlush = (currentSourceLimit == sourceLen);
                 currentSourceLimit = Math.min(currentSourceLimit+step, sourceLen);
             } else if (cr.isOverflow()) {
                 if (currentTargetLimit==targetLen) {
@@ -379,12 +385,33 @@ public class TestConversion extends ModuleTest {
             }
         }
 
-        // Do a final flush for cleanup.
-        // Flush, according to Sun's docs, is only legal if the preceding encode()
-        //    operation had the end-of-input parameter (flush) set true.
+        // Do a flush() if the test data requests one.
+        //        According to Sun's docs, flush() is only legal if the preceding encode()
+        //        operation had the end-of-input parameter (flush) set true, so we need to do
+        //        that also.
+        // TODO:  running without a final flush as a test option seems bogus; nothing specifies what
+        //        encoders may choose to retain between calls.
         //
-        try {
-            if (flush) {
+        if (cc.finalFlush) {
+            try {
+                for (;;) {
+                    cr = encoder.encode(source, target, true);
+                    if (cr.isUnderflow()) {
+                        break;
+                    }
+                    if (cr.isOverflow()) {
+                        if (currentTargetLimit==targetLen) {
+                            errln(cc.caseNrAsString() + " encode() is producing excessive output");
+                            break;
+                        }
+                        currentTargetLimit = Math.min(currentTargetLimit+step, targetLen);
+                        target.limit(currentTargetLimit);
+                    }  else {
+                        // TODO:  Check that the error was expected.  Malformed happens with some tests.
+                        logln(cc.caseNrAsString() + " encode() with flush  returned CoderResult = \"" + cr.toString() + "\"");
+                        break;
+                    }
+                }
                 for (;;) {
                     cr = encoder.flush(target);
                     if (cr.isUnderflow()) {
@@ -397,19 +424,19 @@ public class TestConversion extends ModuleTest {
                         currentTargetLimit = Math.min(currentTargetLimit+step, targetLen);
                         target.limit(currentTargetLimit);
                     } else {
-                        errln(cc.caseNrAsString() + " Flush operation failed.  CoderResult = \"" + cr.toString() + "\"");
+                        logln(cc.caseNrAsString() + " encode() with flush  returned CoderResult = \"" + cr.toString() + "\"");
                         break;
                     }
                 }
             }
-        }
-        catch (IllegalStateException e) {
-            errln(cc.caseNrAsString() + "Unexpected Exception from flush(): \"" + e.toString() + "\"");
+            catch (IllegalStateException e) {
+                errln(cc.caseNrAsString() + "Unexpected Exception from flush(): \"" + e.toString() + "\"");
+            }
         }
         cc.fromUnicodeResult = target;
         return target.position();
     }
-        
+
         
     private boolean checkFromUnicode(ConversionCase cc, int resultLength) {
         return checkResultsFromUnicode(cc, cc.bytes, cc.fromUnicodeResult);
