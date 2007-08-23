@@ -16,6 +16,9 @@ import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CoderResult;
 import java.nio.charset.CodingErrorAction;
+import java.nio.charset.MalformedInputException;
+import java.nio.charset.UnmappableCharacterException;
+import java.nio.charset.CharacterCodingException;
 import java.util.Iterator;
 
 import com.ibm.icu.charset.CharsetEncoderICU;
@@ -194,38 +197,38 @@ public class TestConversion extends ModuleTest {
         CharsetProviderICU provider = new CharsetProviderICU();
         CharsetEncoder encoder = null;
         Charset charset = null;
-        try {
-            // if cc.charset starts with '*', obtain it from com/ibm/icu/dev/data/testdata
-            charset = (cc.charset != null && cc.charset.length() > 0 && cc.charset.charAt(0) == '*')
-                    ? (Charset) provider.charsetForName(cc.charset.substring(1), "../dev/data/testdata")
-                    : (Charset) provider.charsetForName(cc.charset);
-            encoder = (CharsetEncoder) charset.newEncoder();
-            encoder.onMalformedInput(CodingErrorAction.REPLACE);
-            encoder.onUnmappableCharacter(CodingErrorAction.REPLACE);
-            if (encoder instanceof CharsetEncoderICU) {
-                ((CharsetEncoderICU)encoder).setFallbackUsed(cc.fallbacks);
-                if (((CharsetEncoderICU)encoder).isFallbackUsed() != cc.fallbacks) {
-                    errln("Fallback could not be set for " + cc.charset);
-                }
-            }
-            
-            // TODO: a temporary handling of fallback for 2022.
-            if (encoder instanceof Charset2022.CharsetEncoder2022JP) {
-                ((Charset2022.CharsetEncoder2022JP)encoder).setFallbackUsed(cc.fallbacks);
-                if (((Charset2022.CharsetEncoder2022JP)encoder).isFallbackUsed() != cc.fallbacks) {
-                    errln("Fallback could not be set for " + cc.charset);
-                }
-            }
+        // if cc.charset starts with '*', obtain it from com/ibm/icu/dev/data/testdata
+        charset = (cc.charset != null && cc.charset.length() > 0 && cc.charset.charAt(0) == '*')
+                           ? (Charset) provider.charsetForName(cc.charset.substring(1), "../dev/data/testdata")
+                           : (Charset) provider.charsetForName(cc.charset);
 
-        } catch (Exception e) {
+        if (charset==null) {
             // TODO implement loading of test data.
             if (skipIfBeforeICU(3,8,0)) {
                 logln("Skipping test:(" + cc.charset + ") due to ICU Charset not supported at this time");
             } else {
                 errln(cc.charset + " was not found");
             }
-            return;
+            return;                
         }
+        encoder = (CharsetEncoder) charset.newEncoder();
+        encoder.onMalformedInput(CodingErrorAction.REPLACE);
+        encoder.onUnmappableCharacter(CodingErrorAction.REPLACE);
+        if (encoder instanceof CharsetEncoderICU) {
+            ((CharsetEncoderICU)encoder).setFallbackUsed(cc.fallbacks);
+            if (((CharsetEncoderICU)encoder).isFallbackUsed() != cc.fallbacks) {
+                errln("Fallback could not be set for " + cc.charset);
+            }
+        }
+
+        // TODO: a temporary handling of fallback for 2022.
+        if (encoder instanceof Charset2022.CharsetEncoder2022JP) {
+            ((Charset2022.CharsetEncoder2022JP)encoder).setFallbackUsed(cc.fallbacks);
+            if (((Charset2022.CharsetEncoder2022JP)encoder).isFallbackUsed() != cc.fallbacks) {
+                errln("Fallback could not be set for " + cc.charset);
+            }
+        }
+
 
 
 
@@ -533,24 +536,23 @@ public class TestConversion extends ModuleTest {
         CharsetDecoder decoder = null;
         Charset charset = null;
 
-        try {
-            // if cc.charset starts with '*', obtain it from com/ibm/icu/dev/data/testdata
-            charset = (cc.charset != null && cc.charset.length() > 0 && cc.charset.charAt(0) == '*')
-                    ? (Charset) provider.charsetForName(cc.charset.substring(1), "../dev/data/testdata")
-                    : (Charset) provider.charsetForName(cc.charset);
-            decoder = (CharsetDecoder) charset.newDecoder();
-            decoder.onMalformedInput(CodingErrorAction.REPLACE);
-            decoder.onUnmappableCharacter(CodingErrorAction.REPLACE);
+        // if cc.charset starts with '*', obtain it from com/ibm/icu/dev/data/testdata
+        charset = (cc.charset != null && cc.charset.length() > 0 && cc.charset.charAt(0) == '*')
+        ? (Charset) provider.charsetForName(cc.charset.substring(1), "../dev/data/testdata")
+                : (Charset) provider.charsetForName(cc.charset);
 
-        } catch (Exception e) {
+        if (charset == null) {
             // TODO implement loading of test data.
             if (skipIfBeforeICU(3,8,0)) {
                 logln("Skipping test:(" + cc.charset + ") due to ICU Charset not supported at this time");
             } else {
                 errln(cc.charset + " was not found");
             }
-            return;
+            return;   
         }
+        decoder = (CharsetDecoder) charset.newDecoder();
+        decoder.onMalformedInput(CodingErrorAction.REPLACE);
+        decoder.onUnmappableCharacter(CodingErrorAction.REPLACE);
 
         // set the callback for the decoder
         if (cc.cbErrorAction != null) {
@@ -625,48 +627,32 @@ public class TestConversion extends ModuleTest {
             }
         }
 
-        //testing the java's out = charset.decoder(in) api
-        while (ok && cc.finalFlush) {
+        // Test Java's convenience decode() function for fully converting a byte buffer to Unicode chars.
+        // From the Java doc:  This method implements an entire decoding operation; that is, it resets this
+        //                     decoder, then it decodes the bytes in the given byte buffer,
+        //                     and finally it flushes this decoder.
+        //
+        if (ok && cc.finalFlush) {
+            // Don't check test cases that skipped the flush, since this decode() function
+            //    will include it and possibly produce more output.
             logln("Testing java charset.decoder(in):");
             cc.toUnicodeResult = null;
             CharBuffer out = null;
 
             try {
-                out = decoder.decode(ByteBuffer.wrap(cc.bytes.array()));
-                out.position(out.limit());
-                if (out.limit() < cc.unicode.length()) {
-                    int pos = out.position();
-                    char[] temp = out.array();
-                    out = CharBuffer.allocate(cc.bytes.limit());
-                    out.put(temp);
-                    out.position(pos);
-                    CoderResult cr = decoder.flush(out);
-                    if (cr.isOverflow()) {
-                        logln("Overflow error with flushing decodering");
-                    }
-                }
-
+                decoder.reset();      // Java docs are ambiguous about whether this is required.
+                out = decoder.decode(cc.bytes);
                 cc.toUnicodeResult = out;
-
-                ok = checkToUnicode(cc, out.limit());
-                if (!ok) {
-                    break;
+                checkToUnicode(cc, out.limit());
                 }
-            } catch (Exception e) {
-                //check the error code to see if it matches cc.errorCode
-                logln("Decoder returned an error code");
-                logln("ErrorCode expected is: " + cc.outErrorCode);
-                logln("Error Result is: " + e.toString());
+              catch (CharacterCodingException e) {
+                  // This is an expected case, test cases with unmappable or malformed input
+                  //   that are set to stop on error will throw this exception.
+              }
             }
-            break;
         }
 
-        return;
-    }
-
-
-
-
+    
     private int stepToUnicode(ConversionCase cc, CharsetDecoder decoder,
             int step)
 
