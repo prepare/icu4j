@@ -1,6 +1,6 @@
 /**
  *******************************************************************************
- * Copyright (C) 2001-2007, International Business Machines Corporation and    *
+ * Copyright (C) 2001-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -14,6 +14,7 @@ import java.util.MissingResourceException;
 
 import com.ibm.icu.impl.ICUDebug;
 import com.ibm.icu.impl.ICUResourceBundle;
+import com.ibm.icu.impl.LocaleUtility;
 
 /**
  * A class encapsulating a currency, as defined by ISO 4217.  A
@@ -104,13 +105,14 @@ public class Currency extends MeasureUnit implements Serializable {
     /**
      * Returns a currency object for the default currency in the given
      * locale.
-     * @stable ICU 3.8
+     * @draft ICU 3.2
+     * @provisional This API might change or be removed in a future release.
      */
     public static Currency getInstance(ULocale locale) {
-        String currency = locale.getKeywordValue("currency");
-        if (currency != null) {
-            return getInstance(currency);
-        }
+    String currency = locale.getKeywordValue("currency");
+    if (currency != null) {
+        return getInstance(currency);
+    }
 
         if (shim == null) {
             return createCurrency(locale);
@@ -119,7 +121,6 @@ public class Currency extends MeasureUnit implements Serializable {
         return shim.createInstance(locale);
     }
 
-    private static final String EUR_STR = "EUR";
     /**
      * Instantiate a currency from a resource bundle found in Locale loc.
      */
@@ -127,35 +128,24 @@ public class Currency extends MeasureUnit implements Serializable {
         // TODO: check, this munging might not be required for ULocale
         String country = loc.getCountry();
         String variant = loc.getVariant();
-        boolean isPreEuro = variant.equals("PREEURO");
-        boolean isEuro = variant.equals("EURO");
-        ICUResourceBundle bundle = (ICUResourceBundle) ICUResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME,"supplementalData", ICUResourceBundle.ICU_DATA_CLASS_LOADER);
+        if (variant.equals("PREEURO") || variant.equals("EURO")) {
+            country = country + '_' + variant;
+        }
+        ICUResourceBundle bundle = (ICUResourceBundle) ICUResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME,"CurrencyData", ICUResourceBundle.ICU_DATA_CLASS_LOADER);
         if(bundle==null){
             //throw new MissingResourceException()
         }
-        UResourceBundle cm = bundle.get("CurrencyMap");
+        ICUResourceBundle cm = bundle.get("CurrencyMap");
 
         // Do a linear search
         String curriso = null;
         try {
-            UResourceBundle countryArray = cm.get(country);
-            UResourceBundle currencyReq = countryArray.get(0);
-            curriso = currencyReq.getString("id");
-            if (isPreEuro && curriso.equals(EUR_STR)) {
-                currencyReq = countryArray.get(1);
-                curriso = currencyReq.getString("id");
-            }
-            else if (isEuro) {
-                curriso = EUR_STR;
-            }
+            curriso = cm.getString(country);
             if (curriso != null) {
                 return new Currency(curriso);
             }
         } catch (MissingResourceException ex) {
             try{
-                if (isPreEuro || isEuro) {
-                    country = country + '_' + variant;
-                }
                 // a deprecated ISO code may have been passed
                 // try to get the current country code
                 String rep = ULocale.getCurrentCountryID(country);
@@ -211,7 +201,8 @@ public class Currency extends MeasureUnit implements Serializable {
      * @param locale the ulocale under which to register the currency
      * @return a registry key that can be used to unregister this currency
      * @see #unregister
-     * @stable ICU 3.8
+     * @draft ICU 3.2
+     * @provisional This API might change or be removed in a future release.
      */
     public static Object registerInstance(Currency currency, ULocale locale) {
         return getShim().registerInstance(currency, locale);
@@ -301,10 +292,11 @@ public class Currency extends MeasureUnit implements Serializable {
      * Convenience and compatibility override of getName that
      * requests the symbol name.
      * @see #getName
-     * @stable ICU 3.8
+     * @draft ICU 3.4
+     * @provisional This API might change or be removed in a future release.
      */
     public String getSymbol() {
-        return getSymbol(ULocale.getDefault());
+	return getSymbol(ULocale.getDefault());
     }
 
     /**
@@ -312,10 +304,11 @@ public class Currency extends MeasureUnit implements Serializable {
      * requests the symbol name.
      * @param loc the Locale for the symbol
      * @see #getName
-     * @stable ICU 3.8
+     * @draft ICU 3.4
+     * @provisional This API might change or be removed in a future release.
      */
     public String getSymbol(Locale loc) {
-        return getSymbol(ULocale.forLocale(loc));
+	return getSymbol(ULocale.forLocale(loc));
     }
 
     /**
@@ -323,10 +316,11 @@ public class Currency extends MeasureUnit implements Serializable {
      * requests the symbol name.
      * @param uloc the ULocale for the symbol
      * @see #getName
-     * @stable ICU 3.8
+     * @draft ICU 3.4
+     * @provisional This API might change or be removed in a future release.
      */
     public String getSymbol(ULocale uloc) {
-        return getName(uloc, SYMBOL_NAME, new boolean[1]);
+	return getName(uloc, SYMBOL_NAME, new boolean[1]);
     }
 
     /**
@@ -342,12 +336,13 @@ public class Currency extends MeasureUnit implements Serializable {
      * contains no entry for this currency, then the ISO 4217 code is
      * returned.  If isChoiceFormat[0] is true, then the result is a
      * ChoiceFormat pattern.  Otherwise it is a static string.
-     * @stable ICU 3.8
+     * @draft ICU 3.2
+     * @provisional This API might change or be removed in a future release.
      */
     public String getName(Locale locale,
                           int nameStyle,
                           boolean[] isChoiceFormat) {
-        return getName(ULocale.forLocale(locale), nameStyle, isChoiceFormat);
+	return getName(ULocale.forLocale(locale), nameStyle, isChoiceFormat);
     }
 
     /**
@@ -363,7 +358,8 @@ public class Currency extends MeasureUnit implements Serializable {
      * contains no entry for this currency, then the ISO 4217 code is
      * returned.  If isChoiceFormat[0] is true, then the result is a
      * ChoiceFormat pattern.  Otherwise it is a static string.
-     * @stable ICU 3.8
+     * @draft ICU 3.2
+     * @provisional This API might change or be removed in a future release.
      */
     public String getName(ULocale locale,
                           int nameStyle,
@@ -387,8 +383,8 @@ public class Currency extends MeasureUnit implements Serializable {
         String s = null;
 
          try {
-            UResourceBundle rb = UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME,locale);
-            ICUResourceBundle currencies = (ICUResourceBundle)rb.get("Currencies");
+            ICUResourceBundle rb = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME,locale);
+            ICUResourceBundle currencies = rb.get("Currencies");
 
             // Fetch resource with multi-level resource inheritance fallback
             s = currencies.getWithFallback(isoCode).getString(nameStyle);
@@ -478,15 +474,15 @@ public class Currency extends MeasureUnit implements Serializable {
         // Multi-level resource inheritance fallback loop
 
         while (locale != null) {
-            UResourceBundle rb = UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME,locale);
+            ICUResourceBundle rb = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME,locale);
             // We can't cast this to String[][]; the cast has to happen later
 
             try {
-                UResourceBundle currencies = rb.get("Currencies");
+                ICUResourceBundle currencies = rb.get("Currencies");
                 // Do a linear search
                 for (int i=0; i<currencies.getSize(); ++i) {
                     //String name = ((String[]) currencies[i][1])[0];
-                    UResourceBundle item = currencies.get(i);
+                    ICUResourceBundle item = currencies.get(i);
                     String name = item.getString(0);
                     if (name.length() < 1) {
                         // Ignore zero-length names -- later, change this
@@ -626,8 +622,8 @@ public class Currency extends MeasureUnit implements Serializable {
             // Get CurrencyMeta resource out of root locale file.  [This may
             // move out of the root locale file later; if it does, update this
             // code.]
-            UResourceBundle root = ICUResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, "supplementalData", ICUResourceBundle.ICU_DATA_CLASS_LOADER);
-            UResourceBundle currencyMeta = root.get("CurrencyMeta");
+            ICUResourceBundle root = (ICUResourceBundle)ICUResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME,"CurrencyData", ICUResourceBundle.ICU_DATA_CLASS_LOADER);
+            ICUResourceBundle currencyMeta = root.get("CurrencyMeta");
 
             //Integer[] i = null;
             //int defaultPos = -1;
@@ -703,7 +699,7 @@ public class Currency extends MeasureUnit implements Serializable {
      * @deprecated This API is obsolete.
      */
     public final ULocale getLocale(ULocale.Type type) {
-        return ULocale.ROOT;
+	return ULocale.ROOT;
     }
 
     /**

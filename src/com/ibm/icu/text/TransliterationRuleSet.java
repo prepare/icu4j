@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2004, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -48,6 +48,9 @@ class TransliterationRuleSet {
      * freeze().
      */
     private int[] index;
+
+    private static final String COPYRIGHT =
+        "\u00A9 IBM Corporation 1999-2001. All rights reserved.";
 
     /**
      * Construct a new empty rule set.
@@ -204,10 +207,6 @@ class TransliterationRuleSet {
                                        UtilityExtensions.formatInput(text, pos));
                 }
                 return false;
-                default:
-                    if (Transliterator.DEBUG) {
-                        System.out.println("Rule: no match " + rules[i]);
-                    }
             }
         }
         // No match or partial match from any rule

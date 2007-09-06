@@ -1,12 +1,11 @@
-//##header J2SE15
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
+//##header
 /*
  *******************************************************************************
- * Copyright (C) 2002-2007, International Business Machines Corporation and    *
+ * Copyright (C) 2002-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
+//#ifndef FOUNDATION
 package com.ibm.icu.dev.test.util;
 
 import java.text.ParsePosition;
@@ -48,7 +47,7 @@ public class Tokenizer {
         "\\uFD3E\\uFD3F\\uFE45\\uFE46" +
         "]").removeAll(QUOTERS).remove('$');
     private static final UnicodeSet NEWLINE = new UnicodeSet("[\\u000A\\u000D\\u0085\\u2028\\u2029]");
-    //private static final UnicodeSet DECIMAL = new UnicodeSet("[:Nd:]");
+    private static final UnicodeSet DECIMAL = new UnicodeSet("[:Nd:]");
     private static final UnicodeSet NON_STRING = new UnicodeSet()
         .addAll(WHITESPACE)
         .addAll(SYNTAX);
@@ -88,9 +87,9 @@ public class Tokenizer {
         BACKEDUP_TOO_FAR = -6;
         
     private static final int
-        //FIRST = 0,
-        //IN_NUMBER = 1,
-        //IN_SPACE = 2,
+        FIRST = 0,
+        IN_NUMBER = 1,
+        IN_SPACE = 2,
         AFTER_QUOTE = 3,    // warning: order is important for switch statement
         IN_STRING = 4, 
         AFTER_BSLASH = 5, 

@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 1996-2007, International Business Machines Corporation and    *
+* Copyright (C) 1996-2006, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 */
@@ -13,7 +13,9 @@ import java.util.Set;
 
 import com.ibm.icu.impl.ICUDebug;
 import com.ibm.icu.impl.ICUResourceBundle;
+import com.ibm.icu.impl.LocaleUtility;
 import com.ibm.icu.util.ULocale;
+import com.ibm.icu.util.UResourceBundle;
 import com.ibm.icu.util.VersionInfo;
 
 /**
@@ -185,7 +187,8 @@ public abstract class Collator implements Comparator, Cloneable
      * This is for backwards compatibility with Java APIs only.  It
      * should not be used, IDENTICAL should be used instead.  ICU's
      * collation does not support Java's FULL_DECOMPOSITION mode.
-     * @stable ICU 3.8
+     * @draft ICU 3.4
+     * @provisional This API might change or be removed in a future release.
      */
     public final static int FULL_DECOMPOSITION = IDENTICAL;
 
@@ -354,7 +357,8 @@ public abstract class Collator implements Comparator, Cloneable
          * this method instead of createCollator(Locale).
          * @param loc the locale for which this collator is to be created.
          * @return the newly created collator.
-         * @stable ICU 3.8
+         * @draft ICU 3.2
+         * @provisional This API might change or be removed in a future release.
          */
         public Collator createCollator(ULocale loc) {
             return createCollator(loc.toLocale());
@@ -393,7 +397,8 @@ public abstract class Collator implements Comparator, Cloneable
          * @param objectLocale the locale identifying the collator
          * @param displayLocale the locale for which the display name of the collator should be localized
          * @return the display name
-         * @stable ICU 3.8
+         * @draft ICU 3.2
+         * @provisional This API might change or be removed in a future release.
          */
         public String getDisplayName(ULocale objectLocale, ULocale displayLocale) {
             if (visible()) {
@@ -503,7 +508,8 @@ public abstract class Collator implements Comparator, Cloneable
      * @param locale the locale for which this is the default collator
      * @return an object that can be used to unregister the registered collator.
      *
-     * @stable ICU 3.8
+     * @draft ICU 3.2
+     * @provisional This API might change or be removed in a future release.
      */
     public static final Object registerInstance(Collator collator, ULocale locale) {
         return getShim().registerInstance(collator, locale);
@@ -631,8 +637,9 @@ public abstract class Collator implements Comparator, Cloneable
      * @param locID The requested locale
      * @param isAvailable If non-null, isAvailable[0] will receive and
      * output boolean that indicates whether the requested locale was
-     * 'available' to the collation service. If non-null, isAvailable 
-     * must have length >= 1.
+     * 'available' to the collation service. The locale is defined as
+     * 'available' if it physically exists within the collation locale
+     * data.  If non-null, isAvailable must have length >= 1.
      * @return the locale
      * @stable ICU 3.0
      */
@@ -676,7 +683,8 @@ public abstract class Collator implements Comparator, Cloneable
      * @param objectLocale the locale of the collator
      * @param displayLocale the locale for the collator's display name
      * @return the display name
-     * @stable ICU 3.8
+     * @draft ICU 3.2
+     * @provisional This API might change or be removed in a future release.
      */
     static public String getDisplayName(ULocale objectLocale, ULocale displayLocale) {
         return getShim().getDisplayName(objectLocale, displayLocale);
@@ -696,7 +704,8 @@ public abstract class Collator implements Comparator, Cloneable
      * Get the name of the collator for the objectLocale, localized for the current locale.
      * @param objectLocale the locale of the collator
      * @return the display name
-     * @stable ICU 3.8
+     * @draft ICU 3.2
+     * @provisional This API might change or be removed in a future release.
      */
     static public String getDisplayName(ULocale objectLocale) {
         return getShim().getDisplayName(objectLocale, ULocale.getDefault());

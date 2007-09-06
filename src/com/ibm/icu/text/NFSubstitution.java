@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2004, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -19,6 +19,16 @@ import java.text.*;
  * @author Richard Gillam
  */
 abstract class NFSubstitution {
+    //-----------------------------------------------------------------------
+    // constants
+    //-----------------------------------------------------------------------
+
+    /**
+     * Puts a copyright in the .class file
+     */
+    private static final String copyrightNotice
+        = "Copyright \u00a91997-2004 IBM Corp.  All rights reserved.";
+
     //-----------------------------------------------------------------------
     // data members
     //-----------------------------------------------------------------------
@@ -528,6 +538,16 @@ abstract class NFSubstitution {
  */
 class SameValueSubstitution extends NFSubstitution {
     //-----------------------------------------------------------------------
+    // constants
+    //-----------------------------------------------------------------------
+
+    /**
+     * Puts a copyright in the .class file
+     */
+    private static final String copyrightNotice
+        = "Copyright \u00a91997-1998 IBM Corp.  All rights reserved.";
+
+    //-----------------------------------------------------------------------
     // construction
     //-----------------------------------------------------------------------
 
@@ -616,6 +636,16 @@ class SameValueSubstitution extends NFSubstitution {
  * rules.
  */
 class MultiplierSubstitution extends NFSubstitution {
+    //-----------------------------------------------------------------------
+    // constants
+    //-----------------------------------------------------------------------
+
+    /**
+     * Puts a copyright in the .class file
+     */
+    private static final String copyrightNotice
+        = "Copyright \u00a91997-1998 IBM Corp.  All rights reserved.";
+
     //-----------------------------------------------------------------------
     // data members
     //-----------------------------------------------------------------------
@@ -768,6 +798,16 @@ class MultiplierSubstitution extends NFSubstitution {
  * regular rule.
  */
 class ModulusSubstitution extends NFSubstitution {
+    //-----------------------------------------------------------------------
+    // constants
+    //-----------------------------------------------------------------------
+
+    /**
+     * Puts a copyright in the .class file
+     */
+    private static final String copyrightNotice
+        = "Copyright \u00a91997-1998 IBM Corp.  All rights reserved.";
+
     //-----------------------------------------------------------------------
     // data members
     //-----------------------------------------------------------------------
@@ -1033,6 +1073,16 @@ class ModulusSubstitution extends NFSubstitution {
  */
 class IntegralPartSubstitution extends NFSubstitution {
     //-----------------------------------------------------------------------
+    // constants
+    //-----------------------------------------------------------------------
+
+    /**
+     * Puts a copyright in the .class file
+     */
+    private static final String copyrightNotice
+        = "Copyright \u00a91997-1998 IBM Corp.  All rights reserved.";
+
+    //-----------------------------------------------------------------------
     // construction
     //-----------------------------------------------------------------------
 
@@ -1121,6 +1171,16 @@ class IntegralPartSubstitution extends NFSubstitution {
  */
 class FractionalPartSubstitution extends NFSubstitution {
     //-----------------------------------------------------------------------
+    // constants
+    //-----------------------------------------------------------------------
+
+    /**
+     * Puts a copyright in the .class file
+     */
+    private static final String copyrightNotice
+        = "Copyright \u00a91997-1998 IBM Corp.  All rights reserved.";
+
+    //-----------------------------------------------------------------------
     // data members
     //-----------------------------------------------------------------------
 
@@ -1136,11 +1196,11 @@ class FractionalPartSubstitution extends NFSubstitution {
      */
     private boolean useSpaces = true;
 
-    /*
+    /**
      * The largest number of digits after the decimal point that this
      * object will show in "by digits" mode
      */
-    //private static final int MAXDECIMALDIGITS = 18; // 8
+    private static final int MAXDECIMALDIGITS = 18; // 8
 
     //-----------------------------------------------------------------------
     // construction
@@ -1389,6 +1449,16 @@ class FractionalPartSubstitution extends NFSubstitution {
   */
 class AbsoluteValueSubstitution extends NFSubstitution {
     //-----------------------------------------------------------------------
+    // constants
+    //-----------------------------------------------------------------------
+
+    /**
+     * Puts a copyright in the .class file
+     */
+    private static final String copyrightNotice
+        = "Copyright \u00a91997-1998 IBM Corp.  All rights reserved.";
+
+    //-----------------------------------------------------------------------
     // construction
     //-----------------------------------------------------------------------
 
@@ -1475,6 +1545,16 @@ class AbsoluteValueSubstitution extends NFSubstitution {
  */
 class NumeratorSubstitution extends NFSubstitution {
     //-----------------------------------------------------------------------
+    // constants
+    //-----------------------------------------------------------------------
+
+    /**
+     * Puts a copyright in the .class file
+     */
+    private static final String copyrightNotice
+        = "Copyright \u00a91997-1998 IBM Corp.  All rights reserved.";
+
+    //-----------------------------------------------------------------------
     // data members
     //-----------------------------------------------------------------------
 
@@ -1554,7 +1634,7 @@ class NumeratorSubstitution extends NFSubstitution {
     public void doSubstitution(double number, StringBuffer toInsertInto, int pos) {
         // perform a transformation on the number being formatted that
         // is dependent on the type of substitution this is
-        //String s = toInsertInto.toString();
+        String s = toInsertInto.toString();
         double numberToFormat = transformNumber(number);
 
         if (withZeros && ruleSet != null) {
@@ -1623,11 +1703,11 @@ class NumeratorSubstitution extends NFSubstitution {
         if (withZeros) {
             String workText = new String(text);
             ParsePosition workPos = new ParsePosition(1);
-            //int digit;
+            int digit;
 
             while (workText.length() > 0 && workPos.getIndex() != 0) {
                 workPos.setIndex(0);
-                /*digit = */ruleSet.parse(workText, workPos, 1).intValue(); // parse zero or nothing at all
+                digit = ruleSet.parse(workText, workPos, 1).intValue(); // parse zero or nothing at all
                 if (workPos.getIndex() == 0) {
                     // we failed, either there were no more zeros, or the number was formatted with digits
                     // either way, we're done
@@ -1717,6 +1797,16 @@ class NumeratorSubstitution extends NFSubstitution {
  * about how many substitutions a rule has.
  */
 class NullSubstitution extends NFSubstitution {
+    //-----------------------------------------------------------------------
+    // constants
+    //-----------------------------------------------------------------------
+
+    /**
+     * Puts a copyright in the .class file
+     */
+    private static final String copyrightNotice
+        = "Copyright \u00a91997-1998 IBM Corp.  All rights reserved.";
+
     //-----------------------------------------------------------------------
     // construction
     //-----------------------------------------------------------------------

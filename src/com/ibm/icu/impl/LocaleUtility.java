@@ -1,6 +1,6 @@
 /*
  ******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and   *
+ * Copyright (C) 1996-2006, International Business Machines Corporation and   *
  * others. All Rights Reserved.                                               *
  ******************************************************************************
  *
@@ -67,51 +67,51 @@ public class LocaleUtility {
     }
 
 
-    /*
+    /**
      * Convenience method that calls canonicalLocaleString(String) with
      * locale.toString();
      */
-    /*public static String canonicalLocaleString(Locale locale) {
+    public static String canonicalLocaleString(Locale locale) {
         return canonicalLocaleString(locale.toString());
-    }*/
+    }
 
-    /*
+    /**
      * You'd think that Locale canonicalizes, since it munges the
      * renamed languages, but it doesn't quite.  It forces the region
      * to be upper case but doesn't do anything about the language or
      * variant.  Our canonical form is 'lower_UPPER_UPPER'.  
      */
-    /*public static String canonicalLocaleString(String id) {
+    public static String canonicalLocaleString(String id) {
         if (id != null) {
-            int x = id.indexOf("_");
-            if (x == -1) {
-                id = id.toLowerCase(Locale.ENGLISH);
-            } else {
-                StringBuffer buf = new StringBuffer();
-                buf.append(id.substring(0, x).toLowerCase(Locale.ENGLISH));
-                buf.append(id.substring(x).toUpperCase(Locale.ENGLISH));
+			int x = id.indexOf("_");
+			if (x == -1) {
+				id = id.toLowerCase(Locale.ENGLISH);
+			} else {
+				StringBuffer buf = new StringBuffer();
+				buf.append(id.substring(0, x).toLowerCase(Locale.ENGLISH));
+				buf.append(id.substring(x).toUpperCase(Locale.ENGLISH));
 
-                int len = buf.length();
-                int n = len;
-                while (--n >= 0 && buf.charAt(n) == '_') {
-                }
-                if (++n != len) {
-                    buf.delete(n, len);
-                }
-                id = buf.toString();
-            }
-        }
-        return id;
-    }*/
+				int len = buf.length();
+				int n = len;
+				while (--n >= 0 && buf.charAt(n) == '_') {
+				}
+				if (++n != len) {
+					buf.delete(n, len);
+				}
+				id = buf.toString();
+			}
+		}
+		return id;
+    }
 
     /**
-     * Fallback from the given locale name by removing the rightmost _-delimited
-     * element. If there is none, return the root locale ("", "", ""). If this
-     * is the root locale, return null. NOTE: The string "root" is not
-     * recognized; do not use it.
-     * 
-     * @return a new Locale that is a fallback from the given locale, or null.
-     */
+	 * Fallback from the given locale name by removing the rightmost _-delimited
+	 * element. If there is none, return the root locale ("", "", ""). If this
+	 * is the root locale, return null. NOTE: The string "root" is not
+	 * recognized; do not use it.
+	 * 
+	 * @return a new Locale that is a fallback from the given locale, or null.
+	 */
     public static Locale fallback(Locale loc) {
 
         // Split the locale into parts and remove the rightmost part

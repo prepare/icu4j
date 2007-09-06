@@ -1,7 +1,7 @@
-//##header J2SE15
+//##header
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2005, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -12,12 +12,19 @@ import com.ibm.icu.dev.test.TestFmwk;
 import com.ibm.icu.util.ULocale;
 
 import java.math.BigInteger;
+import java.math.BigDecimal;
 import java.util.Locale;
 import java.util.Random;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 
 public class RbnfTest extends TestFmwk {
+    /**
+     * Puts a copyright in the .class file
+     */
+    private static final String copyrightNotice
+        = "Copyright \u00a91997-1999 IBM Corp.  All rights reserved.";
+
     public static void main(String[] args) {
         RbnfTest test = new RbnfTest();
 
@@ -525,8 +532,8 @@ public class RbnfTest extends TestFmwk {
             { "1", "uno" },
             { "15", "quindici" },
             { "20", "venti" },
-            { "23", "ventitr\u00E9" },
-            { "73", "settantatr\u00E9" },
+            { "23", "ventitre" },
+            { "73", "settantatre" },
             { "88", "ottantotto" },
             { "100", "cento" },
             { "106", "centosei" },
@@ -539,9 +546,9 @@ public class RbnfTest extends TestFmwk {
             { "2,000", "duemila" },
             { "3,004", "tremilaquattro" },
             { "4,567", "quattromilacinquecentosessantasette" },
-            { "15,943", "quindicimilanovecentoquarantatr\u00E9" },
-            { "-36", "meno trentasei" },
-            { "234.567", "duecentotrentaquattro virgola cinque sei sette" }
+            { "15,943", "quindicimilanovecentoquarantatre" },
+            { "-36", "meno trentisei" },
+            { "234.567", "duecentotrentiquattro virgola cinque sei sette" }
         };
 
         doTest(formatter, testData, true);
@@ -718,10 +725,9 @@ public class RbnfTest extends TestFmwk {
         fmt.format(bigI, buf, null);
         logln("big int: " + buf.toString());
 
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
+//#ifndef FOUNDATION
         buf.setLength(0);
-        java.math.BigDecimal bigD = new java.math.BigDecimal(bigI);
+        BigDecimal bigD = new BigDecimal(bigI);
         fmt.format(bigD, buf, null);
         logln("big dec: " + buf.toString());
 //#endif

@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -243,7 +243,8 @@ public final class StringSearch extends SearchIterator
      * @see BreakIterator
      * @see RuleBasedCollator
      * @see SearchIterator
-     * @stable ICU 3.8
+     * @draft ICU 3.2
+     * @provisional This API might change or be removed in a future release.
      */
     public StringSearch(String pattern, CharacterIterator target, ULocale locale)
     {
@@ -692,7 +693,7 @@ public final class StringSearch extends SearchIterator
             m_shift_ = new char[MAX_TABLE_SIZE_];
             m_backShift_ = new char[MAX_TABLE_SIZE_];
         }
-    }
+    };
 
 
     // private data members ------------------------------------------------

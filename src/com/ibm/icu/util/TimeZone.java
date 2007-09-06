@@ -1,7 +1,7 @@
 /*
  * @(#)TimeZone.java    1.51 00/01/19
  *
- * Copyright (C) 1996-2007, International Business Machines
+ * Copyright (C) 1996-2006, International Business Machines
  * Corporation and others.  All Rights Reserved.
  */
 
@@ -12,8 +12,9 @@ import java.lang.ref.SoftReference;
 import java.util.Date;
 import java.util.Hashtable;
 import java.util.Locale;
+import java.util.MissingResourceException;
 
-import com.ibm.icu.impl.Grego;
+import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.impl.TimeZoneAdapter;
 import com.ibm.icu.impl.ZoneMeta;
 import com.ibm.icu.text.SimpleDateFormat;
@@ -147,9 +148,9 @@ abstract public class TimeZone implements Serializable, Cloneable {
      * @stable ICU 2.8
      */
     public int getOffset(long date) {
-        int[] result = new int[2];
-        getOffset(date, false, result);
-        return result[0]+result[1];
+	int[] result = new int[2];
+	getOffset(date, false, result);
+	return result[0]+result[1];
     }
 
     /**
@@ -186,7 +187,7 @@ abstract public class TimeZone implements Serializable, Cloneable {
         // executed twice.
         for (int pass=0; ; ++pass) {
             int fields[] = new int[4];
-            long day = floorDivide(date, Grego.MILLIS_PER_DAY, fields);
+            long day = floorDivide(date, MILLIS_PER_DAY, fields);
             int millis = fields[0];
             
             computeGregorianFields(day, fields);
@@ -201,7 +202,7 @@ abstract public class TimeZone implements Serializable, Cloneable {
                 break;
             }
             date += offsets[1];
-            if (floorDivide(date, Grego.MILLIS_PER_DAY) == day) {
+            if (floorDivide(date, MILLIS_PER_DAY) == day) {
                 break;
             }
         }
@@ -307,6 +308,21 @@ abstract public class TimeZone implements Serializable, Cloneable {
         //fields[4] = dayOfYear + 1; // Convert from 0-based to 1-based
     }
 
+
+    /**
+     * The number of milliseconds in an hour.
+     * @internal
+     * @deprecated This API is ICU internal only.
+     */
+    protected static final int MILLIS_PER_HOUR = 60*60*1000;
+
+    /**
+     * The number of milliseconds in one day.
+     * @internal
+     * @deprecated This API is ICU internal only.
+     */
+    protected static final int MILLIS_PER_DAY = 24*MILLIS_PER_HOUR;
+    
     /**
      * For each month, the days in a non-leap year before the start
      * the of month, and the days in a leap year before the start of
@@ -404,7 +420,8 @@ abstract public class TimeZone implements Serializable, Cloneable {
      * @param locale the ulocale in which to supply the display name.
      * @return the human-readable name of this time zone in the given locale
      * or in the default ulocale if the given ulocale is not recognized.
-     * @stable ICU 3.8
+     * @draft ICU 3.2
+     * @provisional This API might change or be removed in a future release.
      */
     public final String getDisplayName(ULocale locale) {
         return _getDisplayName(false, LONG_GENERIC, locale);
@@ -455,7 +472,8 @@ abstract public class TimeZone implements Serializable, Cloneable {
      * @return the human-readable name of this time zone in the given locale
      * or in the default locale if the given locale is not recognized.
      * @exception IllegalArgumentException style is invalid.
-     * @stable ICU 3.8
+     * @draft ICU 3.2
+     * @provisional This API might change or be removed in a future release.
      */
     public String getDisplayName(boolean daylight, int style, ULocale locale) {
         if (style != SHORT && style != LONG) {
@@ -491,34 +509,26 @@ abstract public class TimeZone implements Serializable, Cloneable {
             format = new SimpleDateFormat(null, locale);
             cachedLocaleData.put(locale, new SoftReference(format));
         }
-
+        // Create a new SimpleTimeZone as a stand-in for this zone; the stand-in
+        // will have no DST, or DST during January, but the same ID and offset,
+        // and hence the same display name.  We don't cache these because
+        // they're small and cheap to create.
+        SimpleTimeZone tz;
+        if (daylight && useDaylightTime()) {
+            int savings = getDSTSavings();
+            tz = new SimpleTimeZone(getRawOffset(), getID(),
+                                    Calendar.JANUARY, 1, 0, 0,
+                                    Calendar.FEBRUARY, 1, 0, 0,
+                                    savings);
+        } else {
+            tz = new SimpleTimeZone(getRawOffset(), getID());
+        }
         String[] patterns = { "z", "zzzz", "v", "vvvv" };
         format.applyPattern(patterns[style]);      
-        if ( style >= 2 ) {
-            // Generic names may change time to time even for a single time zone.
-            // This method returns the one used for the zone now.
-            format.setTimeZone(this);
-            return format.format(new Date());
-        } else {
-            // Create a new SimpleTimeZone as a stand-in for this zone; the stand-in
-            // will have no DST, or DST during January, but the same ID and offset,
-            // and hence the same display name.  We don't cache these because
-            // they're small and cheap to create.
-            SimpleTimeZone tz;
-            if (daylight && useDaylightTime()) {
-                int savings = getDSTSavings();
-                tz = new SimpleTimeZone(getRawOffset(), getID(),
-                                        Calendar.JANUARY, 1, 0, 0,
-                                        Calendar.FEBRUARY, 1, 0, 0,
-                                        savings);
-            } else {
-                tz = new SimpleTimeZone(getRawOffset(), getID());
-            }
-            format.setTimeZone(tz);
-            // Format a date in January.  We use the value 10*ONE_DAY == Jan 11 1970
-            // 0:00 GMT.
-            return format.format(new Date(864000000L));
-        }
+        format.setTimeZone(tz);
+        // Format a date in January.  We use the value 10*ONE_DAY == Jan 11 1970
+        // 0:00 GMT.
+        return format.format(new Date(864000000L));
     }
 
     /**
@@ -537,10 +547,10 @@ abstract public class TimeZone implements Serializable, Cloneable {
      * @stable ICU 2.8
      */
     public int getDSTSavings() {
-        if (useDaylightTime()) {
-            return 3600000;
-        }
-        return 0;
+    	if (useDaylightTime()) {
+    	    return 3600000;
+    	}
+    	return 0;
     }
 
     /**
@@ -748,7 +758,8 @@ abstract public class TimeZone implements Serializable, Cloneable {
      * Return true if obj is a TimeZone with the same class and ID as this.
      * @return true if obj is a TimeZone with the same class and ID as this
      * @param obj the object to compare against
-     * @stable ICU 3.8
+     * @draft ICU 3.4.2
+     * @provisional This API might change or be removed in a future release.
      */
     public boolean equals(Object obj){
         if (this == obj) return true;
@@ -759,29 +770,11 @@ abstract public class TimeZone implements Serializable, Cloneable {
     /**
      * Return the hash code.
      * @return the hash code
-     * @stable ICU 3.8
-     */
-    public int hashCode(){
-        return ID.hashCode();
-    }
-
-    /**
-     * Returns the timezone data version currently used by ICU.
-     * 
-     * @return the version string, such as "2007f"
-     * @throws MissingResourceException if ICU timezone resource bundle
-     * is missing or the version information is not available.
-     * 
-     * @draft ICU 3.8
+     * @draft ICU 3.4.2
      * @provisional This API might change or be removed in a future release.
      */
-    public static synchronized String getTZDataVersion() {
-        if (TZDATA_VERSION == null) {
-            UResourceBundle tzbundle = UResourceBundle.getBundleInstance(
-                    "com/ibm/icu/impl/data/icudt" + VersionInfo.ICU_DATA_VERSION, "zoneinfo");
-            TZDATA_VERSION = tzbundle.getString("TZVersion");
-        }
-        return TZDATA_VERSION;
+    public int hashCode(){
+    	return ID.hashCode();
     }
 
     // =======================privates===============================
@@ -800,11 +793,6 @@ abstract public class TimeZone implements Serializable, Cloneable {
      * The default time zone, or null if not set.
      */
     private static TimeZone  defaultZone = null;
-
-    /**
-     * The tzdata version
-     */
-    private static String TZDATA_VERSION = null;
 
 }
 

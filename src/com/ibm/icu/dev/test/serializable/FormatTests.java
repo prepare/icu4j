@@ -1,4 +1,4 @@
-//##header J2SE15
+//##header
 /*
  *******************************************************************************
  * Copyright (C) 1996-2007, International Business Machines Corporation and    *
@@ -20,11 +20,8 @@ import com.ibm.icu.text.DateFormat;
 import com.ibm.icu.text.DateFormatSymbols;
 import com.ibm.icu.text.DecimalFormat;
 import com.ibm.icu.text.DecimalFormatSymbols;
-import com.ibm.icu.text.DurationFormat;
 import com.ibm.icu.text.MessageFormat;
 import com.ibm.icu.text.NumberFormat;
-import com.ibm.icu.text.PluralFormat;
-import com.ibm.icu.text.PluralRules;
 import com.ibm.icu.text.RuleBasedNumberFormat;
 import com.ibm.icu.text.SimpleDateFormat;
 import com.ibm.icu.util.GregorianCalendar;
@@ -38,51 +35,6 @@ import com.ibm.icu.util.ULocale;
  */
 public class FormatTests
 {
-
-    public static class RelativeDateFormatHandler implements SerializableTest.Handler
-    {
-        public Object[] getTestObjects()
-        {
-            DateFormat formats[] = { 
-                    DateFormat.getDateInstance(DateFormat.RELATIVE_LONG,new ULocale("en")),
-                    DateFormat.getDateInstance(DateFormat.RELATIVE_SHORT,new ULocale("ru")),
-            };
-            
-            return formats;
-        }
-        
-        public boolean hasSameBehavior(Object a, Object b) {
-            DateFormat da = (DateFormat)a;
-            DateFormat db = (DateFormat)b;
-            
-            Date d = new Date(System.currentTimeMillis());
-            return da.format(d).equals(db.format(d));
-        }
-    }
-
-    public static class BasicDurationFormatHandler implements SerializableTest.Handler
-    {
-        public Object[] getTestObjects()
-        {
-            DurationFormat formats[] = { 
-                    DurationFormat.getInstance(new ULocale("en"))
-                   
-            };
-            
-            return formats;
-        }
-        
-        //TODO: Revisit this after 3.8
-        public boolean hasSameBehavior(Object a, Object b) {
-            //DurationFormat da = (DurationFormat)a;
-            //DurationFormat db = (DurationFormat)b;
-            
-            //Date d = new Date(12345);
-            //System.err.println("Warning: BasicDurationFormat test is being skipped for now.");
-            return true;
-            //return da.format(d).equals(db.format(d));
-        }
-    }
 
     public static class NumberFormatHandler implements SerializableTest.Handler
     {
@@ -945,23 +897,7 @@ public class FormatTests
             return mfa.format(arguments) != mfb.format(arguments);
         }
     }
-
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
-    public static class MessageFormatFieldHandler implements SerializableTest.Handler
-    {
-        public Object[] getTestObjects()
-        {
-            return new Object[] {MessageFormat.Field.ARGUMENT};
-        }
-
-        public boolean hasSameBehavior(Object a, Object b)
-        {
-            return (a == b);
-        }
-    }
-//#endif
-
+    
     public static class DateFormatHandler implements SerializableTest.Handler
     {
         public Object[] getTestObjects()
@@ -982,58 +918,13 @@ public class FormatTests
             DateFormat dfb = (DateFormat) b;
             Date date = new Date(System.currentTimeMillis());
             String sfa = dfa.format(date);
-            String sfb = dfb.format(date);
-
-            //TODO: This test case will fail if locale data is updated.
-            //if (!sfa.equals(sfb)) {
-            //    System.err.println("\nWarning: Different DateFormat outputs\n    [a] "
-            //                        + sfa + "\n    [b] " + sfb);
-            //}
-            //return sfa.equals(sfb);
-            return true;
+            String sfb = dfa.format(date);
+            
+           return sfa.equals(sfb);
         }
         
     }
-
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
-    public static class DateFormatFieldHandler implements SerializableTest.Handler
-    {
-        public Object[] getTestObjects() {
-            return new Object[] {
-                    DateFormat.Field.AM_PM,
-                    DateFormat.Field.DAY_OF_MONTH,
-                    DateFormat.Field.DAY_OF_WEEK,
-                    DateFormat.Field.DAY_OF_WEEK_IN_MONTH,
-                    DateFormat.Field.DAY_OF_YEAR,
-                    DateFormat.Field.ERA,
-                    DateFormat.Field.HOUR_OF_DAY0,
-                    DateFormat.Field.HOUR_OF_DAY1,
-                    DateFormat.Field.HOUR0,
-                    DateFormat.Field.HOUR1,
-                    DateFormat.Field.MILLISECOND,
-                    DateFormat.Field.MINUTE,
-                    DateFormat.Field.MONTH,
-                    DateFormat.Field.SECOND,
-                    DateFormat.Field.TIME_ZONE,
-                    DateFormat.Field.WEEK_OF_MONTH,
-                    DateFormat.Field.WEEK_OF_YEAR,
-                    DateFormat.Field.YEAR,
-                    DateFormat.Field.DOW_LOCAL,
-                    DateFormat.Field.EXTENDED_YEAR,
-                    DateFormat.Field.JULIAN_DAY,
-                    DateFormat.Field.MILLISECONDS_IN_DAY,
-                    DateFormat.Field.YEAR_WOY,
-                    DateFormat.Field.QUARTER
-            };
-        }
-        public boolean hasSameBehavior(Object a, Object b)
-        {
-            return (a == b);
-        }
-    }
-//#endif
-
+    
     public static class DateFormatSymbolsHandler implements SerializableTest.Handler
     {
         /*
@@ -1444,23 +1335,7 @@ public class FormatTests
             return dateFormats;
         }
     }
-
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
-    public static class ChineseDateFormatFieldHandler implements SerializableTest.Handler
-    {
-        public Object[] getTestObjects() {
-            return new Object[] {
-                    ChineseDateFormat.Field.IS_LEAP_MONTH
-            };
-        }
-        public boolean hasSameBehavior(Object a, Object b)
-        {
-            return (a == b);
-        }
-    }
-//#endif
-
+    
     public static class ChineseDateFormatSymbolsHandler extends DateFormatSymbolsHandler
     {
         public Object[] getTestObjects()
@@ -1492,8 +1367,7 @@ public class FormatTests
         }
     }
 
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
+//#ifndef FOUNDATION
     public static class NumberFormatFieldHandler implements SerializableTest.Handler
     {
         public Object[] getTestObjects()
@@ -1535,45 +1409,6 @@ public class FormatTests
             return a.equals(b);
         }
     }
-
-  public static class PluralFormatHandler implements SerializableTest.Handler {
-    public Object[] getTestObjects() {
-      Locale[] locales = { Locale.US }; // main test is in plural rules handler
-      PluralFormat[] plfmts = new PluralFormat[locales.length];
-      for (int i = 0; i < locales.length; i++) {
-        ULocale uloc = ULocale.forLocale(locales[i]);
-        try {
-          plfmts[i] = new PluralFormat(uloc, "one{1 foo} other{# foo}");
-        } catch (Exception e) {
-          e.printStackTrace();
-        }
-      }
-      return plfmts;
-    }
-    public boolean hasSameBehavior(Object a, Object b) {
-      return a.equals(b);
-    }
-  }
-
-  public static class PluralRulesHandler implements SerializableTest.Handler {
-    public Object[] getTestObjects() {
-      
-      String[] localeNames = {"ja","da","fr","lv","ga","ro","lt","hr","cs","pl","sl"};
-      PluralRules[] plrulz = new PluralRules[localeNames.length];
-      for (int i = 0; i < localeNames.length; i++) {
-        ULocale uloc = ULocale.createCanonical(localeNames[i]);
-        try {
-          plrulz[i] = PluralRules.forLocale(uloc);
-        } catch (Exception e) {
-          e.printStackTrace();
-        }
-      }
-      return plrulz;
-    }
-    public boolean hasSameBehavior(Object a, Object b) {
-      return a.equals(b);
-    }
-  }
     
     public static void main(String[] args)
     {

@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -722,7 +722,7 @@ public class BasicTest extends TestFmwk {
     // Internal utilities
     //
 
-/*    private void backAndForth(Normalizer iter, String input)
+    private void backAndForth(Normalizer iter, String input)
     {
         iter.setText(input);
 
@@ -745,7 +745,7 @@ public class BasicTest extends TestFmwk {
             logln("Ok: Forward/reverse for input " + hex(input)
                   + ", forward: " + hex(forward) + ", backward: "+hex(reverse));
         }
-    }*/
+    }
 
     private void backAndForth(Normalizer iter, String[][] tests)
     {
@@ -2918,7 +2918,7 @@ public class BasicTest extends TestFmwk {
         };
 
         String output;
-        int i;
+        int i, length;
 
         for(i=0; i<cases.length; ++i) {
             output=Normalizer.normalize(cases[i].input, cases[i].mode, cases[i].options);

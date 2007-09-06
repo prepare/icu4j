@@ -1,17 +1,12 @@
 /**
  *******************************************************************************
- * Copyright (C) 2000-2007, International Business Machines Corporation and    *
+ * Copyright (C) 2000-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
 package com.ibm.icu.dev.test.calendar;
 import com.ibm.icu.util.*;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.util.Date;
 import java.util.Locale;
 import java.util.MissingResourceException;
@@ -1749,37 +1744,6 @@ public class CalendarRegression extends com.ibm.icu.dev.test.TestFmwk {
             }
         }
     }
-    
-    public void TestT5555() throws Exception
-    {
-        Calendar cal = Calendar.getInstance();
-        
-        // Set date to Wednesday, February 21, 2007
-        cal.set(2007, Calendar.FEBRUARY, 21);
-
-        try {
-            // Advance month by three years
-            cal.add(Calendar.MONTH, 36);
-            
-            // Move to last Wednesday of month.
-            cal.set(Calendar.DAY_OF_WEEK_IN_MONTH, -1);
-            
-            cal.getTime();
-        } catch (Exception e) {
-            errln("Got an exception calling getTime().");
-        }
-        
-        int yy, mm, dd, ee;
-        
-        yy = cal.get(Calendar.YEAR);
-        mm = cal.get(Calendar.MONTH);
-        dd = cal.get(Calendar.DATE);
-        ee = cal.get(Calendar.DAY_OF_WEEK_IN_MONTH);
-        
-        if (yy != 2010 || mm != Calendar.FEBRUARY || dd != 24 || ee != Calendar.WEDNESDAY) {
-            errln("Got date " + yy + "/" + (mm + 1) + "/" + dd + ", expected 2010/2/24");
-        }
-    }
 
     /**
      * Set behavior of DST_OFFSET field. ICU4J Jitterbug 9.
@@ -1954,130 +1918,6 @@ public class CalendarRegression extends com.ibm.icu.dev.test.TestFmwk {
          */
     }
 
-    /**
-     * test serialize-and-modify.
-     * @throws ClassNotFoundException 
-     */
-    public void TestSerialization3474() {
-        try {
-            ByteArrayOutputStream icuStream = new ByteArrayOutputStream();
-    
-            logln("icu Calendar");
-            
-            com.ibm.icu.util.GregorianCalendar icuCalendar =
-                new com.ibm.icu.util.GregorianCalendar();
-            
-            icuCalendar.setTimeInMillis(1187912555931L);
-            long expectMillis = 1187912520931L; // with seconds (not ms) cleared.
-            
-            logln("instantiated: "+icuCalendar);
-            logln("getMillis: "+icuCalendar.getTimeInMillis());
-            icuCalendar.set(com.ibm.icu.util.GregorianCalendar.SECOND, 0);
-            logln("setSecond=0: "+icuCalendar);
-            {
-                long gotMillis = icuCalendar.getTimeInMillis();
-                if(gotMillis != expectMillis) {
-                    errln("expect millis "+expectMillis+" but got "+gotMillis);
-                } else {
-                    logln("getMillis: "+gotMillis);
-                }
-            }
-            ObjectOutputStream icuOut =
-                new ObjectOutputStream(icuStream);
-            icuOut.writeObject(icuCalendar);
-            icuOut.flush();
-            icuOut.close();
-            
-            ObjectInputStream icuIn =
-                new ObjectInputStream(new ByteArrayInputStream(icuStream.toByteArray()));
-            icuCalendar = null;
-            icuCalendar = (com.ibm.icu.util.GregorianCalendar)icuIn.readObject();
-            
-            logln("serialized back in: "+icuCalendar);
-            {
-                long gotMillis = icuCalendar.getTimeInMillis();
-                if(gotMillis != expectMillis) {
-                    errln("expect millis "+expectMillis+" but got "+gotMillis);
-                } else {
-                    logln("getMillis: "+gotMillis);
-                }
-            }
-            
-            icuCalendar.set(com.ibm.icu.util.GregorianCalendar.SECOND, 0);
-                    
-            logln("setSecond=0: "+icuCalendar);
-            {
-                long gotMillis = icuCalendar.getTimeInMillis();
-                if(gotMillis != expectMillis) {
-                    errln("expect millis "+expectMillis+" after stream and setSecond but got "+gotMillis);
-                } else {
-                    logln("getMillis after stream and setSecond: "+gotMillis);
-                }
-            }
-        } catch(IOException e) {
-            errln(e.toString());
-            e.printStackTrace();
-        } catch(ClassNotFoundException cnf) {
-            errln(cnf.toString());
-            cnf.printStackTrace();
-        }
-
-        // JDK works correctly, etc etc.  
-//        ByteArrayOutputStream jdkStream = new ByteArrayOutputStream();
-
-//        logln("\nSUN Calendar");
-//        
-//        java.util.GregorianCalendar sunCalendar =
-//            new java.util.GregorianCalendar();
-//        
-//        logln("instanzieren: "+sunCalendar);
-//        logln("getMillis: "+sunCalendar.getTimeInMillis());
-//        sunCalendar.set(java.util.GregorianCalendar.SECOND, 0);
-//        logln("setSecond=0: "+sunCalendar);
-//        logln("getMillis: "+sunCalendar.getTimeInMillis());
-//        
-//        ObjectOutputStream sunOut =
-//            new ObjectOutputStream(jdkStream);
-//        sunOut.writeObject(sunCalendar);
-//        sunOut.flush();
-//        sunOut.close();
-//        
-//        ObjectInputStream sunIn =
-//            new ObjectInputStream(new ByteArrayInputStream(jdkStream.toByteArray()));
-//        sunCalendar = null;
-//        sunCalendar = (java.util.GregorianCalendar)sunIn.readObject();
-//        
-//        logln("serialized: "+sunCalendar);
-//        logln("getMillis: "+sunCalendar.getTimeInMillis());
-//        
-//        sunCalendar.set(java.util.GregorianCalendar.SECOND, 0);
-//        logln("setSecond=0: "+sunCalendar);
-//        logln("getMillis: "+sunCalendar.getTimeInMillis());
-        
-    }
-
-    public void TestYearJump3279() {
-        final long time = 1041148800000L;
-        Calendar c = new GregorianCalendar();
-        DateFormat fmt = DateFormat.getDateTimeInstance(DateFormat.LONG, DateFormat.LONG, Locale.US);
-
-        c.setTimeInMillis(time);
-        int year1 = c.get(Calendar.YEAR);
-        
-        logln("time: " + fmt.format(new Date(c.getTimeInMillis())));
-
-        logln("setting DOW to " + c.getFirstDayOfWeek());
-        c.set(Calendar.DAY_OF_WEEK, c.getFirstDayOfWeek());
-        logln("week: " + c.getTime());
-        logln("week adjust: " + fmt.format(new Date(c.getTimeInMillis())));
-        int year2 = c.get(Calendar.YEAR);
-        
-        if(year1 != year2) {
-            errln("Error: adjusted day of week, and year jumped from " + year1 + " to " + year2);
-        } else {
-            logln("Year remained " + year2 + " - PASS.");
-        }
-    }
 }
 
 //eof

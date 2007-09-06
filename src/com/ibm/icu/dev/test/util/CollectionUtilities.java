@@ -1,10 +1,11 @@
-//##header J2SE15
+//##header
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
+//#ifndef FOUNDATION
 package com.ibm.icu.dev.test.util;
 
 import java.util.Collection;
@@ -12,14 +13,13 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 import java.util.SortedSet;
-
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
+import java.util.TreeSet;
 import java.util.regex.Matcher;
-//#endif
 
-import com.ibm.icu.text.Transliterator;
+import com.ibm.icu.impl.UCharacterProperty;
+import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.text.UTF16;
 import com.ibm.icu.text.UnicodeSet;
 import com.ibm.icu.text.UnicodeSetIterator;
@@ -28,136 +28,90 @@ import com.ibm.icu.text.UnicodeSetIterator;
  * Utilities that ought to be on collections, but aren't
  */
 public final class CollectionUtilities {
-    
-    public static String join(Object[] array, String separator) {
-        StringBuffer result = new StringBuffer();
-        for (int i = 0; i < array.length; ++i) {
-            if (i != 0) result.append(separator);
-            result.append(array[i]);
-        }
-        return result.toString();
-    }
+	/**
+	 * Utility like Arrays.asList()
+	 */
+	public static Map asMap(Object[][] source, Map target, boolean reverse) {
+		int from = 0, to = 1;
+		if (reverse) {
+			from = 1; to = 0;
+		}
+    	for (int i = 0; i < source.length; ++i) {
+    		target.put(source[i][from], source[i][to]);
+    	}
+    	return target;
+	}
+	
+	public static Collection addAll(Iterator source, Collection target) {
+		while (source.hasNext()) {
+			target.add(source.next());
+		}
+		return target; // for chaining
+	}
+	
+	public static int size(Iterator source) {
+		int result = 0;
+		while (source.hasNext()) {
+			source.next();
+			++result;
+		}
+		return result;
+	}
+	
 
-    public static String join(Collection collection, String separator) {
-        StringBuffer result = new StringBuffer();
-        boolean first = true;
-        for (Iterator it = collection.iterator(); it.hasNext();) {
-            if (first) first = false;
-            else result.append(separator);
-            result.append(it.next());
-        }
-        return result.toString();
-    }
+	public static Map asMap(Object[][] source) {
+    	return asMap(source, new HashMap(), false);
+	}
+	
+	/**
+	 * Utility that ought to be on Map
+	 */
+	public static Map removeAll(Map m, Collection itemsToRemove) {
+	    for (Iterator it = itemsToRemove.iterator(); it.hasNext();) {
+	    	Object item = it.next();
+	    	m.remove(item);
+	    }
+	    return m;
+	}
+	
+	public Object getFirst(Collection c) {
+		Iterator it = c.iterator();
+		if (!it.hasNext()) return null;
+		return it.next();
+	}
+	
+	public static Object getBest(Collection c, Comparator comp, int direction) {
+		Iterator it = c.iterator();
+		if (!it.hasNext()) return null;
+		Object bestSoFar = it.next();
+		while (it.hasNext()) {
+			Object item = it.next();
+			if (comp.compare(item, bestSoFar) == direction) {
+				bestSoFar = item;
+			}
+		}
+		return bestSoFar;
+	}
+	
+	public interface Filter {
+		boolean matches(Object o);
+	}
 
-    /**
-     * Utility like Arrays.asList()
-     */
-    public static Map asMap(Object[][] source, Map target, boolean reverse) {
-        int from = 0, to = 1;
-        if (reverse) {
-            from = 1; to = 0;
-        }
-        for (int i = 0; i < source.length; ++i) {
-            target.put(source[i][from], source[i][to]);
-        }
-        return target;
-    }
-    
-    public static Collection addAll(Iterator source, Collection target) {
-        while (source.hasNext()) {
-            target.add(source.next());
-        }
-        return target; // for chaining
-    }
-    
-    public static int size(Iterator source) {
-        int result = 0;
-        while (source.hasNext()) {
-            source.next();
-            ++result;
-        }
-        return result;
-    }
-    
-
-    public static Map asMap(Object[][] source) {
-        return asMap(source, new HashMap(), false);
-    }
-    
-    /**
-     * Utility that ought to be on Map
-     */
-    public static Map removeAll(Map m, Collection itemsToRemove) {
-        for (Iterator it = itemsToRemove.iterator(); it.hasNext();) {
-            Object item = it.next();
-            m.remove(item);
-        }
-        return m;
-    }
-    
-    public Object getFirst(Collection c) {
-        Iterator it = c.iterator();
-        if (!it.hasNext()) return null;
-        return it.next();
-    }
-    
-    public static Object getBest(Collection c, Comparator comp, int direction) {
-        Iterator it = c.iterator();
-        if (!it.hasNext()) return null;
-        Object bestSoFar = it.next();
-        if (direction < 0) {
-            while (it.hasNext()) {
-                Object item = it.next();
-                int compValue = comp.compare(item, bestSoFar);
-                if (compValue < 0) {
-                    bestSoFar = item;
-                }
-            }
-        } else {
-            while (it.hasNext()) {
-                Object item = it.next();
-                int compValue = comp.compare(item, bestSoFar);
-                if (compValue > 0) {
-                    bestSoFar = item;
-                }
-            }
-        }
-        return bestSoFar;
-    }
-    
-    public interface ObjectMatcher {
-        /**
-         * Must handle null, never throw exception
-         */
-        boolean matches(Object o);
-    }
-    
-    public static class InverseMatcher implements ObjectMatcher {
-        ObjectMatcher other;
-        public ObjectMatcher set(ObjectMatcher toInverse) {
-            other = toInverse;
-            return this;
-        }
-        public boolean matches(Object value) {
-            return !other.matches(value);
-        }
-    }
-
-    public static Collection removeAll(Collection c, ObjectMatcher f) {
-        for (Iterator it = c.iterator(); it.hasNext();) {
-            Object item = it.next();
-            if (f.matches(item)) it.remove();
-        }
-        return c;
-    }
-    
-    public static Collection retainAll(Collection c, ObjectMatcher f) {
-        for (Iterator it = c.iterator(); it.hasNext();) {
-            Object item = it.next();
-            if (!f.matches(item)) it.remove();
-        }
-        return c;
-    }
+	public static Collection removeAll(Collection c, Filter f) {
+		for (Iterator it = c.iterator(); it.hasNext();) {
+			Object item = it.next();
+			if (f.matches(item)) it.remove();
+		}
+		return c;
+	}
+	
+	public static Collection retainAll(Collection c, Filter f) {
+		for (Iterator it = c.iterator(); it.hasNext();) {
+			Object item = it.next();
+			if (!f.matches(item)) it.remove();
+		}
+		return c;
+	}
     
     public static boolean containsSome(Collection a, Collection b) {
         // fast paths
@@ -171,7 +125,7 @@ public final class CollectionUtilities {
             Comparator bbc = bb.comparator();
             Comparator aac = aa.comparator();
             if (bbc == null) {
-                if (aac == null) {
+            	if (aac == null) {
                     Iterator ai = aa.iterator();
                     Iterator bi = bb.iterator();
                     Comparable ao = (Comparable) ai.next(); // these are ok, since the sizes are != 0
@@ -208,8 +162,8 @@ public final class CollectionUtilities {
                 }
             }           
         }
-        for (Iterator it = a.iterator(); it.hasNext();) {
-            if (b.contains(it.next())) return true;
+    	for (Iterator it = a.iterator(); it.hasNext();) {
+    		if (b.contains(it.next())) return true;
         }
         return false;
     }
@@ -269,7 +223,7 @@ public final class CollectionUtilities {
         }
         return a.containsAll(b);
     }
-    
+	
     public static boolean containsNone(Collection a, Collection b) {
         return !containsSome(a, b);
     }
@@ -302,9 +256,9 @@ public final class CollectionUtilities {
      */
      public static int getContainmentRelation(Collection a, Collection b) {
         if (a.size() == 0) {
-            return (b.size() == 0) ? ALL_EMPTY : NOT_A_SUPERSET_B;
+        	return (b.size() == 0) ? ALL_EMPTY : NOT_A_SUPERSET_B;
         } else if (b.size() == 0) {
-            return NOT_A_SUBSET_B;
+        	return NOT_A_SUBSET_B;
         }
         int result = 0;
         // WARNING: one might think that the following can be short-circuited, by looking at
@@ -319,78 +273,137 @@ public final class CollectionUtilities {
         return result;
     }
 
-    public static String remove(String source, UnicodeSet removals) {
-        StringBuffer result = new StringBuffer();
-        int cp;
-        for (int i = 0; i < source.length(); i += UTF16.getCharCount(cp)) {
-            cp = UTF16.charAt(source, i);
-            if (!removals.contains(cp)) UTF16.append(result, cp);
+	public static String remove(String source, UnicodeSet removals) {
+		StringBuffer result = new StringBuffer();
+		int cp;
+		for (int i = 0; i < source.length(); i += UTF16.getCharCount(cp)) {
+			cp = UTF16.charAt(source, i);
+			if (!removals.contains(cp)) UTF16.append(result, cp);
+		}
+		return result.toString();
+	}
+    
+    public static String prettyPrint(UnicodeSet uset, Comparator comp, Comparator spaceComparator, boolean compressRanges) {
+        Appender result = new Appender(compressRanges, spaceComparator);
+        // make sure that comparison separates all strings, even canonically equivalent ones
+        Comparator comp2 = new MultiComparator(new Comparator[] {comp, new UTF16.StringComparator(true,false,0)});
+        Set ordering = new TreeSet(comp2);
+        for (UnicodeSetIterator it = new UnicodeSetIterator(uset); it.next();) {
+            ordering.add(it.getString());
         }
-        return result.toString();
-    }
-
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
-     /**
-      * Does one string contain another, starting at a specific offset?
-      * @param text
-      * @param offset
-      * @param other
-      * @return
-      */
-        public static int matchesAt(CharSequence text, int offset, CharSequence other) {
-            int len = other.length();
-            int i = 0;
-            int j = offset;
-            for (; i < len; ++i, ++j) {
-                char pc = other.charAt(i);
-                char tc = text.charAt(j);
-                if (pc != tc) return -1;
-            }
-            return i;
+        result.append("[");
+        for (Iterator it = ordering.iterator(); it.hasNext();) {
+            result.appendUnicodeSetItem((String) it.next());
         }
-
-        /**
-         * Returns the ending offset found by matching characters with testSet, until a position is found that doen't match
-         * @param string
-         * @param offset
-         * @param testSet
-         * @return
-         */
-        public int span(CharSequence string, int offset, UnicodeSet testSet) {
-            while (true) {
-                int newOffset = testSet.matchesAt(string, offset);
-                if (newOffset < 0) return offset;
-            }
+        result.flushLast();
+        result.append("]");
+        String sresult = result.toString();
+        UnicodeSet doubleCheck = new UnicodeSet(sresult);
+        if (!uset.equals(doubleCheck)) {
+            throw new IllegalStateException("Failure to round-trip in pretty-print");
         }
-
-        /**
-         * Returns the ending offset found by matching characters with testSet, until a position is found that does match
-         * @param string
-         * @param offset
-         * @param testSet
-         * @return
-         */
-        public int spanNot(CharSequence string, int offset, UnicodeSet testSet) {
-            while (true) {
-                int newOffset = testSet.matchesAt(string, offset);
-                if (newOffset >= 0) return offset;
-                ++offset; // try next character position
-                // we don't have to worry about surrogates for this.
-            }
-        }
-//#endif
-
-    public static String prettyPrint(UnicodeSet uset, boolean compressRanges, UnicodeSet toQuote, Transliterator quoter, 
-            Comparator ordering, Comparator spaceComparator) {
-        PrettyPrinter pp = new PrettyPrinter().setCompressRanges(compressRanges);
-        if (toQuote != null) pp.setToQuote(toQuote);
-        if (ordering != null) pp.setOrdering(ordering);
-        if (spaceComparator != null) pp.setSpaceComparator(spaceComparator);
-        return pp.toPattern(uset);
+        return sresult;
     }
     
-    public static class MultiComparator implements Comparator {
+    private static class Appender {
+        private boolean first = true;
+        private StringBuffer target = new StringBuffer();
+        private int firstCodePoint = -2;
+        private int lastCodePoint = -2;
+        private boolean compressRanges;
+        private Comparator spaceComp;
+        private String lastString = "";
+
+        public Appender(boolean compressRanges, Comparator spaceComp) {
+            this.compressRanges = compressRanges;
+            this.spaceComp = spaceComp;
+        }
+        Appender appendUnicodeSetItem(String s) {
+            int cp;
+            if (UTF16.hasMoreCodePointsThan(s, 1)) {
+                flushLast();
+                addSpace(s);
+                target.append("{");
+                for (int i = 0; i < s.length(); i += UTF16.getCharCount(cp)) {
+                    appendQuoted(cp = UTF16.charAt(s, i));
+                }
+                target.append("}");
+                lastString = s;
+            } else {
+                if (!compressRanges)
+                    flushLast();
+                cp = UTF16.charAt(s, 0);
+                if (cp == lastCodePoint + 1) {
+                    lastCodePoint = cp; // continue range
+                } else { // start range
+                    flushLast();
+                    firstCodePoint = lastCodePoint = cp;
+                }
+            }
+            return this;
+        }
+        /**
+         * 
+         */
+        private void addSpace(String s) {
+            if (first) {
+                first = false;
+            } else if (spaceComp.compare(s, lastString) != 0) {
+                target.append(' ');
+            } else {
+	            int type = UCharacter.getType(UTF16.charAt(s,0));
+	            if (type == UCharacter.NON_SPACING_MARK || type == UCharacter.ENCLOSING_MARK) {
+	                target.append(' ');
+	            }
+            }
+        }
+        
+        private void flushLast() {
+            if (lastCodePoint >= 0) {
+                addSpace(UTF16.valueOf(firstCodePoint));
+                if (firstCodePoint != lastCodePoint) {
+                    appendQuoted(firstCodePoint);
+                    target.append(firstCodePoint + 1 == lastCodePoint ? ' ' : '-');
+                }
+                appendQuoted(lastCodePoint);
+                lastString = UTF16.valueOf(lastCodePoint);
+                firstCodePoint = lastCodePoint = -2;
+            }
+        }
+        Appender appendQuoted(int codePoint) {
+            switch (codePoint) {
+            case '[': // SET_OPEN:
+            case ']': // SET_CLOSE:
+            case '-': // HYPHEN:
+            case '^': // COMPLEMENT:
+            case '&': // INTERSECTION:
+            case '\\': //BACKSLASH:
+            case '{':
+            case '}':
+            case '$':
+            case ':':
+                target.append('\\');
+                break;
+            default:
+                // Escape whitespace
+                if (UCharacterProperty.isRuleWhiteSpace(codePoint)) {
+                    target.append('\\');
+                }
+                break;
+            }
+            UTF16.append(target, codePoint);
+            return this;
+        }        
+        Appender append(String s) {
+            target.append(s);
+            return this;
+        }
+        public String toString() {
+            return target.toString();
+        }
+    }
+    
+    static class MultiComparator implements Comparator {
         private Comparator[] comparators;
     
         public MultiComparator (Comparator[] comparators) {
@@ -419,80 +432,79 @@ public final class CollectionUtilities {
      * @param exemplar1
      * @return
      */
-    public static UnicodeSet flatten(UnicodeSet exemplar1) {
-        UnicodeSet result = new UnicodeSet();
-        boolean gotString = false;
-        for (UnicodeSetIterator it = new UnicodeSetIterator(exemplar1); it.nextRange();) {
-            if (it.codepoint == UnicodeSetIterator.IS_STRING) {
-                result.addAll(it.string);
-                gotString = true;
-            } else {
-                result.add(it.codepoint, it.codepointEnd);
-            }
-        }
-        if (gotString) exemplar1.set(result);
-        return exemplar1;
-    }
+	public static UnicodeSet flatten(UnicodeSet exemplar1) {
+		UnicodeSet result = new UnicodeSet();
+		boolean gotString = false;
+		for (UnicodeSetIterator it = new UnicodeSetIterator(exemplar1); it.nextRange();) {
+			if (it.codepoint == it.IS_STRING) {
+				result.addAll(it.string);
+				gotString = true;
+			} else {
+				result.add(it.codepoint, it.codepointEnd);
+			}
+		}
+		if (gotString) exemplar1.set(result);
+		return exemplar1;
+	}
 
-    /**
-     * For producing filtered iterators
-     */
-    public static abstract class FilteredIterator implements Iterator {
-        private Iterator baseIterator;
-        private static final Object EMPTY = new Object();
-        private static final Object DONE = new Object();
-        private Object nextObject = EMPTY;
-        public FilteredIterator set(Iterator baseIterator) {
-            this.baseIterator = baseIterator;
-            return this;
-        }
-        public void remove() {
-            throw new UnsupportedOperationException("Doesn't support removal");
-        }
-        public Object next() {
-            Object result = nextObject;
-            nextObject = EMPTY;
-            return result;
-        }       
-        public boolean hasNext() {
-            if (nextObject == DONE) return false;
-            if (nextObject != EMPTY) return true;
-            while (baseIterator.hasNext()) {
-                nextObject = baseIterator.next();
-                if (isIncluded(nextObject)) {
-                    return true;
-                }
-            }
-            nextObject = DONE;
-            return false;
-        }
-        abstract public boolean isIncluded(Object item);
-    }
-    
-    public static class PrefixIterator extends FilteredIterator {
-        private String prefix;
-        public PrefixIterator set(Iterator baseIterator, String prefix) {
-            super.set(baseIterator);
-            this.prefix = prefix;
-            return this;
-        }
-        public boolean isIncluded(Object item) {
-            return ((String)item).startsWith(prefix);
-        }
-    }
-    
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
-    public static class RegexIterator extends FilteredIterator {
-        private Matcher matcher;
-        public RegexIterator set(Iterator baseIterator, Matcher matcher) {
-            super.set(baseIterator);
-            this.matcher = matcher;
-            return this;
-        }
-        public boolean isIncluded(Object item) {
-            return matcher.reset((String)item).matches();
-        }
-    }
-//#endif
+	/**
+	 * For producing filtered iterators
+	 */
+	public static abstract class FilteredIterator implements Iterator {
+		private Iterator baseIterator;
+		private static final Object EMPTY = new Object();
+		private static final Object DONE = new Object();
+		private Object nextObject = EMPTY;
+		public FilteredIterator set(Iterator baseIterator) {
+			this.baseIterator = baseIterator;
+			return this;
+		}
+		public void remove() {
+			throw new UnsupportedOperationException("Doesn't support removal");
+		}
+		public Object next() {
+			Object result = nextObject;
+			nextObject = EMPTY;
+			return result;
+		}		
+		public boolean hasNext() {
+			if (nextObject == DONE) return false;
+			if (nextObject != EMPTY) return true;
+			while (baseIterator.hasNext()) {
+				nextObject = baseIterator.next();
+				if (isIncluded(nextObject)) {
+					return true;
+				}
+			}
+			nextObject = DONE;
+			return false;
+		}
+		abstract public boolean isIncluded(Object item);
+	}
+	
+	public static class PrefixIterator extends FilteredIterator {
+		private String prefix;
+		public PrefixIterator set(Iterator baseIterator, String prefix) {
+			super.set(baseIterator);
+			this.prefix = prefix;
+			return this;
+		}
+		public boolean isIncluded(Object item) {
+			return ((String)item).startsWith(prefix);
+		}
+	}
+	
+	public static class RegexIterator extends FilteredIterator {
+		private Matcher matcher;
+		public RegexIterator set(Iterator baseIterator, Matcher matcher) {
+			super.set(baseIterator);
+			this.matcher = matcher;
+			return this;
+		}
+		public boolean isIncluded(Object item) {
+			return matcher.reset((String)item).matches();
+		}
+	}
+
 }
+//#endif

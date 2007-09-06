@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2000-2007, International Business Machines Corporation and
+ * Copyright (C) 2000-2006, International Business Machines Corporation and
  * others. All Rights Reserved.
  *******************************************************************************
  */
@@ -18,6 +18,7 @@ import com.ibm.icu.text.SimpleDateFormat;
 import com.ibm.icu.util.*;
 
 /**
+ * @test
  * @summary Tests of new functionality in IBMCalendar
  */
 public class IBMCalendarTest extends CalendarTest {
@@ -288,144 +289,7 @@ public class IBMCalendarTest extends CalendarTest {
     }
 
     /**
-     * Test limits of the Buddhist calendar.
-     */
-    public void TestBuddhistLimits() {
-        // Final parameter is either number of days, if > 0, or test
-        // duration in seconds, if < 0.
-        Calendar cal = Calendar.getInstance();
-        cal.set(2007, Calendar.JANUARY, 1);
-        BuddhistCalendar buddhist = new BuddhistCalendar();
-        if (!skipIfBeforeICU(3,8,0)) {
-            doLimitsTest(buddhist, null, cal.getTime());
-        }
-        doTheoreticalLimitsTest(buddhist, false);
-    }
-
-    /**
-     * Verify that TaiwanCalendar shifts years to Minguo Era but otherwise
-     * behaves like GregorianCalendar.
-     */
-    public void TestTaiwan() {
-        quasiGregorianTest(new TaiwanCalendar(),
-                           new int[] {
-                               TaiwanCalendar.BEFORE_MINGUO, 8, 1904, Calendar.FEBRUARY, 29,
-                               TaiwanCalendar.MINGUO, 1, 1912, Calendar.JUNE, 4,
-                               TaiwanCalendar.MINGUO, 3, 1914, Calendar.FEBRUARY, 12,
-                               TaiwanCalendar.MINGUO, 96,2007, Calendar.FEBRUARY, 12,
-                           });
-    }
-
-    /**
-     * Test limits of the Taiwan calendar.
-     */
-    public void TestTaiwanLimits() {
-        // Final parameter is either number of days, if > 0, or test
-        // duration in seconds, if < 0.
-        Calendar cal = Calendar.getInstance();
-        cal.set(2007, Calendar.JANUARY, 1);
-        TaiwanCalendar taiwan = new TaiwanCalendar();
-        if (!skipIfBeforeICU(3,8,0)) {
-            doLimitsTest(taiwan, null, cal.getTime());
-        }
-        doTheoreticalLimitsTest(taiwan, false);
-    }
-
-    public void TestTaiwanCoverage() {
-    {
-        // new TaiwanCalendar(ULocale)
-        TaiwanCalendar cal = new TaiwanCalendar(ULocale.getDefault());
-        if(cal == null){
-            errln("could not create TaiwanCalendar with ULocale");
-        }
-    }
-
-    {
-        // new TaiwanCalendar(TimeZone,ULocale)
-        TaiwanCalendar cal = new TaiwanCalendar(TimeZone.getDefault(),ULocale.getDefault());
-        if(cal == null){
-            errln("could not create TaiwanCalendar with TimeZone ULocale");
-        }
-    }
-
-    {
-        // new TaiwanCalendar(TimeZone)
-        TaiwanCalendar cal = new TaiwanCalendar(TimeZone.getDefault());
-        if(cal == null){
-            errln("could not create TaiwanCalendar with TimeZone");
-        }
-    }
-
-    {
-        // new TaiwanCalendar(Locale)
-        TaiwanCalendar cal = new TaiwanCalendar(Locale.getDefault());
-        if(cal == null){
-            errln("could not create TaiwanCalendar with Locale");
-        }
-    }
-
-    {
-        // new TaiwanCalendar(TimeZone, Locale)
-        TaiwanCalendar cal = new TaiwanCalendar(TimeZone.getDefault(), Locale.getDefault());
-        if(cal == null){
-            errln("could not create TaiwanCalendar with TimeZone and Locale");
-        }
-    }
-
-    {
-        // new TaiwanCalendar(Date)
-        TaiwanCalendar cal = new TaiwanCalendar(new Date());
-        if(cal == null){
-            errln("could not create TaiwanCalendar with Date");
-        }
-    }
-
-    {
-        // new TaiwanCalendar(int year, int month, int date)
-        TaiwanCalendar cal = new TaiwanCalendar(34, Calendar.MAY, 22);
-        if(cal == null){
-            errln("could not create TaiwanCalendar with year,month,data");
-        }
-    }
-
-    {
-        // new TaiwanCalendar(int year, int month, int date, int hour, int minute, int second)
-        TaiwanCalendar cal = new TaiwanCalendar(34, Calendar.MAY, 22, 1, 1, 1);
-        if(cal == null){
-            errln("could not create TaiwanCalendar with year,month,date,hour,minute,second");
-        }
-    }
-
-    {
-        // data
-        TaiwanCalendar cal = new TaiwanCalendar(34, Calendar.MAY, 22);
-        Date time = cal.getTime();
-
-        String[] calendarLocales = {
-        "en","zh"
-        };
-
-        String[] formatLocales = {
-        "en", "ar", "hu", "th"
-        };
-
-        for (int i = 0; i < calendarLocales.length; ++i) {
-        String calLocName = calendarLocales[i];
-        Locale calLocale = LocaleUtility.getLocaleFromName(calLocName);
-        cal = new TaiwanCalendar(calLocale);
-
-        for (int j = 0; j < formatLocales.length; ++j) {
-            String locName = formatLocales[j];
-            Locale formatLocale = LocaleUtility.getLocaleFromName(locName);
-            DateFormat format = DateFormat.getDateTimeInstance(cal, DateFormat.FULL, DateFormat.FULL, formatLocale);
-            logln(calLocName + "/" + locName + " --> " + format.format(time));
-        }
-        }
-    }
-    }
-
-    /**
-     * Verify that JapaneseCalendar shifts years to Japanese Eras but otherwise
+     * Verify that JapaneseCalendar shifts years to Buddhist Era but otherwise
      * behaves like GregorianCalendar.
      */
     public void TestJapanese() {
@@ -459,9 +323,7 @@ public class IBMCalendarTest extends CalendarTest {
         // duration in seconds, if < 0.
         Calendar cal = Calendar.getInstance();
         cal.set(2004, Calendar.JANUARY, 1);
-        GregorianCalendar gregorian = new GregorianCalendar();
-        doLimitsTest(gregorian, null, cal.getTime());
-        doTheoreticalLimitsTest(gregorian, false);
+        doLimitsTest(new GregorianCalendar(), null, cal.getTime(), -10);
     }
 
     /**
@@ -910,10 +772,6 @@ public class IBMCalendarTest extends CalendarTest {
 
         // Jitterbug 4451, for coverage
         class StubCalendar extends Calendar{
-            /**
-             * For serialization
-             */
-            private static final long serialVersionUID = -4558903444622684759L;
             protected int handleGetLimit(int field, int limitType) {return 0;}
             protected int handleComputeMonthStart(int eyear, int month, boolean useMonth) {return 0;}
             protected int handleGetExtendedYear() {return 0;}
@@ -948,7 +806,7 @@ public class IBMCalendarTest extends CalendarTest {
         // String[] calTypes = Calendar.getAvailableTypes();
         final String[] calTypes = {
             "buddhist", "chinese", "coptic", "ethiopic", "gregorian", "hebrew", 
-            "islamic", "islamic-civil", "japanese", "taiwan"
+            "islamic", "islamic-civil", "japanese",
         };
         
         // constructing a DateFormat with a locale indicating a calendar type should construct a

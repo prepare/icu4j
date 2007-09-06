@@ -1,12 +1,11 @@
-//##header J2SE15
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
+//##header
 /*
  *******************************************************************************
- * Copyright (C) 2002-2007, International Business Machines Corporation and    *
+ * Copyright (C) 2002-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
 */
+//#ifndef FOUNDATION
 package com.ibm.icu.dev.test.timezone;
 
 import java.util.ArrayList;
@@ -46,7 +45,7 @@ public class TimeZoneAliasTest extends TestFmwk {
      * 2. all aliases must have the same offsets
       */
     public void TestAliases() {
-        if (skipIfBeforeICU(3,0,0)) return;
+        if (skipIfBeforeICU(3,0)) return;
         Zone.Seconds seconds = new Zone.Seconds();
         for (Iterator it = Zone.getZoneSet().iterator(); it.hasNext(); ) {
             Zone zone = (Zone)it.next();
@@ -87,7 +86,7 @@ public class TimeZoneAliasTest extends TestFmwk {
      * We check to see that every timezone that is not an alias is actually different!
      */
     public void TestDifferences() {
-        if (skipIfBeforeICU(3,0,0)) return;
+        if (skipIfBeforeICU(3,0)) return;
         Zone last = null;
         Zone.Seconds diffDate = new Zone.Seconds();        
         for (Iterator it = Zone.getZoneSet().iterator(); it.hasNext();) {
@@ -357,8 +356,8 @@ public class TimeZoneAliasTest extends TestFmwk {
             return new TreeSet(purportedAliases); // clone for safety
         }
         
-        public boolean isPurportedAlias(String zoneID) {
-            return purportedAliases.contains(zoneID);
+        public boolean isPurportedAlias(String id) {
+            return purportedAliases.contains(id);
         }
         
         public boolean isRealAlias(Zone z) {

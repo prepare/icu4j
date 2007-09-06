@@ -1,10 +1,9 @@
 /**
  *******************************************************************************
- * Copyright (C) 2001-2007, International Business Machines Corporation and    *
+ * Copyright (C) 2001-2004, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
-
 package com.ibm.icu.impl.data;
 
 import java.io.*;
@@ -82,10 +81,8 @@ public class ResourceReader {
     }
 
     /**
-     * Construct a reader object for the input stream associated with
-     * the given resource name.
-     * @param is the input stream of the resource
-     * @param resourceName the name of the resource
+     * @internal
+     * @deprecated This API is ICU internal only.
      */
      public ResourceReader(InputStream is, String resourceName) {
          this.root = null;

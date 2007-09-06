@@ -1,4 +1,4 @@
-//##header J2SE15
+//##header
 /**
  *******************************************************************************
  * Copyright (C) 1996-2006, International Business Machines Corporation and    *
@@ -8,10 +8,10 @@
 
 package com.ibm.icu.util;
 
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//##import com.ibm.icu.impl.ByteBuffer;
-//#else
+//#ifndef FOUNDATION
 import java.nio.ByteBuffer;
+//#else
+//##import com.ibm.icu.impl.ByteBuffer;
 //#endif
 import com.ibm.icu.impl.Utility;
 

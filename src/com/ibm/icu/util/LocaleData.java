@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2004-2007, International Business Machines Corporation and    *
+ * Copyright (C) 2004-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
 */
@@ -26,49 +26,57 @@ public final class LocaleData {
 
     /**
      * EXType for {@link #getExemplarSet(int, int)}.
-     * @stable ICU 3.8
+     * @draft ICU 3.4
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int ES_STANDARD = 0;
 
     /**
      * EXType for {@link #getExemplarSet(int, int)}.
-     * @stable ICU 3.8
+     * @draft ICU 3.4
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int ES_AUXILIARY = 1;
 
     /**
      * Count of EXTypes for {@link #getExemplarSet(int, int)}.
-     * @stable ICU 3.8
+     * @draft ICU 3.4
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int ES_COUNT = 2;
     
     /**
      * Delimiter type for {@link #getDelimiter(int)}.
-     * @stable ICU 3.8
+     * @draft ICU 3.4
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int QUOTATION_START = 0;
 
     /**
      * Delimiter type for {@link #getDelimiter(int)}.
-     * @stable ICU 3.8
+     * @draft ICU 3.4
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int QUOTATION_END = 1;
 
     /**
      * Delimiter type for {@link #getDelimiter(int)}.
-     * @stable ICU 3.8
+     * @draft ICU 3.4
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int ALT_QUOTATION_START = 2;
 
     /**
      * Delimiter type for {@link #getDelimiter(int)}.
-     * @stable ICU 3.8
+     * @draft ICU 3.4
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int ALT_QUOTATION_END = 3;
 
     /**
      * Count of delimiter types for {@link #getDelimiter(int)}.
-     * @stable ICU 3.8
+     * @draft ICU 3.4
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int DELIMITER_COUNT = 4;
 
@@ -113,12 +121,13 @@ public final class LocaleData {
      * @param extype      The type of exemplar set to be retrieved,
      *                  ES_STANDARD or ES_AUXILIARY
      * @return          The set of exemplar characters for the given locale.
-     * @stable ICU 3.8
+     * @draft ICU 3.4
+     * @provisional This API might change or be removed in a future release.
      */
     public UnicodeSet getExemplarSet(int options, int extype) {
         String [] exemplarSetTypes = { "ExemplarCharacters", "AuxExemplarCharacters" };
         try{
-            ICUResourceBundle stringBundle = (ICUResourceBundle) bundle.get(exemplarSetTypes[extype]);
+            ICUResourceBundle stringBundle = bundle.get(exemplarSetTypes[extype]);
     
             if ( noSubstitute && (stringBundle.getLoadingStatus() == ICUResourceBundle.FROM_ROOT) )
                return null;
@@ -137,7 +146,8 @@ public final class LocaleData {
      *
      * @param locale    Locale with thich the locale data object is associated.
      * @return          A locale data object.
-     * @stable ICU 3.8
+     * @draft ICU 3.4
+     * @provisional This API might change or be removed in a future release.
      */
     public static final LocaleData getInstance(ULocale locale) {
        LocaleData ld = new LocaleData();
@@ -150,7 +160,8 @@ public final class LocaleData {
      * Gets the LocaleData object associated with the default locale
      *
      * @return          A locale data object.
-     * @stable ICU 3.8
+     * @draft ICU 3.4
+     * @provisional This API might change or be removed in a future release.
      */
     public static final LocaleData getInstance() {
        return LocaleData.getInstance(ULocale.getDefault());
@@ -159,11 +170,12 @@ public final class LocaleData {
     /**
      * Sets the "no substitute" behavior of this locale data object.
      *
-     * @param setting   Value for the no substitute behavior.  If TRUE,
+     * @param setting	Value for the no substitute behavior.  If TRUE,
      *                  methods of this locale data object will return
      *                  an error when no data is available for that method,
      *                  given the locale ID supplied to the constructor.
-     * @stable ICU 3.8
+     * @draft ICU 3.4
+     * @provisional This API might change or be removed in a future release.
      */
     public void setNoSubstitute(boolean setting) {
        noSubstitute = setting;
@@ -176,7 +188,8 @@ public final class LocaleData {
      *                  methods of this locale data object will return
      *                  an error when no data is available for that method,
      *                  given the locale ID supplied to the constructor.
-     * @stable ICU 3.8
+     * @draft ICU 3.4
+     * @provisional This API might change or be removed in a future release.
      */
     public boolean getNoSubstitute() {
        return noSubstitute;
@@ -189,7 +202,8 @@ public final class LocaleData {
      *                  the valid choices are QUOTATION_START, QUOTATION_END,
      *                  ALT_QUOTATION_START, or ALT_QUOTATION_END.
      * @return          The desired delimiter string.
-     * @stable ICU 3.8
+     * @draft ICU 3.4
+     * @provisional This API might change or be removed in a future release.
      */
     public String getDelimiter(int type) {
         String [] delimiterTypes = { "quotationStart", 
@@ -197,7 +211,7 @@ public final class LocaleData {
                                      "alternateQuotationStart", 
                                      "alternateQuotationEnd" };
 
-        ICUResourceBundle stringBundle = (ICUResourceBundle) bundle.get("delimiters").get(delimiterTypes[type]);
+        ICUResourceBundle stringBundle = bundle.get("delimiters").get(delimiterTypes[type]);
 
         if ( noSubstitute && (stringBundle.getLoadingStatus() == ICUResourceBundle.FROM_ROOT) )
            return null;
@@ -241,8 +255,8 @@ public final class LocaleData {
      * @stable ICU 3.0
      */
     public static final MeasurementSystem getMeasurementSystem(ULocale locale){
-        UResourceBundle bundle = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, locale);
-        UResourceBundle sysBundle = bundle.get(MEASUREMENT_SYSTEM);
+        ICUResourceBundle bundle = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, locale);
+        ICUResourceBundle sysBundle = bundle.get(MEASUREMENT_SYSTEM);
         
         int system = sysBundle.getInt();
         if(MeasurementSystem.US.equals(system)){
@@ -295,8 +309,8 @@ public final class LocaleData {
      * @stable ICU 3.0
      */
     public static final PaperSize getPaperSize(ULocale locale){
-        UResourceBundle bundle = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, locale);
-        UResourceBundle obj = bundle.get(PAPER_SIZE);
+        ICUResourceBundle bundle = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, locale);
+        ICUResourceBundle obj = bundle.get(PAPER_SIZE);
         int[] size = obj.getIntVector();
         return new PaperSize(size[0], size[1]);
     }

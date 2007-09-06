@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2004, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -17,15 +17,10 @@ import com.ibm.icu.text.RuleBasedNumberFormat;
 
 public class RbnfDemo extends DemoApplet {
     /**
-     * For serialization
-     */
-    private static final long serialVersionUID = -9119861296873763536L;
-
-    /**
      * Puts a copyright in the .class file
      */
-//    private static final String copyrightNotice
-//        = "Copyright \u00a91997-1998 IBM Corp.  All rights reserved.";
+    private static final String copyrightNotice
+        = "Copyright \u00a91997-1998 IBM Corp.  All rights reserved.";
 
     /*
      * code to run the demo as an application
@@ -384,7 +379,7 @@ public class RbnfDemo extends DemoApplet {
             ruleSetName = ruleSetNames[0];
     }
 
-//    private Frame demoWindow = null;
+    private Frame demoWindow = null;
 
     private TextComponent numberField;
     private DemoTextFieldHolder textField;
@@ -401,7 +396,7 @@ public class RbnfDemo extends DemoApplet {
     private boolean lenientParse = true;
 
     private double theNumber = 0;
-//    private boolean canEdit = true;
+    private boolean canEdit = true;
 
     private Choice formatterMenu;
     private Choice ruleSetMenu;
@@ -411,10 +406,6 @@ public class RbnfDemo extends DemoApplet {
 }
 
 class DemoTextField extends Component {
-    /**
-     * For serialization
-     */
-    private static final long serialVersionUID = -7947090021239472658L;
     public DemoTextField() {
     }
 
@@ -431,9 +422,9 @@ class DemoTextField extends Component {
         Font font = getFont();
         FontMetrics fm = g.getFontMetrics();
         g.setFont(font);
-        String txt = getText();
+        String text = getText();
         BreakIterator bi = BreakIterator.getLineInstance();
-        bi.setText(txt);
+        bi.setText(text);
         int lineHeight = fm.getHeight();
         int width = getSize().width;
         int penY = fm.getAscent();
@@ -443,28 +434,28 @@ class DemoTextField extends Component {
         int maxLineEnd = 0;
         totalHeight = 0;
 
-        while (lineStart < txt.length()) {
-            maxLineEnd = txt.indexOf('\n', lineStart);
+        while (lineStart < text.length()) {
+            maxLineEnd = text.indexOf('\n', lineStart);
             if (maxLineEnd == -1)
                 maxLineEnd = Integer.MAX_VALUE;
-            while (tempLineEnd != BreakIterator.DONE && fm.stringWidth(txt.substring(
+            while (tempLineEnd != BreakIterator.DONE && fm.stringWidth(text.substring(
                             lineStart, tempLineEnd)) < width) {
                 lineEnd = tempLineEnd;
                 tempLineEnd = bi.next();
             }
             if (lineStart >= lineEnd) {
                 if (tempLineEnd == BreakIterator.DONE)
-                    lineEnd = txt.length();
+                    lineEnd = text.length();
                 else
                     lineEnd = tempLineEnd;
             }
             if (lineEnd > maxLineEnd)
                 lineEnd = maxLineEnd;
-            g.drawString(txt.substring(lineStart, lineEnd), 0, penY);
+            g.drawString(text.substring(lineStart, lineEnd), 0, penY);
             penY += lineHeight;
             totalHeight += lineHeight;
             lineStart = lineEnd;
-            if (lineStart < txt.length() && txt.charAt(lineStart) == '\n')
+            if (lineStart < text.length() && text.charAt(lineStart) == '\n')
                 ++lineStart;
         }
     }
@@ -481,10 +472,6 @@ class DemoTextField extends Component {
 }
 
 class DemoTextFieldHolder extends Panel {
-    /**
-     * For serialization
-     */
-    private static final long serialVersionUID = 7514498764062569858L;
     public DemoTextFieldHolder() {
         tf1 = new TextArea("", 0, 0, TextArea.SCROLLBARS_VERTICAL_ONLY);
         tf2 = new DemoTextField();

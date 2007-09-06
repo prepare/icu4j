@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -39,10 +39,10 @@ public class XEquivalenceClass {
 	/**
 	 * empty, as if just created
 	 */
-	public XEquivalenceClass clear(Object defaultReasonArg) {
+	public XEquivalenceClass clear(Object defaultReason) {
 		toPartitionSet.clear();
 		obj_obj_reasons.clear();
-		this.defaultReason = defaultReasonArg;
+		this.defaultReason = defaultReason;
 		return this;
 	}
 	

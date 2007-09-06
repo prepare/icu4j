@@ -1,7 +1,7 @@
-//##header J2SE15
+//##header
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -12,6 +12,7 @@ import com.ibm.icu.lang.*;
 
 import java.io.IOException;
 
+import com.ibm.icu.impl.CollectionUtilities;
 import com.ibm.icu.impl.NormalizerImpl;
 import com.ibm.icu.impl.Utility;
 import com.ibm.icu.impl.UCharacterProperty;
@@ -27,6 +28,8 @@ import com.ibm.icu.util.VersionInfo;
 
 import com.ibm.icu.text.BreakIterator;
 
+import java.util.Map;
+import java.util.HashMap;
 import java.util.MissingResourceException;
 import java.util.TreeSet;
 import java.util.Iterator;
@@ -389,8 +392,8 @@ public class UnicodeSet extends UnicodeFilter implements Freezable {
      * Valid options are IGNORE_SPACE and CASE.
      * @exception java.lang.IllegalArgumentException if the pattern contains
      * a syntax error.
-     * @draft ICU 3.8
-     * @provisional This API might change or be removed in a future release.
+     * @internal
+     * @deprecated This API is ICU internal only.
      */
     public UnicodeSet(String pattern, int options) {
         this();
@@ -426,7 +429,8 @@ public class UnicodeSet extends UnicodeFilter implements Freezable {
      * Valid options are IGNORE_SPACE and CASE.
      * @exception java.lang.IllegalArgumentException if the pattern
      * contains a syntax error.
-     * @stable ICU 3.8
+     * @draft ICU 3.2
+     * @provisional This API might change or be removed in a future release.
      */
     public UnicodeSet(String pattern, ParsePosition pos, SymbolTable symbols, int options) {
         this();
@@ -514,8 +518,8 @@ public class UnicodeSet extends UnicodeFilter implements Freezable {
      * Valid options are IGNORE_SPACE and CASE.
      * @exception java.lang.IllegalArgumentException if the pattern
      * contains a syntax error.
-     * @draft ICU 3.8
-     * @provisional This API might change or be removed in a future release.
+     * @internal
+     * @deprecated This API is ICU internal only.
      */
     public UnicodeSet applyPattern(String pattern, int options) {
         checkFrozen();
@@ -645,8 +649,8 @@ public class UnicodeSet extends UnicodeFilter implements Freezable {
      * This does not use this.pat, the cleaned up copy of the string
      * passed to applyPattern().
      * @param includeStrings if false, doesn't include the strings.
-     * @draft ICU 3.8
-     * @provisional This API might change or be removed in a future release.
+     * @internal
+     * @deprecated This API is ICU internal only.
      */
     public StringBuffer _generatePattern(StringBuffer result,
                                          boolean escapeUnprintable, boolean includeStrings) {
@@ -841,24 +845,24 @@ public class UnicodeSet extends UnicodeFilter implements Freezable {
                     if (forward && c > firstChar) break;
                     if (c != firstChar) continue;
 
-                    int length = matchRest(text, offset[0], limit, trial);
+                    int len = matchRest(text, offset[0], limit, trial);
 
                     if (incremental) {
                         int maxLen = forward ? limit-offset[0] : offset[0]-limit;
-                        if (length == maxLen) {
+                        if (len == maxLen) {
                             // We have successfully matched but only up to limit.
                             return U_PARTIAL_MATCH;
                         }
                     }
 
-                    if (length == trial.length()) {
+                    if (len == trial.length()) {
                         // We have successfully matched the whole string.
-                        if (length > highWaterLength) {
-                            highWaterLength = length;
+                        if (len > highWaterLength) {
+                            highWaterLength = len;
                         }
                         // In the forward direction we know strings
                         // are sorted so we can bail early.
-                        if (forward && length < highWaterLength) {
+                        if (forward && len < highWaterLength) {
                             break;
                         }
                         continue;
@@ -917,15 +921,14 @@ public class UnicodeSet extends UnicodeFilter implements Freezable {
         return maxLen;
     }
 
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
+//#ifndef FOUNDATION
     /**
-     * Tests whether the text matches at the offset. If so, returns the end of the longest substring that it matches. If not, returns -1. 
+     * Tests whether the text matches at the offset. If so, returns the end of the longest substring that it matches. If not, returns -1. For now, an internal routine.
      * @internal
      * @deprecated This API is ICU internal only.
      */
     public int matchesAt(CharSequence text, int offset) {
-        int lastLen = -1;
+        int len = -1;
         strings:
         if (strings.size() != 0) {
             char firstChar = text.charAt(offset);
@@ -939,41 +942,21 @@ public class UnicodeSet extends UnicodeFilter implements Freezable {
                 if (firstStringChar > firstChar) break strings;
             }
             // now keep checking string until we get the longest one
-            for (;;) {
-                int tempLen = matchesAt(text, offset, trial);
-                if (lastLen > tempLen) break strings;
-                lastLen = tempLen;
+            while (true) {
+                int tempLen = CollectionUtilities.matchesAt(text, offset, trial);
+                if (len > tempLen) break strings;
+                len = tempLen;
                 if (!it.hasNext()) break;
                 trial = (String) it.next();
             }
         }
-        if (lastLen < 2) {
+        if (len < 2) {
             int cp = UTF16.charAt(text, offset);
             if (contains(cp)) {
-                lastLen = UTF16.getCharCount(cp);
+                len = UTF16.getCharCount(cp);
             }
         }
-        return offset+lastLen;
-    }
-
-    /**
-     * Does one string contain another, starting at a specific offset?
-     * @param text
-     * @param offset
-     * @param other
-     * @return
-     */
-    // Note: This method was moved from CollectionUtilities
-    private static int matchesAt(CharSequence text, int offset, CharSequence other) {
-        int len = other.length();
-        int i = 0;
-        int j = offset;
-        for (; i < len; ++i, ++j) {
-            char pc = other.charAt(i);
-            char tc = text.charAt(j);
-            if (pc != tc) return -1;
-        }
-        return i;
+        return offset+len;
     }
 //#endif
 
@@ -1211,7 +1194,7 @@ public class UnicodeSet extends UnicodeFilter implements Freezable {
         }
         return this;
     }
-    
+
     /**
      * @return a code point IF the string consists of a single one.
      * otherwise returns -1.
@@ -1728,84 +1711,23 @@ public class UnicodeSet extends UnicodeFilter implements Freezable {
     /**
      * Returns true if this set contains all the characters and strings
      * of the given set.
-     * @param b set to be checked for containment
+     * @param c set to be checked for containment
      * @return true if the test condition is met
      * @stable ICU 2.0
      */
-    public boolean containsAll(UnicodeSet b) {
-      // The specified set is a subset if all of its pairs are contained in
-      // this set. This implementation accesses the lists directly for speed.
-      // TODO: this could be faster if size() were cached. But that would affect building speed
-      // so it needs investigation.
-      int[] listB = b.list;
-      boolean needA = true;
-      boolean needB = true;
-      int aPtr = 0;
-      int bPtr = 0;
-      int aLen = len - 1;
-      int bLen = b.len - 1;
-      int startA = 0, startB = 0, limitA = 0, limitB = 0;
-      while (true) {
-        // double iterations are such a pain...
-        if (needA) {
-          if (aPtr >= aLen) {
-            // ran out of A. If B is also exhausted, then break;
-            if (needB && bPtr >= bLen) {
-              break;
+    public boolean containsAll(UnicodeSet c) {
+        // The specified set is a subset if all of its pairs are contained in
+        // this set.  It's possible to code this more efficiently in terms of
+        // direct manipulation of the inversion lists if the need arises.
+        int n = c.getRangeCount();
+        for (int i=0; i<n; ++i) {
+            if (!contains(c.getRangeStart(i), c.getRangeEnd(i))) {
+                return false;
             }
-            return false;
-          }
-          startA = list[aPtr++];
-          limitA = list[aPtr++];
         }
-        if (needB) {
-          if (bPtr >= bLen) {
-            // ran out of B. Since we got this far, we have an A and we are ok so far
-            break;
-          }
-          startB = listB[bPtr++];
-          limitB = listB[bPtr++];
-        }
-        // if B doesn't overlap and is greater than A, get new A
-        if (startB >= limitA) {
-          needA = true;
-          needB = false;
-          continue;
-        }
-        // if B is wholy contained in A, then get a new B
-        if (startB >= startA && limitB <= limitA) {
-          needA = false;
-          needB = true;
-          continue;
-        }
-        // all other combinations mean we fail
-        return false;
-      }
-
-      if (!strings.containsAll(b.strings)) return false;
-      return true;
-  }
-
-//    /**
-//     * Returns true if this set contains all the characters and strings
-//     * of the given set.
-//     * @param c set to be checked for containment
-//     * @return true if the test condition is met
-//     * @stable ICU 2.0
-//     */
-//    public boolean containsAllOld(UnicodeSet c) {
-//        // The specified set is a subset if all of its pairs are contained in
-//        // this set.  It's possible to code this more efficiently in terms of
-//        // direct manipulation of the inversion lists if the need arises.
-//        int n = c.getRangeCount();
-//        for (int i=0; i<n; ++i) {
-//            if (!contains(c.getRangeStart(i), c.getRangeEnd(i))) {
-//                return false;
-//            }
-//        }
-//        if (!strings.containsAll(c.strings)) return false;
-//        return true;
-//    }
+        if (!strings.containsAll(c.strings)) return false;
+        return true;
+    }
 
     /**
      * Returns true if there is a partition of the string such that this set contains each of the partitioned strings.
@@ -1857,7 +1779,6 @@ public class UnicodeSet extends UnicodeFilter implements Freezable {
     }
 
     /**
-     * Get the Regex equivalent for this UnicodeSet
      * @return regex pattern equivalent to this UnicodeSet
      * @internal
      * @deprecated This API is ICU internal only.
@@ -1901,81 +1822,23 @@ public class UnicodeSet extends UnicodeFilter implements Freezable {
      * For example, for the Unicode set [a{bc}{cd}]<br>
      * containsNone is true for: "xy", "cb"<br>
      * containsNone is false for: "a", "bc", "bcd"<br>
-     * @param b set to be checked for containment
+     * @param c set to be checked for containment
      * @return true if the test condition is met
      * @stable ICU 2.0
      */
-    public boolean containsNone(UnicodeSet b) {
-      // The specified set is a subset if some of its pairs overlap with some of this set's pairs.
-      // This implementation accesses the lists directly for speed.
-      int[] listB = b.list;
-      boolean needA = true;
-      boolean needB = true;
-      int aPtr = 0;
-      int bPtr = 0;
-      int aLen = len - 1;
-      int bLen = b.len - 1;
-      int startA = 0, startB = 0, limitA = 0, limitB = 0;
-      while (true) {
-        // double iterations are such a pain...
-        if (needA) {
-          if (aPtr >= aLen) {
-            // ran out of A: break so we test strings
-            break;
-          }
-          startA = list[aPtr++];
-          limitA = list[aPtr++];
+    public boolean containsNone(UnicodeSet c) {
+        // The specified set is a subset if all of its pairs are contained in
+        // this set.  It's possible to code this more efficiently in terms of
+        // direct manipulation of the inversion lists if the need arises.
+        int n = c.getRangeCount();
+        for (int i=0; i<n; ++i) {
+            if (!containsNone(c.getRangeStart(i), c.getRangeEnd(i))) {
+                return false;
+            }
         }
-        if (needB) {
-          if (bPtr >= bLen) {
-            // ran out of B: break so we test strings
-            break;
-          }
-          startB = listB[bPtr++];
-          limitB = listB[bPtr++];
-        }
-        // if B is higher than any part of A, get new A
-        if (startB >= limitA) {
-          needA = true;
-          needB = false;
-          continue;
-        }
-        // if A is higher than any part of B, get new B
-        if (startA >= limitB) {
-          needA = false;
-          needB = true;
-          continue;
-        }
-        // all other combinations mean we fail
-        return false;
-      }
-
-      if (!SortedSetRelation.hasRelation(strings, SortedSetRelation.DISJOINT, b.strings)) return false;
-      return true;
-  }
-
-//    /**
-//     * Returns true if none of the characters or strings in this UnicodeSet appears in the string.
-//     * For example, for the Unicode set [a{bc}{cd}]<br>
-//     * containsNone is true for: "xy", "cb"<br>
-//     * containsNone is false for: "a", "bc", "bcd"<br>
-//     * @param c set to be checked for containment
-//     * @return true if the test condition is met
-//     * @stable ICU 2.0
-//     */
-//    public boolean containsNoneOld(UnicodeSet c) {
-//        // The specified set is a subset if all of its pairs are contained in
-//        // this set.  It's possible to code this more efficiently in terms of
-//        // direct manipulation of the inversion lists if the need arises.
-//        int n = c.getRangeCount();
-//        for (int i=0; i<n; ++i) {
-//            if (!containsNone(c.getRangeStart(i), c.getRangeEnd(i))) {
-//                return false;
-//            }
-//        }
-//        if (!SortedSetRelation.hasRelation(strings, SortedSetRelation.DISJOINT, c.strings)) return false;
-//        return true;
-//    }
+        if (!SortedSetRelation.hasRelation(strings, SortedSetRelation.DISJOINT, c.strings)) return false;
+        return true;
+    }
 
     /**
      * Returns true if this set contains none of the characters
@@ -1993,8 +1856,8 @@ public class UnicodeSet extends UnicodeFilter implements Freezable {
         if (strings.size() == 0) return true;
         // do a last check to make sure no strings are in.
         for (Iterator it = strings.iterator(); it.hasNext();) {
-            String item = (String)it.next();
-            if (s.indexOf(item) >= 0) return false;
+        	String item = (String)it.next();
+        	if (s.indexOf(item) >= 0) return false;
         }
         return true;
     }
@@ -2307,7 +2170,7 @@ public class UnicodeSet extends UnicodeFilter implements Freezable {
             opts |= RuleCharacterIterator.SKIP_WHITESPACE;
         }
 
-        StringBuffer patBuf = new StringBuffer(), buf = null;
+        StringBuffer pat = new StringBuffer(), buf = null;
         boolean usePat = false;
         UnicodeSet scratch = null;
         Object backup = null;
@@ -2364,13 +2227,13 @@ public class UnicodeSet extends UnicodeFilter implements Freezable {
                     } else {
                         // Handle opening '[' delimiter
                         mode = 1;
-                        patBuf.append('[');
+                        pat.append('[');
                         backup = chars.getPos(backup); // prepare to backup
                         c = chars.next(opts);
                         literal = chars.isEscaped();
                         if (c == '^' && !literal) {
                             invert = true;
-                            patBuf.append('^');
+                            pat.append('^');
                             backup = chars.getPos(backup); // prepare to backup
                             c = chars.next(opts);
                             literal = chars.isEscaped();
@@ -2409,12 +2272,12 @@ public class UnicodeSet extends UnicodeFilter implements Freezable {
                         syntaxError(chars, "Char expected after operator");
                     }
                     add_unchecked(lastChar, lastChar);
-                    _appendToPat(patBuf, lastChar, false);
+                    _appendToPat(pat, lastChar, false);
                     lastItem = op = 0;
                 }
 
                 if (op == '-' || op == '&') {
-                    patBuf.append(op);
+                    pat.append(op);
                 }
 
                 if (nested == null) {
@@ -2423,14 +2286,14 @@ public class UnicodeSet extends UnicodeFilter implements Freezable {
                 }
                 switch (setMode) {
                 case 1:
-                    nested.applyPattern(chars, symbols, patBuf, options);
+                    nested.applyPattern(chars, symbols, pat, options);
                     break;
                 case 2:
                     chars.skipIgnored(opts);
-                    nested.applyPropertyPattern(chars, patBuf, symbols);
+                    nested.applyPropertyPattern(chars, pat, symbols);
                     break;
                 case 3: // `nested' already parsed
-                    nested._toPattern(patBuf, false);
+                    nested._toPattern(pat, false);
                     break;
                 }
 
@@ -2474,16 +2337,16 @@ public class UnicodeSet extends UnicodeFilter implements Freezable {
                 case ']':
                     if (lastItem == 1) {
                         add_unchecked(lastChar, lastChar);
-                        _appendToPat(patBuf, lastChar, false);
+                        _appendToPat(pat, lastChar, false);
                     }
                     // Treat final trailing '-' as a literal
                     if (op == '-') {
                         add_unchecked(op, op);
-                        patBuf.append(op);
+                        pat.append(op);
                     } else if (op == '&') {
                         syntaxError(chars, "Trailing '&'");
                     }
-                    patBuf.append(']');
+                    pat.append(']');
                     mode = 2;
                     continue;
                 case '-':
@@ -2497,7 +2360,7 @@ public class UnicodeSet extends UnicodeFilter implements Freezable {
                             c = chars.next(opts);
                             literal = chars.isEscaped();
                             if (c == ']' && !literal) {
-                                patBuf.append("-]");
+                                pat.append("-]");
                                 mode = 2;
                                 continue;
                             }
@@ -2518,7 +2381,7 @@ public class UnicodeSet extends UnicodeFilter implements Freezable {
                     }
                     if (lastItem == 1) {
                         add_unchecked(lastChar, lastChar);
-                        _appendToPat(patBuf, lastChar, false);
+                        _appendToPat(pat, lastChar, false);
                     }
                     lastItem = 0;
                     if (buf == null) {
@@ -2543,9 +2406,9 @@ public class UnicodeSet extends UnicodeFilter implements Freezable {
                     // we don't need to drop through to the further
                     // processing
                     add(buf.toString());
-                    patBuf.append('{');
-                    _appendToPat(patBuf, buf.toString(), false);
-                    patBuf.append('}');
+                    pat.append('{');
+                    _appendToPat(pat, buf.toString(), false);
+                    pat.append('}');
                     continue;
                 case SymbolTable.SYMBOL_REF:
                     //         symbols  nosymbols
@@ -2566,11 +2429,11 @@ public class UnicodeSet extends UnicodeFilter implements Freezable {
                     if (anchor && op == 0) {
                         if (lastItem == 1) {
                             add_unchecked(lastChar, lastChar);
-                            _appendToPat(patBuf, lastChar, false);
+                            _appendToPat(pat, lastChar, false);
                         }
                         add_unchecked(UnicodeMatcher.ETHER);
                         usePat = true;
-                        patBuf.append(SymbolTable.SYMBOL_REF).append(']');
+                        pat.append(SymbolTable.SYMBOL_REF).append(']');
                         mode = 2;
                         continue;
                     }
@@ -2597,13 +2460,13 @@ public class UnicodeSet extends UnicodeFilter implements Freezable {
                         syntaxError(chars, "Invalid range");
                     }
                     add_unchecked(lastChar, c);
-                    _appendToPat(patBuf, lastChar, false);
-                    patBuf.append(op);
-                    _appendToPat(patBuf, c, false);
+                    _appendToPat(pat, lastChar, false);
+                    pat.append(op);
+                    _appendToPat(pat, c, false);
                     lastItem = op = 0;
                 } else {
                     add_unchecked(lastChar, lastChar);
-                    _appendToPat(patBuf, lastChar, false);
+                    _appendToPat(pat, lastChar, false);
                     lastChar = c;
                 }
                 break;
@@ -2639,7 +2502,7 @@ public class UnicodeSet extends UnicodeFilter implements Freezable {
         // Use the rebuilt pattern (pat) only if necessary.  Prefer the
         // generated pattern.
         if (usePat) {
-            rebuiltPat.append(patBuf.toString());
+            rebuiltPat.append(pat.toString());
         } else {
             _generatePattern(rebuiltPat, false, true);
         }
@@ -3179,7 +3042,8 @@ public class UnicodeSet extends UnicodeFilter implements Freezable {
      * @param symbols if not null, then symbols are first called to see if a property
      * is available. If true, then everything else is skipped.
      * @return this set
-     * @stable ICU 3.8
+     * @draft ICU 3.2
+     * @provisional This API might change or be removed in a future release.
      */
     public UnicodeSet applyPropertyAlias(String propertyAlias,
                                          String valueAlias, SymbolTable symbols) {
@@ -3215,9 +3079,7 @@ public class UnicodeSet extends UnicodeFilter implements Freezable {
                         v = Integer.parseInt(Utility.deleteRuleWhiteSpace(valueAlias));
                         // If the resultant set is empty then the numeric value
                         // was invalid.
-                        //mustNotBeEmpty = true;
-                        // old code was wrong; anything between 0 and 255 is valid even if unused.
-                        if (v < 0 || v > 255) throw e;
+                        mustNotBeEmpty = true;
                     } else {
                         throw e;
                     }
@@ -3469,14 +3331,14 @@ public class UnicodeSet extends UnicodeFilter implements Freezable {
      */
     private void applyPropertyPattern(RuleCharacterIterator chars,
                                       StringBuffer rebuiltPat, SymbolTable symbols) {
-        String patStr = chars.lookahead();
+        String pat = chars.lookahead();
         ParsePosition pos = new ParsePosition(0);
-        applyPropertyPattern(patStr, pos, symbols);
+        applyPropertyPattern(pat, pos, symbols);
         if (pos.getIndex() == 0) {
             syntaxError(chars, "Invalid property pattern");
         }
         chars.jumpahead(pos.getIndex());
-        rebuiltPat.append(patStr.substring(0, pos.getIndex()));
+        rebuiltPat.append(pat.substring(0, pos.getIndex()));
     }
 
     //----------------------------------------------------------------
@@ -3489,8 +3351,8 @@ public class UnicodeSet extends UnicodeFilter implements Freezable {
      * which UCharacterProperty.isRuleWhiteSpace() returns true,
      * unless they are quoted or escaped.  This may be ORed together
      * with other selectors.
-     * @draft ICU 3.8
-     * @provisional This API might change or be removed in a future release.
+     * @internal
+     * @deprecated This API is ICU internal only.
      */
     public static final int IGNORE_SPACE = 1;
 
@@ -3521,8 +3383,9 @@ public class UnicodeSet extends UnicodeFilter implements Freezable {
      * This is not necessary (that is, redundant) for the above matching method
      * but results in the same closure sets regardless of whether the original
      * set contained the code point or a string.
-     * @draft ICU 3.8
-     * @provisional This API might change or be removed in a future release.
+     *
+     * @internal
+     * @deprecated This API is ICU internal only.
      */
     public static final int CASE = 2;
 
@@ -3530,7 +3393,8 @@ public class UnicodeSet extends UnicodeFilter implements Freezable {
      * Alias for UnicodeSet.CASE, for ease of porting from C++ where ICU4C
      * also has both USET_CASE and USET_CASE_INSENSITIVE (see uset.h).
      * @see #CASE
-     * @stable ICU 3.8
+     * @draft ICU 3.4
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int CASE_INSENSITIVE = 2;
 
@@ -3544,7 +3408,8 @@ public class UnicodeSet extends UnicodeFilter implements Freezable {
      * match all except 'a', 'A', 'b', and 'B'. This adds the lower-,
      * title-, and uppercase mappings as well as the case folding
      * of each existing element in the set.
-     * @stable ICU 3.8
+     * @draft ICU 3.4
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int ADD_CASE_MAPPINGS = 4;
 
@@ -3587,8 +3452,8 @@ public class UnicodeSet extends UnicodeFilter implements Freezable {
      * Currently only the CASE bit is supported.  Any undefined bits
      * are ignored.
      * @return a reference to this set.
-     * @draft ICU 3.8
-     * @provisional This API might change or be removed in a future release. 
+     * @internal
+     * @deprecated This API is ICU internal only.
      */
     public UnicodeSet closeOver(int attribute) {
         checkFrozen();
@@ -3671,50 +3536,42 @@ public class UnicodeSet extends UnicodeFilter implements Freezable {
     /**
      * Internal class for customizing UnicodeSet parsing of properties.
      * TODO: extend to allow customizing of codepoint ranges
-     * @draft ICU3.8
-     * @provisional This API might change or be removed in a future release.
+     * @internal
+     * @deprecated This API is ICU internal only.
      * @author medavis
      */
     abstract public static class XSymbolTable implements SymbolTable {
         /**
          * Default constructor
-         * @draft ICU3.8
-         * @provisional This API might change or be removed in a future release.
+         * @internal
+         * @deprecated This API is ICU internal only.
          */
         public XSymbolTable(){}
         /**
-         * Supplies default implementation for SymbolTable (no action).
-         * @draft ICU3.8
-         * @provisional This API might change or be removed in a future release.
-         */
+    	 * @internal
+    	 * @deprecated This API is ICU internal only.
+    	 */
         public UnicodeMatcher lookupMatcher(int i) {
             return null;
         }
-        /**
-         * Apply a new property alias. Is called when parsing [:xxx=yyy:]. Results are to put into result.
-         * @param propertyName the xxx in [:xxx=yyy:]
-         * @param propertyValue the yyy in [:xxx=yyy:]
-         * @param result where the result is placed
-         * @return true if handled
-         * @draft ICU3.8
-         * @provisional This API might change or be removed in a future release.
-         */
+    	/**
+    	 * @internal
+    	 * @deprecated This API is ICU internal only.
+    	 */
         public boolean applyPropertyAlias(String propertyName, String propertyValue, UnicodeSet result) {
             return false;
         }
-        /**
-         * Supplies default implementation for SymbolTable (no action).
-         * @draft ICU3.8
-         * @provisional This API might change or be removed in a future release.
-            */
+    	/**
+    	 * @internal
+    	 * @deprecated This API is ICU internal only.
+    	 */
         public char[] lookup(String s) {
             return null;
         }
-        /**
-         * Supplies default implementation for SymbolTable (no action).
-         * @draft ICU3.8
-         * @provisional This API might change or be removed in a future release.
-         */
+    	/**
+    	 * @internal
+    	 * @deprecated This API is ICU internal only.
+    	 */
         public String parseReference(String text, ParsePosition pos, int limit) {
             return null;
         }
@@ -3725,8 +3582,8 @@ public class UnicodeSet extends UnicodeFilter implements Freezable {
     /**
      * Is this frozen, according to the Freezable interface?
      * @return value
-     * @draft ICU 3.8
-     * @provisional This API might change or be removed in a future release.
+     * @internal
+     * @deprecated This API is ICU internal only.
      */
     public boolean isFrozen() {
         return frozen;
@@ -3735,8 +3592,8 @@ public class UnicodeSet extends UnicodeFilter implements Freezable {
     /**
      * Freeze this class, according to the Freezable interface.
      * @return this
-     * @draft ICU 3.8
-     * @provisional This API might change or be removed in a future release.
+     * @internal
+     * @deprecated This API is ICU internal only.
      */
     public Object freeze() {
         frozen = true;
@@ -3746,8 +3603,8 @@ public class UnicodeSet extends UnicodeFilter implements Freezable {
     /**
      * Clone a thawed version of this class, according to the Freezable interface.
      * @return this
-     * @draft ICU 3.8
-     * @provisional This API might change or be removed in a future release.
+     * @internal
+     * @deprecated This API is ICU internal only.
      */
     public Object cloneAsThawed() {
         UnicodeSet result = (UnicodeSet) clone();

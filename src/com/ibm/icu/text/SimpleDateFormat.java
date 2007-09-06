@@ -1,4 +1,3 @@
-//##header J2SE15
 /*
  *******************************************************************************
  * Copyright (C) 1996-2007, International Business Machines Corporation and    *
@@ -11,15 +10,11 @@ package com.ibm.icu.text;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.text.AttributedCharacterIterator;
-import java.text.AttributedString;
 import java.text.FieldPosition;
-import java.text.Format;
 import java.text.MessageFormat;
 import java.text.ParsePosition;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.MissingResourceException;
@@ -86,13 +81,8 @@ import com.ibm.icu.util.ULocale;
  * z        time zone               (Text)              Pacific Standard Time
  * Z        time zone (RFC 822)     (Number)            -0800
  * v        time zone (generic)     (Text)              Pacific Time
- * V        time zone (location)    (Text)              United States (Los Angeles)
  * g*       Julian day              (Number)            2451334
  * A*       milliseconds in day     (Number)            69540000
- * Q*       quarter in year         (Text & Number)     Q1 & 01
- * c*       stand alone day of week (Text & Number)     Tuesday & 2
- * L*       stand alone month       (Text & Number)     July & 07
- * q*       stand alone quarter     (Text & Number)     Q1 & 01
  * '        escape for text         (Delimiter)         'Date='
  * ''       single quote            (Literal)           'o''clock'
  * </pre>
@@ -278,9 +268,6 @@ public class SimpleDateFormat extends DateFormat {
 
     private transient TimeZone parsedTimeZone;
 
-    //TODO: This is a temporary workaround for zone parsing problem
-    private transient boolean isTimeZoneOffsetSet;
-
     private static final int millisPerHour = 60 * 60 * 1000;
     private static final int millisPerMinute = 60 * 1000;
 
@@ -339,7 +326,8 @@ public class SimpleDateFormat extends DateFormat {
      * Construct a SimpleDateFormat using the given pattern and locale.
      * <b>Note:</b> Not all locales support SimpleDateFormat; for full
      * generality, use the factory methods in the DateFormat class.
-     * @stable ICU 3.8
+     * @draft ICU 3.2
+     * @provisional This API might change or be removed in a future release.
      */
     public SimpleDateFormat(String pattern, ULocale loc)
     {
@@ -391,13 +379,6 @@ public class SimpleDateFormat extends DateFormat {
         initialize();
     }
 
-    /**
-     * Create an instance of SimpleDateForamt for the given format configuration
-     * @param formatConfig the format configuration
-     * @return A SimpleDateFormat instance
-     * @internal ICU 3.8
-     * @deprecated This API is for internal ICU use only
-     */
     public static SimpleDateFormat getInstance(Calendar.FormatConfiguration formatConfig) {
         return new SimpleDateFormat(formatConfig.getPatternString(),
                     formatConfig.getDateFormatSymbols(),
@@ -536,13 +517,6 @@ public class SimpleDateFormat extends DateFormat {
      */
     public StringBuffer format(Calendar cal, StringBuffer toAppendTo,
                                FieldPosition pos) {
-        return format(cal, toAppendTo, pos, null);
-    }
-
-    // The actual method to format date. If List attributes is not null,
-    // then attribute information will be recorded.
-    private StringBuffer format(Calendar cal, StringBuffer toAppendTo,
-            FieldPosition pos, List attributes) {
         // Initialize
         pos.setBeginIndex(0);
         pos.setEndIndex(0);
@@ -557,38 +531,14 @@ public class SimpleDateFormat extends DateFormat {
                 toAppendTo.append((String)items[i]);
             } else {
                 PatternItem item = (PatternItem)items[i];
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
-                int start = 0;
-                if (attributes != null) {
-                    // Save the current length
-                    start = toAppendTo.length();
-                }
-//#endif
                 if (useFastFormat) {
                     subFormat(toAppendTo, item.type, item.length, toAppendTo.length(), pos, cal);
                 } else {
                     toAppendTo.append(subFormat(item.type, item.length, toAppendTo.length(), pos, formatData, cal));
                 }
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
-                if (attributes != null) {
-                    // Check the sub format length
-                    int end = toAppendTo.length();
-                    if (end - start > 0) {
-                        // Append the attribute to the list
-                        DateFormat.Field attr = patternCharToDateFormatField(item.type);
-                        FieldPosition fp = new FieldPosition(attr);
-                        fp.setBeginIndex(start);
-                        fp.setEndIndex(end);
-                        attributes.add(fp);
-                    }
-                }
-//#endif
             }
         }
         return toAppendTo;
-        
     }
 
     // Map pattern character to index
@@ -598,14 +548,14 @@ public class SimpleDateFormat extends DateFormat {
     //       A   B   C   D   E   F   G   H   I   J   K   L   M   N   O
         -1, 22, -1, -1, 10,  9, 11,  0,  5, -1, -1, 16, 26,  2, -1, -1,
     //   P   Q   R   S   T   U   V   W   X   Y   Z
-        -1, 27, -1,  8, -1, -1, 29, 13, -1, 18, 23, -1, -1, -1, -1, -1,
+        -1, 27, -1,  8, -1, -1, -1, 13, -1, 18, 23, -1, -1, -1, -1, -1,
     //       a   b   c   d   e   f   g   h   i   j   k   l   m   n   o
         -1, 14, -1, 25,  3, 19, -1, 21, 15, -1, -1,  4, -1,  6, -1, -1,
     //   p   q   r   s   t   u   v   w   x   y   z
         -1, 28, -1,  7, -1, 20, 24, 12, -1,  1, 17, -1, -1, -1, -1, -1
     };
     
-    // Map pattern character index to Calendar field number
+    // Map index into pattern character string to Calendar field number
     private static final int[] PATTERN_INDEX_TO_CALENDAR_FIELD =
     {
         /*GyM*/ Calendar.ERA, Calendar.YEAR, Calendar.MONTH,
@@ -620,10 +570,9 @@ public class SimpleDateFormat extends DateFormat {
         /*c*/   Calendar.DAY_OF_WEEK,
         /*L*/   Calendar.MONTH,
         /*Qq*/  Calendar.MONTH, Calendar.MONTH,
-        /*V*/   Calendar.ZONE_OFFSET,
     };
 
-    // Map pattern character index to DateFormat field number
+    // Map index into pattern character string to DateFormat field number
     private static final int[] PATTERN_INDEX_TO_DATE_FORMAT_FIELD = {
         /*GyM*/ DateFormat.ERA_FIELD, DateFormat.YEAR_FIELD, DateFormat.MONTH_FIELD,
         /*dkH*/ DateFormat.DATE_FIELD, DateFormat.HOUR_OF_DAY1_FIELD, DateFormat.HOUR_OF_DAY0_FIELD,
@@ -636,50 +585,9 @@ public class SimpleDateFormat extends DateFormat {
         /*v*/   DateFormat.TIMEZONE_GENERIC_FIELD, 
         /*c*/   DateFormat.STANDALONE_DAY_FIELD,
         /*L*/   DateFormat.STANDALONE_MONTH_FIELD,
-        /*Qq*/  DateFormat.QUARTER_FIELD, DateFormat.STANDALONE_QUARTER_FIELD,
-        /*V*/   DateFormat.TIMEZONE_SPECIAL_FIELD, 
+        /*Q*/   DateFormat.QUARTER_FIELD,
+        /*q*/   DateFormat.STANDALONE_QUARTER_FIELD,
     };
-
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
-    // Map pattern character index to DateFormat.Field
-    private static final DateFormat.Field[] PATTERN_INDEX_TO_DATE_FORMAT_ATTRIBUTE = {
-        /*GyM*/ DateFormat.Field.ERA, DateFormat.Field.YEAR, DateFormat.Field.MONTH,
-        /*dkH*/ DateFormat.Field.DAY_OF_MONTH, DateFormat.Field.HOUR_OF_DAY1, DateFormat.Field.HOUR_OF_DAY0,
-        /*msS*/ DateFormat.Field.MINUTE, DateFormat.Field.SECOND, DateFormat.Field.MILLISECOND,
-        /*EDF*/ DateFormat.Field.DAY_OF_WEEK, DateFormat.Field.DAY_OF_YEAR, DateFormat.Field.DAY_OF_WEEK_IN_MONTH,
-        /*wWa*/ DateFormat.Field.WEEK_OF_YEAR, DateFormat.Field.WEEK_OF_MONTH, DateFormat.Field.AM_PM,
-        /*hKz*/ DateFormat.Field.HOUR1, DateFormat.Field.HOUR0, DateFormat.Field.TIME_ZONE,
-        /*Yeu*/ DateFormat.Field.YEAR_WOY, DateFormat.Field.DOW_LOCAL, DateFormat.Field.EXTENDED_YEAR,
-        /*gAZ*/ DateFormat.Field.JULIAN_DAY, DateFormat.Field.MILLISECONDS_IN_DAY, DateFormat.Field.TIME_ZONE,
-        /*v*/   DateFormat.Field.TIME_ZONE,
-        /*c*/   DateFormat.Field.DAY_OF_WEEK,
-        /*L*/   DateFormat.Field.MONTH,
-        /*Qq*/  DateFormat.Field.QUARTER, DateFormat.Field.QUARTER,
-        /*V*/   DateFormat.Field.TIME_ZONE,
-    };
-
-    /**
-     * Return a DateFormat.Field constant associated with the specified format pattern
-     * character.
-     * 
-     * @param ch The pattern character
-     * @return DateFormat.Field associated with the pattern character
-     * 
-     * @draft ICU 3.8
-     * @provisional This API might change or be removed in a future release.
-     */
-    protected DateFormat.Field patternCharToDateFormatField(char ch) {
-        int patternCharIndex = -1;
-        if ('A' <= ch && ch <= 'z') {
-            patternCharIndex = PATTERN_CHAR_TO_INDEX[(int)ch - PATTERN_CHAR_BASE];
-        }
-        if (patternCharIndex != -1) {
-            return PATTERN_INDEX_TO_DATE_FORMAT_ATTRIBUTE[patternCharIndex];
-        }
-        return null;
-    }
-//#endif
 
     /**
      * Format a single field, given its pattern character.  Subclasses may
@@ -818,147 +726,35 @@ public class SimpleDateFormat extends DateFormat {
             break;
         case 17: // 'z' - ZONE_OFFSET
         case 24: // 'v' - TIMEZONE_GENERIC 
-        case 29: // 'V' - TIMEZONE_SPECIAL
             {
 
                 String zid;
-                DateFormatSymbols.MetazoneInfo mz=null;
                 String res=null;
                 zid = ZoneMeta.getCanonicalID(cal.getTimeZone().getID());
                 boolean isGeneric = patternCharIndex == 24;
                 if (zid != null) {
                     if (patternCharIndex == TIMEZONE_GENERIC_FIELD) {
                         if(count < 4){
-                            if (cal.getTimeZone().useDaylightTime()) {
-                                res = formatData.getZoneString(zid, DateFormatSymbols.TIMEZONE_SHORT_GENERIC);
-                                if ( !formatData.isCommonlyUsed(zid)) {
-                                   res = null;
-                                }
-                                if ( res == null ) {
-                                   mz = formatData.getMetazoneInfo(zid, DateFormatSymbols.TIMEZONE_SHORT_GENERIC,cal);
-                                   if ( mz == null || !formatData.isCommonlyUsed(mz.mzid)) {
-                                       res = null;
-                                   }
-                                   else {
-                                       res = mz.value;
-                                   }
-                                }
-                            }
-                            else {
-                                res = formatData.getZoneString(zid, DateFormatSymbols.TIMEZONE_SHORT_STANDARD);
-                                if ( !formatData.isCommonlyUsed(zid)) {
-                                   res = null;
-                                }
-                                if ( res == null ) {
-                                   mz = formatData.getMetazoneInfo(zid, DateFormatSymbols.TIMEZONE_SHORT_STANDARD,cal);
-                                   if ( mz == null || !formatData.isCommonlyUsed(mz.mzid)) {
-                                       res = null;
-                                   }
-                                   else {
-                                       res = mz.value;
-                                   }
-                                }
-                            }
+                            res = formatData.getZoneString(zid, DateFormatSymbols.TIMEZONE_SHORT_GENERIC);
                         }else{
-                            if (cal.getTimeZone().useDaylightTime()) {
-                                res = formatData.getZoneString(zid, DateFormatSymbols.TIMEZONE_LONG_GENERIC);
-                                if ( res == null ) {
-                                   mz = formatData.getMetazoneInfo(zid, DateFormatSymbols.TIMEZONE_LONG_GENERIC,cal);
-                                   if ( mz != null ) {
-                                       res = mz.value;
-                                   }
-                                }
-                            }
-                            else {
-                                res = formatData.getZoneString(zid, DateFormatSymbols.TIMEZONE_LONG_STANDARD);
-                                if ( res == null ) {
-                                   mz = formatData.getMetazoneInfo(zid, DateFormatSymbols.TIMEZONE_LONG_STANDARD,cal);
-                                   if ( mz != null ) {
-                                       res = mz.value;
-                                   }
-                                }
-                            }
-                        }
-                    } else if (patternCharIndex == TIMEZONE_SPECIAL_FIELD) {
-                        if (count == 4){ // VVVV format - always get the fallback string.
-                            res = formatData.getZoneString(zid, DateFormatSymbols.TIMEZONE_EXEMPLAR_CITY);
-                        
-                            if (res == null) {
-                                res = ZoneMeta.displayFallback(zid, null, locale);
-                            }
-                        }
-                        else if (count == 1){ // V format - ignore commonlyUsed
-                            if (cal.get(Calendar.DST_OFFSET) != 0) {
-                                res = formatData.getZoneString(zid, DateFormatSymbols.TIMEZONE_SHORT_DAYLIGHT);
-                                if ( res == null ) {
-                                    mz = formatData.getMetazoneInfo(zid, DateFormatSymbols.TIMEZONE_SHORT_DAYLIGHT,cal);
-                                    if ( mz != null ) {
-                                        res = mz.value;
-                                    }
-                                }
-                            }else{
-                                res = formatData.getZoneString(zid, DateFormatSymbols.TIMEZONE_SHORT_STANDARD);
-                                if ( res == null ) {
-                                    mz = formatData.getMetazoneInfo(zid, DateFormatSymbols.TIMEZONE_SHORT_STANDARD,cal);
-                                    if ( mz != null ) {
-                                        res = mz.value;
-                                    }
-                                }
-                            }
+                            res = formatData.getZoneString(zid, DateFormatSymbols.TIMEZONE_LONG_GENERIC);
                         }
                     } else {
                         if (cal.get(Calendar.DST_OFFSET) != 0) {
                             if(count < 4){
                                 res = formatData.getZoneString(zid, DateFormatSymbols.TIMEZONE_SHORT_DAYLIGHT);
-                                if ( !formatData.isCommonlyUsed(zid)) {
-                                   res = null;
-                                }
-                                if ( res == null ) {
-                                    mz = formatData.getMetazoneInfo(zid, DateFormatSymbols.TIMEZONE_SHORT_DAYLIGHT,cal);
-                                    if ( mz == null || !formatData.isCommonlyUsed(mz.mzid)) {
-                                        res = null;
-                                    }
-                                    else {
-                                        res = mz.value;
-                                    }
-                                }
                             }else{
                                 res = formatData.getZoneString(zid, DateFormatSymbols.TIMEZONE_LONG_DAYLIGHT);
-                                if ( res == null ) {
-                                    mz = formatData.getMetazoneInfo(zid, DateFormatSymbols.TIMEZONE_LONG_DAYLIGHT,cal);
-                                    if ( mz != null ) {
-                                        res = mz.value;
-                                    }
-                                }
                             }
                         }else{
                             if(count < 4){
                                 res = formatData.getZoneString(zid, DateFormatSymbols.TIMEZONE_SHORT_STANDARD);
-                                if ( !formatData.isCommonlyUsed(zid)) {
-                                   res = null;
-                                }
-                                if ( res == null ) {
-                                    mz = formatData.getMetazoneInfo(zid, DateFormatSymbols.TIMEZONE_SHORT_STANDARD,cal);
-                                    if ( mz == null || !formatData.isCommonlyUsed(mz.mzid)) {
-                                        res = null;
-                                    }
-                                    else {
-                                        res = mz.value;
-                                    }
-                                }
                             }else{
                                 res = formatData.getZoneString(zid, DateFormatSymbols.TIMEZONE_LONG_STANDARD);
-                                if ( res == null ) {
-                                    mz = formatData.getMetazoneInfo(zid, DateFormatSymbols.TIMEZONE_LONG_STANDARD,cal);
-                                    if ( mz != null ) {
-                                        res = mz.value;
-                                    }
-                                }
                             }
                         }
                     }
                 }
-
                 if (res == null || res.length() == 0) {
                     // note, tr35 does not describe the special case for 'no country' 
                     // implemented below, this is from discussion with Mark
@@ -1085,14 +881,14 @@ public class SimpleDateFormat extends DateFormat {
      * PatternItem store parsed date/time field pattern information.
      */
     private static class PatternItem {
-        final char type;
-        final int length;
+    	final char type;
+    	final int length;
         final boolean isNumeric;
 
         PatternItem(char type, int length) {
-            this.type = type;
-            this.length = length;
-            isNumeric = isNumeric(type, length);
+    		this.type = type;
+    		this.length = length;
+    		isNumeric = isNumeric(type, length);
         }
     }
 
@@ -1140,11 +936,11 @@ public class SimpleDateFormat extends DateFormat {
                 if (inQuote) {
                     text.append(ch);
                 } else {
-                    if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')) {
-                        // a date/time pattern character
-                        if (ch == itemType) {
-                            itemLength++;
-                        } else {
+                	if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')) {
+                    	// a date/time pattern character
+                    	if (ch == itemType) {
+                    		itemLength++;
+                    	} else {
                             if (itemType == 0) {
                                 if (text.length() > 0) {
                                     items.add(text.toString());
@@ -1157,7 +953,7 @@ public class SimpleDateFormat extends DateFormat {
                             itemLength = 1;
                         }
                     } else {
-                        // a string literal
+                    	// a string literal
                         if (itemType != 0) {
                             items.add(new PatternItem(itemType, itemLength));
                             itemType = 0;
@@ -1331,7 +1127,6 @@ public class SimpleDateFormat extends DateFormat {
 
         // hack, clear parsedTimeZone
         parsedTimeZone = null;
-        isTimeZoneOffsetSet = false;
 
         // item index for the first numeric field within a countiguous numeric run
         int numericFieldStart = -1;
@@ -1490,16 +1285,14 @@ public class SimpleDateFormat extends DateFormat {
                 if (parsedTimeZone != null) {
                     TimeZone tz = parsedTimeZone;
 
-                    if (!isTimeZoneOffsetSet) {
-                        // the calendar represents the parse as gmt time
-                        // we need to turn this into local time, so we add the raw offset
-                        // then we ask the timezone to handle this local time
-                        int[] offsets = new int[2];
-                        tz.getOffset(copy.getTimeInMillis()+tz.getRawOffset(), true, offsets);
-    
-                        cal.set(Calendar.ZONE_OFFSET, offsets[0]);
-                        cal.set(Calendar.DST_OFFSET, offsets[1]);
-                    }
+                    // the calendar represents the parse as gmt time
+                    // we need to turn this into local time, so we add the raw offset
+                    // then we ask the timezone to handle this local time
+                    int[] offsets = new int[2];
+                    tz.getOffset(copy.getTimeInMillis()+tz.getRawOffset(), true, offsets);
+
+                    cal.set(Calendar.ZONE_OFFSET, offsets[0]);
+                    cal.set(Calendar.DST_OFFSET, offsets[1]);
                     cal.setTimeZone(tz);
                 }
             }
@@ -1639,24 +1432,20 @@ public class SimpleDateFormat extends DateFormat {
                     || type == DateFormatSymbols.TIMEZONE_LONG_STANDARD) {
                 // standard time
                 cal.set(Calendar.DST_OFFSET, 0);
-                isTimeZoneOffsetSet = true;
+                tz = null;
             } else if (type == DateFormatSymbols.TIMEZONE_SHORT_DAYLIGHT
                     || type == DateFormatSymbols.TIMEZONE_LONG_DAYLIGHT) {
                 // daylight time
                 // use the correct DST SAVINGS for the zone.
                 // cal.set(UCAL_DST_OFFSET, tz->getDSTSavings());
                 cal.set(Calendar.DST_OFFSET, millisPerHour);
-                isTimeZoneOffsetSet = true;
+                tz = null;
+            } else {
+                // either standard or daylight
+                // need to finish getting the date, then compute dst offset as
+                // appropriate
+                parsedTimeZone = tz;
             }
-//            else {
-//                // either standard or daylight
-//                // need to finish getting the date, then compute dst offset as
-//                // appropriate
-//                parsedTimeZone = tz;
-//            }
-            //TODO: revisit this after 3.8
-            // Always set parsedTimeZone, otherwise, the time zone is never set to the result calendar
-            parsedTimeZone = tz;
             if(value != null) {
                 return start + value.length();
             }
@@ -2110,11 +1899,11 @@ public class SimpleDateFormat extends DateFormat {
      * Translate a pattern, mapping each character in the from string to the
      * corresponding character in the to string.
      */
-    private String translatePattern(String pat, String from, String to) {
+    private String translatePattern(String pattern, String from, String to) {
         StringBuffer result = new StringBuffer();
         boolean inQuote = false;
-        for (int i = 0; i < pat.length(); ++i) {
-            char c = pat.charAt(i);
+        for (int i = 0; i < pattern.length(); ++i) {
+            char c = pattern.charAt(i);
             if (inQuote) {
                 if (c == '\'')
                     inQuote = false;
@@ -2160,9 +1949,9 @@ public class SimpleDateFormat extends DateFormat {
      * Apply the given unlocalized pattern string to this date format.
      * @stable ICU 2.0
      */
-    public void applyPattern(String pat)
+    public void applyPattern(String pattern)
     {
-        this.pattern = pat;
+        this.pattern = pattern;
         setLocale(null, null);
         // reset parsed pattern items
         patternItems = null;
@@ -2172,8 +1961,8 @@ public class SimpleDateFormat extends DateFormat {
      * Apply the given localized pattern string to this date format.
      * @stable ICU 2.0
      */
-    public void applyLocalizedPattern(String pat) {
-        this.pattern = translatePattern(pat,
+    public void applyLocalizedPattern(String pattern) {
+        this.pattern = translatePattern(pattern,
                                         formatData.localPatternChars,
                                         DateFormatSymbols.patternChars);
         setLocale(null, null);
@@ -2275,44 +2064,4 @@ public class SimpleDateFormat extends DateFormat {
 
         initLocalZeroPaddingNumberFormat();
     }
-
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
-    /**
-     * Format the object to an attributed string, and return the corresponding iterator
-     * Overrides superclass method.
-     * 
-     * @param obj The object to format
-     * @return <code>AttributedCharacterIterator</code> describing the formatted value.
-     * 
-     * @stable ICU 3.8
-     */
-    public AttributedCharacterIterator formatToCharacterIterator(Object obj) {
-        Calendar cal = calendar;
-        if (obj instanceof Calendar) {
-            cal = (Calendar)obj;
-        } else if (obj instanceof Date) {
-            calendar.setTime((Date)obj);
-        } else if (obj instanceof Number) {
-            calendar.setTimeInMillis(((Number)obj).longValue());
-        } else { 
-            throw new IllegalArgumentException("Cannot format given Object as a Date");
-        }
-        StringBuffer toAppendTo = new StringBuffer();
-        FieldPosition pos = new FieldPosition(0);
-        List attributes = new LinkedList();
-        format(cal, toAppendTo, pos, attributes);
-
-        AttributedString as = new AttributedString(toAppendTo.toString());
-        
-        // add DateFormat field attributes to the AttributedString
-        for (int i = 0; i < attributes.size(); i++) {
-            FieldPosition fp = (FieldPosition) attributes.get(i);
-            Format.Field attribute = fp.getFieldAttribute();
-            as.addAttribute(attribute, attribute, fp.getBeginIndex(), fp.getEndIndex());
-        }
-        // return the CharacterIterator from AttributedString
-        return as.getIterator();
-    }
-//#endif
 }

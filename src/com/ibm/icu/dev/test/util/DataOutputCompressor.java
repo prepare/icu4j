@@ -1,12 +1,11 @@
-//##header J2SE15
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
+//##header
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
+//#ifndef FOUNDATION
 package com.ibm.icu.dev.test.util;
 
 import java.io.DataOutput;
@@ -160,6 +159,7 @@ public final class DataOutputCompressor implements ObjectOutput {
         int i = 0;
         object_index.put(null, new Integer(i++));
         WritePool trailingPool = new WritePool();
+        int poolCount = 0;
         String lastString = "";
         for (Iterator it = c.iterator(); it.hasNext();) {
             String s = (String) it.next();

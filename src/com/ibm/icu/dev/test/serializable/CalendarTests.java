@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  *
@@ -17,10 +17,8 @@ import com.ibm.icu.util.CopticCalendar;
 import com.ibm.icu.util.EthiopicCalendar;
 import com.ibm.icu.util.GregorianCalendar;
 import com.ibm.icu.util.HebrewCalendar;
-import com.ibm.icu.util.IndianCalendar;
 import com.ibm.icu.util.IslamicCalendar;
 import com.ibm.icu.util.JapaneseCalendar;
-import com.ibm.icu.util.TaiwanCalendar;
 import com.ibm.icu.util.TimeZone;
 
 /**
@@ -158,22 +156,6 @@ public class CalendarTests
         }
     }
     
-    static class IndianCalendarHandler extends CalendarHandler
-    {
-        public Object[] getTestObjects()
-        {
-            Locale locales[] = SerializableTest.getLocales();
-            TimeZone jst = TimeZone.getTimeZone("Asia/Calcutta");
-            IndianCalendar calendars[] = new IndianCalendar[locales.length];
-            
-            for (int i = 0; i < locales.length; i += 1) {
-                calendars[i] = new IndianCalendar(jst, locales[i]);
-            }
-            
-            return calendars; 
-        }
-    }
-    
     static class IslamicCalendarHandler extends CalendarHandler
     {
         public Object[] getTestObjects() {
@@ -199,20 +181,6 @@ public class CalendarTests
             
             for (int i = 0; i < locales.length; i += 1) {
                 calendars[i] = new JapaneseCalendar(jst, locales[i]);
-            }
-            
-            return calendars; 
-        }
-    }
-
-    static class TaiwanCalendarHandler extends CalendarHandler {
-        public Object[] getTestObjects() {
-            Locale locales[] = SerializableTest.getLocales();
-            TimeZone cst = TimeZone.getTimeZone("Asia/Shanghai");
-            TaiwanCalendar calendars[] = new TaiwanCalendar[locales.length];
-            
-            for (int i = 0; i < locales.length; i += 1) {
-                calendars[i] = new TaiwanCalendar(cst, locales[i]);
             }
             
             return calendars; 

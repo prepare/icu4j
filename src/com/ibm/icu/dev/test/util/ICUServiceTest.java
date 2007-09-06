@@ -1,6 +1,6 @@
 /**
  *******************************************************************************
- * Copyright (C) 2001-2007, International Business Machines Corporation and    *
+ * Copyright (C) 2001-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -198,16 +198,20 @@ public class ICUServiceTest extends TestFmwk
     // an anonymous factory than handles all ids
     {
         Factory factory = new Factory() {
-            public Object create(Key key, ICUService unusedService) {
-                return new ULocale(key.currentID());
+            public Object create(Key key, ICUService service) {
+            return new ULocale(key.currentID());
             }
 
-            public void updateVisibleIDs(Map unusedResult) {
+                    ///CLOVER:OFF
+            public void updateVisibleIDs(Map result) {
             }
+                    ///CLOVER:ON
 
+                    ///CLOVER:OFF
             public String getDisplayName(String id, ULocale l) {
-                return null;
+            return null;
             }
+                    ///CLOVER:ON
         };
         service.registerFactory(factory);
 
@@ -790,9 +794,9 @@ public class ICUServiceTest extends TestFmwk
         logln("test one: " + service.get(greetingID));
 
         class WrapFactory implements Factory {
-            public Object create(Key key, ICUService serviceArg) {
+            public Object create(Key key, ICUService service) {
                 if (key.currentID().equals(greetingID)) {
-                    Object previous = serviceArg.getKey(key, null, this);
+                    Object previous = service.getKey(key, null, this);
                     return "A different greeting: \"" + previous + "\"";
                 }
                 return null;
@@ -987,13 +991,15 @@ public class ICUServiceTest extends TestFmwk
     }
 
     static class ICUNSubclass extends ICUNotifier {
-        public boolean acceptsListener(EventListener l) {
-            return l instanceof MyListener;
-        }
-    
+    public boolean acceptsListener(EventListener l) {
+        return l instanceof MyListener;
+    }
+
         // not used, just needed to implement abstract base
-        public void notifyListener(EventListener l) {
-        }
+        ///CLOVER:OFF
+    public void notifyListener(EventListener l) {
+    }
+        ///CLOVER:ON
     }
 
     static class LKFSubclass extends LocaleKeyFactory {

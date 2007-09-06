@@ -1,5 +1,5 @@
 /*
- * (C) Copyright IBM Corp. 1998-2007.  All Rights Reserved.
+ * (C) Copyright IBM Corp. 1998-2005.  All Rights Reserved.
  *
  * The program is provided "as is" without any warranty express or
  * implied, including the warranty of non-infringement and the implied
@@ -55,12 +55,8 @@ import com.ibm.richtext.uiimpl.ResourceUtils;
 */
 final class JObjectDialog extends JDialog {
 
-    /**
-     * For serialization
-     */
-    private static final long serialVersionUID = -9183651131772308979L;
-    //static final String COPYRIGHT =
-    //            "(C) Copyright IBM Corp. 1998-1999 - All Rights Reserved";
+    static final String COPYRIGHT =
+                "(C) Copyright IBM Corp. 1998-1999 - All Rights Reserved";
 
     private final MTextPanel fTextPanel;
     private final Object fKey;

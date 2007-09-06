@@ -1,7 +1,7 @@
-//##header J2SE15
+//##header
 /*
  *******************************************************************************
- * Copyright (C) 2005-2007 International Business Machines Corporation and          *
+ * Copyright (C) 2005-2006 International Business Machines Corporation and          *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -59,6 +59,9 @@ public class RuleBasedBreakIterator extends BreakIterator {
     /**
      * Construct a RuleBasedBreakIterator from a set of rules supplied as a string.
      * @param rules The break rules to be used.
+     * @param parseError  In the event of a syntax error in the rules, provides the location
+     *                    within the rules of the problem.
+     * @param status Information on any errors encountered.
      * @stable ICU 2.2
      */
     public RuleBasedBreakIterator(String rules)  {
@@ -72,7 +75,7 @@ public class RuleBasedBreakIterator extends BreakIterator {
         } catch (IOException e) {
             // An IO exception can only arrive here if there is a bug in the RBBI Rule compiler,
             //  causing bogus compiled rules to be produced, but with no compile error raised.
-//#if defined(FOUNDATION10) || defined(J2SE13)
+//#ifdef FOUNDATION
 //##            RuntimeException rte = new RuntimeException("RuleBasedBreakIterator rule compilation internal error:");
 //#else
             RuntimeException rte = new RuntimeException("RuleBasedBreakIterator rule compilation internal error:", e);
@@ -94,10 +97,7 @@ public class RuleBasedBreakIterator extends BreakIterator {
      */
     public Object clone()
     {
-        RuleBasedBreakIterator result = (RuleBasedBreakIterator)super.clone();
-        if (fText != null) {
-            result.fText = (CharacterIterator)(fText.clone());   
-        }
+        RuleBasedBreakIterator result = new RuleBasedBreakIterator(this);
         return result;
     }
 
@@ -238,8 +238,11 @@ public class RuleBasedBreakIterator extends BreakIterator {
     private static final int  RBBI_RUN    = 1;
     private static final int  RBBI_END   = 2;
 
-    /*
+    /**
      * The character iterator through which this BreakIterator accesses the text.
+     * 
+     * @internal
+     * @deprecated This API is ICU internal only.
      */
     private CharacterIterator   fText = new java.text.StringCharacterIterator("");
     
@@ -250,15 +253,18 @@ public class RuleBasedBreakIterator extends BreakIterator {
      */
     protected RBBIDataWrapper     fRData;
     
-    /*
-     * Index of the Rule {tag} values for the most recent match. 
+    /** Index of the Rule {tag} values for the most recent match. 
+     *  @internal
+     * @deprecated This API is ICU internal only.
      */
     private int                 fLastRuleStatusIndex;
 
-    /*
+    /**
      * Rule tag value valid flag.
      * Some iterator operations don't intrinsically set the correct tag value.
      * This flag lets us lazily compute the value if we are ever asked for it.
+     * @internal
+     * @deprecated This API is ICU internal only.
      */
     private boolean             fLastStatusIndexValid;
     

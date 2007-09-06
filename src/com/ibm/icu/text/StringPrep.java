@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2003-2007, International Business Machines Corporation and    *
+ * Copyright (C) 2003-2005, International Business Machines Corporation and         *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -13,11 +13,13 @@ import java.io.InputStream;
 
 import com.ibm.icu.impl.CharTrie;
 import com.ibm.icu.impl.StringPrepDataReader;
+import com.ibm.icu.impl.Trie;
 import com.ibm.icu.impl.NormalizerImpl;
 import com.ibm.icu.impl.UBiDiProps;
 
 import com.ibm.icu.util.VersionInfo;
 
+import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.lang.UCharacterDirection;
 
 /**
@@ -81,7 +83,7 @@ public final class StringPrep {
     
     private static final int TYPE_THRESHOLD       = 0xFFF0;
     private static final int MAX_INDEX_VALUE      = 0x3FBF;   /*16139*/ 
-    //private static final int MAX_INDEX_TOP_LENGTH = 0x0003;
+    private static final int MAX_INDEX_TOP_LENGTH = 0x0003;
     
     /* indexes[] value names */
     private static final int INDEX_TRIE_SIZE                  =  0; /* number of bytes in normalization trie */
@@ -107,7 +109,7 @@ public final class StringPrep {
     // mapping data read from the data file
     private char[] mappingData;
     // format version of the data file
-    //private byte[] formatVersion;
+    private byte[] formatVersion;
     // the version of Unicode supported by the data file
     private VersionInfo sprepUniVer;
     // the Unicode version of last entry in the
@@ -167,7 +169,7 @@ public final class StringPrep {
         sprepTrie = new CharTrie(new ByteArrayInputStream(sprepBytes), null);
               
         // get the data format version                           
-        /*formatVersion = */reader.getDataFormatVersion();
+        formatVersion = reader.getDataFormatVersion();
  
         // get the options
         doNFKC            = ((indexes[OPTIONS] & NORMALIZATION_ON) > 0);

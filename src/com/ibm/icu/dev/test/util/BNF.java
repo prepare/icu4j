@@ -1,12 +1,11 @@
-//##header J2SE15
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
+//##header
 /*
  *******************************************************************************
  * Copyright (C) 2002-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
+//#ifndef FOUNDATION
 package com.ibm.icu.dev.test.util;
 
 import java.util.ArrayList;
@@ -144,7 +143,9 @@ public class BNF {
         throw new IllegalArgumentException(msg
         + "\r\n" + t.toString());
     }
- 
+    
+    
+    
     private boolean addRule() {
         int type = t.next();
         if (type == Tokenizer.DONE) return false;
@@ -319,15 +320,6 @@ public class BNF {
             result[i] = ((Integer)list.get(i)).intValue();
         }
         return result;
-    }
-
-    public int getMaxRepeat() {
-      return maxRepeat;
-    }
-
-    public BNF setMaxRepeat(int maxRepeat) {
-      this.maxRepeat = maxRepeat;
-      return this;
     }
 }
 //#endif

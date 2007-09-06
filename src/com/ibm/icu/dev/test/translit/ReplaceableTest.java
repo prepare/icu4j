@@ -1,6 +1,6 @@
 /**
  *******************************************************************************
- * Copyright (C) 2001-2007, International Business Machines Corporation and    *
+ * Copyright (C) 2001-2004, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -9,6 +9,8 @@ package com.ibm.icu.dev.test.translit;
 import com.ibm.icu.dev.test.*;
 import com.ibm.icu.text.*;
 import com.ibm.icu.impl.Utility;
+import java.io.*;
+import java.text.ParseException;
 
 /**
  * @test
@@ -16,24 +18,27 @@ import com.ibm.icu.impl.Utility;
  */
 public class ReplaceableTest extends TestFmwk {
     
+    public static final boolean LATER_THAN_2_1 = true;
+    
     public static void main(String[] args) throws Exception {
         new ReplaceableTest().run(args);
     }
   
-    public void Test() {
+    public void Test() throws IOException, ParseException {
         check("Lower", "ABCD", "1234");
         check("Upper", "abcd\u00DF", "123455"); // must map 00DF to SS
         check("Title", "aBCD", "1234");
         check("NFC", "A\u0300E\u0300", "13");
         check("NFD", "\u00C0\u00C8", "1122");
+        if (!LATER_THAN_2_1) return;
         check("*(x) > A $1 B", "wxy", "11223");
         check("*(x)(y) > A $2 B $1 C $2 D", "wxyz", "113322334");
         check("*(x)(y)(z) > A $3 B $2 C $1 D", "wxyzu", "114433225");
-        // TODO Revisit the following in 2.6 or later.
-        check("*x > a", "xyz", "223"); // expect "123"?
-        check("*x > a", "wxy", "113"); // expect "123"?
-        check("*x > a", "\uFFFFxy", "_33"); // expect "_23"?
-        check("*(x) > A $1 B", "\uFFFFxy", "__223");
+    // Disabled for 2.4.  TODO Revisit in 2.6 or later.
+        //check("*x > a", "xyz", "223"); // expect "123"?
+        //check("*x > a", "wxy", "113"); // expect "123"?
+        //check("*x > a", "\uFFFFxy", "_33"); // expect "_23"?
+        //check("*(x) > A $1 B", "\uFFFFxy", "__223");
     }
     
     void check(String transliteratorName, String test, String shouldProduceStyles) {
@@ -136,10 +141,10 @@ public class ReplaceableTest extends TestFmwk {
             if (DEBUG) System.out.println(Utility.escape(toString()));
         }
         
-        public void replace(int start, int limit, char[] charArray,
+        public void replace(int start, int limit, char[] chars,
                             int charsStart, int charsLen) {
-            if (substring(start,limit).equals(new String(charArray, charsStart, charsLen-charsStart))) return; // NO ACTION!
-            this.chars.replace(start, limit, charArray, charsStart, charsLen);
+            if (substring(start,limit).equals(new String(chars, charsStart, charsLen-charsStart))) return; // NO ACTION!
+            this.chars.replace(start, limit, chars, charsStart, charsLen);
             fixStyles(start, limit, charsLen);
         }
 
@@ -177,14 +182,5 @@ public class ReplaceableTest extends TestFmwk {
         }
 
         static final boolean DEBUG = false;
-    }
-    
-    public void Test5789() {
-        String rules =
-            "IETR > IET | \\' R; # (1) do split ietr between t and r\r\n" +
-            "I[EH] > I; # (2) friedrich";
-        Transliterator trans = Transliterator.createFromRules("foo", rules, Transliterator.FORWARD);
-        String result =  trans.transliterate("BLENKDIETRICH");
-        assertEquals("Rule breakage", "BLENKDIET'RICH", result);
     }
 }

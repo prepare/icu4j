@@ -1,12 +1,11 @@
-//##header J2SE15
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
+//##header
 /*
  *******************************************************************************
- * Copyright (C) 2002-2007, International Business Machines Corporation and    *
+ * Copyright (C) 2002-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
+//#ifndef FOUNDATION
 package com.ibm.icu.dev.test.util;
 
 import java.util.Random;
@@ -148,7 +147,7 @@ public class TestBNF {
         }
     }
     
-/*    static final String[] rules = {
+    static final String[] rules = {
         "$s = ' ';",
         "$noun = dog | house | government | wall | street | zebra;",
         "$adjective = red | glorious | simple | nasty | heavy | clean;",
@@ -164,7 +163,6 @@ public class TestBNF {
         "$conj = but | and | or;",
         "$sentence4 = $sentence1 | $sentence2 | $sentence3 20% | $sentence4 $conj $sentence4 20%;",
         "$sentence = $sentence4 '.';"};
- */
     /*
     private static void testEnglish() {
         Pick s = Pick.unquoted(" ");

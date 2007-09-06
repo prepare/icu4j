@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -101,7 +101,8 @@ public class TransliteratorTest extends TestFmwk {
                 try {
                     rules = t.toRules(true);
 
-                    Transliterator.createFromRules("x", rules, Transliterator.FORWARD);
+                    Transliterator u = Transliterator.createFromRules("x",
+                                           rules, Transliterator.FORWARD);
                 } catch (IllegalArgumentException ex2) {
                     errln("FAIL: " + ID + ".toRules() => bad rules: " +
                           rules);
@@ -547,14 +548,15 @@ public class TransliteratorTest extends TestFmwk {
     public void TestJ329() {
 
         Object[] DATA = {
-            Boolean.FALSE, "a > b; c > d",
-            Boolean.TRUE,  "a > b; no operator; c > d",
+            new Boolean(false), "a > b; c > d",
+            new Boolean(true),  "a > b; no operator; c > d",
         };
 
         for (int i=0; i<DATA.length; i+=2) {
             String err = null;
             try {
-                Transliterator.createFromRules("<ID>",
+                Transliterator t =
+                    Transliterator.createFromRules("<ID>",
                                             (String) DATA[i+1],
                                             Transliterator.FORWARD);
             } catch (IllegalArgumentException e) {
@@ -1593,7 +1595,8 @@ public class TransliteratorTest extends TestFmwk {
     public void TestUndefinedVariable() {
         String rule = "$initial } a <> \u1161;";
         try {
-            Transliterator.createFromRules("<ID>", rule,Transliterator.FORWARD);
+            Transliterator t = Transliterator.createFromRules("<ID>", rule,Transliterator.FORWARD);
+            t = null;
         } catch (IllegalArgumentException e) {
             logln("OK: Got exception for " + rule + ", as expected: " +
                   e.getMessage());
@@ -2403,18 +2406,19 @@ public class TransliteratorTest extends TestFmwk {
      */
      public void TestScriptAllCodepoints(){
             int code;
-            HashSet  scriptIdsChecked   = new HashSet();
-            HashSet  scriptAbbrsChecked = new HashSet();
+             String oldId="";
+             String oldAbbrId="";
             for( int i =0; i <= 0x10ffff; i++){
+                code =UScript.INVALID_CODE;
                 code = UScript.getScript(i);
                 if(code==UScript.INVALID_CODE){
                     errln("UScript.getScript for codepoint 0x"+ hex(i)+" failed");
                 }
                  String id =UScript.getName(code);
                  String abbr = UScript.getShortName(code);
-                 if (!scriptIdsChecked.contains(id)) {
-                     scriptIdsChecked.add(id);
-                     String newId ="[:"+id+":];NFD";
+                 String newId ="[:"+id+":];NFD";
+                 String newAbbrId ="[:"+abbr+":];NFD";
+                 if(!oldId.equals(newId)){
                      try{
                          Transliterator t = Transliterator.getInstance(newId);
                          if(t==null){
@@ -2427,9 +2431,8 @@ public class TransliteratorTest extends TestFmwk {
                                  + " Exception: "+e.getMessage());
                      }
                  }
-                 if (!scriptAbbrsChecked.contains(abbr)) {
-                     scriptAbbrsChecked.add(abbr);
-                     String newAbbrId ="[:"+abbr+":];NFD";
+                 oldId = newId;
+                 if(!oldAbbrId.equals(newAbbrId)){
                      try{
                          Transliterator t = Transliterator.getInstance(newAbbrId);
                          if(t==null){
@@ -2442,6 +2445,7 @@ public class TransliteratorTest extends TestFmwk {
                                  + " Exception: "+e.getMessage());
                      }
                  }
+                 oldAbbrId = newAbbrId;
             }
     }
 

@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 2006-2007, International Business Machines Corporation and    *
+* Copyright (C) 2006, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 *
@@ -11,7 +11,7 @@ package com.ibm.icu.charset;
 import java.io.*;
 
 import com.ibm.icu.impl.ICUBinary;
-
+import com.ibm.icu.impl.ICUDebug;
 
 /* Format of cnvalias.icu -----------------------------------------------------
  *
@@ -123,7 +123,7 @@ import com.ibm.icu.impl.ICUBinary;
  */
 
 final class UConverterAliasDataReader implements ICUBinary.Authenticate {
-//    private final static boolean debug = ICUDebug.enabled("UConverterAliasDataReader");
+    private final static boolean debug = ICUDebug.enabled("UConverterAliasDataReader");
     
    /**
     * <p>Protected constructor.</p>
@@ -133,15 +133,15 @@ final class UConverterAliasDataReader implements ICUBinary.Authenticate {
     */
     protected UConverterAliasDataReader(InputStream inputStream) 
                                         throws IOException{
-        //if(debug) System.out.println("Bytes in inputStream " + inputStream.available());
+        if(debug) System.out.println("Bytes in inputStream " + inputStream.available());
         
-        /*unicodeVersion = */ICUBinary.readHeader(inputStream, DATA_FORMAT_ID, this);
+        unicodeVersion = ICUBinary.readHeader(inputStream, DATA_FORMAT_ID, this);
         
-        //if(debug) System.out.println("Bytes left in inputStream " +inputStream.available());
+        if(debug) System.out.println("Bytes left in inputStream " +inputStream.available());
         
         dataInputStream = new DataInputStream(inputStream);
         
-        //if(debug) System.out.println("Bytes left in dataInputStream " +dataInputStream.available());
+        if(debug) System.out.println("Bytes left in dataInputStream " +dataInputStream.available());
     }
     
     // protected methods -------------------------------------------------
@@ -182,8 +182,8 @@ final class UConverterAliasDataReader implements ICUBinary.Authenticate {
         for(i = 0; i < optionTable.length; ++i)
             optionTable[i] = dataInputStream.readUnsignedShort();
 
-		dataInputStream.readFully(stringTable);
-        dataInputStream.readFully(normalizedStringTable);
+		dataInputStream.read(stringTable);
+        dataInputStream.read(normalizedStringTable);
     }
     
     public boolean isDataVersionAcceptable(byte version[])
@@ -194,9 +194,9 @@ final class UConverterAliasDataReader implements ICUBinary.Authenticate {
             && version[2] == DATA_FORMAT_VERSION[2];
     }
     
-    /*byte[] getUnicodeVersion(){
+    public byte[] getUnicodeVersion(){
         return unicodeVersion;    
-    }*/
+    }
     // private data members -------------------------------------------------
       
 
@@ -205,7 +205,7 @@ final class UConverterAliasDataReader implements ICUBinary.Authenticate {
     */
     private DataInputStream dataInputStream;
     
-//    private byte[] unicodeVersion;
+    private byte[] unicodeVersion;
                                        
     /**
     * File format version that this class understands.

@@ -10,6 +10,7 @@ package com.ibm.icu.text;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Locale;
 import java.util.MissingResourceException;
 import java.util.ResourceBundle;
@@ -167,94 +168,14 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * @throws  java.util.MissingResourceException
      *          if the resources for the specified locale cannot be
      *          found or cannot be loaded.
-     * @stable ICU 3.8
+     * @draft ICU 3.2
+     * @provisional This API might change or be removed in a future release.
      */
     public DateFormatSymbols(ULocale locale)
     {
         initializeData(locale, ""); // TODO: type?
     }
 
-    /**
-     * Gets a DateFormatSymbols instance for the default locale.
-     * <br><br>
-     * <b>Note:</b> Unlike <code>java.text.DateFormatSymbols#getInstance</code>,
-     * this method simply returns <code>new com.ibm.icu.text.DateFormatSymbols()</code>.
-     * ICU does not support <code>DateFormatSymbolsProvider</code> introduced in Java 6
-     * or its equivalent implementation for now.
-     * 
-     * @return A DateFormatSymbols instance.
-     * @stable ICU 3.8
-     */
-    public static DateFormatSymbols getInstance() {
-        return new DateFormatSymbols();
-    }
-
-    /**
-     * Gets a DateFormatSymbols instance for the given locale.
-     * <br><br>
-     * <b>Note:</b> Unlike <code>java.text.DateFormatSymbols#getInstance</code>,
-     * this method simply returns <code>new com.ibm.icu.text.DateFormatSymbols(locale)</code>.
-     * ICU does not support <code>DateFormatSymbolsProvider</code> introduced in Java 6
-     * or its equivalent implementation for now.
-     * 
-     * @param locale the locale.
-     * @return A DateFormatSymbols instance.
-     * @stable ICU 3.8
-     */
-    public static DateFormatSymbols getInstance(Locale locale) {
-        return new DateFormatSymbols(locale);
-    }
-
-    /**
-     * Gets a DateFormatSymbols instance for the given locale.
-     * <br><br>
-     * <b>Note:</b> Unlike <code>java.text.DateFormatSymbols#getInstance</code>,
-     * this method simply returns <code>new com.ibm.icu.text.DateFormatSymbols(locale)</code>.
-     * ICU does not support <code>DateFormatSymbolsProvider</code> introduced in Java 6
-     * or its equivalent implementation for now.
-     * 
-     * @param locale the locale.
-     * @return A DateFormatSymbols instance.
-     * @draft ICU 3.8
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static DateFormatSymbols getInstance(ULocale locale) {
-        return new DateFormatSymbols(locale);
-    }
-
-    /**
-     * Returns an array of all locales for which the <code>getInstance</code> methods of this
-     * class can return localized instances.
-     * <br><br>
-     * <b>Note:</b> Unlike <code>java.text.DateFormatSymbols#getAvailableLocales</code>,
-     * this method simply returns the array of <code>Locale</code>s available in this class.
-     * ICU does not support <code>DateFormatSymbolsProvider</code> introduced in Java 6
-     * or its equivalent implementation for now.
-     * 
-     * @return An array of <code>Locale</code>s for which localized <code>DateFormatSymbols</code> instances are available.
-     * @stable ICU 3.8
-     */
-    public static Locale[] getAvailableLocales() {
-        return ICUResourceBundle.getAvailableLocales(ICUResourceBundle.ICU_BASE_NAME);
-    }
-
-    /**
-     * Returns an array of all locales for which the <code>getInstance</code> methods of this
-     * class can return localized instances.
-     * <br><br>
-     * <b>Note:</b> Unlike <code>java.text.DateFormatSymbols#getAvailableLocales</code>,
-     * this method simply returns the array of <code>ULocale</code>s available in this class.
-     * ICU does not support <code>DateFormatSymbolsProvider</code> introduced in Java 6
-     * or its equivalent implementation for now.
-     * 
-     * @return An array of <code>ULocale</code>s for which localized <code>DateFormatSymbols</code> instances are available.
-     * @draft ICU 3.8
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static ULocale[] getAvailableULocales() {
-        return ICUResourceBundle.getAvailableULocales(ICUResourceBundle.ICU_BASE_NAME);        
-    }
-    
     /**
      * Era strings. For example: "AD" and "BC".  An array of 2 strings,
      * indexed by <code>Calendar.BC</code> and <code>Calendar.AD</code>.
@@ -421,7 +342,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
     /**
      * Localized names of time zones in this locale.  This is a
      * two-dimensional array of strings of size <em>n</em> by <em>m</em>,
-     * where <em>m</em> is at least 5 and up to 38.  Each of the <em>n</em> rows is an
+     * where <em>m</em> is at least 5 and up to 8.  Each of the <em>n</em> rows is an
      * entry containing the localized names for a single <code>TimeZone</code>.
      * Each such row contains (with <code>i</code> ranging from
      * 0..<em>n</em>-1):
@@ -454,7 +375,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * Unlocalized date-time pattern characters. For example: 'y', 'd', etc.
      * All locales use the same unlocalized pattern characters.
      */
-    static final String  patternChars = "GyMdkHmsSEDFwWahKzYeugAZvcLQqV";
+    static final String  patternChars = "GyMdkHmsSEDFwWahKzYeugAZvcLQq";
 
     /**
      * Localized date-time pattern characters. For example, a locale may
@@ -467,11 +388,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * @serial
      */
     String  localPatternChars = null;
-
-    /* Hang on to the country of the locale used for initialization */
-    /* Used by resolveParsedMetazone for country specific metazone mappings */
-
-    private String country;
 
     /* use serialVersionUID from JDK 1.1.4 for interoperability */
     private static final long serialVersionUID = -5987973545549424702L;
@@ -497,7 +413,8 @@ public class DateFormatSymbols implements Serializable, Cloneable {
     /**
      * Gets era name strings. For example: "Anno Domini" and "Before Christ".
      * @return the era strings.
-     * @stable ICU 3.8
+     * @draft ICU 3.4
+     * @provisional This API might change or be removed in a future release.
      */
     public String[] getEraNames() {
         return duplicate(eraNames);
@@ -506,7 +423,8 @@ public class DateFormatSymbols implements Serializable, Cloneable {
     /**
      * Sets era name strings. For example: "Anno Domini" and "Before Christ".
      * @param newEraNames the new era strings.
-     * @stable ICU 3.8
+     * @internal revisit for ICU 3.6
+     * @deprecated This API is ICU internal only.
      */
     public void setEraNames(String[] newEraNames) {
         eraNames = duplicate(newEraNames);
@@ -527,7 +445,8 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * @param width      The width or the returned month string,
      *                   either WIDE, ABBREVIATED, or NARROW.
      * @return the month strings.
-     * @stable ICU 3.8
+     * @draft ICU 3.4
+     * @provisional This API might change or be removed in a future release.
      */
     public String[] getMonths(int context, int width) {
         String [] returnValue = null;
@@ -577,7 +496,8 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * @param context    The formatting context, FORMAT or STANDALONE.
      * @param width      The width of the month string,
      *                   either WIDE, ABBREVIATED, or NARROW.
-     * @stable ICU 3.8
+     * @internal revisit for ICU 3.6
+     * @deprecated This API is ICU internal only.
      */
     public void setMonths(String[] newMonths, int context, int width) {
         switch (context) {
@@ -645,7 +565,8 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * @param context    Formatting context, either FORMAT or STANDALONE.
      * @param width      Width of strings to be returned, either
      *                   WIDE, ABBREVIATED, or NARROW
-     * @stable ICU 3.8
+     * @draft ICU 3.4
+     * @provisional This API might change or be removed in a future release.
      */
     public String[] getWeekdays(int context, int width) {
         String [] returnValue = null;
@@ -686,7 +607,8 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * @param context     The formatting context, FORMAT or STANDALONE.
      * @param width       The width of the strings,
      *                    either WIDE, ABBREVIATED, or NARROW.
-     * @stable ICU 3.8
+     * @internal revisit for ICU 3.6
+     * @deprecated This API is ICU internal only.
      */
     public void setWeekdays(String[] newWeekdays, int context, int width) {
         switch (context) {
@@ -799,8 +721,8 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * @param context    The formatting context, FORMAT or STANDALONE.
      * @param width      The width of the quarter string,
      *                   either WIDE or ABBREVIATED. There are no NARROW quarters.
-     * @draft ICU 3.8
-     * @provisional This API might change or be removed in a future release.
+     * @internal revisit for ICU 3.6
+     * @deprecated This API is ICU internal only.
      */
     public void setQuarters(String[] newQuarters, int context, int width) {
         switch (context) {
@@ -879,10 +801,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
 
     /**
      * Gets localized date-time pattern characters. For example: 'u', 't', etc.
-     * <p>
-     * Note: ICU no longer provides localized date-time pattern characters for a locale
-     * starting ICU 3.8.  This method returns the non-localized date-time pattern
-     * characters unless user defined localized data is set by setLocalPatternChars.
      * @return the localized date-time pattern characters.
      * @stable ICU 2.0
      */
@@ -930,11 +848,11 @@ public class DateFormatSymbols implements Serializable, Cloneable {
             tzStrings = zii.tzStrings;
         }
         for(int i = 0; i < tzStrings.length; i++) {
-            for (int j = 0; j < tzStrings[i].length; j++) {
-                if (tzStrings[i][j] != null) {
-                    hashcode ^= tzStrings[i][j].hashCode();
-                }
-            }
+        	for (int j = 0; j < tzStrings[i].length; j++) {
+        		if (tzStrings[i][j] != null) {
+            		hashcode ^= tzStrings[i][j].hashCode();
+        		}
+        	}
         }
         return hashcode;
     }
@@ -974,7 +892,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
 
     // =======================privates===============================
 
-    /*
+    /**
      * Useful constant for defining timezone offsets.
      */
     static final int millisPerHour = 60*60*1000;
@@ -983,13 +901,11 @@ public class DateFormatSymbols implements Serializable, Cloneable {
     private static ICUCache DFSCACHE = new SimpleCache();
 
     /**
-     * Initialize format symbols for the locale and calendar type
-     * @param desiredLocale The locale whose symbols are desired.
-     * @param type          The calendar type whose date format symbols are desired.
+     * 
+     * @param desiredLocale
+     * @param type
      * @stable ICU 3.0
      */
-    //TODO: This protected seems to be marked as @stable accidentally.
-    // We may need to deescalate this API to @internal.
     protected void initializeData(ULocale desiredLocale, String type)
     {
         String key = desiredLocale.toString() + "+" + type;
@@ -1039,19 +955,15 @@ public class DateFormatSymbols implements Serializable, Cloneable {
         this.validLocale = dfs.validLocale;
         this.requestedLocale = dfs.requestedLocale;
     }
-
+    
     /**
-     * Initialize format symbols for the locale and calendar type
-     * @param desiredLocale The locale whose symbols are desired.
-     * @param calData       The calendar resource data
+     * 
+     * @param desiredLocale
+     * @param calData
      * @stable ICU 3.0
      */
-    //FIXME: This protected method must not be a stable API, because
-    // CalendarData is a non API class   
     protected void initializeData(ULocale desiredLocale, CalendarData calData)
     {
-
-        country = desiredLocale.getCountry();
 
         // FIXME: cache only ResourceBundle. Hence every time, will do
         // getObject(). This won't be necessary if the Resource itself
@@ -1214,15 +1126,9 @@ public class DateFormatSymbols implements Serializable, Cloneable {
         }
 */        
         requestedLocale = desiredLocale;
-
+     
         ICUResourceBundle rb = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, desiredLocale);
-
-        // Because localized date/time pattern characters will be obsolete in CLDR,
-        // we decided not to maintain localized pattern characters in ICU any more.
-        // We always use the base pattern characters by default. (ticket#5597)
-
-        //localPatternChars = rb.getString("localPatternChars");
-        localPatternChars = patternChars;
+        localPatternChars = rb.getString("localPatternChars");
 
         // TODO: obtain correct actual/valid locale later
         ULocale uloc = rb.getULocale();
@@ -1249,7 +1155,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
         return equal;
     }
 
-    /*
+    /**
      * Package private: used by SimpleDateFormat.
      * Gets the string for the specified time zone.
      * @param zid The time zone ID
@@ -1266,7 +1172,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
         return zoneString;
     }
 
-    /*
+    /**
      * Gets the zone string from the specified zone item info
      */
     private String getZoneString(ZoneItemInfo zinfo, String zid, int type) {
@@ -1291,17 +1197,23 @@ public class DateFormatSymbols implements Serializable, Cloneable {
                 index = 4;
                 break;
             case TIMEZONE_EXEMPLAR_CITY:
-                index = 5;
+                if (names.length == 6 || names.length == 8) {
+                    index = 5;
+                }
                 break;
             case TIMEZONE_LONG_GENERIC:
-                index = 6;
+                if (names.length == 8) {
+                    index = 6;
+                } else {
+                    index = 5;
+                }
                 break;
             case TIMEZONE_SHORT_GENERIC:
-                index = 7;
-                break;
-            case TIMEZONE_METAZONE_MAPPING:
-                index = 8;
-                break;
+                if (names.length == 8) {
+                    index = 7;
+                } else {
+                    index = 6;
+                }
             }
             if (index < names.length) {
                 return names[index];
@@ -1310,117 +1222,13 @@ public class DateFormatSymbols implements Serializable, Cloneable {
         return null;
     }
 
-    /*
-     * Package private: used by SimpleDateFormat.
-     * Gets the string for the specified time zone.
-     * @param zid The time zone ID
-     * @param type The type of zone string
-     * @param cal The calendar to use
-     * @return A metazone info structure, returning the desired metazone string and the
-     *         metazone ID.
-     * @internal
-     * @deprecated This API is ICU internal only.
-     */
-
-    MetazoneInfo getMetazoneInfo(String zid, int type, Calendar cal) {
-        // Try local zone item info first
-        MetazoneInfo mzInfo = getMetazoneInfo(getLocalZoneItemInfo(), zid, type, cal);
-        if (mzInfo == null) {
-            // Fallback to the default info
-            mzInfo = getMetazoneInfo(getDefaultZoneItemInfo(), zid, type, cal);
-        }
-        return mzInfo;
-    }
-
-    /*
-     * Package private: used by SimpleDateFormat.
-     * Gets the metazone string from the specified zone item info
-     * @param zinfo The zone item info
-     * @param zid The time zone ID
-     * @param type The type of zone string
-     * @param cal The calendar to use
-     * @return A metazone info structure, returning the desired metazone string and the
-     *         metazone ID.
-     * @internal
-     * @deprecated This API is ICU internal only.
-     */
-    private MetazoneInfo getMetazoneInfo(ZoneItemInfo zinfo, String zid, int type, Calendar cal) {
-
-        MetazoneInfo mz = new MetazoneInfo();
-
-        if (zinfo == null) {
-            return null;
-        }
-        String[] names = (String[])zinfo.tzidMap.get(zid);
-        if ( names == null ) {
-           return null;
-        }
-
-        SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm");
-        df.setTimeZone(TimeZone.getTimeZone(zid));
-        String theTime = df.format(cal.getTime());
-        int mz_index = 8;
-        while ( mz_index < names.length ) {
-            if ( names[mz_index] != null && 
-                 names[mz_index+1].compareTo(theTime) <= 0 &&  
-                 names[mz_index+2].compareTo(theTime) >  0 ) {
-                     mz.mzid = "meta/"+names[mz_index];
-                     mz.value = getZoneString(zinfo,mz.mzid,type);
-                     return mz;
-            } 
-            mz_index += 3;
-        }
-        return null;
-    }
-
-    boolean isCommonlyUsed(String zid) {
-
-        if ( zid == null || zid.length() == 0 ) {
-            return false;
-        }
-
-        String key = zid.replace('/',':');
-        for (ULocale tempLocale = requestedLocale; tempLocale != null; tempLocale = tempLocale.getFallback()) {
-            UResourceBundle rb = UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, tempLocale);
-            UResourceBundle zoneArray;
-            try {
-                zoneArray = rb.get("zoneStrings");
-            } catch (MissingResourceException ex) {
-                continue;
-            }
-
-            UResourceBundle zoneItem;
-            try {
-                zoneItem = zoneArray.get(key);
-            } catch (MissingResourceException ex) {
-                continue;
-            }
-
-            UResourceBundle cuRes;
-            try {
-                cuRes = zoneItem.get(COMMONLY_USED);
-            } catch (MissingResourceException ex) {
-                continue;
-            }
-            int cuValue = cuRes.getInt();
-            if ( cuValue == 1 ) {
-                return true;
-            }
-            else {
-                return false;
-            }
-            
-        }
-        return false;    
-    }
-
     class ZoneItem{
         String value;
         int type;
         String zid;
     }
 
-    /*
+    /**
      * Package private: used by SimpleDateformat
      * Gets the ZoneItem instance which has zone strings
      * which matches the specified text.
@@ -1462,9 +1270,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
             // clone the last match for next time
             // only when the substring completely matches
             // with the value resolved
-            if (item.zid.startsWith("meta")) {
-                item.zid = resolveParsedMetazone(item.zid);
-            } 
             lastZoneItem = new ZoneItem();
             lastZoneItem.type = item.type;
             lastZoneItem.value = item.value;
@@ -1473,40 +1278,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
         return item;
     }
 
-    private String resolveParsedMetazone( String zid ) {
-
-        String result = null;
-        UResourceBundle supplementalDataBundle = UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, "supplementalData", ICUResourceBundle.ICU_DATA_CLASS_LOADER);
-
-        if ( supplementalDataBundle == null ) {
-            return("Etc/GMT");
-        }
-
-        UResourceBundle r1 = supplementalDataBundle.get("mapTimezones");
-        UResourceBundle metazoneMap = r1.get("metazones");
-
-        String  mzMapkey = zid.replace('/',':');
-
-        try {
-            result = metazoneMap.getString(mzMapkey+"_"+country);
-        } catch (MissingResourceException ex) {
-            try {
-                result = metazoneMap.getString(mzMapkey+"_001");
-            } catch (MissingResourceException ex1) {
-                return("Etc/GMT");
-            }
-        }
-        
-        return result;
-    }
-
-    /* Package private: used by SimpleDateFormat */
-    class MetazoneInfo {
-        String mzid;
-        String value;
-    }
-
-    /*
+    /**
      * A class holds zone strings and searchable indice
      */
     private class ZoneItemInfo {
@@ -1515,22 +1287,22 @@ public class DateFormatSymbols implements Serializable, Cloneable {
         TextTrieMap tzStringMap;
     }
 
-    /*
+    /**
      * A cache for ZoneItemInfo objects, shared by class instances.
      */
     private static ICUCache zoneItemInfoCache = new SimpleCache();
 
-    /*
+    /**
      * A ZoneItemInfo instance which holds custom timezone strings
      */
     private transient ZoneItemInfo localZoneItemInfo;
 
-    /*
+    /**
      * Single entry cache for findZoneTypeValue()
      */
     private transient ZoneItem lastZoneItem;
 
-    /*
+    /**
      * Gets the ZoneItemInfo instance for the locale used by this object.
      * If it does not exist, create new one and register in the static cache.
      */
@@ -1540,133 +1312,98 @@ public class DateFormatSymbols implements Serializable, Cloneable {
             return zii;
         }
         zii = getZoneItemInfo(getDefaultZoneStrings(requestedLocale));
+        // Add fallback display names
+        String[] zoneIDs = TimeZone.getAvailableIDs();
+        for (int i = 0; i < zoneIDs.length; i++) {
+            Object o = zii.tzidMap.get(zoneIDs[i]);
+            if (o != null) {
+                // Already has names
+                continue;
+            }
+            String value = ZoneMeta.displayFallback(zoneIDs[i], null, requestedLocale);
+            if (value != null) {
+                String[] strings = new String[8];
+                strings[5] = value;
+                zii.tzidMap.put(zoneIDs[i], strings);
+                
+                ZoneItem item = new ZoneItem();
+                item.zid = zoneIDs[i];
+                item.value = value;
+                item.type = TIMEZONE_EXEMPLAR_CITY;
+                zii.tzStringMap.put(item.value, item);
+            }
+        }
         zoneItemInfoCache.put(requestedLocale, zii);
         return zii;
     }
 
-    private static String getZoneStringFromBundles(ICUResourceBundle [] z, String zone, String type) {
-        String zoneKey = zone.replace('/', ':');
-        for ( int i = 0 ; i < z.length ; i++ ) {
-            ICUResourceBundle zoneTable = z[i];
-            String result = null;
-            try {
-                result = zoneTable.getStringWithFallback(zoneKey+"/"+type);
-            } catch (MissingResourceException ex) {
-                // throw away the exception   
-            }
-            if ( result != null ) {
-                return result;
-            }
-        }
-        return null;
-    }
-
-    private static ICUResourceBundle getUsesMetazoneFromBundles(ICUResourceBundle [] z, String zone) {
-        String zoneKey = zone.replace('/', ':');
-        for ( int i = 0 ; i < z.length ; i++ ) {
-            ICUResourceBundle zoneTable = z[i];
-            ICUResourceBundle result = null;
-            try {
-                result = zoneTable.getWithFallback(zoneKey+"/"+USES_METAZONE);
-            } catch (MissingResourceException ex) {
-                // throw away the exception   
-            }
-            if ( result != null ) {
-                return result;
-            }
-        }
-        return null;
-    }
-
-    /*
+    /**
      * Gets the array of zone strings for the specified locale.
      */
     private static String[][] getDefaultZoneStrings(ULocale locale) {
         ArrayList tmpList = new ArrayList();
-        ArrayList zoneStringsBundleList = new ArrayList();
-
+        HashSet tmpSet = new HashSet();
         for (ULocale tempLocale = locale; tempLocale != null; tempLocale = tempLocale.getFallback()) {
             ICUResourceBundle bundle = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, tempLocale);
             ICUResourceBundle zoneStringsBundle = bundle.getWithFallback("zoneStrings");
-            if (zoneStringsBundle != null)
-               zoneStringsBundleList.add(zoneStringsBundle);
+            for(int i = 0; i < zoneStringsBundle.getSize(); i++){
+                ICUResourceBundle zoneTable = zoneStringsBundle.get(i);
+                String key = Utility.replaceAll(zoneTable.getKey(), ":", "/");
+                // hack for the root zone strings
+                if(key.length() == 0|| zoneTable.getType() != ICUResourceBundle.TABLE){
+                    continue;
+                }
+                if (tmpSet.contains(key)) {
+                    // only add if we don't have already
+                    continue;
+                }
+                String[] strings = new String[8];
+                strings[0] = key;
+                try {
+                    strings[1] = zoneTable.getStringWithFallback(LONG_STANDARD);
+                } catch (MissingResourceException ex) {
+                    // throw away the exception   
+                }
+                try {
+                    strings[2] = zoneTable.getStringWithFallback(SHORT_STANDARD);
+                } catch (MissingResourceException ex) {
+                    // throw away the exception   
+                }
+                try {
+                    strings[3] = zoneTable.getStringWithFallback(LONG_DAYLIGHT);
+                } catch (MissingResourceException ex) {
+                    // throw away the exception   
+                }
+                try {
+                    strings[4] = zoneTable.getStringWithFallback(SHORT_DAYLIGHT);
+                } catch (MissingResourceException ex) {
+                    //  throw away the exception    
+                }
+                try {
+                    String city = zoneTable.getStringWithFallback(EXEMPLAR_CITY);
+                    strings[5] = ZoneMeta.displayFallback(key, city, tempLocale);
+                } catch (MissingResourceException ex) {
+                    // throw away the exception   
+                }
+                try {
+                    strings[6] = zoneTable.getStringWithFallback(LONG_GENERIC);
+                } catch (MissingResourceException ex) {
+                    // throw away the exception                 
+                }
+                try {
+                    strings[7] = zoneTable.getStringWithFallback(SHORT_GENERIC);
+                } catch (MissingResourceException ex) {
+                    // throw away the exception   
+                }
+                tmpList.add(strings);
+            }
         }
-
-        ICUResourceBundle [] zoneStringsBundles = new ICUResourceBundle[zoneStringsBundleList.size()];
-        zoneStringsBundleList.toArray(zoneStringsBundles);
-
-        String[] zoneIDs = TimeZone.getAvailableIDs();
-
-        ArrayList usedMetazones = new ArrayList();
-
-        for(int i = 0; i < zoneIDs.length; i++){
-           // Skip IDs that are not canonicalized...
-           if ( ! zoneIDs[i].equals(ZoneMeta.getCanonicalID(zoneIDs[i])))
-              continue;
-
-           String[] strings = new String[38];
-           strings[0] = zoneIDs[i];
-           strings[1] = getZoneStringFromBundles(zoneStringsBundles,zoneIDs[i],LONG_STANDARD);
-           strings[2] = getZoneStringFromBundles(zoneStringsBundles,zoneIDs[i],SHORT_STANDARD);
-           strings[3] = getZoneStringFromBundles(zoneStringsBundles,zoneIDs[i],LONG_DAYLIGHT);
-           strings[4] = getZoneStringFromBundles(zoneStringsBundles,zoneIDs[i],SHORT_DAYLIGHT);
-           String city = getZoneStringFromBundles(zoneStringsBundles,zoneIDs[i],EXEMPLAR_CITY);
-           strings[5] = ZoneMeta.displayFallback(zoneIDs[i],city,locale);
-           strings[6] = getZoneStringFromBundles(zoneStringsBundles,zoneIDs[i],LONG_GENERIC);
-           strings[7] = getZoneStringFromBundles(zoneStringsBundles,zoneIDs[i],SHORT_GENERIC);
-
-           int mz=0;
-           int zstring_pos = 8;
-           boolean mz_done = false;
-           ICUResourceBundle uses_mz = null;
-
-           if ( ! zoneIDs[i].startsWith("meta") ) {
-              uses_mz = getUsesMetazoneFromBundles(zoneStringsBundles,zoneIDs[i]);
-           } 
-
-           while ( (uses_mz != null) && !mz_done) {
-              ICUResourceBundle current_mz = null;
-              try {
-                 current_mz = uses_mz.getWithFallback(METAZONE+String.valueOf(mz)); 
-              } catch (MissingResourceException ex) {
-                 mz_done = true;
-              }
-
-              if ( !mz_done ) {
-                 String [] um_str = current_mz.getStringArray();
-                 strings[zstring_pos++] = um_str[0];
-                 strings[zstring_pos++] = um_str[1];
-                 strings[zstring_pos++] = um_str[2];
-                 if (!usedMetazones.contains(um_str[0]))
-                    usedMetazones.add(um_str[0]);
-              }
-              mz++; 
-           }
-
-           tmpList.add(strings);
-        }
-
-        for( int i = 0; i < usedMetazones.size(); i++) {
-           String[] strings = new String[38];
-           String key = "meta/"+usedMetazones.get(i);
-           strings[0] = key;
-           strings[1] = getZoneStringFromBundles(zoneStringsBundles,key,LONG_STANDARD);
-           strings[2] = getZoneStringFromBundles(zoneStringsBundles,key,SHORT_STANDARD);
-           strings[3] = getZoneStringFromBundles(zoneStringsBundles,key,LONG_DAYLIGHT);
-           strings[4] = getZoneStringFromBundles(zoneStringsBundles,key,SHORT_DAYLIGHT);
-           strings[6] = getZoneStringFromBundles(zoneStringsBundles,key,LONG_GENERIC);
-           strings[7] = getZoneStringFromBundles(zoneStringsBundles,key,SHORT_GENERIC);
-
-           tmpList.add(strings);
-        }
-
-        String[][] array = new String[tmpList.size()][38];
+        String[][] array = new String[tmpList.size()][8];
         tmpList.toArray(array);
-
         return array;
     }
 
-    /*
+    /**
      * Gets the array of zone strings for the custom zone strings
      */
     private ZoneItemInfo getLocalZoneItemInfo() {
@@ -1676,7 +1413,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
         return localZoneItemInfo;
     }
 
-    /*
+    /**
      * Creates a new ZoneItemInfo instance from the array of time zone
      * strings.
      */
@@ -1689,7 +1426,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
             String zid = strings[i][0];
             if (zid != null && zid.length() > 0) {
                 zii.tzidMap.put(zid, strings[i]);
-                int nameCount = strings[i].length < 38 ? strings[i].length : 38;
+                int nameCount = strings[i].length < 8 ? strings[i].length : 8;
                 for (int j = 1; j < nameCount; j++) {
                     if (strings[i][j] != null) {
                         // map zoneStrings array index to timezone name type
@@ -1708,17 +1445,25 @@ public class DateFormatSymbols implements Serializable, Cloneable {
                             type = TIMEZONE_SHORT_DAYLIGHT;
                             break;
                         case 5:
-                            type = TIMEZONE_EXEMPLAR_CITY;
+                            if (nameCount == 6 || nameCount == 8) {
+                                type = TIMEZONE_EXEMPLAR_CITY;
+                            } else {
+                                type = TIMEZONE_LONG_GENERIC;
+                            }
                             break;
                         case 6:
-                            type = TIMEZONE_LONG_GENERIC;
+                            if (nameCount == 8) {
+                                type = TIMEZONE_LONG_GENERIC;
+                            } else {
+                                type = TIMEZONE_SHORT_GENERIC;
+                            }
                             break;
                         case 7:
                             type = TIMEZONE_SHORT_GENERIC;
                             break;
                         default:
-                            type = TIMEZONE_METAZONE_MAPPING;
-                            break;
+                            // never occur
+                            continue;
                         }
                         ZoneItem item = new ZoneItem();
                         item.zid = zid;
@@ -1732,13 +1477,15 @@ public class DateFormatSymbols implements Serializable, Cloneable {
         return zii;
     }
 
-    /*
+    /**
      * save the input locale
      */
     private ULocale requestedLocale; 
  
-    /*
+    /**
      * The translation type of the translated zone strings
+     * @internal ICU 3.6
+     * @deprecated This API is ICU internal only.
      */
      private static final String   SHORT_GENERIC  = "sg",
                                    SHORT_STANDARD = "ss",
@@ -1746,12 +1493,11 @@ public class DateFormatSymbols implements Serializable, Cloneable {
                                    LONG_GENERIC   = "lg",
                                    LONG_STANDARD  = "ls",
                                    LONG_DAYLIGHT  = "ld",
-                                   EXEMPLAR_CITY  = "ec",
-                                   USES_METAZONE  = "um",
-                                   METAZONE       = "mz",
-                                   COMMONLY_USED  = "cu";
-    /*
+                                   EXEMPLAR_CITY  = "ec";
+    /**
      * The translation type of the translated zone strings
+     * @internal ICU 3.6
+     * @deprecated This API is ICU internal only.
      */
      static final int   TIMEZONE_SHORT_GENERIC  = 0,
                         TIMEZONE_SHORT_STANDARD = 1,
@@ -1760,8 +1506,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
                         TIMEZONE_LONG_STANDARD  = 4,
                         TIMEZONE_LONG_DAYLIGHT  = 5,
                         TIMEZONE_EXEMPLAR_CITY  = 6,
-                        TIMEZONE_METAZONE_MAPPING  = 7,
-                        TIMEZONE_COUNT          = 8;
+                        TIMEZONE_COUNT          = 7;
 
      /*
      * Package private: used by SimpleDateFormat
@@ -1805,7 +1550,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
         return -1;
     }*/
 
-    /*
+    /**
      * Clones an array of Strings.
      * @param srcArray the source array to be cloned.
      * @return a cloned array.
@@ -1823,7 +1568,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
         return aCopy;
     }
 
-    /*
+    /**
      * Compares the equality of the two arrays of String.
      * @param current this String array.
      * @param other that String array.
@@ -1962,7 +1707,8 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * @param locale    The ulocale whose symbols are desired.
      *
      * @see DateFormatSymbols#DateFormatSymbols(java.util.Locale)
-     * @stable ICU 3.8
+     * @draft ICU 3.2
+     * @provisional This API might change or be removed in a future release.
      */
     public DateFormatSymbols(Calendar cal, ULocale locale) {
         initializeData(locale, cal.getType());
@@ -1982,7 +1728,8 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * Variant of DateFormatSymbols(Calendar, ULocale) that takes the Calendar class
      * instead of a Calandar instance.
      * @see #DateFormatSymbols(Calendar, Locale)
-     * @stable ICU 3.8
+     * @draft ICU 3.2
+     * @provisional This API might change or be removed in a future release.
      */
     public DateFormatSymbols(Class calendarClass, ULocale locale) {
         String fullName = calendarClass.getName();
@@ -2009,7 +1756,8 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * bundle.  Symbols that are not overridden are inherited from the
      * default DateFormatSymbols for the locale.
      * @see DateFormatSymbols#DateFormatSymbols(java.util.Locale)
-     * @stable ICU 3.8
+     * @draft ICU 3.2
+     * @provisional This API might change or be removed in a future release.
      */
     public DateFormatSymbols(ResourceBundle bundle, ULocale locale) {
         initializeData(locale, 
@@ -2041,7 +1789,8 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * (just before the class name) and "Symbols" appended to the end.
      * For example, the bundle corresponding to "com.ibm.icu.util.HebrewCalendar"
      * is "com.ibm.icu.impl.data.HebrewCalendarSymbols".
-     * @stable ICU 3.8
+     * @draft ICU 3.2
+     * @provisional This API might change or be removed in a future release.
      */
     static public ResourceBundle getDateFormatBundle(Class calendarClass, ULocale locale)
         throws MissingResourceException {
@@ -2087,7 +1836,8 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * Variant of getDateFormatBundle(java.lang.Class, java.util.Locale) that takes
      * a Calendar instance instead of a Calendar class.
      * @see #getDateFormatBundle(java.lang.Class, java.util.Locale)
-     * @stable ICU 3.8
+     * @draft ICU 3.2
+     * @provisional This API might change or be removed in a future release.
      */
     public static ResourceBundle getDateFormatBundle(Calendar cal, ULocale locale)
         throws MissingResourceException {
@@ -2125,7 +1875,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
             this.actualLocale : this.validLocale;
     }
 
-    /*
+    /**
      * Set information about the locales that were used to create this
      * object.  If the object was not constructed from locale data,
      * both arguments should be set to null.  Otherwise, neither
@@ -2140,6 +1890,8 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * @see com.ibm.icu.util.ULocale
      * @see com.ibm.icu.util.ULocale#VALID_LOCALE
      * @see com.ibm.icu.util.ULocale#ACTUAL_LOCALE
+     * @internal
+     * @deprecated This API is ICU internal only.
      */
     final void setLocale(ULocale valid, ULocale actual) {
         // Change the following to an assertion later
@@ -2154,16 +1906,20 @@ public class DateFormatSymbols implements Serializable, Cloneable {
         this.actualLocale = actual;
     }
 
-    /*
+    /**
      * The most specific locale containing any resource data, or null.
      * @see com.ibm.icu.util.ULocale
+     * @internal
+     * @deprecated This API is ICU internal only.
      */
     private ULocale validLocale;
 
-    /*
+    /**
      * The locale containing data used to construct this object, or
      * null.
      * @see com.ibm.icu.util.ULocale
+     * @internal
+     * @deprecated This API is ICU internal only.
      */
     private ULocale actualLocale;
 

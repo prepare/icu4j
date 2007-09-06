@@ -1,12 +1,11 @@
-//##header J2SE15
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
+//##header
 /*
  *******************************************************************************
  * Copyright (C) 2002-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
+//#ifndef FOUNDATION
 package com.ibm.icu.dev.test.util;
 
 import java.io.BufferedReader;
@@ -73,10 +72,7 @@ public class FileUtilities {
     }
     
     public static String anchorize(String source) {
-        String result = source.toLowerCase(Locale.ENGLISH).replaceAll("[^\\p{L}\\p{N}]+", "_");
-        if (result.endsWith("_")) result = result.substring(0,result.length()-1);
-        if (result.startsWith("_")) result = result.substring(1);
-    	return result;
+    	return source.toLowerCase(Locale.ENGLISH).replaceAll("\\P{L}", "_");
     }
 }
 //#endif

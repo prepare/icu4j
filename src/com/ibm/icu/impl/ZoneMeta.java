@@ -1,6 +1,6 @@
 /*
 **********************************************************************
-* Copyright (c) 2003-2007 International Business Machines
+* Copyright (c) 2003-2006, International Business Machines
 * Corporation and others.  All Rights Reserved.
 **********************************************************************
 * Author: Alan Liu
@@ -11,11 +11,15 @@
 package com.ibm.icu.impl;
 
 import java.text.ParsePosition;
+import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.MissingResourceException;
 import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.Vector;
 
 import com.ibm.icu.text.MessageFormat;
@@ -25,7 +29,6 @@ import com.ibm.icu.util.SimpleTimeZone;
 import com.ibm.icu.util.TimeZone;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.UResourceBundle;
-import com.ibm.icu.util.UResourceBundleIterator;
 
 /**
  * This class, not to be instantiated, implements the meta-data
@@ -59,21 +62,21 @@ public final class ZoneMeta {
             return EMPTY;
         }
         try{
-            UResourceBundle top = (ICUResourceBundle)ICUResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, "zoneinfo", ICUResourceBundle.ICU_DATA_CLASS_LOADER);
-            UResourceBundle regions = top.get(kREGIONS);
-            UResourceBundle names = top.get(kNAMES); // dereference Zones section
-            UResourceBundle temp = regions.get(country);
-            int[] vector = temp.getIntVector();
-            if (ASSERT) Assert.assrt("vector.length>0", vector.length>0);
-            String[] ret = new String[vector.length];
-            for (int i=0; i<vector.length; ++i) {
-                if (ASSERT) Assert.assrt("vector[i] >= 0 && vector[i] < OLSON_ZONE_COUNT", 
-                        vector[i] >= 0 && vector[i] < OLSON_ZONE_COUNT);
-                ret[i] = names.getString(vector[i]);
-            }
-            return ret;
+	        ICUResourceBundle top = (ICUResourceBundle)ICUResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, "zoneinfo", ICUResourceBundle.ICU_DATA_CLASS_LOADER);
+	        ICUResourceBundle regions = top.get(kREGIONS);
+	        ICUResourceBundle names = top.get(kNAMES); // dereference Zones section
+	        ICUResourceBundle temp = regions.get(country);
+	        int[] vector = temp.getIntVector();
+	        if (ASSERT) Assert.assrt("vector.length>0", vector.length>0);
+	        String[] ret = new String[vector.length];
+	        for (int i=0; i<vector.length; ++i) {
+	        	if (ASSERT) Assert.assrt("vector[i] >= 0 && vector[i] < OLSON_ZONE_COUNT", 
+	        			vector[i] >= 0 && vector[i] < OLSON_ZONE_COUNT);
+	            ret[i] = names.getString(vector[i]);
+	        }
+	        return ret;
         }catch(MissingResourceException ex){
-            //throw away the exception
+        	//throw away the exception
         }
         return EMPTY;
     }
@@ -82,8 +85,8 @@ public final class ZoneMeta {
             return EMPTY;
         }
         try{
-            UResourceBundle top = (ICUResourceBundle)ICUResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, "zoneinfo", ICUResourceBundle.ICU_DATA_CLASS_LOADER);
-            UResourceBundle names = top.get(kNAMES); // dereference Zones section
+            ICUResourceBundle top = (ICUResourceBundle)ICUResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, "zoneinfo", ICUResourceBundle.ICU_DATA_CLASS_LOADER);
+            ICUResourceBundle names = top.get(kNAMES); // dereference Zones section
             return names.getStringArray();
         }catch(MissingResourceException ex){
             //throw away the exception
@@ -113,8 +116,8 @@ public final class ZoneMeta {
     }
     private static String getID(int i) {
         try{
-            UResourceBundle top = (ICUResourceBundle)ICUResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, "zoneinfo", ICUResourceBundle.ICU_DATA_CLASS_LOADER);
-            UResourceBundle names = top.get(kNAMES); // dereference Zones section
+            ICUResourceBundle top = (ICUResourceBundle)ICUResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, "zoneinfo", ICUResourceBundle.ICU_DATA_CLASS_LOADER);
+            ICUResourceBundle names = top.get(kNAMES); // dereference Zones section
             return names.getString(i);
         }catch(MissingResourceException ex){
             //throw away the exception
@@ -136,10 +139,10 @@ public final class ZoneMeta {
      */
     public static synchronized int countEquivalentIDs(String id) {
 
-        UResourceBundle res = openOlsonResource(id);
+        ICUResourceBundle res = openOlsonResource(id);
         int size = res.getSize();
         if (size == 4 || size == 6) {
-            UResourceBundle r=res.get(size-1);
+            ICUResourceBundle r=res.get(size-1);
             //result = ures_getSize(&r); // doesn't work
             int[] v = r.getIntVector();
             return v.length;
@@ -167,82 +170,72 @@ public final class ZoneMeta {
      */
     public static synchronized String getEquivalentID(String id, int index) {
         String result="";
-        UResourceBundle res = openOlsonResource(id);
+        ICUResourceBundle res = openOlsonResource(id);
         int zone = -1;
         int size = res.getSize();
         if (size == 4 || size == 6) {
-            UResourceBundle r = res.get(size-1);
+            ICUResourceBundle r = res.get(size-1);
             int[] v = r.getIntVector();
-            if (index >= 0 && index < v.length && getOlsonMeta()) {
+            if (index >= 0 && index < size && getOlsonMeta()) {
                 zone = v[index];
             }
         }
         if (zone >= 0) {
-            UResourceBundle top = UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, "zoneinfo", ICUResourceBundle.ICU_DATA_CLASS_LOADER);
-            UResourceBundle ares = top.get(kNAMES); // dereference Zones section
+        	ICUResourceBundle top = (ICUResourceBundle)ICUResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, "zoneinfo", ICUResourceBundle.ICU_DATA_CLASS_LOADER);
+            ICUResourceBundle ares = top.get(kNAMES); // dereference Zones section
             result = ares.getString(zone);
 
         }
         return result;
     }
 
+    /**
+     * Create the equivalency map.
+     *
+    private static void createEquivMap() {
+        EQUIV_MAP = new TreeMap();
+
+        // try leaving all ids as valid
+//         Set valid = getValidIDs();
+
+        ArrayList list = new ArrayList(); // reuse this below
+
+        for (int i=0; i<ZoneMetaData.EQUIV.length; ++i) {
+            String[] z = ZoneMetaData.EQUIV[i];
+            list.clear();
+            for (int j=0; j<z.length; ++j) {
+//                  if (valid.contains(z[j])) {
+                    list.add(z[j]);
+//                  }
+            }
+            if (list.size() > 1) {
+                String[] a = (String[]) list.toArray(EMPTY);
+                for (int j=0; j<a.length; ++j) {
+                    EQUIV_MAP.put(a[j], a);
+                }
+            }
+        }
+    }
+ */
     private static String[] getCanonicalInfo(String id) {
         if (canonicalMap == null) {
             Map m = new HashMap();
-            Set s = new HashSet();
-            UResourceBundle supplementalDataBundle = UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, "supplementalData", ICUResourceBundle.ICU_DATA_CLASS_LOADER);
-
-            UResourceBundle zoneFormatting = supplementalDataBundle.get("zoneFormatting");
-            UResourceBundleIterator it = zoneFormatting.getIterator();
-
-            while ( it.hasNext()) {
-                UResourceBundle temp = it.next();
-                int resourceType = temp.getType();
-
-                switch(resourceType) {
-                    case UResourceBundle.TABLE:
-                        String [] result = { "", "" };
-                        UResourceBundle zoneInfo = temp;
-                        String canonicalID = zoneInfo.getKey().replace(':','/');
-                        String territory = zoneInfo.get("territory").getString();
-                        result[0] = canonicalID;
-                        if ( territory.equals("001")) {
-                            result[1] = null;
-                        }
-                        else {
-                            result[1] = territory;
-                        }
-                        m.put(canonicalID,result);
-                        try {
-                            UResourceBundle aliasBundle = zoneInfo.get("aliases");
-                            String [] aliases = aliasBundle.getStringArray();
-                            for (int i=0 ; i<aliases.length; i++) {
-                               m.put(aliases[i],result);
-                            }
-                        } catch(MissingResourceException ex){
-                            // Disregard if there are no aliases
-                        }
-                        break;
-                    case UResourceBundle.ARRAY:
-                        String[] territoryList = temp.getStringArray();
-                        for (int i=0 ; i < territoryList.length; i++) {
-                            s.add(territoryList[i]);
-                        }
-                        break;
+            for (int i = 0; i < ZoneInfoExt.CLDR_INFO.length; ++i) {
+                String[] clist = ZoneInfoExt.CLDR_INFO[i];
+                String c = clist[0];
+                m.put(c, clist);
+                for (int j = 3; j < clist.length; ++j) {
+                    m.put(clist[j], clist);
                 }
             }
-
             synchronized (ZoneMeta.class) {
                 canonicalMap = m;
-                multiZoneTerritories = s;
             }
         }
 
         return (String[])canonicalMap.get(id);
     }
-
     private static Map canonicalMap = null;
-    private static Set multiZoneTerritories = null;
 
     /**
      * Return the canonical id for this tzid, which might be the id itself.
@@ -276,7 +269,7 @@ public final class ZoneMeta {
      */
     public static String getSingleCountry(String tzid) {
         String[] info = getCanonicalInfo(tzid);
-        if (info != null && info[1] != null && !multiZoneTerritories.contains(info[1])) {
+        if (info != null && info[2] != null) {
             return info[1];
         }
         return null;
@@ -300,27 +293,15 @@ public final class ZoneMeta {
         if (country_code != null) {
             ICUResourceBundle rb = 
                 (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, locale);
-//
-// TODO: There is a design bug in UResourceBundle and getLoadingStatus() does not work well.
-//
-//            if (rb.getLoadingStatus() != ICUResourceBundle.FROM_ROOT && rb.getLoadingStatus() != ICUResourceBundle.FROM_DEFAULT) {
-//                country = ULocale.getDisplayCountry("xx_" + country_code, locale);
-//            }
-//            if (country == null || country.length() == 0) country = country_code;
-// START WORKAROUND
-            ULocale rbloc = rb.getULocale();
-            if (!rbloc.equals(ULocale.ROOT) && rbloc.getLanguage().equals(locale.getLanguage())) {
+            if (rb.getLoadingStatus() != rb.FROM_ROOT && rb.getLoadingStatus() != rb.FROM_DEFAULT) {
                 country = ULocale.getDisplayCountry("xx_" + country_code, locale);
             }
-            if (country == null || country.length() == 0) {
-                country = country_code;
-            }
-// END WORKAROUND
+            if (country == null || country.length() == 0) country = country_code;
         }
         
         // This is not behavior specified in tr35, but behavior added by Mark.  
         // TR35 says to display the country _only_ if there is a localization.
-        if (getSingleCountry(tzid) != null) { // single country
+        if (info[2] != null) { // single country
             return displayRegion(country, locale);
         }
 
@@ -341,10 +322,7 @@ public final class ZoneMeta {
     }
 
     public static String displayGMT(long value, ULocale locale) {
-        //TODO: revisit after 3.8
-
-        String msgpat = "GMT{0}"; // Parser code is not quite ready to accept localized GMT string as of 3.8
-        //String msgpat = getTZLocalizationInfo(locale, GMT);
+        String msgpat = getTZLocalizationInfo(locale, GMT);
         String dtepat = getTZLocalizationInfo(locale, HOUR);
         
         int n = dtepat.indexOf(';');
@@ -357,8 +335,8 @@ public final class ZoneMeta {
             }
         }
 
-        //final long mph = 3600000;
-        //final long mpm = 60000;
+        final long mph = 3600000;
+        final long mpm = 60000;
 
         SimpleDateFormat sdf = new SimpleDateFormat(dtepat, locale);
         sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
@@ -385,14 +363,14 @@ public final class ZoneMeta {
         return bundle.getStringWithFallback(ZONE_STRINGS+FORWARD_SLASH+format);
     }
 
-//    private static Set getValidIDs() {
-//        // Construct list of time zones that are valid, according
-//        // to the current underlying core JDK.  We have to do this
-//        // at runtime since we don't know what we're running on.
-//        Set valid = new TreeSet();
-//        valid.addAll(Arrays.asList(java.util.TimeZone.getAvailableIDs()));
-//        return valid;
-//    }
+    private static Set getValidIDs() {
+        // Construct list of time zones that are valid, according
+        // to the current underlying core JDK.  We have to do this
+        // at runtime since we don't know what we're running on.
+        Set valid = new TreeSet();
+        valid.addAll(Arrays.asList(java.util.TimeZone.getAvailableIDs()));
+        return valid;
+    }
 
     /**
      * Empty string array.
@@ -405,21 +383,22 @@ public final class ZoneMeta {
      * Given an ID, open the appropriate resource for the given time zone.
      * Dereference aliases if necessary.
      * @param id zone id
+     * @param res resource, which must be ready for use (initialized but not open)
      * @return top-level resource bundle
      */
-    public static UResourceBundle openOlsonResource(String id)
+    public static ICUResourceBundle openOlsonResource(String id)
     {
         if(!getOlsonMeta()){
             return null;
         }
-        ICUResourceBundle top = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, "zoneinfo", ICUResourceBundle.ICU_DATA_CLASS_LOADER);
-        UResourceBundle res = getZoneByName(top, id);
+        ICUResourceBundle top = (ICUResourceBundle)ICUResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, "zoneinfo", ICUResourceBundle.ICU_DATA_CLASS_LOADER);
+        ICUResourceBundle res = getZoneByName(top, id);
         // Dereference if this is an alias.  Docs say result should be 1
         // but it is 0 in 2.8 (?).
          if (res.getSize() <= 1 && getOlsonMeta(top)) {
             int deref = res.getInt() + 0;
-            UResourceBundle ares = top.get(kZONES); // dereference Zones section
-            res = (ICUResourceBundle) ares.get(deref);
+            ICUResourceBundle ares = top.get(kZONES); // dereference Zones section
+            res = ares.get(deref);
         } 
         return res;
     }
@@ -429,16 +408,16 @@ public final class ZoneMeta {
      * @param id Time zone ID
      * @return the zone's bundle if found, or undefined if error.  Reuses oldbundle.
      */
-    private static UResourceBundle getZoneByName(UResourceBundle top, String id) {
+    private static ICUResourceBundle getZoneByName(ICUResourceBundle top, String id) {
         // load the Rules object
-        UResourceBundle tmp = top.get(kNAMES);
+        ICUResourceBundle tmp = top.get(kNAMES);
         
         // search for the string
         int idx = findInStringArray(tmp, id);
         
         if((idx == -1)) {
             // not found 
-            throw new MissingResourceException(kNAMES, ((ICUResourceBundle)tmp).getResPath(), id);
+            throw new MissingResourceException(kNAMES, tmp.resPath, id);
             //ures_close(oldbundle);
             //oldbundle = NULL;
         } else {
@@ -447,7 +426,7 @@ public final class ZoneMeta {
         }
         return tmp;
     }
-    private static int findInStringArray(UResourceBundle array, String id){
+    private static int findInStringArray(ICUResourceBundle array, String id){
         int start = 0;
         int limit = array.getSize();
         int mid;
@@ -477,12 +456,17 @@ public final class ZoneMeta {
         }
         return -1;
     }
+    private static final String kZONEINFO = "zoneinfo";
     private static final String kREGIONS  = "Regions";
     private static final String kZONES    = "Zones";
+    private static final String kRULES    = "Rules";
     private static final String kNAMES    = "Names";
+    private static final String kDEFAULT  = "Default";
     private static final String kGMT_ID   = "GMT";
-    private static final String kRFC_TZ_PREFIX = "GMT";
-    private static ICUCache zoneCache = new SimpleCache();
+    private static final String kCUSTOM_ID= "Custom";    
+    //private static ICUResourceBundle zoneBundle = null;
+    private static java.util.Enumeration idEnum  = null;
+    private static SoftCache zoneCache = new SoftCache();
     /**
      * The Olson data is stored the "zoneinfo" resource bundle.
      * Sub-resources are organized into three ranges of data: Zones, final
@@ -499,7 +483,7 @@ public final class ZoneMeta {
      */
     private static boolean getOlsonMeta(ICUResourceBundle top) {
         if (OLSON_ZONE_START < 0) {
-            UResourceBundle res = top.get(kZONES);
+            ICUResourceBundle res = top.get(kZONES);
             OLSON_ZONE_COUNT = res.getSize();
             OLSON_ZONE_START = 0;
         }
@@ -525,8 +509,8 @@ public final class ZoneMeta {
         TimeZone z = (TimeZone)zoneCache.get(id);
         if (z == null) {
             try{
-                UResourceBundle top = UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, "zoneinfo", ICUResourceBundle.ICU_DATA_CLASS_LOADER);
-                UResourceBundle res = openOlsonResource(id);
+                ICUResourceBundle top = (ICUResourceBundle)ICUResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, "zoneinfo", ICUResourceBundle.ICU_DATA_CLASS_LOADER);
+                ICUResourceBundle res = openOlsonResource(id);
                 z = new OlsonTimeZone(top, res);
                 z.setID(id);
                 zoneCache.put(id, z);
@@ -543,9 +527,6 @@ public final class ZoneMeta {
         return z;
     }
 
-    // Maximum value of valid custom time zone hour/min
-    private static final int kMAX_CUSTOM_HOUR = 23;
-    private static final int kMAX_CUSTOM_MIN = 59;
     /**
      * Parse a custom time zone identifier and return a corresponding zone.
      * @param id a string of the form GMT[+-]hh:mm, GMT[+-]hhmm, or
@@ -556,85 +537,68 @@ public final class ZoneMeta {
     public static TimeZone getCustomTimeZone(String id){
 
         NumberFormat numberFormat = null;
+        
         String idUppercase = id.toUpperCase();
 
         if (id.length() > kGMT_ID.length() &&
-            idUppercase.startsWith(kGMT_ID)) {
+            idUppercase.startsWith(kGMT_ID))
+        {
             ParsePosition pos = new ParsePosition(kGMT_ID.length());
             boolean negative = false;
-            int hour = 0;
-            int min = 0;
+            long offset;
 
-            if (id.charAt(pos.getIndex()) == 0x002D /*'-'*/) {
+            if (id.charAt(pos.getIndex()) == 0x002D /*'-'*/)
                 negative = true;
-            } else if (id.charAt(pos.getIndex()) != 0x002B /*'+'*/) {
+            else if (id.charAt(pos.getIndex()) != 0x002B /*'+'*/)
                 return null;
-            }
             pos.setIndex(pos.getIndex() + 1);
 
             numberFormat = NumberFormat.getInstance();
+
             numberFormat.setParseIntegerOnly(true);
 
+        
             // Look for either hh:mm, hhmm, or hh
             int start = pos.getIndex();
-
+            
             Number n = numberFormat.parse(id, pos);
             if (pos.getIndex() == start) {
                 return null;
             }
-            hour = n.intValue();
+            offset = n.longValue();
 
             if (pos.getIndex() < id.length() &&
-                id.charAt(pos.getIndex()) == 0x003A /*':'*/) {
+                id.charAt(pos.getIndex()) == 0x003A /*':'*/)
+            {
                 // hh:mm
+                offset *= 60;
                 pos.setIndex(pos.getIndex() + 1);
                 int oldPos = pos.getIndex();
                 n = numberFormat.parse(id, pos);
                 if (pos.getIndex() == oldPos) {
                     return null;
                 }
-                min = n.intValue();
-            } else {
+                offset += n.longValue();
+            }
+            else 
+            {
                 // hhmm or hh
 
                 // Be strict about interpreting something as hh; it must be
-                // an offset < 23, and it must be one or two digits. Thus
+                // an offset < 30, and it must be one or two digits. Thus
                 // 0010 is interpreted as 00:10, but 10 is interpreted as
                 // 10:00.
-                if (hour > kMAX_CUSTOM_HOUR || (pos.getIndex() - start) > 2) {
-                    min = hour % 100;
-                    hour /= 100;
-                }
+                if (offset < 30 && (pos.getIndex() - start) <= 2)
+                    offset *= 60; // hh, from 00 to 29; 30 is 00:30
+                else
+                    offset = offset % 100 + offset / 100 * 60; // hhmm
             }
 
-            if (hour > kMAX_CUSTOM_HOUR || min > kMAX_CUSTOM_MIN) {
-                return null;
-            }
-
-            // Create time zone ID in RFC822 format - GMT[+|-]hhmm
-            StringBuffer zid = new StringBuffer(kRFC_TZ_PREFIX);
-            if (hour != 0 || min != 0) {
-                if(negative) {
-                    zid.append('-');
-                } else {
-                    zid.append('+');
-                }
-                // Always use US-ASCII digits
-                if (hour < 10) {
-                    zid.append('0');
-                }
-                zid.append(hour);
-                if (min < 10) {
-                    zid.append('0');
-                }
-                zid.append(min);
-            }
-
-            int offset = (hour * 60 + min) * 60 * 1000;
-            if(negative) {
+            if(negative)
                 offset = -offset;
-            }
-            TimeZone z = new SimpleTimeZone(offset, zid.toString());
+
+            TimeZone z = new SimpleTimeZone((int)(offset * 60000), kCUSTOM_ID);
+            z.setID(kCUSTOM_ID);
             return z;
         }
         return null;

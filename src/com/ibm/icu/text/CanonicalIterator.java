@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -301,24 +301,24 @@ public final class CanonicalIterator {
             // if so, see which decompositions match
             int rangeCount = starts.countRanges();
             for(j = 0; j < rangeCount; ++j) {
-                starts.getRange(j, range);
+            	starts.getRange(j, range);
                 int end=range[1];
                 for (int cp2 = range[0]; cp2 <= end; ++cp2) {
-                    Set remainder = extract(cp2, segment, i, workingBuffer);
-                    if (remainder == null) continue;
-
-                    // there were some matches, so add all the possibilities to the set.
-                    String prefix= segment.substring(0,i);
-                    prefix += UTF16.valueOf(cp2);
-                    //int el = -1;
-                    Iterator iter = remainder.iterator();
-                    while (iter.hasNext()) {
-                        String item = (String) iter.next();
-                        String toAdd = new String(prefix);
-                        toAdd += item;
-                        result.add(toAdd);
-                        //if (PROGRESS) printf("Adding: %s\n", UToS(Tr(*toAdd)));
-                    }
+	                Set remainder = extract(cp2, segment, i, workingBuffer);
+	                if (remainder == null) continue;
+	
+	                // there were some matches, so add all the possibilities to the set.
+	                String prefix= segment.substring(0,i);
+	                prefix += UTF16.valueOf(cp2);
+	                //int el = -1;
+	                Iterator iter = remainder.iterator();
+	                while (iter.hasNext()) {
+	                    String item = (String) iter.next();
+	                    String toAdd = new String(prefix);
+	                    toAdd += item;
+	                    result.add(toAdd);
+	                    //if (PROGRESS) printf("Adding: %s\n", UToS(Tr(*toAdd)));
+	                }
                 }
             }
         }
@@ -440,7 +440,7 @@ public final class CanonicalIterator {
    // ================= BUILDER =========================
     // TODO: Flatten this data so it doesn't have to be reconstructed each time!
 
-    //private static final UnicodeSet EMPTY = new UnicodeSet(); // constant, don't change
+    private static final UnicodeSet EMPTY = new UnicodeSet(); // constant, don't change
     private static final Set SET_WITH_NULL_STRING = new HashSet(); // constant, don't change
     static {
         SET_WITH_NULL_STRING.add("");

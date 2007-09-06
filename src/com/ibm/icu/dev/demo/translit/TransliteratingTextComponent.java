@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2004, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -14,14 +14,11 @@ import com.ibm.icu.dev.demo.impl.*;
  * A subclass of {@link DumbTextComponent} that passes key events through
  * a {@link com.ibm.icu.text.Transliterator}.
  *
+ * <p>Copyright &copy; IBM Corporation 1999.  All rights reserved.
+ *
  * @author Alan Liu
  */
 public class TransliteratingTextComponent extends DumbTextComponent {
-
-    /**
-     * For serialization
-     */
-    private static final long serialVersionUID = -8672128213174154047L;
 
     private static boolean DEBUG = false;
 
@@ -37,8 +34,8 @@ public class TransliteratingTextComponent extends DumbTextComponent {
     // Index into getText() where the cursor is; cursor >= start
     //private int cursor = 0;
 
-//    private static final String COPYRIGHT =
-//        "\u00A9 IBM Corporation 1999. All rights reserved.";
+    private static final String COPYRIGHT =
+        "\u00A9 IBM Corporation 1999. All rights reserved.";
 
     /**
      * Constructor.

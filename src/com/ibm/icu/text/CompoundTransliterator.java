@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2005, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -32,6 +32,9 @@ class CompoundTransliterator extends Transliterator {
 
     private int numAnonymousRBTs = 0;
 
+    private static final String COPYRIGHT =
+        "\u00A9 IBM Corporation 1999-2001. All rights reserved.";
+
     /**
      * Constructs a new compound transliterator given an array of
      * transliterators.  The array of transliterators may be of any
@@ -45,13 +48,13 @@ class CompoundTransliterator extends Transliterator {
      * <tt>null</tt> then no filtering is applied.
      * @internal
      */
-    /*public CompoundTransliterator(Transliterator[] transliterators,
+    public CompoundTransliterator(Transliterator[] transliterators,
                                   UnicodeFilter filter) {
         super(joinIDs(transliterators), filter);
         trans = new Transliterator[transliterators.length];
         System.arraycopy(transliterators, 0, trans, 0, trans.length);
         computeMaximumContextLength();
-    }*/
+    }
 
     /**
      * Constructs a new compound transliterator given an array of
@@ -62,9 +65,9 @@ class CompoundTransliterator extends Transliterator {
      * objects
      * @internal
      */
-    /*public CompoundTransliterator(Transliterator[] transliterators) {
+    public CompoundTransliterator(Transliterator[] transliterators) {
         this(transliterators, null);
-    }*/
+    }
 
     /**
      * Constructs a new compound transliterator.
@@ -74,11 +77,11 @@ class CompoundTransliterator extends Transliterator {
      * or null
      * @internal
      */
-    /*public CompoundTransliterator(String ID, int direction,
+    public CompoundTransliterator(String ID, int direction,
                                   UnicodeFilter filter) {
         super(ID, filter);
         init(ID, direction, true);
-    }*/
+    }
 
     /**
      * Constructs a new compound transliterator with no filter.
@@ -86,18 +89,18 @@ class CompoundTransliterator extends Transliterator {
      * @param direction either Transliterator.FORWARD or Transliterator.REVERSE
      * @internal
      */
-    /*public CompoundTransliterator(String ID, int direction) {
+    public CompoundTransliterator(String ID, int direction) {
         this(ID, direction, null);
-    }*/
+    }
 
     /**
      * Constructs a new forward compound transliterator with no filter.
      * @param ID compound ID
      * @internal
      */
-    /*public CompoundTransliterator(String ID) {
+    public CompoundTransliterator(String ID) {
         this(ID, FORWARD, null);
-    }*/
+    }
 
     /**
      * Package private constructor for Transliterator from a vector of
@@ -131,7 +134,7 @@ class CompoundTransliterator extends Transliterator {
      * entries by calling getID() of component entries.  Some constructors
      * do not require this because they apply a facade ID anyway.
      */
-    /*private void init(String id,
+    private void init(String id,
                       int direction,
                       boolean fixReverseID) {
         // assert(trans == 0);
@@ -151,7 +154,7 @@ class CompoundTransliterator extends Transliterator {
         if (compoundFilter[0] != null) {
             setFilter(compoundFilter[0]);
         }
-    }*/
+    }
 
     /**
      * Finish constructing a transliterator: only to be called by
@@ -203,7 +206,7 @@ class CompoundTransliterator extends Transliterator {
      * with ';' delimiting them.  Equivalent to the perlish expression
      * join(';', map($_.getID(), transliterators).
      */
-    /*private static String joinIDs(Transliterator[] transliterators) {
+    private static String joinIDs(Transliterator[] transliterators) {
         StringBuffer id = new StringBuffer();
         for (int i=0; i<transliterators.length; ++i) {
             if (i > 0) {
@@ -212,7 +215,7 @@ class CompoundTransliterator extends Transliterator {
             id.append(transliterators[i].getID());
         }
         return id.toString();
-    }*/
+    }
 
     /**
      * Returns the number of transliterators in this chain.

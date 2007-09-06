@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2004, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -48,11 +48,6 @@ import com.ibm.icu.util.SimpleTimeZone;
 public class HolidayCalendarDemo extends DemoApplet 
 {
     /**
-     * For serialization
-     */
-    private static final long serialVersionUID = 4546085430817359372L;
-
-    /**
      * The main function which defines the behavior of the CalendarDemo
      * applet when an applet is started.
      */
@@ -74,10 +69,7 @@ public class HolidayCalendarDemo extends DemoApplet
     private static class CalendarFrame extends Frame implements ActionListener,
                                                                 ItemListener
     {
-        /**
-         * For serialization
-         */
-        private static final long serialVersionUID = -7023296782393042761L;
+        //private static final String creditString = ""; // unused
 
         private static final boolean DEBUG = false;
 
@@ -412,11 +404,6 @@ public class HolidayCalendarDemo extends DemoApplet
 
 
     private static class CalendarPanel extends Canvas {
-
-        /**
-         * For serialization
-         */
-        private static final long serialVersionUID = 1521099412250120821L;
 
         public CalendarPanel( Locale locale ) {
             set(locale, locale, new Date());

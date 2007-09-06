@@ -1,8 +1,15 @@
 /**
  *******************************************************************************
- * Copyright (C) 2000-2007, International Business Machines Corporation and    *
+ * Copyright (C) 2000-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
+ */
+
+/**
+ * @test 1.22 99/09/21
+ * @bug 4028006 4044013 4096694 4107276 4107570 4112869 4130885
+ * @summary test TimeZone
+ * @build TimeZoneTest
  */
 
 package com.ibm.icu.dev.test.timezone;
@@ -24,12 +31,6 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Locale;
 
-/**
- * @test 1.22 99/09/21
- * @bug 4028006 4044013 4096694 4107276 4107570 4112869 4130885
- * @summary test TimeZone
- * @build TimeZoneTest
- */
 public class TimeZoneTest extends TestFmwk
 {
     static final int millisPerHour = 3600000;
@@ -232,15 +233,6 @@ public class TimeZoneTest extends TestFmwk
         min = min%60;
         return "" + sign + (h<10?"0":"") + h + ":" + (min<10?"0":"") + min;
     }
-    /* Returns RFC822 time zone string for the given offset in minutes */
-    static final String formatRFC822TZ(int min) {
-        char sign = '+';
-        if (min < 0) { sign = '-'; min = -min; }
-        int h = min/60;
-        min = min%60;
-        return "GMT" + sign + (h<10?"0":"") + h + (min<10?"0":"") + min;
-    }
-
     /**
      * As part of the VM fix (see CCC approved RFE 4028006, bug
      * 4044013), TimeZone.getTimeZone() has been modified to recognize
@@ -255,11 +247,11 @@ public class TimeZoneTest extends TestFmwk
             "GMT",       null,
             "GMT-YOUR.AD.HERE", null,
             // "GMT0",      null, // ICU 3.6: An Olson zone IDThis is parsed by some JDKs (Sun 1.4.1), but not by others
-            // "GMT+0",     new Integer(0),// ICU 3.6: An Olson zone ID
+          //  "GMT+0",     new Integer(0),// ICU 3.6: An Olson zone ID
             "GMT+1",     new Integer(60),
             "GMT-0030",  new Integer(-30),
             // Parsed in 1.3, parse failure in 1.4:
-            "GMT+15:99", null,
+            //"GMT+15:99", new Integer(15*60+99),
             "GMT+",      null,
             "GMT-",      null,
             "GMT+0:",    null,
@@ -288,8 +280,8 @@ public class TimeZoneTest extends TestFmwk
             else {
                 int ioffset = zone.getRawOffset()/60000;
                 String offset = formatMinutes(ioffset);
-                String expectedID = formatRFC822TZ(ioffset);
-                logln(id + " -> " + zone.getID() + " " + offset);
+                String genID = "GMT"+ offset;
+                logln(id + " -> " + zone.getID() + " " + genID);
                 String gotID = zone.getID();
                 if (exp == null) {
                     errln("Expected parse failure for " + id +
@@ -298,11 +290,11 @@ public class TimeZoneTest extends TestFmwk
                 }
                 // JDK 1.3 creates custom zones with the ID "Custom"
                 // JDK 1.4 creates custom zones with IDs of the form "GMT+02:00"
-                // ICU creates custom zones with IDs of the form "GMT+0200" (RFC822 style)
-                else if (ioffset != exp.intValue() || !(gotID.equals(expectedID))) {
+                else if (ioffset != exp.intValue() ||
+                         !(gotID.equals(EXPECTED_CUSTOM_ID) /*||
+                           gotID.equals(genID)*/)) {
                     errln("Expected offset of " + formatMinutes(exp.intValue()) +
-                          ", id " + expectedID +
-                          ", for " + id +
+                          ", id Custom, for " + id +
                           ", got offset of " + offset +
                           ", id " + zone.getID());
                 }
@@ -339,10 +331,10 @@ public class TimeZoneTest extends TestFmwk
 
         // todo: check to see whether we can test for all of pst, pdt, pt
         Object[] DATA = {
-            Boolean.FALSE, new Integer(TimeZone.SHORT), "PST",
-            Boolean.TRUE,  new Integer(TimeZone.SHORT), "PDT",
-            Boolean.FALSE, new Integer(TimeZone.LONG),  "Pacific Standard Time",
-            Boolean.TRUE,  new Integer(TimeZone.LONG),  "Pacific Daylight Time",
+            new Boolean(false), new Integer(TimeZone.SHORT), "PST",
+            new Boolean(true),  new Integer(TimeZone.SHORT), "PDT",
+            new Boolean(false), new Integer(TimeZone.LONG),  "Pacific Standard Time",
+            new Boolean(true),  new Integer(TimeZone.LONG),  "Pacific Daylight Time",
         };
 
         for (int i=0; i<DATA.length; i+=3) {
@@ -393,7 +385,7 @@ public class TimeZoneTest extends TestFmwk
         }
         // dlf - we will use generic time, or if unavailable, GMT for standard time in the zone 
         //     - we now (3.4.1) have localizations for this zone, so change test string
-        else if(!name.equals("Stati Uniti (Los Angeles)") &&
+        else if(!name.equals("Los Angeles (Stati Uniti)") &&
             !name.equals("GMT-08:00") &&
             !name.equals("GMT-8:00") &&
             !name.equals("GMT-0800") &&
@@ -430,7 +422,8 @@ public class TimeZoneTest extends TestFmwk
 
 
     public void TestDisplayName2() {
-        Date now = new Date();
+        // Date now = new Date();
+        Date then = new Date(2005, 0, 1);
 
         String[] timezones = {"America/Chicago", "Europe/Moscow", "Europe/Rome", "Asia/Shanghai", "WET" };
         String[] locales = {"en", "fr", "de", "ja", "zh_TW", "zh_Hans" };
@@ -441,7 +434,7 @@ public class TimeZoneTest extends TestFmwk
                 String displayName0 = tz.getDisplayName(locale); // doesn't work???
                 SimpleDateFormat dt = new SimpleDateFormat("vvvv", locale);
                 dt.setTimeZone(tz);
-                String displayName1 = dt.format(now);  // date value _does_ matter if we fallback to GMT
+                String displayName1 = dt.format(then);  // date value _does_ matter if we fallback to GMT
                 logln(locale.getDisplayName() + ", " + tz.getID() + ": " + displayName0);
                 if (!displayName1.equals(displayName0)) {
                     errln(locale.getDisplayName() + ", " + tz.getID() + 
@@ -508,13 +501,6 @@ public class TimeZoneTest extends TestFmwk
 //          errln("FAIL: SimpleTimeZoneAdapter.equals");
 //      }
 //      logln(stza.toString());
-
-        String tzver = TimeZone.getTZDataVersion();
-        if (tzver.length() != 5 /* 4 digits + 1 letter */) {
-            errln("FAIL: getTZDataVersion returned " + tzver);
-        } else {
-            logln("PASS: tzdata version: " + tzver);
-        }
     }
 
     public void TestRuleAPI()
@@ -845,26 +831,6 @@ public class TimeZoneTest extends TestFmwk
                 logln("" + i + ":" + s);
             }
         }
-
-        // JB#5480 - equivalent IDs should not be empty within range
-        String[] ids = TimeZone.getAvailableIDs();
-        for (int i = 0; i < ids.length; i++) {
-            int nEquiv = TimeZone.countEquivalentIDs(ids[i]);
-            // Each equivalent ID must not be empty
-            for (int j = 0; j < nEquiv; j++) {
-                String equivID = TimeZone.getEquivalentID(ids[i], j);
-                if (equivID.length() == 0) {
-                    errln("FAIL: getEquivalentID(" + ids[i] + ", " + i +
-                            ") returned \"" + equivID + "\", expected valid ID");
-                }
-            }
-            // equivalent ID out of range must be empty
-            String outOfRangeID = TimeZone.getEquivalentID(ids[i], nEquiv);
-            if (outOfRangeID.length() != 0) {
-                errln("FAIL: getEquivalentID(" + ids[i] + ", " + i +
-                        ") returned \"" + outOfRangeID + "\", expected empty string");
-            }
-        }
     }
 
     public void TestCountries() {
@@ -1187,10 +1153,6 @@ public class TimeZoneTest extends TestFmwk
     
     public void TestCoverage(){
         class StubTimeZone extends TimeZone{
-            /**
-             * For serialization
-             */
-            private static final long serialVersionUID = 8658654217433379343L;
             public int getOffset(int era, int year, int month, int day, int dayOfWeek, int milliseconds) {return 0;}
             public void setRawOffset(int offsetMillis) {}
             public int getRawOffset() {return 0;}
@@ -1232,90 +1194,6 @@ public class TimeZoneTest extends TestFmwk
         }
         //reset
         java.util.TimeZone.setDefault(save);
-    }
-
-    // Copied from the protected constant in TimeZone.
-    private static final int MILLIS_PER_HOUR = 60*60*1000;
-
-    //  Test that a transition at the end of February is handled correctly.
-    public void TestFebruary() {
-        // Time zone with daylight savings time from the first Sunday in November
-        // to the last Sunday in February.
-        // Similar to the new rule for Brazil (Sao Paulo) in tzdata2006n.
-        SimpleTimeZone tz1 = new SimpleTimeZone(
-                           -3 * MILLIS_PER_HOUR,                    // raw offset: 3h before (west of) GMT
-                           "nov-feb",
-                           Calendar.NOVEMBER, 1, Calendar.SUNDAY,   // start: November, first, Sunday
-                           0,                                       //        midnight wall time
-                           Calendar.FEBRUARY, -1, Calendar.SUNDAY,  // end:   February, last, Sunday
-                           0);                                      //        midnight wall time
-
-        // Time zone for Brazil, with effectively the same rules as above,
-        // but expressed with DOW_GE_DOM_MODE and DOW_LE_DOM_MODE rules.
-        TimeZone tz2 = TimeZone.getTimeZone("America/Sao_Paulo");
-
-        // Now hardcode the same rules as for Brazil, so that we cover the intended code
-        // even when in the future zoneinfo hardcodes these transition dates.
-        SimpleTimeZone tz3= new SimpleTimeZone(
-                           -3 * MILLIS_PER_HOUR,                    // raw offset: 3h before (west of) GMT
-                           "nov-feb2",
-                           Calendar.NOVEMBER, 1, -Calendar.SUNDAY,  // start: November, 1 or after, Sunday
-                           0,                                       //        midnight wall time
-                           Calendar.FEBRUARY, -29, -Calendar.SUNDAY,// end:   February, 29 or before, Sunday
-                           0);                                      //        midnight wall time
-
-        // Gregorian calendar with the UTC time zone for getting sample test date/times.
-        GregorianCalendar gc = new GregorianCalendar(TimeZone.getTimeZone("Etc/GMT"));
-        // "Unable to create the UTC calendar: %s"
-
-        int[] data = {
-            // UTC time (6 fields) followed by
-            // expected time zone offset in hours after GMT (negative=before GMT).
-            // int year, month, day, hour, minute, second, offsetHours
-            2006, Calendar.NOVEMBER,  5, 02, 59, 59, -3,
-            2006, Calendar.NOVEMBER,  5, 03, 00, 00, -2,
-            2007, Calendar.FEBRUARY, 25, 01, 59, 59, -2,
-            2007, Calendar.FEBRUARY, 25, 02, 00, 00, -3,
-
-            2007, Calendar.NOVEMBER,  4, 02, 59, 59, -3,
-            2007, Calendar.NOVEMBER,  4, 03, 00, 00, -2,
-            2008, Calendar.FEBRUARY, 24, 01, 59, 59, -2,
-            2008, Calendar.FEBRUARY, 24, 02, 00, 00, -3,
-
-            2008, Calendar.NOVEMBER,  2, 02, 59, 59, -3,
-            2008, Calendar.NOVEMBER,  2, 03, 00, 00, -2,
-            2009, Calendar.FEBRUARY, 22, 01, 59, 59, -2,
-            2009, Calendar.FEBRUARY, 22, 02, 00, 00, -3,
-
-            2009, Calendar.NOVEMBER,  1, 02, 59, 59, -3,
-            2009, Calendar.NOVEMBER,  1, 03, 00, 00, -2,
-            2010, Calendar.FEBRUARY, 28, 01, 59, 59, -2,
-            2010, Calendar.FEBRUARY, 28, 02, 00, 00, -3
-        };
-
-        TimeZone timezones[] = { tz1, tz2, tz3 };
-
-        TimeZone tz;
-        Date dt;
-        int t, i, raw, dst;
-        int[] offsets = new int[2]; // raw = offsets[0], dst = offsets[1]
-        for (t = 0; t < timezones.length; ++t) {
-            tz = timezones[t];
-            for (i = 0; i < data.length; i+=7) {
-                gc.set(data[i], data[i+1], data[i+2],
-                       data[i+3], data[i+4], data[i+5]);
-                dt = gc.getTime();
-                tz.getOffset(dt.getTime(), false, offsets);
-                raw = offsets[0];
-                dst = offsets[1];
-                if ((raw + dst) != data[i+6] * MILLIS_PER_HOUR) {
-                    errln("test case " + t + "." + (i/7) + ": " +
-                          "tz.getOffset(" + data[i] + "-" + (data[i+1] + 1) + "-" + data[i+2] + " " +
-                          data[i+3] + ":" + data[i+4] + ":" + data[i+5] +
-                          ") returns " + raw + "+" + dst + " != " + data[i+6] * MILLIS_PER_HOUR);
-                }
-            }
-        }
     }
 }
 

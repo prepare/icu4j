@@ -1,5 +1,5 @@
 /*
- * (C) Copyright IBM Corp. 1998-2007.  All Rights Reserved.
+ * (C) Copyright IBM Corp. 1998-2004.  All Rights Reserved.
  *
  * The program is provided "as is" without any warranty express or
  * implied, including the warranty of non-infringement and the implied
@@ -40,12 +40,8 @@ import com.ibm.richtext.textpanel.MTextPanel;
 */
 final class NumberDialog extends Dialog implements ActionListener
 {
-    /**
-     * For serialization
-     */
-    private static final long serialVersionUID = -2181405364377952745L;
-    //static final String COPYRIGHT =
-    //            "(C) Copyright IBM Corp. 1998-1999 - All Rights Reserved";
+    static final String COPYRIGHT =
+                "(C) Copyright IBM Corp. 1998-1999 - All Rights Reserved";
     private MTextPanel fTextPanel;
     private TextField fInput = null;
     private Button fOKButton = null;

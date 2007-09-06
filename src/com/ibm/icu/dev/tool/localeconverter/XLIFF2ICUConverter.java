@@ -1,14 +1,13 @@
 /*
- ******************************************************************************
- * Copyright (C) 2003-2007, International Business Machines Corporation and   *
- * others. All Rights Reserved.                                               *
- ******************************************************************************
- */
+******************************************************************************
+* Copyright (C) 2003-2004, International Business Machines Corporation and   *
+* others. All Rights Reserved.                                               *
+******************************************************************************
+*/
 
 package com.ibm.icu.dev.tool.localeconverter;
 
 import com.ibm.icu.dev.tool.UOption;
-
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NamedNodeMap;
@@ -19,13 +18,9 @@ import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
-import javax.xml.XMLConstants;
 
 import java.io.*;
 import java.util.*;
-import java.text.*;
 
 public final class XLIFF2ICUConverter {
     
@@ -39,7 +34,6 @@ public final class XLIFF2ICUConverter {
     private static final int TARGETONLY = 4;
     private static final int SOURCEONLY = 5;
     private static final int MAKE_SOURCE_ROOT = 6;
-    private static final int XLIFF_1_0 = 7;
        
     private static final UOption[] options = new UOption[] {
         UOption.HELP_H(),
@@ -48,51 +42,23 @@ public final class XLIFF2ICUConverter {
         UOption.DESTDIR(),
         UOption.create("target-only", 't', UOption.OPTIONAL_ARG),
         UOption.create("source-only", 'c', UOption.OPTIONAL_ARG),
-        UOption.create("make-source-root", 'r', UOption.NO_ARG),
-        UOption.create("xliff-1.0", 'x', UOption.NO_ARG)
+        UOption.create("make-source-root", 'r', UOption.NO_ARG)
     };
-    
-    private static final int ARRAY_RESOURCE     = 0;
-    private static final int ALIAS_RESOURCE     = 1;
-    private static final int BINARY_RESOURCE    = 2;
-    private static final int INTEGER_RESOURCE   = 3;
-    private static final int INTVECTOR_RESOURCE = 4;
-    private static final int TABLE_RESOURCE     = 5;
-    
-    private static final String NEW_RESOURCES[] = {
-        "x-icu-array",
-        "x-icu-alias",
-        "x-icu-binary",
-        "x-icu-integer",
-        "x-icu-intvector",
-        "x-icu-table"
-    };
-    
-    private static final String OLD_RESOURCES[] = {
-        "array",
-        "alias",
-        "bin",
-        "int",
-        "intvector",
-        "table"
-    };
-    
-    private String resources[];
     
     private static final String ROOT            = "root";
     private static final String RESTYPE         = "restype";
     private static final String RESNAME         = "resname";
-    //private static final String YES             = "yes";
-    //private static final String NO              = "no";
+    private static final String YES             = "yes";
+    private static final String NO              = "no";
     private static final String TRANSLATE       = "translate";
-    //private static final String BODY            = "body";
+    private static final String BODY            = "body";
     private static final String GROUPS          = "group";
     private static final String FILES           = "file";
     private static final String TRANSUNIT       = "trans-unit";
     private static final String BINUNIT         = "bin-unit";
     private static final String BINSOURCE       = "bin-source";
-    //private static final String TS              = "ts";
-    //private static final String ORIGINAL        = "original";
+    private static final String TS              = "ts";
+    private static final String ORIGINAL        = "original";
     private static final String SOURCELANGUAGE  = "source-language";
     private static final String TARGETLANGUAGE  = "target-language";
     private static final String TARGET          = "target";
@@ -135,14 +101,13 @@ public final class XLIFF2ICUConverter {
         cnv.processArgs(args);
     }
     private String    sourceDir      = null;
-    //private String    fileName       = null;
+    private String    fileName       = null;
     private String    destDir        = null;
     private boolean   targetOnly     = false;
     private String    targetFileName = null; 
     private boolean   makeSourceRoot = false;
     private String    sourceFileName = null;
     private boolean   sourceOnly     = false;
-    private boolean   xliff10        = false;
     
     private void processArgs(String[] args) {
         int remainingArgc = 0;
@@ -165,16 +130,13 @@ public final class XLIFF2ICUConverter {
         if(options[SOURCEDIR].doesOccur) {
             sourceDir = options[SOURCEDIR].value;
         }
-        
         if(options[DESTDIR].doesOccur) {
             destDir = options[DESTDIR].value;
         }
-        
         if(options[TARGETONLY].doesOccur){
             targetOnly = true;
             targetFileName = options[TARGETONLY].value;
         }
-        
         if(options[SOURCEONLY].doesOccur){
             sourceOnly = true;
             sourceFileName = options[SOURCEONLY].value;
@@ -183,23 +145,17 @@ public final class XLIFF2ICUConverter {
         if(options[MAKE_SOURCE_ROOT].doesOccur){
             makeSourceRoot = true;
         }
-        
-        if(options[XLIFF_1_0].doesOccur) {
-            xliff10 = true;
-        }
-        
         if(destDir==null){
             destDir = ".";
         }
-        
         if(sourceOnly == true && targetOnly == true){
             System.err.println("--source-only and --target-only are specified. Please check the arguments and try again.");
             usage();
         }
         
         for (int i = 0; i < remainingArgc; i++) {
-            //int lastIndex = args[i].lastIndexOf(File.separator, args[i].length()) + 1; /* add 1 to skip past the separator */
-            //fileName = args[i].substring(lastIndex, args[i].length());
+            int lastIndex = args[i].lastIndexOf(File.separator, args[i].length()) + 1; /* add 1 to skip past the separator */
+            fileName = args[i].substring(lastIndex, args[i].length());
             String xmlfileName = getFullPath(false,args[i]);
             System.out.println("Processing file: "+xmlfileName);
             createRB(xmlfileName);
@@ -219,7 +175,6 @@ public final class XLIFF2ICUConverter {
             "-c or --source-only        only generate the source language bundle followed by optional output file name.\n"+
             "                           Cannot be used in conjunction with --target-only.\n"+
             "-r or --make-source-root   produce root bundle from source elements.\n" +
-            "-x or --xliff-1.0          source file is XLIFF 1.0" +
             "example: com.ibm.icu.dev.tool.localeconverter.XLIFF2ICUConverter -t <optional argument> -s xxx -d yyy myResources.xlf");
         System.exit(-1);
     }
@@ -366,24 +321,8 @@ public final class XLIFF2ICUConverter {
         String urls = filenameToURL(xmlfileName);
         DocumentBuilderFactory dfactory = DocumentBuilderFactory.newInstance();
         dfactory.setNamespaceAware(true);
+        dfactory.setValidating(true);
         Document doc = null;
-        
-        if (xliff10) {
-            dfactory.setValidating(true);
-            resources = OLD_RESOURCES;
-        } else {
-            try {
-                SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-                Schema schema = schemaFactory.newSchema();
-                
-                dfactory.setSchema(schema);
-            } catch (SAXException e) {
-                System.err.println("Can't create the schema...");
-                System.exit(-1);
-            }
-            
-            resources = NEW_RESOURCES;
-        }
         
         ErrorHandler nullHandler = new ErrorHandler() {
             public void warning(SAXParseException e) throws SAXException {
@@ -393,7 +332,7 @@ public final class XLIFF2ICUConverter {
                 System.err.println("The XLIFF document is invalid, please check it first: ");
                 System.err.println("Line "+e.getLineNumber()+", Column "+e.getColumnNumber());
                 System.err.println("Error: " + e.getMessage());
-                System.exit(-1);
+                System.exit(0);
             }
             public void fatalError(SAXParseException e) throws SAXException {
                 throw e;
@@ -409,7 +348,6 @@ public final class XLIFF2ICUConverter {
             if(nlist.getLength()>1){
                 throw new RuntimeException("Multiple <file> elements in the XLIFF file not supported.");
             }
-                        
             // get the value of source-language attribute
             String sourceLang = getLanguageName(doc, SOURCELANGUAGE);
             // get the value of target-language attribute
@@ -498,18 +436,18 @@ public final class XLIFF2ICUConverter {
         }
     }
     
-    private void writeResource(Resource set, String sourceFilename, String targetFilename){
+    private void writeResource(Resource set, String sourceFileName, String targetFileName){
         try {
             String outputFileName = null;
-            if(targetFilename != null){
-                outputFileName = destDir+File.separator+targetFilename+".txt";
+            if(targetFileName != null){
+                outputFileName = destDir+File.separator+targetFileName+".txt";
             }else{
                 outputFileName = destDir+File.separator+set.name+".txt";
             }
             FileOutputStream file = new FileOutputStream(outputFileName);
             BufferedOutputStream writer = new BufferedOutputStream(file);
 
-            writeHeader(writer,sourceFilename);
+            writeHeader(writer,sourceFileName);
             
             //Now start writing the resource;
             Resource current = set;
@@ -632,9 +570,7 @@ public final class XLIFF2ICUConverter {
             }
         }
         public void writeComments(OutputStream writer, int numIndent){
-            boolean translateIsDefault = translate == null || translate.equals("yes");
-            
-            if(comment!=null || ! translateIsDefault || noteLen > 0){
+            if(comment!=null || translate != null || noteLen > 0){
                 // print the start of the comment
                 writeIndent(writer, numIndent);
                 write(writer, COMMENTSTART+LINESEP);
@@ -648,7 +584,7 @@ public final class XLIFF2ICUConverter {
                 }
                 
                 // print the translate attribute if any
-                if(! translateIsDefault){
+                if(translate!=null){
                     writeIndent(writer, numIndent);
                     write(writer, TAG+TRANSLATE+SPACE);
                     write(writer, translate);
@@ -942,8 +878,8 @@ public final class XLIFF2ICUConverter {
                     currentTarget.internal = currentSource.internal= value;
                     
                 }else if(name.equals(EXTERNALFILE)){
-                    currentSource.external = getAttributeValue(transUnit, HREF);
-                    currentTarget.external = currentSource.external;
+                    String fileName = getAttributeValue(transUnit, HREF);
+                    currentTarget.external = currentSource.external = fileName;
                 }
             }
             
@@ -961,7 +897,7 @@ public final class XLIFF2ICUConverter {
             strings[0].translate = strings[1].translate = translate;
             set[0] = strings[0];
             set[1] = strings[1];
-        }else if(attrType.equals(resources[INTEGER_RESOURCE])){
+        }else if(attrType.equals(INTS)){
             ResourceInt[] ints = new ResourceInt[2];
             ints[0] = new ResourceInt();
             ints[1] = new ResourceInt();
@@ -969,7 +905,7 @@ public final class XLIFF2ICUConverter {
             ints[0].translate = ints[1].translate = translate;
             set[0] = ints[0];
             set[1] = ints[1];
-        }else if(attrType.equals(resources[ALIAS_RESOURCE])){
+        }else if(attrType.equals(ALIAS)){
             ResourceAlias[] ints = new ResourceAlias[2];
             ints[0] = new ResourceAlias();
             ints[1] = new ResourceAlias();
@@ -981,40 +917,31 @@ public final class XLIFF2ICUConverter {
     }
 
     private void parseBinUnit(Node node, Resource[] set){
-        if (getAttributeValue(node, RESTYPE).equals(resources[BINARY_RESOURCE])) {
-            ResourceBinary[] bins = new ResourceBinary[2];
-            
-            bins[0] = new ResourceBinary();
-            bins[1] = new ResourceBinary();
-            
-            Resource currentSource = bins[0];
-            Resource currentTarget = bins[1];
-            String resName   = getAttributeValue(node, RESNAME);
-            String translate = getAttributeValue(node, TRANSLATE);
-            
-            currentTarget.name = currentSource.name = resName;
-            currentSource.translate = currentTarget.translate = translate;
-            
-            for(Node child = node.getFirstChild(); child != null; child = child.getNextSibling()){
-                short type = child.getNodeType();
-                String name = child.getNodeName();
-                
-                if(type == Node.COMMENT_NODE){
-                    currentSource.comment = currentTarget.comment = child.getNodeValue();
-                }else if(type == Node.ELEMENT_NODE){
-                    if(name.equals(BINSOURCE)){
-                        parseResourceBinary(child, bins);
-                    }else if(name.equals(NOTE)){
-                        String note =  child.getFirstChild().getNodeValue();
-                        
-                        currentSource.note[currentSource.noteLen++] = currentTarget.note[currentTarget.noteLen++] = note;
-                    }
+        ResourceBinary[] bins = new ResourceBinary[2];
+        bins[0] = new ResourceBinary();
+        bins[1] = new ResourceBinary();
+        Resource currentSource = bins[0];
+        Resource currentTarget = bins[1];
+        String resName   = getAttributeValue(node, RESNAME);
+        String translate = getAttributeValue(node, TRANSLATE);
+        currentTarget.name = currentSource.name = resName;
+        currentSource.translate = currentTarget.translate = translate;
+        for(Node child = node.getFirstChild(); child != null; child = child.getNextSibling()){
+            short type = child.getNodeType();
+            String name = child.getNodeName();
+            if(type == Node.COMMENT_NODE){
+                currentSource.comment = currentTarget.comment = child.getNodeValue();
+            }else if(type == Node.ELEMENT_NODE){
+                if(name.equals(BINSOURCE)){
+                    parseResourceBinary(child, bins);
+                }else if(name.equals(NOTE)){
+                    String note =  child.getFirstChild().getNodeValue();
+                    currentSource.note[currentSource.noteLen++] = currentTarget.note[currentTarget.noteLen++] = note;
                 }
             }
-            
-            set[0] = bins[0];
-            set[1] = bins[1];
         }
+        set[0] = bins[0];
+        set[1] = bins[1];
     }
     
     private void parseArray(Node node, Resource[] set){
@@ -1200,11 +1127,11 @@ public final class XLIFF2ICUConverter {
 
         // figure out what kind of group this is
         String resType = getAttributeValue(node, RESTYPE);
-        if(resType.equals(resources[ARRAY_RESOURCE])){
+        if(resType.equals(ARRAYS)){
             parseArray(node, set);
-        }else if( resType.equals(resources[TABLE_RESOURCE])){
+        }else if( resType.equals(TABLE)){
             parseTable(node, set);
-        }else if( resType.equals(resources[INTVECTOR_RESOURCE])){
+        }else if( resType.equals(INTVECTOR)){
             parseIntVector(node, set);
         }
     }
@@ -1221,20 +1148,18 @@ public final class XLIFF2ICUConverter {
     }
     
     private void writeHeader(OutputStream writer, String fileName){
-        final String header = 
-            "// ***************************************************************************" + LINESEP +
-            "// *" + LINESEP +
-            "// * Tool: com.ibm.icu.dev.tool.localeconverter.XLIFF2ICUConverter.java" + LINESEP +
-            "// * Date & Time: {0,date,MM/dd/yyyy hh:mm:ss a z}"+ LINESEP +
-            "// * Source File: {1}" + LINESEP +
-            "// *" + LINESEP +                    
-            "// ***************************************************************************" + LINESEP;
-            
         writeBOM(writer);
-        MessageFormat format = new MessageFormat(header);
-        Object args[] = {new Date(System.currentTimeMillis()), fileName};
+        Calendar c = Calendar.getInstance();
+        StringBuffer buffer =new StringBuffer();
+        buffer.append("// ***************************************************************************" + LINESEP);
+        buffer.append("// *" + LINESEP);
+        buffer.append("// * Tool: com.ibm.icu.dev.tool.localeconverter.XLIFF2ICUConverter.java" + LINESEP);
+        buffer.append("// * Date & Time: " + c.get(Calendar.YEAR) + "/" + (c.get(Calendar.MONTH)+1) + "/" + c.get(Calendar.DAY_OF_MONTH) + " " + c.get(Calendar.HOUR_OF_DAY) + COLON + c.get(Calendar.MINUTE)+ LINESEP);
+        buffer.append("// * Source File: " + fileName + LINESEP);
+        buffer.append("// *" + LINESEP);                    
+        buffer.append("// ***************************************************************************" + LINESEP);
+        writeLine(writer, buffer.toString());
 
-        writeLine(writer, format.format(args));
     }
     
     private  void writeBOM(OutputStream buffer) {

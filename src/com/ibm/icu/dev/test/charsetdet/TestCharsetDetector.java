@@ -1,7 +1,7 @@
-//##header J2SE15
+//##header
 /**
  *******************************************************************************
- * Copyright (C) 2005-2007, International Business Machines Corporation and    *
+ * Copyright (C) 2005-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -13,10 +13,11 @@ import java.io.Reader;
 import java.io.UnsupportedEncodingException;
 
 import com.ibm.icu.dev.test.TestFmwk;
+import com.ibm.icu.impl.UTF32;
 import com.ibm.icu.text.CharsetDetector;
 import com.ibm.icu.text.CharsetMatch;
 
-//#if defined(FOUNDATION10) || defined(J2SE13)
+//#ifdef FOUNDATION
 //##import com.ibm.icu.impl.Utility;
 //#endif
 
@@ -26,6 +27,9 @@ import org.w3c.dom.*;
 
 /**
  * @author andy
+ *
+ * TODO To change the template for this generated type comment go to
+ * Window - Preferences - Java - Code Style - Code Templates
  */
 public class TestCharsetDetector extends TestFmwk
 {
@@ -56,12 +60,12 @@ public class TestCharsetDetector extends TestFmwk
                 throw new Exception();
             }
             catch (Exception e) {
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//##           msg = "Test failure  " + e.getMessage() ;
-//#else
+//#ifndef FOUNDATION
                 StackTraceElement failPoint = e.getStackTrace()[1];
                 msg = "Test failure in file " + failPoint.getFileName() +
                              " at line " + failPoint.getLineNumber();
+//#else
+//##           msg = "Test failure  " + e.getMessage() ;
 //#endif
             }
             errln(msg);
@@ -97,11 +101,7 @@ public class TestCharsetDetector extends TestFmwk
             return;
         }
         
-        String charsetMatchLanguage = m.getLanguage();
-        if ((language != null && !charsetMatchLanguage.equals(language))
-            || (language == null && charsetMatchLanguage != null)
-            || (language != null && charsetMatchLanguage == null))
-        {
+        if (! (language == null || m.getLanguage().equals(language))) {
             errln(id + ", " + encoding + ": language detection failure - expected " + language + ", got " + m.getLanguage());
         }
         
@@ -125,10 +125,10 @@ public class TestCharsetDetector extends TestFmwk
     private void checkEncoding(String testString, String encoding, String id)
     {
         String enc = null, lang = null;
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//##        String[] split = Utility.split(encoding,'/');
-//#else
+//#ifndef FOUNDATION
         String[] split = encoding.split("/");
+//#else
+//##        String[] split = Utility.split(encoding,'/');
 //#endif
         
         enc = split[0];
@@ -141,11 +141,11 @@ public class TestCharsetDetector extends TestFmwk
             CharsetDetector det = new CharsetDetector();
             byte[] bytes;
             
-            //if (enc.startsWith("UTF-32")) {
-            //    UTF32 utf32 = UTF32.getInstance(enc);
+            if (enc.startsWith("UTF-32")) {
+                UTF32 utf32 = UTF32.getInstance(enc);
                 
-            //    bytes = utf32.toBytes(testString);
-            //} else {
+                bytes = utf32.toBytes(testString);
+            } else {
                 String from = enc;
 
                 while (true) {
@@ -171,7 +171,7 @@ public class TestCharsetDetector extends TestFmwk
                     
                     break;
                 }
-            //}
+            }
         
             det.setText(bytes);
             checkMatch(det, testString, enc, lang, id);
@@ -179,8 +179,7 @@ public class TestCharsetDetector extends TestFmwk
             det.setText(new ByteArrayInputStream(bytes));
             checkMatch(det, testString, enc, lang, id);
          } catch (Exception e) {
-            errln(id + ": " + e.toString() + "enc=" + enc);
-            e.printStackTrace();
+            errln(id + ": " + e.toString());
         }
     }
     
@@ -311,29 +310,6 @@ public class TestCharsetDetector extends TestFmwk
         }
     }
     
-    public void TestShortInput() {
-        // Test that detection with very short byte strings does not crash and burn.
-        // The shortest input that should produce positive detection result is two bytes, 
-        //   a UTF-16 BOM.
-        // TODO:  Detector confidence levels needs to be refined for very short input.
-        //        Too high now, for some charsets that happen to be compatible with a few bytes of input.
-        byte [][]  shortBytes = new byte [][] 
-            {
-                {},
-                {(byte)0x0a},
-                {(byte)'A', (byte)'B'},
-                {(byte)'A', (byte)'B', (byte)'C'},
-                {(byte)'A', (byte)'B', (byte)'C', (byte)'D'}
-            };
-        
-        CharsetDetector det = new CharsetDetector();
-        CharsetMatch m;
-        for (int i=0; i<shortBytes.length; i++) {
-            det.setText(shortBytes[i]);
-            m = det.detect();
-        }
-    }
-    
     public void TestDetection()
     {
         //
@@ -381,10 +357,10 @@ public class TestCharsetDetector extends TestFmwk
                 
                 // Process test text with each encoding / language pair.
                 String testString = testText.toString();
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//##                String[] encodingList = Utility.split(encodings, ' ');
-//#else
+//#ifndef FOUNDATION
                 String[] encodingList = encodings.split(" ");
+//#else
+//##                String[] encodingList = Utility.split(encodings, ' ');
 //#endif
                 
                 for (int e = 0; e < encodingList.length; e += 1) {

@@ -1,14 +1,13 @@
 /*
- **********************************************************************
- * Copyright (c) 2002-2007, International Business Machines
- * Corporation and others.  All Rights Reserved.
- **********************************************************************
- * Author: Alan Liu
- * Created: December 18 2002
- * Since: ICU 2.4
- **********************************************************************
- */
-
+**********************************************************************
+* Copyright (c) 2002-2005, International Business Machines
+* Corporation and others.  All Rights Reserved.
+**********************************************************************
+* Author: Alan Liu
+* Created: December 18 2002
+* Since: ICU 2.4
+**********************************************************************
+*/
 package com.ibm.icu.dev.test.util;
 import com.ibm.icu.dev.test.TestFmwk;
 import com.ibm.icu.util.*;
@@ -143,7 +142,7 @@ public class CurrencyTest extends TestFmwk {
         // THE LOCALE DATA before diving into the code.
         if (!noData()) {
             assertEquals("USD.getName(SYMBOL_NAME)",
-                         "$",
+                         "US$",
                          usd.getName(en, Currency.SYMBOL_NAME, isChoiceFormat));
             assertEquals("USD.getName(LONG_NAME)",
                          "US Dollar",

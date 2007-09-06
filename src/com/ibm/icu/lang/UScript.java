@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 2001-2007 International Business Machines Corporation and     *
+* Copyright (C) 2001-2006, International Business Machines Corporation and         *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 */
@@ -23,6 +23,12 @@ import java.util.MissingResourceException;
  * @stable ICU 2.4
  */
 public final class UScript {
+    /**
+     * Puts a copyright in the .class file
+     */
+    private static final String copyrightNotice
+        = "Copyright \u00a92001 IBM Corp.  All rights reserved.";
+
     /**
      * Invalid code
      * @stable ICU 2.4
@@ -265,435 +271,372 @@ public final class UScript {
     public static final int TAGBANWA     = 45;  /* Tagb */
     /**
      * Braille
-     * Script in Unicode 4 
+     * New script in Unicode 4 
      * @stable ICU 2.6 
      * 
      */ 
     public static final int BRAILLE      = 46;  /* Brai */
     /**
      * Cypriot
-     * Script in Unicode 4 
+     * New script in Unicode 4 
      * @stable ICU 2.6 
      * 
      */  
     public static final int CYPRIOT              = 47;  /* Cprt */ 
     /**
      * Limbu
-     * Script in Unicode 4 
+     * New script in Unicode 4 
      * @stable ICU 2.6 
      * 
      */       
     public static final int LIMBU                = 48;  /* Limb */ 
     /**
      * Linear B
-     * Script in Unicode 4 
+     * New script in Unicode 4 
      * @stable ICU 2.6 
      * 
      */ 
     public static final int LINEAR_B     = 49;  /* Linb */ 
     /**
      * Osmanya
-     * Script in Unicode 4 
+     * New script in Unicode 4 
      * @stable ICU 2.6 
      * 
      */ 
     public static final int OSMANYA              = 50;  /* Osma */ 
     /**
      * Shavian
-     * Script in Unicode 4 
+     * New script in Unicode 4 
      * @stable ICU 2.6 
      * 
      */ 
     public static final int SHAVIAN              = 51;  /* Shaw */ 
     /**
      * Tai Le
-     * Script in Unicode 4 
+     * New script in Unicode 4 
      * @stable ICU 2.6 
      * 
      */ 
     public static final int TAI_LE               = 52;  /* Tale */ 
     /**
      * Ugaritic
-     * Script in Unicode 4 
+     * New script in Unicode 4 
      * @stable ICU 2.6 
      * 
      */ 
     public static final int UGARITIC     = 53;  /* Ugar */ 
     /**
-     * Script in Unicode 4.0.1
+     * New script code in Unicode 4.0.1
      * @stable ICU 3.0
      */
     public static final int KATAKANA_OR_HIRAGANA = 54;  /*Hrkt */
 
+    /* New scripts in Unicode 4.1 @draft ICU 3.4 */
+
     /**
-     * Script in Unicode 4.1
-     * @stable ICU 3.8
+     * New script code in Unicode 4.1
+     * @draft ICU 3.4
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int BUGINESE = 55;           /* Bugi */
     /**
-     * Script in Unicode 4.1
-     * @stable ICU 3.8
+     * New script code in Unicode 4.1
+     * @draft ICU 3.4
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int GLAGOLITIC = 56;         /* Glag */
     /**
-     * Script in Unicode 4.1
-     * @stable ICU 3.8
+     * New script code in Unicode 4.1
+     * @draft ICU 3.4
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int KHAROSHTHI = 57;         /* Khar */
     /**
-     * Script in Unicode 4.1
-     * @stable ICU 3.8
+     * New script code in Unicode 4.1
+     * @draft ICU 3.4
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int SYLOTI_NAGRI = 58;       /* Sylo */
     /**
-     * Script in Unicode 4.1
-     * @stable ICU 3.8
+     * New script code in Unicode 4.1
+     * @draft ICU 3.4
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int NEW_TAI_LUE = 59;        /* Talu */
     /**
-     * Script in Unicode 4.1
-     * @stable ICU 3.8
+     * New script code in Unicode 4.1
+     * @draft ICU 3.4
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int TIFINAGH = 60;           /* Tfng */
     /**
-     * Script in Unicode 4.1
-     * @stable ICU 3.8
+     * New script code in Unicode 4.1
+     * @draft ICU 3.4
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int OLD_PERSIAN = 61;        /* Xpeo */
 
 
     /**
-     * ISO 15924 script code
+     * New script codes from ISO 15924 
      * @draft ICU 3.6 
      * @provisional This API might change or be removed in a future release.
      */
     public static final int BALINESE                      = 62; /* Bali */
     /**
-     * ISO 15924 script code
+     * New script codes from ISO 15924 
      * @draft ICU 3.6 
      * @provisional This API might change or be removed in a future release.
      */
     public static final int BATAK                         = 63; /* Batk */
     /**
-     * ISO 15924 script code
+     * New script codes from ISO 15924 
      * @draft ICU 3.6 
      * @provisional This API might change or be removed in a future release.
      */
     public static final int BLISSYMBOLS                   = 64; /* Blis */
     /**
-     * ISO 15924 script code
+     * New script codes from ISO 15924 
      * @draft ICU 3.6 
      * @provisional This API might change or be removed in a future release.
      */
     public static final int BRAHMI                        = 65; /* Brah */
     /**
-     * ISO 15924 script code
+     * New script codes from ISO 15924 
      * @draft ICU 3.6 
      * @provisional This API might change or be removed in a future release.
      */
     public static final int CHAM                          = 66; /* Cham */
     /**
-     * ISO 15924 script code
+     * New script codes from ISO 15924 
      * @draft ICU 3.6 
      * @provisional This API might change or be removed in a future release.
      */
     public static final int CIRTH                         = 67; /* Cirt */
     /**
-     * ISO 15924 script code
+     * New script codes from ISO 15924 
      * @draft ICU 3.6 
      * @provisional This API might change or be removed in a future release.
      */
     public static final int OLD_CHURCH_SLAVONIC_CYRILLIC  = 68; /* Cyrs */
     /**
-     * ISO 15924 script code
+     * New script codes from ISO 15924 
      * @draft ICU 3.6 
      * @provisional This API might change or be removed in a future release.
      */
     public static final int DEMOTIC_EGYPTIAN              = 69; /* Egyd */
     /**
-     * ISO 15924 script code
+     * New script codes from ISO 15924 
      * @draft ICU 3.6 
      * @provisional This API might change or be removed in a future release.
      */
     public static final int HIERATIC_EGYPTIAN             = 70; /* Egyh */
     /**
-     * ISO 15924 script code
+     * New script codes from ISO 15924 
      * @draft ICU 3.6 
      * @provisional This API might change or be removed in a future release.
      */
     public static final int EGYPTIAN_HIEROGLYPHS          = 71; /* Egyp */
     /**
-     * ISO 15924 script code
+     * New script codes from ISO 15924 
      * @draft ICU 3.6 
      * @provisional This API might change or be removed in a future release.
      */
     public static final int KHUTSURI                      = 72; /* Geok */
     /**
-     * ISO 15924 script code
+     * New script codes from ISO 15924 
      * @draft ICU 3.6 
      * @provisional This API might change or be removed in a future release.
      */
     public static final int SIMPLIFIED_HAN                = 73; /* Hans */
     /**
-     * ISO 15924 script code
+     * New script codes from ISO 15924 
      * @draft ICU 3.6 
      * @provisional This API might change or be removed in a future release.
      */
     public static final int TRADITIONAL_HAN               = 74; /* Hant */
     /**
-     * ISO 15924 script code
+     * New script codes from ISO 15924 
      * @draft ICU 3.6 
      * @provisional This API might change or be removed in a future release.
      */
     public static final int PAHAWH_HMONG                  = 75; /* Hmng */
     /**
-     * ISO 15924 script code
+     * New script codes from ISO 15924 
      * @draft ICU 3.6 
      * @provisional This API might change or be removed in a future release.
      */
     public static final int OLD_HUNGARIAN                 = 76; /* Hung */
     /**
-     * ISO 15924 script code
+     * New script codes from ISO 15924 
      * @draft ICU 3.6 
      * @provisional This API might change or be removed in a future release.
      */
     public static final int HARAPPAN_INDUS                = 77; /* Inds */
     /**
-     * ISO 15924 script code
+     * New script codes from ISO 15924 
      * @draft ICU 3.6 
      * @provisional This API might change or be removed in a future release.
      */
     public static final int JAVANESE                      = 78; /* Java */
     /**
-     * ISO 15924 script code
+     * New script codes from ISO 15924 
      * @draft ICU 3.6 
      * @provisional This API might change or be removed in a future release.
      */
     public static final int KAYAH_LI                      = 79; /* Kali */
     /**
-     * ISO 15924 script code
+     * New script codes from ISO 15924 
      * @draft ICU 3.6 
      * @provisional This API might change or be removed in a future release.
      */
     public static final int LATIN_FRAKTUR                 = 80; /* Latf */
     /**
-     * ISO 15924 script code
+     * New script codes from ISO 15924 
      * @draft ICU 3.6 
      * @provisional This API might change or be removed in a future release.
      */
     public static final int LATIN_GAELIC                  = 81; /* Latg */
     /**
-     * ISO 15924 script code
+     * New script codes from ISO 15924 
      * @draft ICU 3.6 
      * @provisional This API might change or be removed in a future release.
      */
     public static final int LEPCHA                        = 82; /* Lepc */
     /**
-     * ISO 15924 script code
+     * New script codes from ISO 15924 
      * @draft ICU 3.6 
      * @provisional This API might change or be removed in a future release.
      */
     public static final int LINEAR_A                      = 83; /* Lina */
     /**
-     * ISO 15924 script code
+     * New script codes from ISO 15924 
      * @draft ICU 3.6 
      * @provisional This API might change or be removed in a future release.
      */
     public static final int MANDAEAN                      = 84; /* Mand */
     /**
-     * ISO 15924 script code
+     * New script codes from ISO 15924 
      * @draft ICU 3.6 
      * @provisional This API might change or be removed in a future release.
      */
     public static final int MAYAN_HIEROGLYPHS             = 85; /* Maya */
     /**
-     * ISO 15924 script code
+     * New script codes from ISO 15924 
      * @draft ICU 3.6 
      * @provisional This API might change or be removed in a future release.
      */
     public static final int MEROITIC                      = 86; /* Mero */
     /**
-     * ISO 15924 script code
+     * New script codes from ISO 15924 
      * @draft ICU 3.6 
      * @provisional This API might change or be removed in a future release.
      */
     public static final int NKO                           = 87; /* Nkoo */
     /**
-     * ISO 15924 script code
+     * New script codes from ISO 15924 
      * @draft ICU 3.6 
      * @provisional This API might change or be removed in a future release.
      */
     public static final int ORKHON                        = 88; /* Orkh */
     /**
-     * ISO 15924 script code
+     * New script codes from ISO 15924 
      * @draft ICU 3.6 
      * @provisional This API might change or be removed in a future release.
      */
     public static final int OLD_PERMIC                    = 89; /* Perm */
     /**
-     * ISO 15924 script code
+     * New script codes from ISO 15924 
      * @draft ICU 3.6 
      * @provisional This API might change or be removed in a future release.
      */
     public static final int PHAGS_PA                      = 90; /* Phag */
     /**
-     * ISO 15924 script code
+     * New script codes from ISO 15924 
      * @draft ICU 3.6 
      * @provisional This API might change or be removed in a future release.
      */
     public static final int PHOENICIAN                    = 91; /* Phnx */
     /**
-     * ISO 15924 script code
+     * New script codes from ISO 15924 
      * @draft ICU 3.6 
      * @provisional This API might change or be removed in a future release.
      */
     public static final int PHONETIC_POLLARD              = 92; /* Plrd */
     /**
-     * ISO 15924 script code
+     * New script codes from ISO 15924 
      * @draft ICU 3.6 
      * @provisional This API might change or be removed in a future release.
      */
     public static final int RONGORONGO                    = 93; /* Roro */
     /**
-     * ISO 15924 script code
+     * New script codes from ISO 15924 
      * @draft ICU 3.6 
      * @provisional This API might change or be removed in a future release.
      */
     public static final int SARATI                        = 94; /* Sara */
     /**
-     * ISO 15924 script code
+     * New script codes from ISO 15924 
      * @draft ICU 3.6 
      * @provisional This API might change or be removed in a future release.
      */
     public static final int ESTRANGELO_SYRIAC             = 95; /* Syre */
     /**
-     * ISO 15924 script code
+     * New script codes from ISO 15924 
      * @draft ICU 3.6 
      * @provisional This API might change or be removed in a future release.
      */
     public static final int WESTERN_SYRIAC                = 96; /* Syrj */
     /**
-     * ISO 15924 script code
+     * New script codes from ISO 15924 
      * @draft ICU 3.6 
      * @provisional This API might change or be removed in a future release.
      */
     public static final int EASTERN_SYRIAC                = 97; /* Syrn */
     /**
-     * ISO 15924 script code
+     * New script codes from ISO 15924 
      * @draft ICU 3.6 
      * @provisional This API might change or be removed in a future release.
      */
     public static final int TENGWAR                       = 98; /* Teng */
     /**
-     * ISO 15924 script code
+     * New script codes from ISO 15924 
      * @draft ICU 3.6 
      * @provisional This API might change or be removed in a future release.
      */
     public static final int VAI                           = 99; /* Vaii */
     /**
-     * ISO 15924 script code
+     * New script codes from ISO 15924 
      * @draft ICU 3.6 
      * @provisional This API might change or be removed in a future release.
      */
     public static final int VISIBLE_SPEECH                = 100;/* Visp */
     /**
-     * ISO 15924 script code
+     * New script codes from ISO 15924 
      * @draft ICU 3.6 
      * @provisional This API might change or be removed in a future release.
      */
     public static final int CUNEIFORM                     = 101;/* Xsux */
     /**
-     * ISO 15924 script code
+     * New script codes from ISO 15924 
      * @draft ICU 3.6 
      * @provisional This API might change or be removed in a future release.
      */
     public static final int UNWRITTEN_LANGUAGES           = 102;/* Zxxx */
     /**
-     * ISO 15924 script code
+     * New script codes from ISO 15924 
      * @draft ICU 3.6 
      * @provisional This API might change or be removed in a future release.
      */
     public static final int UNKNOWN                       = 103;/* Zzzz */ /* Unknown="Code for uncoded script", for unassigned code points */
     
     /* Private use codes from Qaaa - Qabx are not supported*/
-    /**
-     * ISO 15924 script code
-     * @draft ICU 3.8 
-     * @provisional This API might change or be removed in a future release.
-     */ 
-    public static final int CARIAN                        = 104;/* Cari */
-    /**
-     * ISO 15924 script code
-     * @draft ICU 3.8 
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final int JAPANESE                      = 105;/* Jpan */
-    /**
-     * ISO 15924 script code
-     * @draft ICU 3.8 
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final int LANNA                         = 106;/* Lana */
-    /**
-     * ISO 15924 script code
-     * @draft ICU 3.8 
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final int LYCIAN                        = 107;/* Lyci */
-    /**
-     * ISO 15924 script code
-     * @draft ICU 3.8 
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final int LYDIAN                        = 108;/* Lydi */
-    /**
-     * ISO 15924 script code
-     * @draft ICU 3.8 
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final int OL_CHIKI                      = 109;/* Olck */
-    /**
-     * ISO 15924 script code
-     * @draft ICU 3.8 
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final int REJANG                        = 110;/* Rjng */
-    /**
-     * ISO 15924 script code
-     * @draft ICU 3.8 
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final int SAURASHTRA                    = 111;/* Saur */
-    /**
-     * ISO 15924 script code
-     * @draft ICU 3.8 
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final int SIGN_WRITING                  = 112;/* Sgnw */
-    /**
-     * ISO 15924 script code
-     * @draft ICU 3.8 
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final int SUNDANESE                     = 113;/* Sund */
-    /**
-     * ISO 15924 script code
-     * @draft ICU 3.8 
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final int MOON                          = 114;/* Moon */
-    /**
-     * ISO 15924 script code
-     * @draft ICU 3.8 
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final int MEITEI_MAYEK                  = 115;/* Mtei */
-    
+
     /**
      * Limit
      * @stable ICU 2.4
      */
-    public static final int CODE_LIMIT   = 116;
+    public static final int CODE_LIMIT   = 104;
 
     private static final int SCRIPT_MASK   = 0x0000007f;
     private static final UCharacterProperty prop= UCharacterProperty.getInstance();
@@ -721,7 +664,7 @@ public final class UScript {
         if(rb.getLoadingStatus()==ICUResourceBundle.FROM_DEFAULT && ! locale.equals(ULocale.getDefault())){
             return null;
         }
-        UResourceBundle sub = rb.get(kLocaleScript);
+        ICUResourceBundle sub = rb.get(kLocaleScript);
         
         int[] result = new int[sub.getSize()];
         int w = 0;

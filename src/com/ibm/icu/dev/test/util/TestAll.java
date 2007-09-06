@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2005, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -31,8 +31,7 @@ public class TestAll extends TestGroup {
             "TrieTest",
             "LocaleDataTest",
             "ULocaleTest",
-            "LocaleAliasTest",
-            "DebugUtilitiesTest"
+            "LocaleAliasTest"
         },
               "Test miscellaneous public utilities");
     }

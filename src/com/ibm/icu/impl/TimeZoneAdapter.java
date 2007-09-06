@@ -1,14 +1,13 @@
 /*
- **********************************************************************
- * Copyright (c) 2003-2007, International Business Machines
- * Corporation and others.  All Rights Reserved.
- **********************************************************************
- * Author: Alan Liu
- * Created: October 2 2003
- * Since: ICU 2.8
- **********************************************************************
- */
-
+**********************************************************************
+* Copyright (c) 2003-2006, International Business Machines
+* Corporation and others.  All Rights Reserved.
+**********************************************************************
+* Author: Alan Liu
+* Created: October 2 2003
+* Since: ICU 2.8
+**********************************************************************
+*/
 package com.ibm.icu.impl;
 import com.ibm.icu.util.TimeZone;
 import java.util.Date;
@@ -59,6 +58,9 @@ public class TimeZoneAdapter extends java.util.TimeZone {
 
     /**
      * Constructs an adapter for a com.ibm.icu.util.TimeZone object.
+     * 
+     * @internal
+     * @deprecated This API is ICU internal only.
      */
     public TimeZoneAdapter(TimeZone zone) {
         this.zone = zone;

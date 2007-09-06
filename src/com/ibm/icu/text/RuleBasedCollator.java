@@ -1,7 +1,7 @@
-//##header J2SE15
+//##header
 /**
 *******************************************************************************
-* Copyright (C) 1996-2007, International Business Machines Corporation and    *
+* Copyright (C) 1996-2006, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 */
@@ -13,10 +13,10 @@ import java.text.ParseException;
 import java.util.Arrays;
 import java.util.MissingResourceException;
 
-//#if defined(FOUNDATION10) || defined(J2SE13) || defined(ECLIPSE_FRAGMENT)
-//##import com.ibm.icu.impl.ByteBuffer;
-//#else
+//#ifndef FOUNDATION
 import java.nio.ByteBuffer;
+//#else
+//##import com.ibm.icu.impl.ByteBuffer;
 //#endif
 
 import com.ibm.icu.impl.BOCU;
@@ -144,7 +144,7 @@ import com.ibm.icu.util.VersionInfo;
  * // Create a new Collator object with additional rules
  * String addRules = "&amp; C &lt; ch, cH, Ch, CH";
  * RuleBasedCollator myCollator =
- *     new RuleBasedCollator(en_USCollator.getRules() + addRules);
+ *     new RuleBasedCollator(en_USCollator + addRules);
  * // myCollator contains the new rules
  * </pre>
  * </blockquote>
@@ -233,9 +233,7 @@ public final class RuleBasedCollator extends Collator
         RuleBasedCollator result = (RuleBasedCollator)super.clone();
         if (latinOneCEs_ != null) {
             result.m_reallocLatinOneCEs_ = true;
-            result.m_ContInfo_ = new ContractionInfo();
         }
-
         // since all collation data in the RuleBasedCollator do not change
         // we can safely assign the result.fields to this collator
         result.initUtility(false);  // let the new clone have their own util
@@ -864,7 +862,8 @@ public final class RuleBasedCollator extends Collator
      * @param expansions if not null, set to contain expansions
      * @param addPrefixes add the prefix contextual elements to contractions
      * @throws Exception 
-     * @stable ICU 3.8
+     * @draft ICU 3.4
+     * @provisional This API might change or be removed in a future release.
      */
     public void
     getContractionsAndExpansions(UnicodeSet contractions, UnicodeSet expansions,
@@ -875,6 +874,7 @@ public final class RuleBasedCollator extends Collator
         if(expansions != null) {
             expansions.clear();
         }
+        int rulesLen = 0;
         String rules = getRules();
         try {
             CollationRuleParser src = new CollationRuleParser(rules);
@@ -951,7 +951,7 @@ public final class RuleBasedCollator extends Collator
         }
         int strength = getStrength();
         m_utilCompare0_ = m_isCaseLevel_;
-        //m_utilCompare1_ = true;
+        m_utilCompare1_ = true;
         m_utilCompare2_ = strength >= SECONDARY;
         m_utilCompare3_ = strength >= TERTIARY;
         m_utilCompare4_ = strength >= QUATERNARY;
@@ -962,13 +962,13 @@ public final class RuleBasedCollator extends Collator
         m_utilBytesCount2_ = 0;
         m_utilBytesCount3_ = 0;
         m_utilBytesCount4_ = 0;
-        //m_utilBytesCount5_ = 0;
-        //m_utilCount0_ = 0;
-        //m_utilCount1_ = 0;
+        m_utilBytesCount5_ = 0;
+        m_utilCount0_ = 0;
+        m_utilCount1_ = 0;
         m_utilCount2_ = 0;
         m_utilCount3_ = 0;
         m_utilCount4_ = 0;
-        //m_utilCount5_ = 0;
+        m_utilCount5_ = 0;
         boolean doFrench = m_isFrenchCollation_ && m_utilCompare2_;
         // TODO: UCOL_COMMON_BOT4 should be a function of qShifted.
         // If we have no qShifted, we don't need to set UCOL_COMMON_BOT4 so
@@ -1758,7 +1758,7 @@ public final class RuleBasedCollator extends Collator
             iUCA_CONTRACTIONS_ = CollatorReader.read(iUCA_, iUCA_CONSTANTS_);
 
             // called before doing canonical closure for the UCA.
-            iimpCEGen_ = new ImplicitCEGenerator(minImplicitPrimary, maxImplicitPrimary);
+         	iimpCEGen_ = new ImplicitCEGenerator(minImplicitPrimary, maxImplicitPrimary);
             //iimpCEGen_ = new ImplicitCEGenerator(iUCA_CONSTANTS_.PRIMARY_IMPLICIT_MIN_, iUCA_CONSTANTS_.PRIMARY_IMPLICIT_MAX_);
             iUCA_.init();
             ICUResourceBundle rb = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_COLLATION_BASE_NAME, ULocale.ENGLISH);
@@ -2115,14 +2115,14 @@ public final class RuleBasedCollator extends Collator
      * This is an enum that lists magic special byte values from the
      * fractional UCA
      */
-    //private static final byte BYTE_ZERO_ = 0x0;
-    //private static final byte BYTE_LEVEL_SEPARATOR_ = (byte)0x01;
-    //private static final byte BYTE_SORTKEY_GLUE_ = (byte)0x02;
+    private static final byte BYTE_ZERO_ = 0x0;
+    private static final byte BYTE_LEVEL_SEPARATOR_ = (byte)0x01;
+    private static final byte BYTE_SORTKEY_GLUE_ = (byte)0x02;
     private static final byte BYTE_SHIFT_PREFIX_ = (byte)0x03;
     /*private*/ static final byte BYTE_UNSHIFTED_MIN_ = BYTE_SHIFT_PREFIX_;
-    //private static final byte BYTE_FIRST_UCA_ = BYTE_COMMON_;
+    private static final byte BYTE_FIRST_UCA_ = BYTE_COMMON_;
     static final byte CODAN_PLACEHOLDER = 0x24;
-    //private static final byte BYTE_LAST_LATIN_PRIMARY_ = (byte)0x4C;
+    private static final byte BYTE_LAST_LATIN_PRIMARY_ = (byte)0x4C;
     private static final byte BYTE_FIRST_NON_LATIN_PRIMARY_ = (byte)0x4D;
     private static final byte BYTE_UNSHIFTED_MAX_ = (byte)0xFF;
     private static final int TOTAL_2_ = COMMON_TOP_2_ - COMMON_BOTTOM_2_ - 1;
@@ -2140,11 +2140,11 @@ public final class RuleBasedCollator extends Collator
     private static final int COMMON_2_ = COMMON_BOTTOM_2_;
     private static final int COMMON_UPPER_FIRST_3_ = 0xC5;
     private static final int COMMON_NORMAL_3_ = COMMON_BOTTOM_3_;
-    //private static final int COMMON_4_ = (byte)0xFF;
+    private static final int COMMON_4_ = (byte)0xFF;
 
 
 
-    /*
+    /**
      * Minimum size required for the binary collation data in bytes.
      * Size of UCA header + size of options to 4 bytes
      */
@@ -2184,8 +2184,8 @@ public final class RuleBasedCollator extends Collator
 
     private static final int LAST_BYTE_MASK_ = 0xFF;
 
-    //private static final int CE_RESET_TOP_VALUE_ = 0x9F000303;
-    //private static final int CE_NEXT_TOP_VALUE_ = 0xE8960303;
+    private static final int CE_RESET_TOP_VALUE_ = 0x9F000303;
+    private static final int CE_NEXT_TOP_VALUE_ = 0xE8960303;
 
     private static final byte SORT_CASE_BYTE_START_ = (byte)0x80;
     private static final byte SORT_CASE_SHIFT_START_ = (byte)7;
@@ -2213,7 +2213,7 @@ public final class RuleBasedCollator extends Collator
      * Utility comparison flags
      */
     private boolean m_utilCompare0_;
-    //private boolean m_utilCompare1_;
+    private boolean m_utilCompare1_;
     private boolean m_utilCompare2_;
     private boolean m_utilCompare3_;
     private boolean m_utilCompare4_;
@@ -2226,7 +2226,7 @@ public final class RuleBasedCollator extends Collator
     private byte m_utilBytes2_[];
     private byte m_utilBytes3_[];
     private byte m_utilBytes4_[];
-    //private byte m_utilBytes5_[];
+    private byte m_utilBytes5_[];
     private RawCollationKey m_utilRawCollationKey_;
 
     private int m_utilBytesCount0_;
@@ -2234,13 +2234,13 @@ public final class RuleBasedCollator extends Collator
     private int m_utilBytesCount2_;
     private int m_utilBytesCount3_;
     private int m_utilBytesCount4_;
-    //private int m_utilBytesCount5_;
-    //private int m_utilCount0_;
-    //private int m_utilCount1_;
+    private int m_utilBytesCount5_;
+    private int m_utilCount0_;
+    private int m_utilCount1_;
     private int m_utilCount2_;
     private int m_utilCount3_;
     private int m_utilCount4_;
-    //private int m_utilCount5_;
+    private int m_utilCount5_;
 
     private int m_utilFrenchStart_;
     private int m_utilFrenchEnd_;
@@ -2279,7 +2279,7 @@ public final class RuleBasedCollator extends Collator
         int strength = getStrength();
         // setting up the collator parameters
         m_utilCompare0_ = m_isCaseLevel_;
-        //m_utilCompare1_ = true;
+        m_utilCompare1_ = true;
         m_utilCompare2_ = strength >= SECONDARY;
         m_utilCompare3_ = strength >= TERTIARY;
         m_utilCompare4_ = strength >= QUATERNARY;
@@ -3639,8 +3639,8 @@ public final class RuleBasedCollator extends Collator
                                     == CollationElementIterator.IGNORABLE) {
                 sorder = m_srcUtilCEBuffer_[soffset ++];
                 if (!isContinuation(sorder) && ((sorder & CE_PRIMARY_MASK_) != 0 || m_utilCompare2_ == true)) {
-                    // primary ignorables should not be considered on the case level when the strength is primary
-                    // otherwise, the CEs stop being well-formed
+                	// primary ignorables should not be considered on the case level when the strength is primary
+                	// otherwise, the CEs stop being well-formed
                     sorder &= CE_CASE_MASK_3_;
                     sorder ^= m_caseSwitch_;
                 }
@@ -3653,8 +3653,8 @@ public final class RuleBasedCollator extends Collator
                                     == CollationElementIterator.IGNORABLE) {
                 torder = m_tgtUtilCEBuffer_[toffset ++];
                 if (!isContinuation(torder) && ((torder & CE_PRIMARY_MASK_) != 0 || m_utilCompare2_ == true)) {
-                    // primary ignorables should not be considered on the case level when the strength is primary
-                    // otherwise, the CEs stop being well-formed
+                   	// primary ignorables should not be considered on the case level when the strength is primary
+                	// otherwise, the CEs stop being well-formed
                     torder &= CE_CASE_MASK_3_;
                     torder ^= m_caseSwitch_;
                 }

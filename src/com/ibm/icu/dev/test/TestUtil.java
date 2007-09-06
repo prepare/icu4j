@@ -1,4 +1,4 @@
-//##header J2SE15
+//##header
 /**
  *******************************************************************************
  * Copyright (C) 2001-2006, International Business Machines Corporation and    *
@@ -63,11 +63,11 @@ public final class TestUtil {
             } catch (Throwable t) {
                 IOException ex =
                     new IOException("data resource '" + name + "' not found");
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//##            t.printStackTrace();
-//#else
+//#ifndef FOUNDATION
                 //initCause API was introduced in JDK 1.4
                 ex.initCause(t);
+//#else
+//##            t.printStackTrace();
 //#endif
                
                 throw ex;

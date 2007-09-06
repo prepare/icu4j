@@ -1,14 +1,13 @@
 /*
- **********************************************************************
- * Copyright (c) 2002-2007, International Business Machines
- * Corporation and others.  All Rights Reserved.
- **********************************************************************
- * Author: Alan Liu
- * Created: November 5 2002
- * Since: ICU 2.4
- **********************************************************************
- */
-
+**********************************************************************
+* Copyright (c) 2002-2006, International Business Machines
+* Corporation and others.  All Rights Reserved.
+**********************************************************************
+* Author: Alan Liu
+* Created: November 5 2002
+* Since: ICU 2.4
+**********************************************************************
+*/
 package com.ibm.icu.impl;
 
 import java.io.*;
@@ -595,11 +594,13 @@ public final class UPropertyAliases implements ICUBinary.Authenticate {
          * array of stringPool[] indices.  MODIFIES THE ARRAY IN
          * PLACE.
          */
-/*        private void stringOffsetToIndex(short array[]) {
+        ///CLOVER:OFF
+        private void stringOffsetToIndex(short array[]) {
             for (int i=0; i<array.length; ++i) {
                 array[i] = stringOffsetToIndex(array[i]);
             }
-        }*/
+        }
+        ///CLOVER:ON
 
         /**
          * Convert an offset into the value map into a valueMap[]

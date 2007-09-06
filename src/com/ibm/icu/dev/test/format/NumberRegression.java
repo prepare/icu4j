@@ -1,7 +1,7 @@
-//##header J2SE15
+//##header
 /*****************************************************************************************
  *
- * Copyright (C) 1996-2007, International Business Machines
+ * Copyright (C) 1996-2006, International Business Machines
  * Corporation and others.  All Rights Reserved.
  **/
 
@@ -30,6 +30,7 @@ import com.ibm.icu.text.*;
 import com.ibm.icu.util.*;
 
 import java.io.*;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.text.FieldPosition;
 import java.text.ParseException;
@@ -322,7 +323,7 @@ public class NumberRegression extends com.ibm.icu.dev.test.TestFmwk {
         df.setMinimumFractionDigits(10);
         df.setGroupingUsed(false);
         double d = 1.000000000000001E7;
-        java.math.BigDecimal bd = new java.math.BigDecimal(d);
+        BigDecimal bd = new BigDecimal(d);
         StringBuffer sb = new StringBuffer("");
         FieldPosition fp = new FieldPosition(0);
         logln("d = " + d);
@@ -567,7 +568,7 @@ public class NumberRegression extends com.ibm.icu.dev.test.TestFmwk {
         */
         String expectedDefault = "-5.789,988";
         String expectedCurrency = "5.789,99 " + EURO;
-        String expectedPercent = "-578.999 %";
+        String expectedPercent = "-578.999%";
 
         formatter = NumberFormat.getNumberInstance(Locale.GERMANY);
         tempString = formatter.format (-5789.9876);
@@ -952,14 +953,14 @@ public class NumberRegression extends com.ibm.icu.dev.test.TestFmwk {
         Locale[] locales = NumberFormat.getAvailableLocales();
         
         for (int i = 0; i < locales.length; i++) {
-            UResourceBundle rb = UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME,locales[i]);
+            ICUResourceBundle rb = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME,locales[i]);
 
             //
             // Get the currency pattern for this locale.  We have to fish it
             // out of the ResourceBundle directly, since DecimalFormat.toPattern
             // will return the localized symbol, not \00a4
             //
-            UResourceBundle numPatterns = rb.get("NumberPatterns");
+            ICUResourceBundle numPatterns = rb.get("NumberPatterns");
             String pattern = numPatterns.getString(1);
             
             if (pattern.indexOf('\u00A4') == -1 ) { // 'x' not "x" -- workaround bug in IBM JDK 1.4.1
@@ -1107,15 +1108,14 @@ public class NumberRegression extends com.ibm.icu.dev.test.TestFmwk {
         }
     }
 
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
+//#ifndef FOUNDATION
     /**
      * BigDecimal numbers get their fractions truncated by NumberFormat.
      */
     public void Test4141750() {
         try {
             String str = "12345.67";
-            java.math.BigDecimal bd = new java.math.BigDecimal(str);
+            BigDecimal bd = new BigDecimal(str);
             String sd = NumberFormat.getInstance(Locale.US).format(bd);
             if (!sd.endsWith("67")) errln("Fail: " + str + " x format -> " + sd);
         }
@@ -1816,10 +1816,6 @@ public class NumberRegression extends com.ibm.icu.dev.test.TestFmwk {
 
 class myformat implements Serializable
 {
-    /**
-     * For serialization
-     */
-    private static final long serialVersionUID = 4120813612616076506L;
     DateFormat _dateFormat = DateFormat.getDateInstance();
 
     public String Now()
@@ -1832,10 +1828,6 @@ class myformat implements Serializable
 }
 
 class MyNumberFormatTest extends NumberFormat {
-    /**
-     * For serialization
-     */
-    private static final long serialVersionUID = 1251303884737169952L;
     public StringBuffer format(double number, StringBuffer toAppendTo, FieldPosition pos) {
         return new StringBuffer("");
     }
@@ -1845,12 +1837,9 @@ class MyNumberFormatTest extends NumberFormat {
     public Number parse(String text, ParsePosition parsePosition) {
         return new Integer(0);
     }
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
-    public StringBuffer format(java.math.BigDecimal number, StringBuffer toAppendTo, FieldPosition pos) {
+    public StringBuffer format(BigDecimal number, StringBuffer toAppendTo, FieldPosition pos) {
         return new StringBuffer("");
     }
-//#endif
     public StringBuffer format(BigInteger number, StringBuffer toAppendTo, FieldPosition pos) {
         return new StringBuffer("");
     }

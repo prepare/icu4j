@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 1996-2007, International Business Machines Corporation and    *
+* Copyright (C) 1996-2006, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 */
@@ -10,18 +10,21 @@ package com.ibm.icu.impl;
 import java.io.BufferedInputStream;
 import java.io.InputStream;
 import java.io.IOException;
+import java.util.Locale;
 import java.util.MissingResourceException;
 
 import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.lang.UCharacterCategory;
 import com.ibm.icu.lang.UProperty;
+import com.ibm.icu.text.BreakIterator;
 import com.ibm.icu.text.Normalizer;
+import com.ibm.icu.text.UCharacterIterator;
 import com.ibm.icu.text.UnicodeSet;
 import com.ibm.icu.text.UTF16;
 import com.ibm.icu.util.RangeValueIterator;
+import com.ibm.icu.util.ULocale;
+import com.ibm.icu.util.UResourceBundle;
 import com.ibm.icu.util.VersionInfo;
-
-import com.ibm.icu.impl.NormalizerImpl;
 
 /**
 * <p>Internal class used for Unicode character property database.</p>
@@ -168,16 +171,16 @@ public final class UCharacterProperty
         // this all is an inlined form of return m_trie_.getCodePointValue(ch);
     }
 
-    /*
+    /**
     * Getting the signed numeric value of a character embedded in the property
     * argument
     * @param prop the character
     * @return signed numberic value
     */
-//    public static int getSignedValue(int prop)
-//    {
-//        return ((short)prop >> VALUE_SHIFT_);
-//    }
+    public static int getSignedValue(int prop)
+    {
+        return ((short)prop >> VALUE_SHIFT_);
+    }
 
     /**
     * Getting the unsigned numeric value of a character embedded in the property
@@ -185,10 +188,12 @@ public final class UCharacterProperty
     * @param prop the character
     * @return unsigned numberic value
     */
+    ///CLOVER:OFF
     public static int getUnsignedValue(int prop)
     {
         return (prop >> VALUE_SHIFT_) & UNSIGNED_VALUE_MASK_AFTER_SHIFT_;
     }
+    ///CLOVER:ON
 
     /* internal numeric pseudo-types for special encodings of numeric values */
     public static final int NT_FRACTION=4; /* ==UCharacter.NumericType.COUNT, must not change unless binary format version changes */
@@ -413,12 +418,12 @@ public final class UCharacterProperty
                     }
                 } else if(column==SRC_BIDI) {
                     /* bidi/shaping properties */
-                    UBiDiProps bdp;
-                    try {
-                        bdp = UBiDiProps.getSingleton();
-                    } catch (IOException e) {
-                        return false;
-                    }
+					UBiDiProps bdp;
+					try {
+						bdp = UBiDiProps.getSingleton();
+					} catch (IOException e) {
+						return false;
+					}
                     switch(property) {
                     case UProperty.BIDI_MIRRORED:
                         return bdp.isMirrored(codepoint);
@@ -757,15 +762,24 @@ public final class UCharacterProperty
     */
     private static final int UNSIGNED_VALUE_MASK_AFTER_SHIFT_ = 0xFF;
 
-    /*
+    /**
      *
      */
-    //private static final int NUMERIC_TYPE_SHIFT = 5;
+    private static final int NUMERIC_TYPE_SHIFT = 5;
 
-    /*
+    /**
     * To get the last 5 bits out from a data type
     */
-    //private static final int LAST_5_BIT_MASK_ = 0x1F;
+    private static final int LAST_5_BIT_MASK_ = 0x1F;
+
+    /**
+    * Shift 5 bits
+    */
+    private static final int SHIFT_5_ = 5;
+    /**
+    * Shift 10 bits
+    */
+    private static final int SHIFT_10_ = 10;
 
     /**
     * Shift value for lead surrogate to form a supplementary character.
@@ -779,7 +793,97 @@ public final class UCharacterProperty
                            (UTF16.SURROGATE_MIN_VALUE <<
                            LEAD_SURROGATE_SHIFT_) -
                            UTF16.TRAIL_SURROGATE_MIN_VALUE;
+    /**
+    * Latin uppercase I
+    */
+    private static final char LATIN_CAPITAL_LETTER_I_ = 0x49;
+    /**
+    * Combining dot above
+    */
+    private static final char COMBINING_DOT_ABOVE_ = 0x307;
+    /**
+    * LATIN SMALL LETTER J
+    */
+    private static final int LATIN_SMALL_LETTER_J_ = 0x6a;
+    /**
+    * LATIN SMALL LETTER I WITH OGONEK
+    */
+    private static final int LATIN_SMALL_LETTER_I_WITH_OGONEK_ = 0x12f;
+    /**
+    * LATIN SMALL LETTER I WITH TILDE BELOW
+    */
+    private static final int LATIN_SMALL_LETTER_I_WITH_TILDE_BELOW_ = 0x1e2d;
+    /**
+    * LATIN SMALL LETTER I WITH DOT BELOW
+    */
+    private static final int LATIN_SMALL_LETTER_I_WITH_DOT_BELOW_ = 0x1ecb;
+    /**
+    * Combining class for combining mark above
+    */
+    private static final int COMBINING_MARK_ABOVE_CLASS_ = 230;
 
+    /**
+    * LATIN CAPITAL LETTER J
+    */
+    private static final int LATIN_CAPITAL_LETTER_J_ = 0x4a;
+
+    /**
+    * LATIN CAPITAL LETTER I WITH OGONEK
+    */
+    private static final int LATIN_CAPITAL_I_WITH_OGONEK_ = 0x12e;
+    /**
+    * LATIN CAPITAL LETTER I WITH TILDE
+    */
+    private static final int LATIN_CAPITAL_I_WITH_TILDE_ = 0x128;
+    /**
+    * LATIN CAPITAL LETTER I WITH GRAVE
+    */
+    private static final int LATIN_CAPITAL_I_WITH_GRAVE_ = 0xcc;
+    /**
+    * LATIN CAPITAL LETTER I WITH ACUTE
+    */
+    private static final int LATIN_CAPITAL_I_WITH_ACUTE_ = 0xcd;
+    /**
+    * COMBINING GRAVE ACCENT
+    */
+    private static final int COMBINING_GRAVE_ACCENT_ = 0x300;
+    /**
+    * COMBINING ACUTE ACCENT
+    */
+    private static final int COMBINING_ACUTE_ACCENT_ = 0x301;
+    /**
+    * COMBINING TILDE
+    */
+    private static final int COMBINING_TILDE_ = 0x303;
+    /**
+    * Greek capital letter sigma
+    */
+    private static final char GREEK_CAPITAL_LETTER_SIGMA_ = 0x3a3;
+    /**
+    * Greek small letter sigma
+    */
+    private static final char GREEK_SMALL_LETTER_SIGMA_ = 0x3c3;
+    /**
+    * Greek small letter rho
+    */
+    private static final char GREEK_SMALL_LETTER_RHO_ = 0x3c2;
+    /**
+    * Hyphens
+    */
+    private static final int HYPHEN_      = 0x2010;
+    private static final int SOFT_HYPHEN_ = 0xAD;
+    /**
+    * To get the last character out from a data type
+    */
+    private static final int LAST_CHAR_MASK_ = 0xFFFF;
+    /**
+    * To get the last byte out from a data type
+    */
+    private static final int LAST_BYTE_MASK_ = 0xFF;
+    /**
+    * Shift 16 bits
+    */
+    private static final int SHIFT_16_ = 16;
 
     // additional properties ----------------------------------------------
 
@@ -798,8 +902,8 @@ public final class UCharacterProperty
      * ICU 2.6/uprops format version 3.2 stores full properties instead of "Other_".
      */
     private static final int WHITE_SPACE_PROPERTY_ = 0;
-    //private static final int BIDI_CONTROL_PROPERTY_ = 1;
-    //private static final int JOIN_CONTROL_PROPERTY_ = 2;
+    private static final int BIDI_CONTROL_PROPERTY_ = 1;
+    private static final int JOIN_CONTROL_PROPERTY_ = 2;
     private static final int DASH_PROPERTY_ = 3;
     private static final int HYPHEN_PROPERTY_ = 4;
     private static final int QUOTATION_MARK_PROPERTY_ = 5;
@@ -811,8 +915,8 @@ public final class UCharacterProperty
     private static final int IDEOGRAPHIC_PROPERTY_ = 11;
     private static final int DIACRITIC_PROPERTY_ = 12;
     private static final int EXTENDER_PROPERTY_ = 13;
-    //private static final int LOWERCASE_PROPERTY_ = 14;
-    //private static final int UPPERCASE_PROPERTY_ = 15;
+    private static final int LOWERCASE_PROPERTY_ = 14;
+    private static final int UPPERCASE_PROPERTY_ = 15;
     private static final int NONCHARACTER_CODE_POINT_PROPERTY_ = 16;
     private static final int GRAPHEME_EXTEND_PROPERTY_ = 17;
     private static final int GRAPHEME_LINK_PROPERTY_ = 18;
@@ -822,14 +926,14 @@ public final class UCharacterProperty
     private static final int UNIFIED_IDEOGRAPH_PROPERTY_ = 22;
     private static final int DEFAULT_IGNORABLE_CODE_POINT_PROPERTY_ = 23;
     private static final int DEPRECATED_PROPERTY_ = 24;
-    //private static final int SOFT_DOTTED_PROPERTY_ = 25;
+    private static final int SOFT_DOTTED_PROPERTY_ = 25;
     private static final int LOGICAL_ORDER_EXCEPTION_PROPERTY_ = 26;
     private static final int XID_START_PROPERTY_ = 27;
     private static final int XID_CONTINUE_PROPERTY_ = 28;
     private static final int ID_START_PROPERTY_    = 29;
     private static final int ID_CONTINUE_PROPERTY_ = 30;
     private static final int GRAPHEME_BASE_PROPERTY_ = 31;
-    //private static final int BINARY_1_TOP_PROPERTY_ = 32;
+    private static final int BINARY_1_TOP_PROPERTY_ = 32;
 
     /**
      * First nibble shift
@@ -884,8 +988,8 @@ public final class UCharacterProperty
     // property starts for UnicodeSet -------------------------------------- ***
 
     private static final int TAB     = 0x0009;
-    //private static final int LF      = 0x000a;
-    //private static final int FF      = 0x000c;
+    private static final int LF      = 0x000a;
+    private static final int FF      = 0x000c;
     private static final int CR      = 0x000d;
     private static final int U_A     = 0x0041;
     private static final int U_F     = 0x0046;
@@ -899,8 +1003,8 @@ public final class UCharacterProperty
     private static final int CGJ     = 0x034f;
     private static final int FIGURESP= 0x2007;
     private static final int HAIRSP  = 0x200a;
-    //private static final int ZWNJ    = 0x200c;
-    //private static final int ZWJ     = 0x200d;
+    private static final int ZWNJ    = 0x200c;
+    private static final int ZWJ     = 0x200d;
     private static final int RLM     = 0x200f;
     private static final int NNBSP   = 0x202f;
     private static final int WJ      = 0x2060;
@@ -957,13 +1061,6 @@ public final class UCharacterProperty
                 set.add(c);
             }
         }
-
-        /* Add Hangul type boundaries for UCHAR_HANGUL_SYLLABLE_TYPE. */
-        for(c=NormalizerImpl.HANGUL_BASE; c<(NormalizerImpl.HANGUL_BASE+NormalizerImpl.HANGUL_COUNT); c+=NormalizerImpl.JAMO_T_COUNT) {
-            set.add(c);
-            set.add(c+1);
-        }
-        set.add(c);
     }
 
     public UnicodeSet addPropertyStarts(UnicodeSet set) {

@@ -1,4 +1,4 @@
-//##header J2SE15
+//##header
 /*
  *******************************************************************************
  * Copyright (C) 1996-2005, International Business Machines Corporation and    *
@@ -417,8 +417,8 @@ public class BigNumberFormatTest extends TestFmwk {
             }
         }
     }
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
+
+//#ifndef FOUNDATION
     public void TestBigDecimalRounding() {
         // jb 3657
         java.text.DecimalFormat jdkFormat=new java.text.DecimalFormat("###,###,###,##0");

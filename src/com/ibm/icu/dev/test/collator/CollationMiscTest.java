@@ -1,6 +1,6 @@
  /*
  *******************************************************************************
- * Copyright (C) 2002-2007, International Business Machines Corporation and    *
+ * Copyright (C) 2002-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -37,7 +37,7 @@ public class CollationMiscTest extends TestFmwk {
         // new CollationMiscTest().TestLocaleRuleBasedCollators(); 
     }
     
-    //private static final int NORM_BUFFER_TEST_LEN_ = 32;
+    private static final int NORM_BUFFER_TEST_LEN_ = 32;
     private static final class Tester 
     {
         int u;
@@ -483,7 +483,7 @@ public class CollationMiscTest extends TestFmwk {
         
         String[] attShifted = { "strength", "AlternateHandling"};
         Object valShifted[] = { new Integer(Collator.QUATERNARY), 
-                                Boolean.TRUE };
+                                new Boolean(true) };
        
         genericLocaleStarterWithOptions(Locale.JAPANESE, test1, att, val);
         genericLocaleStarterWithOptions(Locale.JAPANESE, test2, att, val);
@@ -1891,7 +1891,7 @@ public class CollationMiscTest extends TestFmwk {
         RuleBasedCollator coll 
             = (RuleBasedCollator)Collator.getInstance(Locale.ENGLISH);
         String att[] = {"NumericCollation"};
-        Boolean val[] = {Boolean.TRUE};
+        Boolean val[] = {new Boolean(true)};
         genericLocaleStarterWithOptions(Locale.ENGLISH, basicTestStrings, att,
                                         val);
         genericLocaleStarterWithOptions(Locale.ENGLISH, 
@@ -1997,11 +1997,11 @@ public class CollationMiscTest extends TestFmwk {
             //int x = foo.getRawImplicit(0xF810);
             foo.getRawFromImplicit(0xE20303E7);
 
-            //int gap4 = foo.getGap4();
-            //logln("Gap4: " + gap4); 
-            //int gap3 = foo.getGap3();
-            //int minTrail = foo.getMinTrail();
-            //int maxTrail = foo.getMaxTrail();
+            int gap4 = foo.getGap4();
+            logln("Gap4: " + gap4); 
+            int gap3 = foo.getGap3();
+            int minTrail = foo.getMinTrail();
+            int maxTrail = foo.getMaxTrail();
             long last = 0;
             long current;
             for (int i = 0; i <= MAX_INPUT; ++i) {
@@ -2141,7 +2141,7 @@ public class CollationMiscTest extends TestFmwk {
     {
       String tests[] = { "B", "b", "Bb", "bB" };
       String[] att = { "strength", "UpperFirst" };
-      Object attVals[] = { new Integer(Collator.QUATERNARY), Boolean.TRUE };
+      Object attVals[] = { new Integer(Collator.QUATERNARY), new Boolean(true) };
       genericLocaleStarterWithOptions(new Locale("root","",""), tests, att, attVals);
     }
     
@@ -2149,11 +2149,11 @@ public class CollationMiscTest extends TestFmwk {
     {
         String tests[] = { "\\u00e2T", "aT" };
         String att[] = { "strength", "CaseLevel" };
-        Object attVals[] = { new Integer(Collator.PRIMARY), Boolean.TRUE };
+        Object attVals[] = { new Integer(Collator.PRIMARY), new Boolean(true) };
         String tests2[] = { "a", "A" };
         String rule = "&[first tertiary ignorable]=A=a";
         String att2[] = { "CaseLevel" };        
-        Object attVals2[] = { Boolean.TRUE };
+        Object attVals2[] = { new Boolean(true) };
         // Test whether we correctly ignore primary ignorables on case level when
         // we have only primary & case level
         genericLocaleStarterWithOptionsAndResult(new Locale("root", ""), tests, att, attVals, 0);

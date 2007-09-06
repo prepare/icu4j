@@ -1,5 +1,5 @@
 /*
- * (C) Copyright IBM Corp. 1998-2007.  All Rights Reserved.
+ * (C) Copyright IBM Corp. 1998-2004.  All Rights Reserved.
  *
  * The program is provided "as is" without any warranty express or
  * implied, including the warranty of non-infringement and the implied
@@ -10,7 +10,6 @@
  * IBM has been advised of the possibility of their occurrence. IBM
  * will not be liable for any third party claims against you.
  */
-
 package com.ibm.richtext.test;
 
 import java.util.Random;
@@ -91,11 +90,11 @@ public class TestTextPanel /*extends TestFmwk*/ {
             assertNotExpectingEvents(false, 0, false);
         }
         
-        void assertNotExpectingEvents(int iterCount, boolean exp) {
-            assertNotExpectingEvents(true, iterCount, exp);
+        void assertNotExpectingEvents(int iterationCount, boolean exp) {
+            assertNotExpectingEvents(true, iterationCount, exp);
         }
         
-        private void assertNotExpectingEvents(boolean logDetails, int iterCount, boolean exp) {
+        private void assertNotExpectingEvents(boolean logDetails, int iterationCount, boolean exp) {
             
             boolean e = false;
             for (int i=0; i < status.length; i++) {
@@ -103,7 +102,7 @@ public class TestTextPanel /*extends TestFmwk*/ {
                     if (logDetails) {
                         logMessage("Expecting event " +
                                         (i+TextPanelEvent.TEXT_PANEL_FIRST));
-                        logMessage("iterationCount="+iterCount+";  expexting="+exp);
+                        logMessage("iterationCount="+iterationCount+";  expexting="+exp);
                     }
                     e = true;
                 }
