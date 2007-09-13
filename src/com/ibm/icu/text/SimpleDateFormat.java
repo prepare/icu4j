@@ -278,9 +278,6 @@ public class SimpleDateFormat extends DateFormat {
 
     private transient TimeZone parsedTimeZone;
 
-    //TODO: This is a temporary workaround for zone parsing problem
-    private transient boolean isTimeZoneOffsetSet;
-
     private static final int millisPerHour = 60 * 60 * 1000;
     private static final int millisPerMinute = 60 * 1000;
 
@@ -1331,7 +1328,6 @@ public class SimpleDateFormat extends DateFormat {
 
         // hack, clear parsedTimeZone
         parsedTimeZone = null;
-        isTimeZoneOffsetSet = false;
 
         // item index for the first numeric field within a countiguous numeric run
         int numericFieldStart = -1;
@@ -1490,16 +1486,14 @@ public class SimpleDateFormat extends DateFormat {
                 if (parsedTimeZone != null) {
                     TimeZone tz = parsedTimeZone;
 
-                    if (!isTimeZoneOffsetSet) {
-                        // the calendar represents the parse as gmt time
-                        // we need to turn this into local time, so we add the raw offset
-                        // then we ask the timezone to handle this local time
-                        int[] offsets = new int[2];
-                        tz.getOffset(copy.getTimeInMillis()+tz.getRawOffset(), true, offsets);
-    
-                        cal.set(Calendar.ZONE_OFFSET, offsets[0]);
-                        cal.set(Calendar.DST_OFFSET, offsets[1]);
-                    }
+                    // the calendar represents the parse as gmt time
+                    // we need to turn this into local time, so we add the raw offset
+                    // then we ask the timezone to handle this local time
+                    int[] offsets = new int[2];
+                    tz.getOffset(copy.getTimeInMillis()+tz.getRawOffset(), true, offsets);
+
+                    cal.set(Calendar.ZONE_OFFSET, offsets[0]);
+                    cal.set(Calendar.DST_OFFSET, offsets[1]);
                     cal.setTimeZone(tz);
                 }
             }
@@ -1639,24 +1633,20 @@ public class SimpleDateFormat extends DateFormat {
                     || type == DateFormatSymbols.TIMEZONE_LONG_STANDARD) {
                 // standard time
                 cal.set(Calendar.DST_OFFSET, 0);
-                isTimeZoneOffsetSet = true;
+                tz = null;
             } else if (type == DateFormatSymbols.TIMEZONE_SHORT_DAYLIGHT
                     || type == DateFormatSymbols.TIMEZONE_LONG_DAYLIGHT) {
                 // daylight time
                 // use the correct DST SAVINGS for the zone.
                 // cal.set(UCAL_DST_OFFSET, tz->getDSTSavings());
                 cal.set(Calendar.DST_OFFSET, millisPerHour);
-                isTimeZoneOffsetSet = true;
+                tz = null;
+            } else {
+                // either standard or daylight
+                // need to finish getting the date, then compute dst offset as
+                // appropriate
+                parsedTimeZone = tz;
             }
-//            else {
-//                // either standard or daylight
-//                // need to finish getting the date, then compute dst offset as
-//                // appropriate
-//                parsedTimeZone = tz;
-//            }
-            //TODO: revisit this after 3.8
-            // Always set parsedTimeZone, otherwise, the time zone is never set to the result calendar
-            parsedTimeZone = tz;
             if(value != null) {
                 return start + value.length();
             }
