@@ -586,8 +586,8 @@ public class SimpleTimeZone extends BasicTimeZone {
     private final static byte staticMonthLength[] = {31,29,31,30,31,30,31,31,30,31,30,31};
 
     /**
-     * @internal revisit for ICU 3.6
-     * @deprecated This API is ICU internal only.
+     * {@inheritDoc}
+     * @stable ICU 2.0
      */
     public int getOffset(int era, int year, int month, int day,
                          int dayOfWeek, int millis) 
@@ -607,7 +607,7 @@ public class SimpleTimeZone extends BasicTimeZone {
     }
 
     /**
-     * @internal revisit for ICU 3.6
+     * @internal
      * @deprecated This API is ICU internal only.
      */
     public int getOffset(int era, int year, int month, int day,

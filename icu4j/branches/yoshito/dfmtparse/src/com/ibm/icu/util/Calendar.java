@@ -4455,7 +4455,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
         // 1. The transition into DST.  Here, a designated time of 2:00 am - 2:59 am
         //    can be in standard or in DST depending.  However, 2:00 am is an invalid
         //    representation (the representation jumps from 1:59:59 am Std to 3:00:00 am DST).
-        //    We assume standard time.
+        //    We assume DST. (ticket#5812)
         // 2. The transition out of DST.  Here, a designated time of 1:00 am - 1:59 am
         //    can be in standard or DST.  Both are valid representations (the rep
         //    jumps from 1:59:59 DST to 1:00:00 Std).

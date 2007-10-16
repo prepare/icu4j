@@ -32,8 +32,10 @@ import com.ibm.icu.impl.SimpleCache;
 import com.ibm.icu.impl.UCharacterProperty;
 import com.ibm.icu.impl.ZoneMeta;
 import com.ibm.icu.lang.UCharacter;
+import com.ibm.icu.util.BasicTimeZone;
 import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.TimeZone;
+import com.ibm.icu.util.TimeZoneTransition;
 import com.ibm.icu.util.ULocale;
 
 
@@ -277,10 +279,10 @@ public class SimpleDateFormat extends DateFormat {
     // and may be used for calculating defaultCenturyStart when needed.
     private transient long defaultCenturyBase;
 
-    private transient TimeZone parsedTimeZone;
-
-    //TODO: This is a temporary workaround for zone parsing problem
-    private transient boolean isTimeZoneOffsetSet;
+    // We need to preserve time zone type when parsing specific
+    // time zone text (xxx Standard Time vs xxx Daylight Time)
+    private static final int TZTYPE_UNK = 0, TZTYPE_STD = 1, TZTYPE_DST = 2;
+    private transient int tztype = TZTYPE_UNK;
 
     private static final int millisPerHour = 60 * 60 * 1000;
     private static final int millisPerMinute = 60 * 1000;
@@ -1332,15 +1334,14 @@ public class SimpleDateFormat extends DateFormat {
     {
         int pos = parsePos.getIndex();
         int start = pos;
+
+        // Reset tztype
+        tztype = TZTYPE_UNK;
         boolean[] ambiguousYear = { false };
 
-        // hack, clear parsedTimeZone
-        parsedTimeZone = null;
-        isTimeZoneOffsetSet = false;
-
-        // item index for the first numeric field within a countiguous numeric run
+        // item index for the first numeric field within a contiguous numeric run
         int numericFieldStart = -1;
-        // item length for the first numeric field within a countiguous numeric run
+        // item length for the first numeric field within a contiguous numeric run
         int numericFieldLength = 0;
         // start index of numeric text run in the input text
         int numericStartPos = 0;
@@ -1478,7 +1479,7 @@ public class SimpleDateFormat extends DateFormat {
         // front or the back of the default century.  This only works because we adjust
         // the year correctly to start with in other cases -- see subParse().
         try {
-            if (ambiguousYear[0] || parsedTimeZone != null) {
+            if (ambiguousYear[0] || tztype != TZTYPE_UNK) {
                 // We need a copy of the fields, and we need to avoid triggering a call to
                 // complete(), which will recalculate the fields.  Since we can't access
                 // the fields[] array in Calendar, we clone the entire object.  This will
@@ -1491,21 +1492,72 @@ public class SimpleDateFormat extends DateFormat {
                         cal.set(Calendar.YEAR, getDefaultCenturyStartYear() + 100);
                     }
                 }
+                if (tztype != TZTYPE_UNK) {
+                    // Make sure parsed time zone type (Standard or Daylight)
+                    // matches the rule used by the parsed time zone.
+                    TimeZone tz = copy.getTimeZone();
+                    long time = copy.getTimeInMillis();
+                    int[] offsets = new int[2];
+                    tz.getOffset(time, false, offsets);
 
-                if (parsedTimeZone != null) {
-                    TimeZone tz = parsedTimeZone;
+                    if (tztype == TZTYPE_STD) {
+                        if (offsets[1] != 0) {
+                            // Override DST_OFFSET = 0 in the result calendar
+                            cal.set(Calendar.ZONE_OFFSET, offsets[0]);
+                            cal.set(Calendar.DST_OFFSET, 0);
+                        }
+                    } else { // tztype == TZTYPE_DST
+                        if (offsets[1] == 0) {
+                            // Override DST_OFFSET in the result calendar.
+                            int savings = 60*60*1000; // default DST savings
 
-                    if (!isTimeZoneOffsetSet) {
-                        // the calendar represents the parse as gmt time
-                        // we need to turn this into local time, so we add the raw offset
-                        // then we ask the timezone to handle this local time
-                        int[] offsets = new int[2];
-                        tz.getOffset(copy.getTimeInMillis()+tz.getRawOffset(), true, offsets);
-    
-                        cal.set(Calendar.ZONE_OFFSET, offsets[0]);
-                        cal.set(Calendar.DST_OFFSET, offsets[1]);
+                            // We use the nearest daylight saving time rule.
+                            if (tz instanceof BasicTimeZone) {
+                                BasicTimeZone btz = (BasicTimeZone)tz;
+                                TimeZoneTransition beforeTrs, afterTrs;
+                                long beforeT = time, afterT = time;
+                                int beforeSav = 0, afterSav = 0;
+
+                                // Search for DST rule before the time
+                                do {
+                                    beforeTrs = btz.getPreviousTransition(beforeT, false);
+                                    beforeSav = beforeTrs.getFrom().getDSTSavings();
+                                    if (beforeSav != 0) {
+                                        break;
+                                    }
+                                    beforeT = beforeTrs.getTime();
+                                } while (beforeTrs != null);
+
+                                // Search for DST rule after the time
+                                do {
+                                    afterTrs = btz.getNextTransition(afterT, false);
+                                    afterSav = afterTrs.getTo().getDSTSavings();
+                                    if (afterSav != 0) {
+                                        break;
+                                    }
+                                } while (afterTrs != null);
+
+                                if (beforeTrs != null && afterTrs != null) {
+                                    if (time - beforeT > afterT - time) {
+                                        savings = afterSav;
+                                    } else {
+                                        savings = beforeSav;
+                                    }
+                                } else if (beforeTrs != null) {
+                                    savings = beforeSav;
+                                } else if (afterTrs != null) {
+                                    savings = afterSav;
+                                }
+                                cal.set(Calendar.ZONE_OFFSET, offsets[0]);
+                                cal.set(Calendar.DST_OFFSET, savings);
+                            }
+                        } else {
+                            // We need to adjust time when the given time fall
+                            // into the non-existing time at STD to DST transition.
+                            cal.set(Calendar.ZONE_OFFSET, copy.get(Calendar.ZONE_OFFSET));
+                            cal.set(Calendar.DST_OFFSET, copy.get(Calendar.DST_OFFSET));
+                        }
                     }
-                    cal.setTimeZone(tz);
                 }
             }
         }
@@ -1612,64 +1664,6 @@ public class SimpleDateFormat extends DateFormat {
         return -start;
     }
     
-    /**
-     * find time zone 'text' matched zoneStrings and set cal
-     */
-    private int subParseZoneString(String text, int start, Calendar cal) {
-        // At this point, check for named time zones by looking through
-        // the locale data from the DateFormatZoneData strings.
-        // Want to be able to parse both short and long forms.
-
-        // optimize for calendar's current time zone
-        TimeZone tz = null;
-        String zid = null, value = null;
-        int type = -1;
-
-        DateFormatSymbols.ZoneItem item = formatData.findZoneIDTypeValue(text, start);
-        if (item != null) {
-            zid = item.zid;
-            value = item.value;
-            type = item.type;
-        }
-
-        if (zid != null) {
-            tz = TimeZone.getTimeZone(zid);
-        }
-        
-        if (tz != null) { // Matched any ?
-            // always set zone offset, needed to get correct hour in wall time
-            // when checking daylight savings
-            cal.set(Calendar.ZONE_OFFSET, tz.getRawOffset());
-            if (type == DateFormatSymbols.TIMEZONE_SHORT_STANDARD
-                    || type == DateFormatSymbols.TIMEZONE_LONG_STANDARD) {
-                // standard time
-                cal.set(Calendar.DST_OFFSET, 0);
-                isTimeZoneOffsetSet = true;
-            } else if (type == DateFormatSymbols.TIMEZONE_SHORT_DAYLIGHT
-                    || type == DateFormatSymbols.TIMEZONE_LONG_DAYLIGHT) {
-                // daylight time
-                // use the correct DST SAVINGS for the zone.
-                // cal.set(UCAL_DST_OFFSET, tz->getDSTSavings());
-                cal.set(Calendar.DST_OFFSET, millisPerHour);
-                isTimeZoneOffsetSet = true;
-            }
-//            else {
-//                // either standard or daylight
-//                // need to finish getting the date, then compute dst offset as
-//                // appropriate
-//                parsedTimeZone = tz;
-//            }
-            //TODO: revisit this after 3.8
-            // Always set parsedTimeZone, otherwise, the time zone is never set to the result calendar
-            parsedTimeZone = tz;
-            if(value != null) {
-                return start + value.length();
-            }
-        }
-        // complete failure
-        return 0;
-    }
-
     /**
      * Protected method that converts one field of the input string into a
      * numeric field value in <code>cal</code>.  Returns -start (for
@@ -1886,6 +1880,7 @@ public class SimpleDateFormat extends DateFormat {
             case 24: // 'v' - TIMEZONE_GENERIC
             case 29: // 'V' - TIMEZONE_SPECIAL
                 {
+                    TimeZone tz = null;
                     int offset = 0;
                     boolean parsed = false;
 
@@ -1972,7 +1967,8 @@ public class SimpleDateFormat extends DateFormat {
                     if (parsed) {
                         // offset was successfully parsed as either a long GMT string or RFC822 zone offset
                         // string.  Create normalized zone ID for the offset.
-                        parsedTimeZone = ZoneMeta.getCustomTimeZone(offset);
+                        tz = ZoneMeta.getCustomTimeZone(offset);
+                        cal.setTimeZone(tz);
                         return pos.getIndex();
                     }
 
@@ -1980,7 +1976,37 @@ public class SimpleDateFormat extends DateFormat {
                     // At this point, check for named time zones by looking through
                     // the locale data from the DateFormatZoneData strings.
                     // Want to be able to parse both short and long forms.
-                    return subParseZoneString(text, start, cal);
+                    // optimize for calendar's current time zone
+                    String zid = null;
+                    String name = null;
+                    int type = -1;
+
+                    DateFormatSymbols.ZoneItem item = formatData.findZoneIDTypeValue(text, start);
+                    if (item != null) {
+                        zid = item.zid;
+                        name = item.value;
+                        type = item.type;
+                    }
+
+                    if (zid != null) {
+                        tz = TimeZone.getTimeZone(zid);
+                    }
+
+                    if (tz != null) { // Matched any ?
+                        if (type == DateFormatSymbols.TIMEZONE_SHORT_STANDARD
+                                || type == DateFormatSymbols.TIMEZONE_LONG_STANDARD) {
+                            // standard time
+                            tztype = TZTYPE_STD;
+                        } else if (type == DateFormatSymbols.TIMEZONE_SHORT_DAYLIGHT
+                                || type == DateFormatSymbols.TIMEZONE_LONG_DAYLIGHT) {
+                            // daylight time
+                            tztype = TZTYPE_DST;
+                        }
+                        cal.setTimeZone(tz);
+                        return start + name.length();
+                    }
+                    // complete failure
+                    return -start;
                 }
 
             case 27: // 'Q' - QUARTER

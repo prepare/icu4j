@@ -340,34 +340,6 @@ public final class ZoneMeta {
         return mf.format(new Object[] { cityOrCountry });
     }
 
-    public static String displayGMT(long value, ULocale locale) {
-        //TODO: revisit after 3.8
-
-        String msgpat = "GMT{0}"; // Parser code is not quite ready to accept localized GMT string as of 3.8
-        //String msgpat = getTZLocalizationInfo(locale, GMT);
-        String dtepat = getTZLocalizationInfo(locale, HOUR);
-        
-        int n = dtepat.indexOf(';');
-        if (n != -1) {
-            if (value < 0) {
-                value = - value;
-                dtepat = dtepat.substring(n+1);
-            } else {
-                dtepat = dtepat.substring(0, n);
-            }
-        }
-
-        //final long mph = 3600000;
-        //final long mpm = 60000;
-
-        SimpleDateFormat sdf = new SimpleDateFormat(dtepat, locale);
-        sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
-        String res = sdf.format(new Long(value));
-        MessageFormat mf = new MessageFormat(msgpat);
-        res = mf.format(new Object[] { res });
-        return res;
-    }
-
     public static final String
         HOUR = "hourFormat",
         GMT = "gmtFormat",
