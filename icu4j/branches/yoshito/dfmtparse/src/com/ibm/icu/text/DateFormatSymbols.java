@@ -10,6 +10,7 @@ package com.ibm.icu.text;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Locale;
 import java.util.MissingResourceException;
 import java.util.ResourceBundle;
@@ -1442,15 +1443,24 @@ public class DateFormatSymbols implements Serializable, Cloneable {
             }
         }
 
+        Iterator itr;
         ZoneItemInfo zinfo = getLocalZoneItemInfo();
         if (zinfo != null) {
             // look up the zone string in localZoneItemInfo first
-            item = (ZoneItem)zinfo.tzStringMap.get(text, start);
+            itr = zinfo.tzStringMap.get(text, start);
+            if (itr != null) {
+                // TODO
+                item = (ZoneItem)itr.next();
+            }
         }
 
         // look up the zone string in default ZoneItemInfo for the locale
+        ZoneItem itemForLocale = null;
         zinfo = getDefaultZoneItemInfo();
-        ZoneItem itemForLocale = (ZoneItem)zinfo.tzStringMap.get(text, start);
+        itr = zinfo.tzStringMap.get(text, start);
+        if (itr != null) {
+            itemForLocale = (ZoneItem)itr.next();
+        }
         if (itemForLocale != null) {
             // we want to use longer match
             if (item == null || itemForLocale.value.length() > item.value.length()) {
@@ -1716,15 +1726,14 @@ public class DateFormatSymbols implements Serializable, Cloneable {
                         case 7:
                             type = TIMEZONE_SHORT_GENERIC;
                             break;
-                        default:
-                            type = TIMEZONE_METAZONE_MAPPING;
-                            break;
                         }
-                        ZoneItem item = new ZoneItem();
-                        item.zid = zid;
-                        item.value = strings[i][j];
-                        item.type = type;
-                        zii.tzStringMap.put(strings[i][j], item);
+                        if (type != -1) {
+                            ZoneItem item = new ZoneItem();
+                            item.zid = zid;
+                            item.value = strings[i][j];
+                            item.type = type;
+                            zii.tzStringMap.put(strings[i][j], item);
+                        }
                     }
                 }
             }
