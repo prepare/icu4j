@@ -163,8 +163,7 @@ public class OlsonTimeZone extends BasicTimeZone {
             Math.floor(millis / (double) MILLIS_PER_SECOND);
 
         int[] offsets = new int[2];
-//        getHistoricalOffset(time, true, STANDARD_TIME, STANDARD_TIME, offsets);
-        getHistoricalOffset(time, true, DAYLIGHT_SAVING_TIME, STANDARD_TIME, offsets);
+        getHistoricalOffset(time, true, LOCAL_DST, LOCAL_STD, offsets);
         return offsets[0] + offsets[1];
     }
 
@@ -216,26 +215,27 @@ public class OlsonTimeZone extends BasicTimeZone {
         // and finalZone == 0.  For this case we add "&& finalZone != 0".
         if (date >= finalMillis && finalZone != null) {
             finalZone.getOffset(date, local, offsets);
-            return;
+        } else {
+            double secs = Math.floor((double)date/MILLIS_PER_SECOND);
+            getHistoricalOffset(secs, local,
+                    LOCAL_FORMER, LOCAL_LATTER, offsets);
         }
-
-        double secs = Math.floor((double)date/MILLIS_PER_SECOND);
-        getHistoricalOffset(secs, local,
-                FORMER_TIME, LATTER_TIME, offsets);
-        return;
     }
 
-    /*
-     * Following constants will be moved to the parent class after 3.8.1,
-     * when getOffsetFromLocal API is implemented.
+    /**
+     * {@inheritDoc}
+     * @internal
+     * @deprecated This API is ICU internal only.
      */
-    public static final int STANDARD_TIME = 0x01;
-    public static final int DAYLIGHT_SAVING_TIME = 0x03;
-    public static final int FORMER_TIME = 0x04;
-    public static final int LATTER_TIME = 0x0C;
-
-    protected static final int STD_DST_MASK = 0x03;
-    protected static final int FORMER_LATTER_MASK = 0x0C;
+    public void getOffsetFromLocal(long date,
+            int nonExistingTimeOpt, int duplicatedTimeOpt, int[] offsets) {
+        if (date >= finalMillis && finalZone != null) {
+            finalZone.getOffsetFromLocal(date, nonExistingTimeOpt, duplicatedTimeOpt, offsets);
+        } else {
+            double secs = Math.floor((double)date/MILLIS_PER_SECOND);
+            getHistoricalOffset(secs, true, nonExistingTimeOpt, duplicatedTimeOpt, offsets);
+        }
+    }
 
     double[] floorDivide(double dividend, double divisor) {
         double remainder; 
@@ -550,13 +550,13 @@ public class OlsonTimeZone extends BasicTimeZone {
                     
                     if (offsetAfter - offsetBefore >= 0) {
                         // Positive transition, which makes a non-existing local time range
-                        if (((NonExistingTimeOpt & STD_DST_MASK) == STANDARD_TIME && dstToStd)
-                                || ((NonExistingTimeOpt & STD_DST_MASK) == DAYLIGHT_SAVING_TIME && stdToDst)) {
+                        if (((NonExistingTimeOpt & STD_DST_MASK) == LOCAL_STD && dstToStd)
+                                || ((NonExistingTimeOpt & STD_DST_MASK) == LOCAL_DST && stdToDst)) {
                             transition += offsetBefore;
-                        } else if (((NonExistingTimeOpt & STD_DST_MASK) == STANDARD_TIME && stdToDst)
-                                || ((NonExistingTimeOpt & STD_DST_MASK) == DAYLIGHT_SAVING_TIME && dstToStd)) {
+                        } else if (((NonExistingTimeOpt & STD_DST_MASK) == LOCAL_STD && stdToDst)
+                                || ((NonExistingTimeOpt & STD_DST_MASK) == LOCAL_DST && dstToStd)) {
                             transition += offsetAfter;
-                        } else if ((NonExistingTimeOpt & FORMER_LATTER_MASK) == LATTER_TIME) {
+                        } else if ((NonExistingTimeOpt & FORMER_LATTER_MASK) == LOCAL_LATTER) {
                             transition += offsetBefore;
                         } else {
                             // Interprets the time with rule before the transition,
@@ -565,13 +565,13 @@ public class OlsonTimeZone extends BasicTimeZone {
                         }
                     } else {
                         // Negative transition, which makes a duplicated local time range
-                        if (((DuplicatedTimeOpt & STD_DST_MASK) == STANDARD_TIME && dstToStd)
-                                || ((DuplicatedTimeOpt & STD_DST_MASK) == DAYLIGHT_SAVING_TIME && stdToDst)) {
+                        if (((DuplicatedTimeOpt & STD_DST_MASK) == LOCAL_STD && dstToStd)
+                                || ((DuplicatedTimeOpt & STD_DST_MASK) == LOCAL_DST && stdToDst)) {
                             transition += offsetAfter;
-                        } else if (((DuplicatedTimeOpt & STD_DST_MASK) == STANDARD_TIME && stdToDst)
-                                || ((DuplicatedTimeOpt & STD_DST_MASK) == DAYLIGHT_SAVING_TIME && dstToStd)) {
+                        } else if (((DuplicatedTimeOpt & STD_DST_MASK) == LOCAL_STD && stdToDst)
+                                || ((DuplicatedTimeOpt & STD_DST_MASK) == LOCAL_DST && dstToStd)) {
                             transition += offsetBefore;
-                        } else if ((DuplicatedTimeOpt & FORMER_LATTER_MASK) == FORMER_TIME) {
+                        } else if ((DuplicatedTimeOpt & FORMER_LATTER_MASK) == LOCAL_FORMER) {
                             transition += offsetBefore;
                         } else {
                             // Interprets the time with rule after the transition,

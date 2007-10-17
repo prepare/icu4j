@@ -731,6 +731,50 @@ public class SimpleTimeZone extends BasicTimeZone {
         return result;
     }
 
+    /**
+     * {@inheritDoc}
+     * @internal
+     * @deprecated This API is ICU internal only.
+     */
+    public void getOffsetFromLocal(long date,
+            int nonExistingTimeOpt, int duplicatedTimeOpt, int[] offsets) {
+        offsets[0] = getRawOffset();
+        int fields[] = new int[4];
+        long day = floorDivide(date, Grego.MILLIS_PER_DAY, fields);
+        int millis = fields[0];
+
+        computeGregorianFields(day, fields);
+        offsets[1] = getOffset(GregorianCalendar.AD,
+              fields[0], fields[1], fields[2],
+              fields[3], millis) - offsets[0];        
+
+        boolean recalc = false;
+
+        // Now, we need some adjustment
+        if (offsets[1] > 0) {
+            if ((nonExistingTimeOpt & STD_DST_MASK) == LOCAL_STD
+                || (nonExistingTimeOpt & STD_DST_MASK) != LOCAL_DST && (nonExistingTimeOpt & FORMER_LATTER_MASK) != LOCAL_LATTER) {
+                date -= getDSTSavings();
+                recalc = true;
+            }
+        } else {
+            if ((duplicatedTimeOpt & STD_DST_MASK) == LOCAL_DST
+                    || (duplicatedTimeOpt & STD_DST_MASK) != LOCAL_STD && (duplicatedTimeOpt & FORMER_LATTER_MASK) == LOCAL_FORMER) {
+                date -= getDSTSavings();
+                recalc = true;
+            }
+        }
+
+        if (recalc) {
+            day = floorDivide(date, Grego.MILLIS_PER_DAY, fields);
+            millis = fields[0];
+            computeGregorianFields(day, fields);
+            offsets[1] = getOffset(GregorianCalendar.AD,
+                    fields[0], fields[1], fields[2],
+                    fields[3], millis) - offsets[0];        
+        }
+    }
+
     private static final int
         DOM_MODE = 1,
         DOW_IN_MONTH_MODE=2,

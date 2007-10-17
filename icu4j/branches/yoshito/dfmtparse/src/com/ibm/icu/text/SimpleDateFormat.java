@@ -1484,8 +1484,9 @@ public class SimpleDateFormat extends DateFormat {
                 // complete(), which will recalculate the fields.  Since we can't access
                 // the fields[] array in Calendar, we clone the entire object.  This will
                 // stop working if Calendar.clone() is ever rewritten to call complete().
-                Calendar copy = (Calendar)cal.clone();
+                Calendar copy;
                 if (ambiguousYear[0]) { // the two-digit year == the default start year
+                    copy = (Calendar)cal.clone();
                     Date parsedDate = copy.getTime();
                     if (parsedDate.before(getDefaultCenturyStart())) {
                         // We can't use add here because that does a complete() first.
@@ -1493,49 +1494,77 @@ public class SimpleDateFormat extends DateFormat {
                     }
                 }
                 if (tztype != TZTYPE_UNK) {
+                    copy = (Calendar)cal.clone();
+                    TimeZone tz = copy.getTimeZone();
+                    BasicTimeZone btz = null;
+                    if (tz instanceof BasicTimeZone) {
+                        btz = (BasicTimeZone)tz;
+                    }
+
+                    // Get local millis
+                    copy.set(Calendar.ZONE_OFFSET, 0);
+                    copy.set(Calendar.DST_OFFSET, 0);
+                    long localMillis = copy.getTimeInMillis();
+
                     // Make sure parsed time zone type (Standard or Daylight)
                     // matches the rule used by the parsed time zone.
-                    TimeZone tz = copy.getTimeZone();
-                    long time = copy.getTimeInMillis();
                     int[] offsets = new int[2];
-                    tz.getOffset(time, false, offsets);
+                    if (btz != null) {
+                        if (tztype == TZTYPE_STD) {
+                            btz.getOffsetFromLocal(localMillis,
+                                    BasicTimeZone.LOCAL_STD, BasicTimeZone.LOCAL_STD, offsets);
+                        } else {
+                            btz.getOffsetFromLocal(localMillis,
+                                    BasicTimeZone.LOCAL_DST, BasicTimeZone.LOCAL_DST, offsets);
+                        }
+                    } else {
+                        // No good way to resolve ambiguous time at transition,
+                        // but following code work in most case.
+                        tz.getOffset(localMillis, true, offsets);
+                    }
 
+                    // Now, compare the results with parsed type, either standard or daylight saving time
+                    int resolvedSavings = offsets[1];
                     if (tztype == TZTYPE_STD) {
                         if (offsets[1] != 0) {
                             // Override DST_OFFSET = 0 in the result calendar
-                            cal.set(Calendar.ZONE_OFFSET, offsets[0]);
-                            cal.set(Calendar.DST_OFFSET, 0);
+                            resolvedSavings = 0;
                         }
                     } else { // tztype == TZTYPE_DST
                         if (offsets[1] == 0) {
-                            // Override DST_OFFSET in the result calendar.
                             int savings = 60*60*1000; // default DST savings
-
-                            // We use the nearest daylight saving time rule.
-                            if (tz instanceof BasicTimeZone) {
-                                BasicTimeZone btz = (BasicTimeZone)tz;
+                            if (btz != null) {
+                                long time = localMillis + offsets[0];
+                                // We use the nearest daylight saving time rule.
                                 TimeZoneTransition beforeTrs, afterTrs;
                                 long beforeT = time, afterT = time;
                                 int beforeSav = 0, afterSav = 0;
 
-                                // Search for DST rule before the time
-                                do {
-                                    beforeTrs = btz.getPreviousTransition(beforeT, false);
+                                // Search for DST rule before or on the time
+                                while (true) {
+                                    beforeTrs = btz.getPreviousTransition(beforeT, true);
+                                    if (beforeTrs == null) {
+                                        break;
+                                    }
+                                    beforeT = beforeTrs.getTime() - 1;
                                     beforeSav = beforeTrs.getFrom().getDSTSavings();
                                     if (beforeSav != 0) {
                                         break;
                                     }
-                                    beforeT = beforeTrs.getTime();
-                                } while (beforeTrs != null);
+                                }
 
                                 // Search for DST rule after the time
-                                do {
+                                while (true) {
                                     afterTrs = btz.getNextTransition(afterT, false);
+                                    if (afterTrs == null) {
+                                        break;
+                                    }
+                                    afterT = afterTrs.getTime();
                                     afterSav = afterTrs.getTo().getDSTSavings();
                                     if (afterSav != 0) {
                                         break;
                                     }
-                                } while (afterTrs != null);
+                                }
 
                                 if (beforeTrs != null && afterTrs != null) {
                                     if (time - beforeT > afterT - time) {
@@ -1548,16 +1577,12 @@ public class SimpleDateFormat extends DateFormat {
                                 } else if (afterTrs != null) {
                                     savings = afterSav;
                                 }
-                                cal.set(Calendar.ZONE_OFFSET, offsets[0]);
-                                cal.set(Calendar.DST_OFFSET, savings);
+                                resolvedSavings = savings;
                             }
-                        } else {
-                            // We need to adjust time when the given time fall
-                            // into the non-existing time at STD to DST transition.
-                            cal.set(Calendar.ZONE_OFFSET, copy.get(Calendar.ZONE_OFFSET));
-                            cal.set(Calendar.DST_OFFSET, copy.get(Calendar.DST_OFFSET));
                         }
                     }
+                    cal.set(Calendar.ZONE_OFFSET, offsets[0]);
+                    cal.set(Calendar.DST_OFFSET, resolvedSavings);
                 }
             }
         }

@@ -378,6 +378,7 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         Locale en = new Locale("en", "", "");
         String ZDATA[] = {
             "yyyy MM dd HH:mm zzz",
+            "y/M/d H:mm zzz", "pf", "2005/4/3 2:30 PDT", "2005 04 03 01:30 PST", "2005/4/3 1:30 PST",
             // round trip
             "y/M/d H:mm zzzz", "F", "2004 01 01 01:00 PST", "2004/1/1 1:00 Pacific Standard Time",
             "y/M/d H:mm zzz", "F", "2004 01 01 01:00 PST", "2004/1/1 1:00 PST",
