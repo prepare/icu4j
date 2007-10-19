@@ -290,7 +290,7 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                             testLen = 1;
                         } else {
                             int fromOffset = tzt.getFrom().getRawOffset() + tzt.getFrom().getDSTSavings();
-                            int toOffset = tzt.getFrom().getRawOffset() + tzt.getFrom().getDSTSavings();
+                            int toOffset = tzt.getTo().getRawOffset() + tzt.getTo().getDSTSavings();
                             int delta = toOffset - fromOffset;
                             if (delta < 0) {
                                 boolean isDstDecession = tzt.getFrom().getDSTSavings() > 0 && tzt.getTo().getDSTSavings() == 0;
