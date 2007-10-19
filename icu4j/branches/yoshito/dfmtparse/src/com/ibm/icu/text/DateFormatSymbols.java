@@ -11,6 +11,8 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Locale;
 import java.util.MissingResourceException;
 import java.util.ResourceBundle;
@@ -1291,7 +1293,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
             case TIMEZONE_SHORT_DAYLIGHT:
                 index = 4;
                 break;
-            case TIMEZONE_EXEMPLAR_CITY:
+            case TIMEZONE_LOCATION:
                 index = 5;
                 break;
             case TIMEZONE_LONG_GENERIC:
@@ -1422,65 +1424,103 @@ public class DateFormatSymbols implements Serializable, Cloneable {
     }
 
     /*
-     * Package private: used by SimpleDateformat
-     * Gets the ZoneItem instance which has zone strings
-     * which matches the specified text.
-     * @param text The text which contains a zone string
-     * @param start The start position of zone string in the text
-     * @return A ZonItem instance for the longest matching zone
-     * string.
+     * Package private: used by SimpleDateFormat
+     * Gets a list of ZoneItems which satisfy start with match with
+     * the given name by item type.
+     * @param text The text which contains the zone name string
+     * to be searched.
+     * @param start The start position of zone name string in
+     * the text.
+     * @return A list contains items which satisfy start-with match.
+     * Only one entry per item type.
      */
-    ZoneItem findZoneIDTypeValue(String text, int start){
-        ZoneItem item = null;
-        int textLength = text.length() - start;
-        if (lastZoneItem != null && textLength == lastZoneItem.value.length()) {
-            if (text.regionMatches(true, start, lastZoneItem.value, 0, textLength)) {
-                item = new ZoneItem();
-                item.type = lastZoneItem.type;
-                item.value = lastZoneItem.value;
-                item.zid = lastZoneItem.zid;
-                return item;
-            }
+    List findZoneItem(String text, int start) {
+        if (lastZoneItemSearchText != null
+                && lastZoneItemSearchText.regionMatches(true, 0, text, start, lastZoneItemSearchText.length())) {
+            // Use the cached result, we do not clone the result, because
+            // the list is accessed read-only in SimpleDateFormat.
+            return lastZoneItemMatches;
         }
 
-        Iterator itr;
+        List result = null;
+        ZoneItemSearchResultHandler handler = new ZoneItemSearchResultHandler();
+
+        // Look up the zone string in localZoneItemInfo first.
+        // getLocalZoneItemInfo() returns null unless someone customizes
+        // tz strings in the DateFormatSymbols instance.
         ZoneItemInfo zinfo = getLocalZoneItemInfo();
         if (zinfo != null) {
-            // look up the zone string in localZoneItemInfo first
-            itr = zinfo.tzStringMap.get(text, start);
-            if (itr != null) {
-                // TODO
-                item = (ZoneItem)itr.next();
+            zinfo.tzStringMap.find(text, start, handler);
+            result = handler.getMatchedZoneItems();
+        }
+
+        // If nothing matches, look up the zone string in default
+        // ZoneItemInfo for the current locale
+        if (result == null) {
+            zinfo = getDefaultZoneItemInfo();
+            if (zinfo != null) {
+                zinfo.tzStringMap.find(text, start, handler);
+                result = handler.getMatchedZoneItems();
             }
         }
 
-        // look up the zone string in default ZoneItemInfo for the locale
-        ZoneItem itemForLocale = null;
-        zinfo = getDefaultZoneItemInfo();
-        itr = zinfo.tzStringMap.get(text, start);
-        if (itr != null) {
-            itemForLocale = (ZoneItem)itr.next();
-        }
-        if (itemForLocale != null) {
-            // we want to use longer match
-            if (item == null || itemForLocale.value.length() > item.value.length()) {
-                item = itemForLocale;
+        if (result != null) {
+            // Handle meta zone here
+            for (int i = 0; i < result.size(); i++) {
+                ZoneItem item = (ZoneItem)result.get(i);
+                if (item != null && item.zid.startsWith("meta/")) {
+                    item.zid = resolveParsedMetazone(item.zid);
+                }
             }
+
+            // Cache the result
+            lastZoneItemSearchText = text.substring(start);
+            lastZoneItemMatches = result;
+        }
+        return result;
+    }
+
+    private static class ZoneItemSearchResultHandler
+            implements TextTrieMap.ResultHandler {
+
+        List zitemlist;
+        
+        public boolean handlePrefixMatch(int matchLength, Iterator values) {
+            if (zitemlist == null) {
+                zitemlist = new LinkedList();
+            }
+            while (values.hasNext()) {
+                ZoneItem item = (ZoneItem)values.next();
+                if (item == null) {
+                    break;
+                }
+                int i = 0;
+                for (; i < zitemlist.size(); i++) {
+                    ZoneItem tmp = (ZoneItem)zitemlist.get(i);
+                    if (item.type == tmp.type) {
+                        if (matchLength > tmp.value.length()) {
+                            zitemlist.set(i, item);
+                        }
+                        break;
+                    }
+                }
+                if (i == zitemlist.size()) {
+                    // not found in the current list
+                    zitemlist.add(item);
+                }
+            }
+            return true;
         }
 
-        if (item != null && textLength == item.value.length()) {
-            // clone the last match for next time
-            // only when the substring completely matches
-            // with the value resolved
-            if (item.zid.startsWith("meta")) {
-                item.zid = resolveParsedMetazone(item.zid);
-            } 
-            lastZoneItem = new ZoneItem();
-            lastZoneItem.type = item.type;
-            lastZoneItem.value = item.value;
-            lastZoneItem.zid = item.zid;
+        List getMatchedZoneItems() {
+            return zitemlist;
         }
-        return item;
+
+        void clear() {
+            if (zitemlist != null) {
+                zitemlist.clear();
+            }
+        }
     }
 
     private String resolveParsedMetazone( String zid ) {
@@ -1536,9 +1576,10 @@ public class DateFormatSymbols implements Serializable, Cloneable {
     private transient ZoneItemInfo localZoneItemInfo;
 
     /*
-     * Single entry cache for findZoneTypeValue()
+     * Zone item search cache
      */
-    private transient ZoneItem lastZoneItem;
+    private transient List lastZoneItemMatches;
+    private transient String lastZoneItemSearchText;
 
     /*
      * Gets the ZoneItemInfo instance for the locale used by this object.
@@ -1718,7 +1759,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
                             type = TIMEZONE_SHORT_DAYLIGHT;
                             break;
                         case 5:
-                            type = TIMEZONE_EXEMPLAR_CITY;
+                            type = TIMEZONE_LOCATION;
                             break;
                         case 6:
                             type = TIMEZONE_LONG_GENERIC;
@@ -1768,7 +1809,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
                         TIMEZONE_LONG_GENERIC   = 3,
                         TIMEZONE_LONG_STANDARD  = 4,
                         TIMEZONE_LONG_DAYLIGHT  = 5,
-                        TIMEZONE_EXEMPLAR_CITY  = 6,
+                        TIMEZONE_LOCATION  = 6,
                         TIMEZONE_METAZONE_MAPPING  = 7,
                         TIMEZONE_COUNT          = 8;
 
