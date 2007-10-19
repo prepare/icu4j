@@ -2006,7 +2006,8 @@ public class SimpleDateFormat extends DateFormat {
                                         // "z", "zz", "zzz"
                                         if (item.type == DateFormatSymbols.TIMEZONE_SHORT_STANDARD
                                                 || item.type == DateFormatSymbols.TIMEZONE_SHORT_DAYLIGHT) {
-                                            if (longerMatch) {
+                                            if (longerMatch || (bestMatch.type != DateFormatSymbols.TIMEZONE_SHORT_STANDARD
+                                                    && bestMatch.type != DateFormatSymbols.TIMEZONE_SHORT_DAYLIGHT)) {
                                                 bestMatch = item;
                                             }
                                         } else if (longerMatch && bestMatch.type != DateFormatSymbols.TIMEZONE_SHORT_STANDARD
@@ -2017,7 +2018,8 @@ public class SimpleDateFormat extends DateFormat {
                                         // "zzzz"
                                         if (item.type == DateFormatSymbols.TIMEZONE_LONG_STANDARD
                                                 || item.type == DateFormatSymbols.TIMEZONE_LONG_DAYLIGHT) {
-                                            if (longerMatch) {
+                                            if (longerMatch || (bestMatch.type != DateFormatSymbols.TIMEZONE_LONG_STANDARD
+                                                    && bestMatch.type != DateFormatSymbols.TIMEZONE_LONG_DAYLIGHT)) {
                                                 bestMatch = item;
                                             }
                                         } else if (longerMatch && bestMatch.type != DateFormatSymbols.TIMEZONE_LONG_STANDARD
@@ -2058,7 +2060,8 @@ public class SimpleDateFormat extends DateFormat {
                                         // "V"
                                         if (item.type == DateFormatSymbols.TIMEZONE_SHORT_STANDARD
                                                 || item.type == DateFormatSymbols.TIMEZONE_SHORT_DAYLIGHT) {
-                                            if (longerMatch) {
+                                            if (longerMatch || (bestMatch.type != DateFormatSymbols.TIMEZONE_SHORT_STANDARD
+                                                    && bestMatch.type != DateFormatSymbols.TIMEZONE_SHORT_DAYLIGHT)) {
                                                 bestMatch = item;
                                             }
                                         } else if (longerMatch && bestMatch.type != DateFormatSymbols.TIMEZONE_SHORT_STANDARD

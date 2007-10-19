@@ -1436,7 +1436,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      */
     List findZoneItem(String text, int start) {
         if (lastZoneItemSearchText != null
-                && lastZoneItemSearchText.regionMatches(true, 0, text, start, lastZoneItemSearchText.length())) {
+                && text.regionMatches(true, start, lastZoneItemSearchText, 0, text.length())) {
             // Use the cached result, we do not clone the result, because
             // the list is accessed read-only in SimpleDateFormat.
             return lastZoneItemMatches;
