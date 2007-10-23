@@ -741,6 +741,13 @@ public class SimpleDateFormat extends DateFormat {
         final int field = PATTERN_INDEX_TO_CALENDAR_FIELD[patternCharIndex];
         int value = cal.get(field);
 
+        // stuffs used by time zone formatting
+        String zid;
+        String zstr = null;
+        boolean inDST, checkCommonlyUsed;
+        int zrestype;
+        DateFormatSymbols.MetazoneInfo mz;
+        
         switch (patternCharIndex) {
         case 0: // 'G' - ERA
             if (count == 5) {
@@ -818,195 +825,108 @@ public class SimpleDateFormat extends DateFormat {
                 zeroPaddingNumber(buf, value, count, maxIntCount);
             break;
         case 17: // 'z' - ZONE_OFFSET
-        case 24: // 'v' - TIMEZONE_GENERIC 
-        case 29: // 'V' - TIMEZONE_SPECIAL
-            {
-                String zid;
-                DateFormatSymbols.MetazoneInfo mz=null;
-                String res=null;
-                zid = ZoneMeta.getCanonicalID(cal.getTimeZone().getID());
-                boolean isGeneric = patternCharIndex == 24;
-                if (zid != null) {
-                    if (patternCharIndex == TIMEZONE_GENERIC_FIELD) {
-                        if(count < 4){
-                            if (cal.getTimeZone().useDaylightTime()) {
-                                res = formatData.getZoneString(zid, DateFormatSymbols.TIMEZONE_SHORT_GENERIC);
-                                if ( !formatData.isCommonlyUsed(zid)) {
-                                   res = null;
-                                }
-                                if ( res == null ) {
-                                   mz = formatData.getMetazoneInfo(zid, DateFormatSymbols.TIMEZONE_SHORT_GENERIC,cal);
-                                   if ( mz == null || !formatData.isCommonlyUsed(mz.mzid)) {
-                                       res = null;
-                                   }
-                                   else {
-                                       res = mz.value;
-                                   }
-                                }
-                            }
-                            else {
-                                res = formatData.getZoneString(zid, DateFormatSymbols.TIMEZONE_SHORT_STANDARD);
-                                if ( !formatData.isCommonlyUsed(zid)) {
-                                   res = null;
-                                }
-                                if ( res == null ) {
-                                   mz = formatData.getMetazoneInfo(zid, DateFormatSymbols.TIMEZONE_SHORT_STANDARD,cal);
-                                   if ( mz == null || !formatData.isCommonlyUsed(mz.mzid)) {
-                                       res = null;
-                                   }
-                                   else {
-                                       res = mz.value;
-                                   }
-                                }
-                            }
-                        }else{
-                            if (cal.getTimeZone().useDaylightTime()) {
-                                res = formatData.getZoneString(zid, DateFormatSymbols.TIMEZONE_LONG_GENERIC);
-                                if ( res == null ) {
-                                   mz = formatData.getMetazoneInfo(zid, DateFormatSymbols.TIMEZONE_LONG_GENERIC,cal);
-                                   if ( mz != null ) {
-                                       res = mz.value;
-                                   }
-                                }
-                            }
-                            else {
-                                res = formatData.getZoneString(zid, DateFormatSymbols.TIMEZONE_LONG_STANDARD);
-                                if ( res == null ) {
-                                   mz = formatData.getMetazoneInfo(zid, DateFormatSymbols.TIMEZONE_LONG_STANDARD,cal);
-                                   if ( mz != null ) {
-                                       res = mz.value;
-                                   }
-                                }
-                            }
-                        }
-                    } else if (patternCharIndex == TIMEZONE_SPECIAL_FIELD) {
-                        if (count == 4){ // VVVV format - always get the fallback string.
-                            res = formatData.getZoneString(zid, DateFormatSymbols.TIMEZONE_LOCATION);
-                        }
-                        else if (count == 1){ // V format - ignore commonlyUsed
-                            if (cal.get(Calendar.DST_OFFSET) != 0) {
-                                res = formatData.getZoneString(zid, DateFormatSymbols.TIMEZONE_SHORT_DAYLIGHT);
-                                if ( res == null ) {
-                                    mz = formatData.getMetazoneInfo(zid, DateFormatSymbols.TIMEZONE_SHORT_DAYLIGHT,cal);
-                                    if ( mz != null ) {
-                                        res = mz.value;
-                                    }
-                                }
-                            }else{
-                                res = formatData.getZoneString(zid, DateFormatSymbols.TIMEZONE_SHORT_STANDARD);
-                                if ( res == null ) {
-                                    mz = formatData.getMetazoneInfo(zid, DateFormatSymbols.TIMEZONE_SHORT_STANDARD,cal);
-                                    if ( mz != null ) {
-                                        res = mz.value;
-                                    }
-                                }
-                            }
-                        }
-                    } else {
-                        if (cal.get(Calendar.DST_OFFSET) != 0) {
-                            if(count < 4){
-                                res = formatData.getZoneString(zid, DateFormatSymbols.TIMEZONE_SHORT_DAYLIGHT);
-                                if ( !formatData.isCommonlyUsed(zid)) {
-                                   res = null;
-                                }
-                                if ( res == null ) {
-                                    mz = formatData.getMetazoneInfo(zid, DateFormatSymbols.TIMEZONE_SHORT_DAYLIGHT,cal);
-                                    if ( mz == null || !formatData.isCommonlyUsed(mz.mzid)) {
-                                        res = null;
-                                    }
-                                    else {
-                                        res = mz.value;
-                                    }
-                                }
-                            }else{
-                                res = formatData.getZoneString(zid, DateFormatSymbols.TIMEZONE_LONG_DAYLIGHT);
-                                if ( res == null ) {
-                                    mz = formatData.getMetazoneInfo(zid, DateFormatSymbols.TIMEZONE_LONG_DAYLIGHT,cal);
-                                    if ( mz != null ) {
-                                        res = mz.value;
-                                    }
-                                }
-                            }
-                        }else{
-                            if(count < 4){
-                                res = formatData.getZoneString(zid, DateFormatSymbols.TIMEZONE_SHORT_STANDARD);
-                                if ( !formatData.isCommonlyUsed(zid)) {
-                                   res = null;
-                                }
-                                if ( res == null ) {
-                                    mz = formatData.getMetazoneInfo(zid, DateFormatSymbols.TIMEZONE_SHORT_STANDARD,cal);
-                                    if ( mz == null || !formatData.isCommonlyUsed(mz.mzid)) {
-                                        res = null;
-                                    }
-                                    else {
-                                        res = mz.value;
-                                    }
-                                }
-                            }else{
-                                res = formatData.getZoneString(zid, DateFormatSymbols.TIMEZONE_LONG_STANDARD);
-                                if ( res == null ) {
-                                    mz = formatData.getMetazoneInfo(zid, DateFormatSymbols.TIMEZONE_LONG_STANDARD,cal);
-                                    if ( mz != null ) {
-                                        res = mz.value;
-                                    }
-                                }
-                            }
-                        }
-                    }
+            zid = ZoneMeta.getCanonicalID(cal.getTimeZone().getID());
+            inDST = cal.get(Calendar.DST_OFFSET) != 0;
+            if (count < 4) {
+                // "z", "zz", "zzz"
+                zrestype = inDST ? DateFormatSymbols.TIMEZONE_SHORT_DAYLIGHT : DateFormatSymbols.TIMEZONE_SHORT_STANDARD;
+                checkCommonlyUsed = true;
+            } else {
+                // "zzzz"
+                zrestype = inDST ? DateFormatSymbols.TIMEZONE_LONG_DAYLIGHT : DateFormatSymbols.TIMEZONE_LONG_STANDARD;
+                checkCommonlyUsed = false;
+            }
+            if (!checkCommonlyUsed || formatData.isCommonlyUsed(zid)) {
+                zstr = formatData.getZoneString(zid, zrestype);
+            }
+            if (zstr == null) {
+                // Gets the name from the metazone
+                mz = formatData.getMetazoneInfo(zid, zrestype, cal);
+                if (mz != null && (!checkCommonlyUsed || formatData.isCommonlyUsed(mz.mzid))) {
+                    zstr = mz.value;
                 }
-
-                if (res == null || res.length() == 0) {
-                    // note, tr35 does not describe the special case for 'no country' 
-                    // implemented below, this is from discussion with Mark
-                    if (zid != null && isGeneric && ZoneMeta.getCanonicalCountry(zid) != null) {
-                        res = formatData.getZoneString(zid, DateFormatSymbols.TIMEZONE_LOCATION);
-                    }
-                }
-                
-                if(res == null || res.length() == 0){
-                    appendGMT(buf, cal);
-                } else {
-                    buf.append(res);
-                }
-            } break;
+            }
+            if (zstr != null && zstr.length() != 0) {
+                buf.append(zstr);
+            } else {
+                // Use localized GMT format as fallback
+                appendGMT(buf, cal);
+            }
+            break;
         case 23: // 'Z' - TIMEZONE_RFC
-            {
-                if (count < 4) {
-                    // RFC822 format, must use ASCII digits
-                    int val = (cal.get(Calendar.ZONE_OFFSET) + cal.get(Calendar.DST_OFFSET));
-                    char sign = '+';
-                    if (val < 0) {
-                        val = -val;
-                        sign = '-';
-                    }
-                    buf.append(sign);
-
-                    int offsetH = val / millisPerHour;
-                    val = val % millisPerHour;
-                    int offsetM = val / millisPerMinute;
-                    val = val % millisPerMinute;
-                    int offsetS = val / millisPerSecond;
-
-                    int num = 0, denom = 0;
-                    if (offsetS == 0) {
-                        val = offsetH*100 + offsetM; // HHmm
-                        num = val % 10000;
-                        denom = 1000;
-                    } else {
-                        val = offsetH*10000 + offsetM*100 + offsetS; // HHmmss
-                        num = val % 1000000;
-                        denom = 100000;
-                    }
-                    while (denom >= 1) {
-                        char digit = (char)((num / denom) + '0');
-                        buf.append(digit);
-                        num = num % denom;
-                        denom /= 10;
-                    }
-                } else {
-                    // long form, localized GMT pattern
-                    appendGMT(buf, cal);
+            if (count < 4) {
+                // RFC822 format, must use ASCII digits
+                int val = (cal.get(Calendar.ZONE_OFFSET) + cal.get(Calendar.DST_OFFSET));
+                char sign = '+';
+                if (val < 0) {
+                    val = -val;
+                    sign = '-';
                 }
+                buf.append(sign);
+
+                int offsetH = val / millisPerHour;
+                val = val % millisPerHour;
+                int offsetM = val / millisPerMinute;
+                val = val % millisPerMinute;
+                int offsetS = val / millisPerSecond;
+
+                int num = 0, denom = 0;
+                if (offsetS == 0) {
+                    val = offsetH*100 + offsetM; // HHmm
+                    num = val % 10000;
+                    denom = 1000;
+                } else {
+                    val = offsetH*10000 + offsetM*100 + offsetS; // HHmmss
+                    num = val % 1000000;
+                    denom = 100000;
+                }
+                while (denom >= 1) {
+                    char digit = (char)((num / denom) + '0');
+                    buf.append(digit);
+                    num = num % denom;
+                    denom /= 10;
+                }
+            } else {
+                // long form, localized GMT pattern
+                appendGMT(buf, cal);
+            }
+            break;
+        case 24: // 'v' - TIMEZONE_GENERIC
+            zid = ZoneMeta.getCanonicalID(cal.getTimeZone().getID());
+            inDST = cal.get(Calendar.DST_OFFSET) != 0;
+            if (count < 4) {
+                // "v", "vv", "vvv"
+                zrestype = DateFormatSymbols.TIMEZONE_SHORT_GENERIC;
+                if (!inDST && !cal.getTimeZone().useDaylightTime()) {
+                    zrestype = DateFormatSymbols.TIMEZONE_SHORT_STANDARD;
+                }
+                checkCommonlyUsed = true;
+            } else {
+                // "vvvv"
+                zrestype = DateFormatSymbols.TIMEZONE_LONG_GENERIC;
+                if (!inDST && !cal.getTimeZone().useDaylightTime()) {
+                    zrestype = DateFormatSymbols.TIMEZONE_LONG_STANDARD;
+                }
+                checkCommonlyUsed = false;
+            }
+            if (!checkCommonlyUsed || formatData.isCommonlyUsed(zid)) {
+                zstr = formatData.getZoneString(zid, zrestype);
+            }
+            if (zstr == null) {
+                mz = formatData.getMetazoneInfo(zid, zrestype, cal);
+                if (mz != null && (!checkCommonlyUsed || formatData.isCommonlyUsed(mz.mzid))) {
+                    zstr = mz.value;
+                }
+                if (zstr == null) {
+                    // Use location format as fallback
+                    zstr = formatData.getZoneString(zid, DateFormatSymbols.TIMEZONE_LOCATION);                    
+                }
+            }
+            if (zstr != null && zstr.length() != 0) {
+                buf.append(zstr);
+            } else {
+                // Use localized GMT format as fallback
+                appendGMT(buf, cal);
             }
             break;
         case 25: // 'c' - STANDALONE DAY
@@ -1044,6 +964,30 @@ public class SimpleDateFormat extends DateFormat {
                 buf.append(formatData.standaloneShortQuarters[value/3]);
             else
                 zeroPaddingNumber(buf, (value/3)+1, count, maxIntCount);
+            break;
+        case 29: // 'V' - TIMEZONE_SPECIAL
+            zid = ZoneMeta.getCanonicalID(cal.getTimeZone().getID());
+            if (count == 1) {
+                // "V"
+                inDST = cal.get(Calendar.DST_OFFSET) != 0;
+                zrestype = inDST ? DateFormatSymbols.TIMEZONE_SHORT_DAYLIGHT : DateFormatSymbols.TIMEZONE_SHORT_STANDARD;
+                zstr = formatData.getZoneString(zid, zrestype);
+                if (zstr == null) {
+                    mz = formatData.getMetazoneInfo(zid, zrestype, cal);
+                    if (mz != null) {
+                        zstr = mz.value;
+                    }
+                }                
+            } else if (count == 4) {
+                // "VVVV"
+                zstr = formatData.getZoneString(zid, DateFormatSymbols.TIMEZONE_LOCATION);
+            }
+            if (zstr != null && zstr.length() != 0) {
+                buf.append(zstr);
+            } else {
+                // Use localized GMT format as fallback
+                appendGMT(buf, cal);
+            }
             break;
         default:
             // case 3: // 'd' - DATE
