@@ -31,6 +31,7 @@ import com.ibm.icu.impl.ICUCache;
 import com.ibm.icu.impl.SimpleCache;
 import com.ibm.icu.impl.UCharacterProperty;
 import com.ibm.icu.impl.ZoneMeta;
+import com.ibm.icu.impl.ZoneStringFormat.ZoneStringInfo;
 import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.util.BasicTimeZone;
 import com.ibm.icu.util.Calendar;
@@ -741,13 +742,8 @@ public class SimpleDateFormat extends DateFormat {
         final int field = PATTERN_INDEX_TO_CALENDAR_FIELD[patternCharIndex];
         int value = cal.get(field);
 
-        // stuffs used by time zone formatting
-        String zid;
-        String zstr = null;
-        boolean inDST, checkCommonlyUsed;
-        int zrestype;
-        DateFormatSymbols.MetazoneInfo mz;
-        
+        String zoneString = null;
+
         switch (patternCharIndex) {
         case 0: // 'G' - ERA
             if (count == 5) {
@@ -825,29 +821,14 @@ public class SimpleDateFormat extends DateFormat {
                 zeroPaddingNumber(buf, value, count, maxIntCount);
             break;
         case 17: // 'z' - ZONE_OFFSET
-            zid = ZoneMeta.getCanonicalID(cal.getTimeZone().getID());
-            inDST = cal.get(Calendar.DST_OFFSET) != 0;
             if (count < 4) {
                 // "z", "zz", "zzz"
-                zrestype = inDST ? DateFormatSymbols.TIMEZONE_SHORT_DAYLIGHT : DateFormatSymbols.TIMEZONE_SHORT_STANDARD;
-                checkCommonlyUsed = true;
+                zoneString = formatData.getZoneStringFormat().getSpecificShortString(cal, true /* commonly used only */);
             } else {
-                // "zzzz"
-                zrestype = inDST ? DateFormatSymbols.TIMEZONE_LONG_DAYLIGHT : DateFormatSymbols.TIMEZONE_LONG_STANDARD;
-                checkCommonlyUsed = false;
+                zoneString = formatData.getZoneStringFormat().getSpecificLongString(cal);
             }
-            if (!checkCommonlyUsed || formatData.isCommonlyUsed(zid)) {
-                zstr = formatData.getZoneString(zid, zrestype);
-            }
-            if (zstr == null) {
-                // Gets the name from the metazone
-                mz = formatData.getMetazoneInfo(zid, zrestype, cal);
-                if (mz != null && (!checkCommonlyUsed || formatData.isCommonlyUsed(mz.mzid))) {
-                    zstr = mz.value;
-                }
-            }
-            if (zstr != null && zstr.length() != 0) {
-                buf.append(zstr);
+            if (zoneString != null && zoneString.length() != 0) {
+                buf.append(zoneString);
             } else {
                 // Use localized GMT format as fallback
                 appendGMT(buf, cal);
@@ -892,38 +873,15 @@ public class SimpleDateFormat extends DateFormat {
             }
             break;
         case 24: // 'v' - TIMEZONE_GENERIC
-            zid = ZoneMeta.getCanonicalID(cal.getTimeZone().getID());
-            inDST = cal.get(Calendar.DST_OFFSET) != 0;
-            if (count < 4) {
-                // "v", "vv", "vvv"
-                zrestype = DateFormatSymbols.TIMEZONE_SHORT_GENERIC;
-                if (!inDST && !cal.getTimeZone().useDaylightTime()) {
-                    zrestype = DateFormatSymbols.TIMEZONE_SHORT_STANDARD;
-                }
-                checkCommonlyUsed = true;
-            } else {
+            if (count == 1) {
+                // "v"
+                zoneString = formatData.getZoneStringFormat().getGenericShortString(cal, true /* commonly used only */);
+            } else if (count == 4) {
                 // "vvvv"
-                zrestype = DateFormatSymbols.TIMEZONE_LONG_GENERIC;
-                if (!inDST && !cal.getTimeZone().useDaylightTime()) {
-                    zrestype = DateFormatSymbols.TIMEZONE_LONG_STANDARD;
-                }
-                checkCommonlyUsed = false;
+                zoneString = formatData.getZoneStringFormat().getGenericLongString(cal);
             }
-            if (!checkCommonlyUsed || formatData.isCommonlyUsed(zid)) {
-                zstr = formatData.getZoneString(zid, zrestype);
-            }
-            if (zstr == null) {
-                mz = formatData.getMetazoneInfo(zid, zrestype, cal);
-                if (mz != null && (!checkCommonlyUsed || formatData.isCommonlyUsed(mz.mzid))) {
-                    zstr = mz.value;
-                }
-                if (zstr == null) {
-                    // Use location format as fallback
-                    zstr = formatData.getZoneString(zid, DateFormatSymbols.TIMEZONE_LOCATION);                    
-                }
-            }
-            if (zstr != null && zstr.length() != 0) {
-                buf.append(zstr);
+            if (zoneString != null && zoneString.length() != 0) {
+                buf.append(zoneString);
             } else {
                 // Use localized GMT format as fallback
                 appendGMT(buf, cal);
@@ -966,24 +924,15 @@ public class SimpleDateFormat extends DateFormat {
                 zeroPaddingNumber(buf, (value/3)+1, count, maxIntCount);
             break;
         case 29: // 'V' - TIMEZONE_SPECIAL
-            zid = ZoneMeta.getCanonicalID(cal.getTimeZone().getID());
             if (count == 1) {
                 // "V"
-                inDST = cal.get(Calendar.DST_OFFSET) != 0;
-                zrestype = inDST ? DateFormatSymbols.TIMEZONE_SHORT_DAYLIGHT : DateFormatSymbols.TIMEZONE_SHORT_STANDARD;
-                zstr = formatData.getZoneString(zid, zrestype);
-                if (zstr == null) {
-                    mz = formatData.getMetazoneInfo(zid, zrestype, cal);
-                    if (mz != null) {
-                        zstr = mz.value;
-                    }
-                }                
+                zoneString = formatData.getZoneStringFormat().getSpecificShortString(cal, false /* ignoring commonly used */);
             } else if (count == 4) {
                 // "VVVV"
-                zstr = formatData.getZoneString(zid, DateFormatSymbols.TIMEZONE_LOCATION);
+                zoneString = formatData.getZoneStringFormat().getGenericLocationString(cal);
             }
-            if (zstr != null && zstr.length() != 0) {
-                buf.append(zstr);
+            if (zoneString != null && zoneString.length() != 0) {
+                buf.append(zoneString);
             } else {
                 // Use localized GMT format as fallback
                 appendGMT(buf, cal);
@@ -1933,120 +1882,39 @@ public class SimpleDateFormat extends DateFormat {
                     // the locale data from the DateFormatZoneData strings.
                     // Want to be able to parse both short and long forms.
                     // optimize for calendar's current time zone
-                    List items = formatData.findZoneItem(text, start);
-                    if (items != null) {
-                        // Find the best match for the pattern and its length
-                        DateFormatSymbols.ZoneItem bestMatch = null;
-                        findloop: for (int idx = 0; idx < items.size(); idx++) {
-                            DateFormatSymbols.ZoneItem item = (DateFormatSymbols.ZoneItem)items.get(idx);
-                            if (bestMatch == null) {
-                                bestMatch = item;
-                            } else {
-                                // Check the type by pattern
-                                boolean longerMatch = item.value.length() > bestMatch.value.length();
-                                switch (patternCharIndex) {
-                                case 17: // 'z' - ZONE_OFFSET
-                                    if (count < 4) {
-                                        // "z", "zz", "zzz"
-                                        if (item.type == DateFormatSymbols.TIMEZONE_SHORT_STANDARD
-                                                || item.type == DateFormatSymbols.TIMEZONE_SHORT_DAYLIGHT) {
-                                            if (longerMatch || (bestMatch.type != DateFormatSymbols.TIMEZONE_SHORT_STANDARD
-                                                    && bestMatch.type != DateFormatSymbols.TIMEZONE_SHORT_DAYLIGHT)) {
-                                                bestMatch = item;
-                                            }
-                                        } else if (longerMatch && bestMatch.type != DateFormatSymbols.TIMEZONE_SHORT_STANDARD
-                                                    && bestMatch.type != DateFormatSymbols.TIMEZONE_SHORT_DAYLIGHT) {
-                                            bestMatch = item;
-                                        }
-                                    } else {
-                                        // "zzzz"
-                                        if (item.type == DateFormatSymbols.TIMEZONE_LONG_STANDARD
-                                                || item.type == DateFormatSymbols.TIMEZONE_LONG_DAYLIGHT) {
-                                            if (longerMatch || (bestMatch.type != DateFormatSymbols.TIMEZONE_LONG_STANDARD
-                                                    && bestMatch.type != DateFormatSymbols.TIMEZONE_LONG_DAYLIGHT)) {
-                                                bestMatch = item;
-                                            }
-                                        } else if (longerMatch && bestMatch.type != DateFormatSymbols.TIMEZONE_LONG_STANDARD
-                                                    && bestMatch.type != DateFormatSymbols.TIMEZONE_LONG_DAYLIGHT) {
-                                            bestMatch = item;
-                                        }
-                                    }
-                                    break;
-                                case 24: // 'v' - TIMEZONE_GENERIC
-                                    if (count == 1) {
-                                        // "v"
-                                        if (item.type == DateFormatSymbols.TIMEZONE_SHORT_GENERIC) {
-                                            bestMatch = item;
-                                            break findloop; // Found the best match
-                                        } else if (item.type == DateFormatSymbols.TIMEZONE_LOCATION) {
-                                            // Location format is used as a fallback for pattern "v"
-                                            bestMatch = item;
-                                        } else if (longerMatch && bestMatch.type != DateFormatSymbols.TIMEZONE_LOCATION) {
-                                            bestMatch = item;
-                                        }
-                                    } else if (count == 4) {
-                                        // "vvvv"
-                                        if (item.type == DateFormatSymbols.TIMEZONE_LONG_GENERIC) {
-                                            bestMatch = item;
-                                            break findloop; // Found the best match
-                                        } else if (item.type == DateFormatSymbols.TIMEZONE_LOCATION) {
-                                            // Location format is used as a fallback for pattern "vvvv"
-                                            bestMatch = item;
-                                        } else if (longerMatch && bestMatch.type != DateFormatSymbols.TIMEZONE_LOCATION) {
-                                            bestMatch = item;
-                                        }
-                                    } else if (longerMatch) {
-                                        bestMatch = item;
-                                    }
-                                    break;
-                                case 29: // 'V' - TIMEZONE_SPECIAL
-                                    if (count == 1) {
-                                        // "V"
-                                        if (item.type == DateFormatSymbols.TIMEZONE_SHORT_STANDARD
-                                                || item.type == DateFormatSymbols.TIMEZONE_SHORT_DAYLIGHT) {
-                                            if (longerMatch || (bestMatch.type != DateFormatSymbols.TIMEZONE_SHORT_STANDARD
-                                                    && bestMatch.type != DateFormatSymbols.TIMEZONE_SHORT_DAYLIGHT)) {
-                                                bestMatch = item;
-                                            }
-                                        } else if (longerMatch && bestMatch.type != DateFormatSymbols.TIMEZONE_SHORT_STANDARD
-                                                    && bestMatch.type != DateFormatSymbols.TIMEZONE_SHORT_DAYLIGHT) {
-                                            bestMatch = item;
-                                        }
-                                    } else if (count == 4) {
-                                        // "VVVV"
-                                        if (item.type == DateFormatSymbols.TIMEZONE_LOCATION) {
-                                            bestMatch = item;
-                                            break findloop; // Found the best match
-                                        }
-                                        if (longerMatch) {
-                                            bestMatch = item;
-                                        }
-                                    } else if (longerMatch) {
-                                        bestMatch = item;
-                                    }
-                                    break;
-                                default:
-                                    if (longerMatch) {
-                                        bestMatch = item;
-                                    }
-                                    break;
-                                }
-                            }
+                    ZoneStringInfo zsinfo = null;
+                    switch (patternCharIndex) {
+                    case 17: // 'z' - ZONE_OFFSET
+                        if (count < 4) {
+                            zsinfo = formatData.getZoneStringFormat().findSpecificShort(text, start);
+                        } else {
+                            zsinfo = formatData.getZoneStringFormat().findSpecificLong(text, start);
                         }
-                        if (bestMatch != null) {
-                            tz = TimeZone.getTimeZone(bestMatch.zid);
-                            cal.setTimeZone(tz);
-                            if (bestMatch.type == DateFormatSymbols.TIMEZONE_SHORT_STANDARD
-                                    || bestMatch.type == DateFormatSymbols.TIMEZONE_LONG_STANDARD) {
-                                // standard time
-                                tztype = TZTYPE_STD;
-                            } else if (bestMatch.type == DateFormatSymbols.TIMEZONE_SHORT_DAYLIGHT
-                                    || bestMatch.type == DateFormatSymbols.TIMEZONE_LONG_DAYLIGHT) {
-                                // daylight time
-                                tztype = TZTYPE_DST;
-                            }
-                            return start + bestMatch.value.length();
+                        break;
+                    case 24: // 'v' - TIMEZONE_GENERIC
+                        if (count == 1) {
+                            zsinfo = formatData.getZoneStringFormat().findGenericShort(text, start);                            
+                        } else if (count == 4) {
+                            zsinfo = formatData.getZoneStringFormat().findGenericLong(text, start);
                         }
+                        break;
+                    case 29: // 'V' - TIMEZONE_SPECIAL
+                        if (count == 1) {
+                            zsinfo = formatData.getZoneStringFormat().findSpecificShort(text, start);                                                        
+                        } else if (count == 4) {
+                            zsinfo = formatData.getZoneStringFormat().findGenericLocation(text, start);
+                        }
+                        break;
+                    }
+                    if (zsinfo != null) {
+                        if (zsinfo.isStandard()) {
+                            tztype = TZTYPE_STD;
+                        } else if (zsinfo.isDaylight()) {
+                            tztype = TZTYPE_DST;
+                        }
+                        tz = TimeZone.getTimeZone(zsinfo.getID());
+                        cal.setTimeZone(tz);
+                        return start + zsinfo.getString().length();
                     }
                     // complete failure
                     return -start;

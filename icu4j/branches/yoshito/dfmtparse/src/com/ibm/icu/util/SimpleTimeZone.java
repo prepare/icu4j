@@ -1223,8 +1223,8 @@ public class SimpleTimeZone extends BasicTimeZone {
         if (base < firstTransitionTime || (!inclusive && base == firstTransitionTime)) {
             return null;
         }
-        Date stdDate = stdRule.getPreviousStart(base, dstRule.getRawOffset(), dstRule.getDSTSavings(), false);
-        Date dstDate = dstRule.getPreviousStart(base, stdRule.getRawOffset(), stdRule.getDSTSavings(), false);
+        Date stdDate = stdRule.getPreviousStart(base, dstRule.getRawOffset(), dstRule.getDSTSavings(), inclusive);
+        Date dstDate = dstRule.getPreviousStart(base, stdRule.getRawOffset(), stdRule.getDSTSavings(), inclusive);
         if (stdDate != null && (dstDate == null || stdDate.after(dstDate))) {
             return new TimeZoneTransition(stdDate.getTime(), dstRule, stdRule);
         }

@@ -8,11 +8,6 @@
 package com.ibm.icu.text;
 
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Locale;
 import java.util.MissingResourceException;
 import java.util.ResourceBundle;
@@ -21,12 +16,10 @@ import com.ibm.icu.impl.CalendarData;
 import com.ibm.icu.impl.ICUCache;
 import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.impl.SimpleCache;
-import com.ibm.icu.impl.TextTrieMap;
 import com.ibm.icu.impl.Utility;
-import com.ibm.icu.impl.ZoneMeta;
+import com.ibm.icu.impl.ZoneStringFormat;
 import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.GregorianCalendar;
-import com.ibm.icu.util.TimeZone;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.UResourceBundle;
 
@@ -424,7 +417,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
     /**
      * Localized names of time zones in this locale.  This is a
      * two-dimensional array of strings of size <em>n</em> by <em>m</em>,
-     * where <em>m</em> is at least 5 and up to 38.  Each of the <em>n</em> rows is an
+     * where <em>m</em> is at least 5 and up to 7.  Each of the <em>n</em> rows is an
      * entry containing the localized names for a single <code>TimeZone</code>.
      * Each such row contains (with <code>i</code> ranging from
      * 0..<em>n</em>-1):
@@ -438,22 +431,33 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * savings time</li>
      * <li><code>zoneStrings[i][4]</code> - short name of zone in daylight
      * savings time</li>
-     * <li>The remainder varies depending on whether there is data 
-     * on city name or generic time.  The city name, if available, comes
-     * first.  The long and short generic times, if available, come next,
-     * in that order. The length of the array (m) can be examined to 
-     * determine which optional information is available.</li>
-     * </ul>
+     * <li><code>zoneStrings[i][5]</code> - location name of zone</li>
+     * <li><code>zoneStrings[i][6]</code> - long generic name of zone</li>
+     * <li><code>zoneStrings[i][7]</code> - short generic of zone</li>
      * The zone ID is <em>not</em> localized; it corresponds to the ID
      * value associated with a system time zone object.  All other entries
      * are localized names.  If a zone does not implement daylight savings
      * time, the daylight savings time names are ignored.
+     * <em>Note:</em>CLDR 1.5 introduced metazone and its historical mappings.
+     * This simple two-dimensional array is no longer sufficient to represent
+     * localized names and its historic changes.  Since ICU 3.8.1, localized
+     * zone names extracted from ICU locale data is stored in a ZoneStringFormat
+     * instance.  But we still need to support the old way of customizing
+     * localized zone names, so we keep this field for the purpose.
      * @see com.ibm.icu.util.TimeZone
      * @serial
      */
      private String zoneStrings[][] = null;
 
-    /**
+     /**
+      * Since ICU 3.8.1, we use ZoneStringFormat to access localized
+      * zone names.  This field remains null unless setZoneStrings is
+      * called.
+      */
+     private transient ZoneStringFormat zsformat = null;
+
+     
+     /**
      * Unlocalized date-time pattern characters. For example: 'y', 'd', etc.
      * All locales use the same unlocalized pattern characters.
      */
@@ -470,11 +474,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * @serial
      */
     String  localPatternChars = null;
-
-    /* Hang on to the country of the locale used for initialization */
-    /* Used by resolveParsedMetazone for country specific metazone mappings */
-
-    private String country;
 
     /* use serialVersionUID from JDK 1.1.4 for interoperability */
     private static final long serialVersionUID = -5987973545549424702L;
@@ -860,13 +859,10 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * @stable ICU 2.0
      */
     public String[][] getZoneStrings() {
-        String[][] strings = zoneStrings;
-        if(strings == null){
-            // get the default zone strings
-            ZoneItemInfo zii = getDefaultZoneItemInfo();
-            strings = zii.tzStrings;
+        if (zoneStrings != null) {
+            return duplicate(zoneStrings);
         }
-        return duplicate(strings);
+        return ZoneStringFormat.getInstance(requestedLocale).getZoneStrings();
     }
 
     /**
@@ -876,8 +872,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      */
     public void setZoneStrings(String[][] newZoneStrings) {
         zoneStrings = duplicate(newZoneStrings);
-        // need to update local zone item info
-        localZoneItemInfo = null;
+        zsformat = new ZoneStringFormat(zoneStrings);
     }
 
     /**
@@ -925,21 +920,8 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * @stable ICU 2.0
      */
     public int hashCode() {
-        int hashcode = 0;
-        hashcode ^= requestedLocale.toString().hashCode();
-        String[][] tzStrings = zoneStrings;
-        if (tzStrings == null){
-            ZoneItemInfo zii = getDefaultZoneItemInfo();
-            tzStrings = zii.tzStrings;
-        }
-        for(int i = 0; i < tzStrings.length; i++) {
-            for (int j = 0; j < tzStrings[i].length; j++) {
-                if (tzStrings[i][j] != null) {
-                    hashcode ^= tzStrings[i][j].hashCode();
-                }
-            }
-        }
-        return hashcode;
+        // Is this sufficient?
+        return requestedLocale.toString().hashCode();
     }
 
     /**
@@ -1053,9 +1035,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
     // CalendarData is a non API class   
     protected void initializeData(ULocale desiredLocale, CalendarData calData)
     {
-
-        country = desiredLocale.getCountry();
-
         // FIXME: cache only ResourceBundle. Hence every time, will do
         // getObject(). This won't be necessary if the Resource itself
         // is cached.
@@ -1253,533 +1232,22 @@ public class DateFormatSymbols implements Serializable, Cloneable {
     }
 
     /*
-     * Package private: used by SimpleDateFormat.
-     * Gets the string for the specified time zone.
-     * @param zid The time zone ID
-     * @param type The type of zone string
-     * @return The zone string, or null if not available.
+     * Package local method to access ZoneStringFormat used by this
+     * DateFormatSymbols instance.
      */
-    String getZoneString(String zid, int type) {
-        // Try local zone item info first
-        String zoneString = getZoneString(getLocalZoneItemInfo(), zid, type);
-        if (zoneString == null) {
-            // Fallback to the default info
-            zoneString = getZoneString(getDefaultZoneItemInfo(), zid, type);
+    ZoneStringFormat getZoneStringFormat() {
+        if (zsformat != null) {
+            return zsformat;
         }
-        return zoneString;
-    }
-
-    /*
-     * Gets the zone string from the specified zone item info
-     */
-    private String getZoneString(ZoneItemInfo zinfo, String zid, int type) {
-        if (zinfo == null) {
-            return null;
+        if (zoneStrings != null) {
+            zsformat = new ZoneStringFormat(zoneStrings);
+            return zsformat;
         }
-        String[] names = (String[])zinfo.tzidMap.get(zid);
-        if (names != null) {
-            // get name for the type
-            int index = -1;
-            switch (type) {
-            case TIMEZONE_LONG_STANDARD:
-                index = 1;
-                break;
-            case TIMEZONE_SHORT_STANDARD:
-                index = 2;
-                break;
-            case TIMEZONE_LONG_DAYLIGHT:
-                index = 3;
-                break;
-            case TIMEZONE_SHORT_DAYLIGHT:
-                index = 4;
-                break;
-            case TIMEZONE_LOCATION:
-                index = 5;
-                break;
-            case TIMEZONE_LONG_GENERIC:
-                index = 6;
-                break;
-            case TIMEZONE_SHORT_GENERIC:
-                index = 7;
-                break;
-            case TIMEZONE_METAZONE_MAPPING:
-                index = 8;
-                break;
-            }
-            if (index < names.length) {
-                return names[index];
-            }
-        }
-        return null;
-    }
-
-    /*
-     * Package private: used by SimpleDateFormat.
-     * Gets the string for the specified time zone.
-     * @param zid The time zone ID
-     * @param type The type of zone string
-     * @param cal The calendar to use
-     * @return A metazone info structure, returning the desired metazone string and the
-     *         metazone ID.
-     * @internal
-     * @deprecated This API is ICU internal only.
-     */
-
-    MetazoneInfo getMetazoneInfo(String zid, int type, Calendar cal) {
-        // Try local zone item info first
-        MetazoneInfo mzInfo = getMetazoneInfo(getLocalZoneItemInfo(), zid, type, cal);
-        if (mzInfo == null) {
-            // Fallback to the default info
-            mzInfo = getMetazoneInfo(getDefaultZoneItemInfo(), zid, type, cal);
-        }
-        return mzInfo;
-    }
-
-    /*
-     * Package private: used by SimpleDateFormat.
-     * Gets the metazone string from the specified zone item info
-     * @param zinfo The zone item info
-     * @param zid The time zone ID
-     * @param type The type of zone string
-     * @param cal The calendar to use
-     * @return A metazone info structure, returning the desired metazone string and the
-     *         metazone ID.
-     * @internal
-     * @deprecated This API is ICU internal only.
-     */
-    private MetazoneInfo getMetazoneInfo(ZoneItemInfo zinfo, String zid, int type, Calendar cal) {
-
-        MetazoneInfo mz = new MetazoneInfo();
-
-        if (zinfo == null) {
-            return null;
-        }
-        String[] names = (String[])zinfo.tzidMap.get(zid);
-        if ( names == null ) {
-           return null;
-        }
-
-        SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm");
-        df.setTimeZone(TimeZone.getTimeZone("Etc/GMT"));
-        String theTime = df.format(cal.getTime());
-        int mz_index = 8;
-        while ( mz_index < names.length ) {
-            if ( names[mz_index] != null && 
-                 names[mz_index+1].compareTo(theTime) <= 0 &&  
-                 names[mz_index+2].compareTo(theTime) >  0 ) {
-                     mz.mzid = "meta/"+names[mz_index];
-                     mz.value = getZoneString(zinfo,mz.mzid,type);
-                     return mz;
-            } 
-            mz_index += 3;
-        }
-        return null;
-    }
-
-    boolean isCommonlyUsed(String zid) {
-
-        if ( zid == null || zid.length() == 0 ) {
-            return false;
-        }
-
-        String key = zid.replace('/',':');
-        for (ULocale tempLocale = requestedLocale; tempLocale != null; tempLocale = tempLocale.getFallback()) {
-            UResourceBundle rb = UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, tempLocale);
-            UResourceBundle zoneArray;
-            try {
-                zoneArray = rb.get("zoneStrings");
-            } catch (MissingResourceException ex) {
-                continue;
-            }
-
-            UResourceBundle zoneItem;
-            try {
-                zoneItem = zoneArray.get(key);
-            } catch (MissingResourceException ex) {
-                continue;
-            }
-
-            UResourceBundle cuRes;
-            try {
-                cuRes = zoneItem.get(COMMONLY_USED);
-            } catch (MissingResourceException ex) {
-                continue;
-            }
-            int cuValue = cuRes.getInt();
-            if ( cuValue == 1 ) {
-                return true;
-            }
-            else {
-                return false;
-            }
-            
-        }
-        return false;    
-    }
-
-    class ZoneItem{
-        String value;
-        int type;
-        String zid;
-    }
-
-    /*
-     * Package private: used by SimpleDateFormat
-     * Gets a list of ZoneItems which satisfy start with match with
-     * the given name by item type.
-     * @param text The text which contains the zone name string
-     * to be searched.
-     * @param start The start position of zone name string in
-     * the text.
-     * @return A list contains items which satisfy start-with match.
-     * Only one entry per item type.
-     */
-    List findZoneItem(String text, int start) {
-        if (lastZoneItemSearchText != null
-                && text.regionMatches(true, start, lastZoneItemSearchText, 0, text.length())) {
-            // Use the cached result, we do not clone the result, because
-            // the list is accessed read-only in SimpleDateFormat.
-            return lastZoneItemMatches;
-        }
-
-        List result = null;
-        ZoneItemSearchResultHandler handler = new ZoneItemSearchResultHandler();
-
-        // Look up the zone string in localZoneItemInfo first.
-        // getLocalZoneItemInfo() returns null unless someone customizes
-        // tz strings in the DateFormatSymbols instance.
-        ZoneItemInfo zinfo = getLocalZoneItemInfo();
-        if (zinfo != null) {
-            zinfo.tzStringMap.find(text, start, handler);
-            result = handler.getMatchedZoneItems();
-        }
-
-        // If nothing matches, look up the zone string in default
-        // ZoneItemInfo for the current locale
-        if (result == null) {
-            zinfo = getDefaultZoneItemInfo();
-            if (zinfo != null) {
-                zinfo.tzStringMap.find(text, start, handler);
-                result = handler.getMatchedZoneItems();
-            }
-        }
-
-        if (result != null) {
-            // Handle meta zone here
-            for (int i = 0; i < result.size(); i++) {
-                ZoneItem item = (ZoneItem)result.get(i);
-                if (item != null && item.zid.startsWith("meta/")) {
-                    item.zid = resolveParsedMetazone(item.zid);
-                }
-            }
-
-            // Cache the result
-            lastZoneItemSearchText = text.substring(start);
-            lastZoneItemMatches = result;
-        }
-        return result;
-    }
-
-    private static class ZoneItemSearchResultHandler
-            implements TextTrieMap.ResultHandler {
-
-        List zitemlist;
-        
-        public boolean handlePrefixMatch(int matchLength, Iterator values) {
-            if (zitemlist == null) {
-                zitemlist = new LinkedList();
-            }
-            while (values.hasNext()) {
-                ZoneItem item = (ZoneItem)values.next();
-                if (item == null) {
-                    break;
-                }
-                int i = 0;
-                for (; i < zitemlist.size(); i++) {
-                    ZoneItem tmp = (ZoneItem)zitemlist.get(i);
-                    if (item.type == tmp.type) {
-                        if (matchLength > tmp.value.length()) {
-                            zitemlist.set(i, item);
-                        }
-                        break;
-                    }
-                }
-                if (i == zitemlist.size()) {
-                    // not found in the current list
-                    zitemlist.add(item);
-                }
-            }
-            return true;
-        }
-
-        List getMatchedZoneItems() {
-            return zitemlist;
-        }
-
-        void clear() {
-            if (zitemlist != null) {
-                zitemlist.clear();
-            }
-        }
-    }
-
-    private String resolveParsedMetazone( String zid ) {
-
-        String result = null;
-        UResourceBundle supplementalDataBundle = UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, "supplementalData", ICUResourceBundle.ICU_DATA_CLASS_LOADER);
-
-        if ( supplementalDataBundle == null ) {
-            return("Etc/GMT");
-        }
-
-        UResourceBundle r1 = supplementalDataBundle.get("mapTimezones");
-        UResourceBundle metazoneMap = r1.get("metazones");
-
-        String  mzMapkey = zid.replace('/',':');
-
-        try {
-            result = metazoneMap.getString(mzMapkey+"_"+country);
-        } catch (MissingResourceException ex) {
-            try {
-                result = metazoneMap.getString(mzMapkey+"_001");
-            } catch (MissingResourceException ex1) {
-                return("Etc/GMT");
-            }
-        }
-        
-        return result;
-    }
-
-    /* Package private: used by SimpleDateFormat */
-    class MetazoneInfo {
-        String mzid;
-        String value;
-    }
-
-    /*
-     * A class holds zone strings and searchable indice
-     */
-    private class ZoneItemInfo {
-        String[][] tzStrings;
-        HashMap tzidMap;
-        TextTrieMap tzStringMap;
-    }
-
-    /*
-     * A cache for ZoneItemInfo objects, shared by class instances.
-     */
-    private static ICUCache zoneItemInfoCache = new SimpleCache();
-
-    /*
-     * A ZoneItemInfo instance which holds custom timezone strings
-     */
-    private transient ZoneItemInfo localZoneItemInfo;
-
-    /*
-     * Zone item search cache
-     */
-    private transient List lastZoneItemMatches;
-    private transient String lastZoneItemSearchText;
-
-    /*
-     * Gets the ZoneItemInfo instance for the locale used by this object.
-     * If it does not exist, create new one and register in the static cache.
-     */
-    private ZoneItemInfo getDefaultZoneItemInfo() {
-        ZoneItemInfo zii = (ZoneItemInfo)zoneItemInfoCache.get(requestedLocale);
-        if (zii != null) {
-            return zii;
-        }
-        zii = getZoneItemInfo(getDefaultZoneStrings(requestedLocale));
-        zoneItemInfoCache.put(requestedLocale, zii);
-        return zii;
-    }
-
-    private static String getZoneStringFromBundles(ICUResourceBundle [] z, String zone, String type) {
-        String zoneKey = zone.replace('/', ':');
-        for ( int i = 0 ; i < z.length ; i++ ) {
-            ICUResourceBundle zoneTable = z[i];
-            String result = null;
-            try {
-                result = zoneTable.getStringWithFallback(zoneKey+"/"+type);
-            } catch (MissingResourceException ex) {
-                // throw away the exception   
-            }
-            if ( result != null ) {
-                return result;
-            }
-        }
-        return null;
-    }
-
-    private static ICUResourceBundle getUsesMetazoneFromBundles(ICUResourceBundle [] z, String zone) {
-        String zoneKey = zone.replace('/', ':');
-        for ( int i = 0 ; i < z.length ; i++ ) {
-            ICUResourceBundle zoneTable = z[i];
-            ICUResourceBundle result = null;
-            try {
-                result = zoneTable.getWithFallback(zoneKey+"/"+USES_METAZONE);
-            } catch (MissingResourceException ex) {
-                // throw away the exception   
-            }
-            if ( result != null ) {
-                return result;
-            }
-        }
-        return null;
-    }
-
-    /*
-     * Gets the array of zone strings for the specified locale.
-     */
-    private static String[][] getDefaultZoneStrings(ULocale locale) {
-        ArrayList tmpList = new ArrayList();
-        ArrayList zoneStringsBundleList = new ArrayList();
-
-        for (ULocale tempLocale = locale; tempLocale != null; tempLocale = tempLocale.getFallback()) {
-            ICUResourceBundle bundle = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, tempLocale);
-            ICUResourceBundle zoneStringsBundle = bundle.getWithFallback("zoneStrings");
-            if (zoneStringsBundle != null)
-               zoneStringsBundleList.add(zoneStringsBundle);
-        }
-
-        ICUResourceBundle [] zoneStringsBundles = new ICUResourceBundle[zoneStringsBundleList.size()];
-        zoneStringsBundleList.toArray(zoneStringsBundles);
-
-        String[] zoneIDs = TimeZone.getAvailableIDs();
-
-        ArrayList usedMetazones = new ArrayList();
-
-        for(int i = 0; i < zoneIDs.length; i++){
-           // Skip IDs that are not canonicalized...
-           if ( ! zoneIDs[i].equals(ZoneMeta.getCanonicalID(zoneIDs[i])))
-              continue;
-
-           String[] strings = new String[38];
-           strings[0] = zoneIDs[i];
-           strings[1] = getZoneStringFromBundles(zoneStringsBundles,zoneIDs[i],LONG_STANDARD);
-           strings[2] = getZoneStringFromBundles(zoneStringsBundles,zoneIDs[i],SHORT_STANDARD);
-           strings[3] = getZoneStringFromBundles(zoneStringsBundles,zoneIDs[i],LONG_DAYLIGHT);
-           strings[4] = getZoneStringFromBundles(zoneStringsBundles,zoneIDs[i],SHORT_DAYLIGHT);
-           String city = getZoneStringFromBundles(zoneStringsBundles,zoneIDs[i],EXEMPLAR_CITY);
-           strings[5] = ZoneMeta.displayFallback(zoneIDs[i],city,locale);
-           strings[6] = getZoneStringFromBundles(zoneStringsBundles,zoneIDs[i],LONG_GENERIC);
-           strings[7] = getZoneStringFromBundles(zoneStringsBundles,zoneIDs[i],SHORT_GENERIC);
-
-           int mz=0;
-           int zstring_pos = 8;
-           boolean mz_done = false;
-           ICUResourceBundle uses_mz = null;
-
-           if ( ! zoneIDs[i].startsWith("meta") ) {
-              uses_mz = getUsesMetazoneFromBundles(zoneStringsBundles,zoneIDs[i]);
-           } 
-
-           while ( (uses_mz != null) && !mz_done) {
-              ICUResourceBundle current_mz = null;
-              try {
-                 current_mz = uses_mz.getWithFallback(METAZONE+String.valueOf(mz)); 
-              } catch (MissingResourceException ex) {
-                 mz_done = true;
-              }
-
-              if ( !mz_done ) {
-                 String [] um_str = current_mz.getStringArray();
-                 strings[zstring_pos++] = um_str[0];
-                 strings[zstring_pos++] = um_str[1];
-                 strings[zstring_pos++] = um_str[2];
-                 if (!usedMetazones.contains(um_str[0]))
-                    usedMetazones.add(um_str[0]);
-              }
-              mz++; 
-           }
-
-           tmpList.add(strings);
-        }
-
-        for( int i = 0; i < usedMetazones.size(); i++) {
-           String[] strings = new String[38];
-           String key = "meta/"+usedMetazones.get(i);
-           strings[0] = key;
-           strings[1] = getZoneStringFromBundles(zoneStringsBundles,key,LONG_STANDARD);
-           strings[2] = getZoneStringFromBundles(zoneStringsBundles,key,SHORT_STANDARD);
-           strings[3] = getZoneStringFromBundles(zoneStringsBundles,key,LONG_DAYLIGHT);
-           strings[4] = getZoneStringFromBundles(zoneStringsBundles,key,SHORT_DAYLIGHT);
-           strings[6] = getZoneStringFromBundles(zoneStringsBundles,key,LONG_GENERIC);
-           strings[7] = getZoneStringFromBundles(zoneStringsBundles,key,SHORT_GENERIC);
-
-           tmpList.add(strings);
-        }
-
-        String[][] array = new String[tmpList.size()][38];
-        tmpList.toArray(array);
-
-        return array;
-    }
-
-    /*
-     * Gets the array of zone strings for the custom zone strings
-     */
-    private ZoneItemInfo getLocalZoneItemInfo() {
-        if (localZoneItemInfo == null && zoneStrings != null) {
-            localZoneItemInfo = getZoneItemInfo(zoneStrings);
-        }
-        return localZoneItemInfo;
-    }
-
-    /*
-     * Creates a new ZoneItemInfo instance from the array of time zone
-     * strings.
-     */
-    private ZoneItemInfo getZoneItemInfo(String[][] strings) {
-        ZoneItemInfo zii = new ZoneItemInfo();
-        zii.tzStrings = strings;
-        zii.tzidMap = new HashMap();
-        zii.tzStringMap = new TextTrieMap(true);
-        for (int i = 0; i < strings.length; i++) {
-            String zid = strings[i][0];
-            if (zid != null && zid.length() > 0) {
-                zii.tzidMap.put(zid, strings[i]);
-                int nameCount = strings[i].length < 38 ? strings[i].length : 38;
-                for (int j = 1; j < nameCount; j++) {
-                    if (strings[i][j] != null) {
-                        // map zoneStrings array index to timezone name type
-                        int type = -1;
-                        switch (j) {
-                        case 1:
-                            type = TIMEZONE_LONG_STANDARD;
-                            break;
-                        case 2:
-                            type = TIMEZONE_SHORT_STANDARD;
-                            break;
-                        case 3:
-                            type = TIMEZONE_LONG_DAYLIGHT;
-                            break;
-                        case 4:
-                            type = TIMEZONE_SHORT_DAYLIGHT;
-                            break;
-                        case 5:
-                            type = TIMEZONE_LOCATION;
-                            break;
-                        case 6:
-                            type = TIMEZONE_LONG_GENERIC;
-                            break;
-                        case 7:
-                            type = TIMEZONE_SHORT_GENERIC;
-                            break;
-                        }
-                        if (type != -1) {
-                            ZoneItem item = new ZoneItem();
-                            item.zid = zid;
-                            item.value = strings[i][j];
-                            item.type = type;
-                            zii.tzStringMap.put(strings[i][j], item);
-                        }
-                    }
-                }
-            }
-        }
-        return zii;
+        // We do not want to hold the reference to an instance of
+        // ZoneStringFormat.  An instance of ZoneStringFormat for
+        // a locale is shared and cached in ZoneStringFormat class
+        // itself.
+        return ZoneStringFormat.getInstance(requestedLocale);
     }
 
     /*
@@ -1787,74 +1255,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      */
     private ULocale requestedLocale; 
  
-    /*
-     * The translation type of the translated zone strings
-     */
-     private static final String   SHORT_GENERIC  = "sg",
-                                   SHORT_STANDARD = "ss",
-                                   SHORT_DAYLIGHT = "sd",
-                                   LONG_GENERIC   = "lg",
-                                   LONG_STANDARD  = "ls",
-                                   LONG_DAYLIGHT  = "ld",
-                                   EXEMPLAR_CITY  = "ec",
-                                   USES_METAZONE  = "um",
-                                   METAZONE       = "mz",
-                                   COMMONLY_USED  = "cu";
-    /*
-     * The translation type of the translated zone strings
-     */
-     static final int   TIMEZONE_SHORT_GENERIC  = 0,
-                        TIMEZONE_SHORT_STANDARD = 1,
-                        TIMEZONE_SHORT_DAYLIGHT = 2,
-                        TIMEZONE_LONG_GENERIC   = 3,
-                        TIMEZONE_LONG_STANDARD  = 4,
-                        TIMEZONE_LONG_DAYLIGHT  = 5,
-                        TIMEZONE_LOCATION  = 6,
-                        TIMEZONE_METAZONE_MAPPING  = 7,
-                        TIMEZONE_COUNT          = 8;
-
-     /*
-     * Package private: used by SimpleDateFormat
-     * Gets the index for the given time zone ID to obtain the timezone
-     * strings for formatting. The time zone ID is just for programmatic
-     * lookup. NOT LOCALIZED!!!
-     * @param ID the given time zone ID.
-     * @return the index of the given time zone ID.  Returns -1 if
-     * the given time zone ID can't be located in the DateFormatSymbols object.
-     * @see com.ibm.icu.util.SimpleTimeZone
-     */
-/*    final int getZoneIndex(String ID) {
-        int result = _getZoneIndex(ID);
-        if (result >= 0) {
-            return result;
-        }
-        // Do a search through the equivalency group for the given ID
-        int n = ZoneMeta.countEquivalentIDs(ID);
-        if (n > 1) {
-            for (int i=0; i<n; ++i) {
-                String equivID = ZoneMeta.getEquivalentID(ID, i);
-                if (!equivID.equals(ID)) {
-                    int equivResult = _getZoneIndex(equivID);
-                    if (equivResult >= 0) {
-                        return equivResult;
-                    }
-                }
-            }
-        }
-        return -1;
-    }*/
-    
-    /*
-     * Lookup the given ID.  Do NOT do an equivalency search.
-     */
-/*    private int _getZoneIndex(String ID)
-    {
-        for (int index=0; index<zoneStrings.length; index++) {
-            if (ID.equalsIgnoreCase(zoneStrings[index][0])) return index;
-        }
-        return -1;
-    }*/
-
     /*
      * Clones an array of Strings.
      * @param srcArray the source array to be cloned.

@@ -6,14 +6,15 @@
  */
 package com.ibm.icu.impl;
 
+import java.lang.ref.WeakReference;
 import java.text.FieldPosition;
 import java.text.ParseException;
 import java.text.ParsePosition;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.MissingResourceException;
 
 import com.ibm.icu.text.MessageFormat;
-import com.ibm.icu.text.NumberFormat;
 import com.ibm.icu.text.SimpleDateFormat;
 import com.ibm.icu.util.TimeZone;
 import com.ibm.icu.util.ULocale;
@@ -36,12 +37,12 @@ public class GMTFormat {
     };
 
     private ULocale locale;
-    private MessageFormat msgfmt;
     private SimpleDateFormat dtfmt;
 
     private String[] gmtPatterns;
     private String[][] offsetPatterns;
     private int[] gmtPrefixLen;
+    private WeakReference[] msgFmtCache;
 
     /**
      * Constructs a GMTFormat for the locale
@@ -107,9 +108,9 @@ public class GMTFormat {
                     posPatternS = posPattern + "ss";
                 }
                 if (negPattern.indexOf(':') != -1) {
-                    negPatternS = posPattern + ":ss";
+                    negPatternS = negPattern + ":ss";
                 } else {
-                    negPatternS = posPattern + "ss";
+                    negPatternS = negPattern + "ss";
                 }
 
                 offsetPatterns[0][0] = posPatternS;
@@ -159,16 +160,16 @@ public class GMTFormat {
      * @return The StringBuffer passed in as toAppendTo
      */
     public StringBuffer format(int offset, StringBuffer toAppendTo, FieldPosition pos) {
-        String offsetPat = null;
+        int offsetPatIdx;
         if (offset >= 0) {
             // Positive offset
-            offsetPat = offset%(60*1000) == 0 ? offsetPatterns[2][0] : offsetPatterns[0][0];
+            offsetPatIdx = offset%(60*1000) == 0 ? 2 : 0;
         } else {
             // Negative offset
-            offsetPat = offset%(60*1000) == 0 ? offsetPatterns[3][0] : offsetPatterns[1][0];
+            offsetPatIdx = offset%(60*1000) == 0 ? 3 : 1;
             offset = -offset;
         }
-        MessageFormat fmt = getFormat(gmtPatterns[0], offsetPat);
+        MessageFormat fmt = getFormat(0, offsetPatIdx, 0);
         return fmt.format(new Object[] {new Long(offset)}, toAppendTo, pos);
     }
 
@@ -205,7 +206,7 @@ public class GMTFormat {
             }            
             for (int offsetPatIdx = 0; offsetPatIdx < offsetPatterns.length; offsetPatIdx++) {
                 for (int fallbackIdx = 0; fallbackIdx < offsetPatterns[offsetPatIdx].length; fallbackIdx++) {
-                    MessageFormat fmt = getFormat(gmtPatterns[gmtPatIdx], offsetPatterns[offsetPatIdx][fallbackIdx]);
+                    MessageFormat fmt = getFormat(gmtPatIdx, offsetPatIdx, fallbackIdx);
                     Object[] parsedObjects = fmt.parse(source, pos);
                     if ((parsedObjects != null) && (parsedObjects[0] instanceof Date)) {
                         int offset = (int)((Date)parsedObjects[0]).getTime();
@@ -227,26 +228,35 @@ public class GMTFormat {
         }
         return result;
     }
-
+    
     /*
      * Return MessageFormat configured for the patterns
      */
-    private MessageFormat getFormat(String gmtPattern, String hourPattern) {
-        if (dtfmt == null) {
-            // Create a SimpleDateFormat instance which will be used for
-            // formatting/parsing the offset part.
-            dtfmt = new SimpleDateFormat(hourPattern, locale);
-            dtfmt.setTimeZone(TimeZone.getTimeZone("UTC"));
-        } else if (!hourPattern.equals(dtfmt.toPattern())) {
-            dtfmt.applyPattern(hourPattern);
+    private MessageFormat getFormat(int gmtIdx, int offsetPatIdx, int offsetPatFallbackIdx) {
+        MessageFormat msgFmt = null;
+        int cacheIdx = (gmtIdx*offsetPatterns.length + offsetPatIdx)*2 + offsetPatFallbackIdx;
+        if (msgFmtCache == null) {
+            msgFmtCache = new WeakReference[gmtPatterns.length * offsetPatterns.length * 2];
         }
-
-        if (msgfmt == null) {
-            msgfmt = new MessageFormat(gmtPattern);
-        } else if (!msgfmt.toPattern().equals(gmtPattern)) {
-            msgfmt.applyPattern(gmtPattern);
+        if (msgFmtCache[cacheIdx] != null) {
+            msgFmt = (MessageFormat)msgFmtCache[cacheIdx].get();
         }
-        msgfmt.setFormat(0, dtfmt);
-        return msgfmt;
+        if (msgFmt == null) {
+            SimpleDateFormat sdf;
+            if (dtfmt == null) {
+                // Create a SimpleDateFormat instance which will be used for
+                // formatting/parsing the offset part.
+                dtfmt = new SimpleDateFormat(offsetPatterns[offsetPatIdx][offsetPatFallbackIdx], locale);
+                dtfmt.setTimeZone(TimeZone.getTimeZone("Etc/UTC"));
+                sdf = (SimpleDateFormat)dtfmt.clone();
+            } else {
+                sdf = (SimpleDateFormat)dtfmt.clone();
+                sdf.applyPattern(offsetPatterns[offsetPatIdx][offsetPatFallbackIdx]);
+            }
+            msgFmt = new MessageFormat(gmtPatterns[gmtIdx]);
+            msgFmt.setFormat(0, sdf);
+            msgFmtCache[cacheIdx] = new WeakReference(msgFmt);
+        }
+        return msgFmt;
     }
 }
