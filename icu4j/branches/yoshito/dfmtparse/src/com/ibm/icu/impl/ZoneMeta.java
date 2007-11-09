@@ -888,16 +888,16 @@ public final class ZoneMeta {
     }
 
     /**
-     * Returns an Olson ID for the ginve metazone and territory
+     * Returns an Olson ID for the ginve metazone and region
      */
-    public static String getZoneIdByMetazone(String metazoneID, String territory) {
+    public static String getZoneIdByMetazone(String metazoneID, String region) {
         String tzid = null;
         Map metaToOlson = getMetaToOlsonMap();
         List mappings = (List)metaToOlson.get(metazoneID);
         if (mappings != null) {
             for (int i = 0; i < mappings.size(); i++) {
                 MetaToOlsonMappingEntry olsonmap = (MetaToOlsonMappingEntry)mappings.get(i);
-                if (olsonmap.territory.equals(territory)) {
+                if (olsonmap.territory.equals(region)) {
                     tzid = olsonmap.id;
                     break;
                 } else if (olsonmap.territory.equals("001")) {
@@ -908,12 +908,16 @@ public final class ZoneMeta {
         return tzid;
     }
 
-    /**
-     * Returns an Olson ID for the given metazone and locale
-     */
-    public static String getZoneIdByMetazone(String metazoneID, ULocale loc) {
-        //TODO
-        String territory = loc.getCountry();
-        return getZoneIdByMetazone(metazoneID, territory);
-    }
+//    /**
+//     * Returns an Olson ID for the given metazone and locale
+//     */
+//    public static String getZoneIdByMetazone(String metazoneID, ULocale loc) {
+//        String region = loc.getCountry();
+//        if (region.length() == 0) {
+//            // Get likely region
+//            ULocale tmp = ULocale.addLikelySubtag(loc);
+//            region = tmp.getCountry();
+//        }
+//        return getZoneIdByMetazone(metazoneID, region);
+//    }
 }

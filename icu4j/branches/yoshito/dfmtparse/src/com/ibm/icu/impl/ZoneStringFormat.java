@@ -297,7 +297,7 @@ public class ZoneStringFormat {
                         mzidToStrings.put(mzmap.mzid, mzStrings);
 
                         // Add metazone strings to the zone string trie
-                        String preferredIdForLocale = ZoneMeta.getZoneIdByMetazone(mzmap.mzid, locale);
+                        String preferredIdForLocale = ZoneMeta.getZoneIdByMetazone(mzmap.mzid, getRegion());
                         for (int j = 0; j < mzstrarray.length; j++) {
                             if (mzstrarray[j] != null) {
                                 int type = getNameType(j);
@@ -439,6 +439,9 @@ public class ZoneStringFormat {
     // Locale used for initializing zone strings
     private ULocale locale;
 
+    // Region used for resolving a zone in a metazone, initialized by locale
+    private transient String region;
+    
     /*
      * Private method to get a zone string except generic partial location types.
      */
@@ -599,7 +602,7 @@ public class ZoneStringFormat {
                     }
                     if (result != null) {
                         // Check if the offsets at the given time matches the preferred zone's offsets
-                        String preferredId = ZoneMeta.getZoneIdByMetazone(mzid, locale);
+                        String preferredId = ZoneMeta.getZoneIdByMetazone(mzid, getRegion());
                         if (!tzid.equals(preferredId)) {
                             // Check if the offsets at the given time are identical with the preferred zone
                             int raw = cal.get(Calendar.ZONE_OFFSET);
@@ -866,6 +869,24 @@ public class ZoneStringFormat {
             type = NAMETYPEMAP[typeIdx];
         }
         return type;
+    }
+
+    /*
+     * Returns region used for ZoneMeta#getZoneIdByMetazone.
+     */
+    private String getRegion() {
+        if (region == null) {
+            if (locale != null) {
+                region = locale.getCountry();
+                if (region.length() == 0) {
+                    ULocale tmp = ULocale.addLikelySubtag(locale);
+                    region = tmp.getCountry();
+                }
+            } else {
+                region = "";
+            }
+        }
+        return region;
     }
 
     /*
