@@ -621,22 +621,24 @@ public class RuleBasedTimeZone extends BasicTimeZone {
         }
 
         Date start0, start1;
-        long base = time;
+        long base;
         int localDelta;
 
+        base = time;
         if (local) {
             localDelta = getLocalDelta(finalRules[1].getRawOffset(), finalRules[1].getDSTSavings(),
                     finalRules[0].getRawOffset(), finalRules[0].getDSTSavings(),
                     NonExistingTimeOpt, DuplicatedTimeOpt);
-            base = time - localDelta;
+            base -= localDelta;
         }
         start0 = finalRules[0].getPreviousStart(base, finalRules[1].getRawOffset(), finalRules[1].getDSTSavings(), true);
 
+        base = time;
         if (local) {
             localDelta = getLocalDelta(finalRules[0].getRawOffset(), finalRules[0].getDSTSavings(),
                     finalRules[1].getRawOffset(), finalRules[1].getDSTSavings(),
                     NonExistingTimeOpt, DuplicatedTimeOpt);
-            base = time - localDelta;
+            base -= localDelta;
         }
         start1 = finalRules[1].getPreviousStart(base, finalRules[0].getRawOffset(), finalRules[0].getDSTSavings(), true);
 

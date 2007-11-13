@@ -180,7 +180,7 @@ abstract public class TimeZone implements Serializable, Cloneable {
         }
 
         // When local == true, date might not be in local standard
-        // millis.  getOffset taking 7 parameters used here assume
+        // millis.  getOffset taking 6 parameters used here assume
         // the given time in day is local standard time.
         // At STD->DST transition, there is a range of time which
         // does not exist.  When 'date' is in this time range
@@ -189,7 +189,7 @@ abstract public class TimeZone implements Serializable, Cloneable {
         // range of time which occurs twice.  In this case, this
         // method interprets the specified local time as STD.
         // To support the behavior above, we need to call getOffset
-        // (with 7 args) twice when local == true and DST is
+        // (with 6 args) twice when local == true and DST is
         // detected in the initial call.
         int fields[] = new int[4];
         for (int pass = 0; ; pass++) {

@@ -158,9 +158,8 @@ public class OlsonTimeZone extends BasicTimeZone {
             return finalZone.getOffset(era, year, month, dom, dow, millis);
         }
 
-        // Compute local epoch seconds from input fields
-        double time = fieldsToDay(year, month, dom) * SECONDS_PER_DAY +
-            Math.floor(millis / (double) MILLIS_PER_SECOND);
+        // Compute local epoch millis from input fields
+        long time = Grego.fieldsToDay(year, month, dom) * Grego.MILLIS_PER_DAY + millis;
 
         int[] offsets = new int[2];
         getHistoricalOffset(time, true, LOCAL_DST, LOCAL_STD, offsets);
@@ -181,7 +180,7 @@ public class OlsonTimeZone extends BasicTimeZone {
         // Apply the raw offset starting current year and beyond
         if (finalYear > tmpFinalYear) {
             finalYear = tmpFinalYear;
-            finalMillis = fieldsToDay(tmpFinalYear, 0, 1) * Grego.MILLIS_PER_DAY;
+            finalMillis = Grego.fieldsToDay(tmpFinalYear, 0, 1) * Grego.MILLIS_PER_DAY;
         }
         if (finalZone == null) {
             // Create SimpleTimeZone instance to store the offset
@@ -216,8 +215,7 @@ public class OlsonTimeZone extends BasicTimeZone {
         if (date >= finalMillis && finalZone != null) {
             finalZone.getOffset(date, local, offsets);
         } else {
-            double secs = Math.floor((double)date/MILLIS_PER_SECOND);
-            getHistoricalOffset(secs, local,
+            getHistoricalOffset(date, local,
                     LOCAL_FORMER, LOCAL_LATTER, offsets);
         }
     }
@@ -232,46 +230,8 @@ public class OlsonTimeZone extends BasicTimeZone {
         if (date >= finalMillis && finalZone != null) {
             finalZone.getOffsetFromLocal(date, nonExistingTimeOpt, duplicatedTimeOpt, offsets);
         } else {
-            double secs = Math.floor((double)date/MILLIS_PER_SECOND);
-            getHistoricalOffset(secs, true, nonExistingTimeOpt, duplicatedTimeOpt, offsets);
+            getHistoricalOffset(date, true, nonExistingTimeOpt, duplicatedTimeOpt, offsets);
         }
-    }
-
-    double[] floorDivide(double dividend, double divisor) {
-        double remainder; 
-        double[] ret = new double[2];
-        // Only designed to work for positive divisors
-        if (ASSERT) Assert.assrt("divisor > 0", divisor > 0);
-        double quotient = Math.floor(dividend/divisor);
-        remainder = dividend - (quotient * divisor);
-        // N.B. For certain large dividends, on certain platforms, there
-        // is a bug such that the quotient is off by one. If you doubt
-        // this to be true, set a breakpoint below and run cintltst.
-        if (remainder < 0 || remainder >= divisor) {
-            // E.g. 6.7317038241449352e+022 / 86400000.0 is wrong on my
-            // machine (too high by one). 4.1792057231752762e+024 /
-            // 86400000.0 is wrong the other way (too low).
-            double q = quotient;
-            quotient += (remainder < 0) ? -1 : +1;
-            if (q == quotient) {
-                // For quotients > ~2^53, we won't be able to add or
-                // subtract one, since the LSB of the mantissa will be >
-                // 2^0; that is, the exponent (base 2) will be larger than
-                // the length, in bits, of the mantissa. In that case, we
-                // can't give a correct answer, so we set the remainder to
-                // zero. This has the desired effect of making extreme
-                // values give back an approximate answer rather than
-                // crashing. For example, UDate values above a ~10^25
-                // might all have a time of midnight.
-                remainder = 0;
-            } else {
-                remainder = dividend - (quotient * divisor);
-            }
-        }
-        if (ASSERT) Assert.assrt("0 <= remainder && remainder < divisor", 0 <= remainder && remainder < divisor);
-        ret[0]=quotient;
-        ret[1]=remainder;
-        return ret;
     }
 
     /* (non-Javadoc)
@@ -287,28 +247,25 @@ public class OlsonTimeZone extends BasicTimeZone {
      * @see com.ibm.icu.util.TimeZone#useDaylightTime()
      */
     public boolean useDaylightTime() {
-//      If DST was observed in 1942 (for example) but has never been
+        // If DST was observed in 1942 (for example) but has never been
         // observed from 1943 to the present, most clients will expect
         // this method to return FALSE.  This method determines whether
         // DST is in use in the current year (at any point in the year)
         // and returns TRUE if so.
+        int[] fields = Grego.timeToFields(System.currentTimeMillis(), null);
+        int year = fields[0];
 
-        double[] dt = floorDivide(System.currentTimeMillis(), (double)Grego.MILLIS_PER_DAY); // epoch days
-        int days = (int)dt[0];
-        int[] it = dayToFields(days);
-
-        int year=it[0]; /*, month=it[1], dom=it[2], dow=it[3]*/
         if (year > finalYear) { // [sic] >, not >=; see above
             return (finalZone != null && finalZone.useDaylightTime());
         }
 
         // Find start of this year, and start of next year
-        int start = (int) fieldsToDay(year, 0, 1) * SECONDS_PER_DAY;    
-        int limit = (int) fieldsToDay(year+1, 0, 1) * SECONDS_PER_DAY;    
+        long start = Grego.fieldsToDay(year, 0, 1) * SECONDS_PER_DAY;    
+        long limit = Grego.fieldsToDay(year+1, 0, 1) * SECONDS_PER_DAY;    
 
         // Return TRUE if DST is observed at any time during the current
         // year.
-        for (int i=0; i<transitionCount; ++i) {
+        for (int i = 0; i < transitionCount; ++i) {
             if (transitionTimes[i] >= limit) {
                 break;
             }
@@ -459,7 +416,7 @@ public class OlsonTimeZone extends BasicTimeZone {
             int[] data = r.getIntVector();
 
             if (data != null && data.length == 2) {
-                int rawOffset = data[0] * MILLIS_PER_SECOND;
+                int rawOffset = data[0] * Grego.MILLIS_PER_SECOND;
                 // Subtract one from the actual final year; we
                 // actually store final year - 1, and compare
                 // using > rather than >=.  This allows us to use
@@ -469,7 +426,7 @@ public class OlsonTimeZone extends BasicTimeZone {
                 finalYear = data[1] - 1;
                 // Also compute the millis for Jan 1, 0:00 GMT of the
                 // finalYear.  This reduces runtime computations.
-                finalMillis = fieldsToDay(data[1], 0, 1) * Grego.MILLIS_PER_DAY;
+                finalMillis = Grego.fieldsToDay(data[1], 0, 1) * Grego.MILLIS_PER_DAY;
                 //U_DEBUG_TZ_MSG(("zone%s|%s: {%d,%d}, finalYear%d, finalMillis%.1lf\n",
                   //              zKey,rKey, data[0], data[1], finalYear, finalMillis));
                 r = loadRule(top, ruleid);
@@ -481,12 +438,12 @@ public class OlsonTimeZone extends BasicTimeZone {
                       //            data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10]));
                     finalZone = new SimpleTimeZone(rawOffset, "",
                         data[0], data[1], data[2],
-                        data[3] * MILLIS_PER_SECOND,
+                        data[3] * Grego.MILLIS_PER_SECOND,
                         data[4],
                         data[5], data[6], data[7],
-                        data[8] * MILLIS_PER_SECOND,
+                        data[8] * Grego.MILLIS_PER_SECOND,
                         data[9],
-                        data[10] * MILLIS_PER_SECOND);
+                        data[10] * Grego.MILLIS_PER_SECOND);
                 } else {
                     throw new IllegalArgumentException("Invalid Format");
                 }                
@@ -530,9 +487,10 @@ public class OlsonTimeZone extends BasicTimeZone {
         return (int)(UNSIGNED_BYTE_MASK & val); 
     }
 
-    private void getHistoricalOffset(double time, boolean local,
+    private void getHistoricalOffset(long date, boolean local,
             int NonExistingTimeOpt, int DuplicatedTimeOpt, int[] offsets) {
         if (transitionCount != 0) {
+            long sec = myFloorDivide(date, Grego.MILLIS_PER_SECOND);
             // Linear search from the end is the fastest approach, since
             // most lookups will happen at/near the end.
             int i = 0;
@@ -581,7 +539,7 @@ public class OlsonTimeZone extends BasicTimeZone {
                     }
                 }
                 
-                if (time >= transition) {
+                if (sec >= transition) {
                     break;
                 }
             }
@@ -591,21 +549,21 @@ public class OlsonTimeZone extends BasicTimeZone {
             // Check invariants for GMT times; if these pass for GMT times
             // the local logic should be working too.
             if (ASSERT) {
-                Assert.assrt("local || time < transitionTimes[0] || time >= transitionTimes[i]", 
-                        local || time < transitionTimes[0] || time >= transitionTimes[i]);
-                Assert.assrt("local || i == transitionCount-1 || time < transitionTimes[i+1]", 
-                        local || i == transitionCount-1 || time < transitionTimes[i+1]);
+                Assert.assrt("local || sec < transitionTimes[0] || sec >= transitionTimes[i]", 
+                        local || sec < transitionTimes[0] || sec >= transitionTimes[i]);
+                Assert.assrt("local || i == transitionCount-1 || sec < transitionTimes[i+1]", 
+                        local || i == transitionCount-1 || sec < transitionTimes[i+1]);
             }
             // Since ICU tzdata 2007c, the first transition data is actually not a
             // transition, but used for representing the initial offset.  So the code
             // below works even if i == 0.
             int index = getInt(typeData[i]);
-            offsets[0] = rawOffset(index) * MILLIS_PER_SECOND;
-            offsets[1] = dstOffset(index) * MILLIS_PER_SECOND;
+            offsets[0] = rawOffset(index) * Grego.MILLIS_PER_SECOND;
+            offsets[1] = dstOffset(index) * Grego.MILLIS_PER_SECOND;
         } else {
             // No transitions, single pair of offsets only
-            offsets[0] = rawOffset(0) * MILLIS_PER_SECOND;
-            offsets[1] = dstOffset(0) * MILLIS_PER_SECOND;
+            offsets[0] = rawOffset(0) * Grego.MILLIS_PER_SECOND;
+            offsets[1] = dstOffset(0) * Grego.MILLIS_PER_SECOND;
         }
     }
 
@@ -714,23 +672,8 @@ public class OlsonTimeZone extends BasicTimeZone {
     private SimpleTimeZone finalZone = null; // owned, may be NULL
  
     private static final boolean DEBUG = ICUDebug.enabled("olson");
-    private static final int[] DAYS_BEFORE = new int[] {0,31,59,90,120,151,181,212,243,273,304,334,
-                                           0,31,60,91,121,152,182,213,244,274,305,335};
-
-    private static final int JULIAN_1_CE    = 1721426; // January 1, 1 CE Gregorian
-    private static final int JULIAN_1970_CE = 2440588; // January 1, 1970 CE Gregorian
-    private static final int MILLIS_PER_SECOND  = 1000;
     private static final int SECONDS_PER_DAY = 24*60*60;
     
-    private static final double fieldsToDay(int year, int month, int dom) {
-        int y = year - 1;
-        double julian = 365 * y + myFloorDivide(y, 4) + (JULIAN_1_CE - 3) + // Julian cal
-        myFloorDivide(y, 400) - myFloorDivide(y, 100) + 2 + // => Gregorian cal
-            DAYS_BEFORE[month + (Grego.isLeapYear(year) ? 12 : 0)] + dom; // => month/dom
-    
-        return julian - JULIAN_1970_CE; // JD => epoch day
-    }
-
     private static UResourceBundle loadRule(UResourceBundle top, String ruleid) {
         UResourceBundle r = top.get("Rules");
         r = r.get(ruleid);
@@ -754,60 +697,6 @@ public class OlsonTimeZone extends BasicTimeZone {
         return (numerator >= 0) ?
             numerator / denominator :
             ((numerator + 1) / denominator) - 1;
-    }
-
-    int[] dayToFields(double day) {
-         int year, month, dom, dow;
-         double doy;
-         int[] ret = new int[5];
-         
-        // Convert from 1970 CE epoch to 1 CE epoch (Gregorian calendar)
-        day += JULIAN_1970_CE - JULIAN_1_CE;
-        
-        // Convert from the day number to the multiple radix
-        // representation.  We use 400-year, 100-year, and 4-year cycles.
-        // For example, the 4-year cycle has 4 years + 1 leap day; giving
-        // 1461 == 365*4 + 1 days.
-        double[]temp  = floorDivide(day, 146097); // 400-year cycle length
-        double n400 = temp[0];
-        doy  = temp[1];
-        temp = floorDivide(doy, 36524); // 100-year cycle length
-        double n100 = temp[0];
-        doy = temp[1];
-        temp = floorDivide(doy, 1461); // 4-year cycle length
-        double n4 = temp[0];
-        doy = temp[1];
-        temp = floorDivide(doy, 365);
-        double n1 = temp[0];
-        doy = temp[1];
-        year = (int)( 400*n400 + 100*n100 + 4*n4 + n1);
-        if (n100 == 4 || n1 == 4) {
-            doy = 365; // Dec 31 at end of 4- or 400-year cycle
-        } else {
-            ++year;
-        }
-    
-        boolean isLeap = Grego.isLeapYear(year);
-        
-        // Gregorian day zero is a Monday.
-        dow = (int) ((day + 1) % 7);
-        dow += (dow < 0) ? (Calendar.SUNDAY + 7) : Calendar.SUNDAY;
-        
-        // Common Julian/Gregorian calculation
-        int correction = 0;
-        int march1 = isLeap ? 60 : 59; // zero-based DOY for March 1
-        if (doy >= march1) {
-            correction = isLeap ? 1 : 2;
-        }
-        month = (int)((12 * (doy + correction) + 6) / 367); // zero-based month
-        dom = (int)(doy - DAYS_BEFORE[month + (isLeap ? 12 : 0)] + 1); // one-based DOM
-        doy++; // one-based doy
-        ret[0]=year;
-        ret[1]=month;
-        ret[2]=dom;
-        ret[3]=dow;
-        ret[4]=(int)doy;
-        return ret;
     }
 
     public boolean equals(Object obj){
@@ -887,7 +776,7 @@ public class OlsonTimeZone extends BasicTimeZone {
             // Find a historical transition
             int ttidx = transitionCount - 1;
             for (; ttidx >= firstTZTransitionIdx; ttidx--) {
-                long t = ((long)transitionTimes[ttidx]) * MILLIS_PER_SECOND;
+                long t = ((long)transitionTimes[ttidx]) * Grego.MILLIS_PER_SECOND;
                 if (base > t || (!inclusive && base == t)) {
                     break;
                 }
@@ -900,7 +789,7 @@ public class OlsonTimeZone extends BasicTimeZone {
                 // Create a TimeZoneTransition
                 TimeZoneRule to = historicRules[getInt(typeData[ttidx + 1])];
                 TimeZoneRule from = historicRules[getInt(typeData[ttidx])];
-                long startTime = ((long)transitionTimes[ttidx+1])*MILLIS_PER_SECOND;
+                long startTime = ((long)transitionTimes[ttidx+1])*Grego.MILLIS_PER_SECOND;
 
                 // The transitions loaded from zoneinfo.res may contain non-transition data
                 if (from.getName().equals(to.getName()) && from.getRawOffset() == to.getRawOffset()
@@ -937,7 +826,7 @@ public class OlsonTimeZone extends BasicTimeZone {
             // Find a historical transition
             int ttidx = transitionCount - 1;
             for (; ttidx >= firstTZTransitionIdx; ttidx--) {
-                long t = ((long)transitionTimes[ttidx]) * MILLIS_PER_SECOND;
+                long t = ((long)transitionTimes[ttidx]) * Grego.MILLIS_PER_SECOND;
                 if (base > t || (inclusive && base == t)) {
                     break;
                 }
@@ -951,7 +840,7 @@ public class OlsonTimeZone extends BasicTimeZone {
                 // Create a TimeZoneTransition
                 TimeZoneRule to = historicRules[getInt(typeData[ttidx])];
                 TimeZoneRule from = historicRules[getInt(typeData[ttidx-1])];
-                long startTime = ((long)transitionTimes[ttidx])*MILLIS_PER_SECOND;
+                long startTime = ((long)transitionTimes[ttidx])*Grego.MILLIS_PER_SECOND;
 
                 // The transitions loaded from zoneinfo.res may contain non-transition data
                 if (from.getName().equals(to.getName()) && from.getRawOffset() == to.getRawOffset()
@@ -1048,8 +937,8 @@ public class OlsonTimeZone extends BasicTimeZone {
 
             // Create initial rule
             typeIdx = getInt(typeData[0]); // initial type
-            raw = typeOffsets[typeIdx*2]*MILLIS_PER_SECOND;
-            dst = typeOffsets[typeIdx*2 + 1]*MILLIS_PER_SECOND;
+            raw = typeOffsets[typeIdx*2]*Grego.MILLIS_PER_SECOND;
+            dst = typeOffsets[typeIdx*2 + 1]*Grego.MILLIS_PER_SECOND;
             initialRule = new InitialTimeZoneRule((dst == 0 ? stdName : dstName), raw, dst);
 
             for (transitionIdx = 1; transitionIdx < transitionCount; transitionIdx++) {
@@ -1068,7 +957,7 @@ public class OlsonTimeZone extends BasicTimeZone {
                     int nTimes = 0;
                     for (transitionIdx = firstTZTransitionIdx; transitionIdx < transitionCount; transitionIdx++) {
                         if (typeIdx == getInt(typeData[transitionIdx])) {
-                            long tt = ((long)transitionTimes[transitionIdx])*MILLIS_PER_SECOND;
+                            long tt = ((long)transitionTimes[transitionIdx])*Grego.MILLIS_PER_SECOND;
                             if (tt < finalMillis) {
                                 // Exclude transitions after finalMillis
                                 times[nTimes++] = tt;
@@ -1079,8 +968,8 @@ public class OlsonTimeZone extends BasicTimeZone {
                         long[] startTimes = new long[nTimes];
                         System.arraycopy(times, 0, startTimes, 0, nTimes);
                         // Create a TimeArrayTimeZoneRule
-                        raw = typeOffsets[typeIdx*2]*MILLIS_PER_SECOND;
-                        dst = typeOffsets[typeIdx*2 + 1]*MILLIS_PER_SECOND;
+                        raw = typeOffsets[typeIdx*2]*Grego.MILLIS_PER_SECOND;
+                        dst = typeOffsets[typeIdx*2 + 1]*Grego.MILLIS_PER_SECOND;
                         if (historicRules == null) {
                             historicRules = new TimeArrayTimeZoneRule[typeCount];
                         }
@@ -1091,7 +980,7 @@ public class OlsonTimeZone extends BasicTimeZone {
 
                 // Create initial transition
                 typeIdx = getInt(typeData[firstTZTransitionIdx]);
-                firstTZTransition = new TimeZoneTransition(((long)transitionTimes[firstTZTransitionIdx])*MILLIS_PER_SECOND,
+                firstTZTransition = new TimeZoneTransition(((long)transitionTimes[firstTZTransitionIdx])*Grego.MILLIS_PER_SECOND,
                         initialRule, historicRules[typeIdx]);
                 
             }
@@ -1099,8 +988,8 @@ public class OlsonTimeZone extends BasicTimeZone {
 
         if (initialRule == null) {
             // No historic transitions
-            raw = typeOffsets[0]*MILLIS_PER_SECOND;
-            dst = typeOffsets[1]*MILLIS_PER_SECOND;
+            raw = typeOffsets[0]*Grego.MILLIS_PER_SECOND;
+            dst = typeOffsets[1]*Grego.MILLIS_PER_SECOND;
             initialRule = new InitialTimeZoneRule((dst == 0 ? stdName : dstName), raw, dst);
         }
 

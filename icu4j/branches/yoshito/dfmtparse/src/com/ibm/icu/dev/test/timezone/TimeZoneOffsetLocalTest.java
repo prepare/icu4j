@@ -104,9 +104,6 @@ public class TimeZoneOffsetLocalTest extends TestFmwk {
             {-8*HOUR, 0},
         };
 
-        // Expected offsets by getOffsetFromLocal(long time, int nonExistingTimeOpt, int duplicatedTimeOpt, int[] offsets)
-        // with nonExistingTimeOpt = LOCAL_STD/duplicatedTimeOpt = LOCAL_STD
-
         int[] offsets = new int[2];
 
         TimeZone utc = TimeZone.getTimeZone("UTC");
@@ -141,7 +138,7 @@ public class TimeZoneOffsetLocalTest extends TestFmwk {
 
         dtr = new DateTimeRule(Calendar.OCTOBER, -1, Calendar.SUNDAY,
                 2*HOUR, DateTimeRule.WALL_TIME); // last Sunday in October, at 2AM wall time
-        atzr = new AnnualTimeZoneRule("Pacific Daylight Time",
+        atzr = new AnnualTimeZoneRule("Pacific Standard Time",
                 -8*HOUR /* rawOffset */, 0 /* dstSavings */, dtr,
                 STARTYEAR, AnnualTimeZoneRule.MAX_YEAR);
         rbPT.addTransitionRule(atzr);
