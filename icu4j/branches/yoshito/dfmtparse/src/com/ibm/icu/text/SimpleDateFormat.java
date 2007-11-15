@@ -1069,17 +1069,11 @@ public class SimpleDateFormat extends DateFormat {
     /*
      * Time zone localized GMT format stuffs
      */
-    private static final String DEFAULT_GMT_PATTERN = "GMT{0}";
     private static final String DEFAULT_GMT_PREFIX = "GMT";
     private static final int DEFAULT_GMT_PREFIX_LEN = 3;
     private static final char PLUS = '+';
     private static final char MINUS = '-';
     private static final char COLON = ':';
-
-    private static final String[][] DEFAULT_GMT_HOUR_PATTERNS = {
-        {"-HH:mm:ss", "-HH:mm"},
-        {"+HH:mm:ss", "+HH:mm"}
-    };
 
     private void appendGMT(StringBuffer buf, Calendar cal) {
         int offset = cal.get(Calendar.ZONE_OFFSET) + cal.get(Calendar.DST_OFFSET);
@@ -1324,14 +1318,14 @@ public class SimpleDateFormat extends DateFormat {
 
     private boolean isDefaultGMTFormat() {
         // GMT pattern
-        if (!DEFAULT_GMT_PATTERN.equals(formatData.getGmtFormat())) {
+        if (!formatData.DEFAULT_GMT_PATTERN.equals(formatData.getGmtFormat())) {
             return false;
         }
         // GMT offset hour patters
         boolean res = true;
         for (int sign = 0; sign < 2 && res; sign++) {
             for (int width = 0; width < 2; width++) {
-                if (!DEFAULT_GMT_HOUR_PATTERNS[sign][width].equals(formatData.getGmtHourFormat(sign, width))) {
+                if (!DateFormatSymbols.DEFAULT_GMT_HOUR_PATTERNS[sign][width].equals(formatData.getGmtHourFormat(sign, width))) {
                     res = false;
                     break;
                 }

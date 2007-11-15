@@ -1263,8 +1263,8 @@ public class DateFormatSymbols implements Serializable, Cloneable {
         return equal;
     }
 
-    private static final String DEFAULT_GMT_PATTERN = "GMT{0}";
-    private static final String[][] DEFAULT_GMT_HOUR_PATTERNS = {
+    static final String DEFAULT_GMT_PATTERN = "GMT{0}";
+    static final String[][] DEFAULT_GMT_HOUR_PATTERNS = {
         {"-HH:mm:ss", "-HH:mm"},
         {"+HH:mm:ss", "+HH:mm"}
     };
@@ -1295,9 +1295,9 @@ public class DateFormatSymbols implements Serializable, Cloneable {
 
     private String[][] getGmtHourFormats() {
         if (gmtHourFormats == null) {
-            return DEFAULT_GMT_HOUR_PATTERNS;
+            return duplicate(DEFAULT_GMT_HOUR_PATTERNS);
         }
-        return gmtHourFormats;
+        return duplicate(gmtHourFormats);
     }
 
     /*
