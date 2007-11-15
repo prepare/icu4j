@@ -17,6 +17,7 @@ import com.ibm.icu.impl.ICUCache;
 import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.impl.SimpleCache;
 import com.ibm.icu.impl.Utility;
+import com.ibm.icu.impl.ZoneMeta;
 import com.ibm.icu.impl.ZoneStringFormat;
 import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.GregorianCalendar;
@@ -415,6 +416,23 @@ public class DateFormatSymbols implements Serializable, Cloneable {
     String standaloneQuarters[] = null;
 
     /**
+     * Pattern string used for localized time zone GMT format.  For example, "GMT{0}"
+     * @serial
+     */
+    String gmtFormat = null;
+
+    /**
+     * Pattern strings used for formatting zone offset in a localized time zone GMT string.
+     * This is 2x2 String array holding followings
+     * [0][0] Negative H + m + s
+     * [0][1] Negative H + m
+     * [1][0] Positive H + m + s
+     * [1][1] Positive H + m
+     * @serial
+     */
+    String gmtHourFormats[][] = null;
+
+    /**
      * Localized names of time zones in this locale.  This is a
      * two-dimensional array of strings of size <em>n</em> by <em>m</em>,
      * where <em>m</em> is at least 5 and up to 7.  Each of the <em>n</em> rows is an
@@ -456,7 +474,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
       */
      private transient ZoneStringFormat zsformat = null;
 
-     
      /**
      * Unlocalized date-time pattern characters. For example: 'y', 'd', etc.
      * All locales use the same unlocalized pattern characters.
@@ -948,6 +965,8 @@ public class DateFormatSymbols implements Serializable, Cloneable {
                 && Utility.arrayEquals(standaloneShortWeekdays, that.standaloneShortWeekdays)
                 && Utility.arrayEquals(standaloneNarrowWeekdays, that.standaloneNarrowWeekdays)
                 && Utility.arrayEquals(ampms, that.ampms)
+                && getGmtFormat().equals(that.getGmtFormat())
+                && arrayOfArrayEquals(getGmtHourFormats(), that.getGmtHourFormats())
                 && arrayOfArrayEquals(zoneStrings, that.zoneStrings)
                 // getDiplayName maps deprecated country and language codes to the current ones
                 // too bad there is no way to get the current codes!
@@ -1016,6 +1035,9 @@ public class DateFormatSymbols implements Serializable, Cloneable {
         this.quarters = dfs.quarters;
         this.standaloneShortQuarters = dfs.standaloneShortQuarters;
         this.standaloneQuarters = dfs.standaloneQuarters;
+
+        this.gmtFormat = dfs.gmtFormat;
+        this.gmtHourFormats = dfs.gmtHourFormats;
 
         this.zoneStrings = dfs.zoneStrings; // always null at initialization time for now
         this.localPatternChars = dfs.localPatternChars;
@@ -1178,23 +1200,33 @@ public class DateFormatSymbols implements Serializable, Cloneable {
         catch (MissingResourceException e) {
             standaloneShortQuarters = calData.getStringArray("quarters", "format", "abbreviated");
         }
-        
-/*  THE FOLLOWING DOESN'T WORK; A COUNTRY LOCALE WITH ONE ZONE BLOCKS THE LANGUAGE LOCALE
-        // These really do use rb and not calData
-        ICUResourceBundle rb = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, desiredLocale);
-        // hack around class cast problem
-        // zoneStrings = (String[][])rb.getObject("zoneStrings");
-        ICUResourceBundle zoneObject = rb.get("zoneStrings");
-        zoneStrings = new String[zoneObject.getSize()][];
-        for(int i =0; i< zoneObject.getSize(); i++){
-            ICUResourceBundle zoneArr = zoneObject.get(i);
-            String[] strings = new String[zoneArr.getSize()];
-            for(int j=0; j<zoneArr.getSize(); j++){
-                strings[j]=zoneArr.get(j).getString();
-            }
-            zoneStrings[i] = strings;
+
+        // TimeZone format localization is not included in CalendarData
+        gmtFormat = ZoneMeta.getTZLocalizationInfo(desiredLocale, ZoneMeta.GMT);
+ 
+        gmtHourFormats = new String[2][2];
+        String offsetHM = ZoneMeta.getTZLocalizationInfo(desiredLocale, ZoneMeta.HOUR);
+        int sepIdx = offsetHM.indexOf(';');
+        if (sepIdx != -1) {
+            gmtHourFormats[OFFSET_POSITIVE][OFFSET_HM] = offsetHM.substring(0, sepIdx);
+            gmtHourFormats[OFFSET_NEGATIVE][OFFSET_HM] = offsetHM.substring(sepIdx + 1);
+        } else {
+            gmtHourFormats[OFFSET_POSITIVE][OFFSET_HM] = "+HH:mm";
+            gmtHourFormats[OFFSET_NEGATIVE][OFFSET_HM] = "-HH:mm";
         }
-*/        
+        // CLDR 1.5 does not have GMT offset pattern including second field.
+        // For now, append "ss" to the end.
+        if (gmtHourFormats[OFFSET_POSITIVE][OFFSET_HM].indexOf(':') != -1) {
+            gmtHourFormats[OFFSET_POSITIVE][OFFSET_HMS] = gmtHourFormats[OFFSET_POSITIVE][OFFSET_HM] + ":ss";
+        } else {
+            gmtHourFormats[OFFSET_POSITIVE][OFFSET_HMS] = gmtHourFormats[OFFSET_POSITIVE][OFFSET_HM] + "ss";
+        }
+        if (gmtHourFormats[OFFSET_NEGATIVE][OFFSET_HM].indexOf(':') != -1) {
+            gmtHourFormats[OFFSET_NEGATIVE][OFFSET_HMS] = gmtHourFormats[OFFSET_NEGATIVE][OFFSET_HM] + ":ss";
+        } else {
+            gmtHourFormats[OFFSET_NEGATIVE][OFFSET_HMS] = gmtHourFormats[OFFSET_NEGATIVE][OFFSET_HM] + "ss";
+        }
+
         requestedLocale = desiredLocale;
 
         ICUResourceBundle rb = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, desiredLocale);
@@ -1229,6 +1261,43 @@ public class DateFormatSymbols implements Serializable, Cloneable {
             }
         }
         return equal;
+    }
+
+    private static final String DEFAULT_GMT_PATTERN = "GMT{0}";
+    private static final String[][] DEFAULT_GMT_HOUR_PATTERNS = {
+        {"-HH:mm:ss", "-HH:mm"},
+        {"+HH:mm:ss", "+HH:mm"}
+    };
+
+    /*
+     * Package local method (for now) to get localized GMT format pattern.
+     */
+    String getGmtFormat() {
+        if (gmtFormat == null) {
+            return DEFAULT_GMT_PATTERN;
+        }
+        return gmtFormat;
+    }
+
+    static final int OFFSET_HMS = 0;
+    static final int OFFSET_HM = 1;
+    static final int OFFSET_NEGATIVE = 0;
+    static final int OFFSET_POSITIVE = 1;
+
+    /*
+     * Package local method (for now) to get hour format pattern used by localized
+     * GMT string.
+     */
+    String getGmtHourFormat(int sign, int width) {
+        String[][] formats = getGmtHourFormats();
+        return formats[sign][width];
+    }
+
+    private String[][] getGmtHourFormats() {
+        if (gmtHourFormats == null) {
+            return DEFAULT_GMT_HOUR_PATTERNS;
+        }
+        return gmtHourFormats;
     }
 
     /*

@@ -11,11 +11,11 @@ package com.ibm.icu.text;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.lang.ref.WeakReference;
 import java.text.AttributedCharacterIterator;
 import java.text.AttributedString;
 import java.text.FieldPosition;
 import java.text.Format;
-import java.text.MessageFormat;
 import java.text.ParsePosition;
 import java.util.ArrayList;
 import java.util.Date;
@@ -26,7 +26,6 @@ import java.util.MissingResourceException;
 
 import com.ibm.icu.impl.CalendarData;
 import com.ibm.icu.impl.DateNumberFormat;
-import com.ibm.icu.impl.GMTFormat;
 import com.ibm.icu.impl.ICUCache;
 import com.ibm.icu.impl.SimpleCache;
 import com.ibm.icu.impl.UCharacterProperty;
@@ -293,9 +292,6 @@ public class SimpleDateFormat extends DateFormat {
     // suppress the parsing of negative numbers.  Adjust as needed (if
     // this becomes valid Unicode).
     private static final String SUPPRESS_NEGATIVE_PREFIX = "\uAB00";
-
-    // Localized time zone GMT formatter/parser
-    private transient GMTFormat gmtfmt;
 
     /**
      * If true, this object supports fast formatting using the
@@ -1070,21 +1066,278 @@ public class SimpleDateFormat extends DateFormat {
         return patternItems;
     }
 
-    private void appendGMT(StringBuffer buf, Calendar cal) {
-        if (gmtfmt == null) {
-            // SimpleDateFormat#getLocale(ULocale.Type) is broken,
-            // so the GMTFormat cannot be properly initialized by
-            // the constructor below.
-            //gmtfmt = new GMTFormat(this);
+    /*
+     * Time zone localized GMT format stuffs
+     */
+    private static final String DEFAULT_GMT_PATTERN = "GMT{0}";
+    private static final String DEFAULT_GMT_PREFIX = "GMT";
+    private static final int DEFAULT_GMT_PREFIX_LEN = 3;
+    private static final char PLUS = '+';
+    private static final char MINUS = '-';
+    private static final char COLON = ':';
 
-            gmtfmt = new GMTFormat(locale);
-            
-            // Note: With the alternative constructor above,
-            // GMTFormat does not use NumbFormat used by this
-            // SimpleDateFormat instance.
-        }
+    private static final String[][] DEFAULT_GMT_HOUR_PATTERNS = {
+        {"-HH:mm:ss", "-HH:mm"},
+        {"+HH:mm:ss", "+HH:mm"}
+    };
+
+    private void appendGMT(StringBuffer buf, Calendar cal) {
         int offset = cal.get(Calendar.ZONE_OFFSET) + cal.get(Calendar.DST_OFFSET);
-        gmtfmt.format(offset, buf, null);
+
+        if (isDefaultGMTFormat()) {
+            formatGMTDefault(buf, offset);
+        } else {
+            int sign = DateFormatSymbols.OFFSET_POSITIVE;
+            if (offset < 0) {
+                offset = -offset;
+                sign = DateFormatSymbols.OFFSET_NEGATIVE;
+            }
+            int width = offset%(60*1000) == 0 ? DateFormatSymbols.OFFSET_HM : DateFormatSymbols.OFFSET_HMS;
+
+            MessageFormat fmt = getGMTFormatter(sign, width);
+            fmt.format(new Object[] {new Long(offset)}, buf, null);
+        }
+    }
+
+    private void formatGMTDefault(StringBuffer buf, int offset) {
+        buf.append(DEFAULT_GMT_PREFIX);
+        if (offset >= 0) {
+            buf.append(PLUS);
+        } else {
+            buf.append(MINUS);
+            offset = -offset;
+        }
+        offset /= 1000; // now in seconds
+        int sec = offset % 60;
+        offset /= 60;
+        int min = offset % 60;
+        int hour = offset / 60;
+
+        zeroPaddingNumber(buf, hour, 2, 2);
+        buf.append(COLON);
+        zeroPaddingNumber(buf, min, 2, 2);
+        if (sec != 0) {
+            buf.append(COLON);
+            zeroPaddingNumber(buf, sec, 2, 2);
+        }
+    }
+
+    private Integer parseGMT(String text, ParsePosition pos) {
+        if (!isDefaultGMTFormat()) {
+            int start = pos.getIndex();
+            String gmtPattern = formatData.getGmtFormat();
+
+            // Quick check
+            boolean prefixMatch = false;
+            int prefixLen = gmtPattern.indexOf('{');
+            if (prefixLen > 0 && text.regionMatches(start, gmtPattern, 0, prefixLen)) {
+                prefixMatch = true;
+            }
+
+            if (prefixMatch) {
+                // Prefix matched
+                MessageFormat fmt;
+                Object[] parsedObjects;
+                int offset;
+
+                // Try negative Hms
+                fmt = getGMTFormatter(DateFormatSymbols.OFFSET_NEGATIVE, DateFormatSymbols.OFFSET_HMS);
+                parsedObjects = fmt.parse(text, pos);
+                if ((parsedObjects != null) && (parsedObjects[0] instanceof Date)) {
+                    offset = (int)((Date)parsedObjects[0]).getTime();
+                    return new Integer(-offset /* negative */);
+                }
+
+                // Reset ParsePosition
+                pos.setIndex(start);
+                pos.setErrorIndex(-1);
+
+                // Try positive Hms
+                fmt = getGMTFormatter(DateFormatSymbols.OFFSET_POSITIVE, DateFormatSymbols.OFFSET_HMS);
+                parsedObjects = fmt.parse(text, pos);
+                if ((parsedObjects != null) && (parsedObjects[0] instanceof Date)) {
+                    offset = (int)((Date)parsedObjects[0]).getTime();
+                    return new Integer(offset);
+                }
+
+                // Reset ParsePosition
+                pos.setIndex(start);
+                pos.setErrorIndex(-1);
+
+                // Try negative Hm
+                fmt = getGMTFormatter(DateFormatSymbols.OFFSET_NEGATIVE, DateFormatSymbols.OFFSET_HM);
+                parsedObjects = fmt.parse(text, pos);
+                if ((parsedObjects != null) && (parsedObjects[0] instanceof Date)) {
+                    offset = (int)((Date)parsedObjects[0]).getTime();
+                    return new Integer(-offset /* negative */);
+                }
+
+                // Reset ParsePosition
+                pos.setIndex(start);
+                pos.setErrorIndex(-1);
+
+                // Try positive Hm
+                fmt = getGMTFormatter(DateFormatSymbols.OFFSET_POSITIVE, DateFormatSymbols.OFFSET_HM);
+                parsedObjects = fmt.parse(text, pos);
+                if ((parsedObjects != null) && (parsedObjects[0] instanceof Date)) {
+                    offset = (int)((Date)parsedObjects[0]).getTime();
+                    return new Integer(offset);
+                }
+
+                // Reset ParsePosition
+                pos.setIndex(start);
+                pos.setErrorIndex(-1);
+            }
+        }
+
+        return parseGMTDefault(text, pos);
+    }
+
+    private Integer parseGMTDefault(String text, ParsePosition pos) {
+        int start = pos.getIndex();
+
+        if (start + DEFAULT_GMT_PREFIX_LEN + 1 >= text.length()) {
+            pos.setErrorIndex(start);
+            return null;
+        }
+
+        int cur = start;
+        // "GMT"
+        if (!text.regionMatches(true, start, DEFAULT_GMT_PREFIX, 0, DEFAULT_GMT_PREFIX_LEN)) {
+            pos.setErrorIndex(start);
+            return null;
+        }
+        cur += DEFAULT_GMT_PREFIX_LEN;
+        // Sign
+        boolean negative = false;
+        if (text.charAt(cur) == MINUS) {
+            negative = true;
+        } else if (text.charAt(cur) != PLUS) {
+            pos.setErrorIndex(cur);
+            return null;
+        }
+        cur++;
+
+        // Numbers
+        int numLen;
+        pos.setIndex(cur);
+
+        Number n = parseInt(text, pos, false);
+        numLen = pos.getIndex() - cur;
+
+        if (n == null || numLen <= 0) {
+            pos.setIndex(start);
+            pos.setErrorIndex(cur);
+            return null;
+        }
+
+        int numVal = n.intValue();
+
+        int hour = 0;
+        int min = 0;
+        int sec = 0;
+
+        if (numLen <= 2) {
+            // H[H][:mm[:ss]]
+            hour = numVal;
+            cur += numLen;
+            if (cur + 2 < text.length() && text.charAt(cur) == COLON) {
+                cur++;
+                pos.setIndex(cur);
+                n = parseInt(text.substring(0, cur + 2), pos, false);
+                numLen = pos.getIndex() - cur;
+                if (n != null && numLen == 2) {
+                    // got minute field
+                    min = n.intValue();
+                    cur += numLen;
+                    if (cur + 2 < text.length() && text.charAt(cur) == COLON) {
+                        cur++;
+                        pos.setIndex(cur);
+                        n = parseInt(text.substring(0, cur + 2), pos, false);
+                        numLen = pos.getIndex() - cur;
+                        if (n != null && numLen == 2) {
+                            // got second field
+                            sec = n.intValue();
+                        } else {
+                            // reset position
+                            pos.setIndex(cur - 1);
+                            pos.setErrorIndex(-1);
+                        }
+                    }
+                } else {
+                    // reset postion
+                    pos.setIndex(cur - 1);
+                    pos.setErrorIndex(-1);
+                }
+            }
+        } else if (numLen == 3 || numLen == 4) {
+            // Hmm or HHmm
+            hour = numVal / 100;
+            min = numVal % 100;
+        } else if (numLen == 5 || numLen == 6) {
+            // Hmmss or HHmmss
+            hour = numVal / 10000;
+            min = (numVal % 10000) / 100;
+            sec = numVal % 100;
+        } else {
+            // HHmmss followed by bogus numbers
+            pos.setIndex(cur + 6);
+
+            int shift = numLen - 6;
+            while (shift > 0) {
+                numVal /= 10;
+                shift--;
+            }
+            hour = numVal / 10000;
+            min = (numVal % 10000) / 100;
+            sec = numVal % 100;
+        }
+
+        int offset = ((hour*60 + min)*60 + sec)*1000;
+        if (negative) {
+            offset = -offset;
+        }
+        return new Integer(offset);
+    }
+
+    transient private WeakReference[] gmtfmtCache;
+
+    private MessageFormat getGMTFormatter(int sign, int width) {
+        MessageFormat fmt = null;
+        if (gmtfmtCache == null) {
+            gmtfmtCache = new WeakReference[4];
+        }
+        int cacheIdx = sign*2 + width;
+        if (gmtfmtCache[cacheIdx] != null) {
+            fmt = (MessageFormat)gmtfmtCache[cacheIdx].get();
+        }
+        if (fmt == null) {
+            fmt = new MessageFormat(formatData.getGmtFormat());
+            SimpleDateFormat sdf = (SimpleDateFormat)this.clone();
+            sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+            sdf.applyPattern(formatData.getGmtHourFormat(sign, width));
+            fmt.setFormat(0, sdf);
+            gmtfmtCache[cacheIdx] = new WeakReference(fmt);
+        }
+        return fmt;
+    }
+
+    private boolean isDefaultGMTFormat() {
+        // GMT pattern
+        if (!DEFAULT_GMT_PATTERN.equals(formatData.getGmtFormat())) {
+            return false;
+        }
+        // GMT offset hour patters
+        boolean res = true;
+        for (int sign = 0; sign < 2 && res; sign++) {
+            for (int width = 0; width < 2; width++) {
+                if (!DEFAULT_GMT_HOUR_PATTERNS[sign][width].equals(formatData.getGmtHourFormat(sign, width))) {
+                    res = false;
+                    break;
+                }
+            }
+        }
+        return res;
     }
 
     /*
@@ -1791,10 +2044,7 @@ public class SimpleDateFormat extends DateFormat {
 
                     // Step 1
                     // Check if this is a long GMT offset string (either localized or default)
-                    if (gmtfmt == null) {
-                        gmtfmt = new GMTFormat(this);
-                    }
-                    Integer gmtoff = gmtfmt.parse(text, pos);
+                    Integer gmtoff = parseGMT(text, pos);
                     if (gmtoff != null) {
                         offset = gmtoff.intValue();
                         parsed = true;
@@ -1893,14 +2143,14 @@ public class SimpleDateFormat extends DateFormat {
                         break;
                     case 24: // 'v' - TIMEZONE_GENERIC
                         if (count == 1) {
-                            zsinfo = formatData.getZoneStringFormat().findGenericShort(text, start);                            
+                            zsinfo = formatData.getZoneStringFormat().findGenericShort(text, start);
                         } else if (count == 4) {
                             zsinfo = formatData.getZoneStringFormat().findGenericLong(text, start);
                         }
                         break;
                     case 29: // 'V' - TIMEZONE_SPECIAL
                         if (count == 1) {
-                            zsinfo = formatData.getZoneStringFormat().findSpecificShort(text, start);                                                        
+                            zsinfo = formatData.getZoneStringFormat().findSpecificShort(text, start);
                         } else if (count == 4) {
                             zsinfo = formatData.getZoneStringFormat().findGenericLocation(text, start);
                         }
@@ -2019,11 +2269,11 @@ public class SimpleDateFormat extends DateFormat {
             } else {
                 boolean dateNumberFormat = (numberFormat instanceof DateNumberFormat);
                 if (dateNumberFormat) {
-                    ((DateNumberFormat)numberFormat).setParsePositiveOnly(true);                    
+                    ((DateNumberFormat)numberFormat).setParsePositiveOnly(true);
                 }
                 number = numberFormat.parse(text, pos);                
                 if (dateNumberFormat) {
-                    ((DateNumberFormat)numberFormat).setParsePositiveOnly(false);                    
+                    ((DateNumberFormat)numberFormat).setParsePositiveOnly(false);
                 }
             }
         }

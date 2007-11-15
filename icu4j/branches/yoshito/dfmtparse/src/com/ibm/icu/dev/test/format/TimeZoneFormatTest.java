@@ -179,6 +179,11 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
 
         ULocale[] LOCALES = null;
         boolean DEBUG_ALL = false;
+        boolean REALLY_VERBOSE = false;
+
+        // timer for performance analysis
+        long[] times = new long[PATTERNS.length];
+        long timer;
 
         if (DEBUG_ALL) {
             // It may take about an hour for testing all locales
@@ -207,11 +212,14 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         boolean[] expectedRoundTrip = new boolean[4];
         int testLen = 0;
         for (int locidx = 0; locidx < LOCALES.length; locidx++) {
+            logln("Locale: " + LOCALES[locidx].toString());
             for (int patidx = 0; patidx < PATTERNS.length; patidx++) {
+                logln("    pattern: " + PATTERNS[patidx]);
                 String pattern = BASEPATTERN + " " + PATTERNS[patidx];
                 SimpleDateFormat sdf = new SimpleDateFormat(pattern, LOCALES[locidx]);
 
                 String[] ids = TimeZone.getAvailableIDs();
+                timer = System.currentTimeMillis();
                 for (int zidx = 0; zidx < ids.length; zidx++) {
                     if(ids[zidx].equals(ZoneMeta.getCanonicalID(ids[zidx]))) {
                         // Skip aliases
@@ -270,7 +278,7 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                                         .append(", diff=").append(restime - testTimes[testidx]);
                                     if (expectedRoundTrip[testidx]) {
                                         errln("FAIL: " + msg.toString());
-                                    } else {
+                                    } else if (REALLY_VERBOSE) {
                                         logln(msg.toString());
                                     }
                                 }
@@ -292,7 +300,16 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                         }
                     }
                 }
+                times[patidx] += System.currentTimeMillis() - timer;
             }
         }
+
+        long total = 0;
+        logln("### Elapsed time by patterns ###");
+        for (int i = 0; i < PATTERNS.length; i++) {
+            logln(times[i] + "ms (" + PATTERNS[i] + ")");
+            total += times[i];
+        }
+        logln("Total: " + total + "ms");
     }
 }
