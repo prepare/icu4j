@@ -1597,11 +1597,9 @@ public final class CollationElementIterator
             if ( nextch != collator.m_contractionIndex_[offset]
                  || getCombiningClass(nextch) == getCombiningClass(ch)) {
                     // unmatched or blocked character
-                int firstSkipped = m_utilSkippedBuffer_.charAt(0);
-                int nextSkipped = nextch;
-                int currentSkupped = ch;
                 if ( (m_utilSkippedBuffer_.length()!= 1) ||
-                     (m_utilSkippedBuffer_.charAt(0)!= nextch)) { // avoid push to skipped buffer twice
+                     ((m_utilSkippedBuffer_.charAt(0)!= nextch) &&
+                      (m_bufferOffset_<0) )) { // avoid push to skipped buffer twice
                     m_utilSkippedBuffer_.append(nextch);
                 }
                 offset = entryoffset;  // Restore the offset before checking next character.
