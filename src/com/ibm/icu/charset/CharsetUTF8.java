@@ -112,7 +112,9 @@ class CharsetUTF8 extends CharsetICU {
                             toUnicodeStatus = char32;
                             mode = bytes;
                             toULength = i;
-                            cr = CoderResult.UNDERFLOW;
+                            cr = (flush)
+                                    ? CoderResult.malformedForLength(i)
+                                    : CoderResult.UNDERFLOW;
                             break;
                         }
                         if (((ch = sourceArray[sourceIndex++]) & 0xc0) != 0x80) {
@@ -230,7 +232,9 @@ class CharsetUTF8 extends CharsetICU {
                             toUnicodeStatus = char32;
                             mode = bytes;
                             toULength = i;
-                            cr = CoderResult.UNDERFLOW;
+                            cr = (flush)
+                                    ? CoderResult.malformedForLength(i)
+                                    : CoderResult.UNDERFLOW;
                             break;
                         }
                         if (((ch = source.get(sourceIndex++)) & 0xc0) != 0x80) {
@@ -401,7 +405,7 @@ class CharsetUTF8 extends CharsetICU {
                     }
 
                     /* reach the next char into char32 */
-                    char32 = sourceArray[sourceIndex++];
+                    char32 = sourceArray[sourceIndex++] & 0xffff;
 
                     if (char32 <= 0x7f) {
                         /* 1 byte to encode from char32 */
@@ -500,7 +504,7 @@ class CharsetUTF8 extends CharsetICU {
                     }
 
                     /* reach the next char into char32 */
-                    char32 = source.get(sourceIndex++);
+                    char32 = source.get(sourceIndex++) & 0xffff;
 
                     if (char32 <= 0x7f) {
                         /* 1 byte to encode from char32 */
@@ -566,7 +570,7 @@ class CharsetUTF8 extends CharsetICU {
             /* we need to read another char to match up the surrogate stored in char32 */
             if (sourceIndex >= sourceLimit) {
                 fromUChar32 = char32;
-                return CoderResult.UNDERFLOW;
+                return (flush) ? CoderResult.malformedForLength(1) : CoderResult.UNDERFLOW;
             }
 
             try {
@@ -614,7 +618,7 @@ class CharsetUTF8 extends CharsetICU {
             /* we need to read another char to match up the surrogate stored in char32 */
             if (sourceIndex >= sourceLimit) {
                 fromUChar32 = char32;
-                return CoderResult.UNDERFLOW;
+                return (flush) ? CoderResult.malformedForLength(1) : CoderResult.UNDERFLOW;
             }
 
             try {

@@ -347,7 +347,10 @@ class CharsetASCII extends CharsetICU {
                 }
             } else {
                 fromUChar32 = lead;
-                return CoderResult.UNDERFLOW;
+                if (flush)
+                    return CoderResult.malformedForLength(1);
+                else
+                    return CoderResult.UNDERFLOW;
             }
         }
 
