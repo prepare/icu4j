@@ -25,7 +25,8 @@ public class CLILoader {
     public static final String LOG_FILENAME_DISCOVERYONLY = "icutzu_discovery.log";
 
     /**
-     * The backup directory to use in patch mode, or null if there should be no backups.
+     * The backup directory to use in patch mode, or null if there should be no
+     * backups.
      */
     private File backupDir = null;
 
@@ -45,8 +46,8 @@ public class CLILoader {
     private File pathFile = null;
 
     /**
-     * A glorified list of IncludePath objects representing the list of directories used in
-     * discovery mode.
+     * A glorified list of IncludePath objects representing the list of
+     * directories used in discovery mode.
      */
     private PathModel pathModel;
 
@@ -56,14 +57,14 @@ public class CLILoader {
     private File resultFile = null;
 
     /**
-     * A glorified list of ICUFile objects representing the ICU4J jars found in discovery mode and
-     * used in patch mode.
+     * A glorified list of ICUFile objects representing the ICU4J jars found in
+     * discovery mode and used in patch mode.
      */
     private ResultModel resultModel;
 
     /**
-     * A glorified map of Strings to URLs populated by parsing the directory structure in the ICU
-     * Time Zone repository online and used in patch mode.
+     * A glorified map of Strings to URLs populated by parsing the directory
+     * structure in the ICU Time Zone repository online and used in patch mode.
      */
     private SourceModel sourceModel;
 
@@ -86,18 +87,23 @@ public class CLILoader {
      * @param tzFile
      *            The local timezone resource file.
      */
-    public CLILoader(File curDir, File backupDir, File pathFile, File resultFile, File tzFile) {
+    public CLILoader(File curDir, File backupDir, File pathFile,
+            File resultFile, File tzFile) {
         // determine whether we are running in discover only mode or patch mode
-        boolean discoverOnly = "true".equalsIgnoreCase(System.getProperty("discoveronly"));
-        boolean silentPatch = "true".equalsIgnoreCase(System.getProperty("silentpatch"));
-        File logFile = new File(curDir.getPath(), (discoverOnly ? "icutzu_discover.log"
-                : "icutzu_patch.log"));
+        boolean discoverOnly = "true".equalsIgnoreCase(System
+                .getProperty("discoveronly"));
+        boolean silentPatch = "true".equalsIgnoreCase(System
+                .getProperty("silentpatch"));
+        File logFile = new File(curDir.getPath(),
+                (discoverOnly ? "icutzu_discover.log" : "icutzu_patch.log"));
 
         // create the logger based on the silentpatch option
         try {
-            this.logger = Logger.getInstance(logFile, silentPatch ? Logger.QUIET : Logger.NORMAL);
+            this.logger = Logger.getInstance(logFile,
+                    silentPatch ? Logger.QUIET : Logger.NORMAL);
         } catch (FileNotFoundException ex) {
-            System.out.println("Could not open " + logFile.getPath() + " for writing.");
+            System.out.println("Could not open " + logFile.getPath()
+                    + " for writing.");
             System.exit(-1);
         }
 
@@ -124,20 +130,22 @@ public class CLILoader {
     }
 
     /**
-     * Discover Only Mode. Load the path list from the path file and save the path of each updatable
-     * ICU jar files it finds to the result list
+     * Discover Only Mode. Load the path list from the path file and save the
+     * path of each updatable ICU jar files it finds to the result list
      * 
      * @throws IOException
      * @throws IllegalArgumentException
      * @throws InterruptedException
      */
-    private void search() throws IOException, IllegalArgumentException, InterruptedException {
+    private void search() throws IOException, IllegalArgumentException,
+            InterruptedException {
         logger.printlnToScreen("");
         logger.printlnToScreen("*********** Command-Line \'Discover Only\'"
                 + " Mode Started ***********");
         logger.printlnToScreen("");
         logger.printlnToScreen("\'Discover Only\' Mode:");
-        logger.printlnToScreen("In this mode, " + "the tool will search for ICU4J jars"
+        logger.printlnToScreen("In this mode, "
+                + "the tool will search for ICU4J jars"
                 + " in the directories specified in DirectorySearch.txt"
                 + " and print the ICU4J jars detected and their respective"
                 + " time zone version to the file ICUList.txt");
@@ -172,20 +180,24 @@ public class CLILoader {
     }
 
     /**
-     * Patch Mode. Load all the results from resultFile, populate the tz version list via the web,
-     * and update all the results with the best available Time Zone data.
+     * Patch Mode. Load all the results from resultFile, populate the tz version
+     * list via the web, and update all the results with the best available Time
+     * Zone data.
      * 
      * @throws IOException
      * @throws IllegalArgumentException
      * @throws InterruptedException
      */
-    private void update() throws IOException, IllegalArgumentException, InterruptedException {
+    private void update() throws IOException, IllegalArgumentException,
+            InterruptedException {
         logger.printlnToScreen("");
-        logger.printlnToScreen("*********** Command-Line \'Patch\'" + " Mode Started ***********");
+        logger.printlnToScreen("*********** Command-Line \'Patch\'"
+                + " Mode Started ***********");
         logger.printlnToScreen("");
         logger.printlnToScreen("\'Patch\' Mode:");
         logger.printlnToScreen("In this mode, the tool patches each of the"
-                + " ICU4J jars listed in ICUList.txt with the new time zone" + " information.");
+                + " ICU4J jars listed in ICUList.txt with the new time zone"
+                + " information.");
         logger.printlnToScreen("");
 
         // initialize the result model and the source model
@@ -201,10 +213,12 @@ public class CLILoader {
             sourceModel.findSources();
 
         // perform the updates using the best tz version available
-        resultModel.updateAll(sourceModel.getURL(sourceModel.getSelectedItem()), backupDir);
+        resultModel.updateAll(
+                sourceModel.getURL(sourceModel.getSelectedItem()), backupDir);
 
         logger.printlnToScreen("");
-        logger.printlnToScreen("*********** Command-Line \'Patch\'" + " Mode Ended ***********");
+        logger.printlnToScreen("*********** Command-Line \'Patch\'"
+                + " Mode Ended ***********");
         logger.printlnToScreen("");
     }
 }

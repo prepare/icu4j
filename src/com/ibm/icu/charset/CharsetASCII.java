@@ -17,6 +17,7 @@ import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CoderResult;
 
+import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.text.UTF16;
 
 class CharsetASCII extends CharsetICU {
@@ -166,8 +167,7 @@ class CharsetASCII extends CharsetICU {
              * character was malformed and of length 1.
              */
             toUBytesArray[0] = (byte) ch;
-            toULength = 1;
-            return CoderResult.malformedForLength(1);
+            return CoderResult.malformedForLength(toULength = 1);
         }
     }
 
@@ -318,27 +318,39 @@ class CharsetASCII extends CharsetICU {
             return encodeMalformedOrUnmappable(source, ch, flush);
         }
 
-        protected final CoderResult encodeMalformedOrUnmappable(CharBuffer source, int ch, boolean flush) {
+        protected CoderResult encodeMalformedOrUnmappable(CharBuffer source, int ch, boolean flush) {
             /*
              * if the character is a lead surrogate, we need to call encodeTrail to attempt to match
              * it up with a trail surrogate. if not, the character is unmappable.
              */
-            return (UTF16.isSurrogate((char) ch))
+            return (UTF16.isLeadSurrogate((char) ch))
                     ? encodeTrail(source, (char) ch, flush)
                     : CoderResult.unmappableForLength(1);
         }
 
-        private final CoderResult encodeTrail(CharBuffer source, char lead, boolean flush) {
+        protected CoderResult encodeTrail(CharBuffer source, char lead, boolean flush) {
             /*
-             * ASCII doesn't support characters in the BMP, so if handleSurrogates returns null,
-             * we leave fromUChar32 alone (it should store a new codepoint) and call it unmappable. 
+             * if the next character is a trail surrogate, we have an unmappable codepoint of length
+             * 2. if the next character is not a trail surrogate, we have a single malformed
+             * character. if there is no next character, we either have a malformed character or an
+             * underflow, depending on whether flush is enabled.
              */
-            CoderResult cr = handleSurrogates(source, lead);
-            if (cr != null) {
-                return cr;
+            if (source.hasRemaining()) {
+                char trail = source.get();
+                if (UTF16.isTrailSurrogate(trail)) {
+                    fromUChar32 = UCharacter.getCodePoint(lead, trail);
+                    return CoderResult.unmappableForLength(2); /* two chars */
+                } else {
+                    fromUChar32 = lead;
+                    source.position(source.position() - 1); /* rewind by 1 */
+                    return CoderResult.malformedForLength(1);
+                }
             } else {
-                //source.position(source.position() - 2);
-                return CoderResult.unmappableForLength(2);
+                fromUChar32 = lead;
+                if (flush)
+                    return CoderResult.malformedForLength(1);
+                else
+                    return CoderResult.UNDERFLOW;
             }
         }
 
