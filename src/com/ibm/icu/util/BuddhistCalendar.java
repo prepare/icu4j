@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -42,6 +42,7 @@ import java.util.Locale;
 public class BuddhistCalendar extends GregorianCalendar {
     // jdk1.4.2 serialver
     private static final long serialVersionUID = 2583005278132380631L;
+    private static String copyright = "Copyright \u00a9 1998 IBM Corp. All Rights Reserved.";
 
     //-------------------------------------------------------------------------
     // Constructors...
@@ -92,7 +93,8 @@ public class BuddhistCalendar extends GregorianCalendar {
      * in the default time zone with the given locale.
      *
      * @param locale the given ulocale.
-     * @stable ICU 3.2
+     * @draft ICU 3.2
+     * @provisional This API might change or be removed in a future release.
      */
     public BuddhistCalendar(ULocale locale) {
         super(locale);
@@ -118,7 +120,8 @@ public class BuddhistCalendar extends GregorianCalendar {
      * @param zone the given time zone.
      *
      * @param locale the given ulocale.
-     * @stable ICU 3.2
+     * @draft ICU 3.2
+     * @provisional This API might change or be removed in a future release.
      */
     public BuddhistCalendar(TimeZone zone, ULocale locale) {
         super(zone, locale);
@@ -186,21 +189,16 @@ public class BuddhistCalendar extends GregorianCalendar {
     // Starts in -543 AD, ie 544 BC
     private static final int BUDDHIST_ERA_START = -543;
 
-    // Use 1970 as the default value of EXTENDED_YEAR
-    private static final int GREGORIAN_EPOCH = 1970;
-
     /**
      * @stable ICU 2.8
      */    
     protected int handleGetExtendedYear() {
-        // EXTENDED_YEAR in BuddhistCalendar is a Gregorian year
-        // The default value of EXTENDED_YEAR is 1970 (Buddhist 2513)
         int year;
         if (newerField(EXTENDED_YEAR, YEAR) == EXTENDED_YEAR) {
-            year = internalGet(EXTENDED_YEAR, GREGORIAN_EPOCH);
+            year = internalGet(EXTENDED_YEAR, 1);
         } else {
-            year = internalGet(YEAR, GREGORIAN_EPOCH - BUDDHIST_ERA_START)
-                    + BUDDHIST_ERA_START;
+            // Ignore the era, as there is only one
+            year = internalGet(YEAR, 1);
         }
         return year;
     }
@@ -210,7 +208,7 @@ public class BuddhistCalendar extends GregorianCalendar {
      * @stable ICU 2.8
      */    
     protected int handleComputeMonthStart(int eyear, int month, boolean useMonth) {
-        return super.handleComputeMonthStart(eyear, month, useMonth);
+        return super.handleComputeMonthStart(eyear + BUDDHIST_ERA_START, month, useMonth);
     }
 
     /**
@@ -219,6 +217,7 @@ public class BuddhistCalendar extends GregorianCalendar {
     protected void handleComputeFields(int julianDay) {
         super.handleComputeFields(julianDay);
         int y = internalGet(EXTENDED_YEAR) - BUDDHIST_ERA_START;
+        internalSet(EXTENDED_YEAR, y);
         internalSet(ERA, 0);
         internalSet(YEAR, y);
     }
@@ -238,11 +237,29 @@ public class BuddhistCalendar extends GregorianCalendar {
     
     /**
      * Return the current Calendar type.
-     * @return type of calendar
-     * @draft ICU 3.8
-     * @provisional This API might change or be removed in a future release.
+     * @return type of calendar (gregorian, etc.)
+     * @internal ICU 3.0
+     * @deprecated This API is ICU internal only.
      */
     public String getType() {
         return "buddhist";
     }
+
+    /*
+    private static CalendarFactory factory;
+    public static CalendarFactory factory() {
+        if (factory == null) {
+            factory = new CalendarFactory() {
+                public Calendar create(TimeZone tz, ULocale loc) {
+                    return new BuddhistCalendar(tz, loc);
+                }
+
+                public String factoryName() {
+                    return "Buddhist";
+                }
+            };
+        }
+        return factory;
+    }
+    */
 }

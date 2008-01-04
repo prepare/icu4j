@@ -1,7 +1,7 @@
-//##header J2SE15
+//##header
 /**
  *******************************************************************************
- * Copyright (C) 2001-2007, International Business Machines Corporation and    *
+ * Copyright (C) 2001-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -45,15 +45,10 @@ public interface TestDataModule {
     }
 
     public static class DataModuleFormatError extends Exception{
-        /**
-         * For serialization
-         */
-        private static final long serialVersionUID = 4312521272388482529L;
         public DataModuleFormatError(String msg){
             super(msg);
         }
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
+//#ifndef FOUNDATION
         public DataModuleFormatError(String msg, Throwable cause){
             super(msg, cause);
         }

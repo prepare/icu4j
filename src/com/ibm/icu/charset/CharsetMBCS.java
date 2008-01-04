@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 2006-2007, International Business Machines Corporation and    *
+* Copyright (C) 2006, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 *
@@ -29,9 +29,9 @@ import com.ibm.icu.text.UTF16;
 
 class CharsetMBCS extends CharsetICU {
 
-    private byte[]                fromUSubstitution = null;
-    private UConverterSharedData  sharedData = null;
-    private static final int MAX_VERSION_LENGTH=4;
+    protected byte[]                fromUSubstitution = null;
+    protected UConverterSharedData  sharedData = null;
+    static final int MAX_VERSION_LENGTH=4;
     /**
      * Fallbacks to Unicode are stored outside the normal state table and code point structures
      * in a vector of items of this type. They are sorted by offset.
@@ -111,12 +111,16 @@ class CharsetMBCS extends CharsetICU {
             version = new byte[MAX_VERSION_LENGTH];
         }
     }
-
-    public CharsetMBCS(String icuCanonicalName, String javaCanonicalName, String[] aliases, String classPath, ClassLoader loader) throws InvalidFormatException{
+    /**
+     * Tags for pacifying the check tags tool
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
+     */
+    public CharsetMBCS(String icuCanonicalName, String javaCanonicalName, String[] aliases) throws InvalidFormatException{
         super(icuCanonicalName, javaCanonicalName, aliases);
         
         // now try to load the data   
-        LoadArguments args = new LoadArguments(1, icuCanonicalName, classPath, loader);
+        LoadArguments args = new LoadArguments(1, icuCanonicalName);
         sharedData = loadConverter(args);
            
         maxBytesPerChar = sharedData.staticData.maxBytesPerChar;
@@ -132,10 +136,6 @@ class CharsetMBCS extends CharsetICU {
         // Todo: pass options
         initializeConverter(0);
     }
-
-    public CharsetMBCS(String icuCanonicalName, String javaCanonicalName, String[] aliases) throws InvalidFormatException{
-        this(icuCanonicalName, javaCanonicalName, aliases, ICUResourceBundle.ICU_BUNDLE, null);
-    }
     
     class LoadArguments
     {
@@ -144,32 +144,21 @@ class CharsetMBCS extends CharsetICU {
         // long options;
         // String pkg;
         String name;
-        String classPath;
-        ClassLoader loader;
         
-        LoadArguments(int nestedLoads, String name, String classPath, ClassLoader loader)
+        LoadArguments(int nestedLoads, String name)
         {
             this.nestedLoads = nestedLoads;
             this.name = name;
-            this.loader = loader;
-            this.classPath = classPath;
         }
     }
 
-    private UConverterSharedData loadConverter(LoadArguments args) throws InvalidFormatException
+    protected UConverterSharedData loadConverter(LoadArguments args) throws InvalidFormatException
     {        
         // Read converter data from file        
         UConverterStaticData staticData = new UConverterStaticData();
         UConverterDataReader reader = null;
         try {
-            String resourceName = args.classPath + "/" + args.name + "." + UConverterSharedData.DATA_TYPE;
-            InputStream i;
-            
-            if (args.loader != null) {
-                i = ICUData.getRequiredStream(args.loader, resourceName);
-            } else {
-                i = ICUData.getRequiredStream(resourceName);
-            }
+            InputStream i = ICUData.getRequiredStream(ICUResourceBundle.ICU_BUNDLE + "/" + args.name + "." + UConverterSharedData.DATA_TYPE);
             BufferedInputStream b = new BufferedInputStream(i, UConverterConstants.CNV_DATA_BUFFER_SIZE);
             reader = new UConverterDataReader(b);
             reader.readStaticData(staticData);
@@ -185,12 +174,12 @@ class CharsetMBCS extends CharsetICU {
         int type = staticData.conversionType;
     
         if( type != UConverterSharedData.UConverterType.MBCS ||
-            staticData.structSize != UConverterStaticData.SIZE_OF_UCONVERTER_STATIC_DATA) 
+            staticData.structSize != UConverterSharedData.SIZE_OF_UCONVERTER_SHARED_DATA) 
         {
             throw new InvalidFormatException();
         }
     
-        data = new UConverterSharedData(1, null, false, 0);
+        data = new UConverterSharedData(UConverterSharedData.SIZE_OF_UCONVERTER_SHARED_DATA, 1, null, false, 0);
         data.dataReader = reader;
         data.staticData = staticData;    
         data.sharedDataCached = false;
@@ -228,17 +217,31 @@ class CharsetMBCS extends CharsetICU {
                 baseNameString = reader.readBaseTableName();
                 if(offset != 0) {
                     //agljport:commment subtract 32 for sizeof(_MBCSHeader) and length of baseNameString and 1 null terminator byte all already read;
-                    mbcsTable.extIndexes=reader.readExtIndexes(offset - (reader.bytesRead - reader.staticDataBytesRead));
+                    mbcsTable.extIndexes=reader.readExtIndexes(offset - 32 - baseNameString.length() - 1);
                 }
             }
             catch(IOException e) {
                 throw new InvalidFormatException();
             }
         }
- 
+        /*
+        if(offset != 0) {
+            try {
+                //agljport:commment subtract 32 for sizeof(_MBCSHeader) and length of baseNameString and 1 null terminator byte all already read;
+                int namelen = baseNameString != null? baseNameString.length() + 1: 0;
+                mbcsTable.extIndexes=dataReader.readExtIndexes(offset - 32 - namelen);
+                
+            }
+            catch(IOException e) {
+                if(debug) System.err.println("Caught IOException: " + e.getMessage());
+                pErrorCode[0] = UErrorCode.U_INVALID_FORMAT_ERROR;
+                return;
+            }
+        }
+        */
         //agljport:add this would be unnecessary if extIndexes were memory mapped
-        /*if(mbcsTable.extIndexes != null) {
-            
+        if(mbcsTable.extIndexes != null) {
+            /*
             try {
                 //int nbytes = mbcsTable.extIndexes[UConverterExt.UCNV_EXT_TO_U_LENGTH]*4 + mbcsTable.extIndexes[UConverterExt.UCNV_EXT_TO_U_UCHARS_LENGTH]*2 + mbcsTable.extIndexes[UConverterExt.UCNV_EXT_FROM_U_LENGTH]*6 + mbcsTable.extIndexes[UConverterExt.UCNV_EXT_FROM_U_BYTES_LENGTH] + mbcsTable.extIndexes[UConverterExt.UCNV_EXT_FROM_U_STAGE_12_LENGTH]*2 + mbcsTable.extIndexes[UConverterExt.UCNV_EXT_FROM_U_STAGE_3_LENGTH]*2 + mbcsTable.extIndexes[UConverterExt.UCNV_EXT_FROM_U_STAGE_3B_LENGTH]*4; 
                 //int nbytes = mbcsTable.extIndexes[UConverterExt.UCNV_EXT_SIZE] 
@@ -250,9 +253,9 @@ class CharsetMBCS extends CharsetICU {
                 pErrorCode[0] = UErrorCode.U_INVALID_FORMAT_ERROR;
                 return;
             }
-            
+            */
         }
-        */
+    
         if(mbcsTable.outputType==MBCS_OUTPUT_EXT_ONLY) {
             UConverterSharedData baseSharedData = null;
             ByteBuffer extIndexes;
@@ -276,8 +279,9 @@ class CharsetMBCS extends CharsetICU {
                 throw new InvalidFormatException();
             }
     
+            /* TODO parse package name out of the prefix of the base name in the extension .cnv file? */
             //agljport:fix args.size=sizeof(UConverterLoadArgs);
-            LoadArguments args2 = new LoadArguments(2, baseName, args.classPath, args.loader);
+            LoadArguments args2 = new LoadArguments(2, baseName);
             baseSharedData=loadConverter(args2);
             
             if( baseSharedData.staticData.conversionType!=UConverterType.MBCS ||
@@ -432,7 +436,8 @@ class CharsetMBCS extends CharsetICU {
                 try {
                     //agljport:commment subtract 32 for sizeof(_MBCSHeader) and length of baseNameString and 1 null terminator byte all already read;
                     //int namelen = baseNameString != null? baseNameString.length() + 1: 0;
-                    mbcsTable.extIndexes=reader.readExtIndexes(offset-(reader.bytesRead - reader.staticDataBytesRead));
+                    //mbcsTable.extIndexes=dataReader.readExtIndexes(offset - 32 - namelen);
+                    mbcsTable.extIndexes=reader.readExtIndexes(0);
                 }
                 catch(IOException e) {
                     throw new InvalidFormatException();
@@ -505,26 +510,26 @@ class CharsetMBCS extends CharsetICU {
      * These per-converter types determine the storage method in stage 3 of the lookup table,
      * mostly how many bytes are stored per entry.
      */
-    private static final int MBCS_OUTPUT_1 = 0;          /* 0 */
-    private static final int MBCS_OUTPUT_2 = MBCS_OUTPUT_1 + 1;          /* 1 */
-    private static final int MBCS_OUTPUT_3 = MBCS_OUTPUT_2 + 1;          /* 2 */
-    private static final int MBCS_OUTPUT_4 = MBCS_OUTPUT_3 + 1;          /* 3 */
-    private static final int MBCS_OUTPUT_3_EUC=8;    /* 8 */
-    private static final int MBCS_OUTPUT_4_EUC = MBCS_OUTPUT_3_EUC + 1;      /* 9 */
-    private static final int MBCS_OUTPUT_2_SISO=12;  /* c */
-    private static final int MBCS_OUTPUT_2_HZ = MBCS_OUTPUT_2_SISO + 1;       /* d */
-    private static final int MBCS_OUTPUT_EXT_ONLY = MBCS_OUTPUT_2_HZ + 1;   /* e */
-    //private static final int MBCS_OUTPUT_COUNT = MBCS_OUTPUT_EXT_ONLY + 1;
-    private static final int MBCS_OUTPUT_DBCS_ONLY=0xdb;  /* runtime-only type for DBCS-only handling of SISO tables */
+    protected static final int MBCS_OUTPUT_1 = 0;          /* 0 */
+    protected static final int MBCS_OUTPUT_2 = MBCS_OUTPUT_1 + 1;          /* 1 */
+    protected static final int MBCS_OUTPUT_3 = MBCS_OUTPUT_2 + 1;          /* 2 */
+    protected static final int MBCS_OUTPUT_4 = MBCS_OUTPUT_3 + 1;          /* 3 */
+    protected static final int MBCS_OUTPUT_3_EUC=8;    /* 8 */
+    protected static final int MBCS_OUTPUT_4_EUC = MBCS_OUTPUT_3_EUC + 1;      /* 9 */
+    protected static final int MBCS_OUTPUT_2_SISO=12;  /* c */
+    protected static final int MBCS_OUTPUT_2_HZ = MBCS_OUTPUT_2_SISO + 1;       /* d */
+    protected static final int MBCS_OUTPUT_EXT_ONLY = MBCS_OUTPUT_2_HZ + 1;   /* e */
+    protected static final int MBCS_OUTPUT_COUNT = MBCS_OUTPUT_EXT_ONLY + 1;
+    protected static final int MBCS_OUTPUT_DBCS_ONLY=0xdb;  /* runtime-only type for DBCS-only handling of SISO tables */
     
     /* GB 18030 data ------------------------------------------------------------ */
     
     /* helper macros for linear values for GB 18030 four-byte sequences */
-    private static long LINEAR_18030(long a, long b, long c, long d) {return ((((a&0xff)*10+(b&0xff))*126L+(c&0xff))*10L+(d&0xff));}
+    protected static long LINEAR_18030(long a, long b, long c, long d) {return ((((a)*10+(b))*126L+(c))*10L+(d));}
     
-    private static long LINEAR_18030_BASE = LINEAR_18030(0x81, 0x30, 0x81, 0x30);
+    protected static long LINEAR_18030_BASE = LINEAR_18030(0x81, 0x30, 0x81, 0x30);
     
-    private static long LINEAR(long x) {return LINEAR_18030(x>>>24, (x>>>16)&0xff, (x>>>8)&0xff, x&0xff);}
+    protected static long LINEAR(long x) {return LINEAR_18030(x>>>24, (x>>>16)&0xff, (x>>>8)&0xff, x&0xff);}
     
     /*
      * Some ranges of GB 18030 where both the Unicode code points and the
@@ -535,7 +540,7 @@ class CharsetMBCS extends CharsetICU {
      * Note that single surrogates are not mapped by GB 18030
      * as of the re-released mapping tables from 2000-nov-30.
      */
-    private static final long gb18030Ranges[][] = new long[/*13*/][/*4*/]{
+    protected static final long gb18030Ranges[][] = new long[/*13*/][/*4*/]{
         {0x10000L, 0x10FFFFL, LINEAR(0x90308130L), LINEAR(0xE3329A35L)},
         {0x9FA6L, 0xD7FFL, LINEAR(0x82358F33L), LINEAR(0x8336C738L)},
         {0x0452L, 0x200FL, LINEAR(0x8130D330L), LINEAR(0x8136A531L)},
@@ -552,34 +557,34 @@ class CharsetMBCS extends CharsetICU {
     };
     
     /* bit flag for UConverter.options indicating GB 18030 special handling */
-    private static final int MBCS_OPTION_GB18030 = 0x8000;
+    protected static final int MBCS_OPTION_GB18030 = 0x8000;
     
     /**
      * MBCS action codes for conversions to Unicode.
      * These values are in bits 23..20 of the state table entries.
      */
-    private static final int MBCS_STATE_VALID_DIRECT_16 = 0;
-    private static final int MBCS_STATE_VALID_DIRECT_20 = MBCS_STATE_VALID_DIRECT_16 + 1;
-    private static final int MBCS_STATE_FALLBACK_DIRECT_16 = MBCS_STATE_VALID_DIRECT_20 + 1;
-    private static final int MBCS_STATE_FALLBACK_DIRECT_20 = MBCS_STATE_FALLBACK_DIRECT_16 + 1;
-    private static final int MBCS_STATE_VALID_16 = MBCS_STATE_FALLBACK_DIRECT_20 + 1;
-    private static final int MBCS_STATE_VALID_16_PAIR = MBCS_STATE_VALID_16 + 1;
-    private static final int MBCS_STATE_UNASSIGNED = MBCS_STATE_VALID_16_PAIR + 1;
-    private static final int MBCS_STATE_ILLEGAL = MBCS_STATE_UNASSIGNED + 1;
-    private static final int MBCS_STATE_CHANGE_ONLY = MBCS_STATE_ILLEGAL + 1;
+    protected static final int MBCS_STATE_VALID_DIRECT_16 = 0;
+    protected static final int MBCS_STATE_VALID_DIRECT_20 = MBCS_STATE_VALID_DIRECT_16 + 1;
+    protected static final int MBCS_STATE_FALLBACK_DIRECT_16 = MBCS_STATE_VALID_DIRECT_20 + 1;
+    protected static final int MBCS_STATE_FALLBACK_DIRECT_20 = MBCS_STATE_FALLBACK_DIRECT_16 + 1;
+    protected static final int MBCS_STATE_VALID_16 = MBCS_STATE_FALLBACK_DIRECT_20 + 1;
+    protected static final int MBCS_STATE_VALID_16_PAIR = MBCS_STATE_VALID_16 + 1;
+    protected static final int MBCS_STATE_UNASSIGNED = MBCS_STATE_VALID_16_PAIR + 1;
+    protected static final int MBCS_STATE_ILLEGAL = MBCS_STATE_UNASSIGNED + 1;
+    protected static final int MBCS_STATE_CHANGE_ONLY = MBCS_STATE_ILLEGAL + 1;
     
     /* Methods for state table entries */
-    private static int MBCS_ENTRY_TRANSITION(int state, int offset) {return (state<<24L)|offset; }
-    private static int MBCS_ENTRY_FINAL(int state, int action, int value) {return (int)(0x80000000|((int)(state)<<24L)|((action)<<20L)|(value));}
-    private static boolean MBCS_ENTRY_IS_TRANSITION(int entry) {return (entry)>=0; }
-    private static boolean MBCS_ENTRY_IS_FINAL(int entry) {return (entry)<0;}
-    private static int MBCS_ENTRY_TRANSITION_STATE(int entry) {return ((entry)>>>24);}
-    private static int MBCS_ENTRY_TRANSITION_OFFSET(int entry) {return ((entry)&0xffffff);}
-    private static int MBCS_ENTRY_FINAL_STATE(int entry) {return ((entry)>>>24)&0x7f;}
-    private static boolean MBCS_ENTRY_FINAL_IS_VALID_DIRECT_16(int entry) {return ((entry)<0x80100000);}
-    private static int MBCS_ENTRY_FINAL_ACTION(int entry) {return ((entry)>>>20)&0xf;}
-    private static int MBCS_ENTRY_FINAL_VALUE(int entry) {return ((entry)&0xfffff); }
-    private static char MBCS_ENTRY_FINAL_VALUE_16(int entry) {return (char)(entry);}
+    protected static int MBCS_ENTRY_TRANSITION(int state, int offset) {return (state<<24L)|offset; }
+    protected static int MBCS_ENTRY_FINAL(int state, int action, int value) {return (int)(0x80000000|((int)(state)<<24L)|((action)<<20L)|(value));}
+    protected static boolean MBCS_ENTRY_IS_TRANSITION(int entry) {return (entry)>=0; }
+    protected static boolean MBCS_ENTRY_IS_FINAL(int entry) {return (entry)<0;}
+    protected static int MBCS_ENTRY_TRANSITION_STATE(int entry) {return ((entry)>>>24);}
+    protected static int MBCS_ENTRY_TRANSITION_OFFSET(int entry) {return ((entry)&0xffffff);}
+    protected static int MBCS_ENTRY_FINAL_STATE(int entry) {return ((entry)>>>24)&0x7f;}
+    protected static boolean MBCS_ENTRY_FINAL_IS_VALID_DIRECT_16(int entry) {return ((entry)<0x80100000);}
+    protected static int MBCS_ENTRY_FINAL_ACTION(int entry) {return ((entry)>>>20)&0xf;}
+    protected static int MBCS_ENTRY_FINAL_VALUE(int entry) {return ((entry)&0xfffff); }
+    protected static char MBCS_ENTRY_FINAL_VALUE_16(int entry) {return (char)(entry);}
     
     /**
      * This macro version of _MBCSSingleSimpleGetNextUChar() gets a code point from a byte.
@@ -587,13 +592,13 @@ class CharsetMBCS extends CharsetICU {
      * to and from BMP code points, and it always
      * returns fallback values.
      */
-    static char MBCS_SINGLE_SIMPLE_GET_NEXT_BMP(UConverterMBCSTable mbcs, final int b)
+    protected static char MBCS_SINGLE_SIMPLE_GET_NEXT_BMP(UConverterMBCSTable mbcs, final int b)
     {
         return MBCS_ENTRY_FINAL_VALUE_16(mbcs.stateTable[0][b & UConverterConstants.UNSIGNED_BYTE_MASK]);
     }
     
     /* single-byte fromUnicode: get the 16-bit result word */
-    private static char MBCS_SINGLE_RESULT_FROM_U(char[] table, byte[] results, int c) 
+    protected static char MBCS_SINGLE_RESULT_FROM_U(char[] table, byte[] results, int c) 
     {
         int i1 = table[c>>>10] +((c>>>4)&0x3f);
         int i = 2* (table[i1] +(c&0xf)); // used as index into byte[] array treated as char[] array
@@ -601,21 +606,21 @@ class CharsetMBCS extends CharsetICU {
     }
     
     /* multi-byte fromUnicode: get the 32-bit stage 2 entry */
-    private static int MBCS_STAGE_2_FROM_U(char[] table, int c)
+    protected static int MBCS_STAGE_2_FROM_U(char[] table, int c)
     {
         int i = 2 * (table[(c)>>>10] +((c>>>4)&0x3f)); // 2x because used as index into char[] array treated as int[] array
         return ((table[i] & UConverterConstants.UNSIGNED_SHORT_MASK) <<16) | (table[i+1] & UConverterConstants.UNSIGNED_SHORT_MASK);
     }
     
-    private static boolean MBCS_FROM_U_IS_ROUNDTRIP(int stage2Entry, int c) {return ( ((stage2Entry) & (1<< (16+((c)&0xf)) )) !=0);}
+    protected static boolean MBCS_FROM_U_IS_ROUNDTRIP(int stage2Entry, int c) {return ( ((stage2Entry) & (1<< (16+((c)&0xf)) )) !=0);}
     
-    private static char MBCS_VALUE_2_FROM_STAGE_2(byte[] bytes, int stage2Entry, int c)
+    protected static char MBCS_VALUE_2_FROM_STAGE_2(byte[] bytes, int stage2Entry, int c)
     {
         int i = 2 * (16*((char)stage2Entry & UConverterConstants.UNSIGNED_SHORT_MASK)+(c&0xf));
         return (char)(((bytes[i] & UConverterConstants.UNSIGNED_BYTE_MASK) <<8) | (bytes[i+1] & UConverterConstants.UNSIGNED_BYTE_MASK));
     }
     
-    private static int MBCS_VALUE_4_FROM_STAGE_2(byte[] bytes, int stage2Entry, int c)
+    protected static int MBCS_VALUE_4_FROM_STAGE_2(byte[] bytes, int stage2Entry, int c)
     {
         int i = 4 * (16*((char)stage2Entry & UConverterConstants.UNSIGNED_SHORT_MASK)+(c&0xf));
         return ((bytes[i] & UConverterConstants.UNSIGNED_BYTE_MASK) <<24) | 
@@ -624,109 +629,109 @@ class CharsetMBCS extends CharsetICU {
             (bytes[i+3] & UConverterConstants.UNSIGNED_BYTE_MASK);
     }
     
-    private static int MBCS_POINTER_3_FROM_STAGE_2(byte[] bytes, int stage2Entry, int c)
+    protected static int MBCS_POINTER_3_FROM_STAGE_2(byte[] bytes, int stage2Entry, int c)
     {
         return ((16*((char)(stage2Entry) & UConverterConstants.UNSIGNED_SHORT_MASK)+((c)&0xf))*3);
     }
     
     //------------UConverterExt-------------------------------------------------------
     
-    private static final int EXT_INDEXES_LENGTH = 0;            /* 0 */
+    protected static final int EXT_INDEXES_LENGTH = 0;            /* 0 */
 
-    private static final int EXT_TO_U_INDEX = EXT_INDEXES_LENGTH + 1;                /* 1 */
-    private static final int EXT_TO_U_LENGTH = EXT_TO_U_INDEX + 1;
-    private static final int EXT_TO_U_UCHARS_INDEX = EXT_TO_U_LENGTH + 1;
-    private static final int EXT_TO_U_UCHARS_LENGTH = EXT_TO_U_UCHARS_INDEX + 1;
+    protected static final int EXT_TO_U_INDEX = EXT_INDEXES_LENGTH + 1;                /* 1 */
+    protected static final int EXT_TO_U_LENGTH = EXT_TO_U_INDEX + 1;
+    protected static final int EXT_TO_U_UCHARS_INDEX = EXT_TO_U_LENGTH + 1;
+    protected static final int EXT_TO_U_UCHARS_LENGTH = EXT_TO_U_UCHARS_INDEX + 1;
 
-    private static final int EXT_FROM_U_UCHARS_INDEX = EXT_TO_U_UCHARS_LENGTH + 1;       /* 5 */
-    private static final int EXT_FROM_U_VALUES_INDEX = EXT_FROM_U_UCHARS_INDEX + 1;
-    private static final int EXT_FROM_U_LENGTH = EXT_FROM_U_VALUES_INDEX + 1;
-    private static final int EXT_FROM_U_BYTES_INDEX = EXT_FROM_U_LENGTH + 1;
-    private static final int EXT_FROM_U_BYTES_LENGTH = EXT_FROM_U_BYTES_INDEX + 1;
+    protected static final int EXT_FROM_U_UCHARS_INDEX = EXT_TO_U_UCHARS_LENGTH + 1;       /* 5 */
+    protected static final int EXT_FROM_U_VALUES_INDEX = EXT_FROM_U_UCHARS_INDEX + 1;
+    protected static final int EXT_FROM_U_LENGTH = EXT_FROM_U_VALUES_INDEX + 1;
+    protected static final int EXT_FROM_U_BYTES_INDEX = EXT_FROM_U_LENGTH + 1;
+    protected static final int EXT_FROM_U_BYTES_LENGTH = EXT_FROM_U_BYTES_INDEX + 1;
 
-    private static final int EXT_FROM_U_STAGE_12_INDEX = EXT_FROM_U_BYTES_LENGTH + 1;     /* 10 */
-    private static final int EXT_FROM_U_STAGE_1_LENGTH = EXT_FROM_U_STAGE_12_INDEX + 1;
-    private static final int EXT_FROM_U_STAGE_12_LENGTH = EXT_FROM_U_STAGE_1_LENGTH + 1;
-    private static final int EXT_FROM_U_STAGE_3_INDEX = EXT_FROM_U_STAGE_12_LENGTH + 1;
-    private static final int EXT_FROM_U_STAGE_3_LENGTH = EXT_FROM_U_STAGE_3_INDEX + 1;
-    private static final int EXT_FROM_U_STAGE_3B_INDEX = EXT_FROM_U_STAGE_3_LENGTH + 1;
-    private static final int EXT_FROM_U_STAGE_3B_LENGTH = EXT_FROM_U_STAGE_3B_INDEX + 1;
+    protected static final int EXT_FROM_U_STAGE_12_INDEX = EXT_FROM_U_BYTES_LENGTH + 1;     /* 10 */
+    protected static final int EXT_FROM_U_STAGE_1_LENGTH = EXT_FROM_U_STAGE_12_INDEX + 1;
+    protected static final int EXT_FROM_U_STAGE_12_LENGTH = EXT_FROM_U_STAGE_1_LENGTH + 1;
+    protected static final int EXT_FROM_U_STAGE_3_INDEX = EXT_FROM_U_STAGE_12_LENGTH + 1;
+    protected static final int EXT_FROM_U_STAGE_3_LENGTH = EXT_FROM_U_STAGE_3_INDEX + 1;
+    protected static final int EXT_FROM_U_STAGE_3B_INDEX = EXT_FROM_U_STAGE_3_LENGTH + 1;
+    protected static final int EXT_FROM_U_STAGE_3B_LENGTH = EXT_FROM_U_STAGE_3B_INDEX + 1;
 
-    private static final int EXT_COUNT_BYTES = EXT_FROM_U_STAGE_3B_LENGTH + 1;               /* 17 */
-    //private static final int EXT_COUNT_UCHARS = EXT_COUNT_BYTES + 1;
-    //private static final int EXT_FLAGS = EXT_COUNT_UCHARS + 1;
+    protected static final int EXT_COUNT_BYTES = EXT_FROM_U_STAGE_3B_LENGTH + 1;               /* 17 */
+    protected static final int EXT_COUNT_UCHARS = EXT_COUNT_BYTES + 1;
+    protected static final int EXT_FLAGS = EXT_COUNT_UCHARS + 1;
 
-    //private static final int EXT_RESERVED_INDEX = EXT_FLAGS + 1;            /* 20, moves with additional indexes */
+    protected static final int EXT_RESERVED_INDEX = EXT_FLAGS + 1;            /* 20, moves with additional indexes */
 
-    //private static final int EXT_SIZE=31;
-    //private static final int EXT_INDEXES_MIN_LENGTH=32;
+    protected static final int EXT_SIZE=31;
+    protected static final int EXT_INDEXES_MIN_LENGTH=32;
     
     /* toUnicode helpers -------------------------------------------------------- */
     
-    private static final int TO_U_BYTE_SHIFT = 24;
-    private static final int TO_U_VALUE_MASK = 0xffffff;
-    private static final int TO_U_MIN_CODE_POINT = 0x1f0000;
-    private static final int TO_U_MAX_CODE_POINT = 0x2fffff;
-    private static final int TO_U_ROUNDTRIP_FLAG = (1<<23);
-    private static final int TO_U_INDEX_MASK = 0x3ffff;
-    private static final int TO_U_LENGTH_SHIFT = 18;
-    private static final int TO_U_LENGTH_OFFSET = 12;
+    protected static final int TO_U_BYTE_SHIFT = 24;
+    protected static final int TO_U_VALUE_MASK = 0xffffff;
+    protected static final int TO_U_MIN_CODE_POINT = 0x1f0000;
+    protected static final int TO_U_MAX_CODE_POINT = 0x2fffff;
+    protected static final int TO_U_ROUNDTRIP_FLAG = (1<<23);
+    protected static final int TO_U_INDEX_MASK = 0x3ffff;
+    protected static final int TO_U_LENGTH_SHIFT = 18;
+    protected static final int TO_U_LENGTH_OFFSET = 12;
     
     /* maximum number of indexed UChars */
-    private static final int MAX_UCHARS = 19;
+    protected static final int MAX_UCHARS = 19;
     
-    private static int TO_U_GET_BYTE(int word)
+    protected static int TO_U_GET_BYTE(int word)
     {
         return word>>>TO_U_BYTE_SHIFT;
     }
     
-    private static int TO_U_GET_VALUE(int word)
+    protected static int TO_U_GET_VALUE(int word)
     {
         return word&TO_U_VALUE_MASK;
     }
     
-    private static boolean TO_U_IS_ROUNDTRIP(int value)
+    protected static boolean TO_U_IS_ROUNDTRIP(int value)
     {
         return (value&TO_U_ROUNDTRIP_FLAG)!=0;
     }
     
-    private static boolean TO_U_IS_PARTIAL(int value)
+    protected static boolean TO_U_IS_PARTIAL(int value)
     {
         return (value&UConverterConstants.UNSIGNED_INT_MASK)<TO_U_MIN_CODE_POINT;
     }
     
-    private static int TO_U_GET_PARTIAL_INDEX(int value)
+    protected static int TO_U_GET_PARTIAL_INDEX(int value)
     {
         return value;
     }
     
-    private static int TO_U_MASK_ROUNDTRIP(int value)
+    protected static int TO_U_MASK_ROUNDTRIP(int value)
     {
         return value&~TO_U_ROUNDTRIP_FLAG;
     }
     
-    private static int TO_U_MAKE_WORD(byte b, int value)
+    protected static int TO_U_MAKE_WORD(byte b, int value)
     {
         return ((b&UConverterConstants.UNSIGNED_BYTE_MASK)<<TO_U_BYTE_SHIFT)|value;
     }
     
     /* use after masking off the roundtrip flag */
-    private static boolean TO_U_IS_CODE_POINT(int value)
+    protected static boolean TO_U_IS_CODE_POINT(int value)
     {
         return (value&UConverterConstants.UNSIGNED_INT_MASK)<=TO_U_MAX_CODE_POINT;
     }
     
-    private static int TO_U_GET_CODE_POINT(int value)
+    protected static int TO_U_GET_CODE_POINT(int value)
     {
         return (int)((value&UConverterConstants.UNSIGNED_INT_MASK)-TO_U_MIN_CODE_POINT);
     }
     
-    private static int TO_U_GET_INDEX(int value)
+    protected static int TO_U_GET_INDEX(int value)
     {
         return value&TO_U_INDEX_MASK;
     }
     
-    private static int TO_U_GET_LENGTH(int value)
+    protected static int TO_U_GET_LENGTH(int value)
     {
         return (value>>>TO_U_LENGTH_SHIFT)-TO_U_LENGTH_OFFSET;
     }
@@ -734,43 +739,43 @@ class CharsetMBCS extends CharsetICU {
     /* fromUnicode helpers ------------------------------------------------------ */
     
     /* most trie constants are shared with ucnvmbcs.h */
-    private static final int STAGE_2_LEFT_SHIFT = 2;
-    //private static final int STAGE_3_GRANULARITY = 4;
+    protected static final int STAGE_2_LEFT_SHIFT = 2;
+    protected static final int STAGE_3_GRANULARITY = 4;
     
     /* trie access, returns the stage 3 value=index to stage 3b; s1Index=c>>10 */
-    private static int FROM_U(CharBuffer stage12, CharBuffer stage3, int s1Index, int c)
+    protected static int FROM_U(CharBuffer stage12, CharBuffer stage3, int s1Index, int c)
     {
         return stage3.get(stage3.position() + ((int)stage12.get( stage12.position() + (stage12.get(stage12.position()+s1Index) +((c>>>4)&0x3f)) )<<STAGE_2_LEFT_SHIFT) +(c&0xf) );
     }
     
-    private static final int FROM_U_LENGTH_SHIFT = 24;
-    private static final int FROM_U_ROUNDTRIP_FLAG = 1<<31;
-    private static final int FROM_U_RESERVED_MASK = 0x60000000;
-    private static final int FROM_U_DATA_MASK = 0xffffff;
+    protected static final int FROM_U_LENGTH_SHIFT = 24;
+    protected static final int FROM_U_ROUNDTRIP_FLAG = 1<<31;
+    protected static final int FROM_U_RESERVED_MASK = 0x60000000;
+    protected static final int FROM_U_DATA_MASK = 0xffffff;
     
     /* special value for "no mapping" to <subchar1> (impossible roundtrip to 0 bytes, value 01) */
-    private static final int FROM_U_SUBCHAR1 = 0x80000001;
+    protected static final int FROM_U_SUBCHAR1 = 0x80000001;
     
     /* at most 3 bytes in the lower part of the value */
-    private static final int FROM_U_MAX_DIRECT_LENGTH = 3;
+    protected static final int FROM_U_MAX_DIRECT_LENGTH = 3;
     
     /* maximum number of indexed bytes */
-    private static final int MAX_BYTES = 0x1f;
+    protected static final int MAX_BYTES = 0x1f;
     
-    private static boolean FROM_U_IS_PARTIAL(int value) {return (value>>>FROM_U_LENGTH_SHIFT)==0;}
-    private static int FROM_U_GET_PARTIAL_INDEX(int value) {return value;}
+    protected static boolean FROM_U_IS_PARTIAL(int value) {return (value>>>FROM_U_LENGTH_SHIFT)==0;}
+    protected static int FROM_U_GET_PARTIAL_INDEX(int value) {return value;}
     
-    private static boolean FROM_U_IS_ROUNDTRIP(int value) {return (value&FROM_U_ROUNDTRIP_FLAG)!=0;}
-    private static int FROM_U_MASK_ROUNDTRIP(int value) {return value&~FROM_U_ROUNDTRIP_FLAG;}
+    protected static boolean FROM_U_IS_ROUNDTRIP(int value) {return (value&FROM_U_ROUNDTRIP_FLAG)!=0;}
+    protected static int FROM_U_MASK_ROUNDTRIP(int value) {return value&~FROM_U_ROUNDTRIP_FLAG;}
     
     /* use after masking off the roundtrip flag */
-    private static int FROM_U_GET_LENGTH(int value) {return (value>>>FROM_U_LENGTH_SHIFT)&MAX_BYTES;}
+    protected static int FROM_U_GET_LENGTH(int value) {return (value>>>FROM_U_LENGTH_SHIFT)&MAX_BYTES;}
     
     /* get bytes or bytes index */
-    private static int FROM_U_GET_DATA(int value) {return value&FROM_U_DATA_MASK;}
+    protected static int FROM_U_GET_DATA(int value) {return value&FROM_U_DATA_MASK;}
     
     /* get the pointer to an extension array from indexes[index] */
-    private static Buffer ARRAY(ByteBuffer indexes, int index, Class itemType)
+    protected static Buffer ARRAY(ByteBuffer indexes, int index, Class itemType)
     {
         int oldpos = indexes.position();
         Buffer b;
@@ -778,17 +783,19 @@ class CharsetMBCS extends CharsetICU {
         indexes.position(indexes.getInt(index*4));
         if(itemType == int.class)
             b = indexes.asIntBuffer();
-        else if(itemType == char.class)
-            b = indexes.asCharBuffer();
         else if(itemType == short.class)
             b = indexes.asShortBuffer();
-        else // default or (itemType == byte.class)
+        else if(itemType == byte.class)
+            b = indexes.slice();
+        else if(itemType == char.class)
+            b = indexes.asCharBuffer();
+        else
             b = indexes.slice();
         indexes.position(oldpos);
         return b;
     }
     
-    private static int GET_MAX_BYTES_PER_UCHAR(ByteBuffer indexes) 
+    protected static int GET_MAX_BYTES_PER_UCHAR(ByteBuffer indexes) 
     {
         indexes.position(0);        
         return indexes.getInt(EXT_COUNT_BYTES)&0xff; 
@@ -797,7 +804,7 @@ class CharsetMBCS extends CharsetICU {
     /*
      * @return index of the UChar, if found; else <0
      */
-    private static int findFromU(CharBuffer fromUSection, int length, char u)
+    protected static int findFromU(CharBuffer fromUSection, int length, char u)
     {
         int i, start, limit;
     
@@ -846,7 +853,7 @@ class CharsetMBCS extends CharsetICU {
     /*
      * @return lookup value for the byte, if found; else 0
      */
-    private static int findToU(IntBuffer toUSection, int length, short byt)
+    protected static int findToU(IntBuffer toUSection, int length, short byt)
     {
         long word0, word;
         int i, start, limit;
@@ -923,7 +930,7 @@ class CharsetMBCS extends CharsetICU {
      * TRUE if not an SI/SO stateful converter,
      * or if the match length fits with the current converter state
      */
-    private static boolean TO_U_VERIFY_SISO_MATCH(byte sisoState, int match)
+    protected static boolean TO_U_VERIFY_SISO_MATCH(byte sisoState, int match)
     {
         return sisoState<0 || (sisoState==0) == (match==1);
     }
@@ -936,7 +943,7 @@ class CharsetMBCS extends CharsetICU {
      * Note: For SI/SO stateful converters getting here,
      * cnv->mode==0 is equivalent to firstLength==1.
      */
-    private static int SISO_STATE(UConverterSharedData sharedData, int mode)
+    protected static int SISO_STATE(UConverterSharedData sharedData, int mode)
     {
        return sharedData.mbcs.outputType==MBCS_OUTPUT_2_SISO ? (byte)mode :
          sharedData.mbcs.outputType==MBCS_OUTPUT_DBCS_ONLY ? 1 : -1;
@@ -1173,7 +1180,7 @@ class CharsetMBCS extends CharsetICU {
                         byteIndex = 0;
                     }
                     else if(c==0xfffe) {
-                        if(isFallbackUsed() && (entry=(int)getFallback(sharedData.mbcs, offset))!=0xfffe) {
+                        if(isToUUseFallback() && (entry=(int)getFallback(sharedData.mbcs, offset))!=0xfffe) {
                             /* output fallback BMP code point */
                             target.put((char)entry);
                             if(offsets!=null) {
@@ -1206,7 +1213,7 @@ class CharsetMBCS extends CharsetICU {
                         }
                         byteIndex = 0;
                     }
-                    else if(isFallbackUsed() ? c<=0xdfff : c<=0xdbff) {
+                    else if(isToUUseFallback() ? c<=0xdfff : c<=0xdbff) {
                         /* output roundtrip or fallback surrogate pair */
                         target.put((char)(c&0xdbff));
                         if(offsets!=null) {
@@ -1229,7 +1236,7 @@ class CharsetMBCS extends CharsetICU {
                             break;
                         }
                     } 
-                    else if(isFallbackUsed() ? (c&0xfffe)==0xe000 : c==0xe000) {
+                    else if(isToUUseFallback() ? (c&0xfffe)==0xe000 : c==0xe000) {
                         /* output roundtrip BMP code point above 0xd800 or fallback BMP code point */
                         target.put(unicodeCodeUnits[offset]);
                         if(offsets!=null) {
@@ -1243,7 +1250,7 @@ class CharsetMBCS extends CharsetICU {
                     }
                 } 
                 else if(action==MBCS_STATE_VALID_DIRECT_20 ||
-                        (action==MBCS_STATE_FALLBACK_DIRECT_20 && isFallbackUsed())) {
+                        (action==MBCS_STATE_FALLBACK_DIRECT_20 && isToUUseFallback())) {
                     entry = MBCS_ENTRY_FINAL_VALUE(entry);
                     /* output surrogate pair */
                     target.put((char)(0xd800|(char)(entry>>10)));
@@ -1288,7 +1295,7 @@ class CharsetMBCS extends CharsetICU {
                     }
                 }
                 else if(action==MBCS_STATE_FALLBACK_DIRECT_16) {
-                    if(isFallbackUsed()) {
+                    if(isToUUseFallback()) {
                         /* output BMP code point */
                         target.put((char)MBCS_ENTRY_FINAL_VALUE_16(entry));
                         if(offsets!=null) {
@@ -1349,7 +1356,7 @@ class CharsetMBCS extends CharsetICU {
          * continue partial match with new input
          * never called for simple, single-character conversion
          */
-        private CoderResult continueMatchToU(ByteBuffer source, CharBuffer target, IntBuffer offsets, int srcIndex, boolean flush)
+        protected CoderResult continueMatchToU(ByteBuffer source, CharBuffer target, IntBuffer offsets, int srcIndex, boolean flush)
         {
             CoderResult cr = CoderResult.UNDERFLOW;
             
@@ -1431,7 +1438,7 @@ class CharsetMBCS extends CharsetICU {
          * - no trie is used
          * - the returned matchLength is not offset by 2
          */
-        private int matchToU(byte sisoState, byte[] preArray, int preArrayBegin, int preLength, ByteBuffer source, int[] pMatchValue, boolean flush)
+        protected int matchToU(byte sisoState, byte[] preArray, int preArrayBegin, int preLength, ByteBuffer source, int[] pMatchValue, boolean flush)
         {
             ByteBuffer cx = sharedData.mbcs.extIndexes;
             IntBuffer toUTable, toUSection;
@@ -1482,7 +1489,7 @@ class CharsetMBCS extends CharsetICU {
                 length = TO_U_GET_BYTE(value);
                 value =TO_U_GET_VALUE(value);
                 if(value!=0 &&
-                   (TO_U_IS_ROUNDTRIP(value) || isFallbackUsed()) &&
+                   (TO_U_IS_ROUNDTRIP(value) || isToUUseFallback()) &&
                    TO_U_VERIFY_SISO_MATCH(sisoState, i+j)) {
                     /* remember longest match so far */
                     matchValue=value;
@@ -1522,7 +1529,7 @@ class CharsetMBCS extends CharsetICU {
                         /* partial match, continue */
                         index = TO_U_GET_PARTIAL_INDEX(value);
                     } else {
-                        if((TO_U_IS_ROUNDTRIP(value) || isFallbackUsed()) &&
+                        if((TO_U_IS_ROUNDTRIP(value) || isToUUseFallback()) &&
                            TO_U_VERIFY_SISO_MATCH(sisoState, i+j)) {
                             /* full match, stop with result */
                             matchValue = value;
@@ -1546,7 +1553,7 @@ class CharsetMBCS extends CharsetICU {
             return matchLength;
         }
         
-        private CoderResult writeToU(int value, CharBuffer target, IntBuffer offsets, int srcIndex)
+        protected CoderResult writeToU(int value, CharBuffer target, IntBuffer offsets, int srcIndex)
         {
             ByteBuffer cx = sharedData.mbcs.extIndexes;
             /* output the result */
@@ -1564,7 +1571,7 @@ class CharsetMBCS extends CharsetICU {
             }
         }
         
-        private CoderResult toUWriteCodePoint(int c, CharBuffer target, IntBuffer offsets, int sourceIndex) 
+        protected CoderResult toUWriteCodePoint(int c, CharBuffer target, IntBuffer offsets, int sourceIndex) 
         {
             CoderResult cr = CoderResult.UNDERFLOW;
             int tBeginIndex = target.position();
@@ -1605,7 +1612,7 @@ class CharsetMBCS extends CharsetICU {
          * @return if(U_FAILURE) return the length (toULength, byteIndex) for the input
          *         else return 0 after output has been written to the target
          */
-        private int toU(int length, ByteBuffer source, CharBuffer target, IntBuffer offsets, int sourceIndex, boolean flush, CoderResult[] cr)
+        protected int toU(int length, ByteBuffer source, CharBuffer target, IntBuffer offsets, int sourceIndex, boolean flush, CoderResult[] cr)
         {
             //ByteBuffer cx;
         
@@ -1621,8 +1628,8 @@ class CharsetMBCS extends CharsetICU {
                 int i;
         
                 linear = LINEAR_18030(toUBytesArray[0], toUBytesArray[1], toUBytesArray[2], toUBytesArray[3]);
-                for(i=0; i<gb18030Ranges.length; ++i) {
-                    range = gb18030Ranges[i];
+                range = gb18030Ranges[0];
+                for(i=0; i<gb18030Ranges.length/gb18030Ranges[0].length; range=gb18030Ranges[++i]) {
                     if(range[2]<=linear && linear<=range[3]) {
                         /* found the sequence, output the Unicode code point for it */
                         cr[0] = CoderResult.UNDERFLOW;
@@ -1646,7 +1653,7 @@ class CharsetMBCS extends CharsetICU {
         /*
          * target<targetLimit; set error code for overflow
          */
-        private boolean initialMatchToU(int firstLength, ByteBuffer source, CharBuffer target, IntBuffer offsets, int srcIndex, boolean flush, CoderResult[] cr)
+        protected boolean initialMatchToU(int firstLength, ByteBuffer source, CharBuffer target, IntBuffer offsets, int srcIndex, boolean flush, CoderResult[] cr)
         {
             int[] value = new int[1];
             int match = 0;
@@ -1696,7 +1703,7 @@ class CharsetMBCS extends CharsetICU {
          * In addition to single-byte optimizations, the offset calculations
          * become much easier.
          */
-        private CoderResult cnvMBCSSingleToBMPWithOffsets(ByteBuffer source, CharBuffer target, IntBuffer offsets, boolean flush)
+        protected CoderResult cnvMBCSSingleToBMPWithOffsets(ByteBuffer source, CharBuffer target, IntBuffer offsets, boolean flush)
         {
             CoderResult[] cr = {CoderResult.UNDERFLOW};
             
@@ -1752,7 +1759,7 @@ class CharsetMBCS extends CharsetICU {
                  */
                 action = (byte)(MBCS_ENTRY_FINAL_ACTION(entry));
                 if(action==MBCS_STATE_FALLBACK_DIRECT_16) {
-                    if(isFallbackUsed()) {
+                    if(isToUUseFallback()) {
                         /* output BMP code point */
                         target.put((char)MBCS_ENTRY_FINAL_VALUE_16(entry));
                         --targetCapacity;
@@ -1829,7 +1836,7 @@ class CharsetMBCS extends CharsetICU {
         }
        
         /* This version of cnvMBCSToUnicodeWithOffsets() is optimized for single-byte, single-state codepages. */
-        private CoderResult cnvMBCSSingleToUnicodeWithOffsets(ByteBuffer source, CharBuffer target, IntBuffer offsets, boolean flush)
+        protected CoderResult cnvMBCSSingleToUnicodeWithOffsets(ByteBuffer source, CharBuffer target, IntBuffer offsets, boolean flush)
         {
             CoderResult[] cr = {CoderResult.UNDERFLOW};
             
@@ -1893,7 +1900,7 @@ class CharsetMBCS extends CharsetICU {
                  */
                 action = (byte)(MBCS_ENTRY_FINAL_ACTION(entry));
                 if(action==MBCS_STATE_VALID_DIRECT_20 ||
-                   (action==MBCS_STATE_FALLBACK_DIRECT_20 && isFallbackUsed())) {
+                   (action==MBCS_STATE_FALLBACK_DIRECT_20 && isToUUseFallback())) {
                     
                     entry = MBCS_ENTRY_FINAL_VALUE(entry);
                     /* output surrogate pair */
@@ -1920,7 +1927,7 @@ class CharsetMBCS extends CharsetICU {
                     continue;
                 } 
                 else if(action==MBCS_STATE_FALLBACK_DIRECT_16) {
-                    if(isFallbackUsed()) {
+                    if(isToUUseFallback()) {
                         /* output BMP code point */
                         target.put((char)MBCS_ENTRY_FINAL_VALUE_16(entry));
                         if(offsets!=null) {
@@ -1970,7 +1977,7 @@ class CharsetMBCS extends CharsetICU {
             return cr[0];
         }
 
-        private int getFallback(UConverterMBCSTable mbcsTable, int offset) 
+        protected int getFallback(UConverterMBCSTable mbcsTable, int offset) 
         {
             MBCSToUFallback[] toUFallbacks;
             int i, start, limit;
@@ -2002,11 +2009,9 @@ class CharsetMBCS extends CharsetICU {
     }
     
     class CharsetEncoderMBCS extends CharsetEncoderICU{
-        private boolean allowReplacementChanges = false;
 
         CharsetEncoderMBCS(CharsetICU cs) {
             super(cs, fromUSubstitution);
-            allowReplacementChanges = true; // allow changes in implReplaceWith
             implReset();
         }
         
@@ -2018,8 +2023,6 @@ class CharsetMBCS extends CharsetICU {
         protected CoderResult encodeLoop(CharBuffer source, ByteBuffer target, IntBuffer offsets, boolean flush){
       
             CoderResult[] cr = {CoderResult.UNDERFLOW};
-//            if (!source.hasRemaining() && fromUChar32 == 0)
-//                return cr[0];
 
             int sourceArrayIndex;
             char[] table;
@@ -2046,7 +2049,7 @@ class CharsetMBCS extends CharsetICU {
                 /* use optimized function if possible */
                 outputType = sharedData.mbcs.outputType;
                 unicodeMask = sharedData.mbcs.unicodeMask;
-                if(outputType==MBCS_OUTPUT_1 && (unicodeMask & UConverterConstants.HAS_SURROGATES) == 0) {
+                if(outputType==MBCS_OUTPUT_1 && (unicodeMask&UConverterConstants.HAS_SURROGATES) == 0) {
                     if((unicodeMask&UConverterConstants.HAS_SUPPLEMENTARY) == 0) {
                         cr[0] = cnvMBCSSingleFromBMPWithOffsets(source, target, offsets, flush);
                     } else {
@@ -2101,28 +2104,19 @@ class CharsetMBCS extends CharsetICU {
                  * Markus Scherer 2000-jul-19
                  */
                 boolean doloop = true;
-                boolean doread = true;
-                if (c != 0 && target.hasRemaining()) {
-                    if(UTF16.isLeadSurrogate((char)c) && (unicodeMask & UConverterConstants.HAS_SURROGATES) == 0) {
-                        // c is a lead surrogate, read another input
-                        SideEffects x = new SideEffects(c, sourceArrayIndex, sourceIndex,
-                                nextSourceIndex, prevSourceIndex, prevLength);
-                        doloop = getTrail(source, target, unicodeMask, x, flush, cr);
-                        doread = x.doread;
-                        c = x.c;
-                        sourceArrayIndex = x.sourceArrayIndex;
-                        sourceIndex = x.sourceIndex;
-                        nextSourceIndex = x.nextSourceIndex;
-                        prevSourceIndex = x.prevSourceIndex;
-                        prevLength = x.prevLength;
-                    } else {
-                        // c is not a lead surrogate, do not read another input
-                        doread = false;
-                    }
+                if(c!=0 && target.hasRemaining()) {
+                    SideEffects x = new SideEffects(c, sourceArrayIndex, sourceIndex, nextSourceIndex, prevSourceIndex, prevLength);
+                    doloop = getTrail(source, target, unicodeMask, x, flush, cr);
+                    c = x.c;
+                    sourceArrayIndex = x.sourceArrayIndex;
+                    sourceIndex = x.sourceIndex;
+                    nextSourceIndex = x.nextSourceIndex;
+                    prevSourceIndex = x.prevSourceIndex;
+                    prevLength = x.prevLength;
                 }
             
                 if(doloop) {
-                    while(!doread || sourceArrayIndex<source.limit()) {
+                    while(sourceArrayIndex<source.limit()) {
                         /*
                          * This following test is to see if available input would overflow the output.
                          * It does not catch output of more than one byte that
@@ -2137,43 +2131,35 @@ class CharsetMBCS extends CharsetICU {
                              * a single UChar for a BMP code point or
                              * a matched surrogate pair for a "supplementary code point".
                              */
-                            
-                            if (doread) {
-                                // doread might be false only on the first looping
-                                
-                                c = source.get(sourceArrayIndex++);
-                                ++nextSourceIndex;
-                                /*
-                                 * This also tests if the codepage maps single surrogates.
-                                 * If it does, then surrogates are not paired but mapped separately.
-                                 * Note that in this case unmatched surrogates are not detected.
-                                 */
-                                if(UTF16.isSurrogate((char)c) && (unicodeMask&UConverterConstants.HAS_SURROGATES) == 0) {
-                                    if(UTF16.isLeadSurrogate((char)c)) {
-                                        //getTrail:
-                                        SideEffects x = new SideEffects(c, sourceArrayIndex, sourceIndex, nextSourceIndex, prevSourceIndex, prevLength);
-                                        doloop = getTrail(source, target, unicodeMask, x, flush, cr);
-                                        c = x.c;
-                                        sourceArrayIndex = x.sourceArrayIndex;
-                                        sourceIndex = x.sourceIndex;
-                                        nextSourceIndex = x.nextSourceIndex;
-                                        prevSourceIndex = x.prevSourceIndex;
-                                       
-                                        if (x.doread) {
-                                            if (doloop)
-                                                continue;
-                                            else
-                                                break;
-                                        }
-                                    } else {
-                                        /* this is an unmatched trail code unit (2nd surrogate) */
-                                        /* callback(illegal) */
-                                        cr[0] = CoderResult.malformedForLength(1);
+                            c = source.get(sourceArrayIndex++);
+                            ++nextSourceIndex;
+                            /*
+                             * This also tests if the codepage maps single surrogates.
+                             * If it does, then surrogates are not paired but mapped separately.
+                             * Note that in this case unmatched surrogates are not detected.
+                             */
+                            if(UTF16.isSurrogate((char)c) && (unicodeMask&UConverterConstants.HAS_SURROGATES) == 0) {
+                                if(UTF16.isLeadSurrogate((char)c)) {
+                                    //getTrail:
+                                    SideEffects x = new SideEffects(c, sourceArrayIndex, sourceIndex, nextSourceIndex, prevSourceIndex, prevLength);
+                                    doloop = getTrail(source, target, unicodeMask, x, flush, cr);
+                                    c = x.c;
+                                    sourceArrayIndex = x.sourceArrayIndex;
+                                    sourceIndex = x.sourceIndex;
+                                    nextSourceIndex = x.nextSourceIndex;
+                                    prevSourceIndex = x.prevSourceIndex;
+                                   
+                                    if(doloop)
+                                        continue;
+                                    else
                                         break;
-                                    }
                                 }
-                            } else {
-                                doread = true;
+                                else {
+                                    /* this is an unmatched trail code unit (2nd surrogate) */
+                                    /* callback(illegal) */
+                                    cr[0] = CoderResult.malformedForLength(1);
+                                    break;
+                                }
                             }
             
                             /* convert the Unicode code point in c into codepage bytes */
@@ -2541,7 +2527,8 @@ class CharsetMBCS extends CharsetICU {
          * continue partial match with new input, requires cnv->preFromUFirstCP>=0
          * never called for simple, single-character conversion
          */
-        private CoderResult continueMatchFromU(CharBuffer source, ByteBuffer target, IntBuffer offsets, boolean flush, int srcIndex) {
+        protected CoderResult continueMatchFromU(CharBuffer source, ByteBuffer target, IntBuffer offsets, boolean flush, int srcIndex)
+        {
             CoderResult cr = CoderResult.UNDERFLOW;
             int[] value = new int[1];
             int match;
@@ -2566,7 +2553,8 @@ class CharsetMBCS extends CharsetICU {
         
                 /* write result */
                 writeFromU(value[0], target, offsets, srcIndex);
-            } else if(match<0) {
+            } 
+            else if(match<0) {
                 /* save state for partial match */
                 int sArrayIndex;
                 int j;
@@ -2579,7 +2567,8 @@ class CharsetMBCS extends CharsetICU {
                 }
                 source.position(sArrayIndex); /* same as *src=srcLimit; because we reached the end of input */
                 preFromULength=(byte)match;
-            } else { /* match==0 or 1 */
+            } 
+            else /* match==0 or 1 */ {
                 /*
                  * no match
                  *
@@ -2611,8 +2600,7 @@ class CharsetMBCS extends CharsetICU {
                 preFromULength = (byte) - preFromULength;
         
                 /* set the error code for unassigned */
-                //TODO: figure out what the unmappable length really should be
-                cr = CoderResult.unmappableForLength(1);
+                cr = CoderResult.unmappableForLength(source.position());
             }
             return cr;
         }
@@ -2638,7 +2626,7 @@ class CharsetMBCS extends CharsetICU {
          *         further code units matched
          */
         //static int32_t ucnv_extMatchFromU(const int32_t *cx, UChar32 firstCP, const UChar *pre, int32_t preLength, const UChar *src, int32_t srcLength, uint32_t *pMatchValue, UBool useFallback, UBool flush)
-        private int matchFromU(int firstCP, char[] preArray, int preArrayBegin, int preLength, CharBuffer source, ByteBuffer target, int[] pMatchValue, boolean flush)
+        protected int matchFromU(int firstCP, char[] preArray, int preArrayBegin, int preLength, CharBuffer source, ByteBuffer target, int[] pMatchValue, boolean flush)
         {
             ByteBuffer cx = sharedData.mbcs.extIndexes;
             
@@ -2783,7 +2771,7 @@ class CharsetMBCS extends CharsetICU {
             return matchLength;
         }
         
-        private CoderResult writeFromU(int value, ByteBuffer target, IntBuffer offsets, int srcIndex)
+        protected CoderResult writeFromU(int value, ByteBuffer target, IntBuffer offsets, int srcIndex)
         {
             ByteBuffer cx = sharedData.mbcs.extIndexes;            
             
@@ -2868,7 +2856,7 @@ class CharsetMBCS extends CharsetICU {
          * @return if(U_FAILURE) return the code point for cnv->fromUChar32
          *         else return 0 after output has been written to the target
          */
-        private int fromU(int cp_, CharBuffer source, ByteBuffer target, IntBuffer offsets, int sourceIndex, int length, boolean flush, CoderResult[] cr)
+        protected int fromU(int cp_, CharBuffer source, ByteBuffer target, IntBuffer offsets, int sourceIndex, boolean flush, CoderResult[] cr)
         {
             //ByteBuffer cx;
             long cp = cp_ & UConverterConstants.UNSIGNED_INT_MASK;
@@ -2910,14 +2898,14 @@ class CharsetMBCS extends CharsetICU {
             }
         
             /* no mapping */
-            cr[0] = CoderResult.unmappableForLength(length);
+            cr[0] = CoderResult.unmappableForLength(1);
             return (int)cp;
         }
 
         /*
          * target<targetLimit; set error code for overflow
          */
-        private boolean initialMatchFromU(int cp, CharBuffer source, ByteBuffer target, IntBuffer offsets, int srcIndex, boolean flush, CoderResult[] cr)
+        protected boolean initialMatchFromU(int cp, CharBuffer source, ByteBuffer target, IntBuffer offsets, int srcIndex, boolean flush, CoderResult[] cr)
         {
             int[] value = new int[1];
             int match;
@@ -2968,7 +2956,7 @@ class CharsetMBCS extends CharsetICU {
          * In addition to single-byte/state optimizations, the offset calculations
          * become much easier.
          */
-        private CoderResult cnvMBCSSingleFromBMPWithOffsets(CharBuffer source, ByteBuffer target, IntBuffer offsets, boolean flush){
+        protected CoderResult cnvMBCSSingleFromBMPWithOffsets(CharBuffer source, ByteBuffer target, IntBuffer offsets, boolean flush){
             
             CoderResult[] cr = {CoderResult.UNDERFLOW};
             
@@ -3094,7 +3082,7 @@ class CharsetMBCS extends CharsetICU {
                     /* try an extension mapping */
                     lastSource = sourceArrayIndex;
                     source.position(sourceArrayIndex);
-                    c = fromU(c, source, target, offsets, sourceIndex, length, flush, cr);
+                    c = fromU(c, source, target, offsets, sourceIndex, flush, cr);
                     sourceArrayIndex = source.position();
                     sourceIndex += length+(sourceArrayIndex-lastSource);
                     lastSource = sourceArrayIndex;
@@ -3139,7 +3127,7 @@ class CharsetMBCS extends CharsetICU {
         }
 
         /* This version of ucnv_MBCSFromUnicodeWithOffsets() is optimized for single-byte codepages. */
-        private CoderResult cnvMBCSSingleFromUnicodeWithOffsets(CharBuffer source, ByteBuffer target, IntBuffer offsets, boolean flush){
+        protected CoderResult cnvMBCSSingleFromUnicodeWithOffsets(CharBuffer source, ByteBuffer target, IntBuffer offsets, boolean flush){
             
             CoderResult[] cr = {CoderResult.UNDERFLOW};
             
@@ -3150,7 +3138,7 @@ class CharsetMBCS extends CharsetICU {
         
             int c;        
             int sourceIndex, nextSourceIndex;
-            
+        
             char value, minValue;
             
             /* set up the local pointers */
@@ -3185,23 +3173,17 @@ class CharsetMBCS extends CharsetICU {
             nextSourceIndex=0;
         
             boolean doloop = true;
-            boolean doread = true;
             if(c!=0 && target.hasRemaining()) {
-                if (UTF16.isLeadSurrogate((char) c)) {
-                    SideEffectsDouble x = new SideEffectsDouble(c, sourceArrayIndex, sourceIndex, nextSourceIndex);
-                    doloop = getTrailDouble(source, target, unicodeMask, x, flush, cr);
-                    doread = x.doread;
-                    c = x.c;
-                    sourceArrayIndex = x.sourceArrayIndex;
-                    sourceIndex = x.sourceIndex;
-                    nextSourceIndex = x.nextSourceIndex;
-                } else {
-                    doread = false;
-                }
+                SideEffectsDouble x = new SideEffectsDouble(c, sourceArrayIndex, sourceIndex, nextSourceIndex);
+                doloop = getTrailDouble(source, target, unicodeMask, x, flush, cr);
+                c = x.c;
+                sourceArrayIndex = x.sourceArrayIndex;
+                sourceIndex = x.sourceIndex;
+                nextSourceIndex = x.nextSourceIndex;
             }
         
             if(doloop) {
-                while(!doread || sourceArrayIndex<source.limit()) {
+                while(sourceArrayIndex<source.limit()) {
                     /*
                      * This following test is to see if available input would overflow the output.
                      * It does not catch output of more than one byte that
@@ -3216,34 +3198,28 @@ class CharsetMBCS extends CharsetICU {
                          * a single UChar for a BMP code point or
                          * a matched surrogate pair for a "supplementary code point".
                          */
-                        
-                        if (doread) {
-                            c = source.get(sourceArrayIndex++);
-                            ++nextSourceIndex;
-                            if(UTF16.isSurrogate((char)c)) {
-                                if(UTF16.isLeadSurrogate((char)c)) {
-                                    //getTrail:
-                                    SideEffectsDouble x = new SideEffectsDouble(c, sourceArrayIndex, sourceIndex, nextSourceIndex);
-                                    doloop = getTrailDouble(source, target, unicodeMask, x, flush, cr);
-                                    c = x.c;
-                                    sourceArrayIndex = x.sourceArrayIndex;
-                                    sourceIndex = x.sourceIndex;
-                                    nextSourceIndex = x.nextSourceIndex;
-                                    if (x.doread) {
-                                        if (doloop)
-                                            continue;
-                                        else
-                                            break;
-                                    }
-                                } else {
-                                    /* this is an unmatched trail code unit (2nd surrogate) */
-                                    /* callback(illegal) */
-                                    cr[0] = CoderResult.malformedForLength(1);
+                        c = source.get(sourceArrayIndex++);
+                        ++nextSourceIndex;
+                        if(UTF16.isSurrogate((char)c)) {
+                            if(UTF16.isLeadSurrogate((char)c)) {
+                                //getTrail:
+                                SideEffectsDouble x = new SideEffectsDouble(c, sourceArrayIndex, sourceIndex, nextSourceIndex);
+                                doloop = getTrailDouble(source, target, unicodeMask, x, flush, cr);
+                                c = x.c;
+                                sourceArrayIndex = x.sourceArrayIndex;
+                                sourceIndex = x.sourceIndex;
+                                nextSourceIndex = x.nextSourceIndex;
+                                if(doloop)
+                                    continue;
+                                else
                                     break;
-                                }
+                            } 
+                            else {
+                                /* this is an unmatched trail code unit (2nd surrogate) */
+                                /* callback(illegal) */
+                                cr[0] = CoderResult.malformedForLength(1);
+                                break;
                             }
-                        } else {
-                            doread = true;
                         }
         
                         /* convert the Unicode code point in c into codepage bytes */
@@ -3293,11 +3269,11 @@ class CharsetMBCS extends CharsetICU {
         }
 
         /* This version of ucnv_MBCSFromUnicodeWithOffsets() is optimized for double-byte codepages. */
-        private CoderResult cnvMBCSDoubleFromUnicodeWithOffsets(CharBuffer source, ByteBuffer target, IntBuffer offsets, boolean flush){
+        protected CoderResult cnvMBCSDoubleFromUnicodeWithOffsets(CharBuffer source, ByteBuffer target, IntBuffer offsets, boolean flush){
             CoderResult[] cr = {CoderResult.UNDERFLOW};
             
             int sourceArrayIndex;
-            
+           
             char[] table;
             byte[] bytes;
         
@@ -3331,23 +3307,17 @@ class CharsetMBCS extends CharsetICU {
         
             /* conversion loop */
             boolean doloop = true;
-            boolean doread = true;
             if(c!=0 && target.hasRemaining()) {
-                if(UTF16.isLeadSurrogate((char)c)) {
-                    SideEffectsDouble x = new SideEffectsDouble(c, sourceArrayIndex, sourceIndex, nextSourceIndex);
-                    doloop = getTrailDouble(source, target, unicodeMask, x, flush, cr);
-                    doread = x.doread;
-                    c = x.c;
-                    sourceArrayIndex = x.sourceArrayIndex;
-                    sourceIndex = x.sourceIndex;
-                    nextSourceIndex = x.nextSourceIndex;
-                } else {
-                    doread = false;
-                }
+                SideEffectsDouble x = new SideEffectsDouble(c, sourceArrayIndex, sourceIndex, nextSourceIndex);
+                doloop = getTrailDouble(source, target, unicodeMask, x, flush, cr);
+                c = x.c;
+                sourceArrayIndex = x.sourceArrayIndex;
+                sourceIndex = x.sourceIndex;
+                nextSourceIndex = x.nextSourceIndex;
             }
         
             if(doloop) {
-                while(!doread || sourceArrayIndex<source.limit()) {
+                while(sourceArrayIndex<source.limit()) {
                     /*
                      * This following test is to see if available input would overflow the output.
                      * It does not catch output of more than one byte that
@@ -3357,45 +3327,40 @@ class CharsetMBCS extends CharsetICU {
                      * then break the loop, too.
                      */
                     if(target.hasRemaining()) {
-                        if (doread) {
-                            /*
-                             * Get a correct Unicode code point:
-                             * a single UChar for a BMP code point or
-                             * a matched surrogate pair for a "supplementary code point".
-                             */
-                            c = source.get(sourceArrayIndex++);
-                            ++nextSourceIndex;
-                            /*
-                             * This also tests if the codepage maps single surrogates.
-                             * If it does, then surrogates are not paired but mapped separately.
-                             * Note that in this case unmatched surrogates are not detected.
-                             */
-                            if(UTF16.isSurrogate((char)c) && (unicodeMask&UConverterConstants.HAS_SURROGATES) == 0) {
-                                if(UTF16.isLeadSurrogate((char)c)) {
-                                    //getTrail:
-                                    SideEffectsDouble x = new SideEffectsDouble(c, sourceArrayIndex, sourceIndex, nextSourceIndex);
-                                    doloop = getTrailDouble(source, target, unicodeMask, x, flush, cr);
-                                    c = x.c;
-                                    sourceArrayIndex = x.sourceArrayIndex;
-                                    sourceIndex = x.sourceIndex;
-                                    nextSourceIndex = x.nextSourceIndex;
-                                    
-                                    if (x.doread) {
-                                        if (doloop)
-                                            continue;
-                                        else
-                                            break;
-                                    }
-                                } 
-                                else {
-                                    /* this is an unmatched trail code unit (2nd surrogate) */
-                                    /* callback(illegal) */
-                                    cr[0] = CoderResult.malformedForLength(1);
+                        /*
+                         * Get a correct Unicode code point:
+                         * a single UChar for a BMP code point or
+                         * a matched surrogate pair for a "supplementary code point".
+                         */
+                        c = source.get(sourceArrayIndex++);
+                        ++nextSourceIndex;
+                        /*
+                         * This also tests if the codepage maps single surrogates.
+                         * If it does, then surrogates are not paired but mapped separately.
+                         * Note that in this case unmatched surrogates are not detected.
+                         */
+                        if(UTF16.isSurrogate((char)c) && (unicodeMask&UConverterConstants.HAS_SURROGATES) == 0) {
+                            if(UTF16.isLeadSurrogate((char)c)) {
+                                //getTrail:
+                                SideEffectsDouble x = new SideEffectsDouble(c, sourceArrayIndex, sourceIndex, nextSourceIndex);
+                                doloop = getTrailDouble(source, target, unicodeMask, x, flush, cr);
+                                c = x.c;
+                                sourceArrayIndex = x.sourceArrayIndex;
+                                sourceIndex = x.sourceIndex;
+                                nextSourceIndex = x.nextSourceIndex;
+                                
+                                if(doloop){
+                                    continue;
+                                } else {
                                     break;
                                 }
+                            } 
+                            else {
+                                /* this is an unmatched trail code unit (2nd surrogate) */
+                                /* callback(illegal) */
+                                cr[0] = CoderResult.malformedForLength(1);
+                                break;
                             }
-                        } else {
-                            doread = true;
                         }
         
                         /* convert the Unicode code point in c into codepage bytes */
@@ -3487,7 +3452,7 @@ class CharsetMBCS extends CharsetICU {
             return cr[0];
         }
         
-        private final class SideEffectsSingleBMP {
+        protected final class SideEffectsSingleBMP {
             int c, sourceArrayIndex;
             SideEffectsSingleBMP(int c_, int sourceArrayIndex_)
             {
@@ -3498,7 +3463,7 @@ class CharsetMBCS extends CharsetICU {
         
         // function made out of block labeled getTrail in ucnv_MBCSSingleFromUnicodeWithOffsets
         // assumes input c is lead surrogate
-        private final boolean getTrailSingleBMP(CharBuffer source, SideEffectsSingleBMP x, CoderResult[] cr)
+        protected final boolean getTrailSingleBMP(CharBuffer source, SideEffectsSingleBMP x, CoderResult[] cr)
         {
             if(x.sourceArrayIndex<source.limit()) {
                 /* test the following code unit */
@@ -3513,7 +3478,7 @@ class CharsetMBCS extends CharsetICU {
                 } else {
                     /* this is an unmatched lead code unit (1st surrogate) */
                     /* callback(illegal) */
-                    cr[0] = CoderResult.malformedForLength(1);
+                    cr[0] = CoderResult.malformedForLength(2);
                     return false;
                 }
             } else {
@@ -3523,9 +3488,8 @@ class CharsetMBCS extends CharsetICU {
             //return true;
         }
         
-        private final class SideEffects {
+        protected final class SideEffects {
             int c, sourceArrayIndex, sourceIndex, nextSourceIndex, prevSourceIndex, prevLength;
-            boolean doread = true;
             SideEffects(int c_, int sourceArrayIndex_, int sourceIndex_, int nextSourceIndex_, int prevSourceIndex_, int prevLength_)
             {
                 c = c_;
@@ -3539,7 +3503,7 @@ class CharsetMBCS extends CharsetICU {
         
         // function made out of block labeled getTrail in ucnv_MBCSFromUnicodeWithOffsets
         // assumes input c is lead surrogate
-        private final boolean getTrail(CharBuffer source, ByteBuffer target, int unicodeMask, SideEffects x, boolean flush, CoderResult[] cr)
+        protected final boolean getTrail(CharBuffer source, ByteBuffer target, int unicodeMask, SideEffects x, boolean flush, CoderResult[] cr)
         {
             if(x.sourceArrayIndex<source.limit()) {
                 /* test the following code unit */
@@ -3547,37 +3511,35 @@ class CharsetMBCS extends CharsetICU {
                 if(UTF16.isTrailSurrogate(trail)) {
                     ++x.sourceArrayIndex;
                     ++x.nextSourceIndex;
-                    /* convert this supplementary code point */
                     x.c = UCharacter.getCodePoint((char)x.c, trail);
                     if((unicodeMask&UConverterConstants.HAS_SUPPLEMENTARY) == 0) {
                         /* BMP-only codepages are stored without stage 1 entries for supplementary code points */
                         fromUnicodeStatus = x.prevLength; /* save the old state */
                         /* callback(unassigned) */
-                        x.doread = true;
                         return unassigned(source, target, null, x, flush, cr);
-                    } else {
-                        x.doread = false;
-                        return true;
                     }
+                    /* convert this supplementary code point */
+                    /* exit this condition tree */
                 } else {
                     /* this is an unmatched lead code unit (1st surrogate) */
                     /* callback(illegal) */
-                    cr[0] = CoderResult.malformedForLength(1);
+                    cr[0] = CoderResult.malformedForLength(2);
                     return false;
                 }
             } else {
                 /* no more input */
                 return false;
             }
+            return true;
         }
         
         // function made out of block labeled unassigned in ucnv_MBCSFromUnicodeWithOffsets
-        private final boolean unassigned(CharBuffer source, ByteBuffer target, IntBuffer offsets, SideEffects x, boolean flush, CoderResult[] cr)
+        protected final boolean unassigned(CharBuffer source, ByteBuffer target, IntBuffer offsets, SideEffects x, boolean flush, CoderResult[] cr)
         {
             /* try an extension mapping */
             int sourceBegin = x.sourceArrayIndex;
             source.position(x.sourceArrayIndex);
-            x.c = fromU(x.c, source, target, null, x.sourceIndex, x.nextSourceIndex, flush, cr);
+            x.c = fromU(x.c, source, target, null, x.sourceIndex, flush, cr);
             x.sourceArrayIndex = source.position();
             x.nextSourceIndex += x.sourceArrayIndex-sourceBegin;
             x.prevLength=(int)fromUnicodeStatus;
@@ -3600,9 +3562,8 @@ class CharsetMBCS extends CharsetICU {
             }
         }
         
-        private final class SideEffectsDouble {
+        protected final class SideEffectsDouble {
             int c, sourceArrayIndex, sourceIndex, nextSourceIndex;
-            boolean doread = true;
             SideEffectsDouble(int c_, int sourceArrayIndex_, int sourceIndex_, int nextSourceIndex_)
             {
                 c = c_;
@@ -3614,7 +3575,7 @@ class CharsetMBCS extends CharsetICU {
         
         // function made out of block labeled getTrail in ucnv_MBCSDoubleFromUnicodeWithOffsets
         // assumes input c is lead surrogate
-        private final boolean getTrailDouble(CharBuffer source, ByteBuffer target, int unicodeMask, SideEffectsDouble x, boolean flush, CoderResult[] cr)
+        protected final boolean getTrailDouble(CharBuffer source, ByteBuffer target, int unicodeMask, SideEffectsDouble x, boolean flush, CoderResult[] cr)
         {
             if(x.sourceArrayIndex<source.limit()) {
                 /* test the following code unit */
@@ -3622,36 +3583,34 @@ class CharsetMBCS extends CharsetICU {
                 if(UTF16.isTrailSurrogate(trail)) {
                     ++x.sourceArrayIndex;
                     ++x.nextSourceIndex;
-                    /* convert this supplementary code point */
                     x.c = UCharacter.getCodePoint((char)x.c, trail);
                     if((unicodeMask&UConverterConstants.HAS_SUPPLEMENTARY) == 0) {
                         /* BMP-only codepages are stored without stage 1 entries for supplementary code points */
                         /* callback(unassigned) */
-                        x.doread = true;
                         return unassignedDouble(source, target, x, flush, cr);
-                    } else {
-                        x.doread = false;
-                        return true;
                     }
+                    /* convert this supplementary code point */
+                    /* exit this condition tree */
                 } else {
                     /* this is an unmatched lead code unit (1st surrogate) */
                     /* callback(illegal) */
-                    cr[0] = CoderResult.malformedForLength(1);
+                    cr[0] = CoderResult.malformedForLength(2);
                     return false;
                 }
             } else {
                 /* no more input */
                 return false;
             }
+            return true;
         }
 
         // function made out of block labeled unassigned in ucnv_MBCSDoubleFromUnicodeWithOffsets
-        private final boolean unassignedDouble(CharBuffer source, ByteBuffer target, SideEffectsDouble x, boolean flush, CoderResult[] cr)
+        protected final boolean unassignedDouble(CharBuffer source, ByteBuffer target, SideEffectsDouble x, boolean flush, CoderResult[] cr)
         {
             /* try an extension mapping */
             int sourceBegin = x.sourceArrayIndex;
             source.position(x.sourceArrayIndex);
-            x.c = fromU(x.c, source, target, null, x.sourceIndex, x.nextSourceIndex, flush, cr);
+            x.c = fromU(x.c, source, target, null, x.sourceIndex, flush, cr);
             x.sourceArrayIndex = source.position();
             x.nextSourceIndex += x.sourceArrayIndex - sourceBegin;
         
@@ -3681,76 +3640,57 @@ class CharsetMBCS extends CharsetICU {
                                                 CharBuffer source, ByteBuffer target, 
                                                 IntBuffer offsets){
             CharsetMBCS cs = (CharsetMBCS) encoder.charset();
-            byte[] subchar;
-            int length;
-
-            if (cs.subChar1 != 0
-                    && (cs.sharedData.mbcs.extIndexes != null
-                            ? encoder.useSubChar1
-                            : (encoder.invalidUCharBuffer[0] <= 0xff))) {
-                /*
-                 * select subChar1 if it is set (not 0) and the unmappable Unicode code point is up
-                 * to U+00ff (IBM MBCS behavior)
-                 */
-                subchar = new byte[] { cs.subChar1 };
-                length = 1;
+            byte[] subchar, p;
+            byte[] buffer = new byte[4];
+            int length,i=0;
+            /* first, select between subChar and subChar1 */
+            if( cs.subChar1!=0 &&
+                (cs.sharedData.mbcs.extIndexes!=null ?
+                    encoder.useSubChar1 :
+                    (encoder.invalidUCharBuffer[0]<=0xff))
+            ) {
+                /* select subChar1 if it is set (not 0) and the unmappable Unicode code point is up to U+00ff (IBM MBCS behavior) */
+                subchar = new byte[1];
+                subchar[0]=cs.subChar1;
+                length=1;
             } else {
                 /* select subChar in all other cases */
-                subchar = cs.subChar;
-                length = cs.subCharLen;
+                subchar=cs.subChar;
+                length=cs.subCharLen;
             }
 
             /* reset the selector for the next code point */
-            encoder.useSubChar1 = false;
+            encoder.useSubChar1=false;
 
-            if (cs.sharedData.mbcs.outputType == MBCS_OUTPUT_2_SISO) {
-                byte[] buffer = new byte[4];
-                int i = 0;
-
+            switch(cs.sharedData.mbcs.outputType) {
+            case MBCS_OUTPUT_2_SISO:
+                p=buffer;
+                
                 /* fromUnicodeStatus contains prevLength */
-                switch (length) {
+                switch(length) {
                 case 1:
-                    if (encoder.fromUnicodeStatus == 2) {
+                    if(encoder.fromUnicodeStatus==2) {
                         /* DBCS mode and SBCS sub char: change to SBCS */
-                        encoder.fromUnicodeStatus = 1;
-                        buffer[i++] = UConverterConstants.SI;
+                        encoder.fromUnicodeStatus=1;
+                        p[i++]=UConverterConstants.SI;
                     }
-                    buffer[i++] = subchar[0];
+                    p[i++]=subchar[0];
                     break;
                 case 2:
-                    if (encoder.fromUnicodeStatus <= 1) {
+                    if(encoder.fromUnicodeStatus<=1) {
                         /* SBCS mode and DBCS sub char: change to DBCS */
-                        encoder.fromUnicodeStatus = 2;
-                        buffer[i++] = UConverterConstants.SO;
+                        encoder.fromUnicodeStatus=2;
+                        p[i++]=UConverterConstants.SO;
                     }
-                    buffer[i++] = subchar[0];
-                    buffer[i++] = subchar[1];
+                    p[i++]=subchar[0];
+                    p[i++]=subchar[1];
                     break;
                 default:
                     throw new IllegalArgumentException();
                 }
-
-                subchar = buffer;
-                length = i;
-            }
-            return CharsetEncoderICU.fromUWriteBytes(encoder, subchar, 0, length, target, offsets,
-                    source.position());
-        }
-        
-        /**
-         * Gets called whenever CharsetEncoder.replaceWith gets called. allowReplacementChanges
-         * only allows subChar and subChar1 to be modified outside construction (since replaceWith
-         * is called once during construction).
-         * 
-         * @param replacement The replacement for subchar.
-         */
-        protected void implReplaceWith(byte[] replacement) {
-            if (allowReplacementChanges) {
-                CharsetMBCS cs = (CharsetMBCS) this.charset();
-                
-                System.arraycopy(replacement, 0, cs.subChar, 0, replacement.length);
-                cs.subCharLen = (byte)replacement.length;
-                cs.subChar1 = 0;
+                return super.cbFromUWriteSub(encoder, source, target, offsets);
+            default:
+                return super.cbFromUWriteSub(encoder, source, target, offsets);
             }
         }
     }    

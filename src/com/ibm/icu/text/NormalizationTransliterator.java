@@ -1,6 +1,6 @@
 /*
 **********************************************************************
-*   Copyright (C) 2001-2007, International Business Machines
+*   Copyright (C) 2001-2006, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 **********************************************************************
 *   Date        Name        Description
@@ -196,15 +196,12 @@ final class NormalizationTransliterator extends Transliterator {
         //System.out.println("t: " + com.ibm.icu.impl.Utility.hex(text.toString()) + ", s: " + lastSafe + ", l: " + limit);
 
         int len = limit - lastSafe;
-        String input = null;
-        synchronized (buffer) {
-            if (buffer.length < len) {
-                buffer = new char[len]; // rare, and we don't care if we grow too large
-            }
-            text.getChars(lastSafe, limit, buffer, 0);
-            input = new String(buffer, 0, len); // TODO: fix normalizer to take char[]
+        if (buffer.length < len) {
+            buffer = new char[len]; // rare, and we don't care if we grow too large
         }
-        String output = Normalizer.normalize(input, mode, options);
+        text.getChars(lastSafe, limit, buffer, 0);
+        String input = new String(buffer, 0, len); // TODO: fix normalizer to take char[]
+        String output = Normalizer.normalize(input, mode);
         
         // verify OK, if specified
         if (verify != null) {

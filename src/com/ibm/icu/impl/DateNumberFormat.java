@@ -1,4 +1,4 @@
-//##header J2SE15
+//##header
 /*
 *******************************************************************************
 *   Copyright (C) 2007, International Business Machines
@@ -42,11 +42,10 @@ public final class DateNumberFormat extends NumberFormat {
         initialize(loc);
     }
 
-/*    public DateNumberFormat(char zeroDigit, char minusSign) {
+    public DateNumberFormat(char zeroDigit, char minusSign) {
         this.zeroDigit = zeroDigit;
         this.minusSign = minusSign;
     }
-*/
 
     private void initialize(ULocale loc) {
         char[] elems = (char[])CACHE.get(loc);
@@ -136,8 +135,7 @@ public final class DateNumberFormat extends NumberFormat {
         throw new UnsupportedOperationException("StringBuffer format(BigInteger, StringBuffer, FieldPostion) is not implemented");
     }
 
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
+//#ifndef FOUNDATION
     public StringBuffer format(java.math.BigDecimal number, StringBuffer toAppendTo,
             FieldPosition pos) {
         throw new UnsupportedOperationException("StringBuffer format(BigDecimal, StringBuffer, FieldPostion) is not implemented");
@@ -188,15 +186,21 @@ public final class DateNumberFormat extends NumberFormat {
     }
 
     public boolean equals(Object obj) {
-        if (obj == null || !super.equals(obj) || !(obj instanceof DateNumberFormat)) {
+        if (obj == null) {
+            return false;
+        }
+        if (!super.equals(obj)) {
             return false;
         }
         DateNumberFormat other = (DateNumberFormat)obj;
-        return (this.maxIntDigits == other.maxIntDigits
+        if (this.maxIntDigits == other.maxIntDigits
                 && this.minIntDigits == other.minIntDigits
                 && this.zeroDigit == other.zeroDigit
                 && this.minusSign == other.minusSign
-                && this.positiveOnly == other.positiveOnly);
+                && this.positiveOnly == other.positiveOnly) {
+            return true;
+        }
+        return false;
     }
 
     private void readObject(ObjectInputStream stream) throws IOException, ClassNotFoundException {

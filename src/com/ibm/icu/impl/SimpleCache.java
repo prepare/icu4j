@@ -1,10 +1,3 @@
-/*
- ****************************************************************************
- * Copyright (c) 2007 International Business Machines Corporation and others.
- * All rights reserved.
- ****************************************************************************
- */
-
 package com.ibm.icu.impl;
 
 import java.lang.ref.SoftReference;

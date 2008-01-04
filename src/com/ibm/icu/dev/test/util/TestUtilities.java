@@ -1,12 +1,11 @@
-//##header J2SE15
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
+//##header
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
+//#ifndef FOUNDATION
 package com.ibm.icu.dev.test.util;
 
 import java.text.NumberFormat;
@@ -27,6 +26,7 @@ import java.util.TreeSet;
 
 import com.ibm.icu.dev.test.TestBoilerplate;
 import com.ibm.icu.dev.test.TestFmwk;
+import com.ibm.icu.impl.CollectionUtilities;
 import com.ibm.icu.impl.Utility;
 import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.lang.UProperty;
@@ -86,6 +86,7 @@ public class TestUtilities extends TestFmwk {
         logln("Comparing Values");
         Set values1 = (Set) map1.getAvailableValues(new TreeSet());
         Set values2 = new TreeSet(map2.values());
+        Set temp;
         if (!TestBoilerplate.verifySetsIdentical(this, values1, values2)) {
             throw new IllegalArgumentException("Halting");
         }
@@ -232,19 +233,19 @@ public class TestUtilities extends TestFmwk {
 	private void checkNext(int limit) {
         logln("Comparing nextRange");
         UnicodeMap.MapIterator mi = new UnicodeMap.MapIterator(map1);
-        Map localMap = new TreeMap();
+        Map map3 = new TreeMap();
         while (mi.nextRange()) {
             logln(Utility.hex(mi.codepoint) + ".." + Utility.hex(mi.codepointEnd) + " => " + mi.value);
             for (int i = mi.codepoint; i <= mi.codepointEnd; ++i) {
                 if (i >= limit) continue;
-                localMap.put(new Integer(i), mi.value);
+                map3.put(new Integer(i), mi.value);
             }
         }
-        checkMap(map2, localMap);
+        checkMap(map2, map3);
         
         logln("Comparing next");
         mi.reset();
-        localMap = new TreeMap();
+        map3 = new TreeMap();
         Object lastValue = new Object();
         while (mi.next()) {
             if (!UnicodeMap.areEqual(lastValue, mi.value)) {
@@ -252,9 +253,9 @@ public class TestUtilities extends TestFmwk {
                 lastValue = mi.value;
             }
             if (mi.codepoint >= limit) continue;
-            localMap.put(new Integer(mi.codepoint), mi.value);
+            map3.put(new Integer(mi.codepoint), mi.value);
         }
-        checkMap(map2, localMap);
+        checkMap(map2, map3);
     }
     
     public void check(int counter) {
@@ -382,7 +383,7 @@ public class TestUtilities extends TestFmwk {
             case 2:
                 int enumValue = UCharacter.getIntPropertyValue(cp, propEnum);
                 //if (enumValue <= 0) continue;
-                UCharacter.getPropertyValueName(propEnum,enumValue, UProperty.NameChoice.LONG);
+                String value = UCharacter.getPropertyValueName(propEnum,enumValue, UProperty.NameChoice.LONG);
                 break;                
             case 3: map3.get(new Integer(cp)); break;
             }

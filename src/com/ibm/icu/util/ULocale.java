@@ -1,6 +1,6 @@
 /*
 ******************************************************************************
-* Copyright (C) 2003-2007, International Business Machines Corporation and   *
+* Copyright (C) 2003-2006, International Business Machines Corporation and   *
 * others. All Rights Reserved.                                               *
 ******************************************************************************
 */
@@ -9,7 +9,6 @@ package com.ibm.icu.util;
 
 import java.io.Serializable;
 import java.lang.ref.SoftReference;
-import java.text.ParseException;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -22,7 +21,7 @@ import java.util.TreeMap;
 import com.ibm.icu.impl.SimpleCache;
 import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.impl.LocaleUtility;
-
+import com.ibm.icu.lang.UCharacter;
 /**
  * A class analogous to {@link java.util.Locale} that provides additional
  * support for ICU protocol.  In ICU 3.0 this class is enhanced to support
@@ -497,118 +496,118 @@ public final class ULocale implements Serializable {
             /* This list MUST be in sorted order, and MUST contain only two-letter codes! */
             String[] tempCountries = {
                 "AD",  "AE",  "AF",  "AG",  "AI",  "AL",  "AM",  "AN",
-                "AO",  "AQ",  "AR",  "AS",  "AT",  "AU",  "AW",  "AX",  "AZ",
+                "AO",  "AQ",  "AR",  "AS",  "AT",  "AU",  "AW",  "AZ",
                 "BA",  "BB",  "BD",  "BE",  "BF",  "BG",  "BH",  "BI",
-                "BJ",  "BL",  "BM",  "BN",  "BO",  "BR",  "BS",  "BT",  "BV",
+                "BJ",  "BM",  "BN",  "BO",  "BR",  "BS",  "BT",  "BV",
                 "BW",  "BY",  "BZ",  "CA",  "CC",  "CD",  "CF",  "CG",
                 "CH",  "CI",  "CK",  "CL",  "CM",  "CN",  "CO",  "CR",
                 "CU",  "CV",  "CX",  "CY",  "CZ",  "DE",  "DJ",  "DK",
                 "DM",  "DO",  "DZ",  "EC",  "EE",  "EG",  "EH",  "ER",
                 "ES",  "ET",  "FI",  "FJ",  "FK",  "FM",  "FO",  "FR",
-                "GA",  "GB",  "GD",  "GE",  "GF",  "GG",  "GH",  "GI",  "GL",
+                "GA",  "GB",  "GD",  "GE",  "GF",  "GH",  "GI",  "GL",
                 "GM",  "GN",  "GP",  "GQ",  "GR",  "GS",  "GT",  "GU",
                 "GW",  "GY",  "HK",  "HM",  "HN",  "HR",  "HT",  "HU",
-                "ID",  "IE",  "IL",  "IM",  "IN",  "IO",  "IQ",  "IR",  "IS",
-                "IT",  "JE",  "JM",  "JO",  "JP",  "KE",  "KG",  "KH",  "KI",
+                "ID",  "IE",  "IL",  "IN",  "IO",  "IQ",  "IR",  "IS",
+                "IT",  "JM",  "JO",  "JP",  "KE",  "KG",  "KH",  "KI",
                 "KM",  "KN",  "KP",  "KR",  "KW",  "KY",  "KZ",  "LA",
                 "LB",  "LC",  "LI",  "LK",  "LR",  "LS",  "LT",  "LU",
-                "LV",  "LY",  "MA",  "MC",  "MD",  "ME",  "MF",  "MG",  "MH",  "MK",
+                "LV",  "LY",  "MA",  "MC",  "MD",  "MG",  "MH",  "MK",
                 "ML",  "MM",  "MN",  "MO",  "MP",  "MQ",  "MR",  "MS",
                 "MT",  "MU",  "MV",  "MW",  "MX",  "MY",  "MZ",  "NA",
                 "NC",  "NE",  "NF",  "NG",  "NI",  "NL",  "NO",  "NP",
                 "NR",  "NU",  "NZ",  "OM",  "PA",  "PE",  "PF",  "PG",
                 "PH",  "PK",  "PL",  "PM",  "PN",  "PR",  "PS",  "PT",
-                "PW",  "PY",  "QA",  "RE",  "RO",  "RS",  "RU",  "RW",  "SA",
+                "PW",  "PY",  "QA",  "RE",  "RO",  "RU",  "RW",  "SA",
                 "SB",  "SC",  "SD",  "SE",  "SG",  "SH",  "SI",  "SJ",
                 "SK",  "SL",  "SM",  "SN",  "SO",  "SR",  "ST",  "SV",
                 "SY",  "SZ",  "TC",  "TD",  "TF",  "TG",  "TH",  "TJ",
                 "TK",  "TL",  "TM",  "TN",  "TO",  "TR",  "TT",  "TV",
                 "TW",  "TZ",  "UA",  "UG",  "UM",  "US",  "UY",  "UZ",
                 "VA",  "VC",  "VE",  "VG",  "VI",  "VN",  "VU",  "WF",
-                "WS",  "YE",  "YT",  "ZA",  "ZM",  "ZW",
-            };
+                "WS",  "YE",  "YT",  "YU",  "ZA",  "ZM",  "ZW",  
+            };	
 
             /* this table is used for 3 letter codes */
             String[] tempObsoleteCountries = {
-                "FX",  "CS",  "RO",  "TP",  "YU",  "ZR",  /* obsolete country codes */      
+                "FX",  "RO",  "TP",  "ZR",  /* obsolete country codes */      
             };
             
             String[] tempDeprecatedCountries = {
-               "BU", "CS", "DY", "FX", "HV", "NH", "RH", "TP", "YU", "ZR" /* deprecated country list */
+               "BU", "DY", "FX", "HV", "NH", "RH", "TP", "YU", "ZR" /* deprecated country list */
             };
             String[] tempReplacementCountries = {
-           /*  "BU", "CS", "DY", "FX", "HV", "NH", "RH", "TP", "YU", "ZR" */
-               "MM", "RS", "BJ", "FR", "BF", "VU", "ZW", "TL", "RS", "CD",   /* replacement country codes */      
+           /*  "BU", "DY", "FX", "HV", "NH", "RH", "TP", "YU", "ZR" */
+               "MM", "BJ", "FR", "BF", "VU", "ZW", "TL", "CS", "CD",   /* replacement country codes */      
             };
     
             /* This list MUST contain a three-letter code for every two-letter code in
                the above list, and they MUST be listed in the same order! */
             String[] tempCountries3 = {
-                /*  "AD",  "AE",  "AF",  "AG",  "AI",  "AL",  "AM",  "AN",     */
-                    "AND", "ARE", "AFG", "ATG", "AIA", "ALB", "ARM", "ANT",
-                /*  "AO",  "AQ",  "AR",  "AS",  "AT",  "AU",  "AW",  "AX",  "AZ",     */
-                    "AGO", "ATA", "ARG", "ASM", "AUT", "AUS", "ABW", "ALA", "AZE",
-                /*  "BA",  "BB",  "BD",  "BE",  "BF",  "BG",  "BH",  "BI",     */
-                    "BIH", "BRB", "BGD", "BEL", "BFA", "BGR", "BHR", "BDI",
-                /*  "BJ",  "BL",  "BM",  "BN",  "BO",  "BR",  "BS",  "BT",  "BV",     */
-                    "BEN", "BLM", "BMU", "BRN", "BOL", "BRA", "BHS", "BTN", "BVT",
-                /*  "BW",  "BY",  "BZ",  "CA",  "CC",  "CD",  "CF",  "CG",     */
-                    "BWA", "BLR", "BLZ", "CAN", "CCK", "COD", "CAF", "COG",
-                /*  "CH",  "CI",  "CK",  "CL",  "CM",  "CN",  "CO",  "CR",     */
-                    "CHE", "CIV", "COK", "CHL", "CMR", "CHN", "COL", "CRI",
-                /*  "CU",  "CV",  "CX",  "CY",  "CZ",  "DE",  "DJ",  "DK",     */
-                    "CUB", "CPV", "CXR", "CYP", "CZE", "DEU", "DJI", "DNK",
-                /*  "DM",  "DO",  "DZ",  "EC",  "EE",  "EG",  "EH",  "ER",     */
-                    "DMA", "DOM", "DZA", "ECU", "EST", "EGY", "ESH", "ERI",
-                /*  "ES",  "ET",  "FI",  "FJ",  "FK",  "FM",  "FO",  "FR",     */
-                    "ESP", "ETH", "FIN", "FJI", "FLK", "FSM", "FRO", "FRA",
-                /*  "GA",  "GB",  "GD",  "GE",  "GF",  "GG",  "GH",  "GI",  "GL",     */
-                    "GAB", "GBR", "GRD", "GEO", "GUF", "GGY", "GHA", "GIB", "GRL",
-                /*  "GM",  "GN",  "GP",  "GQ",  "GR",  "GS",  "GT",  "GU",     */
-                    "GMB", "GIN", "GLP", "GNQ", "GRC", "SGS", "GTM", "GUM",
-                /*  "GW",  "GY",  "HK",  "HM",  "HN",  "HR",  "HT",  "HU",     */
-                    "GNB", "GUY", "HKG", "HMD", "HND", "HRV", "HTI", "HUN",
-                /*  "ID",  "IE",  "IL",  "IM",  "IN",  "IO",  "IQ",  "IR",  "IS" */
-                    "IDN", "IRL", "ISR", "IMN", "IND", "IOT", "IRQ", "IRN", "ISL",
-                /*  "IT",  "JE",  "JM",  "JO",  "JP",  "KE",  "KG",  "KH",  "KI",     */
-                    "ITA", "JEY", "JAM", "JOR", "JPN", "KEN", "KGZ", "KHM", "KIR",
-                /*  "KM",  "KN",  "KP",  "KR",  "KW",  "KY",  "KZ",  "LA",     */
-                    "COM", "KNA", "PRK", "KOR", "KWT", "CYM", "KAZ", "LAO",
-                /*  "LB",  "LC",  "LI",  "LK",  "LR",  "LS",  "LT",  "LU",     */
-                    "LBN", "LCA", "LIE", "LKA", "LBR", "LSO", "LTU", "LUX",
-                /*  "LV",  "LY",  "MA",  "MC",  "MD",  "ME",  "MF",  "MG",  "MH",  "MK",     */
-                    "LVA", "LBY", "MAR", "MCO", "MDA", "MNE", "MAF", "MDG", "MHL", "MKD",
-                /*  "ML",  "MM",  "MN",  "MO",  "MP",  "MQ",  "MR",  "MS",     */
-                    "MLI", "MMR", "MNG", "MAC", "MNP", "MTQ", "MRT", "MSR",
-                /*  "MT",  "MU",  "MV",  "MW",  "MX",  "MY",  "MZ",  "NA",     */
-                    "MLT", "MUS", "MDV", "MWI", "MEX", "MYS", "MOZ", "NAM",
-                /*  "NC",  "NE",  "NF",  "NG",  "NI",  "NL",  "NO",  "NP",     */
-                    "NCL", "NER", "NFK", "NGA", "NIC", "NLD", "NOR", "NPL",
-                /*  "NR",  "NU",  "NZ",  "OM",  "PA",  "PE",  "PF",  "PG",     */
-                    "NRU", "NIU", "NZL", "OMN", "PAN", "PER", "PYF", "PNG",
-                /*  "PH",  "PK",  "PL",  "PM",  "PN",  "PR",  "PS",  "PT",     */
-                    "PHL", "PAK", "POL", "SPM", "PCN", "PRI", "PSE", "PRT",
-                /*  "PW",  "PY",  "QA",  "RE",  "RO",  "RS",  "RU",  "RW",  "SA",     */
-                    "PLW", "PRY", "QAT", "REU", "ROU", "SRB", "RUS", "RWA", "SAU",
-                /*  "SB",  "SC",  "SD",  "SE",  "SG",  "SH",  "SI",  "SJ",     */
-                    "SLB", "SYC", "SDN", "SWE", "SGP", "SHN", "SVN", "SJM",
-                /*  "SK",  "SL",  "SM",  "SN",  "SO",  "SR",  "ST",  "SV",     */
-                    "SVK", "SLE", "SMR", "SEN", "SOM", "SUR", "STP", "SLV",
-                /*  "SY",  "SZ",  "TC",  "TD",  "TF",  "TG",  "TH",  "TJ",     */
-                    "SYR", "SWZ", "TCA", "TCD", "ATF", "TGO", "THA", "TJK",
-                /*  "TK",  "TL",  "TM",  "TN",  "TO",  "TR",  "TT",  "TV",     */
-                    "TKL", "TLS", "TKM", "TUN", "TON", "TUR", "TTO", "TUV",
-                /*  "TW",  "TZ",  "UA",  "UG",  "UM",  "US",  "UY",  "UZ",     */
-                    "TWN", "TZA", "UKR", "UGA", "UMI", "USA", "URY", "UZB",
-                /*  "VA",  "VC",  "VE",  "VG",  "VI",  "VN",  "VU",  "WF",     */
-                    "VAT", "VCT", "VEN", "VGB", "VIR", "VNM", "VUT", "WLF",
-                /*  "WS",  "YE",  "YT",  "ZA",  "ZM",  "ZW"          */
-                    "WSM", "YEM", "MYT", "ZAF", "ZMB", "ZWE",
+                /*"AD",  "AE",  "AF",  "AG",  "AI",  "AL",  "AM",  "AN",     */
+                "AND", "ARE", "AFG", "ATG", "AIA", "ALB", "ARM", "ANT",
+                /*"AO",  "AQ",  "AR",  "AS",  "AT",  "AU",  "AW",  "AZ",     */
+                "AGO", "ATA", "ARG", "ASM", "AUT", "AUS", "ABW", "AZE",
+                /*"BA",  "BB",  "BD",  "BE",  "BF",  "BG",  "BH",  "BI",     */
+                "BIH", "BRB", "BGD", "BEL", "BFA", "BGR", "BHR", "BDI",
+                /*"BJ",  "BM",  "BN",  "BO",  "BR",  "BS",  "BT",  "BV",     */
+                "BEN", "BMU", "BRN", "BOL", "BRA", "BHS", "BTN", "BVT",
+                /*"BW",  "BY",  "BZ",  "CA",  "CC",  "CD",  "CF",  "CG",     */
+                "BWA", "BLR", "BLZ", "CAN", "CCK", "COD", "CAF", "COG",
+                /*"CH",  "CI",  "CK",  "CL",  "CM",  "CN",  "CO",  "CR",     */
+                "CHE", "CIV", "COK", "CHL", "CMR", "CHN", "COL", "CRI",
+                /*"CU",  "CV",  "CX",  "CY",  "CZ",  "DE",  "DJ",  "DK",     */
+                "CUB", "CPV", "CXR", "CYP", "CZE", "DEU", "DJI", "DNK",
+                /*"DM",  "DO",  "DZ",  "EC",  "EE",  "EG",  "EH",  "ER",     */
+                "DMA", "DOM", "DZA", "ECU", "EST", "EGY", "ESH", "ERI",
+                /*"ES",  "ET",  "FI",  "FJ",  "FK",  "FM",  "FO",  "FR",     */
+                "ESP", "ETH", "FIN", "FJI", "FLK", "FSM", "FRO", "FRA",
+                /*"GA",  "GB",  "GD",  "GE",  "GF",  "GH",  "GI",  "GL",     */
+                "GAB", "GBR", "GRD", "GEO", "GUF", "GHA", "GIB", "GRL",
+                /*"GM",  "GN",  "GP",  "GQ",  "GR",  "GS",  "GT",  "GU",     */
+                "GMB", "GIN", "GLP", "GNQ", "GRC", "SGS", "GTM", "GUM",
+                /*"GW",  "GY",  "HK",  "HM",  "HN",  "HR",  "HT",  "HU",     */
+                "GNB", "GUY", "HKG", "HMD", "HND", "HRV", "HTI", "HUN",
+                /*"ID",  "IE",  "IL",  "IN",  "IO",  "IQ",  "IR",  "IS",     */
+                "IDN", "IRL", "ISR", "IND", "IOT", "IRQ", "IRN", "ISL",
+                /*"IT",  "JM",  "JO",  "JP",  "KE",  "KG",  "KH",  "KI",     */
+                "ITA", "JAM", "JOR", "JPN", "KEN", "KGZ", "KHM", "KIR",
+                /*"KM",  "KN",  "KP",  "KR",  "KW",  "KY",  "KZ",  "LA",     */
+                "COM", "KNA", "PRK", "KOR", "KWT", "CYM", "KAZ", "LAO",
+                /*"LB",  "LC",  "LI",  "LK",  "LR",  "LS",  "LT",  "LU",     */
+                "LBN", "LCA", "LIE", "LKA", "LBR", "LSO", "LTU", "LUX",
+                /*"LV",  "LY",  "MA",  "MC",  "MD",  "MG",  "MH",  "MK",     */
+                "LVA", "LBY", "MAR", "MCO", "MDA", "MDG", "MHL", "MKD",
+                /*"ML",  "MM",  "MN",  "MO",  "MP",  "MQ",  "MR",  "MS",     */
+                "MLI", "MMR", "MNG", "MAC", "MNP", "MTQ", "MRT", "MSR",
+                /*"MT",  "MU",  "MV",  "MW",  "MX",  "MY",  "MZ",  "NA",     */
+                "MLT", "MUS", "MDV", "MWI", "MEX", "MYS", "MOZ", "NAM",
+                /*"NC",  "NE",  "NF",  "NG",  "NI",  "NL",  "NO",  "NP",     */
+                "NCL", "NER", "NFK", "NGA", "NIC", "NLD", "NOR", "NPL",
+                /*"NR",  "NU",  "NZ",  "OM",  "PA",  "PE",  "PF",  "PG",     */
+                "NRU", "NIU", "NZL", "OMN", "PAN", "PER", "PYF", "PNG",
+                /*"PH",  "PK",  "PL",  "PM",  "PN",  "PR",  "PS",  "PT",     */
+                "PHL", "PAK", "POL", "SPM", "PCN", "PRI", "PSE", "PRT",
+                /*"PW",  "PY",  "QA",  "RE",  "RO",  "RU",  "RW",  "SA",     */
+                "PLW", "PRY", "QAT", "REU", "ROU", "RUS", "RWA", "SAU",
+                /*"SB",  "SC",  "SD",  "SE",  "SG",  "SH",  "SI",  "SJ",     */
+                "SLB", "SYC", "SDN", "SWE", "SGP", "SHN", "SVN", "SJM",
+                /*"SK",  "SL",  "SM",  "SN",  "SO",  "SR",  "ST",  "SV",     */
+                "SVK", "SLE", "SMR", "SEN", "SOM", "SUR", "STP", "SLV",
+                /*"SY",  "SZ",  "TC",  "TD",  "TF",  "TG",  "TH",  "TJ",     */
+                "SYR", "SWZ", "TCA", "TCD", "ATF", "TGO", "THA", "TJK",
+                /*"TK",  "TL",  "TM",  "TN",  "TO",  "TR",  "TT",  "TV",     */
+                "TKL", "TLS", "TKM", "TUN", "TON", "TUR", "TTO", "TUV",
+                /*"TW",  "TZ",  "UA",  "UG",  "UM",  "US",  "UY",  "UZ",     */
+                "TWN", "TZA", "UKR", "UGA", "UMI", "USA", "URY", "UZB",
+                /*"VA",  "VC",  "VE",  "VG",  "VI",  "VN",  "VU",  "WF",     */
+                "VAT", "VCT", "VEN", "VGB", "VIR", "VNM", "VUT", "WLF",
+                /*"WS",  "YE",  "YT",  "YU",  "ZA",  "ZM",  "ZW",            */
+                "WSM", "YEM", "MYT", "YUG", "ZAF", "ZMB", "ZWE",
             };
     
             String[] tempObsoleteCountries3 = {
-                /*"FX",  "CS",  "RO",  "TP",  "YU",  "ZR",   */
-                "FXX", "SCG", "ROM", "TMP", "YUG", "ZAR",    
+                /*"FX",  "RO",  "TP",  "ZR",   */
+                "FXX", "ROM", "TMP", "ZAR",    
             };
 
             synchronized (ULocale.class) {
@@ -686,7 +685,6 @@ public final class ULocale implements Serializable {
                 { "zh_XIANG",       "zh__XIANG", null, null }, /* registered name */
                 { "zh_YUE",         "zh__YUE", null, null }, /* registered name */
                 { "th_TH_TRADITIONAL", "th_TH", "calendar", "buddhist" },
-                { "hi_IN_TRADITIONAL", "hi_IN", "calendar", "indian" },
                 { "zh_TW_STROKE",   "zh_TW", "collation", "stroke" },
                 { "zh__PINYIN",     "zh", "collation", "pinyin" }
             };
@@ -698,21 +696,6 @@ public final class ULocale implements Serializable {
             }
         }
     }
-
-    /*
-     * This table is used for mapping between ICU and special Java
-     * locales.  When an ICU locale matches <minumum base> with
-     * <keyword>/<value>, the ICU locale is mapped to <Java> locale.
-     * For example, both ja_JP@calendar=japanese and ja@calendar=japanese
-     * are mapped to Java locale "ja_JP_JP".  ICU locale "nn" is mapped
-     * to Java locale "no_NO_NY".
-     */
-    private static final String[][] _javaLocaleMap = {
-    //  { <Java>,       <ICU base>, <keyword>,  <value>,    <minimum base>
-        { "ja_JP_JP",   "ja_JP",    "calendar", "japanese", "ja"},
-        { "no_NO_NY",   "nn_NO",    null,       null,       "nn"},
-    //  { "th_TH_TH",   "th_TH",    ??,         ??,         "th"} //TODO
-    };
 
     /**
      * Private constructor used by static initializers.
@@ -729,7 +712,7 @@ public final class ULocale implements Serializable {
      * @internal
      */
     private ULocale(Locale loc) {
-        this.localeID = getName(forLocale(loc).toString());
+        this.localeID = getName(loc.toString());
         this.locale = loc;
     }
 
@@ -752,14 +735,6 @@ public final class ULocale implements Serializable {
                 if (locStr.length() == 0) {
                     result = ROOT;
                 } else {
-                    for (int i = 0; i < _javaLocaleMap.length; i++) {
-                        if (_javaLocaleMap[i][0].equals(locStr)) {
-                            IDParser p = new IDParser(_javaLocaleMap[i][1]);
-                            p.setKeywordValue(_javaLocaleMap[i][2], _javaLocaleMap[i][3]);
-                            locStr = p.getName();
-                            break;
-                        }
-                    }
                     result = new ULocale(locStr, loc);
                 }
             }
@@ -795,7 +770,7 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.4
      */
     public ULocale(String a, String b) {
-        this(a, b, null);
+	this(a, b, null);
     }
 
     /**
@@ -864,28 +839,12 @@ public final class ULocale implements Serializable {
      */
     public Locale toLocale() {
         if (locale == null) {
-            IDParser p = new IDParser(localeID);
-            String base = p.getBaseName();
-            for (int i = 0; i < _javaLocaleMap.length; i++) {
-                if (base.equals(_javaLocaleMap[i][1]) || base.equals(_javaLocaleMap[i][4])) {
-                    if (_javaLocaleMap[i][2] != null) {
-                        String val = p.getKeywordValue(_javaLocaleMap[i][2]);
-                        if (val != null && val.equals(_javaLocaleMap[i][3])) {
-                            p = new IDParser(_javaLocaleMap[i][0]);
-                            break;
-                        }
-                    } else {
-                        p = new IDParser(_javaLocaleMap[i][0]);
-                        break;
-                    }
-                }
-            }
-            String[] names = p.getLanguageScriptCountryVariant();
+            String[] names = new IDParser(localeID).getLanguageScriptCountryVariant();
             locale = new Locale(names[0], names[2], names[3]);
         }
         return locale;
     }
-
+    
     private static SoftReference nameCacheRef = new SoftReference(Collections.synchronizedMap(new HashMap()));
     /**
      * Keep our own default ULocale.
@@ -1550,7 +1509,7 @@ public final class ULocale implements Serializable {
             }
 
             return blen;
-        }  
+        }	  
 
         /**
          * Advance index past country.
@@ -2253,7 +2212,7 @@ public final class ULocale implements Serializable {
      */
     public static String getDisplayLanguage(String localeID, ULocale displayLocale) {
         return getDisplayLanguageInternal(localeID, displayLocale.localeID);
-    } 
+    }	 
 
     static String getCurrentCountryID(String oldID){
         initCountryTables();
@@ -2271,7 +2230,7 @@ public final class ULocale implements Serializable {
         }
         return oldID;        
     }
-
+	
 
     // displayLocaleID is canonical, localeID need not be since parsing will fix this.
     private static String getDisplayLanguageInternal(String localeID, String displayLocaleID) {
@@ -2631,7 +2590,7 @@ public final class ULocale implements Serializable {
      * @provisional This API might change or be removed in a future release.
      */
     public static Type ACTUAL_LOCALE = new Type(0);
-
+ 
     /** 
      * Selector for <tt>getLocale()</tt> indicating the most specific
      * locale for which any data exists.  This is always at or above
@@ -2647,7 +2606,7 @@ public final class ULocale implements Serializable {
      * @provisional This API might change or be removed in a future release.
      */ 
     public static Type VALID_LOCALE = new Type(1);
-
+    
     /**
      * Opaque selector enum for <tt>getLocale()</tt>.
      * @see com.ibm.icu.util.ULocale
@@ -2660,7 +2619,8 @@ public final class ULocale implements Serializable {
         private int localeType;
         private Type(int type) { localeType = type; }
     }
-
+    
+    
   /**
     * Based on a HTTP formatted list of acceptable locales, determine an available locale for the user.
     * NullPointerException is thrown if acceptLanguageList or availableLocales is
@@ -2674,27 +2634,97 @@ public final class ULocale implements Serializable {
     * @param availableLocales list of available locales. One of these will be returned.
     * @param fallback if non-null, a 1-element array containing a boolean to be set with the fallback status
     * @return one of the locales from the availableLocales list, or null if none match
-    * @stable ICU 3.4
+    * @draft ICU 3.4
+    * @provisional This API might change or be removed in a future release.
     */
 
     public static ULocale acceptLanguage(String acceptLanguageList, ULocale[] availableLocales, 
                                          boolean[] fallback) {
-        if (acceptLanguageList == null) {
-            throw new NullPointerException();
+        /**
+         * @internal ICU 3.4
+         */
+        class ULocaleAcceptLanguageQ implements Comparable {
+            private double q;
+            private double serial;
+            public ULocaleAcceptLanguageQ(double theq, int theserial) {
+                q = theq;
+                serial = theserial;
+            }
+            public int compareTo(Object o) {
+                ULocaleAcceptLanguageQ other = (ULocaleAcceptLanguageQ) o;
+                if(q > other.q) { // reverse - to sort in descending order
+                    return -1;
+                } else if(q < other.q) {
+                    return 1;
+                }
+                if(serial < other.serial) {
+                    return -1;
+                } else if(serial > other.serial) {
+                    return 1;
+                } else {
+                    return 0; // same object
+                }
+            }
         }
-        ULocale acceptList[] = null;
-        try {
-            acceptList = parseAcceptLanguage(acceptLanguageList, true);
-        } catch (ParseException pe) {
-            acceptList = null;
+
+        // 1st: parse out the acceptLanguageList into an array
+        
+        TreeMap map = new TreeMap();
+        
+        final int l = acceptLanguageList.length();
+        int n;
+        for(n=0;n<l;n++) {
+            int itemEnd = acceptLanguageList.indexOf(',',n);
+            if(itemEnd == -1) {
+                itemEnd = l;
+            }
+            int paramEnd = acceptLanguageList.indexOf(';',n);
+            double q = 1.0;
+ 
+            if((paramEnd != -1) && (paramEnd < itemEnd)) {
+                /* semicolon (;) is closer than end (,) */
+                int t = paramEnd + 1;
+                while(UCharacter.isWhitespace(acceptLanguageList.charAt(t))) {
+                    t++;
+                }
+                if(acceptLanguageList.charAt(t)=='q') {
+                    t++;
+                }
+                while(UCharacter.isWhitespace(acceptLanguageList.charAt(t))) {
+                    t++;
+                }
+                if(acceptLanguageList.charAt(t)=='=') {
+                    t++;
+                }
+                while(UCharacter.isWhitespace(acceptLanguageList.charAt(t))) {
+                    t++;
+                }
+                try {
+                    String val = acceptLanguageList.substring(t,itemEnd).trim();
+                    q = Double.parseDouble(val);
+                } catch (NumberFormatException nfe) {
+                    q = 1.0;
+                }
+            } else {
+                q = 1.0; //default
+                paramEnd = itemEnd;
+            }
+
+            String loc = acceptLanguageList.substring(n,paramEnd).trim();
+            int serial = map.size();
+            ULocaleAcceptLanguageQ entry = new ULocaleAcceptLanguageQ(q,serial);
+            map.put(entry, new ULocale(canonicalize(loc))); // sort in reverse order..   1.0, 0.9, 0.8 .. etc
+            n = itemEnd; // get next item. (n++ will skip over delimiter)
         }
-        if (acceptList == null) {
-            return null;
-        }
+        
+        // 2. pull out the map 
+        ULocale acceptList[] = (ULocale[])map.values().toArray(new ULocale[map.size()]);
+        
+        // 3. call the real function
         return acceptLanguage(acceptList, availableLocales, fallback);
     }
-
-    /**
+    
+   /**
     * Based on a list of acceptable locales, determine an available locale for the user.
     * NullPointerException is thrown if acceptLanguageList or availableLocales is
     * null.  If fallback is non-null, it will contain true if a fallback locale (one
@@ -2707,7 +2737,8 @@ public final class ULocale implements Serializable {
     * @param availableLocales list of available locales. One of these will be returned.
     * @param fallback if non-null, a 1-element array containing a boolean to be set with the fallback status
     * @return one of the locales from the availableLocales list, or null if none match
-    * @stable ICU 3.4
+    * @draft ICU 3.4
+    * @provisional This API might change or be removed in a future release.
     */
 
     public static ULocale acceptLanguage(ULocale[] acceptLanguageList, ULocale[]
@@ -2755,12 +2786,13 @@ public final class ULocale implements Serializable {
     * @param acceptLanguageList list in HTTP "Accept-Language:" format of acceptable locales
     * @param fallback if non-null, a 1-element array containing a boolean to be set with the fallback status
     * @return one of the locales from the ULocale.getAvailableLocales() list, or null if none match
-    * @stable ICU 3.4
+    * @draft ICU 3.4
+    * @provisional This API might change or be removed in a future release.
     */
 
     public static ULocale acceptLanguage(String acceptLanguageList, boolean[] fallback) {
         return acceptLanguage(acceptLanguageList, ULocale.getAvailableLocales(),
-                                fallback);
+                				fallback);
     }
 
    /**
@@ -2776,826 +2808,13 @@ public final class ULocale implements Serializable {
     * @param acceptLanguageList ordered array of acceptable locales (preferred are listed first)
     * @param fallback if non-null, a 1-element array containing a boolean to be set with the fallback status
     * @return one of the locales from the ULocale.getAvailableLocales() list, or null if none match
-    * @stable ICU 3.4
+    * @draft ICU 3.4
+    * @provisional This API might change or be removed in a future release.
     */
 
     public static ULocale acceptLanguage(ULocale[] acceptLanguageList, boolean[]
                                          fallback) {
         return acceptLanguage(acceptLanguageList, ULocale.getAvailableLocales(),
-                fallback);
-    }
-
-    /**
-     * Package local method used for parsing Accept-Language string
-     * @internal ICU 3.8
-     */
-    static ULocale[] parseAcceptLanguage(String acceptLanguage, boolean isLenient) throws ParseException {
-        /**
-         * @internal ICU 3.4
-         */
-        class ULocaleAcceptLanguageQ implements Comparable {
-            private double q;
-            private double serial;
-            public ULocaleAcceptLanguageQ(double theq, int theserial) {
-                q = theq;
-                serial = theserial;
-            }
-            public int compareTo(Object o) {
-                ULocaleAcceptLanguageQ other = (ULocaleAcceptLanguageQ) o;
-                if (q > other.q) { // reverse - to sort in descending order
-                    return -1;
-                } else if (q < other.q) {
-                    return 1;
-                }
-                if (serial < other.serial) {
-                    return -1;
-                } else if (serial > other.serial) {
-                    return 1;
-                } else {
-                    return 0; // same object
-                }
-            }
-        }
-
-        // parse out the acceptLanguage into an array
-        TreeMap map = new TreeMap();
-        StringBuffer languageRangeBuf = new StringBuffer();
-        StringBuffer qvalBuf = new StringBuffer();
-        int state = 0;
-        acceptLanguage += ","; // append comma to simplify the parsing code
-        int n;
-        boolean subTag = false;
-        boolean q1 = false;
-        for (n = 0; n < acceptLanguage.length(); n++) {
-            boolean gotLanguageQ = false;
-            char c = acceptLanguage.charAt(n);
-            switch (state) {
-            case 0: // before language-range start
-                if (('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z')) {
-                    // in language-range
-                    languageRangeBuf.append(c);
-                    state = 1;
-                    subTag = false;
-                } else if (c == '*') {
-                    languageRangeBuf.append(c);
-                    state = 2;
-                } else if (c != ' ' && c != '\t') {
-                    // invalid character
-                    state = -1;
-                }
-                break;
-            case 1: // in language-range
-                if (('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z')) {
-                    languageRangeBuf.append(c);
-                } else if (c == '-') {
-                    subTag = true;
-                    languageRangeBuf.append(c);
-                } else if (c == '_') {
-                    if (isLenient) {
-                        subTag = true;
-                        languageRangeBuf.append(c);
-                    } else {
-                        state = -1;
-                    }
-                } else if ('0' <= c && c <= '9') {
-                    if (subTag) {
-                        languageRangeBuf.append(c);                        
-                    } else {
-                        // DIGIT is allowed only in language sub tag
-                        state = -1;
-                    }
-                } else if (c == ',') {
-                    // language-q end
-                    gotLanguageQ = true;
-                } else if (c == ' ' || c == '\t') {
-                    // language-range end
-                    state = 3;
-                } else if (c == ';') {
-                    // before q
-                    state = 4;
-                } else {
-                    // invalid character for language-range
-                    state = -1;
-                }
-                break;
-            case 2: // saw wild card range
-                if (c == ',') {
-                    // language-q end
-                    gotLanguageQ = true;
-                } else if (c == ' ' || c == '\t') {
-                    // language-range end
-                    state = 3;
-                } else if (c == ';') {
-                    // before q
-                    state = 4;
-                } else {
-                    // invalid
-                    state = -1;
-                }
-                break;
-            case 3: // language-range end
-                if (c == ',') {
-                    // language-q end
-                    gotLanguageQ = true;
-                } else if (c == ';') {
-                    // before q
-                    state =4;
-                } else if (c != ' ' && c != '\t') {
-                    // invalid
-                    state = -1;
-                }
-                break;
-            case 4: // before q
-                if (c == 'q') {
-                    // before equal
-                    state = 5;
-                } else if (c != ' ' && c != '\t') {
-                    // invalid
-                    state = -1;
-                }
-                break;
-            case 5: // before equal
-                if (c == '=') {
-                    // before q value
-                    state = 6;
-                } else if (c != ' ' && c != '\t') {
-                    // invalid
-                    state = -1;
-                }
-                break;
-            case 6: // before q value
-                if (c == '0') {
-                    // q value start with 0
-                    q1 = false;
-                    qvalBuf.append(c);
-                    state = 7;
-                } else if (c == '1') {
-                    // q value start with 1
-                    qvalBuf.append(c);
-                    state = 7;
-                } else if (c == '.') {
-                    if (isLenient) {
-                        qvalBuf.append(c);
-                        state = 8;
-                    } else {
-                        state = -1;
-                    }
-                } else if (c != ' ' && c != '\t') {
-                    // invalid
-                    state = -1;
-                }
-                break;
-            case 7: // q value start
-                if (c == '.') {
-                    // before q value fraction part
-                    qvalBuf.append(c);
-                    state = 8;
-                } else if (c == ',') {
-                    // language-q end
-                    gotLanguageQ = true;
-                } else if (c == ' ' || c == '\t') {
-                    // after q value
-                    state = 10;
-                } else {
-                    // invalid
-                    state = -1;
-                }
-                break;
-            case 8: // before q value fraction part
-                if ('0' <= c || c <= '9') {
-                    if (q1 && c != '0' && !isLenient) {
-                        // if q value starts with 1, the fraction part must be 0
-                        state = -1;
-                    } else {
-                        // in q value fraction part
-                        qvalBuf.append(c);
-                        state = 9;
-                    }
-                } else {
-                    // invalid
-                    state = -1;
-                }
-                break;
-            case 9: // in q value fraction part
-                if ('0' <= c && c <= '9') {
-                    if (q1 && c != '0') {
-                        // if q value starts with 1, the fraction part must be 0
-                        state = -1;
-                    } else {
-                        qvalBuf.append(c);
-                    }
-                } else if (c == ',') {
-                    // language-q end
-                    gotLanguageQ = true;
-                } else if (c == ' ' || c == '\t') {
-                    // after q value
-                    state = 10;
-                } else {
-                    // invalid
-                    state = -1;
-                }
-                break;
-            case 10: // after q value
-                if (c == ',') {
-                    // language-q end
-                    gotLanguageQ = true;
-                } else if (c != ' ' && c != '\t') {
-                    // invalid
-                    state = -1;
-                }
-                break;
-            }
-            if (state == -1) {
-                // error state
-                throw new ParseException("Invalid Accept-Language", n);
-            }
-            if (gotLanguageQ) {
-                double q = 1.0;
-                if (qvalBuf.length() != 0) {
-                    try {
-                        q = Double.parseDouble(qvalBuf.toString());
-                    } catch (NumberFormatException nfe) {
-                        // Already validated, so it should never happen
-                        q = 1.0;
-                    }
-                    if (q > 1.0) {
-                        q = 1.0;
-                    }
-                }
-                if (languageRangeBuf.charAt(0) != '*') {
-                    int serial = map.size();
-                    ULocaleAcceptLanguageQ entry = new ULocaleAcceptLanguageQ(q, serial);
-                    map.put(entry, new ULocale(canonicalize(languageRangeBuf.toString()))); // sort in reverse order..   1.0, 0.9, 0.8 .. etc                    
-                }
-
-                // reset buffer and parse state
-                languageRangeBuf.setLength(0);
-                qvalBuf.setLength(0);
-                state = 0;
-            }
-        }
-        if (state != 0) {
-            // Well, the parser should handle all cases.  So just in case.
-            throw new ParseException("Invalid AcceptlLanguage", n);
-        }
-
-        // pull out the map 
-        ULocale acceptList[] = (ULocale[])map.values().toArray(new ULocale[map.size()]);
-        return acceptList;
-    }
-
-    private static HashMap _likelySubtagMaximizeMap;
-
-    private static void initLikelySubtagMaximizeMap() {
-        if (_likelySubtagMaximizeMap != null) {
-            return;
-        }
-        // We should use CLDR data which will be introduced in CLDR1.5.1.
-        // For now, use the hardcoded table below.
-        String[][] likelySubtagTable = {
-                {"aa", "aa_Latn_ET"},
-                {"af", "af_Latn_ZA"},
-                {"ak", "ak_Latn_GH"},
-                {"am", "am_Ethi_ET"},
-                {"ar", "ar_Arab_EG"},
-                {"as", "as_Beng_IN"},
-                {"az", "az_Latn_AZ"},
-                {"be", "be_Cyrl_BY"},
-                {"bg", "bg_Cyrl_BG"},
-                {"bn", "bn_Beng_BD"},
-                {"bo", "bo_Tibt_CN"},
-                {"bs", "bs_Latn_BA"},
-                {"byn", "byn_Ethi_ER"},
-                {"ca", "ca_Latn_ES"},
-                {"cch", "cch_Latn_NG"},
-                {"ch", "ch_Latn_GU"},
-                {"chk", "chk_Latn_FM"},
-                {"cop", "cop_Arab_EG"},
-                {"cs", "cs_Latn_CZ"},
-                {"cy", "cy_Latn_GB"},
-                {"da", "da_Latn_DK"},
-                {"de", "de_Latn_DE"},
-                {"dv", "dv_Thaa_MV"},
-                {"dz", "dz_Tibt_BT"},
-                {"ee", "ee_Latn_GH"},
-                {"el", "el_Grek_GR"},
-                {"en", "en_Latn_US"},
-                {"es", "es_Latn_ES"},
-                {"et", "et_Latn_EE"},
-                {"eu", "eu_Latn_ES"},
-                {"fa", "fa_Arab_IR"},
-                {"fi", "fi_Latn_FI"},
-                {"fil", "fil_Latn_PH"},
-                {"fj", "fj_Latn_FJ"},
-                {"fo", "fo_Latn_FO"},
-                {"fr", "fr_Latn_FR"},
-                {"fur", "fur_Latn_IT"},
-                {"ga", "ga_Latn_IE"},
-                {"gaa", "gaa_Latn_GH"},
-                {"gez", "gez_Ethi_ER"},
-                {"gl", "gl_Latn_ES"},
-                {"gn", "gn_Latn_PY"},
-                {"gu", "gu_Gujr_IN"},
-                {"gv", "gv_Latn_GB"},
-                {"ha", "ha_Latn_NG"},
-                {"haw", "haw_Latn_US"},
-                {"he", "he_Hebr_IL"},
-                {"hi", "hi_Deva_IN"},
-                {"hr", "hr_Latn_HR"},
-                {"ht", "ht_Latn_HT"},
-                {"hu", "hu_Latn_HU"},
-                {"hy", "hy_Armn_AM"},
-                {"id", "id_Latn_ID"},
-                {"ig", "ig_Latn_NG"},
-                {"ii", "ii_Yiii_CN"},
-                {"is", "is_Latn_IS"},
-                {"it", "it_Latn_IT"},
-                {"iu", "iu_Cans_CA"},
-                {"ja", "ja_Jpan_JP"},
-                {"ka", "ka_Geor_GE"},
-                {"kaj", "kaj_Latn_NG"},
-                {"kam", "kam_Latn_KE"},
-                {"kcg", "kcg_Latn_NG"},
-                {"kfo", "kfo_Latn_NG"},
-                {"kk", "kk_Cyrl_KZ"},
-                {"kl", "kl_Latn_GL"},
-                {"km", "km_Khmr_KH"},
-                {"kn", "kn_Knda_IN"},
-                {"ko", "ko_Kore_KR"},
-                {"kok", "kok_Deva_IN"},
-                {"kpe", "kpe_Latn_LR"},
-                {"ku", "ku_Latn_TR"},
-                {"kw", "kw_Latn_GB"},
-                {"ky", "ky_Cyrl_KG"},
-                {"la", "la_Latn_VA"},
-                {"ln", "ln_Latn_CD"},
-                {"lo", "lo_Laoo_LA"},
-                {"lt", "lt_Latn_LT"},
-                {"lv", "lv_Latn_LV"},
-                {"mg", "mg_Latn_MG"},
-                {"mh", "mh_Latn_MH"},
-                {"mk", "mk_Cyrl_MK"},
-                {"ml", "ml_Mlym_IN"},
-                {"mn", "mn_Cyrl_MN"},
-                {"mr", "mr_Deva_IN"},
-                {"ms", "ms_Latn_MY"},
-                {"mt", "mt_Latn_MT"},
-                {"my", "my_Mymr_MM"},
-                {"na", "na_Latn_NR"},
-                {"nb", "nb_Latn_NO"},
-                {"ne", "ne_Deva_NP"},
-                {"niu", "niu_Latn_NU"},
-                {"nl", "nl_Latn_NL"},
-                {"nn", "nn_Latn_NO"},
-                {"nr", "nr_Latn_ZA"},
-                {"nso", "nso_Latn_ZA"},
-                {"ny", "ny_Latn_MW"},
-                {"om", "om_Latn_ET"},
-                {"or", "or_Orya_IN"},
-                {"pa", "pa_Guru_IN"},
-                {"pa_Arab", "pa_Arab_PK"},
-                {"pa_PK", "pa_Arab_PK"},
-                {"pap", "pap_Latn_AN"},
-                {"pau", "pau_Latn_PW"},
-                {"pl", "pl_Latn_PL"},
-                {"ps", "ps_Arab_AF"},
-                {"pt", "pt_Latn_BR"},
-                {"rn", "rn_Latn_BI"},
-                {"ro", "ro_Latn_RO"},
-                {"ru", "ru_Cyrl_RU"},
-                {"rw", "rw_Latn_RW"},
-                {"sa", "sa_Deva_IN"},
-                {"se", "se_Latn_NO"},
-                {"sg", "sg_Latn_CF"},
-                {"sh", "sr_Latn_RS"},
-                {"si", "si_Sinh_LK"},
-                {"sid", "sid_Latn_ET"},
-                {"sk", "sk_Latn_SK"},
-                {"sl", "sl_Latn_SI"},
-                {"sm", "sm_Latn_AS"},
-                {"so", "so_Latn_SO"},
-                {"sq", "sq_Latn_AL"},
-                {"sr", "sr_Cyrl_RS"},
-                {"ss", "ss_Latn_ZA"},
-                {"st", "st_Latn_ZA"},
-                {"sv", "sv_Latn_SE"},
-                {"sw", "sw_Latn_TZ"},
-                {"syr", "syr_Syrc_SY"},
-                {"ta", "ta_Taml_IN"},
-                {"te", "te_Telu_IN"},
-                {"tet", "tet_Latn_TL"},
-                {"tg", "tg_Cyrl_TJ"},
-                {"th", "th_Thai_TH"},
-                {"ti", "ti_Ethi_ET"},
-                {"tig", "tig_Ethi_ER"},
-                {"tk", "tk_Latn_TM"},
-                {"tkl", "tkl_Latn_TK"},
-                {"tn", "tn_Latn_ZA"},
-                {"to", "to_Latn_TO"},
-                {"tpi", "tpi_Latn_PG"},
-                {"tr", "tr_Latn_TR"},
-                {"ts", "ts_Latn_ZA"},
-                {"tt", "tt_Cyrl_RU"},
-                {"tvl", "tvl_Latn_TV"},
-                {"ty", "ty_Latn_PF"},
-                {"uk", "uk_Cyrl_UA"},
-                {"ur", "ur_Arab_IN"},
-                {"uz", "uz_Cyrl_UZ"},
-                {"uz_AF", "uz_Arab_AF"},
-                {"uz_Arab", "uz_Arab_AF"},
-                {"ve", "ve_Latn_ZA"},
-                {"vi", "vi_Latn_VN"},
-                {"wal", "wal_Ethi_ET"},
-                {"wo", "wo_Arab_SN"},
-                {"wo_SN", "wo_Latn_SN"},
-                {"xh", "xh_Latn_ZA"},
-                {"yo", "yo_Latn_NG"},
-                {"zh", "zh_Hans_CN"},
-                {"zh_Hani", "zh_Hans_CN"},
-                {"zh_Hant", "zh_Hant_TW"},
-                {"zh_HK", "zh_Hant_HK"},
-                {"zh_MO", "zh_Hant_MO"},
-                {"zh_TW", "zh_Hant_TW"},
-                {"zu", "zu_Latn_ZA"},
-
-                {"und", "en_Latn_US"},
-                {"und_AD", "ca_Latn_AD"},
-                {"und_AE", "ar_Arab_AE"},
-                {"und_AF", "fa_Arab_AF"},
-                {"und_AL", "sq_Latn_AL"},
-                {"und_AM", "hy_Armn_AM"},
-                {"und_AN", "pap_Latn_AN"},
-                {"und_AO", "pt_Latn_AO"},
-                {"und_AR", "es_Latn_AR"},
-                {"und_Arab", "ar_Arab_EG"},
-                {"und_Arab_IN", "ur_Arab_IN"},
-                {"und_Arab_PK", "pa_Arab_PK"},
-                {"und_Arab_SN", "wo_Arab_SN"},
-                {"und_Armn", "hy_Armn_AM"},
-                {"und_AS", "sm_Latn_AS"},
-                {"und_AT", "de_Latn_AT"},
-                {"und_AW", "nl_Latn_AW"},
-                {"und_AX", "sv_Latn_AX"},
-                {"und_AZ", "az_Latn_AZ"},
-                {"und_BA", "bs_Latn_BA"},
-                {"und_BD", "bn_Beng_BD"},
-                {"und_BE", "nl_Latn_BE"},
-                {"und_Beng", "bn_Beng_BD"},
-                {"und_Beng_IN", "as_Beng_IN"},
-                {"und_BF", "fr_Latn_BF"},
-                {"und_BG", "bg_Cyrl_BG"},
-                {"und_BH", "ar_Arab_BH"},
-                {"und_BI", "rn_Latn_BI"},
-                {"und_BJ", "fr_Latn_BJ"},
-                {"und_BN", "ms_Latn_BN"},
-                {"und_BO", "es_Latn_BO"},
-                {"und_BR", "pt_Latn_BR"},
-                {"und_BT", "dz_Tibt_BT"},
-                {"und_BY", "be_Cyrl_BY"},
-                {"und_Cans", "iu_Cans_CA"},
-                {"und_CD", "fr_Latn_CD"},
-                {"und_CF", "sg_Latn_CF"},
-                {"und_CG", "ln_Latn_CG"},
-                {"und_CH", "de_Latn_CH"},
-                {"und_CI", "fr_Latn_CI"},
-                {"und_CL", "es_Latn_CL"},
-                {"und_CM", "fr_Latn_CM"},
-                {"und_CN", "zh_Hans_CN"},
-                {"und_CO", "es_Latn_CO"},
-                {"und_CR", "es_Latn_CR"},
-                {"und_CU", "es_Latn_CU"},
-                {"und_CV", "pt_Latn_CV"},
-                {"und_CY", "el_Grek_CY"},
-                {"und_Cyrl", "ru_Cyrl_RU"},
-                {"und_Cyrl_KZ", "kk_Cyrl_KZ"},
-                {"und_CZ", "cs_Latn_CZ"},
-                {"und_DE", "de_Latn_DE"},
-                {"und_Deva", "hi_Deva_IN"},
-                {"und_DJ", "ar_Arab_DJ"},
-                {"und_DK", "da_Latn_DK"},
-                {"und_DO", "es_Latn_DO"},
-                {"und_DZ", "ar_Arab_DZ"},
-                {"und_EC", "es_Latn_EC"},
-                {"und_EE", "et_Latn_EE"},
-                {"und_EG", "ar_Arab_EG"},
-                {"und_EH", "ar_Arab_EH"},
-                {"und_ER", "ti_Ethi_ER"},
-                {"und_ES", "es_Latn_ES"},
-                {"und_ET", "am_Ethi_ET"},
-                {"und_Ethi", "am_Ethi_ET"},
-                {"und_Ethi_ER", "byn_Ethi_ER"},
-                {"und_FI", "fi_Latn_FI"},
-                {"und_FJ", "fj_Latn_FJ"},
-                {"und_FM", "chk_Latn_FM"},
-                {"und_FO", "fo_Latn_FO"},
-                {"und_FR", "fr_Latn_FR"},
-                {"und_GA", "fr_Latn_GA"},
-                {"und_GE", "ka_Geor_GE"},
-                {"und_Geor", "ka_Geor_GE"},
-                {"und_GF", "fr_Latn_GF"},
-                {"und_GL", "kl_Latn_GL"},
-                {"und_GN", "fr_Latn_GN"},
-                {"und_GP", "fr_Latn_GP"},
-                {"und_GQ", "fr_Latn_GQ"},
-                {"und_GR", "el_Grek_GR"},
-                {"und_Grek", "el_Grek_GR"},
-                {"und_GT", "es_Latn_GT"},
-                {"und_GU", "ch_Latn_GU"},
-                {"und_Gujr", "gu_Gujr_IN"},
-                {"und_Guru", "pa_Guru_IN"},
-                {"und_GW", "pt_Latn_GW"},
-                {"und_Hani", "zh_Hans_CN"},
-                {"und_Hans", "zh_Hans_CN"},
-                {"und_Hant", "zh_Hant_HK"},
-                {"und_Hebr", "he_Hebr_IL"},
-                {"und_HK", "zh_Hant_HK"},
-                {"und_HN", "es_Latn_HN"},
-                {"und_HR", "hr_Latn_HR"},
-                {"und_HT", "ht_Latn_HT"},
-                {"und_HU", "hu_Latn_HU"},
-                {"und_ID", "id_Latn_ID"},
-                {"und_IL", "he_Hebr_IL"},
-                {"und_IN", "hi_Deva_IN"},
-                {"und_IQ", "ar_Arab_IQ"},
-                {"und_IR", "fa_Arab_IR"},
-                {"und_IS", "is_Latn_IS"},
-                {"und_IT", "it_Latn_IT"},
-                {"und_JO", "ar_Arab_JO"},
-                {"und_JP", "ja_Jpan_JP"},
-                {"und_Jpan", "ja_Jpan_JP"},
-                {"und_KG", "ky_Cyrl_KG"},
-                {"und_KH", "km_Khmr_KH"},
-                {"und_Khmr", "km_Khmr_KH"},
-                {"und_KM", "ar_Arab_KM"},
-                {"und_Knda", "kn_Knda_IN"},
-                {"und_Kore", "ko_Kore_KR"},
-                {"und_KP", "ko_Kore_KP"},
-                {"und_KR", "ko_Kore_KR"},
-                {"und_KW", "ar_Arab_KW"},
-                {"und_KZ", "ru_Cyrl_KZ"},
-                {"und_LA", "lo_Laoo_LA"},
-                {"und_Laoo", "lo_Laoo_LA"},
-                {"und_Latn_ES", "ca_Latn_ES"},
-                {"und_Latn_ET", "aa_Latn_ET"},
-                {"und_Latn_GB", "cy_Latn_GB"},
-                {"und_Latn_GH", "ak_Latn_GH"},
-                {"und_Latn_IT", "fur_Latn_IT"},
-                {"und_Latn_NG", "cch_Latn_NG"},
-                {"und_Latn_TR", "ku_Latn_TR"},
-                {"und_Latn_ZA", "af_Latn_ZA"},
-                {"und_LB", "ar_Arab_LB"},
-                {"und_LI", "de_Latn_LI"},
-                {"und_LK", "si_Sinh_LK"},
-                {"und_LS", "st_Latn_LS"},
-                {"und_LT", "lt_Latn_LT"},
-                {"und_LU", "fr_Latn_LU"},
-                {"und_LV", "lv_Latn_LV"},
-                {"und_LY", "ar_Arab_LY"},
-                {"und_MA", "ar_Arab_MA"},
-                {"und_MC", "fr_Latn_MC"},
-                {"und_MD", "ro_Latn_MD"},
-                {"und_ME", "sr_Cyrl_ME"},
-                {"und_MG", "mg_Latn_MG"},
-                {"und_MH", "mh_Latn_MH"},
-                {"und_MK", "mk_Cyrl_MK"},
-                {"und_ML", "fr_Latn_ML"},
-                {"und_Mlym", "ml_Mlym_IN"},
-                {"und_MM", "my_Mymr_MM"},
-                {"und_MN", "mn_Cyrl_MN"},
-                {"und_MO", "zh_Hant_MO"},
-                {"und_MQ", "fr_Latn_MQ"},
-                {"und_MR", "ar_Arab_MR"},
-                {"und_MT", "mt_Latn_MT"},
-                {"und_MV", "dv_Thaa_MV"},
-                {"und_MW", "ny_Latn_MW"},
-                {"und_MX", "es_Latn_MX"},
-                {"und_MY", "ms_Latn_MY"},
-                {"und_Mymr", "my_Mymr_MM"},
-                {"und_MZ", "pt_Latn_MZ"},
-                {"und_NC", "fr_Latn_NC"},
-                {"und_NE", "fr_Latn_NE"},
-                {"und_NG", "ha_Latn_NG"},
-                {"und_NI", "es_Latn_NI"},
-                {"und_NL", "nl_Latn_NL"},
-                {"und_NO", "nb_Latn_NO"},
-                {"und_NP", "ne_Deva_NP"},
-                {"und_NR", "na_Latn_NR"},
-                {"und_NU", "niu_Latn_NU"},
-                {"und_OM", "ar_Arab_OM"},
-                {"und_Orya", "or_Orya_IN"},
-                {"und_PA", "es_Latn_PA"},
-                {"und_PE", "es_Latn_PE"},
-                {"und_PF", "ty_Latn_PF"},
-                {"und_PG", "tpi_Latn_PG"},
-                {"und_PH", "fil_Latn_PH"},
-                {"und_PL", "pl_Latn_PL"},
-                {"und_PM", "fr_Latn_PM"},
-                {"und_PR", "es_Latn_PR"},
-                {"und_PS", "ar_Arab_PS"},
-                {"und_PT", "pt_Latn_PT"},
-                {"und_PW", "pau_Latn_PW"},
-                {"und_PY", "gn_Latn_PY"},
-                {"und_QA", "ar_Arab_QA"},
-                {"und_RE", "fr_Latn_RE"},
-                {"und_RO", "ro_Latn_RO"},
-                {"und_RS", "sr_Cyrl_RS"},
-                {"und_RU", "ru_Cyrl_RU"},
-                {"und_RW", "rw_Latn_RW"},
-                {"und_SA", "ar_Arab_SA"},
-                {"und_SD", "ar_Arab_SD"},
-                {"und_SE", "sv_Latn_SE"},
-                {"und_SG", "zh_Hans_SG"},
-                {"und_SI", "sl_Latn_SI"},
-                {"und_Sinh", "si_Sinh_LK"},
-                {"und_SJ", "nb_Latn_SJ"},
-                {"und_SK", "sk_Latn_SK"},
-                {"und_SM", "it_Latn_SM"},
-                {"und_SN", "fr_Latn_SN"},
-                {"und_SO", "so_Latn_SO"},
-                {"und_SR", "nl_Latn_SR"},
-                {"und_ST", "pt_Latn_ST"},
-                {"und_SV", "es_Latn_SV"},
-                {"und_SY", "ar_Arab_SY"},
-                {"und_Syrc", "syr_Syrc_SY"},
-                {"und_Taml", "ta_Taml_IN"},
-                {"und_TD", "ar_Arab_TD"},
-                {"und_Telu", "te_Telu_IN"},
-                {"und_TG", "fr_Latn_TG"},
-                {"und_TH", "th_Thai_TH"},
-                {"und_Thaa", "dv_Thaa_MV"},
-                {"und_Thai", "th_Thai_TH"},
-                {"und_Tibt", "bo_Tibt_CN"},
-                {"und_TJ", "tg_Cyrl_TJ"},
-                {"und_TK", "tkl_Latn_TK"},
-                {"und_TL", "tet_Latn_TL"},
-                {"und_TM", "tk_Latn_TM"},
-                {"und_TN", "ar_Arab_TN"},
-                {"und_TO", "to_Latn_TO"},
-                {"und_TR", "tr_Latn_TR"},
-                {"und_TV", "tvl_Latn_TV"},
-                {"und_TW", "zh_Hant_TW"},
-                {"und_UA", "uk_Cyrl_UA"},
-                {"und_UY", "es_Latn_UY"},
-                {"und_UZ", "uz_Cyrl_UZ"},
-                {"und_VA", "la_Latn_VA"},
-                {"und_VE", "es_Latn_VE"},
-                {"und_VN", "vi_Latn_VN"},
-                {"und_VU", "fr_Latn_VU"},
-                {"und_WF", "fr_Latn_WF"},
-                {"und_WS", "sm_Latn_WS"},
-                {"und_YE", "ar_Arab_YE"},
-                {"und_Yiii", "ii_Yiii_CN"},
-                {"und_YT", "fr_Latn_YT"},
-        };
-
-        HashMap tmpMap = new HashMap();
-        for (int i = 0; i < likelySubtagTable.length; i++) {
-            ULocale loc = new ULocale(likelySubtagTable[i][1]);
-            tmpMap.put(likelySubtagTable[i][0], loc);
-        }
-        
-        synchronized (ULocale.class) {
-            if (_likelySubtagMaximizeMap == null) {
-                _likelySubtagMaximizeMap = tmpMap;
-            }
-        }
-    }
-
-    private static final String UNDEFINED_LANGUAGE = "und";
-    private static final String UNDEFINED_SCRIPT = "Zzzz";
-    private static final String UNDEFINED_REGION = "ZZ";
-    
-    /**
-     * Supply most likely subtags to the given locale
-     * @param loc The input locale
-     * @return A ULocale with most likely subtags filled in.
-     * @internal
-     * @deprecated This API is ICU internal only.
-     */
-    public static ULocale addLikelySubtag(ULocale loc) {
-        initLikelySubtagMaximizeMap();
-
-        // Replace any deprecated subtags with their canonical values.
-        // TODO: not yet implemented.
-
-        // If the tag is grandfathered, then return it.
-        // TODO: not yet implemented.
-
-        // Remove the script Zzzz and the region ZZ if they occur;
-        // change an empty language subtag to 'und'.
-
-        String language = loc.getLanguage();
-        String script = loc.getScript();
-        String region = loc.getCountry();
-
-        if (language.length() == 0) {
-            language = UNDEFINED_LANGUAGE;
-        }
-        if (script.equals(UNDEFINED_SCRIPT)) {
-            script = EMPTY_STRING;
-        }
-        if (region.equals(UNDEFINED_REGION)) {
-            region = EMPTY_STRING;
-        }
-
-        // Lookup
-        boolean hasScript = script.length() != 0;
-        boolean hasRegion = region.length() != 0;
-        ULocale match;
-        boolean bDone = false;
-
-        if (hasScript && hasRegion) {
-            // Lookup language_script_region
-            match = (ULocale)_likelySubtagMaximizeMap.get(language + "_" + script + "_" + region);
-            if (match != null) {
-                language = match.getLanguage();
-                script = match.getScript();
-                region = match.getCountry();
-                bDone = true;
-            }
-        }
-        if (!bDone && hasScript) {
-            // Lookup language_script
-            match = (ULocale)_likelySubtagMaximizeMap.get(language + "_" + script);
-            if (match != null) {
-                language = match.getLanguage();
-                script = match.getScript();
-                if (!hasRegion) {
-                    region = match.getCountry();
-                }
-                bDone = true;
-            }
-        }
-        if (!bDone && hasRegion) {
-            // Lookup language_region
-            match = (ULocale)_likelySubtagMaximizeMap.get(language + "_" + region);
-            if (match != null) {
-                language = match.getLanguage();
-                region = match.getCountry();
-                if (!hasScript) {
-                    script = match.getScript();
-                }
-                bDone = true;
-            }
-        }
-        if (!bDone) {
-            // Lookup language
-            match = (ULocale)_likelySubtagMaximizeMap.get(language);
-            if (match != null) {
-                language = match.getLanguage();
-                if (!hasScript) {
-                    script = match.getScript();
-                }
-                if (!hasRegion) {
-                    region = match.getCountry();
-                }
-                bDone = true;
-            }
-        }
-
-        ULocale result = null;
-
-        if (bDone) {
-            // Check if we need to create a new locale instance
-            if (language.equals(loc.getLanguage())
-                    && script.equals(loc.getScript())
-                    && region.equals(loc.getCountry())) {
-                // Nothing had changed - return the input locale
-                result = loc;
-            } else {
-                StringBuffer buf = new StringBuffer();
-                buf.append(language);
-                if (script.length() != 0) {
-                    buf.append(UNDERSCORE);
-                    buf.append(script);
-                }
-                if (region.length() != 0) {
-                    buf.append(UNDERSCORE);
-                    buf.append(region);
-                }
-                String variant = loc.getVariant();
-                if (variant.length() != 0) {
-                    buf.append(UNDERSCORE);
-                    buf.append(variant);
-                }
-                int keywordsIdx = loc.localeID.indexOf('@');
-                if (keywordsIdx >= 0) {
-                    buf.append(loc.localeID.substring(keywordsIdx));
-                }
-                result = new ULocale(buf.toString());
-            }
-        } else {
-            if (hasScript && hasRegion && language != UNDEFINED_LANGUAGE) {
-                // If non of these succeed, if the original had language, region
-                // and script, return it.
-                result = loc;
-            } else {
-                // Otherwise, signal an error.
-                // TODO: For now, we just return the input locale.
-                result = loc;
-            }
-        }
-
-        return result;
-    }
+				fallback);
+    }    
 }

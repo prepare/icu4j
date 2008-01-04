@@ -1,12 +1,11 @@
-//##header J2SE15
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
+//##header
 /*
  *******************************************************************************
- * Copyright (C) 2002-2007, International Business Machines Corporation and    *
+ * Copyright (C) 2002-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
+//#ifndef FOUNDATION
 package com.ibm.icu.dev.test.util;
 
 // TODO integrate this into the test framework
@@ -173,11 +172,11 @@ public class TestBagFormatter {
     /*
      * Use the number of significant digits to round get a rounding value.
      */
-/*    static final double LOG10 = Math.log(10);
+    static final double LOG10 = Math.log(10);
     public static void useSignificantDigits(double value, int digits) {
         double log10 = Math.log(value)/LOG10; // log[e]
         
-    }*/
+    }
     
     static final UnicodeSet RTL = new UnicodeSet("[[:L:]&[[:bidi class=R:][:bidi class=AL:]]]");
     

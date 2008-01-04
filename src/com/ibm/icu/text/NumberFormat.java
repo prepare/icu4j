@@ -1,11 +1,10 @@
-//##header J2SE15
+//##header
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
-
 package com.ibm.icu.text;
 
 import java.io.IOException;
@@ -192,8 +191,7 @@ public abstract class NumberFormat extends UFormat {
             return format(((Long)number).longValue(), toAppendTo, pos);
         } else if (number instanceof BigInteger) {
             return format((BigInteger) number, toAppendTo, pos);
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
+//#ifndef FOUNDATION
         } else if (number instanceof java.math.BigDecimal) {
             return format((java.math.BigDecimal) number, toAppendTo, pos);
 //#endif
@@ -249,8 +247,7 @@ public abstract class NumberFormat extends UFormat {
                       new FieldPosition(0)).toString();
     }
 
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
+//#ifndef FOUNDATION
     /**
      * <strong><font face=helvetica color=red>NEW</font></strong>
      * Convenience method to format a BigDecimal.
@@ -309,8 +306,7 @@ public abstract class NumberFormat extends UFormat {
     public abstract StringBuffer format(BigInteger number,
                                         StringBuffer toAppendTo,
                                         FieldPosition pos); 
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
+//#ifndef FOUNDATION
     /**
      * <strong><font face=helvetica color=red>NEW</font></strong>
      * Format a BigDecimal.
@@ -501,7 +497,8 @@ public abstract class NumberFormat extends UFormat {
      * The default format is one of the styles provided by the other
      * factory methods: getNumberInstance, getCurrencyInstance or getPercentInstance.
      * Exactly which one is locale-dependent.
-     * @stable ICU 3.2
+     * @draft ICU 3.2
+     * @provisional This API might change or be removed in a future release.
      */
     public static NumberFormat getInstance(ULocale inLocale) {
         return getInstance(inLocale, NUMBERSTYLE);
@@ -525,7 +522,8 @@ public abstract class NumberFormat extends UFormat {
 
     /**
      * Returns a general-purpose number format for the specified locale.
-     * @stable ICU 3.2
+     * @draft ICU 3.2
+     * @provisional This API might change or be removed in a future release.
      */
     public static NumberFormat getNumberInstance(ULocale inLocale) {
         return getInstance(inLocale, NUMBERSTYLE);
@@ -574,7 +572,8 @@ public abstract class NumberFormat extends UFormat {
      *
      * @param inLocale the locale for which a number format is needed
      * @return a number format for integer values
-     * @stable ICU 3.2
+     * @draft ICU 3.2
+     * @provisional This API might change or be removed in a future release.
      */
     public static NumberFormat getIntegerInstance(ULocale inLocale) {
         return getInstance(inLocale, INTEGERSTYLE);
@@ -601,7 +600,8 @@ public abstract class NumberFormat extends UFormat {
     /**
      * Returns a currency format for the specified locale.
      * @return a number format for currency
-     * @stable ICU 3.2
+     * @draft ICU 3.2
+     * @provisional This API might change or be removed in a future release.
      */
     public static NumberFormat getCurrencyInstance(ULocale inLocale) {
         return getInstance(inLocale, CURRENCYSTYLE);
@@ -628,7 +628,8 @@ public abstract class NumberFormat extends UFormat {
     /**
      * Returns a percentage format for the specified locale.
      * @return a number format for percents
-     * @stable ICU 3.2
+     * @draft ICU 3.2
+     * @provisional This API might change or be removed in a future release.
      */
     public static NumberFormat getPercentInstance(ULocale inLocale) {
         return getInstance(inLocale, PERCENTSTYLE);
@@ -658,7 +659,8 @@ public abstract class NumberFormat extends UFormat {
      * <strong><font face=helvetica color=red>NEW</font></strong>
      * Returns a scientific format for the specified locale.
      * @return a scientific number format
-     * @stable ICU 3.2
+     * @draft ICU 3.2
+     * @provisional This API might change or be removed in a future release.
      */
     public static NumberFormat getScientificInstance(ULocale inLocale) {
         return getInstance(inLocale, SCIENTIFICSTYLE);
@@ -740,7 +742,8 @@ public abstract class NumberFormat extends UFormat {
          * @param loc the locale for which to create the format
          * @param formatType the type of format
          * @return the NumberFormat, or null.
-         * @stable ICU 3.2
+         * @draft ICU 3.2
+         * @provisional This API might change or be removed in a future release.
          */
         public NumberFormat createFormat(ULocale loc, int formatType) {
             return createFormat(loc.toLocale(), formatType);
@@ -779,7 +782,6 @@ public abstract class NumberFormat extends UFormat {
         final boolean visible;
 
         /**
-         * Constructs a SimpleNumberFormatFactory with the given locale.
          * @stable ICU 2.6
          */
         public SimpleNumberFormatFactory(Locale locale) {
@@ -787,8 +789,6 @@ public abstract class NumberFormat extends UFormat {
         }
         
         /**
-         * Constructs a SimpleNumberFormatFactory with the given locale and the
-         * visibility.
          * @stable ICU 2.6
          */
         public SimpleNumberFormatFactory(Locale locale, boolean visible) {
@@ -797,17 +797,16 @@ public abstract class NumberFormat extends UFormat {
         }
 
         /**
-         * Constructs a SimpleNumberFormatFactory with the given locale.
-         * @stable ICU 3.2
+         * @draft ICU 3.2
+         * @provisional This API might change or be removed in a future release.
          */
         public SimpleNumberFormatFactory(ULocale locale) {
             this(locale, true);
         }
         
         /**
-         * Constructs a SimpleNumberFormatFactory with the given locale and the
-         * visibility.
-         * @stable ICU 3.2
+         * @draft ICU 3.2
+         * @provisional This API might change or be removed in a future release.
          */
         public SimpleNumberFormatFactory(ULocale locale, boolean visible) {
             localeNames = Collections.singleton(locale.getBaseName());
@@ -815,7 +814,6 @@ public abstract class NumberFormat extends UFormat {
         }
 
         /**
-         * {@inheritDoc}
          * @stable ICU 2.6
          */
         public final boolean visible() {
@@ -823,7 +821,6 @@ public abstract class NumberFormat extends UFormat {
         }
 
         /**
-         * {@inheritDoc}
          * @stable ICU 2.6
          */
         public final Set getSupportedLocaleNames() {
@@ -1230,7 +1227,8 @@ public abstract class NumberFormat extends UFormat {
      * @param forLocale the locale of the data.
      * @param choice the pattern format.
      * @return the pattern
-     * @stable ICU 3.2
+     * @draft ICU 3.2
+     * @provisional This API might change or be removed in a future release.
      */
     protected static String getPattern(ULocale forLocale, int choice) {
 
@@ -1540,10 +1538,9 @@ public abstract class NumberFormat extends UFormat {
     // new in ICU4J 3.6
     private boolean parseStrict;
 
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
+//#ifndef FOUNDATION
     /**
-     * The instances of this inner class are used as attribute keys and values
+     * [Spark/CDL] The instances of this inner class are used as attribute keys and values
      * in AttributedCharacterIterator that
      * NumberFormat.formatToCharacterIterator() method returns.
      * <p>

@@ -1,7 +1,7 @@
-//##header J2SE15
+//##header
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -494,6 +494,12 @@ public class RuleBasedNumberFormat extends NumberFormat {
     static final long serialVersionUID = -7664252765575395068L;
     
     /**
+     * Puts a copyright in the .class file
+     */
+    private static final String copyrightNotice
+        = "Copyright \u00a91997-2004 IBM Corp.  All rights reserved.";
+
+    /**
      * Selector code that tells the constructor to create a spellout formatter
      * @stable ICU 2.0
      */
@@ -620,7 +626,8 @@ public class RuleBasedNumberFormat extends NumberFormat {
      * syntax.
      * @param localizations a list of localizations for the rule set
      * names in the description.
-     * @stable ICU 3.2
+     * @draft ICU 3.2
+     * @provisional This API might change or be removed in a future release.
      */
     public RuleBasedNumberFormat(String description, String[][] localizations) {
         locale = ULocale.getDefault();
@@ -655,7 +662,8 @@ public class RuleBasedNumberFormat extends NumberFormat {
      * @param locale A locale, which governs which characters are used for
      * formatting values in numerals, and which characters are equivalent in
      * lenient parsing.
-     * @stable ICU 3.2
+     * @draft ICU 3.2
+     * @provisional This API might change or be removed in a future release.
      */
     public RuleBasedNumberFormat(String description, ULocale locale) {
         this.locale = locale;
@@ -685,7 +693,8 @@ public class RuleBasedNumberFormat extends NumberFormat {
      * @param locale A ulocale that governs which characters are used for
      * formatting values in numerals, and determines which characters are equivalent in
      * lenient parsing.
-     * @stable ICU 3.2
+     * @draft ICU 3.2
+     * @provisional This API might change or be removed in a future release.
      */
     public RuleBasedNumberFormat(String description, String[][] localizations, ULocale locale) {
         this.locale = locale;
@@ -718,7 +727,8 @@ public class RuleBasedNumberFormat extends NumberFormat {
      * spells out a value in words in the desired language, ORDINAL, which attaches
      * an ordinal suffix from the desired language to the end of a number (e.g. "123rd"),
      * and DURATION, which formats a duration in seconds as hours, minutes, and seconds.
-     * @stable ICU 3.2
+     * @draft ICU 3.2
+     * @provisional This API might change or be removed in a future release.
      */
     public RuleBasedNumberFormat(ULocale locale, int format) {
         this.locale = locale;
@@ -737,7 +747,7 @@ public class RuleBasedNumberFormat extends NumberFormat {
 
         try {
             description = bundle.getString(rulenames[format-1]);
-            UResourceBundle locb = bundle.get(locnames[format-1]);
+            ICUResourceBundle locb = bundle.get(locnames[format-1]);
             localizations = new String[locb.getSize()][];
             for (int i = 0; i < localizations.length; ++i) {
                 localizations[i] = locb.get(i).getStringArray();
@@ -855,7 +865,7 @@ public class RuleBasedNumberFormat extends NumberFormat {
      * @param in The stream to read from.
      */
     private void readObject(java.io.ObjectInputStream in)
-        throws java.io.IOException {
+        throws java.io.IOException, java.lang.ClassNotFoundException {
 
         // read the description in from the stream
         String description = in.readUTF();
@@ -897,7 +907,8 @@ public class RuleBasedNumberFormat extends NumberFormat {
      * Return a list of locales for which there are locale-specific display names
      * for the rule sets in this formatter.  If there are no localized display names, return null.
      * @return an array of the ulocales for which there is rule set display name information
-     * @stable ICU 3.2
+     * @draft ICU 3.2
+     * @provisional This API might change or be removed in a future release.
      */
     public ULocale[] getRuleSetDisplayNameLocales() {
         if (ruleSetDisplayNames != null) {
@@ -938,7 +949,8 @@ public class RuleBasedNumberFormat extends NumberFormat {
      * the leading '%'.)
      * @return an array of the locales that have display name information
      * @see #getRuleSetNames
-     * @stable ICU 3.2
+     * @draft ICU 3.2
+     * @provisional This API might change or be removed in a future release.
      */
     public String[] getRuleSetDisplayNames(ULocale locale) {
         String[] names = getNameListForLocale(locale);
@@ -955,8 +967,9 @@ public class RuleBasedNumberFormat extends NumberFormat {
     /**
      * Return the rule set display names for the current default locale.
      * @return an array of the display names
+     * @draft ICU 3.2
      * @see #getRuleSetDisplayNames(ULocale)
-     * @stable ICU 3.2
+     * @provisional This API might change or be removed in a future release.
      */
     public String[] getRuleSetDisplayNames() {
         return getRuleSetDisplayNames(ULocale.getDefault());
@@ -967,9 +980,10 @@ public class RuleBasedNumberFormat extends NumberFormat {
      * The locale is matched against the locales for which there is display name data, using
      * normal fallback rules.  If no locale matches, the default display name is returned.
      * @return the display name for the rule set
+     * @draft ICU 3.2
      * @see #getRuleSetDisplayNames
      * @throws IllegalArgumentException if ruleSetName is not a valid rule set name for this format
-     * @stable ICU 3.2
+     * @provisional This API might change or be removed in a future release.
      */
     public String getRuleSetDisplayName(String ruleSetName, ULocale locale) {
         String[] rsnames = publicRuleSetNames;
@@ -988,8 +1002,9 @@ public class RuleBasedNumberFormat extends NumberFormat {
     /**
      * Return the rule set display name for the provided rule set in the current default locale.
      * @return the display name for the rule set
+     * @draft ICU 3.2
      * @see #getRuleSetDisplayName(String,ULocale)
-     * @stable ICU 3.2
+     * @provisional This API might change or be removed in a future release.
      */
     public String getRuleSetDisplayName(String ruleSetName) {
         return getRuleSetDisplayName(ruleSetName, ULocale.getDefault());
@@ -1083,8 +1098,7 @@ public class RuleBasedNumberFormat extends NumberFormat {
         return format(new com.ibm.icu.math.BigDecimal(number), toAppendTo, pos);
     }
 
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
+//#ifndef FOUNDATION
     /**
      * <strong><font face=helvetica color=red>NEW</font></strong>
      * Implement com.ibm.icu.text.NumberFormat:
@@ -1596,25 +1610,25 @@ public class RuleBasedNumberFormat extends NumberFormat {
         return result;
     }
 
-//    /**
-//     * This function is called ONLY DURING CONSTRUCTION to fill in the
-//     * defaultRuleSet variable once we've set up all the rule sets.
-//     * The default rule set is the last public rule set in the description.
-//     * (It's the last rather than the first so that a caller can append
-//     * text to the end of an existing formatter description to change its
-//     * behavior.)
-//     */
-//    private void initDefaultRuleSet() {
-//        // seek backward from the end of the list until we reach a rule set
-//        // whose name DOESN'T begin with %%.  That's the default rule set
-//        for (int i = ruleSets.length - 1; i >= 0; --i) {
-//            if (!ruleSets[i].getName().startsWith("%%")) {
-//                defaultRuleSet = ruleSets[i];
-//                return;
-//            }
-//        }
-//        defaultRuleSet = ruleSets[ruleSets.length - 1];
-//    }
+    /**
+     * This function is called ONLY DURING CONSTRUCTION to fill in the
+     * defaultRuleSet variable once we've set up all the rule sets.
+     * The default rule set is the last public rule set in the description.
+     * (It's the last rather than the first so that a caller can append
+     * text to the end of an existing formatter description to change its
+     * behavior.)
+     */
+    private void initDefaultRuleSet() {
+        // seek backward from the end of the list until we reach a rule set
+        // whose name DOESN'T begin with %%.  That's the default rule set
+        for (int i = ruleSets.length - 1; i >= 0; --i) {
+            if (!ruleSets[i].getName().startsWith("%%")) {
+                defaultRuleSet = ruleSets[i];
+                return;
+            }
+        }
+        defaultRuleSet = ruleSets[ruleSets.length - 1];
+    }
 
     //-----------------------------------------------------------------------
     // formatting implementation
@@ -1683,7 +1697,7 @@ public class RuleBasedNumberFormat extends NumberFormat {
                 }
                 catch (Exception e) {
                     // if debug, print it out
-                    if (DEBUG) System.out.println("could not locate " + ppClassName + ", error " +
+                    System.out.println("could not locate " + ppClassName + ", error " +
                                        e.getClass().getName() + ", " + e.getMessage());
                     postProcessor = null;
                     postProcessRules = null; // don't try again

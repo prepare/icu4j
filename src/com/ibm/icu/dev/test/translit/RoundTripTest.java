@@ -1,6 +1,6 @@
 /**
  *******************************************************************************
- * Copyright (C) 2000-2007, International Business Machines Corporation and    *
+ * Copyright (C) 2000-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -206,7 +206,7 @@ public class RoundTripTest extends TestFmwk {
 
     String getGreekSet() {
         // Time bomb
-        if (skipIfBeforeICU(3,9,1)) {
+        if (skipIfBeforeICU(3,7)) {
             // We temporarily filter against Unicode 4.1, but we only do this
             // before version 3.5.
             logln("TestGreek needs to be updated to remove delete the section marked [:Age=4.0:] filter");
@@ -268,7 +268,7 @@ public class RoundTripTest extends TestFmwk {
 
     public void TestHebrew() throws IOException {
         //      Time bomb
-        if (skipIfBeforeICU(3,9,1)) {
+        if (skipIfBeforeICU(3,7)) {
             // We temporarily filter against Unicode 4.1, but we only do this
             // before version 3.5.
             logln("TestHebrew needs to be updated to remove delete the section marked [:Age=4.0:] filter");
@@ -283,18 +283,18 @@ public class RoundTripTest extends TestFmwk {
 
     public void TestThai() throws IOException {
         long start = System.currentTimeMillis();
-        if(skipIfBeforeICU(3,9,1)){
-            new Test("Latin-Thai")
-            .test("[a-zA-Z\u0142\u1ECD\u00E6\u0131\u0268\u02CC]",
-                  "[\u0E01-\u0E3A\u0E40-\u0E5B]", 
-                  "[a-zA-Z\u0142\u1ECD\u00E6\u0131\u0268\u02B9\u02CC]",
-            "[\u0E4F]", this, new LegalThai());   
-        }else{
+        if(isICUVersionAtLeast(3,7)){
             new Test("Latin-Thai")
                 .test("[a-zA-Z\u0142\u1ECD\u00E6\u0131\u0268\u02CC]",
                       "[\u0E01-\u0E3A\u0E40-\u0E5B]", 
                       "[a-zA-Z\u0142\u1ECD\u00E6\u0131\u0268\u02B9\u02CC]",
                 null, this, new LegalThai());
+        }else{
+            new Test("Latin-Thai")
+            .test("[a-zA-Z\u0142\u1ECD\u00E6\u0131\u0268\u02CC]",
+                  "[\u0E01-\u0E3A\u0E40-\u0E5B]", 
+                  "[a-zA-Z\u0142\u1ECD\u00E6\u0131\u0268\u02B9\u02CC]",
+            "[\u0E4F]", this, new LegalThai());            
         }
         
         showElapsed(start, "TestThai");
@@ -365,18 +365,18 @@ public class RoundTripTest extends TestFmwk {
 
     public void TestDevanagariLatin() throws IOException {
         long start = System.currentTimeMillis();
-        if(skipIfBeforeICU(2,8,0)){
+        if(skipIfBeforeICU(2,8)){
             new Test("Latin-DEVANAGARI", 50)
               .test(latinForIndic, "[[:Devanagari:][\u094d][\u0964\u0965] & [:Age=3.2:]]", "[\u0965]", this, new LegalIndic());
 
         }else{
-            if (skipIfBeforeICU(3,9,1)) {
-                logln("Warning: TestDevanagariLatin needs to be updated to remove delete the section marked [:Age=4.1:] filter");
-            } else {
-//              We temporarily filter against Unicode 4.1, but we only do this
+            if (isICUVersionAtLeast(3,8)) {
+                // We temporarily filter against Unicode 4.1, but we only do this
                 // before version 3.4.
                 errln("FAIL: TestDevanagariLatin needs to be updated to remove delete the [:Age=4.1:] filter ");
                 return;
+            } else {
+                logln("Warning: TestDevanagariLatin needs to be updated to remove delete the section marked [:Age=4.1:] filter");
             }
             new Test("Latin-DEVANAGARI", 50)
               .test(latinForIndic, "[[[:Devanagari:][\u094d][\u0964\u0965]]&[:Age=4.1:]]", "[\u0965\u0904]", this, new LegalIndic());
@@ -427,7 +427,7 @@ public class RoundTripTest extends TestFmwk {
                   },
         new String [] {  "DEVANAGARI-Tamil",
            "[:Devanagari:]", "[:tamil:]",
-                  "[\u0bd7\u0BF0\u0BF1\u0BF2]", /*roundtrip exclusions*/
+                  "[\u0bd7]", /*roundtrip exclusions*/
                   },
 
         new String [] {  "Telugu-DEVANAGARI",
@@ -490,7 +490,7 @@ public class RoundTripTest extends TestFmwk {
                   },
         new String [] {  "BENGALI-Tamil",
            "[:BENGALI:]", "[:tamil:]",
-                  "[\u0bc6\u0bc7\u0bca\u0B8E\u0B92\u0BA9\u0BB1\u0BB3\u0BB4\u0BB5\u0BF0\u0BF1\u0BF2]", /*roundtrip exclusions*/
+                  "[\u0bc6\u0bc7\u0bca\u0B8E\u0B92\u0BA9\u0BB1\u0BB3\u0BB4\u0BB5]", /*roundtrip exclusions*/
                   },
 
         new String [] {  "Telugu-BENGALI",
@@ -544,7 +544,7 @@ public class RoundTripTest extends TestFmwk {
                 },
         new String [] {  "GURMUKHI-TAMIL",
            "[:GURMUKHI:]", "[:TAMIL:]",
-                  "[\u0b82\u0bc6\u0bca\u0bd7\u0bb7\u0bb3\u0b83\u0B8E\u0B92\u0BA9\u0BB1\u0BB4\u0bb6\u0BF0\u0BF1\u0BF2]", /*roundtrip exclusions*/
+                  "[\u0b82\u0bc6\u0bca\u0bd7\u0bb7\u0bb3\u0b83\u0B8E\u0B92\u0BA9\u0BB1\u0BB4\u0bb6]", /*roundtrip exclusions*/
                   },
 
         new String [] {  "TELUGU-GURMUKHI",
@@ -588,7 +588,7 @@ public class RoundTripTest extends TestFmwk {
                 },
         new String [] {  "GUJARATI-TAMIL",
            "[:GUJARATI:]", "[:TAMIL:]",
-                  "[\u0Bc6\u0Bca\u0Bd7\u0B8E\u0B92\u0BA9\u0BB1\u0BB4\u0BF0\u0BF1\u0BF2]", /*roundtrip exclusions*/
+                  "[\u0Bc6\u0Bca\u0Bd7\u0B8E\u0B92\u0BA9\u0BB1\u0BB4]", /*roundtrip exclusions*/
                   },
 
         new String [] {  "TELUGU-GUJARATI",
@@ -624,7 +624,7 @@ public class RoundTripTest extends TestFmwk {
                 },
         new String [] {  "ORIYA-TAMIL",
            "[:ORIYA:]", "[:TAMIL:]",
-                  "[\u0bc6\u0bca\u0bc7\u0B8E\u0B92\u0BA9\u0BB1\u0BB4\u0BB5\u0BF0\u0BF1\u0BF2]", /*roundtrip exclusions*/
+                  "[\u0bc6\u0bca\u0bc7\u0B8E\u0B92\u0BA9\u0BB1\u0BB4\u0BB5]", /*roundtrip exclusions*/
                   },
 
         new String [] {  "TELUGU-ORIYA",
@@ -656,7 +656,7 @@ public class RoundTripTest extends TestFmwk {
 
         new String [] {  "TELUGU-TAMIL",
           "[:TELUGU:]", "[:TAMIL:]",
-                "[\u0bd7\u0ba9\u0bb4\u0BF0\u0BF1\u0BF2\u0BF0\u0BF1\u0BF2]", /*roundtrip exclusions*/
+                "[\u0bd7\u0ba9\u0bb4]", /*roundtrip exclusions*/
                 },
         new String [] {  "TAMIL-TELUGU",
            "[:TAMIL:]", "[:TELUGU:]",
@@ -665,7 +665,7 @@ public class RoundTripTest extends TestFmwk {
 
         new String [] {  "KANNADA-TAMIL",
           "[:KANNADA:]", "[:TAMIL:]",
-                "[\u0bd7\u0bc6\u0ba9\u0bb4\u0BF0\u0BF1\u0BF2]", /*roundtrip exclusions*/
+                "[\u0bd7\u0bc6\u0ba9\u0bb4]", /*roundtrip exclusions*/
                 },
         new String [] {  "TAMIL-KANNADA",
            "[:TAMIL:]", "[:KANNADA:]",
@@ -674,7 +674,7 @@ public class RoundTripTest extends TestFmwk {
 
         new String [] {  "MALAYALAM-TAMIL",
           "[:MALAYALAM:]", "[:TAMIL:]",
-                "[\u0ba9\u0BF0\u0BF1\u0BF2]", /*roundtrip exclusions*/
+                "[\u0ba9]", /*roundtrip exclusions*/
                 },
         new String [] {  "TAMIL-MALAYALAM",
            "[:TAMIL:]", "[:MALAYALAM:]",
@@ -721,7 +721,7 @@ public class RoundTripTest extends TestFmwk {
                 },
         new String [] {  "Latin-Tamil",
             latinForIndic, "[:Tamil:]",
-               "[\u0BF0\u0BF1\u0BF2]", /*roundtrip exclusions*/
+               null, /*roundtrip exclusions*/
                 },
         new String [] {  "Latin-Telugu",
             latinForIndic, "[:Telugu:]",
@@ -744,17 +744,17 @@ public class RoundTripTest extends TestFmwk {
             logln("Testing only 5 of "+ interIndicArray.length+" Skipping rest (use -e for exhaustive)");
             num = 5;
         }
-        if (skipIfBeforeICU(3,9,1)) {
-            logln("Warning: TestInterIndic needs to be updated to remove delete the section marked [:Age=4.1:] filter");
-        } else {
-//          We temporarily filter against Unicode 4.1, but we only do this
+        if (isICUVersionAtLeast(3,8)) {
+            // We temporarily filter against Unicode 4.1, but we only do this
             // before version 3.4.
             errln("FAIL: TestInterIndic needs to be updated to remove delete the [:Age=4.1:] filter ");
             return;
+        } else {
+            logln("Warning: TestInterIndic needs to be updated to remove delete the section marked [:Age=4.1:] filter");
         }
         for(int i=0; i<num;i++){
            logln("Testing " + interIndicArray[i][0] + " at index " + i   );
-           if(skipIfBeforeICU(2,8,0)){
+           if(skipIfBeforeICU(2,8)){
                new Test(interIndicArray[i][0], 50)
                     .test("[" + interIndicArray[i][1]+" & [:Age=3.2:]]",
                           "[" + interIndicArray[i][2]+" & [:Age=3.2:]]",
@@ -1577,11 +1577,6 @@ public class RoundTripTest extends TestFmwk {
         */
 
         static class TestTruncated extends RuntimeException {
-            /**
-             * For serialization
-             */
-            private static final long serialVersionUID = 3361828190488168323L;
-
             TestTruncated(String msg) {
                 super(msg);
             }

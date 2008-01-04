@@ -1,12 +1,18 @@
 /*
  ******************************************************************************
- * Copyright (C) 200-2007, International Business Machines Corporation and    *
+ * Copyright (C) 200-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                               *
  ******************************************************************************
 */
 package com.ibm.icu.util;
 
 /**
+ * <pre>
+ *  DRAFT
+ *  Copyright (C) 2005, International Business Machines Corporation and
+ *  others. All Rights Reserved.
+ * </pre>
+ * 
  * Provides a flexible mechanism for controlling access, without requiring that
  * a class be immutable. Once locked, an object can never be unlocked, so it is
  * thread-safe from that point onward. The implementation of both methods must
@@ -299,25 +305,30 @@ package com.ibm.icu.util;
  * </pre>
  * 
  * </blockquote>
- * @stable ICU 3.8
+ *
+ * @internal revisit for ICU 3.6
+ * @deprecated This API is ICU internal only.
  */
 public interface Freezable extends Cloneable {
     /**
      * Determines whether the object has been locked or not.
-     * @stable ICU 3.8
+     * @internal revisit for ICU 3.6
+     * @deprecated This API is ICU internal only.
      */
     public boolean isFrozen();
 
     /**
      * Locks the object.
      * @return the object itself.
-     * @stable ICU 3.8
+     * @internal revisit for ICU 3.6
+     * @deprecated This API is ICU internal only.
      */
     public Object freeze();
 
     /**
      * Provides for the clone operation. Any clone is initially unlocked.
-     * @stable ICU 3.8
+     * @internal revisit for ICU 3.6
+     * @deprecated This API is ICU internal only.
      */
     public Object cloneAsThawed();
 }

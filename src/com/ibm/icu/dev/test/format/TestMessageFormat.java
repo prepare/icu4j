@@ -1,7 +1,6 @@
-//##header J2SE15
 /*
 **********************************************************************
-* Copyright (c) 2004-2007, International Business Machines
+* Copyright (c) 2004-2006, International Business Machines
 * Corporation and others.  All Rights Reserved.
 **********************************************************************
 * Author: Alan Liu
@@ -11,24 +10,18 @@
 */
 package com.ibm.icu.dev.test.format;
 
-import java.text.AttributedCharacterIterator;
-import java.text.AttributedString;
 import java.text.ChoiceFormat;
 import java.text.FieldPosition;
 import java.text.Format;
 import java.text.ParseException;
 import java.text.ParsePosition;
 import java.util.Date;
-import java.util.Iterator;
 import java.util.Locale;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
 
-import com.ibm.icu.text.DateFormat;
 import com.ibm.icu.text.DecimalFormat;
 import com.ibm.icu.text.MessageFormat;
 import com.ibm.icu.text.NumberFormat;
+import com.ibm.icu.text.DateFormat;
 import com.ibm.icu.text.UFormat;
 import com.ibm.icu.util.ULocale;
 
@@ -122,11 +115,13 @@ public class TestMessageFormat extends com.ibm.icu.dev.test.TestFmwk {
                                   "1.0<=Arg<2.0",
                                   "2.0<-Arg"};
         ChoiceFormat cf = new ChoiceFormat(limit, formats);
+        FieldPosition status = new FieldPosition(0);
         assertEquals("ChoiceFormat.format", formats[1], cf.format(1));
     }
 
     public void TestBug2()
     {
+        String result;
         // {sfb} use double format in pattern, so result will match (not strictly necessary)
         final String pattern = "There {0,choice,0.0#are no files|1.0#is one file|1.0<are {0, number} files} on disk {1}. ";
         logln("The input pattern : " + pattern);
@@ -183,7 +178,7 @@ public class TestMessageFormat extends com.ibm.icu.dev.test.TestFmwk {
         for (int i = 0; i < 9; ++i) {
             //it_out << "\nPat in:  " << testCases[i]);
 
-            //String buffer;
+            String buffer;
             MessageFormat form = null;
             try {
                 form = new MessageFormat(testCases[i], Locale.US);
@@ -195,15 +190,16 @@ public class TestMessageFormat extends com.ibm.icu.dev.test.TestFmwk {
 
             //it_out << "Pat out: " << form.toPattern(buffer));
             StringBuffer result = new StringBuffer();
+            int count = 4;
             FieldPosition fieldpos = new FieldPosition(0);
             form.format(testArgs, result, fieldpos);
             assertEquals("format", testResultStrings[i], result.toString());
 
             //it_out << "Result:  " << result);
+    //#if 0
     //        /* TODO: Look at this test and see if this is still a valid test */
     //        logln("---------------- test parse ----------------");
     //
-    //        int count = 4;
     //        form.toPattern(buffer);
     //        logln("MSG pattern for parse: " + buffer);
     //
@@ -225,6 +221,7 @@ public class TestMessageFormat extends com.ibm.icu.dev.test.TestFmwk {
     //        }
     //        if (failed)
     //            errln("MessageFormat failed test #6");
+    //#endif
         }
     }
 
@@ -422,9 +419,8 @@ public class TestMessageFormat extends com.ibm.icu.dev.test.TestFmwk {
         // Just use unlocalized currency symbol.
         //String compareStrGer = "At <time> on 08.08.1997, you made a deposit of 456,83 DM.";
         String compareStrGer = "At <time> on 08.08.1997, you made a deposit of ";
-        compareStrGer += "456,83 ";
         compareStrGer += '\u00a4';
-        compareStrGer += ".";
+        compareStrGer += " 456,83.";
 
         MessageFormat msg = new MessageFormat(formatStr, Locale.ENGLISH);
         result.setLength(0);
@@ -503,13 +499,13 @@ public class TestMessageFormat extends com.ibm.icu.dev.test.TestFmwk {
         String msgFormatString = "{0} =sep= {1}";
         MessageFormat msg = new MessageFormat(msgFormatString);
         String source = "abc =sep= def";
+        String tmp1, tmp2;
 
         try {
             Object[] fmt_arr = msg.parse(source);
             if (fmt_arr.length != 2) {
                 errln("*** MSG parse (ustring, count, err) count err.");
             } else {
-                // TODO: This if statement seems to be redundant. [tschumann]
                 if (fmt_arr.length != 2) {
                     errln("*** MSG parse (ustring, parsepos., count) count err.");
                 } else {
@@ -545,13 +541,9 @@ public class TestMessageFormat extends com.ibm.icu.dev.test.TestFmwk {
             if (fmta.length != 2) {
                 errln("*** MSG parse (ustring, count, err) count err.");
             } else {
-                // TODO: Don't we want to check fmta?
-                //       In this case this if statement would be redundant, too.
-                //       [tschumann]
                 if (fmt_arr.length != 2) {
                     errln("*** MSG parse (ustring, parsepos., count) count err.");
                 } else {
-                    // TODO: Don't we want to check fmta? [tschumann]
                     assertEquals("parse()[0]", "abc", fmt_arr[0]);
                     assertEquals("parse()[1]", "def", fmt_arr[1]);
                 }
@@ -575,6 +567,8 @@ public class TestMessageFormat extends com.ibm.icu.dev.test.TestFmwk {
         Format[] formatsAct = null;
         Format a = null;
         Format b = null;
+        String patCmp;
+        String patAct;
         Format[] formatsToAdopt = null;
 
         if (formats==null || formatsCmp==null || (formats.length <= 0) || (formats.length != formatsCmp.length)) {
@@ -786,6 +780,7 @@ public class TestMessageFormat extends com.ibm.icu.dev.test.TestFmwk {
                 "despite the Glimmung's efforts "+
                 "and to delight of the printers, Nick, his father, "+
                 "his mother, the spiddles, and of course Horace.";
+            String result;
             assertEquals("format", expected, msg.format(ARGS));
         } catch (IllegalArgumentException e1) {
             errln("FAIL: constructor failed");
@@ -862,9 +857,8 @@ public class TestMessageFormat extends com.ibm.icu.dev.test.TestFmwk {
         compareStr2 += "456.83.";
         // both date and currency formats are German-style
         String compareStr3 = "At <time> on 08.08.1997, you made a deposit of ";
-        compareStr3 += "456,83 ";
         compareStr3 += '\u00a4';
-        compareStr3 += ".";
+        compareStr3 += " 456,83.";
 
         MessageFormat msg = new MessageFormat(formatStr, ULocale.US);
         result.setLength(0);
@@ -931,502 +925,12 @@ public class TestMessageFormat extends com.ibm.icu.dev.test.TestFmwk {
             "{'", "{'",
             "{'a", "{'a",
             "{'a{}'a}'a", "{'a{}'a}''a",
-            "'}'", "'}'",
-            "'} '{'}'", "'} '{'}''",
-            "'} {{{''", "'} {{{'''",
+	    "'}'", "'}'",
+	    "'} '{'}'", "'} '{'}''",
+	    "'} {{{''", "'} {{{'''",
         };
         for (int i = 0; i < patterns.length; i += 2) {
             assertEquals("[" + (i/2) + "] \"" + patterns[i] + "\"", patterns[i+1], MessageFormat.autoQuoteApostrophe(patterns[i]));
         }
     }
-    
-    // This tests passing named arguments instead of numbers to format(). 
-    public void testFormatNamedArguments() {
-        Map arguments = new HashMap();
-        arguments.put("startDate", new Date(871068000000L));
-
-        StringBuffer result = new StringBuffer();
-        
-        String formatStr = "On {startDate,date}, it began.";
-        String compareStr = "On Aug 8, 1997, it began.";
-
-        MessageFormat msg = new MessageFormat(formatStr);
-        FieldPosition fp = new FieldPosition(0);
-
-        try {
-            msg.format(arguments.get("startDate"), result, fp);
-            errln("*** MSG format without expected error code.");
-        } catch (Exception e1) {
-        }
-
-        result.setLength(0);
-        result = msg.format(
-            arguments,
-            result,
-            fp);
-        assertEquals("format", compareStr, result.toString());
-    }
-    
-    // This tests parsing formatted messages with named arguments instead of
-    // numbers. 
-    public void testParseNamedArguments() {
-        String msgFormatString = "{foo} =sep= {bar}";
-        MessageFormat msg = new MessageFormat(msgFormatString);
-        String source = "abc =sep= def";
-
-        try {
-            Map fmt_map = msg.parseToMap(source);
-            if (fmt_map.keySet().size() != 2) {
-                errln("*** MSG parse (ustring, count, err) count err.");
-            } else {
-                assertEquals("parse()[0]", "abc", fmt_map.get("foo"));
-                assertEquals("parse()[1]", "def", fmt_map.get("bar"));
-            }
-        } catch (ParseException e1) {
-            errln("*** MSG parse (ustring, count, err) error.");
-        }
-
-        ParsePosition pp = new ParsePosition(0);
-        Map fmt_map = msg.parseToMap(source, pp); 
-        if (pp.getIndex()==0 || fmt_map==null) {
-            errln("*** MSG parse (ustring, parsepos., count) error.");
-        } else {
-            if (fmt_map.keySet().size() != 2) {
-                errln("*** MSG parse (ustring, parsepos., count) count err.");
-            } else {
-                assertEquals("parse()[0]", "abc", fmt_map.get("foo"));
-                assertEquals("parse()[1]", "def", fmt_map.get("bar"));
-            }
-        }
-
-        pp.setIndex(0);
-       
-        Map fmta = (Map) msg.parseObject( source, pp );
-        if (pp.getIndex() == 0) {
-            errln("*** MSG parse (ustring, Object, parsepos ) error.");
-        } else {
-            if (fmta.keySet().size() != 2) {
-                errln("*** MSG parse (ustring, count, err) count err.");
-            } else {
-                assertEquals("parse()[0]", "abc", fmta.get("foo"));
-                assertEquals("parse()[1]", "def", fmta.get("bar"));
-            }
-        }
-    }
-    
-    // Ensure that methods designed for numeric arguments only, will throw
-    // an exception when called on MessageFormat objects created with
-    // named arguments.
-    public void testNumericOnlyMethods() {
-        MessageFormat msg = new MessageFormat("Number of files: {numfiles}");
-        boolean gotException = false;
-        try {
-            Format fmts[] = {new DecimalFormat()};
-            msg.setFormatsByArgumentIndex(fmts);
-        } catch (IllegalArgumentException e) {
-            gotException = true;
-        }
-        if (!gotException) {
-            errln("MessageFormat.setFormatsByArgumentIndex() should throw an " +
-                  "IllegalArgumentException when called on formats with " + 
-                  "named arguments but did not!");
-        }
-        
-        gotException = false;
-        try {
-            msg.setFormatByArgumentIndex(0, new DecimalFormat());
-        } catch (IllegalArgumentException e) {
-            gotException = true;
-        }
-        if (!gotException) {
-            errln("MessageFormat.setFormatByArgumentIndex() should throw an " +
-                  "IllegalArgumentException when called on formats with " + 
-                  "named arguments but did not!");
-        }
-        
-        gotException = false;
-        try {
-            msg.getFormatsByArgumentIndex();
-        } catch (IllegalArgumentException e) {
-            gotException = true;
-        }
-        if (!gotException) {
-            errln("MessageFormat.getFormatsByArgumentIndex() should throw an " +
-                  "IllegalArgumentException when called on formats with " + 
-                  "named arguments but did not!");
-        }
-        
-        gotException = false;
-        try {
-            Object args[] = {new Long(42)};
-            msg.format(args, new StringBuffer(), new FieldPosition(0));
-        } catch (IllegalArgumentException e) {
-            gotException = true;
-        }
-        if (!gotException) {
-            errln("MessageFormat.format(Object[], StringBuffer, FieldPosition) " +
-                  "should throw an IllegalArgumentException when called on " + 
-                  "formats with named arguments but did not!");
-        }
-        
-        gotException = false;
-        try {
-            Object args[] = {new Long(42)};
-            msg.format((Object) args, new StringBuffer(), new FieldPosition(0));
-        } catch (IllegalArgumentException e) {
-            gotException = true;
-        }
-        if (!gotException) {
-            errln("MessageFormat.format(Object, StringBuffer, FieldPosition) " +
-                  "should throw an IllegalArgumentException when called with " +
-                  "non-Map object as argument on formats with named " + 
-                  "arguments but did not!");
-        }
-        
-        gotException = false;
-        try {
-            msg.parse("Number of files: 5", new ParsePosition(0));
-        } catch (IllegalArgumentException e) {
-            gotException = true;
-        }
-        if (!gotException) {
-            errln("MessageFormat.parse(String, ParsePosition) " +
-                  "should throw an IllegalArgumentException when called with " +
-                  "non-Map object as argument on formats with named " + 
-                  "arguments but did not!");
-        }
-        
-        gotException = false;
-        try {
-            msg.parse("Number of files: 5");
-        } catch (IllegalArgumentException e) {
-            gotException = true;
-        } catch (ParseException e) {
-            errln("Wrong exception thrown.");
-        }
-        if (!gotException) {
-            errln("MessageFormat.parse(String) " +
-                  "should throw an IllegalArgumentException when called with " +
-                  "non-Map object as argument on formats with named " + 
-                  "arguments but did not!");
-        }
-    }
-    
-    public void testNamedArguments() {
-        // Ensure that mixed argument types are not allowed.
-        // Either all arguments have to be numeric or valid identifiers.
-        try {
-            new MessageFormat("Number of files in folder {0}: {numfiles}");
-            errln("Creating a MessageFormat with mixed argument types " + 
-                    "(named and numeric) should throw an " + 
-                    "IllegalArgumentException but did not!");
-        } catch (IllegalArgumentException e) {}
-        
-        try {
-            new MessageFormat("Number of files in folder {folder}: {1}");
-            errln("Creating a MessageFormat with mixed argument types " + 
-                    "(named and numeric) should throw an " + 
-                    "IllegalArgumentException but did not!");
-        } catch (IllegalArgumentException e) {}
-        
-        // Test named arguments.
-        MessageFormat mf = new MessageFormat("Number of files in folder {folder}: {numfiles}");
-        if (!mf.usesNamedArguments()) {
-            errln("message format 1 should have used named arguments");
-        }
-        mf = new MessageFormat("Wavelength:  {\u028EValue\uFF14}");
-        if (!mf.usesNamedArguments()) {
-            errln("message format 2 should have used named arguments");
-        }
-        
-        // Test argument names with invalid start characters.
-        try {
-            new MessageFormat("Wavelength:  {_\u028EValue\uFF14}");
-            errln("Creating a MessageFormat with invalid argument names " + 
-            "should throw an IllegalArgumentException but did not!");
-        } catch (IllegalArgumentException e) {}
-        
-        try {
-            new MessageFormat("Wavelength:  {\uFF14\u028EValue}");
-            errln("Creating a MessageFormat with invalid argument names " + 
-            "should throw an IllegalArgumentException but did not!");
-        } catch (IllegalArgumentException e) {}
-        
-        // Test argument names with invalid continue characters.
-        try {
-            new MessageFormat("Wavelength:  {Value@\uFF14}");
-            errln("Creating a MessageFormat with invalid argument names " + 
-            "should throw an IllegalArgumentException but did not!");
-        } catch (IllegalArgumentException e) {}
-        
-        try {
-            new MessageFormat("Wavelength:  {Value(\uFF14)}");
-            errln("Creating a MessageFormat with invalid argument names " + 
-            "should throw an IllegalArgumentException but did not!");
-        } catch (IllegalArgumentException e) {}        
-    }
-
-    public void testNumericFormatWithMap() {
-        MessageFormat mf = new MessageFormat("X:{2} Y:{1}");
-        if (mf.usesNamedArguments()) {
-            errln("should not use named arguments");
-        }
-
-        Map map12 = new HashMap();
-        map12.put("1", "one");
-        map12.put("2", "two");
-
-        String target = "X:two Y:one";
-        String result = mf.format(map12);
-        if (!target.equals(result)) {
-            errln("expected '" + target + "' but got '" + result + "'");
-        }
-
-        try {
-            Map mapResult = mf.parseToMap(target);
-            if (!map12.equals(mapResult)) {
-                errln("expected " + map12 + " but got " + mapResult);
-            }
-        } catch (ParseException e) {
-            errln("unexpected exception: " + e.getMessage());
-        }
-
-        Map map10 = new HashMap();
-        map10.put("1", "one");
-        map10.put("0", "zero");
-        target = "X:{2} Y:one";
-        result = mf.format(map10);
-        if (!target.equals(result)) {
-            errln("expected '" + target + "' but got '" + result + "'");
-        }
-
-        DateFormat dateFormat = DateFormat.getDateInstance(DateFormat.MEDIUM);
-        DateFormat timeFormat = DateFormat.getTimeInstance(DateFormat.MEDIUM);
-        Map fmtMap = new HashMap();
-        fmtMap.put("1", dateFormat);
-        fmtMap.put("2", timeFormat);
-        mf.setFormatsByArgumentName(fmtMap);
-        Date date = new Date(661439820000L);
-
-        try {
-            result = mf.format(map12); // should fail, wrong argument type
-            fail("expected exception but got '" + result + "'");
-        } catch (IllegalArgumentException e) {
-            // expect this
-        }
-
-        Map argMap = new HashMap();
-        argMap.put("1", date);
-        argMap.put("2", date);
-        target = "X:5:17:00 AM Y:Dec 17, 1990";
-        result = mf.format(argMap);
-        if (!target.equals(result)) {
-            errln("expected '" + target + "' but got '" + result + "'");
-        }
-    }
-
-    // This tests nested Formats inside PluralFormat.
-    public void testNestedFormatsInPluralFormat() {
-        try {
-            MessageFormat msgFmt = new MessageFormat(
-                    "{0, plural, one {{0, number,C''''est #,##0.0# fichier}} " +
-                    "other {Ce sont # fichiers}} dans la liste.",
-                    new ULocale("fr"));
-            Object objArray[] = {new Long(0)};
-            HashMap objMap = new HashMap();
-            objMap.put("argument", objArray[0]);
-            String result = msgFmt.format(objArray);
-            if (!result.equals("C'est 0,0 fichier dans la liste.")) {
-                errln("PluralFormat produced wrong message string.");
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException(e.getMessage());
-        }
-    }
-
-    // This tests PluralFormats used inside MessageFormats.
-    public void testPluralFormat() {
-        {
-            MessageFormat mfNum = new MessageFormat(
-                    "{0, plural, one{C''est # fichier} other " + 
-                      "{Ce sont # fichiers}} dans la liste.",
-                    new ULocale("fr"));
-            MessageFormat mfAlpha = new MessageFormat(
-                    "{argument, plural, one{C''est # fichier} other {Ce " +
-                      "sont # fichiers}} dans la liste.",
-                    new ULocale("fr"));
-            Object objArray[] = {new Long(0)};
-            HashMap objMap = new HashMap();
-            objMap.put("argument", objArray[0]);
-            String result = mfNum.format(objArray);
-            if (!result.equals(mfAlpha.format(objMap))) {
-                errln("PluralFormat's output differs when using named " + 
-                        "arguments instead of numbers!");
-            }
-            if (!result.equals("C'est 0 fichier dans la liste.")) {
-                errln("PluralFormat produced wrong message string.");
-            }
-        }
-        {
-            MessageFormat mfNum = new MessageFormat (
-                    "There {0, plural, one{is # zavod}few{are {0, " +
-                      "number,###.0} zavoda} other{are # zavodov}} in the " +
-                      "directory.",
-                    new ULocale("ru"));
-            MessageFormat mfAlpha = new MessageFormat (
-                    "There {argument, plural, one{is # zavod}few{" +
-                      "are {argument, number,###.0} zavoda} other{are # " + 
-                      "zavodov}} in the directory.",
-                    new ULocale("ru"));
-            Object objArray[] = {new Long(4)};
-            HashMap objMap = new HashMap();
-            objMap.put("argument", objArray[0]);
-            String result = mfNum.format(objArray);
-            if (!result.equals(mfAlpha.format(objMap))) {
-                errln("PluralFormat's output differs when using named " + 
-                        "arguments instead of numbers!");
-            }
-            if (!result.equals("There are 4,0 zavoda in the directory.")) {
-                errln("PluralFormat produced wrong message string.");
-            }
-        }
-    }
-
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
-    // Test case for formatToCharacterIterator
-    public void TestFormatToCharacterIterator() {
-        MessageFormat[] msgfmts = {
-            new MessageFormat("The {3,ordinal} folder ''{0}'' contains {2,number} file(s), created at {1,time} on {1,date}."),
-            new MessageFormat("The {arg3,ordinal} folder ''{arg0}'' contains {arg2,number} file(s), created at {arg1,time} on {arg1,date}."), // same as above, but named args
-            new MessageFormat("The folder contains {0}.")
-        };
-
-        double filelimits[] = {0,1,2};
-        String filepart[] = {"no files","one file","{0,number} files"};
-        ChoiceFormat fileform = new ChoiceFormat(filelimits, filepart);
-        msgfmts[2].setFormat(0, fileform);
-
-        
-        Object[] args0 = new Object[] {"tmp", new Date(1184777888000L), new Integer(15), new Integer(2)};
-
-        HashMap args1 = new HashMap();
-        args1.put("arg0", "tmp");
-        args1.put("arg1", new Date(1184777888000L));
-        args1.put("arg2", new Integer(15));
-        args1.put("arg3", new Integer(2));
-
-        Object[] args2 = new Object[] {new Integer(34)};
-
-        Object[] args = {
-            args0,
-            args1,
-            args2
-        };
-        
-        String[] expectedStrings = {
-            "The 2nd folder 'tmp' contains 15 file(s), created at 9:58:08 AM on Jul 18, 2007.",
-            "The 2nd folder 'tmp' contains 15 file(s), created at 9:58:08 AM on Jul 18, 2007.",
-            "The folder contains 34 files."
-        };
-
-        AttributedString[] expectedAttributedStrings = {
-            new AttributedString(expectedStrings[0]),
-            new AttributedString(expectedStrings[1]),
-            new AttributedString(expectedStrings[2])
-        };
-
-        // Add expected attributes to the expectedAttributedStrings[0]
-        expectedAttributedStrings[0].addAttribute(MessageFormat.Field.ARGUMENT, new Integer(3), 4, 7);
-        expectedAttributedStrings[0].addAttribute(MessageFormat.Field.ARGUMENT, new Integer(0), 16, 19);
-        expectedAttributedStrings[0].addAttribute(MessageFormat.Field.ARGUMENT, new Integer(2), 30, 32);
-        expectedAttributedStrings[0].addAttribute(NumberFormat.Field.INTEGER, NumberFormat.Field.INTEGER, 30, 32);
-        expectedAttributedStrings[0].addAttribute(MessageFormat.Field.ARGUMENT, new Integer(1), 53, 63);
-        expectedAttributedStrings[0].addAttribute(DateFormat.Field.HOUR1, DateFormat.Field.HOUR1, 53, 54);
-        expectedAttributedStrings[0].addAttribute(DateFormat.Field.MINUTE, DateFormat.Field.MINUTE, 55, 57);
-        expectedAttributedStrings[0].addAttribute(DateFormat.Field.SECOND, DateFormat.Field.SECOND, 58, 60);
-        expectedAttributedStrings[0].addAttribute(DateFormat.Field.AM_PM, DateFormat.Field.AM_PM, 61, 63);
-        expectedAttributedStrings[0].addAttribute(MessageFormat.Field.ARGUMENT, new Integer(1), 67, 79);
-        expectedAttributedStrings[0].addAttribute(DateFormat.Field.MONTH, DateFormat.Field.MONTH, 67, 70);
-        expectedAttributedStrings[0].addAttribute(DateFormat.Field.DAY_OF_MONTH, DateFormat.Field.DAY_OF_MONTH, 71, 73);
-        expectedAttributedStrings[0].addAttribute(DateFormat.Field.YEAR, DateFormat.Field.YEAR, 75, 79);
-
-        // Add expected attributes to the expectedAttributedStrings[1]
-        expectedAttributedStrings[1].addAttribute(MessageFormat.Field.ARGUMENT, "arg3", 4, 7);
-        expectedAttributedStrings[1].addAttribute(MessageFormat.Field.ARGUMENT, "arg0", 16, 19);
-        expectedAttributedStrings[1].addAttribute(MessageFormat.Field.ARGUMENT, "arg2", 30, 32);
-        expectedAttributedStrings[1].addAttribute(NumberFormat.Field.INTEGER, NumberFormat.Field.INTEGER, 30, 32);
-        expectedAttributedStrings[1].addAttribute(MessageFormat.Field.ARGUMENT, "arg1", 53, 63);
-        expectedAttributedStrings[1].addAttribute(DateFormat.Field.HOUR1, DateFormat.Field.HOUR1, 53, 54);
-        expectedAttributedStrings[1].addAttribute(DateFormat.Field.MINUTE, DateFormat.Field.MINUTE, 55, 57);
-        expectedAttributedStrings[1].addAttribute(DateFormat.Field.SECOND, DateFormat.Field.SECOND, 58, 60);
-        expectedAttributedStrings[1].addAttribute(DateFormat.Field.AM_PM, DateFormat.Field.AM_PM, 61, 63);
-        expectedAttributedStrings[1].addAttribute(MessageFormat.Field.ARGUMENT, "arg1", 67, 79);
-        expectedAttributedStrings[1].addAttribute(DateFormat.Field.MONTH, DateFormat.Field.MONTH, 67, 70);
-        expectedAttributedStrings[1].addAttribute(DateFormat.Field.DAY_OF_MONTH, DateFormat.Field.DAY_OF_MONTH, 71, 73);
-        expectedAttributedStrings[1].addAttribute(DateFormat.Field.YEAR, DateFormat.Field.YEAR, 75, 79);
-
-        // Add expected attributes to the expectedAttributedStrings[2]
-        expectedAttributedStrings[2].addAttribute(MessageFormat.Field.ARGUMENT, new Integer(0), 20, 28);
-        expectedAttributedStrings[2].addAttribute(NumberFormat.Field.INTEGER, NumberFormat.Field.INTEGER, 20, 22);
-
-        for (int i = 0; i < msgfmts.length; i++) {
-            AttributedCharacterIterator acit = msgfmts[i].formatToCharacterIterator(args[i]);
-            AttributedCharacterIterator expectedAcit = expectedAttributedStrings[i].getIterator();
-
-            // Check available attributes
-            Set attrSet = acit.getAllAttributeKeys();
-            Set expectedAttrSet = expectedAcit.getAllAttributeKeys();
-            if (attrSet.size() != expectedAttrSet.size()) {
-                errln("FAIL: Number of attribute keys is " + attrSet.size() + " expected: " + expectedAttrSet.size());
-            }
-            Iterator attrIterator = attrSet.iterator();
-            while (attrIterator.hasNext()) {
-                AttributedCharacterIterator.Attribute attr = (AttributedCharacterIterator.Attribute)attrIterator.next();
-                if (!expectedAttrSet.contains(attr)) {
-                    errln("FAIL: The attribute " + attr + " is not expected.");
-                }
-            }
-
-            StringBuffer buf = new StringBuffer();
-            int index = acit.getBeginIndex();
-            int end = acit.getEndIndex();
-            int indexExp = expectedAcit.getBeginIndex();
-            int expectedLen = expectedAcit.getEndIndex() - indexExp;
-            if (end - index != expectedLen) {
-                errln("FAIL: Length of the result attributed string is " + (end - index) + " expected: " + expectedLen);
-            } else {
-                // Check attributes associated with each character
-                while (index < end) {
-                    char c = acit.setIndex(index);
-                    buf.append(c);
-                    expectedAcit.setIndex(indexExp);
-
-                    Map attrs = acit.getAttributes();
-                    Map attrsExp = expectedAcit.getAttributes();
-                    if (attrs.size() != attrsExp.size()) {
-                        errln("FAIL: Number of attributes associated with index " + index + " is " + attrs.size()
-                                + " expected: " + attrsExp.size());
-                    } else {
-                        // Check all attributes at the index
-                        Iterator entryIterator = attrsExp.entrySet().iterator();
-                        while (entryIterator.hasNext()) {
-                            Map.Entry entry = (Map.Entry)entryIterator.next();
-                            if (attrs.containsKey(entry.getKey())) {
-                                Object value = attrs.get(entry.getKey());
-                                assertEquals("Attribute value at index " + index, entry.getValue(), value);
-                            } else {
-                                errln("FAIL: Attribute " + entry.getKey() + " is missing at index " + index);
-                            }
-                        }
-                    }
-                    index++;
-                    indexExp++;
-                }
-                assertEquals("AttributedString contents", expectedStrings[i], buf.toString());
-            }
-        }
-    }
-//#endif
 }

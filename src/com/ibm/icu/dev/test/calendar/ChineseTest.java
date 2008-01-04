@@ -1,5 +1,5 @@
 /*********************************************************************
- * Copyright (C) 2000-2007, International Business Machines Corporation and
+ * Copyright (C) 2000-2006, International Business Machines Corporation and
  * others. All Rights Reserved.
  *********************************************************************
  */
@@ -175,11 +175,7 @@ public class ChineseTest extends CalendarTest {
         java.util.Calendar tempcal = java.util.Calendar.getInstance();
         tempcal.clear();
         tempcal.set(1989, Calendar.NOVEMBER, 1);
-        ChineseCalendar chinese = new ChineseCalendar();
-        if (!skipIfBeforeICU(3,9,1)) {
-            doLimitsTest(chinese, null, tempcal.getTime());
-        }
-        doTheoreticalLimitsTest(chinese, true);
+        doLimitsTest(new ChineseCalendar(), null, tempcal.getTime(), -10);
     }
 
     /**

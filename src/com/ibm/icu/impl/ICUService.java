@@ -1,10 +1,12 @@
 /**
  *******************************************************************************
- * Copyright (C) 2001-2007, International Business Machines Corporation and    *
+ * Copyright (C) 2001-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
 package com.ibm.icu.impl;
+
+//import com.ibm.icu.text.Collator;
 
 import java.lang.ref.SoftReference;
 import java.util.ArrayList;
@@ -16,6 +18,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -207,8 +210,8 @@ public class ICUService extends ICUNotifier {
          * If a key created from id would eventually fallback to match the
          * canonical ID of this key, return true.
          */
-        public boolean isFallbackOf(String idToCheck) {
-            return canonicalID().equals(idToCheck);
+        public boolean isFallbackOf(String id) {
+            return canonicalID().equals(id);
         }
     }
 
@@ -760,11 +763,11 @@ public class ICUService extends ICUNotifier {
         }
 
 
-        SortedMap get(ULocale loc, Comparator comp) {
+        SortedMap get(ULocale locale, Comparator com) {
             SortedMap m = (SortedMap)ref.get();
             if (m != null &&
-                this.locale.equals(loc) &&
-                (this.com == comp || (this.com != null && this.com.equals(comp)))) {
+                this.locale.equals(locale) &&
+                (this.com == com || (this.com != null && this.com.equals(com)))) {
 
                 return m;
             }

@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 2006-2007, International Business Machines Corporation and    *
+* Copyright (C) 2006, International Business Machines Corporation and    *
 * others. All Rights Reserved.				                                  *
 *******************************************************************************
 *
@@ -18,7 +18,6 @@ import java.nio.charset.CoderResult;
 import java.nio.charset.CodingErrorAction;
 
 import com.ibm.icu.impl.Assert;
-import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.text.UTF16;
 
 /**
@@ -29,7 +28,7 @@ import com.ibm.icu.text.UTF16;
  * @provisional This API might change or be removed in a future release.
  */
 public abstract class CharsetEncoderICU extends CharsetEncoder {
-    
+
     byte[] errorBuffer = new byte[30];
     int errorBufferLength = 0;
     
@@ -37,14 +36,10 @@ public abstract class CharsetEncoderICU extends CharsetEncoder {
     int fromUnicodeStatus;
     int fromUChar32;
     boolean useSubChar1;
-    boolean useFallback;
-    
-    /* maximum number of indexed UChars */
-    private static final int EXT_MAX_UCHARS = 19;
     
     /* store previous UChars/chars to continue partial matches */
     int preFromUFirstCP; /* >=0: partial match */
-    char[] preFromUArray = new char[EXT_MAX_UCHARS];
+    char[] preFromUArray;
     int preFromUBegin;
     int preFromULength;    /* negative: replay */
     
@@ -53,30 +48,30 @@ public abstract class CharsetEncoderICU extends CharsetEncoder {
     Object fromUContext;
     private CharsetCallback.Encoder onUnmappableInput = CharsetCallback.FROM_U_CALLBACK_STOP;
     private CharsetCallback.Encoder onMalformedInput = CharsetCallback.FROM_U_CALLBACK_STOP;
-    CharsetCallback.Encoder fromCharErrorBehaviour = new CharsetCallback.Encoder() {
-        public CoderResult call(CharsetEncoderICU encoder, Object context, CharBuffer source,
-                ByteBuffer target, IntBuffer offsets, char[] buffer, int length, int cp,
-                CoderResult cr) {
-            if (cr.isUnmappable()) {
-                return onUnmappableInput.call(encoder, context, source, target, offsets, buffer,
-                        length, cp, cr);
-            } else if (cr.isMalformed()) {
-                return onMalformedInput.call(encoder, context, source, target, offsets, buffer,
-                        length, cp, cr);
-            }
-            return CharsetCallback.FROM_U_CALLBACK_STOP.call(encoder, context, source, target,
-                    offsets, buffer, length, cp, cr);
+    CharsetCallback.Encoder fromCharErrorBehaviour = new CharsetCallback.Encoder(){ 
+                                                                        public CoderResult call(CharsetEncoderICU encoder, Object context, 
+                                                                                                CharBuffer source, ByteBuffer target, IntBuffer offsets, 
+                                                                                                char[] buffer, int length, int cp, CoderResult cr) {
+                                                                                if(cr.isUnmappable()){
+                                                                                    return onUnmappableInput.call(encoder, context, 
+                                                                                                                  source, target, offsets, 
+                                                                                                                  buffer, length, cp, cr);
+                                                                                }else if(cr.isMalformed()){
+                                                                                    return onMalformedInput.call(encoder, context, 
+                                                                                                                 source, target, offsets, 
+                                                                                                                 buffer, length, cp, cr);    
+                                                                                }
+                                                                                return CharsetCallback.FROM_U_CALLBACK_STOP.call(encoder, context, 
+                                                                                                                                 source, target, offsets, 
+                                                                                                                                 buffer, length, cp, cr);
 
-        }
-    };
+                                                                        }
+                                                                    };
 
-   /**
+   /** 
      * Construcs a new encoder for the given charset
-     * 
-     * @param cs
-     *            for which the decoder is created
-     * @param replacement
-     *            the substitution bytes
+     * @param cs for which the decoder is created
+     * @param replacement the substitution bytes
      * @draft ICU 3.6
      * @provisional This API might change or be removed in a future release.
      */
@@ -84,60 +79,22 @@ public abstract class CharsetEncoderICU extends CharsetEncoder {
         super(cs, (cs.minBytesPerChar+cs.maxBytesPerChar)/2, cs.maxBytesPerChar, replacement);
     }
 
-    /**
-     * Is this Encoder allowed to use fallbacks? A fallback mapping is a mapping
-     * that will convert a Unicode codepoint sequence to a byte sequence, but
-     * the encoded byte sequence will round trip convert to a different
-     * Unicode codepoint sequence.
-     * @return true if the converter uses fallback, false otherwise.
-     * @draft ICU 3.8
-     * @provisional This API might change or be removed in a future release.
-     */
-    public boolean isFallbackUsed() {
-        return useFallback;
-    }
-    
-    /**
-     * Sets whether this Encoder can use fallbacks?
-     * @param usesFallback true if the user wants the converter to take
-     *  advantage of the fallback mapping, false otherwise.
-     * @draft ICU 3.8
-     * @provisional This API might change or be removed in a future release.
-     */
-    public void setFallbackUsed(boolean usesFallback) {
-        useFallback = usesFallback;
-    }
-
-    /**
-     * Use fallbacks from Unicode to codepage when useFallback or for private-use code points
-     * @param c A codepoint
-     * @draft ICU 3.6
-     * @provisional This API might change or be removed in a future release.
-     */
-    final boolean isFromUUseFallback(int c) {
-        return (useFallback) || (UCharacter.getType(c) == UCharacter.PRIVATE_USE);
-    }
-    
-    /**
-     * Sets the action to be taken if an illegal sequence is encountered
-     * 
-     * @param newAction
-     *            action to be taken
-     * @exception IllegalArgumentException
+	/**
+	 * Sets the action to be taken if an illegal sequence is encountered
+	 * @param newAction action to be taken
+	 * @exception IllegalArgumentException
      * @stable ICU 3.6
-     */
+	 */
 	protected void implOnMalformedInput(CodingErrorAction newAction) {
 	    onMalformedInput = getCallback(newAction);
 	}
 
 	/**
-     * Sets the action to be taken if an illegal sequence is encountered
-     * 
-     * @param newAction
-     *            action to be taken
-     * @exception IllegalArgumentException
+	 * Sets the action to be taken if an illegal sequence is encountered
+	 * @param newAction action to be taken
+	 * @exception IllegalArgumentException
      * @stable ICU 3.6
-     */
+	 */
     protected void implOnUnmappableCharacter(CodingErrorAction newAction) {
         onUnmappableInput = getCallback(newAction);
 	}
@@ -172,16 +129,12 @@ public abstract class CharsetEncoderICU extends CharsetEncoder {
 	 */
     protected void implReset() {
 	    errorBufferLength=0;
+        fromUChar32=0;
         fromUnicodeStatus = 0;
-        fromUChar32 = 0;
-        fromUnicodeReset();
-	}
-    
-    private void fromUnicodeReset() {
         preFromUBegin = 0;
-        preFromUFirstCP = UConverterConstants.U_SENTINEL;
+        preFromUFirstCP = 0;
         preFromULength = 0;
-    }
+	}
 
 	/**
 	 * Encodes one or more chars. The default behaviour of the
@@ -195,22 +148,14 @@ public abstract class CharsetEncoderICU extends CharsetEncoder {
 	 */
     protected CoderResult encodeLoop(CharBuffer in, ByteBuffer out) {
         if(!in.hasRemaining()){
-            // The Java framework should have already substituted what was left.
-            fromUChar32 = 0;
-            //fromUnicodeReset();
             return CoderResult.UNDERFLOW;
         }
         in.position(in.position()+fromUCountPending());
         /* do the conversion */
         CoderResult ret = encode(in, out, null, false);
         setSourcePosition(in);
-        if(ret.isUnderflow() && in.hasRemaining()){
-            // The Java framework is going to substitute what is left.
-            fromUnicodeReset();
-        }
         return ret;
     }
-
     /**
      * Implements ICU semantics of buffer management
      * @param source
@@ -302,6 +247,8 @@ public abstract class CharsetEncoderICU extends CharsetEncoder {
         return fromUnicodeWithCallback(source, target, offsets, flush);
 
     }
+    /* maximum number of indexed UChars */
+    private static final int EXT_MAX_UCHARS = 19;
 
     /**
      * Implementation note for m:n conversions
@@ -507,7 +454,7 @@ public abstract class CharsetEncoderICU extends CharsetEncoder {
                 {
     
                     if( calledCallback || cr.isOverflow() ||
-                        (!cr.isMalformed() && !cr.isUnmappable())
+                        (cr.isMalformed() && cr.isUnmappable())
                       ){
                         /*
                          * the callback did not or cannot resolve the error:
@@ -563,7 +510,7 @@ public abstract class CharsetEncoderICU extends CharsetEncoder {
             }
         }
     }
-	/*
+	/**
 	 * Ascertains if a given Unicode code point (32bit value for handling surrogates)
 	 * can be converted to the target encoding. If the caller wants to test if a
 	 * surrogate pair can be converted to target encoding then the
@@ -602,14 +549,9 @@ public abstract class CharsetEncoderICU extends CharsetEncoder {
      * @draft ICU 3.6
 	 * @provisional This API might change or be removed in a future release.
 	 */
-    /* TODO This is different from Java's canEncode(char) API.
-     * ICU's API should implement getUnicodeSet,
-     * and override canEncode(char) which queries getUnicodeSet.
-     * The getUnicodeSet should return a frozen UnicodeSet or use a fillin parameter, like ICU4C.
-     */
-	/*public boolean canEncode(int codepoint) {
+	public boolean canEncode(int codepoint) {
 	    return true;
-    }*/
+    }
 	/**
      * Overrides super class method
      * @stable ICU 3.6 
@@ -660,10 +602,12 @@ public abstract class CharsetEncoderICU extends CharsetEncoder {
         //write overflow 
         cnv.errorBufferLength = bytesLimit - bytesBegin;
         if(cnv.errorBufferLength >0) {
-            int index = 0;     
-            while(bytesBegin<bytesLimit) {
-                cnv.errorBuffer[index++]=bytesArray[bytesBegin++];
-            } 
+            if(cnv!=null) {
+                int index = 0;     
+                while(bytesBegin<bytesLimit) {
+                    cnv.errorBuffer[index++]=bytesArray[bytesBegin++];
+                } 
+            }
             cr = CoderResult.OVERFLOW;
         }
         return  cr;
@@ -725,94 +669,5 @@ public abstract class CharsetEncoderICU extends CharsetEncoder {
             return CharsetEncoderICU.fromUWriteBytes(encoder, sub, 0,
                     sub.length, target, offsets, source.position());
         }
-    }
-    
-    
-    /**
-     * <p>
-     * Handles a common situation where a character has been read and it may be
-     * a lead surrogate followed by a trail surrogate. This method can change
-     * the source position and will modify fromUChar32.
-     * </p>
-     * 
-     * <p>
-     * If <code>null</code> is returned, then there was success in reading a
-     * surrogate pair, the codepoint is stored in <code>fromUChar32</code> and
-     * <code>fromUChar32</code> should be reset (to 0) after being read.
-     * </p>
-     * 
-     * @param source
-     *            The encoding source.
-     * @param lead
-     *            A character that may be the first in a surrogate pair.
-     * @return <code>CoderResult.malformedForLength(1)</code> or
-     *         <code>CoderResult.UNDERFLOW</code> if there is a problem, or
-     *         <code>null</code> if there isn't.
-     * @see handleSurrogates(CharBuffer, char)
-     * @see handleSurrogates(CharBuffer, int, char)
-     * @see handleSurrogates(char[], int, int, char)
-     */
-    final CoderResult handleSurrogates(CharBuffer source, char lead) {
-        if (!UTF16.isLeadSurrogate(lead)) {
-            fromUChar32 = lead;
-            return CoderResult.malformedForLength(1);
-        }
-        
-        if (!source.hasRemaining()) {
-            fromUChar32 = lead;
-            return CoderResult.UNDERFLOW;
-        }
-        
-        char trail = source.get();
-        
-        if (!UTF16.isTrailSurrogate(trail)) {
-            fromUChar32 = lead;
-            source.position(source.position() - 1);
-            return CoderResult.malformedForLength(1);
-        }
-        
-        fromUChar32 = UCharacter.getCodePoint(lead, trail);
-        return null;
-    }
-    
-    /**
-     * <p>
-     * Same as <code>handleSurrogates(CharBuffer, char)</code>, but with arrays. As an added
-     * requirement, the calling method must also increment the index if this method returns
-     * <code>null</code>.
-     * </p>
-     * 
-     * 
-     * @param source
-     *            The encoding source.
-     * @param lead
-     *            A character that may be the first in a surrogate pair.
-     * @return <code>CoderResult.malformedForLength(1)</code> or
-     *         <code>CoderResult.UNDERFLOW</code> if there is a problem, or <code>null</code> if
-     *         there isn't.
-     * @see handleSurrogates(CharBuffer, char)
-     * @see handleSurrogates(CharBuffer, int, char)
-     * @see handleSurrogates(char[], int, int, char)
-     */
-    final CoderResult handleSurrogates(char[] sourceArray, int sourceIndex, int sourceLimit, char lead) {
-        if (!UTF16.isLeadSurrogate(lead)) {
-            fromUChar32 = lead;
-            return CoderResult.malformedForLength(1);
-        }
-        
-        if (sourceIndex >= sourceLimit) {
-            fromUChar32 = lead;
-            return CoderResult.UNDERFLOW;
-        }
-        
-        char trail = sourceArray[sourceIndex];
-        
-        if (!UTF16.isTrailSurrogate(trail)) {
-            fromUChar32 = lead;
-            return CoderResult.malformedForLength(1);
-        }
-        
-        fromUChar32 = UCharacter.getCodePoint(lead, trail);
-        return null;
     }
 }

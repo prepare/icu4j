@@ -1,5 +1,5 @@
 /*
- * (C) Copyright IBM Corp. 2002-2007 - All Rights Reserved
+ * (C) Copyright IBM Corp. 2002-2005 - All Rights Reserved
  */
 
 package com.ibm.icu.impl;
@@ -8,8 +8,12 @@ import java.lang.ref.SoftReference;
 import java.util.Locale;
 import java.util.MissingResourceException;
 import java.util.ResourceBundle;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import com.ibm.icu.util.ULocale;
 
@@ -186,7 +190,7 @@ public class ICULocaleData {
     private static final boolean DEBUG = ICUDebug.enabled("localedata");
 
     // Cache for getAvailableLocales
-    //private static SoftReference GET_AVAILABLE_CACHE;
+    private static SoftReference GET_AVAILABLE_CACHE;
 
     // Cache for ResourceBundle instantiation
     private static SoftReference BUNDLE_CACHE;
@@ -235,11 +239,11 @@ public class ICULocaleData {
                     i = name.length();
                 }
 
-                ClassLoader cl = ICULocaleData.class.getClassLoader();
-                if (cl == null) {
-                    // we're on the bootstrap
-                    cl = ClassLoader.getSystemClassLoader();
-                }
+        		ClassLoader cl = ICULocaleData.class.getClassLoader();
+        		if (cl == null) {
+        		    // we're on the bootstrap
+        		    cl = ClassLoader.getSystemClassLoader();
+        		}
                 Class cls = cl.loadClass(name);
                 if (ICUListResourceBundle.class.isAssignableFrom(cls)) {
                     ICUListResourceBundle bx = (ICUListResourceBundle)cls.newInstance();
@@ -302,7 +306,7 @@ public class ICULocaleData {
         return b;
     }
 
-/*    private static Set createLocaleNameSet(String bundleName) {
+    private static Set createLocaleNameSet(String bundleName) {
         try {
             ResourceBundle index = getResourceBundle(bundleName, "index");
             Object[][] localeStrings = (Object[][]) index.getObject("InstalledLocales");
@@ -325,7 +329,7 @@ public class ICULocaleData {
             Thread.dumpStack();
         }
         return Collections.EMPTY_SET;
-    }*/
+    }
 
     /*
     private static Locale[] createLocaleList(String bundleName) {

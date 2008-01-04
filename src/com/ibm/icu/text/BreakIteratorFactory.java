@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2002-2008, International Business Machines Corporation and    *
+ * Copyright (C) 2002-2007, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -11,6 +11,7 @@ import java.io.InputStream;
 
 import java.util.Locale;
 import java.util.MissingResourceException;
+import java.util.ResourceBundle;
 
 import com.ibm.icu.impl.ICUData;
 import com.ibm.icu.impl.ICULocaleService;
@@ -138,14 +139,9 @@ final class BreakIteratorFactory extends BreakIterator.BreakIteratorServiceShim 
                 //dictBytes = dictRes.getBinary(dictBytes);
                 //TODO: Hard code this for now! fix it once CompactTrieDictionary is ported
                 if(locale.equals("th")){
-                    String dictType = "Thai";
-                    String dictFileName = rb.getStringWithFallback("dictionaries/" + dictType);
-                    dictFileName = ICUResourceBundle.ICU_BUNDLE +ICUResourceBundle.ICU_BRKITR_NAME+ "/" + dictFileName;
-                    InputStream is = ICUData.getStream(dictFileName);
-                    iter = new ThaiBreakIterator(ruleStream, is);
-                    /*String  fileName = "data/th.brk";
+                    String  fileName = "data/th.brk";
                     InputStream is    = ICUData.getStream(fileName);
-                    iter = new DictionaryBasedBreakIterator(ruleStream, is);*/
+                    iter = new DictionaryBasedBreakIterator(ruleStream, is);
                 }
             } catch (MissingResourceException e) {
                 //  Couldn't find a dictionary.

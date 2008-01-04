@@ -187,19 +187,6 @@ public class CopticTest extends CalendarTest
               cal.get(DATE));
     }
 
-    /**
-     * Test limits of the Coptic calendar
-     */
-    public void TestLimits() {
-        Calendar cal = Calendar.getInstance();
-        cal.set(2007, Calendar.JANUARY, 1);
-        CopticCalendar coptic = new CopticCalendar();
-        if (!skipIfBeforeICU(3,9,1)) {
-            doLimitsTest(coptic, null, cal.getTime());
-        }
-        doTheoreticalLimitsTest(coptic, true);
-    }
-
     public void TestCoverage() {
 
         {

@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 1996-2007, International Business Machines Corporation and    *
+* Copyright (C) 1996-2006, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 */
@@ -425,12 +425,7 @@ public final class UCharacterTest extends TestFmwk
               UCharacter.getMirror(0x2e) == 0x2e &&
               UCharacter.getMirror(0x6f3) == 0x6f3 &&
               UCharacter.getMirror(0x301c) == 0x301c &&
-              UCharacter.getMirror(0xa4ab) == 0xa4ab &&
-
-              /* see Unicode Corrigendum #6 at http://www.unicode.org/versions/corrigendum6.html */
-              UCharacter.getMirror(0x2018) == 0x2018 &&
-              UCharacter.getMirror(0x201b) == 0x201b &&
-              UCharacter.getMirror(0x301d) == 0x301d)) {
+              UCharacter.getMirror(0xa4ab) == 0xa4ab)) {
             errln("getMirror() does not work correctly");
         }
 
@@ -448,14 +443,6 @@ public final class UCharacterTest extends TestFmwk
                 }
             } while(++start<=end);
         }
-
-	// verify that Unicode Corrigendum #6 reverts mirrored status of the following
-	if (UCharacter.isMirrored(0x2018) ||
-	    UCharacter.isMirrored(0x201d) ||
-	    UCharacter.isMirrored(0x201f) ||
-	    UCharacter.isMirrored(0x301e)) {
-	    errln("Unicode Corrigendum #6 conflict, one or more of 2018/201d/201f/301e has mirrored property");
-	}
     }
 
     /**
@@ -1505,12 +1492,6 @@ public final class UCharacterTest extends TestFmwk
             { 0x003c, UProperty.BIDI_MIRRORED, 1 },
             { 0x003d, UProperty.BIDI_MIRRORED, 0 },
 
-            /* see Unicode Corrigendum #6 at http://www.unicode.org/versions/corrigendum6.html */
-            { 0x2018, UProperty.BIDI_MIRRORED, 0 },
-            { 0x201d, UProperty.BIDI_MIRRORED, 0 },
-            { 0x201f, UProperty.BIDI_MIRRORED, 0 },
-            { 0x301e, UProperty.BIDI_MIRRORED, 0 },
-
             { 0x058a, UProperty.DASH, 1 },
             { 0x007e, UProperty.DASH, 0 },
 
@@ -2396,30 +2377,6 @@ public final class UCharacterTest extends TestFmwk
         // code coverage for UBiDiProps.getDummy() 
         if(UBiDiProps.getDummy().getClass(0x20)!=0) {
             errln("UBiDiProps.getDummy().getClass(0x20)!=0");
-        }
-    }
-    
-    public void TestBlockData()
-    {
-        Class ubc = UCharacter.UnicodeBlock.class;
-        
-        for (int b = 1; b < UCharacter.UnicodeBlock.COUNT; b += 1) {
-            UCharacter.UnicodeBlock blk = UCharacter.UnicodeBlock.getInstance(b);
-            int id = blk.getID();
-            String name = blk.toString();
-            
-            if (id != b) {
-                errln("UCharacter.UnicodeBlock.getInstance(" + b + ") returned a block with id = " + id);
-            }
-            
-            try {
-                if (ubc.getField(name + "_ID").getInt(blk) != b) {
-                    errln("UCharacter.UnicodeBlock.getInstance(" + b + ") returned a block with a name of " + name +
-                          " which does not match the block id.");
-                }
-            } catch (Exception e) {
-                errln("Couldn't get the id name for id " + b);
-            }
         }
     }
 }

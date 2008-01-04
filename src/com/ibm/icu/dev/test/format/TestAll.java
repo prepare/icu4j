@@ -1,7 +1,6 @@
-//##header J2SE15
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -25,10 +24,8 @@ public class TestAll extends TestGroup {
                   "TestAll$NumberFormat",
                   "TestAll$DateFormat",
                   "TestAll$MessageFormat",
-                  "TestAll$PluralFormat",
                   "com.ibm.icu.dev.test.format.BigNumberFormatTest",
                   "com.ibm.icu.dev.test.format.GlobalizationPreferencesTest",
-                  "DataDrivenFormatTest"
               },
               "Formatting Tests");
     }
@@ -72,23 +69,8 @@ public class TestAll extends TestGroup {
                 "IntlTestDateFormatAPI",
                 "IntlTestDateFormatAPIC",
                 "IntlTestDateFormatSymbols",
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
-                "DateTimeGeneratorTest",
-//#endif
                 "IntlTestSimpleDateFormatAPI",
                 "DateFormatRegressionTestJ",
-                "TimeZoneFormatTest"
-            });
-        }
-    }
-    
-    public static class PluralFormat extends TestGroup {
-        public PluralFormat() {
-            super(new String[] {
-                "PluralFormatUnitTest",
-                "PluralFormatTest",
-                "PluralRulesTest",
             });
         }
     }

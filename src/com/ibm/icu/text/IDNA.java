@@ -1,10 +1,9 @@
 /*
  *******************************************************************************
- * Copyright (C) 2003-2007, International Business Machines Corporation and    *
+ * Copyright (C) 2003-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
-
 package com.ibm.icu.text;
 
 import java.io.IOException;
@@ -41,16 +40,16 @@ import com.ibm.icu.impl.ICUResourceBundle;
 public final class IDNA {
 
     /* IDNA ACE Prefix is "xn--" */
-    private static char[] ACE_PREFIX                = new char[]{ 0x0078,0x006E,0x002d,0x002d } ;
-    //private static final int ACE_PREFIX_LENGTH      = ACE_PREFIX.length;
+    private static char[] ACE_PREFIX = new char[]{ 0x0078,0x006E,0x002d,0x002d } ;
+    private static final int ACE_PREFIX_LENGTH  = 4;
 
-    private static final int MAX_LABEL_LENGTH       = 63;
-    private static final int HYPHEN                 = 0x002D;
-    private static final int CAPITAL_A              = 0x0041;
-    private static final int CAPITAL_Z              = 0x005A;
-    private static final int LOWER_CASE_DELTA       = 0x0020;
-    private static final int FULL_STOP              = 0x002E;
-    private static final int MAX_DOMAIN_NAME_LENGTH = 255;
+    private static final int MAX_LABEL_LENGTH   = 63;
+    private static final int HYPHEN             = 0x002D;
+    private static final int CAPITAL_A          = 0x0041;
+    private static final int CAPITAL_Z          = 0x005A;
+    private static final int LOWER_CASE_DELTA   = 0x0020;
+    private static final int FULL_STOP          = 0x002E;
+
     /** 
      * Option to prohibit processing of unassigned codepoints in the input and
      * do not check if the input conforms to STD-3 ASCII rules.
@@ -96,10 +95,10 @@ public final class IDNA {
     private static boolean startsWithPrefix(StringBuffer src){
         boolean startsWithPrefix = true;
 
-        if(src.length() < ACE_PREFIX.length){
+        if(src.length() < ACE_PREFIX_LENGTH){
             return false;
         }
-        for(int i=0; i<ACE_PREFIX.length;i++){
+        for(int i=0; i<ACE_PREFIX_LENGTH;i++){
             if(toASCIILower(src.charAt(i)) != ACE_PREFIX[i]){
                 startsWithPrefix = false;
             }
@@ -390,7 +389,7 @@ public final class IDNA {
                 StringBuffer lowerOut = toASCIILower(punyout);
 
                 //Step 7: prepend the ACE prefix
-                dest.append(ACE_PREFIX,0,ACE_PREFIX.length);
+                dest.append(ACE_PREFIX,0,ACE_PREFIX_LENGTH);
                 //Step 6: copy the contents in b2 into dest
                 dest.append(lowerOut);
             }else{
@@ -400,7 +399,7 @@ public final class IDNA {
             }
         }
         if(dest.length() > MAX_LABEL_LENGTH){
-            throw new StringPrepParseException("The labels in the input are too long. Length > 63.", 
+            throw new StringPrepParseException("The labels in the input are too long. Length > 64.", 
                                      StringPrepParseException.LABEL_TOO_LONG_ERROR,dest.toString(),0);
         }
         return dest;
@@ -530,9 +529,6 @@ public final class IDNA {
             oldSepIndex = sepIndex;
             result.append((char)FULL_STOP);
         }
-        if(result.length() > MAX_DOMAIN_NAME_LENGTH){
-            throw new StringPrepParseException("The output exceed the max allowed length.", StringPrepParseException.DOMAIN_NAME_TOO_LONG_ERROR);
-        }
         return result;
     }
 
@@ -600,7 +596,7 @@ public final class IDNA {
     }
        
     /**
-     * Function that implements the ToUnicode operation as defined in the IDNA RFC.
+     * This function implements the ToUnicode operation as defined in the IDNA RFC.
      * This operation is done on <b>single labels</b> before sending it to something that expects
      * Unicode names. A label is an individual part of a domain name. Labels are usually
      * separated by dots; for e.g." "www.example.com" is composed of 3 labels 
@@ -628,25 +624,25 @@ public final class IDNA {
            throws StringPrepParseException{
         
         boolean[] caseFlags = null;
-                
+        
         // the source contains all ascii codepoints
         boolean srcIsASCII  = true;
         // assume the source contains all LDH codepoints
-        //boolean srcIsLDH = true; 
+        boolean srcIsLDH = true; 
         
         //get the options
-        //boolean useSTD3ASCIIRules = ((options & USE_STD3_RULES) != 0);
+        boolean useSTD3ASCIIRules = ((options & USE_STD3_RULES) != 0);
         
-        //int failPos = -1;
+        int failPos = -1;
         int ch;
         int saveIndex = src.getIndex();
         // step 1: find out if all the codepoints in src are ASCII  
         while((ch=src.next())!= UCharacterIterator.DONE){
             if(ch>0x7F){
                 srcIsASCII = false;
-            }/*else if((srcIsLDH = isLDHChar(ch))==false){
+            }else if((srcIsLDH = isLDHChar(ch))==false){
                 failPos = src.getIndex();
-            }*/
+            }
         }
         StringBuffer processOut;
         
@@ -675,7 +671,7 @@ public final class IDNA {
             StringBuffer decodeOut = null;
 
             //step 4: Remove the ACE Prefix
-            String temp = processOut.substring(ACE_PREFIX.length,processOut.length());
+            String temp = processOut.substring(ACE_PREFIX_LENGTH,processOut.length());
 
             //step 5: Decode using punycode
             try {
@@ -843,14 +839,10 @@ public final class IDNA {
             if(sepIndex==srcArr.length){
                 break;
             }
-            // Unlike the ToASCII operation we don't normalize the label separators
-            result.append(srcArr[sepIndex]);
             // increment the sepIndex to skip past the separator
             sepIndex++;
             oldSepIndex =sepIndex;
-        }
-        if(result.length() > MAX_DOMAIN_NAME_LENGTH){
-            throw new StringPrepParseException("The output exceed the max allowed length.", StringPrepParseException.DOMAIN_NAME_TOO_LONG_ERROR);
+            result.append((char)FULL_STOP);
         }
         return result;
     }

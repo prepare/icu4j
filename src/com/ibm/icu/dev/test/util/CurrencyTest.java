@@ -1,19 +1,16 @@
 /*
- **********************************************************************
- * Copyright (c) 2002-2007, International Business Machines
- * Corporation and others.  All Rights Reserved.
- **********************************************************************
- * Author: Alan Liu
- * Created: December 18 2002
- * Since: ICU 2.4
- **********************************************************************
- */
-
+**********************************************************************
+* Copyright (c) 2002-2005, International Business Machines
+* Corporation and others.  All Rights Reserved.
+**********************************************************************
+* Author: Alan Liu
+* Created: December 18 2002
+* Since: ICU 2.4
+**********************************************************************
+*/
 package com.ibm.icu.dev.test.util;
 import com.ibm.icu.dev.test.TestFmwk;
-import com.ibm.icu.text.DecimalFormatSymbols;
 import com.ibm.icu.util.*;
-
 import java.util.Locale;
 
 /**
@@ -145,7 +142,7 @@ public class CurrencyTest extends TestFmwk {
         // THE LOCALE DATA before diving into the code.
         if (!noData()) {
             assertEquals("USD.getName(SYMBOL_NAME)",
-                         "$",
+                         "US$",
                          usd.getName(en, Currency.SYMBOL_NAME, isChoiceFormat));
             assertEquals("USD.getName(LONG_NAME)",
                          "US Dollar",
@@ -167,27 +164,11 @@ public class CurrencyTest extends TestFmwk {
     }
 
     public void TestCurrencyKeyword() {
-        ULocale locale = new ULocale("th_TH@collation=traditional;currency=QQQ");
-        Currency currency = Currency.getInstance(locale);
-        String result = currency.getCurrencyCode();
-        if (!"QQQ".equals(result)) {
-            errln("got unexpected currency: " + result);
-        }
+    ULocale locale = new ULocale("th_TH@collation=traditional;currency=QQQ");
+    Currency currency = Currency.getInstance(locale);
+    String result = currency.getCurrencyCode();
+    if (!"QQQ".equals(result)) {
+        errln("got unexpected currency: " + result);
     }
-    
-    public void TestDeprecatedCurrencyFormat() {
-        // bug 5952
-        Locale locale = new Locale("sr", "QQ");
-        DecimalFormatSymbols icuSymbols = new 
-        com.ibm.icu.text.DecimalFormatSymbols(locale);
-        String symbol = icuSymbols.getCurrencySymbol();
-        Currency currency = icuSymbols.getCurrency();
-        String expectCur = null;
-        String expectSym = "\u00A4";
-        if(!symbol.toString().equals(expectSym) || currency != null) {
-            errln("for " + locale + " expected " + expectSym+"/"+expectCur + " but got " + symbol+"/"+currency);
-        } else {
-            logln("for " + locale + " expected " + expectSym+"/"+expectCur + " and got " + symbol+"/"+currency);
-        }
     }
 }

@@ -1,6 +1,6 @@
  /*
  *******************************************************************************
- * Copyright (C) 2002-2007, International Business Machines Corporation and    *
+ * Copyright (C) 2002-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -37,7 +37,7 @@ public class CollationMiscTest extends TestFmwk {
         // new CollationMiscTest().TestLocaleRuleBasedCollators(); 
     }
     
-    //private static final int NORM_BUFFER_TEST_LEN_ = 32;
+    private static final int NORM_BUFFER_TEST_LEN_ = 32;
     private static final class Tester 
     {
         int u;
@@ -111,7 +111,7 @@ public class CollationMiscTest extends TestFmwk {
                 logln("Testing locale " + loc[i].getDisplayName());
                 coll = (RuleBasedCollator)Collator.getInstance(loc[i]);
                 coll.setStrength(Collator.IDENTICAL);
-     
+    
                 for (int u = 0; u < noCases; u ++) {
                     if (!coll.equals(t[u].NFC, t[u].NFD)) {
                         errln("Failure: codePoint \\u" 
@@ -483,7 +483,7 @@ public class CollationMiscTest extends TestFmwk {
         
         String[] attShifted = { "strength", "AlternateHandling"};
         Object valShifted[] = { new Integer(Collator.QUATERNARY), 
-                                Boolean.TRUE };
+                                new Boolean(true) };
        
         genericLocaleStarterWithOptions(Locale.JAPANESE, test1, att, val);
         genericLocaleStarterWithOptions(Locale.JAPANESE, test2, att, val);
@@ -1891,7 +1891,7 @@ public class CollationMiscTest extends TestFmwk {
         RuleBasedCollator coll 
             = (RuleBasedCollator)Collator.getInstance(Locale.ENGLISH);
         String att[] = {"NumericCollation"};
-        Boolean val[] = {Boolean.TRUE};
+        Boolean val[] = {new Boolean(true)};
         genericLocaleStarterWithOptions(Locale.ENGLISH, basicTestStrings, att,
                                         val);
         genericLocaleStarterWithOptions(Locale.ENGLISH, 
@@ -1919,7 +1919,7 @@ public class CollationMiscTest extends TestFmwk {
         coll.setNumericCollationDefault();
         logln("After set Numeric to default, the setting is: " + coll.getNumericCollation());
     }
-        
+    
     public void Test3249()
     {
         String rule = "&x < a &z < a";
@@ -1997,11 +1997,11 @@ public class CollationMiscTest extends TestFmwk {
             //int x = foo.getRawImplicit(0xF810);
             foo.getRawFromImplicit(0xE20303E7);
 
-            //int gap4 = foo.getGap4();
-            //logln("Gap4: " + gap4); 
-            //int gap3 = foo.getGap3();
-            //int minTrail = foo.getMinTrail();
-            //int maxTrail = foo.getMaxTrail();
+            int gap4 = foo.getGap4();
+            logln("Gap4: " + gap4); 
+            int gap3 = foo.getGap3();
+            int minTrail = foo.getMinTrail();
+            int maxTrail = foo.getMaxTrail();
             long last = 0;
             long current;
             for (int i = 0; i <= MAX_INPUT; ++i) {
@@ -2141,7 +2141,7 @@ public class CollationMiscTest extends TestFmwk {
     {
       String tests[] = { "B", "b", "Bb", "bB" };
       String[] att = { "strength", "UpperFirst" };
-      Object attVals[] = { new Integer(Collator.QUATERNARY), Boolean.TRUE };
+      Object attVals[] = { new Integer(Collator.QUATERNARY), new Boolean(true) };
       genericLocaleStarterWithOptions(new Locale("root","",""), tests, att, attVals);
     }
     
@@ -2149,11 +2149,11 @@ public class CollationMiscTest extends TestFmwk {
     {
         String tests[] = { "\\u00e2T", "aT" };
         String att[] = { "strength", "CaseLevel" };
-        Object attVals[] = { new Integer(Collator.PRIMARY), Boolean.TRUE };
+        Object attVals[] = { new Integer(Collator.PRIMARY), new Boolean(true) };
         String tests2[] = { "a", "A" };
         String rule = "&[first tertiary ignorable]=A=a";
         String att2[] = { "CaseLevel" };        
-        Object attVals2[] = { Boolean.TRUE };
+        Object attVals2[] = { new Boolean(true) };
         // Test whether we correctly ignore primary ignorables on case level when
         // we have only primary & case level
         genericLocaleStarterWithOptionsAndResult(new Locale("root", ""), tests, att, attVals, 0);
@@ -2211,74 +2211,5 @@ public class CollationMiscTest extends TestFmwk {
         String[] test = { "a", "y" };
         String rules = "&Ny << Y &[first secondary ignorable] <<< a";
         genericRulesStarter(rules, test);        
-    }
-    
-    public void
-    TestVI5913()
-    {
-
-        String rules[] = {
-                "&a < \u00e2 <<< \u00c2",
-                "&a < \u1FF3 ",  // OMEGA WITH YPOGEGRAMMENI
-                "&s < \u0161 ",  // &s < s with caron
-                "&z < a\u00EA",  // &z < a+e with circumflex
-        };
-        String cases[][] = {
-            { "\u1EAC", "A\u0323\u0302", "\u1EA0\u0302", "\u00C2\u0323", }, 
-            { "\u1FA2", "\u03C9\u0313\u0300\u0345", "\u1FF3\u0313\u0300", 
-              "\u1F60\u0300\u0345", "\u1f62\u0345", "\u1FA0\u0300", },
-            { "\u1E63\u030C", "s\u0323\u030C", "s\u030C\u0323"},
-            { "a\u1EC7", //  a+ e with dot below and circumflex
-              "a\u1EB9\u0302", // a + e with dot below + combining circumflex
-              "a\u00EA\u0323", // a + e with circumflex + combining dot below
-            }
-        };
-        
-        
-        for(int i = 0; i < rules.length; i++) {
-            
-            RuleBasedCollator coll = null;
-            try {
-                coll = new RuleBasedCollator(rules[i]);
-            } catch (Exception e) {
-                warnln("Unable to open collator with rules " + rules[i]);
-            }
-
-            logln("Test case["+i+"]:");
-            CollationKey expectingKey = coll.getCollationKey(cases[i][0]);
-            for (int j=1; j<cases[i].length; j++) {
-                CollationKey key = coll.getCollationKey(cases[i][j]);
-                if ( key.compareTo(expectingKey)!=0) {
-                    errln("Error! Test case["+i+"]:"+"source:" + key.getSourceString());
-                    errln("expecting:"+prettify(expectingKey)+ "got:"+  prettify(key));
-                }
-                logln("   Key:"+  prettify(key));
-            }
-        }   
-        
-        
-        RuleBasedCollator vi_vi = null;
-        try {
-            vi_vi = (RuleBasedCollator)Collator.getInstance(
-                                                      new Locale("vi", ""));
-            logln("VI sort:");
-            CollationKey expectingKey = vi_vi.getCollationKey(cases[0][0]);
-            for (int j=1; j<cases[0].length; j++) {
-                CollationKey key = vi_vi.getCollationKey(cases[0][j]);
-                if ( key.compareTo(expectingKey)!=0) {
-                    // TODO (claireho): change the logln to errln after vi.res is up-to-date.
-                    // errln("source:" + key.getSourceString());
-                    // errln("expecting:"+prettify(expectingKey)+ "got:"+  prettify(key));
-                    logln("Error!! in Vietnese sort - source:" + key.getSourceString());
-                    logln("expecting:"+prettify(expectingKey)+ "got:"+  prettify(key));
-                }
-                // logln("source:" + key.getSourceString());
-                logln("   Key:"+  prettify(key));
-            }
-        } catch (Exception e) {
-            warnln("Error creating Vietnese collator");
-            return;
-        }
-        
     }
 }

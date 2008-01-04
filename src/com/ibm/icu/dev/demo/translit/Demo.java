@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2005, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -29,10 +29,6 @@ import java.io.*;
  */
 public class Demo extends Frame {
 
-    /**
-     * For serialization
-     */
-    private static final long serialVersionUID = 1L;
     static final boolean DEBUG = false;
     static final String START_TEXT = "(cut,\u03BA\u03C5\u03C4,\u05D0,\u30AF\u30C8,\u4E80,\u091A\u0941\u0924\u094D)";
 
@@ -57,19 +53,17 @@ public class Demo extends Frame {
 
     static final String NO_TRANSLITERATOR = "None";
 
-    //private static final String COPYRIGHT =
-    //    "\u00A9 IBM Corporation 1999. All rights reserved.";
+    private static final String COPYRIGHT =
+        "\u00A9 IBM Corporation 1999. All rights reserved.";
 
     public static void main(String[] args) {
         Frame f = new Demo(600, 200);
         f.addWindowListener(new WindowAdapter() {
             public void windowClosing(WindowEvent e) {
-                com.ibm.icu.dev.demo.impl.DemoApplet.demoFrameClosed();
-//                System.exit(0);
+                System.exit(0);
             }
         });
         f.setVisible(true);
-        com.ibm.icu.dev.demo.impl.DemoApplet.demoFrameOpened();
     }
 
     public Demo(int width, int height) {
@@ -613,7 +607,7 @@ public class Demo extends Frame {
             BreakIterator sentenceBreak = BreakIterator.getSentenceInstance();
             
             byte titleSetting = TITLELINE;
-            //boolean upperfilter = false;
+            boolean upperfilter = false;
             boolean first = true;
             while (true) {
                 String line = in.readLine();
@@ -629,7 +623,7 @@ public class Demo extends Frame {
                     out.println("<tr><td colspan='2' class='title'><b>Names</b></td></tr>");
                     continue;
                 } else if (line.equals("@UPPERFILTER@")) {
-                    //upperfilter = true;
+                    upperfilter = true;
                     continue;
                 } else if (line.startsWith("@SET")) {
                     UnicodeSet s = new UnicodeSet(line.substring(4).trim());

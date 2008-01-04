@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -12,6 +12,7 @@ import com.ibm.icu.impl.UtilityExtensions;
 import com.ibm.icu.util.CaseInsensitiveString;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.UResourceBundle;
+import com.ibm.icu.impl.UCharacterProperty;
 
 import java.text.MessageFormat;
 import java.util.Enumeration;
@@ -244,7 +245,7 @@ import java.util.Vector;
  * @author Alan Liu
  * @stable ICU 2.0
  */
-public abstract class Transliterator implements StringTransform  {
+public abstract class Transliterator {
     /**
      * Direction constant indicating the forward direction in a transliterator,
      * e.g., the forward rules of a RuleBasedTransliterator.  An "A-B"
@@ -498,6 +499,9 @@ public abstract class Transliterator implements StringTransform  {
      * <<This generates a lot of output.>>
      */
     static final boolean DEBUG = false;
+
+    private static final String COPYRIGHT =
+        "\u00A9 IBM Corporation 1999. All rights reserved.";
 
     /**
      * Default constructor.
@@ -1225,7 +1229,8 @@ public abstract class Transliterator implements StringTransform  {
      * @param inLocale the ULocale in which the display name should be
      * localized.
      * @see java.text.MessageFormat
-     * @stable ICU 3.2
+     * @draft ICU 3.2
+     * @provisional This API might change or be removed in a future release.
      */
     public static String getDisplayName(String id, ULocale inLocale) {
 
@@ -1674,7 +1679,8 @@ public abstract class Transliterator implements StringTransform  {
      * This is generally used to create short aliases of compound IDs.
      * @param aliasID The new ID being registered.
      * @param realID The existing ID that the new ID should be an alias of.
-     * @stable ICU 3.6
+     * @draft ICU 3.4.1
+     * @provisional This API might change or be removed in a future release.
      */
     public static void registerAlias(String aliasID, String realID) {
         registry.put(aliasID, realID, true);
@@ -1820,8 +1826,8 @@ public abstract class Transliterator implements StringTransform  {
          *
          * The extra blank field on "alias" lines is to make the array square.
          */
-        UResourceBundle bundle, transIDs, colBund;
-        bundle = UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_TRANSLIT_BASE_NAME, INDEX);
+        ICUResourceBundle bundle, transIDs, colBund;
+        bundle = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_TRANSLIT_BASE_NAME, INDEX);
         transIDs = bundle.get(RB_RULE_BASED_IDS);
 
         int row, maxRows;
@@ -1829,7 +1835,7 @@ public abstract class Transliterator implements StringTransform  {
         for (row = 0; row < maxRows; row++) {
             colBund = transIDs.get(row);
             String ID = colBund.getKey();
-            UResourceBundle res = colBund.get(0);
+            ICUResourceBundle res = colBund.get(0);
             String type = res.getKey();
             if (type.equals("file") || type.equals("internal")) {
                 // Rest of line is <resource>:<encoding>:<direction>
@@ -1896,16 +1902,5 @@ public abstract class Transliterator implements StringTransform  {
          * @stable ICU 2.0
          */
         Transliterator getInstance(String ID);
-    }
-    
-    /**
-     * Implements StringTransform via this method.
-     * @param source text to be transformed (eg lowercased)
-     * @return result
-     * @draft ICU 3.8
-     * @provisional This API might change or be removed in a future release.
-     */
-    public String transform(String source) {
-        return transliterate(source);
     }
 }

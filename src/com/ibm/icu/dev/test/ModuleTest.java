@@ -1,6 +1,6 @@
 /**
  *******************************************************************************
- * Copyright (C) 2001-2007, International Business Machines Corporation and    *
+ * Copyright (C) 2001-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -23,7 +23,7 @@ import com.ibm.icu.dev.test.TestDataModule.TestData;
  * Tests can implement this if they make extensive use of information in a
  * TestDataModule.
  * 
- * Subclasses can allow for test methods that don't use data from the module by
+ * Subclasses can allow for test methods that don't use data from the modeul by
  * overriding validateMethod to return true for these methods. Tests are also
  * free to instantiate their own modules and run from them, though care should
  * be taken not to interfere with the methods in this class.
@@ -56,7 +56,7 @@ public abstract class ModuleTest extends TestFmwk {
             if (testData != null) {
                 try {
                     Method method = getClass()
-                            .getMethod("processModules", (Class[])null);
+                            .getMethod("processModules", null);
                     while (testData.hasNext()) {
                         target = new MethodTarget(((TestData) testData.next())
                                 .getName(), method).setNext(target);

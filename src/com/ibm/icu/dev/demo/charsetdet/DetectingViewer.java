@@ -1,7 +1,7 @@
 /*
  **************************************************************************
- * Copyright (C) 2005-2007, International Business Machines Corporation   *
- * and others. All Rights Reserved.                                       *
+ * Copyright (C) 2005, International Business Machines Corporation and    *
+ * others. All Rights Reserved.                                           *
  **************************************************************************
  *
  */
@@ -12,14 +12,10 @@ import java.awt.event.*;
 import java.awt.*;
 import java.io.*;
 import java.net.URL;
-import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
-import java.security.AccessControlException;
 
 import javax.swing.*;
 
-import com.ibm.icu.charset.CharsetICU;
-import com.ibm.icu.dev.demo.impl.DemoApplet;
+import com.ibm.icu.impl.UTF32;
 import com.ibm.icu.text.CharsetDetector;
 import com.ibm.icu.text.CharsetMatch;
 
@@ -31,10 +27,6 @@ import com.ibm.icu.text.CharsetMatch;
 public class DetectingViewer extends JFrame implements ActionListener
 {
     
-    /**
-     * For serialization
-     */
-    private static final long serialVersionUID = -2307065724464747775L;
     private JTextPane text;
     private JFileChooser fileChooser;
     
@@ -44,16 +36,10 @@ public class DetectingViewer extends JFrame implements ActionListener
     public DetectingViewer()
     {
         super();
-        DemoApplet.demoFrameOpened();
         
-        try {
-            fileChooser = new JFileChooser();
-        } catch (AccessControlException ace) {
-            System.err.println("no file chooser - access control exception. Continuing without file browsing. "+ace.toString());
-            fileChooser = null; //
-        }
+        fileChooser = new JFileChooser();
         
-//        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(800, 800);
 
         setJMenuBar(makeMenus());
@@ -69,18 +55,6 @@ public class DetectingViewer extends JFrame implements ActionListener
         
         getContentPane().add(scrollPane);
         setVisible(true);
-
-        addWindowListener(
-                new WindowAdapter() {
-                    public void windowClosing(WindowEvent e) {
-//                        setVisible(false);
-//                        dispose();
-
-                          doQuit();
-                    }
-                } );
-
-    
     }
 
     public void actionPerformed(ActionEvent event)
@@ -122,10 +96,10 @@ public class DetectingViewer extends JFrame implements ActionListener
         return new BufferedInputStream(fileStream);
     }
     
-//    private void openFile(String directory, String filename)
-//    {
-//        openFile(new File(directory, filename));
-//    }
+    private void openFile(String directory, String filename)
+    {
+        openFile(new File(directory, filename));
+    }
     
     
     private BufferedInputStream openURL(String url)
@@ -290,13 +264,13 @@ public class DetectingViewer extends JFrame implements ActionListener
                 byte[] bytes = new byte[1024];
                 int offset = 0;
                 int chBytes = 0;
-                Charset utf32 = CharsetICU.forNameICU(encoding);
+                UTF32 utf32 = UTF32.getInstance(encoding);
                 
                 while ((bytesRead = inputStream.read(bytes, offset, 1024)) >= 0) {
                     offset  = bytesRead % 4;
                     chBytes = bytesRead - offset;
                     
-                    sb.append(utf32.decode(ByteBuffer.wrap(bytes)).toString());
+                    sb.append(utf32.fromBytes(bytes, 0, chBytes));
                     
                     if (offset != 0) {
                         for (int i = 0; i < offset; i += 1) {
@@ -365,9 +339,7 @@ public class DetectingViewer extends JFrame implements ActionListener
     
     private void doQuit()
     {
-        DemoApplet.demoFrameClosed();
-        this.setVisible(false);
-        this.dispose();
+        System.exit(0);
     }
     
     private JMenuBar makeMenus()
@@ -379,9 +351,6 @@ public class DetectingViewer extends JFrame implements ActionListener
         mi.setAccelerator((KeyStroke.getKeyStroke(KeyEvent.VK_O, ActionEvent.CTRL_MASK)));
         mi.addActionListener(this);
         menu.add(mi);
-        if(fileChooser == null) {
-            mi.setEnabled(false); // no file chooser.
-        }
         
         mi = new JMenuItem("Open URL...");
         mi.setAccelerator((KeyStroke.getKeyStroke(KeyEvent.VK_U, ActionEvent.CTRL_MASK)));

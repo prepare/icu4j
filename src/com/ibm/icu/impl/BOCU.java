@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 1996-2007, International Business Machines Corporation and    *
+* Copyright (C) 1996-2005, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 */
@@ -12,7 +12,7 @@ import com.ibm.icu.text.UCharacterIterator;
  * <p>Binary Ordered Compression for Unicode</p>
  * 
  * <p>Users are strongly encouraged to read the ICU paper on 
- * <a href="http://www.icu-project.org/docs/papers/binary_ordered_compression_for_unicode.html">
+ * <a href="http://icu.sourceforge.net/docs/papers/binary_ordered_compression_for_unicode.html">
  * BOCU</a> before attempting to use this class.</p>
  * 
  * <p>BOCU is used to compress unicode text into a stream of unsigned
@@ -168,7 +168,7 @@ public class BOCU
     private static final int SLOPE_MAX_ = 0xff;
     private static final int SLOPE_MIDDLE_ = 0x81;
     private static final int SLOPE_TAIL_COUNT_ = SLOPE_MAX_ - SLOPE_MIN_ + 1;
-    //private static final int SLOPE_MAX_BYTES_ = 4;
+    private static final int SLOPE_MAX_BYTES_ = 4;
 
     /**
      * Number of lead bytes:
@@ -196,7 +196,7 @@ public class BOCU
     private static final int SLOPE_SINGLE_ = 80;
     private static final int SLOPE_LEAD_2_ = 42;
     private static final int SLOPE_LEAD_3_ = 3;
-    //private static final int SLOPE_LEAD_4_ = 1;
+    private static final int SLOPE_LEAD_4_ = 1;
 
     /** 
      * The difference value range for single-byters.

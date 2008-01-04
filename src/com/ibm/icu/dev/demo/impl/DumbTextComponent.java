@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -13,15 +13,9 @@ import java.awt.datatransfer.*;
 // LIU: Changed from final to non-final
 public class DumbTextComponent extends Canvas
   implements KeyListener, MouseListener, MouseMotionListener, FocusListener
-{
-    
-    /**
-     * For serialization
-     */
-    private static final long serialVersionUID = 8265547730738652151L;
-
-//    private transient static final String copyright =
-//      "Copyright \u00A9 1998, Mark Davis. All Rights Reserved.";
+  {
+    private transient static final String copyright =
+      "Copyright \u00A9 1998, Mark Davis. All Rights Reserved.";
     private transient static boolean DEBUG = false;
 
     private String contents = "";

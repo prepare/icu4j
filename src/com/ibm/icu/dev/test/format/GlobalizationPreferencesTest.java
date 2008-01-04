@@ -1,6 +1,7 @@
+//##header
 /*
  *******************************************************************************
- * Copyright (C) 2004-2007, International Business Machines Corporation and    *
+ * Copyright (C) 2004-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
 */
@@ -175,6 +176,7 @@ public class GlobalizationPreferencesTest extends TestFmwk {
             errln("FAIL: setLocales(List) must be blocked after frozen");
         }
 
+//#ifndef FOUNDATION
         // setLocales(String)
         logln("Call setLocales(String) after frozen");
         bSet = true;
@@ -186,6 +188,7 @@ public class GlobalizationPreferencesTest extends TestFmwk {
         if (bSet) {
             errln("FAIL: setLocales(String) must be blocked after frozen");
         }
+//#endif
 
         // setLocale(ULocale)
         logln("Call setLocale(ULocale) after frozen");
@@ -237,10 +240,7 @@ public class GlobalizationPreferencesTest extends TestFmwk {
         {"fr_CA", "fr"},
         {"fr", "fr_CA"},
         {"es", "fr", "en_US"},
-        {"zh_CN", "zh_Hans", "zh_Hans_CN"},
-        {"en_US_123"},
-        {"es_US", "es"},
-        {"de_DE", "es", "fr_FR"},
+        {"zh_CN", "zh_Hans", "zh_Hans_CN"}
     };
 
     static String[] ACCEPT_LANGUAGES = {
@@ -248,10 +248,7 @@ public class GlobalizationPreferencesTest extends TestFmwk {
         "fr-CA,fr;q=0.5",
         "fr_CA;q=0.5,fr",
         "es,fr;q=0.76,en_US;q=0.75",
-        "zh-CN,zh-Hans;q=0.5,zh-Hans-CN;q=0.1",
-        "en-US-123",
-        "  es\t; q   =0.5 \t, es-US ;q   =1",
-        "fr-FR; q=0.5, de-DE, es",
+        "zh-CN,zh-Hans;q=0.5,zh-Hans-CN;q=0.1"
     };
 
     static String[][] RESULTS_LOCALEIDS = {
@@ -259,10 +256,7 @@ public class GlobalizationPreferencesTest extends TestFmwk {
         {"fr_CA", "fr"},
         {"fr_CA", "fr"},
         {"es", "fr", "en_US", "en"},
-        {"zh_Hans_CN", "zh_CN", "zh_Hans", "zh"},
-        {"en_US_123", "en_US", "en"},
-        {"es_US", "es"},
-        {"de_DE", "de", "es", "fr_FR", "fr"},
+        {"zh_Hans_CN", "zh_CN", "zh_Hans", "zh"}
     };
 
     public void TestSetLocales() {
@@ -336,6 +330,7 @@ public class GlobalizationPreferencesTest extends TestFmwk {
             }
         }
 
+//#ifndef FOUNDATION
         // setLocales(String)
         for (int i = 0; i < ACCEPT_LANGUAGES.length; i++) {
             String acceptLanguage = ACCEPT_LANGUAGES[i];
@@ -386,6 +381,7 @@ public class GlobalizationPreferencesTest extends TestFmwk {
         if (!gp.getLocale(0).toString().equals("ko_KR")) {
             errln("FAIL: Previous valid locale list had gone");
         }
+//#endif
     }
 
     public void TestResourceBundle() {
@@ -1103,8 +1099,7 @@ public class GlobalizationPreferencesTest extends TestFmwk {
 
         logln("Currency symbol[USD]: " + name1 + " | " + name2 + " | " + name3);
         String dollar = "$";
-        String us_dollar = "$US";
-        if (!name1.equals(dollar) || !name2.equals(us_dollar) || !name3.equals(us_dollar)) {
+        if (!name1.equals(dollar) || !name2.equals(dollar) || !name3.equals(dollar)) {
             errln("FAIL: Currency symbol ID");
         }
 
@@ -1175,8 +1170,8 @@ public class GlobalizationPreferencesTest extends TestFmwk {
         df = gp.getDateFormat(GlobalizationPreferences.DF_SHORT, GlobalizationPreferences.DF_NONE);
         pattern = ((SimpleDateFormat)df).toPattern();
         // root pattern must be used
-        if (!pattern.equals("yyyy-MM-dd")) {
-            errln("FAIL: SHORT date pattern is " + pattern + " Expected: yyyy-MM-dd");
+        if (!pattern.equals("yy/MM/dd")) {
+            errln("FAIL: SHORT date pattern is " + pattern + " Expected: yy/MM/dd");
         }
 
         // Set locale - fr, fr_CA, fr_FR
@@ -1191,7 +1186,7 @@ public class GlobalizationPreferencesTest extends TestFmwk {
         pattern = ((SimpleDateFormat)df).toPattern();
         // fr_CA pattern must be used
         if (!pattern.equals("yy-MM-dd")) {
-            errln("FAIL: SHORT date pattern is " + pattern + " Expected: yy-MM-dd");
+            errln("FAIL: FULL date pattern is " + pattern + " Expected: yy-MM-dd");
         }
 
 
@@ -1230,8 +1225,8 @@ public class GlobalizationPreferencesTest extends TestFmwk {
         // Time - full
         df = gp.getDateFormat(GlobalizationPreferences.DF_NONE, GlobalizationPreferences.DF_FULL);
         pattern = ((SimpleDateFormat)df).toPattern();
-        if (!pattern.equals("HH:mm:ss v")) {
-            errln("FAIL: FULL time pattern is " + pattern + " Expected: HH:mm:ss v");
+        if (!pattern.equals("HH:mm:ss z")) {
+            errln("FAIL: FULL time pattern is " + pattern + " Expected: HH:mm:ss z");
         }
 
         // Time - long
@@ -1258,8 +1253,8 @@ public class GlobalizationPreferencesTest extends TestFmwk {
         // Date/Time - full
         df = gp.getDateFormat(GlobalizationPreferences.DF_FULL, GlobalizationPreferences.DF_FULL);
         pattern = ((SimpleDateFormat)df).toPattern();
-        if (!pattern.equals("EEEE, d MMMM yyyy HH:mm:ss v")) {
-            errln("FAIL: FULL date/time pattern is " + pattern + " Expected: EEEE, d MMMM yyyy HH:mm:ss v");
+        if (!pattern.equals("EEEE, d MMMM yyyy HH:mm:ss z")) {
+            errln("FAIL: FULL date/time pattern is " + pattern + " Expected: EEEE, d MMMM yyyy HH:mm:ss z");
         }
 
         // Invalid style
@@ -1412,8 +1407,8 @@ public class GlobalizationPreferencesTest extends TestFmwk {
         logln("PERCENT type");
         nf = gp.getNumberFormat(GlobalizationPreferences.NF_PERCENT);
         numStr = nf.format(num);
-        if (!numStr.equals("12.345.679 %")) {
-            errln("FAIL: Number string is " + numStr + " Expected: 12.345.679 %");
+        if (!numStr.equals("12.345.679%")) {
+            errln("FAIL: Number string is " + numStr + " Expected: 12.345.679%");
         }
 
         // NF_SCIENTIFIC
@@ -1469,8 +1464,8 @@ public class GlobalizationPreferencesTest extends TestFmwk {
         gp.setCurrency(Currency.getInstance("GBP"));
         nf = gp.getNumberFormat(GlobalizationPreferences.NF_CURRENCY);
         numStr = nf.format(num);
-        if (!numStr.equals("123.456,79 UK\u00A3")) {
-            errln("FAIL: Number string is " + numStr + " Expected: 123.456,79 UK\u00A3");
+        if (!numStr.equals("123.456,79 \u00A3")) {
+            errln("FAIL: Number string is " + numStr + " Expected: 123.456,79 \u00A3");
         }
 
         // Set exliplicit NumberFormat
@@ -1558,7 +1553,7 @@ public class GlobalizationPreferencesTest extends TestFmwk {
         Calendar cal = gp.getCalendar();
         // Calendar instance returned from GP should be initialized
         // by the current time
-        long timeDiff = System.currentTimeMillis() - cal.getTimeInMillis();
+        long timeDiff = System.currentTimeMillis() - gp.getCalendar().getTimeInMillis();
         if (Math.abs(timeDiff) > 1000) {
             // if difference is more than 1 second..
             errln("FAIL: The Calendar was not initialized by current time - difference:" + timeDiff);

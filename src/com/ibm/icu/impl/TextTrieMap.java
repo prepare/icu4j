@@ -1,14 +1,12 @@
 /*
  * *****************************************************************************
- * Copyright (C) 2007, International Business Machines Corporation and others.
+ * Copyright (C) 2006, International Business Machines Corporation and others.
  * All Rights Reserved.
  * *****************************************************************************
  */
 package com.ibm.icu.impl;
 
 import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 
 import com.ibm.icu.lang.UCharacter;
@@ -20,7 +18,7 @@ import com.ibm.icu.text.UTF16;
  */
 public class TextTrieMap {
     /**
-     * Constructs a TextTrieMap object.
+     * Costructs a TextTrieMap object.
      * 
      * @param ignoreCase true to use case insensitive match
      */
@@ -33,8 +31,10 @@ public class TextTrieMap {
      * 
      * @param text The text.
      * @param o The object associated with the text.
+     * @return The previous value associated with specified text,
+     * or null if there was no mapping for the text.
      */
-    public synchronized void put(String text, Object o) {
+    public synchronized Object put(String text, Object o) {
         CharacterNode node = root;
         for (int i = 0; i < text.length(); i++) {
             int ch = UTF16.charAt(text, i);
@@ -43,83 +43,69 @@ public class TextTrieMap {
                 i++;
             }
         }
-        node.addObject(o);
+        Object prevObj = node.getObject();
+        node.setObject(o);
+        return prevObj;
     }
 
     /**
-     * Gets an iterator of the objects associated with the
-     * longest prefix matching string key.
+     * Gets the object associated with the longest prefix
+     * matching string key.
      * 
      * @param text The text to be matched with prefixes.
-     * @return An iterator of the objects associated with
-     * the longest prefix matching matching key, or null
-     * if no matching entry is found.
+     * @return The object associated with the longet prefix matching
+     * matching key, or null if no matching entry is found.
      */
-    public Iterator get(String text) {
-        return get(text, 0);
+    public Object get(String text) {
+        return get(root, text, 0);
     }
 
     /**
-     * Gets an iterator of the objects associated with the
-     * longest prefix matching string key starting at the 
-     * specified position.
+     * Gets the object associated with the longest prefix
+     * matching string key starting at the specified position.
      * 
      * @param text The text to be matched with prefixes.
      * @param start The start index of of the text
-     * @return An iterator of the objects associated with the
-     * longest prefix matching matching key, or null if no 
-     * matching entry is found.
+     * @return The object associated with the longet prefix matching
+     * matching key, or null if no matching entry is found.
      */
-    public Iterator get(String text, int start) {
-        LongestMatchHandler handler = new LongestMatchHandler();
-        find(text, start, handler);
-        return handler.getMatches();
+    public Object get(String text, int start) {
+        return get(root, text, start);
     }
 
-    public void find(String text, ResultHandler handler) {
-        find(text, 0, handler);
-    }
-    
-    public void find(String text, int start, ResultHandler handler) {
-        find(root, text, start, start, handler);
-    }
-
-    /*
-     * Find an iterator of the objects associated with the
-     * longest prefix matching string key under the specified node.
+    /**
+     * Gets the object associated with the longet prefix
+     * matching string key under the specified node.
      * 
      * @param node The character node in this trie.
      * @param text The text to be matched with prefixes.
-     * @param start The start index within the text.
      * @param index The current index within the text.
-     * @param handler The result handler, ResultHandler#handlePrefixMatch
-     * is called when any prefix match is found.
+     * @return The object associated with the longest prefix
+     * match under the node.
      */
-    private synchronized void find(CharacterNode node, String text,
-            int start, int index, ResultHandler handler) {
-        Iterator itr = node.iterator();
-        if (itr != null) {
-            if (!handler.handlePrefixMatch(index - start, itr)) {
-                return;
-            }
-        }
+    private synchronized Object get(CharacterNode node, String text, int index) {
+        Object obj = node.getObject();
         if (index < text.length()) {
             List childNodes = node.getChildNodes();
             if (childNodes == null) {
-                return;
+                return obj;
             }
             int ch = UTF16.charAt(text, index);
             int chLen = UTF16.getCharCount(ch);
             for (int i = 0; i < childNodes.size(); i++) {
                 CharacterNode child = (CharacterNode)childNodes.get(i);
                 if (compare(ch, child.getCharacter())) {
-                    find(child, text, start, index + chLen, handler);
+                    Object tmp = get(child, text, index + chLen);
+                    if (tmp != null) {
+                        obj = tmp;
+                    }
                     break;
                 }
             }
         }
+        return obj;
     }
-    
+
     /**
      * A private method used for comparing two characters.
      * 
@@ -154,7 +140,7 @@ public class TextTrieMap {
     private class CharacterNode {
         int character;
         List children;
-        List objlist;
+        Object obj;
 
         /**
          * Constructs a node for the character.
@@ -175,33 +161,26 @@ public class TextTrieMap {
         }
 
         /**
-         * Adds the object to the node.
-         *  
+         * Sets the object to the node.  Only a leaf node has
+         * the reference of an object associated with a key.
+         * 
          * @param obj The object set in the leaf node.
          */
-        public void addObject(Object obj) {
-            if (objlist == null) {
-                objlist = new LinkedList();
-            }
-            objlist.add(obj);
+        public void setObject(Object obj) {
+            this.obj = obj;
         }
 
         /**
-         * Gets an iterator of the objects associated with
-         * the leaf node.
+         * Gets the object associated the leaf node.
          * 
-         * @return The iterator or null if no objects are
-         * associated with this node.
+         * @return The object.
          */
-        public Iterator iterator() {
-            if (objlist == null) {
-                return null;
-            }
-            return objlist.iterator();
+        public Object getObject() {
+            return obj;
         }
 
         /**
-         * Adds a child node for the character under this character
+         * Adds a child node for the characer under this character
          * node in the trie.  When the matching child node already
          * exists, the reference of the existing child node is
          * returned.
@@ -238,38 +217,6 @@ public class TextTrieMap {
          */
         public List getChildNodes() {
             return children;
-        }
-    }
-
-    /**
-     * Callback handler for processing prefix matches used by
-     * find method.
-     */
-    public interface ResultHandler {
-        /**
-         * Handles a prefix key match
-         * 
-         * @param matchLength Matched key's length
-         * @param values An iterator of the objects associated with the matched key
-         * @return Return true to continue the search in the trie, false to quit.
-         */
-        public boolean handlePrefixMatch(int matchLength, Iterator values);
-    }
-
-    private static class LongestMatchHandler implements ResultHandler {
-        private Iterator matches = null;
-        private int length = 0;
-
-        public boolean handlePrefixMatch(int matchLength, Iterator values) {
-            if (matchLength > length) {
-                length = matchLength;
-                matches = values;
-            }
-            return true;
-        }
-
-        public Iterator getMatches() {
-            return matches;
         }
     }
 }

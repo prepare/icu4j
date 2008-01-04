@@ -1,7 +1,7 @@
 /*
 *******************************************************************************
 *
-*   Copyright (C) 2004-2007, International Business Machines
+*   Copyright (C) 2004-2005, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 *
 *******************************************************************************
@@ -23,7 +23,9 @@ import java.io.InputStream;
 import java.io.DataInputStream;
 import java.io.BufferedInputStream;
 import java.io.IOException;
+import java.util.MissingResourceException;
 
+import com.ibm.icu.util.VersionInfo;
 import com.ibm.icu.util.RangeValueIterator;
 
 import com.ibm.icu.text.UnicodeSet;
@@ -48,7 +50,7 @@ public final class UBiDiProps {
         DataInputStream inputStream=new DataInputStream(is);
 
         // read the header
-        ICUBinary.readHeader(inputStream, FMT, new IsAcceptable());
+        unicodeVersion=ICUBinary.readHeader(inputStream, FMT, new IsAcceptable());
 
         // read indexes[]
         int i, count;
@@ -86,6 +88,7 @@ public final class UBiDiProps {
     // implement ICUBinary.Authenticate
     private final class IsAcceptable implements ICUBinary.Authenticate {
         public boolean isDataVersionAcceptable(byte version[]) {
+            formatVersion=version;
             return version[0]==1 &&
                    version[2]==Trie.INDEX_STAGE_1_SHIFT_ && version[3]==Trie.INDEX_STAGE_2_SHIFT_;
         }
@@ -106,6 +109,8 @@ public final class UBiDiProps {
     private static UBiDiProps gBdpDummy=null;
 
     private UBiDiProps(boolean makeDummy) { // ignore makeDummy, only creates a unique signature
+        formatVersion=new byte[] { 1, 0, Trie.INDEX_STAGE_1_SHIFT_, Trie.INDEX_STAGE_2_SHIFT_ };
+        unicodeVersion=new byte[] { 2, 0, 0, 0 };
         indexes=new int[IX_TOP];
         indexes[0]=IX_TOP;
         trie=new CharTrie(0, 0, null); // dummy trie, always returns 0
@@ -259,6 +264,8 @@ public final class UBiDiProps {
     private byte jgArray[];
 
     private CharTrie trie;
+    private byte formatVersion[];
+    private byte unicodeVersion[];  
 
     // data format constants ----------------------------------------------- ***
     private static final String DATA_NAME="ubidi";
@@ -270,8 +277,8 @@ public final class UBiDiProps {
 
     /* indexes into indexes[] */
     private static final int IX_INDEX_TOP=0;
-    //private static final int IX_LENGTH=1;
-    //private static final int IX_TRIE_SIZE=2;
+    private static final int IX_LENGTH=1;
+    private static final int IX_TRIE_SIZE=2;
     private static final int IX_MIRROR_LENGTH=3;
 
     private static final int IX_JG_START=4;
@@ -308,14 +315,14 @@ public final class UBiDiProps {
     }
 
     private static final int ESC_MIRROR_DELTA=-4;
-    //private static final int MIN_MIRROR_DELTA=-3;
-    //private static final int MAX_MIRROR_DELTA=3;
+    private static final int MIN_MIRROR_DELTA=-3;
+    private static final int MAX_MIRROR_DELTA=3;
 
     // definitions for 32-bit mirror table entry --------------------------- ***
 
     /* the source Unicode code point takes 21 bits (20..0) */
     private static final int MIRROR_INDEX_SHIFT=21;
-    //private static final int MAX_MIRROR_INDEX=0x7ff;
+    private static final int MAX_MIRROR_INDEX=0x7ff;
 
     private static final int getMirrorCodePoint(int m) {
         return m&0x1fffff;

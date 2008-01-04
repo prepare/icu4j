@@ -1,8 +1,7 @@
 /*
- * Copyright (C) 1996-2007, International Business Machines
+ * Copyright (C) 1996-2006, International Business Machines
  * Corporation and others.  All Rights Reserved.
  */
-
 package com.ibm.icu.util;
 
 import java.util.Date;
@@ -264,7 +263,7 @@ public class GregorianCalendar extends Calendar {
         {        1,        1,      28,      31 }, // DAY_OF_MONTH
         {        1,        1,     365,     366 }, // DAY_OF_YEAR
         {/*                                  */}, // DAY_OF_WEEK
-        {       -1,       -1,       4,       5 }, // DAY_OF_WEEK_IN_MONTH
+        {       -1,       -1,       4,       6 }, // DAY_OF_WEEK_IN_MONTH
         {/*                                  */}, // AM_PM
         {/*                                  */}, // HOUR
         {/*                                  */}, // HOUR_OF_DAY
@@ -361,7 +360,8 @@ public class GregorianCalendar extends Calendar {
      * Constructs a GregorianCalendar based on the current time
      * in the default time zone with the given locale.
      * @param locale the given ulocale.
-     * @stable ICU 3.2
+     * @draft ICU 3.2
+     * @provisional This API might change or be removed in a future release.
      */
     public GregorianCalendar(ULocale locale) {
         this(TimeZone.getDefault(), locale);
@@ -384,7 +384,8 @@ public class GregorianCalendar extends Calendar {
      * in the given time zone with the given locale.
      * @param zone the given time zone.
      * @param locale the given ulocale.
-     * @stable ICU 3.2
+     * @draft ICU 3.2
+     * @provisional This API might change or be removed in a future release.
      */
     public GregorianCalendar(TimeZone zone, ULocale locale) {
         super(zone, locale);
@@ -698,6 +699,9 @@ public class GregorianCalendar extends Calendar {
     /**
      * Return true if the current time for this Calendar is in Daylignt
      * Savings Time.
+     *
+     * Note -- MAKE THIS PUBLIC AT THE NEXT API CHANGE.  POSSIBLY DEPRECATE
+     * AND REMOVE TimeZone.inDaylightTime().
      */
     boolean inDaylightTime() {
         if (!getTimeZone().useDaylightTime()) return false;
@@ -714,14 +718,6 @@ public class GregorianCalendar extends Calendar {
      * @stable ICU 2.0
      */
     protected int handleGetMonthLength(int extendedYear, int month) {
-        // If the month is out of range, adjust it into range, and
-        // modify the extended year value accordingly.
-        if (month < 0 || month > 11) {
-            int[] rem = new int[1];
-            extendedYear += floorDivide(month, 12, rem);
-            month = rem[0];
-        }
-
         return MONTH_COUNT[month][isLeapYear(extendedYear)?1:0];
     }
 
@@ -881,9 +877,9 @@ public class GregorianCalendar extends Calendar {
 
     /**
      * Return the current Calendar type.
-     * @return type of calendar
-     * @draft ICU 3.8
-     * @provisional This API might change or be removed in a future release.
+     * @return type of calendar (gregorian, etc.)
+     * @internal ICU 3.0
+     * @deprecated This API is ICU internal only.
      */
     public String getType() {
         return "gregorian";

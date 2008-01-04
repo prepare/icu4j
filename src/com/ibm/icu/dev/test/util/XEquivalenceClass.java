@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -17,11 +17,7 @@ import java.util.Set;
 
 public class XEquivalenceClass {
 	
-	public SetMaker getSetMaker() {
-        return setMaker;
-    }
-
-    // quick test
+	// quick test
 	static public void main(String[] args) {
 		XEquivalenceClass foo1 = new XEquivalenceClass("NONE");
 		String[][] tests = {{"b","a1"}, {"b", "c"}, {"a1", "c"}, {"d", "e"}, {"e", "f"}, {"c", "d"}};
@@ -39,19 +35,14 @@ public class XEquivalenceClass {
 	private Map toPartitionSet = new HashMap();
 	private Map obj_obj_reasons = new HashMap();
 	private Object defaultReason;
-    private SetMaker setMaker;
-    
-    public interface SetMaker {
-        Set make();
-    }
 	
 	/**
 	 * empty, as if just created
 	 */
-	public XEquivalenceClass clear(Object defaultReasonArg) {
+	public XEquivalenceClass clear(Object defaultReason) {
 		toPartitionSet.clear();
 		obj_obj_reasons.clear();
-		this.defaultReason = defaultReasonArg;
+		this.defaultReason = defaultReason;
 		return this;
 	}
 	
@@ -62,15 +53,6 @@ public class XEquivalenceClass {
 	public XEquivalenceClass(Object defaultReason) {
 		this.defaultReason = defaultReason;
 	}
-    
-    /**
-     * Create class with comparator, and default reason.
-     *
-     */
-    public XEquivalenceClass(Object defaultReason, SetMaker setMaker) {
-        this.defaultReason = defaultReason;
-        this.setMaker = setMaker;
-    }
 	
 	/**
 	 * Add two equivalent items, with NO_REASON for the reason.
@@ -91,7 +73,7 @@ public class XEquivalenceClass {
 		Set bPartitionSet = (Set) toPartitionSet.get(b);
 		if (aPartitionSet == null) {
 			if (bPartitionSet == null) { // both null, set up bSet
-				bPartitionSet = setMaker != null ? setMaker.make() : new HashSet();
+				bPartitionSet = new HashSet();
 				bPartitionSet.add(b);
 				toPartitionSet.put(b, bPartitionSet);				
 			}
@@ -283,11 +265,4 @@ public class XEquivalenceClass {
 		}
 		return foundLists;
 	}
-    
-    /**
-     * For debugging.
-     */
-    public String toString() {
-        return getEquivalenceSets().toString();
-    }
 }

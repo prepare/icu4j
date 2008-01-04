@@ -1,6 +1,6 @@
 /**
  *******************************************************************************
- * Copyright (C) 2001-2007, International Business Machines Corporation and    *
+ * Copyright (C) 2001-2004, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -159,8 +159,11 @@ public class ErrorTest extends TestFmwk {
             logln("Test applying with the bad pattern.");
         }
         try {
-            new UnicodeSet(badPattern);
+            UnicodeSet set1 = new UnicodeSet(badPattern);
             errln("FAIL: Created a UnicodeSet based on bad patterns.");
+            if (set1 != null) {
+                errln("FAIL: Created a UnicodeSet based on bad patterns.");
+            }
         } catch (IllegalArgumentException e) {
             logln("Test constructing with the bad pattern.");
         }
@@ -205,7 +208,8 @@ public class ErrorTest extends TestFmwk {
                 Transliterator.registerClass(id, t.getClass(), null);
                 Transliterator.unregister(id);
                 try {
-                    Transliterator.getInstance(id, Transliterator.REVERSE);
+                    Transliterator t1 =
+                        Transliterator.getInstance(id, Transliterator.REVERSE);
                     errln("FAIL: construction of unregistered ID should have failed.");
                 } catch (IllegalArgumentException e) {
                 }

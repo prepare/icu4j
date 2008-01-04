@@ -1,6 +1,6 @@
 /*
  ****************************************************************************
- * Copyright (C) 2005-2007, International Business Machines Corporation and *
+ * Copyright (C) 2005-2006, International Business Machines Corporation and *
  * others. All Rights Reserved.                                             *
  ****************************************************************************
  *
@@ -59,15 +59,13 @@ abstract class CharsetRecog_mbcs extends CharsetRecognizer {
                 if (iter.error) {
                     badCharCount++; 
                 } else {
-                    long cv = iter.charValue & 0xFFFFFFFFL;
-                                        
-                    if (cv <= 0xff) {
+                    
+                    if (iter.charValue <= 0xff) {
                         singleByteCharCount++;
                     } else {
                         doubleByteCharCount++;
                         if (commonChars != null) {
-                            // NOTE: This assumes that there are no 4-byte common chars.
-                            if (Arrays.binarySearch(commonChars, (int) cv) >= 0) {
+                            if (Arrays.binarySearch(commonChars, iter.charValue) >= 0) {
                                 commonCharCount++;
                             }
                         }
@@ -314,7 +312,7 @@ abstract class CharsetRecog_mbcs extends CharsetRecognizer {
              int firstByte  = 0;
              int secondByte = 0;
              int thirdByte  = 0;
-             //int fourthByte = 0;
+             int fourthByte = 0;
              
              buildChar: {
                  firstByte = it.charValue = it.nextByte(det);                 

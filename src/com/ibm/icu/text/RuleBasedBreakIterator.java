@@ -1,7 +1,7 @@
-//##header J2SE15
+//##header
 /*
  *******************************************************************************
- * Copyright (C) 2005-2007 International Business Machines Corporation and          *
+ * Copyright (C) 2005-2006 International Business Machines Corporation and          *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -15,7 +15,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 
 import com.ibm.icu.impl.Assert;
-import com.ibm.icu.impl.ICUDebug;
 
 
 /**
@@ -49,17 +48,20 @@ public class RuleBasedBreakIterator extends BreakIterator {
         return This;   
     }
     
-    /*private RuleBasedBreakIterator(RuleBasedBreakIterator other) {
+    private RuleBasedBreakIterator(RuleBasedBreakIterator other) {
         // TODO: check types.
         fRData = other.fRData;
         if (fText != null) {
             fText = (CharacterIterator)(other.fText.clone());   
         }
-    }*/
+    }
 
     /**
      * Construct a RuleBasedBreakIterator from a set of rules supplied as a string.
      * @param rules The break rules to be used.
+     * @param parseError  In the event of a syntax error in the rules, provides the location
+     *                    within the rules of the problem.
+     * @param status Information on any errors encountered.
      * @stable ICU 2.2
      */
     public RuleBasedBreakIterator(String rules)  {
@@ -73,7 +75,7 @@ public class RuleBasedBreakIterator extends BreakIterator {
         } catch (IOException e) {
             // An IO exception can only arrive here if there is a bug in the RBBI Rule compiler,
             //  causing bogus compiled rules to be produced, but with no compile error raised.
-//#if defined(FOUNDATION10) || defined(J2SE13)
+//#ifdef FOUNDATION
 //##            RuntimeException rte = new RuntimeException("RuleBasedBreakIterator rule compilation internal error:");
 //#else
             RuntimeException rte = new RuntimeException("RuleBasedBreakIterator rule compilation internal error:", e);
@@ -95,10 +97,7 @@ public class RuleBasedBreakIterator extends BreakIterator {
      */
     public Object clone()
     {
-        RuleBasedBreakIterator result = (RuleBasedBreakIterator)super.clone();
-        if (fText != null) {
-            result.fText = (CharacterIterator)(fText.clone());   
-        }
+        RuleBasedBreakIterator result = new RuleBasedBreakIterator(this);
         return result;
     }
 
@@ -239,8 +238,11 @@ public class RuleBasedBreakIterator extends BreakIterator {
     private static final int  RBBI_RUN    = 1;
     private static final int  RBBI_END   = 2;
 
-    /*
+    /**
      * The character iterator through which this BreakIterator accesses the text.
+     * 
+     * @internal
+     * @deprecated This API is ICU internal only.
      */
     private CharacterIterator   fText = new java.text.StringCharacterIterator("");
     
@@ -251,18 +253,21 @@ public class RuleBasedBreakIterator extends BreakIterator {
      */
     protected RBBIDataWrapper     fRData;
     
-    /*
-     * Index of the Rule {tag} values for the most recent match. 
+    /** Index of the Rule {tag} values for the most recent match. 
+     *  @internal
+     * @deprecated This API is ICU internal only.
      */
     private int                 fLastRuleStatusIndex;
 
-    /*
+    /**
      * Rule tag value valid flag.
      * Some iterator operations don't intrinsically set the correct tag value.
      * This flag lets us lazily compute the value if we are ever asked for it.
+     * @internal
+     * @deprecated This API is ICU internal only.
      */
     private boolean             fLastStatusIndexValid;
-
+    
     /**
      * Counter for the number of characters encountered with the "dictionary"
      *   flag set.  Normal RBBI iterators don't use it, although the code
@@ -272,19 +277,15 @@ public class RuleBasedBreakIterator extends BreakIterator {
      * @deprecated This API is ICU internal only.
      */
      protected int fDictionaryCharCount;
-
+    
     /**
      * Debugging flag.  Trace operation of state machine when true.
      * @internal
      * @deprecated This API is ICU internal only.
      */
     public static boolean       fTrace;
-
-    /*
-     * ICU debug argument name for RBBI
-     */
-    private static final String RBBI_DEBUG_ARG = "rbbi";
-
+    
+    
     /**
      * Dump the contents of the state table and character classes for this break iterator.
      * For debugging only.
@@ -303,8 +304,10 @@ public class RuleBasedBreakIterator extends BreakIterator {
 
  
         if (debugInitDone == false) {
-            fTrace = ICUDebug.enabled(RBBI_DEBUG_ARG)
-                && ICUDebug.value(RBBI_DEBUG_ARG).indexOf("trace") >= 0;
+            String debugEnv = System.getProperty("U_RBBIDEBUG");
+            if (debugEnv!=null && debugEnv.indexOf("trace")>=0) {
+                fTrace = true;
+            }
             debugInitDone = true;
         }
     }
@@ -800,8 +803,7 @@ public int getRuleStatusVec(int[] fillInArray) {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    protected static String fDebugEnv = ICUDebug.enabled(RBBI_DEBUG_ARG) ?
-                                        ICUDebug.value(RBBI_DEBUG_ARG) : null;
+    protected static String fDebugEnv = System.getProperty("U_RBBIDEBUG");
 
     
     // 32 bit Char value returned from when an iterator has run out of range.

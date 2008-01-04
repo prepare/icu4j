@@ -1,9 +1,9 @@
 /**
- *******************************************************************************
- * Copyright (C) 2005-2007, International Business Machines Corporation and    *
- * others. All Rights Reserved.                                                *
- *******************************************************************************
- */
+*******************************************************************************
+* Copyright (C) 2005-2006, International Business Machines Corporation and    *
+* others. All Rights Reserved.                                                *
+*******************************************************************************
+*/
 
 /**
  * Represents the API information on a doc element.
@@ -48,9 +48,6 @@ class APIInfo {
     private String name = ""; // name
     private String sig  = "";  // signature, class: inheritance, method: signature, field: type, const: signature
     private String exc  = "";  // throws
-    private String stver = ""; // status version
-
-    private boolean includeStatusVer = false;
 
     public int hashCode() {
         return (((pack.hashCode() << 3) ^ cls.hashCode()) << 3) ^ name.hashCode();
@@ -66,8 +63,7 @@ class APIInfo {
                 this.cls.equals(that.cls) &&
                 this.name.equals(that.name) &&
                 this.sig.equals(that.sig) &&
-                this.exc.equals(that.exc) &&
-                this.stver.equals(this.stver);
+                this.exc.equals(that.exc);
         }
         catch (ClassCastException e) {
             return false;
@@ -122,9 +118,6 @@ class APIInfo {
     public String getSignature() { return get(SIG, true); }
     public String getExceptions() { return get(EXC, true); }
 
-    public void setStatusVersion(String v) { stver = v; }
-    public String getStatusVersion() { return stver; }
-
     /**
      * Return the integer value for the provided type.  The type
      * must be one of the defined type names.  The return value
@@ -132,9 +125,6 @@ class APIInfo {
      */
     public int getVal(int typ) {
         validateType(typ);
-        if (typ >= shifts.length) {
-            return 0;
-        }
         return (info >>> shifts[typ]) & masks[typ];
     }
 
@@ -168,10 +158,8 @@ class APIInfo {
      */
     public void setType(int typ, int val) {
         validateType(typ);
-        if (typ < masks.length) {
-            info &= ~(masks[typ] << shifts[typ]);
-            info |= (val&masks[typ]) << shifts[typ];
-        }
+        info &= ~(masks[typ] << shifts[typ]);
+        info |= (val&masks[typ]) << shifts[typ];
     }
 
     /**
@@ -209,13 +197,6 @@ class APIInfo {
     }
 
     /**
-     * Enable status version included in input/output
-     */
-    public void includeStatusVersion(boolean include) {
-        includeStatusVer = include;
-    }
-
-    /**
      * Write the information out as a single line in brief format.
      * If there are IO errors, throws a RuntimeException.
      */
@@ -225,13 +206,6 @@ class APIInfo {
                 String s = get(i, true);
                 if (s != null) {
                     w.write(s);
-                }
-                if (includeStatusVer && i == STA) {
-                    String ver = getStatusVersion();
-                    if (ver.length() > 0) {
-                        w.write("@");
-                        w.write(getStatusVersion());
-                    }
                 }
                 w.write(SEP);
             }
@@ -246,7 +220,7 @@ class APIInfo {
 
     /**
      * Read a record from the input and initialize this APIInfo.
-     * Return true if successful, false if EOF, otherwise throw
+     * Return true if successfule, false if EOF, otherwise throw
      * a RuntimeException.
      */
     public boolean read(BufferedReader r) {

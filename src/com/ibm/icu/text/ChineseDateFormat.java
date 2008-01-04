@@ -1,14 +1,11 @@
-//##header J2SE15
 /*********************************************************************
- * Copyright (C) 2000-2007, International Business Machines Corporation and
+ * Copyright (C) 2000-2006, International Business Machines Corporation and
  * others. All Rights Reserved.
  *********************************************************************
  */
 package com.ibm.icu.text;
 import com.ibm.icu.util.*;
 import com.ibm.icu.impl.Utility;
-
-import java.io.InvalidObjectException;
 import java.text.FieldPosition;
 import java.text.ParsePosition;
 import java.util.Locale;
@@ -61,7 +58,8 @@ public class ChineseDateFormat extends SimpleDateFormat {
      * Construct a ChineseDateFormat from a date format pattern and locale
      * @param pattern the pattern
      * @param locale the locale
-     * @stable ICU 3.2
+     * @draft ICU 3.2
+     * @provisional This API might change or be removed in a future release.
      */
    public ChineseDateFormat(String pattern, ULocale locale) {
        super(pattern, new ChineseDateFormatSymbols(locale), 
@@ -92,7 +90,6 @@ public class ChineseDateFormat extends SimpleDateFormat {
 //  }    
 
     /**
-     * {@inheritDoc}
      * @internal
      * @deprecated This API is ICU internal only.
      */
@@ -120,7 +117,6 @@ public class ChineseDateFormat extends SimpleDateFormat {
     }
 
     /**
-     * {@inheritDoc}
      * @stable ICU 2.0
      */
     protected int subParse(String text, int start, char ch, int count,
@@ -174,92 +170,4 @@ public class ChineseDateFormat extends SimpleDateFormat {
             ///CLOVER:ON
         }
     }
-
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
-    /**
-     * {@inheritDoc}
-     * 
-     * @draft ICU 3.8
-     * @provisional This API might change or be removed in a future release.
-     */
-    protected DateFormat.Field patternCharToDateFormatField(char ch) {
-        if (ch == 'l') {
-            return ChineseDateFormat.Field.IS_LEAP_MONTH;
-        }
-        return super.patternCharToDateFormatField(ch);
-    }
-
-    /**
-     * The instances of this inner class are used as attribute keys and values
-     * in AttributedCharacterIterator that
-     * ChineseDateFormat.formatToCharacterIterator() method returns.
-     * <p>
-     * There is no public constructor to this class, the only instances are the
-     * constants defined here.
-     * <p>
-     * @stable ICU 3.8
-     */
-    public static class Field extends DateFormat.Field {
-
-        private static final long serialVersionUID = -5102130532751400330L;
-
-        /**
-         * Constant identifying the leap month marker.
-         * @stable ICU 3.8
-         */
-        public static final Field IS_LEAP_MONTH = new Field("is leap month", ChineseCalendar.IS_LEAP_MONTH);
-
-        /**
-         * Constructs a <code>ChineseDateFormat.Field</code> with the given name and
-         * the <code>ChineseCalendar</code> field which this attribute represents.
-         * Use -1 for <code>calendarField</code> if this field does not have a
-         * corresponding <code>ChineseCalendar</code> field.
-         * 
-         * @param name          Name of the attribute
-         * @param calendarField <code>Calendar</code> field constant
-         * 
-         * @stable ICU 3.8
-         */
-        protected Field(String name, int calendarField) {
-            super(name, calendarField);
-        }
-
-        /**
-         * Returns the <code>Field</code> constant that corresponds to the <code>
-         * ChineseCalendar</code> field <code>calendarField</code>.  If there is no
-         * corresponding <code>Field</code> is available, null is returned.
-         * 
-         * @param calendarField <code>ChineseCalendar</code> field constant
-         * @return <code>Field</code> associated with the <code>calendarField</code>,
-         * or null if no associated <code>Field</code> is available.
-         * @throws IllegalArgumentException if <code>calendarField</code> is not
-         * a valid <code>Calendar</code> field constant.
-         * 
-         * @stable ICU 3.8
-         */
-        public static DateFormat.Field ofCalendarField(int calendarField) {
-            if (calendarField == ChineseCalendar.IS_LEAP_MONTH) {
-                return IS_LEAP_MONTH;
-            }
-            return DateFormat.Field.ofCalendarField(calendarField);
-        }
-
-        /**
-         * {@inheritDoc}
-         * 
-         * @stable ICU 3.8
-         */
-        protected Object readResolve() throws InvalidObjectException {
-            if (this.getClass() != ChineseDateFormat.Field.class) {
-                throw new InvalidObjectException("A subclass of ChineseDateFormat.Field must implement readResolve.");
-            }
-            if (this.getName().equals(IS_LEAP_MONTH.getName())) {
-                return IS_LEAP_MONTH;
-            } else {
-                throw new InvalidObjectException("Unknown attribute name.");
-            }
-        }
-    }
-//#endif
 }

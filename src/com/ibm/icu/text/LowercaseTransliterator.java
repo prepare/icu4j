@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2005, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -61,7 +61,7 @@ class LowercaseTransliterator extends Transliterator{
         }
         iter=new ReplaceableContextIterator();
         result = new StringBuffer();
-        locCache = new int[1];
+        int[] locCache = new int[1];
         locCache[0]=0;
     }
 

@@ -1,6 +1,6 @@
 /**
  *******************************************************************************
- * Copyright (C) 2001-2007, International Business Machines Corporation and    *
+ * Copyright (C) 2001-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -19,21 +19,6 @@ public class CaseInsensitiveString {
     private String string;
 
     private int hash = 0;
-    
-    private String folded = null;
-    
-    private static String foldCase(String foldee)
-    {
-        return UCharacter.foldCase(foldee, true);
-    }
-    
-    private void getFolded()
-    {
-        if (folded == null) {
-            folded = foldCase(string);
-        }
-    }
-    
     /**
      * Constructs an CaseInsentiveString object from the given string
      * @param s The string to construct this object from 
@@ -56,19 +41,11 @@ public class CaseInsensitiveString {
      * @stable ICU 2.0
      */
     public boolean equals(Object o) {
-        getFolded();
-        
         try {
-            CaseInsensitiveString cis = (CaseInsensitiveString) o;
-            
-            cis.getFolded();
-            
-            return folded.equals(cis.folded);
+            return string.equalsIgnoreCase(((CaseInsensitiveString)o).string);
         } catch (ClassCastException e) {
             try {
-                String s = (String) o;
-                
-                return folded.equals(foldCase(s));
+                return string.equalsIgnoreCase((String)o);
             } catch (ClassCastException e2) {
                 return false;
             }
@@ -81,20 +58,16 @@ public class CaseInsensitiveString {
      * @stable ICU 2.0
      */
     public int hashCode() {
-        getFolded();
-        
         if (hash == 0) {
-            hash = folded.hashCode();
+            hash = UCharacter.foldCase(string, true).hashCode();
         }
-        
         return hash;
     }
-    
     /**
      * Overrides superclass method
      * @stable ICU 3.6
      */
     public String toString() {
-        return string;
+    	return string;
     }
 }

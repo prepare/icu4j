@@ -1,5 +1,5 @@
 //
-//    Copyright (C) 2002-2007, International Business Machines Corporation and others.
+//    Copyright (C) 2002-2006, International Business Machines Corporation and others.
 //    All Rights Reserved.
 //
 //
@@ -13,7 +13,6 @@ import java.io.OutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import com.ibm.icu.impl.Assert;
-import com.ibm.icu.impl.ICUDebug;
 
 class RBBIRuleBuilder {
     //   This is the main class for building (compiling) break rules into the tables
@@ -133,8 +132,7 @@ class RBBIRuleBuilder {
     //----------------------------------------------------------------------------------------
     RBBIRuleBuilder(String rules)
     {
-        fDebugEnv       = ICUDebug.enabled("rbbi") ?
-                            ICUDebug.value("rbbi") : null;
+        fDebugEnv       = System.getProperty("U_RBBIDEBUG");
         fRules          = rules;
         fUSetNodes      = new ArrayList();
         fRuleStatusVals = new ArrayList();
@@ -158,10 +156,10 @@ class RBBIRuleBuilder {
     void flattenData(OutputStream os) throws IOException {
         DataOutputStream dos = new DataOutputStream(os);
         int i;
-
+	
         //  Remove comments and whitespace from the rules to make it smaller.
         String strippedRules = RBBIRuleScanner.stripRules(fRules);
-
+	
         // Calculate the size of each section in the data in bytes.
         //   Sizes here are padded up to a multiple of 8 for better memory alignment.
         //   Sections sizes actually stored in the header are for the actual data

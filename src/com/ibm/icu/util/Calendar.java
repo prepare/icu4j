@@ -55,7 +55,7 @@ import com.ibm.icu.text.SimpleDateFormat;
  * '<code>calendar</code>' tag and value are retrieved if present.  If a recognized
  * value is supplied, a calendar is provided and configured as appropriate.
  * Currently recognized tags are "buddhist", "chinese", "coptic", "ethiopic", 
- * "gregorian", "hebrew", "islamic", "islamic-civil", "japanese", and "taiwan".  For
+ * "gregorian", "hebrew", "islamic", "islamic-civil", and "japanese".  For
  * example: <blockquote>
  * <pre>Calendar cal = Calendar.getInstance(new ULocale("en_US@calendar=japanese"));</pre>
  * </blockquote> will return an instance of JapaneseCalendar (using en_US conventions for
@@ -1310,9 +1310,9 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
 
     /**
      * True if all fields have been virtually set, but have not yet been
-     * computed.  This occurs only in setTimeInMillis(), or after readObject().
-     * A calendar set to this state will compute all fields from the time if it
-     * becomes necessary, but otherwise will delay such computation.
+     * computed.  This occurs only in setTimeInMillis().  A calendar set
+     * to this state will compute all fields from the time if it becomes
+     * necessary, but otherwise will delay such computation.
      */
     private transient boolean areFieldsVirtuallySet;
 
@@ -1416,6 +1416,9 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
 
     /**
      * The next available value for <code>stamp[]</code>, an internal array.
+     * This actually should not be written out to the stream, and will probably
+     * be removed from the stream in the near future.  In the meantime,
+     * a value of <code>MINIMUM_USER_STAMP</code> should be used.
      * @serial
      */
     private transient int             nextStamp = MINIMUM_USER_STAMP;
@@ -1517,7 +1520,8 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
      * Constructs a calendar with the specified time zone and locale.
      * @param zone the time zone to use
      * @param locale the ulocale for the week data
-     * @stable ICU 3.2
+     * @draft ICU 3.2
+     * @provisional This API might change or be removed in a future release.
      */
     protected Calendar(TimeZone zone, ULocale locale)
     {
@@ -1587,7 +1591,8 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
      * Gets a calendar using the default time zone and specified locale.  
      * @param locale the ulocale for the week data
      * @return a Calendar.
-     * @stable ICU 3.2
+     * @draft ICU 3.2
+     * @provisional This API might change or be removed in a future release.
      */
     public static synchronized Calendar getInstance(ULocale locale)
     {
@@ -1611,7 +1616,8 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
      * @param zone the time zone to use
      * @param locale the ulocale for the week data
      * @return a Calendar.
-     * @stable ICU 3.2
+     * @draft ICU 3.2
+     * @provisional This API might change or be removed in a future release.
      */
     public static synchronized Calendar getInstance(TimeZone zone,
                                                     ULocale locale) {
@@ -1641,15 +1647,13 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
     private static final int ETHIOPIC = 3;
     private static final int GREGORIAN = 4;
     private static final int HEBREW = 5;
-    private static final int INDIAN = 6;
-    private static final int ISLAMIC = 7;
-    private static final int ISLAMIC_CIVIL = 8;
-    private static final int JAPANESE = 9;
-    private static final int TAIWAN = 10;
+    private static final int ISLAMIC = 6;
+    private static final int ISLAMIC_CIVIL = 7;
+    private static final int JAPANESE = 8;
 
     private static final String[] calTypes = {
         "buddhist", "chinese", "coptic", "ethiopic", "gregorian", "hebrew", 
-        "indian", "islamic", "islamic-civil", "japanese", "taiwan"
+        "islamic", "islamic-civil", "japanese",
     };
 
     private static int getCalendarType(ULocale l) {
@@ -1775,10 +1779,6 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
         }
         case JAPANESE:
             return new JapaneseCalendar(zone, locale);
-        case TAIWAN:
-            return new TaiwanCalendar(zone, locale);
-        case INDIAN:
-            return new IndianCalendar(zone, locale);
         default:
             throw new IllegalStateException();
         }
@@ -2919,7 +2919,8 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
 
     /**
      * Return the name of this calendar in the language of the given locale.
-     * @stable ICU 3.2
+     * @draft ICU 3.2
+     * @provisional This API might change or be removed in a future release.
      */
     public String getDisplayName(ULocale loc) {
         return this.getClass().getName();
@@ -2942,7 +2943,8 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
      * @throws IllegalArgumentException if the time of that 
      * <code>Calendar</code> can't be obtained because of invalid
      * calendar values.
-     * @stable ICU 3.4
+     * @draft ICU 3.4
+     * @provisional This API might change or be removed in a future release.
      */
     public int compareTo(Calendar that) {
         long v = getTimeInMillis() - that.getTimeInMillis();
@@ -2952,7 +2954,8 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
     /**
      * Implement comparable API as a convenience override of
      * {@link #compareTo(Calendar)}.
-     * @stable ICU 3.4
+     * @draft ICU 3.4
+     * @provisional This API might change or be removed in a future release.
      */
     public int compareTo(Object that) {
         return compareTo((Calendar)that);
@@ -2978,7 +2981,8 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
      * Subclasses wishing to specialize this behavior should override
      * <code>handleGetDateFormat()</code>
      * @see #handleGetDateFormat
-     * @stable ICU 3.2
+     * @draft ICU 3.2
+     * @provisional This API might change or be removed in a future release.
      */
     public DateFormat getDateTimeFormat(int dateStyle, int timeStyle, ULocale loc) {
         return formatHelper(this, loc, dateStyle, timeStyle);
@@ -3085,42 +3089,18 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
         private FormatConfiguration() {
         }
 
-        /**
-         * Gets the pattern string
-         * @return the format pattern string
-         * @internal
-         * @deprecated This API is ICU internal only.
-         */
         public String getPatternString() {
             return pattern;
         }
 
-        /**
-         * Gets the calendar
-         * @return the calendar
-         * @internal
-         * @deprecated This API is ICU internal only.
-         */
         public Calendar getCalendar() {
             return cal;
         }
 
-        /**
-         * Gets the locale
-         * @return the locale
-         * @internal
-         * @deprecated This API is ICU internal only.
-         */
         public ULocale getLocale() {
             return loc;
         }
 
-        /**
-         * Gets the format symbols
-         * @return the format symbols
-         * @internal
-         * @deprecated This API is ICU internal only.
-         */
         public DateFormatSymbols getDateFormatSymbols() {
             return formatData;
         }
@@ -3878,7 +3858,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
         buffer.append(",minimalDaysInFirstWeek=");
         buffer.append(minimalDaysInFirstWeek);
         for (int i=0; i<fields.length; ++i) {
-            buffer.append(',').append(fieldName(i)).append('=');
+            buffer.append(',').append(FIELD_NAME[i]).append('=');
             buffer.append(isSet(i) ? String.valueOf(fields[i]) : "?");
         }
         buffer.append(']');
@@ -3965,6 +3945,16 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
 
     /**
      * Save the state of this object to a stream (i.e., serialize it).
+     *
+     * Ideally, <code>Calendar</code> would only write out its state data and
+     * the current time, and not write any field data out, such as
+     * <code>fields[]</code>, <code>isTimeSet</code>, <code>areFieldsSet</code>,
+     * and <code>isSet[]</code>.  <code>nextStamp</code> also should not be part
+     * of the persistent state. Unfortunately, this didn't happen before JDK 1.1
+     * shipped. To be compatible with JDK 1.1, we will always have to write out
+     * the field values and state flags.  However, <code>nextStamp</code> can be
+     * removed from the serialization stream; this will probably happen in the
+     * near future.
      */
     private void writeObject(ObjectOutputStream stream)
          throws IOException
@@ -3994,7 +3984,6 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
 
         isTimeSet = true;
         areFieldsSet = areAllFieldsSet = false;
-        areFieldsVirtuallySet = true; // cause fields to be recalculated if requested.
         nextStamp = MINIMUM_USER_STAMP;
     }
 
@@ -4041,6 +4030,8 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
 
         fields[JULIAN_DAY] = (int) days + EPOCH_JULIAN_DAY;
 
+        // In some cases we will have to call this method again below to
+        // adjust for DST pushing us into the next Julian day.
         computeGregorianAndDOWFields(fields[JULIAN_DAY]);
 
         // Call framework method to have subclass compute its fields.
@@ -4453,11 +4444,11 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
         // 1. The transition into DST.  Here, a designated time of 2:00 am - 2:59 am
         //    can be in standard or in DST depending.  However, 2:00 am is an invalid
         //    representation (the representation jumps from 1:59:59 am Std to 3:00:00 am DST).
-        //    We assume standard time, that is, 2:30 am is interpreted as 3:30 am DST.
+        //    We assume standard time.
         // 2. The transition out of DST.  Here, a designated time of 1:00 am - 1:59 am
         //    can be in standard or DST.  Both are valid representations (the rep
         //    jumps from 1:59:59 DST to 1:00:00 Std).
-        //    Again, we assume standard time, that is, 1:30 am is interpreted as 1:30 am Std.
+        //    Again, we assume standard time.
         // We use the TimeZone object, unless the user has explicitly set the ZONE_OFFSET
         // or DST_OFFSET fields; then we use those fields.
         if (stamp[ZONE_OFFSET] >= MINIMUM_USER_STAMP ||
@@ -4684,21 +4675,12 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
                             bestField == WEEK_OF_MONTH ||
                             bestField == DAY_OF_WEEK_IN_MONTH);
 
-        int year;
-
-        if (bestField == WEEK_OF_YEAR) {
-            // Nota Bene!  It is critical that YEAR_WOY be used as the year here, if it is set.
-            // Otherwise, when WOY is the best field, the year may be wrong at the extreme limits of the year.
-            // If YEAR_WOY is not set then it will fall back.
-            // TODO: Should resolveField(YEAR_PRECEDENCE) be brought to bear? 
-            year = internalGet(YEAR_WOY, handleGetExtendedYear());
-        } else {
-            year = handleGetExtendedYear();
-        }
-
+        int year = handleGetExtendedYear();
         internalSet(EXTENDED_YEAR, year);
 
         int month = useMonth ? internalGet(MONTH, getDefaultMonthInYear(year)) : 0;
+        
+        int dom = internalGet(DAY_OF_MONTH, getDefaultDayInMonth(year, month));
         
         // Get the Julian day of the day BEFORE the start of this year.
         // If useMonth is true, get the day before the start of the month.
@@ -5164,8 +5146,8 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
      * Return the current Calendar type.
      * Note, in 3.0 this function will return 'gregorian' in Calendar to emulate legacy behavior
      * @return type of calendar (gregorian, etc)
-     * @draft ICU 3.8
-     * @provisional This API might change or be removed in a future release.
+     * @internal ICU 3.0
+     * @deprecated This API is ICU internal only.
      */
     public String getType() {
         return "gregorian";

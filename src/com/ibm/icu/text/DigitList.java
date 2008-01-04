@@ -1,4 +1,4 @@
-//##header J2SE15
+//##header
 /*
  *******************************************************************************
  * Copyright (C) 1996-2005, International Business Machines Corporation and    *
@@ -228,8 +228,7 @@ final class DigitList {
         return stringRep.toString();
     }
     
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
+//#ifndef FOUNDATION    
     /**
      * Return a <code>BigDecimal</code> representing the value stored in this
      * <code>DigitList</code>.
@@ -661,8 +660,7 @@ final class DigitList {
         round(fixedPoint ? (maximumDigits + decimalAt) : maximumDigits == 0 ? -1 : maximumDigits);
     }
 
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
+//#ifndef FOUNDATION
     /**
      * Set the digit list to a representation of the given BigDecimal value.
      * [bnf]

@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -62,94 +62,13 @@ final public class DecimalFormatSymbols implements Cloneable, Serializable {
     /**
      * Create a DecimalFormatSymbols object for the given locale.
      * @param locale the locale
-     * @stable ICU 3.2
+     * @draft ICU 3.2
+     * @provisional This API might change or be removed in a future release.
      */
     public DecimalFormatSymbols( ULocale locale ) {
         initialize( locale );
     }
 
-    /**
-     * Gets a DecimalFormatSymbols instance for the default locale.
-     * <br><br>
-     * <b>Note:</b> Unlike <code>java.text.DecimalFormatSymbols#getInstance</code>,
-     * this method simply returns <code>new com.ibm.icu.text.DecimalFormatSymbols()</code>.
-     * ICU does not support <code>DecimalFormatSymbolsProvider</code> introduced in Java 6
-     * or its equivalent implementation for now.
-     * 
-     * @return A DecimalFormatSymbols instance.
-     * @stable ICU 3.8
-     */
-    public static DecimalFormatSymbols getInstance() {
-        return new DecimalFormatSymbols();
-    }
-
-    /**
-     * Gets a DecimalFormatSymbols instance for the given locale.
-     * <br><br>
-     * <b>Note:</b> Unlike <code>java.text.DecimalFormatSymbols#getInstance</code>,
-     * this method simply returns <code>new com.ibm.icu.text.DecimalFormatSymbols(locale)</code>.
-     * ICU does not support <code>DecimalFormatSymbolsProvider</code> introduced in Java 6
-     * or its equivalent implementation for now.
-     * 
-     * @param locale the locale.
-     * @return A DecimalFormatSymbols instance.
-     * @stable ICU 3.8
-     */
-    public static DecimalFormatSymbols getInstance(Locale locale) {
-        return new DecimalFormatSymbols(locale);
-    }
-
-    /**
-     * Gets a DecimalFormatSymbols instance for the given locale.
-     * <br><br>
-     * <b>Note:</b> Unlike <code>java.text.DecimalFormatSymbols#getInstance</code>,
-     * this method simply returns <code>new com.ibm.icu.text.DecimalFormatSymbols(locale)</code>.
-     * ICU does not support <code>DecimalFormatSymbolsProvider</code> introduced in Java 6
-     * or its equivalent implementation for now.
-     * 
-     * @param locale the locale.
-     * @return A DecimalFormatSymbols instance.
-     * @draft ICU 3.8
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static DecimalFormatSymbols getInstance(ULocale locale) {
-        return new DecimalFormatSymbols(locale);
-    }
-
-    /**
-     * Returns an array of all locales for which the <code>getInstance</code> methods of this
-     * class can return localized instances.
-     * <br><br>
-     * <b>Note:</b> Unlike <code>java.text.DecimalFormatSymbols#getAvailableLocales</code>,
-     * this method simply returns the array of <code>Locale</code>s available for this class.
-     * ICU does not support <code>DecimalFormatSymbolsProvider</code> introduced in Java 6
-     * or its equivalent implementation for now.
-     * 
-     * @return An array of <code>Locale</code>s for which localized <code>DecimalFormatSymbols</code> instances are available.
-     * @stable ICU 3.8
-     */
-    public static Locale[] getAvailableLocales() {
-        return ICUResourceBundle.getAvailableLocales(ICUResourceBundle.ICU_BASE_NAME);
-    }
-
-    /**
-     * Returns an array of all locales for which the <code>getInstance</code> methods of this
-     * class can return localized instances.
-     * <br><br>
-     * <b>Note:</b> Unlike <code>java.text.DecimalFormatSymbols#getAvailableLocales</code>,
-     * this method simply returns the array of <code>ULocale</code>s available in this class.
-     * ICU does not support <code>DecimalFormatSymbolsProvider</code> introduced in Java 6
-     * or its equivalent implementation for now.
-     * 
-     * @return An array of <code>ULocale</code>s for which localized <code>DecimalFormatSymbols</code> instances are available.
-     * @draft ICU 3.8
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static ULocale[] getAvailableULocales() {
-        return ICUResourceBundle.getAvailableULocales(ICUResourceBundle.ICU_BASE_NAME);        
-    }
-
-    
     /**
      * Return the character used for zero. Different for Arabic, etc.
      * @return the character
@@ -405,7 +324,8 @@ final public class DecimalFormatSymbols implements Cloneable, Serializable {
      * Returns the currency symbol, for JDK 1.4 compatibility only.
      * ICU clients should use the Currency API directly.
      * @return the currency used, or null
-     * @stable ICU 3.4
+     * @draft ICU 3.4
+     * @provisional This API might change or be removed in a future release.
      */
     public Currency getCurrency() {
         return currency;
@@ -425,7 +345,8 @@ final public class DecimalFormatSymbols implements Cloneable, Serializable {
      * @see #setCurrencySymbol
      * @see #setInternationalCurrencySymbol
      *
-     * @stable ICU 3.4
+     * @draft ICU 3.4
+     * @provisional This API might change or be removed in a future release.
      */
     public void setCurrency(Currency currency) {
         if (currency == null) {
@@ -433,7 +354,7 @@ final public class DecimalFormatSymbols implements Cloneable, Serializable {
         }
         this.currency = currency;
         intlCurrencySymbol = currency.getCurrencyCode();
-        currencySymbol = currency.getSymbol(requestedLocale);
+        currencySymbol = currency.getSymbol(locale);
     }
     
     /**
@@ -459,7 +380,7 @@ final public class DecimalFormatSymbols implements Cloneable, Serializable {
     
     /**
      * Internal API for NumberFormat
-     * @return String currency pattern string
+     * @return String currency pattern string	
      * @internal
      */
     String getCurrencyPattern(){
@@ -580,13 +501,14 @@ final public class DecimalFormatSymbols implements Cloneable, Serializable {
      * @stable ICU 2.0
      */
     public Locale getLocale() {
-        return requestedLocale;
+        return locale;
     }
 
     /**
      * Returns the locale for which this object was constructed.
      * @return the locale for which this object was constructed
-     * @stable ICU 3.2
+     * @draft ICU 3.2
+     * @provisional This API might change or be removed in a future release.
      */
     public ULocale getULocale() {
         return ulocale;
@@ -650,7 +572,7 @@ final public class DecimalFormatSymbols implements Cloneable, Serializable {
      * cleaned up.
      */
     private void initialize( ULocale locale ) {
-        this.requestedLocale = locale.toLocale();
+        this.locale = locale.toLocale();
         this.ulocale = locale;
 
         /* try the cache first */
@@ -732,14 +654,14 @@ final public class DecimalFormatSymbols implements Cloneable, Serializable {
             if(currencyCode != null) {
                 /* An explicit currency was requested */
                 ICUResourceBundle resource = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, locale);
-                ICUResourceBundle currencyRes = resource.getWithFallback("Currencies");
+                ICUResourceBundle currency = resource.getWithFallback("Currencies");
                 try{
-                    currencyRes = currencyRes.getWithFallback(currencyCode);
-                    if(currencyRes.getSize()>2) {
-                        currencyRes = (ICUResourceBundle)currencyRes.get(2);
-                        currencyPattern = currencyRes.getString(0);
-                        monetarySeparator = currencyRes.getString(1).charAt(0);
-                        monetaryGroupingSeparator = currencyRes.getString(2).charAt(0);
+                    currency = currency.getWithFallback(currencyCode);
+                    if(currency.getSize()>2) {
+                        currency = currency.get(2);
+                        currencyPattern = currency.getString(0);
+                        monetarySeparator = currency.getString(1).charAt(0);
+                        monetaryGroupingSeparator = currency.getString(2).charAt(0);
                     }
                 }catch(MissingResourceException ex){
                     /* else An explicit currency was requested and is unknown or locale data is malformed. */
@@ -790,20 +712,20 @@ final public class DecimalFormatSymbols implements Cloneable, Serializable {
             // 90% fix is to construct a mapping of data back to
             // locale, perhaps a hash of all our members.  This is
             // expensive and doesn't seem worth it.
-            requestedLocale = Locale.getDefault();
+            locale = Locale.getDefault();
         }
         if (serialVersionOnStream < 4) {
             // use same default behavior as for versions with no Locale
-            ulocale = ULocale.forLocale(requestedLocale);
-        }
-        if (serialVersionOnStream < 5) {
-            // use the same one for groupingSeparator
-            monetaryGroupingSeparator = groupingSeparator;
+            ulocale = ULocale.forLocale(locale);
+        }		   
+		if (serialVersionOnStream < 5) {
+			// use the same one for groupingSeparator
+			monetaryGroupingSeparator = groupingSeparator;
         }
         serialVersionOnStream = currentSerialVersion;
 
-    // recreate
-    currency = Currency.getInstance(intlCurrencySymbol);
+	// recreate
+	currency = Currency.getInstance(intlCurrencySymbol);
     }
 
     /**
@@ -963,7 +885,7 @@ final public class DecimalFormatSymbols implements Cloneable, Serializable {
      * default locale for objects resurrected from old streams.
      * @since ICU 2.2
      */
-    private Locale requestedLocale;
+    private Locale locale;
 
     /**
      * The requested ULocale.  We keep the old locale for serialization compatibility.

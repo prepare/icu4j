@@ -1,9 +1,9 @@
-//##header J2SE15
 /*****************************************************************************************
  *
- *   Copyright (C) 1996-2007, International Business Machines
+ *   Copyright (C) 1996-2006, International Business Machines
  *   Corporation and others.  All Rights Reserved.
  **/
+
 /** 
  * Port From:   JDK 1.4b1 : java.text.Format.IntlTestNumberFormatAPI
  * Source File: java/text/format/IntlTestNumberFormatAPI.java
@@ -20,7 +20,7 @@ import com.ibm.icu.text.*;
 import com.ibm.icu.util.ULocale;
 
 import java.util.Locale;
-
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.text.FieldPosition;
 import java.text.ParsePosition;
@@ -206,10 +206,6 @@ public class IntlTestNumberFormatAPI extends com.ibm.icu.dev.test.TestFmwk
     // Jitterbug 4451, for coverage
     public void TestCoverage(){
         class StubNumberFormat extends NumberFormat{
-            /**
-             * For serialization
-             */
-            private static final long serialVersionUID = 3768385020503005993L;
             public void run(){
                 String p = NumberFormat.getPattern(ULocale.getDefault().toLocale(),0);
                 if (!p.equals(NumberFormat.getPattern(ULocale.getDefault(),0))){
@@ -219,10 +215,7 @@ public class IntlTestNumberFormatAPI extends com.ibm.icu.dev.test.TestFmwk
             public StringBuffer format(double number, StringBuffer toAppendTo, FieldPosition pos) {return null;}
             public StringBuffer format(long number, StringBuffer toAppendTo, FieldPosition pos) {return null;}
             public StringBuffer format(BigInteger number, StringBuffer toAppendTo, FieldPosition pos) {return null;}
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
-            public StringBuffer format(java.math.BigDecimal number, StringBuffer toAppendTo, FieldPosition pos) {return null;}
-//#endif
+            public StringBuffer format(BigDecimal number, StringBuffer toAppendTo, FieldPosition pos) {return null;}
             public StringBuffer format(com.ibm.icu.math.BigDecimal number, StringBuffer toAppendTo, FieldPosition pos) {return null;}
             public Number parse(String text, ParsePosition parsePosition) {return null;}
         }

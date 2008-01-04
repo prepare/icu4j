@@ -1,4 +1,4 @@
-//##header J2SE15
+//##header
 /**
  *******************************************************************************
  * Copyright (C) 2000-2007, International Business Machines Corporation and    *
@@ -751,10 +751,10 @@ public class TimeZoneRegression extends TestFmwk {
                                        cal.get(Calendar.DAY_OF_WEEK),
                                        ms);
                 cal.add(Calendar.HOUR, h);
-                int dstOffset = cal.get(Calendar.DST_OFFSET);
+                int x = cal.get(Calendar.DST_OFFSET);
                 logln("h=" + h + "; dom=" + dom +
                       "; ZONE_OFFSET=" + cal.get(Calendar.ZONE_OFFSET)/H +
-                      "; DST_OFFSET=" + dstOffset/H +
+                      "; DST_OFFSET=" + cal.get(Calendar.DST_OFFSET)/H +
                       "; getOffset()=" + off/H +
                       " (" + cal.getTime().getTime()/H + ")");
             }
@@ -1020,10 +1020,9 @@ public class TimeZoneRegression extends TestFmwk {
             errln("FAIL: DST is observed in time zone America/New_York on Jan 1, 1900");
         }
 
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
+//#ifndef FOUNDATION
         if (System.getProperty("java.vendor", "").startsWith("IBM") &&
-            System.getProperty("java.version", "").equals("1.4.1")) {
+        	System.getProperty("java.version", "").equals("1.4.1")) {
             // IBM JDK 1.4.1 has a bug and fails to run this test case.
             return;
         }
@@ -1048,106 +1047,6 @@ public class TimeZoneRegression extends TestFmwk {
             time += 24*60*60*1000L; // increment 1 day
         }
 //#endif
-    }
-
-    /**
-     * Test setRawOffset works OK with system timezone
-     */
-    public void TestT5280() {
-        String[] tzids = TimeZone.getAvailableIDs();
-        for (int i = 0; i < tzids.length; i++) {
-            TimeZone tz = TimeZone.getTimeZone(tzids[i]);
-            boolean useDst = tz.useDaylightTime();
-
-            // Increase offset for 30 minutes
-            int newRawOffset = tz.getRawOffset() + 30*60*1000;
-            try {
-                tz.setRawOffset(newRawOffset);
-            } catch (Exception e) {
-                errln("FAIL: setRawOffset throws an exception");
-            }
-            int offset = tz.getRawOffset();
-            if (offset != newRawOffset) {
-                errln("FAIL: Modified zone(" + tz.getID() + ") - getRawOffset returns " + offset + "/ Expected: " + newRawOffset);
-            }
-            // Ticket#5917
-            // Check if DST observation status is not unexpectedly changed to true.
-            // When original Olson time zone observes DST, setRawOffset may change DST observation
-            // status for some zones.  For example, Asia/Jerusalem, which currently use no DST after
-            // 2037 in tzdata 2007g.  But, the opposite change (false -> true) should never happen.
-            if (!useDst) {
-                if (tz.useDaylightTime()) {
-                    errln("FAIL: Modified zone(" + tz.getID() + ") - useDaylightTime has changed from false to true.");
-                }
-            }
-            // Make sure the offset is preserved in a clone
-            TimeZone tzClone = (TimeZone)tz.clone();
-            offset = tzClone.getRawOffset();
-            if (offset != newRawOffset) {
-                errln("FAIL: Cloned modified zone(" + tz.getID() + ") - getRawOffset returns " + offset + "/ Expected: " + newRawOffset);
-            }
-        }
-    }
-
-    /*
-     * Zone ID is not set by a SimpleTimeZone constructor
-     */
-    public void TestT5432() {
-        String tzid = "MyZone";
-        SimpleTimeZone stz;
-
-        // 2-arg constructor
-        stz = new SimpleTimeZone(0, tzid);
-        if (!tzid.equals(stz.getID())) {
-            errln("FAIL: Bad zone id (" + stz.getID() + ") is returned - expected ("
-                    + tzid + ") [2-arg constructor]");
-        }
-
-        // 10-arg constructor
-        stz = new SimpleTimeZone(0, tzid, 3, -1, 1, 3600000, 9, -1, 1, 3600000);
-        if (!tzid.equals(stz.getID())) {
-            errln("FAIL: Bad zone id (" + stz.getID() + ") is returned - expected ("
-                    + tzid + ") [10-arg constructor]");
-        }
-
-        // 11-arg constructor
-        stz = new SimpleTimeZone(0, tzid, 3, -1, 1, 3600000, 9, -1, 1, 3600000, 3600000);
-        if (!tzid.equals(stz.getID())) {
-            errln("FAIL: Bad zone id (" + stz.getID() + ") is returned - expected ("
-                    + tzid + ") [11-arg constructor]");
-        }
-
-        // 13-arg constructor - this version had a problem reported by trac#5432
-        stz = new SimpleTimeZone(0, tzid, 3, -1, 1, 3600000, SimpleTimeZone.WALL_TIME,
-                9, -1, 1, 3600000, SimpleTimeZone.WALL_TIME, 3600000);
-        if (!tzid.equals(stz.getID())) {
-            errln("FAIL: Bad zone id (" + stz.getID() + ") is returned - expected ("
-                    + tzid + ") [13-arg constructor]");
-        }
-    }
-    
-    // test bug #4265
-    public void TestJohannesburg() {
-        String j_id="Africa/Johannesburg";
-        TimeZone johannesburg = TimeZone.getTimeZone(j_id);
-        final int ONE_HOUR = 60*60*1000;
-        int expectedOffset = ONE_HOUR*2;  // GMT+2 - NO DST
-        int offset = johannesburg.getOffset(GregorianCalendar.AD,2007,Calendar.JULY,5,Calendar.THURSDAY,0);        
-        
-        if(offset != expectedOffset) {
-            errln("FAIL: zone " + j_id +" returned offset in July " + offset +", expected "+expectedOffset);
-        } else {
-            logln("OK: zone " + j_id +" returned offset in July: " + offset);
-        }
-
-        int offset2 = johannesburg.getOffset(GregorianCalendar.AD,2007,Calendar.DECEMBER,12,Calendar.WEDNESDAY,0);
-
-        if(offset2 != expectedOffset) {
-            errln("FAIL: zone " + j_id +" returned offset in December " + offset2 +", expected "+expectedOffset);
-        } else {
-            logln("OK: zone " + j_id +" returned offset in December: " + offset2);
-        }
-
     }
 }
 

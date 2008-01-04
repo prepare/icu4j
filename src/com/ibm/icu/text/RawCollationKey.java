@@ -1,10 +1,9 @@
 /**
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
-
 package com.ibm.icu.text;
 
 import com.ibm.icu.util.ByteArrayWrapper;
@@ -93,7 +92,8 @@ public final class RawCollationKey extends ByteArrayWrapper
      * @return -1, 0, or 1 as this compares less than, equal to, or
      * greater than rhs.
      * @throws ClassCastException if the other object is not a RawCollationKey.
-     * @stable ICU 3.2
+     * @draft ICU 3.2
+     * @provisional This API might change or be removed in a future release.
      */
     public int compareTo(Object rhs) {
         int result = super.compareTo((RawCollationKey)rhs);

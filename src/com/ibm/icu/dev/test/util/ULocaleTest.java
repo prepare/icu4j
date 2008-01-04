@@ -1,6 +1,6 @@
 /*
 **********************************************************************
-* Copyright (c) 2004-2007, International Business Machines
+* Copyright (c) 2004-2006, International Business Machines
 * Corporation and others.  All Rights Reserved.
 **********************************************************************
 * Author: Alan Liu
@@ -191,80 +191,6 @@ public class ULocaleTest extends TestFmwk {
         }
     }
 
-    /*
-     * ticket#5060
-     */
-    public void TestJavaLocaleCompatibility() {
-        Locale backupDefault = Locale.getDefault();
-        
-        // Java Locale for ja_JP with Japanese calendar
-        Locale jaJPJP = new Locale("ja", "JP", "JP");
-        Locale jaJP = new Locale("ja", "JP");
- 
-        Calendar cal = Calendar.getInstance(jaJPJP);
-        String caltype = cal.getType();
-        if (!caltype.equals("japanese")) {
-            errln("FAIL: Invalid calendar type: " + caltype + " /expected: japanese");
-        }
-
-        cal = Calendar.getInstance(jaJP);
-        caltype = cal.getType();
-        if (!caltype.equals("gregorian")) {
-            errln("FAIL: Invalid calendar type: " + caltype + " /expected: gregorian");
-        }
-
-        // Default locale
-        Locale.setDefault(jaJPJP);
-        ULocale defUloc = ULocale.getDefault();
-        if (!defUloc.toString().equals("ja_JP@calendar=japanese")) {
-            errln("FAIL: Invalid default ULocale: " + defUloc + " /expected: ja_JP@calendar=japanese");
-        }
-        // Check calendar type
-        cal = Calendar.getInstance();
-        caltype = cal.getType();
-        if (!caltype.equals("japanese")) {
-            errln("FAIL: Invalid calendar type: " + caltype + " /expected: japanese");
-        }
-        Locale.setDefault(backupDefault);
-
-        // Set default via ULocale
-        ULocale.setDefault(new ULocale("ja_JP@calendar=japanese"));
-        if (!Locale.getDefault().equals(jaJPJP)) {
-            errln("FAIL: ULocale#setDefault failed to set Java Locale ja_JP_JP /actual: " + Locale.getDefault());
-        }
-        Locale.setDefault(backupDefault);
-
-        // We also want to map ICU locale ja@calendar=japanese to Java ja_JP_JP
-        ULocale.setDefault(new ULocale("ja@calendar=japanese"));
-        if (!Locale.getDefault().equals(jaJPJP)) {
-            errln("FAIL: ULocale#setDefault failed to set Java Locale ja_JP_JP /actual: " + Locale.getDefault());
-        }
-        Locale.setDefault(backupDefault);
-
-        // Java no_NO_NY
-        Locale noNONY = new Locale("no", "NO", "NY");
-        Locale.setDefault(noNONY);
-        defUloc = ULocale.getDefault();
-        if (defUloc.toString().equals("nn_NY")) {
-            errln("FAIL: Invalid default ULocale: " + defUloc + " /expected: nn_NY");
-        }
-        Locale.setDefault(backupDefault);
-
-        // Set default via ULocale
-        ULocale.setDefault(new ULocale("nn_NO"));
-        if (!Locale.getDefault().equals(noNONY)) {
-            errln("FAIL: ULocale#setDefault failed to set Java Locale no_NO_NY /actual: " + Locale.getDefault());
-        }
-        Locale.setDefault(backupDefault);        
-
-        // We also want to map ICU locale nn to Java no_NO_NY
-        ULocale.setDefault(new ULocale("nn"));
-        if (!Locale.getDefault().equals(noNONY)) {
-            errln("FAIL: ULocale#setDefault failed to set Java Locale no_NO_NY /actual: " + Locale.getDefault());
-        }
-        Locale.setDefault(backupDefault);
-    }
-    
     // ================= Infrastructure =================
 
     /**
@@ -358,10 +284,10 @@ public class ULocaleTest extends TestFmwk {
      */
     void checkObject(String requestedLocale, Object obj,
                      String expReqValid, String expValidActual) {
-        Class[] getLocaleParams = new Class[] { ULocale.Type.class };
+        Class[] params = new Class[] { ULocale.Type.class };
         try {
             Class cls = obj.getClass();
-            Method getLocale = cls.getMethod("getLocale", getLocaleParams);
+            Method getLocale = cls.getMethod("getLocale", params);
             ULocale valid = (ULocale) getLocale.invoke(obj, new Object[] {
                 ULocale.VALID_LOCALE });
             ULocale actual = (ULocale) getLocale.invoke(obj, new Object[] {
@@ -546,39 +472,39 @@ public class ULocaleTest extends TestFmwk {
             "\\u0399\\u03B1\\u03C0\\u03C9\\u03BD\\u03B9\\u03BA\\u03AC (\\u0399\\u03B1\\u03C0\\u03C9\\u03BD\\u03AF\\u03B1, CALENDAR=JAPANESE)"
         }
     };
-//    private static final int ENGLISH = 0;
-//    private static final int FRENCH = 1;
-//    private static final int CATALAN = 2;
-//    private static final int GREEK = 3;
-//    private static final int NORWEGIAN = 4;
+    private static final int ENGLISH = 0;
+    private static final int FRENCH = 1;
+    private static final int CATALAN = 2;
+    private static final int GREEK = 3;
+    private static final int NORWEGIAN = 4;
     private static final int LANG = 0;
     private static final int SCRIPT = 1;
     private static final int CTRY = 2;
     private static final int VAR = 3;
     private static final int NAME = 4;
-//    private static final int LANG3 = 5;
-//    private static final int CTRY3 = 6;
-//    private static final int LCID = 7;
-//    private static final int DLANG_EN = 8;
-//    private static final int DSCRIPT_EN = 9;
-//    private static final int DCTRY_EN = 10;
-//    private static final int DVAR_EN = 11;
-//    private static final int DNAME_EN = 12;
-//    private static final int DLANG_FR = 13;
-//    private static final int DSCRIPT_FR = 14;
-//    private static final int DCTRY_FR = 15;
-//    private static final int DVAR_FR = 16;
-//    private static final int DNAME_FR = 17;
-//    private static final int DLANG_CA = 18;
-//    private static final int DSCRIPT_CA = 19;
-//    private static final int DCTRY_CA = 20;
-//    private static final int DVAR_CA = 21;
-//    private static final int DNAME_CA = 22;
-//    private static final int DLANG_EL = 23;
-//    private static final int DSCRIPT_EL = 24;
-//    private static final int DCTRY_EL = 25;
-//    private static final int DVAR_EL = 26;
-//    private static final int DNAME_EL = 27;
+    private static final int LANG3 = 5;
+    private static final int CTRY3 = 6;
+    private static final int LCID = 7;
+    private static final int DLANG_EN = 8;
+    private static final int DSCRIPT_EN = 9;
+    private static final int DCTRY_EN = 10;
+    private static final int DVAR_EN = 11;
+    private static final int DNAME_EN = 12;
+    private static final int DLANG_FR = 13;
+    private static final int DSCRIPT_FR = 14;
+    private static final int DCTRY_FR = 15;
+    private static final int DVAR_FR = 16;
+    private static final int DNAME_FR = 17;
+    private static final int DLANG_CA = 18;
+    private static final int DSCRIPT_CA = 19;
+    private static final int DCTRY_CA = 20;
+    private static final int DVAR_CA = 21;
+    private static final int DNAME_CA = 22;
+    private static final int DLANG_EL = 23;
+    private static final int DSCRIPT_EL = 24;
+    private static final int DCTRY_EL = 25;
+    private static final int DVAR_EL = 26;
+    private static final int DNAME_EL = 27;
 
     public void TestBasicGetters() {
         int i;
@@ -733,7 +659,6 @@ public class ULocaleTest extends TestFmwk {
             { "in",  "ind", "in", "", "" },
             { "id",  "ind", "id", "", "" }, /* NO aliasing */
             { "sh",  "srp", "sh", "", "" },
-            { "zz_CS",  "", "zz", "SCG", "CS" },
             { "zz_FX",  "", "zz", "FXX", "FX" },
             { "zz_RO",  "", "zz", "ROU", "RO" },
             { "zz_TP",  "", "zz", "TMP", "TP" },
@@ -745,7 +670,6 @@ public class ULocaleTest extends TestFmwk {
             { "zz_ZAR",  "", "zz", "ZAR", "ZR" },
             { "zz_TMP",  "", "zz", "TMP", "TP" },
             { "zz_TLS",  "", "zz", "TLS", "TL" },
-            { "zz_YUG",  "", "zz", "YUG", "YU" },
             { "mlt_PSE", "mlt", "mt", "PSE", "PS" },
             { "iw", "heb", "iw", "", "" },
             { "ji", "yid", "ji", "", "" },
@@ -1106,10 +1030,6 @@ public class ULocaleTest extends TestFmwk {
             //it and it2 are not equal here. No way to verify their equivalence yet.
             while(it.hasNext()) {
                 String key = (String)it.next();
-                String key2 = (String)it2.next();
-                if (!key.equals(key2)) {
-                    errln("FAIL: static and non-static getKeywords returned different results.");
-                }
 
                 //To verify display of Keyword
                 // display the above key in English
@@ -1118,9 +1038,6 @@ public class ULocaleTest extends TestFmwk {
                 String s2 = ULocale.getDisplayKeyword(key, "en_US");
                 if (!s1.equals(s2)) {
                     errln ("FAIL: one of the getDisplayKeyword methods failed.");
-                }
-                if (ULocale.getDefault().equals(ULocale.US) && !s1.equals(s0)) {
-                    errln ("FAIL: getDisplayKeyword methods failed for the default locale.");
                 }
                 if (!s1.equals(h[0].get(key))) {
                     warnln("Locale " + localeID + " getDisplayKeyword for key: " + key +
@@ -1152,9 +1069,6 @@ public class ULocaleTest extends TestFmwk {
                 if (!ss1.equals(ss2) || !ss1.equals(ss3)) {
                     errln ("FAIL: one of the getDisplayKeywordValue methods failed.");
                 }
-                if (ULocale.getDefault().equals(ULocale.US) && !ss1.equals(ss0)) {
-                    errln ("FAIL: getDisplayKeyword methods failed for the default locale.");
-                }
                 if (!ss1.equals(h[0].get(type))) {
                     warnln(" Locale " + localeID + " getDisplayKeywordValue for key: " + key +
                           " in English expected \"" + h[0].get(type) + "\" saw \"" + ss1 + "\" instead");
@@ -1184,14 +1098,14 @@ public class ULocaleTest extends TestFmwk {
         h[1] = new Hashtable();
 
         //display in English
-        h[0].put("collation", "collation");
-        h[0].put("calendar", "calendar");
+        h[0].put("collation", "Collation");
+        h[0].put("calendar", "Calendar");
         h[0].put("currency", "Currency");
         h[0].put("phonebook", "Phonebook Order");
-        h[0].put("pinyin", "Pinyin Sort Order");
-        h[0].put("traditional", "Traditional Sort Order");
+        h[0].put("pinyin", "Pinyin Order");
+        h[0].put("traditional", "Traditional");
         h[0].put("stroke", "Stroke Order");
-        h[0].put("direct", "Direct Sort Order");
+        h[0].put("direct", "Direct Order");
         h[0].put("japanese", "Japanese Calendar");
         h[0].put("buddhist", "Buddhist Calendar");
         h[0].put("islamic", "Islamic Calendar");
@@ -1308,6 +1222,7 @@ public class ULocaleTest extends TestFmwk {
         
         final int l = acceptLanguageList.length();
         int n;
+        int last=-1;
         for(n=0;n<l;n++) {
             int itemEnd = acceptLanguageList.indexOf(',',n);
             if(itemEnd == -1) {
@@ -1387,34 +1302,6 @@ public class ULocaleTest extends TestFmwk {
         String disp = loc.getDisplayName(ULocale.GERMAN);
         if(!disp.equals("Deutsch (Schweiz)")){
             errln("Did not get the expected display name for de_CH locale. Got: "+ prettify(disp));
-        }
-    }
-
-    public void TestAddLikelySubtags() {
-        String[][] data = {
-            {"en", "en_Latn_US"},
-            {"en_US_BOSTON", "en_Latn_US_BOSTON"},
-            {"th@calendar=buddhist", "th_Thai_TH@calendar=buddhist"},
-            {"ar_ZZ", "ar_Arab_EG"},
-            {"cch", "cch_Latn_NG"},
-            {"zh", "zh_Hans_CN"},
-            {"zh_TW", "zh_Hant_TW"},
-            {"zh_HK", "zh_Hant_HK"},
-            {"zh_Hant", "zh_Hant_TW"},
-            {"zh_Zzzz_CN", "zh_Hans_CN"},
-            {"und_US", "en_Latn_US"},
-            {"und_HK", "zh_Hant_HK"},
-            /* Not yet implemented
-            {"art_lojban", "arg_lojban"},
-            {"zh_cmn_Hans", "zh_cmn_Hans"},
-            */
-        };
-        for (int i = 0; i < data.length; i++) {
-            ULocale org = new ULocale(data[i][0]);
-            ULocale res = ULocale.addLikelySubtag(org);
-            if (!res.toString().equals(data[i][1])) {
-                errln("Original: " + data[i][0] + " Expected: " + data[i][1] + " - but got " + res.toString());
-            }
         }
     }
 }

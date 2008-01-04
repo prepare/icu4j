@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 2006-2007, International Business Machines Corporation and    *
+* Copyright (C) 2006, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 *
@@ -16,8 +16,6 @@ import java.nio.charset.spi.CharsetProvider;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-
-import com.ibm.icu.impl.InvalidFormatException;
 
 
 /**
@@ -60,42 +58,6 @@ public final class CharsetProviderICU extends CharsetProvider{
         }
         return null;
     }
-    
-    /**
-     * Constructs a charset for the given ICU conversion table from the specified class path.
-     * Example use: <code>cnv = CharsetProviderICU.charsetForName("myConverter", "com/myCompany/myDataPackage");</code>.
-     * In this example myConverter.cnv would exist in the com/myCompany/myDataPackage Java package.
-     * Conversion tables can be made with ICU4C's makeconv tool.
-     * This function allows you to allows you to load user defined conversion
-     * tables that are outside of ICU's core data.
-     * @param charsetName The name of the charset conversion table.
-     * @param classPath The class path that contain the conversion table.
-     * @return charset object for the given charset name, null if unsupported
-     * @draft ICU 3.8
-     */
-    public final Charset charsetForName(String charsetName, String classPath) {
-        return charsetForName(charsetName, classPath, null);
-    }
-    
-    /**
-     * Constructs a charset for the given ICU conversion table from the specified class path.
-     * This function is similar to {@link #charsetForName(String, String)}.
-     * @param charsetName The name of the charset conversion table.
-     * @param classPath The class path that contain the conversion table.
-     * @param loader the class object from which to load the charset conversion table
-     * @return charset object for the given charset name, null if unsupported
-     * @draft ICU 3.8
-     */
-    public Charset charsetForName(String charsetName, String classPath, ClassLoader loader) {
-        CharsetMBCS cs = null;
-        try {
-             cs = new CharsetMBCS(charsetName, charsetName, new String[0], classPath, loader);
-        } catch (InvalidFormatException e) {
-            // return null;
-        }
-        return cs;
-    }
-    
     /**
      * Gets the canonical name of the converter as defined by Java
      * @param enc converter name

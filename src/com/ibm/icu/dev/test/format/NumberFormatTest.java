@@ -1,7 +1,7 @@
-//##header J2SE15
+//##header
 /*
  *******************************************************************************
- * Copyright (C) 2001-2007, International Business Machines Corporation and    *
+ * Copyright (C) 2001-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -30,6 +30,7 @@ import java.util.Locale;
 import java.util.ArrayList;
 
 public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
+    private static final char EURO = '\u20ac';
 
     public static void main(String[] args) throws Exception {
         new NumberFormatTest().run(args);
@@ -55,14 +56,6 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             if (!s.equals(num[i]))
             {
                 errln("FAIL: Pattern " + pat[i] + " should format zero as " + num[i] +
-                      "; " + s + " seen instead");
-                logln("Min integer digits = " + fmt.getMinimumIntegerDigits());
-            }
-            // BigInteger 0 - ticket#4731
-            s = ((NumberFormat)fmt).format(BigInteger.ZERO);
-            if (!s.equals(num[i]))
-            {
-                errln("FAIL: Pattern " + pat[i] + " should format BigInteger zero as " + num[i] +
                       "; " + s + " seen instead");
                 logln("Min integer digits = " + fmt.getMinimumIntegerDigits());
             }
@@ -285,20 +278,9 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         ULocale save = ULocale.getDefault();
         ULocale.setDefault(ULocale.US);
         MeasureFormat curFmt = MeasureFormat.getCurrencyFormat();
-        String strBuf = curFmt.format(new CurrencyAmount(new Float(1234.56), Currency.getInstance("USD")));
-        try {
-            CurrencyAmount parsedVal = (CurrencyAmount)curFmt.parseObject(strBuf);
-            Number val = parsedVal.getNumber();
-            if (!val.equals(new BigDecimal("1234.56"))) {
-                errln("FAIL: getCurrencyFormat of default locale (en_US) failed roundtripping the number. val=" + val);
-            }
-            if (!parsedVal.getCurrency().equals(Currency.getInstance("USD"))) {
-                errln("FAIL: getCurrencyFormat of default locale (en_US) failed roundtripping the currency");
-            }
-        }
-        catch (ParseException e) {
-            errln("FAIL: " + e.getMessage());
-        }
+        //Not knowing how to test this factory method,
+        //  because the concreat class of MeasureFormat -
+        //  CurrencyFormat is just for internal use.
         ULocale.setDefault(save);        
     }
 
@@ -328,13 +310,13 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         expectCurrency(fmt, null, 1234.56, "1 234,56 \u20AC");
 
         expectCurrency(fmt, Currency.getInstance(Locale.JAPAN),
-                       1234.56, "1 235 \u00A5JP"); // Yen
+                       1234.56, "1 235 \u00A5"); // Yen
 
         expectCurrency(fmt, Currency.getInstance(new Locale("fr", "CH", "")),
                        1234.56, "1 234,55 sFr."); // 0.25 rounding
 
         expectCurrency(fmt, Currency.getInstance(Locale.US),
-                       1234.56, "1 234,56 $US");
+                       1234.56, "1 234,56 $");
 
         expectCurrency(fmt, Currency.getInstance(Locale.FRANCE),
                        1234.56, "1 234,56 \u20AC"); // Euro
@@ -828,11 +810,6 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
     // sigh, can't have static inner classes, why not?
 
     static final class PI extends Number {
-        /**
-         * For serialization
-         */
-        private static final long serialVersionUID = -305601227915602172L;
-
         private PI() {}
         public int intValue() { return (int)Math.PI; }
         public long longValue() { return (long)Math.PI; }
@@ -874,10 +851,10 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         expect2(df, 2.0, "2.00 *&' Rs. '&*");
         expect2(df, -1.0, "-1.00 *&' Re. '&*");
 
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//##        com.ibm.icu.math.BigDecimal r = df.getRoundingIncrement();
-//#else
+//#ifndef FOUNDATION
         java.math.BigDecimal r = df.getRoundingIncrement();
+//#else
+//##        com.ibm.icu.math.BigDecimal r = df.getRoundingIncrement();
 //#endif
         if (r != null) {
             errln("FAIL: rounding = " + r + ", expect null");
@@ -907,36 +884,6 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                   df.getSecondaryGroupingSize() + ", expect 0");
         }
         expect2(df, 3.14159, "3.14159E+00");
-
-        // DecimalFormatSymbols#getInstance
-        DecimalFormatSymbols decsym1 = DecimalFormatSymbols.getInstance();
-        DecimalFormatSymbols decsym2 = new DecimalFormatSymbols();
-        if (!decsym1.equals(decsym2)) {
-            errln("FAIL: DecimalFormatSymbols returned by getInstance()" +
-            "does not match new DecimalFormatSymbols().");
-        }
-        decsym1 = DecimalFormatSymbols.getInstance(Locale.JAPAN);
-        decsym2 = DecimalFormatSymbols.getInstance(ULocale.JAPAN);
-        if (!decsym1.equals(decsym2)) {
-            errln("FAIL: DecimalFormatSymbols returned by getInstance(Locale.JAPAN)" +
-            "does not match the one returned by getInstance(ULocale.JAPAN).");
-        }
-
-        // DecimalFormatSymbols#getAvailableLocales/#getAvailableULocales
-        Locale[] allLocales = DecimalFormatSymbols.getAvailableLocales();
-        if (allLocales.length == 0) {
-            errln("FAIL: Got a empty list for DecimalFormatSymbols.getAvailableLocales");
-        } else {
-            logln("PASS: " + allLocales.length +
-                    " available locales returned by DecimalFormatSymbols.getAvailableLocales");            
-        }
-        ULocale[] allULocales = DecimalFormatSymbols.getAvailableULocales();
-        if (allULocales.length == 0) {
-            errln("FAIL: Got a empty list for DecimalFormatSymbols.getAvailableLocales");
-        } else {
-            logln("PASS: " + allULocales.length +
-                    " available locales returned by DecimalFormatSymbols.getAvailableULocales");            
-        }
     }
 
     public void TestWhiteSpaceParsing() {
@@ -1110,21 +1057,19 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         /*6*/ "perr:", // <pattern or '-'> <invalid string>
         /*7*/ "pat:", // <pattern or '-'> <exp. toPattern or '-' or 'err'>
         /*8*/ "fpc:", // <loc or '-'> <curr.amt> <exp. string> <exp. curr.amt>
-        /*9*/ "strict=", // true or false
     };
 
     public void TestCases() {
         String caseFileName = "NumberFormatTestCases.txt";
         java.io.InputStream is = NumberFormatTest.class.getResourceAsStream(caseFileName);
 
-        ResourceReader reader = new ResourceReader(is, caseFileName, "utf-8");
+        ResourceReader reader = new ResourceReader(is, caseFileName);
         TokenIterator tokens = new TokenIterator(reader);
 
         Locale loc = new Locale("en", "US", "");
         DecimalFormat ref = null, fmt = null;
         MeasureFormat mfmt = null;
         String pat = null, str = null, mloc = null;
-        boolean strict = false;
 
         try {
             for (;;) {
@@ -1139,14 +1084,10 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                     // ref= <reference pattern>
                     ref = new DecimalFormat(tokens.next(),
                                             new DecimalFormatSymbols(Locale.US));
-                    ref.setParseStrict(strict);
-                    logln("Setting reference pattern to:\t" + ref);
                     break;
                 case 1:
                     // loc= <locale>
                     loc = LocaleUtility.getLocaleFromName(tokens.next());
-                    pat = ((DecimalFormat) NumberFormat.getInstance(loc)).toPattern();
-                    logln("Setting locale to:\t" + loc + ", \tand pattern to:\t" + pat);
                     break;
                 case 2: // f:
                 case 3: // fp:
@@ -1155,19 +1096,18 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                     tok = tokens.next();
                     if (!tok.equals("-")) {
                         pat = tok;
+                        try {
+                            fmt = new DecimalFormat(pat, new DecimalFormatSymbols(loc));
+                        } catch (IllegalArgumentException iae) {
+                            errln(where + "Pattern \"" + pat + '"');
+                            iae.printStackTrace();
+                            tokens.next(); // consume remaining tokens
+                            tokens.next();
+                            if (cmd == 3) tokens.next();
+                            continue;
+                        }
                     }
-                    try {
-                        fmt = new DecimalFormat(pat, new DecimalFormatSymbols(loc));
-                        fmt.setParseStrict(strict);
-                    } catch (IllegalArgumentException iae) {
-                        errln(where + "Pattern \"" + pat + '"');
-                        iae.printStackTrace();
-                        tokens.next(); // consume remaining tokens
-                        //tokens.next();
-                        if (cmd == 3) tokens.next();
-                        continue;
-                    }
-                   str = null;
+                    str = null;
                     try {
                         if (cmd == 2 || cmd == 3 || cmd == 4) {
                             // f: <pattern or '-'> <number> <exp. string>
@@ -1190,10 +1130,9 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                         else {
                             str = tokens.next();
                             String expstr = tokens.next();
-                            Number parsed = fmt.parse(str);
                             Number exp = (Number) ref.parse(expstr);
                             assertEquals(where + '"' + pat + "\".parse(\"" + str + "\")",
-                                         exp, parsed);
+                                         exp, fmt.parse(str));
                         }
                     } catch (ParseException e) {
                         errln(where + '"' + pat + "\".parse(\"" + str +
@@ -1224,7 +1163,6 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                             f = fmt;
                         } else {
                             f = new DecimalFormat(testpat);
-                            f.setParseStrict(strict);
                         }
                         if (err) {
                             errln(where + "Invalid pattern \"" + testpat +
@@ -1277,20 +1215,16 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                         e.printStackTrace();
                     }
                     break;
-                case 9: // strict= true or false
-                    strict = "true".equalsIgnoreCase(tokens.next());
-                    logln("Setting strict to:\t" + strict);
-                    break;
                 case -1:
                     errln("Unknown command \"" + tok + "\" at " + tokens.describePosition());
                     return;
                 }
             }
         } catch (java.io.IOException e) {
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//##        throw new RuntimeException(e.getMessage());
-//#else
+//#ifndef FOUNDATION
             throw new RuntimeException(e);
+//#else
+//##        throw new RuntimeException(e.getMessage());
 //#endif
         }
     }
@@ -1319,7 +1253,7 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
     }
 
     void checkRounding(DecimalFormat nf, BigDecimal base, int iterations, BigDecimal increment) {
-//#if defined(FOUNDATION10) || defined(J2SE13)
+//#ifdef FOUNDATION
 //##        nf.setRoundingIncrement(increment);
 //#else
         nf.setRoundingIncrement(increment.toBigDecimal());
@@ -1370,8 +1304,7 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
     static BigDecimal toBigDecimal(Number number) {
         return number instanceof BigDecimal ? (BigDecimal) number
             : number instanceof BigInteger ? new BigDecimal((BigInteger)number)
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
+//#ifndef FOUNDATION
             : number instanceof java.math.BigDecimal ? new BigDecimal((java.math.BigDecimal)number)
 //#endif
             : number instanceof Double ? new BigDecimal(number.doubleValue())
@@ -1673,12 +1606,7 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         //save default locale
         ULocale defaultLocale = ULocale.getDefault();
         ULocale.setDefault(new ULocale("qr_QR"));
-        try {
-            NumberFormat.getInstance();
-        }
-        catch (Exception e) {
-            errln("Numberformat threw exception for non-existent locale. It should use the default.");
-        }
+        NumberFormat nf1 = NumberFormat.getInstance();
         //reset default locale
         ULocale.setDefault(defaultLocale);
     }

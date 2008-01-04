@@ -1,7 +1,7 @@
-//##header J2SE15
+//##header
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -10,6 +10,7 @@ package com.ibm.icu.dev.test;
 import com.ibm.icu.text.UTF16;
 import com.ibm.icu.text.DecimalFormat;
 import com.ibm.icu.text.NumberFormat;
+import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.TimeZone;
 import com.ibm.icu.util.ULocale;
 import java.io.ByteArrayOutputStream;
@@ -24,10 +25,11 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.Locale;
 import java.util.MissingResourceException;
 import java.util.Random;
-//#if defined(FOUNDATION10) || defined(J2SE13)
+//#ifdef FOUNDATION
 //## import com.ibm.icu.impl.Utility;
 //#endif
 /**
@@ -43,6 +45,11 @@ import java.util.Random;
  */
 public class TestFmwk extends AbstractTestLog {
     /**
+     * Puts a copyright in the .class file
+     */
+    private static final String copyrightNotice = "Copyright \u00a91997-2003 IBM Corp.  All rights reserved.";
+
+    /**
      * The default time zone for all of our tests. Used in Target.run();
      */
     private final static TimeZone defaultTimeZone = TimeZone.getTimeZone("PST");
@@ -53,20 +60,15 @@ public class TestFmwk extends AbstractTestLog {
     private final static Locale defaultLocale = Locale.US;
 
     public static final class TestFmwkException extends Exception {
-        /**
-         * For serialization
-         */
-        private static final long serialVersionUID = -3051148210247229194L;
-
         TestFmwkException(String msg) {
             super(msg);
         }
     }
     protected void handleException(Throwable e){
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//##    Throwable ex = null;
-//#else
+//#ifndef FOUNDATION
         Throwable ex = e.getCause();
+//#else
+//##    Throwable ex = null;
 //#endif
         if(ex==null){
             ex = e;
@@ -75,9 +77,6 @@ public class TestFmwk extends AbstractTestLog {
             ex = ((ExceptionInInitializerError)ex).getException();
         }
         String msg = ex.getMessage();
-        if(msg==null){
-            msg = "";
-        }
         //System.err.println("TF handleException msg: " + msg);
         if (ex instanceof MissingResourceException || ex instanceof NoClassDefFoundError || msg.indexOf("java.util.MissingResourceException")>=0) {
             if (params.warnings || params.nodata) {
@@ -296,15 +295,6 @@ public class TestFmwk extends AbstractTestLog {
             return next;
         }
 
-        public Target append(Target targets) {
-            Target t = this;
-            while(t.next != null) {
-                t = t.next;
-            }
-            t.next = targets;
-            return this;
-        }
-
         public void run() throws Exception {
             int f = filter();
             if (f == -1) {
@@ -381,17 +371,13 @@ public class TestFmwk extends AbstractTestLog {
                 }catch (ExceptionInInitializerError e){
                     handleException(e);
                 } catch (InvocationTargetException e) {
-                    //e.printStackTrace();
                     handleException(e);
                 }catch (MissingResourceException e) {
                     handleException(e);
                 }catch (NoClassDefFoundError e) {
                     handleException(e);
-                }catch (Exception e){
-                    /*errln("Encountered: "+ e.toString());
-                    e.printStackTrace(System.err);
-                    */
-                    handleException(e);
+                }catch (Exception o){
+                    System.out.println(o);
                 }
             }
         }
@@ -529,21 +515,21 @@ public class TestFmwk extends AbstractTestLog {
             args[wx++] = null;
         }
         
-        TestParams localParams = TestParams.create(args, log);
-        if (localParams == null) {
+        TestParams params = TestParams.create(args, log);
+        if (params == null) {
             return -1;
         }
         
-        int errorCount = runTests(localParams, args);
+        int errorCount = runTests(params, args);
         
-        if (localParams.seed != 0) {
-            localParams.log.println("-random:" + localParams.seed);
-            localParams.log.flush();
+        if (params.seed != 0) {
+            params.log.println("-random:" + params.seed);
+            params.log.flush();
         }
 
-        if (localParams.errorSummary != null && localParams.errorSummary.length() > 0) {
-            localParams.log.println("\nError summary:");
-            localParams.log.println(localParams.errorSummary.toString());
+        if (params.errorSummary != null && params.errorSummary.length() > 0) {
+            params.log.println("\nError summary:");
+            params.log.println(params.errorSummary.toString());
         }
 
         if (prompt) {
@@ -552,48 +538,48 @@ public class TestFmwk extends AbstractTestLog {
             try {
                 System.in.read();
             } catch (IOException e) {
-                localParams.log.println("Exception: " + e.toString() + e.getMessage());
+                params.log.println("Exception: " + e.toString() + e.getMessage());
             }
         }
 
         return errorCount;
     }
 
-    public int runTests(TestParams _params, String[] tests) {
+    public int runTests(TestParams params, String[] tests) {
         int ec = 0;
         
         StringBuffer summary = null;
         try {
             if (tests.length == 0 || tests[0] == null) { // no args
-                _params.init();
-                resolveTarget(_params).run();
-                ec = _params.errorCount;
+                params.init();
+                resolveTarget(params).run();
+                ec = params.errorCount;
             } else {
                 for (int i = 0; i < tests.length ; ++i) {
                     if (tests[i] == null) continue;
                     
                     if (i > 0) {
-                        _params.log.println();
+                        params.log.println();
                     }
 
-                    _params.init();
-                    resolveTarget(_params, tests[i]).run();
-                    ec += _params.errorCount;
+                    params.init();
+                    resolveTarget(params, tests[i]).run();
+                    ec += params.errorCount;
                     
-                    if (_params.errorSummary != null && _params.errorSummary.length() > 0) {
+                    if (params.errorSummary != null && params.errorSummary.length() > 0) {
                         if (summary == null) {
                             summary = new StringBuffer();
                         }
                         summary.append("\nTest Root: " + tests[i] + "\n");
-                        summary.append(_params.errorSummary());
+                        summary.append(params.errorSummary());
                     }
                 }
-                _params.errorSummary = summary;
+                params.errorSummary = summary;
             }
         } catch (Exception e) {
-            e.printStackTrace(_params.log);
-            _params.log.println(e.getMessage());
-            _params.log.println("encountered exception, exiting");
+            e.printStackTrace(params.log);
+            params.log.println(e.getMessage());
+            params.log.println("encountered exception, exiting");
         }
         
         return ec;
@@ -602,8 +588,8 @@ public class TestFmwk extends AbstractTestLog {
     /**
      * Return a ClassTarget for this test. Params is set on this test.
      */
-    public Target resolveTarget(TestParams paramsArg) {
-        this.params = paramsArg;
+    public Target resolveTarget(TestParams params) {
+        this.params = params;
         return new ClassTarget();
     }
 
@@ -614,9 +600,9 @@ public class TestFmwk extends AbstractTestLog {
      * a ClassTarget created using the resolved test and remaining path (which
      * ought to be null or a method name). Params is set on the target's test.
      */
-    public Target resolveTarget(TestParams paramsArg, String targetPath) {
+    public Target resolveTarget(TestParams params, String targetPath) {
         TestFmwk test = this;
-        test.params = paramsArg;
+        test.params = params;
 
         if (targetPath != null) {
             if (targetPath.length() == 0) {
@@ -684,27 +670,18 @@ public class TestFmwk extends AbstractTestLog {
      * of the object's class whose name starts with "Test" or "test".
      */
     protected Target getTargets(String targetName) {
-        return getClassTargets(getClass(), targetName);
-    }
-
-    protected Target getClassTargets(Class cls, String targetName) {
-        if (cls == null) {
-            return null;
-        }
-
-        Target target = null;
+        Class cls = getClass();
         if (targetName != null) {
             try {
-                Method method = cls.getMethod(targetName, (Class[])null);
-                target = new MethodTarget(targetName, method);
+                Method method = cls.getMethod(targetName, null);
+                return new MethodTarget(targetName, method);
             } catch (NoSuchMethodException e) {
-        if (!inheritTargets()) {
-            return new Target(targetName); // invalid target
-        }
+                return new Target(targetName); // invalid target
             } catch (SecurityException e) {
                 return null;
             }
         } else {
+            Target target = null;
             if (params.doMethods()) {
                 Method[] methods = cls.getDeclaredMethods();
                 for (int i = methods.length; --i >= 0;) {
@@ -715,24 +692,8 @@ public class TestFmwk extends AbstractTestLog {
                     }
                 }
             }
-        }
-
-        if (inheritTargets()) {
-          Target parentTarget = getClassTargets(cls.getSuperclass(), targetName);
-          if (parentTarget == null) {
             return target;
-          }
-          if (target == null) {
-            return parentTarget;
-          }
-          return parentTarget.append(target);
         }
-
-        return target;
-    }
-
-    protected boolean inheritTargets() {
-        return false;
     }
 
     protected String getDescription() {
@@ -1073,10 +1034,10 @@ public class TestFmwk extends AbstractTestLog {
         public static TestParams create(String arglist, PrintWriter log) {
             String[] args = null;
             if (arglist != null && arglist.length() > 0) {
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//##            args = Utility.split(arglist, '\u0020');
-//#else
+//#ifndef FOUNDATION
                 args = arglist.split("\\s");
+//#else
+//##            args = Utility.split(arglist, '\u0020');
 //#endif
             }
             return create(args, log);
@@ -1454,7 +1415,7 @@ public class TestFmwk extends AbstractTestLog {
             suppressIndent = !newln;
         }
 
-        private void writeTestInvalid(String name, boolean nodataArg) {
+        private void writeTestInvalid(String name, boolean nodata) {
             //              msg("***" + name + "*** not found or not valid.", WARN, true,
             // true);
             if (inDocMode()) {
@@ -1467,7 +1428,7 @@ public class TestFmwk extends AbstractTestLog {
                     needLineFeed = false;
                 }
             } else {
-                if(!nodataArg){
+                if(!nodata){
                     msg("Test " + name + " not found or not valid.", WARN, true,
                         true);
                 }
@@ -1777,8 +1738,8 @@ public class TestFmwk extends AbstractTestLog {
                 logln("OK" + message + ": "
                         + (flip ? expected + relation + actual : expected));
             } else {
-                // assert must assume errors are true errors and not just warnings
-                // so cannot warnln here
+		// assert must assume errors are true errors and not just warnings
+		// so cannot warnln here
                 errln(message
                         + ": expected"
                         + (flip ? relation + expected : " " + expected
@@ -1814,4 +1775,12 @@ public class TestFmwk extends AbstractTestLog {
 
     private final static String spaces = "                                          ";
     
+    public boolean isDateAtLeast(int year, int month, int day){
+        Calendar c = Calendar.getInstance();
+        Date dt = new Date(year, month, day);
+        if(c.getTime().compareTo(dt)>=0){
+            return true;
+        }
+        return false;
+    }
 }

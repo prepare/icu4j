@@ -500,8 +500,8 @@ public class ICULocaleService extends ICUService {
             return null;
         }
 
-        protected boolean isSupportedID(String idToCheck) {
-            return this.id.equals(idToCheck);
+        protected boolean isSupportedID(String id) {
+            return this.id.equals(id);
         }
 
         public void updateVisibleIDs(Map result) {

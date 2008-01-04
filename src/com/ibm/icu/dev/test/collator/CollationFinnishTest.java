@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2002-2007, International Business Machines Corporation and    *
+ * Copyright (C) 2002-2005, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -14,7 +14,8 @@ package com.ibm.icu.dev.test.collator;
  
 import com.ibm.icu.dev.test.*;
 import com.ibm.icu.text.*;
-import com.ibm.icu.util.ULocale;
+
+import java.util.Locale;
  
 public class CollationFinnishTest extends TestFmwk {
     public static void main(String[] args) throws Exception {
@@ -51,7 +52,7 @@ public class CollationFinnishTest extends TestFmwk {
     public CollationFinnishTest() {
     }
     protected void init()throws Exception{
-        myCollation = Collator.getInstance(new ULocale("fi_FI@collation=standard"));
+        myCollation = Collator.getInstance(new Locale("fi", "FI"));
     }
      
     

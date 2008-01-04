@@ -1,16 +1,21 @@
-//##header J2SE15
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
+//##header
+//#ifndef FOUNDATION
 /*
  *******************************************************************************
- * Copyright (C) 2006-2007, Google, International Business Machines Corporation *
- * and others. All Rights Reserved.                                            *
+ * Copyright (C) 2006, Google, International Business Machines Corporation and    *
+ * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
 package com.ibm.icu.impl;
 
 import com.ibm.icu.text.UTF16;
 import com.ibm.icu.text.UnicodeSet;
+import com.ibm.icu.text.DateTimePatternGenerator.FormatParser;
+import com.ibm.icu.text.DateTimePatternGenerator.VariableField;
+
+import java.util.BitSet;
+import java.util.Iterator;
+import java.util.List;
 
 /**
  * A simple parsing class for patterns and rules. Handles '...' quotations, \\uxxxx and \\Uxxxxxxxx, and symple syntax.
@@ -26,7 +31,6 @@ public class PatternTokenizer {
     // settings used in the interpretation of the pattern
     private UnicodeSet ignorableCharacters = new UnicodeSet();
     private UnicodeSet syntaxCharacters = new UnicodeSet();
-    private UnicodeSet extraQuotingCharacters = new UnicodeSet();
     private UnicodeSet escapeCharacters = new UnicodeSet();
     private boolean usingSlash = false;
     private boolean usingQuote = false;
@@ -55,9 +59,6 @@ public class PatternTokenizer {
     public UnicodeSet getSyntaxCharacters() {
         return (UnicodeSet) syntaxCharacters.clone();
     }
-    public UnicodeSet getExtraQuotingCharacters() {
-        return (UnicodeSet) extraQuotingCharacters.clone();
-    }
     /**
      *  Sets the characters to be interpreted as syntax characters in parsing, eg new UnicodeSet("[:pattern_syntax:]")
      * @param syntaxCharacters
@@ -68,17 +69,6 @@ public class PatternTokenizer {
         needingQuoteCharacters = null;
         return this;
     }   
-    /**
-     *  Sets the extra characters to be quoted in literals
-     * @param syntaxCharacters
-     * @return
-     */
-    public PatternTokenizer setExtraQuotingCharacters(UnicodeSet syntaxCharacters) {
-        this.extraQuotingCharacters = (UnicodeSet) syntaxCharacters.clone();
-        needingQuoteCharacters = null;
-        return this;
-    }   
-    
     public UnicodeSet getEscapeCharacters() {
         return (UnicodeSet) escapeCharacters.clone();
     }
@@ -149,7 +139,7 @@ public class PatternTokenizer {
      */
     public String quoteLiteral(CharSequence string) {
         if (needingQuoteCharacters == null) {
-            needingQuoteCharacters = new UnicodeSet().addAll(syntaxCharacters).addAll(ignorableCharacters).addAll(extraQuotingCharacters); // .addAll(quoteCharacters)
+            needingQuoteCharacters = new UnicodeSet().addAll(syntaxCharacters).addAll(ignorableCharacters); // .addAll(quoteCharacters)
             if (usingSlash) needingQuoteCharacters.add(BACK_SLASH);
             if (usingQuote) needingQuoteCharacters.add(SINGLE_QUOTE);
         }
