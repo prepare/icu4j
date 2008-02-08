@@ -12,8 +12,10 @@ import java.lang.ref.SoftReference;
 import java.util.Date;
 import java.util.Hashtable;
 import java.util.Locale;
+import java.util.MissingResourceException;
 
 import com.ibm.icu.impl.Grego;
+import com.ibm.icu.impl.JavaTimeZone;
 import com.ibm.icu.impl.TimeZoneAdapter;
 import com.ibm.icu.impl.ZoneMeta;
 import com.ibm.icu.text.SimpleDateFormat;
@@ -81,6 +83,23 @@ abstract public class TimeZone implements Serializable, Cloneable {
      */
     public TimeZone() {
     }
+
+    /**
+     * A time zone implementation type indicating ICU's own TimeZone used by
+     * <code>getTimeZone</code>, <code>setDefaultTimeZoneType</code>
+     * and <code>getDefaultTimeZoneType</code>.
+     * @draft ICU 4.0
+     * @provisional This API might change or be removed in a future release.
+     */
+    public static final int TIMEZONE_ICU = 0;
+    /**
+     * A time zone implementation type indicating JDK TimeZone used by
+     * <code>getTimeZone</code>, <code>setDefaultTimeZoneType</code>
+     * and <code>getDefaultTimeZoneType</code>.
+     * @draft ICU 4.0
+     * @provisional This API might change or be removed in a future release.
+     */
+    public static final int TIMEZONE_JDK = 1;
 
     /**
      * A style specifier for <code>getDisplayName()</code> indicating
@@ -576,26 +595,70 @@ abstract public class TimeZone implements Serializable, Cloneable {
      * @stable ICU 2.0
      */
     public static synchronized TimeZone getTimeZone(String ID) {
-        /* We first try to lookup the zone ID in our system list.  If this
-         * fails, we try to parse it as a custom string GMT[+-]hh:mm.  If
-         * all else fails, we return GMT, which is probably not what the
-         * user wants, but at least is a functioning TimeZone object.
-         *
-         * We cannot return NULL, because that would break compatibility
-         * with the JDK.
-         */
-        if(ID==null){
-            throw new NullPointerException();
-        }
-        TimeZone result = ZoneMeta.getSystemTimeZone(ID);
-        
-        if (result == null) {
-            result = ZoneMeta.getCustomTimeZone(ID);
-        }
-        if (result == null) {
-            result = ZoneMeta.getGMT();
+        return getTimeZone(ID, TZ_IMPL);
+    }
+
+    /**
+     * Gets the <code>TimeZone</code> for the given ID and the timezone type.
+     * @param ID the ID for a <code>TimeZone</code>, either an abbreviation
+     * such as "PST", a full name such as "America/Los_Angeles", or a custom
+     * ID such as "GMT-8:00". Note that the support of abbreviations is
+     * for JDK 1.1.x compatibility only and full names should be used.
+     * @param type Timezone type, either <code>TIMEZONE_ICU</code> or <code>TIMEZONE_JDK</code>.
+     * @return the specified <code>TimeZone</code>, or the GMT zone if the given ID
+     * cannot be understood.
+     * @draft ICU 4.0
+     * @provisional This API might change or be removed in a future release.
+     */
+    public static synchronized TimeZone getTimeZone(String ID, int type) {
+        TimeZone result;
+        if (type == TIMEZONE_JDK) {
+            result = new JavaTimeZone(ID);
+        } else {
+            /* We first try to lookup the zone ID in our system list.  If this
+             * fails, we try to parse it as a custom string GMT[+-]hh:mm.  If
+             * all else fails, we return GMT, which is probably not what the
+             * user wants, but at least is a functioning TimeZone object.
+             *
+             * We cannot return NULL, because that would break compatibility
+             * with the JDK.
+             */
+            if(ID==null){
+                throw new NullPointerException();
+            }
+            result = ZoneMeta.getSystemTimeZone(ID);
+
+            if (result == null) {
+                result = ZoneMeta.getCustomTimeZone(ID);
+            }
+            if (result == null) {
+                result = ZoneMeta.getGMT();
+            }
         }
         return result;
+    }
+
+    /**
+     * Sets the default timezone type used by <code>getTimeZone</code>.
+     * @param type Timezone type, either <code>TIMEZONE_ICU</code> or <code>TIMEZONE_JDK</code>.
+     * @draft ICU 4.0
+     * @provisional This API might change or be removed in a future release.
+     */
+    public static synchronized void setDefaultTimeZoneType(int type) {
+        if (type != TIMEZONE_ICU && type != TIMEZONE_JDK) {
+            throw new IllegalArgumentException("Invalid timezone type");
+        }
+        TZ_IMPL = type;
+    }
+
+    /**
+     * Returns the default timezone type currently used.
+     * @return The default timezone type, either <code>TIMEZONE_ICU</code> or <code>TIMEZONE_JDK</code>.
+     * @draft ICU 4.0
+     * @provisional This API might change or be removed in a future release.
+     */
+    public static int getDefaultTimeZoneType() {
+        return TZ_IMPL;
     }
 
     /**
@@ -691,8 +754,12 @@ abstract public class TimeZone implements Serializable, Cloneable {
      */
     public static synchronized TimeZone getDefault() {
         if (defaultZone == null) {
-            java.util.TimeZone temp=java.util.TimeZone.getDefault();
-            defaultZone = getTimeZone(temp.getID());
+            if (TZ_IMPL == TIMEZONE_JDK) {
+                defaultZone = new JavaTimeZone();
+            } else {
+                java.util.TimeZone temp = java.util.TimeZone.getDefault();
+                defaultZone = getTimeZone(temp.getID());
+            }
         }
         return (TimeZone) defaultZone.clone();
     }
@@ -706,13 +773,17 @@ abstract public class TimeZone implements Serializable, Cloneable {
      * @stable ICU 2.0
      */
     public static synchronized void setDefault(TimeZone tz) {
-        
         defaultZone = tz;
-        // Keep java.util.TimeZone default in sync so java.util.Date
-        // can interoperate with com.ibm.icu.util classes.
         java.util.TimeZone jdkZone = null;
-        if (tz != null) {
-            jdkZone = TimeZoneAdapter.wrap(tz);
+        if (defaultZone instanceof JavaTimeZone) {
+            jdkZone = ((JavaTimeZone)defaultZone).unwrap();
+        } else {
+            // Keep java.util.TimeZone default in sync so java.util.Date
+            // can interoperate with com.ibm.icu.util classes.
+            jdkZone = null;
+            if (tz != null) {
+                jdkZone = TimeZoneAdapter.wrap(tz);
+            }
         }
         java.util.TimeZone.setDefault(jdkZone);
     }
@@ -853,6 +924,10 @@ abstract public class TimeZone implements Serializable, Cloneable {
      */
     private static String TZDATA_VERSION = null;
 
+    /**
+     * TimeZone implementation type
+     */
+    private static int TZ_IMPL = TIMEZONE_ICU;
 }
 
 //eof
