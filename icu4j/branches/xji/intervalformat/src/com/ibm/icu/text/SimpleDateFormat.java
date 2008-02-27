@@ -2526,7 +2526,7 @@ public class SimpleDateFormat extends DateFormat {
 
 
     /**
-     * get the pattern of this simple date formatter
+     * Get the pattern of this simple date formatter
      * @return   pattern in this simple date formatter
      * @internal ICU 4.0
      */
@@ -2537,7 +2537,7 @@ public class SimpleDateFormat extends DateFormat {
 
     
     /**
-     * get the locale of this simple date formatter
+     * Get the locale of this simple date formatter
      * @return   locale in this simple date formatter
      * @internal ICU 4.0
      */
@@ -2588,6 +2588,16 @@ public class SimpleDateFormat extends DateFormat {
         return smallerFieldUnit(pattern, field);
     }
 
+
+    /*
+     * Check whether the 'field' is smaller than all the fields covered in
+     * pattern, return true if it is.
+     * The sequence of calendar field,
+     * from large to small is: ERA, YEAR, MONTH, DATE, AM_PM, HOUR, MINUTE,...
+     * @param pattern  the pattern to check against
+     * @param field    the calendar field need to check against
+     * @return         true if the 'field' is smaller than all the fields 
+     *                 covered in pattern. false otherwise.
     /* @internal ICU 4.0
      */
     static boolean smallerFieldUnit(String pattern, int field) {
@@ -2643,6 +2653,8 @@ public class SimpleDateFormat extends DateFormat {
      *                          Result is appended to existing contents.
      * @param pos               On input: an alignment field, if desired.
      *                          On output: the offsets of the alignment field.
+     * @exception IllegalArgumentException when there is non-recognized
+     *                                     pattern letter
      * @return                  Reference to 'appendTo' parameter.
      * @internal ICU 4.0
      */
@@ -2796,6 +2808,8 @@ public class SimpleDateFormat extends DateFormat {
      * @param toCalendar     the other calendar
      * @param items          pattern items
      * @param i              the i-th item in pattern items
+     * @exception IllegalArgumentException when there is non-recognized
+     *                                     pattern letter
      * @return               true is i-th item in 2 calendar is in different 
      *                       value, false otherwise.
      */
@@ -2834,6 +2848,8 @@ public class SimpleDateFormat extends DateFormat {
      * @param items  the pattern items
      * @param i      the i-th item in pattern items
      * @param level  the level with which the i-th pattern item compared to
+     * @exception IllegalArgumentException when there is non-recognized
+     *                                     pattern letter
      * @return       true if i-th pattern item is lower than 'level',
      *               false otherwise
      */
