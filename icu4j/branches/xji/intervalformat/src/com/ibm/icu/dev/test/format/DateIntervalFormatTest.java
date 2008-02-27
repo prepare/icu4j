@@ -71,6 +71,7 @@ public class DateIntervalFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             {"tr", "", ""},
             {"es", "", ""},
             {"ko", "", ""},
+            {"th", "", ""},
             {"sv", "", ""},
             {"fi", "", ""},
             {"da", "", ""},
@@ -100,7 +101,7 @@ public class DateIntervalFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         for ( localeIndex = 0; localeIndex < testLocale.length; ++localeIndex) {
             expect(DATA, DATA.length, new Locale(testLocale[localeIndex][0], 
                    testLocale[localeIndex][1], testLocale[localeIndex][2]), 
-                   testLocale[localeIndex][0]);
+                   testLocale[localeIndex][0]+testLocale[localeIndex][1]);
         }
     }
 
@@ -227,8 +228,8 @@ public class DateIntervalFormatTest extends com.ibm.icu.dev.test.TestFmwk {
     
                 // test user created DateIntervalInfo
                 DateIntervalInfo dtitvinf = new DateIntervalInfo();
-                dtitvinf.setIntervalPattern(Calendar.MONTH, "yyyy MMM d - MMM y");
-                dtitvinf.setIntervalPattern(Calendar.HOUR_OF_DAY, "yyyy MMM d HH:mm - HH:mm");
+                dtitvinf.setIntervalPattern("yMMMd", Calendar.MONTH, "yyyy MMM d - MMM y");
+                dtitvinf.setIntervalPattern("yMMMd", Calendar.HOUR_OF_DAY, "yyyy MMM d HH:mm - HH:mm");
                 DateIntervalFormat dtitvfmt = DateIntervalFormat.getInstance(
                             DateIntervalFormat.DAY_MONTH_YEAR_MEDIUM_FORMAT, 
                             false, loc, dtitvinf);
@@ -241,14 +242,14 @@ public class DateIntervalFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                 }
 
                 /* test interval format used by CLDR survey tool */
-                dtitvfmt = DateIntervalFormat.getInstance();
+                dtitvfmt = DateIntervalFormat.getEmptyInstance();
                 SimpleDateFormat dtfmt = new SimpleDateFormat("yyyy 'year' MMM 'month' dd 'day'", loc);
                 dtitvfmt.setDateFormat(dtfmt);
                 dtitvinf = new DateIntervalInfo();
-                dtitvinf.setIntervalPattern(Calendar.YEAR, "'all diff'");
-                dtitvinf.setIntervalPattern(Calendar.MONTH, "yyyy 'diff' MMM d - MMM y");
-                dtitvinf.setIntervalPattern(Calendar.DATE, "yyyy MMM d ~ d");
-                dtitvinf.setIntervalPattern(Calendar.HOUR_OF_DAY, "yyyy MMM d HH:mm ~ HH:mm");
+                dtitvinf.setIntervalPattern("yMMMd", Calendar.YEAR, "'all diff'");
+                dtitvinf.setIntervalPattern("yMMMd", Calendar.MONTH, "yyyy 'diff' MMM d - MMM y");
+                dtitvinf.setIntervalPattern("yMMMd", Calendar.DATE, "yyyy MMM d ~ d");
+                dtitvinf.setIntervalPattern("yMMMd", Calendar.HOUR_OF_DAY, "yyyy MMM d HH:mm ~ HH:mm");
                 dtitvfmt.setDateIntervalInfo(dtitvinf);
                 pos = new FieldPosition(0);
                 str = new StringBuffer("");
