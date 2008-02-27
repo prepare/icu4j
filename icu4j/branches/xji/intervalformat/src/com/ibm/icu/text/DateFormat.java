@@ -1229,7 +1229,7 @@ public abstract class DateFormat extends UFormat {
         DateTimePatternGenerator dtptg = 
                    DateTimePatternGenerator.getInstance(locale);
     
-        // FIXME: use adjustFieldWidth later
+        // TODO (xji): use adjustFieldWidth later
         String pattern = dtptg.getBestPattern(skeleton);
         SimpleDateFormat dtfmt = new SimpleDateFormat(pattern, locale);
         return dtfmt;
