@@ -1217,10 +1217,10 @@ public class DateIntervalFormat extends UFormat {
      * @return                  Reference to 'appendTo' parameter.
      * @draft ICU 4.0
      */
-    public final StringBuffer fallbackFormat(Calendar fromCalendar,
-                                               Calendar toCalendar,
-                                               StringBuffer appendTo,
-                                               FieldPosition pos)  {
+    private final StringBuffer fallbackFormat(Calendar fromCalendar,
+                                              Calendar toCalendar,
+                                              StringBuffer appendTo,
+                                              FieldPosition pos)  {
             // the fall back
             StringBuffer earlierDate = new StringBuffer(64);
             earlierDate = fDateFormat.format(fromCalendar, earlierDate, pos);
@@ -1251,11 +1251,11 @@ public class DateIntervalFormat extends UFormat {
      * @return                  Reference to 'appendTo' parameter.
      * @draft ICU 4.0
      */
-    public final StringBuffer fallbackFormat(Calendar fromCalendar,
-                                               Calendar toCalendar,
-                                               StringBuffer appendTo,
-                                               FieldPosition pos, 
-                                               String fullPattern)  {
+    private final StringBuffer fallbackFormat(Calendar fromCalendar,
+                                              Calendar toCalendar,
+                                              StringBuffer appendTo,
+                                              FieldPosition pos, 
+                                              String fullPattern)  {
             String originalPattern = fDateFormat.getPattern();
             fDateFormat.applyPattern(fullPattern);
             fallbackFormat(fromCalendar, toCalendar, appendTo, pos);
@@ -1404,7 +1404,8 @@ public class DateIntervalFormat extends UFormat {
     private static ICUCache LOCAL_PATTERN_CACHE = new SimpleCache();
 
 
-    /* Below are for generating interval patterns locale to the formatter 
+    /**
+     *  Below are for generating interval patterns locale to the formatter 
      */
 
     /**
@@ -1439,7 +1440,7 @@ public class DateIntervalFormat extends UFormat {
     /** 
      * Initialize interval patterns locale to this formatter
      *
-     * It mainly init fIntervalPatterns;
+     * It mainly init HashMap: fIntervalPatterns;
      * 
      * This code is a bit complicated since 
      * 1. the interval patterns saved in resource bundle files are interval
@@ -1559,7 +1560,9 @@ public class DateIntervalFormat extends UFormat {
             // done
         } else if ( date.length() == 0 ) {
             // need to set up patterns for y/M/d differ
-            /* result from following looks confusing
+            /* result from following looks confusing.
+             * for example: 10 10:10 - 11 10:10, it is not
+             * clear that the first 10 is the 10th day
             time.insert(0, 'd');
             genFallbackPattern(Calendar.DATE, time, dtpng);
             time.insert(0, 'M');
