@@ -147,7 +147,7 @@ public class DateIntervalInfo implements Cloneable,  Freezable {
     private static final long serialVersionUID = 1;
     private static final int MINIMUM_SUPPORTED_CALENDAR_FIELD = 
                                                           Calendar.MINUTE;
-    private static boolean DEBUG = true;
+    //private static boolean DEBUG = true;
 
     static final String[] CALENDAR_FIELD_TO_PATTERN_LETTER = 
     {
@@ -759,7 +759,7 @@ public class DateIntervalInfo implements Cloneable,  Freezable {
      * and adjust pattern field width.
      * @param skeleton            skeleton to be parsed
      * @param skeletonFieldWidth  parsed skeleton field width
-     * @draft ICU 4.0
+     * @internal ICU 4.0
      */
     static void parseSkeleton(String skeleton, int[] skeletonFieldWidth) {
         int patternCharBase = 0x40;
@@ -808,7 +808,7 @@ public class DateIntervalInfo implements Cloneable,  Freezable {
      *         2, the only field difference is 'v' and 'z'
      *        -1, if there is calendar field difference between
      *            the best match and the input skeleton
-     * @draft ICU 4.0
+     * @internal ICU 4.0
      */
     Object[] getBestSkeleton(String inputSkeleton) {
         String bestSkeleton = inputSkeleton;
