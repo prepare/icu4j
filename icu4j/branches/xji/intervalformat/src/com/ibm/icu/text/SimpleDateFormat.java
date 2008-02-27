@@ -2536,6 +2536,17 @@ public class SimpleDateFormat extends DateFormat {
     }
 
     
+    /**
+     * get the locale of this simple date formatter
+     * @return   locale in this simple date formatter
+     * @internal ICU 4.0
+     */
+    ULocale getLocale() 
+    {
+        return locale;
+    }
+
+    
     private static final int[] CALENDAR_FIELD_TO_LEVEL =
     {
         /*GyM*/ 0, 10, 20,
@@ -2565,12 +2576,21 @@ public class SimpleDateFormat extends DateFormat {
     /**
      * Check whether the 'field' is smaller than all the fields covered in
      * pattern, return true if it is.
+     * The sequence of calendar field,
+     * from large to small is: ERA, YEAR, MONTH, DATE, AM_PM, HOUR, MINUTE,...
      * @param field    the calendar field need to check against
      * @return         true if the 'field' is smaller than all the fields 
      *                 covered in pattern. false otherwise.
      * @internal ICU 4.0
      */
+
     boolean smallerFieldUnit(int field) {
+        return smallerFieldUnit(pattern, field);
+    }
+
+    /* @internal ICU 4.0
+     */
+    static boolean smallerFieldUnit(String pattern, int field) {
         int fieldLevel = CALENDAR_FIELD_TO_LEVEL[field];
         int level;
         char ch;
