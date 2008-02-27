@@ -1205,6 +1205,14 @@ public abstract class DateFormat extends UFormat {
     /**
      * Create a date/time formatter from skeleton and a given locale.
      *
+     * Users are encouraged to use the static skeleton strings defined in 
+     * DateIntervalFormat.
+     * For example, DAY_MONTH_DOW_LONG_FORMAT, which is "EEEEdMMMM",
+     * and which means the pattern should have day, month, and day-of-week 
+     * fields, and follow the long date format defined in date time pattern.
+     * For example, for English, the full pattern should be 
+     * "EEEE, MMMM d".
+     *
      * @param skeleton  the skeleton on which date format based.
      * @param adjustFieldWidth  whether adjust the skeleton field width or not.
      *                          It is used for DateTimePatternGenerator to 
