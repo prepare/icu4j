@@ -1,3 +1,4 @@
+//##header J2SE15
 /*
  *******************************************************************************
  * Copyright (C) 2008, International Business Machines Corporation and         *
@@ -127,10 +128,18 @@ public class JavaTimeZone extends TimeZone {
                     int delta = ((((dayDelta * 24) + hour1 - hour) * 60 + min1 - min) * 60 + sec1 - sec) * 1000 + mil1 - mil;
 
                     // In this case, we use the offsets before the transition
-                    javacal.setTimeInMillis(javacal.getTimeInMillis() - delta - 1);
+//#if defined(FOUNDATION10) || defined(J2SE13)
+//##                    javacal.setTime(new Date(javacal.getTime().getTime() - delta - 1));
+//#else
+                   javacal.setTimeInMillis(javacal.getTimeInMillis() - delta - 1);
+//#endif
                 }
             } else {
+//#if defined(FOUNDATION10) || defined(J2SE13)
+//##                javacal.setTime(new Date(date));
+//#else
                 javacal.setTimeInMillis(date);
+//#endif
             }
             offsets[0] = javacal.get(java.util.Calendar.ZONE_OFFSET);
             offsets[1] = javacal.get(java.util.Calendar.DST_OFFSET);

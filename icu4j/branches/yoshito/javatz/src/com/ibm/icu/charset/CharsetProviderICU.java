@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 2006-2007, International Business Machines Corporation and    *
+* Copyright (C) 2006-2008, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 *
@@ -50,9 +50,9 @@ public final class CharsetProviderICU extends CharsetProvider{
     
                 // create the converter object and return it
             if(icuCanonicalName==null || icuCanonicalName.length()==0){
-                // this would make the Charset API to throw 
-                // unsupported encoding exception
-                return null;
+                // Try the original name, may be something added and not in the alias table. 
+                // Will get an unsupported encoding exception if it doesn't work.
+                return getCharset(charsetName);
             }
             return getCharset(icuCanonicalName);
         }catch(UnsupportedCharsetException ex){
@@ -113,9 +113,9 @@ public final class CharsetProviderICU extends CharsetProvider{
                     ret = canonicalName;
                 }else if((canonicalName = UConverterAlias.getCanonicalName(enc, "IANA"))!=null){
                     ret = canonicalName;
-                }else if((canonicalName = UConverterAlias.getCanonicalName(enc, ""))!=null){
+                }/*else if((canonicalName = UConverterAlias.getCanonicalName(enc, ""))!=null){
                     ret = canonicalName;
-                }else if((canonicalName = UConverterAlias.getAlias(enc, 0))!=null){
+                }*/else if((canonicalName = UConverterAlias.getAlias(enc, 0))!=null){
                     /* we have some aliases in the form x-blah .. match those first */
                     ret = canonicalName;
                 }else if(enc.indexOf("x-")==0){
@@ -124,7 +124,13 @@ public final class CharsetProviderICU extends CharsetProvider{
                     char temp[ UCNV_MAX_CONVERTER_NAME_LENGTH] = {0};
                     strcpy(temp, encName+2);
                     */
-                    ret = enc.substring(2);
+                    // Remove the 'x-' and get the ICU canonical name
+                    if ((canonicalName = UConverterAlias.getAlias(enc.substring(2), 0))!=null) {
+                        ret = canonicalName;
+                    } else {
+                        ret = "";
+                    }
+                    
                 }else{
                     /* unsupported encoding */
                    ret = "";
