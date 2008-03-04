@@ -71,7 +71,7 @@ class ICUResourceBundleImpl {
             this.key = key;
             this.size = countItems();
             this.resPath = resPath;
-            this.lookup = new BundleLookup(this.size); // Use bundle cache to access array entries
+            createLookupCache(); // Use bundle cache to access array entries
         }
     }
     static final class ResourceBinary extends ICUResourceBundle {
@@ -237,7 +237,7 @@ class ICUResourceBundleImpl {
             isTopLevel = topLevel;
             size = countItems();
             resPath = resourcePath;
-            lookup = new BundleLookup(size); // Use bundle cache to access nested resources
+            createLookupCache(); // Use bundle cache to access nested resources
         }
         ResourceTable(String key, String resPath, long resource,
                 ICUResourceBundle bundle, boolean isTopLevel) {
@@ -321,7 +321,7 @@ class ICUResourceBundleImpl {
             isTopLevel = topLevel;
             size = countItems();
             resPath = resourcePath;
-            lookup = new BundleLookup(size); // Use bundle cache to access nested resources
+            createLookupCache(); // Use bundle cache to access nested resources
         }
         ResourceTable32(String key, String resPath, long resource,
                 ICUResourceBundle bundle, boolean isTopLevel) {

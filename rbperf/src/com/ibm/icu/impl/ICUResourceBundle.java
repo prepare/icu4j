@@ -12,7 +12,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.ref.SoftReference;
-import java.lang.ref.WeakReference;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -1181,83 +1180,19 @@ public  class ICUResourceBundle extends UResourceBundle {
         return sub;
     }
 
-    // ResourceBundle cache stuffs
-    protected static class BundleLookup {
-        private int size;
-        private WeakReference cacheRef;
-
-        private static final int MAX_MAP_INITIAL_SIZE = 128;
-
-        BundleLookup(int size) {
-            this.size = size > 0 ? size : 1;
-        }
-
-        UResourceBundle get(String key) {
-            if (cacheRef == null) {
-                return null;
-            }
-            Map cache = (Map)cacheRef.get();
-            if (cache == null) {
-                return null;
-            }
-            return (UResourceBundle)cache.get(key);
-        }
-
-        UResourceBundle get(int index) {
-            if (index < 0 || index >= size) {
-                return null;
-            }
-            if (cacheRef == null) {
-                return null;
-            }
-            Map cache = (Map)cacheRef.get();
-            if (cache == null) {
-                return null;
-            }
-            return (UResourceBundle)cache.get(getIndexKey(index));
-        }
-
-        void put(String key, int index, UResourceBundle value) {
-            Map cache = null;
-            synchronized (this) {
-                if (cacheRef != null) {
-                    cache = (Map)cacheRef.get();
-                }
-                if (cache == null) {
-                    cache = Collections.synchronizedMap(new HashMap(Math.max(size*2, MAX_MAP_INITIAL_SIZE)));
-                    cacheRef = new WeakReference(cache);
-                }
-            }
-            cache.put(key, value);
-            cache.put(getIndexKey(index), value);
-        }
-
-        // Integer constants - Integer.valueOf(int) is not supported in JDK 1.3/1.4
-        private static final int MAX_INT_CONST = 64;
-        private static final Integer[] INT_CONST = new Integer[MAX_INT_CONST];
-
-        static {
-            for (int i = 0; i < MAX_INT_CONST; i++) {
-                INT_CONST[i] = new Integer(i);
-            }
-        }
-
-        private static Integer getIndexKey(int index) {
-            if (index < MAX_INT_CONST) {
-                return INT_CONST[index];
-            }
-            return new Integer(index);
-        }
-    }
-
     // Resource bundle lookup cache, which may be used by subclasses
     // which have nested resources
-    protected BundleLookup lookup;
+    protected ICUCache lookup;
+    private static final int MAX_INITIAL_LOOKUP_SIZE = 64;
+
+    protected void createLookupCache() {
+        lookup = new SimpleCache(ICUCache.WEAK, Math.max(size*2, MAX_INITIAL_LOOKUP_SIZE));
+    }
 
     protected UResourceBundle handleGet(String resKey, HashMap table, UResourceBundle requested) {
         UResourceBundle res = null;
         if (lookup != null) {
-            res = lookup.get(resKey);
+            res = (UResourceBundle)lookup.get(resKey);
         }
         if (res == null) {
             int[] index = new int[1];
@@ -1265,7 +1200,8 @@ public  class ICUResourceBundle extends UResourceBundle {
             res = handleGetImpl(resKey, table, requested, index, alias);
             if (res != null && lookup != null && !alias[0]) {
                 // We do not want to cache a result from alias entry
-                lookup.put(resKey, index[0], res);
+                lookup.put(resKey, res);
+                lookup.put(Utility.integerValueOf(index[0]), res);
             }
         }
         return res;
@@ -1273,15 +1209,18 @@ public  class ICUResourceBundle extends UResourceBundle {
 
     protected UResourceBundle handleGet(int index, HashMap table, UResourceBundle requested) {
         UResourceBundle res = null;
+        Integer indexKey = null;
         if (lookup != null) {
-            res = lookup.get(index);
+            indexKey = Utility.integerValueOf(index);
+            res = (UResourceBundle)lookup.get(indexKey);
         }
         if (res == null) {
             boolean[] alias = new boolean[1];
             res = handleGetImpl(index, table, requested, alias);
             if (res != null && lookup != null && !alias[0]) {
                 // We do not want to cache a result from alias entry
-                lookup.put(res.getKey(), index, res);
+                lookup.put(res.getKey(), res);
+                lookup.put(indexKey, res);
             }
         }
         return res;
