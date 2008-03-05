@@ -15,6 +15,7 @@ import java.util.Locale;
 import java.util.MissingResourceException;
 
 import com.ibm.icu.impl.Grego;
+import com.ibm.icu.impl.ICUConfig;
 import com.ibm.icu.impl.JavaTimeZone;
 import com.ibm.icu.impl.TimeZoneAdapter;
 import com.ibm.icu.impl.ZoneMeta;
@@ -928,6 +929,20 @@ abstract public class TimeZone implements Serializable, Cloneable {
      * TimeZone implementation type
      */
     private static int TZ_IMPL = TIMEZONE_ICU;
+
+    /**
+     * TimeZone implementation type initialization
+     */
+    private static final String TZIMPL_CONFIG_KEY = "com.ibm.icu.util.TimeZone.DefaultTimeZoneType";
+    private static final String TZIMPL_CONFIG_ICU = "ICU";
+    private static final String TZIMPL_CONFIG_JDK = "JDK";
+
+    static {
+        String type = ICUConfig.get(TZIMPL_CONFIG_KEY, TZIMPL_CONFIG_ICU);
+        if (type.equalsIgnoreCase(TZIMPL_CONFIG_JDK)) {
+            TZ_IMPL = TIMEZONE_JDK;
+        }
+    }
 }
 
 //eof
