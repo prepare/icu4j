@@ -1,7 +1,7 @@
 //##header J2SE15
 /**
 *******************************************************************************
-* Copyright (C) 1996-2007, International Business Machines Corporation and    *
+* Copyright (C) 1996-2008, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 */
@@ -5014,7 +5014,7 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
             case UProperty.JOINING_TYPE:
                 return gBdp.getJoiningType(ch);
             case UProperty.LINE_BREAK:
-                return (int)(PROPERTY_.getAdditional(ch, 0)& LINE_BREAK_MASK_)>>LINE_BREAK_SHIFT_;
+                return (int)(PROPERTY_.getAdditional(ch, LB_VWORD)& LB_MASK)>>LB_SHIFT;
             case UProperty.NUMERIC_TYPE:
                 type=getNumericType(PROPERTY_.getProperty(ch));
                 if(type>NumericType.NUMERIC) {
@@ -5196,7 +5196,7 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
             case UProperty.GENERAL_CATEGORY:
                 return UCharacterCategory.CHAR_CATEGORY_COUNT - 1;
             case UProperty.LINE_BREAK:
-                return (PROPERTY_.getMaxValues(0) & LINE_BREAK_MASK_) >> LINE_BREAK_SHIFT_;
+                return (PROPERTY_.getMaxValues(LB_VWORD) & LB_MASK) >> LB_SHIFT;
             case UProperty.NUMERIC_TYPE:
                 return NumericType.COUNT - 1;
             case UProperty.SCRIPT:
@@ -6148,13 +6148,17 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
     /*
      * Properties in vector word 2
      * Bits
-     * 31..24   More binary properties (see UCharacterProperty)
-     * 23..19   reserved
-     * 18..14   Sentence Break
-     * 13..10   Word Break
+     * 31..26   reserved
+     * 25..20   Line Break
+     * 19..15   Sentence Break
+     * 14..10   Word Break
      *  9.. 5   Grapheme Cluster Break
      *  4.. 0   Decomposition Type
      */
+    private static final int LB_MASK          = 0x03f00000;
+    private static final int LB_SHIFT         = 20;
+    private static final int LB_VWORD         = 2;
+
     private static final int SB_MASK          = 0x0007c000;
     private static final int SB_SHIFT         = 14;
 
@@ -6173,48 +6177,38 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
     /*
      * Properties in vector word 0
      * Bits
-     * 31..24   DerivedAge version major/minor one nibble each (see UCharacterProperty)
-     * 23..18   Line Break
-     * 17..15   East Asian Width
-     * 14.. 7   UBlockCode
-     *  6.. 0   UScriptCode
+     * 31..24   DerivedAge version major/minor one nibble each
+     * 23..20   reserved
+     * 19..17   East Asian Width
+     * 16.. 8   UBlockCode
+     *  7.. 0   UScriptCode
      */
 
     /**
      * Integer properties mask and shift values for East Asian cell width.
      * Equivalent to icu4c UPROPS_EA_MASK 
      */    
-    private static final int EAST_ASIAN_MASK_ = 0x00038000;
+    private static final int EAST_ASIAN_MASK_ = 0x000e0000;
     /**
      * Integer properties mask and shift values for East Asian cell width.
      * Equivalent to icu4c UPROPS_EA_SHIFT 
      */    
-    private static final int EAST_ASIAN_SHIFT_ = 15;
-    /**
-     * Integer properties mask and shift values for line breaks.
-     * Equivalent to icu4c UPROPS_LB_MASK 
-     */    
-    private static final int LINE_BREAK_MASK_ = 0x00FC0000;
-    /**
-     * Integer properties mask and shift values for line breaks.
-     * Equivalent to icu4c UPROPS_LB_SHIFT 
-     */    
-    private static final int LINE_BREAK_SHIFT_ = 18;
+    private static final int EAST_ASIAN_SHIFT_ = 17;
     /**
      * Integer properties mask and shift values for blocks.
      * Equivalent to icu4c UPROPS_BLOCK_MASK 
      */    
-    private static final int BLOCK_MASK_ = 0x00007f80;
+    private static final int BLOCK_MASK_ = 0x0001ff00;
     /**
      * Integer properties mask and shift values for blocks.
      * Equivalent to icu4c UPROPS_BLOCK_SHIFT 
      */    
-    private static final int BLOCK_SHIFT_ = 7;
+    private static final int BLOCK_SHIFT_ = 8;
     /**
      * Integer properties mask and shift values for scripts.
      * Equivalent to icu4c UPROPS_SHIFT_MASK
      */    
-    private static final int SCRIPT_MASK_ = 0x0000007f;
+    private static final int SCRIPT_MASK_ = 0x000000ff;
                            
     // private constructor -----------------------------------------------
     ///CLOVER:OFF  
