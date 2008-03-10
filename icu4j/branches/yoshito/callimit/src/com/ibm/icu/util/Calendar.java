@@ -1,5 +1,5 @@
 /*
-*   Copyright (C) 1996-2007, International Business Machines
+*   Copyright (C) 1996-2008, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 */
 
@@ -367,8 +367,8 @@ import com.ibm.icu.text.SimpleDateFormat;
  *   <li>New fields are implemented: {@link #JULIAN_DAY} defines
  *     single-field specification of the
  *     date. {@link #MILLISECONDS_IN_DAY} defines a single-field
- *     specification of the wall time. {@link #DOW_LOCAL} and
- *     {@link #YEAR_WOY} implement localized day-of-week and
+ *     specification of the wall time. {@link #DOW_LOCAL}, {@link #YEAR_WOY}
+ *     and {@link #ERA_WOY} implement localized day-of-week and
  *     week-of-year behavior.</li>
  *
  *   <li>Subclasses can access millisecond constants
@@ -478,7 +478,8 @@ import com.ibm.icu.text.SimpleDateFormat;
  *     to return the number of days in the given
  *     extended year. This method is used by
  *     <tt>computeWeekFields</tt> to compute the
- *     {@link #WEEK_OF_YEAR} and {@link #YEAR_WOY} fields.</li>
+ *     {@link #WEEK_OF_YEAR}, {@link #YEAR_WOY} and
+ *     {@link #ERA_WOY} fields.</li>
  *
  *   <li>Subclasses should implement {@link #handleGetLimit}
  *     to return the {@link #MINIMUM},
@@ -488,8 +489,8 @@ import com.ibm.icu.text.SimpleDateFormat;
  *     fields {@link #ERA}, {@link #YEAR}, {@link #MONTH},
  *     {@link #WEEK_OF_YEAR}, {@link #WEEK_OF_MONTH},
  *     {@link #DAY_OF_MONTH}, {@link #DAY_OF_YEAR},
- *     {@link #DAY_OF_WEEK_IN_MONTH}, {@link #YEAR_WOY}, and
- *     {@link #EXTENDED_YEAR}.  Other fields are invariant (with
+ *     {@link #DAY_OF_WEEK_IN_MONTH}, {@link #YEAR_WOY}, {@link #ERA_WOY}
+ *     and {@link #EXTENDED_YEAR}.  Other fields are invariant (with
  *     respect to calendar system) and are handled by the base
  *     class.</li>
  *
@@ -564,7 +565,7 @@ import com.ibm.icu.text.SimpleDateFormat;
  *     first instituted, the day of week was not disrupted. For this
  *     reason, the fields {@link #DAY_OF_WEEK}, <code>WEEK_OF_YEAR,
  *     WEEK_OF_MONTH</code>, {@link #DAY_OF_WEEK_IN_MONTH},
- *     {@link #DOW_LOCAL}, {@link #YEAR_WOY} are all computed in
+ *     {@link #DOW_LOCAL} are all computed in
  *     a consistent way in the base class, based on the
  *     {@link #EXTENDED_YEAR}, {@link #DAY_OF_YEAR},
  *     {@link #MONTH}, and {@link #DAY_OF_MONTH}, which are
@@ -884,9 +885,9 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
 
     /**
      * Field number for <code>get()</code> and <code>set()</code>
-     * indicating the extended year corresponding to the
-     * <code>WEEK_OF_YEAR</code> field.  This may be one greater or less
-     * than the value of <code>EXTENDED_YEAR</code>.
+     * indicating the year corresponding to the <code>WEEK_OF_YEAR</code>
+     * field.  The year represented by this field and <code>ERA_WOY</code>
+     * could be one year before or after the actual year.
      * @stable ICU 2.0
      */
     public static final int YEAR_WOY = 17;
@@ -938,11 +939,21 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
     public static final int MILLISECONDS_IN_DAY = 21;
 
     /**
+     * Field number for <code>get()</code> and <code>set()</code>
+     * indicating the era corresponding to the <code>WEEK_OF_YEAR</code>
+     * field.  The year represented by this field and <code>YEAR_WOY</code>
+     * could be one year before or after the actual year.
+     * @draft ICU 4.0
+     * @provisional This API might change or be removed in a future release.
+     */
+    public static final int ERA_WOY = 22;
+
+    /**
      * The number of fields defined by this class.  Subclasses may define
      * addition fields starting with this number.
      * @stable ICU 2.0
      */
-    protected static final int BASE_FIELD_COUNT = 22;
+    protected static final int BASE_FIELD_COUNT = 23;
 
     /**
      * The maximum number of fields possible.  Subclasses must not define
@@ -1544,7 +1555,9 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
             (1 << MONTH) |
             (1 << DAY_OF_MONTH) |
             (1 << DAY_OF_YEAR) |
-            (1 << EXTENDED_YEAR);
+            (1 << EXTENDED_YEAR) |
+            (1 << YEAR_WOY) |
+            (1 << ERA_WOY);
         for (int i=BASE_FIELD_COUNT; i<fields.length; ++i) {
             mask |= (1 << i);
         }
@@ -2333,16 +2346,26 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
         // now try each value from the start to the end one by one until
         // we get a value that normalizes to another value.  The last value that
         // normalizes to itself is the actual maximum for the current date
+
+        work.set(field, startValue);
+        // prepareGetActual sets the first day of week in the same week with
+        // the first day of a month.  Unlike WEEK_OF_YEAR, week number for the
+        // which week contains days from both previous and current month is
+        // not unique.  For example, last several days in the previous month
+        // is week 5, and the rest of week is week 1.
+        if (work.get(field) != startValue
+                && field != WEEK_OF_MONTH && delta > 0) {
+            return startValue;
+        }
         int result = startValue;
         do {
-            work.set(field, startValue);
+            startValue += delta;
+            work.add(field, delta);
             if (work.get(field) != startValue) {
                 break;
-            } else {
-                result = startValue;
-                startValue += delta;
             }
-        } while (result != endValue);
+            result = startValue;
+        } while (startValue != endValue);
 
         return result;
     }
@@ -2470,6 +2493,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
         case MILLISECOND:
         case MILLISECONDS_IN_DAY:
         case ERA:
+        case ERA_WOY:
             // These are the standard roll instructions.  These work for all
             // simple cases, that is, cases in which the limits are fixed, such
             // as the hour, the day of the month, and the era.
@@ -2821,8 +2845,9 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
 
         switch (field) {
         case ERA:
+        case ERA_WOY:
             set(field, get(field) + amount);
-            pinField(ERA);
+            pinField(field);
             return;
 
         case YEAR:
@@ -3559,6 +3584,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
         {/*                                                      */}, // EXTENDED_YEAR
         { -0x7F000000,  -0x7F000000,    0x7F000000,    0x7F000000  }, // JULIAN_DAY
         {           0,            0, 24*ONE_HOUR-1, 24*ONE_HOUR-1  }, // MILLISECONDS_IN_DAY
+        {/*                                                      */}, // ERA_WOY
     };
 
     /**
@@ -3575,6 +3601,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
      * DAY_OF_YEAR
      * DAY_OF_WEEK_IN_MONTH
      * YEAR_WOY
+     * ERA_WOY
      * EXTENDED_YEAR</pre>
      *
      * @param field one of the above field numbers
@@ -3609,6 +3636,25 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
         case JULIAN_DAY:
         case MILLISECONDS_IN_DAY:
             return LIMITS[field][limitType];
+
+        case WEEK_OF_MONTH:
+            {
+                int limit;
+                if (limitType == MINIMUM) {
+                    limit = getMinimalDaysInFirstWeek() == 1 ? 1 : 0;
+                } else if (limitType == GREATEST_MINIMUM){
+                    limit = 1;
+                } else {
+                    int minDaysInFirst = getMinimalDaysInFirstWeek();
+                    int daysInMonth = handleGetLimit(DAY_OF_MONTH, limitType);
+                    if (limitType == LEAST_MAXIMUM) {
+                        limit = (daysInMonth + (7 - minDaysInFirst)) / 7;
+                    } else { // limitType == MAXIMUM
+                        limit = (daysInMonth + 6 + (7 - minDaysInFirst)) / 7;
+                    }
+                }
+                return limit;
+            }
         }
         return handleGetLimit(field, limitType);
     }
@@ -4142,28 +4188,35 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
     }
 
     /**
-     * Compute the fields WEEK_OF_YEAR, YEAR_WOY, WEEK_OF_MONTH,
+     * Compute the fields WEEK_OF_YEAR, YEAR_WOY, ERA_WOY, WEEK_OF_MONTH,
      * DAY_OF_WEEK_IN_MONTH, and DOW_LOCAL from EXTENDED_YEAR, YEAR,
      * DAY_OF_WEEK, and DAY_OF_YEAR.  The latter fields are computed by the
      * subclass based on the calendar system.
      *
-     * <p>The YEAR_WOY field is computed simplistically.  It is equal to YEAR
-     * most of the time, but at the year boundary it may be adjusted to YEAR-1
-     * or YEAR+1 to reflect the overlap of a week into an adjacent year.  In
-     * this case, a simple increment or decrement is performed on YEAR, even
-     * though this may yield an invalid YEAR value.  For instance, if the YEAR
-     * is part of a calendar system with an N-year cycle field CYCLE, then
-     * incrementing the YEAR may involve incrementing CYCLE and setting YEAR
-     * back to 0 or 1.  This is not handled by this code, and in fact cannot be
-     * simply handled without having subclasses define an entire parallel set of
-     * fields for fields larger than or equal to a year.  This additional
-     * complexity is not warranted, since the intention of the YEAR_WOY field is
-     * to support ISO 8601 notation, so it will typically be used with a
-     * proleptic Gregorian calendar, which has no field larger than a year.
+     * <p>The YEAR_WOY field and the ERA_WOY field are computed simplistically.
+     * YEAR_WOY/ERA_WOY are equal to YEAR/ERA most of the time, but at the year
+     * boundary they may be adjusted to one year before or after to reflect the
+     * overlap of a week into an adjacent year.  The original implementation of
+     * YEAR_WOY only supported a simple decrement or increment performed on YEAR,
+     * even though this may yield an invalid YEAR value.
+     * 
+     * The new implementation introduced in ICU 4.0 handles YEAR_WOY based on
+     * YEAR value, instead of EXTENDED_YEAR.  With this change, ERA_WOY field
+     * is also added.  In Gregorian calendar, these changes do not introduce
+     * any differences for years in AD, because EXTENDED_YEAR is equivalent
+     * to YEAR.
+     * 
+     * The old implementation did not consider about the usage of YEAR_WOY in
+     * non-Gregorian calendars.  The original intention was to support ISO8601
+     * notation, so non-Gregorian calendars were out of the scope.  However,
+     * this assumption introduced some confusions and some bugs which cannot
+     * be resolved.
+     * 
+     * The code below calls handleComputeYearOfWeekOfYear to compute ERA_WOY field
+     * and YEAR_WOY field.
      */
     private final void computeWeekFields() {
         int eyear = fields[EXTENDED_YEAR];
-        int year = fields[YEAR];
         int dayOfWeek = fields[DAY_OF_WEEK];
         int dayOfYear = fields[DAY_OF_YEAR];
 
@@ -4176,7 +4229,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
         // the previous year; days at the end of the year may fall into the
         // first week of the next year.  ASSUME that the year length is less than
         // 7000 days.
-        int yearOfWeekOfYear = year;
+        int yearDelta = 0;
         int relDow = (dayOfWeek + 7 - getFirstDayOfWeek()) % 7; // 0..6
         int relDowJan1 = (dayOfWeek - dayOfYear + 7001 - getFirstDayOfWeek()) % 7; // 0..6
         int woy = (dayOfYear - 1 + relDowJan1) / 7; // 0..53
@@ -4194,7 +4247,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
 
             int prevDoy = dayOfYear + handleGetYearLength(eyear - 1);
             woy = weekNumber(prevDoy, dayOfWeek);
-            yearOfWeekOfYear--;
+            yearDelta--;
         } else {
             int lastDoy = handleGetYearLength(eyear);
             // Fast check: For it to be week 1 of the next year, the DOY
@@ -4211,13 +4264,14 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
                 if (((6 - lastRelDow) >= getMinimalDaysInFirstWeek()) &&
                     ((dayOfYear + 7 - relDow) > lastDoy)) {
                     woy = 1;
-                    yearOfWeekOfYear++;
+                    yearDelta++;
                 }
             }
         }
         fields[WEEK_OF_YEAR] = woy;
-        fields[YEAR_WOY] = yearOfWeekOfYear;
-        // WEEK_OF_YEAR end
+
+        // Set YEAR_WOY and ERA_WOY
+        handleComputeYearOfWeekOfYear(yearDelta);
 
         int dayOfMonth = fields[DAY_OF_MONTH];
         fields[WEEK_OF_MONTH] = weekNumber(dayOfMonth, dayOfWeek);
@@ -4551,6 +4605,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
         if (stamp[JULIAN_DAY] >= MINIMUM_USER_STAMP) {
             int bestStamp = newestStamp(ERA, DAY_OF_WEEK_IN_MONTH, UNSET);
             bestStamp = newestStamp(YEAR_WOY, EXTENDED_YEAR, bestStamp);
+            bestStamp = newestStamp(ERA_WOY, ERA_WOY, bestStamp);
             if (bestStamp <= stamp[JULIAN_DAY]) {
                 return internalGet(JULIAN_DAY);
             }
@@ -4684,31 +4739,38 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
                             bestField == WEEK_OF_MONTH ||
                             bestField == DAY_OF_WEEK_IN_MONTH);
 
-        int year;
+        int eyear;
 
         if (bestField == WEEK_OF_YEAR) {
             // Nota Bene!  It is critical that YEAR_WOY be used as the year here, if it is set.
             // Otherwise, when WOY is the best field, the year may be wrong at the extreme limits of the year.
             // If YEAR_WOY is not set then it will fall back.
-            // TODO: Should resolveField(YEAR_PRECEDENCE) be brought to bear? 
-            year = internalGet(YEAR_WOY, handleGetExtendedYear());
-        } else {
-            year = handleGetExtendedYear();
+            // TODO: Should resolveField(YEAR_PRECEDENCE) be brought to bear?
+
+            // When ERA_WOY and/or YEAR_WOY is set, set them to ERA/YEAR to compute extended year
+            // properly.  Final values of ERA/YEAR may be different from what we set here.
+            if (stamp[ERA_WOY] > UNSET) {
+                set(ERA, internalGet(ERA_WOY));
+            }
+            if (stamp[YEAR_WOY] > UNSET) {
+                set(YEAR, internalGet(YEAR_WOY));
+            }
         }
+        eyear = handleGetExtendedYear();
 
-        internalSet(EXTENDED_YEAR, year);
+        internalSet(EXTENDED_YEAR, eyear);
 
-        int month = useMonth ? internalGet(MONTH, getDefaultMonthInYear(year)) : 0;
+        int month = useMonth ? internalGet(MONTH, getDefaultMonthInYear(eyear)) : 0;
         
         // Get the Julian day of the day BEFORE the start of this year.
         // If useMonth is true, get the day before the start of the month.
-        int julianDay = handleComputeMonthStart(year, month, useMonth);
+        int julianDay = handleComputeMonthStart(eyear, month, useMonth);
 
         if (bestField == DAY_OF_MONTH) {
             if(isSet(DAY_OF_MONTH)) {
-                return julianDay + internalGet(DAY_OF_MONTH, getDefaultDayInMonth(year, month));
+                return julianDay + internalGet(DAY_OF_MONTH, getDefaultDayInMonth(eyear, month));
             } else {
-                return julianDay + getDefaultDayInMonth(year, month);
+                return julianDay + getDefaultDayInMonth(eyear, month);
             }
         }
 
@@ -4716,7 +4778,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
             return julianDay + internalGet(DAY_OF_YEAR);
         }
 
-        int firstDayOfWeek = getFirstDayOfWeek(); // Localized fdw
+        int firstDOW = getFirstDayOfWeek(); // Localized fdw
 
         // At this point julianDay is the 0-based day BEFORE the first day of
         // January 1, year 1 of the given calendar.  If julianDay == 0, it
@@ -4730,7 +4792,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
 
         // Get the 0-based localized DOW of day one of the month or year.
         // Valid range 0..6.
-        int first = julianDayToDayOfWeek(julianDay + 1) - firstDayOfWeek;
+        int first = julianDayToDayOfWeek(julianDay + 1) - firstDOW;
         if (first < 0) {
             first += 7;
         }
@@ -4740,7 +4802,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
         int dowLocal = 0;
         switch (resolveFields(DOW_PRECEDENCE)) {
         case DAY_OF_WEEK:
-            dowLocal = internalGet(DAY_OF_WEEK) - firstDayOfWeek;
+            dowLocal = internalGet(DAY_OF_WEEK) - firstDOW;
             break;
         case DOW_LOCAL:
             dowLocal = internalGet(DOW_LOCAL) - 1;
@@ -4777,7 +4839,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
                 // Note that we handle -2, -3, etc. correctly, even though
                 // values < -1 are technically disallowed.
                 int m = internalGet(MONTH, JANUARY);
-                int monthLength = handleGetMonthLength(year, m);
+                int monthLength = handleGetMonthLength(eyear, m);
                 date += ((monthLength - date) / 7 + dim + 1) * 7;
             }
         } else {
@@ -4881,6 +4943,78 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
         internalSet(YEAR, eyear);
     }
     ///CLOVER:ON
+
+    /**
+     * Subclasses may override this method to compute {@link #EAR_WOY}
+     * and {@link #YEAR_WOY} specific to each calendar system.
+     * 
+     * Subclasses can refer to {@link #YEAR} and {@link #ERA} fields, which
+     * will be set when this method is called.  The input argument
+     * <code>yearDelta</code> represents the amount of years to be adjusted
+     * from <code>ERA</code> and <code>YEAR</code> and its value range is
+     * -1&lt;= <code>yearDelta</code>&lt;=1.
+     * 
+     * <p>The default implementation in <code>Calendar</code> supports
+     * two common calendar system types.
+     * <ul>
+     *   <li>A calendar system which has two eras.  Year number starts from 1 and
+     *   always positive.  One year before the first year in the second era is year
+     *   1 in the first era.  (e.g. GregorianCalendar)
+     *   <li>A calendar system which has only one era.  Negative number is used for
+     *   a years before the era's epoch. 
+     * </ul>
+     * 
+     * @param yearDelta The amount of year to be adjusted from the year represented
+     * by <code>ERA</code> and <code>YEAR</code>.
+     * 
+     * @draft ICU 4.0
+     * @provisional This API might change or be removed in a future release.
+     */
+    protected void handleComputeYearOfWeekOfYear(int yearDelta) {
+        if (yearDelta == 0) {
+            internalSet(YEAR_WOY, internalGet(YEAR));
+            internalSet(ERA_WOY, internalGet(ERA));
+        } else {
+            // Notes: When year used for week of year falls into before or after the
+            // actual year, we need to adjust YEAR_WOY and ERA_WOY properly.  This code
+            // handle next two cases -
+            //
+            // 1. There are two eras available.  In the first era, older date has larger
+            //    year number (Gregorian - BC).  The first year is 1 for both eras.
+            // 2. There is only one era available.  Years before the start year of the era
+            //    are represented by negative numbers.
+            //
+            // If a calendar implementation use any other rules, it must override computeFields
+            // to make proper WOY fields adjustment.
+            //
+            if (getMaximum(ERA) == 1) {
+                // Dual eras
+                int yearWOY = internalGet(YEAR);
+                int eraWOY = internalGet(ERA);
+
+                if (eraWOY == 0) {
+                    yearWOY -= yearDelta;
+                    if (yearWOY <= 0) {
+                        yearWOY = 1 - yearWOY;
+                        eraWOY = 1;
+                    }
+                } else {
+                    yearWOY += yearDelta;
+                    if (yearWOY <= 0) {
+                        yearWOY = 1 - yearWOY;
+                        eraWOY = 0;
+                    }
+                }
+                internalSet(YEAR_WOY, yearWOY);
+                internalSet(ERA_WOY, eraWOY);
+            } else {
+                // Single era or
+                // number of eras > 2, which won't work properly
+                internalSet(YEAR_WOY, internalGet(YEAR) + yearDelta);
+                internalSet(ERA_WOY, internalGet(ERA));
+            }
+        }
+    }
 
     //----------------------------------------------------------------------
     // Subclass API
@@ -5103,7 +5237,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
         "DAY_OF_WEEK_IN_MONTH", "AM_PM", "HOUR", "HOUR_OF_DAY",
         "MINUTE", "SECOND", "MILLISECOND", "ZONE_OFFSET",
         "DST_OFFSET", "YEAR_WOY", "DOW_LOCAL", "EXTENDED_YEAR",
-        "JULIAN_DAY", "MILLISECONDS_IN_DAY",
+        "JULIAN_DAY", "MILLISECONDS_IN_DAY", "ERA_WOY"
     };
 
     /**

@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2005, International Business Machines Corporation and         *
+ * Copyright (C) 2005-2008, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -225,9 +225,7 @@ public class EthiopicTest extends CalendarTest
         Calendar cal = Calendar.getInstance();
         cal.set(2007, Calendar.JANUARY, 1);
         EthiopicCalendar ethiopic = new EthiopicCalendar();
-        if (!skipIfBeforeICU(3,9,1)) {
-            doLimitsTest(ethiopic, null, cal.getTime());
-        }
+        doLimitsTest(ethiopic, null, cal.getTime());
         doTheoreticalLimitsTest(ethiopic, true);
     }
 

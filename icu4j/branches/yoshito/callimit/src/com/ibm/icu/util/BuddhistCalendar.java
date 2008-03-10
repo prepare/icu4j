@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2008, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -230,7 +230,7 @@ public class BuddhistCalendar extends GregorianCalendar {
      * @stable ICU 2.8
      */
     protected int handleGetLimit(int field, int limitType) {
-        if (field == ERA) {
+        if (field == ERA || field == ERA_WOY) {
             return BE;
         }
         return super.handleGetLimit(field, limitType);

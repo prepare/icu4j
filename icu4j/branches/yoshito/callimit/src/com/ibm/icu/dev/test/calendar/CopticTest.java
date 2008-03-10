@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2005, International Business Machines Corporation and         *
+ * Copyright (C) 2005-2008, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -194,9 +194,7 @@ public class CopticTest extends CalendarTest
         Calendar cal = Calendar.getInstance();
         cal.set(2007, Calendar.JANUARY, 1);
         CopticCalendar coptic = new CopticCalendar();
-        if (!skipIfBeforeICU(3,9,1)) {
-            doLimitsTest(coptic, null, cal.getTime());
-        }
+        doLimitsTest(coptic, null, cal.getTime());
         doTheoreticalLimitsTest(coptic, true);
     }
 

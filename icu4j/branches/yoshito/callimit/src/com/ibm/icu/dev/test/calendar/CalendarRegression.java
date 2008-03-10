@@ -1,6 +1,6 @@
 /**
  *******************************************************************************
- * Copyright (C) 2000-2007, International Business Machines Corporation and    *
+ * Copyright (C) 2000-2008, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -37,7 +37,7 @@ public class CalendarRegression extends com.ibm.icu.dev.test.TestFmwk {
             "DAY_OF_WEEK_IN_MONTH", "AM_PM", "HOUR", "HOUR_OF_DAY",
             "MINUTE", "SECOND", "MILLISECOND", "ZONE_OFFSET",
             "DST_OFFSET", "YEAR_WOY", "DOW_LOCAL", "EXTENDED_YEAR",
-            "JULIAN_DAY", "MILLISECONDS_IN_DAY"
+            "JULIAN_DAY", "MILLISECONDS_IN_DAY", "ERA_WOY"
         };
 
 
