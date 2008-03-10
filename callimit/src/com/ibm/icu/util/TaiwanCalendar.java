@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2008, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -248,7 +248,7 @@ public class TaiwanCalendar extends GregorianCalendar {
      * @provisional This API might change or be removed in a future release.
      */
     protected int handleGetLimit(int field, int limitType) {
-        if (field == ERA) {
+        if (field == ERA || field == ERA_WOY) {
             if (limitType == MINIMUM || limitType == GREATEST_MINIMUM) {
                 return BEFORE_MINGUO;
             } else {

@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2005-2007, International Business Machines Corporation and    *
+ * Copyright (C) 2005-2008, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -24,7 +24,7 @@ class CECalendar extends Calendar {
         {        1,        1, 5828963, 5838270 }, // YEAR
         {        0,        0,      12,      12 }, // MONTH
         {        1,        1,      52,      53 }, // WEEK_OF_YEAR
-        {        0,        0,       0,       6 }, // WEEK_OF_MONTH
+        {/*                                  */}, // WEEK_OF_MONTH
         {        1,        1,       5,      30 }, // DAY_OF_MONTH
         {        1,        1,     365,     366 }, // DAY_OF_YEAR
         {/*                                  */}, // DAY_OF_WEEK
@@ -42,6 +42,7 @@ class CECalendar extends Calendar {
         { -5838269, -5838269, 5828963, 5838270}, // EXTENDED_YEAR
         {/*                                  */}, // JULIAN_DAY
         {/*                                  */}, // MILLISECONDS_IN_DAY
+        {        0,        0,       1,       1 }, // ERA_WOY
     };
 
     /* ceToJD() doesn't use this data */

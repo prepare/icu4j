@@ -357,7 +357,7 @@ public class ChineseCalendar extends Calendar {
         {        1,        1,      70,      70 }, // YEAR
         {        0,        0,      11,      11 }, // MONTH
         {        1,        1,      50,      55 }, // WEEK_OF_YEAR
-        {        1,        1,       4,       6 }, // WEEK_OF_MONTH
+        {/*                                  */}, // WEEK_OF_MONTH
         {        1,        1,      29,      30 }, // DAY_OF_MONTH
         {        1,        1,     353,     385 }, // DAY_OF_YEAR
         {/*                                  */}, // DAY_OF_WEEK
@@ -375,6 +375,7 @@ public class ChineseCalendar extends Calendar {
         { -5000000, -5000000, 5000000, 5000000 }, // EXTENDED_YEAR
         {/*                                  */}, // JULIAN_DAY
         {/*                                  */}, // MILLISECONDS_IN_DAY
+        {        1,        1,   83333,   83333 }, // ERA_WOY
         {        0,        0,       1,       1 }, // IS_LEAP_MONTH
     };
 

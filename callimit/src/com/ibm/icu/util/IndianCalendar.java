@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2008, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -353,7 +353,7 @@ public class IndianCalendar extends Calendar {
      * @provisional This API might change or be removed in a future release.
      */
     protected int handleGetMonthLength(int extendedYear, int month) {
-       if(isGregorianLeap(extendedYear) && month == 0) {
+       if(isGregorianLeap(extendedYear + INDIAN_ERA_START) && month == 0) {
            return 31;
        }
 
@@ -378,28 +378,30 @@ public class IndianCalendar extends Calendar {
        IndianYear = gregorianDay[0] - INDIAN_ERA_START;            // Year in Saka era
        jdAtStartOfGregYear = gregorianToJD(gregorianDay[0], 1, 1); // JD at start of Gregorian year
        yday = (int)(julianDay - jdAtStartOfGregYear);              // Day number in Gregorian year (starting from 0)
-       leapMonth = isGregorianLeap(gregorianDay[0]) ? 31 : 30;     // Days in leapMonth this year
 
        if (yday < INDIAN_YEAR_START) {
-          //  Day is at the end of the preceding Saka year
-          IndianYear -= 1;
-          yday += leapMonth + (31 * 5) + (30 * 3) + 10 + INDIAN_YEAR_START;
+           //  Day is at the end of the preceding Saka year
+           IndianYear -= 1;
+           leapMonth = isGregorianLeap(gregorianDay[0] - 1) ? 31 : 30;     // Days in leapMonth this year
+           yday += leapMonth + (31 * 5) + (30 * 3) + 10;
+       } else {
+           leapMonth = isGregorianLeap(gregorianDay[0]) ? 31 : 30;     // Days in leapMonth this year
+           yday -= INDIAN_YEAR_START;
        }
 
-       yday -= INDIAN_YEAR_START;
        if (yday < leapMonth) {
-          IndianMonth = 0;
-          IndianDayOfMonth = yday + 1;
+           IndianMonth = 0;
+           IndianDayOfMonth = yday + 1;
        } else {
-          mday = yday - leapMonth;
-          if (mday < (31 * 5)) {
-             IndianMonth = (int)Math.floor(mday / 31) + 1;
-             IndianDayOfMonth = (mday % 31) + 1;
-          } else {
-             mday -= 31 * 5;
-             IndianMonth = (int)Math.floor(mday / 30) + 6;
-             IndianDayOfMonth = (mday % 30) + 1;
-          }
+             mday = yday - leapMonth;
+             if (mday < (31 * 5)) {
+                IndianMonth = (int)Math.floor(mday / 31) + 1;
+                IndianDayOfMonth = (mday % 31) + 1;
+             } else {
+                mday -= 31 * 5;
+                IndianMonth = (int)Math.floor(mday / 30) + 6;
+                IndianDayOfMonth = (mday % 30) + 1;
+             }
        }
 
        internalSet(ERA, 0);
@@ -407,7 +409,8 @@ public class IndianCalendar extends Calendar {
        internalSet(YEAR, IndianYear);
        internalSet(MONTH, IndianMonth);
        internalSet(DAY_OF_MONTH, IndianDayOfMonth );
-   }
+       internalSet(DAY_OF_YEAR, yday + 1); // yday is 0-based
+    }
     
     private static final int LIMITS[][] = {
        // Minimum  Greatest    Least  Maximum
@@ -416,7 +419,7 @@ public class IndianCalendar extends Calendar {
        {        1,        1, 5000000, 5000000 }, // YEAR
        {        0,        0,      11,      11 }, // MONTH
        {        1,        1,      52,      53 }, // WEEK_OF_YEAR
-       {        0,        0,       4,       6 }, // WEEK_OF_MONTH
+       {/*                                  */}, // WEEK_OF_MONTH
        {        1,        1,      30,      31 }, // DAY_OF_MONTH
        {        1,        1,     365,     366 }, // DAY_OF_YEAR
        {/*                                  */}, // DAY_OF_WEEK
@@ -434,6 +437,7 @@ public class IndianCalendar extends Calendar {
        { -5000000, -5000000, 5000000, 5000000 }, // EXTENDED_YEAR
        {/*                                  */}, // JULIAN_DAY
        {/*                                  */}, // MILLISECONDS_IN_DAY
+       {        0,        0,       0,       0 }, // ERA_WOY
     };
 
 

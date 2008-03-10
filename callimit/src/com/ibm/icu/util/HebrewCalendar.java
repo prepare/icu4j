@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2008, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -174,7 +174,7 @@ public class HebrewCalendar extends Calendar {
         {        1,        1, 5000000, 5000000 }, // YEAR
         {        0,        0,      12,      12 }, // MONTH
         {        1,        1,      51,      56 }, // WEEK_OF_YEAR
-        {        0,        0,       4,       6 }, // WEEK_OF_MONTH
+        {/*                                  */}, // WEEK_OF_MONTH
         {        1,        1,      29,      30 }, // DAY_OF_MONTH
         {        1,        1,     353,     385 }, // DAY_OF_YEAR
         {/*                                  */}, // DAY_OF_WEEK
@@ -192,6 +192,7 @@ public class HebrewCalendar extends Calendar {
         { -5000000, -5000000, 5000000, 5000000 }, // EXTENDED_YEAR
         {/*                                  */}, // JULIAN_DAY
         {/*                                  */}, // MILLISECONDS_IN_DAY
+        {        0,        0,       0,       0 }, // ERA_WOY
     };
 
     /**

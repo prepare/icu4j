@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2008, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -619,7 +619,8 @@ public class JapaneseCalendar extends GregorianCalendar {
     protected int handleGetLimit(int field, int limitType) {
         switch (field) {
         case ERA:
-            return LIMITS[field][limitType];
+        case ERA_WOY:
+            return LIMITS[0][limitType];
         case YEAR:
             if (!YEAR_LIMIT_KNOWN) {
                 int min = ERAS[3] - ERAS[0];
