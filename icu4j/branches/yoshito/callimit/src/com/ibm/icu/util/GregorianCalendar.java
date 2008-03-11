@@ -273,7 +273,7 @@ public class GregorianCalendar extends Calendar {
         {/*                                  */}, // MILLISECOND
         {/*                                  */}, // ZONE_OFFSET
         {/*                                  */}, // DST_OFFSET
-        { -5838270, -5838270, 5828964, 5838271 }, // YEAR_WOY
+        {        1,        1, 5828963, 5838270 }, // YEAR_WOY
         {/*                                  */}, // DOW_LOCAL
         { -5838269, -5838269, 5828963, 5838270 }, // EXTENDED_YEAR
         {/*                                  */}, // JULIAN_DAY
@@ -641,6 +641,7 @@ public class GregorianCalendar extends Calendar {
 
         switch (field) {
 
+        case YEAR_WOY: // use the year limits
         case YEAR:
             /* The year computation is no different, in principle, from the
              * others, however, the range of possible maxima is large.  In

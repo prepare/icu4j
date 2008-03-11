@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2002-2007, International Business Machines Corporation and    *
+ * Copyright (C) 2002-2008, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -220,7 +220,7 @@ public class JapaneseTest extends CalendarTest {
             "DAY_OF_WEEK_IN_MONTH", "AM_PM", "HOUR", "HOUR_OF_DAY",
             "MINUTE", "SECOND", "MILLISECOND", "ZONE_OFFSET",
             "DST_OFFSET", "YEAR_WOY", "DOW_LOCAL", "EXTENDED_YEAR",
-            "JULIAN_DAY", "MILLISECONDS_IN_DAY",
+            "JULIAN_DAY", "MILLISECONDS_IN_DAY", "ERA_WOY"
         };
 
         for(int i= 0;i<expected.length;i += 2) {
@@ -324,6 +324,16 @@ public class JapaneseTest extends CalendarTest {
         }
     }
     
-    
+    /**
+     * Test limits of the Japanese calendar
+     */
+    public void TestLimits() {
+        Calendar cal = Calendar.getInstance();
+        cal.set(1988, Calendar.DECEMBER, 1);
+        JapaneseCalendar jcal = new JapaneseCalendar();
+        doLimitsTest(jcal, null, cal.getTime());
+        doTheoreticalLimitsTest(jcal, true);
+    }
+
 }
 
