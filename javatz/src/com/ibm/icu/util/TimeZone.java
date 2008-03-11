@@ -66,6 +66,31 @@ import com.ibm.icu.text.SimpleDateFormat;
  * Time" and "China Standard Time"), and the Java platform can then only
  * recognize one of them.
  *
+ * <p><strong>Note:</strong> Starting from ICU4J 4.0, you can optionally choose
+ * JDK <code>TimeZone</code> as the time zone implementation.  The TimeZone factory
+ * method <code>getTimeZone</code> creates an instance of ICU's own <code>TimeZone</code>
+ * subclass by default.  If you want to use the JDK implementation always, you can
+ * set the default time zone implementation type by the new method
+ * <code>setDefaultTimeZoneType</code>.  Alternatively, you can change the initial
+ * default implementation type by setting a property below.
+ * 
+ * <blockquote>
+ * <pre>
+ * #
+ * # The default TimeZone implementation type used by the ICU TimeZone
+ * # factory method. [ ICU | JDK ]
+ * #
+ * com.ibm.icu.util.TimeZone.DefaultTimeZoneType = ICU
+ * </pre>
+ * </blockquote>
+ *
+ * <p>This property is included in ICUConfig.properties in com.ibm.icu package.
+ * When <code>TimeZone</code> class is loaded, the intialization code checks
+ * if the property <code>com.ibm.icu.util.TimeZone.DefaultTimeZoneType=xxx</code>
+ * is defined by the system properties.  If not available, then it loads ICUConfig.properties
+ * to get the default time zone implementation type.  The property setting is
+ * only used for the initial default value and you can change the default type
+ * by <code>setDefaultTimeZoneType</code> at runtime.
  *
  * @see          Calendar
  * @see          GregorianCalendar
