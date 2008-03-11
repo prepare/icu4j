@@ -605,10 +605,7 @@ public class JapaneseCalendar extends GregorianCalendar {
         // Minimum  Greatest        Least      Maximum
         //           Minimum      Maximum
         {        0,        0, CURRENT_ERA, CURRENT_ERA }, // ERA
-        {        1,        1,           0,           0 }, // YEAR
     };
-
-    private static boolean YEAR_LIMIT_KNOWN = false;
 
     /**
      * Override GregorianCalendar.  We should really handle YEAR_WOY and
@@ -622,24 +619,18 @@ public class JapaneseCalendar extends GregorianCalendar {
         case ERA_WOY:
             return LIMITS[0][limitType];
         case YEAR:
-            if (!YEAR_LIMIT_KNOWN) {
-                int min = ERAS[3] - ERAS[0];
-                int max = min;
-                for (int i=6; i<ERAS.length; i+=3) {
-                    int d = ERAS[i] - ERAS[i-3];
-                    if (d < min) {
-                        min = d;
-                    }
-                    if (d > max) {
-                        max = d;
-                    }
-                }
-                LIMITS[field][LEAST_MAXIMUM] = ++min; // 1-based
-                LIMITS[field][MAXIMUM] = ++max; // 1-based
-
-                YEAR_LIMIT_KNOWN=true;
+        case YEAR_WOY:
+        {
+            switch (limitType) {
+            case MINIMUM:
+            case GREATEST_MINIMUM:
+                return 1;
+            case LEAST_MAXIMUM:
+                return 1;
+            case MAXIMUM:
+                return super.handleGetLimit(field, MAXIMUM) - ERAS[CURRENT_ERA*3];
             }
-            return LIMITS[field][limitType];
+        }
         default:
             return super.handleGetLimit(field, limitType);
         }
@@ -653,4 +644,96 @@ public class JapaneseCalendar extends GregorianCalendar {
     public String getType() {
         return "japanese";
     }
+
+    /**
+     * {@inheritDoc}
+     * @draft ICU 4.0
+     * @provisional This API might change or be removed in a future release.
+     */
+     protected void handleComputeYearOfWeekOfYear(int yearDelta) {
+        int eraWOY = internalGet(ERA);
+        int yearWOY = internalGet(YEAR) + yearDelta;
+        int eyearWOY = internalGet(EXTENDED_YEAR) + yearDelta;
+
+        // When year is out of the era range, we need to adjust
+        // yearWOY and eraWOY
+        if (yearDelta < 0) {
+            for (int era = eraWOY; era >=0; era--) {
+                int eraBase = ERAS[era * 3];
+                if (eyearWOY >= eraBase) {
+                    eraWOY = era;
+                    yearWOY = eyearWOY - eraBase + 1; // 1-base
+                }
+            }
+        } else if (yearDelta > 0) {
+            for (int era = eraWOY; era < CURRENT_ERA; era++) {
+                int eraBase = ERAS[era * 3];
+                if (eyearWOY >= eraBase) {
+                    eraWOY = era;
+                    yearWOY = eyearWOY - eraBase + 1; // 1-base
+                }
+            }
+        }
+
+        // If era is changed within the year, we want to use the
+        // one which is most dominant in the year
+        if (yearWOY == 1) {
+            if (eraWOY > 0) {
+                // The era including July 3 wins
+                int m = ERAS[eraWOY*3 + 1];
+                int d = ERAS[eraWOY*3 + 2];
+                if (m > 7 || (m == 7 && d >= 3)) {
+                    // Use the previous era
+                    eraWOY--;
+                    yearWOY = eyearWOY - ERAS[eraWOY*3] + 1;
+                }
+            }
+        } else {
+            if (eraWOY != CURRENT_ERA && eyearWOY == ERAS[(eraWOY+1)*3]) {
+                // The era including July 3 wins
+                int m = ERAS[(eraWOY+1)*3 + 1];
+                int d = ERAS[(eraWOY+1)*3 + 2];
+                if (m < 7 || (m == 7 && d < 3)) {
+                    // Use the next era
+                    eraWOY++;
+                    yearWOY = 1;
+                }
+            }
+        }
+        internalSet(ERA_WOY, eraWOY);
+        internalSet(YEAR_WOY, yearWOY);
+     }
+
+     /**
+      * {@inheritDoc}
+      * @draft ICU 4.0
+      * @provisional This API might change or be removed in a future release.
+      */
+     public int getActualMaximum(int field) {
+         if (field == YEAR || field == YEAR_WOY) {
+             int era = get(Calendar.ERA);
+             if (era == CURRENT_ERA) {
+                 // TODO: Investigate what value should be used here - revisit after 4.0.
+                 return handleGetLimit(YEAR, MAXIMUM);
+             } else {
+                 int nextEraYear = ERAS[(era+1)*3];
+                 int nextEraMonth = ERAS[(era+1)*3 + 1];
+                 int nextEraDate = ERAS[(era+1)*3 + 2];
+
+                 int maxYear = nextEraYear - ERAS[era*3] + 1; // 1-base
+                 if (field == YEAR) {
+                     if (nextEraMonth == 1 && nextEraDate == 1) {
+                         // Substract 1, because the next era starts at Jan 1
+                         maxYear--;
+                     }
+                 } else {
+                     if (nextEraMonth < 7 || (nextEraMonth == 7 && nextEraDate < 3)) {
+                         // The next era starts before July 3
+                         maxYear--;
+                     }
+                 }
+             }
+         }
+         return super.getActualMaximum(field);
+     }
 }

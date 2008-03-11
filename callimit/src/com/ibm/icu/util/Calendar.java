@@ -2189,6 +2189,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
             }
             break;
 
+        case ERA:
         case DAY_OF_WEEK:
         case AM_PM:
         case HOUR:
@@ -2201,6 +2202,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
         case DOW_LOCAL:
         case JULIAN_DAY:
         case MILLISECONDS_IN_DAY:
+        case ERA_WOY:
             // These fields all have fixed minima/maxima
             result = getMaximum(field);
             break;
@@ -2289,9 +2291,12 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
 
         switch (field) {
         case YEAR:
-        case YEAR_WOY:
         case EXTENDED_YEAR:
             set(DAY_OF_YEAR, getGreatestMinimum(DAY_OF_YEAR));
+            break;
+
+        case YEAR_WOY:
+            set(WEEK_OF_YEAR, getGreatestMinimum(WEEK_OF_YEAR));
             break;
 
         case MONTH:

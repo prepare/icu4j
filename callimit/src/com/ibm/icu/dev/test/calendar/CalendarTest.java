@@ -53,7 +53,7 @@ public class CalendarTest extends TestFmwk {
         "DAY_OF_WEEK_IN_MONTH", "AM_PM", "HOUR", "HOUR_OF_DAY",
         "MINUTE", "SECOND", "MILLISECOND", "ZONE_OFFSET",
         "DST_OFFSET", "YEAR_WOY", "DOW_LOCAL", "EXTENDED_YEAR",
-        "JULIAN_DAY", "MILLISECONDS_IN_DAY",
+        "JULIAN_DAY", "MILLISECONDS_IN_DAY", "ERA_WOY",
         "IS_LEAP_MONTH" // (ChineseCalendar only)
     };
 
@@ -229,7 +229,7 @@ public class CalendarTest extends TestFmwk {
                 Calendar.WEEK_OF_YEAR, Calendar.WEEK_OF_MONTH,
                 Calendar.DAY_OF_MONTH, Calendar.DAY_OF_YEAR,
                 Calendar.DAY_OF_WEEK_IN_MONTH, Calendar.YEAR_WOY,
-                Calendar.EXTENDED_YEAR
+                Calendar.EXTENDED_YEAR, Calendar.ERA_WOY
             };
         }
 
@@ -252,9 +252,7 @@ public class CalendarTest extends TestFmwk {
                 mark += 5000; // 5 sec
             }
             cal.setTimeInMillis(greg.getTimeInMillis());
-//            cal.setTimeInMillis(2723493859406L); //DEBUG
             for (int j=0; j<fieldsToTest.length; ++j) {
-//                j = 5; //DEBUG
                 int f = fieldsToTest[j];
                 int v = cal.get(f);
                 int minActual = cal.getActualMinimum(f);
