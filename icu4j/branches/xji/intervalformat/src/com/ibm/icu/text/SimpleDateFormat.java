@@ -232,6 +232,49 @@ public class SimpleDateFormat extends DateFormat {
     // - 1 for version from JDK 1.1.4, which includes a new field
     static final int currentSerialVersion = 1;
 
+    
+    /*
+     * From calendar field to its level.
+     * Used to order calendar field.
+     * For example, calendar fields can be defined in the following order:
+     * year >  month > date > am-pm > hour >  minute
+     * YEAR --> 10, MONTH -->20, DATE --> 30; 
+     * AM_PM -->40, HOUR --> 50, MINUTE -->60
+     */
+    private static final int[] CALENDAR_FIELD_TO_LEVEL =
+    {
+        /*GyM*/ 0, 10, 20,
+        /*wW*/ 20, 30,
+        /*dDEF*/ 30, 20, 30, 30,
+        /*ahHm*/ 40, 50, 50, 60,
+        /*sS..*/ 70, 80, 
+        /*z?Y*/ 0, 0, 10, 
+        /*eug*/ 30, 10, 0,
+        /*A*/ 40 
+    };
+
+
+    
+    /*
+     * From calendar field letter to its level.
+     * Used to order calendar field.
+     * For example, calendar fields can be defined in the following order:
+     * year >  month > date > am-pm > hour >  minute
+     * 'y' --> 10, 'M' -->20, 'd' --> 30; 'a' -->40, 'h' --> 50, 'm' -->60
+     */
+    private static final int[] PATTERN_CHAR_TO_LEVEL = 
+    {
+    //       A   B   C   D    E   F   G    H   I   J   K   L    M   N   O
+        -1, 40, -1, -1, 20,  30, 30,  0,  50, -1, -1, 50, 20,  20, -1, -1,
+    //   P   Q   R    S   T   U  V   W   X   Y  Z
+        -1, 20, -1,  80, -1, -1, 0, 30, -1, 10, 0, -1, -1, -1, -1, -1,
+    //       a   b   c   d    e   f  g   h   i   j    k   l    m   n   o
+        -1, 40, -1, 30,  30, 30, -1, 0, 50, -1, -1,  50, -1,  60, -1, -1,
+    //   p   q   r    s   t   u  v   w   x    y  z
+        -1, 20, -1,  70, -1, 10, 0, 20, -1,  10, 0, -1, -1, -1, -1, -1
+    };
+
+
     /**
      * The version of the serialized data on the stream.  Possible values:
      * <ul>
@@ -2526,18 +2569,9 @@ public class SimpleDateFormat extends DateFormat {
 
 
     /**
-     * Get the pattern of this simple date formatter
-     * @return   pattern in this simple date formatter
-     * @internal ICU 4.0
-     */
-    String getPattern() 
-    {
-        return pattern;
-    }
-
-    
-    /**
-     * Get the locale of this simple date formatter
+     * Get the locale of this simple date formatter.
+     * It is package accessible. also used in DateIntervalFormat.
+     *
      * @return   locale in this simple date formatter
      * @internal ICU 4.0
      */
@@ -2546,31 +2580,6 @@ public class SimpleDateFormat extends DateFormat {
         return locale;
     }
 
-    
-    private static final int[] CALENDAR_FIELD_TO_LEVEL =
-    {
-        /*GyM*/ 0, 10, 20,
-        /*wW*/ 20, 30,
-        /*dDEF*/ 30, 20, 30, 30,
-        /*ahHm*/ 40, 50, 50, 60,
-        /*sS..*/ 70, 80, 
-        /*z?Y*/ 0, 0, 10, 
-        /*eug*/ 30, 10, 0,
-        /*A*/ 40 
-    };
-
-
-    private static final int[] PATTERN_CHAR_TO_LEVEL = 
-    {
-    //       A   B   C   D   E   F   G   H   I   J   K   L   M   N   O
-        -1, 40, -1, -1, 20,  30, 30,  0,  50, -1, -1, 50, 20,  20, -1, -1,
-    //   P   Q   R   S   T   U   V   W   X   Y   Z
-        -1, 20, -1,  80, -1, -1, 0, 30, -1, 10, 0, -1, -1, -1, -1, -1,
-    //       a   b   c   d   e   f   g   h   i   j   k   l   m   n   o
-        -1, 40, -1, 30,  30, 30, -1, 0, 50, -1, -1,  50, -1,  60, -1, -1,
-    //   p   q   r   s   t   u   v   w   x   y   z
-        -1, 20, -1,  70, -1, 10, 0, 20, -1,  10, 0, -1, -1, -1, -1, -1
-    };
 
     
     /**
@@ -2584,8 +2593,8 @@ public class SimpleDateFormat extends DateFormat {
      * @internal ICU 4.0
      */
 
-    boolean smallerFieldUnit(int field) {
-        return smallerFieldUnit(pattern, field);
+    boolean isFieldUnitIgnored(int field) {
+        return isFieldUnitIgnored(pattern, field);
     }
 
 
@@ -2598,9 +2607,9 @@ public class SimpleDateFormat extends DateFormat {
      * @param field    the calendar field need to check against
      * @return         true if the 'field' is smaller than all the fields 
      *                 covered in pattern. false otherwise.
-    /* @internal ICU 4.0
+     * @internal ICU 4.0
      */
-    static boolean smallerFieldUnit(String pattern, int field) {
+    static boolean isFieldUnitIgnored(String pattern, int field) {
         int fieldLevel = CALENDAR_FIELD_TO_LEVEL[field];
         int level;
         char ch;
@@ -2804,6 +2813,10 @@ public class SimpleDateFormat extends DateFormat {
 
     /**
      * check whether the i-th item in 2 calendar is in different value.
+     *
+     * It is supposed to be used only by CLDR survey tool.
+     * It is used by intervalFormatByAlgorithm().
+     *
      * @param fromCalendar   one calendar
      * @param toCalendar     the other calendar
      * @param items          pattern items
@@ -2845,6 +2858,10 @@ public class SimpleDateFormat extends DateFormat {
 
     /**
      * check whether the i-th item's level is lower than the input 'level'
+     *
+     * It is supposed to be used only by CLDR survey tool.
+     * It is used by intervalFormatByAlgorithm().
+     *
      * @param items  the pattern items
      * @param i      the i-th item in pattern items
      * @param level  the level with which the i-th pattern item compared to
