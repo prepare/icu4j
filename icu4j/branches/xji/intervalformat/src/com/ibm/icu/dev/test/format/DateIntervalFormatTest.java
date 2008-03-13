@@ -44,6 +44,10 @@ public class DateIntervalFormatTest extends com.ibm.icu.dev.test.TestFmwk {
      * General parse/format tests.  Add test cases as needed.
      */
     public void TestFormat() {
+        // test data.
+        // The 1st is the format pattern,
+        // Next are pairs in which the 1st in the pair is the earlier date
+        // and the 2nd in the pair is the later date
         String[] DATA = {
             "yyyy MM dd HH:mm:ss",
             "2007 10 10 10:10:10", "2008 10 10 10:10:10", 
@@ -55,6 +59,7 @@ public class DateIntervalFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         };
     
         String[][] testLocale = {
+/*
             {"en", "", ""},
             {"zh", "", ""},
             {"de", "", ""},
@@ -80,7 +85,9 @@ public class DateIntervalFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             {"hu", "", ""},
             {"he", "", ""},
             {"in", "", ""},
+*/
             {"cs", "", ""},
+/*
             {"el", "", ""},
             {"no", "", ""},
             {"vi", "", ""},
@@ -94,6 +101,7 @@ public class DateIntervalFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             {"lv", "", ""},
             {"uk", "", ""},
             {"hi", "", ""},
+*/
         };
     
         
@@ -228,6 +236,7 @@ public class DateIntervalFormatTest extends com.ibm.icu.dev.test.TestFmwk {
     
                 // test user created DateIntervalInfo
                 DateIntervalInfo dtitvinf = new DateIntervalInfo();
+                dtitvinf.setFallbackIntervalPattern("{0} --- {1}");
                 dtitvinf.setIntervalPattern("yMMMd", Calendar.MONTH, "yyyy MMM d - MMM y");
                 dtitvinf.setIntervalPattern("yMMMd", Calendar.HOUR_OF_DAY, "yyyy MMM d HH:mm - HH:mm");
                 DateIntervalFormat dtitvfmt = DateIntervalFormat.getInstance(
@@ -242,10 +251,12 @@ public class DateIntervalFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                 }
 
                 /* test interval format used by CLDR survey tool */
-                dtitvfmt = DateIntervalFormat.getEmptyInstance();
+                //dtitvfmt = DateIntervalFormat.getEmptyInstance();
+                dtitvfmt = DateIntervalFormat.getInstance();
                 SimpleDateFormat dtfmt = new SimpleDateFormat("yyyy 'year' MMM 'month' dd 'day'", loc);
                 dtitvfmt.setDateFormat(dtfmt);
                 dtitvinf = new DateIntervalInfo();
+                dtitvinf.setFallbackIntervalPattern("{0} --- {1}");
                 dtitvinf.setIntervalPattern("yMMMd", Calendar.YEAR, "'all diff'");
                 dtitvinf.setIntervalPattern("yMMMd", Calendar.MONTH, "yyyy 'diff' MMM d - MMM y");
                 dtitvinf.setIntervalPattern("yMMMd", Calendar.DATE, "yyyy MMM d ~ d");
