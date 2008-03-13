@@ -14,12 +14,12 @@ import java.io.Serializable;
  * It is a pair of long representing from long 1 to long 2.
  * @draft ICU 4.0
 **/
-public class DateInterval implements Serializable {
+public final class DateInterval implements Serializable {
 
     private static final long serialVersionUID = 1;
 
-    private long fromDate;
-    private long toDate;
+    private final long fromDate;
+    private final long toDate;
 
     /** 
      * Constructor given from date and to date.
@@ -31,27 +31,6 @@ public class DateInterval implements Serializable {
     {
         fromDate = from;
         toDate = to;
-    }
-
-    /** 
-     * Set the from date.
-     * @param date  The from date to be set in date interval.
-     * @draft ICU 4.0
-     */
-    public void setFromDate(long date)
-    {
-        fromDate = date;
-    }
- 
-
-    /**
-     * Set the to date.
-     * @param date  The to date to be set in date interval.
-     * @draft ICU 4.0
-     */
-    public void setToDate(long date)
-    {
-        toDate = date;
     }
 
     /** 
