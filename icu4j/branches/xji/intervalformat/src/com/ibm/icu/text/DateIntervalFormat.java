@@ -1175,12 +1175,14 @@ public class DateIntervalFormat extends UFormat {
         }
         // break the interval pattern into 2 parts
         // first part should not be empty, 
+        String originalPattern = fDateFormat.toPattern();
         fDateFormat.applyPattern(intervalPattern.getFirstPart());
         fDateFormat.format(firstCal, appendTo, pos);
         if ( intervalPattern.getSecondPart() != null ) {
             fDateFormat.applyPattern(intervalPattern.getSecondPart());
             fDateFormat.format(secondCal, appendTo, pos);
         }
+        fDateFormat.applyPattern(originalPattern);
         return appendTo;
     }
 
@@ -1366,7 +1368,12 @@ public class DateIntervalFormat extends UFormat {
     private void initializePattern() { 
         String fullPattern = ((SimpleDateFormat)fDateFormat).toPattern();
         ULocale locale = ((SimpleDateFormat)fDateFormat).getLocale();
-        String key = locale.toString() + "+" + fullPattern;
+        String key;
+        if ( fSkeleton != null ) {
+            key = locale.toString() + "+" + fullPattern + "+" + fSkeleton;
+        } else {
+            key = locale.toString() + "+" + fullPattern;
+        }
         Map patterns = (Map) LOCAL_PATTERN_CACHE.get(key);
         if ( patterns == null ) {
             HashMap intervalPatterns = initializeIntervalPattern(fullPattern, locale);
