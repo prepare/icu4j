@@ -4832,336 +4832,6 @@ public final class ULocale implements Serializable {
         return result;
     }
 
-    /**
-     * Append a tag to a StringBuffer, adding the separator if necessary.The tag must
-     * not be a zero-length string.
-     *
-     * @param tag The tag to add.
-     * @param buffer The output buffer.
-     **/
-    private static void
-    appendTag(
-        String tag,
-        StringBuffer buffer) {
-
-        if (buffer.length() != 0) {
-            buffer.append(UNDERSCORE);
-        }
-
-        buffer.append(tag);
-    }
-
-    /**
-     * Create a tag string from the supplied parameters.  The lang, script and region
-     * parameters may be null references.
-     *
-     * If any of the language, script or region parameters are empty, and the alternateTags
-     * parameter is not null, it will be parsed for potential language, script and region tags
-     * to be used when constructing the new tag.  If the alternateTags parameter is null, or
-     * it contains no language tag, the default tag for the unknown language is used.
-     *
-     * @param lang The language tag to use.
-     * @param script The script tag to use.
-     * @param region The region tag to use.
-     * @param trailing Any trailing data to append to the new tag.
-     * @param alternateTags A string containing any alternate tags.
-     * @return The new tag string.
-     **/
-    private static String
-    createTagString(
-        String lang,
-        String script,
-        String region,
-        String trailing,
-        String alternateTags) {
-
-        IDParser parser = null;
-
-        StringBuffer tag = new StringBuffer();
-  
-        if (!isEmptyString(lang)) {
-            appendTag(
-                lang,
-                tag);
-        }
-        else if (isEmptyString(alternateTags)) {
-            /*
-             * Append the value for an unknown language, if
-             * we found no language.
-             */
-            appendTag(
-                UNDEFINED_LANGUAGE,
-                tag);
-        }
-        else {
-            parser = new IDParser(alternateTags);
-
-            String alternateLang = parser.getLanguage();
-
-            /*
-             * Append the value for an unknown language, if
-             * we found no language.
-             */
-            appendTag(
-                !isEmptyString(alternateLang) ? alternateLang : UNDEFINED_LANGUAGE,
-                tag);
-        }
-
-        if (!isEmptyString(script)) {
-            appendTag(
-                script,
-                tag);
-        }
-        else if (!isEmptyString(alternateTags)) {
-            /*
-             * Parse the alternateTags string for the script.
-             */
-            if (parser == null) {
-                parser = new IDParser(alternateTags);
-            }
-
-            String alternateScript = parser.getScript();
-
-            if (!isEmptyString(alternateScript)) {
-                appendTag(
-                    alternateScript,
-                    tag);
-            }
-        }
-
-        if (!isEmptyString(region)) {
-            appendTag(
-                region,
-                tag);
-        }
-        else if (!isEmptyString(alternateTags)) {
-            /*
-             * Parse the alternateTags string for the region.
-             */
-            if (parser == null) {
-                parser = new IDParser(alternateTags);
-            }
-
-            String alternateRegion = parser.getCountry();
-
-            if (!isEmptyString(alternateRegion)) {
-                appendTag(
-                    alternateRegion,
-                    tag);
-            }
-        }
-
-        if (!isEmptyString(trailing)) {
-            tag.append(trailing);
-        }
- 
-        return tag.toString();
-    }
-
-    /**
-     * Create a tag string from the supplied parameters.  The lang, script and region
-     * parameters may be null references.If the lang parameter is an empty string, the
-     * default value for an unknown language is written to the output buffer.
-     *
-     * @param lang The language tag to use.
-     * @param script The script tag to use.
-     * @param region The region tag to use.
-     * @param trailing Any trailing data to append to the new tag.
-     * @return The new String.
-     **/
-    static String
-    createTagString(
-            String lang,
-            String script,
-            String region,
-            String trailing) {
-  
-        return createTagString(
-                    lang,
-                    script,
-                    region,
-                    trailing,
-                    null);
-    }
-
-    /**
-     * Parse the language, script, and region subtags from a tag string, and return the results.
-     *
-     * This function does not return the canonical strings for the unknown script and region.
-     *
-     * @param localeID The locale ID to parse.
-     * @param tags An array of three String references to return the subtag strings.
-     * @return The number of chars of the localeID parameter consumed.
-     **/
-    private static int
-    parseTagString(
-        String localeID,
-        String tags[])
-    {
-        IDParser parser = new IDParser(localeID);
-
-        String lang = parser.getLanguage();
-        String script = parser.getScript();
-        String region = parser.getCountry();
-
-        if (isEmptyString(lang)) {
-            tags[0] = UNDEFINED_LANGUAGE;
-        }
-        else {
-            tags[0] = lang;
-        }
-
-        if (script.equals(UNDEFINED_SCRIPT)) {
-            tags[1] = "";
-        }
-        else {
-            tags[1] = script;
-        }
-        
-        if (region.equals(UNDEFINED_REGION)) {
-            tags[2] = "";
-        }
-        else {
-            tags[2] = region;
-        }
-
-        /*
-         * Search for the variant, if there is one.  If there is one,
-         * then return the index of the preceeding separator.
-         * If there's no variant, search for the keyword delimiter,
-         * and return its index.  Otherwise, return the length of the
-         * string.
-         */
-        String variant = parser.getVariant();
- 
-        if (!isEmptyString(variant)){
-            return localeID.indexOf(variant) - 1;
-        }
-        else
-        {
-            int index = localeID.indexOf('@');
-
-            return index == -1 ? localeID.length() : index;
-        }
-    }
-
-    private static String
-    createLikelySubtagsString(
-        String lang,
-        String script,
-        String region,
-        String variants) {
-
-        /**
-         * Try the language with the script and region first.
-         **/
-        if (!isEmptyString(script) && !isEmptyString(region)) {
-
-            String searchTag =
-                createTagString(
-                    lang,
-                    script,
-                    region,
-                    null);
-
-            String likelySubtags = (String)_likelySubtagsMap.get(searchTag);
-
-            if (likelySubtags != null) {
-                // Always use the language tag from the
-                // maximal string, since it may be more
-                // specific than the one provided.
-                return createTagString(
-                            null,
-                            null,
-                            null,
-                            variants,
-                            likelySubtags);
-            }
-        }
-
-        /**
-         * Try the language with just the script.
-         **/
-        if (!isEmptyString(script)) {
-    
-            String searchTag =
-                createTagString(
-                    lang,
-                    script,
-                    null,
-                    null);
-    
-            String likelySubtags = (String)_likelySubtagsMap.get(searchTag);
-    
-            if (likelySubtags != null) {
-                // Always use the language tag from the
-                // maximal string, since it may be more
-                // specific than the one provided.
-                return createTagString(
-                            null,
-                            null,
-                            region,
-                            variants,
-                            likelySubtags);
-            }
-        }
-    
-        /**
-         * Try the language with just the region.
-         **/
-        if (!isEmptyString(region)) {
-    
-            String searchTag =
-                createTagString(
-                    lang,
-                    null,
-                    region,
-                    null);
-    
-            String likelySubtags = (String)_likelySubtagsMap.get(searchTag);
-    
-            if (likelySubtags != null) {
-                // Always use the language tag from the
-                // maximal string, since it may be more
-                // specific than the one provided.
-                return createTagString(
-                            null,
-                            script,
-                            null,
-                            variants,
-                            likelySubtags);
-            }
-        }
-    
-        /**
-         * Finally, try just the language.
-         **/
-        {
-            String searchTag =
-                createTagString(
-                    lang,
-                    null,
-                    null,
-                    null);
-    
-            String likelySubtags = (String)_likelySubtagsMap.get(searchTag);
-    
-            if (likelySubtags != null) {
-                // Always use the language tag from the
-                // maximal string, since it may be more
-                // specific than the one provided.
-                return createTagString(
-                            null,
-                            script,
-                            region,
-                            variants,
-                            likelySubtags);
-            }
-        }
-
-        return null;
-    }
-
     public static ULocale
     addLikelySubtags(ULocale loc)
     {
@@ -5322,4 +4992,335 @@ public final class ULocale implements Serializable {
     private static boolean isEmptyString(String string) {
       return string == null || string.length() == 0;
     }
+    
+    /**
+     * Append a tag to a StringBuffer, adding the separator if necessary.The tag must
+     * not be a zero-length string.
+     *
+     * @param tag The tag to add.
+     * @param buffer The output buffer.
+     **/
+    private static void
+    appendTag(
+        String tag,
+        StringBuffer buffer) {
+    
+        if (buffer.length() != 0) {
+            buffer.append(UNDERSCORE);
+        }
+    
+        buffer.append(tag);
+    }
+    
+    /**
+     * Create a tag string from the supplied parameters.  The lang, script and region
+     * parameters may be null references.
+     *
+     * If any of the language, script or region parameters are empty, and the alternateTags
+     * parameter is not null, it will be parsed for potential language, script and region tags
+     * to be used when constructing the new tag.  If the alternateTags parameter is null, or
+     * it contains no language tag, the default tag for the unknown language is used.
+     *
+     * @param lang The language tag to use.
+     * @param script The script tag to use.
+     * @param region The region tag to use.
+     * @param trailing Any trailing data to append to the new tag.
+     * @param alternateTags A string containing any alternate tags.
+     * @return The new tag string.
+     **/
+    private static String
+    createTagString(
+        String lang,
+        String script,
+        String region,
+        String trailing,
+        String alternateTags) {
+    
+        IDParser parser = null;
+    
+        StringBuffer tag = new StringBuffer();
+    
+        if (!isEmptyString(lang)) {
+            appendTag(
+                lang,
+                tag);
+        }
+        else if (isEmptyString(alternateTags)) {
+            /*
+             * Append the value for an unknown language, if
+             * we found no language.
+             */
+            appendTag(
+                UNDEFINED_LANGUAGE,
+                tag);
+        }
+        else {
+            parser = new IDParser(alternateTags);
+    
+            String alternateLang = parser.getLanguage();
+    
+            /*
+             * Append the value for an unknown language, if
+             * we found no language.
+             */
+            appendTag(
+                !isEmptyString(alternateLang) ? alternateLang : UNDEFINED_LANGUAGE,
+                tag);
+        }
+    
+        if (!isEmptyString(script)) {
+            appendTag(
+                script,
+                tag);
+        }
+        else if (!isEmptyString(alternateTags)) {
+            /*
+             * Parse the alternateTags string for the script.
+             */
+            if (parser == null) {
+                parser = new IDParser(alternateTags);
+            }
+    
+            String alternateScript = parser.getScript();
+    
+            if (!isEmptyString(alternateScript)) {
+                appendTag(
+                    alternateScript,
+                    tag);
+            }
+        }
+    
+        if (!isEmptyString(region)) {
+            appendTag(
+                region,
+                tag);
+        }
+        else if (!isEmptyString(alternateTags)) {
+            /*
+             * Parse the alternateTags string for the region.
+             */
+            if (parser == null) {
+                parser = new IDParser(alternateTags);
+            }
+    
+            String alternateRegion = parser.getCountry();
+    
+            if (!isEmptyString(alternateRegion)) {
+                appendTag(
+                    alternateRegion,
+                    tag);
+            }
+        }
+    
+        if (!isEmptyString(trailing)) {
+            tag.append(trailing);
+        }
+    
+        return tag.toString();
+    }
+    
+    /**
+     * Create a tag string from the supplied parameters.  The lang, script and region
+     * parameters may be null references.If the lang parameter is an empty string, the
+     * default value for an unknown language is written to the output buffer.
+     *
+     * @param lang The language tag to use.
+     * @param script The script tag to use.
+     * @param region The region tag to use.
+     * @param trailing Any trailing data to append to the new tag.
+     * @return The new String.
+     **/
+    static String
+    createTagString(
+            String lang,
+            String script,
+            String region,
+            String trailing) {
+    
+        return createTagString(
+                    lang,
+                    script,
+                    region,
+                    trailing,
+                    null);
+    }
+    
+    /**
+     * Parse the language, script, and region subtags from a tag string, and return the results.
+     *
+     * This function does not return the canonical strings for the unknown script and region.
+     *
+     * @param localeID The locale ID to parse.
+     * @param tags An array of three String references to return the subtag strings.
+     * @return The number of chars of the localeID parameter consumed.
+     **/
+    private static int
+    parseTagString(
+        String localeID,
+        String tags[])
+    {
+        IDParser parser = new IDParser(localeID);
+    
+        String lang = parser.getLanguage();
+        String script = parser.getScript();
+        String region = parser.getCountry();
+    
+        if (isEmptyString(lang)) {
+            tags[0] = UNDEFINED_LANGUAGE;
+        }
+        else {
+            tags[0] = lang;
+        }
+    
+        if (script.equals(UNDEFINED_SCRIPT)) {
+            tags[1] = "";
+        }
+        else {
+            tags[1] = script;
+        }
+        
+        if (region.equals(UNDEFINED_REGION)) {
+            tags[2] = "";
+        }
+        else {
+            tags[2] = region;
+        }
+    
+        /*
+         * Search for the variant, if there is one.  If there is one,
+         * then return the index of the preceeding separator.
+         * If there's no variant, search for the keyword delimiter,
+         * and return its index.  Otherwise, return the length of the
+         * string.
+         */
+        String variant = parser.getVariant();
+    
+        if (!isEmptyString(variant)){
+            return localeID.indexOf(variant) - 1;
+        }
+        else
+        {
+            int index = localeID.indexOf('@');
+    
+            return index == -1 ? localeID.length() : index;
+        }
+    }
+    
+    private static String
+    createLikelySubtagsString(
+        String lang,
+        String script,
+        String region,
+        String variants) {
+    
+        /**
+         * Try the language with the script and region first.
+         **/
+        if (!isEmptyString(script) && !isEmptyString(region)) {
+    
+            String searchTag =
+                createTagString(
+                    lang,
+                    script,
+                    region,
+                    null);
+    
+            String likelySubtags = (String)_likelySubtagsMap.get(searchTag);
+    
+            if (likelySubtags != null) {
+                // Always use the language tag from the
+                // maximal string, since it may be more
+                // specific than the one provided.
+                return createTagString(
+                            null,
+                            null,
+                            null,
+                            variants,
+                            likelySubtags);
+            }
+        }
+    
+        /**
+         * Try the language with just the script.
+         **/
+        if (!isEmptyString(script)) {
+    
+            String searchTag =
+                createTagString(
+                    lang,
+                    script,
+                    null,
+                    null);
+    
+            String likelySubtags = (String)_likelySubtagsMap.get(searchTag);
+    
+            if (likelySubtags != null) {
+                // Always use the language tag from the
+                // maximal string, since it may be more
+                // specific than the one provided.
+                return createTagString(
+                            null,
+                            null,
+                            region,
+                            variants,
+                            likelySubtags);
+            }
+        }
+    
+        /**
+         * Try the language with just the region.
+         **/
+        if (!isEmptyString(region)) {
+    
+            String searchTag =
+                createTagString(
+                    lang,
+                    null,
+                    region,
+                    null);
+    
+            String likelySubtags = (String)_likelySubtagsMap.get(searchTag);
+    
+            if (likelySubtags != null) {
+                // Always use the language tag from the
+                // maximal string, since it may be more
+                // specific than the one provided.
+                return createTagString(
+                            null,
+                            script,
+                            null,
+                            variants,
+                            likelySubtags);
+            }
+        }
+    
+        /**
+         * Finally, try just the language.
+         **/
+        {
+            String searchTag =
+                createTagString(
+                    lang,
+                    null,
+                    null,
+                    null);
+    
+            String likelySubtags = (String)_likelySubtagsMap.get(searchTag);
+    
+            if (likelySubtags != null) {
+                // Always use the language tag from the
+                // maximal string, since it may be more
+                // specific than the one provided.
+                return createTagString(
+                            null,
+                            script,
+                            region,
+                            variants,
+                            likelySubtags);
+            }
+        }
+    
+        return null;
+    }
+
 }
