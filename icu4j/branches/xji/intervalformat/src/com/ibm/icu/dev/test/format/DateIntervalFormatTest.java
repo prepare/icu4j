@@ -59,7 +59,6 @@ public class DateIntervalFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         };
     
         String[][] testLocale = {
-/*
             {"en", "", ""},
             {"zh", "", ""},
             {"de", "", ""},
@@ -85,9 +84,7 @@ public class DateIntervalFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             {"hu", "", ""},
             {"he", "", ""},
             {"in", "", ""},
-*/
             {"cs", "", ""},
-/*
             {"el", "", ""},
             {"no", "", ""},
             {"vi", "", ""},
@@ -101,7 +98,6 @@ public class DateIntervalFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             {"lv", "", ""},
             {"uk", "", ""},
             {"hi", "", ""},
-*/
         };
     
         
