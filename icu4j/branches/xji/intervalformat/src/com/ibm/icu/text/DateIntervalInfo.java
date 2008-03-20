@@ -790,7 +790,7 @@ public class DateIntervalInfo implements Cloneable,  Freezable {
 
         final int DIFFERENT_FIELD = 0x1000;
         final int STRING_NUMERIC_DIFFERENCE = 0x100;
-        final int BASE = 0x40;
+        final int BASE = 0x41;
 
         // FIXME: hack for 'v' and 'z'
         // resource bundle only have time skeletons ending with 'v',
