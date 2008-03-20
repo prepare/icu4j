@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2002-2006, International Business Machines Corporation and         *
+ * Copyright (C) 2002-2008, International Business Machines Corporation and         *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -501,7 +501,7 @@ public class CollationAPITest extends TestFmwk {
         doAssert(col.getVersion().equals(expectedVersion), "Expected version "+expectedVersion.toString()+" got "+col.getVersion().toString());
         
         logln("Test getUCAVersion");
-        VersionInfo expectedUCAVersion = VersionInfo.getInstance(0x05, 0, 0, 0);
+        VersionInfo expectedUCAVersion = VersionInfo.getInstance(0x05, 1, 0, 0);
         doAssert(col.getUCAVersion().equals(expectedUCAVersion), "Expected UCA version "+expectedUCAVersion.toString()+" got "+col.getUCAVersion().toString());
         
         doAssert((col.compare("ab", "abc") < 0), "ab < abc comparison failed");
