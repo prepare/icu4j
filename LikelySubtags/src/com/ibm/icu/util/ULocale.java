@@ -1532,6 +1532,7 @@ public final class ULocale implements Serializable {
          */
         private int parseCountry() {
             if (!atTerminator()) {
+                int oldIndex = index;
                 ++index;
 
                 int oldBlen = blen;
@@ -1546,7 +1547,17 @@ public final class ULocale implements Serializable {
                 }
                 --index; // unget
 
-                if (blen - oldBlen == 3) {
+                int charsAppended = blen - oldBlen;
+                
+                if (charsAppended < 2 || charsAppended > 3) {
+                    // It's not a country, so return index and blen to
+                    // their previous values.
+                    index = oldIndex;
+                    --oldBlen;
+                    blen = oldBlen;
+                    hadCountry = false;
+                }
+                else if (charsAppended == 3) {
                     initCountryTables();
 
                     /* convert 3 character code to 2 character code if possible *CWB*/
@@ -4835,6 +4846,8 @@ public final class ULocale implements Serializable {
     public static ULocale
     addLikelySubtags(ULocale loc)
     {
+        initLikelySubtagMaximizeMap();
+
         String[] tags = new String[3];
         String trailing = null;
   
@@ -4859,6 +4872,8 @@ public final class ULocale implements Serializable {
     public static ULocale
     minimizeSubtags(ULocale loc)
     {
+        initLikelySubtagMaximizeMap();
+
         String[] tags = new String[3];
 
         int trailingIndex = parseTagString(
