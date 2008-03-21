@@ -1143,13 +1143,13 @@ public class RBBITestMonkey extends TestFmwk {
             fSpSet           = new UnicodeSet("[\\p{Sentence_Break = Sp}]");
             fLowerSet        = new UnicodeSet("[\\p{Sentence_Break = Lower}]");
             fUpperSet        = new UnicodeSet("[\\p{Sentence_Break = Upper}]");
-            fOLetterSet      = new UnicodeSet("[\\p{Sentence_Break = OLetter}");
+            fOLetterSet      = new UnicodeSet("[\\p{Sentence_Break = OLetter}]");
             fNumericSet      = new UnicodeSet("[\\p{Sentence_Break = Numeric}]");
             fATermSet        = new UnicodeSet("[\\p{Sentence_Break = ATerm}]");
             fSContinueSet    = new UnicodeSet("[\\p{Sentence_Break = SContinue}]");
             fSTermSet        = new UnicodeSet("[\\p{Sentence_Break = STerm}]");
             fCloseSet        = new UnicodeSet("[\\p{Sentence_Break = Close}]");
-            fExtendSet       = new UnicodeSet("[\\p{Sentence_Break = Extend]");
+            fExtendSet       = new UnicodeSet("[\\p{Sentence_Break = Extend}]");
             fOtherSet        = new UnicodeSet();
 
 
