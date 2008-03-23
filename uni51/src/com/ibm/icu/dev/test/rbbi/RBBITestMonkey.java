@@ -59,6 +59,11 @@ public class RBBITestMonkey extends TestFmwk {
         // Find the next break postion, starting from the specified position.
         // Return -1 after reaching end of string.
         abstract   int   next(int i);
+        
+        // A Character Property, one of the constants defined in class UProperty.
+        //   The value fo this property will be displayed for the characters
+        //    near any test failure.  
+        int   fCharProperty;
     }
 
  
@@ -86,6 +91,7 @@ public class RBBITestMonkey extends TestFmwk {
 
     RBBICharMonkey() {
         fText       = null;
+        fCharProperty = UProperty.GRAPHEME_CLUSTER_BREAK;
         fCRLFSet    = new UnicodeSet("[\\r\\n]");
         fControlSet = new UnicodeSet("[\\p{Grapheme_Cluster_Break = Control}]");
         fExtendSet  = new UnicodeSet("[\\p{Grapheme_Cluster_Break = Extend}]");
@@ -258,7 +264,7 @@ public class RBBITestMonkey extends TestFmwk {
 
         
         RBBIWordMonkey() {
-            fSets          = new ArrayList();
+            fCharProperty    = UProperty.WORD_BREAK;
 
             fCRSet           = new UnicodeSet("[\\p{Word_Break = CR}]");
             fLFSet           = new UnicodeSet("[\\p{Word_Break = LF}]");
@@ -271,9 +277,9 @@ public class RBBITestMonkey extends TestFmwk {
             fNumericSet      = new UnicodeSet("[\\p{Word_Break = Numeric}]");
             fFormatSet       = new UnicodeSet("[\\p{Word_Break = Format}]");
             fExtendNumLetSet = new UnicodeSet("[\\p{Word_Break = ExtendNumLet}]");
-            fExtendSet       = new UnicodeSet("[\\p{Grapheme_Cluster_Break = Extend}\\uff9e\\uff9f]");
-            fOtherSet        = new UnicodeSet();
+            fExtendSet       = new UnicodeSet("[\\p{Word_Break = Extend}]");
 
+            fOtherSet        = new UnicodeSet();
             fOtherSet.complement();
             fOtherSet.removeAll(fCRSet);
             fOtherSet.removeAll(fLFSet);
@@ -289,6 +295,7 @@ public class RBBITestMonkey extends TestFmwk {
             // Inhibit dictionary characters from being tested at all.
             fOtherSet.removeAll(new UnicodeSet("[\\p{LineBreak = Complex_Context}]"));
 
+            fSets            = new ArrayList();
             fSets.add(fCRSet);
             fSets.add(fLFSet);
             fSets.add(fNewlineSet);
@@ -366,7 +373,7 @@ public class RBBITestMonkey extends TestFmwk {
                 //     No Extend or Format characters may appear between the CR and LF,
                 //     which requires the additional check for p2 immediately following p1.
                 //
-                if (c1==0x0D && c2==0x0A && p1==(p2-1)) {
+                if (c1==0x0D && c2==0x0A) {
                     continue;
                 }
                 
@@ -511,6 +518,7 @@ public class RBBITestMonkey extends TestFmwk {
         
         RBBILineMonkey()
         {
+            fCharProperty  = UProperty.LINE_BREAK;
             fSets          = new ArrayList();
             
             fBK    = new UnicodeSet("[\\p{Line_Break=BK}]");
@@ -549,6 +557,7 @@ public class RBBITestMonkey extends TestFmwk {
             fH3    = new UnicodeSet("[\\p{Line_break=H3}]");
             fSG    = new UnicodeSet("[\\ud800-\\udfff]");
             fXX    = new UnicodeSet("[\\p{Line_break=XX}]");
+
             
             fAL.addAll(fXX);     // Default behavior for XX is identical to AL
             fAL.addAll(fAI);     // Default behavior for AI is identical to AL
@@ -1133,12 +1142,14 @@ public class RBBITestMonkey extends TestFmwk {
  
         
         RBBISentenceMonkey() {
+            fCharProperty  = UProperty.SENTENCE_BREAK;
+
             fSets            = new ArrayList();
 
             //  Separator Set Note:  Beginning with Unicode 5.1, CR and LF were removed from the separator
             //                       set and made into character classes of their own.  For the monkey impl,
             //                       they remain in SEP, since Sep always appears with CR and LF in the rules.
-            fSepSet          = new UnicodeSet("[\\p{Sentence_Break = Sep}]");
+            fSepSet          = new UnicodeSet("[\\p{Sentence_Break = Sep} \\u000a \\u000d]");
             fFormatSet       = new UnicodeSet("[\\p{Sentence_Break = Format}]");
             fSpSet           = new UnicodeSet("[\\p{Sentence_Break = Sp}]");
             fLowerSet        = new UnicodeSet("[\\p{Sentence_Break = Lower}]");
@@ -1486,6 +1497,42 @@ public class RBBITestMonkey extends TestFmwk {
         return (int)(m_seed >>> 16) % 32768;
     }
 
+    // Helper function for formatting error output.
+    //   Append a string into a fixed-size field in a StringBuffer.
+    //   Blank-pad the string if it is shorter than the field.
+    //   Truncate the source string if it is too long.
+    //
+    private static void appendToBuf(StringBuilder dest, String src, int fieldLen) {
+        int appendLen = src.length();
+        if (appendLen >= fieldLen) {
+            appendLen = fieldLen;
+        }
+        dest.append(src, 0, appendLen);
+        while (appendLen < fieldLen) {
+            dest.append(' ');
+            appendLen++;
+        }    
+     }
+    
+    // Helper function for formatting error output.
+    // Display a code point in "\\uxxxx" or "\Uxxxxxxxx" format
+    private static void appendCharToBuf(StringBuilder dest, int c, int fieldLen) {
+           String hexChars = "0123456789abcdef";
+           if (c < 0x10000) {
+                dest.append("\\u");
+                for (int bn=12; bn>=0; bn-=4) {
+                    dest.append(hexChars.charAt((((int)c)>>bn)&0xf));
+                }
+                appendToBuf(dest, " ", fieldLen-6);
+            } else {
+                dest.append("\\U");
+                for (int bn=28; bn>=0; bn-=4) {
+                    dest.append(hexChars.charAt((((int)c)>>bn)&0xf));
+                }
+                appendToBuf(dest, " ", fieldLen-10);
+
+            }
+       }
     
 /**
  *  Run a RBBI monkey test.  Common routine, for all break iterator types.
@@ -1739,33 +1786,31 @@ void RunMonkey(BreakIterator  bi, RBBIMonkeyKind mk, String name, int  seed, int
                 }
 
                 // Format looks like   "<data><>\uabcd\uabcd<>\U0001abcd...</data>"
-                StringBuffer errorText = new StringBuffer();
-                errorText.append("<data>");
+                StringBuilder errorText = new StringBuilder();
 
-                String hexChars = "0123456789abcdef";
                 int      c;    // Char from test data
                 int      bn;
                 for (ci = startContext;  ci <= endContext && ci != -1;  ci = nextCP(testText, ci)) {
                     if (ci == i) {
                         // This is the location of the error.
-                        errorText.append("<?>");
+                        errorText.append("<?>---------------------------------\n");
                     } else if (expectedBreaks[ci]) {
                         // This a non-error expected break position.
-                        errorText.append("<>");
+                        errorText.append("------------------------------------\n");
                     }
                     if (ci < testText.length()) {
                         c = UTF16.charAt(testText, ci);
-                        if (c < 0x10000) {
-                            errorText.append("\\u");
-                            for (bn=12; bn>=0; bn-=4) {
-                                errorText.append(hexChars.charAt((((int)c)>>bn)&0xf));
-                            }
-                        } else {
-                            errorText.append("\\U");
-                            for (bn=28; bn>=0; bn-=4) {
-                                errorText.append(hexChars.charAt((((int)c)>>bn)&0xf));
-                            }
-                        }
+                        appendCharToBuf(errorText, c, 11);
+                        String gc = UCharacter.getPropertyValueName(UProperty.GENERAL_CATEGORY, UCharacter.getType(c), UProperty.NameChoice.SHORT);
+                        appendToBuf(errorText, gc, 8);
+                        int extraProp = UCharacter.getIntPropertyValue(c, mk.fCharProperty);
+                        String extraPropValue = 
+                            UCharacter.getPropertyValueName(mk.fCharProperty, extraProp, UProperty.NameChoice.LONG);
+                        appendToBuf(errorText, extraPropValue, 20);
+
+                        String charName = UCharacter.getExtendedName(c);
+                        appendToBuf(errorText, charName, 40);
+                        errorText.append('\n');
                     }
                 }
                 if (ci == testText.length() && ci != -1) {
