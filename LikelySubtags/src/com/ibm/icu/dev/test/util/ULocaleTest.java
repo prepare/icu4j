@@ -1477,8 +1477,14 @@ public class ULocaleTest extends TestFmwk {
         for (int i = 0; i < basic_maximize_data.length; i++) {
             ULocale org = new ULocale(basic_maximize_data[i][0]);
             ULocale res = ULocale.addLikelySubtags(org);
-            if (!res.toString().equals(basic_maximize_data[i][1])) {
-                errln("Original: " + basic_maximize_data[i][0] + " Expected: " + basic_maximize_data[i][1] + " - but got " + res.toString());
+            String exp = basic_maximize_data[i][1];
+            if (exp.length() == 0) {
+                if (!org.equals(res)) {
+                    errln("Original: " + basic_maximize_data[i][0] + " expected: " + exp + " - but got " + res.toString());
+                }
+            }
+            else if (!res.toString().equals(exp)) {
+                errln("Original: " + basic_maximize_data[i][0] + " expected: " + exp + " - but got " + res.toString());
             }
         }
 
@@ -1503,9 +1509,15 @@ public class ULocaleTest extends TestFmwk {
 
         for (int i = 0; i < basic_minimize_data.length; i++) {
             ULocale org = new ULocale(basic_minimize_data[i][0]);
-            ULocale res = ULocale.addLikelySubtags(org);
-            if (!res.toString().equals(basic_minimize_data[i][1])) {
-                errln("Original: " + basic_minimize_data[i][0] + " Expected: " + basic_minimize_data[i][1] + " - but got " + res.toString());
+            ULocale res = ULocale.minimizeSubtags(org);
+            String exp = basic_minimize_data[i][1];
+            if (exp.length() == 0) {
+                if (!org.equals(res)) {
+                    errln("Original: " + basic_minimize_data[i][0] + " expected: " + exp + " - but got " + res.toString());
+                }
+            }
+            else if (!res.toString().equals(exp)) {
+                errln("Original: " + basic_minimize_data[i][0] + " expected: " + exp + " - but got " + res.toString());
             }
         }
 
