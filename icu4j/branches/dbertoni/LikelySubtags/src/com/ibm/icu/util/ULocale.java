@@ -1549,7 +1549,10 @@ public final class ULocale implements Serializable {
 
                 int charsAppended = blen - oldBlen;
                 
-                if (charsAppended < 2 || charsAppended > 3) {
+                if (charsAppended == 0) {
+                    // Do nothing.
+                }
+                else if (charsAppended < 2 || charsAppended > 3) {
                     // It's not a country, so return index and blen to
                     // their previous values.
                     index = oldIndex;
