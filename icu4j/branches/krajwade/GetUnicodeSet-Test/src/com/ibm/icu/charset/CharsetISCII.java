@@ -14,6 +14,7 @@ import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CoderResult;
 
 import com.ibm.icu.text.UTF16;
+import com.ibm.icu.text.UnicodeSet;
 
 /**
  * @author Michael Ow
@@ -1270,5 +1271,24 @@ class CharsetISCII extends CharsetICU {
     
     public CharsetEncoder newEncoder() {
         return new CharsetEncoderISCII(this);
+    }
+    
+    void getUnicodeSetImpl( UnicodeSet setFillIn, int which){
+        int idx,script;
+        int mask;
+        setFillIn.add(0,ASCII_END );
+        for(script = UniLang.DEVALANGARI ; script<= UniLang.MALAYALAM ;script++){
+            mask = lookupInitialData[script].maskEnum;
+            for(idx=0; idx < UniLang.DELTA ; idx++){
+                if((validityTable[idx] & mask)!=0){
+                    setFillIn.add(idx+(script*UniLang.DELTA)+INDIC_BLOCK_BEGIN );
+                }
+            }
+        }
+        setFillIn.add(ISCII_DANDA);
+        setFillIn.add(DOUBLE_DANDA);
+        setFillIn.add(ZWNJ);
+        setFillIn.add(ZWJ);
+             
     }
 }
