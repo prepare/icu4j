@@ -1370,9 +1370,9 @@ public final class ULocale implements Serializable {
         /*
          * Returns true if the character is an id separator (underscore or hyphen).
          */
-/*        private boolean isIDSeparator(char c) {
+        private boolean isIDSeparator(char c) {
             return c == UNDERSCORE || c == HYPHEN;
-        }*/
+        }
 
         /**
          * Returns true if the character is a terminator (keyword separator, dot, or DONE).
@@ -1548,7 +1548,7 @@ public final class ULocale implements Serializable {
                 --index; // unget
 
                 int charsAppended = blen - oldBlen;
-                
+
                 if (charsAppended == 0) {
                     // Do nothing.
                 }
@@ -1589,7 +1589,21 @@ public final class ULocale implements Serializable {
         private void skipCountry() {
             if (!atTerminator()) {
                 ++index;
+                int oldIndex = index;
+
                 skipUntilTerminatorOrIDSeparator();
+                int charsSkipped = index - oldIndex;
+                if (charsSkipped < 2 || charsSkipped > 3) { // +1 to account for separator
+                    index = oldIndex;
+                    /*
+                    if (charsSkipped > 1 && isIDSeparator(buffer[index])) {
+                        // Check for the situation where there are two
+                        // underscores, which is our format for separating
+                        // the variant when there is no country.
+                        ++index;
+                    }
+                    */
+                }
             }
         }
 
@@ -4885,7 +4899,7 @@ public final class ULocale implements Serializable {
 
         String originalLang = (String)tags[0];
         String originalScript = (String)tags[1];
-        String originalRegion = (String)tags[0];
+        String originalRegion = (String)tags[2];
         String originalTrailing = null;
 
         /*
@@ -5053,9 +5067,10 @@ public final class ULocale implements Serializable {
         String region,
         String trailing,
         String alternateTags) {
-    
+
         IDParser parser = null;
-    
+        boolean regionAppended = false;
+
         StringBuffer tag = new StringBuffer();
     
         if (!isEmptyString(lang)) {
@@ -5112,6 +5127,8 @@ public final class ULocale implements Serializable {
             appendTag(
                 region,
                 tag);
+
+            regionAppended = true;
         }
         else if (!isEmptyString(alternateTags)) {
             /*
@@ -5127,11 +5144,50 @@ public final class ULocale implements Serializable {
                 appendTag(
                     alternateRegion,
                     tag);
+
+                regionAppended = true;
             }
         }
     
-        if (!isEmptyString(trailing)) {
-            tag.append(trailing);
+        if (trailing != null && trailing.length() > 1) {
+            /*
+             * The current ICU format expects two underscores
+             * will separate the variant from the preceeding
+             * parts of the tag, if there is no region.
+             */
+            int separators = 0;
+
+            if (trailing.charAt(0) == UNDERSCORE) { 
+                if (trailing.charAt(1) == UNDERSCORE) {
+                    separators = 2;
+                }
+                }
+                else {
+                    separators = 1;
+                }
+
+            if (regionAppended) {
+                /*
+                 * If we appended a region, we may need to strip
+                 * the extra separator from the variant portion.
+                 */
+                if (separators == 2) {
+                    tag.append(trailing.substring(1));
+                }
+                else {
+                    tag.append(trailing);
+                }
+            }
+            else {
+                /*
+                 * If we did not append a region, we may need to add
+                 * an extra separator to the variant portion.
+                 */
+                if (separators == 1) {
+                    tag.append(UNDERSCORE);
+                }
+                tag.append(trailing);
+            }
         }
     
         return tag.toString();
@@ -5205,16 +5261,24 @@ public final class ULocale implements Serializable {
         }
     
         /*
-         * Search for the variant, if there is one.  If there is one,
-         * then return the index of the preceeding separator.
+         * Search for the variant.  If there is one, then return the index of
+         * the preceeding separator.
          * If there's no variant, search for the keyword delimiter,
          * and return its index.  Otherwise, return the length of the
          * string.
+         * 
+         * $TOTO(dbertoni) we need to take into account that we might
+         * find a part of the language as the variant, since it can
+         * can have a variant portion that is long enough to contain
+         * the same characters as the variant. 
          */
         String variant = parser.getVariant();
     
         if (!isEmptyString(variant)){
-            return localeID.indexOf(variant) - 1;
+            int index = localeID.indexOf(variant); 
+
+            
+            return  index > 0 ? index - 1 : index;
         }
         else
         {
