@@ -859,7 +859,7 @@ public class ULocaleTest extends TestFmwk {
             { "no@ny", null, "no__NY" /* not: "nn" [alan ICU3.0] */ }, /* POSIX ID */
             { "no-no.utf32@B", null, "no_NO_B" /* not: "nb_NO_B" [alan ICU3.0] */ }, /* POSIX ID */
             { "qz-qz@Euro", null, "qz_QZ@currency=EUR" }, /* qz-qz uses private use iso codes */
-            { "en-BOONT", "en_BOONT", "en__BOONT" }, /* registered name */
+            { "en-BOONT", "en__BOONT", "en__BOONT" }, /* registered name */
             { "de-1901", "de_1901", "de__1901" }, /* registered name */
             { "de-1906", "de_1906", "de__1906" }, /* registered name */
             { "sr-SP-Cyrl", "sr_SP_CYRL", "sr_Cyrl_RS" }, /* .NET name */
@@ -1460,13 +1460,13 @@ public class ULocaleTest extends TestFmwk {
                 "en_US_POSIX_1901",
                 "en_Latn_US_POSIX_1901"
             }, {
-                "en_Latn_POSIX_1901",
+                "en_Latn__POSIX_1901",
                 "en_Latn_US_POSIX_1901"
             }, {
-                "en_POSIX_1901",
+                "en__POSIX_1901",
                 "en_Latn_US_POSIX_1901"
             }, {
-                "de_POSIX_1901",
+                "de__POSIX_1901",
                 "de_Latn_DE_POSIX_1901"
             }, {
                 "zzz",
@@ -1494,13 +1494,13 @@ public class ULocaleTest extends TestFmwk {
                 "en"
             }, {
                 "en_Latn_US_POSIX_1901",
-                "en_POSIX_1901"
+                "en__POSIX_1901"
             }, {
                 "en_Zzzz_US_POSIX_1901",
-                "en_POSIX_1901"
+                "en__POSIX_1901"
             }, {
                 "de_Latn_DE_POSIX_1901",
-                "de_POSIX_1901"
+                "de__POSIX_1901"
             }, {
                 "und",
                 ""
@@ -3669,5 +3669,36 @@ public class ULocaleTest extends TestFmwk {
             }
         };
 
+        for (int i = 0; i < full_data.length; i++) {
+            ULocale org = new ULocale(full_data[i][0]);
+            ULocale res = ULocale.addLikelySubtags(org);
+            String exp = full_data[i][1];
+            if (exp.length() == 0) {
+                if (!org.equals(res)) {
+                    errln("Original: " + full_data[i][0] + " expected: " + exp + " - but got " + res.toString());
+                }
+            }
+            else if (!res.toString().equals(exp)) {
+                errln("Original: " + full_data[i][0] + " expected: " + exp + " - but got " + res.toString());
+            }
+        }
+
+        for (int i = 0; i < full_data.length; i++) {
+            String maximal = full_data[i][1];
+
+            if (maximal.length() > 0) {
+                ULocale org = new ULocale(maximal);
+                ULocale res = ULocale.minimizeSubtags(org);
+                String exp = full_data[i][2];
+                if (exp.length() == 0) {
+                    if (!org.equals(res)) {
+                        errln("Original: " + full_data[i][1] + " expected: " + exp + " - but got " + res.toString());
+                    }
+                }
+                else if (!res.toString().equals(exp)) {
+                    errln("Original: " + full_data[i][1] + " expected: " + exp + " - but got " + res.toString());
+                }
+            }
+        }
     }
 }
