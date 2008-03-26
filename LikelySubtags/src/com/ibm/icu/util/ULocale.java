@@ -1589,20 +1589,16 @@ public final class ULocale implements Serializable {
         private void skipCountry() {
             if (!atTerminator()) {
                 ++index;
+                /* 
+                 * Save the index point after the separator, since the format
+                 * requires two separators if the country is not present.
+                 */
                 int oldIndex = index;
 
                 skipUntilTerminatorOrIDSeparator();
                 int charsSkipped = index - oldIndex;
-                if (charsSkipped < 2 || charsSkipped > 3) { // +1 to account for separator
+                if (charsSkipped < 2 || charsSkipped > 3) {
                     index = oldIndex;
-                    /*
-                    if (charsSkipped > 1 && isIDSeparator(buffer[index])) {
-                        // Check for the situation where there are two
-                        // underscores, which is our format for separating
-                        // the variant when there is no country.
-                        ++index;
-                    }
-                    */
                 }
             }
         }
