@@ -98,10 +98,10 @@ public class CollationAPITest extends TestFmwk {
 
         byte key2compat[] = {
             // 3.9 key, UCA 5.1
-            (byte) 0x2a, (byte) 0x2c, (byte) 0x2e,
-            (byte) 0x30, (byte) 0x2a, (byte) 0x01,
+            (byte) 0x2c, (byte) 0x2e, (byte) 0x30,
+            (byte) 0x32, (byte) 0x2c, (byte) 0x01,
             (byte) 0x09, (byte) 0x01, (byte) 0x09,
-            (byte) 0x01, (byte) 0x28, (byte) 0x01,
+            (byte) 0x01, (byte) 0x2b, (byte) 0x01,
             (byte) 0x92, (byte) 0x93, (byte) 0x94,
             (byte) 0x95, (byte) 0x92, (byte) 0x00
 
