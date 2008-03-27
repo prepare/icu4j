@@ -22,7 +22,7 @@ public class TestAll extends TestGroup {
     public TestAll() {
         super(
               new String[] {
-               //   "TestCharset",
+                  "TestCharset",
                   "TestConversion"
               },
               "All ICU Charset Tests"
