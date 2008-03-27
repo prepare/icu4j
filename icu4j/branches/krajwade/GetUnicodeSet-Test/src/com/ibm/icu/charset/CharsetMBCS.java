@@ -27,6 +27,7 @@ import com.ibm.icu.impl.InvalidFormatException;
 import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.text.UTF16;
 import com.ibm.icu.text.UnicodeSet;
+import com.ibm.icu.charset.UConverterConstants;
 
 class CharsetMBCS extends CharsetICU {
 
@@ -4814,8 +4815,8 @@ class CharsetMBCS extends CharsetICU {
         if(mbcsTable.outputType==MBCS_OUTPUT_1){
             char stage2, stage3;
             char minValue;
-            byte[] results;
-            results = mbcsTable.fromUnicodeBytes;
+            CharBuffer results;
+            results = ByteBuffer.wrap(mbcsTable.fromUnicodeBytes).asCharBuffer();
                                    
             if(which==ROUNDTRIP_SET) {
                 /* use only roundtrips */
@@ -4834,7 +4835,7 @@ class CharsetMBCS extends CharsetICU {
                             /*read the stage 3 block */
                             stage3 = (char)st3;
                             do {
-                                if(results[stage3++]>=minValue){
+                                if(results.get(stage3++)>=minValue){
                                      setFillIn.add(c);
                                 }
                                
