@@ -866,7 +866,7 @@ public class TestConversion extends ModuleTest {
                    : (CharsetICU) provider.charsetForName(cc.charset);
            
                   
-                   System.out.println(charset.displayName());
+           
                   
            //checking for converter that are not supported at this point        
            try{
@@ -917,7 +917,9 @@ public class TestConversion extends ModuleTest {
            }
          
          } catch (Exception e) {
-             logln("error in getUnicodeSet "+e.toString());
+             logln("getUnicodeSet returned an error code");
+             logln("ErrorCode expected is: " + cc.outErrorCode);
+             logln("Error Result is: " + e.toString());
              return;
        } 
       
