@@ -1955,13 +1955,12 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
                 for (int i = 0; i < BLOCKS_.length; ++i) {
                     UnicodeBlock b = BLOCKS_[i];
                     String name = getPropertyValueName(UProperty.BLOCK, b.getID(), UProperty.NameChoice.LONG);
-                    m.put(name.toUpperCase(), b);
-            m.put(name.replace('_',' ').toUpperCase(), b);
-                    m.put(b.toString().toUpperCase(), b);
+                    name = name.toUpperCase().replace(" ", "").replace("_", "").replace("-", "");
+                    m.put(name, b);
                 }
                 mref = new SoftReference(m);
             }
-            UnicodeBlock b = (UnicodeBlock)m.get(blockName.toUpperCase());
+            UnicodeBlock b = (UnicodeBlock)m.get(blockName.toUpperCase().replace(" ", "").replace("_", "").replace("-", ""));
             if (b == null) {
                 throw new IllegalArgumentException();
             }
