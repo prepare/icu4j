@@ -337,18 +337,18 @@ public abstract class CharsetICU extends Charset{
     abstract void getUnicodeSetImpl(UnicodeSet setFillIn, int which);
     
     /**
-    * Returns the set of Unicode code points that can be converted by an ICU Converter. 
+    * <p>Returns the set of Unicode code points that can be converted by an ICU Converter. 
     * 
     * Returns one of the several kind of set
     *
-    * ROUNDTRIP_SET
+    * <p>ROUNDTRIP_SET
     * 
     * The set of all Unicode code points that can be roundtrip-converted
     * (converted without any data loss) with the converter.
     * This set will not include code points that have fallback mappings
     * or are only the result of reverse fallback mappings.
     * 
-    * This is useful for example for
+    * <p>This is useful for example for
     * - checking that a string or document can be roundtrip-converted with a converter,
     *   without/before actually performing the conversion
     * - testing if a converter can be used for text for typical text for a certain locale,
