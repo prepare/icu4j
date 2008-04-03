@@ -207,8 +207,8 @@ public class UnicodeSetTest extends TestFmwk {
     
     s.clear();
     s.applyPropertyAlias("nv", "0.5");
-    expectToPattern(s, "[\\u00BD\\u0F2A\\u2CFD\\U00010141\\U00010175\\U00010176]", null);
-    // Unicode 4.1 adds \u2CFD\U00010141\U00010175\U00010176 with numeric value 1/2
+    expectToPattern(s, "[\\u00BD\\u0D74\\u0F2A\\u2CFD\\U00010141\\U00010175\\U00010176]", null);
+    // Unicode 5.1 adds Malayalam 1/2 (\u0D74)
     
     s.clear();
     s.applyPropertyAlias("gc", "Lu");
