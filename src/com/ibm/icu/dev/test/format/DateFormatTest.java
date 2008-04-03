@@ -247,69 +247,9 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
 
         assertTrue("data size", EXPECTED.length == COUNT * DateFormat.FIELD_COUNT);
 
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
-        final DateFormat.Field[] DTFMT_FIELDS = {
-            DateFormat.Field.AM_PM,
-            DateFormat.Field.DAY_OF_MONTH,
-            DateFormat.Field.DAY_OF_WEEK,
-            DateFormat.Field.DAY_OF_WEEK_IN_MONTH,
-            DateFormat.Field.DAY_OF_YEAR,
-
-            DateFormat.Field.DOW_LOCAL,
-            DateFormat.Field.ERA,
-            DateFormat.Field.EXTENDED_YEAR,
-            DateFormat.Field.HOUR_OF_DAY0,
-            DateFormat.Field.HOUR_OF_DAY1,
-
-            DateFormat.Field.HOUR0,
-            DateFormat.Field.HOUR1,
-            DateFormat.Field.JULIAN_DAY,
-            DateFormat.Field.MILLISECOND,
-            DateFormat.Field.MILLISECONDS_IN_DAY,
-
-            DateFormat.Field.MINUTE,
-            DateFormat.Field.MONTH,
-            DateFormat.Field.QUARTER,
-            DateFormat.Field.SECOND,
-            DateFormat.Field.TIME_ZONE,
-
-            DateFormat.Field.WEEK_OF_MONTH,
-            DateFormat.Field.WEEK_OF_YEAR,
-            DateFormat.Field.YEAR,
-            DateFormat.Field.YEAR_WOY,
-        };
-
-        final String[][] EXPECTED_BY_FIELD = {
-            {"PM", "13", "Wednesday", "", "",
-             "", "", "", "", "",
-             "", "2", "", "", "",
-             "34", "August", "", "12", "PT",
-             "", "", "1997", ""},
-
-            {"", "13", "mercredi", "", "",
-             "", "", "", "14", "",
-             "", "", "", "", "",
-             "34", "ao\u00FBt", "", "12", "\u00C9tats-Unis (Los Angeles)",
-             "", "", "1997", ""},
-
-            {"PM", "13", "Wed", "2", "225",
-             "4", "AD", "1997", "14", "14",
-             "2", "2", "2450674", "5", "52452513",
-             "34", "8", "3", "12", "PDT",
-             "3", "33", "1997", "1997"},
-
-            {"PM", "0013", "Wednesday", "0002", "0225",
-             "0004", "Anno Domini", "1997", "0014", "0014",
-             "0002", "0002", "2450674", "5130", "52452513",
-             "0034", "August", "3rd quarter", "0012", "Pacific Daylight Time",
-             "0003", "0033", "1997", "1997"},
-        };
-//#endif
-
         TimeZone PT = TimeZone.getTimeZone("America/Los_Angeles");
         for (j = 0, exp = 0; j < COUNT; ++j) {
-            //  String str;
+          //  String str;
             DateFormat df = dateFormats[j];
             df.setTimeZone(PT);
             logln(" Pattern = " + ((SimpleDateFormat) df).toPattern());
@@ -321,31 +261,14 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                 continue;
             }
 
-            FieldPosition pos;
-            String field;
-
             for (i = 0; i < DateFormat.FIELD_COUNT; ++i, ++exp) {
-                pos = new FieldPosition(i);
+                FieldPosition pos = new FieldPosition(i);
                 buf.setLength(0);
                 df.format(aug13, buf, pos);    
-                field = buf.substring(pos.getBeginIndex(), pos.getEndIndex());
-                assertEquals("pattern#" + j + " field #" + i + " " + DATEFORMAT_FIELD_NAMES[i],
+                String field = buf.substring(pos.getBeginIndex(), pos.getEndIndex());
+                assertEquals("field #" + i + " " + DATEFORMAT_FIELD_NAMES[i],
                              EXPECTED[exp], field);
             }
-
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
-            // FieldPostion initialized by DateFormat.Field trac#6089
-            for(i = 0; i < DTFMT_FIELDS.length; i++) {
-                // The format method only set position for the first occurrence of
-                // the specified field.
-                pos = new FieldPosition(DTFMT_FIELDS[i]);
-                buf.setLength(0);
-                df.format(aug13, buf, pos);
-                field = buf.substring(pos.getBeginIndex(), pos.getEndIndex());
-                assertEquals("pattern#" + j + " " + DTFMT_FIELDS[i].toString(), EXPECTED_BY_FIELD[j][i], field);
-            }
-//#endif
         }
     }
     /**
@@ -740,7 +663,9 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         { "en", "Asia/Calcutta", "2004-07-15T00:00:00Z", "z", "GMT+05:30", "+05:30" },
         { "en", "Asia/Calcutta", "2004-07-15T00:00:00Z", "V", "IST", "+05:30" },
         { "en", "Asia/Calcutta", "2004-07-15T00:00:00Z", "zzzz", "India Standard Time", "+5:30" },
-        { "en", "Asia/Calcutta", "2004-07-15T00:00:00Z", "v", "India Time", "Asia/Calcutta" },
+        // Asia/Calcutta is no longer a canonical zone ID in tzdata2008b.  The new zone ID Asia/Kolkata
+        // is not available in CLDR 1.5.1 and 3.8.x implementation does not work well for the case below.
+        //{ "en", "Asia/Calcutta", "2004-07-15T00:00:00Z", "v", "India Time", "Asia/Calcutta" },
         { "en", "Asia/Calcutta", "2004-07-15T00:00:00Z", "vvvv", "India Standard Time", "Asia/Calcutta" },
         
         // ==========
@@ -845,8 +770,10 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         { "de", "Asia/Calcutta", "2004-07-15T00:00:00Z", "ZZZZ", "GMT+05:30", "+5:30" },
         { "de", "Asia/Calcutta", "2004-07-15T00:00:00Z", "z", "GMT+05:30", "+05:30" },
         { "de", "Asia/Calcutta", "2004-07-15T00:00:00Z", "zzzz", "GMT+05:30", "+5:30" },
-        { "de", "Asia/Calcutta", "2004-07-15T00:00:00Z", "v", "Indien", "Asia/Calcutta" },
-        { "de", "Asia/Calcutta", "2004-07-15T00:00:00Z", "vvvv", "Indien", "Asia/Calcutta" },
+        // Asia/Calcutta is no longer a canonical zone ID in tzdata2008b.  The new zone ID Asia/Kolkata
+        // is not available in CLDR 1.5.1 and 3.8.x implementation does not work well for the case below.
+        //{ "de", "Asia/Calcutta", "2004-07-15T00:00:00Z", "v", "Indien", "Asia/Calcutta" },
+        //{ "de", "Asia/Calcutta", "2004-07-15T00:00:00Z", "vvvv", "Indien", "Asia/Calcutta" },
 
         // ==========
 
@@ -953,8 +880,10 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         { "zh", "Asia/Calcutta", "2004-07-15T00:00:00Z", "ZZZZ", "GMT+0530", "+5:30" },
         { "zh", "Asia/Calcutta", "2004-07-15T00:00:00Z", "z", "GMT+0530", "+05:30" },
         { "zh", "Asia/Calcutta", "2004-07-15T00:00:00Z", "zzzz", "GMT+0530", "+5:30" },
-        { "zh", "Asia/Calcutta", "2004-07-15T00:00:00Z", "v", "\u5370\u5ea6", "Asia/Calcutta" },
-        { "zh", "Asia/Calcutta", "2004-07-15T00:00:00Z", "vvvv", "\u5370\u5EA6", "Asia/Calcutta" },
+        // Asia/Calcutta is no longer a canonical zone ID in tzdata2008b.  The new zone ID Asia/Kolkata
+        // is not available in CLDR 1.5.1 and 3.8.x implementation does not work well for the case below.
+        //{ "zh", "Asia/Calcutta", "2004-07-15T00:00:00Z", "v", "\u5370\u5ea6", "Asia/Calcutta" },
+        //{ "zh", "Asia/Calcutta", "2004-07-15T00:00:00Z", "vvvv", "\u5370\u5EA6", "Asia/Calcutta" },
 
         // ==========
 
@@ -1161,8 +1090,10 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         { "bg", "Asia/Calcutta", "2004-07-15T00:00:00Z", "ZZZZ", GMT_BG+"+0530", "+5:30" },
         { "bg", "Asia/Calcutta", "2004-07-15T00:00:00Z", "z", GMT_BG+"+0530", "+05:30" },
         { "bg", "Asia/Calcutta", "2004-07-15T00:00:00Z", "zzzz", GMT_BG+"+0530", "+5:30" },
-        { "bg", "Asia/Calcutta", "2004-07-15T00:00:00Z", "v", "\u0418\u043D\u0434\u0438\u044F", "Asia/Calcutta" },
-        { "bg", "Asia/Calcutta", "2004-07-15T00:00:00Z", "vvvv", "\u0418\u043D\u0434\u0438\u044F", "Asia/Calcutta" },
+        // Asia/Calcutta is no longer a canonical zone ID in tzdata2008b.  The new zone ID Asia/Kolkata
+        // is not available in CLDR 1.5.1 and 3.8.x implementation does not work well for the case below.
+        //{ "bg", "Asia/Calcutta", "2004-07-15T00:00:00Z", "v", "\u0418\u043D\u0434\u0438\u044F", "Asia/Calcutta" },
+        //{ "bg", "Asia/Calcutta", "2004-07-15T00:00:00Z", "vvvv", "\u0418\u043D\u0434\u0438\u044F", "Asia/Calcutta" },
 
     // ==========
 
@@ -1273,8 +1204,10 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         { "ja", "Asia/Calcutta", "2004-07-15T00:00:00Z", "ZZZZ", "GMT+0530", "+5:30" },
         { "ja", "Asia/Calcutta", "2004-07-15T00:00:00Z", "z", "GMT+0530", "+05:30" },
         { "ja", "Asia/Calcutta", "2004-07-15T00:00:00Z", "zzzz", "GMT+0530", "+5:30" },
-        { "ja", "Asia/Calcutta", "2004-07-15T00:00:00Z", "v", "\u30A4\u30F3\u30C9\u6642\u9593", "Asia/Calcutta" },
-        { "ja", "Asia/Calcutta", "2004-07-15T00:00:00Z", "vvvv", "\u30A4\u30F3\u30C9\u6642\u9593", "Asia/Calcutta" },
+        // Asia/Calcutta is no longer a canonical zone ID in tzdata2008b.  The new zone ID Asia/Kolkata
+        // is not available in CLDR 1.5.1 and 3.8.x implementation does not work well for the case below.
+        //{ "ja", "Asia/Calcutta", "2004-07-15T00:00:00Z", "v", "\u30A4\u30F3\u30C9\u6642\u9593", "Asia/Calcutta" },
+        //{ "ja", "Asia/Calcutta", "2004-07-15T00:00:00Z", "vvvv", "\u30A4\u30F3\u30C9\u6642\u9593", "Asia/Calcutta" },
 
     // ==========
 
@@ -3244,90 +3177,4 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         }
     }
 //#endif
-
-    /*
-     * Test for checking SimpleDateFormat/DateFormatSymbols creation
-     * honor the calendar keyword in the given locale.  See ticket#6100
-     */
-    public void TestCalendarType() {
-        final String testPattern = "GGGG y MMMM d EEEE";
-
-        final ULocale[] testLocales = {
-                new ULocale("de"),
-                new ULocale("fr_FR@calendar=gregorian"),
-                new ULocale("en@calendar=islamic"),
-                new ULocale("ja_JP@calendar=japanese"),
-                new ULocale("zh_Hans_CN@calendar=bogus"),
-        };
-
-        SimpleDateFormat[] formatters = new SimpleDateFormat[5];
-        for (int i = 0; i < testLocales.length; i++) {
-            // Create a locale with no keywords
-            StringBuffer locStrBuf = new StringBuffer();
-            if (testLocales[i].getLanguage().length() > 0) {
-                locStrBuf.append(testLocales[i].getLanguage());
-            }
-            if (testLocales[i].getScript().length() > 0) {
-                locStrBuf.append('_');
-                locStrBuf.append(testLocales[i].getScript());
-            }
-            if (testLocales[i].getCountry().length() > 0) {
-                locStrBuf.append('_');
-                locStrBuf.append(testLocales[i].getCountry());
-            }
-            ULocale locNoKeywords = new ULocale(locStrBuf.toString());
-
-            Calendar cal = Calendar.getInstance(testLocales[i]);
-
-            // Calendar getDateFormat method
-            DateFormat df = cal.getDateTimeFormat(DateFormat.MEDIUM, DateFormat.MEDIUM, locNoKeywords);
-            if (df instanceof SimpleDateFormat) {
-                formatters[0] = (SimpleDateFormat)df;
-                formatters[0].applyPattern(testPattern);
-            } else {
-                formatters[0] = null;
-            }
-
-            // DateFormat constructor with locale
-            df = DateFormat.getDateInstance(DateFormat.MEDIUM, testLocales[i]);
-            if (df instanceof SimpleDateFormat) {
-                formatters[1] = (SimpleDateFormat)df;
-                formatters[1].applyPattern(testPattern);
-            } else {
-                formatters[1] = null;
-            }
-
-            // DateFormat constructor with Calendar
-            df = DateFormat.getDateInstance(cal, DateFormat.MEDIUM, locNoKeywords);
-            if (df instanceof SimpleDateFormat) {
-                formatters[2] = (SimpleDateFormat)df;
-                formatters[2].applyPattern(testPattern);
-            } else {
-                formatters[2] = null;
-            }
-
-            // SimpleDateFormat constructor
-            formatters[3] = new SimpleDateFormat(testPattern, testLocales[i]);
- 
-            // SimpleDateFormat with DateFormatSymbols
-            DateFormatSymbols dfs = new DateFormatSymbols(testLocales[i]);
-            formatters[4] = new SimpleDateFormat(testPattern, dfs, testLocales[i]);
-
-            // All SimpleDateFormat instances should produce the exact
-            // same result.
-            String expected = null;
-            Date d = new Date();
-            for (int j = 0; j < formatters.length; j++) {
-                if (formatters[j] != null) {
-                    String tmp = formatters[j].format(d);
-                    if (expected == null) {
-                        expected = tmp;
-                    } else if (!expected.equals(tmp)) {
-                        errln("FAIL: formatter[" + j + "] returned \"" + tmp + "\" in locale " +
-                                testLocales[i] + " - expected: " + expected);
-                    }
-                }
-            }
-        }
-    }
 }

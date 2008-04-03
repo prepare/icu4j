@@ -1,7 +1,7 @@
 //##header J2SE15
 /*
  *******************************************************************************
- * Copyright (C) 1996-2008, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2007, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -731,9 +731,6 @@ public class DecimalFormat extends NumberFormat {
             return result;
         }
 
-        // Do this BEFORE checking to see if value is infinite or negative!
-        if (multiplier != 1) number *= multiplier;
-
         /* Detecting whether a double is negative is easy with the exception of
          * the value -0.0.  This is a double which has a zero mantissa (and
          * exponent), but a negative sign bit.  It is semantically distinct from
@@ -745,7 +742,10 @@ public class DecimalFormat extends NumberFormat {
          * issues raised by bugs 4106658, 4106667, and 4147706.  Liu 7/6/98.
          */
         boolean isNegative = (number < 0.0) || (number == 0.0 && 1/number < 0.0);
-		if (isNegative) number = -number;
+        if (isNegative) number = -number;
+
+        // Do this BEFORE checking to see if value is infinite!
+        if (multiplier != 1) number *= multiplier;
 
         // Apply rounding after multiplier
         if (roundingDouble > 0.0) {
@@ -922,7 +922,7 @@ public class DecimalFormat extends NumberFormat {
             boolean tooBig = false;
             if (number < 0) { // This can only happen if number == Long.MIN_VALUE
                 long cutoff = Long.MIN_VALUE / multiplier;
-                tooBig = (number <= cutoff); // number == cutoff can only happen if multiplier == -1
+                tooBig = (number < cutoff);
             } else {
                 long cutoff = Long.MAX_VALUE / multiplier;
                 tooBig = (number > cutoff);
@@ -1651,14 +1651,9 @@ public class DecimalFormat extends NumberFormat {
                            : Double.NEGATIVE_INFINITY);
         }
 
-        // Handle underflow
-        else if (status[STATUS_UNDERFLOW]) {
-            n = status[STATUS_POSITIVE] ? new Double("0.0") : new Double("-0.0");
-        }
-
         // Handle -0.0
         else if (!status[STATUS_POSITIVE] && digitList.isZero()) {
-            n = new Double("-0.0");
+            n = new Double(-0.0);
         }
 
         else {
@@ -1694,6 +1689,7 @@ public class DecimalFormat extends NumberFormat {
                         (Number) new Long(big.longValue()) : (Number) big;
                 }
             }
+
             // Handle non-integral values or the case where parseBigDecimal is set
             else {
                 BigDecimal big = digitList.getBigDecimalICU(status[STATUS_POSITIVE]);
@@ -1712,34 +1708,7 @@ public class DecimalFormat extends NumberFormat {
 
     private static final int STATUS_INFINITE = 0;
     private static final int STATUS_POSITIVE = 1;
-    private static final int STATUS_UNDERFLOW = 2;
-    private static final int STATUS_LENGTH   = 3;
-    private static final UnicodeSet dotEquivalents =(UnicodeSet) new UnicodeSet(
-        "[.\u2024\u3002\uFE12\uFE52\uFF0E\uFF61]").freeze();
-    private static final UnicodeSet commaEquivalents = (UnicodeSet) new UnicodeSet(
-        "[,\u060C\u066B\u3001\uFE10\uFE11\uFE50\uFE51\uFF0C\uFF64]").freeze();
-    private static final UnicodeSet otherGroupingSeparators = (UnicodeSet) new UnicodeSet(
-        "[\\ '\u00A0\u066C\u2000-\u200A\u2018\u2019\u202F\u205F\u3000\uFF07]").freeze();
-    
-    private static final UnicodeSet strictDotEquivalents =(UnicodeSet) new UnicodeSet(
-        "[.\u2024\uFE52\uFF0E\uFF61]").freeze();
-    private static final UnicodeSet strictCommaEquivalents = (UnicodeSet) new UnicodeSet(
-        "[,\u066B\uFE10\uFE50\uFF0C]").freeze();
-    private static final UnicodeSet strictOtherGroupingSeparators = (UnicodeSet) new UnicodeSet(
-        "[\\ '\u00A0\u066C\u2000-\u200A\u2018\u2019\u202F\u205F\u3000\uFF07]").freeze();
-
-    private static final UnicodeSet defaultGroupingSeparators = (UnicodeSet) new UnicodeSet(
-        dotEquivalents).addAll(commaEquivalents).addAll(otherGroupingSeparators).freeze();
-    private static final UnicodeSet strictDefaultGroupingSeparators = (UnicodeSet) new UnicodeSet(
-            strictDotEquivalents).addAll(strictCommaEquivalents).addAll(strictOtherGroupingSeparators).freeze();
-
-    // When parsing a number with big exponential value, it requires to transform
-    // the value into a string representation to construct BigInteger instance.
-    // We want to set the maximum size because it can easily trigger OutOfMemoryException.
-    // PARSE_MAX_EXPONENT is currently set to 1000, which is much bigger than
-    // MAX_VALUE of Double (
-    // See the problem reported by ticket#5698
-    private static final int PARSE_MAX_EXPONENT = 1000;
+    private static final int STATUS_LENGTH   = 2;
 
     /**
      * <strong><font face=helvetica color=red>CHANGED</font></strong>
@@ -1814,12 +1783,11 @@ public class DecimalFormat extends NumberFormat {
             char decimal = isCurrencyFormat ?
             symbols.getMonetaryDecimalSeparator() : symbols.getDecimalSeparator();
             char grouping = symbols.getGroupingSeparator();
-                        
             String exponentSep = symbols.getExponentSeparator();
             boolean sawDecimal = false;
             boolean sawExponent = false;
             boolean sawDigit = false;
-            long exponent = 0; // Set to the exponent value, if any
+            int exponent = 0; // Set to the exponent value, if any
             int digit = 0;
 
             // strict parsing
@@ -1829,19 +1797,6 @@ public class DecimalFormat extends NumberFormat {
             int lastGroup = -1; // where did we last see a grouping separator?
             int prevGroup = -1; // where did we see the grouping separator before that?
             int gs2 = groupingSize2 == 0 ? groupingSize : groupingSize2;
-            
-            // equivalent grouping and decimal support
-            
-            // TODO markdavis Cache these if it makes a difference in performance.
-            UnicodeSet decimalSet = new UnicodeSet(getSimilarDecimals(decimal, strictParse));
-            UnicodeSet groupingSet = new UnicodeSet(strictParse ? strictDefaultGroupingSeparators : defaultGroupingSeparators)
-                .add(grouping).removeAll(decimalSet);
-            
-            // we are guaranteed that 
-            // decimalSet contains the decimal, and 
-            // groupingSet contains the groupingSeparator
-            // (unless decimal and grouping are the same, which should never happen. But in that case, groupingSet will just be empty.)
-
 
             // We have to track digitCount ourselves, because digits.count will
             // pin when the maximum allowable digits is reached.
@@ -1939,7 +1894,7 @@ public class DecimalFormat extends NumberFormat {
                     // Cancel out backup setting (see grouping handler below)
                     backup = -1;
                 }
-                else if (!isExponent && decimalSet.contains(ch))
+                else if (!isExponent && ch == decimal)
                 {
                     if (strictParse) {
                         if (backup != -1 ||
@@ -1954,11 +1909,8 @@ public class DecimalFormat extends NumberFormat {
                     digits.decimalAt = digitCount; // Not digits.count!
                     sawDecimal = true;
                     leadingZero = false; // a single leading zero before a decimal is ok
-                    
-                    // Once we see a decimal character, we only accept that decimal character from then on.
-                    decimalSet.set(ch,ch);
                 }
-                else if (!isExponent && isGroupingUsed() && groupingSet.contains(ch))
+                else if (!isExponent && ch == grouping && isGroupingUsed())
                 {
                     if (sawDecimal) {
                         break;
@@ -1970,9 +1922,6 @@ public class DecimalFormat extends NumberFormat {
                             break;
                         }
                     }
-                    // Once we see a grouping character, we only accept that grouping character from then on.
-                    groupingSet.set(ch,ch);
-                    
                     // Ignore grouping characters, if we are using them, but require
                     // that they be followed by a digit.  Otherwise we backup and
                     // reprocess them.
@@ -2025,22 +1974,10 @@ public class DecimalFormat extends NumberFormat {
                             }
                         }
 
-                        // Quick overflow check for exponential part.
-                        // Actual limit check will be done later in this code.
-                        if (exponentDigits.count > 10 /* maximum decimal digits for int */) {
-                            if (negExp) {
-                                // set underflow flag
-                                status[STATUS_UNDERFLOW] = true;
-                            } else {
-                                // set infinite flag
-                                status[STATUS_INFINITE] = true;
-                            }
-                        } else {
-                            exponentDigits.decimalAt = exponentDigits.count;
-                            exponent = exponentDigits.getLong();
-                            if (negExp) {
-                                exponent = -exponent;
-                            }
+                        exponentDigits.decimalAt = exponentDigits.count;
+                        exponent = (int) exponentDigits.getLong();
+                        if (negExp) {
+                            exponent = -exponent;
                         }
                         position = pos; // Advance past the exponent
                         sawExponent = true;
@@ -2073,14 +2010,7 @@ public class DecimalFormat extends NumberFormat {
             if (!sawDecimal) digits.decimalAt = digitCount; // Not digits.count!
 
             // Adjust for exponent, if any
-            exponent += digits.decimalAt;
-            if (exponent < -PARSE_MAX_EXPONENT) {
-                status[STATUS_UNDERFLOW] = true;
-            } else if (exponent > PARSE_MAX_EXPONENT) {
-                status[STATUS_INFINITE] = true;
-            } else {
-                digits.decimalAt = (int)exponent;
-            }
+            digits.decimalAt += exponent;
 
             // If none of the text string was recognized.  For example, parse
             // "x" with pattern "#0.00" (return index and error index both 0)
@@ -2135,23 +2065,6 @@ public class DecimalFormat extends NumberFormat {
             return false;
         }
         return true;
-    }
-
-    /**
-     * Return characters that are used where this decimal is used.
-     * @param decimal
-     * @param strictParse 
-     * @return
-     */
-    private UnicodeSet getSimilarDecimals(char decimal, boolean strictParse) {
-        if (dotEquivalents.contains(decimal)) {
-            return strictParse ? strictDotEquivalents : dotEquivalents;
-        }
-        if (commaEquivalents.contains(decimal)) {
-            return strictParse ? strictCommaEquivalents : commaEquivalents;
-        }
-        // if there is no match, return the character itself
-        return new UnicodeSet().add(decimal);
     }
 
     /**
@@ -2591,7 +2504,7 @@ public class DecimalFormat extends NumberFormat {
      * @stable ICU 2.0
      */
     public void setMultiplier (int newValue) {
-        if (newValue == 0) {
+        if (newValue <= 0) {
             throw new IllegalArgumentException("Bad multiplier: " + newValue);
         }
         multiplier = newValue;

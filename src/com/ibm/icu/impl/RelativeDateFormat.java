@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2007-2008, International Business Machines Corporation and         *
+ * Copyright (C) 2007, International Business Machines Corporation and         *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -10,6 +10,7 @@ import java.text.FieldPosition;
 import java.text.ParsePosition;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -180,7 +181,7 @@ public class RelativeDateFormat extends DateFormat {
         Date nowDate = new Date(System.currentTimeMillis());
         nowCal.clear();
         nowCal.setTime(nowDate);
-        int dayDiff = until.get(Calendar.JULIAN_DAY) - nowCal.get(Calendar.JULIAN_DAY);
+        int dayDiff = nowCal.fieldDifference(until.getTime(), Calendar.DATE);
         return dayDiff;
     }
     

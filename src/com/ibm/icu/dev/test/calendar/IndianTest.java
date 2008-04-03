@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2005-2008, International Business Machines Corporation and    *
+ * Copyright (C) 2005-2007, International Business Machines Corporation and         *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -237,7 +237,9 @@ public class IndianTest extends CalendarTest
         Calendar cal = Calendar.getInstance();
         cal.set(2007, Calendar.JANUARY, 1);
         IndianCalendar indian = new IndianCalendar();
-        doLimitsTest(indian, null, cal.getTime());
+        if (!skipIfBeforeICU(3,9,0)) {
+            doLimitsTest(indian, null, cal.getTime());
+        }
         doTheoreticalLimitsTest(indian, true);
     }
 }

@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 2006-2008, International Business Machines Corporation and    *
+* Copyright (C) 2006-2007, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 *
@@ -16,8 +16,6 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.*;
 import java.util.HashMap;
-
-import com.ibm.icu.text.UnicodeSet;
 
 /**
  * <p>A subclass of java.nio.Charset for providing implementation of ICU's charset converters.
@@ -59,13 +57,6 @@ public abstract class CharsetICU extends Charset{
      byte subChar1;               /* +80: 1  single-byte substitution character for IBM MBCS (0 if none) */
      //byte reserved[/*19*/];           /* +81: 19 to round out the structure */
      
-     /** 
-      * Parameter that select the set of roundtrippable Unicode code points. 
-      * @draft ICU 4.0
-      */
-      public static final int ROUNDTRIP_SET=1; //UCNV_ROUNDTRIP_SET,
-      public static final int ROUNDTRIP_AND_FALLBACK_SET =2;
-     
      
     /**
      * 
@@ -102,6 +93,8 @@ public abstract class CharsetICU extends Charset{
     private static final HashMap algorithmicCharsets = new HashMap();
     static{
         /*algorithmicCharsets.put("BOCU-1",                "com.ibm.icu.charset.CharsetBOCU1" );
+        algorithmicCharsets.put("HZ",                    "com.ibm.icu.charset.CharsetHZ" );
+        algorithmicCharsets.put("iso2022",               "com.ibm.icu.charset.CharsetISO2022" );
         algorithmicCharsets.put("lmbcs1",                "com.ibm.icu.charset.CharsetLMBCS1" );
         algorithmicCharsets.put("lmbcs11",               "com.ibm.icu.charset.CharsetLMBCS11" );
         algorithmicCharsets.put("lmbcs16",               "com.ibm.icu.charset.CharsetLMBCS16" );
@@ -140,17 +133,7 @@ public abstract class CharsetICU extends Charset{
         algorithmicCharsets.put("ISCII,version=6",       "com.ibm.icu.charset.CharsetISCII" );
         algorithmicCharsets.put("ISCII,version=7",       "com.ibm.icu.charset.CharsetISCII" );
         algorithmicCharsets.put("ISCII,version=8",       "com.ibm.icu.charset.CharsetISCII" );
-        algorithmicCharsets.put("IMAP-mailbox-name",     "com.ibm.icu.charset.CharsetUTF7" );
-        algorithmicCharsets.put("HZ",                    "com.ibm.icu.charset.CharsetHZ" );
-        algorithmicCharsets.put("ISO_2022,locale=ja,version=0",               "com.ibm.icu.charset.CharsetISO2022" );
-        algorithmicCharsets.put("ISO_2022,locale=ja,version=1",               "com.ibm.icu.charset.CharsetISO2022" );
-        algorithmicCharsets.put("ISO_2022,locale=ja,version=2",               "com.ibm.icu.charset.CharsetISO2022" );
-        algorithmicCharsets.put("ISO_2022,locale=ja,version=3",               "com.ibm.icu.charset.CharsetISO2022" );
-        algorithmicCharsets.put("ISO_2022,locale=ja,version=4",               "com.ibm.icu.charset.CharsetISO2022" );
-        algorithmicCharsets.put("ISO_2022,locale=zh,version=0",               "com.ibm.icu.charset.CharsetISO2022" );
-        algorithmicCharsets.put("ISO_2022,locale=zh,version=1",               "com.ibm.icu.charset.CharsetISO2022" );
-        algorithmicCharsets.put("ISO_2022,locale=ko,version=0",               "com.ibm.icu.charset.CharsetISO2022" );
-        algorithmicCharsets.put("ISO_2022,locale=ko,version=1",               "com.ibm.icu.charset.CharsetISO2022" );
+        algorithmicCharsets.put("IMAP-mailbox-name",      "com.ibm.icu.charset.CharsetUTF7" );
         }
 
     /*public*/ static final Charset getCharset(String icuCanonicalName, String javaCanonicalName, String[] aliases){
@@ -332,53 +315,6 @@ public abstract class CharsetICU extends Charset{
 //        /* no known Unicode signature byte sequence recognized */
 //        return null;
 //    }
-    
-    
-    abstract void getUnicodeSetImpl(UnicodeSet setFillIn, int which);
-    
-    /**
-    * <p>Returns the set of Unicode code points that can be converted by an ICU Converter. 
-    * 
-    * Returns one of the several kind of set
-    *
-    * <p>ROUNDTRIP_SET
-    * 
-    * The set of all Unicode code points that can be roundtrip-converted
-    * (converted without any data loss) with the converter.
-    * This set will not include code points that have fallback mappings
-    * or are only the result of reverse fallback mappings.
-    * 
-    * <p>This is useful for example for
-    * - checking that a string or document can be roundtrip-converted with a converter,
-    *   without/before actually performing the conversion
-    * - testing if a converter can be used for text for typical text for a certain locale,
-    *   by comparing its roundtrip set with the set of ExemplarCharacters from
-    *   ICU's locale data or other sources
-    *
-    *@param setFillIn A valid UnicodeSet. It will be cleared by this function before
-    *            the converter's specific set is filled in.
-    *@param which A selector;
-    *              currently ROUNDTRIP_SET is the only supported value.
-    *@throws IllegalArgumentException if the parameters does not match.              
-    *@draft ICU 4.0
-    *@provisional This API might change or be removed in a future release.
-    */
-       public void getUnicodeSet(UnicodeSet setFillIn, int which){
-           if( setFillIn == null || which != ROUNDTRIP_SET ){
-               throw new IllegalArgumentException();
-           }
-           setFillIn.clear();
-           getUnicodeSetImpl(setFillIn, which);
-       }
-      
-       static void getNonSurrogateUnicodeSet(UnicodeSet setFillIn){
-           setFillIn.add(0, 0xd7ff);
-           setFillIn.add(0xe000, 0x10ffff);
-       }
-       
-       static void getCompleteUnicodeSet(UnicodeSet setFillIn){
-           setFillIn.add(0, 0x10ffff);
-       }
 
 }
 

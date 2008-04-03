@@ -1,7 +1,7 @@
 //##header J2SE15
 /*
  *******************************************************************************
- * Copyright (C) 1996-2008, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2007, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -78,7 +78,7 @@ import com.ibm.icu.util.ULocale;
  * s        second in minute        (Number)            55
  * S        fractional second       (Number)            978
  * E        day of week             (Text)              Tuesday
- * e*       day of week (local 1~7) (Text & Number)     Tuesday & 2
+ * e*       day of week (local 1~7) (Number)            2
  * D        day in year             (Number)            189
  * F        day of week in month    (Number)            2 (2nd Wed in July)
  * w        week in year            (Number)            27
@@ -744,12 +744,11 @@ public class SimpleDateFormat extends DateFormat {
         switch (patternCharIndex) {
         case 0: // 'G' - ERA
             if (count == 5) {
-                safeAppend(formatData.narrowEras, value, buf);
-            } else if (count == 4) {
-                safeAppend(formatData.eraNames, value, buf);
-            } else {
-                safeAppend(formatData.eras, value, buf);
-            }
+                buf.append(formatData.narrowEras[value]);
+            } else if (count == 4)
+               buf.append(formatData.eraNames[value]);
+            else
+               buf.append(formatData.eras[value]);
             break;
         case 1: // 'y' - YEAR
             /* According to the specification, if the number of pattern letters ('y') is 2,
@@ -764,15 +763,14 @@ public class SimpleDateFormat extends DateFormat {
                 zeroPaddingNumber(buf, value, count, maxIntCount);
             break;
         case 2: // 'M' - MONTH
-            if (count == 5) {
-                safeAppend(formatData.narrowMonths, value, buf);
-            } else if (count == 4) {
-                safeAppend(formatData.months, value, buf);
-            } else if (count == 3) {
-                safeAppend(formatData.shortMonths, value, buf);
-            } else {
+            if (count == 5) 
+                buf.append(formatData.narrowMonths[value]);
+            else if (count == 4)
+                buf.append(formatData.months[value]);
+            else if (count == 3)
+                buf.append(formatData.shortMonths[value]);
+            else
                 zeroPaddingNumber(buf, value+1, count, maxIntCount);
-            }
             break;
         case 4: // 'k' - HOUR_OF_DAY (1..24)
             if (value == 0)
@@ -802,15 +800,14 @@ public class SimpleDateFormat extends DateFormat {
             break;
         case 9: // 'E' - DAY_OF_WEEK
             if (count == 5) {
-                safeAppend(formatData.narrowWeekdays, value, buf);
-            } else if (count == 4) {
-                safeAppend(formatData.weekdays, value, buf);
-            } else {// count <= 3, use abbreviated form if exists
-                safeAppend(formatData.shortWeekdays, value, buf);
-            }
+                buf.append(formatData.narrowWeekdays[value]);
+            } else if (count == 4)
+                buf.append(formatData.weekdays[value]);
+            else // count <= 3, use abbreviated form if exists
+                buf.append(formatData.shortWeekdays[value]);
             break;
         case 14: // 'a' - AM_PM
-            safeAppend(formatData.ampms, value, buf);
+            buf.append(formatData.ampms[value]);
             break;
         case 15: // 'h' - HOUR (1..12)
             if (value == 0)
@@ -888,44 +885,40 @@ public class SimpleDateFormat extends DateFormat {
             }
             break;
         case 25: // 'c' - STANDALONE DAY
-            if (count == 5) {
-                safeAppend(formatData.standaloneNarrowWeekdays, value, buf);
-            } else if (count == 4) {
-                safeAppend(formatData.standaloneWeekdays, value, buf);
-            } else if (count == 3) {
-                safeAppend(formatData.standaloneShortWeekdays, value, buf);
-            } else {
+            if (count == 5) 
+                buf.append(formatData.standaloneNarrowWeekdays[value]);
+            else if (count == 4)
+                buf.append(formatData.standaloneWeekdays[value]);
+            else if (count == 3)
+                buf.append(formatData.standaloneShortWeekdays[value]);
+            else
                 zeroPaddingNumber(buf, value, 1, maxIntCount);
-            }
             break;
         case 26: // 'L' - STANDALONE MONTH
-            if (count == 5) {
-                safeAppend(formatData.standaloneNarrowMonths, value, buf);
-            } else if (count == 4) {
-                safeAppend(formatData.standaloneMonths, value, buf);
-            } else if (count == 3) {
-                safeAppend(formatData.standaloneShortMonths, value, buf);
-            } else {
+            if (count == 5) 
+                buf.append(formatData.standaloneNarrowMonths[value]);
+            else if (count == 4)
+                buf.append(formatData.standaloneMonths[value]);
+            else if (count == 3)
+                buf.append(formatData.standaloneShortMonths[value]);
+            else
                 zeroPaddingNumber(buf, value+1, count, maxIntCount);
-            }
             break;
         case 27: // 'Q' - QUARTER
-            if (count >= 4) {
-                safeAppend(formatData.quarters, value/3, buf);
-            } else if (count == 3) {
-                safeAppend(formatData.shortQuarters, value/3, buf);
-            } else {
+            if (count >= 4)
+                buf.append(formatData.quarters[value/3]);
+            else if (count == 3)
+                buf.append(formatData.shortQuarters[value/3]);
+            else
                 zeroPaddingNumber(buf, (value/3)+1, count, maxIntCount);
-            }
             break;
         case 28: // 'q' - STANDALONE QUARTER
-            if (count >= 4) {
-                safeAppend(formatData.standaloneQuarters, value/3, buf);
-            } else if (count == 3) {
-                safeAppend(formatData.standaloneShortQuarters, value/3, buf);
-            } else {
+            if (count >= 4)
+                buf.append(formatData.standaloneQuarters[value/3]);
+            else if (count == 3)
+                buf.append(formatData.standaloneShortQuarters[value/3]);
+            else
                 zeroPaddingNumber(buf, (value/3)+1, count, maxIntCount);
-            }
             break;
         case 29: // 'V' - TIMEZONE_SPECIAL
             if (count == 1) {
@@ -962,25 +955,11 @@ public class SimpleDateFormat extends DateFormat {
             break;
         } // switch (patternCharIndex)
 
-        // Set the FieldPosition (for the first occurrence only)
-        if (pos.getBeginIndex() == pos.getEndIndex()) {
-            if (pos.getField() == PATTERN_INDEX_TO_DATE_FORMAT_FIELD[patternCharIndex]) {
-                pos.setBeginIndex(beginOffset);
-                pos.setEndIndex(beginOffset + buf.length() - bufstart);
-            }
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
-            else if (pos.getFieldAttribute() == PATTERN_INDEX_TO_DATE_FORMAT_ATTRIBUTE[patternCharIndex]) {
-                pos.setBeginIndex(beginOffset);
-                pos.setEndIndex(beginOffset + buf.length() - bufstart);
-            }
-//#endif
-        }
-    }
-
-    private static void safeAppend(String[] array, int value, StringBuffer appendTo) {
-        if (array != null && value >= 0 && value < array.length) {
-            appendTo.append(array[value]);
+        // Set the FieldPosition (for the first occurence only)
+        if (pos.getBeginIndex() == pos.getEndIndex() &&
+            pos.getField() == PATTERN_INDEX_TO_DATE_FORMAT_FIELD[patternCharIndex]) {
+            pos.setBeginIndex(beginOffset);
+            pos.setEndIndex(beginOffset + buf.length() - bufstart);
         }
     }
 
@@ -1451,7 +1430,7 @@ public class SimpleDateFormat extends DateFormat {
      * Format characters that indicate numeric fields.  The character
      * at index 0 is treated specially.
      */
-    private static final String NUMERIC_FORMAT_CHARS = "MYyudehHmsSDFwWkK";
+    private static final String NUMERIC_FORMAT_CHARS = "MyudhHmsSDFwWkK";
 
     /**
      * Return true if the given format character, occuring count
@@ -1658,13 +1637,6 @@ public class SimpleDateFormat extends DateFormat {
                         // No good way to resolve ambiguous time at transition,
                         // but following code work in most case.
                         tz.getOffset(localMillis, true, offsets);
-
-                        if (tztype == TZTYPE_STD && offsets[1] != 0 || tztype == TZTYPE_DST && offsets[1] == 0) {
-                            // Roll back one day and try it again.
-                            // Note: This code assumes 1. timezone transition only happens once within 24 hours at max
-                            // 2. the difference of local offsets at the transition is less than 24 hours.
-                            tz.getOffset(localMillis - (24*60*60*1000), true, offsets);
-                        }
                     }
 
                     // Now, compare the results with parsed type, either standard or daylight saving time

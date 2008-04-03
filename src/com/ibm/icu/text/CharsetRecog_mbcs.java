@@ -59,7 +59,7 @@ abstract class CharsetRecog_mbcs extends CharsetRecognizer {
                 if (iter.error) {
                     badCharCount++; 
                 } else {
-                    long cv = iter.charValue & 0xFFFFFFFFL;
+                    long cv = iter.charValue & 0xFFFFFFFF;
                                         
                     if (cv <= 0xff) {
                         singleByteCharCount++;

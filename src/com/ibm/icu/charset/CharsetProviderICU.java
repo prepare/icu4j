@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 2006-2008, International Business Machines Corporation and    *
+* Copyright (C) 2006-2007, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 *
@@ -50,9 +50,9 @@ public final class CharsetProviderICU extends CharsetProvider{
     
                 // create the converter object and return it
             if(icuCanonicalName==null || icuCanonicalName.length()==0){
-                // Try the original name, may be something added and not in the alias table. 
-                // Will get an unsupported encoding exception if it doesn't work.
-                return getCharset(charsetName);
+                // this would make the Charset API to throw 
+                // unsupported encoding exception
+                return null;
             }
             return getCharset(icuCanonicalName);
         }catch(UnsupportedCharsetException ex){
@@ -109,28 +109,22 @@ public final class CharsetProviderICU extends CharsetProvider{
         String ret = null;
         try{
             if(enc!=null){
-                if((canonicalName = UConverterAlias.getAlias(enc, 0))!=null){
+                if((canonicalName = UConverterAlias.getCanonicalName(enc, "MIME"))!=null){
+                    ret = canonicalName;
+                }else if((canonicalName = UConverterAlias.getCanonicalName(enc, "IANA"))!=null){
+                    ret = canonicalName;
+                }else if((canonicalName = UConverterAlias.getCanonicalName(enc, ""))!=null){
+                    ret = canonicalName;
+                }else if((canonicalName = UConverterAlias.getAlias(enc, 0))!=null){
                     /* we have some aliases in the form x-blah .. match those first */
                     ret = canonicalName;
-                } else if((canonicalName = UConverterAlias.getCanonicalName(enc, "MIME"))!=null){
-                    ret = canonicalName;
-                } else if((canonicalName = UConverterAlias.getCanonicalName(enc, "IANA"))!=null){
-                    ret = canonicalName;
-                } /*else if((canonicalName = UConverterAlias.getCanonicalName(enc, ""))!=null){
-                    ret = canonicalName;
-                }*/else if(enc.indexOf("x-")==0){
+                }else if(enc.indexOf("x-")==0){
                     /* TODO: Match with getJavaCanonicalName method */
                     /*
                     char temp[ UCNV_MAX_CONVERTER_NAME_LENGTH] = {0};
                     strcpy(temp, encName+2);
                     */
-                    // Remove the 'x-' and get the ICU canonical name
-                    if ((canonicalName = UConverterAlias.getAlias(enc.substring(2), 0))!=null) {
-                        ret = canonicalName;
-                    } else {
-                        ret = "";
-                    }
-                    
+                    ret = enc.substring(2);
                 }else{
                     /* unsupported encoding */
                    ret = "";
@@ -197,18 +191,6 @@ public final class CharsetProviderICU extends CharsetProvider{
                         name = icuCanonicalName;
                     }
                     cName = "x-"+ name;
-                }
-            }
-            /* After getting the java canonical name from ICU alias table, get the
-             * java canonical name from the current JDK. This is neccessary because
-             * different versions of the JVM (Sun and IBM) may have a different
-             * canonical name then the one given by ICU. So the java canonical name
-             * will depend on the current JVM.  Since java cannot use the ICU canonical 
-             * we have to try to use a java compatible name.
-             */
-            if (cName != null) {
-                if (Charset.isSupported(cName)) {
-                    cName = Charset.forName(cName).name();
                 }
             }
             return cName;
