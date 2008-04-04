@@ -200,10 +200,10 @@ public class UnicodeSetTest extends TestFmwk {
     // Cover applyPattern, applyPropertyAlias
     s.clear();
     s.applyPattern("[ab ]", true);
-    expectToPattern(s, "[ab]", new String[] {"a", NOT, "ab"});
+    expectToPattern(s, "[ab]", new String[] {"a", NOT, "ab", " "});
     s.clear();
     s.applyPattern("[ab ]", false);
-    expectToPattern(s, "[\\\u0020ab]", new String[] {"a", "\u0020", NOT, "ab"});
+    expectToPattern(s, "[\\ ab]", new String[] {"a", "\u0020", NOT, "ab"});
     
     s.clear();
     s.applyPropertyAlias("nv", "0.5");
