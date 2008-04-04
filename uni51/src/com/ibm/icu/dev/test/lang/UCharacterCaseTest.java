@@ -292,16 +292,16 @@ public final class UCharacterCaseTest extends TestFmwk
     }
 
     public void TestTitleRegression() throws java.io.IOException {
-        UCaseProps foo = new UCaseProps();
-        int type = foo.getTypeOrIgnorable('\'');
+        UCaseProps props = new UCaseProps();
+        int type = props.getTypeOrIgnorable('\'');
+        assertEquals("Case Ignorable check", -1, type); // should be case-ignorable (-1)
         UnicodeSet allCaseIgnorables = new UnicodeSet();
         for (int cp = 0; cp <= 0x10FFFF; ++cp) {
-            if (foo.getTypeOrIgnorable(cp) < 0) {
+            if (props.getTypeOrIgnorable(cp) < 0) {
                 allCaseIgnorables.add(cp);
             }
         }
         logln(allCaseIgnorables.toString());
-        assertEquals("Case Ignorable check", -1, type); // should be case-ignorable (-1)
         assertEquals("Titlecase check",
                 "The Quick Brown Fox Can't Jump Over The Lazy Dogs.",
                 UCharacter.toTitleCase(ULocale.ENGLISH, "THE QUICK BROWN FOX CAN'T JUMP OVER THE LAZY DOGS.", null));
