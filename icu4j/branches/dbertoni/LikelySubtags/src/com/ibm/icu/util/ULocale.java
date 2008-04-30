@@ -4856,6 +4856,33 @@ public final class ULocale implements Serializable {
         return result;
     }
 
+    /**
+     * Add the likely subtags for a provided locale ID, per the algorithm described
+     * in the following CLDR technical report:
+     *
+     *   http://www.unicode.org/reports/tr35/#Likely_Subtags
+     *
+     * If the provided ULocale instance is already in the maximal form, or there is no
+     * data available available for maximization, it will be returned.  For example,
+     * "und-Zzzz" cannot be maximized, since there is no reasonable maximization.
+     * Otherwise, a new ULocale instance with the maximal form is returned.
+     * 
+     * Examples:
+     *
+     * "en" maximizes to "en_Latn_US"
+     *
+     * "de" maximizes to "de_Latn_US"
+     *
+     * "sr" maximizes to "sr_Cyrl_RS"
+     *
+     * "sh" maximizes to "sr_Latn_RS" (Note this will not reverse.)
+     *
+     * "zh_Hani" maximizes to "zh_Hans_CN" (Note this will not reverse.)
+     *
+     * @param loc The ULocale to maximize
+     * @return The maximized ULocale instance.
+     * @draft ICU 4.0
+     */
     public static ULocale
     addLikelySubtags(ULocale loc)
     {
@@ -4882,6 +4909,32 @@ public final class ULocale implements Serializable {
         return newLocaleID == null ? loc : new ULocale(newLocaleID);
     }
 
+    /**
+     * Minimize the subtags for a provided locale ID, per the algorithm described
+     * in the following CLDR technical report:
+     *
+     *   http://www.unicode.org/reports/tr35/#Likely_Subtags
+     *
+     * If the provided ULocale instance is already in the minimal form, or there
+     * is no data available for minimization, it will be returned.  Since the
+     * minimization algorithm relies on proper maximization, see the comments
+     * for addLikelySubtags for reasons why there might not be any data.
+     *
+     * Examples:
+     *
+     * "en_Latn_US" minimizes to "en"
+     *
+     * "de_Latn_US" minimizes to "de"
+     *
+     * "sr_Cyrl_RS" minimizes to "sr"
+     *
+     * "zh_Hant_TW" minimizes to "zh_TW" (The region is preferred to the
+     * script, and minimizing to "zh" would imply "zh_Hans_CN".)
+     *
+     * @param loc The ULocale to minimize
+     * @return The minimized ULocale instance.
+     * @draft ICU 4.0
+     */
     public static ULocale
     minimizeSubtags(ULocale loc)
     {
@@ -5400,5 +5453,4 @@ public final class ULocale implements Serializable {
     
         return null;
     }
-
 }
