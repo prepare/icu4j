@@ -3091,14 +3091,13 @@ public final class ULocale implements Serializable {
         return acceptList;
     }
 
-    private static HashMap _likelySubtagMaximizeMap;
     private static HashMap _likelySubtagsMap;
-    
-    private static void initLikelySubtagMaximizeMap() {
-        if (_likelySubtagMaximizeMap != null) {
+
+    private static void initLikelySubtagsMap() {
+        if (_likelySubtagsMap != null) {
             return;
         }
-        // We should use CLDR data which will be introduced in CLDR1.5.1.
+        // TODO(dbertoni): We should use CLDR data which was introduced CLDR1.5.1.
         // For now, use the hardcoded table below.
         String[][] likelySubtagTable = {
               {
@@ -4697,21 +4696,12 @@ public final class ULocale implements Serializable {
               }
         };
 
-        HashMap tmpMap = new HashMap();
-        for (int i = 0; i < likelySubtagTable.length; i++) {
-            ULocale loc = new ULocale(likelySubtagTable[i][1]);
-            tmpMap.put(likelySubtagTable[i][0], loc);
-        }
-
         HashMap tmpSubtagsMap = new HashMap();
         for (int i = 0; i < likelySubtagTable.length; ++i) {
             tmpSubtagsMap.put(likelySubtagTable[i][0], likelySubtagTable[i][1]);
         }
       
         synchronized (ULocale.class) {
-            if (_likelySubtagMaximizeMap == null) {
-                _likelySubtagMaximizeMap = tmpMap;
-            }
             if (_likelySubtagsMap == null) {
                 _likelySubtagsMap = tmpSubtagsMap;
             }
@@ -4721,7 +4711,7 @@ public final class ULocale implements Serializable {
     private static final String UNDEFINED_LANGUAGE = "und";
     private static final String UNDEFINED_SCRIPT = "Zzzz";
     private static final String UNDEFINED_REGION = "ZZ";
-    
+
     /**
      * Supply most likely subtags to the given locale
      * @param loc The input locale
@@ -4730,130 +4720,7 @@ public final class ULocale implements Serializable {
      * @deprecated This API is ICU internal only.
      */
     public static ULocale addLikelySubtag(ULocale loc) {
-        initLikelySubtagMaximizeMap();
-
-        // Replace any deprecated subtags with their canonical values.
-        // TODO: not yet implemented.
-
-        // If the tag is grandfathered, then return it.
-        // TODO: not yet implemented.
-
-        // Remove the script Zzzz and the region ZZ if they occur;
-        // change an empty language subtag to 'und'.
-
-        String language = loc.getLanguage();
-        String script = loc.getScript();
-        String region = loc.getCountry();
-
-        if (language.length() == 0) {
-            language = UNDEFINED_LANGUAGE;
-        }
-        if (script.equals(UNDEFINED_SCRIPT)) {
-            script = EMPTY_STRING;
-        }
-        if (region.equals(UNDEFINED_REGION)) {
-            region = EMPTY_STRING;
-        }
-
-        // Lookup
-        boolean hasScript = script.length() != 0;
-        boolean hasRegion = region.length() != 0;
-        ULocale match;
-        boolean bDone = false;
-
-        if (hasScript && hasRegion) {
-            // Lookup language_script_region
-            match = (ULocale)_likelySubtagMaximizeMap.get(language + "_" + script + "_" + region);
-            if (match != null) {
-                language = match.getLanguage();
-                script = match.getScript();
-                region = match.getCountry();
-                bDone = true;
-            }
-        }
-        if (!bDone && hasScript) {
-            // Lookup language_script
-            match = (ULocale)_likelySubtagMaximizeMap.get(language + "_" + script);
-            if (match != null) {
-                language = match.getLanguage();
-                script = match.getScript();
-                if (!hasRegion) {
-                    region = match.getCountry();
-                }
-                bDone = true;
-            }
-        }
-        if (!bDone && hasRegion) {
-            // Lookup language_region
-            match = (ULocale)_likelySubtagMaximizeMap.get(language + "_" + region);
-            if (match != null) {
-                language = match.getLanguage();
-                region = match.getCountry();
-                if (!hasScript) {
-                    script = match.getScript();
-                }
-                bDone = true;
-            }
-        }
-        if (!bDone) {
-            // Lookup language
-            match = (ULocale)_likelySubtagMaximizeMap.get(language);
-            if (match != null) {
-                language = match.getLanguage();
-                if (!hasScript) {
-                    script = match.getScript();
-                }
-                if (!hasRegion) {
-                    region = match.getCountry();
-                }
-                bDone = true;
-            }
-        }
-
-        ULocale result = null;
-
-        if (bDone) {
-            // Check if we need to create a new locale instance
-            if (language.equals(loc.getLanguage())
-                    && script.equals(loc.getScript())
-                    && region.equals(loc.getCountry())) {
-                // Nothing had changed - return the input locale
-                result = loc;
-            } else {
-                StringBuffer buf = new StringBuffer();
-                buf.append(language);
-                if (script.length() != 0) {
-                    buf.append(UNDERSCORE);
-                    buf.append(script);
-                }
-                if (region.length() != 0) {
-                    buf.append(UNDERSCORE);
-                    buf.append(region);
-                }
-                String variant = loc.getVariant();
-                if (variant.length() != 0) {
-                    buf.append(UNDERSCORE);
-                    buf.append(variant);
-                }
-                int keywordsIdx = loc.localeID.indexOf('@');
-                if (keywordsIdx >= 0) {
-                    buf.append(loc.localeID.substring(keywordsIdx));
-                }
-                result = new ULocale(buf.toString());
-            }
-        } else {
-            if (hasScript && hasRegion && language != UNDEFINED_LANGUAGE) {
-                // If non of these succeed, if the original had language, region
-                // and script, return it.
-                result = loc;
-            } else {
-                // Otherwise, signal an error.
-                // TODO: For now, we just return the input locale.
-                result = loc;
-            }
-        }
-
-        return result;
+        return addLikelySubtags(loc);
     }
 
     /**
@@ -4886,7 +4753,7 @@ public final class ULocale implements Serializable {
     public static ULocale
     addLikelySubtags(ULocale loc)
     {
-        initLikelySubtagMaximizeMap();
+        initLikelySubtagsMap();
 
         String[] tags = new String[3];
         String trailing = null;
@@ -4938,7 +4805,7 @@ public final class ULocale implements Serializable {
     public static ULocale
     minimizeSubtags(ULocale loc)
     {
-        initLikelySubtagMaximizeMap();
+        initLikelySubtagsMap();
 
         String[] tags = new String[3];
 
