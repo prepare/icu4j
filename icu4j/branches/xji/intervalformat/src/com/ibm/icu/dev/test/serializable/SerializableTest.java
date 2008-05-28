@@ -1,7 +1,7 @@
 //##header J2SE15
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2008, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  *
@@ -21,6 +21,7 @@ import com.ibm.icu.math.MathContext;
 import com.ibm.icu.util.AnnualTimeZoneRule;
 import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.Currency;
+import com.ibm.icu.util.DateInterval;
 import com.ibm.icu.util.DateTimeRule;
 import com.ibm.icu.util.GregorianCalendar;
 import com.ibm.icu.util.InitialTimeZoneRule;
@@ -384,6 +385,23 @@ public class SerializableTest extends TestFmwk.TestGroup
         }
     }
     
+    public static class DateIntervalHandler implements Handler
+    {
+        private DateInterval dateInterval[] = {
+                new DateInterval(1, System.currentTimeMillis())
+        };
+        public Object[] getTestObjects()
+        {
+            return dateInterval;
+        }
+
+        public boolean hasSameBehavior(Object a, Object b)
+        {
+            return a.equals(b);
+        }
+    }
+
+
     private static class CurrencyHandler implements Handler
     {
         public Object[] getTestObjects()
@@ -604,6 +622,10 @@ public class SerializableTest extends TestFmwk.TestGroup
         map.put("com.ibm.icu.text.MessageFormat", new FormatTests.MessageFormatHandler());
         map.put("com.ibm.icu.text.DateFormat", new FormatTests.DateFormatHandler());
         map.put("com.ibm.icu.text.DateFormatSymbols", new FormatTests.DateFormatSymbolsHandler());
+        map.put("com.ibm.icu.util.DateInterval", new DateIntervalHandler());
+        map.put("com.ibm.icu.text.DateIntervalFormat", new FormatTests.DateIntervalFormatHandler());
+        map.put("com.ibm.icu.text.DateIntervalInfo", new FormatTests.DateIntervalInfoHandler());
+        map.put("com.ibm.icu.text.DateIntervalInfo$PatternInfo", new FormatTests.PatternInfoHandler());
         map.put("com.ibm.icu.text.SimpleDateFormat", new FormatTests.SimpleDateFormatHandler());
         map.put("com.ibm.icu.text.ChineseDateFormat", new FormatTests.ChineseDateFormatHandler());
         map.put("com.ibm.icu.text.ChineseDateFormatSymbols", new FormatTests.ChineseDateFormatSymbolsHandler());
