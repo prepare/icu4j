@@ -89,12 +89,12 @@ import com.ibm.icu.text.SimpleDateFormat;
  * (for example,  DAY, MONTH, YEAR) and the format length (long, medium, short)
  * used in date time patterns.
  * 
- * For example, skeleton MONTH_YEAR_MEDIUM_FORMAT consists month and year,
+ * For example, skeleton YEAR_MONTH_MEDIUM_FORMAT consists month and year,
  * and it's corresponding full pattern is medium format date pattern.
  * So, the skeleton is "yMMM", for English, the full pattern is "MMM yyyy", 
  * which is the format by removing DATE from medium date format.
  *
- * For example, skeleton DAY_MONTH_YEAR_DOW_MEDIUM_FORMAT consists day, month,
+ * For example, skeleton YEAR_MONTH_DOW_DAY_MEDIUM_FORMAT consists day, month,
  * year, and day-of-week, and it's corresponding full pattern is the medium
  * format date pattern. So, the skeleton is "yMMMEEEd", for English,
  * the full pattern is "EEE, MMM d, yyyy", which is the medium date format
@@ -115,7 +115,7 @@ import com.ibm.icu.text.SimpleDateFormat;
  * <P>
  * There are pre-defined interval patterns for those pre-defined skeletons
  * in locales' resource files.
- * For example, for a skeleton DAY_MONTH_YEAR_MEDIUM_FORMAT, which is  "yMMMd",
+ * For example, for a skeleton YEAR_MONTH_DAY_MEDIUM_FORMAT, which is  "yMMMd",
  * in  en_US, if the largest different calendar field between date1 and date2 
  * is "year", the date interval pattern  is "MMM d, yyyy - MMM d, yyyy", 
  * such as "Jan 10, 2007 - Jan 10, 2008".
@@ -185,7 +185,7 @@ import com.ibm.icu.text.SimpleDateFormat;
  * 5. create an instance using default or given locale plus given skeleton.
  *    Users are encouraged to created date interval formatter this way and 
  *    to use the pre-defined skeleton macros, such as
- *    MONTH_YEAR_SHORT_FORMAT, which consists the calendar fields and
+ *    YEAR_MONTH_SHORT_FORMAT, which consists the calendar fields and
  *    the format style. 
  * 6. create an instance using default or given locale plus given skeleton
  *    plus a given DateIntervalInfo.
@@ -209,7 +209,7 @@ import com.ibm.icu.text.SimpleDateFormat;
  *   // and parses into
  *   DateInterval dtInterval = new DateInterval(1000*3600*24L, 1000*3600*24*2L);
  *   DateIntervalFormat dtIntervalFmt = DateIntervalFormat.getInstance(
- *                   DAY_MONTH_YEAR_FULL_FORMAT, false, Locale("en", "GB", ""));
+ *                   YEAR_MONTH_DAY_FULL_FORMAT, false, Locale("en", "GB", ""));
  *   StringBuffer str = new StringBuffer("");
  *   FieldPosition pos = new FieldPosition(0);
  *   // formatting
@@ -300,7 +300,7 @@ public class DateIntervalFormat extends UFormat {
      * </ul>
      *
      * <P>
-     * For example, given skeleton DAY_MONTH_YEAR_SHORT_FORMAT, which is "yMd",
+     * For example, given skeleton YEAR_MONTH_DAY_SHORT_FORMAT, which is "yMd",
      * for English, the full pattern is "M/d/yy", which is the short format
      * of date pattern having DAY, MONTH, and YEAR.
      * 
@@ -309,12 +309,12 @@ public class DateIntervalFormat extends UFormat {
      * (for example, DAY, MONTH, YEAR) and the format length (long, medium, 
      * short) used in date time patterns.
      * 
-     * For example, skeleton MONTH_YEAR_MEDIUM_FORMAT consists month and year,
+     * For example, skeleton YEAR_MONTH_MEDIUM_FORMAT consists month and year,
      * and it's corresponding full pattern is medium format date pattern.
      * So, the skeleton is "yMMM", for English, the full pattern is "MMM yyyy", 
      * which is the format by removing DATE from medium date format.
      *
-     * For example, skeleton DAY_MONTH_YEAR_DOW_MEDIUM_FORMAT consists day, 
+     * For example, skeleton YEAR_MONTH_DOW_DAY_MEDIUM_FORMAT consists day, 
      * month, year, and day-of-week, and it's corresponding full pattern is 
      * the medium format date pattern. So, the skeleton is "yMMMEEEd", 
      * for English, the full pattern is "EEE, MMM d, yyyy", which is 
@@ -324,79 +324,79 @@ public class DateIntervalFormat extends UFormat {
      * Predefined skeleton -- long format with day, month, year, and 
      * day of week
      */
-    public static final String DAY_MONTH_YEAR_DOW_LONG_FORMAT = "yMMMMEEEEd";
+    public static final String YEAR_MONTH_DOW_DAY_LONG_FORMAT = "yMMMMEEEEd";
     
     /**
      * Predefined skeleton -- long format with day, month, and year
      */
-    public static final String DAY_MONTH_YEAR_LONG_FORMAT = "yMMMMd";
+    public static final String YEAR_MONTH_DAY_LONG_FORMAT = "yMMMMd";
     
     /**
      * Predefined skeleton -- long format with day and month
      */
-    public static final String DAY_MONTH_LONG_FORMAT = "MMMMd";
+    public static final String MONTH_DAY_LONG_FORMAT = "MMMMd";
     
     /**
      * Predefined skeleton -- long format with month and year
      */
-    public static final String MONTH_YEAR_LONG_FORMAT = "yMMMM";
+    public static final String YEAR_MONTH_LONG_FORMAT = "yMMMM";
     
     /**
      * Predefined skeleton -- long format with day, month, and day of week
      */
-    public static final String DAY_MONTH_DOW_LONG_FORMAT = "MMMMEEEEd";
+    public static final String MONTH_DOW_DAY_LONG_FORMAT = "MMMMEEEEd";
     
     /**
      * Predefined skeleton -- medium format with day, month, year, and 
      * day of week
      */
-    public static final String DAY_MONTH_YEAR_DOW_MEDIUM_FORMAT = "yMMMEEEd";
+    public static final String YEAR_MONTH_DOW_DAY_MEDIUM_FORMAT = "yMMMEEEd";
     
     /**
      * Predefined skeleton -- medium format with day, month, and year
      */
-    public static final String DAY_MONTH_YEAR_MEDIUM_FORMAT = "yMMMd";
+    public static final String YEAR_MONTH_DAY_MEDIUM_FORMAT = "yMMMd";
     
     /**
      * Predefined skeleton -- medium format with day and month
      */
-    public static final String DAY_MONTH_MEDIUM_FORMAT = "MMMd";
+    public static final String MONTH_DAY_MEDIUM_FORMAT = "MMMd";
     
     /**
      * Predefined skeleton -- medium format with month and year
      */
-    public static final String MONTH_YEAR_MEDIUM_FORMAT = "yMMM";
+    public static final String YEAR_MONTH_MEDIUM_FORMAT = "yMMM";
     
     /**
      * Predefined skeleton -- medium format with day, month, and day of week
      */
-    public static final String DAY_MONTH_DOW_MEDIUM_FORMAT = "MMMEEEd";
+    public static final String MONTH_DOW_DAY_MEDIUM_FORMAT = "MMMEEEd";
 
     /**
      * Predefined skeleton -- short format with day, month, year, and 
      * day of week
      */
-    public static final String DAY_MONTH_YEAR_DOW_SHORT_FORMAT = "yMEEEd";
+    public static final String YEAR_MONTH_DOW_DAY_SHORT_FORMAT = "yMEEEd";
     
     /**
      * Predefined skeleton -- short format with day, month, and year
      */
-    public static final String DAY_MONTH_YEAR_SHORT_FORMAT = "yMd";
+    public static final String YEAR_MONTH_DAY_SHORT_FORMAT = "yMd";
     
     /**
      * Predefined skeleton -- short format with day and month
      */
-    public static final String DAY_MONTH_SHORT_FORMAT = "Md";
+    public static final String MONTH_DAY_SHORT_FORMAT = "Md";
     
     /**
      * Predefined skeleton -- short format with month and year
      */
-    public static final String MONTH_YEAR_SHORT_FORMAT = "yM";
+    public static final String YEAR_MONTH_SHORT_FORMAT = "yM";
     
     /**
      * Predefined skeleton -- short format with day, month, and day of week
      */
-    public static final String DAY_MONTH_DOW_SHORT_FORMAT = "MEEEd";
+    public static final String MONTH_DOW_DAY_SHORT_FORMAT = "MEEEd";
     
     /**
      * Predefined skeleton -- short format with day only
@@ -406,7 +406,7 @@ public class DateIntervalFormat extends UFormat {
     /**
      * Predefined skeleton -- short format with day and day of week
      */
-    public static final String DAY_DOW_SHORT_FORMAT = "EEEd";
+    public static final String DOW_DAY_SHORT_FORMAT = "EEEd";
     
     /**
      * Predefined skeleton -- short format with year only
@@ -495,10 +495,10 @@ public class DateIntervalFormat extends UFormat {
      * skeleton for pre-defined date format in DateTimePatterns
      */
     private static final String[] DATE_FORMAT_SKELETON = {
-        DAY_MONTH_YEAR_DOW_LONG_FORMAT,
-        DAY_MONTH_YEAR_LONG_FORMAT,
-        DAY_MONTH_YEAR_MEDIUM_FORMAT,
-        DAY_MONTH_YEAR_SHORT_FORMAT,
+        YEAR_MONTH_DOW_DAY_LONG_FORMAT,
+        YEAR_MONTH_DAY_LONG_FORMAT,
+        YEAR_MONTH_DAY_MEDIUM_FORMAT,
+        YEAR_MONTH_DAY_SHORT_FORMAT,
     };
 
     // Cache for the locale interval pattern
@@ -873,15 +873,15 @@ public class DateIntervalFormat extends UFormat {
      * Construct a DateIntervalFormat from skeleton and a given locale.
      *
      * There are 27 class instance skeleton variables defined,
-     * such as DAY_MONTH_FULL_FORMAT, DAY_MONTH_YEAR_DOW_LONG_FORMAT etc.
+     * such as MONTH_DAY_FULL_FORMAT, YEAR_MONTH_DOW_DAY_LONG_FORMAT etc.
      *
      * Those skeletons have pre-defined interval patterns in resource files.
      * Users are encouraged to use them. 
      * For example:
-     * DateIntervalFormat.getInstance(DAY_MONTH_FULL_FORMAT, false, loc);
+     * DateIntervalFormat.getInstance(MONTH_DAY_FULL_FORMAT, false, loc);
      * 
      * The given Locale provides the interval patterns.
-     * For example, for en_GB, if skeleton is DAY_MONTH_YEAR_DOW_MEDIUM_FORMAT,
+     * For example, for en_GB, if skeleton is YEAR_MONTH_DOW_DAY_MEDIUM_FORMAT,
      * which is "yMMMEEEd",
      * the interval patterns defined in resource file to above skeleton are:
      * "EEE, d MMM, yyyy - EEE, d MMM, yyyy" for year differs,
@@ -966,12 +966,12 @@ public class DateIntervalFormat extends UFormat {
      * a DateIntervalInfo, and the given locale.
      *
      * There are 27 class instance skeleton variables defined,
-     * such as DAY_MONTH_FULL_FORMAT, DAY_MONTH_YEAR_DOW_LONG_FORMAT etc.
+     * such as MONTH_DAY_FULL_FORMAT, YEAR_MONTH_DOW_DAY_LONG_FORMAT etc.
      *
      * Those skeletons have pre-defined interval patterns in resource files.
      * Users are encouraged to use them. 
      * For example:
-     * DateIntervalFormat.getInstance(DAY_MONTH_FULL_FORMAT, false, loc,itvinf);
+     * DateIntervalFormat.getInstance(MONTH_DAY_FULL_FORMAT, false, loc,itvinf);
      *
      * the DateIntervalInfo provides the interval patterns.
      *
@@ -1474,7 +1474,7 @@ public class DateIntervalFormat extends UFormat {
                 //genFallbackForNotFound(Calendar.AM_PM, skeleton, dtpng);
                 if ( date.length() == 0 ) {
                     // prefix with yMd
-                    timeSkeleton = DAY_MONTH_YEAR_SHORT_FORMAT + timeSkeleton;
+                    timeSkeleton = YEAR_MONTH_DAY_SHORT_FORMAT + timeSkeleton;
                     String pattern =dtpng.getBestPattern(timeSkeleton);
                     // for fall back interval patterns,
                     // the first part of the pattern is empty,
@@ -1519,7 +1519,7 @@ public class DateIntervalFormat extends UFormat {
             genFallbackPattern(Calendar.YEAR, time, dtpng);
             */
             // prefix with yMd
-            timeSkeleton = DAY_MONTH_YEAR_SHORT_FORMAT + timeSkeleton;
+            timeSkeleton = YEAR_MONTH_DAY_SHORT_FORMAT + timeSkeleton;
             String pattern =dtpng.getBestPattern(timeSkeleton);
             // for fall back interval patterns,
             // the first part of the pattern is empty,
