@@ -1,7 +1,7 @@
 //##header J2SE15
 /*
  *******************************************************************************
- * Copyright (C) 1996-2007, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2008, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  *
@@ -18,6 +18,9 @@ import com.ibm.icu.text.ChineseDateFormat;
 import com.ibm.icu.text.ChineseDateFormatSymbols;
 import com.ibm.icu.text.DateFormat;
 import com.ibm.icu.text.DateFormatSymbols;
+import com.ibm.icu.util.DateInterval;
+import com.ibm.icu.text.DateIntervalFormat;
+import com.ibm.icu.text.DateIntervalInfo;
 import com.ibm.icu.text.DecimalFormat;
 import com.ibm.icu.text.DecimalFormatSymbols;
 import com.ibm.icu.text.DurationFormat;
@@ -1859,7 +1862,71 @@ public class FormatTests
             return dateFormats;
         }
     }
+
+
+
+    public static class DateIntervalFormatHandler implements SerializableTest.Handler
+    {
+        public Object[] getTestObjects()
+        {
+            Locale locales[] = SerializableTest.getLocales();
+            DateIntervalFormat dateIntervalFormats[] = {
+                DateIntervalFormat.getInstance("yMMMMEEEEd", false)
+            };
+            return dateIntervalFormats;
+        }
+
+        public boolean hasSameBehavior(Object a, Object b)
+        {
+            DateIntervalFormat dfa = (DateIntervalFormat) a;
+            DateIntervalFormat dfb = (DateIntervalFormat) b;
+            DateInterval dateInterval = new DateInterval(1, System.currentTimeMillis());
+            String sfa = dfa.format(dateInterval);
+            String sfb = dfb.format(dateInterval);
+
+            return sfa.equals(sfb);
+        }
+    }
     
+    
+    public static class DateIntervalInfoHandler implements SerializableTest.Handler
+    {
+        public Object[] getTestObjects()
+        {
+            Locale locales[] = SerializableTest.getLocales();
+            DateIntervalInfo dateIntervalInfo[] = {
+                new DateIntervalInfo()
+            };
+            dateIntervalInfo[0].setIntervalPattern("yMd", Calendar.YEAR, "yy/MM/dd - yy/MM/dd");
+            dateIntervalInfo[0].setIntervalPattern("yMd", Calendar.MONTH, "yy/MM - MM/dd");
+            return dateIntervalInfo;
+        }
+
+        public boolean hasSameBehavior(Object a, Object b)
+        {
+            return a.equals(b);
+        }
+    }
+
+
+    public static class PatternInfoHandler implements SerializableTest.Handler
+    {
+        public Object[] getTestObjects()
+        {
+            Locale locales[] = SerializableTest.getLocales();
+            DateIntervalInfo.PatternInfo patternInfo[] = {
+                new DateIntervalInfo.PatternInfo("yyyy MMM dd - ", 
+                                                 "dd",
+                                                 false)
+            };
+            return patternInfo;
+        }
+
+        public boolean hasSameBehavior(Object a, Object b)
+        {
+            return a.equals(b);
+        }
+    }
     public static class ChineseDateFormatHandler extends DateFormatHandler
     {
         String patterns[] = {
