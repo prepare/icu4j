@@ -53,4 +53,20 @@ public final class DateInterval implements Serializable {
         return toDate;
     }
 
+    public boolean equals(Object a) {
+        if ( a instanceof DateInterval ) {
+            DateInterval di = (DateInterval)a;
+            return fromDate == di.fromDate && toDate == di.toDate;
+        }
+        return false;
+    }
+
+    public int hashCode() {
+        return (int)(fromDate + toDate);
+    }
+
+   public String toString() {
+       return String.valueOf(fromDate) + " " + String.valueOf(toDate);
+   }
+
 } ;// end class DateInterval
