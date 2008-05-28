@@ -3,7 +3,7 @@
 //#else
 /*
  *******************************************************************************
- * Copyright (C) 2002-2008, International Business Machines Corporation and    *
+ * Copyright (C) 2002-2007, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -229,21 +229,21 @@ public class BagFormatter {
     }
 
     public String getAbbreviatedName(
-        String src,
+        String source,
         String pattern,
         String substitute) {
 
-        int matchEnd = NameIterator.findMatchingEnd(src, pattern);
-        int sdiv = src.length() - matchEnd;
+        int matchEnd = NameIterator.findMatchingEnd(source, pattern);
+        int sdiv = source.length() - matchEnd;
         int pdiv = pattern.length() - matchEnd;
         StringBuffer result = new StringBuffer();
         addMatching(
-            src.substring(0, sdiv),
+            source.substring(0, sdiv),
             pattern.substring(0, pdiv),
             substitute,
             result);
         addMatching(
-            src.substring(sdiv),
+            source.substring(sdiv),
             pattern.substring(pdiv),
             substitute,
             result);
@@ -318,14 +318,14 @@ public class BagFormatter {
         return getName("", codePoint, codePoint);
     }
 
-    public String getName(String sep, int start, int end) {
+    public String getName(String separator, int start, int end) {
         if (getNameSource() == null || getNameSource() == UnicodeLabel.NULL) return "";
         String result = getName(start, false);
-        if (start == end) return sep + result;
+        if (start == end) return separator + result;
         String endString = getName(end, false);
-        if (result.length() == 0 && endString.length() == 0) return sep;
+        if (result.length() == 0 && endString.length() == 0) return separator;
         if (abbreviated) endString = getAbbreviatedName(endString,result,"~");
-        return sep + result + ".." + endString;
+        return separator + result + ".." + endString;
     }
 
     public String getName(String s) {
@@ -344,7 +344,7 @@ public class BagFormatter {
             control = source.getSet("gc=Cc");
             private_use = source.getSet("gc=Co");
             surrogate = source.getSet("gc=Cs");
-            noncharacter = source.getSet("noncharactercodepoint=yes");
+            noncharacter = source.getSet("noncharactercodepoint=true");
         }
 
         public String getValue(int codePoint, boolean isShort) {
@@ -354,18 +354,10 @@ public class BagFormatter {
             String result = nameProp.getValue(codePoint);
             if (result != null)
                 return hcp + result;
-            if (control.contains(codePoint)) {
-                return "<control-" + Utility.hex(codePoint, 4) + ">";
-            }
-            if (private_use.contains(codePoint)) {
-                return "<private-use-" + Utility.hex(codePoint, 4) + ">";
-            }
-            if (surrogate.contains(codePoint)) {
-                return "<surrogate-" + Utility.hex(codePoint, 4) + ">";
-            }
-            if (noncharacter.contains(codePoint)) {
-                return "<noncharacter-" + Utility.hex(codePoint, 4) + ">";
-            }
+            if (control.contains(codePoint)) return "<control-" + Utility.hex(codePoint, 4) + ">";
+            if (private_use.contains(codePoint)) return "<private-use-" + Utility.hex(codePoint, 4) + ">";
+            if (noncharacter.contains(codePoint)) return "<noncharacter-" + Utility.hex(codePoint, 4) + ">";
+            if (surrogate.contains(codePoint)) return "<surrogate-" + Utility.hex(codePoint, 4) + ">";
             //if (suppressReserved) return "";
             return hcp + "<reserved-" + Utility.hex(codePoint, 4) + ">";
         }
@@ -387,8 +379,8 @@ public class BagFormatter {
         return hex(s,separator);
     }
 
-    public String hex(String s, String sep) {
-        return UnicodeLabel.HEX.getValue(s, sep, true);
+    public String hex(String s, String separator) {
+        return UnicodeLabel.HEX.getValue(s, separator, true);
     }
 
     public String hex(int start, int end) {
@@ -446,11 +438,11 @@ public class BagFormatter {
     */
 
     private void addMatching(
-        String src,
+        String source,
         String pattern,
         String substitute,
         StringBuffer result) {
-        NameIterator n1 = new NameIterator(src);
+        NameIterator n1 = new NameIterator(source);
         NameIterator n2 = new NameIterator(pattern);
         boolean first = true;
         while (true) {
@@ -506,42 +498,28 @@ public class BagFormatter {
           output.print(tabber.process(s) +  lineSeparator);
         }
 
-        public void doAt(Object c, PrintWriter out) {
-            output = out;
+        public void doAt(Object c, PrintWriter output) {
+            this.output = output;
             isHtml = tabber instanceof Tabber.HTMLTabber;
             counter = 0;
             
             tabber.clear();
-            // old:
-            // 0009..000D    ; White_Space # Cc   [5] <control-0009>..<control-000D>
-            // new
-            // 0009..000D    ; White_Space #Cc  [5] <control>..<control>
             tabber.add(mergeRanges ? 14 : 6,Tabber.LEFT);
 
-            if (propName.length() > 0) {
-                tabber.add(propName.length() + 2,Tabber.LEFT);
-            }
+            if (propName.length() > 0) tabber.add(propName.length() + 2,Tabber.LEFT);
 
             valueSize = getValueSource().getMaxWidth(shortValue);
             if (DEBUG) System.out.println("ValueSize: " + valueSize);
-            if (valueSize > 0) {
-                tabber.add(valueSize + 2,Tabber.LEFT); // value
-            }
+            if (getValueSource() != UnicodeLabel.NULL) tabber.add(valueSize + 2,Tabber.LEFT); // value
 
             tabber.add(3,Tabber.LEFT); // comment character
 
             labelSize = getLabelSource(true).getMaxWidth(shortLabel);
-            if (labelSize > 0) {
-                tabber.add(labelSize + 1,Tabber.LEFT); // value
-            }
+            if (labelSize > 0) tabber.add(labelSize + 1,Tabber.LEFT); // value
 
-            if (mergeRanges && showCount) {
-                tabber.add(5,Tabber.RIGHT);
-            }
+            if (mergeRanges && showCount) tabber.add(5,Tabber.RIGHT);
 
-            if (showLiteral != null) {
-                tabber.add(4,Tabber.LEFT);
-            }
+            if (showLiteral != null) tabber.add(4,Tabber.LEFT);
             //myTabber.add(7,Tabber.LEFT);
 
             commentSeparator = (showCount || showLiteral != null
@@ -550,8 +528,7 @@ public class BagFormatter {
             ? "\t #" : "";
 
             if (DEBUG) System.out.println("Tabber: " + tabber.toString());
-            if (DEBUG) System.out.println("Tabber: " + tabber.process(
-                    "200C..200D\t; White_Space\t #\tCf\t [2]\t ZERO WIDTH NON-JOINER..ZERO WIDTH JOINER"));
+            if (DEBUG) System.out.println("Tabber: " + tabber.process("a\tb\td\td\tf\tg\th"));
             doAt(c);
         }
 
@@ -745,9 +722,9 @@ public class BagFormatter {
         int start, limit;
         private int veryLimit;
         //String label, value;
-        void reset(int rangeStart, int rangeLimit) {
-            limit = rangeStart;
-            veryLimit = rangeLimit;
+        void reset(int start, int limit) {
+            this.limit = start;
+            this.veryLimit = limit;
         }
         boolean next() {
             if (limit >= veryLimit)
@@ -956,8 +933,8 @@ public class BagFormatter {
         return valueSource;
     }
 
-    private String getValue(int cp, boolean shortVal) {
-        String result = getValueSource().getValue(cp, shortVal);
+    private String getValue(int cp, boolean shortValue) {
+        String result = getValueSource().getValue(cp, shortValue);
         if (result == null) return NULL_VALUE;
         if (hexValue) result = hex(result, " ");
         return result;

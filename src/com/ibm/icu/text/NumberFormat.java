@@ -1,7 +1,7 @@
 //##header J2SE15
 /*
  *******************************************************************************
- * Copyright (C) 1996-2008, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2007, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -14,16 +14,13 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.math.BigInteger;
 import java.text.FieldPosition;
+import java.text.Format;
 import java.text.ParseException;
 import java.text.ParsePosition;
 import java.util.Collections;
 import java.util.Locale;
 import java.util.MissingResourceException;
 import java.util.Set;
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
-import java.text.Format;
-//#endif
 
 import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.util.Currency;
@@ -195,7 +192,7 @@ public abstract class NumberFormat extends UFormat {
             return format(((Long)number).longValue(), toAppendTo, pos);
         } else if (number instanceof BigInteger) {
             return format((BigInteger) number, toAppendTo, pos);
-//#if defined(FOUNDATION10)
+//#if defined(FOUNDATION10) || defined(J2SE13)
 //#else
         } else if (number instanceof java.math.BigDecimal) {
             return format((java.math.BigDecimal) number, toAppendTo, pos);
@@ -252,7 +249,7 @@ public abstract class NumberFormat extends UFormat {
                       new FieldPosition(0)).toString();
     }
 
-//#if defined(FOUNDATION10)
+//#if defined(FOUNDATION10) || defined(J2SE13)
 //#else
     /**
      * <strong><font face=helvetica color=red>NEW</font></strong>
@@ -312,7 +309,7 @@ public abstract class NumberFormat extends UFormat {
     public abstract StringBuffer format(BigInteger number,
                                         StringBuffer toAppendTo,
                                         FieldPosition pos); 
-//#if defined(FOUNDATION10)
+//#if defined(FOUNDATION10) || defined(J2SE13)
 //#else
     /**
      * <strong><font face=helvetica color=red>NEW</font></strong>
@@ -455,7 +452,8 @@ public abstract class NumberFormat extends UFormat {
      * This is the default behavior.
      * @param value True to enable strict parsing.  Default is false.
      * @see #isParseStrict
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     public void setParseStrict(boolean value) {
         parseStrict = value;
@@ -465,7 +463,8 @@ public abstract class NumberFormat extends UFormat {
      * Return whether strict parsing is in effect.
      * @return true if strict parsing is in effect
      * @see #setParseStrict
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     public boolean isParseStrict() {
         return parseStrict;
@@ -880,7 +879,7 @@ public abstract class NumberFormat extends UFormat {
     /**
      * Get the list of Locales for which NumberFormats are available.
      * @return the available locales
-     * @draft ICU 3.2 (retain)
+     * @draft ICU 3.2
      * @provisional This API might change or be removed in a future release.
      */
     public static ULocale[] getAvailableULocales() {
@@ -1162,33 +1161,6 @@ public abstract class NumberFormat extends UFormat {
             c = Currency.getInstance(uloc);
         }
         return c;
-    }
-
-    /**
-     * Get the rounding mode used in this NumberFormat.  The default implementation of
-     * tis method in NumberFormat always throws <code>UnsupportedOperationException</code>.
-     * @return A rounding mode, between <code>BigDecimal.ROUND_UP</code>
-     * and <code>BigDecimal.ROUND_UNNECESSARY</code>.
-     * @see #setRoundingMode(int)
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public int getRoundingMode() {
-        throw new UnsupportedOperationException("getRoundingMode must be implemented by the subclass implementation.");
-    }
-
-    /**
-     * Set the rounding mode used in this NumberFormat.  The default implementation of
-     * tis method in NumberFormat always throws <code>UnsupportedOperationException</code>.
-     * @param roundingMode A rounding mode, between
-     * <code>BigDecimal.ROUND_UP</code> and
-     * <code>BigDecimal.ROUND_UNNECESSARY</code>.
-     * @see #getRoundingMode()
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public void setRoundingMode(int roundingMode) {
-        throw new UnsupportedOperationException("setRoundingMode must be implemented by the subclass implementation.");
     }
 
     // =======================privates===============================

@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2008, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2007, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -9,7 +9,7 @@ package com.ibm.icu.dev.test.rbbi;
 //Regression testing of RuleBasedBreakIterator
 //
 //  TODO:  These tests should be mostly retired.
-//          Much of the test data that was originally here was removed when the RBBI rules
+//          Much of the test data that was originaly here was removed when the RBBI rules
 //            were updated to match the Unicode boundary TRs, and the data was found to be invalid.
 //          Much of the remaining data has been moved into the rbbitst.txt test data file,
 //            which is common between ICU4C and ICU4J.  The remaining test data should also be moved,
@@ -17,8 +17,6 @@ package com.ibm.icu.dev.test.rbbi;
 import com.ibm.icu.dev.test.*;
 import com.ibm.icu.text.RuleBasedBreakIterator;
 import com.ibm.icu.text.BreakIterator;
-import com.ibm.icu.util.ULocale;
-
 import java.util.Vector;
 
 public class RBBITest extends TestFmwk 
@@ -505,37 +503,5 @@ public class RBBITest extends TestFmwk
         }
          logln(out.toString());
     }
-   
-   public void TestThaiDictionaryBreakIterator() {
-       int position;
-       int index;
-       int result[] = { 1, 2, 5, 10, 11, 12, 11, 10, 5, 2, 1, 0 };
-       char ctext[] = { 
-               0x0041, 0x0020,
-               0x0E01, 0x0E32, 0x0E23, 0x0E17, 0x0E14, 0x0E25, 0x0E2D, 0x0E07,
-               0x0020, 0x0041
-               };
-       String text = new String(ctext);
-       
-       ULocale locale = ULocale.createCanonical("th");
-       BreakIterator b = BreakIterator.getWordInstance(locale);
-       
-       b.setText(text);
-       
-       index = 0;
-       // Test forward iteration
-       while ((position = b.next())!= BreakIterator.DONE) {
-           if (position != result[index++]) {
-               errln("Error with ThaiDictionaryBreakIterator forward iteration test at " + position + ".\nShould have been " + result[index-1]);
-           }
-       }
-       
-       // Test backward iteration
-       while ((position = b.previous())!= BreakIterator.DONE) {
-           if (position != result[index++]) {
-               errln("Error with ThaiDictionaryBreakIterator backward iteration test at " + position + ".\nShould have been " + result[index-1]);
-           }
-       }
-   }
   
 }

@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2008, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -14,21 +14,26 @@ import java.util.*;
  * code points or ranges have been returned, it returns the
  * multicharacter strings of the UnicodSet, if any.
  *
- * <p>To iterate over code points and multicharacter strings,
- * use a loop like this:
+ * <p>To iterate over code points, use a loop like this:
  * <pre>
- * for (UnicodeSetIterator it = new UnicodeSetIterator(set); it.next();) {
- *   processString(it.getString());
+ * UnicodeSetIterator it = new UnicodeSetIterator(set);
+ * while (set.next()) {
+ *   if (set.codepoint != UnicodeSetIterator.IS_STRING) {
+ *     processCodepoint(set.codepoint);
+ *   } else {
+ *     processString(set.string);
+ *   }
  * }
  * </pre>
  *
  * <p>To iterate over code point ranges, use a loop like this:
  * <pre>
- * for (UnicodeSetIterator it = new UnicodeSetIterator(set); it.nextRange();) {
- *   if (it.codepoint != UnicodeSetIterator.IS_STRING) {
- *     processCodepointRange(it.codepoint, it.codepointEnd);
+ * UnicodeSetIterator it = new UnicodeSetIterator(set);
+ * while (set.nextRange()) {
+ *   if (set.codepoint != UnicodeSetIterator.IS_STRING) {
+ *     processCodepointRange(set.codepoint, set.codepointEnd);
  *   } else {
- *     processString(it.getString());
+ *     processString(set.string);
  *   }
  * }
  * </pre>
@@ -177,11 +182,11 @@ public class UnicodeSetIterator {
      * Sets this iterator to visit the elements of the given set and
      * resets it to the start of that set.  The iterator is valid only
      * so long as <tt>set</tt> is valid.
-     * @param uset the set to iterate over.
+     * @param set the set to iterate over.
      * @stable ICU 2.0
      */
-    public void reset(UnicodeSet uset) {
-        set = uset;
+    public void reset(UnicodeSet set) {
+        this.set = set;
         reset();
     }
         
@@ -206,8 +211,8 @@ public class UnicodeSetIterator {
     
     /**
      * Gets the current string from the iterator. Only use after calling next(), not nextRange().
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
+     * @internal
+     * @deprecated This API is ICU internal only.
      */
     public String getString() {
         if (codepoint != IS_STRING) {
@@ -241,8 +246,8 @@ public class UnicodeSetIterator {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    protected void loadRange(int aRange) {
-        nextElement = set.getRangeStart(aRange);
-        endElement = set.getRangeEnd(aRange);
+    protected void loadRange(int range) {
+        nextElement = set.getRangeStart(range);
+        endElement = set.getRangeEnd(range);
     }
 }

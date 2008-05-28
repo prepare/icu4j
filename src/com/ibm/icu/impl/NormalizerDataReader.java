@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2008, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2007, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -303,6 +303,7 @@ final class NormalizerDataReader implements ICUBinary.Authenticate {
     * <p>Protected constructor.</p>
     * @param inputStream ICU uprop.dat file input stream
     * @exception IOException throw if data file fails authentication 
+    * @draft 2.1
     */
     protected NormalizerDataReader(InputStream inputStream) 
                                         throws IOException{
@@ -337,6 +338,7 @@ final class NormalizerDataReader implements ICUBinary.Authenticate {
     * @param combiningTable
     * @param canonStartSets
     * @exception IOException thrown when data reading fails
+    * @draft 2.1
     */
     protected void read(byte[] normBytes, byte[] fcdBytes, byte[] auxBytes,
                         char[] extraData, char[] combiningTable, 

@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2008, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2007, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -200,7 +200,7 @@ public class Collator implements Comparator, Cloneable
      * This is for backwards compatibility with Java APIs only.  It
      * should not be used, IDENTICAL should be used instead.  ICU's
      * collation does not support Java's FULL_DECOMPOSITION mode.
-     * @stable ICU 3.4
+     * @draft ICU 3.4
      * @deprecated Backwards compatibility with Java only.
      */
     public final static int FULL_DECOMPOSITION = java.text.Collator.FULL_DECOMPOSITION;
@@ -383,7 +383,8 @@ public class Collator implements Comparator, Cloneable
      * service is "collation".
      * @return an array of valid collation keywords.
      * @see #getKeywordValues
-     * @stable ICU 3.0
+     * @draft ICU 3.0
+     * @provisional
      */
     public static final String[] getKeywords() {
         return new String[0];
@@ -394,7 +395,8 @@ public class Collator implements Comparator, Cloneable
      * that keyword that are currently in use.
      * @param keyword one of the keywords returned by getKeywords.
      * @see #getKeywords
-     * @stable ICU 3.0
+     * @draft ICU 3.0
+     * @provisional
      */
     public static final String[] getKeywordValues(String keyword) {
     	return new String[0];

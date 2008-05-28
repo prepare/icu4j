@@ -1,5 +1,5 @@
 /*
- * (C) Copyright IBM Corp. 2002-2008 - All Rights Reserved
+ * (C) Copyright IBM Corp. 2002-2007 - All Rights Reserved
  */
 
 package com.ibm.icu.impl;
@@ -241,7 +241,19 @@ public class ICULocaleData {
                     cl = ClassLoader.getSystemClassLoader();
                 }
                 Class cls = cl.loadClass(name);
-				b = ResourceBundle.getBundle(name.substring(0, i), locale); 
+                if (ICUListResourceBundle.class.isAssignableFrom(cls)) {
+                    ICUListResourceBundle bx = (ICUListResourceBundle)cls.newInstance();
+
+                    if (parent != null) {
+                        bx.setParentX(parent);
+                    }
+                    bx.icuLocale = locale;
+                    b = bx;
+                    // System.out.println("iculistresourcebundle: " + name + " is " + b);
+                } else {
+                    b = ResourceBundle.getBundle(name.substring(0, i), locale);
+                    // System.out.println("resourcebundle: " + name + " is " + b);
+                }    
                 addToCache(name, b);
             }
             catch (ClassNotFoundException e) {

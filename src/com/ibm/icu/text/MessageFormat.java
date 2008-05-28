@@ -1,7 +1,7 @@
 //##header J2SE15
 /*
 **********************************************************************
-* Copyright (c) 2004-2008, International Business Machines
+* Copyright (c) 2004-2007, International Business Machines
 * Corporation and others.  All Rights Reserved.
 **********************************************************************
 * Author: Alan Liu
@@ -14,24 +14,21 @@ package com.ibm.icu.text;
 import java.io.IOException;
 import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
+import java.text.AttributedCharacterIterator;
+import java.text.AttributedString;
 import java.text.CharacterIterator;
 import java.text.ChoiceFormat;
 import java.text.FieldPosition;
 import java.text.Format;
 import java.text.ParseException;
 import java.text.ParsePosition;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.HashMap;
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
-import java.text.AttributedCharacterIterator;
-import java.text.AttributedString;
-import java.util.ArrayList;
-//#endif
 
 import com.ibm.icu.impl.Utility;
 import com.ibm.icu.text.UnicodeSet;
@@ -504,11 +501,11 @@ public class MessageFormat extends UFormat {
      * The pattern must contain only named or only numeric arguments,
      * mixing them is not allowed.
      *
-     * @param pttrn the pattern for this message format
+     * @param pattern the pattern for this message format
      * @throws IllegalArgumentException if the pattern is invalid
      * @stable ICU 3.0
      */
-    public void applyPattern(String pttrn) {
+    public void applyPattern(String pattern) {
         StringBuffer[] segments = new StringBuffer[4];
         for (int i = 0; i < segments.length; ++i) {
             segments[i] = new StringBuffer();
@@ -518,12 +515,12 @@ public class MessageFormat extends UFormat {
         boolean inQuote = false;
         int braceStack = 0;
         maxOffset = -1;
-        for (int i = 0; i < pttrn.length(); ++i) {
-            char ch = pttrn.charAt(i);
+        for (int i = 0; i < pattern.length(); ++i) {
+            char ch = pattern.charAt(i);
             if (part == 0) {
                 if (ch == '\'') {
-                    if (i + 1 < pttrn.length()
-                        && pttrn.charAt(i+1) == '\'') {
+                    if (i + 1 < pattern.length()
+                        && pattern.charAt(i+1) == '\'') {
                         segments[part].append(ch);  // handle doubles
                         ++i;
                     } else {
@@ -715,7 +712,8 @@ public class MessageFormat extends UFormat {
      *
      * @param newFormats a map from String to Format providing new
      *        formats for named arguments.
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public void setFormatsByArgumentName(Map newFormats) {
         for (int i = 0; i <= maxOffset; i++) {
@@ -814,7 +812,8 @@ public class MessageFormat extends UFormat {
      *
      * @param argumentName the name of the argument to change
      * @param newFormat the new format to use
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public void setFormatByArgumentName(String argumentName, Format newFormat) {
         for (int i = 0; i < maxOffset; ++i) {
@@ -1029,7 +1028,8 @@ public class MessageFormat extends UFormat {
      *         <code>arguments</code> array is not of the type
      *         expected by the format element(s) that use it.
      * @return the passed-in StringBuffer
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public final StringBuffer format(Map arguments, StringBuffer result,
                                      FieldPosition pos) {
@@ -1067,7 +1067,8 @@ public class MessageFormat extends UFormat {
      *         that use it.
      * @see #format(Map, StringBuffer, FieldPosition)
      * @see #format(String, Object[])
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public static String format(String pattern, Map arguments) {
         MessageFormat temp = new MessageFormat(pattern);
@@ -1079,7 +1080,8 @@ public class MessageFormat extends UFormat {
      * and false otherwise.  See class description.
      *
      * @return true if named arguments are used.
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public boolean usesNamedArguments() {
         return !argumentNamesAreNumeric;
@@ -1256,7 +1258,8 @@ public class MessageFormat extends UFormat {
      * @param pos the position at which to start parsing.  on return,
      *        contains the result of the parse.
      * @return a Map containing key/value pairs for each parsed argument.
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public Map parseToMap(String source, ParsePosition pos) {
         if (source == null) {
@@ -1376,7 +1379,8 @@ public class MessageFormat extends UFormat {
      * @throws ParseException if the beginning of the specified string cannot 
      *         be parsed.
      * @see #parseToMap(String, ParsePosition)
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public Map parseToMap(String source) throws ParseException {
         
@@ -1633,10 +1637,7 @@ public class MessageFormat extends UFormat {
         // note: this implementation assumes a fast substring & index.
         // if this is not true, would be better to append chars one by one.
         int lastOffset = 0;
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
         int last = result.length();
-//#endif
         for (int i = 0; i <= maxOffset; ++i) {
             result.append(pattern.substring(lastOffset, offsets[i]));
             lastOffset = offsets[i];

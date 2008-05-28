@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2008, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2007, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -22,6 +22,7 @@ import com.ibm.icu.impl.Utility;
 import com.ibm.icu.impl.ZoneMeta;
 import com.ibm.icu.impl.ZoneStringFormat;
 import com.ibm.icu.util.Calendar;
+import com.ibm.icu.util.GregorianCalendar;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.UResourceBundle;
 
@@ -81,13 +82,15 @@ public class DateFormatSymbols implements Serializable, Cloneable {
     // Constants for context
     /**
      * Constant for context.
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int FORMAT = 0;
 
     /**
      * Constant for context.
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int STANDALONE = 1;
 
@@ -102,19 +105,22 @@ public class DateFormatSymbols implements Serializable, Cloneable {
 
     /**
      * Constant for width.
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int ABBREVIATED = 0;
 
     /**
      * Constant for width.
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int WIDE = 1;
 
     /**
      * Constant for width.
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int NARROW = 2;
 
@@ -136,7 +142,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      */
     public DateFormatSymbols()
     {
-        this(ULocale.getDefault());
+        initializeData(ULocale.getDefault(), ""); // TODO: type?
     }
     
     /**
@@ -150,7 +156,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      */
     public DateFormatSymbols(Locale locale)
     {
-        this(ULocale.forLocale(locale));
+        initializeData(ULocale.forLocale(locale), ""); // TODO: type?
     }
 
     /**
@@ -164,7 +170,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      */
     public DateFormatSymbols(ULocale locale)
     {
-        initializeData(locale, getCalendarType(locale));
+        initializeData(locale, ""); // TODO: type?
     }
 
     /**
@@ -771,7 +777,8 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * @param width      The width or the returned quarter string,
      *                   either WIDE or ABBREVIATED. There are no NARROW quarters.
      * @return the quarter strings.
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     public String[] getQuarters(int context, int width) {
         String [] returnValue = null;
@@ -813,7 +820,8 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * @param context    The formatting context, FORMAT or STANDALONE.
      * @param width      The width of the quarter string,
      *                   either WIDE or ABBREVIATED. There are no NARROW quarters.
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public void setQuarters(String[] newQuarters, int context, int width) {
         switch (context) {
@@ -1045,10 +1053,10 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * Initialize format symbols for the locale and calendar type
      * @param desiredLocale The locale whose symbols are desired.
      * @param calData       The calendar resource data
-     * @internal
-     * @deprecated This API is ICU internal only.
+     * @stable ICU 3.0
      */
-    // This API was accidentally marked as @stable ICU 3.0 formerly.
+    //FIXME: This protected method must not be a stable API, because
+    // CalendarData is a non API class   
     protected void initializeData(ULocale desiredLocale, CalendarData calData)
     {
         // FIXME: cache only ResourceBundle. Hence every time, will do
@@ -1225,8 +1233,9 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      */
     private void initializeGMTFormat(ULocale desiredLocale) {
         // TimeZone format localization is not included in CalendarData
-        gmtFormat = ZoneMeta.getTZLocalizationInfo(desiredLocale, ZoneMeta.GMT);
-        if (gmtFormat == null) {
+        try {
+            gmtFormat = ZoneMeta.getTZLocalizationInfo(desiredLocale, ZoneMeta.GMT);
+        } catch (MissingResourceException e) {
             gmtFormat = DEFAULT_GMT_PATTERN;
         }
 
@@ -1245,15 +1254,11 @@ public class DateFormatSymbols implements Serializable, Cloneable {
             // For now, append "ss" to the end.
             if (gmtHourFormats[OFFSET_POSITIVE][OFFSET_HM].indexOf(':') != -1) {
                 gmtHourFormats[OFFSET_POSITIVE][OFFSET_HMS] = gmtHourFormats[OFFSET_POSITIVE][OFFSET_HM] + ":ss";
-            } else if (gmtHourFormats[OFFSET_POSITIVE][OFFSET_HM].indexOf('.') != -1) {
-                gmtHourFormats[OFFSET_POSITIVE][OFFSET_HMS] = gmtHourFormats[OFFSET_POSITIVE][OFFSET_HM] + ".ss";
             } else {
                 gmtHourFormats[OFFSET_POSITIVE][OFFSET_HMS] = gmtHourFormats[OFFSET_POSITIVE][OFFSET_HM] + "ss";
             }
             if (gmtHourFormats[OFFSET_NEGATIVE][OFFSET_HM].indexOf(':') != -1) {
                 gmtHourFormats[OFFSET_NEGATIVE][OFFSET_HMS] = gmtHourFormats[OFFSET_NEGATIVE][OFFSET_HM] + ":ss";
-            } else if (gmtHourFormats[OFFSET_NEGATIVE][OFFSET_HM].indexOf('.') != -1) {
-                gmtHourFormats[OFFSET_NEGATIVE][OFFSET_HMS] = gmtHourFormats[OFFSET_NEGATIVE][OFFSET_HM] + ".ss";
             } else {
                 gmtHourFormats[OFFSET_NEGATIVE][OFFSET_HMS] = gmtHourFormats[OFFSET_NEGATIVE][OFFSET_HM] + "ss";
             }
@@ -1534,7 +1539,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      */
     public DateFormatSymbols(ResourceBundle bundle, ULocale locale) {
         initializeData(locale, 
-            new CalendarData((ICUResourceBundle)bundle, getCalendarType(locale)));
+            new CalendarData((ICUResourceBundle)bundle, null));
     }
 
     /**
@@ -1546,15 +1551,11 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * (just before the class name) and "Symbols" appended to the end.
      * For example, the bundle corresponding to "com.ibm.icu.util.HebrewCalendar"
      * is "com.ibm.icu.impl.data.HebrewCalendarSymbols".
-     * <p>
-     * <b>Note:</b>Because of the structural changes in the ICU locale bundle,
-     * this API no longer works as described.  This method always returns null.
-     * @deprecated ICU 4.0
+     * @stable ICU 2.0
      */
-    // This API was formerly @stable ICU 2.0
     static public ResourceBundle getDateFormatBundle(Class calendarClass, Locale locale)
         throws MissingResourceException {
-        return null;
+        return getDateFormatBundle(calendarClass, ULocale.forLocale(locale));
     }
         
     /**
@@ -1566,58 +1567,59 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * (just before the class name) and "Symbols" appended to the end.
      * For example, the bundle corresponding to "com.ibm.icu.util.HebrewCalendar"
      * is "com.ibm.icu.impl.data.HebrewCalendarSymbols".
-     * <p>
-     * <b>Note:</b>Because of the structural changes in the ICU locale bundle,
-     * this API no longer works as described.  This method always returns null.
-     * @deprecated ICU 4.0
+     * @stable ICU 3.2
      */
-    // This API was formerly @stable ICU 3.2
     static public ResourceBundle getDateFormatBundle(Class calendarClass, ULocale locale)
         throws MissingResourceException {
-        return null;
+        
+        // Find the calendar's class name, which we're going to use to construct the
+        // resource bundle name.
+        String fullName = calendarClass.getName();
+        int lastDot = fullName.lastIndexOf('.');
+        String className = fullName.substring(lastDot+1);
+
+        String bundleName = className + "Symbols";
+
+        UResourceBundle result = null;
+        try {
+            result = UResourceBundle.getBundleInstance(bundleName, locale);
+        }
+        catch (MissingResourceException e) {
+            ///CLOVER:OFF
+            // coverage requires test without data, so skip
+            //if (!(cal instanceof GregorianCalendar)) {
+            if (!(GregorianCalendar.class.isAssignableFrom(calendarClass))) {
+                // Ok for symbols to be missing for a Gregorian calendar, but
+                // not for any other type.
+                throw e;
+            }
+            ///CLOVER:ON
+        }
+        return result;
     }
 
     /**
      * Variant of getDateFormatBundle(java.lang.Class, java.util.Locale) that takes
      * a Calendar instance instead of a Calendar class.
-     * <p>
-     * <b>Note:</b>Because of the structural changes in the ICU locale bundle,
-     * this API no longer works as described.  This method always returns null.
      * @see #getDateFormatBundle(java.lang.Class, java.util.Locale)
-     * @deprecated ICU 4.0
+     * @stable ICU 2.2
      */
-    // This API was formerly @stable ICU 2.2
     public static ResourceBundle getDateFormatBundle(Calendar cal, Locale locale)
         throws MissingResourceException {
-        return null;
+        return getDateFormatBundle(cal.getClass(), ULocale.forLocale(locale));
     }
     
     /**
      * Variant of getDateFormatBundle(java.lang.Class, java.util.Locale) that takes
      * a Calendar instance instead of a Calendar class.
-     * <p>
-     * <b>Note:</b>Because of the structural changes in the ICU locale bundle,
-     * this API no longer works as described.  This method always returns null.
      * @see #getDateFormatBundle(java.lang.Class, java.util.Locale)
-     * @deprecated ICU 4.0
+     * @stable ICU 3.2
      */
-    // This API was formerly @stable ICU 3.2
     public static ResourceBundle getDateFormatBundle(Calendar cal, ULocale locale)
         throws MissingResourceException {
-        return null;
+        return getDateFormatBundle(cal.getClass(), locale);
     }
-
-    // Return the calendar type string for the given locale
-    private static String getCalendarType(ULocale locale) {
-        String calType = locale.getKeywordValue("calendar");
-        if (calType == null) {
-            locale = ICUResourceBundle.getFunctionalEquivalent(
-                ICUResourceBundle.ICU_BASE_NAME, "calendar", "calendar", locale, null, false);
-            calType = locale.getKeywordValue("calendar");
-        }
-        return calType;
-    }
-
+    
     // -------- BEGIN ULocale boilerplate --------
 
     /**

@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2008, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2007, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -40,7 +40,7 @@ import java.util.MissingResourceException;
  * @stable ICU 2.0
  */
 
-public class DecimalFormatSymbols implements Cloneable, Serializable {
+final public class DecimalFormatSymbols implements Cloneable, Serializable {
 
     /**
      * Create a DecimalFormatSymbols object for the default locale.
@@ -449,7 +449,8 @@ public class DecimalFormatSymbols implements Cloneable, Serializable {
     /**
      * Return the monetary decimal separator.
      * @return the monetary decimal separator character
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     public char getMonetaryGroupingSeparator()
     {
@@ -476,7 +477,8 @@ public class DecimalFormatSymbols implements Cloneable, Serializable {
     /**
      * Set the monetary decimal separator.
      * @param sep the monetary decimal separator character
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     public void setMonetaryGroupingSeparator(char sep)
     {

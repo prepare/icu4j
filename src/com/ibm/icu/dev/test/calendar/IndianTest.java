@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2005-2008, International Business Machines Corporation and    *
+ * Copyright (C) 2005-2007, International Business Machines Corporation and         *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -185,6 +185,7 @@ public class IndianTest extends CalendarTest
     
         {
             // data
+            IndianCalendar cal = new IndianCalendar(-1039, 9, 21);
             String[] calendarLocales = {
                 "bn_IN", "gu_IN", "hi_IN", "kn_IN", "ml_IN", "or_IN", "pa_IN", "ta_IN", "te_IN"
             };
@@ -196,14 +197,13 @@ public class IndianTest extends CalendarTest
             for (int i = 0; i < calendarLocales.length; ++i) {
                 String calLocName = calendarLocales[i];
                 Locale calLocale = LocaleUtility.getLocaleFromName(calLocName);
-                IndianCalendar cal = new IndianCalendar(calLocale);
-                cal.set(-1039, 9, 21);
+                cal = new IndianCalendar(calLocale);
 
                 for (int j = 0; j < formatLocales.length; j++  ) {
                     String locName = formatLocales[j];
                     Locale formatLocale = LocaleUtility.getLocaleFromName(locName);
                     DateFormat format = DateFormat.getDateTimeInstance(cal, DateFormat.FULL, DateFormat.FULL, formatLocale);
-                    logln(calLocName + "/" + locName + " --> " + format.format(cal));
+                    //logln(calLocName + "/" + locName + " --> " + format.format(time));
                 }
             }
         }
@@ -237,7 +237,9 @@ public class IndianTest extends CalendarTest
         Calendar cal = Calendar.getInstance();
         cal.set(2007, Calendar.JANUARY, 1);
         IndianCalendar indian = new IndianCalendar();
-        doLimitsTest(indian, null, cal.getTime());
+        if (!skipIfBeforeICU(3,9,0)) {
+            doLimitsTest(indian, null, cal.getTime());
+        }
         doTheoreticalLimitsTest(indian, true);
     }
 }

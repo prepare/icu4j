@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 2006-2008, International Business Machines Corporation and    *
+* Copyright (C) 2006-2007, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 *
@@ -23,13 +23,15 @@ import com.ibm.icu.impl.InvalidFormatException;
 /**
  * A concrete subclass of CharsetProvider for loading and providing charset converters
  * in ICU.
- * @stable ICU 3.6
+ * @draft ICU 3.6
+ * @provisional This API might change or be removed in a future release.
  */
 public final class CharsetProviderICU extends CharsetProvider{
     
     /**
      * Default constructor 
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     public CharsetProviderICU() {
     }
@@ -48,9 +50,9 @@ public final class CharsetProviderICU extends CharsetProvider{
     
                 // create the converter object and return it
             if(icuCanonicalName==null || icuCanonicalName.length()==0){
-                // Try the original name, may be something added and not in the alias table. 
-                // Will get an unsupported encoding exception if it doesn't work.
-                return getCharset(charsetName);
+                // this would make the Charset API to throw 
+                // unsupported encoding exception
+                return null;
             }
             return getCharset(icuCanonicalName);
         }catch(UnsupportedCharsetException ex){
@@ -69,7 +71,7 @@ public final class CharsetProviderICU extends CharsetProvider{
      * @param charsetName The name of the charset conversion table.
      * @param classPath The class path that contain the conversion table.
      * @return charset object for the given charset name, null if unsupported
-     * @stable ICU 3.8
+     * @draft ICU 3.8
      */
     public final Charset charsetForName(String charsetName, String classPath) {
         return charsetForName(charsetName, classPath, null);
@@ -82,7 +84,7 @@ public final class CharsetProviderICU extends CharsetProvider{
      * @param classPath The class path that contain the conversion table.
      * @param loader the class object from which to load the charset conversion table
      * @return charset object for the given charset name, null if unsupported
-     * @stable ICU 3.8
+     * @draft ICU 3.8
      */
     public Charset charsetForName(String charsetName, String classPath, ClassLoader loader) {
         CharsetMBCS cs = null;
@@ -99,7 +101,7 @@ public final class CharsetProviderICU extends CharsetProvider{
      * @param enc converter name
      * @return canonical name of the converter
      * @internal ICU 3.6
-     * @deprecated This API is ICU internal only.
+     * @deprecated This API is for internal ICU use only
      */
      public static final String getICUCanonicalName(String enc)
                                 throws UnsupportedCharsetException{
@@ -107,28 +109,22 @@ public final class CharsetProviderICU extends CharsetProvider{
         String ret = null;
         try{
             if(enc!=null){
-                 if((canonicalName = UConverterAlias.getCanonicalName(enc, "MIME"))!=null){
+                if((canonicalName = UConverterAlias.getCanonicalName(enc, "MIME"))!=null){
                     ret = canonicalName;
-                } else if((canonicalName = UConverterAlias.getCanonicalName(enc, "IANA"))!=null){
+                }else if((canonicalName = UConverterAlias.getCanonicalName(enc, "IANA"))!=null){
                     ret = canonicalName;
-                } else if((canonicalName = UConverterAlias.getAlias(enc, 0))!=null){
-                    /* we have some aliases in the form x-blah .. match those */
+                }else if((canonicalName = UConverterAlias.getCanonicalName(enc, ""))!=null){
                     ret = canonicalName;
-                }/*else if((canonicalName = UConverterAlias.getCanonicalName(enc, ""))!=null){
+                }else if((canonicalName = UConverterAlias.getAlias(enc, 0))!=null){
+                    /* we have some aliases in the form x-blah .. match those first */
                     ret = canonicalName;
-                }*/else if(enc.indexOf("x-")==0){
+                }else if(enc.indexOf("x-")==0){
                     /* TODO: Match with getJavaCanonicalName method */
                     /*
                     char temp[ UCNV_MAX_CONVERTER_NAME_LENGTH] = {0};
                     strcpy(temp, encName+2);
                     */
-                    // Remove the 'x-' and get the ICU canonical name
-                    if ((canonicalName = UConverterAlias.getAlias(enc.substring(2), 0))!=null) {
-                        ret = canonicalName;
-                    } else {
-                        ret = "";
-                    }
-                    
+                    ret = enc.substring(2);
                 }else{
                     /* unsupported encoding */
                    ret = "";
@@ -146,12 +142,11 @@ public final class CharsetProviderICU extends CharsetProvider{
     }
     /**
      * Gets the canonical name of the converter as defined by Java
-     * @param charsetName converter name
+     * @param icuCanonicalName converter name
      * @return canonical name of the converter
      * @internal ICU 3.6
-     * @deprecated This API is ICU internal only.
      */
-    public static String getJavaCanonicalName(String charsetName){
+    private static String getJavaCanonicalName(String icuCanonicalName){
         /*
         If a charset listed in the IANA Charset Registry is supported by an implementation 
         of the Java platform then its canonical name must be the name listed in the registry. 
@@ -161,24 +156,24 @@ public final class CharsetProviderICU extends CharsetProvider{
         the registry must be valid aliases. If a supported charset is not listed in the IANA 
         registry then its canonical name must begin with one of the strings "X-" or "x-".
         */
-        if(charsetName==null ){
+        if(icuCanonicalName==null ){
             return null;
         }  
         try{
             String cName = null;
             /* find out the alias with MIME tag */
-            if((cName=UConverterAlias.getStandardName(charsetName, "MIME"))!=null){
+            if((cName=UConverterAlias.getStandardName(icuCanonicalName, "MIME"))!=null){
             /* find out the alias with IANA tag */
-            }else if((cName=UConverterAlias.getStandardName(charsetName, "IANA"))!=null){
+            }else if((cName=UConverterAlias.getStandardName(icuCanonicalName, "IANA"))!=null){
             }else {
                 /*  
                     check to see if an alias already exists with x- prefix, if yes then 
                     make that the canonical name
                 */
-                int aliasNum = UConverterAlias.countAliases(charsetName);
+                int aliasNum = UConverterAlias.countAliases(icuCanonicalName);
                 String name;
                 for(int i=0;i<aliasNum;i++){
-                    name = UConverterAlias.getAlias(charsetName, i);
+                    name = UConverterAlias.getAlias(icuCanonicalName, i);
                     if(name!=null && name.indexOf("x-")==0){
                         cName = name;
                         break;
@@ -187,27 +182,15 @@ public final class CharsetProviderICU extends CharsetProvider{
                 /* last resort just append x- to any of the alias and 
                 make it the canonical name */
                 if((cName==null || cName.length()==0)){
-                    name = UConverterAlias.getStandardName(charsetName, "UTR22");
-                    if(name==null && charsetName.indexOf(",")!=-1){
-                        name = UConverterAlias.getAlias(charsetName, 1);
+                    name = UConverterAlias.getStandardName(icuCanonicalName, "UTR22");
+                    if(name==null && icuCanonicalName.indexOf(",")!=-1){
+                        name = UConverterAlias.getAlias(icuCanonicalName, 1);
                     }
                     /* if there is no UTR22 canonical name .. then just return itself*/
                     if(name==null){
-                        name = charsetName;
+                        name = icuCanonicalName;
                     }
                     cName = "x-"+ name;
-                }
-            }
-            /* After getting the java canonical name from ICU alias table, get the
-             * java canonical name from the current JDK. This is neccessary because
-             * different versions of the JVM (Sun and IBM) may have a different
-             * canonical name then the one given by ICU. So the java canonical name
-             * will depend on the current JVM.  Since java cannot use the ICU canonical 
-             * we have to try to use a java compatible name.
-             */
-            if (cName != null) {
-                if (Charset.isSupported(cName)) {
-                    cName = Charset.forName(cName).name();
                 }
             }
             return cName;
@@ -278,7 +261,7 @@ public final class CharsetProviderICU extends CharsetProvider{
      * Gets the canonical names of available converters 
      * @return Object[] names as an object array
      * @internal ICU 3.6
-     * @deprecated This API is ICU internal only.
+     * @deprecated This API is for internal ICU use only
      */
      public static final Object[] getAvailableNames(){
         HashMap map = new HashMap();
@@ -290,7 +273,7 @@ public final class CharsetProviderICU extends CharsetProvider{
      * Return all names available
      * @return String[] an arrya of all available names
      * @internal ICU 3.6
-     * @deprecated This API is ICU internal only.
+     * @deprecated This API is for internal ICU use only
      */
      public static final String[] getAllNames(){
         int num = UConverterAlias.countAvailable();

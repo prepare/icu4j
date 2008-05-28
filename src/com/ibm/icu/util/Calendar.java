@@ -1,5 +1,5 @@
 /*
-*   Copyright (C) 1996-2008, International Business Machines
+*   Copyright (C) 1996-2007, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 */
 
@@ -55,7 +55,7 @@ import com.ibm.icu.text.SimpleDateFormat;
  * '<code>calendar</code>' tag and value are retrieved if present.  If a recognized
  * value is supplied, a calendar is provided and configured as appropriate.
  * Currently recognized tags are "buddhist", "chinese", "coptic", "ethiopic", 
- * "gregorian", "hebrew", "islamic", "islamic-civil", "japanese", and "roc".  For
+ * "gregorian", "hebrew", "islamic", "islamic-civil", "japanese", and "taiwan".  For
  * example: <blockquote>
  * <pre>Calendar cal = Calendar.getInstance(new ULocale("en_US@calendar=japanese"));</pre>
  * </blockquote> will return an instance of JapaneseCalendar (using en_US conventions for
@@ -1646,18 +1646,17 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
     private static final int ISLAMIC_CIVIL = 8;
     private static final int JAPANESE = 9;
     private static final int TAIWAN = 10;
-    private static final int ETHIOPIC_AMETE_ALEM = 11;
 
     private static final String[] calTypes = {
         "buddhist", "chinese", "coptic", "ethiopic", "gregorian", "hebrew", 
-        "indian", "islamic", "islamic-civil", "japanese", "roc", "ethiopic-amete-alem"
+        "indian", "islamic", "islamic-civil", "japanese", "taiwan"
     };
 
     private static int getCalendarType(ULocale l) {
         String s = l.getKeywordValue("calendar");
         if (s == null) {
             l = ICUResourceBundle.getFunctionalEquivalent(
-                ICUResourceBundle.ICU_BASE_NAME, "calendar", "calendar", l, null, false);
+                ICUResourceBundle.ICU_BASE_NAME, "calendar", "calendar", l, null);
             s = l.getKeywordValue("calendar");
         }
         return getCalendarType(s);
@@ -1691,7 +1690,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
     /**
      * Gets the list of locales for which Calendars are installed.
      * @return the list of locales for which Calendars are installed.
-     * @draft ICU 3.2 (retain)
+     * @draft ICU 3.2
      * @provisional This API might change or be removed in a future release.
      */
     public static ULocale[] getAvailableULocales()
@@ -1764,10 +1763,6 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
             return new CopticCalendar(zone, locale);
         case ETHIOPIC:
             return new EthiopicCalendar(zone, locale);
-        case ETHIOPIC_AMETE_ALEM:
-            EthiopicCalendar ethiopicAA = new EthiopicCalendar(zone, locale);
-            ethiopicAA.setAmeteAlemEra(true);
-            return ethiopicAA;
         case GREGORIAN:
             return new GregorianCalendar(zone, locale);
         case HEBREW:
@@ -2181,7 +2176,6 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
             }
             break;
 
-        case ERA:
         case DAY_OF_WEEK:
         case AM_PM:
         case HOUR:
@@ -2282,12 +2276,9 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
 
         switch (field) {
         case YEAR:
+        case YEAR_WOY:
         case EXTENDED_YEAR:
             set(DAY_OF_YEAR, getGreatestMinimum(DAY_OF_YEAR));
-            break;
-
-        case YEAR_WOY:
-            set(WEEK_OF_YEAR, getGreatestMinimum(WEEK_OF_YEAR));
             break;
 
         case MONTH:
@@ -2342,29 +2333,18 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
         // now try each value from the start to the end one by one until
         // we get a value that normalizes to another value.  The last value that
         // normalizes to itself is the actual maximum for the current date
-
-        work.set(field, startValue);
-        // prepareGetActual sets the first day of week in the same week with
-        // the first day of a month.  Unlike WEEK_OF_YEAR, week number for the
-        // which week contains days from both previous and current month is
-        // not unique.  For example, last several days in the previous month
-        // is week 5, and the rest of week is week 1.
-        if (work.get(field) != startValue
-                && field != WEEK_OF_MONTH && delta > 0) {
-            return startValue;
-        }
         int result = startValue;
         do {
-            startValue += delta;
-            work.add(field, delta);
+            work.set(field, startValue);
             if (work.get(field) != startValue) {
                 break;
+            } else {
+                result = startValue;
+                startValue += delta;
             }
-            result = startValue;
-        } while (startValue != endValue);
+        } while (result != endValue);
 
         return result;
-
     }
 
     /**
@@ -3629,26 +3609,6 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
         case JULIAN_DAY:
         case MILLISECONDS_IN_DAY:
             return LIMITS[field][limitType];
-
-        case WEEK_OF_MONTH:
-        {
-            int limit;
-            if (limitType == MINIMUM) {
-                limit = getMinimalDaysInFirstWeek() == 1 ? 1 : 0;
-            } else if (limitType == GREATEST_MINIMUM){
-                limit = 1;
-            } else {
-                int minDaysInFirst = getMinimalDaysInFirstWeek();
-                int daysInMonth = handleGetLimit(DAY_OF_MONTH, limitType);
-                if (limitType == LEAST_MAXIMUM) {
-                    limit = (daysInMonth + (7 - minDaysInFirst)) / 7;
-                } else { // limitType == MAXIMUM
-                    limit = (daysInMonth + 6 + (7 - minDaysInFirst)) / 7;
-                }
-            }
-            return limit;
-        }
-
         }
         return handleGetLimit(field, limitType);
     }
@@ -4203,6 +4163,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
      */
     private final void computeWeekFields() {
         int eyear = fields[EXTENDED_YEAR];
+        int year = fields[YEAR];
         int dayOfWeek = fields[DAY_OF_WEEK];
         int dayOfYear = fields[DAY_OF_YEAR];
 
@@ -4215,7 +4176,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
         // the previous year; days at the end of the year may fall into the
         // first week of the next year.  ASSUME that the year length is less than
         // 7000 days.
-        int yearOfWeekOfYear = eyear;
+        int yearOfWeekOfYear = year;
         int relDow = (dayOfWeek + 7 - getFirstDayOfWeek()) % 7; // 0..6
         int relDowJan1 = (dayOfWeek - dayOfYear + 7001 - getFirstDayOfWeek()) % 7; // 0..6
         int woy = (dayOfYear - 1 + relDowJan1) / 7; // 0..53
@@ -4687,8 +4648,8 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
      * taking year and era into account.  Defaults to 0 (JANUARY) for Gregorian.
      * @param extendedYear the extendedYear, as returned by handleGetExtendedYear
      * @return the default month
+     * @provisional ICU 3.6
      * @draft ICU 3.6
-     * @provisional This API might change or be removed in a future release.
      * @see #MONTH
      */
     protected int getDefaultMonthInYear(int extendedYear) {
@@ -4703,7 +4664,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
      * @param month the month, as returned by getDefaultMonthInYear
      * @return the default day of the month
      * @draft ICU 3.6
-     * @provisional This API might change or be removed in a future release.
+     * @provisional ICU 3.6
      * @see #DAY_OF_MONTH
      */
     protected int getDefaultDayInMonth(int extendedYear, int month) {
@@ -4755,7 +4716,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
             return julianDay + internalGet(DAY_OF_YEAR);
         }
 
-        int firstDOW = getFirstDayOfWeek(); // Localized fdw
+        int firstDayOfWeek = getFirstDayOfWeek(); // Localized fdw
 
         // At this point julianDay is the 0-based day BEFORE the first day of
         // January 1, year 1 of the given calendar.  If julianDay == 0, it
@@ -4769,7 +4730,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
 
         // Get the 0-based localized DOW of day one of the month or year.
         // Valid range 0..6.
-        int first = julianDayToDayOfWeek(julianDay + 1) - firstDOW;
+        int first = julianDayToDayOfWeek(julianDay + 1) - firstDayOfWeek;
         if (first < 0) {
             first += 7;
         }
@@ -4779,7 +4740,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
         int dowLocal = 0;
         switch (resolveFields(DOW_PRECEDENCE)) {
         case DAY_OF_WEEK:
-            dowLocal = internalGet(DAY_OF_WEEK) - firstDOW;
+            dowLocal = internalGet(DAY_OF_WEEK) - firstDayOfWeek;
             break;
         case DOW_LOCAL:
             dowLocal = internalGet(DOW_LOCAL) - 1;
@@ -5203,7 +5164,8 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
      * Return the current Calendar type.
      * Note, in 3.0 this function will return 'gregorian' in Calendar to emulate legacy behavior
      * @return type of calendar (gregorian, etc)
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public String getType() {
         return "gregorian";

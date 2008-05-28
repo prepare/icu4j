@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 1996-2008, International Business Machines Corporation and    *
+* Copyright (C) 1996-2007, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 */
@@ -32,6 +32,7 @@ import com.ibm.icu.text.RuleBasedCollator.UCAConstants;
 * package.</p>
 * @author Syn Wee Quek
 * @since release 2.2, April 18 2002
+* @draft 2.2
 */
 
 final class CollatorReader
@@ -83,6 +84,7 @@ final class CollatorReader
     * <p>Protected constructor.</p>
     * @param inputStream ICU collator file input stream
     * @exception IOException throw if data file fails authentication 
+    * @draft 2.1
     */
     private CollatorReader(InputStream inputStream) throws IOException
     {
@@ -105,6 +107,7 @@ final class CollatorReader
     * @param inputStream ICU uprops.icu file input stream
     * @param readICUHeader flag to indicate if the ICU header has to be read
     * @exception IOException throw if data file fails authentication 
+    * @draft 2.1
     */
     private CollatorReader(InputStream inputStream, boolean readICUHeader) 
                                                             throws IOException
@@ -236,6 +239,7 @@ final class CollatorReader
      *            RuleBasedCollator to populate
      * @exception IOException
      *                thrown when there's a data error.
+     * @draft 2.2
      */
     private void readOptions(RuleBasedCollator rbc) throws IOException
     {
@@ -288,6 +292,7 @@ final class CollatorReader
     * @return UCAContractions array filled up with the UCA contractions if we
     *                        are reading the UCA collator
     * @exception IOException thrown when there's a data error.
+    * @draft 2.2
     */
     private char[] readImp(RuleBasedCollator rbc, 
                           RuleBasedCollator.UCAConstants UCAConst) 

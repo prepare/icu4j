@@ -1,6 +1,6 @@
 /**
  *******************************************************************************
- * Copyright (C) 2002-2008, International Business Machines Corporation and    *
+ * Copyright (C) 2002-2005, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -457,8 +457,7 @@ public class CanonGSUBBuilder
     public static void buildDecompTables(String fileName)
     {
         // F900 - FAFF are compatibility ideographs. They all decompose to a single other character, and can be ignored.
-      //UnicodeSet decompSet = new UnicodeSet("[[[\\P{Hangul}] & [\\p{DecompositionType=Canonical}]] - [\uF900-\uFAFF]]");
-        UnicodeSet decompSet = new UnicodeSet("[[\\p{DecompositionType=Canonical}] & [\\P{FullCompositionExclusion}] & [\\P{Hangul}]]");
+        UnicodeSet decompSet = new UnicodeSet("[[[\\P{Hangul}] & [\\p{DecompositionType=Canonical}]] - [\uF900-\uFAFF]]");
         CanonicalCharacterData data = CanonicalCharacterData.factory(decompSet);
         ClassTable classTable = new ClassTable();
         

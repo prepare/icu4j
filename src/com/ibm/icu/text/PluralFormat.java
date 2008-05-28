@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2007-2008, International Business Machines Corporation and    *
+ * Copyright (C) 2007, International Business Machines Corporation and         *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -323,13 +323,13 @@ public class PluralFormat extends UFormat {
      * for the plural rules.
      * Patterns and their interpretation are specified in the class description.
      * 
-     * @param pttrn the pattern for this plural format.
+     * @param pattern the pattern for this plural format.
      * @throws IllegalArgumentException if the pattern is invalid.
      * @draft ICU 3.8
      * @provisional This API might change or be removed in a future release.
      */
-    public void applyPattern(String pttrn) {
-        this.pattern = pttrn;
+    public void applyPattern(String pattern) {
+        this.pattern = pattern;
         int braceStack = 0;
         Set ruleNames = pluralRules.getKeywords();
         parsedValues = new HashMap();
@@ -342,8 +342,8 @@ public class PluralFormat extends UFormat {
         StringBuffer token = new StringBuffer();
         String currentKeyword = null;
         boolean readSpaceAfterKeyword = false;
-        for (int i = 0; i < pttrn.length(); ++i) {
-            char ch = pttrn.charAt(i);
+        for (int i = 0; i < pattern.length(); ++i) {
+            char ch = pattern.charAt(i);
             switch (state) {
             case 0: // Reading value.
                 if (token.length() == 0) {

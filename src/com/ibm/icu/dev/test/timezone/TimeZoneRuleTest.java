@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2007-2008, International Business Machines Corporation and    *
+ * Copyright (C) 2007, International Business Machines Corporation and         *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -208,7 +208,7 @@ public class TimeZoneRuleTest extends TestFmwk {
      */
     public void TestHistoricalRuleBasedTimeZone() {
         // Compare to America/New_York with equivalent RBTZ
-        TimeZone ny = TimeZone.getTimeZone("America/New_York", TimeZone.TIMEZONE_ICU);
+        TimeZone ny = TimeZone.getTimeZone("America/New_York");
 
         //RBTZ
         InitialTimeZoneRule ir = new InitialTimeZoneRule("EST", -5*HOUR, 0);
@@ -321,7 +321,7 @@ public class TimeZoneRuleTest extends TestFmwk {
     public void TestOlsonTransition() {
         String[] zids = getTestZIDs();
         for (int i = 0; i < zids.length; i++) {
-            TimeZone tz = TimeZone.getTimeZone(zids[i], TimeZone.TIMEZONE_ICU);
+            TimeZone tz = TimeZone.getTimeZone(zids[i]);
             if (tz == null) {
                 break;
             }
@@ -350,7 +350,7 @@ public class TimeZoneRuleTest extends TestFmwk {
 
         String[] zids = getTestZIDs();
         for (int i = 0; i < zids.length; i++) {
-            TimeZone tz = TimeZone.getTimeZone(zids[i], TimeZone.TIMEZONE_ICU);
+            TimeZone tz = TimeZone.getTimeZone(zids[i]);
             if (tz == null) {
                 break;
             }
@@ -385,9 +385,9 @@ public class TimeZoneRuleTest extends TestFmwk {
     public void TestHasEquivalentTransitions() {
         // America/New_York and America/Indiana/Indianapolis are equivalent
         // since 2006
-        TimeZone newyork = TimeZone.getTimeZone("America/New_York", TimeZone.TIMEZONE_ICU);
-        TimeZone indianapolis = TimeZone.getTimeZone("America/Indiana/Indianapolis", TimeZone.TIMEZONE_ICU);
-        TimeZone gmt_5 = TimeZone.getTimeZone("Etc/GMT+5", TimeZone.TIMEZONE_ICU);
+        TimeZone newyork = TimeZone.getTimeZone("America/New_York");
+        TimeZone indianapolis = TimeZone.getTimeZone("America/Indiana/Indianapolis");
+        TimeZone gmt_5 = TimeZone.getTimeZone("Etc/GMT+5");
 
         long jan1_1971 = getUTCMillis(1971, Calendar.JANUARY, 1);
         long jan1_2005 = getUTCMillis(2005, Calendar.JANUARY, 1);
@@ -420,7 +420,7 @@ public class TimeZoneRuleTest extends TestFmwk {
 
         // America/New_York and America/Los_Angeles has same DST start rules, but
         // raw offsets are different
-        TimeZone losangeles = TimeZone.getTimeZone("America/Los_Angeles", TimeZone.TIMEZONE_ICU);
+        TimeZone losangeles = TimeZone.getTimeZone("America/Los_Angeles");
         if (((BasicTimeZone)newyork).hasEquivalentTransitions(losangeles, jan1_2006, jan1_2011)) {
             errln("FAIL: New_York is not equivalent to Los Angeles, but returned true");
         }
@@ -436,7 +436,7 @@ public class TimeZoneRuleTest extends TestFmwk {
 
         String[] tzids = getTestZIDs();
         for (int i = 0; i < tzids.length; i++) {
-            BasicTimeZone olsontz = (BasicTimeZone)TimeZone.getTimeZone(tzids[i], TimeZone.TIMEZONE_ICU);
+            BasicTimeZone olsontz = (BasicTimeZone)TimeZone.getTimeZone(tzids[i]);
             VTimeZone vtz_org = VTimeZone.create(tzids[i]);
             vtz_org.setTZURL("http://source.icu-project.org/timezone");
             vtz_org.setLastModified(new Date());
@@ -510,7 +510,7 @@ public class TimeZoneRuleTest extends TestFmwk {
         for (int n = 0; n < startTimes.length; n++) {
             long startTime = startTimes[n];
             for (int i = 0; i < tzids.length; i++) {
-                BasicTimeZone olsontz = (BasicTimeZone)TimeZone.getTimeZone(tzids[i], TimeZone.TIMEZONE_ICU);
+                BasicTimeZone olsontz = (BasicTimeZone)TimeZone.getTimeZone(tzids[i]);
                 VTimeZone vtz_org = VTimeZone.create(tzids[i]);
                 VTimeZone vtz_new = null;
                 try {
@@ -596,7 +596,7 @@ public class TimeZoneRuleTest extends TestFmwk {
                 if (offsets1[0] != offsets2[0] || offsets1[1] != offsets2[1]) {
                     errln("FAIL: VTimeZone writeSimple for " + tzids[i] + " at time " + time + " failed to the round trip.");
                 }
-            }
+            }            
         }
     }
 
@@ -690,7 +690,7 @@ public class TimeZoneRuleTest extends TestFmwk {
         for (int n = 0; n < testTimes.length; n++) {
             long time = testTimes[n];
             for (int i = 0; i < tzids.length; i++) {
-                BasicTimeZone tz = (BasicTimeZone)TimeZone.getTimeZone(tzids[i], TimeZone.TIMEZONE_ICU);
+                BasicTimeZone tz = (BasicTimeZone)TimeZone.getTimeZone(tzids[i]);
                 TimeZoneRule[] rules = tz.getSimpleTimeZoneRulesNear(time);
                 if (rules == null) {
                     errln("FAIL: Failed to extract simple rules for " + tzids[i] + " at " + time);
@@ -1107,7 +1107,7 @@ public class TimeZoneRuleTest extends TestFmwk {
      */
     public void TestVTimeZoneCoverage() {
         final String TZID = "Europe/Moscow";
-        BasicTimeZone otz = (BasicTimeZone)TimeZone.getTimeZone(TZID, TimeZone.TIMEZONE_ICU);
+        BasicTimeZone otz = (BasicTimeZone)TimeZone.getTimeZone(TZID);
         VTimeZone vtz = VTimeZone.create(TZID);
 
         // getOffset(era, year, month, day, dayOfWeek, milliseconds)
@@ -1277,123 +1277,6 @@ public class TimeZoneRuleTest extends TestFmwk {
                 errln("FAIL: IOException is thrown while writing VTIMEZONE data for foo");
             }
             logln(w.toString());
-        }
-    }
-
-    public void TestT6216() {
-        // Test case in #6216
-        String tokyoTZ =
-            "BEGIN:VCALENDAR\r\n" +
-            "VERSION:2.0\r\n" +
-            "PRODID:-//PYVOBJECT//NONSGML Version 1//EN\r\n" +
-            "BEGIN:VTIMEZONE\r\n" +
-            "TZID:Asia/Tokyo\r\n" +
-            "BEGIN:STANDARD\r\n" +
-            "DTSTART:20000101T000000\r\n" +
-            "RRULE:FREQ=YEARLY;BYMONTH=1\r\n" +
-            "TZNAME:Asia/Tokyo\r\n" +
-            "TZOFFSETFROM:+0900\r\n" +
-            "TZOFFSETTO:+0900\r\n" +
-            "END:STANDARD\r\n" +
-            "END:VTIMEZONE\r\n" +
-            "END:VCALENDAR";
-
-        // Single final rule, overlapping with another
-        String finalOverlap =
-            "BEGIN:VCALENDAR\r\n" +
-            "BEGIN:VTIMEZONE\r\n" +
-            "TZID:FinalOverlap\r\n" +
-            "BEGIN:STANDARD\r\n" +
-            "TZOFFSETFROM:-0200\r\n" +
-            "TZOFFSETTO:-0300\r\n" +
-            "TZNAME:STD\r\n" +
-            "DTSTART:20001029T020000\r\n" +
-            "RRULE:FREQ=YEARLY;BYDAY=-1SU;BYMONTH=10\r\n" +
-            "END:STANDARD\r\n" +
-            "BEGIN:DAYLIGHT\r\n" +
-            "TZOFFSETFROM:-0300\r\n" +
-            "TZOFFSETTO:-0200\r\n" +
-            "TZNAME:DST\r\n" +
-            "DTSTART:19990404T020000\r\n" +
-            "RRULE:FREQ=YEARLY;BYDAY=1SU;BYMONTH=4;UNTIL=20050403T040000Z\r\n" +
-            "END:DAYLIGHT\r\n" +
-            "END:VTIMEZONE\r\n" +
-            "END:VCALENDAR";
-
-        // Single final rule, no overlapping with another
-        String finalNonOverlap = 
-            "BEGIN:VCALENDAR\r\n" +
-            "BEGIN:VTIMEZONE\r\n" +
-            "TZID:FinalNonOverlap\r\n" +
-            "BEGIN:STANDARD\r\n" +
-            "TZOFFSETFROM:-0200\r\n" +
-            "TZOFFSETTO:-0300\r\n" +
-            "TZNAME:STD\r\n" +
-            "DTSTART:20001029T020000\r\n" +
-            "RRULE:FREQ=YEARLY;BYDAY=-1SU;BYMONTH=10;UNTIL=20041031T040000Z\r\n" +
-            "END:STANDARD\r\n" +
-            "BEGIN:DAYLIGHT\r\n" +
-            "TZOFFSETFROM:-0300\r\n" +
-            "TZOFFSETTO:-0200\r\n" +
-            "TZNAME:DST\r\n" +
-            "DTSTART:19990404T020000\r\n" +
-            "RRULE:FREQ=YEARLY;BYDAY=1SU;BYMONTH=4;UNTIL=20050403T040000Z\r\n" +
-            "END:DAYLIGHT\r\n" +
-            "BEGIN:STANDARD\r\n" +
-            "TZOFFSETFROM:-0200\r\n" +
-            "TZOFFSETTO:-0300\r\n" +
-            "TZNAME:STDFINAL\r\n" +
-            "DTSTART:20071028T020000\r\n" +
-            "RRULE:FREQ=YEARLY;BYDAY=-1SU;BYMONTH=10\r\n" +
-            "END:STANDARD\r\n" +
-            "END:VTIMEZONE\r\n" +
-            "END:VCALENDAR";
-
-        int[][] TestDates = {
-                {1995, Calendar.JANUARY, 1},
-                {1995, Calendar.JULY, 1},
-                {2000, Calendar.JANUARY, 1},
-                {2000, Calendar.JULY, 1},
-                {2005, Calendar.JANUARY, 1},
-                {2005, Calendar.JULY, 1},
-                {2010, Calendar.JANUARY, 1},
-                {2010, Calendar.JULY, 1},
-        };
-
-        String[] TestZones = {
-            tokyoTZ,
-            finalOverlap,
-            finalNonOverlap,
-        };
-
-        int[][] Expected = {
-          //  JAN90      JUL90      JAN00      JUL00      JAN05      JUL05      JAN10      JUL10
-            { 32400000,  32400000,  32400000,  32400000,  32400000,  32400000,  32400000,  32400000},
-            {-10800000, -10800000,  -7200000,  -7200000, -10800000,  -7200000, -10800000, -10800000},
-            {-10800000, -10800000,  -7200000,  -7200000, -10800000,  -7200000, -10800000, -10800000},
-        };
-
-        // Get test times
-        long[] times = new long[TestDates.length];
-        Calendar cal = new GregorianCalendar(TimeZone.getTimeZone("Etc/GMT"));
-        for (int i = 0; i < TestDates.length; i++) {
-            cal.clear();
-            cal.set(TestDates[i][0], TestDates[i][1], TestDates[i][2]);
-            times[i] = cal.getTimeInMillis();
-        }
-
-        for (int i = 0; i < TestZones.length; i++) {
-            try {
-                VTimeZone vtz = VTimeZone.create(new StringReader(TestZones[i]));
-                for (int j = 0; j < times.length; j++) {
-                    int offset = vtz.getOffset(times[j]);
-                    if (offset != Expected[i][j]) {
-                        errln("FAIL: Invalid offset at time(" + times[j] + "):" + offset + " Expected:" + Expected[i][j]);
-                    }
-                }
-            } catch (Exception e) {
-                errln("FAIL: Failed to calculate the offset for VTIMEZONE data " + i);
-            }
         }
     }
 

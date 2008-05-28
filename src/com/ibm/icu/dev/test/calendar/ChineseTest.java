@@ -1,5 +1,5 @@
 /*********************************************************************
- * Copyright (C) 2000-2008, International Business Machines Corporation and
+ * Copyright (C) 2000-2007, International Business Machines Corporation and
  * others. All Rights Reserved.
  *********************************************************************
  */
@@ -176,7 +176,9 @@ public class ChineseTest extends CalendarTest {
         tempcal.clear();
         tempcal.set(1989, Calendar.NOVEMBER, 1);
         ChineseCalendar chinese = new ChineseCalendar();
-        doLimitsTest(chinese, null, tempcal.getTime());
+        if (!skipIfBeforeICU(3,9,0)) {
+            doLimitsTest(chinese, null, tempcal.getTime());
+        }
         doTheoreticalLimitsTest(chinese, true);
     }
 
@@ -525,85 +527,6 @@ public class ChineseTest extends CalendarTest {
 //    }
 
     public void TestCoverage() {
-        // Coverage for constructors
-        {
-            // new ChineseCalendar(Date)
-            ChineseCalendar cal = new ChineseCalendar(new Date());
-            if(cal == null){
-                errln("could not create ChineseCalendar with Date");
-            }
-        }
-
-        {
-            // new ChineseCalendar(int year, int month, int isLeapMonth, int date)
-            ChineseCalendar cal = new ChineseCalendar(23, Calendar.JULY, 1, 2);
-            if(cal == null){
-                errln("could not create ChineseCalendar with year,month,isLeapMonth,date");
-            }
-            // Make sure the given values are properly set
-            if (cal.get(Calendar.YEAR) != 23 || cal.get(Calendar.MONTH) != Calendar.JULY
-                    || cal.get(ChineseCalendar.IS_LEAP_MONTH) != 1 || cal.get(Calendar.DATE) != 2
-                    || cal.get(Calendar.MILLISECONDS_IN_DAY) != 0) {
-                errln("ChineseCalendar was initialized incorrectly with year,month,isLeapMonth,date");
-            }
-        }
-
-        {
-            // new ChineseCalendar(int year, int month, int isLeapMonth, int date, int hour, int minute, int second)
-            ChineseCalendar cal = new ChineseCalendar(23, Calendar.JULY, 1, 2, 12, 34, 56);
-            if(cal == null){
-                errln("could not create ChineseCalendar with year,month,isLeapMonth,date,hour,minute,second");
-            }
-            // Make sure the given values are properly set
-            if (cal.get(Calendar.YEAR) != 23 || cal.get(Calendar.MONTH) != Calendar.JULY
-                    || cal.get(ChineseCalendar.IS_LEAP_MONTH) != 1 || cal.get(Calendar.DATE) != 2
-                    || cal.get(Calendar.HOUR_OF_DAY) != 12 || cal.get(Calendar.MINUTE) != 34
-                    || cal.get(Calendar.SECOND) != 56 || cal.get(Calendar.MILLISECOND) != 0) {
-                errln("ChineseCalendar was initialized incorrectly with year,month,isLeapMonth,date,hour,minute,second");
-            }
-        }
-
-        {
-            // new ChineseCalendar(Locale)
-            ChineseCalendar cal = new ChineseCalendar(Locale.getDefault());
-            if(cal == null){
-                errln("could not create ChineseCalendar with Locale");
-            }
-        }
-
-        {
-            // new ChineseCalendar(ULocale)
-            ChineseCalendar cal = new ChineseCalendar(ULocale.getDefault());
-            if(cal == null){
-                errln("could not create ChineseCalendar with ULocale");
-            }
-        }
-        
-
-        {
-            // new ChineseCalendar(TimeZone)
-            ChineseCalendar cal = new ChineseCalendar(TimeZone.getDefault()); 
-            if(cal == null){
-                errln("could not create ChineseCalendar with TimeZone");
-            }
-        }
-
-        {
-            // new ChineseCalendar(TimeZone, Locale)
-            ChineseCalendar cal = new ChineseCalendar(TimeZone.getDefault(), Locale.getDefault());
-            if(cal == null){
-                errln("could not create ChineseCalendar with TimeZone,Locale");
-            }
-        }
-
-        {
-            // new ChineseCalendar(TimeZone, ULocale)
-            ChineseCalendar cal = new ChineseCalendar(TimeZone.getDefault(), ULocale.getDefault());
-            if(cal == null){
-                errln("could not create ChineseCalendar with TimeZone,ULocale");
-            }
-        }
-
         ChineseCalendar cal = new ChineseCalendar();
         DateFormat format = DateFormat.getInstance(cal);
         if(!(format instanceof ChineseDateFormat)){
@@ -630,7 +553,7 @@ public class ChineseTest extends CalendarTest {
             time = getDate(2001, Calendar.MAY, 23);
             str = fmt.format(time);
             logln("Chinese calendar time: " + time + " result: " + str);
-        }
+        }        
     }
     public void TestScratch(){
         String[] strMonths = {"Januari", "Pebruari", "Maret", "April", "Mei", "Juni",
@@ -675,8 +598,7 @@ public class ChineseTest extends CalendarTest {
 
         cc.add(Calendar.DATE, 1);
  
-        Calendar cal = new GregorianCalendar(2005, Calendar.FEBRUARY, 28);
-        Date target = cal.getTime();
+        Date target = new Date(105, Calendar.FEBRUARY, 28);
         Date result = cc.getTime();
 
         assertEquals("chinese and gregorian date should match", target, result);
