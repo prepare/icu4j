@@ -36,10 +36,7 @@ public class DateIntervalFormatTest extends com.ibm.icu.dev.test.TestFmwk {
     public static boolean DEBUG = true;
     
     public static void main(String[] args) throws Exception {
-        /* comment out temporarily, need to un-comment when CLDR data
-         * is ready
-         */
-        //new DateIntervalFormatTest().run(args);
+        new DateIntervalFormatTest().run(args);
     }
     
 
@@ -105,11 +102,15 @@ public class DateIntervalFormatTest extends com.ibm.icu.dev.test.TestFmwk {
     
         
         int localeIndex;
+        /* TODO: uncomment
+         * comment out temporarily, need to un-comment when CLDR data
+         * is ready
         for ( localeIndex = 0; localeIndex < testLocale.length; ++localeIndex) {
             expect(DATA, DATA.length, new Locale(testLocale[localeIndex][0], 
                    testLocale[localeIndex][1], testLocale[localeIndex][2]), 
                    testLocale[localeIndex][0]+testLocale[localeIndex][1]);
         }
+        */
     }
 
 
