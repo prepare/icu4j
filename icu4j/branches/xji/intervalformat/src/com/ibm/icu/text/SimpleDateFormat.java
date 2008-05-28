@@ -2573,7 +2573,6 @@ public class SimpleDateFormat extends DateFormat {
      * It is package accessible. also used in DateIntervalFormat.
      *
      * @return   locale in this simple date formatter
-     * @internal ICU 4.0
      */
     ULocale getLocale() 
     {
@@ -2590,7 +2589,6 @@ public class SimpleDateFormat extends DateFormat {
      * @param field    the calendar field need to check against
      * @return         true if the 'field' is smaller than all the fields 
      *                 covered in pattern. false otherwise.
-     * @internal ICU 4.0
      */
 
     boolean isFieldUnitIgnored(int field) {
