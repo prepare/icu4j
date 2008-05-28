@@ -6,6 +6,11 @@
 
 package com.ibm.icu.text;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
+
 import java.util.MissingResourceException;
 import java.util.Iterator;
 import java.util.HashMap;
@@ -142,7 +147,7 @@ import com.ibm.icu.util.Freezable;
  * @draft ICU 4.0
 **/
 
-public class DateIntervalInfo implements Cloneable,  Freezable {
+public class DateIntervalInfo implements Cloneable,  Freezable, Serializable {
     /* Save the interval pattern information.
      * Interval pattern consists of 2 single date patterns and the separator.
      * For example, interval pattern "MMM d - MMM d, yyyy" consists
@@ -152,7 +157,11 @@ public class DateIntervalInfo implements Cloneable,  Freezable {
      * the earlier date or the later date.
      * And such information is saved in the interval pattern as well.
      */
-    public static final class PatternInfo implements Cloneable {
+    static final int currentSerialVersion = 1;
+
+    public static final class PatternInfo implements Cloneable, Serializable {
+        static final int currentSerialVersion = 1;
+        private static final long serialVersionUID = 1;
         private final String fIntervalPatternFirstPart;
         private final String fIntervalPatternSecondPart;
         /**
@@ -188,6 +197,21 @@ public class DateIntervalInfo implements Cloneable,  Freezable {
         public boolean firstDateInPtnIsLaterDate() {
             return fFirstDateInPtnIsLaterDate;
         }
+
+        public boolean equals(Object a) {
+            if ( a instanceof PatternInfo ) {
+                PatternInfo patternInfo = (PatternInfo)a;
+                return fIntervalPatternFirstPart.equals(patternInfo.fIntervalPatternFirstPart) && 
+                       fIntervalPatternSecondPart.equals(patternInfo.fIntervalPatternSecondPart) &&
+                       fFirstDateInPtnIsLaterDate == patternInfo.fFirstDateInPtnIsLaterDate;
+            }
+            return false;
+        }
+
+        public int hashCode() {
+            return fIntervalPatternFirstPart.hashCode() +
+                   fIntervalPatternSecondPart.hashCode();
+        }
     }
 
     // Following is package protected since 
@@ -200,6 +224,7 @@ public class DateIntervalInfo implements Cloneable,  Freezable {
         "a", "h", "H",
         "m",
     };
+
 
     private static final long serialVersionUID = 1;
     private static final int MINIMUM_SUPPORTED_CALENDAR_FIELD = 
@@ -223,6 +248,8 @@ public class DateIntervalInfo implements Cloneable,  Freezable {
     private HashMap fIntervalPatterns = null;
 
     private transient boolean frozen = false;
+
+    private int serialVersionOnStream = currentSerialVersion;
 
     /**
      * Create empty instance.
@@ -853,5 +880,33 @@ public class DateIntervalInfo implements Cloneable,  Freezable {
         }
         return new DateIntervalFormat.BestMatchInfo(bestSkeleton, bestFieldDifference);
     }
+
+    public boolean equals(Object a) {
+        if ( a instanceof DateIntervalInfo ) {
+            DateIntervalInfo dtInfo = (DateIntervalInfo)a;
+            return fIntervalPatterns.equals(dtInfo.fIntervalPatterns);
+        }
+        return false;
+    }
+
+    public int hashCode() {
+        return fIntervalPatterns.hashCode();
+    }
+    
+    /**
+     * WriteObject.
+     */
+    //private void writeObject(ObjectOutputStream stream) throws IOException{
+     //   stream.defaultWriteObject();
+    //}
+    
+    /**
+     * readObject.
+     */
+    //private void readObject(ObjectInputStream stream)
+     //   throws IOException, ClassNotFoundException {
+      //  stream.defaultReadObject();
+       // serialVersionOnStream = currentSerialVersion;
+    //}
 
 };// end class DateIntervalInfo
