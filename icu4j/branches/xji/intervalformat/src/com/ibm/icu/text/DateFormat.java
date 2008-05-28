@@ -1207,11 +1207,15 @@ public abstract class DateFormat extends UFormat {
      *
      * Users are encouraged to use the static skeletons 
      * defined in DateIntervalFormat.
-     * For example, DAY_MONTH_DOW_LONG_FORMAT, which is "EEEEdMMMM",
+     * For example, MONTH_DOW_DAY_LONG_FORMAT, which is "MMMMEEEEd",
      * and which means the pattern should have day, month, and day-of-week
      * fields, and follow the long date format defined in date time pattern.
      * For example, for English, the full pattern should be
      * "EEEE, MMMM d".
+     *
+     * Temporarily, this is internal API, used by DateIntervalFormat only.
+     * And there will be a new set of public API for the same purpose coming
+     * soon. After which, this API will be replaced.
      *
      * @param skeleton  the skeleton on which date format based.
      * @param adjustFieldWidth  whether adjust the skeleton field width or not.
@@ -1219,12 +1223,12 @@ public abstract class DateFormat extends UFormat {
      *                          adjust field width when get  
      *                          full pattern from skeleton.
      * @param locale    the given locale.
-     * @return          a date time interval formatter whick the caller owns.
+     * @return          a simple date formatter.
      * @draft ICU 4.0
      */
-    public static final DateFormat getInstance(String skeleton,
-                                               boolean adjustFieldWidth,
-                                               ULocale locale) 
+    static final DateFormat getInstance(String skeleton,
+                                        boolean adjustFieldWidth,
+                                        ULocale locale) 
     {
         DateTimePatternGenerator dtptg = 
                    DateTimePatternGenerator.getInstance(locale);
