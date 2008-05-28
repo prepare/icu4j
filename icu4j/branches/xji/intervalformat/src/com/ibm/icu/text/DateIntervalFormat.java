@@ -6,6 +6,8 @@
 
 package com.ibm.icu.text;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.text.FieldPosition;
 import java.text.Format;
 import java.text.ParseException;
@@ -2142,5 +2144,13 @@ public class DateIntervalFormat extends UFormat {
     }
 
 
+    /**
+     * readObject.
+     */
+    private void readObject(ObjectInputStream stream)
+        throws IOException, ClassNotFoundException {
+        stream.defaultReadObject();
+        initializePattern();
+    }
 };
  
