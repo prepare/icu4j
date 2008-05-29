@@ -82,23 +82,6 @@ import com.ibm.icu.text.SimpleDateFormat;
  * </ol>
  *
  * <P>
- * There is a set of pre-defined static skeleton strings.
- * The skeletons defined consist of the desired calendar field set 
- * (for example,  DAY, MONTH, YEAR) and the format length (long, medium, short)
- * used in date time patterns.
- * 
- * For example, skeleton YEAR_MONTH_MEDIUM_FORMAT consists month and year,
- * and it's corresponding full pattern is medium format date pattern.
- * So, the skeleton is "yMMM", for English, the full pattern is "MMM yyyy", 
- * which is the format by removing DATE from medium date format.
- *
- * For example, skeleton YEAR_MONTH_DOW_DAY_MEDIUM_FORMAT consists day, month,
- * year, and day-of-week, and it's corresponding full pattern is the medium
- * format date pattern. So, the skeleton is "yMMMEEEd", for English,
- * the full pattern is "EEE, MMM d, yyyy", which is the medium date format
- * plus day-of-week.
- *
- * <P>
  * The calendar fields we support for interval formatting are:
  * year, month, date, day-of-week, am-pm, hour, hour-of-day, and minute.
  * Those calendar fields can be defined in the following order:
@@ -111,9 +94,10 @@ import com.ibm.icu.text.SimpleDateFormat;
  * and "Feb 20, 2008" is year.
  *   
  * <P>
+ * There is a set of pre-defined static skeleton strings in DateFormat,
  * There are pre-defined interval patterns for those pre-defined skeletons
  * in locales' resource files.
- * For example, for a skeleton YEAR_MONTH_DAY_MEDIUM_FORMAT, which is  "yMMMd",
+ * For example, for a skeleton YEAR_ABBR_MONTH_DAY, which is  "yMMMd",
  * in  en_US, if the largest different calendar field between date1 and date2 
  * is "year", the date interval pattern  is "MMM d, yyyy - MMM d, yyyy", 
  * such as "Jan 10, 2007 - Jan 10, 2008".
@@ -183,7 +167,7 @@ import com.ibm.icu.text.SimpleDateFormat;
  * 5. create an instance using default or given locale plus given skeleton.
  *    Users are encouraged to created date interval formatter this way and 
  *    to use the pre-defined skeleton macros, such as
- *    YEAR_MONTH_SHORT_FORMAT, which consists the calendar fields and
+ *    YEAR_NUM_MONTH, which consists the calendar fields and
  *    the format style. 
  * 6. create an instance using default or given locale plus given skeleton
  *    plus a given DateIntervalInfo.
@@ -207,7 +191,7 @@ import com.ibm.icu.text.SimpleDateFormat;
  *   // and parses into
  *   DateInterval dtInterval = new DateInterval(1000*3600*24L, 1000*3600*24*2L);
  *   DateIntervalFormat dtIntervalFmt = DateIntervalFormat.getInstance(
- *                   YEAR_MONTH_DAY_FULL_FORMAT, false, Locale("en", "GB", ""));
+ *                   YEAR_MONTH_DAY, Locale("en", "GB", ""));
  *   StringBuffer str = new StringBuffer("");
  *   FieldPosition pos = new FieldPosition(0);
  *   // formatting
@@ -272,191 +256,6 @@ public class DateIntervalFormat extends UFormat {
 
     private static final long serialVersionUID = 1;
 
-    /* Below are a set of pre-defined skeletons.
-     * They have pre-defined interval patterns in resource files.
-     * Users are encouraged to use them in date interval format factory methods.
-     *
-     * <P>
-     * A skeleton 
-     * <ul>
-     * <li>
-     * 1. only keeps the field pattern letter and ignores all other parts 
-     *    in a pattern, such as space, punctuations, and string literals.
-     * <li>
-     * 2. hides the order of fields. 
-     * <li>
-     * 3. might hide a field's pattern letter length.
-     *
-     *    For those non-digit calendar fields, the pattern letter length is 
-     *    important, such as MMM, MMMM, and MMMMM; EEE and EEEE, 
-     *    and the field's pattern letter length is honored.
-     *    
-     *    For the digit calendar fields,  such as M or MM, d or dd, yy or yyyy, 
-     *    the field pattern length is ignored and the best match, which is 
-     *    defined in date time patterns, will be returned without honor 
-     *    the field pattern letter length in skeleton.
-     * </ul>
-     *
-     * <P>
-     * For example, given skeleton YEAR_MONTH_DAY_SHORT_FORMAT, which is "yMd",
-     * for English, the full pattern is "M/d/yy", which is the short format
-     * of date pattern having DAY, MONTH, and YEAR.
-     * 
-     * <P>
-     * The skeletons defined below consists of the desired calendar field set 
-     * (for example, DAY, MONTH, YEAR) and the format length (long, medium, 
-     * short) used in date time patterns.
-     * 
-     * For example, skeleton YEAR_MONTH_MEDIUM_FORMAT consists month and year,
-     * and it's corresponding full pattern is medium format date pattern.
-     * So, the skeleton is "yMMM", for English, the full pattern is "MMM yyyy", 
-     * which is the format by removing DATE from medium date format.
-     *
-     * For example, skeleton YEAR_MONTH_DOW_DAY_MEDIUM_FORMAT consists day, 
-     * month, year, and day-of-week, and it's corresponding full pattern is 
-     * the medium format date pattern. So, the skeleton is "yMMMEEEd", 
-     * for English, the full pattern is "EEE, MMM d, yyyy", which is 
-     * the medium date format plus day-of-week.
-     */
-    /**
-     * Predefined skeleton -- long format with day, month, year, and 
-     * day of week
-     */
-    public static final String YEAR_MONTH_DOW_DAY_LONG_FORMAT = "yMMMMEEEEd";
-    
-    /**
-     * Predefined skeleton -- long format with day, month, and year
-     */
-    public static final String YEAR_MONTH_DAY_LONG_FORMAT = "yMMMMd";
-    
-    /**
-     * Predefined skeleton -- long format with day and month
-     */
-    public static final String MONTH_DAY_LONG_FORMAT = "MMMMd";
-    
-    /**
-     * Predefined skeleton -- long format with month and year
-     */
-    public static final String YEAR_MONTH_LONG_FORMAT = "yMMMM";
-    
-    /**
-     * Predefined skeleton -- long format with day, month, and day of week
-     */
-    public static final String MONTH_DOW_DAY_LONG_FORMAT = "MMMMEEEEd";
-    
-    /**
-     * Predefined skeleton -- medium format with day, month, year, and 
-     * day of week
-     */
-    public static final String YEAR_MONTH_DOW_DAY_MEDIUM_FORMAT = "yMMMEEEd";
-    
-    /**
-     * Predefined skeleton -- medium format with day, month, and year
-     */
-    public static final String YEAR_MONTH_DAY_MEDIUM_FORMAT = "yMMMd";
-    
-    /**
-     * Predefined skeleton -- medium format with day and month
-     */
-    public static final String MONTH_DAY_MEDIUM_FORMAT = "MMMd";
-    
-    /**
-     * Predefined skeleton -- medium format with month and year
-     */
-    public static final String YEAR_MONTH_MEDIUM_FORMAT = "yMMM";
-    
-    /**
-     * Predefined skeleton -- medium format with day, month, and day of week
-     */
-    public static final String MONTH_DOW_DAY_MEDIUM_FORMAT = "MMMEEEd";
-
-    /**
-     * Predefined skeleton -- short format with day, month, year, and 
-     * day of week
-     */
-    public static final String YEAR_MONTH_DOW_DAY_SHORT_FORMAT = "yMEEEd";
-    
-    /**
-     * Predefined skeleton -- short format with day, month, and year
-     */
-    public static final String YEAR_MONTH_DAY_SHORT_FORMAT = "yMd";
-    
-    /**
-     * Predefined skeleton -- short format with day and month
-     */
-    public static final String MONTH_DAY_SHORT_FORMAT = "Md";
-    
-    /**
-     * Predefined skeleton -- short format with month and year
-     */
-    public static final String YEAR_MONTH_SHORT_FORMAT = "yM";
-    
-    /**
-     * Predefined skeleton -- short format with day, month, and day of week
-     */
-    public static final String MONTH_DOW_DAY_SHORT_FORMAT = "MEEEd";
-    
-    /**
-     * Predefined skeleton -- short format with day only
-     */
-    public static final String DAY_ONLY_SHORT_FORMAT = "d";
-    
-    /**
-     * Predefined skeleton -- short format with day and day of week
-     */
-    public static final String DOW_DAY_SHORT_FORMAT = "EEEd";
-    
-    /**
-     * Predefined skeleton -- short format with year only
-     */
-    public static final String YEAR_ONLY_SHORT_FORMAT = "y";
-    
-    /**
-     * Predefined skeleton -- short format with month only
-     */
-    public static final String MONTH_ONLY_SHORT_FORMAT = "M";
-    
-    /**
-     * Predefined skeleton -- medium format with month only
-     */
-    public static final String MONTH_ONLY_MEDIUM_FORMAT = "MMM";
-    
-    /**
-     * Predefined skeleton -- long format with month only
-     */
-    public static final String MONTH_ONLY_LONG_FORMAT = "MMMM";
-    
-    /**
-     * Predefined skeleton -- format with hour and minute
-     */
-    public static final String HOUR_MINUTE_FORMAT = "hm";
-    
-    /**
-     * Predefined skeleton -- format with hour, minute, and generic time zone
-     */
-    public static final String HOUR_MINUTE_GENERAL_TZ_FORMAT = "hmv";
-    
-    /**
-     * Predefined skeleton -- format with hour, minute, and specific time zone
-     */
-    public static final String HOUR_MINUTE_DAYLIGNT_TZ_FORMAT = "hmz";
-    
-    /**
-     * Predefined skeleton -- format with hour only
-     */
-    public static final String HOUR_ONLY_FORMAT = "h";
-    
-    /**
-     * Predefined skeleton -- format with hour and generic time zone
-     */
-    public static final String HOUR_GENERAL_TZ_FORMAT = "hv";
-    
-    /**
-     * Predefined skeleton -- format with hour and specific time zone
-     */
-    public static final String HOUR_DAYLIGNT_TZ_FORMAT = "hz";
-
-
     /**
      * Used to save the information for a skeleton's best match skeleton.
      * It is package accessible since it is used in DateIntervalInfo too.
@@ -488,16 +287,6 @@ public class DateIntervalFormat extends UFormat {
         }
     }
 
-
-    /**
-     * skeleton for pre-defined date format in DateTimePatterns
-     */
-    private static final String[] DATE_FORMAT_SKELETON = {
-        YEAR_MONTH_DOW_DAY_LONG_FORMAT,
-        YEAR_MONTH_DAY_LONG_FORMAT,
-        YEAR_MONTH_DAY_MEDIUM_FORMAT,
-        YEAR_MONTH_DAY_SHORT_FORMAT,
-    };
 
     // Cache for the locale interval pattern
     private static ICUCache LOCAL_PATTERN_CACHE = new SimpleCache();
@@ -583,278 +372,22 @@ public class DateIntervalFormat extends UFormat {
 
 
     /**
-     * Construct a DateIntervalFormat from default locale and
-     * default date time instance. 
-     *
-     * This is a convenient override of getDateTimeIntervalInstance() with
-     * the date and time style value as DEFAULT.
-     *
-     * @return          a date time interval formatter whick the caller owns.
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final DateIntervalFormat getInstance()
-    {
-        return getInstance(ULocale.getDefault());
-    }
-
-
-    /**
-     * Construct a DateIntervalFormat using given locale and
-     * default date time instance.
-     *
-     * This is a convenient override of getDateTimeIntervalInstance() with
-     * the date and time style value as DEFAULT.
-     *
-     * @param locale    the given locale.
-     * @return          a date time interval formatter which the caller owns.
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final DateIntervalFormat getInstance(Locale locale)
-    {
-        return getInstance(ULocale.forLocale(locale));
-    }
-
-
-    /**
-     * Construct a DateIntervalFormat using given locale and
-     * default date time instance.
-     *
-     * This is a convenient override of getDateTimeIntervalInstance() with
-     * the date and time style value as DEFAULT.
-     *
-     * @param locale    the given locale.
-     * @return          a date time interval formatter whick the caller owns.
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final DateIntervalFormat getInstance(ULocale locale)
-    {
-        return getDateTimeIntervalInstance(DateFormat.DEFAULT, 
-                                           DateFormat.DEFAULT, locale);
-    }
-
-
-
-
-    /**
-     * Construct a DateIntervalFormat using default locale.
-     *
-     * This is a convenient override of 
-     * getDateIntervalInstance(int, ULocale)
-     * with the locale value as default locale.
-     *
-     * @param style     The given date formatting style. For example,
-     *                  SHORT for "M/d/yy" in the US locale.
-     * @return          a date time interval formatter whick the caller owns.
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final DateIntervalFormat getDateIntervalInstance(int style)
-    {
-        return getDateIntervalInstance(style, ULocale.getDefault());
-    }
-
-
-    /**
-     * Construct a DateIntervalFormat using given locale.
-     *
-     * This is a convenient override of
-     * getDateIntervalInstance(int, ULocale)
-     *
-     * @param style     The given date formatting style. For example,
-     *                  SHORT for "M/d/yy" in the US locale.
-     * @param locale    The given locale.
-     * @return          a date time interval formatter whick the caller owns.
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final DateIntervalFormat 
-        getDateIntervalInstance(int style, Locale locale)
-    {
-        return getDateIntervalInstance(style, ULocale.forLocale(locale));
-    }
-
-
-
-    /**
-     * Construct a DateIntervalFormat using given locale.
-     * The interval pattern is based on the date format only.
-     * For full date format, interval pattern is based on skeleton "EEEEdMMMMy".
-     * For long date format, interval pattern is based on skeleton "dMMMMy".
-     * For medium date format, interval pattern is based on skeleton "dMMMy".
-     * For short date format, interval pattern is based on skeleton "dMy".
-     * @param style     The given date formatting style. For example,
-     *                  SHORT for "M/d/yy" in the US locale.
-     * @param locale    The given locale.
-     * @return          a date time interval formatter whick the caller owns.
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final DateIntervalFormat 
-        getDateIntervalInstance(int style, ULocale locale)
-    {
-        DateFormat dtfmt = DateFormat.getDateInstance(style, locale);
-        DateIntervalInfo dtitvinf = new DateIntervalInfo(locale);
-        // for CJK, even for non-short format,
-        // get skeleton will always return yMd.
-        // so, assign it directly instead of getting if from getSkeleton().
-        String skeleton = DATE_FORMAT_SKELETON[style];
-        return new DateIntervalFormat(dtfmt, dtitvinf, skeleton);
-    }
-
-
-    /**
-     * Construct a DateIntervalFormat using default locale.
-     * The interval pattern is based on the time format only.
-     *
-     * This is the convenient override of getDateTimeIntervalInstance()
-     * with the date style as NONE and a given time style.
-     *
-     * @param style     The given time formatting style. For example,
-     *                  SHORT for "h:mm a" in the US locale.
-     * @return          a date time interval formatter whick the caller owns.
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final DateIntervalFormat getTimeIntervalInstance(int style)
-    {
-        return getTimeIntervalInstance(style, ULocale.getDefault());
-    }
-
-
-    /**
-     * Construct a DateIntervalFormat using given locale.
-     * The interval pattern is based on the time format only.
-     *
-     * This is the convenient override of getDateTimeIntervalInstance()
-     * with the date style as NONE and a given time style.
-     *
-     * @param style     The given time formatting style. For example,
-     *                  SHORT for "h:mm a" in the US locale.
-     * @param locale    The given locale.
-     * @return          a date time interval formatter whick the caller owns.
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final DateIntervalFormat 
-        getTimeIntervalInstance(int style, Locale locale)
-    {
-        return getTimeIntervalInstance(style, ULocale.forLocale(locale));
-    }
-
-
-
-    /**
-     * Construct a DateIntervalFormat using given locale.
-     * The interval pattern is based on the time format only.
-     *
-     * This is the convenient override of getDateTimeIntervalInstance()
-     * with the date style as NONE and a given time style.
-     *
-     * @param style     The given time formatting style. For example,
-     *                  SHORT for "h:mm a" in the US locale.
-     * @param locale    The given locale.
-     * @return          a date time interval formatter whick the caller owns.
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final DateIntervalFormat 
-        getTimeIntervalInstance(int style, ULocale locale)
-    {
-        return getDateTimeIntervalInstance(DateFormat.NONE, style, locale);
-    }
-
-
-    /**
-     * Construct a DateIntervalFormat using default locale.
-     * The interval pattern is based on the date/time format.
-     *
-     * This is a convenient override of 
-     * getDateTimeIntervalInstance(int, int, ULocale)
-     * with the locale value as default locale.
-     *
-     * @param dateStyle The given date formatting style. For example,
-     *                  SHORT for "M/d/yy" in the US locale.
-     * @param timeStyle The given time formatting style. For example,
-     *                  SHORT for "h:mm a" in the US locale.
-     * @return          a date time interval formatter whick the caller owns.
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final DateIntervalFormat 
-        getDateTimeIntervalInstance(int dateStyle, int timeStyle)
-    {
-        return getDateTimeIntervalInstance(dateStyle, timeStyle, ULocale.getDefault());
-    }
-
-
-    /**
-     * Construct a DateIntervalFormat using given locale.
-     * The interval pattern is based on the date/time format.
-     *
-     * This is a convenient override of 
-     * getDateTimeIntervalInstance(int, int, ULocale)
-     *
-     * @param dateStyle The given date formatting style. For example,
-     *                  SHORT for "M/d/yy" in the US locale.
-     * @param timeStyle The given time formatting style. For example,
-     *                  SHORT for "h:mm a" in the US locale.
-     * @param locale    The given locale.
-     * @return          a date time interval formatter whick the caller owns.
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final DateIntervalFormat 
-        getDateTimeIntervalInstance(int dateStyle, int timeStyle, Locale locale)
-    {
-        return getDateTimeIntervalInstance(dateStyle, timeStyle, ULocale.forLocale(locale));
-    }
-
-
-    /**
-     * Construct a DateIntervalFormat using given locale.
-     * The interval pattern is based on the date/time format.
-     * @param dateStyle The given date formatting style. For example,
-     *                  SHORT for "M/d/yy" in the US locale.
-     * @param timeStyle The given time formatting style. For example,
-     *                  SHORT for "h:mm a" in the US locale.
-     * @param locale    The given locale.
-     * @return          a date time interval formatter whick the caller owns.
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final DateIntervalFormat 
-        getDateTimeIntervalInstance(int dateStyle, int timeStyle,ULocale locale)
-    {
-        DateFormat dtfmt = DateFormat.getDateTimeInstance(dateStyle, timeStyle, locale);
-        DateIntervalInfo dtitvinf = new DateIntervalInfo(locale);
-        return new DateIntervalFormat(dtfmt, dtitvinf);
-    }
-
-
-    /**
      * Construct a DateIntervalFormat from skeleton and  the default locale.
      *
      * This is a convenient override of 
-     * getInstance(String skeleton, boolean adjustFieldWidth, ULocale locale)  
+     * getInstance(String skeleton, ULocale locale)  
      * with the value of locale as default locale.
      *
      * @param skeleton  the skeleton on which interval format based.
-     * @param adjustFieldWidth  whether adjust the skeleton field width or not
-     *                          It is used for DateTimePatternGenerator on 
-     *                          whether to adjust field width when get 
-     *                          full pattern from skeleton
      * @return          a date time interval formatter whick the caller owns.
      * @draft ICU 4.0
      * @provisional This API might change or be removed in a future release.
      */
     public static final DateIntervalFormat 
-        getInstance(String skeleton, boolean adjustFieldWidth)
+        getInstance(String skeleton)
                                                  
     {
-        return getInstance(skeleton, adjustFieldWidth, ULocale.getDefault());
+        return getInstance(skeleton, ULocale.getDefault());
     }
 
 
@@ -862,57 +395,49 @@ public class DateIntervalFormat extends UFormat {
      * Construct a DateIntervalFormat from skeleton and a given locale.
      *
      * This is a convenient override of 
-     * getInstance(String skeleton, boolean adjustFieldWidth, ULocale locale)  
+     * getInstance(String skeleton, ULocale locale)  
      *
      * @param skeleton  the skeleton on which interval format based.
-     * @param adjustFieldWidth  whether adjust the skeleton field width or not
-     *                          It is used for DateTimePatternGenerator on 
-     *                          whether to adjust field width when get 
-     *                          full pattern from skeleton
      * @param locale    the given locale
      * @return          a date time interval formatter whick the caller owns.
      * @draft ICU 4.0
      * @provisional This API might change or be removed in a future release.
      */
     public static final DateIntervalFormat 
-        getInstance(String skeleton, boolean adjustFieldWidth, Locale locale)  
+        getInstance(String skeleton, Locale locale)  
     {
-        return getInstance(skeleton, adjustFieldWidth, ULocale.forLocale(locale));
+        return getInstance(skeleton, ULocale.forLocale(locale));
     }
 
 
     /**
      * Construct a DateIntervalFormat from skeleton and a given locale.
      *
-     * There are 27 class instance skeleton variables defined,
-     * such as MONTH_DAY_FULL_FORMAT, YEAR_MONTH_DOW_DAY_LONG_FORMAT etc.
+     * There are pre-defined skeletons in DateFormat,
+     * such as MONTH_DAY, YEAR_MONTH_WEEKDAY_DAY etc.
      *
      * Those skeletons have pre-defined interval patterns in resource files.
      * Users are encouraged to use them. 
      * For example:
-     * DateIntervalFormat.getInstance(MONTH_DAY_FULL_FORMAT, false, loc);
+     * DateIntervalFormat.getInstance(DateFormat.MONTH_DAY, false, loc);
      * 
      * The given Locale provides the interval patterns.
-     * For example, for en_GB, if skeleton is YEAR_MONTH_DOW_DAY_MEDIUM_FORMAT,
+     * For example, for en_GB, if skeleton is YEAR_ABBR_MONTH_WEEKDAY_DAY,
      * which is "yMMMEEEd",
      * the interval patterns defined in resource file to above skeleton are:
      * "EEE, d MMM, yyyy - EEE, d MMM, yyyy" for year differs,
      * "EEE, d MMM - EEE, d MMM, yyyy" for month differs,
      * "EEE, d - EEE, d MMM, yyyy" for day differs,
      * @param skeleton  the skeleton on which interval format based.
-     * @param adjustFieldWidth  whether adjust the skeleton field width or not
-     *                          It is used for DateTimePatternGenerator on 
-     *                          whether to adjust field width when get 
-     *                          full pattern from skeleton
      * @param locale    the given locale
      * @return          a date time interval formatter whick the caller owns.
      * @draft ICU 4.0
      * @provisional This API might change or be removed in a future release.
      */
     public static final DateIntervalFormat 
-        getInstance(String skeleton, boolean adjustFieldWidth, ULocale locale)  
+        getInstance(String skeleton, ULocale locale)  
     {
-        DateFormat dtfmt = DateFormat.getInstance(skeleton, adjustFieldWidth, locale);
+        DateFormat dtfmt = DateFormat.getPatternInstance(skeleton, locale);
         DateIntervalInfo dtitvinf = new DateIntervalInfo(locale);
         return new DateIntervalFormat(dtfmt, dtitvinf, skeleton);
     }
@@ -924,25 +449,19 @@ public class DateIntervalFormat extends UFormat {
      *  DateIntervalInfo, and default locale.
      *
      * This is a convenient override of
-     * getInstance(String skeleton, boolean adjustFieldWidth, 
-     *             ULocale locale, DateIntervalInfo dtitvinf)
+     * getInstance(String skeleton, ULocale locale, DateIntervalInfo dtitvinf)
      * with the locale value as default locale.
      *
      * @param skeleton  the skeleton on which interval format based.
-     * @param adjustFieldWidth  whether adjust the skeleton field width or not
-     *                          It is used for DateTimePatternGenerator on 
-     *                          whether to adjust field width when get 
-     *                          full pattern from skeleton
      * @param dtitvinf  the DateIntervalInfo object to be adopted.
      * @return          a date time interval formatter whick the caller owns.
      * @draft ICU 4.0
      * @provisional This API might change or be removed in a future release.
      */
     public static final DateIntervalFormat getInstance(String skeleton, 
-                                                   boolean adjustFieldWidth,
                                                    DateIntervalInfo dtitvinf)
     {
-        return getInstance(skeleton, adjustFieldWidth, ULocale.getDefault(), dtitvinf);
+        return getInstance(skeleton, ULocale.getDefault(), dtitvinf);
     }
 
 
@@ -952,14 +471,9 @@ public class DateIntervalFormat extends UFormat {
      * a DateIntervalInfo, and the given locale.
      *
      * This is a convenient override of
-     * getInstance(String skeleton, boolean adjustFieldWidth, 
-     *             ULocale locale, DateIntervalInfo dtitvinf)
+     * getInstance(String skeleton, ULocale locale, DateIntervalInfo dtitvinf)
      *
      * @param skeleton  the skeleton on which interval format based.
-     * @param adjustFieldWidth  whether adjust the skeleton field width or not
-     *                          It is used for DateTimePatternGenerator on 
-     *                          whether to adjust field width when get 
-     *                          full pattern from skeleton
      * @param locale    the given locale
      * @param dtitvinf  the DateIntervalInfo object to be adopted.
      * @return          a date time interval formatter whick the caller owns.
@@ -967,11 +481,10 @@ public class DateIntervalFormat extends UFormat {
      * @provisional This API might change or be removed in a future release.
      */
     public static final DateIntervalFormat getInstance(String skeleton,
-                                                 boolean adjustFieldWidth,
                                                  Locale locale, 
                                                  DateIntervalInfo dtitvinf)
     {
-        return getInstance(skeleton, adjustFieldWidth, ULocale.forLocale(locale), dtitvinf);
+        return getInstance(skeleton, ULocale.forLocale(locale), dtitvinf);
     }
 
 
@@ -980,13 +493,13 @@ public class DateIntervalFormat extends UFormat {
      * Construct a DateIntervalFormat from skeleton
      * a DateIntervalInfo, and the given locale.
      *
-     * There are 27 class instance skeleton variables defined,
-     * such as MONTH_DAY_FULL_FORMAT, YEAR_MONTH_DOW_DAY_LONG_FORMAT etc.
+     * There are pre-defined skeleton in DateFormat,
+     * such as MONTH_DAY, YEAR_MONTH_WEEKDAY_DAY etc.
      *
      * Those skeletons have pre-defined interval patterns in resource files.
      * Users are encouraged to use them. 
      * For example:
-     * DateIntervalFormat.getInstance(MONTH_DAY_FULL_FORMAT, false, loc,itvinf);
+     * DateIntervalFormat.getInstance(DateFormat.MONTH_DAY, false, loc,itvinf);
      *
      * the DateIntervalInfo provides the interval patterns.
      *
@@ -1000,10 +513,6 @@ public class DateIntervalFormat extends UFormat {
      * "{date0} - {date1}" 
      *
      * @param skeleton  the skeleton on which interval format based.
-     * @param adjustFieldWidth  whether adjust the skeleton field width or not
-     *                          It is used for DateTimePatternGenerator on 
-     *                          whether to adjust field width when get 
-     *                          full pattern from skeleton
      * @param locale    the given locale
      * @param dtitvinf  the DateIntervalInfo object to be adopted.
      * @return          a date time interval formatter whick the caller owns.
@@ -1011,11 +520,10 @@ public class DateIntervalFormat extends UFormat {
      * @provisional This API might change or be removed in a future release.
      */
     public static final DateIntervalFormat getInstance(String skeleton,
-                                                 boolean adjustFieldWidth,
                                                  ULocale locale, 
                                                  DateIntervalInfo dtitvinf)
     {
-        DateFormat dtfmt = DateFormat.getInstance(skeleton, adjustFieldWidth, locale);
+        DateFormat dtfmt = DateFormat.getPatternInstance(skeleton, locale);
         LOCAL_PATTERN_CACHE.clear();
         // clone. If it is frozen, clone returns itself, otherwise, clone
         // returns a copy.
@@ -1499,7 +1007,7 @@ public class DateIntervalFormat extends UFormat {
                 //genFallbackForNotFound(Calendar.AM_PM, skeleton, dtpng);
                 if ( date.length() == 0 ) {
                     // prefix with yMd
-                    timeSkeleton = YEAR_MONTH_DAY_SHORT_FORMAT + timeSkeleton;
+                    timeSkeleton = DateFormat.YEAR_NUM_MONTH_DAY + timeSkeleton;
                     String pattern =dtpng.getBestPattern(timeSkeleton);
                     // for fall back interval patterns,
                     // the first part of the pattern is empty,
@@ -1544,7 +1052,7 @@ public class DateIntervalFormat extends UFormat {
             genFallbackPattern(Calendar.YEAR, time, dtpng);
             */
             // prefix with yMd
-            timeSkeleton = YEAR_MONTH_DAY_SHORT_FORMAT + timeSkeleton;
+            timeSkeleton = DateFormat.YEAR_NUM_MONTH_DAY + timeSkeleton;
             String pattern =dtpng.getBestPattern(timeSkeleton);
             // for fall back interval patterns,
             // the first part of the pattern is empty,

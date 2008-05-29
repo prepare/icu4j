@@ -13,21 +13,22 @@
 
 package com.ibm.icu.dev.test.format;
 
-//import java.io.FileOutputStream;
-//import java.io.IOException;
-//import java.io.UnsupportedEncodingException;
-//import java.io.OutputStreamWriter;
-//import java.text.FieldPosition;
-//import java.text.ParseException;
-//import java.util.Date;
-//import java.util.Locale;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.FileNotFoundException;
+import java.io.UnsupportedEncodingException;
+import java.io.OutputStreamWriter;
+import java.text.FieldPosition;
+import java.text.ParseException;
+import java.util.Date;
+import java.util.Locale;
 
-//import com.ibm.icu.text.DateFormat;
-//import com.ibm.icu.text.SimpleDateFormat;
-//import com.ibm.icu.util.Calendar;
-//import com.ibm.icu.util.DateInterval;
-//import com.ibm.icu.text.DateIntervalInfo;
-//import com.ibm.icu.text.DateIntervalFormat;
+import com.ibm.icu.text.DateFormat;
+import com.ibm.icu.text.SimpleDateFormat;
+import com.ibm.icu.util.Calendar;
+import com.ibm.icu.util.DateInterval;
+import com.ibm.icu.text.DateIntervalInfo;
+import com.ibm.icu.text.DateIntervalFormat;
 
 public class DateIntervalFormatTest extends com.ibm.icu.dev.test.TestFmwk {
 
@@ -46,7 +47,6 @@ public class DateIntervalFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         // The 1st is the format pattern,
         // Next are pairs in which the 1st in the pair is the earlier date
         // and the 2nd in the pair is the later date
-        /*
         String[] DATA = {
             "yyyy MM dd HH:mm:ss",
             "2007 10 10 10:10:10", "2008 10 10 10:10:10", 
@@ -99,11 +99,11 @@ public class DateIntervalFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             {"uk", "", ""},
             {"hi", "", ""},
         };
-        */
     
         /* TODO: uncomment
          * comment out temporarily, need to un-comment when CLDR data
          * is ready
+	 */
         
         int localeIndex;
         for ( localeIndex = 0; localeIndex < testLocale.length; ++localeIndex) {
@@ -111,10 +111,8 @@ public class DateIntervalFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                    testLocale[localeIndex][1], testLocale[localeIndex][2]), 
                    testLocale[localeIndex][0]+testLocale[localeIndex][1]);
         }
-        */
     }
 
-    /*
     void expect(String[] data, int data_length, Locale loc, String locName) {
 
         String[] formatResults = {
@@ -188,44 +186,11 @@ public class DateIntervalFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                 }
                 DateInterval dtitv = new DateInterval(date.getTime(), date_2.getTime());
     
-                for ( int style = DateFormat.FULL; style  < 4; ++style ) {
-                    DateIntervalFormat dtitvfmt = DateIntervalFormat.getDateIntervalInstance(style, loc);
-                    FieldPosition pos = new FieldPosition(0);
-                    StringBuffer str = new StringBuffer("");
-                    dtitvfmt.format(dtitv, str, pos);
-                    if ( DEBUG ) {
-                        osw.write("date interval, style = " +  style + "\n");
-                        osw.write("interval date: " + str + "\n");
-                    }
-                } 
-     
-                for ( int style = DateFormat.FULL; style  < 4; ++style ) {
-                    DateIntervalFormat dtitvfmt = DateIntervalFormat.getTimeIntervalInstance(style, loc);
-                    FieldPosition pos = new FieldPosition(0);
-                    StringBuffer str = new StringBuffer("");
-                    dtitvfmt.format(dtitv, str, pos);
-                    if ( DEBUG ) {
-                        osw.write("time interval, style = " + style + "\n");
-                        osw.write("interval date: " + str + "\n");
-                    }
-                } 
-     
-                for ( int style = DateFormat.FULL; style  < 4; ++style ) {
-                    DateIntervalFormat dtitvfmt = DateIntervalFormat.getDateTimeIntervalInstance(style, style, loc);
-                    FieldPosition pos = new FieldPosition(0);
-                    StringBuffer str = new StringBuffer("");
-                    dtitvfmt.format(dtitv, str, pos);
-                    if ( DEBUG ) {
-                        osw.write("date time interval, style = " + style + "\n");
-                        osw.write("interval date: " + str + "\n");
-                    }
-                } 
-    
                 for ( int skeletonIndex = 0; 
                       skeletonIndex < skeleton.length; 
                       ++skeletonIndex ) {
                     String oneSkeleton = skeleton[skeletonIndex];
-                    DateIntervalFormat dtitvfmt = DateIntervalFormat.getInstance(oneSkeleton, false, loc);
+                    DateIntervalFormat dtitvfmt = DateIntervalFormat.getInstance(oneSkeleton, loc);
                     FieldPosition pos = new FieldPosition(0);
                     StringBuffer str = new StringBuffer("");
                     dtitvfmt.format(dtitv, str, pos);
@@ -241,8 +206,8 @@ public class DateIntervalFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                 dtitvinf.setIntervalPattern("yMMMd", Calendar.MONTH, "yyyy MMM d - MMM y");
                 dtitvinf.setIntervalPattern("yMMMd", Calendar.HOUR_OF_DAY, "yyyy MMM d HH:mm - HH:mm");
                 DateIntervalFormat dtitvfmt = DateIntervalFormat.getInstance(
-                            DateIntervalFormat.YEAR_MONTH_DAY_MEDIUM_FORMAT, 
-                            false, loc, dtitvinf);
+                            DateFormat.YEAR_ABBR_MONTH_DAY, 
+                            loc, dtitvinf);
                 FieldPosition pos = new FieldPosition(0);
                 StringBuffer str = new StringBuffer("");
                 dtitvfmt.format(dtitv, str, pos);
@@ -253,7 +218,7 @@ public class DateIntervalFormatTest extends com.ibm.icu.dev.test.TestFmwk {
 
                 // test interval format used by CLDR survey tool 
                 //dtitvfmt = DateIntervalFormat.getEmptyInstance();
-                dtitvfmt = DateIntervalFormat.getInstance();
+                dtitvfmt = DateIntervalFormat.getInstance("yMd");
                 SimpleDateFormat dtfmt = new SimpleDateFormat("yyyy 'year' MMM 'month' dd 'day'", loc);
                 dtitvfmt.setDateFormat(dtfmt);
                 dtitvinf = new DateIntervalInfo();
@@ -304,5 +269,4 @@ public class DateIntervalFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                 return;
         }
     }
-    */
 }
