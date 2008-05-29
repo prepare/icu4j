@@ -140,6 +140,11 @@ public class DateIntervalInfo implements Cloneable,  Freezable, Serializable {
      */
     static final int currentSerialVersion = 1;
 
+    /* PatternInfo class saves the first and second part of interval pattern,
+     * and whether the interval pattern is earlier date first.
+     * @draft ICU 4.0
+     * @provisional This API might change or be removed in a future release.
+     */
     public static final class PatternInfo implements Cloneable, Serializable {
         static final int currentSerialVersion = 1;
         private static final long serialVersionUID = 1;
@@ -160,6 +165,10 @@ public class DateIntervalInfo implements Cloneable,  Freezable, Serializable {
          */
         private final boolean fFirstDateInPtnIsLaterDate;
        
+        /* constructor
+         * @draft ICU 4.0
+         * @provisional This API might change or be removed in a future release.
+         */
         public PatternInfo(String firstPart, String secondPart,
                            boolean firstDateInPtnIsLaterDate) {
             fIntervalPatternFirstPart = firstPart;
@@ -167,18 +176,34 @@ public class DateIntervalInfo implements Cloneable,  Freezable, Serializable {
             fFirstDateInPtnIsLaterDate = firstDateInPtnIsLaterDate;
         }
    
+        /* accessor
+         * @draft ICU 4.0
+         * @provisional This API might change or be removed in a future release.
+         */
         public String getFirstPart() {
             return fIntervalPatternFirstPart;
         }
 
+        /* accessor
+         * @draft ICU 4.0
+         * @provisional This API might change or be removed in a future release.
+         */
         public String getSecondPart() {
             return fIntervalPatternSecondPart;
         }
 
+        /* accessor
+         * @draft ICU 4.0
+         * @provisional This API might change or be removed in a future release.
+         */
         public boolean firstDateInPtnIsLaterDate() {
             return fFirstDateInPtnIsLaterDate;
         }
 
+        /* equals
+         * @draft ICU 4.0
+         * @provisional This API might change or be removed in a future release.
+         */
         public boolean equals(Object a) {
             if ( a instanceof PatternInfo ) {
                 PatternInfo patternInfo = (PatternInfo)a;
@@ -189,6 +214,10 @@ public class DateIntervalInfo implements Cloneable,  Freezable, Serializable {
             return false;
         }
 
+        /* hash code 
+         * @draft ICU 4.0
+         * @provisional This API might change or be removed in a future release.
+         */
         public int hashCode() {
             return fIntervalPatternFirstPart.hashCode() +
                    fIntervalPatternSecondPart.hashCode();
