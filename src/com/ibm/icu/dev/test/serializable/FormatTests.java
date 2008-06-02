@@ -1,7 +1,7 @@
 //##header J2SE15
 /*
  *******************************************************************************
- * Copyright (C) 1996-2008, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2007, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  *
@@ -18,12 +18,6 @@ import com.ibm.icu.text.ChineseDateFormat;
 import com.ibm.icu.text.ChineseDateFormatSymbols;
 import com.ibm.icu.text.DateFormat;
 import com.ibm.icu.text.DateFormatSymbols;
-import com.ibm.icu.util.DateInterval;
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
-import com.ibm.icu.text.DateIntervalFormat;
-import com.ibm.icu.text.DateIntervalInfo;
-//#endif
 import com.ibm.icu.text.DecimalFormat;
 import com.ibm.icu.text.DecimalFormatSymbols;
 import com.ibm.icu.text.DurationFormat;
@@ -33,11 +27,8 @@ import com.ibm.icu.text.PluralFormat;
 import com.ibm.icu.text.PluralRules;
 import com.ibm.icu.text.RuleBasedNumberFormat;
 import com.ibm.icu.text.SimpleDateFormat;
-import com.ibm.icu.text.TimeUnitFormat;
 import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.GregorianCalendar;
-import com.ibm.icu.util.TimeUnit;
-import com.ibm.icu.util.TimeUnitAmount;
 import com.ibm.icu.util.ULocale;
 
 /**
@@ -1868,72 +1859,7 @@ public class FormatTests
             return dateFormats;
         }
     }
-
-
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
-
-    public static class DateIntervalFormatHandler implements SerializableTest.Handler
-    {
-        public Object[] getTestObjects()
-        {
-            DateIntervalFormat dateIntervalFormats[] = {
-                DateIntervalFormat.getInstance("yMMMMEEEEd")
-            };
-            return dateIntervalFormats;
-        }
-
-        public boolean hasSameBehavior(Object a, Object b)
-        {
-            DateIntervalFormat dfa = (DateIntervalFormat) a;
-            DateIntervalFormat dfb = (DateIntervalFormat) b;
-            DateInterval dateInterval = new DateInterval(1, System.currentTimeMillis());
-            String sfa = dfa.format(dateInterval);
-            String sfb = dfb.format(dateInterval);
-
-            return sfa.equals(sfb);
-        }
-    }
-
-
-    public static class DateIntervalInfoHandler implements SerializableTest.Handler
-    {
-        public Object[] getTestObjects()
-        {
-            DateIntervalInfo dateIntervalInfo[] = {
-                new DateIntervalInfo()
-            };
-            dateIntervalInfo[0].setIntervalPattern("yMd", Calendar.YEAR, "yy/MM/dd - yy/MM/dd");
-            dateIntervalInfo[0].setIntervalPattern("yMd", Calendar.MONTH, "yy/MM - MM/dd");
-            return dateIntervalInfo;
-        }
-
-        public boolean hasSameBehavior(Object a, Object b)
-        {
-            return a.equals(b);
-        }
-    }
-
-
-    public static class PatternInfoHandler implements SerializableTest.Handler
-    {
-        public Object[] getTestObjects()
-        {
-            DateIntervalInfo.PatternInfo patternInfo[] = {
-                new DateIntervalInfo.PatternInfo("yyyy MMM dd - ", 
-                                                 "dd",
-                                                 false)
-            };
-            return patternInfo;
-        }
-
-        public boolean hasSameBehavior(Object a, Object b)
-        {
-            return a.equals(b);
-        }
-    }
-//#endif
-
+    
     public static class ChineseDateFormatHandler extends DateFormatHandler
     {
         String patterns[] = {
@@ -2052,65 +1978,48 @@ public class FormatTests
         }
     }
 
-    public static class PluralFormatHandler implements SerializableTest.Handler {
-        public Object[] getTestObjects() {
-            Locale[] locales = { Locale.US }; // main test is in plural rules handler
-            PluralFormat[] plfmts = new PluralFormat[locales.length];
-            for (int i = 0; i < locales.length; i++) {
-                ULocale uloc = ULocale.forLocale(locales[i]);
-                try {
-                    plfmts[i] = new PluralFormat(uloc, "one{1 foo} other{# foo}");
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-            return plfmts;
+  public static class PluralFormatHandler implements SerializableTest.Handler {
+    public Object[] getTestObjects() {
+      Locale[] locales = { Locale.US }; // main test is in plural rules handler
+      PluralFormat[] plfmts = new PluralFormat[locales.length];
+      for (int i = 0; i < locales.length; i++) {
+        ULocale uloc = ULocale.forLocale(locales[i]);
+        try {
+          plfmts[i] = new PluralFormat(uloc, "one{1 foo} other{# foo}");
+        } catch (Exception e) {
+          e.printStackTrace();
         }
-        public boolean hasSameBehavior(Object a, Object b) {
-            return a.equals(b);
-        }
+      }
+      return plfmts;
     }
+    public boolean hasSameBehavior(Object a, Object b) {
+      return a.equals(b);
+    }
+  }
 
-    public static class PluralRulesHandler implements SerializableTest.Handler {
-        public Object[] getTestObjects() {
-            String[] localeNames = {"ja","da","fr","lv","ga","ro","lt","hr","cs","pl","sl"};
-            PluralRules[] plrulz = new PluralRules[localeNames.length];
-            for (int i = 0; i < localeNames.length; i++) {
-                ULocale uloc = ULocale.createCanonical(localeNames[i]);
-                try {
-                    plrulz[i] = PluralRules.forLocale(uloc);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-            return plrulz;
+  public static class PluralRulesHandler implements SerializableTest.Handler {
+    public Object[] getTestObjects() {
+      
+      String[] localeNames = {"ja","da","fr","lv","ga","ro","lt","hr","cs","pl","sl"};
+      PluralRules[] plrulz = new PluralRules[localeNames.length];
+      for (int i = 0; i < localeNames.length; i++) {
+        ULocale uloc = ULocale.createCanonical(localeNames[i]);
+        try {
+          plrulz[i] = PluralRules.forLocale(uloc);
+        } catch (Exception e) {
+          e.printStackTrace();
         }
-        public boolean hasSameBehavior(Object a, Object b) {
-            return a.equals(b);
-        }
+      }
+      return plrulz;
     }
+    public boolean hasSameBehavior(Object a, Object b) {
+      return a.equals(b);
+    }
+  }
     
-    public static class TimeUnitFormatHandler implements SerializableTest.Handler {
-        // TODO - more test coverage!
-        public Object[] getTestObjects() {
-            return new Object[] { new TimeUnitFormat().setLocale(ULocale.ENGLISH) };
-        }
-        public boolean hasSameBehavior(Object a, Object b) {
-            TimeUnitFormat tufa = (TimeUnitFormat)a;
-            TimeUnitFormat tufb = (TimeUnitFormat)b;
-
-            TimeUnitAmount amount = new TimeUnitAmount(3, TimeUnit.HOUR);
-            String resa = tufa.format(amount);
-            String resb = tufb.format(amount);
-
-            return resa.equals(resb);
-        }
-    }
-
     public static void main(String[] args)
     {
         // nothing needed...
     }
-
 }
 //eof

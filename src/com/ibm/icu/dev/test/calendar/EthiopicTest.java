@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2005-2008, International Business Machines Corporation and    *
+ * Copyright (C) 2005, International Business Machines Corporation and         *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -137,106 +137,46 @@ public class EthiopicTest extends CalendarTest
             /* Skip these tests until JD bug fixed in the Gregorian calendar:
              * http://www.jtcsv.com/cgibin/icu-bugs/incoming?id=4406;page=2;user=guest
              */
-            new TestCase(1721059.5,  0,  5492,    5,   7,  SAT,   0,  0,  0), // Gregorian: 01/01/0000
-            new TestCase(1721425.5,  0,  5493,    5,   8,  MON,   0,  0,  0), // Gregorian: 01/01/0001
-            new TestCase(1723854.5,  0,  5499,   13,   6,  MON,   0,  0,  0), // Gregorian: 27/08/0007
-
-            new TestCase(1723855.5,  0,  5500,    1,   1,  TUE,   0,  0,  0), // Gregorian: 28/08/0007
-            new TestCase(1724220.5,  1,     1,    1,   1,  WED,   0,  0,  0), // Gregorian: 27/08/0008
-            new TestCase(1724585.5,  1,     2,    1,   1,  THU,   0,  0,  0), // Gregorian: 27/08/0009
-            new TestCase(1724950.5,  1,     3,    1,   1,  FRI,   0,  0,  0), // Gregorian: 27/08/0010
+             new TestCase(1721059.5,  0,    -8,    5,   7,  SAT,   0,  0,  0), // Gregorian: 01/01/0000
+             new TestCase(1721425.5,  0,    -7,    5,   8,  MON,   0,  0,  0), // Gregorian: 01/01/0001
+             new TestCase(1723854.5,  0,    -1,   13,   6,  MON,   0,  0,  0), // Gregorian: 27/08/0007
+            
+             new TestCase(1723855.5,  1,     0,    1,   1,  TUE,   0,  0,  0), // Gregorian: 28/08/0007
+             new TestCase(1724220.5,  1,     1,    1,   1,  WED,   0,  0,  0), // Gregorian: 27/08/0008
+             new TestCase(1724585.5,  1,     2,    1,   1,  THU,   0,  0,  0), // Gregorian: 27/08/0009
+             new TestCase(1724950.5,  1,     3,    1,   1,  FRI,   0,  0,  0), // Gregorian: 27/08/0010
 
             // new TestCase(1724536.5,  1,     4,    1,   1,  SUN,   0,  0,  0), // Gregorian: 28/08/0011
-            new TestCase(1725316.5,  1,     4,    1,   1,  SUN,   0,  0,  0), // Gregorian: 28/08/0011 - dlf
-            new TestCase(1724219.5,  0,  5500,   13,   5,  TUE,   0,  0,  0), // Gregorian: 26/08/0008
-            new TestCase(1724584.5,  1,     1,   13,   5,  WED,   0,  0,  0), // Gregorian: 26/08/0009
-            new TestCase(1724949.5,  1,     2,   13,   5,  THU,   0,  0,  0), // Gregorian: 26/08/0010
-            new TestCase(1725314.5,  1,     3,   13,   5,  FRI,   0,  0,  0), // Gregorian: 26/08/0011
-            new TestCase(1725315.5,  1,     3,   13,   6,  SAT,   0,  0,  0), // Gregorian: 27/08/0011 - first ethiopic leap year
+             new TestCase(1725316.5,  1,     4,    1,   1,  SUN,   0,  0,  0), // Gregorian: 28/08/0011 - dlf
+             new TestCase(1724219.5,  1,     0,   13,   5,  TUE,   0,  0,  0), // Gregorian: 26/08/0008
+             new TestCase(1724584.5,  1,     1,   13,   5,  WED,   0,  0,  0), // Gregorian: 26/08/0009
+             new TestCase(1724949.5,  1,     2,   13,   5,  THU,   0,  0,  0), // Gregorian: 26/08/0010
+             new TestCase(1725314.5,  1,     3,   13,   5,  FRI,   0,  0,  0), // Gregorian: 26/08/0011
+             new TestCase(1725315.5,  1,     3,   13,   6,  SAT,   0,  0,  0), // Gregorian: 27/08/0011 - first ethiopic leap year
             // new TestCase(1725560.5,  1,     4,   13,   5,  SUN,   0,  0,  0), // Gregorian: 26/08/0012 - dlf
-            new TestCase(1725680.5,  1,     4,   13,   5,  SUN,   0,  0,  0), // Gregorian: 26/08/0012
-            new TestCase(2299158.5,  1,  1575,    2,   6,  WED,   0,  0,  0), // Gregorian: 13/10/1582  
-            new TestCase(2299159.5,  1,  1575,    2,   7,  THU,   0,  0,  0), // Gregorian: 14/10/1582  Julian 04/10/1582
+             new TestCase(1725680.5,  1,     4,   13,   5,  SUN,   0,  0,  0), // Gregorian: 26/08/0012
+             new TestCase(2299158.5,  1,  1575,    2,   6,  WED,   0,  0,  0), // Gregorian: 13/10/1582  
+             new TestCase(2299159.5,  1,  1575,    2,   7,  THU,   0,  0,  0), // Gregorian: 14/10/1582  Julian 04/10/1582
 
             new TestCase(2299160.5,  1,  1575,    2,   8,  FRI,   0,  0,  0), // Gregorian: 15/10/1582
             new TestCase(2299161.5,  1,  1575,    2,   9,  SAT,   0,  0,  0), // Gregorian: 16/10/1582
-
+                        
             new TestCase(2415020.5,  1,  1892,    4,  23,  MON,   0,  0,  0), // Gregorian: 01/01/1900
             new TestCase(2453371.5,  1,  1997,    4,  23,  SAT,   0,  0,  0), // Gregorian: 01/01/2005
             new TestCase(2454719.5,  1,  2000,   13,   5,  WED,   0,  0,  0), // Gregorian: 10/09/2008
         };
-
-        final TestCase[] testsAmeteAlem = {
-                //
-                // The months in this table are 1-based rather than 0-based,
-                // because it's easier to edit that way.
-                //                      Ethiopic
-                //          Julian Day  Era  Year  Month Day  WkDay Hour Min Sec
-                //
-                // Dates from "Emporer Theodore..."
-
-                new TestCase(2401442.5,  0,  7355,    2,  20,  WED,   0,  0,  0), // Gregorian: 29/10/1862
-                new TestCase(2402422.5,  0,  7357,   10,  29,  WED,   0,  0,  0), // Gregorian: 05/07/1865
-                new TestCase(2402630.5,  0,  7358,    5,  22,  MON,   0,  0,  0), // Gregorian: 29/01/1866
-                new TestCase(2402708.5,  0,  7358,    8,  10,  TUE,   0,  0,  0), // Gregorian: 17/04/1866
-                new TestCase(2402971.5,  0,  7359,    4,  28,  SAT,   0,  0,  0), // Gregorian: 05/01/1867
-                new TestCase(2403344.5,  0,  7360,    5,   5,  MON,   0,  0,  0), // Gregorian: 13/01/1868
-                            
-                // Miscellaneous:
-                /* Skip these tests until JD bug fixed in the Gregorian calendar:
-                 * http://www.jtcsv.com/cgibin/icu-bugs/incoming?id=4406;page=2;user=guest
-                 */
-                new TestCase(1721059.5,  0,  5492,    5,   7,  SAT,   0,  0,  0), // Gregorian: 01/01/0000
-                new TestCase(1721425.5,  0,  5493,    5,   8,  MON,   0,  0,  0), // Gregorian: 01/01/0001
-                new TestCase(1723854.5,  0,  5499,   13,   6,  MON,   0,  0,  0), // Gregorian: 27/08/0007
-
-                new TestCase(1723855.5,  0,  5500,    1,   1,  TUE,   0,  0,  0), // Gregorian: 28/08/0007
-                new TestCase(1724220.5,  0,  5501,    1,   1,  WED,   0,  0,  0), // Gregorian: 27/08/0008
-                new TestCase(1724585.5,  0,  5502,    1,   1,  THU,   0,  0,  0), // Gregorian: 27/08/0009
-                new TestCase(1724950.5,  0,  5503,    1,   1,  FRI,   0,  0,  0), // Gregorian: 27/08/0010
-
-                // new TestCase(1724536.5,  0,  5504,    1,   1,  SUN,   0,  0,  0), // Gregorian: 28/08/0011
-                new TestCase(1725316.5,  0,  5504,    1,   1,  SUN,   0,  0,  0), // Gregorian: 28/08/0011 - dlf
-                new TestCase(1724219.5,  0,  5500,   13,   5,  TUE,   0,  0,  0), // Gregorian: 26/08/0008
-                new TestCase(1724584.5,  0,  5501,   13,   5,  WED,   0,  0,  0), // Gregorian: 26/08/0009
-                new TestCase(1724949.5,  0,  5502,   13,   5,  THU,   0,  0,  0), // Gregorian: 26/08/0010
-                new TestCase(1725314.5,  0,  5503,   13,   5,  FRI,   0,  0,  0), // Gregorian: 26/08/0011
-                new TestCase(1725315.5,  0,  5503,   13,   6,  SAT,   0,  0,  0), // Gregorian: 27/08/0011 - first ethiopic leap year
-                // new TestCase(1725560.5,  0,  5504,   13,   5,  SUN,   0,  0,  0), // Gregorian: 26/08/0012 - dlf
-                new TestCase(1725680.5,  0,  5504,   13,   5,  SUN,   0,  0,  0), // Gregorian: 26/08/0012
-                new TestCase(2299158.5,  0,  7075,    2,   6,  WED,   0,  0,  0), // Gregorian: 13/10/1582  
-                new TestCase(2299159.5,  0,  7075,    2,   7,  THU,   0,  0,  0), // Gregorian: 14/10/1582  Julian 04/10/1582
-
-                new TestCase(2299160.5,  0,  7075,    2,   8,  FRI,   0,  0,  0), // Gregorian: 15/10/1582
-                new TestCase(2299161.5,  0,  7075,    2,   9,  SAT,   0,  0,  0), // Gregorian: 16/10/1582
-
-                new TestCase(2415020.5,  0,  7392,    4,  23,  MON,   0,  0,  0), // Gregorian: 01/01/1900
-                new TestCase(2453371.5,  0,  7497,    4,  23,  SAT,   0,  0,  0), // Gregorian: 01/01/2005
-                new TestCase(2454719.5,  0,  7500,   13,   5,  WED,   0,  0,  0), // Gregorian: 10/09/2008
-            };
-
+        
         EthiopicCalendar testCalendar = new EthiopicCalendar();
         testCalendar.setLenient(true);
         doTestCases(tests, testCalendar);
-
-        // Testing Amete Alem mode
-
-        EthiopicCalendar testCalendarAmeteAlem = new EthiopicCalendar();
-        testCalendarAmeteAlem.setAmeteAlemEra(true);
-        testCalendarAmeteAlem.setLenient(true);
-        doTestCases(testsAmeteAlem, testCalendarAmeteAlem);
     }
 
     // basic check to see that we print out eras ok
     // eventually should modify to use locale strings and formatter appropriate to coptic calendar
     public void TestEraStart() {
+        EthiopicCalendar cal = new EthiopicCalendar(0, 0, 1);
         SimpleDateFormat fmt = new SimpleDateFormat("EEE MMM dd, yyyy GG");
-        EthiopicCalendar cal = new EthiopicCalendar(1, 0, 1);
-        assertEquals("Ethiopic Date", "Wed Jan 01, 0001 AD", fmt.format(cal));
-
-        cal.set(Calendar.ERA, 0);
-        cal.set(Calendar.YEAR, 5500);
-        assertEquals("Ethiopic Date", "Tue Jan 01, 5500 BC", fmt.format(cal));
+        assertEquals("Ethiopic Date", "Tue Jan 01, 0000 AD", fmt.format(cal));
 
         // The gregorian calendar gets off by two days when
         // the date gets low, unless the gregorian changeover is set to 
@@ -268,12 +208,10 @@ public class EthiopicTest extends CalendarTest
     
     public void TestJD(){
         int jd = EthiopicCalendar.EthiopicToJD(1567,8,9);
-        EthiopicCalendar cal = new EthiopicCalendar();
-        cal.clear();
-        cal.set(Calendar.JULIAN_DAY, jd);
-        if (cal.get(Calendar.EXTENDED_YEAR) == 1567 &&
-            cal.get(Calendar.MONTH) == 8 &&
-            cal.get(Calendar.DAY_OF_MONTH) == 9){
+        Integer[] l = EthiopicCalendar.getDateFromJD(jd);
+        if (l[0].intValue() == 1567 &&
+            l[1].intValue() == 8 &&
+            l[2].intValue() == 9){
             logln("EthiopicCalendar.getDateFromJD tested");
         } else {
             errln("EthiopicCalendar.getDateFromJD failed");
@@ -287,7 +225,9 @@ public class EthiopicTest extends CalendarTest
         Calendar cal = Calendar.getInstance();
         cal.set(2007, Calendar.JANUARY, 1);
         EthiopicCalendar ethiopic = new EthiopicCalendar();
-        doLimitsTest(ethiopic, null, cal.getTime());
+        if (!skipIfBeforeICU(3,9,0)) {
+            doLimitsTest(ethiopic, null, cal.getTime());
+        }
         doTheoreticalLimitsTest(ethiopic, true);
     }
 

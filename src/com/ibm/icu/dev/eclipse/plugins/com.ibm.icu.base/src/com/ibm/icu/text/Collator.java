@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2008, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2007, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -110,28 +110,28 @@ import com.ibm.icu.util.ULocale;
 */
 public class Collator implements Comparator, Cloneable
 {
-    /**
-     * @internal
-     */
-    private final java.text.Collator collator;
-
-    /**
-     * @internal
-     */
-    private Collator(java.text.Collator delegate) {
-        this.collator = delegate;
-    }
-
-    /**
-     * Create a collator with a null delegate.
-     * For use by possible subclassers.  This is present since
-     * the original Collator is abstract, and so, in theory
-     * subclassable.  All member APIs must be overridden.
-     */
-    protected Collator() {
-        this.collator = null;
-    }
-
+	/**
+	 * @internal
+	 */
+	private final java.text.Collator collator;
+	
+	/**
+	 * @internal
+	 */
+	private Collator(java.text.Collator delegate) {
+		this.collator = delegate;
+	}
+	
+	/**
+	 * Create a collator with a null delegate.
+	 * For use by possible subclassers.  This is present since
+	 * the original Collator is abstract, and so, in theory
+	 * subclassable.  All member APIs must be overridden.
+	 */
+	protected Collator() {
+		this.collator = null;
+	}
+	
     // public data members ---------------------------------------------------
 
     /**
@@ -200,7 +200,7 @@ public class Collator implements Comparator, Cloneable
      * This is for backwards compatibility with Java APIs only.  It
      * should not be used, IDENTICAL should be used instead.  ICU's
      * collation does not support Java's FULL_DECOMPOSITION mode.
-     * @stable ICU 3.4
+     * @draft ICU 3.4
      * @deprecated Backwards compatibility with Java only.
      */
     public final static int FULL_DECOMPOSITION = java.text.Collator.FULL_DECOMPOSITION;
@@ -260,7 +260,7 @@ public class Collator implements Comparator, Cloneable
      * @stable ICU 2.8
      */
     public void setStrength(int newStrength) {
-        collator.setStrength(newStrength);
+    	collator.setStrength(newStrength);
     }
 
     /**
@@ -294,7 +294,7 @@ public class Collator implements Comparator, Cloneable
      * @stable ICU 2.8
      */
     public void setDecomposition(int decomposition) {
-        collator.setDecomposition(decomposition);
+    	collator.setDecomposition(decomposition);
     }
 
     // public getters --------------------------------------------------------
@@ -328,7 +328,7 @@ public class Collator implements Comparator, Cloneable
      * @stable ICU 3.4.3
      */
     public static final Collator getInstance(ULocale locale) {
-        return getInstance(locale.toLocale());
+    	return getInstance(locale.toLocale());
     }
 
     /**
@@ -357,7 +357,7 @@ public class Collator implements Comparator, Cloneable
      * @stable ICU 2.4
      */
     public static Locale[] getAvailableLocales() {
-        return java.text.Collator.getAvailableLocales();
+    	return java.text.Collator.getAvailableLocales();
     }
 
     /**
@@ -369,12 +369,12 @@ public class Collator implements Comparator, Cloneable
      * @stable ICU 3.4.3
      */
     public static final ULocale[] getAvailableULocales() {
-        Locale[] locales = java.text.Collator.getAvailableLocales();
-        ULocale[] ulocales = new ULocale[locales.length];
-        for (int i = 0; i < locales.length; ++i) {
-            ulocales[i] = ULocale.forLocale(locales[i]);
-        }
-        return ulocales;
+    	Locale[] locales = java.text.Collator.getAvailableLocales();
+    	ULocale[] ulocales = new ULocale[locales.length];
+    	for (int i = 0; i < locales.length; ++i) {
+    		ulocales[i] = ULocale.forLocale(locales[i]);
+    	}
+    	return ulocales;
     }
  
     /**
@@ -383,7 +383,8 @@ public class Collator implements Comparator, Cloneable
      * service is "collation".
      * @return an array of valid collation keywords.
      * @see #getKeywordValues
-     * @stable ICU 3.0
+     * @draft ICU 3.0
+     * @provisional
      */
     public static final String[] getKeywords() {
         return new String[0];
@@ -394,10 +395,11 @@ public class Collator implements Comparator, Cloneable
      * that keyword that are currently in use.
      * @param keyword one of the keywords returned by getKeywords.
      * @see #getKeywords
-     * @stable ICU 3.0
+     * @draft ICU 3.0
+     * @provisional
      */
     public static final String[] getKeywordValues(String keyword) {
-        return new String[0];
+    	return new String[0];
     }
 
     /**
@@ -460,7 +462,7 @@ public class Collator implements Comparator, Cloneable
      * @stable ICU 2.8
      */
     public int compare(Object source, Object target) {
-        return collator.compare(source, target);
+    	return collator.compare(source, target);
     }
 
     // public other methods -------------------------------------------------
@@ -500,7 +502,7 @@ public class Collator implements Comparator, Cloneable
      * @stable ICU 2.8
      */
     public int compare(String source, String target) {
-        return collator.compare(source, target);
+    	return collator.compare(source, target);
     }
 
     /**
@@ -519,7 +521,7 @@ public class Collator implements Comparator, Cloneable
      * @stable ICU 2.8
      */
     public CollationKey getCollationKey(String source) {
-        return new CollationKey(collator.getCollationKey(source));
+    	return new CollationKey(collator.getCollationKey(source));
     }
     
     /**
@@ -530,7 +532,7 @@ public class Collator implements Comparator, Cloneable
     public String toString() {
         return collator.toString();
     }
-
+	
    /**
      * Clone the collator.
      * @return a clone of this collator.
@@ -539,7 +541,7 @@ public class Collator implements Comparator, Cloneable
     public Object clone() throws CloneNotSupportedException {
         return new Collator((java.text.Collator)collator.clone());
     }
-
+	
     /**
      * Return true if rhs is a Collator and compares the same as this.
      * @return true if rhs equals this
@@ -553,7 +555,7 @@ public class Collator implements Comparator, Cloneable
             return false;
         }
     }
-
+	
     /**
      * Return a hashCode.
      * @return a hashCode

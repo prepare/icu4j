@@ -1,7 +1,7 @@
 //##header J2SE15
 /*
  *******************************************************************************
- * Copyright (C) 1996-2008, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2007, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -1558,6 +1558,7 @@ public final class Utility {
     * @param dst char array to store the retrieved chars
     * @param dstBegin offset to the start of the destination char array to
     *                 store the retrieved chars
+    * @draft since ICU4J 2.0
     */
     public static void getChars(StringBuffer src, int srcBegin, int srcEnd,
                                 char dst[], int dstBegin)
@@ -1922,23 +1923,5 @@ public final class Utility {
 //#else
        return src.split("\\s+");
 //#endif
-   }
-
-   // !!! 1.3/1.4 compatibility
-   // Integer constants - Integer.valueOf(int) is not supported in JDK 1.3/1.4
-   private static final int MAX_INT_CONST = 64;
-   private static final Integer[] INT_CONST = new Integer[MAX_INT_CONST];
-
-   static {
-       for (int i = 0; i < MAX_INT_CONST; i++) {
-           INT_CONST[i] = new Integer(i);
-       }
-   }
-
-   public static Integer integerValueOf(int val) {
-       if (0 <= val && val < MAX_INT_CONST) {
-           return INT_CONST[val];
-       }
-       return new Integer(val);
    }
 }

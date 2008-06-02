@@ -1,6 +1,6 @@
 /**
  *******************************************************************************
- * Copyright (C) 2006-2008, International Business Machines Corporation and    *
+ * Copyright (C) 2006-2007, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -14,8 +14,6 @@ import java.nio.CharBuffer;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CoderResult;
-
-import com.ibm.icu.text.UnicodeSet;
 
 class Charset88591 extends CharsetASCII {
     public Charset88591(String icuCanonicalName, String javaCanonicalName, String[] aliases) {
@@ -57,7 +55,7 @@ class Charset88591 extends CharsetASCII {
             super(cs);
         }
 
-        protected final CoderResult encodeLoopCoreOptimized(CharBuffer source, ByteBuffer target,
+        protected CoderResult encodeLoopCoreOptimized(CharBuffer source, ByteBuffer target,
                 char[] sourceArray, byte[] targetArray, int oldSource, int offset, int limit,
                 boolean flush) {
             int i, ch = 0;
@@ -66,14 +64,8 @@ class Charset88591 extends CharsetASCII {
              * perform 88591 conversion from the source array to the target array, making sure each
              * char in the source is within the correct range
              */
-            for (i = oldSource; i < limit; i++) {
-                ch = (int) sourceArray[i];
-                if ((ch & 0xff00) == 0) {
-                    targetArray[i + offset] = (byte) ch;
-                } else {
-                    break;
-                }
-            }
+            for (i = oldSource; i < limit && (((ch = (int) sourceArray[i]) & 0xff00) == 0); i++)
+                targetArray[i + offset] = (byte) ch;
 
             /*
              * if some byte was not in the correct range, we need to deal with this byte by calling
@@ -88,7 +80,7 @@ class Charset88591 extends CharsetASCII {
                 return null;
         }
 
-        protected final CoderResult encodeLoopCoreUnoptimized(CharBuffer source, ByteBuffer target,
+        protected CoderResult encodeLoopCoreUnoptimized(CharBuffer source, ByteBuffer target,
                 boolean flush) throws BufferUnderflowException, BufferOverflowException {
             int ch;
 
@@ -96,15 +88,9 @@ class Charset88591 extends CharsetASCII {
              * perform 88591 conversion from the source buffer to the target buffer, making sure
              * each char in the source is within the correct range
              */
-            
-            while (true) {
-                ch = (int) source.get();
-                if ((ch & 0xff00) == 0) {
-                    target.put((byte) ch);
-                } else {
-                    break;
-                }
-            }
+            while (((ch = (int) source.get()) & 0xff00) == 0)
+                target.put((byte) ch);
+
             /*
              * if we reach here, it's because a character was not in the correct range, and we need
              * to deak with this by calling encodeMalformedOrUnmappable.
@@ -121,8 +107,5 @@ class Charset88591 extends CharsetASCII {
     public CharsetEncoder newEncoder() {
         return new CharsetEncoder88591(this);
     }
-    
-    void getUnicodeSetImpl( UnicodeSet setFillIn, int which){
-        setFillIn.add(0,0xff);
-     }
+
 }

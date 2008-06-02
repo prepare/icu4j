@@ -4,7 +4,7 @@
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
   <meta http-equiv="Content-Style-Type" content="text/css2">
   <title>ReadMe for ICU4J</title>
-  <meta name="COPYRIGHT" content="Copyright 2000-2008, International Business Machines Corporation and others. All Rights Reserved.">
+  <meta name="COPYRIGHT" content="Copyright 2000-2007, International Business Machines Corporation and others. All Rights Reserved.">
   <style type="text/css">
 h3.doc { background: #CCCCFF }
   </style>
@@ -12,19 +12,15 @@ h3.doc { background: #CCCCFF }
 <body style="background-color: rgb(255, 255, 255);" lang="EN-US"
  link="#0000ff" vlink="#800080">
 <h2>International Components for Unicode for Java (ICU4J)</h2>
-<h3>Read Me for ICU4J 4.0 d02</h3>
+<h3>Read Me for ICU4J 3.8.1</h3>
 <hr size="2" width="100%">
 <p><b>Release Date</b><br>
-May 28, 2008<br>
+December 10, 2007<br>
 </p>
-<!-- <p><b>Note:</b> This is major release of ICU4J.  It contains bug fixes
-and adds implementations of inherited API and introduces new API
-or functionality. -->
-
-<p><b>Note:</b> This is a draft release of ICU4J 4.0.  All new APIs planned
-for ICU4J 4.0 release are available for evaluation.
+<p><b>Note:</b> This is an update release of ICU4J 3.8.  It contains bug fixes
+and adds implementations of inherited API, but does not introduce new API
+or functionality.  These changes will be rolled into the next release of ICU4J.
 </p>
-
 <p>For the most recent release, see the <a
  href="http://www.icu-project.org/download/"> ICU4J
 download site</a>. </p>
@@ -130,16 +126,40 @@ current and complete version is always found in ICU4J.</p>
 </blockquote>
 
 <h3 class="doc"><a name="news"></a>What Is New In This Release?</h3>
+<p><b>Locale Data</b></p>
+<p>ICU uses and supports data from <a href="http://www.unicode.org/cldr/">Common Locale Data Repository(CLDR)</a>.
+In ICU4J 3.8.1, ICU locale data was updated to CLDR 1.5.1.</p>
+<p><b>Updates to timezone formatting and parsing</b></p>
+<p>In ICU4J 3.8, the behavior of timezone formatting and parsing had changed based on
+CLDR 1.5 description.  There were some design problems identified in the specification
+and it was updated in CLDR 1.5.1.  In ICU4J 3.8.1, timezone formatting and parsing implementation
+had been updated to support the new specification.  As a result, many timezone parsing problems
+reproduced in ICU4J 3.8 were resolved in this release.</p>
+<p><b>Bug fixes</b></p>
+<p>This release contains following bug fixes (not a complete list)</p>
+<ul>
+<li><a href="http://www.icu-project.org/trac/ticket/3536">#3536</a> Problems with SHIFTED mode in StringSearch</li>
+<li><a href="http://www.icu-project.org/trac/ticket/4038">#4038</a> usearch_last misses matches when pattern length > 1</li>
+<li><a href="http://www.icu-project.org/trac/ticket/4279">#4279</a> StringSearch succeeds on NFC text but not NFD</li>
+<li><a href="http://www.icu-project.org/trac/ticket/5024">#5024</a> StringSearch with Secondary strength collator fails to match diacritic at end of input</li>
+<li><a href="http://www.icu-project.org/trac/ticket/5812">#5812</a> ICU4J Calendar handles ambiguous local time differently from Java</li>
+<li><a href="http://www.icu-project.org/trac/ticket/5883">#5883</a> Localized GMT string for time zone display name</li>
+<li><a href="http://www.icu-project.org/trac/ticket/5895">#5895</a> Parsed time zone is not properly set in the result calendar</li>
+<li><a href="http://www.icu-project.org/trac/ticket/5935">#5935</a> Don't include duration data twice</li>
+<li><a href="http://www.icu-project.org/trac/ticket/5937">#5937</a> ICU version in JavaDoc status tag was updated incorrectly for ICU4J 3.8</li>
+<li><a href="http://www.icu-project.org/trac/ticket/5945">#5945</a> TimeZone GMT format to handle a offset with a fraction of minute</li>
+<li><a href="http://www.icu-project.org/trac/ticket/5950">#5950</a> string search does not return correct position when search pattern is U+00C2 U+0303</li>
+<li><a href="http://www.icu-project.org/trac/ticket/5952">#5952</a> currency for sr_YU fails</li>
+<li><a href="http://www.icu-project.org/trac/ticket/5961">#5961</a> Creating Bidi with overridden embeddings causes IllegalArgumentException to be thrown</li>
+<li><a href="http://www.icu-project.org/trac/ticket/5964">#5964</a> TimeZone.getTimeZone(timezone) fails for GMT+8:30 (although spec'ed)</li>
+<li><a href="http://www.icu-project.org/trac/ticket/5990">#5990</a> SimpleDateFormat parse to round trip time properly</li>
+<li><a href="http://www.icu-project.org/trac/ticket/6010">#6010</a> Country Code "RS" Missing In Action</li>
+</ul>
+<p><b>Timezone Data</b></p>
+<p>ICU4J 3.8.1 updates the time zone data to version 2007j from the Olson timezone database.</p>
 
-<p><b>Status of ICU4J charset converter</b>
-<p>The ICU4J implementation of java.nio.charset.Charset was included in ICU4J 3.8 as
-a Technology Preview.  In this release, all functionality from the java.nio.Charset
-interfaces is operational and promoted to the draft status.
-</p>
-<p><b>New features</b></p>
-<p>
-See the <a href="http://www.icu-project.org/download/">ICU 4.0 download page</a> about new features in this release.
-</p>
+<p>For a list of what was new in ICU4J 3.8, see <a href="http://source.icu-project.org/repos/icu/icu4j/tags/release-3-8/readme.html#news">here</a>.<p>
+
 <h3 class="doc"><a name="license"></a>License Information</h3>
 <p>
 The ICU projects (ICU4C and ICU4J) use the X license. The X
@@ -179,58 +199,59 @@ used by the ICU development team.
 <table bgcolor="#CCCCFF">
 <tr>
   <th rowspan="2" bgcolor="#FFFFFF">Operating System</th>
-  <th colspan="3" bgcolor="#FFFFFF">Sun Java SE</th>
+  <th colspan="5" bgcolor="#FFFFFF">Sun Java SE</th>
   <th colspan="3" bgcolor="#FFFFFF">IBM Java SE</th>
 </tr>
 <tr>
   <th bgcolor="#FFFFFF">1.6.0</th>
   <th bgcolor="#FFFFFF">1.5.0</th>
   <th bgcolor="#FFFFFF">1.4.2</th>
-  <th bgcolor="#FFFFFF">1.6.0</th>
+  <th bgcolor="#FFFFFF">1.4.1</th>
+  <th bgcolor="#FFFFFF">1.4.0</th>
   <th bgcolor="#FFFFFF">1.5.0</th>
   <th bgcolor="#FFFFFF">1.4.2</th>
+  <th bgcolor="#FFFFFF">1.4.1</th>
 </tr>
 <tr>
   <th bgcolor="#FFFFFF">AIX 5.2</th>
   <td align="center" bgcolor="#FFFFFF">-</td>
   <td align="center" bgcolor="#FFFFFF">-</td>
   <td align="center" bgcolor="#FFFFFF">-</td>
+  <td align="center" bgcolor="#FFFFFF">-</td>
+  <td align="center" bgcolor="#FFFFFF">-</td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
-  <td align="center" bgcolor="#DDDDFF">Rarely tested</td>
+  <td align="center" bgcolor="#EEEEFF">Rarely tested</td>
 </tr>
 <tr>
   <th bgcolor="#FFFFFF">AIX 5.3</th>
   <td align="center" bgcolor="#FFFFFF">-</td>
   <td align="center" bgcolor="#FFFFFF">-</td>
   <td align="center" bgcolor="#FFFFFF">-</td>
-  <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
-  <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
-  <td align="center" bgcolor="#DDDDFF">Rarely tested</td>
-</tr>
-<tr>
-  <th bgcolor="#FFFFFF">AIX 6.1</th>
   <td align="center" bgcolor="#FFFFFF">-</td>
   <td align="center" bgcolor="#FFFFFF">-</td>
-  <td align="center" bgcolor="#FFFFFF">-</td>
-  <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
   <td align="center" bgcolor="#CCCCFF"><em><b>Reference platform</b></em></td>
-  <td align="center" bgcolor="#DDDDFF">Rarely tested</td>
+  <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
+  <td align="center" bgcolor="#EEEEFF">Rarely tested</td>
 </tr>
 <tr>
   <th bgcolor="#FFFFFF">HP-UX 11 (PA-RISC)</th>
+  <td align="center" bgcolor="#FFFFFF">-</td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
-  <td align="center" bgcolor="#DDDDFF">Rarely tested</td>
+  <td align="center" bgcolor="#FFFFFF">-</td>
+  <td align="center" bgcolor="#FFFFFF">-</td>
   <td align="center" bgcolor="#FFFFFF">-</td>
   <td align="center" bgcolor="#FFFFFF">-</td>
   <td align="center" bgcolor="#FFFFFF">-</td>
 </tr>
 <tr>
   <th bgcolor="#FFFFFF">HP-UX 11 (IA64)</th>
+  <td align="center" bgcolor="#FFFFFF">-</td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
-  <td align="center" bgcolor="#DDDDFF">Rarely tested</td>
+  <td align="center" bgcolor="#FFFFFF">-</td>
+  <td align="center" bgcolor="#FFFFFF">-</td>
   <td align="center" bgcolor="#FFFFFF">-</td>
   <td align="center" bgcolor="#FFFFFF">-</td>
   <td align="center" bgcolor="#FFFFFF">-</td>
@@ -239,25 +260,31 @@ used by the ICU development team.
   <th bgcolor="#FFFFFF">Redhat Enterprise Linux 4 (x86)</th>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
-  <td align="center" bgcolor="#DDDDFF">Rarely tested</td>
+  <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
+  <td align="center" bgcolor="#EEEEFF">Rarely tested</td>
+  <td align="center" bgcolor="#EEEEFF">Rarely tested</td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
-  <td align="center" bgcolor="#DDDDFF">Rarely tested</td>
+  <td align="center" bgcolor="#FFFFFF">-</td>
 </tr>
 <tr bgcolor="#FFFFFF">
   <th>Redhat Enterprise Linux 5 (x86)</th>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
-  <td align="center" bgcolor="#DDDDFF">Rarely tested</td>
+  <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
+  <td align="center" bgcolor="#EEEEFF">Rarely tested</td>
+  <td align="center" bgcolor="#EEEEFF">Rarely tested</td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
-  <td align="center" bgcolor="#DDDDFF">Rarely tested</td>
+  <td align="center" bgcolor="#FFFFFF">-</td>
 </tr>
 <tr bgcolor="#FFFFFF">
   <th>Solaris 9 (SPARC)</th>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
-  <td align="center" bgcolor="#DDDDFF">Rarely tested</td>
+  <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
+  <td align="center" bgcolor="#EEEEFF">Rarely tested</td>
+  <td align="center" bgcolor="#EEEEFF">Rarely tested</td>
   <td align="center" bgcolor="#FFFFFF">-</td>
   <td align="center" bgcolor="#FFFFFF">-</td>
   <td align="center" bgcolor="#FFFFFF">-</td>
@@ -266,7 +293,9 @@ used by the ICU development team.
   <th>Solaris 10 (SPARC)</th>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
   <td align="center" bgcolor="#CCCCFF"><em><b>Reference platform</b></em></td>
-  <td align="center" bgcolor="#DDDDFF">Rarely tested</td>
+  <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
+  <td align="center" bgcolor="#EEEEFF">Rarely tested</td>
+  <td align="center" bgcolor="#EEEEFF">Rarely tested</td>
   <td align="center" bgcolor="#FFFFFF">-</td>
   <td align="center" bgcolor="#FFFFFF">-</td>
   <td align="center" bgcolor="#FFFFFF">-</td>
@@ -275,28 +304,23 @@ used by the ICU development team.
   <th bgcolor="#FFFFFF">Windows XP</th>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
-  <td align="center" bgcolor="#DDDDFF">Rarely tested</td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
+  <td align="center" bgcolor="#FFFFFF">-</td>
+  <td align="center" bgcolor="#FFFFFF">-</td>
+  <td align="center" bgcolor="#CCCCFF"><em><b>Reference platform</b></em></td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
-  <td align="center" bgcolor="#DDDDFF">Rarely tested</td>
+  <td align="center" bgcolor="#EEEEFF">Rarely tested</td>
 </tr>
 <tr>
   <th bgcolor="#FFFFFF">Windows Vista</th>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
-  <td align="center" bgcolor="#DDDDFF">Rarely tested</td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
-  <td align="center" bgcolor="#CCCCFF"><em><b>Reference platform</b></em></td>
-  <td align="center" bgcolor="#DDDDFF">Rarely tested</td>
-</tr>
-<tr>
-  <th bgcolor="#FFFFFF">Windows 2003 Server</th>
+  <td align="center" bgcolor="#FFFFFF">-</td>
+  <td align="center" bgcolor="#FFFFFF">-</td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
-  <td align="center" bgcolor="#DDDDFF">Rarely tested</td>
-  <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
-  <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
-  <td align="center" bgcolor="#DDDDFF">Rarely tested</td>
+  <td align="center" bgcolor="#EEEEFF">Rarely tested</td>
 </tr>
 </table>
 
@@ -483,9 +507,9 @@ packages</td>
     <tr>
       <th align="right" bgcolor="#ffffff" valign="baseline"><code>com.ibm.icu.impl.data</code></th>
       <td bgcolor="#ffffff" valign="baseline">Holds data used by the
-ICU4J core and charset packages (<code>com.ibm.icu.lang</code>, <code>com.ibm.icu.text</code>,
-      <code>com.ibm.icu.util</code>, <code>com.ibm.icu.math</code>,
-      <code>com.ibm.icu.text</code> and <code>com.ibm.icu.charset</code>). In particular, all resource
+ICU4J core packages (<code>com.ibm.icu.lang</code>, <code>com.ibm.icu.text</code>,
+      <code>com.ibm.icu.util</code>, <code>com.ibm.icu.math</code> and
+      <code>com.ibm.icu.text</code>). In particular, all resource
 information is stored here.</td>
     </tr>
     <tr>
@@ -785,7 +809,7 @@ listed.
 fully supported.
 <br>
 &#x2021; Sizes are of the compressed jar file containing only this module.
-These sizes are approximate for release 3.6.
+These sizes are approximate for release 3.8.
 </font></b>
 <p><b>Modules:</b></p>
 
@@ -1592,20 +1616,20 @@ from release to release, so clients should not depend on the exact
 organization
 of the data in ICU4J.</p>
 <ul>
-  <li>The primary <b>locale data</b> is under the directory <tt>icudt40b</tt>,
+  <li>The primary <b>locale data</b> is under the directory <tt>icudt38b</tt>,
 as a set of <tt>".res"</tt> files whose names are the locale identifiers. 
 Locale naming is documented the <code>com.ibm.icu.util.ULocale</code>
 class, and the use of these names in searching for resources is documented 
 in <code>com.ibm.icu.util.UResourceBundle</code>.
   </li>
-  <li>The <b>collation data</b> is under the directory <tt>icudt40b/coll</tt>,
+  <li>The <b>collation data</b> is under the directory <tt>icudt38b/coll</tt>,
 as a set of <tt>".res"</tt> files.</li>
   <li>The <b>rule-based transliterator data</b> is under the directory
-<tt>icudt40b/translit</tt> as a set of <tt>".res"</tt> files.  (<b>Note:</b> the
+<tt>icudt38b/translit</tt> as a set of <tt>".res"</tt> files.  (<b>Note:</b> the
 Han transliterator test data is no longer included in the core icu4j.jar 
 file by default.)</li>
   <li>The <b>rule-based number format data</b> is under the directory
-<tt>icudt40b/rbnf</tt> as a set of <tt>".res"</tt> files.
+<tt>icudt38b/rbnf</tt> as a set of <tt>".res"</tt> files.
   <li>The <b>break iterator data</b> is directly under the data
 directory, as a set of <tt>".brk"</tt> files, named according to the
 type of break and the locale where there are locale-specific versions.</li>
@@ -1617,10 +1641,10 @@ data</b> and default <b>unicode collation algorithm (UCA) data</b>
 is found under the <tt>data</tt> directory as a set of <tt>".icu"</tt>
 files. </li>
   <li>The <b>character set converter data</b> is under the directory
-  <tt>icudt40b</tt>, as a set of <tt>".cnv"</tt> files.  These files are
+  <tt>icudt38b</tt>, as a set of <tt>".cnv"</tt> files.  These files are
   currently included only in icu-charset.jar.</li>
   <li>The <b>time zone data</b> is named <tt>zoneinfo.res</tt> under
-  the directory <tt>icudt40b</tt>.</li>
+  the directory <tt>icudt38b</tt>.</li>
 </ul>
 <p>
 Some of the data files alias or otherwise reference data from other
@@ -1726,33 +1750,35 @@ overwrite any corresponding resource files already in that directory.
 </ul>
 <h5> Procedure</h5>
 <ol>
-  <li> Download and build ICU4C. For instructions on
+  <li> Download and build ICU4C on a Windows machine. For instructions on
 downloading and building ICU4C, please click <a
  href="http://source.icu-project.org/repos/icu/icu/tags/release-3-8/readme.html#HowToBuild">here</a>.</li>
   <li> Change directory to <I>$icu4c_root</I>/source/tools/genrb.  <I>$icu4c_root</I>
-       is the root directory of ICU4C source package.</li>
-  <li> Run gendtjar.pl from that directory itself with the command <br>
-        <tt>&nbsp;&nbsp;&nbsp;./gendtjar.pl --icu-root=<I>$icu4c_root</I> --jar=<I>$jdk_home/bin</I> --icu4j-root=<I>$icu4j_root</I> </tt><br>
-        e.g. <br>
-        <tt>&nbsp;&nbsp;&nbsp;./gendtjar.pl --icu-root=$HOME/icu4c --jar=/usr/local/bin/java/bin/ --icu4j-root=$HOME/icu4j</tt><br>
-       Execution of gendtjar.pl script will create the required jar files in
-        the $icu4c_root/source/tools/genrb/temp directory and then copy them to their
-         final locations in the ICU4J structure,  
-         <tt>$icu4j_root/src/com/ibm/icu/impl/data</tt> and <tt>$icu4j_root/src/com/ibm/icu/dev/data</tt>.</li>
-   <li> Build resources target of ant to unpack the jar files with the following commands: <br>
-        <tt>&nbsp;&nbsp;&nbsp;cd <i>$icu4j_root</i></tt><br>
-        <tt>&nbsp;&nbsp;&nbsp;ant resources</tt></li>
+  is the root directory of ICU4C source package.</li>
+  <li> Launch gendtjar.pl from that directory itself with the command <br>
+gendtjar.pl --icu-root=<I>$icu4c_root</I> --jar=<I>$jdk_home/bin</I>
+--icu4j-root=<I>$icu4j_root</I> --version=<I>$icu_version</I> <br>
+e.g: gendtjar.pl --icu-root=\work\icu --jar=\jdk1.5.0\bin
+--icu4j-root=\work\icu4j --version=3.8<br>
+Execution of gendtjar.pl script will create the required jar files in
+the $icu4c_root\source\tools\genrb\temp directory.</li>
+  <li> Move icudata.jar to <I>$icu4j_root</I>/src/com/ibm/icu/impl/data
+directory.</li>
+  <li> Move testdata.jar to <I>$icu4j_root</I>/src/com/ibm/dev/data
+directory.</li>
+  <li> Build resources target of ant to unpack the jar files with the
+following command. <br>
+    <I>$ant_home</I>/bin/ant resources</li>
 </ol>
-    Note:  if gendtjar.pl does not work, the --verbose option can help in debugging why it went wrong. 
 <h5> Generating Data from CLDR </h5>
-<I> Note: This procedure assumes that all 3 sources are in sibling directories</I>
+<blockquote>Note: This procedure assumes that all 3 sources are in sibling directories.</blockquote>
 <ol>
     <li>Checkout CLDR.  $cldr_root in the following steps is the root directory where
     the CLDR source files checked out.</li>
-    <li>Update <I>$cldr_root</I>/common to 'release-1-6-0' tag</li>
-    <li>Update <I>$cldr_root</I>/tools to 'release-1-6-0' tag</li>
-    <li>Checkout ICU with tag 'release-4-0'</li>
-    <li>Checkout ICU4J with tag 'release-4-0'</li>
+    <li>Update <I>$cldr_root</I>/common to 'release-1-5-0-1' tag</li>
+    <li>Update <I>$cldr_root</I>/tools to 'release-1-5-0-1' tag</li>
+    <li>Checkout ICU with tag 'release-3-8'</li>
+    <li>Checkout ICU4J with tag 'release-3-8'</li>
     <li>Build ICU4J</li>
     <li>Build ICU4C</li>
     <li>Change to <I>$cldr_root</I>/tools/java directory</li>
@@ -1765,6 +1791,8 @@ downloading and building ICU4C, please click <a
     <li>cd to <I>$icu4j_root</I> dir</li>
     <li>Build and test icu4j</li>
 </ol>
+<blockquote>Note: The description above explains the procedure for ICU4J release 3.8.
+For ICU4J 3.8.1, change the CLDR tag to 'release-1-5-1' and the ICU4J/ICU4C tag to 'release-3-8-1'</blockquote>
 
 <h3 class="doc"><a name="WhereToFindMore"></a>Where to Find More
 Information</h3>
@@ -1793,7 +1821,7 @@ review all comments.</p>
 <h2>Thank you for your interest in ICU4J!</h2>
 <br>
 <hr align="center" size="2" width="100%">
-<p><I><font size="-1">Copyright &copy; 2002-2008 International Business
+<p><I><font size="-1">Copyright &copy; 2002-2007 International Business
 Machines Corporation and others. All Rights
 Reserved.<br>
 4400 North First Street, San Jos&eacute;, CA 95193, USA

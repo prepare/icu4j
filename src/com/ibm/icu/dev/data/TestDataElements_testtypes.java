@@ -1,26 +1,24 @@
 /**
  *******************************************************************************
- * Copyright (C) 2001-2008, International Business Machines Corporation and    *
+ * Copyright (C) 2001-2004, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
 package com.ibm.icu.dev.data;
-import java.util.ListResourceBundle;
 
-public class TestDataElements_testtypes extends ListResourceBundle {
-    /**
-     * Overrides ListResourceBundle
-     */
-    public final Object[][] getContents() {
-          return  contents;
+import com.ibm.icu.impl.ICUListResourceBundle;
+
+public class TestDataElements_testtypes extends ICUListResourceBundle {
+
+    public TestDataElements_testtypes  () {
+          super.contents = data;
     }
-
-    private static Object[][] contents = {
+    private static Object[][] data = new Object[][] { 
                 {
                     "binarytest",
-                    new byte[] {
-                        0,   1,   2,   3,   4,   5,   6,   7,   8,   9,   10,  11,  12,  13,  14,
-                    },
+                    new ICUListResourceBundle.CompressedBinary(
+                        "\u0000\u000F\u0001\u0203\u0405\u0607\u0809\u0A0B" +
+                        "\u0C0D\u0E00"),
                 },
                 {
                     "emptyarray",
@@ -29,7 +27,7 @@ public class TestDataElements_testtypes extends ListResourceBundle {
                 },
                 {
                     "emptybin",
-                    new byte[] {},
+                    new ICUListResourceBundle.CompressedBinary(null),
                 },
                 {
                     "emptyexplicitstring",
@@ -55,9 +53,9 @@ public class TestDataElements_testtypes extends ListResourceBundle {
                 },
                 {
                     "importtest",
-                    new byte[] {
-                        0,   1,   2,   3,   4,   5,   6,   7,   8,   9,   10,  11,  12,  13,  14,
-                    },
+                    new ICUListResourceBundle.CompressedBinary(
+                        "\u0000\u000F\u0001\u0203\u0405\u0607\u0809\u0A0B" +
+                        "\u0C0D\u0E00"),
                 },
                 {
                     "integerarray",

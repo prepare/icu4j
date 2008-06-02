@@ -1,6 +1,6 @@
 /**
  *******************************************************************************
- * Copyright (C) 2001-2008, International Business Machines Corporation and    *
+ * Copyright (C) 2001-2007, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -11,7 +11,6 @@ import java.text.ChoiceFormat;
 import java.text.ParsePosition;
 import java.util.Locale;
 import java.util.MissingResourceException;
-import java.util.Date;
 
 import com.ibm.icu.impl.ICUDebug;
 import com.ibm.icu.impl.ICUResourceBundle;
@@ -118,150 +117,6 @@ public class Currency extends MeasureUnit implements Serializable {
         }
 
         return shim.createInstance(locale);
-    }
-
-    /**
-     * Returns an array of Strings which contain the currency
-     * identifiers which are valid for the given locale on the 
-     * given date.
-     * @param loc the locale for which to retrieve currency codes.
-     * @param d the date for which to retrieve currency codes for the given locale.
-     * @return The array of ISO currency codes.
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static String[] getAvailableCurrencyCodes(ULocale loc, Date d) 
-    {
-        // local variables
-        String country = loc.getCountry();
-        //String variant = loc.getVariant();
-        long dateL = d.getTime();
-        long mask = 4294967295L;
-
-        // Get supplementalData
-        ICUResourceBundle bundle = (ICUResourceBundle)ICUResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME,
-            "supplementalData",
-            ICUResourceBundle.ICU_DATA_CLASS_LOADER);
-        if (bundle == null)
-        {
-            // no data
-            return null;
-        }
-
-        // Work with the supplementalData
-        try
-        {
-            // Process each currency to see which one is valid for the given date.
-            // Some regions can have more than one current currency in use for
-            // a given date.
-            UResourceBundle cm = bundle.get("CurrencyMap");
-            UResourceBundle countryArray = cm.get(country);
-
-            // First pass, get a count of valid currencies
-            int currCount = 0;
-            for (int i = 0; i < countryArray.getSize(); i++)
-            {
-                // get the currency resource
-                UResourceBundle currencyReq = countryArray.get(i);
-
-                // get the from date
-                long fromDate = 0;
-                UResourceBundle fromRes = currencyReq.get("from");
-                int[] fromArray = fromRes.getIntVector();
-                fromDate  = (long)fromArray[0] << 32;
-                fromDate |= ((long)fromArray[1] & mask);
-
-                // get the to date and check the date range
-                if (currencyReq.getSize() > 2)
-                {
-                    long toDate = 0;
-                    UResourceBundle toRes = currencyReq.get("to");
-                    int[] toArray = toRes.getIntVector();
-                    toDate  = (long)toArray[0] << 32;
-                    toDate |= ((long)toArray[1] & mask);
-
-                    if ((fromDate <= dateL) && (dateL < toDate))
-                    {
-                        currCount++;
-                    }
-                }
-                else
-                {
-                    if (fromDate <= dateL)
-                    {
-                        currCount++;
-                    }
-                }
-
-            }  // end For loop
-
-            // Allocate array to return
-            if (currCount == 0)
-            {
-                return null;
-            }
-
-            String[] currCodes = new String[currCount];
-            int currIndex = 0;
-
-            // Second pass, get the actual currency codes
-            for (int i = 0; i < countryArray.getSize(); i++)
-            {
-                // get the currency resource
-                UResourceBundle currencyReq = countryArray.get(i);
-                String curriso = null;
-                curriso = currencyReq.getString("id");
-
-                // get the from date
-                long fromDate = 0;
-                UResourceBundle fromRes = currencyReq.get("from");
-                int[] fromArray = fromRes.getIntVector();
-                fromDate  = (long)fromArray[0] << 32;
-                fromDate |= ((long)fromArray[1] & mask);
-
-                // get the to date and check the date range
-                if (currencyReq.getSize() > 2)
-                {
-                    long toDate = 0;
-                    UResourceBundle toRes = currencyReq.get("to");
-                    int[] toArray = toRes.getIntVector();
-                    toDate  = (long)toArray[0] << 32;
-                    toDate |= ((long)toArray[1] & mask);
-
-                    if ((fromDate <= dateL) && (dateL < toDate)) 
-                    {
-                        currCodes[currIndex] = new String(curriso);
-                        currIndex++;
-                    }
-                }
-                else
-                {
-                    if (fromDate <= dateL)
-                    {
-                        currCodes[currIndex] = new String(curriso);
-                        currIndex++;
-                    }
-                }
-
-            }  // end For loop
-
-            // Process the matching ids.  Due to gaps in the windows of time 
-            // for valid currencies, it is possible that no currency is valid 
-            // for the given time.  It is possible that we will return multiple
-            // currencies for the given time.
-            return currCodes;
-        }
-        catch (MissingResourceException ex)
-        {
-            // We don't know about this region.
-            // As of CLDR 1.5.1, the data includes deprecated region history too.
-            // So if we get here, either the region doesn't exist, or the data is really bad.
-            // Deprecated regions should return the last valid currency for that region in the data.
-            // We don't try to resolve it to a new region.
-        }
-
-        // if we get this far, return nothing
-        return null;
     }
 
     private static final String EUR_STR = "EUR";
@@ -816,11 +671,7 @@ public class Currency extends MeasureUnit implements Serializable {
      * @deprecated This API is obsolete.
      */
     public final ULocale getLocale(ULocale.Type type) {
-        ULocale result = (type == ULocale.ACTUAL_LOCALE) ? actualLocale : validLocale;
-        if (result == null) {
-            return ULocale.ROOT;
-        }
-        return result;
+        return ULocale.ROOT;
     }
 
     /**
@@ -854,13 +705,20 @@ public class Currency extends MeasureUnit implements Serializable {
         this.actualLocale = actual;
     }
 
-    /*
+    /**
      * The most specific locale containing any resource data, or null.
+     * @see com.ibm.icu.util.ULocale
+     * @internal
+     * @deprecated This API is ICU internal only.
      */
     private ULocale validLocale;
 
-    /*
-     * The locale containing data used to construct this object, or null.
+    /**
+     * The locale containing data used to construct this object, or
+     * null.
+     * @see com.ibm.icu.util.ULocale
+     * @internal
+     * @deprecated This API is ICU internal only.
      */
     private ULocale actualLocale;
 

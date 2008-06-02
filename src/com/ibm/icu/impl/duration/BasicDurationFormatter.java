@@ -1,6 +1,6 @@
 /*
 ******************************************************************************
-* Copyright (C) 2007-2008, International Business Machines Corporation and   *
+* Copyright (C) 2007, International Business Machines Corporation and   *
 * others. All Rights Reserved.                                               *
 ******************************************************************************
 */
@@ -69,29 +69,29 @@ class BasicDurationFormatter implements DurationFormatter {
     return s;
   }
 
-  public DurationFormatter withLocale(String locName) {
-    if (!locName.equals(localeName)) {
-      PeriodFormatter newFormatter = formatter.withLocale(locName);
-      PeriodBuilder newBuilder = builder.withLocale(locName);
+  public DurationFormatter withLocale(String localeName) {
+    if (!localeName.equals(this.localeName)) {
+      PeriodFormatter newFormatter = formatter.withLocale(localeName);
+      PeriodBuilder newBuilder = builder.withLocale(localeName);
       DateFormatter newFallback = fallback == null 
           ? null 
-          : fallback.withLocale(locName);
+          : fallback.withLocale(localeName);
       return new BasicDurationFormatter(newFormatter, newBuilder,
                                         newFallback, fallbackLimit,
-                                        locName, timeZone);
+                                        localeName, timeZone);
     }
     return this;
   }
 
-  public DurationFormatter withTimeZone(TimeZone tz) {
-    if (!tz.equals(timeZone)) {
-      PeriodBuilder newBuilder = builder.withTimeZone(tz);
+  public DurationFormatter withTimeZone(TimeZone timeZone) {
+    if (!timeZone.equals(this.timeZone)) {
+      PeriodBuilder newBuilder = builder.withTimeZone(timeZone);
       DateFormatter newFallback = fallback == null 
           ? null 
-          : fallback.withTimeZone(tz);
+          : fallback.withTimeZone(timeZone);
       return new BasicDurationFormatter(formatter, newBuilder,
                                         newFallback, fallbackLimit,
-                                        localeName, tz);
+                                        localeName, timeZone);
     }
     return this;
   }

@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2007-2008, International Business Machines Corporation and    *
+ * Copyright (C) 2007, International Business Machines Corporation and         *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -17,7 +17,6 @@ import java.util.List;
 import java.util.MissingResourceException;
 
 import com.ibm.icu.impl.Grego;
-import com.ibm.icu.util.DateTimeRule;
 
 /**
  * <code>VTimeZone</code> is a class implementing RFC2445 VTIMEZONE.  You can create a
@@ -31,7 +30,8 @@ import com.ibm.icu.util.DateTimeRule;
  * decode or encode Non-ASCII text.  Methods reading/writing VTIMEZONE data in this class
  * do nothing with MIME encoding.
  * 
- * @stable ICU 3.8
+ * @draft ICU 3.8
+ * @provisional This API might change or be removed in a future release.
  */
 public class VTimeZone extends BasicTimeZone {
 
@@ -44,11 +44,12 @@ public class VTimeZone extends BasicTimeZone {
      * @return A <code>VTimeZone</code> initialized by the time zone ID, or null
      * when the ID is unknown.
      * 
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public static VTimeZone create(String tzid) {
         VTimeZone vtz = new VTimeZone();
-        vtz.tz = (BasicTimeZone)TimeZone.getTimeZone(tzid, TimeZone.TIMEZONE_ICU);
+        vtz.tz = (BasicTimeZone)TimeZone.getTimeZone(tzid);
         vtz.olsonzid = vtz.tz.getID();
         vtz.setID(tzid);
 
@@ -62,7 +63,8 @@ public class VTimeZone extends BasicTimeZone {
      * @return A <code>VTimeZone</code> initialized by the VTIMEZONE data or
      * null if failed to load the rule from the VTIMEZONE data.
      * 
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public static VTimeZone create(Reader reader) {
         VTimeZone vtz = new VTimeZone();
@@ -74,7 +76,8 @@ public class VTimeZone extends BasicTimeZone {
 
     /**
      * {@inheritDoc}
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public int getOffset(int era, int year, int month, int day, int dayOfWeek,
             int milliseconds) {
@@ -83,7 +86,8 @@ public class VTimeZone extends BasicTimeZone {
 
     /**
      * {@inheritDoc}
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public void getOffset(long date, boolean local, int[] offsets) {
         tz.getOffset(date, local, offsets);
@@ -101,7 +105,8 @@ public class VTimeZone extends BasicTimeZone {
 
     /**
      * {@inheritDoc}
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public int getRawOffset() {
         return tz.getRawOffset();
@@ -109,7 +114,8 @@ public class VTimeZone extends BasicTimeZone {
 
     /**
      * {@inheritDoc}
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public boolean inDaylightTime(Date date) {
         return tz.inDaylightTime(date);
@@ -117,7 +123,8 @@ public class VTimeZone extends BasicTimeZone {
 
     /**
      * {@inheritDoc}
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public void setRawOffset(int offsetMillis) {
         tz.setRawOffset(offsetMillis);
@@ -125,7 +132,8 @@ public class VTimeZone extends BasicTimeZone {
 
     /**
      * {@inheritDoc}
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public boolean useDaylightTime() {
         return tz.useDaylightTime();
@@ -133,7 +141,8 @@ public class VTimeZone extends BasicTimeZone {
 
     /**
      * {@inheritDoc}
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public boolean hasSameRules(TimeZone other) {
         return tz.hasSameRules(other);
@@ -146,7 +155,8 @@ public class VTimeZone extends BasicTimeZone {
      * 
      * @return The RFC2445 TZURL property value
      * 
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public String getTZURL() {
         return tzurl;
@@ -157,7 +167,8 @@ public class VTimeZone extends BasicTimeZone {
      * 
      * @param url The TZURL property value.
      * 
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public void setTZURL(String url) {
         tzurl = url;
@@ -170,7 +181,8 @@ public class VTimeZone extends BasicTimeZone {
      * 
      * @return The Date represents the RFC2445 LAST-MODIFIED date.
      * 
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public Date getLastModified() {
         return lastmod;
@@ -181,7 +193,8 @@ public class VTimeZone extends BasicTimeZone {
      * 
      * @param date The <code>Date</code> object represents the date for RFC2445 LAST-MODIFIED property value.
      * 
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public void setLastModified(Date date) {
         lastmod = date;
@@ -193,7 +206,8 @@ public class VTimeZone extends BasicTimeZone {
      * @param writer A <code>Writer</code> used for the output
      * @throws IOException
      * 
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public void write(Writer writer) throws IOException {
         BufferedWriter bw = new BufferedWriter(writer);
@@ -240,7 +254,8 @@ public class VTimeZone extends BasicTimeZone {
      * 
      * @throws IOException
      * 
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public void write(Writer writer, long start) throws IOException {
         // Extract rules applicable to dates after the start time
@@ -274,7 +289,8 @@ public class VTimeZone extends BasicTimeZone {
      * 
      * @throws IOException
      * 
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public void writeSimple(Writer writer, long time) throws IOException {
         // Extract simple rules
@@ -298,7 +314,8 @@ public class VTimeZone extends BasicTimeZone {
 
     /**
      * {@inheritDoc}
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public TimeZoneTransition getNextTransition(long base, boolean inclusive) {
         return tz.getNextTransition(base, inclusive);
@@ -306,7 +323,8 @@ public class VTimeZone extends BasicTimeZone {
 
     /**
      * {@inheritDoc}
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public TimeZoneTransition getPreviousTransition(long base, boolean inclusive) {
         return tz.getPreviousTransition(base, inclusive);
@@ -314,7 +332,8 @@ public class VTimeZone extends BasicTimeZone {
 
     /**
      * {@inheritDoc}
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public boolean hasEquivalentTransitions(TimeZone other, long start, long end) {
         return tz.hasEquivalentTransitions(other, start, end);
@@ -322,7 +341,8 @@ public class VTimeZone extends BasicTimeZone {
 
     /**
      * {@inheritDoc}
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public TimeZoneRule[] getTimeZoneRules() {
         return tz.getTimeZoneRules();
@@ -330,7 +350,8 @@ public class VTimeZone extends BasicTimeZone {
 
     /**
      * {@inheritDoc}
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public TimeZoneRule[] getTimeZoneRules(long start) {
         return tz.getTimeZoneRules(start);
@@ -338,7 +359,8 @@ public class VTimeZone extends BasicTimeZone {
 
     /**
      * {@inheritDoc}
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public Object clone() {
         VTimeZone other = (VTimeZone)super.clone();
@@ -646,7 +668,7 @@ public class VTimeZone extends BasicTimeZone {
                         // Parse TZOFFSETFROM/TZOFFSETTO
                         fromOffset = offsetStrToMillis(from);
                         toOffset = offsetStrToMillis(to);
-
+                        
                         if (dst) {
                             // If daylight, use the previous offset as rawoffset if positive
                             if (toOffset - fromOffset > 0) {
@@ -725,75 +747,6 @@ public class VTimeZone extends BasicTimeZone {
 
         // Finally, create the RuleBasedTimeZone
         RuleBasedTimeZone rbtz = new RuleBasedTimeZone(tzid, initialRule);
-
-        int finalRuleIdx = -1;
-        int finalRuleCount = 0;
-        for (int i = 0; i < rules.size(); i++) {
-            TimeZoneRule r = (TimeZoneRule)rules.get(i);
-            if (r instanceof AnnualTimeZoneRule) {
-                if (((AnnualTimeZoneRule)r).getEndYear() == AnnualTimeZoneRule.MAX_YEAR) {
-                    finalRuleCount++;
-                    finalRuleIdx = i;
-                }
-            }
-        }
-        if (finalRuleCount > 2) {
-            // Too many final rules
-            return false;
-        }
-
-        if (finalRuleCount == 1) {
-            if (rules.size() == 1) {
-                // Only one final rule, only governs the initial rule,
-                // which is already initialized, thus, we do not need to
-                // add this transition rule
-                rules.clear();
-            } else {
-                // Normalize the final rule
-                AnnualTimeZoneRule finalRule = (AnnualTimeZoneRule)rules.get(finalRuleIdx);
-                int tmpRaw = finalRule.getRawOffset();
-                int tmpDST = finalRule.getDSTSavings();
-    
-                // Find the last non-final rule
-                Date finalStart = finalRule.getFirstStart(initialRawOffset, initialDSTSavings);
-                Date start = finalStart;
-                for (int i = 0; i < rules.size(); i++) {
-                    if (finalRuleIdx == i) {
-                        continue;
-                    }
-                    TimeZoneRule r = (TimeZoneRule)rules.get(i);
-                    Date lastStart = r.getFinalStart(tmpRaw, tmpDST);
-                    if (lastStart.after(start)) {
-                        start = finalRule.getNextStart(lastStart.getTime(),
-                                r.getRawOffset(),
-                                r.getDSTSavings(),
-                                false);
-                    }
-                }
-                TimeZoneRule newRule;
-                if (start == finalStart) {
-                    // Transform this into a single transition
-                    newRule = new TimeArrayTimeZoneRule(
-                            finalRule.getName(),
-                            finalRule.getRawOffset(),
-                            finalRule.getDSTSavings(),
-                            new long[] {finalStart.getTime()},
-                            DateTimeRule.UTC_TIME);
-                } else {
-                    // Update the end year
-                    int fields[] = Grego.timeToFields(start.getTime(), null);
-                    newRule = new AnnualTimeZoneRule(
-                            finalRule.getName(),
-                            finalRule.getRawOffset(),
-                            finalRule.getDSTSavings(),
-                            finalRule.getRule(),
-                            finalRule.getStartYear(),
-                            fields[0]);
-                }
-                rules.set(finalRuleIdx, newRule);
-            }
-        }
-
         Iterator rit = rules.iterator();
         while(rit.hasNext()) {
             rbtz.addTransitionRule((TimeZoneRule)rit.next());

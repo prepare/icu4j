@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2008, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -169,7 +169,7 @@ public class NumberFormat extends Format {
      * they manipulate the delegate.
      */
     public NumberFormat() {
-        this.numberFormat = java.text.NumberFormat.getInstance();
+    	this.numberFormat = java.text.NumberFormat.getInstance();
     }
 
     /**
@@ -343,7 +343,7 @@ public class NumberFormat extends Format {
      * The default format is one of the styles provided by the other
      * factory methods: getNumberInstance, getCurrencyInstance or getPercentInstance.
      * Exactly which one is locale-dependent.
-     * @stable ICU 3.2
+     * @draft ICU 3.2
      */
     public static NumberFormat getInstance(ULocale inLocale) {
         return getInstance(inLocale, NUMBERSTYLE);
@@ -367,7 +367,7 @@ public class NumberFormat extends Format {
         
     /**
      * Returns a general-purpose number format for the specified locale.
-     * @stable ICU 3.2
+     * @draft ICU 3.2
      */
     public static NumberFormat getNumberInstance(ULocale inLocale) {
         return getInstance(inLocale, NUMBERSTYLE);
@@ -414,7 +414,7 @@ public class NumberFormat extends Format {
      *
      * @param inLocale the locale for which a number format is needed
      * @return a number format for integer values
-     * @stable ICU 3.2
+     * @draft ICU 3.2
      */
     public static NumberFormat getIntegerInstance(ULocale inLocale) {
         return getInstance(inLocale, INTEGERSTYLE);
@@ -441,7 +441,7 @@ public class NumberFormat extends Format {
     /**
      * Returns a currency format for the specified locale.
      * @return a number format for currency
-     * @stable ICU 3.2
+     * @draft ICU 3.2
      */
     public static NumberFormat getCurrencyInstance(ULocale inLocale) {
         return getInstance(inLocale, CURRENCYSTYLE);
@@ -468,7 +468,7 @@ public class NumberFormat extends Format {
     /**
      * Returns a percentage format for the specified locale.
      * @return a number format for percents
-     * @stable ICU 3.2
+     * @draft ICU 3.2
      */
     public static NumberFormat getPercentInstance(ULocale inLocale) {
         return getInstance(inLocale, PERCENTSTYLE);
@@ -498,7 +498,7 @@ public class NumberFormat extends Format {
      * <strong><font face=helvetica color=red>NEW</font></strong>
      * Returns a scientific format for the specified locale.
      * @return a scientific number format
-     * @stable ICU 3.2
+     * @draft ICU 3.2
      */
     public static NumberFormat getScientificInstance(ULocale inLocale) {
         return getInstance(inLocale, SCIENTIFICSTYLE);
@@ -516,7 +516,7 @@ public class NumberFormat extends Format {
     /**
      * Get the list of Locales for which NumberFormats are available.
      * @return the available locales
-     * @draft ICU 3.2 (retain)
+     * @draft ICU 3.2
      */
     public static ULocale[] getAvailableULocales() {
         if (availableULocales == null) {
@@ -679,7 +679,7 @@ public class NumberFormat extends Format {
     /**
      * Return a string suitable for debugging.
      * @return a string suitable for debugging
-     * @stable ICU 3.4.2
+     * @draft ICU 3.4.2
      */
     public String toString() {
         return numberFormat.toString();

@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2005-2008, International Business Machines Corporation and    *
+ * Copyright (C) 2005-2007, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -120,13 +120,15 @@ public final class CopticCalendar extends CECalendar
   
     private static final int JD_EPOCH_OFFSET  = 1824665;
 
-    // Eras
-    private static final int BCE = 0;
-    private static final int CE = 1;
+    // init base class value, common to all constructors
+    {
+        jdEpochOffset = JD_EPOCH_OFFSET;
+    }
 
     /**
      * Constructs a default <code>CopticCalendar</code> using the current time
      * in the default time zone with the default locale.
+     *
      * @stable ICU 3.4
      */
     public CopticCalendar() {
@@ -138,6 +140,7 @@ public final class CopticCalendar extends CECalendar
      * in the given time zone with the default locale.
      *
      * @param zone The time zone for the new calendar.
+     *
      * @stable ICU 3.4
      */
     public CopticCalendar(TimeZone zone) {
@@ -160,6 +163,7 @@ public final class CopticCalendar extends CECalendar
      * in the default time zone with the given locale.
      *
      * @param locale The icu locale for the new calendar.
+     *
      * @stable ICU 3.4
      */
     public CopticCalendar(ULocale locale) {
@@ -172,6 +176,7 @@ public final class CopticCalendar extends CECalendar
      *
      * @param zone The time zone for the new calendar.
      * @param aLocale The locale for the new calendar.
+     *
      * @stable ICU 3.4
      */
     public CopticCalendar(TimeZone zone, Locale aLocale) {
@@ -184,6 +189,7 @@ public final class CopticCalendar extends CECalendar
      *
      * @param zone The time zone for the new calendar.
      * @param locale The icu locale for the new calendar.
+     *
      * @stable ICU 3.4
      */
     public CopticCalendar(TimeZone zone, ULocale locale) {
@@ -198,6 +204,7 @@ public final class CopticCalendar extends CECalendar
      * @param month     The value used to set the calendar's {@link #MONTH MONTH} time field.
      *                  The value is 0-based. e.g., 0 for Tout.
      * @param date      The value used to set the calendar's {@link #DATE DATE} time field.
+     *
      * @stable ICU 3.4
      */
     public CopticCalendar(int year, int month, int date) {
@@ -209,6 +216,7 @@ public final class CopticCalendar extends CECalendar
      * in the default time zone with the default locale.
      *
      * @param date      The date to which the new calendar is set.
+     *
      * @stable ICU 3.4
      */
     public CopticCalendar(Date date) {
@@ -226,6 +234,7 @@ public final class CopticCalendar extends CECalendar
      * @param hour      The value used to set the calendar's {@link #HOUR_OF_DAY HOUR_OF_DAY} time field.
      * @param minute    The value used to set the calendar's {@link #MINUTE MINUTE} time field.
      * @param second    The value used to set the calendar's {@link #SECOND SECOND} time field.
+     *
      * @stable ICU 3.4
      */
     public CopticCalendar(int year, int month, int date, int hour,
@@ -234,88 +243,34 @@ public final class CopticCalendar extends CECalendar
     }
 
     /**
-     * {@inheritDoc}
-     * @stable ICU 3.8
-     */
-    public String getType() {
-        return "coptic";
-    }
-
-    /**
-     * {@inheritDoc}
-     * @internal
-     * @deprecated This API is ICU internal only.
-     */
-    protected int handleGetExtendedYear() {
-        int eyear;
-        if (newerField(EXTENDED_YEAR, YEAR) == EXTENDED_YEAR) {
-            eyear = internalGet(EXTENDED_YEAR, 1); // Default to year 1
-        } else {
-            // The year defaults to the epoch start, the era to AD
-            int era = internalGet(ERA, CE);
-            if (era == BCE) {
-                eyear = 1 - internalGet(YEAR, 1); // Convert to extended year
-            } else {
-                eyear = internalGet(YEAR, 1); // Default to year 1
-            }
-        }
-        return eyear;
-    }
-
-    /**
-     * {@inheritDoc}
-     * @internal
-     * @deprecated This API is ICU internal only.
-     */
-    protected void handleComputeFields(int julianDay) {
-        int era, year;
-        int[] fields = new int[3];
-        jdToCE(julianDay, getJDEpochOffset(), fields);
-
-        // fields[0] eyear
-        // fields[1] month
-        // fields[2] day
-
-        if (fields[0] <= 0) {
-            era = BCE;
-            year = 1 - fields[0];
-        } else {
-            era = CE;
-            year = fields[0];
-        }
-
-        internalSet(EXTENDED_YEAR, fields[0]);
-        internalSet(ERA, era);
-        internalSet(YEAR, year);
-        internalSet(MONTH, fields[1]);
-        internalSet(DAY_OF_MONTH, fields[2]);
-        internalSet(DAY_OF_YEAR, (30 * fields[1]) + fields[2]);
-    }
-
-    /**
-     * {@inheritDoc}
-     * @internal
-     * @deprecated This API is ICU internal only.
-     */
-    protected int getJDEpochOffset() {
-        return JD_EPOCH_OFFSET;
-    }
-
-    /**
      * Convert an Coptic year, month, and day to a Julian day.
      *
      * @param year the year
      * @param month the month
      * @param date the day
-     * @draft ICU 3.4 (retain)
+     *
+     * @draft ICU 3.4
      * @provisional This API might change or be removed in a future release.
      */
-    // The equivalent operation can be done by public Calendar API.
-    // This API was accidentally marked as @draft, but we have no good
-    // reason to keep this.  For now, we leave it as is, but may be
-    // removed in future.  2008-03-21 yoshito
     public static int copticToJD(long year, int month, int date) {
         return ceToJD(year, month, date, JD_EPOCH_OFFSET);
+    }
+    
+    /**
+     * @internal ICU 3.4
+     * @deprecated This API is ICU internal only.
+     */
+    public static Integer[] getDateFromJD(int julianDay) {
+        return getDateFromJD(julianDay, JD_EPOCH_OFFSET);
+    }
+
+    /**
+     * {@inheritDoc}
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
+     */
+    public String getType() {
+        return "coptic";
     }
 }
 

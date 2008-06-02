@@ -1,6 +1,6 @@
 /**
  *******************************************************************************
- * Copyright (C) 2000-2008, International Business Machines Corporation and    *
+ * Copyright (C) 2000-2005, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -37,25 +37,25 @@ public class CompatibilityTest extends com.ibm.icu.dev.test.TestFmwk {
         jdkCal.clear();
         jdkCal.set(1582, Calendar.OCTOBER, 15);
         
-//      if(jdkCal instanceof java.util.GregorianCalendar) {
-//          logln("jdk IS grego");
-//          java.util.GregorianCalendar jdkgc = (java.util.GregorianCalendar)
-//          jdkCal;
-//          logln("jdk change at: " + jdkgc.getGregorianChange() + "(" + jdkgc.getGregorianChange().getTime() +")" );
-//      } else {
-//          logln("jdk NOT grego");
-//      }
-
+//        if(jdkCal instanceof java.util.GregorianCalendar) {
+//        		logln("jdk IS grego");
+//        		java.util.GregorianCalendar jdkgc = (java.util.GregorianCalendar)
+//						jdkCal;
+//        		logln("jdk change at: " + jdkgc.getGregorianChange() + "(" + jdkgc.getGregorianChange().getTime() +")" );
+//        } else {
+//        	    logln("jdk NOT grego");
+//        }
+      
         long a = jdkCal.getTime().getTime();
         Date c = jdkCal.getTime();
         c.toString();
         long b = c.getTime();
         if(a!=b) {
-            logln(" " + a + " != " + b);
-            logln("JDK has Gregorian cutover anomaly (1.5?) - skipping this test.");
-            return;
+             logln(" " + a + " != " + b);
+            	logln("JDK has Gregorian cutover anomaly (1.5?) - skipping this test.");
+            	return;
         }
-
+        
         Date co = jdkCal.getTime();
         logln("Change over (Oct 15 1582) = " + co + " (" + co.getTime() + ")");
         final int ONE_DAY = 24*60*60*1000;
@@ -320,8 +320,8 @@ public class CompatibilityTest extends com.ibm.icu.dev.test.TestFmwk {
         }
 
         for (i=0; i<cal.getFieldCount(); ++i) {
-            if (cal.getMinimum(i) > cal.getGreatestMinimum(i))
-                errln("FAIL: getMinimum larger than getGreatestMinimum for field " + i);
+            if (cal.getMinimum(i) != cal.getGreatestMinimum(i))
+                errln("FAIL: getMinimum doesn't match getGreatestMinimum for field " + i);
             if (cal.getLeastMaximum(i) > cal.getMaximum(i))
                 errln("FAIL: getLeastMaximum larger than getMaximum for field " + i);
             if (cal.getMinimum(i) >= cal.getMaximum(i))
@@ -563,12 +563,12 @@ public class CompatibilityTest extends com.ibm.icu.dev.test.TestFmwk {
             c.set(Calendar.DAY_OF_WEEK, Calendar.TUESDAY);
             c.set(Calendar.MONTH, Calendar.JUNE);
             c.set(Calendar.WEEK_OF_MONTH, 0);
-            c.getTime();
+            verify765("1997 Tuesday in week 0 of June = ", c, 1997, Calendar.MAY, 27);
         }
         catch (IllegalArgumentException ex) {
-            e = ex;
+            errln("FAIL: Exception seen:");
+            // ex.printStackTrace(log);
         }
-        verify765("1997 Tuesday in week 0 of June = ", e, c);
 
         c.clear();
         c.set(Calendar.YEAR, 1997);
@@ -582,18 +582,17 @@ public class CompatibilityTest extends com.ibm.icu.dev.test.TestFmwk {
         c.set(Calendar.WEEK_OF_YEAR, 10);
         verify765("1997 Tuesday in week 10 of year = ", c, 1997, Calendar.MARCH, 4);
 
-        e = null;
         try {
             c.clear();
             c.set(Calendar.YEAR, 1997);
             c.set(Calendar.DAY_OF_WEEK, Calendar.TUESDAY);
             c.set(Calendar.WEEK_OF_YEAR, 0);
-            c.getTime();
+            verify765("1997 Tuesday in week 0 of year = ", c, 1996, Calendar.DECEMBER, 24);
+            throw new Exception("Fail: WEEK_OF_YEAR 0 should be illegal");
         }
         catch (IllegalArgumentException ex) {
-            e = ex;
+            System.out.print("");
         }
-        verify765("1997 Tuesday in week 0 of year = ", e, c);
     }
     void verify765(String msg, Calendar c, int year, int month, int day) {
         int cy = c.get(Calendar.YEAR); // NEWCAL

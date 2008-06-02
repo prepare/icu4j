@@ -1,7 +1,9 @@
-/*
+/**
 *******************************************************************************
-* Copyright (C) 2006-2008, International Business Machines Corporation and    *
+* Copyright (C) 2006-2007, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
+*******************************************************************************
+*
 *******************************************************************************
 */ 
  
@@ -401,7 +403,7 @@ final class UConverterDataReader implements ICUBinary.Authenticate {
     //private final static boolean debug = ICUDebug.enabled("UConverterDataReader");
 
     /*
-     *  UConverterDataReader(UConverterDataReader r)
+     * 	 UConverterDataReader(UConverterDataReader r)
         {
             dataInputStream = new DataInputStream(r.dataInputStream);
             unicodeVersion = r.unicodeVersion;
@@ -415,6 +417,7 @@ final class UConverterDataReader implements ICUBinary.Authenticate {
     * <p>Protected constructor.</p>
     * @param inputStream ICU uprop.dat file input stream
     * @exception IOException throw if data file fails authentication 
+    * @draft 2.1
     */
     protected UConverterDataReader(InputStream inputStream) 
                                         throws IOException{
@@ -486,14 +489,6 @@ final class UConverterDataReader implements ICUBinary.Authenticate {
         bytesRead+=4;
         h.fromUBytesLength = dataInputStream.readInt();
         bytesRead+=4;
-        if (h.version[0] == 5 && h.version[1] >= 3) {
-            h.options = dataInputStream.readInt();
-            bytesRead+=4;
-            if ((h.options & CharsetMBCS.MBCS_OPT_NO_FROM_U) != 0) {
-                h.fullStage2Length = dataInputStream.readInt();
-                bytesRead+=4;
-            }
-        }
     }
     
     protected void readMBCSTable(int[][] stateTableArray, CharsetMBCS.MBCSToUFallback[] toUFallbacksArray, char[] unicodeCodeUnitsArray, char[] fromUnicodeTableArray, byte[] fromUnicodeBytesArray) throws IOException

@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2008, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2005, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -108,12 +108,10 @@ public class ConformanceTest extends TestFmwk {
                 }
             }
         } catch (IOException ex) {
-            if (input != null) {
-                try {
-                    input.close();
-                } catch (Exception ex2) {
-                    System.out.print("");
-                }
+            try {
+                input.close();
+            } catch (Exception ex2) {
+                System.out.print("");
             }
             ex.printStackTrace();
             throw new IllegalArgumentException("Couldn't read file "

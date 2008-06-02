@@ -1,7 +1,7 @@
 //##header J2SE15
 /**
  *******************************************************************************
- * Copyright (C) 2005-2008, International Business Machines Corporation and    *
+ * Copyright (C) 2005-2007, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -242,7 +242,7 @@ public class TestCharsetDetector extends TestFmwk
         
         reader = det.getReader(new ByteArrayInputStream(bytes), "UTF-8");
         CheckAssert(s.equals(stringFromReader(reader)));
-        det.setDeclaredEncoding("UTF-8"); // Jitterbug 4451, for coverage
+        det.setDeclaredEncoding("UTF-8");	// Jitterbug 4451, for coverage
     }
     
     public void TestUTF16() throws Exception
@@ -331,58 +331,6 @@ public class TestCharsetDetector extends TestFmwk
         for (int i=0; i<shortBytes.length; i++) {
             det.setText(shortBytes[i]);
             m = det.detect();
-            logln("i=" + i + " -> " + m.getName());
-        }
-    }
-    
-    public void TestBufferOverflow()
-    {
-        byte testStrings[][] = {
-            {(byte) 0x80, (byte) 0x20, (byte) 0x54, (byte) 0x68, (byte) 0x69, (byte) 0x73, (byte) 0x20, (byte) 0x69, (byte) 0x73, (byte) 0x20, (byte) 0x45, (byte) 0x6E, (byte) 0x67, (byte) 0x6C, (byte) 0x69, (byte) 0x73, (byte) 0x68, (byte) 0x20, (byte) 0x1b}, /* A partial ISO-2022 shift state at the end */
-            {(byte) 0x80, (byte) 0x20, (byte) 0x54, (byte) 0x68, (byte) 0x69, (byte) 0x73, (byte) 0x20, (byte) 0x69, (byte) 0x73, (byte) 0x20, (byte) 0x45, (byte) 0x6E, (byte) 0x67, (byte) 0x6C, (byte) 0x69, (byte) 0x73, (byte) 0x68, (byte) 0x20, (byte) 0x1b, (byte) 0x24}, /* A partial ISO-2022 shift state at the end */
-            {(byte) 0x80, (byte) 0x20, (byte) 0x54, (byte) 0x68, (byte) 0x69, (byte) 0x73, (byte) 0x20, (byte) 0x69, (byte) 0x73, (byte) 0x20, (byte) 0x45, (byte) 0x6E, (byte) 0x67, (byte) 0x6C, (byte) 0x69, (byte) 0x73, (byte) 0x68, (byte) 0x20, (byte) 0x1b, (byte) 0x24, (byte) 0x28}, /* A partial ISO-2022 shift state at the end */
-            {(byte) 0x80, (byte) 0x20, (byte) 0x54, (byte) 0x68, (byte) 0x69, (byte) 0x73, (byte) 0x20, (byte) 0x69, (byte) 0x73, (byte) 0x20, (byte) 0x45, (byte) 0x6E, (byte) 0x67, (byte) 0x6C, (byte) 0x69, (byte) 0x73, (byte) 0x68, (byte) 0x20, (byte) 0x1b, (byte) 0x24, (byte) 0x28, (byte) 0x44}, /* A complete ISO-2022 shift state at the end with a bad one at the start */
-            {(byte) 0x1b, (byte) 0x24, (byte) 0x28, (byte) 0x44}, /* A complete ISO-2022 shift state at the end */
-            {(byte) 0xa1}, /* Could be a single byte shift-jis at the end */
-            {(byte) 0x74, (byte) 0x68, (byte) 0xa1}, /* Could be a single byte shift-jis at the end */
-            {(byte) 0x74, (byte) 0x68, (byte) 0x65, (byte) 0xa1} /* Could be a single byte shift-jis at the end, but now we have English creeping in. */
-        };
-        
-        String testResults[] = {
-            "windows-1252",
-            "windows-1252",
-            "windows-1252",
-            "windows-1252",
-            "ISO-2022-JP",
-            null,
-            null,
-            "ISO-8859-1"
-        };
-        
-        CharsetDetector det = new CharsetDetector();
-        CharsetMatch match;
-
-        det.setDeclaredEncoding("ISO-2022-JP");
-
-        for (int idx = 0; idx < testStrings.length; idx += 1) {
-            det.setText(testStrings[idx]);
-            match = det.detect();
-
-            if (match == null) {
-                if (testResults[idx] != null) {
-                    errln("Unexpectedly got no results at index " + idx);
-                }
-                else {
-                    logln("Got no result as expected at index " + idx);
-                }
-                continue;
-            }
-
-            if (testResults[idx] == null || ! testResults[idx].equals(match.getName())) {
-                errln("Unexpectedly got " + match.getName() + " instead of " + testResults[idx] +
-                      " at index " + idx + " with confidence " + match.getConfidence());
-                return;
-            }
         }
     }
     

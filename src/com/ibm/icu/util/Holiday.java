@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2008, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2007, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -174,16 +174,16 @@ public abstract class Holiday implements DateRule
      */
     public String getDisplayName(ULocale locale)
     {
-        String dispName = name;
+        String name = this.name;
 
         try {
             ResourceBundle bundle = UResourceBundle.getBundleInstance("HolidayBundle", locale);
-            dispName = bundle.getString(name);
+            name = bundle.getString(name);
         }
         catch (MissingResourceException e) {
             //System.out.println("Using default display name for " + name);
         }
-        return dispName;
+        return name;
     }
 
     /**

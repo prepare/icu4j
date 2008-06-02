@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2000-2008, International Business Machines Corporation and
+ * Copyright (C) 2000-2007, International Business Machines Corporation and
  * others. All Rights Reserved.
  *******************************************************************************
  */
@@ -296,23 +296,12 @@ public class IBMCalendarTest extends CalendarTest {
         Calendar cal = Calendar.getInstance();
         cal.set(2007, Calendar.JANUARY, 1);
         BuddhistCalendar buddhist = new BuddhistCalendar();
-        doLimitsTest(buddhist, null, cal.getTime());
+        if (!skipIfBeforeICU(3,9,0)) {
+            doLimitsTest(buddhist, null, cal.getTime());
+        }
         doTheoreticalLimitsTest(buddhist, false);
     }
 
-    /**
-     * Default calendar for Thai (Ticket#6302)
-     */
-    public void TestThaiDefault() {
-        // Buddhist calendar is used as the default calendar for
-        // Thai locale
-        Calendar cal = Calendar.getInstance(new ULocale("th_TH"));
-        String type = cal.getType();
-        if (!type.equals("buddhist")) {
-            errln("FAIL: Buddhist calendar is not returned for locale " + cal.toString());
-        }
-    }
-    
     /**
      * Verify that TaiwanCalendar shifts years to Minguo Era but otherwise
      * behaves like GregorianCalendar.
@@ -336,7 +325,9 @@ public class IBMCalendarTest extends CalendarTest {
         Calendar cal = Calendar.getInstance();
         cal.set(2007, Calendar.JANUARY, 1);
         TaiwanCalendar taiwan = new TaiwanCalendar();
-        doLimitsTest(taiwan, null, cal.getTime());
+        if (!skipIfBeforeICU(3,9,0)) {
+            doLimitsTest(taiwan, null, cal.getTime());
+        }
         doTheoreticalLimitsTest(taiwan, false);
     }
 
@@ -957,7 +948,7 @@ public class IBMCalendarTest extends CalendarTest {
         // String[] calTypes = Calendar.getAvailableTypes();
         final String[] calTypes = {
             "buddhist", "chinese", "coptic", "ethiopic", "gregorian", "hebrew", 
-            "islamic", "islamic-civil", "japanese", "roc"
+            "islamic", "islamic-civil", "japanese", "taiwan"
         };
         
         // constructing a DateFormat with a locale indicating a calendar type should construct a

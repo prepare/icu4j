@@ -1,6 +1,6 @@
 /*
 ******************************************************************************
-* Copyright (C) 2007-2008, International Business Machines Corporation and   *
+* Copyright (C) 2007, International Business Machines Corporation and   *
 * others. All Rights Reserved.                                               *
 ******************************************************************************
 */
@@ -209,8 +209,8 @@ public class BasicPeriodFormatterFactory implements PeriodFormatterFactory {
   }
 
   // package access for use by BasicPeriodFormatter
-  PeriodFormatterData getData(String locName) {
-    return ds.get(locName);
+  PeriodFormatterData getData(String localeName) {
+    return ds.get(localeName);
   }
 
   // package access for use by BasicPeriodFormatter
@@ -222,13 +222,13 @@ public class BasicPeriodFormatterFactory implements PeriodFormatterFactory {
     byte countVariant = ECountVariant.INTEGER;
     
     public Customizations copy() {
-        Customizations result = new Customizations();
-        result.displayLimit = displayLimit;
-        result.displayDirection = displayDirection;
-        result.separatorVariant = separatorVariant;
-        result.unitVariant = unitVariant;
-        result.countVariant = countVariant;
-        return result;
+	Customizations result = new Customizations();
+	result.displayLimit = displayLimit;
+	result.displayDirection = displayDirection;
+	result.separatorVariant = separatorVariant;
+	result.unitVariant = unitVariant;
+	result.countVariant = countVariant;
+	return result;
     }
   }
 }

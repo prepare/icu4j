@@ -1,6 +1,6 @@
 /*
 ******************************************************************************
-* Copyright (C) 2007-2008, International Business Machines Corporation and   *
+* Copyright (C) 2007, International Business Machines Corporation and   *
 * others. All Rights Reserved.                                               *
 ******************************************************************************
 */
@@ -65,12 +65,12 @@ class BasicPeriodBuilderFactory implements PeriodBuilderFactory {
             lastUnit = i;
           }
         }
-        if (lastUnit == -1) { 
-            // currently empty, but this might be transient so no fail
-            result.minUnit = result.maxUnit = null;
-        } else {
-            result.minUnit = TimeUnit.units[lastUnit];
-        }
+	if (lastUnit == -1) { 
+	    // currently empty, but this might be transient so no fail
+	    result.minUnit = result.maxUnit = null;
+	} else {
+	    result.minUnit = TimeUnit.units[lastUnit];
+	}
       }
 
       return result;
@@ -156,35 +156,35 @@ class BasicPeriodBuilderFactory implements PeriodBuilderFactory {
     }
 
     public Settings copy() {
-        Settings result = new Settings();
-        result.inUse = inUse;
-        result.uset = uset;
-        result.maxUnit = maxUnit;
-        result.minUnit = minUnit;
-        result.maxLimit = maxLimit;
-        result.minLimit = minLimit;
-        result.allowZero = allowZero;
-        result.weeksAloneOnly = weeksAloneOnly;
-        result.useMilliseconds = useMilliseconds;
-        return result;
+	Settings result = new Settings();
+	result.inUse = inUse;
+	result.uset = uset;
+	result.maxUnit = maxUnit;
+	result.minUnit = minUnit;
+	result.maxLimit = maxLimit;
+	result.minLimit = minLimit;
+	result.allowZero = allowZero;
+	result.weeksAloneOnly = weeksAloneOnly;
+	result.useMilliseconds = useMilliseconds;
+	return result;
     }
   }
 
-  public PeriodBuilderFactory setAvailableUnitRange(TimeUnit minUnit,
-                                                    TimeUnit maxUnit) {
+  public PeriodBuilderFactory setAvailableUnitRange(TimeUnit minUnit, 
+							 TimeUnit maxUnit) {
     int uset = 0;
     for (int i = maxUnit.ordinal; i <= minUnit.ordinal; ++i) {
-        uset |= 1 << i;
+	uset |= 1 << i;
     }
     if (uset == 0) {
-        throw new IllegalArgumentException("range " + minUnit + " to " + maxUnit + " is empty");
+	throw new IllegalArgumentException("range " + minUnit + " to " + maxUnit + " is empty");
     }
     settings = settings.setUnits(uset);
     return this;
   }
 
   public PeriodBuilderFactory setUnitIsAvailable(TimeUnit unit, 
-                                                      boolean available) {
+						      boolean available) {
     int uset = settings.uset;
     if (available) {
       uset |= 1 << unit.ordinal;
@@ -308,7 +308,7 @@ abstract class PeriodBuilderImpl implements PeriodBuilder {
       // ignore the time zone
       return this;
   }
-
+	
   public PeriodBuilder withLocale(String localeName) {
     BasicPeriodBuilderFactory.Settings newSettings = settings.setLocale(localeName);
     if (newSettings != settings) {
@@ -317,7 +317,7 @@ abstract class PeriodBuilderImpl implements PeriodBuilder {
     return this;
   }
 
-  protected abstract PeriodBuilder withSettings(BasicPeriodBuilderFactory.Settings settingsToUse);
+  protected abstract PeriodBuilder withSettings(BasicPeriodBuilderFactory.Settings settings);
 
   protected abstract Period handleCreate(long duration, long referenceDate, 
                                          boolean inPast);
@@ -330,9 +330,9 @@ abstract class PeriodBuilderImpl implements PeriodBuilder {
 class FixedUnitBuilder extends PeriodBuilderImpl {
   private TimeUnit unit;
   
-  public static FixedUnitBuilder get(TimeUnit unit, BasicPeriodBuilderFactory.Settings settingsToUse) {
-    if (settingsToUse != null && (settingsToUse.effectiveSet() & (1 << unit.ordinal)) != 0) {
-      return new FixedUnitBuilder(unit, settingsToUse);
+  public static FixedUnitBuilder get(TimeUnit unit, BasicPeriodBuilderFactory.Settings settings) {
+    if (settings != null && (settings.effectiveSet() & (1 << unit.ordinal)) != 0) {
+      return new FixedUnitBuilder(unit, settings);
     }
     return null;
   }
@@ -342,8 +342,8 @@ class FixedUnitBuilder extends PeriodBuilderImpl {
     this.unit = unit;
   }
 
-  protected PeriodBuilder withSettings(BasicPeriodBuilderFactory.Settings settingsToUse) {
-    return get(unit, settingsToUse);
+  protected PeriodBuilder withSettings(BasicPeriodBuilderFactory.Settings settings) {
+    return get(unit, settings);
   }
 
   protected Period handleCreate(long duration, long referenceDate, 
@@ -369,8 +369,8 @@ class SingleUnitBuilder extends PeriodBuilderImpl {
     return new SingleUnitBuilder(settings);
   }
 
-  protected PeriodBuilder withSettings(BasicPeriodBuilderFactory.Settings settingsToUse) {
-    return SingleUnitBuilder.get(settingsToUse);
+  protected PeriodBuilder withSettings(BasicPeriodBuilderFactory.Settings settings) {
+    return SingleUnitBuilder.get(settings);
   }
 
   protected Period handleCreate(long duration, long referenceDate, 
@@ -402,8 +402,8 @@ class OneOrTwoUnitBuilder extends PeriodBuilderImpl {
     return new OneOrTwoUnitBuilder(settings);
   }
 
-  protected PeriodBuilder withSettings(BasicPeriodBuilderFactory.Settings settingsToUse) {
-    return OneOrTwoUnitBuilder.get(settingsToUse);
+  protected PeriodBuilder withSettings(BasicPeriodBuilderFactory.Settings settings) {
+    return OneOrTwoUnitBuilder.get(settings);
   }
 
   protected Period handleCreate(long duration, long referenceDate, 
@@ -451,8 +451,8 @@ class MultiUnitBuilder extends PeriodBuilderImpl {
     return null;
   }
 
-  protected PeriodBuilder withSettings(BasicPeriodBuilderFactory.Settings settingsToUse) {
-    return MultiUnitBuilder.get(nPeriods, settingsToUse);
+  protected PeriodBuilder withSettings(BasicPeriodBuilderFactory.Settings settings) {
+    return MultiUnitBuilder.get(nPeriods, settings);
   }
 
   protected Period handleCreate(long duration, long referenceDate, 
