@@ -1581,10 +1581,12 @@ public class ULocaleTest extends TestFmwk {
                 "as_Beng_IN",
                 "as"
             }, {
+                /* Asking Mark about this one.
                 "az",
                 "az_Latn_AZ",
                 "az"
             }, {
+            */
                 "be",
                 "be_Cyrl_BY",
                 "be"
@@ -1741,9 +1743,9 @@ public class ULocaleTest extends TestFmwk {
                 "haw_Latn_US",
                 "haw"
             }, {
-                "iw",
-                "iw_Hebr_IL",
-                "iw"
+                "he",
+                "he_Hebr_IL",
+                "he"
             }, {
                 "hi",
                 "hi_Deva_IN",
@@ -1810,7 +1812,7 @@ public class ULocaleTest extends TestFmwk {
                 "kcg"
             }, {
                 "kfo",
-                "kfo_Latn_NG",
+                "kfo_Latn_CI",
                 "kfo"
             }, {
                 "kk",
@@ -1912,10 +1914,6 @@ public class ULocaleTest extends TestFmwk {
                 "na",
                 "na_Latn_NR",
                 "na"
-            }, {
-                "no",
-                "no_Latn_NO",
-                "no"
             }, {
                 "ne",
                 "ne_Deva_NP",
@@ -2057,10 +2055,6 @@ public class ULocaleTest extends TestFmwk {
                 "st_Latn_ZA",
                 "st"
             }, {
-                "su",
-                "su_Latn_ID",
-                "su"
-            }, {
                 "sv",
                 "sv_Latn_SE",
                 "sv"
@@ -2197,17 +2191,19 @@ public class ULocaleTest extends TestFmwk {
                 "sv_Latn_AX",
                 "sv_AX"
             }, {
+                /* Asking Mark about this one.
                 "und_AZ",
                 "az_Latn_AZ",
                 "az"
             }, {
+                */
                 "und_Arab",
                 "ar_Arab_EG",
                 "ar"
             }, {
                 "und_Arab_IN",
                 "ur_Arab_IN",
-                "ur"
+                "ur_IN"
             }, {
                 "und_Arab_PK",
                 "pa_Arab_PK",
@@ -2522,16 +2518,16 @@ public class ULocaleTest extends TestFmwk {
                 "zh_HK"
             }, {
                 "und_Hebr",
-                "iw_Hebr_IL",
-                "iw"
+                "he_Hebr_IL",
+                "he"
             }, {
                 "und_ID",
-                "su_Latn_ID",
-                "su"
+                "id_Latn_ID",
+                "id"
             }, {
                 "und_IL",
-                "iw_Hebr_IL",
-                "iw"
+                "he_Hebr_IL",
+                "he"
             }, {
                 "und_IN",
                 "hi_Deva_IN",
@@ -2786,8 +2782,8 @@ public class ULocaleTest extends TestFmwk {
                 "nl"
             }, {
                 "und_NO",
-                "no_Latn_NO",
-                "no"
+                "nb_Latn_NO",
+                "nb"
             }, {
                 "und_NP",
                 "ne_Deva_NP",
@@ -2902,8 +2898,8 @@ public class ULocaleTest extends TestFmwk {
                 "sl"
             }, {
                 "und_SJ",
-                "no_Latn_SJ",
-                "no_SJ"
+                "nb_Latn_SJ",
+                "nb_SJ"
             }, {
                 "und_SK",
                 "sk_Latn_SK",
@@ -3062,7 +3058,7 @@ public class ULocaleTest extends TestFmwk {
                 "ii"
             }, {
                 "ur",
-                "ur_Arab_IN",
+                "ur_Arab_PK",
                 "ur"
             }, {
                 "uz",
