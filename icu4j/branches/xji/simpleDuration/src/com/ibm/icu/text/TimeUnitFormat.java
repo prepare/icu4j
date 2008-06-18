@@ -82,6 +82,26 @@ public class TimeUnitFormat extends MeasureFormat {
     public TimeUnitFormat() {}
 
     /**
+     * Create TimeUnitFormat given a ULocale.
+     * @draft ICU 4.0
+     * @provisional This API might change or be removed in a future release.
+     */
+    public TimeUnitFormat(ULocale locale) {
+        this.locale = locale;
+        isReady = false;
+    }
+
+    /**
+     * Create TimeUnitFormat given a Locale.
+     * @draft ICU 4.0
+     * @provisional This API might change or be removed in a future release.
+     */
+    public TimeUnitFormat(Locale locale) {
+        this.locale = ULocale.forLocale(locale);
+        isReady = false;
+    }
+
+    /**
      * Set the locale used for formatting or parsing.
      * @return this, for chaining.
      * @draft ICU 4.0
