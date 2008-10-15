@@ -11,6 +11,7 @@ import java.io.Serializable;
 import java.text.ParseException;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
@@ -3738,5 +3739,18 @@ public final class ULocale implements Serializable {
         }
     
         return null;
+    }
+    
+    private static Enumeration getKeyWords(ULocale loc, String keyword){
+        Enumeration e = null;
+        String baseName,resName;
+        baseName = ICUResourceBundle.ICU_BASE_NAME+"/coll";
+        resName = "collations";
+        e = ICUResourceBundle.getSupportedKeywords(baseName, resName, keyword, loc);
+        return e;
+    }
+    
+    public Enumeration getLocaleSupportedKeywords(ULocale loc, String keyword){
+        return getKeyWords(loc, keyword);
     }
 }
