@@ -12,6 +12,9 @@ package com.ibm.icu.dev.test.util;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Locale;
@@ -3681,5 +3684,85 @@ public class ULocaleTest extends TestFmwk {
                 }
             }
         }
+    }
+    
+    public void TestLocaleKeyword(){
+        ArrayList got = new ArrayList();
+        ArrayList expected = new ArrayList();
+        
+        String expectedResult = "";
+        String gotResult = "";
+        
+        String inputLocale[] = {
+            "zh__PINYIN",
+            "zh_TW_STROKE",
+            "zh_MO",
+            "zh",
+            "zh_Hant_MO",
+            "uk_UA",
+            "sr_Latn_ME",
+            "sr_Latn",
+            "sr",
+            "de",
+            "de__PHONEBOOK",
+            "no_NO",
+            "pa_Guru_IN",
+            "es",
+            "es__TRADITIONAL",
+            "ko_KR",
+            "kok",
+            "ms_MY",
+        };
+        
+        String expectedCollationValues[][] = {
+                {"pinyin"},
+                {"stroke"},
+                {"big5han","pinyin","gb2312han","standard","stroke","unihan"},
+                {"big5han","pinyin","gb2312han","standard","stroke","unihan"},
+                {"big5han","pinyin","gb2312han","standard","stroke","unihan"},
+                {"standard"},
+                {"standard"},
+                {"standard"},
+                {"standard"},
+                {"phonebook","standard"},
+                {"phonebook"},
+                {"standard"},
+                {"standard"},
+                {"standard","traditional"},
+                {"traditional"},
+                {"standard","unihan"},
+                {"standard"},
+                {"standard"},
+        };
+        
+        for(int i=0;i<inputLocale.length;i++){
+            ULocale loc = new ULocale(inputLocale[i]);
+            for(int j=0;j<expectedCollationValues[i].length;j++){
+                expected.add(expectedCollationValues[i][j]);
+                expectedResult += expectedCollationValues[i][j]+" ";
+            }
+            Collections.sort(expected);
+            Enumeration e = loc.getLocaleSupportedKeywords(loc, "collation");
+            String s;
+            if(e!=null){
+                while(e.hasMoreElements()){
+                    got.add((s=(String)e.nextElement()));
+                    gotResult +=s+" ";
+                }
+            }
+            Collections.sort(got);
+            if(got.equals(expected)){
+                logln("PASS: Locale :"+inputLocale[i]);
+                logln("EXPECTED :"+expectedResult);
+                logln("GOT      :"+gotResult);
+            }else{
+                errln("FAIL: Locale :"+inputLocale[i]);
+                errln("EXPECTED :"+expectedResult);
+                errln("GOT      :"+gotResult);
+            }
+            gotResult=expectedResult="";
+            got.clear();
+            expected.clear();
+        } 
     }
 }
