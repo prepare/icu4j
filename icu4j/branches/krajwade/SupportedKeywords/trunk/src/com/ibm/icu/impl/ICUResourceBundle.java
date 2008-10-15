@@ -1448,4 +1448,74 @@ public  class ICUResourceBundle extends UResourceBundle {
         }
     	return v.elements();
     }
+    
+    /**
+     * Returns an Enumeration of the keywords supported by the given base locale.
+     * @param baseName resource specifier
+     * @param resName top level resource to consider (such as "collations")
+     * @param keyword a particular keyword to consider (such as "collation" )
+     * @param locID base locale
+     * @return keywords supported by this locale
+     * @deprecated For internal use only
+     * @internal 4.2
+     * @author krajwade
+     */
+    public static Enumeration getSupportedKeywords(String baseName, String resName, String keyword, ULocale locID){
+        Vector v = new Vector();
+        String kwVal = locID.getKeywordValue(keyword);
+        String baseLoc = locID.getBaseName();
+        String defStr = null;
+        Enumeration e;
+        String checkCollVal[] = baseLoc.split("_");
+        ULocale parent = new ULocale(baseLoc);
+        
+        ICUResourceBundle r = null;
+
+        r = (ICUResourceBundle) UResourceBundle.getBundleInstance(baseName, parent);
+        do {
+            if ((kwVal == null) || (kwVal.length() == 0)
+                    || kwVal.equals(DEFAULT_TAG)) {
+                kwVal = ""; // default tag is treated as no keyword
+            }else{
+                v.add(kwVal);
+                break;
+            }
+            String collVal = checkCollVal[checkCollVal.length-1];
+            if(collVal.equals("STROKE")||collVal.equals("PHONEBOOK")||collVal.equals("TRADITIONAL")
+                    ||collVal.equals("PINYIN")||collVal.equals("DIRECT")){
+                v.add(collVal.toLowerCase());
+                break;
+            }
+            
+            ICUResourceBundle irb = (ICUResourceBundle) r.get(resName);
+            
+            if(irb.containsKey(resName) || irb.getLocaleID().equals("root")){
+                e = irb.getKeys();
+                while(e.hasMoreElements()){
+                    Object o;
+                    if((o = e.nextElement()).equals("default")){
+                        try {
+                            defStr = irb.getString(DEFAULT_TAG);
+                            if(defStr!=null){
+                                v.add(defStr);
+                            }
+                        } catch (MissingResourceException t) {
+                            // Ignore error and continue search.
+                        }
+                    }else{
+                        v.add(o);    
+                    }
+                    //v.add(e.nextElement());
+                }
+            }
+            r = (ICUResourceBundle) r.getParent();
+        } while ((r != null));
+        
+        //Removing Duplicates
+        HashSet h = new HashSet();
+        h.addAll(v);
+        v.clear();
+        v.addAll(h);
+        return v.elements();
+    }
 }
