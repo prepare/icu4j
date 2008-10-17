@@ -233,6 +233,21 @@ public final class ULocale implements Serializable {
      */ 
     public static final ULocale ROOT = new ULocale("root", EMPTY_LOCALE);
     
+    /** 
+     * Useful constant for calendar keyword.
+     */
+    public static final String CALENDAR = "calendar";
+    
+    /** 
+     * Useful constant for collation keyword.
+     */
+    public static final String COLLATION = "collation";
+    
+    /** 
+     * Useful constant for currency keyword.
+     */
+    public static final String CURRENCY = "currencies";
+    
     private static final SimpleCache CACHE = new SimpleCache();
 
     /**
@@ -3741,16 +3756,33 @@ public final class ULocale implements Serializable {
         return null;
     }
     
-    private static Enumeration getKeyWords(ULocale loc, String keyword){
-        Enumeration e = null;
+    private static String[] getKeyWords(ULocale loc, String keyword){
+        String[] values = null;
         String baseName,resName;
-        baseName = ICUResourceBundle.ICU_BASE_NAME+"/coll";
-        resName = "collations";
-        e = ICUResourceBundle.getSupportedKeywords(baseName, resName, keyword, loc);
-        return e;
+        if(keyword.equals("collation")){ 
+            baseName = ICUResourceBundle.ICU_BASE_NAME+"/coll";
+            resName = "collations";
+            values = ICUResourceBundle.getSupportedKeywords(baseName, resName, keyword, loc);
+        }else if(keyword.equals("calendar")){
+            baseName = ICUResourceBundle.ICU_BASE_NAME;
+            resName = "calendarData";
+            values = ICUResourceBundle.getSupportedKeywords(baseName, resName, keyword, loc);
+        }else if(keyword.equals("currencies")){
+            baseName = ICUResourceBundle.ICU_BASE_NAME;
+            resName = "CurrencyMap";
+            values = ICUResourceBundle.getSupportedKeywords(baseName, resName, keyword, loc);
+        }
+        return values;
     }
     
-    public Enumeration getLocaleSupportedKeywords(ULocale loc, String keyword){
-        return getKeyWords(loc, keyword);
+    /**
+     * Returns an array of the keywords supported by the given locale.
+     * @param loc The input locale
+     * @param keyword a particular keyword to consider (such as "collation" )
+     * @return keywords supported by this locale
+     */
+    public String[] getLocaleSupportedKeywordValues(ULocale loc, String keyword){
+        return getKeyWords(loc, keyword.toLowerCase());
     }
+    
 }
