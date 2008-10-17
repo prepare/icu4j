@@ -3735,6 +3735,22 @@ public class ULocaleTest extends TestFmwk {
                 {"standard"},
         };
         
+        String calendar[]={
+                "roc",
+                "persian",
+                "islamic-civil",
+                "islamic",
+                "hebrew",
+                "buddhist",
+                "indian",
+                "japanese",
+                "gregorian",
+                "ethiopic",
+                "chinese",
+                "coptic",
+        };
+        logln("");
+        logln("Starting Collation keyword test");
         for(int i=0;i<inputLocale.length;i++){
             ULocale loc = new ULocale(inputLocale[i]);
             for(int j=0;j<expectedCollationValues[i].length;j++){
@@ -3742,13 +3758,11 @@ public class ULocaleTest extends TestFmwk {
                 expectedResult += expectedCollationValues[i][j]+" ";
             }
             Collections.sort(expected);
-            Enumeration e = loc.getLocaleSupportedKeywords(loc, "collation");
+            String[] values = loc.getLocaleSupportedKeywordValues(loc, ULocale.COLLATION);
             String s;
-            if(e!=null){
-                while(e.hasMoreElements()){
-                    got.add((s=(String)e.nextElement()));
-                    gotResult +=s+" ";
-                }
+            for(int j=0;j<values.length;j++){
+                got.add((s=values[j]));
+                gotResult +=s+" ";
             }
             Collections.sort(got);
             if(got.equals(expected)){
@@ -3763,6 +3777,49 @@ public class ULocaleTest extends TestFmwk {
             gotResult=expectedResult="";
             got.clear();
             expected.clear();
+        }
+        logln("");
+        logln("Starting Calendar keyword test");
+        for(int i=0;i<inputLocale.length;i++){
+            ULocale loc = new ULocale(inputLocale[i]);
+            for(int j=0;j<calendar.length;j++){
+                expected.add(calendar[j]);
+                expectedResult += calendar[j]+" ";
+            }
+            String[] s = loc.getLocaleSupportedKeywordValues(loc, ULocale.CALENDAR);
+            String s1;
+            for(int j=0;j<s.length;j++){
+                got.add((s1=s[j]));
+                gotResult +=s1+" ";
+            }
+            
+            Collections.sort(got);
+            Collections.sort(expected);
+            if(got.equals(expected)){
+                logln("PASS: Locale :"+inputLocale[i]);
+                logln("EXPECTED :"+expectedResult);
+                logln("GOT      :"+gotResult);
+            }else{
+                errln("FAIL: Locale :"+inputLocale[i]);
+                errln("EXPECTED :"+expectedResult);
+                errln("GOT      :"+gotResult);
+            }
+            gotResult=expectedResult="";
+            got.clear();
+            expected.clear();
+        }
+        logln("");
+        logln("Starting Currency keyword test");
+        for(int i=0;i<inputLocale.length;i++){
+            ULocale loc = new ULocale(inputLocale[i]);
+            
+            String[] s = loc.getLocaleSupportedKeywordValues(loc, ULocale.CURRENCY);
+            if(s.length==236){
+                logln("PASS: Locale :"+inputLocale[i]);
+            }else{
+                errln("FAIL: Locale :"+inputLocale[i]);
+            }
+            
         } 
     }
 }
