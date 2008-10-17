@@ -1449,73 +1449,83 @@ public  class ICUResourceBundle extends UResourceBundle {
     	return v.elements();
     }
     
-    /**
-     * Returns an Enumeration of the keywords supported by the given base locale.
-     * @param baseName resource specifier
-     * @param resName top level resource to consider (such as "collations")
-     * @param keyword a particular keyword to consider (such as "collation" )
-     * @param locID base locale
-     * @return keywords supported by this locale
-     * @deprecated For internal use only
-     * @internal 4.2
-     * @author krajwade
-     */
-    public static Enumeration getSupportedKeywords(String baseName, String resName, String keyword, ULocale locID){
-        Vector v = new Vector();
+    public static String[] getSupportedKeywords(String baseName, String resName, String keyword, ULocale locID){
         String kwVal = locID.getKeywordValue(keyword);
         String baseLoc = locID.getBaseName();
         String defStr = null;
         Enumeration e;
-        String checkCollVal[] = baseLoc.split("_");
-        ULocale parent = new ULocale(baseLoc);
+        HashSet set = new HashSet();
         
         ICUResourceBundle r = null;
-
-        r = (ICUResourceBundle) UResourceBundle.getBundleInstance(baseName, parent);
-        do {
-            if ((kwVal == null) || (kwVal.length() == 0)
-                    || kwVal.equals(DEFAULT_TAG)) {
-                kwVal = ""; // default tag is treated as no keyword
+        if(keyword.equals("collation")){
+            if(!locID.getBaseName().equals(locID.getName())){
+                ULocale parent = new ULocale(baseLoc);
+                r = (ICUResourceBundle) UResourceBundle.getBundleInstance(baseName, parent);
             }else{
-                v.add(kwVal);
-                break;
+                r = (ICUResourceBundle) UResourceBundle.getBundleInstance(baseName, locID);
             }
-            String collVal = checkCollVal[checkCollVal.length-1];
-            if(collVal.equals("STROKE")||collVal.equals("PHONEBOOK")||collVal.equals("TRADITIONAL")
-                    ||collVal.equals("PINYIN")||collVal.equals("DIRECT")){
-                v.add(collVal.toLowerCase());
-                break;
-            }
-            
-            ICUResourceBundle irb = (ICUResourceBundle) r.get(resName);
-            
-            if(irb.containsKey(resName) || irb.getLocaleID().equals("root")){
-                e = irb.getKeys();
-                while(e.hasMoreElements()){
-                    Object o;
-                    if((o = e.nextElement()).equals("default")){
-                        try {
-                            defStr = irb.getString(DEFAULT_TAG);
-                            if(defStr!=null){
-                                v.add(defStr);
+            do {
+                if ((kwVal == null) || (kwVal.length() == 0)
+                        || kwVal.equals(DEFAULT_TAG)) {
+                    kwVal = ""; // default tag is treated as no keyword
+                }else{
+                    set.add(kwVal);
+                    break;
+                }
+                int index;
+                if((index=baseLoc.indexOf("STROKE"))>=0 || (index=baseLoc.indexOf("PHONEBOOK"))>=0 || (index=baseLoc.indexOf("TRADITIONAL"))>=0 
+                        || (index=baseLoc.indexOf("PINYIN"))>=0 || (index=baseLoc.indexOf("DIRECT"))>=0){
+                    set.add(baseLoc.substring(index).toLowerCase());
+                    break;
+                }
+                
+                ICUResourceBundle irb = (ICUResourceBundle) r.get(resName);
+                
+                if(irb.containsKey(resName) || irb.getLocaleID().equals("root")){
+                    e = irb.getKeys();
+                    while(e.hasMoreElements()){
+                        Object o;
+                        if((o = e.nextElement()).equals("default")){
+                            try {
+                                defStr = irb.getString(DEFAULT_TAG);
+                                if(defStr!=null){
+                                    set.add(defStr);
+                                }
+                            } catch (MissingResourceException t) {
+                                // Ignore error and continue search.
                             }
-                        } catch (MissingResourceException t) {
-                            // Ignore error and continue search.
+                        }else{
+                            set.add(o);    
                         }
-                    }else{
-                        v.add(o);    
+                        //v.add(e.nextElement());
                     }
-                    //v.add(e.nextElement());
+                }
+                r = (ICUResourceBundle) r.getParent();
+            } while ((r != null));
+   
+        }else if(keyword.equals("calendar")){
+            r = (ICUResourceBundle)ICUResourceBundle.getBundleInstance(baseName, "supplementalData", ICU_DATA_CLASS_LOADER);
+            ICUResourceBundle irb = (ICUResourceBundle)r.get(resName);
+            e= irb.getKeys();
+            while(e.hasMoreElements()){
+                set.add(e.nextElement());
+            }
+        }else if(keyword.equals("currencies")){
+            r = (ICUResourceBundle)ICUResourceBundle.getBundleInstance(baseName, "supplementalData", ICU_DATA_CLASS_LOADER);
+            ICUResourceBundle irb = (ICUResourceBundle)r.get(resName);
+            e= irb.getKeys();
+            while(e.hasMoreElements()){
+                String country = (String)e.nextElement();
+                ICUResourceBundle countryBundle = (ICUResourceBundle) irb.get(country);
+                for(int i=0;i<countryBundle.getSize();i++){
+                    ICUResourceBundle currency = (ICUResourceBundle) countryBundle.get(i);
+                    for(int j=0;j<currency.getSize();j++){
+                        String currVal = currency.getString("id");
+                        set.add(currVal);
+                    }
                 }
             }
-            r = (ICUResourceBundle) r.getParent();
-        } while ((r != null));
-        
-        //Removing Duplicates
-        HashSet h = new HashSet();
-        h.addAll(v);
-        v.clear();
-        v.addAll(h);
-        return v.elements();
+        }
+        return (String[]) set.toArray(new String[set.size()]);
     }
 }
