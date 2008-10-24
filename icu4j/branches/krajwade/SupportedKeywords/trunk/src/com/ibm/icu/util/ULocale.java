@@ -11,7 +11,6 @@ import java.io.Serializable;
 import java.text.ParseException;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
@@ -22,6 +21,7 @@ import com.ibm.icu.impl.ICUCache;
 import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.impl.LocaleUtility;
 import com.ibm.icu.impl.SimpleCache;
+import com.ibm.icu.text.Collator;
 
 /**
  * A class analogous to {@link java.util.Locale} that provides additional
@@ -232,21 +232,6 @@ public final class ULocale implements Serializable {
      * @stable ICU 2.8
      */ 
     public static final ULocale ROOT = new ULocale("root", EMPTY_LOCALE);
-    
-    /** 
-     * Useful constant for calendar keyword.
-     */
-    public static final String CALENDAR = "calendar";
-    
-    /** 
-     * Useful constant for collation keyword.
-     */
-    public static final String COLLATION = "collation";
-    
-    /** 
-     * Useful constant for currency keyword.
-     */
-    public static final String CURRENCY = "currencies";
     
     private static final SimpleCache CACHE = new SimpleCache();
 
@@ -3757,32 +3742,24 @@ public final class ULocale implements Serializable {
     }
     
     private static String[] getKeyWords(ULocale loc, String keyword){
-        String[] values = null;
-        String baseName,resName;
-        if(keyword.equals("collation")){ 
-            baseName = ICUResourceBundle.ICU_BASE_NAME+"/coll";
-            resName = "collations";
-            values = ICUResourceBundle.getSupportedKeywords(baseName, resName, keyword, loc);
-        }else if(keyword.equals("calendar")){
-            baseName = ICUResourceBundle.ICU_BASE_NAME;
-            resName = "calendarData";
-            values = ICUResourceBundle.getSupportedKeywords(baseName, resName, keyword, loc);
-        }else if(keyword.equals("currencies")){
-            baseName = ICUResourceBundle.ICU_BASE_NAME;
-            resName = "CurrencyMap";
-            values = ICUResourceBundle.getSupportedKeywords(baseName, resName, keyword, loc);
+        if(keyword.toLowerCase().equals("collation")){ 
+            return Collator.getLocaleSupportedCollationValues(loc);
+        }else if(keyword.toLowerCase().equals("calendar")){
+            return Calendar.getSupportedCalendarValues();
+        }else if(keyword.toLowerCase().equals("currency")){
+            return Currency.getSupportedCurrencyValues();
         }
-        return values;
+        return null;
     }
     
     /**
-     * Returns an array of the keywords supported by the given locale.
+     * Returns an array of the keywords supported by the given ULocale.
      * @param loc The input locale
      * @param keyword a particular keyword to consider (such as "collation" )
      * @return keywords supported by this locale
      */
-    public String[] getLocaleSupportedKeywordValues(ULocale loc, String keyword){
-        return getKeyWords(loc, keyword.toLowerCase());
+    public static String[] getLocaleSupportedKeywordValues(ULocale loc, String keyword){
+        return getKeyWords(loc, keyword);
     }
     
 }
