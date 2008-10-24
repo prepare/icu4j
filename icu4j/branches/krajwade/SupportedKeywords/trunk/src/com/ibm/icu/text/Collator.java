@@ -7,6 +7,8 @@
 package com.ibm.icu.text;
 
 import java.util.Comparator;
+import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.Locale;
 import java.util.MissingResourceException;
 import java.util.Set;
@@ -14,6 +16,7 @@ import java.util.Set;
 import com.ibm.icu.impl.ICUDebug;
 import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.util.ULocale;
+import com.ibm.icu.util.UResourceBundle;
 import com.ibm.icu.util.VersionInfo;
 
 /**
@@ -1026,4 +1029,70 @@ public abstract class Collator implements Comparator, Cloneable
     private ULocale actualLocale;
 
     // -------- END ULocale boilerplate --------
+    
+    /**
+     * Returns an array of the collation values supported by the given ULocale.
+     * @param loc The input ULocale
+     * @return Collation values supported by this locale
+     * @internal
+     */
+    public static final String[] getLocaleSupportedCollationValues(ULocale locID){
+        ICUResourceBundle r = null;
+        Enumeration e;
+        HashSet set = new HashSet();
+        String baseLoc = locID.getBaseName();
+        String kwVal = locID.getKeywordValue("collation");
+        String baseName,resName;
+        String defStr = null;
+        baseName = ICUResourceBundle.ICU_BASE_NAME+"/coll";
+        resName = "collations";
+        
+        if(!locID.getBaseName().equals(locID.getName())){
+            ULocale parent = new ULocale(baseLoc);
+            r = (ICUResourceBundle) UResourceBundle.getBundleInstance(baseName, parent);
+        }else{
+            r = (ICUResourceBundle) UResourceBundle.getBundleInstance(baseName, locID);
+        }
+        
+        do {
+            if ((kwVal == null) || (kwVal.length() == 0)
+                    || kwVal.equals("default")) {
+                kwVal = ""; // default tag is treated as no keyword
+            }else{
+                set.add(kwVal);
+                break;
+            }
+            String canonicalLoc;
+            if(((canonicalLoc=ULocale.canonicalize(baseLoc)).indexOf("@"))>=0){
+                set.add(canonicalLoc.substring(canonicalLoc.indexOf("=")+1).toLowerCase());
+                break;
+            }
+            
+            ICUResourceBundle irb = (ICUResourceBundle) r.get(resName);
+
+            if(irb.containsKey(resName) || irb.getULocale().getBaseName().equals("root")){
+                e = irb.getKeys();
+                while(e.hasMoreElements()){
+                    Object o;
+                    if((o = e.nextElement()).equals("default")){
+                        try {
+                            defStr = irb.getString("default");
+                            if(defStr!=null){
+                                set.add(defStr);
+                            }
+                        } catch (MissingResourceException t) {
+                            // Ignore error and continue search.
+                        }
+                    }else{
+                        set.add(o);    
+                    }
+                    //v.add(e.nextElement());
+                }
+            }
+            r = (ICUResourceBundle) r.getParent();
+        } while ((r != null));
+        //values = ICUResourceBundle.getSupportedKeywords("collation", resName, kwVal, baseLoc, r);
+        //return values;
+        return (String[]) set.toArray(new String[set.size()]);
+    }
 }
