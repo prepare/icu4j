@@ -9,6 +9,7 @@ package com.ibm.icu.util;
 import java.io.Serializable;
 import java.text.ChoiceFormat;
 import java.text.ParsePosition;
+import java.util.Enumeration;
 import java.util.Locale;
 import java.util.MissingResourceException;
 import java.util.Date;
@@ -1054,6 +1055,37 @@ public class Currency extends MeasureUnit implements Serializable {
     private ULocale actualLocale;
 
     // -------- END ULocale boilerplate --------
+    
+    /**
+     * Returns an array of the currency values supported by the given ULocale.
+     * @param loc The input ULocale
+     * @return Currency values supported by this locale
+     * @internal
+     */
+    public static final String[] getSupportedCurrencyValues(){
+        ICUResourceBundle r = null;
+        String baseName,resName;
+        baseName = ICUResourceBundle.ICU_BASE_NAME;
+        resName = "CurrencyMap";
+        Enumeration e;
+        HashSet set = new HashSet();
+        
+        r = (ICUResourceBundle)ICUResourceBundle.getBundleInstance(baseName, "supplementalData", ICUResourceBundle.ICU_DATA_CLASS_LOADER);
+        ICUResourceBundle irb = (ICUResourceBundle)r.get(resName);
+        e= irb.getKeys();
+        while(e.hasMoreElements()){
+            String country = (String)e.nextElement();
+            ICUResourceBundle countryBundle = (ICUResourceBundle) irb.get(country);
+            for(int i=0;i<countryBundle.getSize();i++){
+                ICUResourceBundle currency = (ICUResourceBundle) countryBundle.get(i);
+                for(int j=0;j<currency.getSize();j++){
+                    String currVal = currency.getString("id");
+                    set.add(currVal);
+                }
+            }
+        }
+        return (String[]) set.toArray(new String[set.size()]);
+    }
 }
 
 //eof
