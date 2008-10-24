@@ -10,6 +10,8 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.Date;
+import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Locale;
 import java.util.MissingResourceException;
@@ -5286,5 +5288,29 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
     private ULocale actualLocale;
 
     // -------- END ULocale boilerplate --------
+    
+    /**
+     * Returns an array of the calendar values supported by the given ULocale.
+     * @param loc The input locale
+     * @return Calendar values supported by this locale
+     * @internal
+     */
+    public static final String[] getSupportedCalendarValues(){
+        ICUResourceBundle r = null;
+        String baseName,resName;
+        baseName = ICUResourceBundle.ICU_BASE_NAME;
+        resName = "calendarData";
+        Enumeration e;
+        HashSet set = new HashSet();
+        
+        r = (ICUResourceBundle)ICUResourceBundle.getBundleInstance(baseName, "supplementalData", ICUResourceBundle.ICU_DATA_CLASS_LOADER);
+        ICUResourceBundle irb = (ICUResourceBundle)r.get(resName);
+        e= irb.getKeys();
+        while(e.hasMoreElements()){
+            set.add(e.nextElement());
+        }
+        
+        return (String[]) set.toArray(new String[set.size()]);
+    }
 }
 
