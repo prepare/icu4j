@@ -851,6 +851,7 @@ public class Currency extends MeasureUnit implements Serializable {
                         if (matchLength > tmp.getCurrencyString().length()) {
                             resultList.set(i, item);
                         }
+                        break;
                     }
                 }
                 if (i == resultList.size()) {
