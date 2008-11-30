@@ -98,7 +98,8 @@ public class PropsVectors {
 			}
 		}
 		
-		// must be found because all ranges together always cover all of Unicode
+		// must be found because all ranges together always cover 
+		// all of Unicode
 		prevRow = start;
 		index = start * columns;
 		return index;
@@ -130,10 +131,13 @@ public class PropsVectors {
 	 * In rows for code points [start..end], select the column,
 	 * reset the mask bits and set the value bits (ANDed with the mask).
 	 * 
-	 * @throws IllegalArgumentException, IllegalStateException
+	 * @throws IllegalArgumentException
+	 * @throws IllegalStateException
+	 * @throws IndexOutOfBoundsException
 	 */
 	public void setValue(int start, int end, int column, int value, int mask) 
-	throws IllegalArgumentException, IllegalStateException {
+	throws IllegalArgumentException, IllegalStateException, 
+	       IndexOutOfBoundsException {
 		if (start < 0 || start > end || end > PVEC_MAX_CP ||
 				column < 0 || column >= (columns - 2)
 				) {
@@ -178,26 +182,164 @@ public class PropsVectors {
 	     * input range (only possible for the first and last rows)
 	     * and if their value differs from the input value.
 	     */
-		splitFirstRow = (start != v[firstRow] && value != (v[firstRow + column] & mask));
-		splitLastRow = (limit != v[lastRow+1] && value != (v[lastRow + column] & mask));
+		splitFirstRow = (start != v[firstRow] && 
+				value != (v[firstRow + column] & mask));
+		splitLastRow = (limit != v[lastRow+1] && 
+				value != (v[lastRow + column] & mask));
 		
 		// split first/last rows if necessary
 		if (splitFirstRow || splitLastRow) {
+			int rowsToExpand = 0;
+			if (splitFirstRow) {
+				++rowsToExpand;
+			}
+			if (splitLastRow) {
+				++rowsToExpand;
+			}
+			int newMaxRows = 0;
+			if ((rows + rowsToExpand) > maxRows) {
+				if (maxRows < PVEC_MEDIUM_ROWS) {
+					newMaxRows = PVEC_MEDIUM_ROWS;
+				} else if (maxRows < PVEC_MAX_ROWS) {
+					newMaxRows = PVEC_MAX_ROWS;
+				} else {
+					throw new IndexOutOfBoundsException(
+							"PVEC_MAX_ROWS exceeded! " +
+							"Increase it to a higher value " +
+							"in the implementation");
+				}
+				int[] temp = new int[maxRows * columns];
+				System.arraycopy(v, 0, temp, 0, maxRows * columns);
+				v = new int[newMaxRows * columns];
+				System.arraycopy(temp, 0, v, 0, maxRows * columns);
+				maxRows = newMaxRows;
+			}
 			
+			// count the number of row cells to move after the last row, 
+			// and move them 
+			int count = (rows * columns) - (lastRow + columns);
+			if (count > 0) {
+				System.arraycopy(v, lastRow+columns, 
+						v, lastRow+(1+rowsToExpand)*columns, count);
+			}
+			rows+=rowsToExpand;
+			
+			// split the first row, and move the firstRow pointer 
+			// to the second part
+			if (splitFirstRow) {
+				// copy all affected rows up one and move the lastRow pointer
+				count = lastRow - firstRow + columns;
+				System.arraycopy(v, firstRow, v, firstRow + columns, count);
+				lastRow+=column;
+				
+				// split the range and move the firstRow pointer
+				v[firstRow+1] = v[firstRow+columns] = start;
+				firstRow+=columns;
+			}
+			
+			// split the last row
+			if (splitLastRow) {
+				// copy the last row data
+				System.arraycopy(v, lastRow, v, lastRow + columns, columns);
+				
+				// split the range and move the firstRow pointer
+				v[lastRow+1] = v[lastRow+columns] = limit;
+			}
 		}
 		
+		// set the "row last seen" to the last row for the range
+		prevRow = lastRow / columns;
 		
-		
-		
-		
+		// set the input value in all remaining rows
+		firstRow+=column;
+		lastRow+=column;
+		mask=~mask;
+		for (;;) {
+			v[firstRow] = (v[firstRow] & mask) | value;
+			if (firstRow == lastRow) {
+				break;
+			}
+			firstRow+=columns;
+		}
 	}
 	
-	public int getValue() {
-		
+	/*
+	 * Always returns 0 if called after upvec_compact().
+	 */
+	public int getValue(int c, int column) {
+		if (isCompacted || c < 0 || c > PVEC_MAX_CP || column < 0 ||
+				column >= (columns - 2)) {
+			return 0;
+		}
+		int index = findRow(c);
+		return v[index + 2 + column];
+	}
+
+	/*
+	 * @throws IllegalStateException
+	 * @throws IllegalArgumentException
+	 */
+	public int[] getRow(int rowIndex) 
+	throws IllegalStateException, IllegalArgumentException {
+		if (isCompacted) {
+			throw new IllegalStateException("Illegal Invocation of the method after" +
+					"upvec_compact()");
+		}
+		if (rowIndex < 0 || rowIndex > rows) {
+			throw new IllegalArgumentException("rowIndex out of bound!");
+		}
+		int[] rowToReturn = new int[columns - 2];
+		System.arraycopy(v, rowIndex * columns + 2, rowToReturn, 0, columns - 2);
+		return rowToReturn;
 	}
 	
-	public int[] getRow() {
+	/*
+	 * @throws IllegalStateException
+	 * @throws IllegalArgumentException
+	 */
+	public int getRowStart(int rowIndex) 
+	throws IllegalStateException, IllegalArgumentException {
+		if (isCompacted) {
+			throw new IllegalStateException("Illegal Invocation of the method after" +
+					"upvec_compact()");
+		}
+		if (rowIndex < 0 || rowIndex > rows) {
+			throw new IllegalArgumentException("rowIndex out of bound!");
+		}
+		return v[rowIndex * columns];
+	}
+	
+	/*
+	 * @throws IllegalStateException
+	 * @throws IllegalArgumentException
+	 */
+	public int getRowEnd(int rowIndex) 
+	throws IllegalStateException, IllegalArgumentException {
+		if (isCompacted) {
+			throw new IllegalStateException("Illegal Invocation of the method after" +
+					"upvec_compact()");
+		}
+		if (rowIndex < 0 || rowIndex > rows) {
+			throw new IllegalArgumentException("rowIndex out of bound!");
+		}
+		return v[rowIndex * columns] - 1;
+	}
+	
+	public int compareRows(int indexOfRow1, int indexOfRow2) {
+		int count = columns; // includes start/limit columns
 		
+		// start comparing after start/limit but wrap around to them
+		int index = 2;
+		do {
+			if (v[indexOfRow1 + index] != v[indexOfRow2 + index]) {
+				return v[indexOfRow1 + index] < v[indexOfRow2 + index] ? -1:1;
+			}
+			if (++index==columns) {
+				index = 0;
+			}
+		} while(--count>0);
+		
+		return 0;
 	}
 	
 	public void compact() {
