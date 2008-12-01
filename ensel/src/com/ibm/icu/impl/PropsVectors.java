@@ -16,6 +16,8 @@
 
 package com.ibm.icu.impl;
 
+import java.util.Arrays;
+
 /**
  * Unicode Properties Vectors associated with code point ranges.
  *
@@ -343,6 +345,24 @@ public class PropsVectors {
 	}
 	
 	public void compact() {
+		if (isCompacted) {
+			return;
+		}
+		
+		// Set the flag now: Sorting and compacting destroys the builder 
+		// data structure.
+		isCompacted = true;
+		int valueColumns = columns - 2; // not counting start & limit
+		
+		// sort the properties vectors to find unique vector values
+		if (rows > 1) {
+			int[] indexArray = new int[rows];
+			for (int i = 0; i < rows; ++i) {
+				indexArray[i] = columns * i;
+			}
+			
+			Arrays.sort(a, c)
+		}
 	
 	}
 	
