@@ -17,6 +17,7 @@
 package com.ibm.icu.impl;
 
 import java.util.Arrays;
+import java.util.Comparator;
 
 /**
  * Unicode Properties Vectors associated with code point ranges.
@@ -65,22 +66,39 @@ public class PropsVectors {
 	private int findRow(int rangeStart) {
 		int index = 0;
 		
-		// check the vicinity of the last-seen row
-		if (prevRow < rows) {
-			index = prevRow*columns;
-			if (rangeStart >= v[index]) {
+		// check the vicinity of the last-seen row (start
+		// searching with an unrolled loop)
+		
+		index = prevRow*columns;
+		if (rangeStart >= v[index]) {
+			if (rangeStart < v[index+1]) {
+				// same row as last seen
+				return index;
+			} else {
+				index+=columns;
 				if (rangeStart < v[index+1]) {
-					// same row as last seen
-					return index;
-				} else if (
-						(prevRow + 1) < rows &&
-						rangeStart >= v[index+columns] &&
-						rangeStart < v[index+columns+1]) {
-					// next row after the last one
 					++prevRow;
-					return index + columns;
+					return index;
+				} else {
+					index+=columns;
+					if (rangeStart < v[index+1]) {
+						prevRow+=2;
+						return index;
+					} else if ((rangeStart - v[index+1]) < 10) {
+						// we are close, continue looping
+						prevRow+=2;
+						do {
+							++prevRow;
+							index+=columns;
+						} while (rangeStart >= v[index+1]);
+						return index;
+					}
 				}
 			}
+		} else if (rangeStart < v[1]) {
+			// the very first row
+			prevRow = 0;
+			return 0;
 		}
 		
 		// do a binary search for the start of the range
@@ -158,26 +176,9 @@ public class PropsVectors {
 		value&=mask;
 		
 		// find the rows whose ranges overlap with the input range
-		firstRow = findRow(start); // find the first row, always successful
-		lastRow = firstRow; 
-		
-	    /*
-	     * Start searching with an unrolled loop:
-	     * start and limit are often in a single range, or in adjacent ranges.
-	     */
-		if (limit > v[lastRow+1]) {
-			lastRow+=columns;
-			if (limit > v[lastRow+1]) {
-				if ((limit-v[lastRow+1]) < 10) {
-					// we are close, continue looping
-					do {
-						lastRow+=columns;
-					} while(limit > v[lastRow+1]);
-				} else {
-					lastRow = findRow(limit - 1);
-				}
-			}
-		}
+		// find the first and last row, always successful
+		firstRow = findRow(start); 
+		lastRow = findRow(end); 
 		
 	    /*
 	     * Rows need to be split if they partially overlap with the
@@ -327,23 +328,7 @@ public class PropsVectors {
 		return v[rowIndex * columns] - 1;
 	}
 	
-	public int compareRows(int indexOfRow1, int indexOfRow2) {
-		int count = columns; // includes start/limit columns
-		
-		// start comparing after start/limit but wrap around to them
-		int index = 2;
-		do {
-			if (v[indexOfRow1 + index] != v[indexOfRow2 + index]) {
-				return v[indexOfRow1 + index] < v[indexOfRow2 + index] ? -1:1;
-			}
-			if (++index==columns) {
-				index = 0;
-			}
-		} while(--count>0);
-		
-		return 0;
-	}
-	
+	@SuppressWarnings("unchecked")
 	public void compact() {
 		if (isCompacted) {
 			return;
@@ -356,12 +341,56 @@ public class PropsVectors {
 		
 		// sort the properties vectors to find unique vector values
 		if (rows > 1) {
-			int[] indexArray = new int[rows];
+			Integer[] indexArray = new Integer[rows];
 			for (int i = 0; i < rows; ++i) {
-				indexArray[i] = columns * i;
+				indexArray[i] = new Integer(columns * i);
 			}
 			
-			Arrays.sort(a, c)
+			Arrays.sort(indexArray, new Comparator() {
+				public int compare(Object o1, Object o2) {
+					int indexOfRow1 = ((Integer)o1).intValue();
+					int indexOfRow2 = ((Integer)o2).intValue();
+					int count = columns; // includes start/limit columns
+					
+					// start comparing after start/limit 
+					// but wrap around to them
+					int index = 2;
+					do {
+						if (v[indexOfRow1 + index] != v[indexOfRow2 + index]) {
+							return v[indexOfRow1 + index] < 
+							       v[indexOfRow2 + index] ? -1:1;
+						}
+						if (++index==columns) {
+							index = 0;
+						}
+					} while(--count>0);
+					
+					return 0;
+				}
+			});
+			
+			int[] temp = new int[rows*columns];
+			System.arraycopy(v, 0, temp, 0, rows * columns);
+			for (int rowNumber = 0; rowNumber < rows; ++rowNumber) {
+				System.arraycopy(temp, (indexArray[rowNumber]).intValue(), v, 
+						rowNumber * columns, columns);
+			}	
+		}
+		
+	    /*
+	     * Find and set the special values.
+	     * This has to do almost the same work as the compaction below,
+	     * to find the indexes where the special-value rows will move.
+	     */
+		int count = -valueColumns;
+		int index = 0;
+		for (int i = 0; i < rows; ++i) {
+			int start = v[index];
+			
+			// count a new values vector if it is different 
+			// from the current one
+			
+			
 		}
 	
 	}
@@ -370,9 +399,6 @@ public class PropsVectors {
 		
 	}
 	
-	public int[] cloneArray() {
-		
-	}
 	
 	public Trie compactToTrieWithRowIndexes() {
 	
