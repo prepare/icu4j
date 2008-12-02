@@ -1,4 +1,3 @@
-//##header J2SE15
 /**
  *******************************************************************************
  * Copyright (C) 2000-2008, International Business Machines Corporation and    *
@@ -816,13 +815,6 @@ public class CalendarRegression extends com.ibm.icu.dev.test.TestFmwk {
         if (!cal.getTime().equals(epoch))
             errln("Fail: after clear() expect " + epoch + ", got " + cal.getTime());
 
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//##        // This test case does not work well with JRE1.3 with
-//##        // the timezone update for US 2007 rule.  Java 1.3 only
-//##        // supports single DST rule for all years.  March 15
-//##        // was not in DST before, but with the new rule, it is
-//##        // in DST.
-//#else
         cal.setTime(d11);
         cal.clear( Calendar.MONTH ); 
         logln(cal.getTime().toString()); 
@@ -830,7 +822,6 @@ public class CalendarRegression extends com.ibm.icu.dev.test.TestFmwk {
             errln("Fail: " + d11 + " clear(MONTH) => expect " +
                   dM + ", got " + cal.getTime());
         }
-//#endif
     }
 
     public void Test4114578() {

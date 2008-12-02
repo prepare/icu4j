@@ -236,11 +236,4 @@ public class ICUDurationTest extends TestFmwk {
         }
     }
 
-    public void TestResourceWithCalendar() {
-        DurationFormat df = DurationFormat.getInstance(new ULocale("th@calendar=buddhist"));
-        // should pass, but return a default formatter for th.
-        if (df == null) {
-            errln("FAIL: null DurationFormat returned.");
-        }
-    }
 }

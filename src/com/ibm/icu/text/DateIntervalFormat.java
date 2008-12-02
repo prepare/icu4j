@@ -285,6 +285,7 @@ public class DateIntervalFormat extends UFormat {
 
     // Cache for the locale interval pattern
     private static ICUCache LOCAL_PATTERN_CACHE = new SimpleCache();
+
     
     /*
      * The interval patterns for this locale.
@@ -320,6 +321,22 @@ public class DateIntervalFormat extends UFormat {
     }
 
     /*
+     * Construct a DateIntervalFormat from DateFormat and a DateIntervalInfo.
+     *
+     * This is the convenient override of 
+     * DateIntervalFormat(DateFormat, DateIntervalInfo, String) 
+     * with the String value as null.
+     *
+     * @param dtfmt     the SimpleDateFormat object to be adopted.
+     * @param dtitvinf  the DateIntervalInfo object to be adopted.
+     */
+    private DateIntervalFormat(DateFormat dtfmt, DateIntervalInfo dtItvInfo)
+    {
+        this(dtfmt, dtItvInfo, null);
+    }
+
+
+    /*
      * Construct a DateIntervalFormat from DateFormat,
      * a DateIntervalInfo, and skeleton.
      * DateFormat provides the timezone, calendar,
@@ -328,23 +345,20 @@ public class DateIntervalFormat extends UFormat {
      * has a pattern in it.
      * the DateIntervalInfo provides the interval patterns.
      *
-     * @param locale    the locale of this date interval formatter.
+     * @param dtfmt     the SimpleDateFormat object to be adopted.
      * @param dtitvinf  the DateIntervalInfo object to be adopted.
      * @param skeleton  the skeleton of the date formatter
      */
-    private DateIntervalFormat(ULocale locale, DateIntervalInfo dtItvInfo,
+    private DateIntervalFormat(DateFormat dtfmt, DateIntervalInfo dtItvInfo,
                                String skeleton)
     {
         // freeze date interval info
         dtItvInfo.freeze();
         fSkeleton = skeleton;
         fInfo = dtItvInfo;
-
-        DateTimePatternGenerator generator = DateTimePatternGenerator.getInstance(locale);
-        final String bestPattern = generator.getBestPattern(skeleton);
-        fDateFormat = new SimpleDateFormat(bestPattern, locale);
-        fFromCalendar = (Calendar) fDateFormat.getCalendar().clone();
-        fToCalendar = (Calendar) fDateFormat.getCalendar().clone();
+        fDateFormat = (SimpleDateFormat) dtfmt;
+        fFromCalendar = (Calendar) dtfmt.getCalendar().clone();
+        fToCalendar = (Calendar) dtfmt.getCalendar().clone();
         initializePattern();
     }
 
@@ -421,8 +435,9 @@ public class DateIntervalFormat extends UFormat {
     public static final DateIntervalFormat 
         getInstance(String skeleton, ULocale locale)  
     {
+        DateFormat dtfmt = DateFormat.getPatternInstance(skeleton, locale);
         DateIntervalInfo dtitvinf = new DateIntervalInfo(locale);
-        return new DateIntervalFormat(locale, dtitvinf, skeleton);
+        return new DateIntervalFormat(dtfmt, dtitvinf, skeleton);
     }
 
 
@@ -513,11 +528,12 @@ public class DateIntervalFormat extends UFormat {
                                                  ULocale locale, 
                                                  DateIntervalInfo dtitvinf)
     {
+        DateFormat dtfmt = DateFormat.getPatternInstance(skeleton, locale);
         LOCAL_PATTERN_CACHE.clear();
         // clone. If it is frozen, clone returns itself, otherwise, clone
         // returns a copy.
         dtitvinf = (DateIntervalInfo)dtitvinf.clone(); 
-        return new DateIntervalFormat(locale, dtitvinf, skeleton);
+        return new DateIntervalFormat(dtfmt, dtitvinf, skeleton);
     }
 
 
@@ -945,9 +961,9 @@ public class DateIntervalFormat extends UFormat {
             // TODO: if user asks "m", but "d" differ
             //StringBuffer skeleton = new StringBuffer(skeleton);
             if ( time.length() != 0 ) {
-                //genFallbackForNotFound(Calendar.MINUTE, skeleton);
-                //genFallbackForNotFound(Calendar.HOUR, skeleton);
-                //genFallbackForNotFound(Calendar.AM_PM, skeleton);
+                //genFallbackForNotFound(Calendar.MINUTE, skeleton, dtpng);
+                //genFallbackForNotFound(Calendar.HOUR, skeleton, dtpng);
+                //genFallbackForNotFound(Calendar.AM_PM, skeleton, dtpng);
                 if ( date.length() == 0 ) {
                     // prefix with yMd
                     timeSkeleton = DateFormat.YEAR_NUM_MONTH_DAY + timeSkeleton;
@@ -968,14 +984,14 @@ public class DateIntervalFormat extends UFormat {
                     intervalPatterns.put(DateIntervalInfo.
                         CALENDAR_FIELD_TO_PATTERN_LETTER[Calendar.YEAR], ptn);
                 } else {
-                    //genFallbackForNotFound(Calendar.DATE, skeleton);
-                    //genFallbackForNotFound(Calendar.MONTH, skeleton);
-                    //genFallbackForNotFound(Calendar.YEAR, skeleton);
+                    //genFallbackForNotFound(Calendar.DATE, skeleton, dtpng);
+                    //genFallbackForNotFound(Calendar.MONTH, skeleton, dtpng);
+                    //genFallbackForNotFound(Calendar.YEAR, skeleton, dtpng);
                 }
             } else {
-                    //genFallbackForNotFound(Calendar.DATE, skeleton);
-                    //genFallbackForNotFound(Calendar.MONTH, skeleton);
-                    //genFallbackForNotFound(Calendar.YEAR, skeleton);
+                    //genFallbackForNotFound(Calendar.DATE, skeleton, dtpng);
+                    //genFallbackForNotFound(Calendar.MONTH, skeleton, dtpng);
+                    //genFallbackForNotFound(Calendar.YEAR, skeleton, dtpng);
             }
             return intervalPatterns;
         } // end of skeleton not found
@@ -988,11 +1004,11 @@ public class DateIntervalFormat extends UFormat {
              * for example: 10 10:10 - 11 10:10, it is not
              * clear that the first 10 is the 10th day
             time.insert(0, 'd');
-            genFallbackPattern(Calendar.DATE, time);
+            genFallbackPattern(Calendar.DATE, time, dtpng);
             time.insert(0, 'M');
-            genFallbackPattern(Calendar.MONTH, time);
+            genFallbackPattern(Calendar.MONTH, time, dtpng);
             time.insert(0, 'y');
-            genFallbackPattern(Calendar.YEAR, time);
+            genFallbackPattern(Calendar.YEAR, time, dtpng);
             */
             // prefix with yMd
             timeSkeleton = DateFormat.YEAR_NUM_MONTH_DAY + timeSkeleton;
@@ -1025,19 +1041,19 @@ public class DateIntervalFormat extends UFormat {
                 // prefix skeleton with 'd'
                 skeleton = DateIntervalInfo.
                     CALENDAR_FIELD_TO_PATTERN_LETTER[Calendar.DATE] + skeleton;
-                genFallbackPattern(Calendar.DATE, skeleton, intervalPatterns, dtpng);
+                genFallbackPattern(Calendar.DATE, skeleton, dtpng, intervalPatterns);
             }
             if ( !fieldExistsInSkeleton(Calendar.MONTH, dateSkeleton) ) {
                 // then prefix skeleton with 'M'
                 skeleton = DateIntervalInfo.
                     CALENDAR_FIELD_TO_PATTERN_LETTER[Calendar.MONTH] + skeleton;
-                genFallbackPattern(Calendar.MONTH, skeleton, intervalPatterns, dtpng);
+                genFallbackPattern(Calendar.MONTH, skeleton, dtpng, intervalPatterns);
             }
             if ( !fieldExistsInSkeleton(Calendar.YEAR, dateSkeleton) ) {
                 // then prefix skeleton with 'y'
                 skeleton = DateIntervalInfo.
                     CALENDAR_FIELD_TO_PATTERN_LETTER[Calendar.YEAR] + skeleton;
-                genFallbackPattern(Calendar.YEAR, skeleton, intervalPatterns, dtpng);
+                genFallbackPattern(Calendar.YEAR, skeleton, dtpng, intervalPatterns);
             }
             
             /*
@@ -1069,9 +1085,9 @@ public class DateIntervalFormat extends UFormat {
      * @param intervalPatterns interval patterns
      */
     private void genFallbackPattern(int field, String skeleton,
-                                    HashMap intervalPatterns,
-                                    DateTimePatternGenerator dtpng) {
-        String pattern = dtpng.getBestPattern(skeleton);
+                                    DateTimePatternGenerator dtpng,
+                                    HashMap intervalPatterns) {
+        String pattern =dtpng.getBestPattern(skeleton);
         // for fall back interval patterns,
         // the first part of the pattern is empty,
         // the second part of the pattern is the full-pattern
@@ -1085,7 +1101,8 @@ public class DateIntervalFormat extends UFormat {
 
 
     /*
-    private void genFallbackForNotFound(String field, StringBuffer skeleton) {
+    private void genFallbackForNotFound(String field, StringBuffer skeleton,
+                                        DateTimePatternGenerator dtpng) {
         if ( SimpleDateFormat.isFieldUnitIgnored(skeleton.toString(), field) ) {
             // single date
             DateIntervalInfo.PatternInfo ptnInfo = 
@@ -1198,6 +1215,7 @@ public class DateIntervalFormat extends UFormat {
                 ++vCount;
                 timeSkeleton.append(ch);
                 break;
+              // FIXME: what is the difference between CAP_V/Z and LOW_V/Z
               case 'V':
               case 'Z':
               case 'k':

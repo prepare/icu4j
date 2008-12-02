@@ -162,24 +162,12 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
      * round trip as expected.
      */
     public void TestTimeRoundTrip() {
-
-        boolean TEST_ALL = "true".equalsIgnoreCase(getProperty("TimeZoneRoundTripAll"));
-
-        int startYear, endYear;
-
-        if (TEST_ALL || getInclusion() > 5) {
-            startYear = 1900;
-        } else {
-            startYear = 1990;
-        }
-
         Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        endYear = cal.get(Calendar.YEAR) + 3;
 
-        cal.set(startYear, Calendar.JANUARY, 1);
+        cal.set(1900, Calendar.JANUARY, 1);
         final long START_TIME = cal.getTimeInMillis();
 
-        cal.set(endYear, Calendar.JANUARY, 1);
+        cal.set(2020, Calendar.JANUARY, 1);
         final long END_TIME = cal.getTimeInMillis();
 
         // Whether each pattern is ambiguous at DST->STD local time overlap
@@ -190,13 +178,14 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         final String BASEPATTERN = "yyyy-MM-dd'T'HH:mm:ss.SSS";
 
         ULocale[] LOCALES = null;
+        boolean DEBUG_ALL = false;
         boolean REALLY_VERBOSE = false;
 
         // timer for performance analysis
         long[] times = new long[PATTERNS.length];
         long timer;
 
-        if (TEST_ALL) {
+        if (DEBUG_ALL) {
             // It may take about an hour for testing all locales
             LOCALES = ULocale.getAvailableLocales();
         } else if (getInclusion() > 5) {
@@ -214,6 +203,8 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         } else {
             LOCALES = new ULocale[] {
                 new ULocale("en"),
+                new ULocale("en_CA"),
+                new ULocale("fr")
             };
         }
 

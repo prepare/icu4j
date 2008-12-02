@@ -17,11 +17,9 @@ import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 import java.util.Vector;
 
-import com.ibm.icu.impl.ICUCache;
 import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.impl.ICUResourceBundleReader;
 import com.ibm.icu.impl.ResourceBundleWrapper;
-import com.ibm.icu.impl.SimpleCache;
 import com.ibm.icu.util.ULocale;
 
 //#if defined(FOUNDATION10) || defined(J2SE13) || defined(ECLIPSE_FRAGMENT)
@@ -304,29 +302,18 @@ public abstract class UResourceBundle extends ResourceBundle{
     }
 
     // Cache for ResourceBundle instantiation
-    private static ICUCache BUNDLE_CACHE = new SimpleCache();
+    private static SoftReference BUNDLE_CACHE;
 
-    /**
-     * @internal
-     */
-    public static void resetBundleCache()
-    {
-        /*
-         * A HACK!!!!!
-         * Currently if a resourcebundle with fallback turned ON is added to the cache
-         * and then a getBundleInstance() is called for a bundle with fallback turned OFF
-         * it will actually search the cache for any bundle of the same locale
-         * regaurdless of fallback status. This method has been created so that if
-         * The calling method KNOWS that instances of the other fallback state may be in the 
-         * cache, the calling method may call this method to clear out the cache.
-         *
-         */
-        //TODO figure a way around this method(see method comment)
-        BUNDLE_CACHE = new SimpleCache();
-    }
-    
     private static void addToCache(ResourceCacheKey key, UResourceBundle b) {
-        BUNDLE_CACHE.put(key, b);
+        Map m = null;
+        if (BUNDLE_CACHE != null) {
+            m = (Map)BUNDLE_CACHE.get();
+        }
+        if (m == null) {
+            m = new HashMap();
+            BUNDLE_CACHE = new SoftReference(m);
+        }
+        m.put(key, b);
     }
 
     /**
@@ -352,7 +339,13 @@ public abstract class UResourceBundle extends ResourceBundle{
         }
     }
     private static UResourceBundle loadFromCache(ResourceCacheKey key) {
-        return (UResourceBundle)BUNDLE_CACHE.get(key);
+        if (BUNDLE_CACHE != null) {
+            Map m = (Map)BUNDLE_CACHE.get();
+            if (m != null) {
+                return (UResourceBundle)m.get(key);
+            }
+        }
+        return null;
     }
 
     /**
