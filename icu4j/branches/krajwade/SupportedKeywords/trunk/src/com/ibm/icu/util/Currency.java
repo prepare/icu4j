@@ -1057,35 +1057,63 @@ public class Currency extends MeasureUnit implements Serializable {
     // -------- END ULocale boilerplate --------
     
     /**
-     * Returns an array of the currency values supported by the given ULocale.
-     * @param loc The input ULocale
-     * @return Currency values supported by this locale
-     * @internal
+     * Given a keyword and a ULocale, return an array of all values for
+     * that the ULocale supports for the given keyword.
+     * @param keyword one of the keywords returned by getKeywords.
+     * @param locLD input ULocale
+     * @param commonlyUsed if set to true it will return commonly used values with the given ULocale, otherwise
+     * returns all the available values
+     * @draft ICU 4.2
      */
-    public static final String[] getSupportedCurrencyValues(){
+    public static final String[] getKeywordValues(String keyword, ULocale locID, boolean commonlyUsed) {
         ICUResourceBundle r = null;
         String baseName,resName;
         baseName = ICUResourceBundle.ICU_BASE_NAME;
         resName = "CurrencyMap";
-        Enumeration e;
+        String kwVal = locID.getKeywordValue(keyword);
+        Enumeration e, key;
         HashSet set = new HashSet();
+        
+        if(commonlyUsed && kwVal != null){
+            set.add(kwVal);
+            return (String[]) set.toArray(new String[set.size()]);
+        }
+        
+        String countryName = locID.getCountry();
+        if(commonlyUsed && countryName.equals("")){
+            ULocale newLoc = ULocale.addLikelySubtags(locID);
+            countryName = newLoc.getCountry();
+        }
         
         r = (ICUResourceBundle)ICUResourceBundle.getBundleInstance(baseName, "supplementalData", ICUResourceBundle.ICU_DATA_CLASS_LOADER);
         ICUResourceBundle irb = (ICUResourceBundle)r.get(resName);
         e= irb.getKeys();
         while(e.hasMoreElements()){
             String country = (String)e.nextElement();
+            if(commonlyUsed && !country.equals(countryName)){
+                continue;
+            }
             ICUResourceBundle countryBundle = (ICUResourceBundle) irb.get(country);
             for(int i=0;i<countryBundle.getSize();i++){
                 ICUResourceBundle currency = (ICUResourceBundle) countryBundle.get(i);
-                for(int j=0;j<currency.getSize();j++){
-                    String currVal = currency.getString("id");
-                    set.add(currVal);
+                boolean current = true;
+                key = currency.getKeys();
+                while(key.hasMoreElements()){
+                    if(key.nextElement().equals("to")){
+                        current = false;
+                    }
+                }
+                if(current){
+                   for(int j=0;j<currency.getSize();j++){
+                        String currVal = currency.getString("id");
+                        set.add(currVal);
+                    }
                 }
             }
         }
         return (String[]) set.toArray(new String[set.size()]);
     }
+  
 }
 
 //eof
