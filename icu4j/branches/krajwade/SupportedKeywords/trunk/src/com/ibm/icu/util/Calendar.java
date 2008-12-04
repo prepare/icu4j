@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashSet;
@@ -5289,19 +5290,66 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
 
     // -------- END ULocale boilerplate --------
     
+    private static final String calendarValues[][]={
+            {"japanese","JP"},
+            {"islamic-civil","AE", "BH", "DJ", "DZ", "EG", "EH", "ER", "IL", "IQ", "JO", "KM", "KW",
+                "LB", "LY", "MA", "MR", "OM", "PS", "QA", "SA", "SD", "SY", "TD", "TN", "YE", "AF", "IR"},
+            {"islamic","AE", "BH", "DJ", "DZ", "EG", "EH", "ER", "IL", "IQ", "JO", "KM", "KW",
+                "LB", "LY", "MA", "MR", "OM", "PS", "QA", "SA", "SD", "SY", "TD", "TN", "YE", "AF", "IR"},
+            {"chinese","CN", "CX", "HK", "MO", "SG", "TW"},
+            {"hebrew","IL"},
+            {"buddhist","TH"},
+            {"coptic","EG"},
+            {"persian","AF", "IR"},
+            {"ethiopic","ET"},
+            {"indian","IN"},
+            {"roc","TW"}
+    };
+    
     /**
-     * Returns an array of the calendar values supported by the given ULocale.
-     * @param loc The input locale
-     * @return Calendar values supported by this locale
-     * @internal
+     * Given a keyword and a ULocale, return an array of all values for
+     * that the ULocale supports for the given keyword.
+     * @param keyword one of the keywords returned by getKeywords.
+     * @param locLD input ULocale
+     * @param commonlyUsed if set to true it will return commonly used values with the given ULocale, otherwise
+     * returns all the available values
+     * @draft ICU 4.2
      */
-    public static final String[] getSupportedCalendarValues(){
+    public static final String[] getKeywordValues(String keyword, ULocale locID, boolean commonlyUsed) {
         ICUResourceBundle r = null;
         String baseName,resName;
         baseName = ICUResourceBundle.ICU_BASE_NAME;
         resName = "calendarData";
+        String kwVal = locID.getKeywordValue(keyword);
         Enumeration e;
         HashSet set = new HashSet();
+        String gregorian = "gregorian"; 
+        ArrayList countryCodes = new ArrayList();
+        
+        if(commonlyUsed && kwVal != null){
+            set.add(kwVal);
+            return (String[]) set.toArray(new String[set.size()]);
+        }
+        
+        String countryName = locID.getCountry();
+        if(commonlyUsed && countryName.equals("")){
+            ULocale newLoc = ULocale.addLikelySubtags(locID);
+            countryName = newLoc.getCountry();
+        }
+        
+        if(commonlyUsed){
+            set.add(gregorian); // Gregorian should always be added
+            for(int i=0;i<calendarValues.length;i++){
+                for(int j=1;j<calendarValues[i].length;j++){
+                    countryCodes.add(calendarValues[i][j]);
+                }
+                if(countryCodes.contains(countryName)){
+                    set.add(calendarValues[i][0]);
+                    countryCodes.clear();
+                }
+            }
+            return (String[]) set.toArray(new String[set.size()]);
+        }
         
         r = (ICUResourceBundle)ICUResourceBundle.getBundleInstance(baseName, "supplementalData", ICUResourceBundle.ICU_DATA_CLASS_LOADER);
         ICUResourceBundle irb = (ICUResourceBundle)r.get(resName);
@@ -5312,5 +5360,6 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
         
         return (String[]) set.toArray(new String[set.size()]);
     }
+    
 }
 
