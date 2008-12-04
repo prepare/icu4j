@@ -1031,17 +1031,20 @@ public abstract class Collator implements Comparator, Cloneable
     // -------- END ULocale boilerplate --------
     
     /**
-     * Returns an array of the collation values supported by the given ULocale.
-     * @param loc The input ULocale
-     * @return Collation values supported by this locale
-     * @internal
+     * Given a keyword and a ULocale, return an array of all values 
+     * that the ULocale supports for the given keyword.
+     * @param keyword one of the keywords returned by getKeywords.
+     * @param locLD input ULocale
+     * @param commonlyUsed if set to true it will return commonly used values with the given ULocale, otherwise
+     * returns all the available values
+     * @draft ICU 4.2
      */
-    public static final String[] getLocaleSupportedCollationValues(ULocale locID){
+    public static final String[] getKeywordValues(String keyword, ULocale locID, boolean commonlyUsed) {
         ICUResourceBundle r = null;
         Enumeration e;
         HashSet set = new HashSet();
         String baseLoc = locID.getBaseName();
-        String kwVal = locID.getKeywordValue("collation");
+        String kwVal = locID.getKeywordValue(keyword);
         String baseName,resName;
         String defStr = null;
         baseName = ICUResourceBundle.ICU_BASE_NAME+"/coll";
@@ -1091,8 +1094,8 @@ public abstract class Collator implements Comparator, Cloneable
             }
             r = (ICUResourceBundle) r.getParent();
         } while ((r != null));
-        //values = ICUResourceBundle.getSupportedKeywords("collation", resName, kwVal, baseLoc, r);
-        //return values;
+        //return values
         return (String[]) set.toArray(new String[set.size()]);
     }
+    
 }
