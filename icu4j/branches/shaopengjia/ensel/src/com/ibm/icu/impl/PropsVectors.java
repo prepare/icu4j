@@ -61,7 +61,7 @@ public class PropsVectors {
 	 * delivering special values and the beginning of delivering real ones.
 	 * Stable value, unlike PVEC_MAX_CP which might grow over time.
 	 */
-	private final int PVEC_START_REAL_VALUE_CP = 0x200000;
+	private final int PVEC_START_REAL_VALUES_CP = 0x200000;
 	
 	private int findRow(int rangeStart) {
 		int index = 0;
@@ -329,7 +329,7 @@ public class PropsVectors {
 	}
 	
 	@SuppressWarnings("unchecked")
-	public void compact() {
+	public void compact(TrieBuilder builder) {
 		if (isCompacted) {
 			return;
 		}
@@ -384,15 +384,79 @@ public class PropsVectors {
 	     */
 		int count = -valueColumns;
 		int index = 0;
+		int[] prev = new int[valueColumns];
+		int[] current = new int[valueColumns];
 		for (int i = 0; i < rows; ++i) {
 			int start = v[index];
 			
 			// count a new values vector if it is different 
 			// from the current one
+			if (count < 0) {
+				count+=valueColumns;
+				System.arraycopy(v, 2, prev, 0, valueColumns);
+			} else {
+				System.arraycopy(v, index+2, current, 0, valueColumns);
+				if (!Arrays.equals(current, prev)) {
+					count+=valueColumns;
+				}
+				System.arraycopy(current, 0, prev, 0, valueColumns);
+			}
 			
+			if (start >= PVEC_FIRST_SPECIAL_CP) {
+				compactToTrieHandler(builder, start, start, count);
+			}
+			index+=columns;
+		}
+		
+		// count is at the beginning of the last vector, 
+		// add valueColumns to include that last vector
+		count+=valueColumns;
+		
+	    // Call the handler once more to signal the start of 
+		// delivering real values.
+        compactToTrieHandler(builder, PVEC_START_REAL_VALUES_CP, 
+        		PVEC_START_REAL_VALUES_CP, count);
+        
+        /*
+         * Move vector contents up to a contiguous array with only unique
+         * vector values, and call the handler function for each vector.
+         *
+         * This destroys the Properties Vector structure and replaces it
+         * with an array of just vector values.
+         */
+	    count = -valueColumns;
+		index = 0;
+		for (int i = 0; i < rows; ++i) {
+			int start = v[index];
+			int limit = v[index + 1];
 			
+			// count a new values vector if it is different 
+			// from the current one
+			if (count < 0) {
+				count+=valueColumns;
+			} else {
+				System.arraycopy(v, count, prev, 0, valueColumns);
+				System.arraycopy(v, index+2, current, 0, valueColumns);
+				if (!Arrays.equals(current, prev)) {
+					count+=valueColumns;
+					System.arraycopy(v, index+2, v, count, valueColumns);
+				}
+			}
+			
+			if (start < PVEC_FIRST_SPECIAL_CP) {
+				compactToTrieHandler(builder, start, limit - 1, count);
+			}
+			index+=columns;
 		}
 	
+		 // count is at the beginning of the last vector, 
+	 	 // add one to include that last vector
+		rows = count/valueColumns + 1;
+	}
+	
+	private void compactToTrieHandler(TrieBuilder builder, 
+			int start, int end, int rowIndex) {
+		
 	}
 	
 	public int[] getArray() {
