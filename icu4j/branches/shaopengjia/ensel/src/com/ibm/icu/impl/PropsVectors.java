@@ -434,6 +434,7 @@ public class PropsVectors {
 			// from the current one
 			if (count < 0) {
 				count+=valueColumns;
+				System.arraycopy(v, 2, v, 0, valueColumns);
 			} else {
 				System.arraycopy(v, count, prev, 0, valueColumns);
 				System.arraycopy(v, index+2, current, 0, valueColumns);
@@ -456,16 +457,54 @@ public class PropsVectors {
 	
 	private void compactToTrieHandler(TrieBuilder builder, 
 			int start, int end, int rowIndex) {
-		
+		if (start < PVEC_FIRST_SPECIAL_CP) {
+			builder.setRange(start, end + 1, rowIndex, true);
+		} else {
+			switch (start) {
+			case PVEC_INITIAL_VALUE_CP:
+				
+				break;
+			case PVEC_START_REAL_VALUES_CP:
+				break;
+			default:
+				break;
+			}
+		}
 	}
 	
-	public int[] getArray() {
-		
+	/*
+	 * @throws IllegalStateException
+	 */
+	public int[] getCompactedArray() throws IllegalStateException {
+		if (!isCompacted) {
+			throw new IllegalStateException("Illegal Invocation of the method before" +
+					"upvec_compact()");
+		}
+		int numberOfElements = getCompactedRows() * getCompactedColumns();
+		int[] result = new int[numberOfElements];
+		System.arraycopy(v, 0, result, 0, numberOfElements);
+		return result;
 	}
 	
-	
-	public Trie compactToTrieWithRowIndexes() {
-	
+	/*
+	 * @throws IllegalStateException
+	 */
+	public int getCompactedRows() throws IllegalStateException {
+		if (!isCompacted) {
+			throw new IllegalStateException("Illegal Invocation of the method before" +
+					"upvec_compact()");
+		}
+		return rows;
 	}
 	
+	/*
+	 * @throws IllegalStateException
+	 */
+	public int getCompactedColumns() throws IllegalStateException {
+		if (!isCompacted) {
+			throw new IllegalStateException("Illegal Invocation of the method before" +
+					"upvec_compact()");
+		}
+		return columns - 2;
+	}
 }
