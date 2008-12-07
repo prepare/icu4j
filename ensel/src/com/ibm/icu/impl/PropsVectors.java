@@ -41,20 +41,7 @@ public class PropsVectors {
 	private int maxRows;
 	private int rows;
 	private int prevRow; // search optimization: remember last row seen 
-	boolean isCompacted;
-
-	/*
-	 * Special pseudo code points for storing the initialValue and the         
-	 * errorValue which are used to initialize a Trie or similar.
-	 */
-	private final int PVEC_FIRST_SPECIAL_CP = 0x110000;
-	private final int PVEC_INITIAL_VALUE_CP = 0x110000;
-	private final int PVEC_ERROR_VALUE_CP = 0x110001;
-	private final int PVEC_MAX_CP = 0x110001;
-	
-	private final int PVEC_INITIAL_ROWS = 1<<14;
-	private final int PVEC_MEDIUM_ROWS = 1<<17;
-	private final int PVEC_MAX_ROWS = PVEC_MAX_CP + 1;
+	private boolean isCompacted;
 	
 	/*
 	 * Special pseudo code point used in compact() signaling the end of
@@ -124,6 +111,19 @@ public class PropsVectors {
 		index = start * columns;
 		return index;
 	}
+	
+	/*
+	 * Special pseudo code points for storing the initialValue and the         
+	 * errorValue which are used to initialize a Trie or similar.
+	 */
+	public final static int PVEC_FIRST_SPECIAL_CP = 0x110000;
+	public final static int PVEC_INITIAL_VALUE_CP = 0x110000;
+	public final static int PVEC_ERROR_VALUE_CP = 0x110001;
+	public final static int PVEC_MAX_CP = 0x110001;
+	
+	public final static int PVEC_INITIAL_ROWS = 1<<14;
+	public final static int PVEC_MEDIUM_ROWS = 1<<17;
+	public final static int PVEC_MAX_ROWS = PVEC_MAX_CP + 1;
 	
 	public PropsVectors(int numOfColumns) throws IllegalArgumentException {
 		if (numOfColumns < 1) {
@@ -329,7 +329,7 @@ public class PropsVectors {
 	}
 	
 	@SuppressWarnings("unchecked")
-	public void compact(TrieBuilder builder) {
+	public void compact(IntTrieBuilder builder) {
 		if (isCompacted) {
 			return;
 		}
@@ -455,7 +455,7 @@ public class PropsVectors {
 		rows = count/valueColumns + 1;
 	}
 	
-	private void compactToTrieHandler(TrieBuilder builder, 
+	private void compactToTrieHandler(IntTrieBuilder builder, 
 			int start, int end, int rowIndex) {
 		if (start < PVEC_FIRST_SPECIAL_CP) {
 			builder.setRange(start, end + 1, rowIndex, true);
