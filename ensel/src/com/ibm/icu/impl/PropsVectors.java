@@ -507,4 +507,8 @@ public class PropsVectors {
 		}
 		return columns - 2;
 	}
+	
+	public Trie compactToTrieWithRowIndexes() {
+		
+	}
 }
