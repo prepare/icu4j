@@ -29,15 +29,15 @@ import com.ibm.icu.text.UnicodeSet;
 /**
  * Charset Selector
  * 
- * A charset selector is built with a list of charset names and given an input CharSequence
- * returns the list of names the corresponding charsets which can convert the CharSequence.
+ * A charset selector is built with a list of charset names and given an input 
+ * CharSequence returns the list of names the corresponding charsets which can
+ * convert the CharSequence.
  *
  * @draft ICU 4.2
  */
 public final class CharsetSelector {
 	private Trie trie; // 16 bit trie containing offsets into pv
 	private int[] pv;  // table of bits
-	private int pvCount;
 	private String[] encodings; // encodings users ask to use
 	private int[] swapped;
 	private boolean ownPv;
@@ -79,9 +79,12 @@ public final class CharsetSelector {
 				for (int col = 0; col < columns; col++) {
 					pvec.setValue(startChar, endChar, col, ~0, ~0);
 				}
-				
 			}
 		}
+		
+		trie = pvec.compactToTrieWithRowIndexes();
+		pv = pvec.getCompactedArray();
+		ownPv = true; // TODO: this line might not be needed
 	}
 
    /**
