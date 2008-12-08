@@ -43,13 +43,6 @@ public class PropsVectors {
 	private int prevRow; // search optimization: remember last row seen 
 	private boolean isCompacted;
 	
-	/*
-	 * Special pseudo code point used in compact() signaling the end of
-	 * delivering special values and the beginning of delivering real ones.
-	 * Stable value, unlike PVEC_MAX_CP which might grow over time.
-	 */
-	private final int PVEC_START_REAL_VALUES_CP = 0x200000;
-	
 	private int findRow(int rangeStart) {
 		int index = 0;
 		
@@ -124,6 +117,13 @@ public class PropsVectors {
 	public final static int PVEC_INITIAL_ROWS = 1<<14;
 	public final static int PVEC_MEDIUM_ROWS = 1<<17;
 	public final static int PVEC_MAX_ROWS = PVEC_MAX_CP + 1;
+	
+	/*
+	 * Special pseudo code point used in compact() signaling the end of
+	 * delivering special values and the beginning of delivering real ones.
+	 * Stable value, unlike PVEC_MAX_CP which might grow over time.
+	 */
+	public final static int PVEC_START_REAL_VALUES_CP = 0x200000;
 	
 	public PropsVectors(int numOfColumns) throws IllegalArgumentException {
 		if (numOfColumns < 1) {
@@ -329,7 +329,7 @@ public class PropsVectors {
 	}
 	
 	@SuppressWarnings("unchecked")
-	public void compact(IntTrieBuilder builder) {
+	public void compact(TrieCompactor compactor) {
 		if (isCompacted) {
 			return;
 		}
@@ -403,7 +403,7 @@ public class PropsVectors {
 			}
 			
 			if (start >= PVEC_FIRST_SPECIAL_CP) {
-				compactToTrieHandler(builder, start, start, count);
+				compactor.compactToTrie(start, start, count);
 			}
 			index+=columns;
 		}
@@ -414,7 +414,7 @@ public class PropsVectors {
 		
 	    // Call the handler once more to signal the start of 
 		// delivering real values.
-        compactToTrieHandler(builder, PVEC_START_REAL_VALUES_CP, 
+        compactor.compactToTrie(PVEC_START_REAL_VALUES_CP, 
         		PVEC_START_REAL_VALUES_CP, count);
         
         /*
@@ -445,7 +445,7 @@ public class PropsVectors {
 			}
 			
 			if (start < PVEC_FIRST_SPECIAL_CP) {
-				compactToTrieHandler(builder, start, limit - 1, count);
+				compactor.compactToTrie(start, limit - 1, count);
 			}
 			index+=columns;
 		}
@@ -453,23 +453,6 @@ public class PropsVectors {
 		 // count is at the beginning of the last vector, 
 	 	 // add one to include that last vector
 		rows = count/valueColumns + 1;
-	}
-	
-	private void compactToTrieHandler(IntTrieBuilder builder, 
-			int start, int end, int rowIndex) {
-		if (start < PVEC_FIRST_SPECIAL_CP) {
-			builder.setRange(start, end + 1, rowIndex, true);
-		} else {
-			switch (start) {
-			case PVEC_INITIAL_VALUE_CP:
-				
-				break;
-			case PVEC_START_REAL_VALUES_CP:
-				break;
-			default:
-				break;
-			}
-		}
 	}
 	
 	/*
@@ -509,6 +492,8 @@ public class PropsVectors {
 	}
 	
 	public Trie compactToTrieWithRowIndexes() {
-		
+		TrieCompactor compactor = new PVecToTrieCompactor();
+		compact(compactor);
+		// TODO: Call serialize and un_serialize here	
 	}
 }
