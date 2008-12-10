@@ -490,10 +490,4 @@ public class PropsVectors {
 		}
 		return columns - 2;
 	}
-	
-	public Trie compactToTrieWithRowIndexes() {
-		TrieCompactor compactor = new PVecToTrieCompactor();
-		compact(compactor);
-		// TODO: Call serialize and un_serialize here	
-	}
 }
