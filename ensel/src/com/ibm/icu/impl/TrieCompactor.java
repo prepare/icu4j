@@ -5,6 +5,10 @@
 ******************************************************************************
 */
 
+/*
+ * @author Shaopeng Jia
+ */
+
 package com.ibm.icu.impl;
 
 public interface TrieCompactor {
