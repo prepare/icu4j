@@ -25,7 +25,6 @@ import java.util.Vector;
 
 import com.ibm.icu.impl.IntTrie;
 import com.ibm.icu.impl.PropsVectors;
-import com.ibm.icu.impl.Trie;
 import com.ibm.icu.text.UTF16;
 import com.ibm.icu.text.UnicodeSet;
 
@@ -42,9 +41,6 @@ public final class CharsetSelector {
 	private IntTrie trie; 
 	private int[] pv;  // table of bits
 	private String[] encodings; // encodings users ask to use
-	private int[] swapped;
-	private boolean ownPv;
-	private boolean ownEncodingStrings;
 	
 	private void generateSelectorData(PropsVectors pvec, 
 			UnicodeSet excludedCodePoints, int mappingTypes) {
@@ -87,7 +83,6 @@ public final class CharsetSelector {
 		
 		trie = pvec.compactToTrieWithRowIndexes();
 		pv = pvec.getCompactedArray();
-		ownPv = true; // TODO: this line might not be needed
 	}
 	
     // internal function to intersect two sets of masks
@@ -187,7 +182,6 @@ public final class CharsetSelector {
     		}
     	}
     	
-    	ownEncodingStrings = true; // TODO: this might not be needed
     	PropsVectors pvec = new PropsVectors((encodingCount + 31) / 32);
     	generateSelectorData(pvec, excludedCodePoints, mappingTypes);
     }
