@@ -22,8 +22,10 @@ import java.nio.charset.IllegalCharsetNameException;
 import java.nio.charset.UnsupportedCharsetException;
 import java.util.List;
 
+import com.ibm.icu.impl.IntTrie;
 import com.ibm.icu.impl.PropsVectors;
 import com.ibm.icu.impl.Trie;
+import com.ibm.icu.text.UTF16;
 import com.ibm.icu.text.UnicodeSet;
 
 /**
@@ -36,7 +38,7 @@ import com.ibm.icu.text.UnicodeSet;
  * @draft ICU 4.2
  */
 public final class CharsetSelector {
-	private Trie trie; // 16 bit trie containing offsets into pv
+	private IntTrie trie; 
 	private int[] pv;  // table of bits
 	private String[] encodings; // encodings users ask to use
 	private int[] swapped;
@@ -132,7 +134,7 @@ public final class CharsetSelector {
     		}
     	}
     	
-    	ownEncodingStrings = true;
+    	ownEncodingStrings = true; // TODO: this might not be needed
     	PropsVectors pvec = new PropsVectors((encodingCount + 31) / 32);
     	generateSelectorData(pvec, excludedCodePoints, mappingTypes);
     }
@@ -148,5 +150,20 @@ public final class CharsetSelector {
     *
     * @draft ICU 4.2
     */    
-    public List selectForString(CharSequence unicodeText);
+    public List selectForString(CharSequence unicodeText) {
+    	int columns = (encodings.length + 31) / 32;
+    	int[] mask = new int[columns];
+    	for (int i = 0; i < columns; i++) {
+    		mask[i] = 2^32 - 1; // set each bit to 1
+    	}
+    	int index = 0;
+    	while (index < unicodeText.length()) {
+    		int c = unicodeText.charAt(index);
+    		int pvIndex = 
+    		
+    		index+=UTF16.getCharCount(c);
+    	}
+    	
+    	
+    }
 }
