@@ -490,4 +490,42 @@ public class PropsVectors {
 		}
 		return columns - 2;
 	}
+	
+	public IntTrie compactToTrieWithRowIndexes() {
+		PVecToTrieCompactor compactor = new PVecToTrieCompactor();
+		compact(compactor);
+		return compactor.builder.serialize(new DefaultGetFoldedValue(compactor.builder), 
+				new DefaultGetFoldingOffset());
+	}
+	
+	// inner class implementation of Trie.DataManipulate
+	private static class DefaultGetFoldingOffset implements Trie.DataManipulate {
+		public int getFoldingOffset(int value) {
+			return value;
+		}
+	}
+	
+	// inner class implementation of TrieBuilder.DataManipulate
+	private static class DefaultGetFoldedValue implements TrieBuilder.DataManipulate {
+		private IntTrieBuilder builder;
+		public DefaultGetFoldedValue(IntTrieBuilder inBuilder) {
+			builder = inBuilder;
+		}
+		public int getFoldedValue(int start, int offset) {
+			int initialValue = builder.getValue(0); // TODO: need to double check this line
+			int limit = start + 0x400;
+			while (start < limit) {
+				boolean[] inBlockZero = new boolean[1];
+				int value = builder.getValue(start, inBlockZero);
+				if (inBlockZero[0]) {
+					start+=TrieBuilder.DATA_BLOCK_LENGTH;
+				} else if (value != initialValue) {
+					return offset;
+				} else {
+					++start;
+				}
+			}
+			return 0;
+		}
+	}
 }
