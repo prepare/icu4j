@@ -21,6 +21,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.IllegalCharsetNameException;
 import java.nio.charset.UnsupportedCharsetException;
 import java.util.List;
+import java.util.Vector;
 
 import com.ibm.icu.impl.IntTrie;
 import com.ibm.icu.impl.PropsVectors;
@@ -88,6 +89,58 @@ public final class CharsetSelector {
 		pv = pvec.getCompactedArray();
 		ownPv = true; // TODO: this line might not be needed
 	}
+	
+    // internal function to intersect two sets of masks
+    // returns whether the mask has reduced to all zeros
+    private boolean intersectMasks(int[] dest, int[] source1, int len) {
+    	int oredDest = 0;
+    	for (int i = 0; i < len; ++i) {
+    		oredDest |= (dest[i] &= source1[i]);
+    	}
+    	return oredDest == 0;
+    }
+    
+    // internal function
+    @SuppressWarnings("unchecked")
+	private List selectForMask(int[] mask) {
+    	// this is the context we will use. Store a table of indices to which
+    	// encodings are legit
+    	
+    	Vector result = new Vector();
+    	int columns = (encodings.length + 31) / 32;
+    	int numOnes = countOnes(mask, columns);
+    	
+    	// now we know the exact space we need to index
+    	if (numOnes > 0) {
+    		result.setSize(numOnes);
+    		for (int j = 0; j < columns; j++) {
+    			int v = mask[j];
+    			int k = 0;
+    			for (int i = 0; i < 32 && k < encodings.length; i++, k++) {
+    				if ((v & 1) != 0) {
+    					result.addElement(encodings[k]);
+    				}
+    				v >>= 1;
+    			}
+    		}
+    	}
+    	
+    	// otherwise, index will remain NULL
+    	return result;
+    }
+    
+    // internal function to count how many 1's are there in a mask
+    // algorithm taken from http://graphics.stanford.edu/~seander/bithacks.html
+    private int countOnes(int[] mask, int len) {
+    	int totalOnes = 0;
+    	for (int i = 0; i < len; ++i) {
+    		int ent = mask[i];
+    		for (; ent != 0; totalOnes++) {
+    			ent &= ent - 1; // clear the least significant bit set
+    		}
+    	}
+    	return totalOnes;
+    }
 
    /**
     * Construct a CharsetSelector from a list of charset names.
@@ -150,7 +203,8 @@ public final class CharsetSelector {
     *
     * @draft ICU 4.2
     */    
-    public List selectForString(CharSequence unicodeText) {
+    @SuppressWarnings("unchecked")
+	public List selectForString(CharSequence unicodeText) {
     	int columns = (encodings.length + 31) / 32;
     	int[] mask = new int[columns];
     	for (int i = 0; i < columns; i++) {
@@ -158,12 +212,15 @@ public final class CharsetSelector {
     	}
     	int index = 0;
     	while (index < unicodeText.length()) {
-    		int c = unicodeText.charAt(index);
-    		int pvIndex = 
-    		
+    		int c = UTF16.charAt(unicodeText, index);
+    		int pvIndex = trie.getCodePointValue(c);
     		index+=UTF16.getCharCount(c);
+    		int[] pvValue = new int[columns];
+    		System.arraycopy(pv, pvIndex, pvValue, 0, columns);
+    		if (intersectMasks(mask, pvValue, columns)) {
+    			break;
+    		}
     	}
-    	
-    	
+    	return selectForMask(mask);
     }
 }
