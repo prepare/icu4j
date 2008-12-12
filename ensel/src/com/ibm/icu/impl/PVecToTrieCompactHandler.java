@@ -39,5 +39,4 @@ public class PVecToTrieCompactHandler implements CompactHandler {
                     initialValue, latinLinear);
         } 
     }
-
 }
