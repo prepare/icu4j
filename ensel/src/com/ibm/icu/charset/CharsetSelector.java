@@ -164,7 +164,7 @@ public final class CharsetSelector {
      *             instance of the Java virtual machine.
      * @draft ICU 4.2
      */
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({ "unchecked", "deprecation" })
     public CharsetSelector(List charsetList, UnicodeSet excludedCodePoints,
             int mappingTypes) {
         if (mappingTypes != CharsetICU.ROUNDTRIP_AND_FALLBACK_SET
