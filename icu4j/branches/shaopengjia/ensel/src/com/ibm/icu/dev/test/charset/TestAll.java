@@ -23,7 +23,8 @@ public class TestAll extends TestGroup {
         super(
               new String[] {
                   "TestCharset",
-                  "TestConversion"
+                  "TestConversion",
+                  "TestSelection"
               },
               "All ICU Charset Tests"
               );
