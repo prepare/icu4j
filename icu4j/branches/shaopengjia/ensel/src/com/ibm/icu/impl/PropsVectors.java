@@ -439,7 +439,7 @@ public class PropsVectors {
 
         // Call the handler once more to signal the start of
         // delivering real values.
-        compactor.startRealValue(count);
+        compactor.startRealValues(count);
 
         /*
          * Move vector contents up to a contiguous array with only unique vector
