@@ -31,12 +31,12 @@ import com.ibm.icu.text.UTF16;
 import com.ibm.icu.text.UnicodeSet;
 
 public class TestSelection extends TestFmwk {
-    private String[] availableCharsetNames = (String[]) CharsetProviderICU.getAvailableNames();
+    private Object[] availableCharsetNames;
     
     private int findIndex(String charsetName) {
         Charset set1 = Charset.forName(charsetName);
         for (int i = 0; i < availableCharsetNames.length; i++) {
-            Charset set2 = Charset.forName(availableCharsetNames[i]);
+            Charset set2 = Charset.forName((String) availableCharsetNames[i]);
             if (set1.compareTo(set2) == 0) {
                 return i;
             }
@@ -84,11 +84,15 @@ public class TestSelection extends TestFmwk {
         fillBool(result, resultsFromSystem);
         for (int i = 0; i < availableCharsetNames.length; i++) {
             if (resultsManually[i] != resultsFromSystem[i]) {
-                errln("failure in charset selector! Charset " + availableCharsetNames[i] + 
+                errln("failure in charset selector! Charset " + (String)availableCharsetNames[i] + 
                       " had conflicting results manual: " + resultsManually[i] + ", system: " + 
                       resultsFromSystem[i] + "\n");
             }
         }
+    }
+    
+    protected void init() {
+        availableCharsetNames = CharsetProviderICU.getAvailableNames();
     }
     
     public static void main(String[] args) throws Exception {
