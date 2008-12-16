@@ -98,7 +98,6 @@ public final class CharsetSelector {
     }
 
     // internal function
-    @SuppressWarnings("unchecked")
     private List selectForMask(int[] mask) {
         // this is the context we will use. Store a table of indices to which
         // encodings are legit
@@ -164,7 +163,6 @@ public final class CharsetSelector {
      *             instance of the Java virtual machine.
      * @draft ICU 4.2
      */
-    @SuppressWarnings({ "unchecked", "deprecation" })
     public CharsetSelector(List charsetList, UnicodeSet excludedCodePoints,
             int mappingTypes) {
         if (mappingTypes != CharsetICU.ROUNDTRIP_AND_FALLBACK_SET
@@ -203,7 +201,6 @@ public final class CharsetSelector {
      * 
      * @draft ICU 4.2
      */
-    @SuppressWarnings("unchecked")
     public List selectForString(CharSequence unicodeText) {
         int columns = (encodings.length + 31) / 32;
         int[] mask = new int[columns];
