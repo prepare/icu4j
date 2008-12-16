@@ -370,7 +370,6 @@ public class PropsVectors {
      * Then, in the second phase, the handler is called for each row of 
      * real values.
      */
-    @SuppressWarnings("unchecked")
     public void compact(CompactHandler compactor) {
         if (isCompacted) {
             return;
@@ -417,12 +416,12 @@ public class PropsVectors {
          */
         int count = -valueColumns;
         for (int i = 0; i < rows; ++i) {
-            int start = v[indexArray[i]];
+            int start = v[indexArray[i].intValue()];
 
             // count a new values vector if it is different
             // from the current one
-            if (count < 0 || !areElementsSame(indexArray[i] + 2, 
-                    indexArray[i] - valueColumns, valueColumns)) {
+            if (count < 0 || !areElementsSame(indexArray[i].intValue() + 2, 
+                    indexArray[i].intValue() - valueColumns, valueColumns)) {
                 count += valueColumns;
             }
 
@@ -451,14 +450,14 @@ public class PropsVectors {
         int[] temp = new int[count];
         count = -valueColumns;
         for (int i = 0; i < rows; ++i) {
-            int start = v[indexArray[i]];
-            int limit = v[indexArray[i] + 1];
+            int start = v[indexArray[i].intValue()];
+            int limit = v[indexArray[i].intValue() + 1];
 
             // count a new values vector if it is different
             // from the current one
-            if (count < 0 || !areElementsSame(indexArray[i] + 2, count, valueColumns)) {
+            if (count < 0 || !areElementsSame(indexArray[i].intValue() + 2, count, valueColumns)) {
                 count += valueColumns;
-                System.arraycopy(v, indexArray[i] + 2, temp, count, valueColumns);
+                System.arraycopy(v, indexArray[i].intValue() + 2, temp, count, valueColumns);
             }
 
             if (start < FIRST_SPECIAL_CP) {
