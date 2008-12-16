@@ -31,7 +31,6 @@ import com.ibm.icu.text.UTF16;
 import com.ibm.icu.text.UnicodeSet;
 
 public class TestSelection extends TestFmwk {
-    @SuppressWarnings("deprecation")
     private String[] availableCharsetNames = (String[]) CharsetProviderICU.getAvailableNames();
     
     private int findIndex(String charsetName) {
@@ -45,7 +44,6 @@ public class TestSelection extends TestFmwk {
         return -1;
     }
     
-    @SuppressWarnings("unchecked")
     private void fillBool(List result, boolean[] toFill) {
         for (int i = 0; i < toFill.length; i++) {
             toFill[i] = false;
@@ -56,7 +54,6 @@ public class TestSelection extends TestFmwk {
         }
     }
     
-    @SuppressWarnings("unchecked")
     private void verifyResultUTF16(String s, Vector encodings, List result, UnicodeSet excludedEncodings, int mappingTypes) {
         boolean[] resultsFromSystem = new boolean[availableCharsetNames.length];
         boolean[] resultsManually = new boolean[availableCharsetNames.length];
@@ -98,7 +95,6 @@ public class TestSelection extends TestFmwk {
         new TestSelection().run(args);
     }
     
-    @SuppressWarnings("unchecked")
     public void TestConversionUTF16() {
         /* 
          * test cases are separated by a -1
