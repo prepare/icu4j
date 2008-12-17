@@ -33,7 +33,7 @@ public class PVecToTrieCompactHandler implements CompactHandler {
             // too many rows for a 16-bit trie
             throw new IndexOutOfBoundsException();
         } else {
-            builder = new IntTrieBuilder(null, 0, initialValue,
+            builder = new IntTrieBuilder(null, 100000, initialValue,
                     initialValue, false);
         } 
     }
