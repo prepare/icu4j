@@ -34,14 +34,20 @@ public class TestSelection extends TestFmwk {
     private Object[] availableCharsetNames;
     
     private int findIndex(String charsetName) {
+        int index = -1;
         Charset set1 = Charset.forName(charsetName);
         for (int i = 0; i < availableCharsetNames.length; i++) {
             Charset set2 = Charset.forName((String) availableCharsetNames[i]);
             if (set1.compareTo(set2) == 0) {
-                return i;
+                index = i;
+                break;
             }
         }
-        return -1;
+        if (index == -1) {
+            throw new IllegalArgumentException(
+                    "findIndex cannot find the charsetName passed in");
+        }
+        return index;
     }
     
     private void fillBool(List result, boolean[] toFill) {
@@ -54,7 +60,8 @@ public class TestSelection extends TestFmwk {
         }
     }
     
-    private void verifyResultUTF16(String s, Vector encodings, List result, UnicodeSet excludedEncodings, int mappingTypes) {
+    private void verifyResultUTF16(String s, Vector encodings, List result, 
+            UnicodeSet excludedEncodings, int mappingTypes) {
         boolean[] resultsFromSystem = new boolean[availableCharsetNames.length];
         boolean[] resultsManually = new boolean[availableCharsetNames.length];
         for (int i = 0; i < availableCharsetNames.length; i++) {
@@ -67,12 +74,11 @@ public class TestSelection extends TestFmwk {
             UnicodeSet unicodePointSet = new UnicodeSet();
             Charset testCharset = CharsetICU.forNameICU((String) encodings.get(i));
             ((CharsetICU) testCharset).getUnicodeSet(unicodePointSet, mappingTypes);
-            resultsManually[findIndex((String) encodings.get(i))] = true; // why is it called again? should be removed
             int ch;
             int index = 0; 
             while (index < s.length()) {
                 ch = UTF16.charAt(s, index);
-                if (excludedEncodings.contains(ch) == false && unicodePointSet.contains(ch) == false) {
+                if (!excludedEncodings.contains(ch) && !unicodePointSet.contains(ch)) {
                     resultsManually[findIndex((String) encodings.get(i))] = false;
                     break;
                 } 
