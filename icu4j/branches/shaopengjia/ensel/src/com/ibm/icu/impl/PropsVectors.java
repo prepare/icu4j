@@ -135,13 +135,6 @@ public class PropsVectors {
     public final static int MEDIUM_ROWS = 1 << 17;
     public final static int MAX_ROWS = MAX_CP + 1;
 
-    /*
-     * Special pseudo code point used in compact() signaling the end of
-     * delivering special values and the beginning of delivering real ones.
-     * Stable value, unlike MAX_CP which might grow over time.
-     */
-    public final static int START_REAL_VALUES_CP = 0x200000;
-
     public PropsVectors(int numOfColumns) {
         if (numOfColumns < 1) {
             throw new IllegalArgumentException("numOfColumns need to be no "
@@ -360,14 +353,12 @@ public class PropsVectors {
      * memory block. Therefore, it starts at 0 increases in increments of the 
      * columns value.
      *
-     * In a first phase, only special values are delivered (each exactly once),
-     * with start==end both equaling a special pseudo code point.
-     * Then the handler is called once more with 
-     * start==end==START_REAL_VALUES_CP
+     * In a first phase, only special values are delivered (each exactly once).
+     * Then CompactHandler::startRealValues() is called
      * where rowIndex is the length of the compacted array,
      * and the row is arbitrary (but not NULL).
-     * Then, in the second phase, the handler is called for each row of 
-     * real values.
+     * Then, in the second phase, the CompactHandler::setRowIndexForRange() is 
+     * called for each row of real values.
      */
     public void compact(CompactHandler compactor) {
         if (isCompacted) {
@@ -424,10 +415,10 @@ public class PropsVectors {
                 count += valueColumns;
             }
 
-            if (start == FIRST_SPECIAL_CP) {
+            if (start == INITIAL_VALUE_CP) {
                 compactor.setRowIndexForInitialValue(count);
-            } else if (start == START_REAL_VALUES_CP) {
-                compactor.startRealValues(count);
+            } else if (start == ERROR_VALUE_CP) {
+                compactor.setRowIndexForErrorValue(count);
             }
         }
 
@@ -559,7 +550,7 @@ public class PropsVectors {
     public static interface CompactHandler {
         public void setRowIndexForRange(int start, int end, int rowIndex);
         public void setRowIndexForInitialValue(int rowIndex);
-        public void setRowIndexForErrorValue();
+        public void setRowIndexForErrorValue(int rowIndex);
         public void startRealValues(int rowIndex);
     }
 }
