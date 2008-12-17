@@ -42,13 +42,14 @@ public class PropsVectors {
     private int prevRow; // search optimization: remember last row seen
     private boolean isCompacted;
 
-    // internal function to compare elements in v. Return true iff
-    // elements starting from index1 to index1 + length - 1 
-    // are exactly the same as elements
+    // internal function to compare elements in v and target. Return true iff
+    // elements in v starting from index1 to index1 + length - 1 
+    // are exactly the same as elements in target
     // starting from index2 to index2 + length - 1
-    private boolean areElementsSame(int index1, int index2, int length) {
+    private boolean areElementsSame(int index1, int[] target, int index2, 
+            int length) {
         for (int i = 0; i < length; ++i) {
-            if (v[index1 + i] != v[index2 + i]) {
+            if (v[index1 + i] != target[index2 + i]) {
                 return false;
             }
         }
@@ -56,7 +57,9 @@ public class PropsVectors {
     }
     
     // internal function which given rangeStart, returns
-    // index where v[index]<=rangeStart<v[index+1]
+    // index where v[index]<=rangeStart<v[index+1].
+    // The returned index is a multiple of columns, and therefore
+    // points to the start of a row.
     private int findRow(int rangeStart) {
         int index = 0;
 
@@ -217,9 +220,8 @@ public class PropsVectors {
                     newMaxRows = MAX_ROWS;
                 } else {
                     throw new IndexOutOfBoundsException(
-                            "PVEC_MAX_ROWS exceeded! "
-                                    + "Increase it to a higher value "
-                                    + "in the implementation");
+                            "MAX_ROWS exceeded! Increase it to a higher value" +
+                            "in the implementation");
                 }
                 int[] temp = new int[newMaxRows * columns];
                 System.arraycopy(v, 0, temp, 0, rows * columns);
@@ -276,7 +278,7 @@ public class PropsVectors {
     }
 
     /*
-     * Always returns 0 if called after upvec_compact().
+     * Always returns 0 if called after compact().
      */
     public int getValue(int c, int column) {
         if (isCompacted || c < 0 || c > MAX_CP || column < 0
@@ -297,8 +299,7 @@ public class PropsVectors {
     public int[] getRow(int rowIndex) {
         if (isCompacted) {
             throw new IllegalStateException(
-                    "Illegal Invocation of the method after"
-                            + "upvec_compact()");
+                    "Illegal Invocation of the method after compact()");
         }
         if (rowIndex < 0 || rowIndex > rows) {
             throw new IllegalArgumentException("rowIndex out of bound!");
@@ -320,8 +321,7 @@ public class PropsVectors {
     public int getRowStart(int rowIndex) {
         if (isCompacted) {
             throw new IllegalStateException(
-                    "Illegal Invocation of the method after"
-                            + "upvec_compact()");
+                    "Illegal Invocation of the method after compact()");
         }
         if (rowIndex < 0 || rowIndex > rows) {
             throw new IllegalArgumentException("rowIndex out of bound!");
@@ -340,8 +340,7 @@ public class PropsVectors {
     public int getRowEnd(int rowIndex) {
         if (isCompacted) {
             throw new IllegalStateException(
-                    "Illegal Invocation of the method after"
-                            + "upvec_compact()");
+                    "Illegal Invocation of the method after compact()");
         }
         if (rowIndex < 0 || rowIndex > rows) {
             throw new IllegalArgumentException("rowIndex out of bound!");
@@ -364,7 +363,7 @@ public class PropsVectors {
      * In a first phase, only special values are delivered (each exactly once),
      * with start==end both equaling a special pseudo code point.
      * Then the handler is called once more with 
-     * start==end==UPVEC_START_REAL_VALUES_CP
+     * start==end==START_REAL_VALUES_CP
      * where rowIndex is the length of the compacted array,
      * and the row is arbitrary (but not NULL).
      * Then, in the second phase, the handler is called for each row of 
@@ -420,7 +419,7 @@ public class PropsVectors {
 
             // count a new values vector if it is different
             // from the current one
-            if (count < 0 || !areElementsSame(indexArray[i].intValue() + 2, 
+            if (count < 0 || !areElementsSame(indexArray[i].intValue() + 2, v,
                     indexArray[i].intValue() - valueColumns, valueColumns)) {
                 count += valueColumns;
             }
@@ -441,11 +440,11 @@ public class PropsVectors {
         compactor.startRealValues(count);
 
         /*
-         * Move vector contents up to a contiguous array with only unique vector
-         * values, and call the handler function for each vector.
+         * Move vector contents up to a contiguous array with only unique 
+         * vector values, and call the handler function for each vector.
          * 
-         * This destroys the Properties Vector structure and replaces it with an
-         * array of just vector values.
+         * This destroys the Properties Vector structure and replaces it 
+         * with an array of just vector values.
          */
         int[] temp = new int[count];
         count = -valueColumns;
@@ -455,9 +454,11 @@ public class PropsVectors {
 
             // count a new values vector if it is different
             // from the current one
-            if (count < 0 || !areElementsSame(indexArray[i].intValue() + 2, count, valueColumns)) {
+            if (count < 0 || !areElementsSame(indexArray[i].intValue() + 2, 
+                    temp, count, valueColumns)) {
                 count += valueColumns;
-                System.arraycopy(v, indexArray[i].intValue() + 2, temp, count, valueColumns);
+                System.arraycopy(v, indexArray[i].intValue() + 2, temp, count,
+                        valueColumns);
             }
 
             if (start < FIRST_SPECIAL_CP) {
@@ -479,8 +480,7 @@ public class PropsVectors {
     public int[] getCompactedArray() {
         if (!isCompacted) {
             throw new IllegalStateException(
-                    "Illegal Invocation of the method before"
-                            + "upvec_compact()");
+                    "Illegal Invocation of the method before compact()");
         }
         return v;
     }
@@ -493,8 +493,7 @@ public class PropsVectors {
     public int getCompactedRows() {
         if (!isCompacted) {
             throw new IllegalStateException(
-                    "Illegal Invocation of the method before"
-                            + "upvec_compact()");
+                    "Illegal Invocation of the method before compact()");
         }
         return rows;
     }
@@ -507,8 +506,7 @@ public class PropsVectors {
     public int getCompactedColumns() {
         if (!isCompacted) {
             throw new IllegalStateException(
-                    "Illegal Invocation of the method before"
-                            + "upvec_compact()");
+                    "Illegal Invocation of the method before compact()");
         }
         return columns - 2;
     }
