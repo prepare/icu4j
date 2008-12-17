@@ -135,6 +135,10 @@ public class PropsVectors {
     public final static int MEDIUM_ROWS = 1 << 17;
     public final static int MAX_ROWS = MAX_CP + 1;
 
+    /*
+     * Constructor.
+     * @param numOfColumns Number of value integers (32-bit int) per row.
+     */
     public PropsVectors(int numOfColumns) {
         if (numOfColumns < 1) {
             throw new IllegalArgumentException("numOfColumns need to be no "
@@ -356,7 +360,6 @@ public class PropsVectors {
      * In a first phase, only special values are delivered (each exactly once).
      * Then CompactHandler::startRealValues() is called
      * where rowIndex is the length of the compacted array,
-     * and the row is arbitrary (but not NULL).
      * Then, in the second phase, the CompactHandler::setRowIndexForRange() is 
      * called for each row of real values.
      */
@@ -411,7 +414,7 @@ public class PropsVectors {
             // count a new values vector if it is different
             // from the current one
             if (count < 0 || !areElementsSame(indexArray[i].intValue() + 2, v,
-                    indexArray[i].intValue() - valueColumns, valueColumns)) {
+                    indexArray[i-1].intValue() + 2, valueColumns)) {
                 count += valueColumns;
             }
 
