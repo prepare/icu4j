@@ -237,7 +237,7 @@ public class PropsVectors {
                 // copy all affected rows up one and move the lastRow pointer
                 count = lastRow - firstRow + columns;
                 System.arraycopy(v, firstRow, v, firstRow + columns, count);
-                lastRow += column;
+                lastRow += columns;
 
                 // split the range and move the firstRow pointer
                 v[firstRow + 1] = v[firstRow + columns] = start;
