@@ -15,11 +15,9 @@ import com.ibm.icu.impl.PropsVectors.CompactHandler;
 
 public class PVecToTrieCompactHandler implements CompactHandler {
     public IntTrieBuilder builder;
-    public int capacity;
     public int initialValue;
-    public boolean latinLinear;
 
-    public void setRowIndexForErrorValue() {
+    public void setRowIndexForErrorValue(int rowIndex) {
     }
 
     public void setRowIndexForInitialValue(int rowIndex) {
@@ -35,8 +33,8 @@ public class PVecToTrieCompactHandler implements CompactHandler {
             // too many rows for a 16-bit trie
             throw new IndexOutOfBoundsException();
         } else {
-            builder = new IntTrieBuilder(null, capacity, initialValue,
-                    initialValue, latinLinear);
+            builder = new IntTrieBuilder(null, 0, initialValue,
+                    initialValue, false);
         } 
     }
 }
