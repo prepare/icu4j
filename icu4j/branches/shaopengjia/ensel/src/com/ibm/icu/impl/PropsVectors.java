@@ -359,7 +359,7 @@ public class PropsVectors {
      *
      * In a first phase, only special values are delivered (each exactly once).
      * Then CompactHandler::startRealValues() is called
-     * where rowIndex is the length of the compacted array,
+     * where rowIndex is the length of the compacted array.
      * Then, in the second phase, the CompactHandler::setRowIndexForRange() is 
      * called for each row of real values.
      */
