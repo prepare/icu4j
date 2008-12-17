@@ -1,6 +1,6 @@
 /*
 ******************************************************************************
-* Copyright (C) 2007-2008, International Business Machines Corporation and   *
+* Copyright (C) 2007, International Business Machines Corporation and        *
 * others. All Rights Reserved.                                               *
 ******************************************************************************
 */
@@ -105,9 +105,9 @@ public class LanguageTestRoot extends TestFmwk implements TimeUnitConstants {
         test.writeData(pw);
     }
 
-    private void writeData(PrintWriter writer) throws Exception {
-/*
-      pw = writer;
+    private void writeData(PrintWriter pw) throws Exception {
+        /*
+      this.pw = pw;
       setUp();
       testFullPluralizedForms();
       tearDown();
@@ -132,9 +132,9 @@ public class LanguageTestRoot extends TestFmwk implements TimeUnitConstants {
       setUp();
       testMultipleUnits();
       tearDown();
-      pw = null;
-      writer.flush();
-*/
+      this.pw = null;
+      pw.flush();
+        */
     }
 
     protected void xAssertEquals(String msg, String[] expected, int n,

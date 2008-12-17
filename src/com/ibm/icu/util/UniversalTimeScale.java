@@ -1,6 +1,6 @@
 /*
  *********************************************************************************
- * Copyright (C) 2004-2008, International Business Machines Corporation and    *
+ * Copyright (C) 2004-2007, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                  *
  *********************************************************************************
  *
@@ -130,7 +130,8 @@ public final class UniversalTimeScale
      * Similar to Unix time (linear value from 1970) and struct timeval
      * (microseconds resolution).
      *
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int UNIX_MICROSECONDS_TIME = 9;
     

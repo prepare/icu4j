@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2008, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2007, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -61,7 +61,8 @@ import java.util.Locale;
  * @see com.ibm.icu.util.Calendar
  * @see com.ibm.icu.util.GregorianCalendar
  *
- * @stable ICU 3.8
+ * @draft ICU 3.8
+ * @provisional This API might change or be removed in a future release.
  */
 public class IndianCalendar extends Calendar {
     // jdk1.4.2 serialver
@@ -69,73 +70,85 @@ public class IndianCalendar extends Calendar {
 
     /** 
      * Constant for Chaitra, the 1st month of the Indian year. 
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int CHAITRA = 0;
 
     /** 
      * Constant for Vaisakha, the 2nd month of the Indian year. 
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int VAISAKHA = 1;
 
     /** 
      * Constant for Jyaistha, the 3rd month of the Indian year. 
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int JYAISTHA = 2;
 
     /** 
      * Constant for Asadha, the 4th month of the Indian year. 
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int ASADHA = 3; 
 
     /** 
      * Constant for Sravana, the 5th month of the Indian year. 
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int SRAVANA = 4 ;
 
     /** 
      * Constant for Bhadra, the 6th month of the Indian year. 
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int BHADRA = 5 ;
 
     /** 
      * Constant for Asvina, the 7th month of the Indian year. 
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int ASVINA = 6 ;
 
     /** 
      * Constant for Kartika, the 8th month of the Indian year. 
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int KARTIKA = 7 ;
 
     /** 
      * Constant for Agrahayana, the 9th month of the Indian year. 
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int AGRAHAYANA = 8 ;
 
     /** 
      * Constant for Pausa, the 10th month of the Indian year. 
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int PAUSA = 9 ;
 
     /** 
      * Constant for Magha, the 11th month of the Indian year. 
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int MAGHA = 10;
 
     /** 
      * Constant for Phalguna, the 12th month of the Indian year. 
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int PHALGUNA = 11;
     
@@ -148,14 +161,16 @@ public class IndianCalendar extends Calendar {
      * value for the Indian calendar.
      *
      * @see com.ibm.icu.util.Calendar#ERA
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int IE = 0;
     
     /**
      * Constructs a <code>IndianCalendar</code> using the current time
      * in the default time zone with the default locale.
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public IndianCalendar() {
        this(TimeZone.getDefault(), ULocale.getDefault());
@@ -166,7 +181,8 @@ public class IndianCalendar extends Calendar {
      * in the given time zone with the default locale.
      *
      * @param zone the given time zone.
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public IndianCalendar(TimeZone zone) {
        this(zone, ULocale.getDefault());
@@ -177,7 +193,8 @@ public class IndianCalendar extends Calendar {
      * in the default time zone with the given locale.
      *
      * @param aLocale the given locale.
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public IndianCalendar(Locale aLocale) {
         this(TimeZone.getDefault(), aLocale);
@@ -188,7 +205,8 @@ public class IndianCalendar extends Calendar {
      * in the default time zone with the given locale.
      *
      * @param locale the given ulocale.
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public IndianCalendar(ULocale locale) {
        this(TimeZone.getDefault(), locale);
@@ -201,7 +219,8 @@ public class IndianCalendar extends Calendar {
      * @param zone the given time zone.
      *
      * @param aLocale the given locale.
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public IndianCalendar(TimeZone zone, Locale aLocale) {
         super(zone, aLocale);
@@ -215,7 +234,8 @@ public class IndianCalendar extends Calendar {
      * @param zone the given time zone.
      *
      * @param locale the given ulocale.
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public IndianCalendar(TimeZone zone, ULocale locale) {
         super(zone, locale);
@@ -227,7 +247,8 @@ public class IndianCalendar extends Calendar {
      * in the default time zone with the default locale.
      *
      * @param date      The date to which the new calendar is set.
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public IndianCalendar(Date date) {
         super(TimeZone.getDefault(), ULocale.getDefault());
@@ -244,7 +265,8 @@ public class IndianCalendar extends Calendar {
      *                  The value is 0-based. e.g., 0 for January.
      *
      * @param date      The value used to set the calendar's {@link #DATE DATE} time field.
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public IndianCalendar(int year, int month, int date) {
        super(TimeZone.getDefault(), ULocale.getDefault());
@@ -270,7 +292,8 @@ public class IndianCalendar extends Calendar {
      * @param minute    The value used to set the calendar's {@link #MINUTE MINUTE} time field.
      *
      * @param second    The value used to set the calendar's {@link #SECOND SECOND} time field.
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public IndianCalendar(int year, int month, int date, int hour,
                              int minute, int second)
@@ -299,7 +322,8 @@ public class IndianCalendar extends Calendar {
 
     /**
      * {@inheritDoc}
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     protected int handleGetExtendedYear() {
         int year;
@@ -316,7 +340,8 @@ public class IndianCalendar extends Calendar {
 
     /**
      * {@inheritDoc}
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     protected int handleGetYearLength(int extendedYear) {
        return super.handleGetYearLength(extendedYear);
@@ -324,104 +349,98 @@ public class IndianCalendar extends Calendar {
 
     /**
      * {@inheritDoc}
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     protected int handleGetMonthLength(int extendedYear, int month) {
-        if (month < 0 || month > 11) {
-            int[] remainder = new int[1];
-            extendedYear += floorDivide(month, 12, remainder);
-            month = remainder[0];
-        }
+       if(isGregorianLeap(extendedYear) && month == 0) {
+           return 31;
+       }
 
-        if(isGregorianLeap(extendedYear + INDIAN_ERA_START) && month == 0) {
-            return 31;
-        }
+       if(month >= 1 && month <=5) {
+           return 31;
+       }
 
-        if(month >= 1 && month <=5) {
-            return 31;
-        }
-
-        return 30;
+       return 30;
     }
 
     /**
      * {@inheritDoc}
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     protected void handleComputeFields(int julianDay){
-        double jdAtStartOfGregYear;
-        int leapMonth, IndianYear, yday, IndianMonth, IndianDayOfMonth, mday;
-        int[] gregorianDay;          // Stores gregorian date corresponding to Julian day;
+       double jdAtStartOfGregYear;
+       int leapMonth, IndianYear, yday, IndianMonth, IndianDayOfMonth, mday;
+       int[] gregorianDay;          // Stores gregorian date corresponding to Julian day;
 
-        gregorianDay = jdToGregorian(julianDay);                    // Gregorian date for Julian day
-        IndianYear = gregorianDay[0] - INDIAN_ERA_START;            // Year in Saka era
-        jdAtStartOfGregYear = gregorianToJD(gregorianDay[0], 1, 1); // JD at start of Gregorian year
-        yday = (int)(julianDay - jdAtStartOfGregYear);              // Day number in Gregorian year (starting from 0)
+       gregorianDay = jdToGregorian(julianDay);                    // Gregorian date for Julian day
+       IndianYear = gregorianDay[0] - INDIAN_ERA_START;            // Year in Saka era
+       jdAtStartOfGregYear = gregorianToJD(gregorianDay[0], 1, 1); // JD at start of Gregorian year
+       yday = (int)(julianDay - jdAtStartOfGregYear);              // Day number in Gregorian year (starting from 0)
+       leapMonth = isGregorianLeap(gregorianDay[0]) ? 31 : 30;     // Days in leapMonth this year
 
-        if (yday < INDIAN_YEAR_START) {
-            //  Day is at the end of the preceding Saka year
-            IndianYear -= 1;
-            leapMonth = isGregorianLeap(gregorianDay[0] - 1) ? 31 : 30; // Days in leapMonth this year, previous Gregorian year
-            yday += leapMonth + (31 * 5) + (30 * 3) + 10;
-        } else {
-            leapMonth = isGregorianLeap(gregorianDay[0]) ? 31 : 30; // Days in leapMonth this year
-            yday -= INDIAN_YEAR_START;
-        }
+       if (yday < INDIAN_YEAR_START) {
+          //  Day is at the end of the preceding Saka year
+          IndianYear -= 1;
+          yday += leapMonth + (31 * 5) + (30 * 3) + 10 + INDIAN_YEAR_START;
+       }
 
-        if (yday < leapMonth) {
-            IndianMonth = 0;
-            IndianDayOfMonth = yday + 1;
-        } else {
-              mday = yday - leapMonth;
-              if (mday < (31 * 5)) {
-                 IndianMonth = (int)Math.floor(mday / 31) + 1;
-                 IndianDayOfMonth = (mday % 31) + 1;
-              } else {
-                 mday -= 31 * 5;
-                 IndianMonth = (int)Math.floor(mday / 30) + 6;
-                 IndianDayOfMonth = (mday % 30) + 1;
-              }
-        }
+       yday -= INDIAN_YEAR_START;
+       if (yday < leapMonth) {
+          IndianMonth = 0;
+          IndianDayOfMonth = yday + 1;
+       } else {
+          mday = yday - leapMonth;
+          if (mday < (31 * 5)) {
+             IndianMonth = (int)Math.floor(mday / 31) + 1;
+             IndianDayOfMonth = (mday % 31) + 1;
+          } else {
+             mday -= 31 * 5;
+             IndianMonth = (int)Math.floor(mday / 30) + 6;
+             IndianDayOfMonth = (mday % 30) + 1;
+          }
+       }
 
-        internalSet(ERA, 0);
-        internalSet(EXTENDED_YEAR, IndianYear);
-        internalSet(YEAR, IndianYear);
-        internalSet(MONTH, IndianMonth);
-        internalSet(DAY_OF_MONTH, IndianDayOfMonth );
-        internalSet(DAY_OF_YEAR, yday + 1); // yday is 0-based
-     }
-
+       internalSet(ERA, 0);
+       internalSet(EXTENDED_YEAR, IndianYear);
+       internalSet(YEAR, IndianYear);
+       internalSet(MONTH, IndianMonth);
+       internalSet(DAY_OF_MONTH, IndianDayOfMonth );
+   }
+    
     private static final int LIMITS[][] = {
-        // Minimum  Greatest     Least    Maximum
-        //           Minimum   Maximum
-        {        0,        0,        0,        0}, // ERA
-        { -5000000, -5000000,  5000000,  5000000}, // YEAR
-        {        0,        0,       11,       11}, // MONTH
-        {        1,        1,       52,       53}, // WEEK_OF_YEAR
-        {/*                                   */}, // WEEK_OF_MONTH
-        {        1,        1,       30,       31}, // DAY_OF_MONTH
-        {        1,        1,      365,      366}, // DAY_OF_YEAR
-        {/*                                   */}, // DAY_OF_WEEK
-        {       -1,       -1,        5,        5}, // DAY_OF_WEEK_IN_MONTH
-        {/*                                   */}, // AM_PM
-        {/*                                   */}, // HOUR
-        {/*                                   */}, // HOUR_OF_DAY
-        {/*                                   */}, // MINUTE
-        {/*                                   */}, // SECOND
-        {/*                                   */}, // MILLISECOND
-        {/*                                   */}, // ZONE_OFFSET
-        {/*                                   */}, // DST_OFFSET
-        { -5000000, -5000000,  5000000,  5000000}, // YEAR_WOY
-        {/*                                   */}, // DOW_LOCAL
-        { -5000000, -5000000,  5000000,  5000000}, // EXTENDED_YEAR
-        {/*                                   */}, // JULIAN_DAY
-        {/*                                   */}, // MILLISECONDS_IN_DAY
+       // Minimum  Greatest    Least  Maximum
+       //           Minimum  Maximum
+       {        0,        0,       0,       0 }, // ERA
+       {        1,        1, 5000000, 5000000 }, // YEAR
+       {        0,        0,      11,      11 }, // MONTH
+       {        1,        1,      52,      53 }, // WEEK_OF_YEAR
+       {        0,        0,       4,       6 }, // WEEK_OF_MONTH
+       {        1,        1,      30,      31 }, // DAY_OF_MONTH
+       {        1,        1,     365,     366 }, // DAY_OF_YEAR
+       {/*                                  */}, // DAY_OF_WEEK
+       {       -1,       -1,       5,       5 }, // DAY_OF_WEEK_IN_MONTH
+       {/*                                  */}, // AM_PM
+       {/*                                  */}, // HOUR
+       {/*                                  */}, // HOUR_OF_DAY
+       {/*                                  */}, // MINUTE
+       {/*                                  */}, // SECOND
+       {/*                                  */}, // MILLISECOND
+       {/*                                  */}, // ZONE_OFFSET
+       {/*                                  */}, // DST_OFFSET
+       { -5000001, -5000001, 5000001, 5000001 }, // YEAR_WOY
+       {/*                                  */}, // DOW_LOCAL
+       { -5000000, -5000000, 5000000, 5000000 }, // EXTENDED_YEAR
+       {/*                                  */}, // JULIAN_DAY
+       {/*                                  */}, // MILLISECONDS_IN_DAY
     };
 
 
     /**
      * {@inheritDoc}
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     protected int handleGetLimit(int field, int limitType) {
        return LIMITS[field][limitType];
@@ -429,7 +448,8 @@ public class IndianCalendar extends Calendar {
 
     /**
      * {@inheritDoc}
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     protected int handleComputeMonthStart(int year, int month, boolean useMonth) {
 
@@ -567,7 +587,8 @@ public class IndianCalendar extends Calendar {
     
     /**
      * {@inheritDoc}
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public String getType() {
         return "indian";

@@ -1,7 +1,7 @@
 //##header J2SE15
 /*
 **********************************************************************
-* Copyright (c) 2004-2008, International Business Machines
+* Copyright (c) 2004-2007, International Business Machines
 * Corporation and others.  All Rights Reserved.
 **********************************************************************
 * Author: Alan Liu
@@ -14,24 +14,21 @@ package com.ibm.icu.text;
 import java.io.IOException;
 import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
+import java.text.AttributedCharacterIterator;
+import java.text.AttributedString;
+import java.text.CharacterIterator;
 import java.text.ChoiceFormat;
 import java.text.FieldPosition;
 import java.text.Format;
 import java.text.ParseException;
 import java.text.ParsePosition;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.HashMap;
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
-import java.text.AttributedCharacterIterator;
-import java.text.AttributedString;
-import java.util.ArrayList;
-import java.text.CharacterIterator;
-//#endif
 
 import com.ibm.icu.impl.Utility;
 import com.ibm.icu.text.UnicodeSet;
@@ -59,28 +56,28 @@ import com.ibm.icu.util.ULocale;
  * <p>
  * <strong>Note:</strong>
  * In ICU 3.8 MessageFormat supports named arguments.  If a named argument
- * is used, all arguments must be named.  Names start with a character in
- * <code>:ID_START:</code> and continue with characters in <code>:ID_CONTINUE:</code>,
+ * is used, all arguments must be named.  Names start with a character in 
+ * <code>:ID_START:</code> and continue with characters in <code>:ID_CONTINUE:</code>, 
  * in particular they do not start with a digit.  If named arguments
  * are used, {@link #usesNamedArguments()} will return true.
  * <p>
- * The other new APIs supporting named arguments are
+ * The other new APIs supporting named arguments are 
  * {@link #setFormatsByArgumentName(Map)},
  * {@link #setFormatByArgumentName(String, Format)},
  * {@link #format(Map, StringBuffer, FieldPosition)},
  * {@link #format(String, Map)}, {@link #parseToMap(String, ParsePosition)},
- * and {@link #parseToMap(String)}.  These APIs are all compatible
+ * and {@link #parseToMap(String)}.  These APIs are all compatible 
  * with patterns that do not used named arguments-- in these cases
- * the keys in the input or output <code>Map</code>s use
- * <code>String</code>s that name the argument indices, e.g. "0",
+ * the keys in the input or output <code>Map</code>s use 
+ * <code>String</code>s that name the argument indices, e.g. "0", 
  * "1", "2"... etc.
  * <p>
  * When named arguments are used, certain APIs on Message that take or
  * return arrays will throw an exception, since it is not possible to
  * identify positions in an array using a name.  These APIs are {@link
- * #setFormatsByArgumentIndex(Format[])}, {@link #getFormatsByArgumentIndex()},
- * {@link #format(Object[], StringBuffer, FieldPosition)},
- * {@link #format(String, Object[])},{@link #parse(String, ParsePosition)},
+ * #setFormatsByArgumentIndex(Format[])}, {@link #getFormatsByArgumentIndex()}, 
+ * {@link #format(Object[], StringBuffer, FieldPosition)}, 
+ * {@link #format(String, Object[])},{@link #parse(String, ParsePosition)}, 
  * and {@link #parse(String)}.
  * These APIs all have corresponding new versions as listed above.
  * <p>
@@ -255,18 +252,6 @@ import com.ibm.icu.util.ULocale;
  *       <td><code>choice</code>
  *       <td><i>SubformatPattern</i>
  *       <td><code>new ChoiceFormat(subformatPattern)</code>
- *    <tr>
- *       <td><code>spellout</code>
- *       <td><i>Ruleset name (optional)</i>
- *       <td><code>new RuleBasedNumberFormat(getLocale(), RuleBasedNumberFormat.SPELLOUT)<br/>&nbsp;&nbsp;&nbsp;&nbsp;.setDefaultRuleset(ruleset);</code>
- *    <tr>
- *       <td><code>ordinal</code>
- *       <td><i>Ruleset name (optional)</i>
- *       <td><code>new RuleBasedNumberFormat(getLocale(), RuleBasedNumberFormat.ORDINAL)<br/>&nbsp;&nbsp;&nbsp;&nbsp;.setDefaultRuleset(ruleset);</code>
- *    <tr>
- *       <td><code>duration</code>
- *       <td><i>Ruleset name (optional)</i>
- *       <td><code>new RuleBasedNumberFormat(getLocale(), RuleBasedNumberFormat.DURATION)<br/>&nbsp;&nbsp;&nbsp;&nbsp;.setDefaultRuleset(ruleset);</code>
  *    <tr>
  *       <td><code>plural</code>
  *       <td><i>SubformatPattern</i>
@@ -516,11 +501,11 @@ public class MessageFormat extends UFormat {
      * The pattern must contain only named or only numeric arguments,
      * mixing them is not allowed.
      *
-     * @param pttrn the pattern for this message format
+     * @param pattern the pattern for this message format
      * @throws IllegalArgumentException if the pattern is invalid
      * @stable ICU 3.0
      */
-    public void applyPattern(String pttrn) {
+    public void applyPattern(String pattern) {
         StringBuffer[] segments = new StringBuffer[4];
         for (int i = 0; i < segments.length; ++i) {
             segments[i] = new StringBuffer();
@@ -530,12 +515,12 @@ public class MessageFormat extends UFormat {
         boolean inQuote = false;
         int braceStack = 0;
         maxOffset = -1;
-        for (int i = 0; i < pttrn.length(); ++i) {
-            char ch = pttrn.charAt(i);
+        for (int i = 0; i < pattern.length(); ++i) {
+            char ch = pattern.charAt(i);
             if (part == 0) {
                 if (ch == '\'') {
-                    if (i + 1 < pttrn.length()
-                        && pttrn.charAt(i+1) == '\'') {
+                    if (i + 1 < pattern.length()
+                        && pattern.charAt(i+1) == '\'') {
                         segments[part].append(ch);  // handle doubles
                         ++i;
                     } else {
@@ -593,7 +578,7 @@ public class MessageFormat extends UFormat {
     /**
      * Returns a pattern representing the current state of the message format.
      * The string is constructed from internal information and therefore
-     * does not necessarily equal the previously applied pattern.
+     * does not necessarily equal the previously applied pattern. 
      *
      * @return a pattern representing the current state of the message format
      * @stable ICU 3.0
@@ -652,20 +637,9 @@ public class MessageFormat extends UFormat {
                 result.append(",choice,"
                         + ((ChoiceFormat) formats[i]).toPattern());
             } else if (formats[i] instanceof PluralFormat) {
-              String pat = ((PluralFormat)formats[i]).toPattern();
-              // TODO: PluralFormat doesn't do the single quote thing, just reapply
-              if (pat.indexOf('\'') != 0) {
-                StringBuffer buf = new StringBuffer();
-                for (int j = 0; j < pat.length(); ++j) {
-                  char ch = pat.charAt(j);
-                  if (ch == '\'') {
-                    buf.append(ch); // double it
-                  }
-                  buf.append(ch);
-                }
-                pat = buf.toString();
-              }
-              result.append(",plural," + pat);
+                // TODO: Implement PluralFormat.toPattern().
+                result.append(", plural, support for converting PluralFormat "
+                        + "to pattern not yet available.");
             } else {
                 //result.append(", unknown");
             }
@@ -693,10 +667,10 @@ public class MessageFormat extends UFormat {
      * corresponding new format is ignored. If fewer formats are provided
      * than needed, then only the formats for argument indices less
      * than <code>newFormats.length</code> are replaced.
-     *
+     * 
      * This method is only supported if the format does not use
      * named arguments, otherwise an IllegalArgumentException is thrown.
-     *
+     * 
      * @param newFormats
      *            the new formats to use
      * @throws NullPointerException
@@ -704,7 +678,7 @@ public class MessageFormat extends UFormat {
      * @throws IllegalArgumentException
      *                if this formatter uses named arguments
      * @stable ICU 3.0
-     */
+     */ 
     public void setFormatsByArgumentIndex(Format[] newFormats) {
         if (!argumentNamesAreNumeric) {
             throw new IllegalArgumentException(
@@ -718,7 +692,7 @@ public class MessageFormat extends UFormat {
             }
         }
     }
-
+    
     /**
      * Sets the formats to use for the values passed into
      * <code>format</code> methods or returned from <code>parse</code>
@@ -738,7 +712,8 @@ public class MessageFormat extends UFormat {
      *
      * @param newFormats a map from String to Format providing new
      *        formats for named arguments.
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public void setFormatsByArgumentName(Map newFormats) {
         for (int i = 0; i <= maxOffset; i++) {
@@ -795,10 +770,10 @@ public class MessageFormat extends UFormat {
      * in the pattern string, then the new format is used for all such
      * format elements. If the argument index is not used for any format
      * element in the pattern string, then the new format is ignored.
-     *
+     * 
      * This method is only supported when exclusively numbers are used for
      * argument names. Otherwise an IllegalArgumentException is thrown.
-     *
+     * 
      * @param argumentIndex
      *            the argument index for which to use the new format
      * @param newFormat
@@ -837,7 +812,8 @@ public class MessageFormat extends UFormat {
      *
      * @param argumentName the name of the argument to change
      * @param newFormat the new format to use
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public void setFormatByArgumentName(String argumentName, Format newFormat) {
         for (int i = 0; i < maxOffset; ++i) {
@@ -885,10 +861,10 @@ public class MessageFormat extends UFormat {
      * format element is returned in the array. If an argument index
      * is not used for any format element in the pattern string, then
      * null is returned in the array.
-     *
+     * 
      * This method is only supported when exclusively numbers are used for
      * argument names. Otherwise an IllegalArgumentException is thrown.
-     *
+     * 
      * @return the formats used for the arguments within the pattern
      * @throws IllegalArgumentException
      *         if this format uses named arguments
@@ -897,7 +873,7 @@ public class MessageFormat extends UFormat {
     public Format[] getFormatsByArgumentIndex() {
         if (!argumentNamesAreNumeric) {
             throw new IllegalArgumentException(
-                    "This method is not available in MessageFormat objects " +
+                    "This method is not available in MessageFormat objects " + 
                     "that use alphanumeric argument names.");
         }
         int maximumArgumentNumber = -1;
@@ -915,7 +891,7 @@ public class MessageFormat extends UFormat {
     }
     // TODO: provide method public Map getFormatsByArgumentName().
     // Where Map is: String argumentName --> Format format.
-
+    
     /**
      * Gets the formats used for the format elements in the
      * previously set pattern string.
@@ -932,7 +908,7 @@ public class MessageFormat extends UFormat {
      *
      * This method is only supported when exclusively numbers are used for
      * argument names. Otherwise an IllegalArgumentException is thrown.
-     *
+     * 
      * @return the formats used for the format elements in the pattern
      * @stable ICU 3.0
      */
@@ -1002,7 +978,7 @@ public class MessageFormat extends UFormat {
      *
      * This method is only supported when the format does not use named
      * arguments, otherwise an IllegalArgumentException is thrown.
-     *
+     * 
      * @param arguments an array of objects to be formatted and substituted.
      * @param result where text is appended.
      * @param pos On input: an alignment field, if desired.
@@ -1016,7 +992,7 @@ public class MessageFormat extends UFormat {
      */
     public final StringBuffer format(Object[] arguments, StringBuffer result,
                                      FieldPosition pos)
-    {
+    { 
         if (!argumentNamesAreNumeric) {
             throw new IllegalArgumentException(
                   "This method is not available in MessageFormat objects " +
@@ -1032,7 +1008,7 @@ public class MessageFormat extends UFormat {
      * <p>
      * The text substituted for the individual format elements is derived from
      * the current subformat of the format element and the
-     * <code>arguments</code> value corresopnding to the format element's
+     * <code>arguments</code> value corresopnding to the format element's 
      * argument name.
      * <p>
      * This API may be called on formats that do not use named arguments.
@@ -1052,13 +1028,14 @@ public class MessageFormat extends UFormat {
      *         <code>arguments</code> array is not of the type
      *         expected by the format element(s) that use it.
      * @return the passed-in StringBuffer
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public final StringBuffer format(Map arguments, StringBuffer result,
                                      FieldPosition pos) {
         return subformat(arguments, result, pos, null);
     }
-
+    
     /**
      * Creates a MessageFormat with the given pattern and uses it
      * to format the given arguments. This is equivalent to
@@ -1090,7 +1067,8 @@ public class MessageFormat extends UFormat {
      *         that use it.
      * @see #format(Map, StringBuffer, FieldPosition)
      * @see #format(String, Object[])
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public static String format(String pattern, Map arguments) {
         MessageFormat temp = new MessageFormat(pattern);
@@ -1102,7 +1080,8 @@ public class MessageFormat extends UFormat {
      * and false otherwise.  See class description.
      *
      * @return true if named arguments are used.
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public boolean usesNamedArguments() {
         return !argumentNamesAreNumeric;
@@ -1113,7 +1092,7 @@ public class MessageFormat extends UFormat {
      * Formats a map or array of objects and appends the <code>MessageFormat</code>'s
      * pattern, with format elements replaced by the formatted objects, to the
      * provided <code>StringBuffer</code>.
-     * This is equivalent to either of
+     * This is equivalent to either of 
      * <blockquote>
      *     <code>{@link #format(java.lang.Object[], java.lang.StringBuffer, java.text.FieldPosition) format}((Object[]) arguments, result, pos)</code>
      *     <code>{@link #format(java.util.Map, java.lang.StringBuffer, java.text.FieldPosition) format}((Map) arguments, result, pos)</code>
@@ -1139,7 +1118,7 @@ public class MessageFormat extends UFormat {
         } else {
             if (!argumentNamesAreNumeric) {
                 throw new IllegalArgumentException(
-                        "This method is not available in MessageFormat objects " +
+                        "This method is not available in MessageFormat objects " + 
                         "that use alphanumeric argument names.");
             }
             return subformat((Object[]) arguments, result, pos, null);
@@ -1235,7 +1214,7 @@ public class MessageFormat extends UFormat {
      * This method is only supported with numbered arguments.  If
      * the format pattern used named argument an
      * IllegalArgumentException is thrown.
-     *
+     * 
      * @throws IllegalArgumentException if this format uses named arguments
      * @stable ICU 3.0
      */
@@ -1253,21 +1232,21 @@ public class MessageFormat extends UFormat {
                 maximumArgumentNumber = argumentNumber;
             }
         }
-
+        
         if (objectMap == null) {
             return null;
         }
-
+        
         Object[] resultArray = new Object[maximumArgumentNumber + 1];
         Iterator keyIter = objectMap.keySet().iterator();
         while (keyIter.hasNext()) {
             String key = (String) keyIter.next();
             resultArray[Integer.parseInt(key)] = objectMap.get(key);
         }
-
+        
         return resultArray;
     }
-
+        
     /**
      * Parses the string, returning the results in a Map.
      * This is similar to the version that returns an array
@@ -1279,7 +1258,8 @@ public class MessageFormat extends UFormat {
      * @param pos the position at which to start parsing.  on return,
      *        contains the result of the parse.
      * @return a Map containing key/value pairs for each parsed argument.
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public Map parseToMap(String source, ParsePosition pos) {
         if (source == null) {
@@ -1297,7 +1277,7 @@ public class MessageFormat extends UFormat {
 //        Object[] resultArray = new Object[maximumArgumentNumber + 1];
 
         Map resultMap = new HashMap();
-
+        
         int patternOffset = 0;
         int sourceOffset = pos.getIndex();
         ParsePosition tempStatus = new ParsePosition(0);
@@ -1334,14 +1314,14 @@ public class MessageFormat extends UFormat {
                     String strValue = source.substring(sourceOffset, next);
                     if (!strValue.equals("{" + argumentNames[i] + "}"))
                         resultMap.put(argumentNames[i], source.substring(sourceOffset, next));
-//                        resultArray[Integer.parseInt(argumentNames[i])] =
+//                        resultArray[Integer.parseInt(argumentNames[i])] = 
 //                            source.substring(sourceOffset, next);
                     sourceOffset = next;
                 }
             } else {
                 tempStatus.setIndex(sourceOffset);
                 resultMap.put(argumentNames[i], formats[i].parseObject(source, tempStatus));
-//                resultArray[Integer.parseInt(argumentNames[i])] =
+//                resultArray[Integer.parseInt(argumentNames[i])] = 
 //                    formats[i].parseObject(source, tempStatus);
                 if (tempStatus.getIndex() == sourceOffset) {
                     pos.setErrorIndex(sourceOffset);
@@ -1386,7 +1366,7 @@ public class MessageFormat extends UFormat {
 
         return result;
     }
-
+    
     /**
      * Parses text from the beginning of the given string to produce a map from
      * argument to values. The method may not use the entire text of the given string.
@@ -1396,13 +1376,14 @@ public class MessageFormat extends UFormat {
      *
      * @param source A <code>String</code> whose beginning should be parsed.
      * @return A <code>Map</code> parsed from the string.
-     * @throws ParseException if the beginning of the specified string cannot
+     * @throws ParseException if the beginning of the specified string cannot 
      *         be parsed.
      * @see #parseToMap(String, ParsePosition)
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public Map parseToMap(String source) throws ParseException {
-
+        
         ParsePosition pos = new ParsePosition(0);
         Map result = parseToMap(source, pos);
         if (pos.getIndex() == 0) // unchanged, returned object is null
@@ -1411,7 +1392,7 @@ public class MessageFormat extends UFormat {
 
         return result;
     }
-
+    
     /**
      * Parses text from a string to produce an object array or Map.
      * <p>
@@ -1443,7 +1424,7 @@ public class MessageFormat extends UFormat {
         if (argumentNamesAreNumeric) {
             return parse(source, pos);
         } else {
-            return parseToMap(source, pos);
+            return parseToMap(source, pos);    
         }
     }
 
@@ -1503,7 +1484,7 @@ public class MessageFormat extends UFormat {
      * Defines constants that are used as attribute keys in the
      * <code>AttributedCharacterIterator</code> returned
      * from <code>MessageFormat.formatToCharacterIterator</code>.
-     *
+     * 
      * @stable ICU 3.8
      */
     public static class Field extends Format.Field {
@@ -1512,9 +1493,9 @@ public class MessageFormat extends UFormat {
 
         /**
          * Create a <code>Field</code> with the specified name.
-         *
+         * 
          * @param name The name of the attribute
-         *
+         * 
          * @stable ICU 3.8
          */
         protected Field(String name) {
@@ -1523,10 +1504,10 @@ public class MessageFormat extends UFormat {
 
         /**
          * Resolves instances being deserialized to the predefined constants.
-         *
+         * 
          * @return resolved MessageFormat.Field constant
          * @throws InvalidObjectException if the constant could not be resolved.
-         *
+         * 
          * @stable ICU 3.8
          */
         protected Object readResolve() throws InvalidObjectException {
@@ -1546,7 +1527,7 @@ public class MessageFormat extends UFormat {
          * The value associated with the key will be an <code>Integer</code>
          * indicating the index in the <code>arguments</code> array of the
          * argument from which the text was generated.
-         *
+         * 
          * @stable ICU 3.8
          */
         public static final Field ARGUMENT = new Field("message argument field");
@@ -1588,7 +1569,7 @@ public class MessageFormat extends UFormat {
     /**
      * The positions where the results of formatting each argument are to be
      * inserted into the pattern.
-     *
+     * 
      * @serial
      */
     private int[] offsets = new int[INITIAL_FORMATS];
@@ -1606,14 +1587,14 @@ public class MessageFormat extends UFormat {
      * The argument names corresponding to each formatter. (The formatters are
      * stored in the order they occur in the pattern, not in the order in which
      * the arguments are specified.)
-     *
+     * 
      * @serial
      */
     private String[] argumentNames = new String[INITIAL_FORMATS];
 
     /**
      * Is true iff all argument names are non-negative numbers.
-     *
+     * 
      * @serial
      */
     private boolean argumentNamesAreNumeric = true;
@@ -1656,15 +1637,12 @@ public class MessageFormat extends UFormat {
         // note: this implementation assumes a fast substring & index.
         // if this is not true, would be better to append chars one by one.
         int lastOffset = 0;
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
         int last = result.length();
-//#endif
         for (int i = 0; i <= maxOffset; ++i) {
             result.append(pattern.substring(lastOffset, offsets[i]));
             lastOffset = offsets[i];
             String argumentName = argumentNames[i];
-            if (arguments == null || !arguments.containsKey(argumentName)) {
+            if (arguments == null || arguments.get(argumentName) == null) {
                 result.append("{" + argumentName + "}");
                 continue;
             }
@@ -1774,8 +1752,6 @@ public class MessageFormat extends UFormat {
         return result;
     }
 
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
     /**
      * Convenience method to append all the characters in
      * <code>iterator</code> to the StringBuffer <code>result</code>.
@@ -1790,12 +1766,11 @@ public class MessageFormat extends UFormat {
             }
         }
     }
-//#endif
 
     private static final String[] typeList =
         {"", "number", "date", "time", "choice", "spellout", "ordinal",
          "duration", "plural"};
-    private static final int
+    private static final int 
         TYPE_EMPTY = 0,
         TYPE_NUMBER = 1,
         TYPE_DATE = 2,
@@ -1808,23 +1783,23 @@ public class MessageFormat extends UFormat {
 
     private static final String[] modifierList =
         {"", "currency", "percent", "integer"};
-
+    
     private static final int
         MODIFIER_EMPTY = 0,
         MODIFIER_CURRENCY = 1,
         MODIFIER_PERCENT = 2,
         MODIFIER_INTEGER = 3;
-
+    
     private static final String[] dateModifierList =
         {"", "short", "medium", "long", "full"};
-
+    
     private static final int
         DATE_MODIFIER_EMPTY = 0,
         DATE_MODIFIER_SHORT = 1,
         DATE_MODIFIER_MEDIUM = 2,
         DATE_MODIFIER_LONG = 3,
         DATE_MODIFIER_FULL = 4;
-
+    
     private void makeFormat(int position, int offsetNumber,
                             StringBuffer[] segments)
     {
@@ -1863,7 +1838,7 @@ public class MessageFormat extends UFormat {
         int argumentNumber;
         try {
             // always unlocalized!
-             argumentNumber = Integer.parseInt(segments[1].toString());
+             argumentNumber = Integer.parseInt(segments[1].toString()); 
          } catch (NumberFormatException e) {
              argumentNumber = -1;
          }
@@ -1872,9 +1847,9 @@ public class MessageFormat extends UFormat {
              // to be numbers or (IDStartChars IDContChars*) strings.
              argumentNamesAreNumeric = argumentNumber >= 0;
          }
-
+         
          if (argumentNamesAreNumeric && argumentNumber < 0 ||
-             !argumentNamesAreNumeric &&
+             !argumentNamesAreNumeric && 
              !isAlphaIdentifier(argumentNames[offsetNumber])) {
              throw new IllegalArgumentException(
                      "All argument identifiers have to be either non-negative " +
@@ -1960,7 +1935,7 @@ public class MessageFormat extends UFormat {
                 throw new IllegalArgumentException("Choice Pattern incorrect");
             }
             break;
-        case TYPE_SPELLOUT:
+        case TYPE_SPELLOUT: 
             {
                 RuleBasedNumberFormat rbnf = new RuleBasedNumberFormat(ulocale, RuleBasedNumberFormat.SPELLOUT);
                 String ruleset = segments[3].toString().trim();
@@ -1973,7 +1948,7 @@ public class MessageFormat extends UFormat {
                     }
                 }
                 newFormat = rbnf;
-            }
+            } 
             break;
         case TYPE_ORDINAL:
             {
@@ -1988,7 +1963,7 @@ public class MessageFormat extends UFormat {
                     }
                 }
                 newFormat = rbnf;
-            }
+            } 
             break;
         case TYPE_DURATION:
             {
@@ -2116,7 +2091,7 @@ public class MessageFormat extends UFormat {
      * This is a helper method for converting an object array into a map. The
      * key set of the map is [0, ..., array.length]. The value associated with
      * each key is the ith entry of the passed object array.
-     *
+     * 
      * @throws InvalidObjectException
      *             if the objects read from the stream is invalid.
      */
@@ -2129,14 +2104,14 @@ public class MessageFormat extends UFormat {
         }
         return map;
     }
-
+    
     private boolean isAlphaIdentifier(String argument) {
         if (argument.length() == 0) {
             return false;
         }
         for (int i = 0; i < argument.length(); ++i ) {
             if (i == 0 && !IDStartChars.contains(argument.charAt(i)) ||
-                i > 0 &&  !IDContChars.contains(argument.charAt(i))){
+                i > 0 &&  !IDContChars.contains(argument.charAt(i))){    
                 return false;
             }
         }
@@ -2151,14 +2126,14 @@ public class MessageFormat extends UFormat {
     private static final int STATE_SINGLE_QUOTE = 1;
     private static final int STATE_IN_QUOTE = 2;
     private static final int STATE_MSG_ELEMENT = 3;
-
+    
     private static UnicodeSet IDStartChars = new UnicodeSet("[:ID_Start:]");
     private static UnicodeSet IDContChars = new UnicodeSet("[:ID_Continue:]");
 
     /**
      * Convert an 'apostrophe-friendly' pattern into a standard
      * pattern.  Standard patterns treat all apostrophes as
-     * quotes, which is problematic in some languages, e.g.
+     * quotes, which is problematic in some languages, e.g. 
      * French, where apostrophe is commonly used.  This utility
      * assumes that only an unpaired apostrophe immediately before
      * a brace is a true quote.  Other unpaired apostrophes are paired,

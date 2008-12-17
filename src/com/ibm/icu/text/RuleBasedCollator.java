@@ -1,7 +1,7 @@
 //##header J2SE15
 /**
 *******************************************************************************
-* Copyright (C) 1996-2008, International Business Machines Corporation and    *
+* Copyright (C) 1996-2007, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 */
@@ -1531,7 +1531,6 @@ public final class RuleBasedCollator extends Collator
     static final byte BYTE_COMMON_ = (byte)0x05;
     static final int COMMON_TOP_2_ = 0x86; // int for unsigness
     static final int COMMON_BOTTOM_2_ = BYTE_COMMON_;
-    static final int COMMON_BOTTOM_3 = 0x05;
     /**
      * Case strength mask
      */
@@ -1869,7 +1868,11 @@ public final class RuleBasedCollator extends Collator
                         init();
                         return;
                     }
-                    else {                        
+                    else {
+                        // due to resource redirection ICUListResourceBundle does not
+                        // raise missing resource error
+                        //throw new MissingResourceException("Could not get resource for constructing RuleBasedCollator","com.ibm.icu.impl.data.LocaleElements_"+locale.toString(), "%%CollationBin");
+                        
                         init(m_rules_);
                         return;
                     }
@@ -4259,20 +4262,6 @@ public final class RuleBasedCollator extends Collator
                    resizeLatinOneTable(2*latinOneTableLen_);
                   }
               } while(m_contractionIndex_[UCharOffset] != 0xFFFF);
-            }
-            break;
-          case CollationElementIterator.CE_SPEC_PROC_TAG_:
-            {
-              // 0xB7 is a precontext character defined in UCA5.1, a special
-              // handle is implemeted in order to save LatinOne table for
-              // most locales.
-              if (ch == 0xb7) {
-                  addLatinOneEntry(ch, CE, s);
-              }
-              else {
-                  latinOneFailed_ = true;
-                  return false;
-              }
             }
             break;
           default:

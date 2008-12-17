@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2007-2008, International Business Machines Corporation and         *
+ * Copyright (C) 2007, International Business Machines Corporation and         *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -12,8 +12,6 @@ import java.nio.IntBuffer;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CoderResult;
-
-import com.ibm.icu.text.UnicodeSet;
 
 /**
  * @author Michael Ow
@@ -237,13 +235,9 @@ class CharsetUTF7 extends CharsetICU {
                             break;
                         } else if ((!useIMAP && b!=PLUS) || (useIMAP && b!=AMPERSAND)) {
                             // write directly encoded character
-                            if (target.hasRemaining()) { // Check to make sure that there is room in target.
-                                target.put(b);
-                                if (offsets!= null) {
-                                    offsets.put(sourceIndex++);
-                                }
-                            } else {  // Get out and set the CoderResult.
-                                break;
+                            target.put(b);
+                            if (offsets!= null) {
+                                offsets.put(sourceIndex++);
                             }
                         } else { /* PLUS or (AMPERSAND in IMAP)*/
                             /* switch to Unicode mode */
@@ -748,9 +742,5 @@ class CharsetUTF7 extends CharsetICU {
     
     public CharsetEncoder newEncoder() {
         return new CharsetEncoderUTF7(this);
-    }
-    
-    void getUnicodeSetImpl( UnicodeSet setFillIn, int which){
-        getCompleteUnicodeSet(setFillIn);
     }
 }

@@ -1,6 +1,6 @@
 /*
 ******************************************************************************
-* Copyright (C) 2003-2008, International Business Machines Corporation and   *
+* Copyright (C) 2003-2007, International Business Machines Corporation and   *
 * others. All Rights Reserved.                                               *
 ******************************************************************************
 */
@@ -8,20 +8,21 @@
 package com.ibm.icu.util;
 
 import java.io.Serializable;
+import java.lang.ref.SoftReference;
 import java.text.ParseException;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
 import java.util.MissingResourceException;
 import java.util.TreeMap;
 
-import com.ibm.icu.impl.ICUCache;
+import com.ibm.icu.impl.SimpleCache;
 import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.impl.LocaleUtility;
-import com.ibm.icu.impl.SimpleCache;
-
+import com.ibm.icu.lang.UCharacter;
 /**
  * A class analogous to {@link java.util.Locale} that provides additional
  * support for ICU protocol.  In ICU 3.0 this class is enhanced to support
@@ -623,17 +624,16 @@ public final class ULocale implements Serializable {
         }
     }
 
-    private static String[][] CANONICALIZE_MAP;
-    private static String[][] variantsToKeywords;
+    private static String[][] _variantsToKeywords;
 
-    private static void initCANONICALIZE_MAP() {
-        if (CANONICALIZE_MAP == null) {
+    private static void initVariantsTable() {
+        if (_variantsToKeywords == null) {
             /**
              * This table lists pairs of locale ids for canonicalization.  The
-             * The 1st item is the normalized id. The 2nd item is the
-             * canonicalized id. The 3rd is the keyword. The 4th is the keyword value.
+             * The first item is the normalized id, the second item is the
+             * canonicalized id.
              */
-            String[][] tempCANONICALIZE_MAP = {
+            String[][] tempVariantsToKeywords = {
 //              { EMPTY_STRING,     "en_US_POSIX", null, null }, /* .NET name */
                 { "C",              "en_US_POSIX", null, null }, /* POSIX name */
                 { "art_LOJBAN",     "jbo", null, null }, /* registered name */
@@ -643,7 +643,7 @@ public final class ULocale implements Serializable {
                 { "cel_GAULISH",    "cel__GAULISH", null, null }, /* registered name */
                 { "de_1901",        "de__1901", null, null }, /* registered name */
                 { "de_1906",        "de__1906", null, null }, /* registered name */
-                { "de__PHONEBOOK",  "de", "collation", "phonebook" }, /* Old ICU name */
+                { "de__PHONEBOOK",  "de", "collation", "phonebook" },
                 { "de_AT_PREEURO",  "de_AT", "currency", "ATS" },
                 { "de_DE_PREEURO",  "de_DE", "currency", "DEM" },
                 { "de_LU_PREEURO",  "de_LU", "currency", "EUR" },
@@ -652,7 +652,7 @@ public final class ULocale implements Serializable {
                 { "en_SCOUSE",      "en__SCOUSE", null, null }, /* registered name */
                 { "en_BE_PREEURO",  "en_BE", "currency", "BEF" },
                 { "en_IE_PREEURO",  "en_IE", "currency", "IEP" },
-                { "es__TRADITIONAL", "es", "collation", "traditional" }, /* Old ICU name */
+                { "es__TRADITIONAL", "es", "collation", "traditional" },
                 { "es_ES_PREEURO",  "es_ES", "currency", "ESP" },
                 { "eu_ES_PREEURO",  "eu_ES", "currency", "ESP" },
                 { "fi_FI_PREEURO",  "fi_FI", "currency", "FIM" },
@@ -661,7 +661,7 @@ public final class ULocale implements Serializable {
                 { "fr_LU_PREEURO",  "fr_LU", "currency", "LUF" },
                 { "ga_IE_PREEURO",  "ga_IE", "currency", "IEP" },
                 { "gl_ES_PREEURO",  "gl_ES", "currency", "ESP" },
-                { "hi__DIRECT",     "hi", "collation", "direct" }, /* Old ICU name */
+                { "hi__DIRECT",     "hi", "collation", "direct" },
                 { "it_IT_PREEURO",  "it_IT", "currency", "ITL" },
                 { "ja_JP_TRADITIONAL", "ja_JP", "calendar", "japanese" },
 //              { "nb_NO_NY",       "nn_NO", null, null },
@@ -669,10 +669,9 @@ public final class ULocale implements Serializable {
                 { "nl_NL_PREEURO",  "nl_NL", "currency", "NLG" },
                 { "pt_PT_PREEURO",  "pt_PT", "currency", "PTE" },
                 { "sl_ROZAJ",       "sl__ROZAJ", null, null }, /* registered name */
-                { "sr_SP_CYRL",     "sr_Cyrl_RS", null, null }, /* .NET name */
-                { "sr_SP_LATN",     "sr_Latn_RS", null, null }, /* .NET name */
-                { "sr_YU_CYRILLIC", "sr_Cyrl_RS", null, null }, /* Linux name */
-                { "th_TH_TRADITIONAL", "th_TH", "calendar", "buddhist" }, /* Old ICU name */
+                { "sr_SP_CYRL",     "sr_Cyrl_CS", null, null }, /* .NET name */
+                { "sr_SP_LATN",     "sr_Latn_CS", null, null }, /* .NET name */
+                { "sr_YU_CYRILLIC", "sr_Cyrl_CS", null, null }, /* Linux name */
                 { "uz_UZ_CYRILLIC", "uz_Cyrl_UZ", null, null }, /* Linux name */
                 { "uz_UZ_CYRL",     "uz_Cyrl_UZ", null, null }, /* .NET name */
                 { "uz_UZ_LATN",     "uz_Latn_UZ", null, null }, /* .NET name */
@@ -685,29 +684,16 @@ public final class ULocale implements Serializable {
                 { "zh_MIN_NAN",     "zh__MINNAN", null, null }, /* registered name */
                 { "zh_WUU",         "zh__WUU", null, null }, /* registered name */
                 { "zh_XIANG",       "zh__XIANG", null, null }, /* registered name */
-                { "zh_YUE",         "zh__YUE", null, null } /* registered name */
+                { "zh_YUE",         "zh__YUE", null, null }, /* registered name */
+                { "th_TH_TRADITIONAL", "th_TH", "calendar", "buddhist" },
+                { "hi_IN_TRADITIONAL", "hi_IN", "calendar", "indian" },
+                { "zh_TW_STROKE",   "zh_TW", "collation", "stroke" },
+                { "zh__PINYIN",     "zh", "collation", "pinyin" }
             };
     
             synchronized (ULocale.class) {
-                if (CANONICALIZE_MAP == null) {
-                    CANONICALIZE_MAP = tempCANONICALIZE_MAP;
-                }
-            }
-        }
-        if (variantsToKeywords == null) {
-            /**
-             * This table lists pairs of locale ids for canonicalization.  The
-             * The first item is the normalized variant id.
-             */
-            String[][] tempVariantsToKeywords = {
-                    { "EURO",   "currency", "EUR" },
-                    { "PINYIN", "collation", "pinyin" }, /* Solaris variant */
-                    { "STROKE", "collation", "stroke" }  /* Solaris variant */
-            };
-    
-            synchronized (ULocale.class) {
-                if (variantsToKeywords == null) {
-                    variantsToKeywords = tempVariantsToKeywords;
+                if (_variantsToKeywords == null) {
+                    _variantsToKeywords = tempVariantsToKeywords;
                 }
             }
         }
@@ -789,17 +775,13 @@ public final class ULocale implements Serializable {
      * script, if present, is four characters long-- this distinguishes it
      * from a country code, which is two characters long.  Other fields
      * are distinguished by position as indicated by the underscores.  The
-     * start of the keyword list is indicated by '@', and consists of two
-     * or more keyword/value pairs separated by semicolons(';').
+     * start of the keyword list is indicated by '@', and consists of one
+     * or more keyword/value pairs separated by commas.
      * <p>
-     * This constructor does not canonicalize the localeID.  So, for
-     * example, "zh__pinyin" remains unchanged instead of converting
-     * to "zh@collation=pinyin".  By default ICU only recognizes the
-     * latter as specifying pinyin collation.  Use {@link #createCanonical}
-     * or {@link #canonicalize} if you need to canonicalize the localeID.
+     * This constructor does not canonicalize the localeID.
      * 
      * @param localeID string representation of the locale, e.g:
-     * "en_US", "sy_Cyrl_YU", "zh__pinyin", "es_ES@currency=EUR;collation=traditional"
+     * "en_US", "sy_Cyrl_YU", "zh__pinyin", "es_ES@currency=EUR,collation=traditional"
      * @stable ICU 2.8
      */ 
     public ULocale(String localeID) {
@@ -904,7 +886,7 @@ public final class ULocale implements Serializable {
         return locale;
     }
 
-    private static ICUCache nameCache = new SimpleCache();
+    private static SoftReference nameCacheRef = new SoftReference(Collections.synchronizedMap(new HashMap()));
     /**
      * Keep our own default ULocale.
      */
@@ -1175,10 +1157,15 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public static String getName(String localeID){
-        String name = (String)nameCache.get(localeID);
+        Map cache = (Map)nameCacheRef.get();
+        if (cache == null) {
+            cache = Collections.synchronizedMap(new HashMap());
+            nameCacheRef = new SoftReference(cache);
+        }
+        String name = (String)cache.get(localeID);
         if (name == null) {
             name = new IDParser(localeID).getName();
-            nameCache.put(localeID, name);
+            cache.put(localeID, name);
         }
         return name;
     }
@@ -1530,7 +1517,6 @@ public final class ULocale implements Serializable {
          */
         private int parseCountry() {
             if (!atTerminator()) {
-                int oldIndex = index;
                 ++index;
 
                 int oldBlen = blen;
@@ -1545,20 +1531,7 @@ public final class ULocale implements Serializable {
                 }
                 --index; // unget
 
-                int charsAppended = blen - oldBlen;
-
-                if (charsAppended == 0) {
-                    // Do nothing.
-                }
-                else if (charsAppended < 2 || charsAppended > 3) {
-                    // It's not a country, so return index and blen to
-                    // their previous values.
-                    index = oldIndex;
-                    --oldBlen;
-                    blen = oldBlen;
-                    hadCountry = false;
-                }
-                else if (charsAppended == 3) {
+                if (blen - oldBlen == 3) {
                     initCountryTables();
 
                     /* convert 3 character code to 2 character code if possible *CWB*/
@@ -1587,17 +1560,7 @@ public final class ULocale implements Serializable {
         private void skipCountry() {
             if (!atTerminator()) {
                 ++index;
-                /* 
-                 * Save the index point after the separator, since the format
-                 * requires two separators if the country is not present.
-                 */
-                int oldIndex = index;
-
                 skipUntilTerminatorOrIDSeparator();
-                int charsSkipped = index - oldIndex;
-                if (charsSkipped < 2 || charsSkipped > 3) {
-                    index = oldIndex;
-                }
             }
         }
 
@@ -2011,36 +1974,28 @@ public final class ULocale implements Serializable {
 
         // we have an ID in the form xx_Yyyy_ZZ_KKKKK
 
-        initCANONICALIZE_MAP();
-
-        /* convert the variants to appropriate ID */
-        for (int i = 0; i < variantsToKeywords.length; i++) {
-            String[] vals = variantsToKeywords[i];
-            int idx = baseName.lastIndexOf("_" + vals[0]);
-            if (idx > -1) {
-                foundVariant = true;
-
-                baseName = baseName.substring(0, idx);
-                if (baseName.endsWith("_")) {
-                    baseName = baseName.substring(0, --idx);
-                }
-                parser.setBaseName(baseName);
-                parser.defaultKeywordValue(vals[1], vals[2]);
-                break;
-            }
-        }
+        initVariantsTable();
 
         /* See if this is an already known locale */
-        for (int i = 0; i < CANONICALIZE_MAP.length; i++) {
-            if (CANONICALIZE_MAP[i][0].equals(baseName)) {
+        for (int i = 0; i < _variantsToKeywords.length; i++) {
+            if (_variantsToKeywords[i][0].equals(baseName)) {
                 foundVariant = true;
 
-                String[] vals = CANONICALIZE_MAP[i];
+                String[] vals = _variantsToKeywords[i];
                 parser.setBaseName(vals[1]);
                 if (vals[2] != null) {
                     parser.defaultKeywordValue(vals[2], vals[3]);
                 }
                 break;
+            }
+        }
+
+        /* convert the Euro variant to appropriate ID */
+        if (!foundVariant) {
+            int idx = baseName.indexOf("_EURO");
+            if (idx > -1) {
+                parser.setBaseName(baseName.substring(0, idx));
+                parser.defaultKeywordValue("currency", "EUR");
             }
         }
 
@@ -2664,30 +2619,6 @@ public final class ULocale implements Serializable {
         return buf.toString();
     }
 
-    /**
-     * Returns this locale's layout orientation for characters.  The possible
-     * values are "left-to-right", "right-to-left", "top-to-bottom" or
-     * "bottom-to-top".
-     * @return The locale's layout orientation for characters.
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public String getCharacterOrientation() {
-        return getTableString("layout", null, "characters", getName());
-    }
-
-    /**
-     * Returns this locale's layout orientation for lines.  The possible
-     * values are "left-to-right", "right-to-left", "top-to-bottom" or
-     * "bottom-to-top".
-     * @return The locale's layout orientation for lines.
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public String getLineOrientation() {
-        return getTableString("layout", null, "lines", getName());
-    }
-
     /** 
      * Selector for <tt>getLocale()</tt> indicating the locale of the
      * resource containing the data.  This is always at or above the
@@ -2699,7 +2630,7 @@ public final class ULocale implements Serializable {
      * @draft ICU 2.8 (retain)
      * @provisional This API might change or be removed in a future release.
      */
-    public static Type ACTUAL_LOCALE = new Type();
+    public static Type ACTUAL_LOCALE = new Type(0);
 
     /** 
      * Selector for <tt>getLocale()</tt> indicating the most specific
@@ -2715,7 +2646,7 @@ public final class ULocale implements Serializable {
      * @draft ICU 2.8 (retain)
      * @provisional This API might change or be removed in a future release.
      */ 
-    public static Type VALID_LOCALE = new Type();
+    public static Type VALID_LOCALE = new Type(1);
 
     /**
      * Opaque selector enum for <tt>getLocale()</tt>.
@@ -2726,7 +2657,8 @@ public final class ULocale implements Serializable {
      * @provisional This API might change or be removed in a future release.
      */
     public static final class Type {
-        private Type() {}
+        private int localeType;
+        private Type(int type) { localeType = type; }
     }
 
   /**
@@ -3112,10 +3044,427 @@ public final class ULocale implements Serializable {
         return acceptList;
     }
 
+    private static HashMap _likelySubtagMaximizeMap;
+
+    private static void initLikelySubtagMaximizeMap() {
+        if (_likelySubtagMaximizeMap != null) {
+            return;
+        }
+        // We should use CLDR data which will be introduced in CLDR1.5.1.
+        // For now, use the hardcoded table below.
+        String[][] likelySubtagTable = {
+                {"aa", "aa_Latn_ET"},
+                {"af", "af_Latn_ZA"},
+                {"ak", "ak_Latn_GH"},
+                {"am", "am_Ethi_ET"},
+                {"ar", "ar_Arab_EG"},
+                {"as", "as_Beng_IN"},
+                {"az", "az_Latn_AZ"},
+                {"be", "be_Cyrl_BY"},
+                {"bg", "bg_Cyrl_BG"},
+                {"bn", "bn_Beng_BD"},
+                {"bo", "bo_Tibt_CN"},
+                {"bs", "bs_Latn_BA"},
+                {"byn", "byn_Ethi_ER"},
+                {"ca", "ca_Latn_ES"},
+                {"cch", "cch_Latn_NG"},
+                {"ch", "ch_Latn_GU"},
+                {"chk", "chk_Latn_FM"},
+                {"cop", "cop_Arab_EG"},
+                {"cs", "cs_Latn_CZ"},
+                {"cy", "cy_Latn_GB"},
+                {"da", "da_Latn_DK"},
+                {"de", "de_Latn_DE"},
+                {"dv", "dv_Thaa_MV"},
+                {"dz", "dz_Tibt_BT"},
+                {"ee", "ee_Latn_GH"},
+                {"el", "el_Grek_GR"},
+                {"en", "en_Latn_US"},
+                {"es", "es_Latn_ES"},
+                {"et", "et_Latn_EE"},
+                {"eu", "eu_Latn_ES"},
+                {"fa", "fa_Arab_IR"},
+                {"fi", "fi_Latn_FI"},
+                {"fil", "fil_Latn_PH"},
+                {"fj", "fj_Latn_FJ"},
+                {"fo", "fo_Latn_FO"},
+                {"fr", "fr_Latn_FR"},
+                {"fur", "fur_Latn_IT"},
+                {"ga", "ga_Latn_IE"},
+                {"gaa", "gaa_Latn_GH"},
+                {"gez", "gez_Ethi_ER"},
+                {"gl", "gl_Latn_ES"},
+                {"gn", "gn_Latn_PY"},
+                {"gu", "gu_Gujr_IN"},
+                {"gv", "gv_Latn_GB"},
+                {"ha", "ha_Latn_NG"},
+                {"haw", "haw_Latn_US"},
+                {"he", "he_Hebr_IL"},
+                {"hi", "hi_Deva_IN"},
+                {"hr", "hr_Latn_HR"},
+                {"ht", "ht_Latn_HT"},
+                {"hu", "hu_Latn_HU"},
+                {"hy", "hy_Armn_AM"},
+                {"id", "id_Latn_ID"},
+                {"ig", "ig_Latn_NG"},
+                {"ii", "ii_Yiii_CN"},
+                {"is", "is_Latn_IS"},
+                {"it", "it_Latn_IT"},
+                {"iu", "iu_Cans_CA"},
+                {"ja", "ja_Jpan_JP"},
+                {"ka", "ka_Geor_GE"},
+                {"kaj", "kaj_Latn_NG"},
+                {"kam", "kam_Latn_KE"},
+                {"kcg", "kcg_Latn_NG"},
+                {"kfo", "kfo_Latn_NG"},
+                {"kk", "kk_Cyrl_KZ"},
+                {"kl", "kl_Latn_GL"},
+                {"km", "km_Khmr_KH"},
+                {"kn", "kn_Knda_IN"},
+                {"ko", "ko_Kore_KR"},
+                {"kok", "kok_Deva_IN"},
+                {"kpe", "kpe_Latn_LR"},
+                {"ku", "ku_Latn_TR"},
+                {"kw", "kw_Latn_GB"},
+                {"ky", "ky_Cyrl_KG"},
+                {"la", "la_Latn_VA"},
+                {"ln", "ln_Latn_CD"},
+                {"lo", "lo_Laoo_LA"},
+                {"lt", "lt_Latn_LT"},
+                {"lv", "lv_Latn_LV"},
+                {"mg", "mg_Latn_MG"},
+                {"mh", "mh_Latn_MH"},
+                {"mk", "mk_Cyrl_MK"},
+                {"ml", "ml_Mlym_IN"},
+                {"mn", "mn_Cyrl_MN"},
+                {"mr", "mr_Deva_IN"},
+                {"ms", "ms_Latn_MY"},
+                {"mt", "mt_Latn_MT"},
+                {"my", "my_Mymr_MM"},
+                {"na", "na_Latn_NR"},
+                {"nb", "nb_Latn_NO"},
+                {"ne", "ne_Deva_NP"},
+                {"niu", "niu_Latn_NU"},
+                {"nl", "nl_Latn_NL"},
+                {"nn", "nn_Latn_NO"},
+                {"nr", "nr_Latn_ZA"},
+                {"nso", "nso_Latn_ZA"},
+                {"ny", "ny_Latn_MW"},
+                {"om", "om_Latn_ET"},
+                {"or", "or_Orya_IN"},
+                {"pa", "pa_Guru_IN"},
+                {"pa_Arab", "pa_Arab_PK"},
+                {"pa_PK", "pa_Arab_PK"},
+                {"pap", "pap_Latn_AN"},
+                {"pau", "pau_Latn_PW"},
+                {"pl", "pl_Latn_PL"},
+                {"ps", "ps_Arab_AF"},
+                {"pt", "pt_Latn_BR"},
+                {"rn", "rn_Latn_BI"},
+                {"ro", "ro_Latn_RO"},
+                {"ru", "ru_Cyrl_RU"},
+                {"rw", "rw_Latn_RW"},
+                {"sa", "sa_Deva_IN"},
+                {"se", "se_Latn_NO"},
+                {"sg", "sg_Latn_CF"},
+                {"sh", "sr_Latn_RS"},
+                {"si", "si_Sinh_LK"},
+                {"sid", "sid_Latn_ET"},
+                {"sk", "sk_Latn_SK"},
+                {"sl", "sl_Latn_SI"},
+                {"sm", "sm_Latn_AS"},
+                {"so", "so_Latn_SO"},
+                {"sq", "sq_Latn_AL"},
+                {"sr", "sr_Cyrl_RS"},
+                {"ss", "ss_Latn_ZA"},
+                {"st", "st_Latn_ZA"},
+                {"sv", "sv_Latn_SE"},
+                {"sw", "sw_Latn_TZ"},
+                {"syr", "syr_Syrc_SY"},
+                {"ta", "ta_Taml_IN"},
+                {"te", "te_Telu_IN"},
+                {"tet", "tet_Latn_TL"},
+                {"tg", "tg_Cyrl_TJ"},
+                {"th", "th_Thai_TH"},
+                {"ti", "ti_Ethi_ET"},
+                {"tig", "tig_Ethi_ER"},
+                {"tk", "tk_Latn_TM"},
+                {"tkl", "tkl_Latn_TK"},
+                {"tn", "tn_Latn_ZA"},
+                {"to", "to_Latn_TO"},
+                {"tpi", "tpi_Latn_PG"},
+                {"tr", "tr_Latn_TR"},
+                {"ts", "ts_Latn_ZA"},
+                {"tt", "tt_Cyrl_RU"},
+                {"tvl", "tvl_Latn_TV"},
+                {"ty", "ty_Latn_PF"},
+                {"uk", "uk_Cyrl_UA"},
+                {"ur", "ur_Arab_IN"},
+                {"uz", "uz_Cyrl_UZ"},
+                {"uz_AF", "uz_Arab_AF"},
+                {"uz_Arab", "uz_Arab_AF"},
+                {"ve", "ve_Latn_ZA"},
+                {"vi", "vi_Latn_VN"},
+                {"wal", "wal_Ethi_ET"},
+                {"wo", "wo_Arab_SN"},
+                {"wo_SN", "wo_Latn_SN"},
+                {"xh", "xh_Latn_ZA"},
+                {"yo", "yo_Latn_NG"},
+                {"zh", "zh_Hans_CN"},
+                {"zh_Hani", "zh_Hans_CN"},
+                {"zh_Hant", "zh_Hant_TW"},
+                {"zh_HK", "zh_Hant_HK"},
+                {"zh_MO", "zh_Hant_MO"},
+                {"zh_TW", "zh_Hant_TW"},
+                {"zu", "zu_Latn_ZA"},
+
+                {"und", "en_Latn_US"},
+                {"und_AD", "ca_Latn_AD"},
+                {"und_AE", "ar_Arab_AE"},
+                {"und_AF", "fa_Arab_AF"},
+                {"und_AL", "sq_Latn_AL"},
+                {"und_AM", "hy_Armn_AM"},
+                {"und_AN", "pap_Latn_AN"},
+                {"und_AO", "pt_Latn_AO"},
+                {"und_AR", "es_Latn_AR"},
+                {"und_Arab", "ar_Arab_EG"},
+                {"und_Arab_IN", "ur_Arab_IN"},
+                {"und_Arab_PK", "pa_Arab_PK"},
+                {"und_Arab_SN", "wo_Arab_SN"},
+                {"und_Armn", "hy_Armn_AM"},
+                {"und_AS", "sm_Latn_AS"},
+                {"und_AT", "de_Latn_AT"},
+                {"und_AW", "nl_Latn_AW"},
+                {"und_AX", "sv_Latn_AX"},
+                {"und_AZ", "az_Latn_AZ"},
+                {"und_BA", "bs_Latn_BA"},
+                {"und_BD", "bn_Beng_BD"},
+                {"und_BE", "nl_Latn_BE"},
+                {"und_Beng", "bn_Beng_BD"},
+                {"und_Beng_IN", "as_Beng_IN"},
+                {"und_BF", "fr_Latn_BF"},
+                {"und_BG", "bg_Cyrl_BG"},
+                {"und_BH", "ar_Arab_BH"},
+                {"und_BI", "rn_Latn_BI"},
+                {"und_BJ", "fr_Latn_BJ"},
+                {"und_BN", "ms_Latn_BN"},
+                {"und_BO", "es_Latn_BO"},
+                {"und_BR", "pt_Latn_BR"},
+                {"und_BT", "dz_Tibt_BT"},
+                {"und_BY", "be_Cyrl_BY"},
+                {"und_Cans", "iu_Cans_CA"},
+                {"und_CD", "fr_Latn_CD"},
+                {"und_CF", "sg_Latn_CF"},
+                {"und_CG", "ln_Latn_CG"},
+                {"und_CH", "de_Latn_CH"},
+                {"und_CI", "fr_Latn_CI"},
+                {"und_CL", "es_Latn_CL"},
+                {"und_CM", "fr_Latn_CM"},
+                {"und_CN", "zh_Hans_CN"},
+                {"und_CO", "es_Latn_CO"},
+                {"und_CR", "es_Latn_CR"},
+                {"und_CU", "es_Latn_CU"},
+                {"und_CV", "pt_Latn_CV"},
+                {"und_CY", "el_Grek_CY"},
+                {"und_Cyrl", "ru_Cyrl_RU"},
+                {"und_Cyrl_KZ", "kk_Cyrl_KZ"},
+                {"und_CZ", "cs_Latn_CZ"},
+                {"und_DE", "de_Latn_DE"},
+                {"und_Deva", "hi_Deva_IN"},
+                {"und_DJ", "ar_Arab_DJ"},
+                {"und_DK", "da_Latn_DK"},
+                {"und_DO", "es_Latn_DO"},
+                {"und_DZ", "ar_Arab_DZ"},
+                {"und_EC", "es_Latn_EC"},
+                {"und_EE", "et_Latn_EE"},
+                {"und_EG", "ar_Arab_EG"},
+                {"und_EH", "ar_Arab_EH"},
+                {"und_ER", "ti_Ethi_ER"},
+                {"und_ES", "es_Latn_ES"},
+                {"und_ET", "am_Ethi_ET"},
+                {"und_Ethi", "am_Ethi_ET"},
+                {"und_Ethi_ER", "byn_Ethi_ER"},
+                {"und_FI", "fi_Latn_FI"},
+                {"und_FJ", "fj_Latn_FJ"},
+                {"und_FM", "chk_Latn_FM"},
+                {"und_FO", "fo_Latn_FO"},
+                {"und_FR", "fr_Latn_FR"},
+                {"und_GA", "fr_Latn_GA"},
+                {"und_GE", "ka_Geor_GE"},
+                {"und_Geor", "ka_Geor_GE"},
+                {"und_GF", "fr_Latn_GF"},
+                {"und_GL", "kl_Latn_GL"},
+                {"und_GN", "fr_Latn_GN"},
+                {"und_GP", "fr_Latn_GP"},
+                {"und_GQ", "fr_Latn_GQ"},
+                {"und_GR", "el_Grek_GR"},
+                {"und_Grek", "el_Grek_GR"},
+                {"und_GT", "es_Latn_GT"},
+                {"und_GU", "ch_Latn_GU"},
+                {"und_Gujr", "gu_Gujr_IN"},
+                {"und_Guru", "pa_Guru_IN"},
+                {"und_GW", "pt_Latn_GW"},
+                {"und_Hani", "zh_Hans_CN"},
+                {"und_Hans", "zh_Hans_CN"},
+                {"und_Hant", "zh_Hant_HK"},
+                {"und_Hebr", "he_Hebr_IL"},
+                {"und_HK", "zh_Hant_HK"},
+                {"und_HN", "es_Latn_HN"},
+                {"und_HR", "hr_Latn_HR"},
+                {"und_HT", "ht_Latn_HT"},
+                {"und_HU", "hu_Latn_HU"},
+                {"und_ID", "id_Latn_ID"},
+                {"und_IL", "he_Hebr_IL"},
+                {"und_IN", "hi_Deva_IN"},
+                {"und_IQ", "ar_Arab_IQ"},
+                {"und_IR", "fa_Arab_IR"},
+                {"und_IS", "is_Latn_IS"},
+                {"und_IT", "it_Latn_IT"},
+                {"und_JO", "ar_Arab_JO"},
+                {"und_JP", "ja_Jpan_JP"},
+                {"und_Jpan", "ja_Jpan_JP"},
+                {"und_KG", "ky_Cyrl_KG"},
+                {"und_KH", "km_Khmr_KH"},
+                {"und_Khmr", "km_Khmr_KH"},
+                {"und_KM", "ar_Arab_KM"},
+                {"und_Knda", "kn_Knda_IN"},
+                {"und_Kore", "ko_Kore_KR"},
+                {"und_KP", "ko_Kore_KP"},
+                {"und_KR", "ko_Kore_KR"},
+                {"und_KW", "ar_Arab_KW"},
+                {"und_KZ", "ru_Cyrl_KZ"},
+                {"und_LA", "lo_Laoo_LA"},
+                {"und_Laoo", "lo_Laoo_LA"},
+                {"und_Latn_ES", "ca_Latn_ES"},
+                {"und_Latn_ET", "aa_Latn_ET"},
+                {"und_Latn_GB", "cy_Latn_GB"},
+                {"und_Latn_GH", "ak_Latn_GH"},
+                {"und_Latn_IT", "fur_Latn_IT"},
+                {"und_Latn_NG", "cch_Latn_NG"},
+                {"und_Latn_TR", "ku_Latn_TR"},
+                {"und_Latn_ZA", "af_Latn_ZA"},
+                {"und_LB", "ar_Arab_LB"},
+                {"und_LI", "de_Latn_LI"},
+                {"und_LK", "si_Sinh_LK"},
+                {"und_LS", "st_Latn_LS"},
+                {"und_LT", "lt_Latn_LT"},
+                {"und_LU", "fr_Latn_LU"},
+                {"und_LV", "lv_Latn_LV"},
+                {"und_LY", "ar_Arab_LY"},
+                {"und_MA", "ar_Arab_MA"},
+                {"und_MC", "fr_Latn_MC"},
+                {"und_MD", "ro_Latn_MD"},
+                {"und_ME", "sr_Cyrl_ME"},
+                {"und_MG", "mg_Latn_MG"},
+                {"und_MH", "mh_Latn_MH"},
+                {"und_MK", "mk_Cyrl_MK"},
+                {"und_ML", "fr_Latn_ML"},
+                {"und_Mlym", "ml_Mlym_IN"},
+                {"und_MM", "my_Mymr_MM"},
+                {"und_MN", "mn_Cyrl_MN"},
+                {"und_MO", "zh_Hant_MO"},
+                {"und_MQ", "fr_Latn_MQ"},
+                {"und_MR", "ar_Arab_MR"},
+                {"und_MT", "mt_Latn_MT"},
+                {"und_MV", "dv_Thaa_MV"},
+                {"und_MW", "ny_Latn_MW"},
+                {"und_MX", "es_Latn_MX"},
+                {"und_MY", "ms_Latn_MY"},
+                {"und_Mymr", "my_Mymr_MM"},
+                {"und_MZ", "pt_Latn_MZ"},
+                {"und_NC", "fr_Latn_NC"},
+                {"und_NE", "fr_Latn_NE"},
+                {"und_NG", "ha_Latn_NG"},
+                {"und_NI", "es_Latn_NI"},
+                {"und_NL", "nl_Latn_NL"},
+                {"und_NO", "nb_Latn_NO"},
+                {"und_NP", "ne_Deva_NP"},
+                {"und_NR", "na_Latn_NR"},
+                {"und_NU", "niu_Latn_NU"},
+                {"und_OM", "ar_Arab_OM"},
+                {"und_Orya", "or_Orya_IN"},
+                {"und_PA", "es_Latn_PA"},
+                {"und_PE", "es_Latn_PE"},
+                {"und_PF", "ty_Latn_PF"},
+                {"und_PG", "tpi_Latn_PG"},
+                {"und_PH", "fil_Latn_PH"},
+                {"und_PL", "pl_Latn_PL"},
+                {"und_PM", "fr_Latn_PM"},
+                {"und_PR", "es_Latn_PR"},
+                {"und_PS", "ar_Arab_PS"},
+                {"und_PT", "pt_Latn_PT"},
+                {"und_PW", "pau_Latn_PW"},
+                {"und_PY", "gn_Latn_PY"},
+                {"und_QA", "ar_Arab_QA"},
+                {"und_RE", "fr_Latn_RE"},
+                {"und_RO", "ro_Latn_RO"},
+                {"und_RS", "sr_Cyrl_RS"},
+                {"und_RU", "ru_Cyrl_RU"},
+                {"und_RW", "rw_Latn_RW"},
+                {"und_SA", "ar_Arab_SA"},
+                {"und_SD", "ar_Arab_SD"},
+                {"und_SE", "sv_Latn_SE"},
+                {"und_SG", "zh_Hans_SG"},
+                {"und_SI", "sl_Latn_SI"},
+                {"und_Sinh", "si_Sinh_LK"},
+                {"und_SJ", "nb_Latn_SJ"},
+                {"und_SK", "sk_Latn_SK"},
+                {"und_SM", "it_Latn_SM"},
+                {"und_SN", "fr_Latn_SN"},
+                {"und_SO", "so_Latn_SO"},
+                {"und_SR", "nl_Latn_SR"},
+                {"und_ST", "pt_Latn_ST"},
+                {"und_SV", "es_Latn_SV"},
+                {"und_SY", "ar_Arab_SY"},
+                {"und_Syrc", "syr_Syrc_SY"},
+                {"und_Taml", "ta_Taml_IN"},
+                {"und_TD", "ar_Arab_TD"},
+                {"und_Telu", "te_Telu_IN"},
+                {"und_TG", "fr_Latn_TG"},
+                {"und_TH", "th_Thai_TH"},
+                {"und_Thaa", "dv_Thaa_MV"},
+                {"und_Thai", "th_Thai_TH"},
+                {"und_Tibt", "bo_Tibt_CN"},
+                {"und_TJ", "tg_Cyrl_TJ"},
+                {"und_TK", "tkl_Latn_TK"},
+                {"und_TL", "tet_Latn_TL"},
+                {"und_TM", "tk_Latn_TM"},
+                {"und_TN", "ar_Arab_TN"},
+                {"und_TO", "to_Latn_TO"},
+                {"und_TR", "tr_Latn_TR"},
+                {"und_TV", "tvl_Latn_TV"},
+                {"und_TW", "zh_Hant_TW"},
+                {"und_UA", "uk_Cyrl_UA"},
+                {"und_UY", "es_Latn_UY"},
+                {"und_UZ", "uz_Cyrl_UZ"},
+                {"und_VA", "la_Latn_VA"},
+                {"und_VE", "es_Latn_VE"},
+                {"und_VN", "vi_Latn_VN"},
+                {"und_VU", "fr_Latn_VU"},
+                {"und_WF", "fr_Latn_WF"},
+                {"und_WS", "sm_Latn_WS"},
+                {"und_YE", "ar_Arab_YE"},
+                {"und_Yiii", "ii_Yiii_CN"},
+                {"und_YT", "fr_Latn_YT"},
+        };
+
+        HashMap tmpMap = new HashMap();
+        for (int i = 0; i < likelySubtagTable.length; i++) {
+            ULocale loc = new ULocale(likelySubtagTable[i][1]);
+            tmpMap.put(likelySubtagTable[i][0], loc);
+        }
+        
+        synchronized (ULocale.class) {
+            if (_likelySubtagMaximizeMap == null) {
+                _likelySubtagMaximizeMap = tmpMap;
+            }
+        }
+    }
+
     private static final String UNDEFINED_LANGUAGE = "und";
     private static final String UNDEFINED_SCRIPT = "Zzzz";
     private static final String UNDEFINED_REGION = "ZZ";
-
+    
     /**
      * Supply most likely subtags to the given locale
      * @param loc The input locale
@@ -3124,619 +3473,129 @@ public final class ULocale implements Serializable {
      * @deprecated This API is ICU internal only.
      */
     public static ULocale addLikelySubtag(ULocale loc) {
-        return addLikelySubtags(loc);
-    }
+        initLikelySubtagMaximizeMap();
 
-    /**
-     * Add the likely subtags for a provided locale ID, per the algorithm described
-     * in the following CLDR technical report:
-     *
-     *   http://www.unicode.org/reports/tr35/#Likely_Subtags
-     *
-     * If the provided ULocale instance is already in the maximal form, or there is no
-     * data available available for maximization, it will be returned.  For example,
-     * "und-Zzzz" cannot be maximized, since there is no reasonable maximization.
-     * Otherwise, a new ULocale instance with the maximal form is returned.
-     * 
-     * Examples:
-     *
-     * "en" maximizes to "en_Latn_US"
-     *
-     * "de" maximizes to "de_Latn_US"
-     *
-     * "sr" maximizes to "sr_Cyrl_RS"
-     *
-     * "sh" maximizes to "sr_Latn_RS" (Note this will not reverse.)
-     *
-     * "zh_Hani" maximizes to "zh_Hans_CN" (Note this will not reverse.)
-     *
-     * @param loc The ULocale to maximize
-     * @return The maximized ULocale instance.
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static ULocale
-    addLikelySubtags(ULocale loc)
-    {
-        String[] tags = new String[3];
-        String trailing = null;
-  
-        int trailingIndex = parseTagString(
-            loc.localeID,
-            tags);
+        // Replace any deprecated subtags with their canonical values.
+        // TODO: not yet implemented.
 
-        if (trailingIndex < loc.localeID.length()) {
-            trailing = loc.localeID.substring(trailingIndex);
+        // If the tag is grandfathered, then return it.
+        // TODO: not yet implemented.
+
+        // Remove the script Zzzz and the region ZZ if they occur;
+        // change an empty language subtag to 'und'.
+
+        String language = loc.getLanguage();
+        String script = loc.getScript();
+        String region = loc.getCountry();
+
+        if (language.length() == 0) {
+            language = UNDEFINED_LANGUAGE;
         }
-
-        String newLocaleID =
-            createLikelySubtagsString(
-                (String)tags[0],
-                (String)tags[1],
-                (String)tags[2],
-                trailing);
-
-        return newLocaleID == null ? loc : new ULocale(newLocaleID);
-    }
-
-    /**
-     * Minimize the subtags for a provided locale ID, per the algorithm described
-     * in the following CLDR technical report:
-     *
-     *   http://www.unicode.org/reports/tr35/#Likely_Subtags
-     *
-     * If the provided ULocale instance is already in the minimal form, or there
-     * is no data available for minimization, it will be returned.  Since the
-     * minimization algorithm relies on proper maximization, see the comments
-     * for addLikelySubtags for reasons why there might not be any data.
-     *
-     * Examples:
-     *
-     * "en_Latn_US" minimizes to "en"
-     *
-     * "de_Latn_US" minimizes to "de"
-     *
-     * "sr_Cyrl_RS" minimizes to "sr"
-     *
-     * "zh_Hant_TW" minimizes to "zh_TW" (The region is preferred to the
-     * script, and minimizing to "zh" would imply "zh_Hans_CN".)
-     *
-     * @param loc The ULocale to minimize
-     * @return The minimized ULocale instance.
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static ULocale
-    minimizeSubtags(ULocale loc)
-    {
-        String[] tags = new String[3];
-
-        int trailingIndex = parseTagString(
-                loc.localeID,
-                tags);
-
-        String originalLang = (String)tags[0];
-        String originalScript = (String)tags[1];
-        String originalRegion = (String)tags[2];
-        String originalTrailing = null;
-
-        if (trailingIndex < loc.localeID.length()) {
-            /*
-             * Create a String that contains everything
-             * after the language, script, and region.
-             */
-            originalTrailing = loc.localeID.substring(trailingIndex);
-        }
-
-        /**
-         * First, we need to first get the maximization
-         * by adding any likely subtags.
-         **/
-        String maximizedLocaleID =
-            createLikelySubtagsString(
-                originalLang,
-                originalScript,
-                originalRegion,
-                null);
-
-        /**
-         * If maximization fails, there's nothing
-         * we can do.
-         **/
-        if (isEmptyString(maximizedLocaleID)) {
-            return loc;
-        }
-        else {
-            /**
-             * Start first with just the language.
-             **/
-            String tag =
-                createLikelySubtagsString(
-                    originalLang,
-                    null,
-                    null,
-                    null);
-
-            if (tag.equals(maximizedLocaleID)) {
-                String newLocaleID =
-                    createTagString(
-                        originalLang,
-                        null,
-                        null,
-                        originalTrailing);
-
-                return new ULocale(newLocaleID);
-            }
-        }
-
-        /**
-         * Next, try the language and region.
-         **/
-        if (originalRegion.length() != 0) {
-
-            String tag =
-                createLikelySubtagsString(
-                    originalLang,
-                    null,
-                    originalRegion,
-                    null);
-
-            if (tag.equals(maximizedLocaleID)) {
-                String newLocaleID =
-                    createTagString(
-                        originalLang,
-                        null,
-                        originalRegion,
-                        originalTrailing);
-
-                return new ULocale(newLocaleID);
-            }
-        }
-
-        /**
-         * Finally, try the language and script.  This is our last chance,
-         * since trying with all three subtags would only yield the
-         * maximal version that we already have.
-         **/
-        if (originalRegion.length() != 0 &&
-            originalScript.length() != 0) {
-
-            String tag =
-                createLikelySubtagsString(
-                    originalLang,
-                    originalScript,
-                    null,
-                    null);
-
-            if (tag.equals(maximizedLocaleID)) {
-                String newLocaleID =
-                    createTagString(
-                        originalLang,
-                        originalScript,
-                        null,
-                        originalTrailing);
-
-                return new ULocale(newLocaleID);
-            }
-        }
-
-        return loc;
-    }
-
-    /**
-     * A trivial utility function that checks for a null
-     * reference or checks the length of the supplied String.
-     *
-     *   @param string The string to check
-     *
-     *   @return true if the String is empty, or if the reference is null.
-     */
-    private static boolean isEmptyString(String string) {
-      return string == null || string.length() == 0;
-    }
-    
-    /**
-     * Append a tag to a StringBuffer, adding the separator if necessary.The tag must
-     * not be a zero-length string.
-     *
-     * @param tag The tag to add.
-     * @param buffer The output buffer.
-     **/
-    private static void
-    appendTag(
-        String tag,
-        StringBuffer buffer) {
-    
-        if (buffer.length() != 0) {
-            buffer.append(UNDERSCORE);
-        }
-    
-        buffer.append(tag);
-    }
-    
-    /**
-     * Create a tag string from the supplied parameters.  The lang, script and region
-     * parameters may be null references.
-     *
-     * If any of the language, script or region parameters are empty, and the alternateTags
-     * parameter is not null, it will be parsed for potential language, script and region tags
-     * to be used when constructing the new tag.  If the alternateTags parameter is null, or
-     * it contains no language tag, the default tag for the unknown language is used.
-     *
-     * @param lang The language tag to use.
-     * @param script The script tag to use.
-     * @param region The region tag to use.
-     * @param trailing Any trailing data to append to the new tag.
-     * @param alternateTags A string containing any alternate tags.
-     * @return The new tag string.
-     **/
-    private static String
-    createTagString(
-        String lang,
-        String script,
-        String region,
-        String trailing,
-        String alternateTags) {
-
-        IDParser parser = null;
-        boolean regionAppended = false;
-
-        StringBuffer tag = new StringBuffer();
-    
-        if (!isEmptyString(lang)) {
-            appendTag(
-                lang,
-                tag);
-        }
-        else if (isEmptyString(alternateTags)) {
-            /*
-             * Append the value for an unknown language, if
-             * we found no language.
-             */
-            appendTag(
-                UNDEFINED_LANGUAGE,
-                tag);
-        }
-        else {
-            parser = new IDParser(alternateTags);
-    
-            String alternateLang = parser.getLanguage();
-    
-            /*
-             * Append the value for an unknown language, if
-             * we found no language.
-             */
-            appendTag(
-                !isEmptyString(alternateLang) ? alternateLang : UNDEFINED_LANGUAGE,
-                tag);
-        }
-    
-        if (!isEmptyString(script)) {
-            appendTag(
-                script,
-                tag);
-        }
-        else if (!isEmptyString(alternateTags)) {
-            /*
-             * Parse the alternateTags string for the script.
-             */
-            if (parser == null) {
-                parser = new IDParser(alternateTags);
-            }
-    
-            String alternateScript = parser.getScript();
-    
-            if (!isEmptyString(alternateScript)) {
-                appendTag(
-                    alternateScript,
-                    tag);
-            }
-        }
-    
-        if (!isEmptyString(region)) {
-            appendTag(
-                region,
-                tag);
-
-            regionAppended = true;
-        }
-        else if (!isEmptyString(alternateTags)) {
-            /*
-             * Parse the alternateTags string for the region.
-             */
-            if (parser == null) {
-                parser = new IDParser(alternateTags);
-            }
-    
-            String alternateRegion = parser.getCountry();
-    
-            if (!isEmptyString(alternateRegion)) {
-                appendTag(
-                    alternateRegion,
-                    tag);
-
-                regionAppended = true;
-            }
-        }
-    
-        if (trailing != null && trailing.length() > 1) {
-            /*
-             * The current ICU format expects two underscores
-             * will separate the variant from the preceeding
-             * parts of the tag, if there is no region.
-             */
-            int separators = 0;
-
-            if (trailing.charAt(0) == UNDERSCORE) { 
-                if (trailing.charAt(1) == UNDERSCORE) {
-                    separators = 2;
-                }
-                }
-                else {
-                    separators = 1;
-                }
-
-            if (regionAppended) {
-                /*
-                 * If we appended a region, we may need to strip
-                 * the extra separator from the variant portion.
-                 */
-                if (separators == 2) {
-                    tag.append(trailing.substring(1));
-                }
-                else {
-                    tag.append(trailing);
-                }
-            }
-            else {
-                /*
-                 * If we did not append a region, we may need to add
-                 * an extra separator to the variant portion.
-                 */
-                if (separators == 1) {
-                    tag.append(UNDERSCORE);
-                }
-                tag.append(trailing);
-            }
-        }
-    
-        return tag.toString();
-    }
-    
-    /**
-     * Create a tag string from the supplied parameters.  The lang, script and region
-     * parameters may be null references.If the lang parameter is an empty string, the
-     * default value for an unknown language is written to the output buffer.
-     *
-     * @param lang The language tag to use.
-     * @param script The script tag to use.
-     * @param region The region tag to use.
-     * @param trailing Any trailing data to append to the new tag.
-     * @return The new String.
-     **/
-    static String
-    createTagString(
-            String lang,
-            String script,
-            String region,
-            String trailing) {
-    
-        return createTagString(
-                    lang,
-                    script,
-                    region,
-                    trailing,
-                    null);
-    }
-    
-    /**
-     * Parse the language, script, and region subtags from a tag string, and return the results.
-     *
-     * This function does not return the canonical strings for the unknown script and region.
-     *
-     * @param localeID The locale ID to parse.
-     * @param tags An array of three String references to return the subtag strings.
-     * @return The number of chars of the localeID parameter consumed.
-     **/
-    private static int
-    parseTagString(
-        String localeID,
-        String tags[])
-    {
-        IDParser parser = new IDParser(localeID);
-    
-        String lang = parser.getLanguage();
-        String script = parser.getScript();
-        String region = parser.getCountry();
-    
-        if (isEmptyString(lang)) {
-            tags[0] = UNDEFINED_LANGUAGE;
-        }
-        else {
-            tags[0] = lang;
-        }
-    
         if (script.equals(UNDEFINED_SCRIPT)) {
-            tags[1] = "";
+            script = EMPTY_STRING;
         }
-        else {
-            tags[1] = script;
-        }
-        
         if (region.equals(UNDEFINED_REGION)) {
-            tags[2] = "";
+            region = EMPTY_STRING;
         }
-        else {
-            tags[2] = region;
-        }
-    
-        /*
-         * Search for the variant.  If there is one, then return the index of
-         * the preceeding separator.
-         * If there's no variant, search for the keyword delimiter,
-         * and return its index.  Otherwise, return the length of the
-         * string.
-         * 
-         * $TOTO(dbertoni) we need to take into account that we might
-         * find a part of the language as the variant, since it can
-         * can have a variant portion that is long enough to contain
-         * the same characters as the variant. 
-         */
-        String variant = parser.getVariant();
-    
-        if (!isEmptyString(variant)){
-            int index = localeID.indexOf(variant); 
 
-            
-            return  index > 0 ? index - 1 : index;
-        }
-        else
-        {
-            int index = localeID.indexOf('@');
-    
-            return index == -1 ? localeID.length() : index;
-        }
-    }
-    
-    private static String
-    lookupLikelySubtags(String localeId) {
-        UResourceBundle bundle =
-            UResourceBundle.getBundleInstance(
-                    ICUResourceBundle.ICU_BASE_NAME, "likelySubtags");
-        try {
-            return bundle.getString(localeId);
-        }
-        catch(MissingResourceException e) {
-            return null;
-        }
-    }
+        // Lookup
+        boolean hasScript = script.length() != 0;
+        boolean hasRegion = region.length() != 0;
+        ULocale match;
+        boolean bDone = false;
 
-    private static String
-    createLikelySubtagsString(
-        String lang,
-        String script,
-        String region,
-        String variants) {
-    
-        /**
-         * Try the language with the script and region first.
-         **/
-        if (!isEmptyString(script) && !isEmptyString(region)) {
-    
-            String searchTag =
-                createTagString(
-                    lang,
-                    script,
-                    region,
-                    null);
-    
-            String likelySubtags = lookupLikelySubtags(searchTag);
-
-            /*
-            if (likelySubtags == null) {
-                if (likelySubtags2 != null) {
-                    System.err.println("Tag mismatch: \"(null)\" \"" + likelySubtags2 + "\"");
+        if (hasScript && hasRegion) {
+            // Lookup language_script_region
+            match = (ULocale)_likelySubtagMaximizeMap.get(language + "_" + script + "_" + region);
+            if (match != null) {
+                language = match.getLanguage();
+                script = match.getScript();
+                region = match.getCountry();
+                bDone = true;
+            }
+        }
+        if (!bDone && hasScript) {
+            // Lookup language_script
+            match = (ULocale)_likelySubtagMaximizeMap.get(language + "_" + script);
+            if (match != null) {
+                language = match.getLanguage();
+                script = match.getScript();
+                if (!hasRegion) {
+                    region = match.getCountry();
                 }
-            }
-            else if (likelySubtags2 == null) {
-                System.err.println("Tag mismatch: \"" + likelySubtags + "\" \"(null)\"");
-            }
-            else if (!likelySubtags.equals(likelySubtags2)) {
-                System.err.println("Tag mismatch: \"" + likelySubtags + "\" \"" + likelySubtags2 + "\"");
-            }
-            */
-            if (likelySubtags != null) {
-                // Always use the language tag from the
-                // maximal string, since it may be more
-                // specific than the one provided.
-                return createTagString(
-                            null,
-                            null,
-                            null,
-                            variants,
-                            likelySubtags);
+                bDone = true;
             }
         }
-    
-        /**
-         * Try the language with just the script.
-         **/
-        if (!isEmptyString(script)) {
-    
-            String searchTag =
-                createTagString(
-                    lang,
-                    script,
-                    null,
-                    null);
-    
-            String likelySubtags = lookupLikelySubtags(searchTag);    
-            if (likelySubtags != null) {
-                // Always use the language tag from the
-                // maximal string, since it may be more
-                // specific than the one provided.
-                return createTagString(
-                            null,
-                            null,
-                            region,
-                            variants,
-                            likelySubtags);
+        if (!bDone && hasRegion) {
+            // Lookup language_region
+            match = (ULocale)_likelySubtagMaximizeMap.get(language + "_" + region);
+            if (match != null) {
+                language = match.getLanguage();
+                region = match.getCountry();
+                if (!hasScript) {
+                    script = match.getScript();
+                }
+                bDone = true;
             }
         }
-    
-        /**
-         * Try the language with just the region.
-         **/
-        if (!isEmptyString(region)) {
-    
-            String searchTag =
-                createTagString(
-                    lang,
-                    null,
-                    region,
-                    null);
-    
-            String likelySubtags = lookupLikelySubtags(searchTag);    
-    
-            if (likelySubtags != null) {
-                // Always use the language tag from the
-                // maximal string, since it may be more
-                // specific than the one provided.
-                return createTagString(
-                            null,
-                            script,
-                            null,
-                            variants,
-                            likelySubtags);
+        if (!bDone) {
+            // Lookup language
+            match = (ULocale)_likelySubtagMaximizeMap.get(language);
+            if (match != null) {
+                language = match.getLanguage();
+                if (!hasScript) {
+                    script = match.getScript();
+                }
+                if (!hasRegion) {
+                    region = match.getCountry();
+                }
+                bDone = true;
             }
         }
-    
-        /**
-         * Finally, try just the language.
-         **/
-        {
-            String searchTag =
-                createTagString(
-                    lang,
-                    null,
-                    null,
-                    null);
-    
-            String likelySubtags = lookupLikelySubtags(searchTag);    
-  
-            if (likelySubtags != null) {
-                // Always use the language tag from the
-                // maximal string, since it may be more
-                // specific than the one provided.
-                return createTagString(
-                            null,
-                            script,
-                            region,
-                            variants,
-                            likelySubtags);
+
+        ULocale result = null;
+
+        if (bDone) {
+            // Check if we need to create a new locale instance
+            if (language.equals(loc.getLanguage())
+                    && script.equals(loc.getScript())
+                    && region.equals(loc.getCountry())) {
+                // Nothing had changed - return the input locale
+                result = loc;
+            } else {
+                StringBuffer buf = new StringBuffer();
+                buf.append(language);
+                if (script.length() != 0) {
+                    buf.append(UNDERSCORE);
+                    buf.append(script);
+                }
+                if (region.length() != 0) {
+                    buf.append(UNDERSCORE);
+                    buf.append(region);
+                }
+                String variant = loc.getVariant();
+                if (variant.length() != 0) {
+                    buf.append(UNDERSCORE);
+                    buf.append(variant);
+                }
+                int keywordsIdx = loc.localeID.indexOf('@');
+                if (keywordsIdx >= 0) {
+                    buf.append(loc.localeID.substring(keywordsIdx));
+                }
+                result = new ULocale(buf.toString());
+            }
+        } else {
+            if (hasScript && hasRegion && language != UNDEFINED_LANGUAGE) {
+                // If non of these succeed, if the original had language, region
+                // and script, return it.
+                result = loc;
+            } else {
+                // Otherwise, signal an error.
+                // TODO: For now, we just return the input locale.
+                result = loc;
             }
         }
-    
-        return null;
+
+        return result;
     }
 }

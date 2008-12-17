@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2000-2008, International Business Machines Corporation and
+ * Copyright (C) 2000-2007, International Business Machines Corporation and
  * others. All Rights Reserved.
  *******************************************************************************
  */
@@ -41,7 +41,7 @@ public class IBMCalendarTest extends CalendarTest {
 
         // NOTE
         // This test tests for specific locale data.  This is probably okay
-        // as far as US data is concerned, but if the Arabic/Yemen data
+        // as far as US data is concerned, but if the Arabic/Bahrain data
         // changes, this test will have to be updated.
 
         // Test specific days
@@ -56,7 +56,7 @@ public class IBMCalendarTest extends CalendarTest {
                 2000, Calendar.MARCH, 20,  0,  0, 0, // Mon 00:00
                 2000, Calendar.MARCH, 20,  8,  0, 0, // Mon 08:00
             },
-            new Locale("ar", "YE"), new int[] { // Thursday:Friday
+            new Locale("ar", "BH"), new int[] { // Thursday:Friday
                 2000, Calendar.MARCH, 15, 23,  0, 0, // Wed 23:00
                 2000, Calendar.MARCH, 16,  0, -1, 0, // Wed 23:59:59.999
                 2000, Calendar.MARCH, 16,  0,  0, 1, // Thu 00:00
@@ -76,7 +76,7 @@ public class IBMCalendarTest extends CalendarTest {
                 Calendar.SATURDAY, Calendar.WEEKEND,
                 Calendar.SUNDAY,   Calendar.WEEKEND_CEASE,
             },
-            new Locale("ar", "YE"), new int[] { // Thursday:Friday
+            new Locale("ar", "BH"), new int[] { // Thursday:Friday
                 Calendar.WEDNESDAY,Calendar.WEEKDAY,
                 Calendar.SATURDAY, Calendar.WEEKDAY,
                 Calendar.THURSDAY, Calendar.WEEKEND,
@@ -296,23 +296,12 @@ public class IBMCalendarTest extends CalendarTest {
         Calendar cal = Calendar.getInstance();
         cal.set(2007, Calendar.JANUARY, 1);
         BuddhistCalendar buddhist = new BuddhistCalendar();
-        doLimitsTest(buddhist, null, cal.getTime());
+        if (!skipIfBeforeICU(3,9,0)) {
+            doLimitsTest(buddhist, null, cal.getTime());
+        }
         doTheoreticalLimitsTest(buddhist, false);
     }
 
-    /**
-     * Default calendar for Thai (Ticket#6302)
-     */
-    public void TestThaiDefault() {
-        // Buddhist calendar is used as the default calendar for
-        // Thai locale
-        Calendar cal = Calendar.getInstance(new ULocale("th_TH"));
-        String type = cal.getType();
-        if (!type.equals("buddhist")) {
-            errln("FAIL: Buddhist calendar is not returned for locale " + cal.toString());
-        }
-    }
-    
     /**
      * Verify that TaiwanCalendar shifts years to Minguo Era but otherwise
      * behaves like GregorianCalendar.
@@ -336,7 +325,9 @@ public class IBMCalendarTest extends CalendarTest {
         Calendar cal = Calendar.getInstance();
         cal.set(2007, Calendar.JANUARY, 1);
         TaiwanCalendar taiwan = new TaiwanCalendar();
-        doLimitsTest(taiwan, null, cal.getTime());
+        if (!skipIfBeforeICU(3,9,0)) {
+            doLimitsTest(taiwan, null, cal.getTime());
+        }
         doTheoreticalLimitsTest(taiwan, false);
     }
 
@@ -957,7 +948,7 @@ public class IBMCalendarTest extends CalendarTest {
         // String[] calTypes = Calendar.getAvailableTypes();
         final String[] calTypes = {
             "buddhist", "chinese", "coptic", "ethiopic", "gregorian", "hebrew", 
-            "islamic", "islamic-civil", "japanese", "roc"
+            "islamic", "islamic-civil", "japanese", "taiwan"
         };
         
         // constructing a DateFormat with a locale indicating a calendar type should construct a

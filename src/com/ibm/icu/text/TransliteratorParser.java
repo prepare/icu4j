@@ -1,6 +1,6 @@
 /*
 **********************************************************************
-*   Copyright (c) 2001-2008, International Business Machines
+*   Copyright (c) 2001-2007, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 **********************************************************************
 */
@@ -223,8 +223,8 @@ class TransliteratorParser {
             int i = start;
             while (i < limit) {
                 char c = text.charAt(i);
-                if ((i==start && !UCharacter.isUnicodeIdentifierStart(c)) ||
-                    !UCharacter.isUnicodeIdentifierPart(c)) {
+                if ((i==start && !Character.isUnicodeIdentifierStart(c)) ||
+                    !Character.isUnicodeIdentifierPart(c)) {
                     break;
                 }
                 ++i;
@@ -850,8 +850,8 @@ class TransliteratorParser {
      * Parse a set of rules.  After the parse completes, examine the public
      * data members for results.
      */
-    public void parse(String rules, int dir) {
-        parseRules(new RuleArray(new String[] { rules }), dir);
+    public void parse(String rules, int direction) {
+        parseRules(new RuleArray(new String[] { rules }), direction);
     }
    
     /*

@@ -1,7 +1,7 @@
 //##header J2SE15
 /*
 *******************************************************************************
-*   Copyright (C) 2001-2008, International Business Machines
+*   Copyright (C) 2001-2007, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 *******************************************************************************
 */
@@ -29,7 +29,6 @@ package com.ibm.icu.text;
 //#if defined(FOUNDATION10)
 //#else
 import java.awt.font.TextAttribute;
-import java.text.AttributedCharacterIterator;
 //#endif
 //#if defined(FOUNDATION10) || defined(J2SE13)
 //#else
@@ -37,6 +36,7 @@ import java.awt.font.NumericShaper;
 //#endif
 import java.io.IOException;
 import java.lang.reflect.Array;
+import java.text.AttributedCharacterIterator;
 import java.util.MissingResourceException;
 import java.util.Arrays;
 
@@ -1227,15 +1227,15 @@ public class Bidi {
     private Object getMemory(String label, Object array, Class arrayClass,
             boolean mayAllocate, int sizeNeeded)
     {
-        int len = Array.getLength(array);
+        int length = Array.getLength(array);
 
         /* we have at least enough memory and must not allocate */
-        if (sizeNeeded == len) {
+        if (sizeNeeded == length) {
             return array;
         }
         if (!mayAllocate) {
             /* we must not allocate */
-            if (sizeNeeded <= len) {
+            if (sizeNeeded <= length) {
                 return array;
             }
             throw new OutOfMemoryError("Failed to allocate memory for "
@@ -1253,59 +1253,59 @@ public class Bidi {
     }
 
     /* helper methods for each allocated array */
-    private void getDirPropsMemory(boolean mayAllocate, int len)
+    private void getDirPropsMemory(boolean mayAllocate, int length)
     {
-        Object array = getMemory("DirProps", dirPropsMemory, Byte.TYPE, mayAllocate, len);
+        Object array = getMemory("DirProps", dirPropsMemory, Byte.TYPE, mayAllocate, length);
         dirPropsMemory = (byte[]) array;
     }
 
-    void getDirPropsMemory(int len)
+    void getDirPropsMemory(int length)
     {
-        getDirPropsMemory(mayAllocateText, len);
+        getDirPropsMemory(mayAllocateText, length);
     }
 
-    private void getLevelsMemory(boolean mayAllocate, int len)
+    private void getLevelsMemory(boolean mayAllocate, int length)
     {
-        Object array = getMemory("Levels", levelsMemory, Byte.TYPE, mayAllocate, len);
+        Object array = getMemory("Levels", levelsMemory, Byte.TYPE, mayAllocate, length);
         levelsMemory = (byte[]) array;
     }
 
-    void getLevelsMemory(int len)
+    void getLevelsMemory(int length)
     {
-        getLevelsMemory(mayAllocateText, len);
+        getLevelsMemory(mayAllocateText, length);
     }
 
-    private void getRunsMemory(boolean mayAllocate, int len)
+    private void getRunsMemory(boolean mayAllocate, int length)
     {
-        Object array = getMemory("Runs", runsMemory, BidiRun.class, mayAllocate, len);
+        Object array = getMemory("Runs", runsMemory, BidiRun.class, mayAllocate, length);
         runsMemory = (BidiRun[]) array;
     }
 
-    void getRunsMemory(int len)
+    void getRunsMemory(int length)
     {
-        getRunsMemory(mayAllocateRuns, len);
+        getRunsMemory(mayAllocateRuns, length);
     }
 
     /* additional methods used by constructor - always allow allocation */
-    private void getInitialDirPropsMemory(int len)
+    private void getInitialDirPropsMemory(int length)
     {
-        getDirPropsMemory(true, len);
+        getDirPropsMemory(true, length);
     }
 
-    private void getInitialLevelsMemory(int len)
+    private void getInitialLevelsMemory(int length)
     {
-        getLevelsMemory(true, len);
+        getLevelsMemory(true, length);
     }
 
-    private void getInitialParasMemory(int len)
+    private void getInitialParasMemory(int length)
     {
-        Object array = getMemory("Paras", parasMemory, Integer.TYPE, true, len);
+        Object array = getMemory("Paras", parasMemory, Integer.TYPE, true, length);
         parasMemory = (int[]) array;
     }
 
-    private void getInitialRunsMemory(int len)
+    private void getInitialRunsMemory(int length)
     {
-        getRunsMemory(true, len);
+        getRunsMemory(true, length);
     }
 
     /**
@@ -1828,15 +1828,15 @@ public class Bidi {
         byte dirProp;
         byte level = GetParaLevelAt(0);
 
-        byte dirct;
+        byte direction;
         int paraIndex = 0;
 
         /* determine if the text is mixed-directional or single-directional */
-        dirct = directionFromFlags();
+        direction = directionFromFlags();
 
         /* we may not need to resolve any explicit levels, but for multiple
            paragraphs we want to loop on all chars to set the para boundaries */
-        if ((dirct != MIXED) && (paraCount == 1)) {
+        if ((direction != MIXED) && (paraCount == 1)) {
             /* not mixed directionality: levels don't matter - trailingWSStart will be 0 */
         } else if ((paraCount == 1) &&
                    ((flags & MASK_EXPLICIT) == 0 ||
@@ -1975,10 +1975,10 @@ public class Bidi {
             /* subsequently, ignore the explicit codes and BN (X9) */
 
             /* again, determine if the text is mixed-directional or single-directional */
-            dirct = directionFromFlags();
+            direction = directionFromFlags();
         }
 
-        return dirct;
+        return direction;
     }
 
     /*
@@ -3237,8 +3237,7 @@ public class Bidi {
              * Examples for "insignificant" ones are empty embeddings
              * LRE-PDF, LRE-RLE-PDF-PDF, etc.
              */
-            if (embeddingLevels == null && paraCount <= 1 &&
-                (flags & DirPropFlagMultiRuns) == 0) {
+            if (embeddingLevels == null && (flags & DirPropFlagMultiRuns) == 0) {
                 resolveImplicitLevels(0, length,
                         GetLRFromLevel(GetParaLevelAt(0)),
                         GetLRFromLevel(GetParaLevelAt(length - 1)));
@@ -3391,33 +3390,33 @@ public class Bidi {
      */
     public void setPara(AttributedCharacterIterator paragraph)
     {
-        byte paraLvl;
+        byte paraLevel;
         Boolean runDirection = (Boolean) paragraph.getAttribute(TextAttribute.RUN_DIRECTION);
         if (runDirection == null) {
-            paraLvl = LEVEL_DEFAULT_LTR;
+            paraLevel = LEVEL_DEFAULT_LTR;
         } else {
-            paraLvl = (runDirection.equals(TextAttribute.RUN_DIRECTION_LTR)) ?
+            paraLevel = (runDirection.equals(TextAttribute.RUN_DIRECTION_LTR)) ?
                         LTR : RTL;
         }
 
-        byte[] lvls = null;
-        int len = paragraph.getEndIndex() - paragraph.getBeginIndex();
-        byte[] embeddingLevels = new byte[len];
-        char[] txt = new char[len];
+        byte[] levels = null;
+        int length = paragraph.getEndIndex() - paragraph.getBeginIndex();
+        byte[] embeddingLevels = new byte[length];
+        char[] text = new char[length];
         int i = 0;
         char ch = paragraph.first();
         while (ch != AttributedCharacterIterator.DONE) {
-            txt[i] = ch;
+            text[i] = ch;
             Integer embedding = (Integer) paragraph.getAttribute(TextAttribute.BIDI_EMBEDDING);
             if (embedding != null) {
                 byte level = embedding.byteValue();
                 if (level == 0) {
                     /* no-op */
                 } else if (level < 0) {
-                    lvls = embeddingLevels;
+                    levels = embeddingLevels;
                     embeddingLevels[i] = (byte)((0 - level) | LEVEL_OVERRIDE);
                 } else {
-                    lvls = embeddingLevels;
+                    levels = embeddingLevels;
                     embeddingLevels[i] = level;
                 }
             }
@@ -3429,10 +3428,10 @@ public class Bidi {
 //#else
         NumericShaper shaper = (NumericShaper) paragraph.getAttribute(TextAttribute.NUMERIC_SHAPING);
         if (shaper != null) {
-            shaper.shape(txt, 0, len);
+            shaper.shape(text, 0, length);
         }
 //#endif
-        setPara(txt, paraLvl, lvls);
+        setPara(text, paraLevel, levels);
     }
 //#endif
 
@@ -3448,15 +3447,15 @@ public class Bidi {
      * position of the text before reordering will go to the first position
      * of the reordered text when the paragraph level is odd.
      *
-     * @param ordarParaLTR specifies whether paragraph separators (B) must
+     * @param orderParagraphsLTR specifies whether paragraph separators (B) must
      * receive level 0, so that successive paragraphs progress from left to right.
      *
      * @see #setPara
      * @draft ICU 3.8
      * @provisional This API might change or be removed in a future release.
      */
-    public void orderParagraphsLTR(boolean ordarParaLTR) {
-        orderParagraphsLTR = ordarParaLTR;
+    public void orderParagraphsLTR(boolean orderParagraphsLTR) {
+        this.orderParagraphsLTR = orderParagraphsLTR;
     }
 
     /**
@@ -4028,12 +4027,8 @@ public class Bidi {
      * </pre>
      * <p>
      * Note that in right-to-left runs, code like this places
-     * second surrogates before first ones (which is generally a bad idea)
-     * and combining characters before base characters.
-     * <p>
-     * Use of <code>{@link #writeReordered}</code>, optionally with the
-     * <code>{@link #KEEP_BASE_COMBINING}</code> option, can be considered in
-     * order to avoid these issues.
+     * modifier letters before base characters and second surrogates
+     * before first ones.
      *
      * @param runIndex is the number of the run in visual order, in the
      *        range <code>[0..countRuns()-1]</code>.
@@ -4083,11 +4078,8 @@ public class Bidi {
      * such as {@link #OPTION_INSERT_MARKS} and {@link #OPTION_REMOVE_CONTROLS}.
      * <p>
      * Note that in right-to-left runs, this mapping places
-     * second surrogates before first ones (which is generally a bad idea)
-     * and combining characters before base characters.
-     * Use of <code>{@link #writeReordered}</code>, optionally with the
-     * <code>{@link #KEEP_BASE_COMBINING}</code> option can be considered instead
-     * of using the mapping, in order to avoid these issues.
+     * modifier letters before base characters and second surrogates
+     * before first ones.
      *
      * @param logicalIndex is the index of a character in the text.
      *
@@ -4184,13 +4176,6 @@ public class Bidi {
      * <code>REMOVE_BIDI_CONTROLS</code>, the visual positions returned may not
      * be correct. It is advised to use, when possible, reordering options
      * such as {@link #OPTION_INSERT_MARKS} and {@link #OPTION_REMOVE_CONTROLS}.
-     * <p>
-     * Note that in right-to-left runs, this mapping places
-     * second surrogates before first ones (which is generally a bad idea)
-     * and combining characters before base characters.
-     * Use of <code>{@link #writeReordered}</code>, optionally with the
-     * <code>{@link #KEEP_BASE_COMBINING}</code> option can be considered instead
-     * of using the mapping, in order to avoid these issues.
      *
      * @return an array of <code>getProcessedLength()</code>
      *        indexes which will reflect the reordering of the characters.<br><br>
@@ -4492,20 +4477,20 @@ public class Bidi {
             int flags)
     {
         this();
-        byte paraLvl;
+        byte paraLevel;
         switch (flags) {
         case DIRECTION_LEFT_TO_RIGHT:
         default:
-            paraLvl = LTR;
+            paraLevel = LTR;
             break;
         case DIRECTION_RIGHT_TO_LEFT:
-            paraLvl = RTL;
+            paraLevel = RTL;
             break;
         case DIRECTION_DEFAULT_LEFT_TO_RIGHT:
-            paraLvl = LEVEL_DEFAULT_LTR;
+            paraLevel = LEVEL_DEFAULT_LTR;
             break;
         case DIRECTION_DEFAULT_RIGHT_TO_LEFT:
-            paraLvl = LEVEL_DEFAULT_RTL;
+            paraLevel = LEVEL_DEFAULT_RTL;
             break;
         }
         byte[] paraEmbeddings;
@@ -4519,8 +4504,8 @@ public class Bidi {
                 if (lev < 0) {
                     lev = (byte)((- lev) | LEVEL_OVERRIDE);
                 } else if (lev == 0) {
-                    lev = paraLvl;
-                    if (paraLvl > MAX_EXPLICIT_LEVEL) {
+                    lev = paraLevel;
+                    if (paraLevel > MAX_EXPLICIT_LEVEL) {
                         lev &= 1;
                     }
                 }
@@ -4528,11 +4513,11 @@ public class Bidi {
             }
         }
         if (textStart == 0 && embStart == 0 && paragraphLength == text.length) {
-            setPara(text, paraLvl, paraEmbeddings);
+            setPara(text, paraLevel, paraEmbeddings);
         } else {
             char[] paraText = new char[paragraphLength];
             System.arraycopy(text, textStart, paraText, 0, paragraphLength);
-            setPara(paraText, paraLvl, paraEmbeddings);
+            setPara(paraText, paraLevel, paraEmbeddings);
         }
     }
 
@@ -4754,9 +4739,9 @@ public class Bidi {
         verifyRange(run, 0, runCount);
         getLogicalToVisualRunsMap();
         int idx = logicalToVisualRunsMap[run];
-        int len = idx == 0 ? runs[idx].limit :
+        int length = idx == 0 ? runs[idx].limit :
                                 runs[idx].limit - runs[idx-1].limit;
-        return runs[idx].start + len;
+        return runs[idx].start + length;
     }
 
     /**
@@ -4838,7 +4823,7 @@ public class Bidi {
      * since the <code>setPara()</code> call.</p>
      *
      * This method preserves the integrity of characters with multiple
-     * code units and (optionally) combining characters.
+     * code units and (optionally) modifier letters.
      * Characters in RTL runs can be replaced by mirror-image characters
      * in the returned string. Note that "real" mirroring has to be done in a
      * rendering engine by glyph selection and that for many "mirrored"
@@ -4901,7 +4886,7 @@ public class Bidi {
      * Reverse a Right-To-Left run of Unicode text.
      *
      * This method preserves the integrity of characters with multiple
-     * code units and (optionally) combining characters.
+     * code units and (optionally) modifier letters.
      * Characters can be replaced by mirror-image characters
      * in the destination buffer. Note that "real" mirroring has
      * to be done in a rendering engine by glyph selection

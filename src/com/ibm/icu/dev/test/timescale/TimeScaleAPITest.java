@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2008, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2007, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  *
@@ -112,21 +112,19 @@ public class TimeScaleAPITest extends TestFmwk
         } catch (IllegalArgumentException iae) {
             logln("PASS: UniversalTimeScale.from failed as expected");
         }
-
+        
         for (int scale = 0; scale < UniversalTimeScale.MAX_SCALE; scale += 1) {
             long fromMin = UniversalTimeScale.getTimeScaleValue(scale, UniversalTimeScale.FROM_MIN_VALUE);
             long fromMax = UniversalTimeScale.getTimeScaleValue(scale, UniversalTimeScale.FROM_MAX_VALUE);
             
             try {
                 result = UniversalTimeScale.from(0L, scale);
-                logln("from(0L, " + scale + ") returned " + result);
             } catch (IllegalArgumentException iae) {
                 errln("from(0L, " + scale + ") threw IllegalArgumentException.");
             }
-
+            
             try {
                 result = UniversalTimeScale.from(fromMin, scale);
-                logln("from(fromMin, " + scale + ") returned " + result);
             } catch (IllegalArgumentException iae) {
                 errln("from(fromMin, " + scale + ") threw IllegalArgumentException.");
             }
@@ -142,7 +140,6 @@ public class TimeScaleAPITest extends TestFmwk
              
             try {
                 result = UniversalTimeScale.from(fromMax, scale);
-                logln("from(fromMax, " + scale + ") returned " + result);
             } catch (IllegalArgumentException iae) {
                 errln("from(fromMax, " + scale + ") threw IllegalArgumentException.");
             }
@@ -186,7 +183,6 @@ public class TimeScaleAPITest extends TestFmwk
         for (int scale = 0; scale < UniversalTimeScale.MAX_SCALE; scale += 1) {
             try {
                 value = UniversalTimeScale.getTimeScaleValue(scale, 0);
-                logln("getTimeScaleValue(" + scale + ", 0) returned " + value);
             } catch (IllegalArgumentException iae) {
                 errln("getTimeScaleValue(" + scale + ", 0) threw IllegalArgumentException.");
             }
@@ -303,14 +299,12 @@ public class TimeScaleAPITest extends TestFmwk
             
             try {
                 result = UniversalTimeScale.toLong(0L, scale);
-                logln("toLong(0L, " + scale + ") returned " + result);
             } catch (IllegalArgumentException iae) {
                 errln("toLong(0L, " + scale + ") threw IllegalArgumentException.");
             }
             
             try {
                 result = UniversalTimeScale.toLong(toMin, scale);
-                logln("toLong(toMin, " + scale + ") returned " + result);
             } catch (IllegalArgumentException iae) {
                 errln("toLong(toMin, " + scale + ") threw IllegalArgumentException.");
             }
@@ -326,7 +320,6 @@ public class TimeScaleAPITest extends TestFmwk
              
             try {
                 result = UniversalTimeScale.toLong(toMax, scale);
-                logln("toLong(toMax, " + scale + ") returned " + result);
             } catch (IllegalArgumentException iae) {
                 errln("toLong(toMax, " + scale + ") threw IllegalArgumentException.");
             }

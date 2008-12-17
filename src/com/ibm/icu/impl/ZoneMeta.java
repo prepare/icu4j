@@ -1,6 +1,6 @@
 /*
 **********************************************************************
-* Copyright (c) 2003-2008 International Business Machines
+* Copyright (c) 2003-2007 International Business Machines
 * Corporation and others.  All Rights Reserved.
 **********************************************************************
 * Author: Alan Liu
@@ -11,6 +11,7 @@
 package com.ibm.icu.impl;
 
 import java.lang.ref.SoftReference;
+import java.text.ParseException;
 import java.text.ParsePosition;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -24,6 +25,7 @@ import java.util.Vector;
 
 import com.ibm.icu.text.MessageFormat;
 import com.ibm.icu.text.NumberFormat;
+import com.ibm.icu.text.SimpleDateFormat;
 import com.ibm.icu.util.SimpleTimeZone;
 import com.ibm.icu.util.TimeZone;
 import com.ibm.icu.util.ULocale;
@@ -171,123 +173,73 @@ public final class ZoneMeta {
     public static synchronized String getEquivalentID(String id, int index) {
         String result="";
         UResourceBundle res = openOlsonResource(id);
-        if (res != null) {
-            int zone = -1;
-            int size = res.getSize();
-            if (size == 4 || size == 6) {
-                UResourceBundle r = res.get(size-1);
-                int[] v = r.getIntVector();
-                if (index >= 0 && index < v.length) {
-                    zone = v[index];
-                }
+        int zone = -1;
+        int size = res.getSize();
+        if (size == 4 || size == 6) {
+            UResourceBundle r = res.get(size-1);
+            int[] v = r.getIntVector();
+            if (index >= 0 && index < v.length && getOlsonMeta()) {
+                zone = v[index];
             }
-            if (zone >= 0) {
-                try {
-                    UResourceBundle top = UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, "zoneinfo",
-                            ICUResourceBundle.ICU_DATA_CLASS_LOADER);
-                    UResourceBundle ares = top.get(kNAMES); // dereference Zones section
-                    result = ares.getString(zone);
-                } catch (MissingResourceException e) {
-                    result = "";
-                }
-            }
+        }
+        if (zone >= 0) {
+            UResourceBundle top = UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, "zoneinfo", ICUResourceBundle.ICU_DATA_CLASS_LOADER);
+            UResourceBundle ares = top.get(kNAMES); // dereference Zones section
+            result = ares.getString(zone);
+
         }
         return result;
     }
 
     private static String[] getCanonicalInfo(String id) {
-        if (id == null || id.length() == 0) {
+        // We need to resolve Olson links which are not available in CLDR first
+        String olsonCanonicalID = getOlsonCanonicalID(id);
+        if (olsonCanonicalID == null) {
             return null;
         }
         if (canonicalMap == null) {
             Map m = new HashMap();
             Set s = new HashSet();
-            try {
-                UResourceBundle supplementalDataBundle = UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, "supplementalData", ICUResourceBundle.ICU_DATA_CLASS_LOADER);
-    
-                UResourceBundle zoneFormatting = supplementalDataBundle.get("zoneFormatting");
-                UResourceBundleIterator it = zoneFormatting.getIterator();
-    
-                while ( it.hasNext()) {
-                    UResourceBundle temp = it.next();
-                    int resourceType = temp.getType();
-    
-                    switch(resourceType) {
-                        case UResourceBundle.TABLE:
-                            String [] result = { "", "" };
-                            UResourceBundle zoneInfo = temp;
-                            String canonicalID = zoneInfo.getKey().replace(':','/');
-                            String territory = zoneInfo.get("territory").getString();
-                            result[0] = canonicalID;
-                            if ( territory.equals("001")) {
-                                result[1] = null;
-                            }
-                            else {
-                                result[1] = territory;
-                            }
-                            m.put(canonicalID,result);
-                            try {
-                                UResourceBundle aliasBundle = zoneInfo.get("aliases");
-                                String [] aliases = aliasBundle.getStringArray();
-                                for (int i=0 ; i<aliases.length; i++) {
-                                   m.put(aliases[i],result);
-                                }
-                            } catch(MissingResourceException ex){
-                                // Disregard if there are no aliases
-                            }
-                            break;
-                        case UResourceBundle.ARRAY:
-                            String[] territoryList = temp.getStringArray();
-                            for (int i=0 ; i < territoryList.length; i++) {
-                                s.add(territoryList[i]);
-                            }
-                            break;
-                    }
-                }
-            } catch (MissingResourceException e) {
-                // throws away the exception - maps are empty for this case
-            }
+            UResourceBundle supplementalDataBundle = UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, "supplementalData", ICUResourceBundle.ICU_DATA_CLASS_LOADER);
 
-            // Some available Olson zones are not included in CLDR data (such as Asia/Riyadh87).
-            // Also, when we update Olson tzdata, new zones may be added.
-            // This code scans all available zones in zoneinfo.res, and if any of them are
-            // missing, add them to the map.
-            try{
-                UResourceBundle top = (ICUResourceBundle)ICUResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME,
-                        "zoneinfo", ICUResourceBundle.ICU_DATA_CLASS_LOADER);
-                UResourceBundle names = top.get(kNAMES);
-                String[] ids = names.getStringArray();
-                for (int i = 0; i < ids.length; i++) {
-                    if (m.containsKey(ids[i])) {
-                        // Already included in CLDR data
-                        continue;
-                    }
-                    // Not in CLDR data, but it could be new one whose alias is
-                    // available in CLDR
-                    String[] tmpinfo = null;
-                    int nTzdataEquivalent = TimeZone.countEquivalentIDs(ids[i]);
-                    for (int j = 0; j < nTzdataEquivalent; j++) {
-                        String alias = TimeZone.getEquivalentID(ids[i], j);
-                        if (alias.equals(ids[i])) {
-                            continue;
+            UResourceBundle zoneFormatting = supplementalDataBundle.get("zoneFormatting");
+            UResourceBundleIterator it = zoneFormatting.getIterator();
+
+            while ( it.hasNext()) {
+                UResourceBundle temp = it.next();
+                int resourceType = temp.getType();
+
+                switch(resourceType) {
+                    case UResourceBundle.TABLE:
+                        String [] result = { "", "" };
+                        UResourceBundle zoneInfo = temp;
+                        String canonicalID = zoneInfo.getKey().replace(':','/');
+                        String territory = zoneInfo.get("territory").getString();
+                        result[0] = canonicalID;
+                        if ( territory.equals("001")) {
+                            result[1] = null;
                         }
-                        tmpinfo = (String[])m.get(alias);
-                        if (tmpinfo != null) {
-                            break;
+                        else {
+                            result[1] = territory;
                         }
-                    }
-                    if (tmpinfo == null) {
-                        // Set dereferenced zone ID as the canonical ID
-                        UResourceBundle res = getZoneByName(top, ids[i]);
-                        String derefID = (res.getSize() == 1) ? ids[res.getInt()] : ids[i];
-                        m.put(ids[i], new String[] {derefID, null});
-                    } else {
-                        // Use the canonical ID in the existing entry
-                        m.put(ids[i], tmpinfo);
-                    }
+                        m.put(canonicalID,result);
+                        try {
+                            UResourceBundle aliasBundle = zoneInfo.get("aliases");
+                            String [] aliases = aliasBundle.getStringArray();
+                            for (int i=0 ; i<aliases.length; i++) {
+                               m.put(aliases[i],result);
+                            }
+                        } catch(MissingResourceException ex){
+                            // Disregard if there are no aliases
+                        }
+                        break;
+                    case UResourceBundle.ARRAY:
+                        String[] territoryList = temp.getStringArray();
+                        for (int i=0 ; i < territoryList.length; i++) {
+                            s.add(territoryList[i]);
+                        }
+                        break;
                 }
-            } catch (MissingResourceException ex) {
-                //throw away the exception
             }
 
             synchronized (ZoneMeta.class) {
@@ -296,22 +248,22 @@ public final class ZoneMeta {
             }
         }
 
-        return (String[])canonicalMap.get(id);
+        return (String[])canonicalMap.get(olsonCanonicalID);
     }
 
     private static Map canonicalMap = null;
     private static Set multiZoneTerritories = null;
 
     /**
-     * Return the canonical id for this system tzid, which might be the id itself.
-     * If the given system tzid is not know, return null.
+     * Return the canonical id for this tzid, which might be the id itself.
+     * If there is no canonical id for it, return the passed-in id.
      */
-    public static String getCanonicalSystemID(String tzid) {
+    public static String getCanonicalID(String tzid) {
         String[] info = getCanonicalInfo(tzid);
         if (info != null) {
             return info[0];
         }
-        return null;
+        return tzid;
     }
 
     /**
@@ -357,24 +309,20 @@ public final class ZoneMeta {
 
         String country = null;
         if (country_code != null) {
-            try {
-                ICUResourceBundle rb = 
-                    (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, locale);
+            ICUResourceBundle rb = 
+                (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, locale);
 //
 // TODO: There is a design bug in UResourceBundle and getLoadingStatus() does not work well.
 //
-//                if (rb.getLoadingStatus() != ICUResourceBundle.FROM_ROOT && rb.getLoadingStatus() != ICUResourceBundle.FROM_DEFAULT) {
-//                    country = ULocale.getDisplayCountry("xx_" + country_code, locale);
-//                }
+//            if (rb.getLoadingStatus() != ICUResourceBundle.FROM_ROOT && rb.getLoadingStatus() != ICUResourceBundle.FROM_DEFAULT) {
+//                country = ULocale.getDisplayCountry("xx_" + country_code, locale);
+//            }
 // START WORKAROUND
-                ULocale rbloc = rb.getULocale();
-                if (!rbloc.equals(ULocale.ROOT) && rbloc.getLanguage().equals(locale.getLanguage())) {
-                    country = ULocale.getDisplayCountry("xx_" + country_code, locale);
-                }
-// END WORKAROUND
-            } catch (MissingResourceException e) {
-                // fall through
+            ULocale rbloc = rb.getULocale();
+            if (!rbloc.equals(ULocale.ROOT) && rbloc.getLanguage().equals(locale.getLanguage())) {
+                country = ULocale.getDisplayCountry("xx_" + country_code, locale);
             }
+// END WORKAROUND
             if (country == null || country.length() == 0) {
                 country = country_code;
             }
@@ -384,9 +332,6 @@ public final class ZoneMeta {
         // TR35 says to display the country _only_ if there is a localization.
         if (getSingleCountry(tzid) != null) { // single country
             String regPat = getTZLocalizationInfo(locale, REGION_FORMAT);
-            if (regPat == null) {
-                regPat = DEF_REGION_FORMAT;
-            }
             MessageFormat mf = new MessageFormat(regPat);
             return mf.format(new Object[] { country });
         }
@@ -396,16 +341,10 @@ public final class ZoneMeta {
         }
 
         String flbPat = getTZLocalizationInfo(locale, FALLBACK_FORMAT);
-        if (flbPat == null) {
-            flbPat = DEF_FALLBACK_FORMAT;
-        }
         MessageFormat mf = new MessageFormat(flbPat);
 
         return mf.format(new Object[] { city, country });
     }
-
-    private static final String DEF_REGION_FORMAT = "{0}";
-    private static final String DEF_FALLBACK_FORMAT = "{1} ({0})";
 
     public static final String
         HOUR = "hourFormat",
@@ -420,14 +359,8 @@ public final class ZoneMeta {
      * values PREFIX, HOUR, GMT, REGION_FORMAT, FALLBACK_FORMAT
      */
     public static String getTZLocalizationInfo(ULocale locale, String format) {
-        String result = null;
-        try {
-            ICUResourceBundle bundle = (ICUResourceBundle) ICUResourceBundle.getBundleInstance(locale);
-            result = bundle.getStringWithFallback(ZONE_STRINGS+FORWARD_SLASH+format);
-        } catch (MissingResourceException e) {
-            result = null;
-        }
-        return result;
+        ICUResourceBundle bundle = (ICUResourceBundle) ICUResourceBundle.getBundleInstance(locale);
+        return bundle.getStringWithFallback(ZONE_STRINGS+FORWARD_SLASH+format);
     }
 
 //    private static Set getValidIDs() {
@@ -454,30 +387,56 @@ public final class ZoneMeta {
      */
     public static UResourceBundle openOlsonResource(String id)
     {
-        UResourceBundle res = null;
-        try {
-            ICUResourceBundle top = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, "zoneinfo", ICUResourceBundle.ICU_DATA_CLASS_LOADER);
-            res = getZoneByName(top, id);
-            // Dereference if this is an alias.  Docs say result should be 1
-            // but it is 0 in 2.8 (?).
-             if (res.getSize() <= 1) {
-                int deref = res.getInt() + 0;
-                UResourceBundle ares = top.get(kZONES); // dereference Zones section
-                res = (ICUResourceBundle) ares.get(deref);
-            }
-        } catch (MissingResourceException e) {
-            res = null;
+        if(!getOlsonMeta()){
+            return null;
         }
+        ICUResourceBundle top = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, "zoneinfo", ICUResourceBundle.ICU_DATA_CLASS_LOADER);
+        UResourceBundle res = getZoneByName(top, id);
+        // Dereference if this is an alias.  Docs say result should be 1
+        // but it is 0 in 2.8 (?).
+         if (res.getSize() <= 1 && getOlsonMeta(top)) {
+            int deref = res.getInt() + 0;
+            UResourceBundle ares = top.get(kZONES); // dereference Zones section
+            res = (ICUResourceBundle) ares.get(deref);
+        } 
         return res;
     }
 
+    /**
+     * Get a canonical Olson zone ID for the given ID.  If the given ID is not valid,
+     * this method returns null as the result.  If the given ID is a link, then the
+     * referenced ID (canonical ID) is returned.
+     * @param id zone id
+     * @return a canonical Olson id (not a link)
+     */
+    public static synchronized String getOlsonCanonicalID(String id) {
+        if (!getOlsonMeta()) {
+            return null;
+        }
+        String canonicalID = null;
+        ICUResourceBundle top = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, "zoneinfo", ICUResourceBundle.ICU_DATA_CLASS_LOADER);
+        try {
+            UResourceBundle res = getZoneByName(top, id);
+            if (res.getSize() == 1) {
+                int deref = res.getInt();
+                UResourceBundle names = top.get(kNAMES);
+                canonicalID = names.getString(deref);
+            } else {
+                canonicalID = id;
+            }
+        } catch (MissingResourceException mre) {
+            // throw away the exception
+        }
+        return canonicalID;
+    }
+    
     /**
      * Fetch a specific zone by name.  Replaces the getByKey call. 
      * @param top Top timezone resource
      * @param id Time zone ID
      * @return the zone's bundle if found, or undefined if error.  Reuses oldbundle.
      */
-    private static UResourceBundle getZoneByName(UResourceBundle top, String id) throws MissingResourceException {
+    private static UResourceBundle getZoneByName(UResourceBundle top, String id) {
         // load the Rules object
         UResourceBundle tmp = top.get(kNAMES);
         
@@ -546,14 +505,10 @@ public final class ZoneMeta {
      * meta-data. Return true if successful.
      */
     private static boolean getOlsonMeta(ICUResourceBundle top) {
-        if (OLSON_ZONE_START < 0 && top != null) {
-            try {
-                UResourceBundle res = top.get(kZONES);
-                OLSON_ZONE_COUNT = res.getSize();
-                OLSON_ZONE_START = 0;
-            } catch (MissingResourceException e) {
-                // throws away the exception
-            }
+        if (OLSON_ZONE_START < 0) {
+            UResourceBundle res = top.get(kZONES);
+            OLSON_ZONE_COUNT = res.getSize();
+            OLSON_ZONE_START = 0;
         }
         return (OLSON_ZONE_START >= 0);
     }
@@ -562,17 +517,12 @@ public final class ZoneMeta {
      * Load up the Olson meta-data. Return true if successful.
      */
     private static boolean getOlsonMeta() {
-        if (OLSON_ZONE_START < 0) {
-            try {
-                ICUResourceBundle top = (ICUResourceBundle)ICUResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, "zoneinfo", ICUResourceBundle.ICU_DATA_CLASS_LOADER);
-                getOlsonMeta(top);
-            } catch (MissingResourceException e) {
-                // throws away the exception
-            }
+        ICUResourceBundle top = (ICUResourceBundle)ICUResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, "zoneinfo", ICUResourceBundle.ICU_DATA_CLASS_LOADER);
+        if(OLSON_ZONE_START < 0) {
+            getOlsonMeta(top);
         }
         return (OLSON_ZONE_START >= 0);
     }
-
     /**
      * Lookup the given name in our system zone table.  If found,
      * instantiate a new zone of that name and return it.  If not
@@ -613,56 +563,22 @@ public final class ZoneMeta {
      * no Daylight Savings Time, or null if the id cannot be parsed.
     */
     public static TimeZone getCustomTimeZone(String id){
-        int[] fields = new int[4];
-        if (parseCustomID(id, fields)) {
-            String zid = formatCustomID(fields[1], fields[2], fields[3], fields[0] < 0);
-            int offset = fields[0] * ((fields[1] * 60 + fields[2]) * 60 + fields[3]) * 1000;
-            return new SimpleTimeZone(offset, zid);
-        }
-        return null;
-    }
 
-    /**
-     * Parse a custom time zone identifier and return the normalized
-     * custom time zone identifier for the given custom id string.
-     * @param id a string of the form GMT[+-]hh:mm, GMT[+-]hhmm, or
-     * GMT[+-]hh.
-     * @return The normalized custom id string.
-    */
-    public static String getCustomID(String id) {
-        int[] fields = new int[4];
-        if (parseCustomID(id, fields)) {
-            return formatCustomID(fields[1], fields[2], fields[3], fields[0] < 0);
-        }
-        return null;
-    }
-
-    /*
-     * Parses the given custom time zone identifier
-     * @param id id A string of the form GMT[+-]hh:mm, GMT[+-]hhmm, or
-     * GMT[+-]hh.
-     * @param fields An array of int (length = 4) to receive the parsed
-     * offset time fields.  The sign is set to fields[0] (-1 or 1),
-     * hour is set to fields[1], minute is set to fields[2] and second is
-     * set to fields[3].
-     * @return Returns true when the given custom id is valid.
-     */
-    static boolean parseCustomID(String id, int[] fields) {
         NumberFormat numberFormat = null;
         String idUppercase = id.toUpperCase();
 
-        if (id != null && id.length() > kGMT_ID.length() &&
+        if (id.length() > kGMT_ID.length() &&
             idUppercase.startsWith(kGMT_ID)) {
             ParsePosition pos = new ParsePosition(kGMT_ID.length());
-            int sign = 1;
+            boolean negative = false;
             int hour = 0;
             int min = 0;
             int sec = 0;
 
             if (id.charAt(pos.getIndex()) == 0x002D /*'-'*/) {
-                sign = -1;
+                negative = true;
             } else if (id.charAt(pos.getIndex()) != 0x002B /*'+'*/) {
-                return false;
+                return null;
             }
             pos.setIndex(pos.getIndex() + 1);
 
@@ -674,14 +590,14 @@ public final class ZoneMeta {
 
             Number n = numberFormat.parse(id, pos);
             if (pos.getIndex() == start) {
-                return false;
+                return null;
             }
             hour = n.intValue();
 
             if (pos.getIndex() < id.length()){
                 if (pos.getIndex() - start > 2
                         || id.charAt(pos.getIndex()) != 0x003A /*':'*/) {
-                    return false;
+                    return null;
                 }
                 // hh:mm
                 pos.setIndex(pos.getIndex() + 1);
@@ -689,12 +605,12 @@ public final class ZoneMeta {
                 n = numberFormat.parse(id, pos);
                 if ((pos.getIndex() - oldPos) != 2) {
                     // must be 2 digits
-                    return false;
+                    return null;
                 }
                 min = n.intValue();
                 if (pos.getIndex() < id.length()) {
                     if (id.charAt(pos.getIndex()) != 0x003A /*':'*/) {
-                        return false;
+                        return null;
                     }
                     // [:ss]
                     pos.setIndex(pos.getIndex() + 1);
@@ -702,7 +618,7 @@ public final class ZoneMeta {
                     n = numberFormat.parse(id, pos);
                     if (pos.getIndex() != id.length()
                             || (pos.getIndex() - oldPos) != 2) {
-                        return false;
+                        return null;
                     }
                     sec = n.intValue();
                 }
@@ -719,7 +635,7 @@ public final class ZoneMeta {
                 int length = pos.getIndex() - start;
                 if (length <= 0 || 6 < length) {
                     // invalid length
-                    return false;
+                    return null;
                 }
                 switch (length) {
                     case 1:
@@ -740,25 +656,19 @@ public final class ZoneMeta {
                 }
             }
 
-            if (hour <= kMAX_CUSTOM_HOUR && min <= kMAX_CUSTOM_MIN && sec <= kMAX_CUSTOM_SEC) {
-                if (fields != null) {
-                    if (fields.length >= 1) {
-                        fields[0] = sign;
-                    }
-                    if (fields.length >= 2) {
-                        fields[1] = hour;
-                    }
-                    if (fields.length >= 3) {
-                        fields[2] = min;
-                    }
-                    if (fields.length >= 4) {
-                        fields[3] = sec;
-                    }
-                }
-                return true;
+            if (hour > kMAX_CUSTOM_HOUR || min > kMAX_CUSTOM_MIN || sec > kMAX_CUSTOM_SEC) {
+                return null;
             }
+
+            String zid = getCustomID(hour, min, sec, negative);
+            int offset = ((hour * 60 + min) * 60 + sec) * 1000;
+            if(negative) {
+                offset = -offset;
+            }
+            TimeZone z = new SimpleTimeZone(offset, zid);
+            return z;
         }
-        return false;
+        return null;
     }
 
     /**
@@ -777,9 +687,6 @@ public final class ZoneMeta {
         int hour, min, sec, millis;
 
         millis = tmp % 1000;
-        if (ASSERT) {
-            Assert.assrt("millis!=0", millis != 0);
-        }
         tmp /= 1000;
         sec = tmp % 60;
         tmp /= 60;
@@ -787,7 +694,7 @@ public final class ZoneMeta {
         hour = tmp / 60;
 
         // Note: No millisecond part included in TZID for now
-        String zid = formatCustomID(hour, min, sec, negative);
+        String zid = getCustomID(hour, min, sec, negative);
 
         return new SimpleTimeZone(offset, zid);
     }
@@ -795,7 +702,7 @@ public final class ZoneMeta {
     /*
      * Returns the normalized custom TimeZone ID
      */
-    static String formatCustomID(int hour, int min, int sec, boolean negative) {
+    private static String getCustomID(int hour, int min, int sec, boolean negative) {
         // Create normalized time zone ID - GMT[+|-]hhmm[ss]
         StringBuffer zid = new StringBuffer(kCUSTOM_TZ_PREFIX);
         if (hour != 0 || min != 0) {
@@ -848,6 +755,10 @@ public final class ZoneMeta {
             if (olsonToMeta == null) {
                 olsonToMeta = createOlsonToMetaMap();
                 if (olsonToMeta == null) {
+                    // We may not need this code for ICU4J...
+                    olsonToMeta = createOlsonToMetaMapOld();
+                }
+                if (olsonToMeta == null) {
                     // We need to return non-null Map to avoid disaster
                     olsonToMeta = new HashMap();
                 }
@@ -874,8 +785,7 @@ public final class ZoneMeta {
             String[] tzids = getAvailableIDs();
             for (int i = 0; i < tzids.length; i++) {
                 // Skip aliases
-                String canonicalID = TimeZone.getCanonicalID(tzids[i]);
-                if (canonicalID == null || !tzids[i].equals(canonicalID)) {
+                if (!tzids[i].equals(getCanonicalID(tzids[i]))) {
                     continue;
                 }
                 String tzkey = tzids[i].replace('/', ':');
@@ -918,6 +828,67 @@ public final class ZoneMeta {
         return olsonToMeta;
     }
 
+    /*
+     * Create olson tzid to metazone mappings from root.res (3.8)
+     */
+    private static Map createOlsonToMetaMapOld() {
+        // Create olson id to metazone mapping table
+        HashMap olsonToMeta = null;
+        UResourceBundle zoneStringsBundle = null;
+        try {
+            UResourceBundle bundle = UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, "root");
+            zoneStringsBundle = bundle.get("zoneStrings");
+        } catch (MissingResourceException mre) {
+            // do nothing
+        }
+        if (zoneStringsBundle != null) {
+            String[] tzids = getAvailableIDs();
+            for (int i = 0; i < tzids.length; i++) {
+                // Skip aliases
+                if (!tzids[i].equals(getCanonicalID(tzids[i]))) {
+                    continue;
+                }
+                String tzkey = tzids[i].replace('/', ':');
+                try {
+                    UResourceBundle zoneBundle = zoneStringsBundle.get(tzkey);
+                    UResourceBundle useMZ = zoneBundle.get("um");
+                    LinkedList mzMappings = new LinkedList();
+                    for (int idx = 0; ; idx++) {
+                        try {
+                            UResourceBundle mz = useMZ.get("mz" + idx);
+                            String[] mzstr = mz.getStringArray();
+                            if (mzstr == null || mzstr.length != 3) {
+                                continue;
+                            }
+                            OlsonToMetaMappingEntry mzmap = new OlsonToMetaMappingEntry();
+                            mzmap.mzid = mzstr[0].intern();
+                            mzmap.from = parseDate(mzstr[1]);
+                            mzmap.to = parseDate(mzstr[2]);
+
+                            // Add this mapping to the list
+                            mzMappings.add(mzmap);
+                        } catch (MissingResourceException nomz) {
+                            // we're done
+                            break;
+                        } catch (IllegalArgumentException baddate) {
+                            // skip this
+                        }
+                    }
+                    if (mzMappings.size() != 0) {
+                        // Add to the olson-to-meta map
+                        if (olsonToMeta == null) {
+                            olsonToMeta = new HashMap();
+                        }
+                        olsonToMeta.put(tzids[i], mzMappings);
+                    }
+                } catch (MissingResourceException noum) {
+                    // Does not use metazone, just skip this.
+                }
+            }
+        }
+        return olsonToMeta;
+    }
+    
     /**
      * Returns a CLDR metazone ID for the given Olson tzid and time.
      */
@@ -925,13 +896,6 @@ public final class ZoneMeta {
         String mzid = null;
         Map olsonToMeta = getOlsonToMetaMap();
         List mappings = (List)olsonToMeta.get(olsonID);
-        if (mappings == null) {
-            // The given ID might be an alias - try its canonical id
-            String canonicalID = getCanonicalSystemID(olsonID);
-            if (canonicalID != null && !canonicalID.equals(olsonID)) {
-                mappings = (List)olsonToMeta.get(canonicalID);
-            }
-        }
         if (mappings != null) {
             for (int i = 0; i < mappings.size(); i++) {
                 OlsonToMetaMappingEntry mzm = (OlsonToMetaMappingEntry)mappings.get(i);

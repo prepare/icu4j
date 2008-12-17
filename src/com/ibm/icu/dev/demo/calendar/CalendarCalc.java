@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1997-2008, International Business Machines Corporation and    *
+ * Copyright (C) 1997-2007, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -415,7 +415,7 @@ class CalendarCalcFrame extends Frame implements ActionListener
      * This function is called when users select a new time field
      * to add or roll its value.
      */
-    public void dateFieldChanged(boolean isUp) {
+    public void dateFieldChanged(boolean up) {
         int field = kRollAddFields[dateMenu.getSelectedIndex()].field;
 
         for (int i = 0; i < calendars.length; i++)
@@ -426,9 +426,9 @@ class CalendarCalcFrame extends Frame implements ActionListener
                 c.setTime(new Date(time));
 
                 if (getAdd.getState()) {
-                    c.add(field, isUp ? 1 : -1);
+                    c.add(field, up ? 1 : -1);
                 } else {
-                    c.roll(field, isUp);
+                    c.roll(field, up);
                 }
 
                 time = c.getTime().getTime();

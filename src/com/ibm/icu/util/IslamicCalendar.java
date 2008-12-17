@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2008, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2007, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -326,34 +326,31 @@ public class IslamicCalendar extends Calendar {
     // Minimum / Maximum access functions
     //-------------------------------------------------------------------------
 
-    // Note: Current IslamicCalendar implementation does not work
-    // well with negative years.
-
     private static final int LIMITS[][] = {
-        // Minimum  Greatest     Least   Maximum
-        //           Minimum   Maximum
-        {        0,        0,        0,        0}, // ERA
-        {        1,        1,  5000000,  5000000}, // YEAR
-        {        0,        0,       11,       11}, // MONTH
-        {        1,        1,       50,       51}, // WEEK_OF_YEAR
-        {/*                                   */}, // WEEK_OF_MONTH
-        {        1,        1,       29,       30}, // DAY_OF_MONTH
-        {        1,        1,      354,      355}, // DAY_OF_YEAR
-        {/*                                   */}, // DAY_OF_WEEK
-        {       -1,       -1,        5,        5}, // DAY_OF_WEEK_IN_MONTH
-        {/*                                   */}, // AM_PM
-        {/*                                   */}, // HOUR
-        {/*                                   */}, // HOUR_OF_DAY
-        {/*                                   */}, // MINUTE
-        {/*                                   */}, // SECOND
-        {/*                                   */}, // MILLISECOND
-        {/*                                   */}, // ZONE_OFFSET
-        {/*                                   */}, // DST_OFFSET
-        {        1,        1,  5000000,  5000000}, // YEAR_WOY
-        {/*                                   */}, // DOW_LOCAL
-        {        1,        1,  5000000,  5000000}, // EXTENDED_YEAR
-        {/*                                   */}, // JULIAN_DAY
-        {/*                                   */}, // MILLISECONDS_IN_DAY
+        // Minimum  Greatest    Least  Maximum
+        //           Minimum  Maximum
+        {        0,        0,       0,       0 }, // ERA
+        {        1,        1, 5000000, 5000000 }, // YEAR
+        {        0,        0,      11,      11 }, // MONTH
+        {        1,        1,      50,      51 }, // WEEK_OF_YEAR
+        {        0,        0,       4,       6 }, // WEEK_OF_MONTH
+        {        1,        1,      29,      30 }, // DAY_OF_MONTH
+        {        1,        1,     354,     355 }, // DAY_OF_YEAR
+        {/*                                  */}, // DAY_OF_WEEK
+        {       -1,       -1,       5,       5 }, // DAY_OF_WEEK_IN_MONTH
+        {/*                                  */}, // AM_PM
+        {/*                                  */}, // HOUR
+        {/*                                  */}, // HOUR_OF_DAY
+        {/*                                  */}, // MINUTE
+        {/*                                  */}, // SECOND
+        {/*                                  */}, // MILLISECOND
+        {/*                                  */}, // ZONE_OFFSET
+        {/*                                  */}, // DST_OFFSET
+        { -5000001, -5000001, 5000001, 5000001 }, // YEAR_WOY
+        {/*                                  */}, // DOW_LOCAL
+        { -5000000, -5000000, 5000000, 5000000 }, // EXTENDED_YEAR
+        {/*                                  */}, // JULIAN_DAY
+        {/*                                  */}, // MILLISECONDS_IN_DAY
     };
 
     /**
@@ -641,7 +638,8 @@ public class IslamicCalendar extends Calendar {
 
     /**
      * {@inheritDoc}
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public String getType() {
         return "islamic";

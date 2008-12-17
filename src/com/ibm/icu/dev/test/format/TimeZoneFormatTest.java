@@ -1,8 +1,8 @@
 /*
- ********************************************************************************
- * Copyright (C) 2007-2008, Google, International Business Machines Corporation *
- * and others. All Rights Reserved.                                             *
- ********************************************************************************
+ *******************************************************************************
+ * Copyright (C) 2007, Google, IBM and  *
+ * others. All Rights Reserved. *
+ *******************************************************************************
  */
 
 package com.ibm.icu.dev.test.format;
@@ -11,6 +11,7 @@ import java.text.ParseException;
 import java.text.ParsePosition;
 import java.util.Date;
 
+import com.ibm.icu.impl.ZoneMeta;
 import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.text.SimpleDateFormat;
 import com.ibm.icu.util.BasicTimeZone;
@@ -115,7 +116,7 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                                 numDigits++;
                             }
                         }
-                        if (numDigits >= 3) {
+                        if (numDigits >= 4) {
                             // Localized GMT or RFC: total offset (raw + dst) must be preserved.
                             int inOffset = inOffsets[0] + inOffsets[1];
                             int outOffset = outOffsets[0] + outOffsets[1];
@@ -137,8 +138,7 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                             }
                         } else { // "VVVV"
                             // Location: time zone rule must be preserved.
-                            String canonicalID = TimeZone.getCanonicalID(tzids[tzidx]);
-                            if (canonicalID != null && !outtz.getID().equals(canonicalID)) {
+                            if (!outtz.getID().equals(ZoneMeta.getCanonicalID(tzids[tzidx]))) {
                                 // Canonical ID did not match - check the rules
                                 if (!((BasicTimeZone)outtz).hasEquivalentTransitions(tz, low, high)) {
                                     errln("Canonical round trip failed; tz=" + tzids[tzidx]
@@ -162,24 +162,12 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
      * round trip as expected.
      */
     public void TestTimeRoundTrip() {
-
-        boolean TEST_ALL = "true".equalsIgnoreCase(getProperty("TimeZoneRoundTripAll"));
-
-        int startYear, endYear;
-
-        if (TEST_ALL || getInclusion() > 5) {
-            startYear = 1900;
-        } else {
-            startYear = 1990;
-        }
-
         Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        endYear = cal.get(Calendar.YEAR) + 3;
 
-        cal.set(startYear, Calendar.JANUARY, 1);
+        cal.set(1900, Calendar.JANUARY, 1);
         final long START_TIME = cal.getTimeInMillis();
 
-        cal.set(endYear, Calendar.JANUARY, 1);
+        cal.set(2020, Calendar.JANUARY, 1);
         final long END_TIME = cal.getTimeInMillis();
 
         // Whether each pattern is ambiguous at DST->STD local time overlap
@@ -190,13 +178,14 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         final String BASEPATTERN = "yyyy-MM-dd'T'HH:mm:ss.SSS";
 
         ULocale[] LOCALES = null;
+        boolean DEBUG_ALL = false;
         boolean REALLY_VERBOSE = false;
 
         // timer for performance analysis
         long[] times = new long[PATTERNS.length];
         long timer;
 
-        if (TEST_ALL) {
+        if (DEBUG_ALL) {
             // It may take about an hour for testing all locales
             LOCALES = ULocale.getAvailableLocales();
         } else if (getInclusion() > 5) {
@@ -214,11 +203,10 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         } else {
             LOCALES = new ULocale[] {
                 new ULocale("en"),
+                new ULocale("en_CA"),
+                new ULocale("fr")
             };
         }
-
-        SimpleDateFormat sdfGMT = new SimpleDateFormat(BASEPATTERN);
-        sdfGMT.setTimeZone(TimeZone.getTimeZone("Etc/GMT"));
 
         long testCounts = 0;
         long[] testTimes = new long[4];
@@ -233,13 +221,11 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
 
                 String[] ids = TimeZone.getAvailableIDs();
                 for (int zidx = 0; zidx < ids.length; zidx++) {
-                    String id = TimeZone.getCanonicalID(ids[zidx]);
-                    if (id == null || !id.equals(ids[zidx])) {
+                    if(!ids[zidx].equals(ZoneMeta.getCanonicalID(ids[zidx]))) {
                         // Skip aliases
                         continue;
                     }
-                    BasicTimeZone btz = (BasicTimeZone)TimeZone.getTimeZone(ids[zidx], TimeZone.TIMEZONE_ICU);
-                    TimeZone tz = TimeZone.getTimeZone(ids[zidx]);
+                    BasicTimeZone tz = (BasicTimeZone)TimeZone.getTimeZone(ids[zidx]);
                     sdf.setTimeZone(tz);
 
                     long t = START_TIME;
@@ -289,7 +275,6 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                                         .append(", locale=").append(LOCALES[locidx])
                                         .append(", pattern=").append(PATTERNS[patidx])
                                         .append(", text=").append(text)
-                                        .append(", gmt=").append(sdfGMT.format(new Date(testTimes[testidx])))
                                         .append(", time=").append(testTimes[testidx])
                                         .append(", restime=").append(restime)
                                         .append(", diff=").append(restime - testTimes[testidx]);
@@ -304,7 +289,7 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                             }
                             times[patidx] += System.currentTimeMillis() - timer;
                         }
-                        tzt = btz.getNextTransition(t, false);
+                        tzt = tz.getNextTransition(t, false);
                         if (tzt == null) {
                             break;
                         }

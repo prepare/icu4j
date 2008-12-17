@@ -81,16 +81,16 @@ public class ResourceReader {
         _reset();
     }
 
-         /**
-          * Construct a reader object for the input stream associated with
-          * the given resource name.
-          * @param is the input stream of the resource
-          * @param resourceName the name of the resource
-          */
-          public ResourceReader(InputStream is, String resourceName, String encoding) {
-                   this.root = null;
+    /**
+     * Construct a reader object for the input stream associated with
+     * the given resource name.
+     * @param is the input stream of the resource
+     * @param resourceName the name of the resource
+     */
+     public ResourceReader(InputStream is, String resourceName) {
+         this.root = null;
          this.resourceName = resourceName;
-         this.encoding = encoding;
+         this.encoding = null;
 
          this.lineNo = -1;
          try {
@@ -104,16 +104,6 @@ public class ResourceReader {
          catch (UnsupportedEncodingException e) {
          }
      }
-
-          /**
-           * Construct a reader object for the input stream associated with
-           * the given resource name.
-           * @param is the input stream of the resource
-           * @param resourceName the name of the resource
-           */
-          public ResourceReader(InputStream is, String resourceName) {
-              this(is, resourceName, null);
-          }
 
     /**
      * Construct a reader object for the text file of the given name

@@ -1,6 +1,7 @@
+//##header J2SE15
 /*
  *******************************************************************************
- * Copyright (C) 2005-2008 International Business Machines Corporation and          *
+ * Copyright (C) 2005-2007 International Business Machines Corporation and          *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -48,13 +49,13 @@ public class RuleBasedBreakIterator extends BreakIterator {
         return This;   
     }
     
-    /*private RuleBasedBreakIterator(RuleBasedBreakIterator other) {
+    private RuleBasedBreakIterator(RuleBasedBreakIterator other) {
         // TODO: check types.
         fRData = other.fRData;
         if (fText != null) {
             fText = (CharacterIterator)(other.fText.clone());   
         }
-    }*/
+    }
 
     /**
      * Construct a RuleBasedBreakIterator from a set of rules supplied as a string.
@@ -72,8 +73,11 @@ public class RuleBasedBreakIterator extends BreakIterator {
         } catch (IOException e) {
             // An IO exception can only arrive here if there is a bug in the RBBI Rule compiler,
             //  causing bogus compiled rules to be produced, but with no compile error raised.
-            RuntimeException rte = new RuntimeException("RuleBasedBreakIterator rule compilation internal error: "
-                    + e.getMessage());
+//#if defined(FOUNDATION10) || defined(J2SE13)
+//##            RuntimeException rte = new RuntimeException("RuleBasedBreakIterator rule compilation internal error:");
+//#else
+            RuntimeException rte = new RuntimeException("RuleBasedBreakIterator rule compilation internal error:", e);
+//#endif
             throw rte;
         }
     }

@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2007-2008, International Business Machines Corporation and         *
+ * Copyright (C) 2007, International Business Machines Corporation and         *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -10,7 +10,7 @@ import java.text.FieldPosition;
 import java.text.ParsePosition;
 import java.util.Comparator;
 import java.util.Date;
-import java.util.MissingResourceException;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -24,6 +24,8 @@ import com.ibm.icu.util.UResourceBundleIterator;
 
 /**
  * @author srl
+ * @internal
+ * @deprecated ICU Internal Use Only
  */
 public class RelativeDateFormat extends DateFormat {
 
@@ -68,10 +70,9 @@ public class RelativeDateFormat extends DateFormat {
         } else {
             fTimeFormat = null;
         }
-
+        
         initializeCalendar(null, fLocale);
         loadDates();
-        initializeCombinedFormat(calendar, fLocale);
     }
     
     /**
@@ -84,36 +85,23 @@ public class RelativeDateFormat extends DateFormat {
      */
     public StringBuffer format(Calendar cal, StringBuffer toAppendTo,
             FieldPosition fieldPosition) {
+        // calculate the difference, in days, between 'cal' and now.
+        int dayDiff = dayDifference(cal);
 
-        //TODO: handle FieldPosition properly
-
-        String dayString = null;
-        String timeString = null;
-        if (fDateStyle != DateFormat.NONE) {
-            // calculate the difference, in days, between 'cal' and now.
-            int dayDiff = dayDifference(cal);
-
-            // look up string
-            dayString = getStringForDay(dayDiff);
-
-            if (dayString == null) {
-                // didn't find it. Fall through to the fDateFormat 
-                dayString = fDateFormat.format(cal);
+        // look up string
+        String theString = getStringForDay(dayDiff);
+        
+        if(theString==null) {
+            // didn't find it. Fall through to the fDateFormat 
+            if(fDateFormat != null) {
+                return fDateFormat.format(cal,toAppendTo,fieldPosition);
+            } else {
+                return toAppendTo; // no op
             }
+        } else {
+            // found a relative string
+            return toAppendTo.append(theString);
         }
-        if (fTimeStyle != DateFormat.NONE) {
-            timeString = fTimeFormat.format(cal);
-        }
-
-        if (dayString != null && timeString != null) {
-            return fCombinedFormat.format(new Object[] {dayString, timeString}, toAppendTo,
-                    new FieldPosition(0));
-        } else if (dayString != null) {
-            toAppendTo.append(dayString);
-        } else if (timeString != null) {
-            toAppendTo.append(timeString);
-        }
-        return toAppendTo;
     }
 
     /* (non-Javadoc)
@@ -123,10 +111,10 @@ public class RelativeDateFormat extends DateFormat {
         throw new UnsupportedOperationException("Relative Date parse is not implemented yet");
     }
 
-    private DateFormat fDateFormat; // the held date format
+    private DateFormat fDateFormat; // the held date format 
     private DateFormat fTimeFormat; // the held time format
     private MessageFormat fCombinedFormat; //  the {0} {1} format. 
-
+    
     int fDateStyle;
     int fTimeStyle;
     ULocale  fLocale;
@@ -193,7 +181,7 @@ public class RelativeDateFormat extends DateFormat {
         Date nowDate = new Date(System.currentTimeMillis());
         nowCal.clear();
         nowCal.setTime(nowDate);
-        int dayDiff = until.get(Calendar.JULIAN_DAY) - nowCal.get(Calendar.JULIAN_DAY);
+        int dayDiff = nowCal.fieldDifference(until.getTime(), Calendar.DATE);
         return dayDiff;
     }
     
@@ -203,6 +191,7 @@ public class RelativeDateFormat extends DateFormat {
      * @param locale Locale of the calendar
      * @param status Error code
      * @return the newly constructed fCalendar
+     * @draft ICU 3.8
      */
     private Calendar initializeCalendar(TimeZone zone, ULocale locale) {
         if (calendar == null) {
@@ -213,20 +202,5 @@ public class RelativeDateFormat extends DateFormat {
             }
         }
         return calendar;
-    }
-
-    private MessageFormat initializeCombinedFormat(Calendar cal, ULocale locale) {
-        String pattern = "{1} {0}";
-        try {
-            CalendarData calData = new CalendarData(locale, cal.getType());
-            String[] patterns = calData.get("DateTimePatterns").getStringArray();
-            if (patterns != null && patterns.length >= 9) {
-                pattern = patterns[8];
-            }
-        } catch (MissingResourceException e) {
-            // use default
-        }
-        fCombinedFormat = new MessageFormat(pattern, locale);
-        return fCombinedFormat;
     }
 }

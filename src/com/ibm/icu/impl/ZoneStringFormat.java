@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2007-2008, International Business Machines Corporation and    *
+ * Copyright (C) 2007, International Business Machines Corporation and         *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -9,6 +9,7 @@ package com.ibm.icu.impl;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.MissingResourceException;
@@ -237,11 +238,11 @@ public class ZoneStringFormat {
         String[][] mzPartialLoc = new String[10][4]; // maximum 10 metazones per zone
 
         for (int i = 0; i < zoneIDs.length; i++) {
-            // Skip aliases
-            String tzid = ZoneMeta.getCanonicalSystemID(zoneIDs[i]);
-            if (tzid == null || !zoneIDs[i].equals(tzid)) {
+            // Skip IDs that are not canonicalized...
+            if (!zoneIDs[i].equals(ZoneMeta.getCanonicalID(zoneIDs[i]))) {
                 continue;
             }
+            String tzid = zoneIDs[i];
 
             String zoneKey = tzid.replace('/', ':');
             zstrarray[ZSIDX_LONG_STANDARD] = getZoneStringFromBundle(zoneStringsBundle, zoneKey, RESKEY_LONG_STANDARD);
@@ -450,13 +451,8 @@ public class ZoneStringFormat {
         ZoneStrings zstrings = (ZoneStrings)tzidToStrings.get(tzid);
         if (zstrings == null) {
             // ICU's own array does not have entries for aliases
-            String canonicalID = ZoneMeta.getCanonicalSystemID(tzid);
-            if (canonicalID != null && !canonicalID.equals(tzid)) {
-                // Canonicalize tzid here.  The rest of operations
-                // require tzid to be canonicalized.
-                tzid = canonicalID;
-                zstrings = (ZoneStrings)tzidToStrings.get(tzid);
-            }
+            tzid = ZoneMeta.getCanonicalID(tzid);
+            zstrings = (ZoneStrings)tzidToStrings.get(tzid);
         }
         if (zstrings != null) {
             switch (typeIdx) {
@@ -526,13 +522,8 @@ public class ZoneStringFormat {
         ZoneStrings zstrings = (ZoneStrings)tzidToStrings.get(tzid);
         if (zstrings == null) {
             // ICU's own array does not have entries for aliases
-            String canonicalID = ZoneMeta.getCanonicalSystemID(tzid);
-            if (canonicalID != null && !canonicalID.equals(tzid)) {
-                // Canonicalize tzid here.  The rest of operations
-                // require tzid to be canonicalized.
-                tzid = canonicalID;
-                zstrings = (ZoneStrings)tzidToStrings.get(tzid);
-            }
+            tzid = ZoneMeta.getCanonicalID(tzid);
+            zstrings = (ZoneStrings)tzidToStrings.get(tzid);
         }
         if (zstrings != null) {
             if (isShort) {
@@ -644,6 +635,7 @@ public class ZoneStringFormat {
      * Private method to get a generic partial location string
      */
     private String getGenericPartialLocationString(String tzid, boolean isShort, long date, boolean commonlyUsedOnly) {
+        tzid = ZoneMeta.getCanonicalID(tzid);
         String result = null;
         String mzid = ZoneMeta.getMetazoneID(tzid, date);
         if (mzid != null) {

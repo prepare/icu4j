@@ -1,7 +1,7 @@
 //##header J2SE15
 /*
  *******************************************************************************
- * Copyright (C) 1996-2008, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2007, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  *
@@ -14,7 +14,6 @@ import java.util.HashMap;
 import java.util.Locale;
 
 import com.ibm.icu.dev.test.TestFmwk;
-import com.ibm.icu.impl.JavaTimeZone;
 import com.ibm.icu.impl.OlsonTimeZone;
 import com.ibm.icu.impl.TimeZoneAdapter;
 import com.ibm.icu.math.BigDecimal;
@@ -22,7 +21,6 @@ import com.ibm.icu.math.MathContext;
 import com.ibm.icu.util.AnnualTimeZoneRule;
 import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.Currency;
-import com.ibm.icu.util.DateInterval;
 import com.ibm.icu.util.DateTimeRule;
 import com.ibm.icu.util.GregorianCalendar;
 import com.ibm.icu.util.InitialTimeZoneRule;
@@ -386,23 +384,6 @@ public class SerializableTest extends TestFmwk.TestGroup
         }
     }
     
-    public static class DateIntervalHandler implements Handler
-    {
-        private DateInterval dateInterval[] = {
-                new DateInterval(0L, 1164931200000L/*20061201T000000Z*/)
-        };
-        public Object[] getTestObjects()
-        {
-            return dateInterval;
-        }
-
-        public boolean hasSameBehavior(Object a, Object b)
-        {
-            return a.equals(b);
-        }
-    }
-
-
     private static class CurrencyHandler implements Handler
     {
         public Object[] getTestObjects()
@@ -528,43 +509,7 @@ public class SerializableTest extends TestFmwk.TestGroup
             return bSame;
         }
     }
-
-    private static class JavaTimeZoneHandler implements Handler {
-        String[] ZONES = { "GMT", "America/New_York", "GMT+05:45" };
-
-        public Object[] getTestObjects() {
-            JavaTimeZone zones[] = new JavaTimeZone[ZONES.length];
-            for(int z = 0; z < ZONES.length; z += 1) {
-                zones[z] = new JavaTimeZone(ZONES[z]);
-            }
-            return zones;
-        }
-        
-        public boolean hasSameBehavior(Object a, Object b)
-        {
-            TimeZone zone_a = (TimeZone) a;
-            TimeZone zone_b = (TimeZone) b;
-
-            if (!(zone_a.getID().equals(zone_b.getID()))) {
-                return false;
-            }
-
-            int a_offsets[] = {0, 0};
-            int b_offsets[] = {0, 0};
-
-            boolean bSame = true;
-            for (int i = 0; i < sampleTimes.length; i++) {
-                zone_a.getOffset(sampleTimes[i], false, a_offsets);
-                zone_b.getOffset(sampleTimes[i], false, b_offsets);
-                if (a_offsets[0] != b_offsets[0] || a_offsets[1] != b_offsets[1]) {
-                    bSame = false;
-                    break;
-                }
-            }
-            return bSame;
-        }
-    }
-
+    
     private static class BigDecimalHandler implements Handler
     {
         String values[] = {
@@ -647,7 +592,6 @@ public class SerializableTest extends TestFmwk.TestGroup
         map.put("com.ibm.icu.util.TimeArrayTimeZoneRule", new TimeArrayTimeZoneRuleHandler());
         map.put("com.ibm.icu.util.ULocale", new ULocaleHandler());
         map.put("com.ibm.icu.util.Currency", new CurrencyHandler());
-        map.put("com.ibm.icu.impl.JavaTimeZone", new JavaTimeZoneHandler());
         map.put("com.ibm.icu.impl.OlsonTimeZone", new OlsonTimeZoneHandler());
         map.put("com.ibm.icu.impl.TimeZoneAdapter", new TimeZoneAdapterHandler());
         map.put("com.ibm.icu.math.BigDecimal", new BigDecimalHandler());
@@ -660,17 +604,12 @@ public class SerializableTest extends TestFmwk.TestGroup
         map.put("com.ibm.icu.text.MessageFormat", new FormatTests.MessageFormatHandler());
         map.put("com.ibm.icu.text.DateFormat", new FormatTests.DateFormatHandler());
         map.put("com.ibm.icu.text.DateFormatSymbols", new FormatTests.DateFormatSymbolsHandler());
-        map.put("com.ibm.icu.util.DateInterval", new DateIntervalHandler());
-        map.put("com.ibm.icu.text.DateIntervalFormat", new FormatTests.DateIntervalFormatHandler());
-        map.put("com.ibm.icu.text.DateIntervalInfo", new FormatTests.DateIntervalInfoHandler());
-        map.put("com.ibm.icu.text.DateIntervalInfo$PatternInfo", new FormatTests.PatternInfoHandler());
         map.put("com.ibm.icu.text.SimpleDateFormat", new FormatTests.SimpleDateFormatHandler());
         map.put("com.ibm.icu.text.ChineseDateFormat", new FormatTests.ChineseDateFormatHandler());
         map.put("com.ibm.icu.text.ChineseDateFormatSymbols", new FormatTests.ChineseDateFormatSymbolsHandler());
         map.put("com.ibm.icu.impl.DateNumberFormat", new FormatTests.DateNumberFormatHandler());
         map.put("com.ibm.icu.text.PluralFormat", new FormatTests.PluralFormatHandler());
         map.put("com.ibm.icu.text.PluralRules", new FormatTests.PluralRulesHandler());
-        map.put("com.ibm.icu.text.TimeUnitFormat", new FormatTests.TimeUnitFormatHandler());
 
         map.put("com.ibm.icu.util.Calendar", new CalendarTests.CalendarHandler());
         map.put("com.ibm.icu.util.BuddhistCalendar", new CalendarTests.BuddhistCalendarHandler());
@@ -706,7 +645,7 @@ public class SerializableTest extends TestFmwk.TestGroup
             new String[] {
                 "com.ibm.icu.dev.test.serializable.CoverageTest",
                 "com.ibm.icu.dev.test.serializable.CompatibilityTest"},
-            "All Serializable Tests"
+                "All Serializable Tests"
         );
     }
 

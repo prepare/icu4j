@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2008, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2007, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -19,7 +19,6 @@ import com.ibm.icu.util.Holiday;
 import com.ibm.icu.util.RangeDateRule;
 import com.ibm.icu.util.SimpleDateRule;
 import com.ibm.icu.util.SimpleHoliday;
-import com.ibm.icu.util.ULocale;
 
 /**
  * Tests for the <code>Holiday</code> class.
@@ -170,30 +169,30 @@ public class HolidayTest extends TestFmwk {
         // jb 1901
         SimpleHoliday sh = new SimpleHoliday(Calendar.AUGUST, 15, "Doug's Day", 1958, 2058);
         
-        Calendar gcal = new GregorianCalendar();
-        gcal.clear();
-        gcal.set(Calendar.YEAR, 2000);
-        gcal.set(Calendar.MONTH, Calendar.AUGUST);
-        gcal.set(Calendar.DAY_OF_MONTH, 15);
+        Calendar cal = new GregorianCalendar();
+        cal.clear();
+        cal.set(Calendar.YEAR, 2000);
+        cal.set(Calendar.MONTH, Calendar.AUGUST);
+        cal.set(Calendar.DAY_OF_MONTH, 15);
         
-        Date d0 = gcal.getTime();
-        gcal.add(Calendar.SECOND, 1);
-        Date d1 = gcal.getTime();
-        gcal.add(Calendar.SECOND, -2);
-        Date d2 = gcal.getTime();
-        gcal.add(Calendar.DAY_OF_MONTH, 1);
-        Date d3 = gcal.getTime();
-        gcal.add(Calendar.SECOND, 1);
-        Date d4 = gcal.getTime();
-        gcal.add(Calendar.SECOND, -2);
-        gcal.set(Calendar.YEAR, 1957);
-        Date d5 = gcal.getTime();
-        gcal.set(Calendar.YEAR, 1958);
-        Date d6 = gcal.getTime();
-        gcal.set(Calendar.YEAR, 2058);
-        Date d7 = gcal.getTime();
-        gcal.set(Calendar.YEAR, 2059);
-        Date d8 = gcal.getTime();
+        Date d0 = cal.getTime();
+        cal.add(Calendar.SECOND, 1);
+        Date d1 = cal.getTime();
+        cal.add(Calendar.SECOND, -2);
+        Date d2 = cal.getTime();
+        cal.add(Calendar.DAY_OF_MONTH, 1);
+        Date d3 = cal.getTime();
+        cal.add(Calendar.SECOND, 1);
+        Date d4 = cal.getTime();
+        cal.add(Calendar.SECOND, -2);
+        cal.set(Calendar.YEAR, 1957);
+        Date d5 = cal.getTime();
+        cal.set(Calendar.YEAR, 1958);
+        Date d6 = cal.getTime();
+        cal.set(Calendar.YEAR, 2058);
+        Date d7 = cal.getTime();
+        cal.set(Calendar.YEAR, 2059);
+        Date d8 = cal.getTime();
 
         Date[] dates = { d0, d1, d2, d3, d4, d5, d6, d7, d8 };
         boolean[] isOns = { true, true, false, true, false, false, true, true, false };
@@ -207,21 +206,6 @@ public class HolidayTest extends TestFmwk {
             }
             Date h = sh.firstAfter(d);
             logln("firstAfter: " + h);
-        }
-    }
-    
-    public void TestDisplayName() {
-        Holiday[] holidays = Holiday.getHolidays(ULocale.US);
-        for (int i = 0; i < holidays.length; ++i) {
-            Holiday h = holidays[i];
-            // only need to test one
-            // if the display names differ, we're using our data.  We know these names
-            // should differ for this holiday (not all will).
-            if ("Christmas".equals(h.getDisplayName(ULocale.US))) {
-                if ("Christmas".equals(h.getDisplayName(ULocale.GERMANY))) {
-                    errln("Using default name for holidays");
-                }
-            }
         }
     }
 }

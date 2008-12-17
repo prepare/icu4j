@@ -1,5 +1,5 @@
  /*
-*   Copyright (C) 1996-2008, International Business Machines
+*   Copyright (C) 1996-2007, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 */
 
@@ -739,11 +739,14 @@ public class SimpleTimeZone extends BasicTimeZone {
     public void getOffsetFromLocal(long date,
             int nonExistingTimeOpt, int duplicatedTimeOpt, int[] offsets) {
         offsets[0] = getRawOffset();
-        int fields[] = new int[6];
-        Grego.timeToFields(date, fields);
+        int fields[] = new int[4];
+        long day = floorDivide(date, Grego.MILLIS_PER_DAY, fields);
+        int millis = fields[0];
+
+        computeGregorianFields(day, fields);
         offsets[1] = getOffset(GregorianCalendar.AD,
               fields[0], fields[1], fields[2],
-              fields[3], fields[5]) - offsets[0];        
+              fields[3], millis) - offsets[0];        
 
         boolean recalc = false;
 
@@ -763,10 +766,12 @@ public class SimpleTimeZone extends BasicTimeZone {
         }
 
         if (recalc) {
-            Grego.timeToFields(date, fields);
+            day = floorDivide(date, Grego.MILLIS_PER_DAY, fields);
+            millis = fields[0];
+            computeGregorianFields(day, fields);
             offsets[1] = getOffset(GregorianCalendar.AD,
                     fields[0], fields[1], fields[2],
-                    fields[3], fields[5]) - offsets[0];        
+                    fields[3], millis) - offsets[0];        
         }
     }
 
@@ -915,37 +920,37 @@ public class SimpleTimeZone extends BasicTimeZone {
     /**
      * Internal construction method.
      */
-    private void construct(int _raw,
-                           int _startMonth,
-                           int _startDay,
-                           int _startDayOfWeek,
-                           int _startTime,
-                           int _startTimeMode,
-                           int _endMonth,
-                           int _endDay,
-                           int _endDayOfWeek,
-                           int _endTime,
-                           int _endTimeMode,
-                           int _dst) {
-        raw            = _raw;
-        startMonth     = _startMonth;
-        startDay       = _startDay;
-        startDayOfWeek = _startDayOfWeek;
-        startTime      = _startTime;
-        startTimeMode  = _startTimeMode;
-        endMonth       = _endMonth;
-        endDay         = _endDay;
-        endDayOfWeek   = _endDayOfWeek;
-        endTime        = _endTime;
-        endTimeMode    = _endTimeMode;
-        dst            = _dst;
-        startYear      = 0;
-        startMode      = DOM_MODE;
-        endMode        = DOM_MODE;
+    private void construct(int raw,
+                           int startMonth,
+                           int startDay,
+                           int startDayOfWeek,
+                           int startTime,
+                           int startTimeMode,
+                           int endMonth,
+                           int endDay,
+                           int endDayOfWeek,
+                           int endTime,
+                           int endTimeMode,
+                           int dst) {
+        this.raw            = raw;
+        this.startMonth     = startMonth;
+        this.startDay       = startDay;
+        this.startDayOfWeek = startDayOfWeek;
+        this.startTime      = startTime;
+        this.startTimeMode  = startTimeMode;
+        this.endMonth       = endMonth;
+        this.endDay         = endDay;
+        this.endDayOfWeek   = endDayOfWeek;
+        this.endTime        = endTime;
+        this.endTimeMode    = endTimeMode;
+        this.dst            = dst;
+        this.startYear      = 0;
+        this.startMode      = DOM_MODE;
+        this.endMode        = DOM_MODE;
 
         decodeRules();
 
-        if (_dst <= 0) {
+        if (dst <= 0) {
             throw new IllegalArgumentException();
         }
     }
@@ -1179,7 +1184,8 @@ public class SimpleTimeZone extends BasicTimeZone {
 
     /**
      * {@inheritDoc}
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public TimeZoneTransition getNextTransition(long base, boolean inclusive) {
         if (startMonth == 0) {
@@ -1204,7 +1210,8 @@ public class SimpleTimeZone extends BasicTimeZone {
 
     /**
      * {@inheritDoc}
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public TimeZoneTransition getPreviousTransition(long base, boolean inclusive) {
         if (startMonth == 0) {
@@ -1229,7 +1236,8 @@ public class SimpleTimeZone extends BasicTimeZone {
 
     /**
      * {@inheritDoc}
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public TimeZoneRule[] getTimeZoneRules() {
         initTransitionRules();

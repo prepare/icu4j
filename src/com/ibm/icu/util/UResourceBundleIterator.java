@@ -1,6 +1,6 @@
 /*
 ******************************************************************************
-* Copyright (C) 2004-2008, International Business Machines Corporation and   *
+* Copyright (C) 2004-2007, International Business Machines Corporation and   *
 * others. All Rights Reserved.                                               *
 ******************************************************************************
 */
@@ -31,7 +31,8 @@ import java.util.NoSuchElementException;
  * }
  * </pre>
  * @author ram
- * @stable ICU 3.8
+ * @draft ICU 3.8
+ * @provisional This API might change or be removed in a future release.
  */
 public class UResourceBundleIterator{
     private UResourceBundle bundle;
@@ -42,7 +43,8 @@ public class UResourceBundleIterator{
      * given resource bundle
      * 
      * @param bndl The resource bundle to iterate over
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public UResourceBundleIterator(UResourceBundle bndl){
         bundle = bndl;   
@@ -53,7 +55,8 @@ public class UResourceBundleIterator{
      * Returns the next element of this iterator if this iterator object has at least one more element to provide
      * @return the UResourceBundle object
      * @throws NoSuchElementException
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public UResourceBundle next()throws NoSuchElementException{
         if(index<size){
@@ -66,7 +69,8 @@ public class UResourceBundleIterator{
      * @return the UResourceBundle object
      * @throws NoSuchElementException
      * @throws UResourceTypeMismatchException
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public String nextString()throws NoSuchElementException, UResourceTypeMismatchException{
         if(index<size){
@@ -77,7 +81,8 @@ public class UResourceBundleIterator{
     
     /**
      * Resets the internal context of a resource so that iteration starts from the first element.
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public void reset(){
         //reset the internal context   
@@ -87,7 +92,8 @@ public class UResourceBundleIterator{
     /**
      * Checks whether the given resource has another element to iterate over.
      * @return TRUE if there are more elements, FALSE if there is no more elements
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public boolean hasNext(){
         return index < size;   

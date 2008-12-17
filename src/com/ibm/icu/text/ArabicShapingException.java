@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- *   Copyright (C) 2001-2008, International Business Machines
+ *   Copyright (C) 2001-2007, International Business Machines
  *   Corporation and others.  All Rights Reserved.
  *******************************************************************************
  */
@@ -16,9 +16,10 @@ public final class ArabicShapingException extends Exception {
     static final long serialVersionUID = 5261531805497260490L;
     
     /**
-     * Construct the exception with the given message
+     * Constuct the exception with the given message
      * @param message the error message for this exception
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public ArabicShapingException(String message) {
         super(message);

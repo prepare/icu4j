@@ -1,6 +1,6 @@
  /*
  *******************************************************************************
- * Copyright (C) 1996-2008, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2007, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -2618,7 +2618,7 @@ public final class NormalizerImpl {
             char[] table;
             int i=0, start, limit;
             
-            int[] idxs = (int[]) canonStartSets[CANON_SET_INDICIES_INDEX];
+            int[] indexes = (int[]) canonStartSets[CANON_SET_INDICIES_INDEX];
             char[] startSets = (char[]) canonStartSets[CANON_SET_START_SETS_INDEX];
             
             if(c<=0xffff) {
@@ -2643,7 +2643,7 @@ public final class NormalizerImpl {
                         /* result 01xxxxxx xxxxxx contains index x to a 
                          * USerializedSet */
                         i&=(CANON_SET_MAX_CANON_SETS-1);
-                        return fillSet.getSet(startSets,(i-idxs.length));
+                        return fillSet.getSet(startSets,(i-indexes.length));
                     } else {
                         /* other result values are BMP code points for 
                          * single-code point sets */
@@ -2701,7 +2701,7 @@ public final class NormalizerImpl {
                     i=tableVal2;
                     if((h&0x8000)==0) {
                         /* the result is an index to a USerializedSet */
-                        return fillSet.getSet(startSets,(i-idxs.length));
+                        return fillSet.getSet(startSets,(i-indexes.length));
                     } else {
                         /*
                          * single-code point set {x} in
@@ -3064,94 +3064,9 @@ public final class NormalizerImpl {
     }
     */
     public static int cmpEquivFold(String s1, String s2,int options){
-        if ((options & Normalizer.COMPARE_IGNORE_CASE) !=0) {
-            return cmpSimpleEquivFold(s1, s2, options);
-        }
-        else {
-            return cmpEquivFold(s1.toCharArray(),0,s1.length(),
-                                s2.toCharArray(),0,s2.length(),
-                                options);
-        }
-    }
-
-
-    private static int cmpSimpleEquivFold(String s1, String s2, int options) {
-        int cmp = 0;
-        int i=0, j=0;
-        String foldS1=null;
-        String foldS2=null;
-        int offset1=1;
-        int offset2=1;
-        while ((i+offset1<=s1.length() && j+offset2<=s2.length())) {
-            if ((cmp!=0) || (s1.charAt(i) != s2.charAt(j))) {
-                if(i>0 && j>0 && 
-                   (UTF16.isLeadSurrogate((char)s1.charAt(i-1)) ||
-                    UTF16.isLeadSurrogate((char)s2.charAt(j-1)))) {
-                    // Current codepoint may be the low surrogate pair.
-                    return cmpEquivFold(s1.toCharArray(),i-1,s1.length(),
-                            s2.toCharArray(),j-1,s2.length(),
+        return cmpEquivFold(s1.toCharArray(),0,s1.length(),
+                            s2.toCharArray(),0,s2.length(),
                             options);
-                }
-                else if (UTF16.isLeadSurrogate((char)s1.charAt(i))||
-                         UTF16.isLeadSurrogate((char)s2.charAt(j))) {
-                    return cmpEquivFold(s1.toCharArray(),i,s1.length(),
-                            s2.toCharArray(),j,s2.length(),
-                            options);
-                }
-                else {
-                    if ( offset1 > 0 ) {
-                        foldS1 = UCharacter.foldCase(s1.substring(i, i+offset1),options);
-                    }
-                    if ( offset2 > 0 ) {
-                        foldS2 = UCharacter.foldCase(s2.substring(j, j+offset2),options);
-                    }
-                    cmp = foldS1.compareTo(foldS2);
-                    if (cmp==0) {
-                        i = moveToNext(i, offset1);
-                        j = moveToNext(j, offset2);
-                        offset1 = offset2 = 1;
-                        continue;
-                    }
-                }
-                if (foldS1.length()==foldS2.length()) {
-                    return cmp;
-                }
-                if (foldS1.length()<foldS2.length()) {
-                    offset1++;
-                    offset2=0;
-                }
-                else {
-                    offset1=0;
-                    offset2++;
-                }
-                continue;
-            }
-            i++;
-            j++;
-        }
-        if (cmp!=0) {
-            return cmp;
-        }
-        if (i+offset1-1==s1.length()) {
-            if (j+offset2-1==s2.length()) {
-                return 0;
-            }
-            else {
-                return -1;
-            }
-        }
-        else {
-            return 1;
-        }
-    }
-    
-    private static int moveToNext(int pos, int offset) {
-        if (offset>0) {
-            return pos+offset;
-        }
-        else {
-            return pos+1;
-        }
     }
     
     
@@ -3683,10 +3598,12 @@ public final class NormalizerImpl {
 
     /** 
      * Options bit 0, do not decompose Hangul syllables. 
+     * @draft ICU 2.6 
      */
     private static final int NX_HANGUL = 1;
     /** 
      * Options bit 1, do not decompose CJK compatibility characters.
+     * @draft ICU 2.6 
      */
     private static final int NX_CJK_COMPAT=2;
     /**
@@ -3698,6 +3615,8 @@ public final class NormalizerImpl {
      * of IDNA definition based on Unicode 3.2 which predates PRI #29.
      *
      * See ICU4C unormimp.h
+     * 
+     * @draft ICU 3.2
      */
     public static final int BEFORE_PRI_29=0x100;
 

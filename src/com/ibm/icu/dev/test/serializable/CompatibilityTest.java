@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2008, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2007, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  *
@@ -90,7 +90,7 @@ public class CompatibilityTest extends TestFmwk
                 ++params.invalidCount;
             } else {
                 params.testCount += 1;
-
+    
                 try {
                     ObjectInputStream in = new ObjectInputStream(inputStream);
                     Object inputObjects[] = (Object[]) in.readObject();
@@ -123,19 +123,6 @@ public class CompatibilityTest extends TestFmwk
         }
     }
 
-    private static final String[][] SKIP_CASES = {
-        {"ICU_3.8.1",   "com.ibm.icu.text.PluralFormat.dat"},
-        {"ICU_3.8.1",   "com.ibm.icu.text.PluralRules.dat"},
-        // The case below actually works OK with 4.2M1 on JRE5, but not on JRE1.4.2.
-        // It looks the use of anonymous inner class is the root cause.  If we want
-        // to fix the root cause, it will likely break the backward compatibility.
-        // For now, we're skipping this case even it works OK on JRE5.  See ticket#6550.
-        {"ICU_4.0",     "com.ibm.icu.text.PluralRules.dat"},
-        {"ICU_3.6",     "com.ibm.icu.text.RuleBasedNumberFormat.dat"},
-        {"ICU_3.8.1",     "com.ibm.icu.text.RuleBasedNumberFormat.dat"},
-        {"ICU_4.0",     "com.ibm.icu.text.RuleBasedNumberFormat.dat"},
-    };
-
     private Target getFileTargets(URL fileURL)
     {
         File topDir = new File(fileURL.getPath());
@@ -148,31 +135,20 @@ public class CompatibilityTest extends TestFmwk
             if (dataDir.isDirectory()) {
                 FolderTarget newTarget = new FolderTarget(dataDir.getName());
                 File files[] = dataDir.listFiles();
-
+                
+                
                 newTarget.setNext(target);
                 target = newTarget;
-
-                String dataDirName = dataDir.getName();
-
-                element_loop:
+                
                 for (int i = 0; i < files.length; i += 1) {
                     File file = files[i];
                     String filename = file.getName();
                     int ix = filename.indexOf(".dat");
-
+                    
                     if (ix > 0) {
                         String className = filename.substring(0, ix);
-
-                        // Skip some cases which do not work well
-                        for (int j = 0; j < SKIP_CASES.length; j++) {
-                            if (dataDirName.equals(SKIP_CASES[j][0]) && filename.equals(SKIP_CASES[j][1])) {
-                                logln("Skipping test case - " + dataDirName + "/" + className);
-                                continue element_loop;
-                            }
-                        }
-
                         InputStream is;
-
+                        
                         try {
                             is = new FileInputStream(file);
                             target.add(className, is);
@@ -195,52 +171,43 @@ public class CompatibilityTest extends TestFmwk
         int ix = prefix.indexOf("!/");
         JarFile jarFile;
         FolderTarget target = null;
-
+        
         if (ix >= 0) {
             prefix = prefix.substring(ix + 2);
         }
-
+        
         try {
             JarURLConnection conn = (JarURLConnection) jarURL.openConnection();
-
+            
             jarFile = conn.getJarFile();
 
             Enumeration entries = jarFile.entries();
-
-            element_loop:
+            
             while (entries.hasMoreElements()) {
                 JarEntry entry = (JarEntry)entries.nextElement();
                 String name = entry.getName();
                 
                 if (name.startsWith(prefix)) {
                     name = name.substring(prefix.length());
-
+                    
                     if (! entry.isDirectory()) {
                         int dx = name.lastIndexOf("/");
                         String dirName  = name.substring(1, dx);
                         String filename = name.substring(dx + 1);
-
+                        
                         if (! dirName.equals(currentDir)) {
                             currentDir = dirName;
-
+                            
                             FolderTarget newTarget = new FolderTarget(currentDir);
-
+                            
                             newTarget.setNext(target);
                             target = newTarget;
                         }
-
+                        
                         int xx = filename.indexOf(".dat");
                         
                         if (xx > 0) {
                             String className = filename.substring(0, xx);
-
-                            // Skip some cases which do not work well
-                            for (int i = 0; i < SKIP_CASES.length; i++) {
-                                if (dirName.equals(SKIP_CASES[i][0]) && filename.equals(SKIP_CASES[i][1])) {
-                                    logln("Skipping test case - " + dirName + "/" + className);
-                                    continue element_loop;
-                                }
-                            }
 
                             target.add(className, jarFile.getInputStream(entry));
                         }

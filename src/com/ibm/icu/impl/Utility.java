@@ -1,7 +1,7 @@
 //##header J2SE15
 /*
  *******************************************************************************
- * Copyright (C) 1996-2008, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2007, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -1358,9 +1358,9 @@ public final class Utility {
     public static StringBuffer trim(StringBuffer b) {
         // TODO update to handle surrogates
         int i;
-        for (i=0; i<b.length() && UCharacter.isWhitespace(b.charAt(i)); ++i) {}
+        for (i=0; i<b.length() && Character.isWhitespace(b.charAt(i)); ++i) {}
         b.delete(0, i);
-        for (i=b.length()-1; i>=0 && UCharacter.isWhitespace(b.charAt(i)); --i) {}
+        for (i=b.length()-1; i>=0 && Character.isWhitespace(b.charAt(i)); --i) {}
         return b.delete(i+1, b.length());
     }
 
@@ -1558,6 +1558,7 @@ public final class Utility {
     * @param dst char array to store the retrieved chars
     * @param dstBegin offset to the start of the destination char array to
     *                 store the retrieved chars
+    * @draft since ICU4J 2.0
     */
     public static void getChars(StringBuffer src, int srcBegin, int srcEnd,
                                 char dst[], int dstBegin)
@@ -1837,10 +1838,10 @@ public final class Utility {
         return buf.lastIndexOf(s, i);
 //#endif
     }
-
-   // !!! 1.3/1.4 compatibility
-   public static String replace(String src, String target, String replacement) {
-//#if defined(FOUNDATION10) || defined(J2SE13) || defined(J2SE14)
+   
+   // !!! 1.3 compatibility
+   public static String replaceAll(String src, String target, String replacement) {
+//#if defined(FOUNDATION10) || defined(J2SE13)
 //##       int i = src.indexOf(target);
 //##       if (i == -1) {
 //##           return src;
@@ -1857,15 +1858,6 @@ public final class Utility {
 //##           buf.append(src.substring(n));
 //##       }
 //##       return buf.toString();
-//#else
-       return src.replace(target, replacement);
-//#endif
-   }
-
-   // !!! 1.3 compatibility
-   public static String replaceAll(String src, String target, String replacement) {
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//##       return replace(src, target, replacement);
 //#else
        return src.replaceAll(target, replacement);
 //#endif
@@ -1931,23 +1923,5 @@ public final class Utility {
 //#else
        return src.split("\\s+");
 //#endif
-   }
-
-   // !!! 1.3/1.4 compatibility
-   // Integer constants - Integer.valueOf(int) is not supported in JDK 1.3/1.4
-   private static final int MAX_INT_CONST = 64;
-   private static final Integer[] INT_CONST = new Integer[MAX_INT_CONST];
-
-   static {
-       for (int i = 0; i < MAX_INT_CONST; i++) {
-           INT_CONST[i] = new Integer(i);
-       }
-   }
-
-   public static Integer integerValueOf(int val) {
-       if (0 <= val && val < MAX_INT_CONST) {
-           return INT_CONST[val];
-       }
-       return new Integer(val);
    }
 }

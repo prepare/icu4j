@@ -1,17 +1,17 @@
 //##header J2SE15
+//#if defined(FOUNDATION10) || defined(J2SE13)
+//#else
 /*
- ********************************************************************************
- * Copyright (C) 2006-2008, Google, International Business Machines Corporation *
- * and others. All Rights Reserved.                                             *
- ********************************************************************************
+ *******************************************************************************
+ * Copyright (C) 2006-2007, Google, International Business Machines Corporation *
+ * and others. All Rights Reserved.                                            *
+ *******************************************************************************
  */
 package com.ibm.icu.text;
 
 import com.ibm.icu.impl.CalendarData;
-import com.ibm.icu.impl.ICUCache;
 import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.impl.PatternTokenizer;
-import com.ibm.icu.impl.SimpleCache;
 import com.ibm.icu.impl.Utility;
 import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.Freezable;
@@ -22,16 +22,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//##import java.util.HashMap;
-//#endif
 import java.util.HashSet;
 import java.util.Iterator;
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
-//import java.util.LinkedHashMap;
-//import java.util.LinkedHashSet;
-//#endif
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -89,7 +83,8 @@ import java.util.TreeMap;
  *     &quot;Donnerstag, 14. Oktober 1999 8:58 Uhr Frankreich&quot;,
  *     format.format(sampleDate));
  * </pre>
- * @stable ICU 3.6
+ * @draft ICU 3.6
+ * @provisional This API might change or be removed in a future release.
  */
 public class DateTimePatternGenerator implements Freezable, Cloneable {
     // debugging flags
@@ -98,7 +93,8 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
     
     /**
      * Create empty generator, to be constructed with add(...) etc.
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     public static DateTimePatternGenerator getEmptyInstance() {
         return new DateTimePatternGenerator();
@@ -106,14 +102,16 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
     
     /**
      * Only for use by subclasses
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     protected DateTimePatternGenerator() {         
     }
     
     /**
      * Construct a flexible generator according to data for a given locale.
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     public static DateTimePatternGenerator getInstance() {
         return getInstance(ULocale.getDefault());
@@ -122,15 +120,11 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
     /**
      * Construct a flexible generator according to data for a given locale.
      * @param uLocale
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     public static DateTimePatternGenerator getInstance(ULocale uLocale) {
-        String localeKey = uLocale.toString();
-        DateTimePatternGenerator result = (DateTimePatternGenerator)DTPNG_CACHE.get(localeKey);
-        if (result != null) {
-            return result;
-        }
-        result = new DateTimePatternGenerator();
+        DateTimePatternGenerator result = new DateTimePatternGenerator();
         String lang = uLocale.getLanguage();
         if (lang.equals("zh") || lang.equals("ko") || lang.equals("ja")) {
           result.chineseMonthHack = true;
@@ -171,8 +165,8 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
                 dnBundle = fieldBundle.getWithFallback("dn");
                 String value = dnBundle.getString();
                 //System.out.println("Field name:"+value);
-                result.setAppendItemName(i, value);
-            }
+                result.setAppendItemName(i, value);      		
+        	}
         }
           
         // set the AvailableFormat in CLDR
@@ -228,7 +222,6 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         // decimal point for seconds
         DecimalFormatSymbols dfs = new DecimalFormatSymbols(uLocale);
         result.setDecimal(String.valueOf(dfs.getDecimalSeparator()));
-        DTPNG_CACHE.put(localeKey, result);
         return result;
     }
     
@@ -331,29 +324,13 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
      * @param skeleton
      *            The skeleton is a pattern containing only the variable fields.
      *            For example, "MMMdd" and "mmhh" are skeletons.
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     public String getBestPattern(String skeleton) {
-        if (chineseMonthHack) {
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//##            int monidx = skeleton.indexOf("MMM");
-//##            if (monidx >= 0) {
-//##                StringBuffer tmp = new StringBuffer(skeleton.substring(0, monidx));
-//##                tmp.append("MM");
-//##                monidx += 3;
-//##                while (monidx < skeleton.length()) {
-//##                    if (skeleton.charAt(monidx) != 'M') {
-//##                        break;
-//##                    }
-//##                    monidx++;
-//##                }
-//##                tmp.append(skeleton.substring(monidx));
-//##                skeleton = tmp.toString();
-//##            }
-//#else
-            skeleton = skeleton.replaceAll("MMM+", "MM");
-//#endif
-        }
+      if (chineseMonthHack) {
+        skeleton = skeleton.replaceAll("MMM+", "MM");
+      }
         //if (!isComplete) complete();
         current.set(skeleton, fp);
         String best = getBestRaw(current, -1, _distanceInfo);
@@ -368,7 +345,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         
         if (datePattern == null) return timePattern == null ? "" : timePattern;
         if (timePattern == null) return datePattern;
-        return MessageFormat.format(getDateTimeFormat(), new Object[]{timePattern, datePattern});
+        return MessageFormat.format(getDateTimeFormat(), new Object[]{datePattern, timePattern});
     }
     
     /**
@@ -376,37 +353,44 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
      * Java doesn't have real output parameters. It is treated like a struct (eg
      * Point), so all fields are public.
      * 
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     public static final class PatternInfo { // struct for return information
         /**
-         * @stable ICU 3.6
+         * @draft ICU 3.6
+         * @provisional This API might change or be removed in a future release.
          */
         public static final int OK = 0;
         
         /**
-         * @stable ICU 3.6
+         * @draft ICU 3.6
+         * @provisional This API might change or be removed in a future release.
          */
         public static final int BASE_CONFLICT = 1;
         
         /**
-         * @stable ICU 3.6
+         * @draft ICU 3.6
+         * @provisional This API might change or be removed in a future release.
          */
         public static final int CONFLICT = 2;
         
         /**
-         * @stable ICU 3.6
+         * @draft ICU 3.6
+         * @provisional This API might change or be removed in a future release.
          */
         public int status;
         
         /**
-         * @stable ICU 3.6
+         * @draft ICU 3.6
+         * @provisional This API might change or be removed in a future release.
          */
         public String conflictingPattern;
         
         /**
          * Simple constructor, since this is treated like a struct.
-         * @stable ICU 3.6
+         * @draft ICU 3.6
+         * @provisional This API might change or be removed in a future release.
          */
         public PatternInfo() {
         }
@@ -424,7 +408,8 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
      * @param override
      *            when existing values are to be overridden use true, otherwise
      *            use false.
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     public DateTimePatternGenerator addPattern(String pattern, boolean override, PatternInfo returnInfo) {
         checkFrozen();
@@ -456,7 +441,8 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
      * @param pattern
      *            Input pattern, such as "dd/MMM"
      * @return skeleton, such as "MMMdd"
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     public String getSkeleton(String pattern) {
         synchronized (this) { // synchronized since a getter must be thread-safe
@@ -475,7 +461,8 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
      * @param pattern
      *            Input pattern, such as "dd/MMM"
      * @return skeleton, such as "MMMdd"
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     public String getBaseSkeleton(String pattern) {
         synchronized (this) { // synchronized since a getter must be thread-safe
@@ -498,16 +485,11 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
      *            the skeletons, and then have a separate routine to get from
      *            skeleton to pattern.</i>
      * @return the input Map containing the values.
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     public Map getSkeletons(Map result) {
-        if (result == null) {
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//##            result = new HashMap();
-//#else
-//            result = new LinkedHashMap();
-//#endif
-        }
+        if (result == null) result = new LinkedHashMap();
         for (Iterator it = skeleton2pattern.keySet().iterator(); it.hasNext();) {
             DateTimeMatcher item = (DateTimeMatcher) it.next();
             String pattern = (String) skeleton2pattern.get(item);
@@ -519,7 +501,8 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
     
     /**
      * Return a list of all the base skeletons (in canonical form) from this class
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     public Set getBaseSkeletons(Set result) {
         if (result == null) result = new HashSet();
@@ -539,7 +522,8 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
      * @param skeleton
      * @return pattern adjusted to match the skeleton fields widths and
      *         subtypes.
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     public String replaceFieldTypes(String pattern, String skeleton) {
         synchronized (this) { // synchronized since a getter must be thread-safe
@@ -564,7 +548,8 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
      * @param dateTimeFormat
      *            message format pattern, here {0} will be replaced by the date
      *            pattern and {1} will be replaced by the time pattern.
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     public void setDateTimeFormat(String dateTimeFormat) {
         checkFrozen();
@@ -575,7 +560,8 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
      * Getter corresponding to setDateTimeFormat.
      * 
      * @return pattern
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     public String getDateTimeFormat() {
         return dateTimeFormat;
@@ -590,7 +576,8 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
      * "H:mm:ss,SSSS"
      * 
      * @param decimal
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     public void setDecimal(String decimal) {
         checkFrozen();
@@ -600,7 +587,8 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
     /**
      * Getter corresponding to setDecimal.
      * @return string corresponding to the decimal point
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     public String getDecimal() {
         return decimal;
@@ -616,24 +604,18 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
      *            in internal order, supply a LinkedHashSet. If null, a
      *            collection is allocated.
      * @return the collection with added elements.
+     * @deprecated
      * @internal
-     * @deprecated This API is ICU internal only.
      */
     public Collection getRedundants(Collection output) {
         synchronized (this) { // synchronized since a getter must be thread-safe
-            if (output == null) {
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//##                output = new HashSet();
-//#else
-//                output = new LinkedHashSet();
-//#endif
-            }
+            if (output == null) output = new LinkedHashSet();
             for (Iterator it = skeleton2pattern.keySet().iterator(); it.hasNext();) {
-                DateTimeMatcher cur = (DateTimeMatcher) it.next();
-                String pattern = (String) skeleton2pattern.get(cur);
+                DateTimeMatcher current = (DateTimeMatcher) it.next();
+                String pattern = (String) skeleton2pattern.get(current);
                 if (CANONICAL_SET.contains(pattern)) continue;
-                skipMatcher = cur;
-                String trial = getBestPattern(cur.toString());
+                skipMatcher = current;
+                String trial = getBestPattern(current.toString());
                 if (trial.equals(pattern)) {
                     output.add(pattern);
                 }
@@ -642,11 +624,11 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
                 DateTimePatternGenerator results = new DateTimePatternGenerator();
                 PatternInfo pinfo = new PatternInfo();
                 for (Iterator it = skeleton2pattern.keySet().iterator(); it.hasNext();) {
-                    DateTimeMatcher cur = (DateTimeMatcher) it.next();
-                    String pattern = (String) skeleton2pattern.get(cur);
+                    DateTimeMatcher current = (DateTimeMatcher) it.next();
+                    String pattern = (String) skeleton2pattern.get(current);
                     if (CANONICAL_SET.contains(pattern)) continue;
                     //skipMatcher = current;
-                    String trial = results.getBestPattern(cur.toString());
+                    String trial = results.getBestPattern(current.toString());
                     if (trial.equals(pattern)) {
                         output.add(pattern);
                     } else {
@@ -661,87 +643,104 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
     // Field numbers, used for AppendItem functions
     
     /** 
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     static final public int ERA = 0;
     
     /**
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     static final public int YEAR = 1; 
     
     /**
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     static final public int QUARTER = 2; 
     
     /**
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     static final public int MONTH = 3;
     
     /**
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     static final public int WEEK_OF_YEAR = 4; 
     
     /**
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     static final public int WEEK_OF_MONTH = 5; 
     
     /**
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     static final public int WEEKDAY = 6; 
     
     /**
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     static final public int DAY = 7;
     
     /**
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     static final public int DAY_OF_YEAR = 8; 
     
     /**
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     static final public int DAY_OF_WEEK_IN_MONTH = 9; 
     
     /**
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     static final public int DAYPERIOD = 10;
     
     /**
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     static final public int HOUR = 11; 
     
     /**
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     static final public int MINUTE = 12; 
     
     /**
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     static final public int SECOND = 13; 
     
     /**
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     static final public int FRACTIONAL_SECOND = 14;
     
     /**
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     static final public int ZONE = 15; 
     
     /**
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     static final public int TYPE_LIMIT = 16;
     
@@ -763,7 +762,8 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
      *            such as ERA
      * @param value
      *            pattern, such as "{0}, {1}"
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     public void setAppendItemFormat(int field, String value) {
         checkFrozen();
@@ -776,7 +776,8 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
      * 
      * @param field
      * @return append pattern for field
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     public String getAppendItemFormat(int field) {
         return appendItemFormats[field];
@@ -791,7 +792,8 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
      * 
      * @param field
      * @param value
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     public void setAppendItemName(int field, String value) {
         checkFrozen();
@@ -804,7 +806,8 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
      * 
      * @param field
      * @return name for field
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     public String getAppendItemName(int field) {
         return appendItemNames[field];
@@ -815,8 +818,8 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
      * 
      * @param skeleton
      * @return true or not
+     * @deprecated
      * @internal
-     * @deprecated This API is ICU internal only.
      */
     public static boolean isSingleField(String skeleton) {
         char first = skeleton.charAt(0);
@@ -830,7 +833,8 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
      * Add key to HashSet cldrAvailableFormatKeys.
      * 
      * @param key of the availableFormats in CLDR
-     * @stable ICU 3.6
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     private void setAvailableFormat(String key) {
         checkFrozen();
@@ -846,7 +850,8 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
      * @param key of the availableFormatMask in CLDR
      * @return TRUE if the corresponding slot of CLDR_AVAIL_FORMAT_KEY[]
      * has been added to DateTimePatternGenerator.
-     * @stable ICU 3.6
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     private boolean isAvailableFormatSet(String key) {
         return cldrAvailableFormatKeys.contains(key);
@@ -854,7 +859,8 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
 
     /**
      * Boilerplate for Freezable
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     public boolean isFrozen() {
         return frozen;
@@ -862,7 +868,8 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
     
     /**
      * Boilerplate for Freezable
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     public Object freeze() {
         frozen = true;
@@ -871,7 +878,8 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
     
     /**
      * Boilerplate for Freezable
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     public Object cloneAsThawed() {
         DateTimePatternGenerator result = (DateTimePatternGenerator) (this.clone());
@@ -881,7 +889,8 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
     
     /**
      * Boilerplate
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     public Object clone() {
         try {
@@ -902,68 +911,25 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
     }
     
     /**
-     * Utility class for FormatParser. Immutable class that is only used to mark
-     * the difference between a variable field and a literal string. Each
-     * variable field must consist of 1 to n variable characters, representing
-     * date format fields. For example, "VVVV" is valid while "V4" is not, nor
-     * is "44".
-     * 
+     * Utility class for FormatParser. Immutable class.
+     * @deprecated
      * @internal
-     * @deprecated This API is ICU internal only.
      */
     public static class VariableField {
-        private final String string;
-        private final int canonicalIndex;
-        
-        /**
-         * Create a variable field: equivalent to VariableField(string,false);
-         * @param string
-         * @internal
-         * @deprecated This API is ICU internal only.
-         */
-        public VariableField(String string) {
-            this(string, false);
-        }
+        private String string;
         /**
          * Create a variable field
          * @param string
-         * @param strict TODO
-         * @throws IllegalArgumentException if the variable field is not valid.
+         * @deprecated
          * @internal
-         * @deprecated This API is ICU internal only.
          */
-        public VariableField(String string, boolean strict) {
-            canonicalIndex = DateTimePatternGenerator.getCanonicalIndex(string, strict);
-            if (canonicalIndex < 0) {
-                throw new IllegalArgumentException("Illegal datetime field:\t"
-                        + string);
-            }
+        public VariableField(String string) {
             this.string = string;
         }
-        
         /**
-         * Get the main type of this variable. These types are ERA, QUARTER,
-         * MONTH, DAY, WEEK_OF_YEAR, WEEK_OF_MONTH, WEEKDAY, DAY, DAYPERIOD
-         * (am/pm), HOUR, MINUTE, SECOND,FRACTIONAL_SECOND, ZONE. 
-         * @return main type.
+         * Get the internal results
+         * @deprecated
          * @internal
-         * @deprecated This API is ICU internal only.
-         */
-        public int getType() {
-            return types[canonicalIndex][1];
-        }
-        
-        /**
-         * Private method.
-         */
-        private int getCanonicalIndex() {
-            return canonicalIndex;
-        }
-
-        /**
-         * Get the string represented by this variable.
-         * @internal
-         * @deprecated This API is ICU internal only.
          */
         public String toString() {
             return string;
@@ -971,30 +937,9 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
     }
     
     /**
-     * This class provides mechanisms for parsing a SimpleDateFormat pattern
-     * or generating a new pattern, while handling the quoting. It represents
-     * the result of the parse as a list of items, where each item is either a
-     * literal string or a variable field. When parsing It can be used to find
-     * out which variable fields are in a date format, and in what order, such
-     * as for presentation in a UI as separate text entry fields. It can also be
-     * used to construct new SimpleDateFormats.
-     * <p>Example:
-     * <pre>
-    public boolean containsZone(String pattern) {
-        for (Iterator it = formatParser.set(pattern).getItems().iterator(); it.hasNext();) {
-            Object item = it.next();
-            if (item instanceof VariableField) {
-                VariableField variableField = (VariableField) item;
-                if (variableField.getType() == DateTimePatternGenerator.ZONE) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-     *  </pre>
+     * Class providing date formatting
+     * @deprecated
      * @internal
-     * @deprecated This API is ICU internal only.
      */
     static public class FormatParser {
         private transient PatternTokenizer tokenizer = new PatternTokenizer()
@@ -1005,33 +950,13 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         private List items = new ArrayList();
         
         /**
-         * Construct an empty date format parser, to which strings and variables can be added with set(...).
-         * @internal
-         * @deprecated This API is ICU internal only.
-         */
-        public FormatParser() {
-        }
-
-        /**
-         * Parses the string into a list of items.
+         * Set the string to parse
          * @param string
          * @return this, for chaining
+         * @deprecated
          * @internal
-         * @deprecated This API is ICU internal only.
          */
-        final public FormatParser set(String string) {
-            return set(string, false);
-        }
-        
-        /**
-         * Parses the string into a list of items, taking into account all of the quoting that may be going on.
-         * @param string
-         * @param strict If true, then only allows exactly those lengths specified by CLDR for variables. For example, "hh:mm aa" would throw an exception.
-         * @return this, for chaining
-         * @internal
-         * @deprecated This API is ICU internal only.
-         */
-        public FormatParser set(String string, boolean strict) {
+        public FormatParser set(String string) {
             items.clear();
             if (string.length() == 0) return this;
             tokenizer.setPattern(string);
@@ -1043,95 +968,88 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
                 if (status == PatternTokenizer.DONE) break;
                 if (status == PatternTokenizer.SYNTAX) {
                     if (variable.length() != 0 && buffer.charAt(0) != variable.charAt(0)) {
-                        addVariable(variable, false);
+                        addVariable(variable);
                     }
                     variable.append(buffer);
                 } else {
-                    addVariable(variable, false);
+                    addVariable(variable);
                     items.add(buffer.toString());
                 }
             }
-            addVariable(variable, false);
+            addVariable(variable);
             return this;
         }
         
-        private void addVariable(StringBuffer variable, boolean strict) {
+        private void addVariable(StringBuffer variable) {
             if (variable.length() != 0) {
-                items.add(new VariableField(variable.toString(), strict));
+                items.add(new VariableField(variable.toString()));
                 variable.setLength(0);
             }
         }
         
-//        /** Private method. Return a collection of fields. These will be a mixture of literal Strings and VariableFields. Any "a" variable field is removed.
-//         * @param output List to append the items to. If null, is allocated as an ArrayList.
-//         * @return list
-//         */
-//        private List getVariableFields(List output) {
-//            if (output == null) output = new ArrayList();
-//            main:
-//                for (Iterator it = items.iterator(); it.hasNext();) {
-//                    Object item = it.next();
-//                    if (item instanceof VariableField) {
-//                        String s = item.toString();
-//                        switch(s.charAt(0)) {
-//                        //case 'Q': continue main; // HACK
-//                        case 'a': continue main; // remove
-//                        }
-//                        output.add(item);
-//                    }
-//                }
-//            //System.out.println(output);
-//            return output;
-//        }
-        
-//        /**
-//         * Produce a string which concatenates all the variables. That is, it is the logically the same as the input with all literals removed.
-//         * @return a string which is a concatenation of all the variable fields
-//         * @internal
-//         * @deprecated This API is ICU internal only.
-//         */
-//        public String getVariableFieldString() {
-//            List list = getVariableFields(null);
-//            StringBuffer result = new StringBuffer();
-//            for (Iterator it = list.iterator(); it.hasNext();) {
-//                String item = it.next().toString();
-//                result.append(item);
-//            }
-//            return result.toString();
-//        }
+        /** Return a collection of fields. These will be a mixture of Strings and VariableFields. Any "a" variable field is removed.
+         * @param output List to append the items to. If null, is allocated as an ArrayList.
+         * @return list
+         */
+        private List getVariableFields(List output) {
+            if (output == null) output = new ArrayList();
+            main:
+                for (Iterator it = items.iterator(); it.hasNext();) {
+                    Object item = it.next();
+                    if (item instanceof VariableField) {
+                        String s = item.toString();
+                        switch(s.charAt(0)) {
+                        //case 'Q': continue main; // HACK
+                        case 'a': continue main; // remove
+                        }
+                        output.add(s);
+                    }
+                }
+            //System.out.println(output);
+            return output;
+        }
         
         /**
-         * Returns modifiable list which is a mixture of Strings and VariableFields, in the order found during parsing. The strings represent literals, and have all quoting removed. Thus the string "dd 'de' MM" will parse into three items:
-         * <pre>
-         * VariableField: dd
-         * String: " de "
-         * VariableField: MM
-         * </pre>
-         * The list is modifiable, so you can add any strings or variables to it, or remove any items.
-         * @return modifiable list of items.
+         * @return a string which is a concatenation of all the variable fields
+         * @deprecated
          * @internal
-         * @deprecated This API is ICU internal only.
+         */
+        public String getVariableFieldString() {
+            List list = getVariableFields(null);
+            StringBuffer result = new StringBuffer();
+            for (Iterator it = list.iterator(); it.hasNext();) {
+                String item = (String) it.next();
+                result.append(item);
+            }
+            return result.toString();
+        }
+        
+        /**
+         * Returns modifiable list which is a mixture of Strings and VariableFields, in the order found during parsing.
+         * @return modifiable list of items.
+         * @deprecated
+         * @internal
          */
         public List getItems() {
             return items;
         }
         
-        /** Provide display form of formatted input. Each literal string is quoted if necessary.. That is, if the input was "hh':'mm", the result would be "hh:mm", since the ":" doesn't need quoting. See quoteLiteral().
+        /** Provide display form of formatted input
          * @return printable output string
+         * @deprecated
          * @internal
-         * @deprecated This API is ICU internal only.
          */
         public String toString() {
             return toString(0, items.size());
         }
         
         /**
-         * Provide display form of a segment of the parsed input. Each literal string is minimally quoted. That is, if the input was "hh':'mm", the result would be "hh:mm", since the ":" doesn't need quoting. See quoteLiteral().
+         * Provide display form of formatted input
          * @param start item to start from
          * @param limit last item +1
          * @return printable output string
+         * @deprecated
          * @internal
-         * @deprecated This API is ICU internal only.
          */
         public String toString(int start, int limit) {
             StringBuffer result = new StringBuffer();
@@ -1148,17 +1066,18 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         }
         
         /**
-         * Returns true if it has a mixture of date and time variable fields: that is, at least one date variable and at least one time variable.
+         * Internal method <p>
+         * Returns true if it has a mixture of date and time fields
          * @return true or false
+         * @deprecated
          * @internal
-         * @deprecated This API is ICU internal only.
          */
         public boolean hasDateAndTimeFields() {
             int foundMask = 0;
             for (Iterator it = items.iterator(); it.hasNext();) {
                 Object item = it.next();
                 if (item instanceof VariableField) {
-                    int type = ((VariableField)item).getType();
+                    int type = getType(item);
                     foundMask |= 1 << type;    
                 }
             }
@@ -1167,110 +1086,119 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
             return isDate && isTime;
         }
         
-//        /**
-//         * Internal routine
-//         * @param value
-//         * @param result
-//         * @return list
-//         * @internal
-//         * @deprecated This API is ICU internal only.
-//         */
-//        public List getAutoPatterns(String value, List result) {
-//            if (result == null) result = new ArrayList();
-//            int fieldCount = 0;
-//            int minField = Integer.MAX_VALUE;
-//            int maxField = Integer.MIN_VALUE;
-//            for (Iterator it = items.iterator(); it.hasNext();) {
-//                Object item = it.next();
-//                if (item instanceof VariableField) {
-//                    try {
-//                        int type = ((VariableField)item).getType();
-//                        if (minField > type) minField = type;
-//                        if (maxField < type) maxField = type;
-//                        if (type == ZONE || type == DAYPERIOD || type == WEEKDAY) return result; // skip anything with zones                    
-//                        fieldCount++;
-//                    } catch (Exception e) {
-//                        return result; // if there are any funny fields, return
-//                    }
-//                }
-//            }
-//            if (fieldCount < 3) return result; // skip
-//            // trim from start
-//            // trim first field IF there are no letters around it
-//            // and it is either the min or the max field
-//            // first field is either 0 or 1
-//            for (int i = 0; i < items.size(); ++i) {
-//                Object item = items.get(i);
-//                if (item instanceof VariableField) {
-//                    int type = ((VariableField)item).getType();
-//                    if (type != minField && type != maxField) break;
-//                    
-//                    if (i > 0) {
-//                        Object previousItem = items.get(0);
-//                        if (alpha.containsSome(previousItem.toString())) break;
-//                    }
-//                    int start = i+1;
-//                    if (start < items.size()) {
-//                        Object nextItem = items.get(start);
-//                        if (nextItem instanceof String) {
-//                            if (alpha.containsSome(nextItem.toString())) break;
-//                            start++; // otherwise skip over string
-//                        }
-//                    }
-//                    result.add(toString(start, items.size()));
-//                    break;
-//                }
-//            }
-//            // now trim from end
-//            for (int i = items.size()-1; i >= 0; --i) {
-//                Object item = items.get(i);
-//                if (item instanceof VariableField) {
-//                    int type = ((VariableField)item).getType();
-//                    if (type != minField && type != maxField) break;
-//                    if (i < items.size() - 1) {
-//                        Object previousItem = items.get(items.size() - 1);
-//                        if (alpha.containsSome(previousItem.toString())) break;
-//                    }
-//                    int end = i-1;
-//                    if (end > 0) {
-//                        Object nextItem = items.get(end);
-//                        if (nextItem instanceof String) {
-//                            if (alpha.containsSome(nextItem.toString())) break;
-//                            end--; // otherwise skip over string
-//                        }
-//                    }
-//                    result.add(toString(0, end+1));
-//                    break;
-//                }
-//            }
-//            
-//            return result;
-//        }
+        /**
+         * Internal routine
+         * @param value
+         * @param result
+         * @return list
+         * @deprecated
+         * @internal
+         */
+        public List getAutoPatterns(String value, List result) {
+            if (result == null) result = new ArrayList();
+            int fieldCount = 0;
+            int minField = Integer.MAX_VALUE;
+            int maxField = Integer.MIN_VALUE;
+            for (Iterator it = items.iterator(); it.hasNext();) {
+                Object item = it.next();
+                if (item instanceof VariableField) {
+                    try {
+                        int type = getType(item);
+                        if (minField > type) minField = type;
+                        if (maxField < type) maxField = type;
+                        if (type == ZONE || type == DAYPERIOD || type == WEEKDAY) return result; // skip anything with zones                    
+                        fieldCount++;
+                    } catch (Exception e) {
+                        return result; // if there are any funny fields, return
+                    }
+                }
+            }
+            if (fieldCount < 3) return result; // skip
+            // trim from start
+            // trim first field IF there are no letters around it
+            // and it is either the min or the max field
+            // first field is either 0 or 1
+            for (int i = 0; i < items.size(); ++i) {
+                Object item = items.get(i);
+                if (item instanceof VariableField) {
+                    int type = getType(item);
+                    if (type != minField && type != maxField) break;
+                    
+                    if (i > 0) {
+                        Object previousItem = items.get(0);
+                        if (alpha.containsSome(previousItem.toString())) break;
+                    }
+                    int start = i+1;
+                    if (start < items.size()) {
+                        Object nextItem = items.get(start);
+                        if (nextItem instanceof String) {
+                            if (alpha.containsSome(nextItem.toString())) break;
+                            start++; // otherwise skip over string
+                        }
+                    }
+                    result.add(toString(start, items.size()));
+                    break;
+                }
+            }
+            // now trim from end
+            for (int i = items.size()-1; i >= 0; --i) {
+                Object item = items.get(i);
+                if (item instanceof VariableField) {
+                    int type = getType(item);
+                    if (type != minField && type != maxField) break;
+                    if (i < items.size() - 1) {
+                        Object previousItem = items.get(items.size() - 1);
+                        if (alpha.containsSome(previousItem.toString())) break;
+                    }
+                    int end = i-1;
+                    if (end > 0) {
+                        Object nextItem = items.get(end);
+                        if (nextItem instanceof String) {
+                            if (alpha.containsSome(nextItem.toString())) break;
+                            end--; // otherwise skip over string
+                        }
+                    }
+                    result.add(toString(0, end+1));
+                    break;
+                }
+            }
+            
+            return result;
+        }
         
-//        private static UnicodeSet alpha = new UnicodeSet("[:alphabetic:]");
+        private static UnicodeSet alpha = new UnicodeSet("[:alphabetic:]");
         
-//        private int getType(Object item) {
-//            String s = item.toString();
-//            int canonicalIndex = getCanonicalIndex(s);
-//            if (canonicalIndex < 0) {
-//                throw new IllegalArgumentException("Illegal field:\t"
-//                        + s);
-//            }
-//            int type = types[canonicalIndex][1];
-//            return type;
-//        }
+        private int getType(Object item) {
+            String s = item.toString();
+            int canonicalIndex = getCanonicalIndex(s);
+            if (canonicalIndex < 0) {
+                throw new IllegalArgumentException("Illegal field:\t"
+                        + s);
+            }
+            int type = types[canonicalIndex][1];
+            return type;
+        }
         
         /**
-         *  Each literal string is quoted as needed. That is, the ' quote marks will only be added if needed. The exact pattern of quoting is not guaranteed, thus " de la " could be quoted as " 'de la' " or as " 'de' 'la' ".
+         *  produce a quoted literal
          * @param string
          * @return string with quoted literals
+         * @deprecated
          * @internal
-         * @deprecated This API is ICU internal only.
          */
         public Object quoteLiteral(String string) {
             return tokenizer.quoteLiteral(string);
         }
         
+        /**
+         * Simple constructor, since this is treated like a struct.
+         * @deprecated
+         * @internal
+         */
+        public FormatParser() {
+            super();
+            // TODO Auto-generated constructor stub
+        }
     }
     // ========= PRIVATES ============
     
@@ -1290,7 +1218,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
     private transient DateTimeMatcher current = new DateTimeMatcher();
     private transient FormatParser fp = new FormatParser();
     private transient DistanceInfo _distanceInfo = new DistanceInfo();
-    //private transient boolean isComplete = false;
+    private transient boolean isComplete = false;
     private transient DateTimeMatcher skipMatcher = null; // only used temporarily, for internal purposes
     private transient boolean frozen = false;
     
@@ -1298,9 +1226,6 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
     
     private static final int FRACTIONAL_MASK = 1<<FRACTIONAL_SECOND;
     private static final int SECOND_AND_FRACTIONAL_MASK = (1<<SECOND) | (1<<FRACTIONAL_SECOND);
-
-    // Cache for DateTimePatternGenerator
-    private static ICUCache DTPNG_CACHE = new SimpleCache();
     
     private void checkFrozen() {
         if (isFrozen()) {
@@ -1379,7 +1304,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
             //char c = (char)types[i][0];
             addPattern(String.valueOf(CANONICAL_ITEMS[i]), false, patternInfo);
         }
-        //isComplete = true;
+        isComplete = true;
     }
     {
         complete();
@@ -1422,15 +1347,12 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
             if (item instanceof String) {
                 newPattern.append(fp.quoteLiteral((String)item));
             } else {
-                final VariableField variableField = (VariableField) item;
-                String field = variableField.toString();
-//                int canonicalIndex = getCanonicalIndex(field, true);
-//                if (canonicalIndex < 0) {
-//                    continue; // don't adjust
-//                }
-//                int type = types[canonicalIndex][1];
-                int type = variableField.getType();
-                
+                String field = ((VariableField) item).string;
+                int canonicalIndex = getCanonicalIndex(field);
+                if (canonicalIndex < 0) {
+                    continue; // don't adjust
+                }
+                int type = types[canonicalIndex][1];
                 if (fixFractionalSeconds && type == SECOND) {
                     String newField = inputRequest.original[FRACTIONAL_SECOND];
                     field = field + decimal + newField;
@@ -1464,8 +1386,8 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
      * internal routine
      * @param pattern
      * @return field value
+     * @deprecated
      * @internal
-     * @deprecated This API is ICU internal only.
      */
     public String getFields(String pattern) {
         fp.set(pattern);
@@ -1527,15 +1449,15 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
     DELTA = 0x10,
     NUMERIC = 0x100,
     NONE = 0,
-    NARROW = -0x101,
-    SHORT = -0x102,
-    LONG = -0x103,
+    NARROW = -0x100,
+    SHORT = -0x101,
+    LONG = -0x102,
     EXTRA_FIELD =   0x10000,
     MISSING_FIELD = 0x1000;
     
     
     static private String getName(String s) {
-        int i = getCanonicalIndex(s, true);
+        int i = getCanonicalIndex(s);
         String name = FIELD_NAME[types[i][1]];
         int subtype = types[i][2];
         boolean string = subtype < 0;
@@ -1545,34 +1467,17 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         return name;
     }
     
-    /**
-     * Get the canonical index, or return -1 if illegal.
-     * @param s
-     * @param strict TODO
-     * @return
-     */
-    static private int getCanonicalIndex(String s, boolean strict) {
+    static private int getCanonicalIndex(String s) {
         int len = s.length();
-        if (len == 0) {
-            return -1;
-        }
         int ch = s.charAt(0);
-        //      verify that all are the same character
-        for (int i = 1; i < len; ++i) {
-            if (s.charAt(i) != ch) {
-                return -1; 
-            }
-        }
-        int bestRow = -1;
         for (int i = 0; i < types.length; ++i) {
             int[] row = types[i];
             if (row[0] != ch) continue;
-            bestRow = i;
             if (row[3] > len) continue;
             if (row[row.length-1] < len) continue;
             return i;
         }
-        return strict ? -1 : bestRow;
+        return -1;
     }
     
     static private int[][] types = {
@@ -1589,10 +1494,6 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         {'Q', QUARTER, NUMERIC, 1, 2},
         {'Q', QUARTER, SHORT, 3},
         {'Q', QUARTER, LONG, 4},
-        
-        {'q', QUARTER, NUMERIC + DELTA, 1, 2},
-        {'q', QUARTER, SHORT + DELTA, 3},
-        {'q', QUARTER, LONG + DELTA, 4},
         
         {'M', MONTH, NUMERIC, 1, 2},
         {'M', MONTH, SHORT, 3},
@@ -1629,7 +1530,6 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         {'k', HOUR, NUMERIC + 11*DELTA, 1, 2},
         {'h', HOUR, NUMERIC, 1, 2}, // 12 hour
         {'K', HOUR, NUMERIC + DELTA, 1, 2},
-        {'j', HOUR, NUMERIC + 20*DELTA, 1, 2},
         
         {'m', MINUTE, NUMERIC, 1, 2},
         
@@ -1643,8 +1543,6 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         {'z', ZONE, LONG, 4},
         {'Z', ZONE, SHORT - DELTA, 1, 3},
         {'Z', ZONE, LONG - DELTA, 4},
-        {'V', ZONE, SHORT - DELTA, 1, 3},
-        {'V', ZONE, LONG - DELTA, 4},
     };
     
     private static class DateTimeMatcher implements Comparable {
@@ -1679,19 +1577,14 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
                 baseOriginal[i] = "";
             }
             fp.set(pattern);
-            for (Iterator it = fp.getItems().iterator(); it.hasNext();) {
-                Object obj = it.next();
-                if (!(obj instanceof VariableField)) {
-                    continue;
+            for (Iterator it = fp.getVariableFields(new ArrayList()).iterator(); it.hasNext();) {
+                String field = (String) it.next();
+                if (field.charAt(0) == 'a') continue; // skip day period, special cass
+                int canonicalIndex = getCanonicalIndex(field);
+                if (canonicalIndex < 0) {
+                    throw new IllegalArgumentException("Illegal field:\t"
+                            + field + "\t in " + pattern);
                 }
-                VariableField item = (VariableField)obj;
-                String field = item.toString();
-                if (field.charAt(0) == 'a') continue; // skip day period, special case
-                int canonicalIndex = item.getCanonicalIndex();
-//                if (canonicalIndex < 0) {
-//                    throw new IllegalArgumentException("Illegal field:\t"
-//                            + field + "\t in " + pattern);
-//                }
                 int[] row = types[canonicalIndex];
                 int typeValue = row[1];
                 if (original[typeValue].length() != 0) {
@@ -1706,7 +1599,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
                 baseOriginal[typeValue] = Utility.repeat(String.valueOf(repeatChar),repeatCount);
                 int subTypeValue = row[2];
                 if (subTypeValue > 0) subTypeValue += field.length();
-                type[typeValue] = subTypeValue;
+                type[typeValue] = (byte) subTypeValue;
             }
             return this;
         }
@@ -1808,4 +1701,5 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         }
     }
 }
+//#endif
 //eof

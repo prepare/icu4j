@@ -1,7 +1,7 @@
 //##header J2SE15
 /*
 **********************************************************************
-* Copyright (c) 2004-2008, International Business Machines
+* Copyright (c) 2004-2007, International Business Machines
 * Corporation and others.  All Rights Reserved.
 **********************************************************************
 * Author: Alan Liu
@@ -422,7 +422,7 @@ public class TestMessageFormat extends com.ibm.icu.dev.test.TestFmwk {
         // Just use unlocalized currency symbol.
         //String compareStrGer = "At <time> on 08.08.1997, you made a deposit of 456,83 DM.";
         String compareStrGer = "At <time> on 08.08.1997, you made a deposit of ";
-        compareStrGer += "456,83\u00a0";
+        compareStrGer += "456,83 ";
         compareStrGer += '\u00a4';
         compareStrGer += ".";
 
@@ -862,7 +862,7 @@ public class TestMessageFormat extends com.ibm.icu.dev.test.TestFmwk {
         compareStr2 += "456.83.";
         // both date and currency formats are German-style
         String compareStr3 = "At <time> on 08.08.1997, you made a deposit of ";
-        compareStr3 += "456,83\u00a0";
+        compareStr3 += "456,83 ";
         compareStr3 += '\u00a4';
         compareStr3 += ".";
 
@@ -1289,46 +1289,6 @@ public class TestMessageFormat extends com.ibm.icu.dev.test.TestFmwk {
             }
             if (!result.equals("There are 4,0 zavoda in the directory.")) {
                 errln("PluralFormat produced wrong message string.");
-            }
-        }
-    }
-
-  // Test toPattern when there is a PluralFormat
-  public void testPluralFormatToPattern() {
-    String[] patterns = {
-      "Beware of vicious {0, plural, one {hamster} other {hamsters}}.",
-      "{0, plural, one {{0, number,C''''est #,##0.0# fichier}} other {Ce sont # fichiers}} dans la liste.",
-      "{0, plural, one {C''est # fichier} other {Ce sont # fichiers}} dans la liste.",
-    };
-
-    for (int i = 0; i < patterns.length; ++i) {
-      String pattern = patterns[i];
-      MessageFormat mf = new MessageFormat(pattern);
-      MessageFormat mf2 = new MessageFormat(mf.toPattern());
-      if (!mf.equals(mf2)) {
-        errln("message formats not equal for pattern:\n*** '" + pattern + "'\n*** '" +
-              mf.toPattern() + "'");
-      }
-    }
-  }
-
-    // Test case for null arguments.
-    // Ticket#6361
-    public void TestNullArgs() {
-        MessageFormat msgfmt = new MessageFormat("{0} - {1}");
-        Object[][] TEST_CASES = {
-            {null,                          "{0} - {1}"},
-            {new Object[] {null},           "null - {1}"},
-            {new Object[] {null, null},     "null - null"},
-            {new Object[] {"one"},          "one - {1}"},
-            {new Object[] {"one", null},    "one - null"},
-            {new Object[] {null, "two"},    "null - two"},
-        };
-
-        for (int i = 0; i < TEST_CASES.length; i++) {
-            String text = msgfmt.format(TEST_CASES[i][0]);
-            if (!text.equals(TEST_CASES[i][1])) {
-                errln("FAIL: Returned[" + text + "] Expected[" + TEST_CASES[i][1] + "]");
             }
         }
     }

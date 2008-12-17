@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2007-2008, International Business Machines Corporation and    *
+ * Copyright (C) 2007, International Business Machines Corporation and         *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -13,7 +13,8 @@ import java.util.Date;
  * representing a time zone effective from the beginning and
  * has no actual start times.
  * 
- * @stable ICU 3.8
+ * @draft ICU 3.8
+ * @provisional This API might change or be removed in a future release.
  */
 public class InitialTimeZoneRule extends TimeZoneRule {
 
@@ -28,7 +29,8 @@ public class InitialTimeZoneRule extends TimeZoneRule {
      * @param dstSavings    The amount of daylight saving offset adjustment in milliseconds.
      *                      If this ia a rule for standard time, the value of this argument is 0.
      * 
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public InitialTimeZoneRule(String name, int rawOffset, int dstSavings) {
         super(name, rawOffset, dstSavings);
@@ -37,7 +39,8 @@ public class InitialTimeZoneRule extends TimeZoneRule {
     /**
      * {@inheritDoc}
      * 
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public boolean isEquivalentTo(TimeZoneRule other) {
         if (other instanceof InitialTimeZoneRule) {
@@ -50,7 +53,8 @@ public class InitialTimeZoneRule extends TimeZoneRule {
      * {@inheritDoc}<br><br>
      * Note: This method in <code>InitialTimeZoneRule</code> always returns null.
      * 
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public Date getFinalStart(int prevRawOffset, int prevDSTSavings) {
         // No start time available
@@ -61,7 +65,8 @@ public class InitialTimeZoneRule extends TimeZoneRule {
      * {@inheritDoc}<br><br>
      * Note: This method in <code>InitialTimeZoneRule</code> always returns null.
      * 
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public Date getFirstStart(int prevRawOffset, int prevDSTSavings) {
         // No start time available
@@ -72,7 +77,8 @@ public class InitialTimeZoneRule extends TimeZoneRule {
      * {@inheritDoc}<br><br>
      * Note: This method in <code>InitialTimeZoneRule</code> always returns null.
      * 
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public Date getNextStart(long base, int prevRawOffset, int prevDSTSavings,
             boolean inclusive) {
@@ -84,7 +90,8 @@ public class InitialTimeZoneRule extends TimeZoneRule {
      * {@inheritDoc}<br><br>
      * Note: This method in <code>InitialTimeZoneRule</code> always returns null.
      * 
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public Date getPreviousStart(long base, int prevRawOffset,
             int prevDSTSavings, boolean inclusive) {
@@ -95,7 +102,8 @@ public class InitialTimeZoneRule extends TimeZoneRule {
     /**
      * {@inheritDoc}<br><br>
      * Note: This method in <code>InitialTimeZoneRule</code> always returns false.
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public boolean isTransitionRule() {
         return false;

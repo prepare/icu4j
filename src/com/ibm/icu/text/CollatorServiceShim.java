@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 2003-2008, International Business Machines Corporation and         *
+* Copyright (C) 2003-2007, International Business Machines Corporation and         *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 */
@@ -52,12 +52,12 @@ final class CollatorServiceShim extends Collator.ServiceShim {
         class CFactory extends LocaleKeyFactory {
             CollatorFactory delegate;
 
-            CFactory(CollatorFactory fctry) {
-                super(fctry.visible()); 
-                this.delegate = fctry;
+            CFactory(CollatorFactory f) {
+                super(f.visible()); 
+                this.delegate = f;
             }
 
-            public Object handleCreate(ULocale loc, int kind, ICUService srvc) {
+            public Object handleCreate(ULocale loc, int kind, ICUService service) {
                 Object coll = delegate.createCollator(loc);
                 return coll;
             }
@@ -108,7 +108,7 @@ final class CollatorServiceShim extends Collator.ServiceShim {
                     super(ICUResourceBundle.ICU_COLLATION_BASE_NAME);
                 }
 
-                protected Object handleCreate(ULocale uloc, int kind, ICUService srvc) {
+                protected Object handleCreate(ULocale uloc, int kind, ICUService service) {
                     return new RuleBasedCollator(uloc);
                 }
             }

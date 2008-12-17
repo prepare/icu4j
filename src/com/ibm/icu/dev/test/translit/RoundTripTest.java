@@ -1,6 +1,6 @@
 /**
  *******************************************************************************
- * Copyright (C) 2000-2008, International Business Machines Corporation and    *
+ * Copyright (C) 2000-2007, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -206,7 +206,7 @@ public class RoundTripTest extends TestFmwk {
 
     String getGreekSet() {
         // Time bomb
-        if (skipIfBeforeICU(4,1,2)) {
+        if (skipIfBeforeICU(3,9,0)) {
             // We temporarily filter against Unicode 4.1, but we only do this
             // before version 3.5.
             logln("TestGreek needs to be updated to remove delete the section marked [:Age=4.0:] filter");
@@ -268,7 +268,7 @@ public class RoundTripTest extends TestFmwk {
 
     public void TestHebrew() throws IOException {
         //      Time bomb
-        if (skipIfBeforeICU(4,1,2)) {
+        if (skipIfBeforeICU(3,9,0)) {
             // We temporarily filter against Unicode 4.1, but we only do this
             // before version 3.5.
             logln("TestHebrew needs to be updated to remove delete the section marked [:Age=4.0:] filter");
@@ -283,7 +283,7 @@ public class RoundTripTest extends TestFmwk {
 
     public void TestThai() throws IOException {
         long start = System.currentTimeMillis();
-        if(skipIfBeforeICU(4,1,2)){
+        if(skipIfBeforeICU(3,9,0)){
             new Test("Latin-Thai")
             .test("[a-zA-Z\u0142\u1ECD\u00E6\u0131\u0268\u02CC]",
                   "[\u0E01-\u0E3A\u0E40-\u0E5B]", 
@@ -365,16 +365,22 @@ public class RoundTripTest extends TestFmwk {
 
     public void TestDevanagariLatin() throws IOException {
         long start = System.currentTimeMillis();
-        if (skipIfBeforeICU(4,1,2)) {
-            logln("Warning: TestDevanagariLatin needs to be updated to remove delete the section marked [:Age=4.1:] filter");
-        } else {
+        if(skipIfBeforeICU(2,8,0)){
+            new Test("Latin-DEVANAGARI", 50)
+              .test(latinForIndic, "[[:Devanagari:][\u094d][\u0964\u0965] & [:Age=3.2:]]", "[\u0965]", this, new LegalIndic());
+
+        }else{
+            if (skipIfBeforeICU(3,9,0)) {
+                logln("Warning: TestDevanagariLatin needs to be updated to remove delete the section marked [:Age=4.1:] filter");
+            } else {
 //              We temporarily filter against Unicode 4.1, but we only do this
-            // before version 3.4.
-            errln("FAIL: TestDevanagariLatin needs to be updated to remove delete the [:Age=4.1:] filter ");
-            return;
+                // before version 3.4.
+                errln("FAIL: TestDevanagariLatin needs to be updated to remove delete the [:Age=4.1:] filter ");
+                return;
+            }
+            new Test("Latin-DEVANAGARI", 50)
+              .test(latinForIndic, "[[[:Devanagari:][\u094d][\u0964\u0965]]&[:Age=4.1:]]", "[\u0965\u0904]", this, new LegalIndic());
         }
-        new Test("Latin-DEVANAGARI", 50)
-          .test(latinForIndic, "[[[:Devanagari:][\u094d][\u0964\u0965]]&[:Age=4.1:]]", "[\u0965\u0904]", this, new LegalIndic());
         showElapsed(start, "TestDevanagariLatin");
     }
 
@@ -738,7 +744,7 @@ public class RoundTripTest extends TestFmwk {
             logln("Testing only 5 of "+ interIndicArray.length+" Skipping rest (use -e for exhaustive)");
             num = 5;
         }
-        if (skipIfBeforeICU(4,1,2)) {
+        if (skipIfBeforeICU(3,9,0)) {
             logln("Warning: TestInterIndic needs to be updated to remove delete the section marked [:Age=4.1:] filter");
         } else {
 //          We temporarily filter against Unicode 4.1, but we only do this
@@ -747,22 +753,31 @@ public class RoundTripTest extends TestFmwk {
             return;
         }
         for(int i=0; i<num;i++){
-            logln("Testing " + interIndicArray[i][0] + " at index " + i   );
-            /*TODO: uncomment the line below when the transliterator is fixed
-            new Test(interIndicArray[i][0], 50)
-                .test(interIndicArray[i][1],
-                      interIndicArray[i][2],
-                      interIndicArray[i][3],
-                      this, new LegalIndic());
-            */
-            /* comment lines below  when transliterator is fixed */
-            // start
-            new Test(interIndicArray[i][0], 50)
-            .test("["+interIndicArray[i][1]+" &[:Age=4.1:]]",
-                  "["+interIndicArray[i][2]+" &[:Age=4.1:]]",
-                  interIndicArray[i][3],
-                  this, new LegalIndic());
-            //end
+           logln("Testing " + interIndicArray[i][0] + " at index " + i   );
+           if(skipIfBeforeICU(2,8,0)){
+               new Test(interIndicArray[i][0], 50)
+                    .test("[" + interIndicArray[i][1]+" & [:Age=3.2:]]",
+                          "[" + interIndicArray[i][2]+" & [:Age=3.2:]]",
+                          interIndicArray[i][3],
+                          this, new LegalIndic());
+           }else{
+               /*TODO: uncomment the line below when the transliterator is fixed
+               new Test(interIndicArray[i][0], 50)
+                    .test(interIndicArray[i][1],
+                          interIndicArray[i][2],
+                          interIndicArray[i][3],
+                          this, new LegalIndic());
+               */
+               /* comment lines below  when transliterator is fixed */
+               // start
+               new Test(interIndicArray[i][0], 50)
+               .test("["+interIndicArray[i][1]+" &[:Age=4.1:]]",
+                     "["+interIndicArray[i][2]+" &[:Age=4.1:]]",
+                     interIndicArray[i][3],
+                     this, new LegalIndic());
+               //end
+           }
+
         }
         showElapsed(start, "TestInterIndic");
     }
@@ -1029,10 +1044,10 @@ public class RoundTripTest extends TestFmwk {
         static final UnicodeSet okAnyway = new UnicodeSet("[^[:Letter:]]");
         static final UnicodeSet neverOk = new UnicodeSet("[:Other:]");
 
-        public void test(String srcRange, String trgtRange,
-          String rdtripExclusions, RoundTripTest logger, Legal legalSrc)
+        public void test(String sourceRange, String targetRange,
+          String roundtripExclusions, RoundTripTest log, Legal legalSource)
           throws java.io.IOException {
-            test(srcRange, trgtRange, srcRange, rdtripExclusions, logger, legalSrc);
+            test(sourceRange, targetRange, sourceRange, roundtripExclusions, log, legalSource);
         }
 
         /**
@@ -1041,34 +1056,34 @@ public class RoundTripTest extends TestFmwk {
          * that everything in targetRange maps to backtoSourceRange
          * that everything roundtrips from target -> source -> target, except roundtripExceptions
          */
-        public void test(String srcRange, String trgtRange, String backtoSourceRange,
-          String rdtripExclusions, RoundTripTest logger, Legal legalSrc)
+        public void test(String sourceRange, String targetRange, String backtoSourceRange,
+          String roundtripExclusions, RoundTripTest log, Legal legalSource)
           throws java.io.IOException {
 
-            legalSource = legalSrc;
-            sourceRange = new UnicodeSet(srcRange);
-            sourceRange.removeAll(neverOk);
+            this.legalSource = legalSource;
+            this.sourceRange = new UnicodeSet(sourceRange);
+            this.sourceRange.removeAll(neverOk);
 
-            targetRange = new UnicodeSet(trgtRange);
-            targetRange.removeAll(neverOk);
+            this.targetRange = new UnicodeSet(targetRange);
+            this.targetRange.removeAll(neverOk);
 
-            toSource = new UnicodeSet(backtoSourceRange);
-            toSource.addAll(okAnyway);
+            this.toSource = new UnicodeSet(backtoSourceRange);
+            this.toSource.addAll(okAnyway);
 
-            toTarget = new UnicodeSet(trgtRange);
-            toTarget.addAll(okAnyway);
+            this.toTarget = new UnicodeSet(targetRange);
+            this.toTarget.addAll(okAnyway);
 
-            if (rdtripExclusions != null && rdtripExclusions.length() > 0) {
-                roundtripExclusions = new UnicodeSet(rdtripExclusions);
+            if (roundtripExclusions != null && roundtripExclusions.length() > 0) {
+                this.roundtripExclusions = new UnicodeSet(roundtripExclusions);
             }else{
-                roundtripExclusions = new UnicodeSet(); // empty
+                this.roundtripExclusions = new UnicodeSet(); // empty
             }
 
-            log = logger;
+            this.log = log;
 
-            log.logln(Utility.escape("Source:  " + sourceRange));
-            log.logln(Utility.escape("Target:  " + targetRange));
-            log.logln(Utility.escape("Exclude: " + roundtripExclusions));
+            log.logln(Utility.escape("Source:  " + this.sourceRange));
+            log.logln(Utility.escape("Target:  " + this.targetRange));
+            log.logln(Utility.escape("Exclude: " + this.roundtripExclusions));
             if (log.isQuick()) log.logln("Abbreviated Test");
 
             badCharacters = new UnicodeSet("[:other:]");
@@ -1107,21 +1122,21 @@ public class RoundTripTest extends TestFmwk {
         try {
             String logFileName = "test_" + transliteratorID.replace('/', '_') + ".html";
             File lf = new File(logFileName);
-            logger.logln("Creating log file " + lf.getAbsoluteFile());
+            log.logln("Creating log file " + lf.getAbsoluteFile());
             FileOutputStream fos = new FileOutputStream(lf);
             fos.write(bast.toByteArray());
             fos.close();
-            logger.errln(transliteratorID + " errors: "
+            log.errln(transliteratorID + " errors: "
                   + errorCount + (errorCount > errorLimit ? " (at least!)" : "")
                   + ", see " + lf.getAbsoluteFile());
         }
         catch (SecurityException e) {
-            logger.errln(transliteratorID + " errors: "
+            log.errln(transliteratorID + " errors: "
                   + errorCount + (errorCount > errorLimit ? " (at least!)" : "")
                   + ", no log provided due to protected test domain");
         }
             } else {
-                logger.logln(transliteratorID + " ok");
+                log.logln(transliteratorID + " ok");
 //                  new File(logFileName).delete();
             }
         }

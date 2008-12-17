@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2007-2008, International Business Machines Corporation and    *
+ * Copyright (C) 2007, International Business Machines Corporation and         *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -22,11 +22,10 @@ import com.ibm.icu.impl.Grego;
  * @see com.ibm.icu.util.TimeZoneRule
  * @see com.ibm.icu.util.TimeZoneTransition
  * 
- * @stable ICU 3.8
+ * @draft ICU 3.8
+ * @provisional This API might change or be removed in a future release.
  */
 public abstract class BasicTimeZone extends TimeZone {
-
-    private static final long serialVersionUID = -3204278532246180932L;
 
     private static final long MILLIS_PER_YEAR = 365*24*60*60*1000L;
 
@@ -40,7 +39,8 @@ public abstract class BasicTimeZone extends TimeZone {
      *          after the given base time, or null if no time zone transitions
      *          are available after the base time.
      * 
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public abstract TimeZoneTransition getNextTransition(long base, boolean inclusive);
 
@@ -54,7 +54,8 @@ public abstract class BasicTimeZone extends TimeZone {
      *          before the given base time, or null if no time zone transitions
      *          are available before the base time.
      * 
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public abstract TimeZoneTransition getPreviousTransition(long base, boolean inclusive);
 
@@ -72,7 +73,8 @@ public abstract class BasicTimeZone extends TimeZone {
      * time range.  When tz is not a <code>BasicTimeZone</code>, this method
      * returns false.
      * 
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public boolean hasEquivalentTransitions(TimeZone tz, long start, long end) {
         return hasEquivalentTransitions(tz, start, end, false);
@@ -99,7 +101,8 @@ public abstract class BasicTimeZone extends TimeZone {
      * time range.  When tz is not a <code>BasicTimeZone</code>, this method
      * returns false.
      * 
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public boolean hasEquivalentTransitions(TimeZone tz, long start, long end, boolean ignoreDstAmount) {
         if (hasSameRules(tz)) {
@@ -200,7 +203,8 @@ public abstract class BasicTimeZone extends TimeZone {
      * @return  The array of <code>TimeZoneRule</code> which represents this
      *          time zone.
      * 
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public abstract TimeZoneRule[] getTimeZoneRules();
 
@@ -216,7 +220,8 @@ public abstract class BasicTimeZone extends TimeZone {
      * @return  The array of <code>TimeZoneRule</code> which represents this
      *          time zone since the start time.
      * 
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public TimeZoneRule[] getTimeZoneRules(long start) {
         TimeZoneRule[] all = getTimeZoneRules();
@@ -371,7 +376,8 @@ public abstract class BasicTimeZone extends TimeZone {
      * with a single <code>InitialTimeZoneRule</code>.  The first element in the
      * array is always a <code>InitialTimeZoneRule</code>.
      * 
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public TimeZoneRule[] getSimpleTimeZoneRulesNear(long date) {
         AnnualTimeZoneRule[] annualRules = null;
@@ -556,7 +562,8 @@ public abstract class BasicTimeZone extends TimeZone {
 
     /**
      * Protected no arg constructor.
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     protected BasicTimeZone() {
     }

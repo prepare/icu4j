@@ -1,6 +1,6 @@
 /*
 **********************************************************************
-* Copyright (c) 2004-2008, International Business Machines
+* Copyright (c) 2004, International Business Machines
 * Corporation and others.  All Rights Reserved.
 **********************************************************************
 * Author: Alan Liu
@@ -99,18 +99,18 @@ public class TokenIterator {
      * quote must match the opening quote.  If a '#' is encountered,
      * the rest of the line is ignored, unless it is backslash-escaped
      * or within quotes.
-     * @param position the offset into the string
+     * @param pos the offset into the string
      * @return offset to the next character to read from line, or if
      * the end of the line is reached without scanning a valid token,
      * -1
      */
-    private int nextToken(int position) {
-        position = Utility.skipWhitespace(line, position);
-        if (position == line.length()) {
+    private int nextToken(int pos) {
+        pos = Utility.skipWhitespace(line, pos);
+        if (pos == line.length()) {
             return -1;
         }
-        int startpos = position;
-        char c = line.charAt(position++);
+        int startpos = pos;
+        char c = line.charAt(pos++);
         char quote = 0;
         switch (c) {
         case '"':
@@ -124,29 +124,29 @@ public class TokenIterator {
             break;
         }
         int[] posref = null;
-        while (position < line.length()) {
-            c = line.charAt(position); // 16-bit ok
+        while (pos < line.length()) {
+            c = line.charAt(pos); // 16-bit ok
             if (c == '\\') {
                 if (posref == null) {
                     posref = new int[1];
                 }
-                posref[0] = position+1;
+                posref[0] = pos+1;
                 int c32 = Utility.unescapeAt(line, posref);
                 if (c32 < 0) {
                     throw new RuntimeException("Invalid escape at " +
                                                reader.describePosition() + ':' +
-                                               position);
+                                               pos);
                 }
                 UTF16.append(buf, c32);
-                position = posref[0];
+                pos = posref[0];
             } else if ((quote != 0 && c == quote) ||
                        (quote == 0 && UCharacterProperty.isRuleWhiteSpace(c))) {
-                return ++position;
+                return ++pos;
             } else if (quote == 0 && c == '#') {
-                return position; // do NOT increment
+                return pos; // do NOT increment
             } else {
                 buf.append(c);
-                ++position;
+                ++pos;
             }
         }
         if (quote != 0) {
@@ -154,6 +154,6 @@ public class TokenIterator {
                                        reader.describePosition() + ':' +
                                        startpos);
         }
-        return position;
+        return pos;
     }
 }

@@ -8,10 +8,11 @@
 */
 -->
 
-<project name="icu4j" default="core" basedir=".">
+<project name="ICU4J" default="core" basedir=".">
 
-  <!-- ### Begin Clover 2.x setup ### -->
-  <taskdef resource="cloverlib.xml" onerror="ignore" />
+  <!-- ### Begin Clover 1.2 setup ### -->
+  <typedef resource="clovertypes" onerror="ignore" />
+  <taskdef resource="clovertasks" onerror="ignore" />
 
   <target name="with.clover">
     <mkdir dir="tmp/" />
@@ -47,7 +48,7 @@
     </clover-log>
   </target>
 
-  <!-- ### End Clover 2.x setup ### -->
+  <!-- ### End Clover 1.2 setup ### -->
 
   <target name="checkAntVersion">
     <condition property="supported.ant.version">
@@ -189,10 +190,10 @@
     </condition>
 
     <!-- JVM arguments for running test cases -->
-    <condition property="test.jvm.args" value="-Xms224m -Xmx256m">
+    <condition property="test.jvm.args" value="-Xms128m -Xmx160m">
         <isset property="before.java14" />
     </condition>
-    <condition property="test.jvm.args" value="-ea -Xms224m -Xmx256m -Xdisableexcessivegc">
+    <condition property="test.jvm.args" value="-ea -Xms128m -Xmx160m -Xdisableexcessivegc">
       <and>
         <not>
           <isset property="before.java15" />
@@ -200,12 +201,7 @@
         <equals arg1="${java.vm.vendor}" arg2="IBM Corporation"/>
       </and>
     </condition>
-    <condition property="test.jvm.args" value="-ea -Xms224m -Xmx256m -Djava.awt.headless=true">
-      <and>
-        <equals arg1="${os.name}" arg2="Mac OS X"/>
-      </and>
-    </condition>
-    <condition property="test.jvm.args" value="-ea -Xms224m -Xmx256m">
+    <condition property="test.jvm.args" value="-ea -Xms128m -Xmx160m">
       <not>
         <isset property="test.jvm.args" />
       </not>
@@ -271,9 +267,9 @@
     </javac>
   </target>
 
-  <target name="doMangle" unless="dontMangle">
+  <target name="doMangle">
     <echo message="Running source code preprocessor for [${target.defs}]"/>
-    <java classname="com.ibm.icu.dev.tool.docs.CodeMangler" classpath="${build.dir}" logError="true" fork="true" dir="${basedir}">
+    <java classname="com.ibm.icu.dev.tool.docs.CodeMangler" classpath="${build.dir}" logError="true">
       <arg value="-d${target.defs}" />
       <arg value="${input.file}" />
     </java>
@@ -454,7 +450,6 @@
     <copy todir="${build.dir}/com/ibm/icu/impl/data">
       <fileset dir="${src.dir}/com/ibm/icu/impl/data" includes="*.icu,*.spp,*.brk" excludes="Transliterator_Han_Latin_*.txt" />
     </copy>
-    <copy file="${src.dir}/com/ibm/icu/ICUConfig.properties" todir="${build.dir}/com/ibm/icu"/>
   </target>
 
   <target name="testdata" depends="initBase">
@@ -519,8 +514,7 @@
           depends="core,indices,charsetsJar"
           description="build 'icu4j.jar' jar file">
     <jar jarfile="${jar.file}" compress="true">
-      <fileset dir="${basedir}" includes="license.html,unicode-license.txt" />
-      <fileset dir="${src.dir}" includes="com/ibm/icu/ICUConfig.properties" />
+      <fileset dir="${basedir}" includes="license.html, unicode-license.txt" />
       <fileset dir="${build.dir}" includes="com/ibm/icu/util/**/*,com/ibm/icu/text/**/*,com/ibm/icu/math/**/*,com/ibm/icu/impl/**/*,com/ibm/icu/lang/**/*" excludes="META-INF/services/**/*,com/ibm/icu/charset/**/*,${icu4j.data.path}/*.cnv,${icu4j.data.path}/cnvalias.icu" />
       <manifest>
         <attribute name="Built-By" value="${corp}" />
@@ -749,24 +743,9 @@
       <fileset dir="${build.dir}/com/ibm/icu/charset" />
     </delete>
   </target>
-
   <target name="check" depends="tests, jar, deleteCore" description="run standard icu4j test suite">
     <java classname="com.ibm.icu.dev.test.TestAll" fork="yes" failonerror="true">
       <jvmarg line="${test.jvm.args}"/>
-      <arg value="-n" />
-      <classpath>
-        <pathelement path="${java.class.path}/" />
-        <pathelement location="${jar.file}" />
-        <pathelement location="${charsets.jar.file}" />
-        <pathelement location="clover.jar" />
-        <pathelement path="${build.dir}" />
-      </classpath>
-    </java>
-  </target>
-
-  <target name="jdktzCheck" depends="tests, jar, deleteCore" description="run icu4j test suite with JDK timezone">
-    <java classname="com.ibm.icu.dev.test.TestAll" fork="yes" failonerror="true">
-      <jvmarg line="${test.jvm.args} -Dcom.ibm.icu.util.TimeZone.DefaultTimeZoneType=JDK"/>
       <arg value="-n" />
       <classpath>
         <pathelement path="${java.class.path}/" />
@@ -947,6 +926,8 @@
       <include name="com/ibm/icu/text/*BreakIterator*.java"/>
       <include name="com/ibm/icu/text/UnicodeSetIterator.java"/>
     </javac>
+    <copy file="${src.dir}/com/ibm/icu/impl/data/th.brk"
+          todir="${build.dir}/com/ibm/icu/impl/data/"/>
   </target>
 
   <target name="breakIteratorTests" depends="breakIterator" description="test breakIterator modular build target">
@@ -1147,7 +1128,7 @@
 
   <target name="normalizer" depends="init,normalizerData" description="modular build of normalizer services">
     <javac includes="com/ibm/icu/text/Normalizer.java,com/ibm/icu/text/CanonicalIterator.java,com/ibm/icu/text/UTF16.java,com/ibm/icu/text/UCharacterIterator.java,com/ibm/icu/text/UForwardCharacterIterator.java,com/ibm/icu/text/Replaceable.java,com/ibm/icu/text/ReplaceableString.java,com/ibm/icu/text/UnicodeFilter.java,com/ibm/icu/text/UnicodeSetIterator.java,com/ibm/icu/lang/**/*"
-           excludes="**/CVS/**/*,com/ibm/icu/lang/UScriptRun.java,com/ibm/icu/impl/UtilityExtensions.java,com/ibm/icu/impl/TrieBuilder.java,com/ibm/icu/impl/IntTrieBuilder.java,com/ibm/icu/impl/BOCU.java,com/ibm/icu/impl/UnicodeCharacterIterator.java"
+            excludes="**/CVS/**/*,com/ibm/icu/lang/UScriptRun.java, com/ibm/icu/impl/ICUListResourceBundle.java, com/ibm/icu/impl/UtilityExtensions.java,com/ibm/icu/impl/TrieBuilder.java,com/ibm/icu/impl/IntTrieBuilder.java,com/ibm/icu/impl/BOCU.java,com/ibm/icu/impl/UnicodeCharacterIterator.java"
            srcdir="${src.dir}"
            destdir="${build.dir}"
            source="${icu4j.javac.source}"
@@ -1208,7 +1189,6 @@
         <include name="**/pnames.icu" />
         <include name="**/*.res" />
         <include name="**/*.brk" />
-        <include name="**/*.ctd" />
         <exclude name="**/coll/*.res" />
         <exclude name="**/translit/*.res" />
         <exclude name="**/rbnf/*.res" />
@@ -1263,6 +1243,7 @@
 
   <!-- Module: Transliterator -->
   <target name="copyTranslitData" depends="initBase">
+    <!-- Calendar does not require Collation data, BreakIterator data -->
     <unjar src="${icudatajar.file}" dest="${build.dir}">
       <patternset>
         <include name="**/unorm.icu" />
@@ -1272,8 +1253,6 @@
         <include name="**/unames.icu" />
         <include name="**/pnames.icu" />
         <include name="**/*.brk" />
-        <include name="**/*.ctd" />
-        <include name="**/brkitr/*.res" />
         <include name="**/translit/*.res" />
       </patternset>
     </unjar>
@@ -1718,7 +1697,7 @@
     <!-- icu data -->
     <copy todir="${eclipse.projects.dir}/plugins/com.ibm.icu/src/com/ibm/icu/impl/data">
       <fileset dir="${build.dir}/com/ibm/icu/impl/data"
-               includes="**/*.brk,**/*.icu,**/*.res,**/*.spp,**/*.txt,**/*.ctd"
+               includes="**/*.brk,**/*.icu,**/*.res,**/*.spp,**/*.txt"
                excludes="**/Transliterator_Han_Latin*.txt" />
     </copy>
     <!-- plugin project -->
@@ -2072,7 +2051,6 @@
   </target>
 
   <target name="eclipseRunCheck" depends="eclipseTests">
-    <delete dir="${build.dir}/META-INF"/>
     <java classname="com.ibm.icu.dev.test.TestAll" fork="yes" failonerror="true">
       <jvmarg line="${test.jvm.args}"/>
       <arg value="-n" />
@@ -2108,7 +2086,6 @@
       </fileset>
       <fileset file="${basedir}/${jar.file}" />
       <fileset file="${build.dir}/${icu4j.data.path}/zoneinfo.res" />
-      <fileset file="${build.dir}/${icu4j.data.path}/metazoneInfo.res" />
     </copy>
   </target>
 
@@ -2139,16 +2116,14 @@
     <echo>Testing ICUTZU ...</echo>
 
     <mkdir dir="${tzu.temp.dir}" />
-    <move todir="${tzu.temp.dir}">
+    <copy todir="${tzu.temp.dir}">
       <fileset file="${tzu.bin.dir}/DirectorySearch.txt" />
       <fileset file="${tzu.bin.dir}/zoneinfo.res" />
-      <fileset file="${tzu.bin.dir}/metazoneInfo.res" />
-    </move>
+    </copy>
 
-    <echo file="${tzu.bin.dir}/DirectorySearch.txt">+${tzu.test.dir}</echo>
-    <get dest="${tzu.bin.dir}/zoneinfo.res" src="http://icu-project.org/tzdata/2008d/be/zoneinfo.res" />
-    <get dest="${tzu.bin.dir}/metazoneInfo.res" src="http://icu-project.org/tzdata/2008d/be/metazoneInfo.res" />
+    <get dest="${tzu.bin.dir}/zoneinfo.res" src="http://icu-project.org/tzdata/2006a/be/zoneinfo.res" />
     <copy todir="${tzu.test.dir}" file="${tzu.bin.dir}/icu4j.jar" />
+    <echo file="${tzu.bin.dir}/DirectorySearch.txt">+${tzu.test.dir}</echo>
 
     <echo>Running ICUTZU in Discovery Mode ...</echo>
     <exec dir="${tzu.bin.dir}" executable="${java.home}/bin/java">
@@ -2188,32 +2163,29 @@
     <unjar src="${tzu.test.dir}/${jar.file}" dest="${tzu.test.dir}">
       <patternset>
         <include name="**/zoneinfo.res" />
-        <include name="**/metazoneInfo.res" />
       </patternset>
     </unjar>
     <copy todir="${tzu.test.dir}" file="${tzu.test.dir}/${icu4j.data.path}/zoneinfo.res" />
-    <copy todir="${tzu.test.dir}" file="${tzu.test.dir}/${icu4j.data.path}/metazoneInfo.res" />
-
     <condition property="tzu.zoneinfo.match">
       <filesmatch file1="${tzu.bin.dir}/zoneinfo.res" file2="${tzu.test.dir}/zoneinfo.res" />
     </condition>
+
     <fail unless="tzu.zoneinfo.match">ICUTZU test failed. ${tzu.bin.dir}/zoneinfo.res does not match ${tzu.test.dir}/zoneinfo.res</fail>
 
-    <condition property="tzu.metazoneinfo.match">
-      <filesmatch file1="${tzu.bin.dir}/metazoneInfo.res" file2="${tzu.test.dir}/metazoneInfo.res" />
-    </condition>
-    <fail unless="tzu.metazoneinfo.match">ICUTZU test failed. ${tzu.bin.dir}/metazoneInfo.res does not match ${tzu.test.dir}/metazoneInfo.res</fail>
-
     <echo>Cleaning up ...</echo>
-    <move todir="${tzu.bin.dir}">
+    <delete>
+      <fileset file="${tzu.bin.dir}/DirectorySearch.txt" />
+      <fileset file="${tzu.bin.dir}/zoneinfo.res" />
+    </delete>
+    <copy todir="${tzu.bin.dir}">
       <fileset file="${tzu.temp.dir}/DirectorySearch.txt" />
       <fileset file="${tzu.temp.dir}/zoneinfo.res" />
-      <fileset file="${tzu.temp.dir}/metazoneInfo.res" />
-    </move>
+    </copy>
     <delete includeEmptyDirs="true">
-        <fileset file="${tzu.temp.dir}" />
-        <fileset dir="${tzu.test.dir}" />
+      <fileset dir="${tzu.temp.dir}" />
+      <fileset dir="${tzu.test.dir}" />
     </delete>
+
     <echo>ICUTZU test successful.</echo>
   </target>
 

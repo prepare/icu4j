@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2008, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -126,7 +126,7 @@ public class DateFormat extends Format {
      * work correctly unless they manipulate the delegate.
      */
     protected DateFormat() {
-        this.dateFormat = java.text.DateFormat.getInstance();
+    	this.dateFormat = java.text.DateFormat.getInstance();
     }
 
     /**
@@ -192,7 +192,8 @@ public class DateFormat extends Format {
     /**
      * FieldPosition selector for 'S' field alignment,
      * corresponding to the {@link Calendar#MILLISECOND} field.
-     * @stable ICU 3.0
+     * @draft ICU 3.0
+     * @provisional
      */
     public final static int FRACTIONAL_SECOND_FIELD = 8;
 
@@ -529,7 +530,7 @@ public class DateFormat extends Format {
      * SHORT for "h:mm a" in the US locale.
      * @param aLocale the given locale.
      * @return a time formatter.
-     * @stable ICU 3.2
+     * @draft ICU 3.2
      */
     public final static DateFormat getTimeInstance(int style, ULocale aLocale) {
         return new DateFormat(java.text.DateFormat.getTimeInstance(style, aLocale.toLocale()));
@@ -772,7 +773,8 @@ public class DateFormat extends Format {
      *              etc.
      *
      * @param locale The locale for which the date format is desired.
-     * @stable ICU 3.2
+     * @draft ICU 3.2
+     * @provisional
      */
     static final public DateFormat getDateInstance(Calendar cal, int dateStyle, ULocale locale) {
         DateFormat df = getDateInstance(dateStyle, locale);
@@ -820,7 +822,8 @@ public class DateFormat extends Format {
      * @param locale The locale for which the time format is desired.
      *
      * @see DateFormat#getTimeInstance
-     * @stable ICU 3.2
+     * @draft ICU 3.2
+     * @provisional
      */
     static final public DateFormat getTimeInstance(Calendar cal, int timeStyle, ULocale locale) {
         DateFormat df = getTimeInstance(timeStyle, locale);
@@ -877,7 +880,8 @@ public class DateFormat extends Format {
      * @param locale The locale for which the date/time format is desired.
      *
      * @see DateFormat#getDateTimeInstance
-     * @stable ICU 3.2
+     * @draft ICU 3.2
+     * @provisional
      */
     static final public DateFormat getDateTimeInstance(Calendar cal, int dateStyle,
                                                        int timeStyle, ULocale locale) {
@@ -896,7 +900,8 @@ public class DateFormat extends Format {
 
     /**
      * Convenience overload
-     * @stable ICU 3.2
+     * @draft ICU 3.2
+     * @provisional
      */
     public static final DateFormat getInstance(Calendar cal, ULocale locale) {
         return getDateTimeInstance(cal, MEDIUM, SHORT, locale);

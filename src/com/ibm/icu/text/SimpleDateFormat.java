@@ -1,7 +1,7 @@
 //##header J2SE15
 /*
  *******************************************************************************
- * Copyright (C) 1996-2008, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2007, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -12,20 +12,17 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.lang.ref.WeakReference;
+import java.text.AttributedCharacterIterator;
+import java.text.AttributedString;
 import java.text.FieldPosition;
+import java.text.Format;
 import java.text.ParsePosition;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.MissingResourceException;
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
-import java.text.AttributedCharacterIterator;
-import java.text.AttributedString;
-import java.text.Format;
-import java.util.LinkedList;
-//#endif
 
 import com.ibm.icu.impl.CalendarData;
 import com.ibm.icu.impl.DateNumberFormat;
@@ -81,7 +78,7 @@ import com.ibm.icu.util.ULocale;
  * s        second in minute        (Number)            55
  * S        fractional second       (Number)            978
  * E        day of week             (Text)              Tuesday
- * e*       day of week (local 1~7) (Text & Number)     Tuesday & 2
+ * e*       day of week (local 1~7) (Number)            2
  * D        day in year             (Number)            189
  * F        day of week in month    (Number)            2 (2nd Wed in July)
  * w        week in year            (Number)            27
@@ -175,7 +172,7 @@ import com.ibm.icu.util.ULocale;
  * "01/11/12" would be interpreted as Jan 11, 2012 while the string "05/04/64"
  * would be interpreted as May 4, 1964.
  * During parsing, only strings consisting of exactly two digits, as defined by
- * {@link com.ibm.icu.lang.UCharacter#isDigit(int)}, will be parsed into the default
+ * {@link java.lang.Character#isDigit(char)}, will be parsed into the default
  * century.
  * Any other numeric string, such as a one digit string, a three or more digit
  * string, or a two digit string that isn't all digits (for example, "-1"), is
@@ -234,49 +231,6 @@ public class SimpleDateFormat extends DateFormat {
     // - 0 (default) for version up to JDK 1.1.3
     // - 1 for version from JDK 1.1.4, which includes a new field
     static final int currentSerialVersion = 1;
-
-    
-    /*
-     * From calendar field to its level.
-     * Used to order calendar field.
-     * For example, calendar fields can be defined in the following order:
-     * year >  month > date > am-pm > hour >  minute
-     * YEAR --> 10, MONTH -->20, DATE --> 30; 
-     * AM_PM -->40, HOUR --> 50, MINUTE -->60
-     */
-    private static final int[] CALENDAR_FIELD_TO_LEVEL =
-    {
-        /*GyM*/ 0, 10, 20,
-        /*wW*/ 20, 30,
-        /*dDEF*/ 30, 20, 30, 30,
-        /*ahHm*/ 40, 50, 50, 60,
-        /*sS..*/ 70, 80, 
-        /*z?Y*/ 0, 0, 10, 
-        /*eug*/ 30, 10, 0,
-        /*A*/ 40 
-    };
-
-
-    
-    /*
-     * From calendar field letter to its level.
-     * Used to order calendar field.
-     * For example, calendar fields can be defined in the following order:
-     * year >  month > date > am-pm > hour >  minute
-     * 'y' --> 10, 'M' -->20, 'd' --> 30; 'a' -->40, 'h' --> 50, 'm' -->60
-     */
-    private static final int[] PATTERN_CHAR_TO_LEVEL = 
-    {
-    //       A   B   C   D    E   F   G    H   I   J   K   L    M   N   O
-        -1, 40, -1, -1, 20,  30, 30,  0,  50, -1, -1, 50, 20,  20, -1, -1,
-    //   P   Q   R    S   T   U  V   W   X   Y  Z
-        -1, 20, -1,  80, -1, -1, 0, 30, -1, 10, 0, -1, -1, -1, -1, -1,
-    //       a   b   c   d    e   f  g   h   i   j    k   l    m   n   o
-        -1, 40, -1, 30,  30, 30, -1, 0, 50, -1, -1,  50, -1,  60, -1, -1,
-    //   p   q   r    s   t   u  v   w   x    y  z
-        -1, 20, -1,  70, -1, 10, 0, 20, -1,  10, 0, -1, -1, -1, -1, -1
-    };
-
 
     /**
      * The version of the serialized data on the stream.  Possible values:
@@ -440,7 +394,7 @@ public class SimpleDateFormat extends DateFormat {
      * @param formatConfig the format configuration
      * @return A SimpleDateFormat instance
      * @internal ICU 3.8
-     * @deprecated This API is ICU internal only.
+     * @deprecated This API is for internal ICU use only
      */
     public static SimpleDateFormat getInstance(Calendar.FormatConfiguration formatConfig) {
         return new SimpleDateFormat(formatConfig.getPatternString(),
@@ -735,11 +689,11 @@ public class SimpleDateFormat extends DateFormat {
      * @param beginOffset the offset of the output string at the start of
      * this field; used to set pos when appropriate
      * @param pos receives the position of a field, when appropriate
-     * @param fmtData the symbols for this formatter
+     * @param formatData the symbols for this formatter
      * @stable ICU 2.0
      */
     protected String subFormat(char ch, int count, int beginOffset,
-                               FieldPosition pos, DateFormatSymbols fmtData,
+                               FieldPosition pos, DateFormatSymbols formatData,
                                Calendar cal)
         throws IllegalArgumentException
     {
@@ -790,12 +744,11 @@ public class SimpleDateFormat extends DateFormat {
         switch (patternCharIndex) {
         case 0: // 'G' - ERA
             if (count == 5) {
-                safeAppend(formatData.narrowEras, value, buf);
-            } else if (count == 4) {
-                safeAppend(formatData.eraNames, value, buf);
-            } else {
-                safeAppend(formatData.eras, value, buf);
-            }
+                buf.append(formatData.narrowEras[value]);
+            } else if (count == 4)
+               buf.append(formatData.eraNames[value]);
+            else
+               buf.append(formatData.eras[value]);
             break;
         case 1: // 'y' - YEAR
             /* According to the specification, if the number of pattern letters ('y') is 2,
@@ -810,15 +763,14 @@ public class SimpleDateFormat extends DateFormat {
                 zeroPaddingNumber(buf, value, count, maxIntCount);
             break;
         case 2: // 'M' - MONTH
-            if (count == 5) {
-                safeAppend(formatData.narrowMonths, value, buf);
-            } else if (count == 4) {
-                safeAppend(formatData.months, value, buf);
-            } else if (count == 3) {
-                safeAppend(formatData.shortMonths, value, buf);
-            } else {
+            if (count == 5) 
+                buf.append(formatData.narrowMonths[value]);
+            else if (count == 4)
+                buf.append(formatData.months[value]);
+            else if (count == 3)
+                buf.append(formatData.shortMonths[value]);
+            else
                 zeroPaddingNumber(buf, value+1, count, maxIntCount);
-            }
             break;
         case 4: // 'k' - HOUR_OF_DAY (1..24)
             if (value == 0)
@@ -848,15 +800,14 @@ public class SimpleDateFormat extends DateFormat {
             break;
         case 9: // 'E' - DAY_OF_WEEK
             if (count == 5) {
-                safeAppend(formatData.narrowWeekdays, value, buf);
-            } else if (count == 4) {
-                safeAppend(formatData.weekdays, value, buf);
-            } else {// count <= 3, use abbreviated form if exists
-                safeAppend(formatData.shortWeekdays, value, buf);
-            }
+                buf.append(formatData.narrowWeekdays[value]);
+            } else if (count == 4)
+                buf.append(formatData.weekdays[value]);
+            else // count <= 3, use abbreviated form if exists
+                buf.append(formatData.shortWeekdays[value]);
             break;
         case 14: // 'a' - AM_PM
-            safeAppend(formatData.ampms, value, buf);
+            buf.append(formatData.ampms[value]);
             break;
         case 15: // 'h' - HOUR (1..12)
             if (value == 0)
@@ -934,44 +885,40 @@ public class SimpleDateFormat extends DateFormat {
             }
             break;
         case 25: // 'c' - STANDALONE DAY
-            if (count == 5) {
-                safeAppend(formatData.standaloneNarrowWeekdays, value, buf);
-            } else if (count == 4) {
-                safeAppend(formatData.standaloneWeekdays, value, buf);
-            } else if (count == 3) {
-                safeAppend(formatData.standaloneShortWeekdays, value, buf);
-            } else {
+            if (count == 5) 
+                buf.append(formatData.standaloneNarrowWeekdays[value]);
+            else if (count == 4)
+                buf.append(formatData.standaloneWeekdays[value]);
+            else if (count == 3)
+                buf.append(formatData.standaloneShortWeekdays[value]);
+            else
                 zeroPaddingNumber(buf, value, 1, maxIntCount);
-            }
             break;
         case 26: // 'L' - STANDALONE MONTH
-            if (count == 5) {
-                safeAppend(formatData.standaloneNarrowMonths, value, buf);
-            } else if (count == 4) {
-                safeAppend(formatData.standaloneMonths, value, buf);
-            } else if (count == 3) {
-                safeAppend(formatData.standaloneShortMonths, value, buf);
-            } else {
+            if (count == 5) 
+                buf.append(formatData.standaloneNarrowMonths[value]);
+            else if (count == 4)
+                buf.append(formatData.standaloneMonths[value]);
+            else if (count == 3)
+                buf.append(formatData.standaloneShortMonths[value]);
+            else
                 zeroPaddingNumber(buf, value+1, count, maxIntCount);
-            }
             break;
         case 27: // 'Q' - QUARTER
-            if (count >= 4) {
-                safeAppend(formatData.quarters, value/3, buf);
-            } else if (count == 3) {
-                safeAppend(formatData.shortQuarters, value/3, buf);
-            } else {
+            if (count >= 4)
+                buf.append(formatData.quarters[value/3]);
+            else if (count == 3)
+                buf.append(formatData.shortQuarters[value/3]);
+            else
                 zeroPaddingNumber(buf, (value/3)+1, count, maxIntCount);
-            }
             break;
         case 28: // 'q' - STANDALONE QUARTER
-            if (count >= 4) {
-                safeAppend(formatData.standaloneQuarters, value/3, buf);
-            } else if (count == 3) {
-                safeAppend(formatData.standaloneShortQuarters, value/3, buf);
-            } else {
+            if (count >= 4)
+                buf.append(formatData.standaloneQuarters[value/3]);
+            else if (count == 3)
+                buf.append(formatData.standaloneShortQuarters[value/3]);
+            else
                 zeroPaddingNumber(buf, (value/3)+1, count, maxIntCount);
-            }
             break;
         case 29: // 'V' - TIMEZONE_SPECIAL
             if (count == 1) {
@@ -1008,25 +955,11 @@ public class SimpleDateFormat extends DateFormat {
             break;
         } // switch (patternCharIndex)
 
-        // Set the FieldPosition (for the first occurrence only)
-        if (pos.getBeginIndex() == pos.getEndIndex()) {
-            if (pos.getField() == PATTERN_INDEX_TO_DATE_FORMAT_FIELD[patternCharIndex]) {
-                pos.setBeginIndex(beginOffset);
-                pos.setEndIndex(beginOffset + buf.length() - bufstart);
-            }
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
-            else if (pos.getFieldAttribute() == PATTERN_INDEX_TO_DATE_FORMAT_ATTRIBUTE[patternCharIndex]) {
-                pos.setBeginIndex(beginOffset);
-                pos.setEndIndex(beginOffset + buf.length() - bufstart);
-            }
-//#endif
-        }
-    }
-
-    private static void safeAppend(String[] array, int value, StringBuffer appendTo) {
-        if (array != null && value >= 0 && value < array.length) {
-            appendTo.append(array[value]);
+        // Set the FieldPosition (for the first occurence only)
+        if (pos.getBeginIndex() == pos.getEndIndex() &&
+            pos.getField() == PATTERN_INDEX_TO_DATE_FORMAT_FIELD[patternCharIndex]) {
+            pos.setBeginIndex(beginOffset);
+            pos.setEndIndex(beginOffset + buf.length() - bufstart);
         }
     }
 
@@ -1374,7 +1307,7 @@ public class SimpleDateFormat extends DateFormat {
 
     private boolean isDefaultGMTFormat() {
         // GMT pattern
-        if (!DateFormatSymbols.DEFAULT_GMT_PATTERN.equals(formatData.getGmtFormat())) {
+        if (!formatData.DEFAULT_GMT_PATTERN.equals(formatData.getGmtFormat())) {
             return false;
         }
         // GMT offset hour patters
@@ -1497,7 +1430,7 @@ public class SimpleDateFormat extends DateFormat {
      * Format characters that indicate numeric fields.  The character
      * at index 0 is treated specially.
      */
-    private static final String NUMERIC_FORMAT_CHARS = "MYyudehHmsSDFwWkK";
+    private static final String NUMERIC_FORMAT_CHARS = "MyudhHmsSDFwWkK";
 
     /**
      * Return true if the given format character, occuring count
@@ -1704,13 +1637,6 @@ public class SimpleDateFormat extends DateFormat {
                         // No good way to resolve ambiguous time at transition,
                         // but following code work in most case.
                         tz.getOffset(localMillis, true, offsets);
-
-                        if (tztype == TZTYPE_STD && offsets[1] != 0 || tztype == TZTYPE_DST && offsets[1] == 0) {
-                            // Roll back one day and try it again.
-                            // Note: This code assumes 1. timezone transition only happens once within 24 hours at max
-                            // 2. the difference of local offsets at the transition is less than 24 hours.
-                            tz.getOffset(localMillis - (24*60*60*1000), true, offsets);
-                        }
                     }
 
                     // Now, compare the results with parsed type, either standard or daylight saving time
@@ -1978,8 +1904,8 @@ public class SimpleDateFormat extends DateFormat {
                 // is treated literally:  "2250", "-1", "1", "002".
                 /* 'yy' is the only special case, 'y' is interpreted as number. [Richard/GCL]*/
                 if (count == 2 && (pos.getIndex() - start) == 2
-                    && UCharacter.isDigit(text.charAt(start))
-                    && UCharacter.isDigit(text.charAt(start+1)))
+                    && Character.isDigit(text.charAt(start))
+                    && Character.isDigit(text.charAt(start+1)))
                     {
                         // Assume for example that the defaultCenturyStart is 6/18/1903.
                         // This means that two-digit years will be forced into the range
@@ -2460,7 +2386,6 @@ public class SimpleDateFormat extends DateFormat {
     public void setDateFormatSymbols(DateFormatSymbols newFormatSymbols)
     {
         this.formatData = (DateFormatSymbols)newFormatSymbols.clone();
-        gmtfmtCache = null;
     }
 
     /**
@@ -2578,329 +2503,4 @@ public class SimpleDateFormat extends DateFormat {
         return as.getIterator();
     }
 //#endif
-
-
-    /**
-     * Get the locale of this simple date formatter.
-     * It is package accessible. also used in DateIntervalFormat.
-     *
-     * @return   locale in this simple date formatter
-     */
-    ULocale getLocale() 
-    {
-        return locale;
-    }
-
-
-    
-    /**
-     * Check whether the 'field' is smaller than all the fields covered in
-     * pattern, return true if it is.
-     * The sequence of calendar field,
-     * from large to small is: ERA, YEAR, MONTH, DATE, AM_PM, HOUR, MINUTE,...
-     * @param field    the calendar field need to check against
-     * @return         true if the 'field' is smaller than all the fields 
-     *                 covered in pattern. false otherwise.
-     */
-
-    boolean isFieldUnitIgnored(int field) {
-        return isFieldUnitIgnored(pattern, field);
-    }
-
-
-    /*
-     * Check whether the 'field' is smaller than all the fields covered in
-     * pattern, return true if it is.
-     * The sequence of calendar field,
-     * from large to small is: ERA, YEAR, MONTH, DATE, AM_PM, HOUR, MINUTE,...
-     * @param pattern  the pattern to check against
-     * @param field    the calendar field need to check against
-     * @return         true if the 'field' is smaller than all the fields 
-     *                 covered in pattern. false otherwise.
-     * @internal ICU 4.0
-     */
-    static boolean isFieldUnitIgnored(String pattern, int field) {
-        int fieldLevel = CALENDAR_FIELD_TO_LEVEL[field];
-        int level;
-        char ch;
-        boolean inQuote = false;
-        char prevCh = 0;
-        int count = 0;
-    
-        for (int i = 0; i < pattern.length(); ++i) {
-            ch = pattern.charAt(i);
-            if (ch != prevCh && count > 0) {
-                level = PATTERN_CHAR_TO_LEVEL[prevCh - PATTERN_CHAR_BASE];
-                if ( fieldLevel <= level ) {
-                    return false;
-                }
-                count = 0;
-            }
-            if (ch == '\'') {
-                if ((i+1) < pattern.length() && pattern.charAt(i+1) == '\'') {
-                    ++i;
-                } else {
-                    inQuote = ! inQuote;
-                }
-            } 
-            else if ( ! inQuote && ((ch >= 0x0061 /*'a'*/ && ch <= 0x007A /*'z'*/) 
-                        || (ch >= 0x0041 /*'A'*/ && ch <= 0x005A /*'Z'*/))) {
-                prevCh = ch;
-                ++count;
-            }
-        }
-        if ( count > 0 ) {
-            // last item
-            level = PATTERN_CHAR_TO_LEVEL[prevCh - PATTERN_CHAR_BASE];
-                if ( fieldLevel <= level ) {
-                    return false;
-                }
-        }
-        return true;
-    }
-
-
-    /**
-     * Format date interval by algorithm. 
-     * It is supposed to be used only by CLDR survey tool.
-     *
-     * @param fromCalendar      calendar set to the from date in date interval
-     *                          to be formatted into date interval stirng
-     * @param toCalendar        calendar set to the to date in date interval
-     *                          to be formatted into date interval stirng
-     * @param appendTo          Output parameter to receive result.
-     *                          Result is appended to existing contents.
-     * @param pos               On input: an alignment field, if desired.
-     *                          On output: the offsets of the alignment field.
-     * @exception IllegalArgumentException when there is non-recognized
-     *                                     pattern letter
-     * @return                  Reference to 'appendTo' parameter.
-     * @internal ICU 4.0
-     */
-    public final StringBuffer intervalFormatByAlgorithm(Calendar fromCalendar,
-                                                        Calendar toCalendar,
-                                                        StringBuffer appendTo,
-                                                        FieldPosition pos)
-                              throws IllegalArgumentException
-    {
-        // not support different calendar types and time zones
-        if ( !fromCalendar.isEquivalentTo(toCalendar) ) {
-            throw new IllegalArgumentException("can not format on two different calendars");
-        }
-     
-        Object[] items = getPatternItems();
-        int diffBegin = -1;
-        int diffEnd = -1;
-
-        /* look for different formatting string range */
-        // look for start of difference
-        try {
-            for (int i = 0; i < items.length; i++) {
-                if ( diffCalFieldValue(fromCalendar, toCalendar, items, i) ) {
-                    diffBegin = i;
-                    break;
-                }
-            } 
-        
-            if ( diffBegin == -1 ) { 
-                // no difference, single date format
-                return format(fromCalendar, appendTo, pos);
-            }
-    
-            // look for end of difference
-            for (int i = items.length-1; i >= diffBegin; i--) {
-                if ( diffCalFieldValue(fromCalendar, toCalendar, items, i) ) {
-                    diffEnd = i;
-                    break;
-                }
-            }
-        } catch ( IllegalArgumentException e ) {
-            throw new IllegalArgumentException(e.toString());
-        }
-
-        // full range is different
-        if ( diffBegin == 0 && diffEnd == items.length-1 ) {
-            format(fromCalendar, appendTo, pos);
-            appendTo.append(" \u2013 "); // default separator
-            format(toCalendar, appendTo, pos);
-            return appendTo;
-        }
-
-
-        /* search for largest calendar field within the different range */
-        int highestLevel = 1000;
-        for (int i = diffBegin; i <= diffEnd; i++) {
-            if ( items[i] instanceof String) {
-                continue;
-            } 
-            PatternItem item = (PatternItem)items[i];
-            char ch = item.type; 
-            int patternCharIndex = -1;
-            if ('A' <= ch && ch <= 'z') {
-                patternCharIndex = PATTERN_CHAR_TO_LEVEL[(int)ch - PATTERN_CHAR_BASE];
-            }
-    
-            if (patternCharIndex == -1) {
-                throw new IllegalArgumentException("Illegal pattern character " +
-                                                   "'" + ch + "' in \"" +
-                                                   new String(pattern) + '"');
-            }
-    
-            if ( patternCharIndex < highestLevel ) {
-                highestLevel = patternCharIndex;
-            }
-        }
-
-        /* re-calculate diff range, including those calendar field which
-           is in lower level than the largest calendar field covered
-           in diff range calculated. */
-        try {
-            for (int i = 0; i < diffBegin; i++) {
-                if ( lowerLevel(items, i, highestLevel) ) {
-                    diffBegin = i;
-                    break;
-                }
-            }
-    
-    
-            for (int i = items.length-1; i > diffEnd; i--) {
-                if ( lowerLevel(items, i, highestLevel) ) {
-                    diffEnd = i;
-                    break;
-                }
-            }
-        } catch ( IllegalArgumentException e ) {
-            throw new IllegalArgumentException(e.toString());
-        }
-
-
-        // full range is different
-        if ( diffBegin == 0 && diffEnd == items.length-1 ) {
-            format(fromCalendar, appendTo, pos);
-            appendTo.append(" \u2013 "); // default separator
-            format(toCalendar, appendTo, pos);
-            return appendTo;
-        }
-
-
-        // formatting
-        // Initialize
-        pos.setBeginIndex(0);
-        pos.setEndIndex(0);
-
-        // formatting date 1
-        for (int i = 0; i <= diffEnd; i++) {
-            if (items[i] instanceof String) {
-                appendTo.append((String)items[i]);
-            } else {
-                PatternItem item = (PatternItem)items[i];
-                if (useFastFormat) {
-                    subFormat(appendTo, item.type, item.length, appendTo.length(), pos, fromCalendar);
-                } else {
-                    appendTo.append(subFormat(item.type, item.length, appendTo.length(), pos, formatData, fromCalendar));
-                }
-            }
-        }
-
-        appendTo.append(" \u2013 "); // default separator
-
-        // formatting date 2
-        for (int i = diffBegin; i < items.length; i++) {
-            if (items[i] instanceof String) {
-                appendTo.append((String)items[i]);
-            } else {
-                PatternItem item = (PatternItem)items[i];
-                if (useFastFormat) {
-                    subFormat(appendTo, item.type, item.length, appendTo.length(), pos, toCalendar);
-                } else {
-                    appendTo.append(subFormat(item.type, item.length, appendTo.length(), pos, formatData, toCalendar));
-                }
-            }
-        }
-        return appendTo;
-    }
-
-
-    /**
-     * check whether the i-th item in 2 calendar is in different value.
-     *
-     * It is supposed to be used only by CLDR survey tool.
-     * It is used by intervalFormatByAlgorithm().
-     *
-     * @param fromCalendar   one calendar
-     * @param toCalendar     the other calendar
-     * @param items          pattern items
-     * @param i              the i-th item in pattern items
-     * @exception IllegalArgumentException when there is non-recognized
-     *                                     pattern letter
-     * @return               true is i-th item in 2 calendar is in different 
-     *                       value, false otherwise.
-     */
-    private boolean diffCalFieldValue(Calendar fromCalendar,
-                                      Calendar toCalendar,
-                                      Object[] items,
-                                      int i) throws IllegalArgumentException {
-        if ( items[i] instanceof String) {
-            return false;
-        } 
-        PatternItem item = (PatternItem)items[i];
-        char ch = item.type; 
-        int patternCharIndex = -1;
-        if ('A' <= ch && ch <= 'z') {
-            patternCharIndex = PATTERN_CHAR_TO_INDEX[(int)ch - PATTERN_CHAR_BASE];
-        }
-   
-        if (patternCharIndex == -1) {
-            throw new IllegalArgumentException("Illegal pattern character " +
-                                               "'" + ch + "' in \"" +
-                                               new String(pattern) + '"');
-        }
-  
-        final int field = PATTERN_INDEX_TO_CALENDAR_FIELD[patternCharIndex];
-        int value = fromCalendar.get(field);
-        int value_2 = toCalendar.get(field);
-        if ( value != value_2 ) {
-            return true;
-        }
-        return false;
-    }
-
-
-    /**
-     * check whether the i-th item's level is lower than the input 'level'
-     *
-     * It is supposed to be used only by CLDR survey tool.
-     * It is used by intervalFormatByAlgorithm().
-     *
-     * @param items  the pattern items
-     * @param i      the i-th item in pattern items
-     * @param level  the level with which the i-th pattern item compared to
-     * @exception IllegalArgumentException when there is non-recognized
-     *                                     pattern letter
-     * @return       true if i-th pattern item is lower than 'level',
-     *               false otherwise
-     */
-    private boolean lowerLevel(Object[] items, int i, int level) 
-                    throws IllegalArgumentException {
-        if ( items[i] instanceof String) {
-            return false;
-        } 
-        PatternItem item = (PatternItem)items[i];
-        char ch = item.type; 
-        int patternCharIndex = -1;
-        if ('A' <= ch && ch <= 'z') {
-            patternCharIndex = PATTERN_CHAR_TO_LEVEL[(int)ch - PATTERN_CHAR_BASE];
-        }
-    
-        if (patternCharIndex == -1) {
-            throw new IllegalArgumentException("Illegal pattern character " +
-                                               "'" + ch + "' in \"" +
-                                               new String(pattern) + '"');
-        }
-    
-        if ( patternCharIndex >= level ) {
-            return true;
-        }    
-        return false;
-    }
 }

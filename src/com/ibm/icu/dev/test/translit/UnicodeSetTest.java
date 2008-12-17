@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2008, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2007, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -73,14 +73,8 @@ public class UnicodeSetTest extends TestFmwk {
   }
 
   public void TestPropertyAccess() {
-    int count = 0; 
     // test to see that all of the names work
     for (int propNum = UProperty.BINARY_START; propNum < UProperty.INT_LIMIT; ++propNum) {
-      count++;
-      //Skipping tests in the non-exhaustive mode to shorten the test time ticket#6475
-      if(getInclusion()<=5 && count%5!=0){
-          continue;
-      }
       if (propNum >= UProperty.BINARY_LIMIT && propNum < UProperty.INT_START) { // skip the gap
         propNum = UProperty.INT_START;
       }
@@ -150,7 +144,7 @@ public class UnicodeSetTest extends TestFmwk {
                 + "Differing values: " + collectedErrors.toPattern(true));
           }
         }
-      } 
+      }
     }
   }
   
@@ -206,15 +200,15 @@ public class UnicodeSetTest extends TestFmwk {
     // Cover applyPattern, applyPropertyAlias
     s.clear();
     s.applyPattern("[ab ]", true);
-    expectToPattern(s, "[ab]", new String[] {"a", NOT, "ab", " "});
+    expectToPattern(s, "[ab]", new String[] {"a", NOT, "ab"});
     s.clear();
     s.applyPattern("[ab ]", false);
-    expectToPattern(s, "[\\ ab]", new String[] {"a", "\u0020", NOT, "ab"});
+    expectToPattern(s, "[\\\u0020ab]", new String[] {"a", "\u0020", NOT, "ab"});
     
     s.clear();
     s.applyPropertyAlias("nv", "0.5");
-    expectToPattern(s, "[\\u00BD\\u0D74\\u0F2A\\u2CFD\\U00010141\\U00010175\\U00010176]", null);
-    // Unicode 5.1 adds Malayalam 1/2 (\u0D74)
+    expectToPattern(s, "[\\u00BD\\u0F2A\\u2CFD\\U00010141\\U00010175\\U00010176]", null);
+    // Unicode 4.1 adds \u2CFD\U00010141\U00010175\U00010176 with numeric value 1/2
     
     s.clear();
     s.applyPropertyAlias("gc", "Lu");
@@ -1161,7 +1155,7 @@ public class UnicodeSetTest extends TestFmwk {
     if (uset.containsNone(string) != shouldContainNone) {
       errln("containsNone " +  string + " should be " + shouldContainNone);
     } else {
-      logln("containsNone " +  string + " = " + shouldContainNone);
+      logln("containsNone " +  string + " = " + shouldContainNone);	    	
     }
   }
   
@@ -1258,7 +1252,7 @@ public class UnicodeSetTest extends TestFmwk {
         // selector, input, output
         CASE,
         "[aq\u00DF{Bc}{bC}{Fi}]",
-        "[aAqQ\u00DF\u1E9E\uFB01{ss}{bc}{fi}]", // U+1E9E LATIN CAPITAL LETTER SHARP S is new in Unicode 5.1
+        "[aAqQ\u00DF\uFB01{ss}{bc}{fi}]",
         
         CASE,
         "[\u01F1]", // 'DZ'

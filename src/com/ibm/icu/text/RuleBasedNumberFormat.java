@@ -1,20 +1,20 @@
 //##header J2SE15
 /*
  *******************************************************************************
- * Copyright (C) 1996-2008, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2007, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
 
 package com.ibm.icu.text;
 
+//import com.ibm.icu.impl.ICULocaleData;
 import com.ibm.icu.impl.ICUDebug;
 import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.impl.UCharacterProperty;
 import com.ibm.icu.impl.Utility;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.UResourceBundle;
-import com.ibm.icu.util.UResourceBundleIterator;
 
 import java.math.BigInteger;
 import java.text.FieldPosition;
@@ -25,6 +25,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.MissingResourceException;
 import java.util.Set;
+
+//import java.util.ResourceBundle;
 
 
 /**
@@ -544,13 +546,6 @@ public class RuleBasedNumberFormat extends NumberFormat {
      * filled in if the rule set never uses a DecimalFormat pattern.
      */
     private transient DecimalFormatSymbols decimalFormatSymbols = null;
-    
-    /**
-     * The NumberFormat used when lenient parsing numbers.  This needs to reflect
-     * the locale.  This is lazy-evaluated, like decimalFormatSymbols.  It is
-     * here so it can be shared by different NFSubstitutions.
-     */
-    private transient DecimalFormat decimalFormat = null;
 
     /**
      * Flag specifying whether lenient parse mode is on or off.  Off by default.
@@ -741,22 +736,7 @@ public class RuleBasedNumberFormat extends NumberFormat {
         String[][] localizations = null;
 
         try {
-            // For backwards compatability - If we have a pre-4.2 style RBNF resource, attempt to read it.
             description = bundle.getString(rulenames[format-1]);
-        }
-        catch (MissingResourceException e) {
-            try {
-                ICUResourceBundle rules = bundle.getWithFallback("RBNFRules/"+rulenames[format-1]);
-                UResourceBundleIterator it = rules.getIterator(); 
-                while (it.hasNext()) {
-                   description = description.concat(it.nextString());
-                }
-            }
-            catch (MissingResourceException e1) {
-            } 
-        }
-
-        try {
             UResourceBundle locb = bundle.get(locnames[format-1]);
             localizations = new String[locb.getSize()][];
             for (int i = 0; i < localizations.length; ++i) {
@@ -896,7 +876,6 @@ public class RuleBasedNumberFormat extends NumberFormat {
         defaultRuleSet = temp.defaultRuleSet;
         publicRuleSetNames = temp.publicRuleSetNames;
         decimalFormatSymbols = temp.decimalFormatSymbols;
-        decimalFormat = temp.decimalFormat;
         locale = temp.locale;
     }
 
@@ -934,9 +913,9 @@ public class RuleBasedNumberFormat extends NumberFormat {
         return null;
     }
 
-    private String[] getNameListForLocale(ULocale loc) {
-        if (loc != null && ruleSetDisplayNames != null) {
-            String[] localeNames = { loc.getBaseName(), ULocale.getDefault().getBaseName() };
+    private String[] getNameListForLocale(ULocale locale) {
+        if (locale != null && ruleSetDisplayNames != null) {
+            String[] localeNames = { locale.getBaseName(), ULocale.getDefault().getBaseName() };
             for (int i = 0; i < localeNames.length; ++i) {
                 String lname = localeNames[i];
                 while (lname.length() > 0) {
@@ -961,8 +940,8 @@ public class RuleBasedNumberFormat extends NumberFormat {
      * @see #getRuleSetNames
      * @stable ICU 3.2
      */
-    public String[] getRuleSetDisplayNames(ULocale loc) {
-        String[] names = getNameListForLocale(loc);
+    public String[] getRuleSetDisplayNames(ULocale locale) {
+        String[] names = getNameListForLocale(locale);
         if (names != null) {
             return (String[])names.clone();
         }
@@ -992,11 +971,11 @@ public class RuleBasedNumberFormat extends NumberFormat {
      * @throws IllegalArgumentException if ruleSetName is not a valid rule set name for this format
      * @stable ICU 3.2
      */
-    public String getRuleSetDisplayName(String ruleSetName, ULocale loc) {
+    public String getRuleSetDisplayName(String ruleSetName, ULocale locale) {
         String[] rsnames = publicRuleSetNames;
         for (int ix = 0; ix < rsnames.length; ++ix) {
             if (rsnames[ix].equals(ruleSetName)) {
-                String[] names = getNameListForLocale(loc);
+                String[] names = getNameListForLocale(locale);
                 if (names != null) {
                     return names[ix];
                 }
@@ -1104,7 +1083,7 @@ public class RuleBasedNumberFormat extends NumberFormat {
         return format(new com.ibm.icu.math.BigDecimal(number), toAppendTo, pos);
     }
 
-//#if defined(FOUNDATION10)
+//#if defined(FOUNDATION10) || defined(J2SE13)
 //#else
     /**
      * <strong><font face=helvetica color=red>NEW</font></strong>
@@ -1272,23 +1251,14 @@ public class RuleBasedNumberFormat extends NumberFormat {
             if (publicRuleSetNames.length > 0) {
                 defaultRuleSet = findRuleSet(publicRuleSetNames[0]);
             } else {
-                defaultRuleSet = null;
-                int n = ruleSets.length;
-                while (--n >= 0) {
-                   String currentName = ruleSets[n].getName();
-                   if (currentName.equals("%spellout") || currentName.equals("%ordinal") || currentName.equals("%duration")) {
-                       defaultRuleSet = ruleSets[n];
-                       return;
-                   } 
-                }
-
-                n = ruleSets.length;
-                while (--n >= 0) {
-                    if (ruleSets[n].isPublic()) {
-                        defaultRuleSet = ruleSets[n];
-                        break;
-                    }
-                }
+            defaultRuleSet = null;
+            int n = ruleSets.length;
+        while (--n >= 0) {
+          if (ruleSets[n].isPublic()) {
+            defaultRuleSet = ruleSets[n];
+            break;
+          }
+        }
             }
         } else if (ruleSetName.startsWith("%%")) {
             throw new IllegalArgumentException("cannot use private rule set: " + ruleSetName);
@@ -1373,13 +1343,6 @@ public class RuleBasedNumberFormat extends NumberFormat {
             decimalFormatSymbols = new DecimalFormatSymbols(locale);
         }
         return decimalFormatSymbols;
-    }
-    
-    DecimalFormat getDecimalFormat() {
-        if (decimalFormat == null) {
-            decimalFormat = (DecimalFormat)NumberFormat.getInstance(locale);
-        }
-        return decimalFormat;
     }
 
     //-----------------------------------------------------------------------
@@ -1497,29 +1460,11 @@ public class RuleBasedNumberFormat extends NumberFormat {
         // {dlf} Initialization of a fraction rule set requires the default rule
         // set to be known.  For purposes of initialization, this is always the
         // last public rule set, no matter what the localization data says.
-
-        // Set the default ruleset to the last public ruleset, unless one of the predefined
-        // ruleset names %spellout, %ordinal, or %duration is found
-
-        boolean defaultNameFound = false;                  
-        int n = ruleSets.length;
         defaultRuleSet = ruleSets[ruleSets.length - 1];
-
-        while (--n >= 0) {
-            String currentName = ruleSets[n].getName();
-            if (currentName.equals("%spellout") || currentName.equals("%ordinal") || currentName.equals("%duration")) {
-                defaultRuleSet = ruleSets[n];
-                defaultNameFound = true;                  
+        for (int i = ruleSets.length - 1; i >= 0; --i) {
+            if (!ruleSets[i].getName().startsWith("%%")) {
+                defaultRuleSet = ruleSets[i];
                 break;
-            } 
-        }
-
-        if ( !defaultNameFound ) {
-            for (int i = ruleSets.length - 1; i >= 0; --i) {
-                if (!ruleSets[i].getName().startsWith("%%")) {
-                    defaultRuleSet = ruleSets[i];
-                    break;
-                }
             }
         }
 
@@ -1582,14 +1527,14 @@ public class RuleBasedNumberFormat extends NumberFormat {
             Map m = new HashMap();
             for (int i = 1; i < localizations.length; ++i) {
                 String[] data = localizations[i];
-                String loc = data[0];
+                String locale = data[0];
                 String[] names = new String[data.length-1];
                 if (names.length != publicRuleSetNames.length) {
                     throw new IllegalArgumentException("public name length: " + publicRuleSetNames.length +
                                                        " != localized names[" + i + "] length: " + names.length);
                 }
                 System.arraycopy(data, 1, names, 0, names.length);
-                m.put(loc, names);
+                m.put(locale, names);
             }
 
             if (!m.isEmpty()) {

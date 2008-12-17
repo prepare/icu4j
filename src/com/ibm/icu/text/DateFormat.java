@@ -1,30 +1,27 @@
 //##header J2SE15
 /*
-*   Copyright (C) 1996-2008, International Business Machines
+*   Copyright (C) 1996-2007, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 */
 
 package com.ibm.icu.text;
 
+//import com.ibm.icu.impl.ICULocaleData;
+import java.io.InvalidObjectException;
 import java.text.FieldPosition;
+import java.text.Format;
 import java.text.ParseException;
 import java.text.ParsePosition;
 import java.util.Date;
-import java.util.Locale;
-import java.util.MissingResourceException;
-
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
-import java.io.InvalidObjectException;
-import java.text.Format;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
-import com.ibm.icu.util.GregorianCalendar;
-//#endif
+import java.util.MissingResourceException;
 
 import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.impl.RelativeDateFormat;
 import com.ibm.icu.util.Calendar;
+import com.ibm.icu.util.GregorianCalendar;
 import com.ibm.icu.util.TimeZone;
 import com.ibm.icu.util.ULocale;
 
@@ -351,7 +348,8 @@ public abstract class DateFormat extends UFormat {
      * FieldPosition selector for 'Q' field alignment,
      * corresponding to the {@link Calendar#MONTH} field.  
      * This displays the quarter.
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     public final static int QUARTER_FIELD = 27;
     
@@ -359,7 +357,8 @@ public abstract class DateFormat extends UFormat {
      * FieldPosition selector for 'q' field alignment,
      * corresponding to the {@link Calendar#MONTH} field.  
      * This displays the stand alone quarter, if available.
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     public final static int STANDALONE_QUARTER_FIELD = 28;
     
@@ -598,7 +597,7 @@ public abstract class DateFormat extends UFormat {
 
     /**
      * Constant for empty style pattern.
-     * @stable ICU 3.8
+     * @draft ICU 3.8
      */
     public static final int NONE = -1;
     
@@ -635,313 +634,39 @@ public abstract class DateFormat extends UFormat {
     /**
      * Constant for relative style mask.
      * @draft ICU 3.8
-     * @provisional This API might change or be removed in a future release.
      */
     public static final int RELATIVE = (1 << 7);
 
     /**
      * Constant for relative full style pattern.
      * @draft ICU 3.8
-     * @provisional This API might change or be removed in a future release.
      */
     public static final int RELATIVE_FULL = RELATIVE | FULL;
 
     /**
      * Constant for relative style pattern.
      * @draft ICU 3.8
-     * @provisional This API might change or be removed in a future release.
      */
     public static final int RELATIVE_LONG = RELATIVE | LONG;
 
     /**
      * Constant for relative style pattern.
      * @draft ICU 3.8
-     * @provisional This API might change or be removed in a future release.
      */
     public static final int RELATIVE_MEDIUM = RELATIVE | MEDIUM;
 
     /**
      * Constant for relative style pattern.
      * @draft ICU 3.8
-     * @provisional This API might change or be removed in a future release.
      */
     public static final int RELATIVE_SHORT = RELATIVE | SHORT;
 
     /**
      * Constant for relative default style pattern.
      * @draft ICU 3.8
-     * @provisional This API might change or be removed in a future release.
      */
     public static final int RELATIVE_DEFAULT = RELATIVE | DEFAULT;
 
-    /* Below are pre-defined skeletons
-     *
-     * <P>
-     * A skeleton 
-     * <ul>
-     * <li>
-     * 1. only keeps the field pattern letter and ignores all other parts 
-     *    in a pattern, such as space, punctuations, and string literals.
-     * <li>
-     * 2. hides the order of fields. 
-     * <li>
-     * 3. might hide a field's pattern letter length.
-     *
-     *    For those non-digit calendar fields, the pattern letter length is 
-     *    important, such as MMM, MMMM, and MMMMM; E and EEEE, 
-     *    and the field's pattern letter length is honored.
-     *    
-     *    For the digit calendar fields,  such as M or MM, d or dd, yy or yyyy, 
-     *    the field pattern length is ignored and the best match, which is 
-     *    defined in date time patterns, will be returned without honor 
-     *    the field pattern letter length in skeleton.
-     * </ul>
-     */
-    /** 
-     * Constant for date pattern with minute and second.
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final String MINUTE_SECOND = "ms";
-    
-    /** 
-     * Constant for date pattern with hour and minute in 24-hour presentation.
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final String HOUR24_MINUTE = "Hm";
-    
-    /** 
-     * Constant for date pattern with hour, minute, and second in
-     * 24-hour presentation.
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final String HOUR24_MINUTE_SECOND = "Hms";      
-    
-    /** 
-     * Constant for date pattern with hour, minute, and second.
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final String HOUR_MINUTE_SECOND = "hms";
-    
-    /** 
-     * Constant for date pattern with standalone month.
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final String STANDALONE_MONTH = "LLLL";
-    
-    /** 
-     * Constant for date pattern with standalone abbreviated month.
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final String ABBR_STANDALONE_MONTH = "LLL";
-    
-    
-    /** 
-     * Constant for date pattern with year and quarter.
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final String YEAR_QUARTER = "yQQQ";
-    
-    /** 
-     * Constant for date pattern with year and abbreviated quarter.
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final String YEAR_ABBR_QUARTER = "yQ";
-
-    
-    /* Below are skeletons that date interval pre-defined in resource file.
-     * Users are encouraged to use them in date interval format factory methods.
-     */
-    /** 
-     * Constant for date pattern with hour and miunte.
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final String HOUR_MINUTE = "hm";
-
-    /** 
-     * Constant for date pattern with year.
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final String YEAR = "y";
-    
-    /** 
-     * Constant for date pattern with day.
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final String DAY = "d";
-    
-    /** 
-     * Constant for date pattern with numeric month, weekday, and day.
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final String NUM_MONTH_WEEKDAY_DAY = "MEd";
-    
-    /** 
-     * Constant for date pattern with year and numeric month.
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final String YEAR_NUM_MONTH = "yM";              
-    
-    /** 
-     * Constant for date pattern with numeric month and day.
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final String NUM_MONTH_DAY = "Md";
-    
-    /** 
-     * Constant for date pattern with year, numeric month, weekday, and day.
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final String YEAR_NUM_MONTH_WEEKDAY_DAY = "yMEd";
-      
-    /** 
-     * Constant for date pattern with abbreviated month, weekday, and day.
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final String ABBR_MONTH_WEEKDAY_DAY = "MMMEd";
-    
-    /** 
-     * Constant for date pattern with year and month.
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final String YEAR_MONTH = "yMMMM";
-    
-    /** 
-     * Constant for date pattern with year and abbreviated month.
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final String YEAR_ABBR_MONTH = "yMMM";
-    
-    /** 
-     * Constant for date pattern having month and day.
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final String MONTH_DAY = "MMMMd";
-    
-    
-    /** 
-     * Constant for date pattern with abbreviated month and day.
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final String ABBR_MONTH_DAY = "MMMd"; 
-
-    /** 
-     * Constant for date pattern with month, weekday, and day.
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final String MONTH_WEEKDAY_DAY = "MMMMEEEEd";
-    
-    /** 
-     * Constant for date pattern with year, abbreviated month, weekday, 
-     * and day.
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final String YEAR_ABBR_MONTH_WEEKDAY_DAY = "yMMMEd"; 
-    
-    /** 
-     * Constant for date pattern with year, month, weekday, and day.
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final String YEAR_MONTH_WEEKDAY_DAY = "yMMMMEEEEd";
-
-    /** 
-     * Constant for date pattern with year, month, and day.
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final String YEAR_MONTH_DAY = "yMMMMd";
-
-    /** 
-     * Constant for date pattern with year, abbreviated month, and day.
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final String YEAR_ABBR_MONTH_DAY = "yMMMd";
-
-    /** 
-     * Constant for date pattern with year, numeric month, and day.
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final String YEAR_NUM_MONTH_DAY = "yMd";
-
-    /** 
-     * Constant for date pattern with numeric month.
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final String NUM_MONTH = "M";
-
-    /** 
-     * Constant for date pattern with abbreviated month.
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final String ABBR_MONTH = "MMM";
-
-    /** 
-     * Constant for date pattern with month.
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final String MONTH = "MMMM";
-
-    /** 
-     * Constant for date pattern with hour, minute, and generic timezone.
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final String HOUR_MINUTE_GENERIC_TZ = "hmv";
-
-    /** 
-     * Constant for date pattern with hour, minute, and timezone.
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final String HOUR_MINUTE_TZ = "hmz";
-
-    /** 
-     * Constant for date pattern with hour.
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final String HOUR = "h";
-
-    /** 
-     * Constant for date pattern with hour and generic timezone.
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final String HOUR_GENERIC_TZ = "hv";
-
-    /** 
-     * Constant for date pattern with hour and timezone.
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final String HOUR_TZ = "hz";
 
     /**
      * Gets the time formatter with the default formatting style
@@ -1100,7 +825,8 @@ public abstract class DateFormat extends UFormat {
      * @param timeStyle the given time formatting style.
      * @param locale the given ulocale.
      * @return a date/time formatter.
-     * @stable ICU 3.2
+     * @draft ICU 3.2
+     * @provisional This API might change or be removed in a future release.
      */
     public final static DateFormat
         getDateTimeInstance(int dateStyle, int timeStyle, ULocale locale)
@@ -1130,7 +856,7 @@ public abstract class DateFormat extends UFormat {
     /**
      * Gets the set of locales for which DateFormats are installed.
      * @return the set of locales for which DateFormats are installed.
-     * @draft ICU 3.2 (retain)
+     * @draft ICU 3.2
      * @provisional This API might change or be removed in a future release.
      */
     public static ULocale[] getAvailableULocales()
@@ -1459,7 +1185,7 @@ public abstract class DateFormat extends UFormat {
 
     /**
      * Convenience overload
-     * @stable ICU 3.2
+     * @draft ICU 3.2
      * @provisional This API might change or be removed in a future release.
      */
     static final public DateFormat getInstance(Calendar cal, ULocale locale) {
@@ -1496,83 +1222,6 @@ public abstract class DateFormat extends UFormat {
      */
     static final public DateFormat getDateTimeInstance(Calendar cal, int dateStyle, int timeStyle) {
         return getDateTimeInstance(cal, dateStyle, timeStyle, ULocale.getDefault());
-    }
-
-    /**
-     * Convenience overload
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public final static DateFormat getPatternInstance(String pattern) {
-        return getPatternInstance(pattern, ULocale.getDefault());
-    }
-    
-    /**
-     * Convenience overload
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public final static DateFormat getPatternInstance(String pattern, Locale locale) {
-        return getPatternInstance(pattern, ULocale.forLocale(locale));
-    }
-
-    /**
-     * Create a {@link DateFormat} object that can be used to format dates and times in
-     * the given locale.
-     * <p>
-     * <b>Note:</b> When this functionality is moved into the core JDK, this method
-     * will probably be replaced by a new overload of {@link DateFormat#getInstance}.
-     * <p>
-     *
-     * @param pattern The pattern that selects the fields to be formatted. (Uses the 
-     *              {@link DateTimePatternGenerator}.) This can be {@link DateFormat#ABBR_MONTH}, 
-     *              {@link DateFormat#MONTH_WEEKDAY_DAY}, etc.
-     *
-     * @param locale The locale for which the date/time format is desired.
-     *
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public final static DateFormat getPatternInstance(String pattern, ULocale locale) {
-        DateTimePatternGenerator generator = DateTimePatternGenerator.getInstance(locale);
-        final String bestPattern = generator.getBestPattern(pattern);
-        return new SimpleDateFormat(bestPattern, locale);
-    }
-
-    /**
-     * Convenience overload
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public final static DateFormat getPatternInstance(Calendar cal, String pattern, Locale locale) {
-        return getPatternInstance(cal, pattern, ULocale.forLocale(locale));
-    }
-
-    /**
-     * Create a {@link DateFormat} object that can be used to format dates and times in
-     * the calendar system specified by <code>cal</code>.
-     * <p>
-     * <b>Note:</b> When this functionality is moved into the core JDK, this method
-     * will probably be replaced by a new overload of {@link DateFormat#getInstance}.
-     * <p>
-     * @param cal   The calendar system for which a date/time format is desired.
-     *
-     * @param pattern The pattern that selects the fields to be formatted. (Uses the 
-     *              {@link DateTimePatternGenerator}.)  This can be
-     *              {@link DateFormat#ABBR_MONTH}, {@link DateFormat#MONTH_WEEKDAY_DAY},
-     *              etc.
-     *
-     * @param locale The locale for which the date/time format is desired.
-     *
-     * @draft ICU 4.0
-     * @provisional This API might change or be removed in a future release.
-     */
-    public final static DateFormat getPatternInstance(Calendar cal, String pattern, ULocale locale) {
-        DateTimePatternGenerator generator = DateTimePatternGenerator.getInstance(locale);
-        final String bestPattern = generator.getBestPattern(pattern);
-        SimpleDateFormat format = new SimpleDateFormat(bestPattern, locale);
-        format.setCalendar(cal);
-        return format;
     }
 
 //#if defined(FOUNDATION10) || defined(J2SE13)
@@ -1752,7 +1401,8 @@ public abstract class DateFormat extends UFormat {
 
         /**
          * Constant identifying the quarter field.
-         * @stable ICU 3.8
+         * @draft ICU 3.8
+         * @provisional This API might change or be removed in a future release.
          */
         public static final Field QUARTER = new Field("quarter", -1);
 
@@ -1845,5 +1495,4 @@ public abstract class DateFormat extends UFormat {
         }
     }
 //#endif
-    
 }

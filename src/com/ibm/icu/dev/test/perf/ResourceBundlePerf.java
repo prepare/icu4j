@@ -1,6 +1,6 @@
 /*
 **********************************************************************
-* Copyright (c) 2006-2008, International Business Machines
+* Copyright (c) 2006-2007, International Business Machines
 * Corporation and others.  All Rights Reserved.
 **********************************************************************
 */
@@ -10,6 +10,7 @@ package com.ibm.icu.dev.test.perf;
 import java.nio.ByteBuffer;
 import java.util.ResourceBundle;
 
+import com.ibm.icu.impl.ICULocaleData;
 import com.ibm.icu.util.UResourceBundle;
 
 public class ResourceBundlePerf extends PerfTest {
@@ -23,20 +24,20 @@ public class ResourceBundlePerf extends PerfTest {
     
     protected void setup(String[] args) {
         icuRes = UResourceBundle.getBundleInstance("com/ibm/icu/dev/data/testdata", "testtypes");
-        javaRes = ResourceBundle.getBundle("com.ibm.icu.dev.data.TestDataElements_testtypes");
+        javaRes = ICULocaleData.getResourceBundle("com.ibm.icu.dev.data","TestDataElements","testtypes");
     }    
 
     PerfTest.Function TestResourceBundleConstructionJava() {
         return new PerfTest.Function() {
             public void call() {
-                javaRes = ResourceBundle.getBundle("com.ibm.icu.dev.data.TestDataElements_testtypes");
-            }
+                ICULocaleData.getResourceBundle("com.ibm.icu.dev.data","TestDataElements","testtypes");                
+            }            
         };
     }
     PerfTest.Function TestResourceBundleConstructionICU() {
         return new PerfTest.Function() {
             public void call() {
-                UResourceBundle.getBundleInstance("com/ibm/icu/dev/data/testdata", "testtypes");
+                UResourceBundle.getBundleInstance("com/ibm/icu/dev/data/testdata", "testtypes");                
             }       
         };
     }
@@ -261,30 +262,18 @@ public class ResourceBundlePerf extends PerfTest {
             }
         }
     }
-
-    class GetBinaryJava extends PerfTest.Function {
-        String key;
-        int expected_len;
-        GetBinaryJava(String key, int expected_len) {
-            this.key = key;
-            this.expected_len = expected_len;
-        }
-        public void call() {
-            ByteBuffer got = ByteBuffer.wrap((byte[])javaRes.getObject(key));
-            if(got.remaining() != expected_len) throw new Error("not the expected len");
-            for(int i=0; i< got.remaining(); i++){
-              byte b = got.get();
-              if (i != b) throw new Error("not equal");
-            }
-        }
-    }
-
+    
     PerfTest.Function TestGetBinaryTestICU(){
         return new GetBinaryIcu("binarytest", 15);
     }
     
     PerfTest.Function TestGetBinaryTestJava(){
-        return new GetBinaryJava("binarytest", 15);
+        return new PerfTest.Function(){
+            public void call(){
+                byte[] t = (byte[]) javaRes.getObject("binarytest");
+                if (t.length!=15 ) throw new Error("not equal");
+            }
+        };
     }
     
     PerfTest.Function TestGetEmptyBinaryICU(){
@@ -292,7 +281,12 @@ public class ResourceBundlePerf extends PerfTest {
     }
     
     PerfTest.Function TestGetEmptyBinaryJava(){
-        return new GetBinaryJava("emptybin", 0);
+        return new PerfTest.Function(){
+            public void call(){
+                byte[] t = (byte[]) javaRes.getObject("emptybin");
+                if (t.length!=0 ) throw new Error("not equal");
+            }
+        };
     }
 
     class GetMenuJava extends PerfTest.Function {

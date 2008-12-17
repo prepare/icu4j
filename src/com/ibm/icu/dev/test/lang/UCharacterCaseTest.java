@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 1996-2008, International Business Machines Corporation and    *
+* Copyright (C) 1996-2007, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 */
@@ -15,9 +15,7 @@ import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.text.UTF16;
 import com.ibm.icu.text.BreakIterator;
 import com.ibm.icu.text.RuleBasedBreakIterator;
-import com.ibm.icu.text.UnicodeSet;
 import com.ibm.icu.util.ULocale;
-import com.ibm.icu.impl.UCaseProps;
 import com.ibm.icu.impl.Utility;
 import java.util.Locale;
 import java.io.BufferedReader;
@@ -291,22 +289,6 @@ public final class UCharacterCaseTest extends TestFmwk
         }
     }
 
-    public void TestTitleRegression() throws java.io.IOException {
-        UCaseProps props = new UCaseProps();
-        int type = props.getTypeOrIgnorable('\'');
-        assertEquals("Case Ignorable check", -1, type); // should be case-ignorable (-1)
-        UnicodeSet allCaseIgnorables = new UnicodeSet();
-        for (int cp = 0; cp <= 0x10FFFF; ++cp) {
-            if (props.getTypeOrIgnorable(cp) < 0) {
-                allCaseIgnorables.add(cp);
-            }
-        }
-        logln(allCaseIgnorables.toString());
-        assertEquals("Titlecase check",
-                "The Quick Brown Fox Can't Jump Over The Lazy Dogs.",
-                UCharacter.toTitleCase(ULocale.ENGLISH, "THE QUICK BROWN FOX CAN'T JUMP OVER THE LAZY DOGS.", null));
-    }
-
     public void TestTitle()
     {
          try{ 
@@ -349,26 +331,6 @@ public final class UCharacterCaseTest extends TestFmwk
          }catch(Exception ex){
             warnln("Could not find data for BreakIterators");
          }
-    }
-
-    public void TestDutchTitle() {
-        ULocale LOC_DUTCH = new ULocale("nl");
-        int options = 0;
-        options |= UCharacter.TITLECASE_NO_LOWERCASE;
-        BreakIterator iter = BreakIterator.getWordInstance(LOC_DUTCH);
-
-        assertEquals("Dutch titlecase check in English",
-                "Ijssel Igloo Ijmuiden",
-                UCharacter.toTitleCase(ULocale.ENGLISH, "ijssel igloo IJMUIDEN", null));
-
-        assertEquals("Dutch titlecase check in Dutch",
-                "IJssel Igloo IJmuiden",
-                UCharacter.toTitleCase(LOC_DUTCH, "ijssel igloo IJMUIDEN", null));
-
-        iter.setText("ijssel igloo IjMUIdEN iPoD ijenough");
-        assertEquals("Dutch titlecase check in Dutch with nolowercase option",
-                "IJssel Igloo IJMUIdEN IPoD IJenough",
-                UCharacter.toTitleCase(LOC_DUTCH, "ijssel igloo IjMUIdEN iPoD ijenough", iter, options));
     }
 
     public void TestSpecial()
@@ -950,3 +912,5 @@ public final class UCharacterCaseTest extends TestFmwk
         return result;
     }
 }
+
+

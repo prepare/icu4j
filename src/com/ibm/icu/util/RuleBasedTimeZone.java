@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2007-2008, International Business Machines Corporation and    *
+ * Copyright (C) 2007, International Business Machines Corporation and         *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -19,7 +19,8 @@ import com.ibm.icu.impl.Grego;
  * 
  * @see com.ibm.icu.util.TimeZoneRule
  * 
- * @stable ICU 3.8
+ * @draft ICU 3.8
+ * @provisional This API might change or be removed in a future release.
  */
 public class RuleBasedTimeZone extends BasicTimeZone {
 
@@ -39,7 +40,8 @@ public class RuleBasedTimeZone extends BasicTimeZone {
      * @param id                The time zone ID.
      * @param initialRule       The initial time zone rule.
      * 
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public RuleBasedTimeZone(String id, InitialTimeZoneRule initialRule) {
         super.setID(id);
@@ -54,7 +56,8 @@ public class RuleBasedTimeZone extends BasicTimeZone {
      * 
      * @param rule The <code>TimeZoneRule</code>.
      * 
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public void addTransitionRule(TimeZoneRule rule) {
         if (!rule.isTransitionRule()) {
@@ -87,7 +90,8 @@ public class RuleBasedTimeZone extends BasicTimeZone {
     /**
      * {@inheritDoc}
      * 
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public int getOffset(int era, int year, int month, int day, int dayOfWeek,
             int milliseconds) {
@@ -104,7 +108,8 @@ public class RuleBasedTimeZone extends BasicTimeZone {
     /**
      * {@inheritDoc}
      * 
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public void getOffset(long time, boolean local, int[] offsets) {
         getOffset(time, local, LOCAL_FORMER, LOCAL_LATTER, offsets);
@@ -123,7 +128,8 @@ public class RuleBasedTimeZone extends BasicTimeZone {
     /**
      * {@inheritDoc}
      * 
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public int getRawOffset() {
         // Note: This implementation returns standard GMT offset
@@ -137,7 +143,8 @@ public class RuleBasedTimeZone extends BasicTimeZone {
     /**
      * {@inheritDoc}
      * 
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public boolean inDaylightTime(Date date) {
         int[] offsets = new int[2];
@@ -148,7 +155,8 @@ public class RuleBasedTimeZone extends BasicTimeZone {
     /**
      * {@inheritDoc}
      * 
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     ///CLOVER:OFF
     public void setRawOffset(int offsetMillis) {
@@ -160,7 +168,8 @@ public class RuleBasedTimeZone extends BasicTimeZone {
     /**
      * {@inheritDoc}
      * 
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public boolean useDaylightTime() {
         // Note: This implementation returns true when
@@ -183,7 +192,8 @@ public class RuleBasedTimeZone extends BasicTimeZone {
     /**
      * {@inheritDoc}
      * 
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public boolean hasSameRules(TimeZone other) {
         if (!(other instanceof RuleBasedTimeZone)) {
@@ -246,7 +256,8 @@ public class RuleBasedTimeZone extends BasicTimeZone {
     /**
      * {@inheritDoc}
      * 
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public TimeZoneRule[] getTimeZoneRules() {
         int size = 1;
@@ -282,7 +293,8 @@ public class RuleBasedTimeZone extends BasicTimeZone {
     /**
      * {@inheritDoc}
      * 
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public TimeZoneTransition getNextTransition(long base, boolean inclusive) {
         complete();
@@ -355,7 +367,8 @@ public class RuleBasedTimeZone extends BasicTimeZone {
     /**
      * {@inheritDoc}
      * 
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public TimeZoneTransition getPreviousTransition(long base, boolean inclusive) {
         complete();
@@ -419,7 +432,8 @@ public class RuleBasedTimeZone extends BasicTimeZone {
     
     /**
      * {@inheritDoc}
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public Object clone() {
         RuleBasedTimeZone other = (RuleBasedTimeZone)super.clone();

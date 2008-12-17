@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2007-2008, International Business Machines Corporation and    *
+ * Copyright (C) 2007, International Business Machines Corporation and         *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -9,17 +9,14 @@ package com.ibm.icu.dev.test.format;
 import com.ibm.icu.dev.test.TestFmwk;
 import com.ibm.icu.impl.Utility;
 import com.ibm.icu.text.PluralRules;
-import com.ibm.icu.util.ULocale;
 
 import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 /**
  * @author dougfelt (Doug Felt)
+ *
  */
 public class PluralRulesTest extends TestFmwk {
     public static void main(String[] args) throws Exception {
@@ -32,20 +29,14 @@ public class PluralRulesTest extends TestFmwk {
         "a: n is not 1", "a:0,2,3,4,5",
         "a: n mod 3 is not 1", "a:0,2,3,5,6,8,9",
         "a: n in 2..5", "a:2,3,4,5",
-        "a: n within 2..5", "a:2,3,4,5",
         "a: n not in 2..5", "a:0,1,6,7,8",
-        "a: n not within 2..5", "a:0,1,6,7,8",
         "a: n mod 10 in 2..5", "a:2,3,4,5,12,13,14,15,22,23,24,25",
-        "a: n mod 10 within 2..5", "a:2,3,4,5,12,13,14,15,22,23,24,25",
         "a: n mod 10 is 2 and n is not 12", "a:2,22,32,42",
         "a: n mod 10 in 2..3 or n mod 10 is 5", "a:2,3,5,12,13,15,22,23,25",
-        "a: n mod 10 within 2..3 or n mod 10 is 5", "a:2,3,5,12,13,15,22,23,25",
         "a: n is 1 or n is 4 or n is 23", "a:1,4,23",
         "a: n mod 2 is 1 and n is not 3 and n in 1..11", "a:1,5,7,9,11",
-        "a: n mod 2 is 1 and n is not 3 and n within 1..11", "a:1,5,7,9,11",
         "a: n mod 2 is 1 or n mod 5 is 1 and n is not 6", "a:1,3,5,7,9,11,13,15,16",
         "a: n in 2..5; b: n in 5..8; c: n mod 2 is 1", "a:2,3,4,5;b:6,7,8;c:1,9,11",
-        "a: n within 2..5; b: n within 5..8; c: n mod 2 is 1", "a:2,3,4,5;b:6,7,8;c:1,9,11",
     };
 
     private String[] getTargetStrings(String targets) {
@@ -133,52 +124,5 @@ public class PluralRulesTest extends TestFmwk {
             }
             compareEquality(rules);
         }
-    }
-
-    public void testBuiltInRules() {
-        // spot check
-        PluralRules rules = PluralRules.forLocale(ULocale.US);
-        assertEquals("us 0", PluralRules.KEYWORD_OTHER, rules.select(0));
-        assertEquals("us 1", PluralRules.KEYWORD_ONE, rules.select(1));
-        assertEquals("us 2", PluralRules.KEYWORD_OTHER, rules.select(2));
-
-        rules = PluralRules.forLocale(ULocale.JAPAN);
-        assertEquals("ja 0", PluralRules.KEYWORD_OTHER, rules.select(0));
-        assertEquals("ja 1", PluralRules.KEYWORD_OTHER, rules.select(1));
-        assertEquals("ja 2", PluralRules.KEYWORD_OTHER, rules.select(2));
-
-        rules = PluralRules.forLocale(ULocale.createCanonical("ru"));
-        assertEquals("ru 0", PluralRules.KEYWORD_MANY, rules.select(0));
-        assertEquals("ru 1", PluralRules.KEYWORD_ONE, rules.select(1));
-        assertEquals("ru 2", PluralRules.KEYWORD_FEW, rules.select(2));
-    }
-
-    public void testFunctionalEquivalent() {
-        // spot check
-        ULocale unknown = ULocale.createCanonical("zz_ZZ");
-        ULocale un_equiv = PluralRules.getFunctionalEquivalent(unknown, null);
-        assertEquals("unknown locales have root", ULocale.ROOT, un_equiv);
-
-        ULocale jp_equiv = PluralRules.getFunctionalEquivalent(ULocale.JAPAN, null);
-        ULocale cn_equiv = PluralRules.getFunctionalEquivalent(ULocale.CHINA, null);
-        assertEquals("japan and china equivalent locales", jp_equiv, cn_equiv);
-
-        boolean[] available = new boolean[1];
-        ULocale russia = ULocale.createCanonical("ru_RU");
-        ULocale ru_ru_equiv = PluralRules.getFunctionalEquivalent(russia, available);
-        assertFalse("ru_RU not listed", available[0]);
-
-        ULocale russian = ULocale.createCanonical("ru");
-        ULocale ru_equiv = PluralRules.getFunctionalEquivalent(russian, available);
-        assertTrue("ru listed", available[0]);
-        assertEquals("ru and ru_RU equivalent locales", ru_ru_equiv, ru_equiv);
-    }
-
-    public void testAvailableULocales() {
-        ULocale[] locales = PluralRules.getAvailableULocales();
-        Set localeSet = new HashSet();
-        localeSet.addAll(Arrays.asList(locales));
-
-        assertEquals("locales are unique in list", locales.length, localeSet.size());
     }
 }

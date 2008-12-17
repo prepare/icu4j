@@ -1,6 +1,6 @@
 /*
 ******************************************************************************
-* Copyright (C) 1996-2008, International Business Machines Corporation and   *
+* Copyright (C) 1996-2006, International Business Machines Corporation and   *
 * others. All Rights Reserved.                                               *
 ******************************************************************************
 */
@@ -53,6 +53,7 @@ public abstract class Trie
     * This interface specifies methods to be implemented in order for
     * com.ibm.impl.Trie, to surrogate offset information encapsulated within 
     * the data.
+    * @draft 2.1
     */
     public static interface DataManipulate
     {
@@ -63,6 +64,7 @@ public abstract class Trie
         * @param value data value for a surrogate from the trie, including the
         *        folding offset
         * @return data offset or 0 if there is no data for the lead surrogate
+        * @draft 2.1
         */
         public int getFoldingOffset(int value); 
     }
@@ -139,6 +141,7 @@ public abstract class Trie
     *                       trie data
     * @throws IOException thrown when input stream does not have the
     *                        right header.
+    * @draft 2.1
     */
     protected Trie(InputStream inputStream, 
                    DataManipulate  dataManipulate) throws IOException
@@ -170,6 +173,7 @@ public abstract class Trie
     * @param options used by the trie
     * @param dataManipulate object containing the information to parse the 
     *                       trie data
+    * @draft 2.2
     */
     protected Trie(char index[], int options, DataManipulate dataManipulate)
     {
@@ -196,6 +200,7 @@ public abstract class Trie
     protected static final int LEAD_INDEX_OFFSET_ = 0x2800 >> 5;
     /**
     * Shift size for shifting right the input index. 1..9
+    * @draft 2.1
     */
     protected static final int INDEX_STAGE_1_SHIFT_ = 5;
     /**
@@ -205,6 +210,7 @@ public abstract class Trie
     * This requires blocks of stage 2 data to be aligned by
     * DATA_GRANULARITY.
     * 0..INDEX_STAGE_1_SHIFT
+    * @draft 2.1
     */
     protected static final int INDEX_STAGE_2_SHIFT_ = 2;
     /**
@@ -214,6 +220,7 @@ public abstract class Trie
     /**
     * Mask for getting the lower bits from the input index.
     * DATA_BLOCK_LENGTH - 1.
+    * @draft 2.1
     */
     protected static final int INDEX_STAGE_3_MASK_ = DATA_BLOCK_LENGTH - 1;
     /** Number of bits of a trail surrogate that are used in index table lookups. */
@@ -229,15 +236,18 @@ public abstract class Trie
     /**
     * Surrogate mask to use when shifting offset to retrieve supplementary
     * values
+    * @draft 2.1
     */
     protected static final int SURROGATE_MASK_ = 0x3FF;                                              
     /**
     * Index or UTF16 characters
+    * @draft 2.1
     */
     protected char m_index_[];
     /**
     * Internal TrieValue which handles the parsing of the data value.
     * This class is to be implemented by the user
+    * @draft 2.1
     */
     protected DataManipulate m_dataManipulate_;
     /**
@@ -245,6 +255,7 @@ public abstract class Trie
     * index and data into a char array, so this is used to indicate the 
     * initial offset to the data portion.
     * Note this index always points to the initial value.
+    * @draft 2.1
     */
     protected int m_dataOffset_;
     /**
@@ -259,6 +270,7 @@ public abstract class Trie
     * @param lead lead surrogate
     * @param trail trailing surrogate
     * @return offset to data
+    * @draft 2.1
     */
     protected abstract int getSurrogateOffset(char lead, char trail);
     
@@ -266,12 +278,14 @@ public abstract class Trie
     * Gets the value at the argument index
     * @param index value at index will be retrieved
     * @return 32 bit value 
+    * @draft 2.1
     */
     protected abstract int getValue(int index);
 
     /**
     * Gets the default initial value
     * @return 32 bit value 
+    * @draft 2.1
     */
     protected abstract int getInitialValue();
     
@@ -288,6 +302,7 @@ public abstract class Trie
     * @param offset index offset which ch is to start from
     * @param ch index to be used after offset
     * @return offset to the data
+    * @draft 2.1
     */
     protected final int getRawOffset(int offset, char ch)
     {
@@ -301,6 +316,7 @@ public abstract class Trie
     * Treats a lead surrogate as a normal code point.
     * @param ch BMP character
     * @return offset to data
+    * @draft 2.1
     */
     protected final int getBMPOffset(char ch)
     {
@@ -318,6 +334,7 @@ public abstract class Trie
     * the next trailing surrogate character.
     * @param ch lead surrogate character
     * @return offset to data
+    * @draft 2.1
     */
     protected final int getLeadOffset(char ch)
     {
@@ -331,6 +348,7 @@ public abstract class Trie
     * Gets the offset to data which the codepoint points to
     * @param ch codepoint
     * @return offset to data
+    * @draft 2.1
     */
     protected final int getCodePointOffset(int ch)
     {
@@ -359,6 +377,7 @@ public abstract class Trie
     * <p>This is overwritten by the child classes.
     * @param inputStream input stream containing the trie information
     * @exception IOException thrown when data reading fails.
+    * @draft 2.1
     */
     protected void unserialize(InputStream inputStream) throws IOException
     {
@@ -373,6 +392,7 @@ public abstract class Trie
     /**
     * Determines if this is a 32 bit trie
     * @return true if options specifies this is a 32 bit trie
+    * @draft 2.1
     */
     protected final boolean isIntTrie()
     {
@@ -382,6 +402,7 @@ public abstract class Trie
     /**
     * Determines if this is a 16 bit trie
     * @return true if this is a 16 bit trie
+    * @draft 2.1
     */
     protected final boolean isCharTrie()
     {
@@ -437,6 +458,7 @@ public abstract class Trie
     * Checking the header information, signature and options.
     * @param signature This contains the options and type of a Trie
     * @return true if the header is authenticated valid
+    * @draft 2.1
     */
     private final boolean checkHeader(int signature)
     {

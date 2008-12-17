@@ -1,7 +1,9 @@
 //##header J2SE15
+//#if defined(FOUNDATION10) || defined(J2SE13)
+//#else
 /*
  *******************************************************************************
- * Copyright (C) 2006-2008, Google, International Business Machines Corporation *
+ * Copyright (C) 2006-2007, Google, International Business Machines Corporation *
  * and others. All Rights Reserved.                                            *
  *******************************************************************************
  */
@@ -35,7 +37,7 @@ public class PatternTokenizer {
     // data about the current pattern being parsed. start gets moved as we go along.
     private int start;
     private int limit;
-    private String pattern;
+    private CharSequence pattern;
     
     public UnicodeSet getIgnorableCharacters() {
         return (UnicodeSet) ignorableCharacters.clone();
@@ -127,18 +129,7 @@ public class PatternTokenizer {
         this.start = start;
         return this;
     }
-
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//##    public PatternTokenizer setPattern(StringBuffer pattern) {
-//##        return setPattern(pattern.toString());
-//##    }
-//#else 
     public PatternTokenizer setPattern(CharSequence pattern) {
-        return setPattern(pattern.toString());
-    }
-//#endif
-
-    public PatternTokenizer setPattern(String pattern) {
         if (pattern == null) {
             throw new IllegalArgumentException("Inconsistent arguments");
         }
@@ -147,27 +138,16 @@ public class PatternTokenizer {
         this.pattern = pattern;
         return this;
     }
-
+    
     public static final char SINGLE_QUOTE = '\'';
     public static final char BACK_SLASH = '\\';
     private static int NO_QUOTE = -1, IN_QUOTE = -2;
-
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//##    public String quoteLiteral(StringBuffer string) {
-//##        return quoteLiteral(string.toString());
-//##    }
-//#else
-    public String quoteLiteral(CharSequence string) {
-        return quoteLiteral(string.toString());
-    }
-//#endif
-
     /**
      * Quote a literal string, using the available settings. Thus syntax characters, quote characters, and ignorable characters will be put into quotes.
      * @param string
      * @return
      */
-    public String quoteLiteral(String string) {
+    public String quoteLiteral(CharSequence string) {
         if (needingQuoteCharacters == null) {
             needingQuoteCharacters = new UnicodeSet().addAll(syntaxCharacters).addAll(ignorableCharacters).addAll(extraQuotingCharacters); // .addAll(quoteCharacters)
             if (usingSlash) needingQuoteCharacters.add(BACK_SLASH);
@@ -233,7 +213,7 @@ public class PatternTokenizer {
         }
         return result.toString();
     }
-
+    
     private void appendEscaped(StringBuffer result, int cp) {
         if (cp <= 0xFFFF) {
             result.append("\\u").append(Utility.hex(cp,4));
@@ -400,4 +380,5 @@ public class PatternTokenizer {
     
     
 }
+//#endif
 //eof

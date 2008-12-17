@@ -1,6 +1,6 @@
 /*
 ******************************************************************************
-* Copyright (C) 2007-2008, International Business Machines Corporation and   *
+* Copyright (C) 2007, International Business Machines Corporation and   *
 * others. All Rights Reserved.                                               *
 ******************************************************************************
 */
@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.MissingResourceException;
+import java.util.zip.DataFormatException;
 
 import com.ibm.icu.impl.ICUData;
 
@@ -36,7 +37,7 @@ public class ResourceBasedPeriodFormatterDataService
   private PeriodFormatterData lastData = null;
   private String lastLocale = null;
   private Map cache = new HashMap(); // String -> PeriodFormatterData
-  //private PeriodFormatterData fallbackFormatterData;
+  private PeriodFormatterData fallbackFormatterData;
 
   private static final String PATH = "data/";
 
@@ -74,12 +75,6 @@ public class ResourceBasedPeriodFormatterDataService
   }
 
   public PeriodFormatterData get(String localeName) {
-    // remove tag info including calendar, we don't use the calendar
-    int x = localeName.indexOf('@');
-    if (x != -1) {
-      localeName = localeName.substring(0, x);
-    }
-
     synchronized(this) {
       if (lastLocale != null && lastLocale.equals(localeName)) {
         return lastData;
@@ -110,7 +105,7 @@ public class ResourceBasedPeriodFormatterDataService
                   new XMLRecordReader(
                       new InputStreamReader(is, "UTF-8")));
               if (dr != null) {
-                  // debug
+		  // debug
 //                if (false && ln.equals("ar_EG")) {
 //                  OutputStreamWriter osw = new OutputStreamWriter(System.out, "UTF-8");
 //                  XMLRecordWriter xrw = new XMLRecordWriter(osw);

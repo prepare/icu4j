@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2000-2008, International Business Machines Corporation and    *
+ * Copyright (C) 2000-2007, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -652,7 +652,7 @@ public final class Normalizer implements Cloneable {
      * Unicode Normalization Forms</a>.
      * <p>
      * @see #setOption
-     * @deprecated ICU 2.8. This option is no longer supported.
+     * @deprecated ICU 2.8. This option is no longer supported. TODO: check with Ram
      */
     public static final int IGNORE_HANGUL = 0x0001;
           
@@ -1758,8 +1758,9 @@ public final class Normalizer implements Cloneable {
     /**
      * Gets the FC_NFKC closure set from the normalization data
      * @param c The code point whose closure set is to be retrieved
-     * @param dest The char array to receive the closure set
-     * @stable ICU 3.8
+     * @param dest The char array to recive the closure set
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public static int getFC_NFKC_Closure(int c,char[] dest) {
         return NormalizerImpl.getFC_NFKC_Closure(c,dest);
@@ -1768,7 +1769,8 @@ public final class Normalizer implements Cloneable {
      * Gets the FC_NFKC closure set from the normalization data
      * @param c The the code point whose closure set is to be retrieved
      * @return String representation of the closure set
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */ 
     public static String getFC_NFKC_Closure(int c) {
         char[] dest = new char[10];
@@ -1996,14 +1998,14 @@ public final class Normalizer implements Cloneable {
      * @param newMode the new mode for this <tt>Normalizer</tt>.
      * The supported modes are:
      * <ul>
-     *  <li>{@link #NFC}    - Unicode canonical decompositiion
-     *                        followed by canonical composition.
-     *  <li>{@link #NFKC}   - Unicode compatibility decompositiion
-     *                        follwed by canonical composition.
-     *  <li>{@link #NFD}    - Unicode canonical decomposition
-     *  <li>{@link #NFKD}   - Unicode compatibility decomposition.
-     *  <li>{@link #NONE}   - Do nothing but return characters
-     *                        from the underlying input text.
+     *  <li>{@link #COMPOSE}        - Unicode canonical decompositiion
+     *                                  followed by canonical composition.
+     *  <li>{@link #COMPOSE_COMPAT} - Unicode compatibility decompositiion
+     *                                  follwed by canonical composition.
+     *  <li>{@link #DECOMP}         - Unicode canonical decomposition
+     *  <li>{@link #DECOMP_COMPAT}  - Unicode compatibility decomposition.
+     *  <li>{@link #NO_OP}          - Do nothing but return characters
+     *                                  from the underlying input text.
      * </ul>
      *
      * @see #getMode

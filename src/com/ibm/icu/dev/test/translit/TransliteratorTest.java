@@ -1,11 +1,10 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2008, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2007, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
 package com.ibm.icu.dev.test.translit;
-
 import com.ibm.icu.lang.*;
 import com.ibm.icu.text.*;
 import com.ibm.icu.dev.test.*;
@@ -451,13 +450,6 @@ public class TransliteratorTest extends TestFmwk {
             logln("Pattern: " + Utility.escape(DATA[i]));
             Transliterator t = Transliterator.createFromRules("<ID>", DATA[i], Transliterator.FORWARD);
             expect(t, DATA[i+1], DATA[i+2]);
-        }
-    }
-    
-    public void TestVariableNames() {
-        Transliterator gl = Transliterator.createFromRules("foo", "$\u2DC0 = qy; a>b;", Transliterator.FORWARD);
-        if (gl == null) {
-            errln("FAIL: null Transliterator returned.");
         }
     }
 
@@ -2078,21 +2070,20 @@ public class TransliteratorTest extends TestFmwk {
      * Test instantiation from a locale.
      */
     public void TestLocaleInstantiation() {
-        Transliterator t;
         try{
-            t = Transliterator.getInstance("te_IN-Latin");
+            Transliterator t = Transliterator.getInstance("te_IN-Latin");
             //expect(t, "\u0430", "a");
         }catch(IllegalArgumentException ex){
             warnln("Could not load locale data for obtaining the script used in the locale te_IN. "+ex.getMessage());
         }
         try{
-            t = Transliterator.getInstance("ru_RU-Latin");
+            Transliterator t = Transliterator.getInstance("ru_RU-Latin");
             expect(t, "\u0430", "a");
         }catch(IllegalArgumentException ex){
             warnln("Could not load locale data for obtaining the script used in the locale ru_RU. "+ex.getMessage());
         }
         try{
-            t = Transliterator.getInstance("en-el");
+            Transliterator t = Transliterator.getInstance("en-el");
             expect(t, "a", "\u03B1");
         }catch(IllegalArgumentException ex){
             warnln("Could not load locale data for obtaining the script used in the locale el. "+ ex.getMessage());
@@ -3231,104 +3222,6 @@ the ::BEGIN/::END stuff)
         Transliterator.unregister(fakeID);
     }
 
-    /**
-     * Test the Halfwidth-Fullwidth transliterator (ticket 6281).
-     */
-    public void TestHalfwidthFullwidth() {
-        Transliterator hf = Transliterator.getInstance("Halfwidth-Fullwidth");
-        Transliterator fh = Transliterator.getInstance("Fullwidth-Halfwidth");
-
-        // Array of 3n items
-        // Each item is
-        //   "hf"|"fh"|"both",
-        //   <Halfwidth>,
-        //   <Fullwidth>
-        String[] DATA = {
-            "both",
-            "\uFFE9\uFFEA\uFFEB\uFFEC\u0061\uFF71\u00AF\u0020",
-            "\u2190\u2191\u2192\u2193\uFF41\u30A2\uFFE3\u3000",
-        };
-
-        for (int i=0; i<DATA.length; i+=3) {
-            switch (DATA[i].charAt(0)) {
-            case 'h': // Halfwidth-Fullwidth only
-                expect(hf, DATA[i+1], DATA[i+2]);
-                break;
-            case 'f': // Fullwidth-Halfwidth only
-                expect(fh, DATA[i+2], DATA[i+1]);
-                break;
-            case 'b': // both directions
-                expect(hf, DATA[i+1], DATA[i+2]);
-                expect(fh, DATA[i+2], DATA[i+1]);
-                break;
-            }
-        }
-
-    }
-    
-    /**
-     *  Test Thai.  The text is the first paragraph of "What is Unicode" from the Unicode.org web site.
-     *              TODO: confirm that the expected results are correct.
-     *              For now, test just confirms that C++ and Java give identical results.
-     */
-    public void TestThai() {
-        Transliterator tr = Transliterator.getInstance("Any-Latin", Transliterator.FORWARD);
-        String thaiText = 
-            "\u0e42\u0e14\u0e22\u0e1e\u0e37\u0e49\u0e19\u0e10\u0e32\u0e19\u0e41\u0e25\u0e49\u0e27, \u0e04\u0e2d" +
-            "\u0e21\u0e1e\u0e34\u0e27\u0e40\u0e15\u0e2d\u0e23\u0e4c\u0e08\u0e30\u0e40\u0e01\u0e35\u0e48\u0e22" +
-            "\u0e27\u0e02\u0e49\u0e2d\u0e07\u0e01\u0e31\u0e1a\u0e40\u0e23\u0e37\u0e48\u0e2d\u0e07\u0e02\u0e2d" +
-            "\u0e07\u0e15\u0e31\u0e27\u0e40\u0e25\u0e02. \u0e04\u0e2d\u0e21\u0e1e\u0e34\u0e27\u0e40\u0e15\u0e2d" +
-            "\u0e23\u0e4c\u0e08\u0e31\u0e14\u0e40\u0e01\u0e47\u0e1a\u0e15\u0e31\u0e27\u0e2d\u0e31\u0e01\u0e29" +
-            "\u0e23\u0e41\u0e25\u0e30\u0e2d\u0e31\u0e01\u0e02\u0e23\u0e30\u0e2d\u0e37\u0e48\u0e19\u0e46 \u0e42" +
-            "\u0e14\u0e22\u0e01\u0e32\u0e23\u0e01\u0e33\u0e2b\u0e19\u0e14\u0e2b\u0e21\u0e32\u0e22\u0e40\u0e25" +
-            "\u0e02\u0e43\u0e2b\u0e49\u0e2a\u0e33\u0e2b\u0e23\u0e31\u0e1a\u0e41\u0e15\u0e48\u0e25\u0e30\u0e15" +
-            "\u0e31\u0e27. \u0e01\u0e48\u0e2d\u0e19\u0e2b\u0e19\u0e49\u0e32\u0e17\u0e35\u0e48\u0e4a Unicode \u0e08" +
-            "\u0e30\u0e16\u0e39\u0e01\u0e2a\u0e23\u0e49\u0e32\u0e07\u0e02\u0e36\u0e49\u0e19, \u0e44\u0e14\u0e49" +
-            "\u0e21\u0e35\u0e23\u0e30\u0e1a\u0e1a encoding \u0e2d\u0e22\u0e39\u0e48\u0e2b\u0e25\u0e32\u0e22\u0e23" +
-            "\u0e49\u0e2d\u0e22\u0e23\u0e30\u0e1a\u0e1a\u0e2a\u0e33\u0e2b\u0e23\u0e31\u0e1a\u0e01\u0e32\u0e23" +
-            "\u0e01\u0e33\u0e2b\u0e19\u0e14\u0e2b\u0e21\u0e32\u0e22\u0e40\u0e25\u0e02\u0e40\u0e2b\u0e25\u0e48" +
-            "\u0e32\u0e19\u0e35\u0e49. \u0e44\u0e21\u0e48\u0e21\u0e35 encoding \u0e43\u0e14\u0e17\u0e35\u0e48" +
-            "\u0e21\u0e35\u0e08\u0e33\u0e19\u0e27\u0e19\u0e15\u0e31\u0e27\u0e2d\u0e31\u0e01\u0e02\u0e23\u0e30" +
-            "\u0e21\u0e32\u0e01\u0e40\u0e1e\u0e35\u0e22\u0e07\u0e1e\u0e2d: \u0e22\u0e01\u0e15\u0e31\u0e27\u0e2d" +
-            "\u0e22\u0e48\u0e32\u0e07\u0e40\u0e0a\u0e48\u0e19, \u0e40\u0e09\u0e1e\u0e32\u0e30\u0e43\u0e19\u0e01" +
-            "\u0e25\u0e38\u0e48\u0e21\u0e2a\u0e2b\u0e20\u0e32\u0e1e\u0e22\u0e38\u0e42\u0e23\u0e1b\u0e40\u0e1e" +
-            "\u0e35\u0e22\u0e07\u0e41\u0e2b\u0e48\u0e07\u0e40\u0e14\u0e35\u0e22\u0e27 \u0e01\u0e47\u0e15\u0e49" +
-            "\u0e2d\u0e07\u0e01\u0e32\u0e23\u0e2b\u0e25\u0e32\u0e22 encoding \u0e43\u0e19\u0e01\u0e32\u0e23\u0e04" +
-            "\u0e23\u0e2d\u0e1a\u0e04\u0e25\u0e38\u0e21\u0e17\u0e38\u0e01\u0e20\u0e32\u0e29\u0e32\u0e43\u0e19" +
-            "\u0e01\u0e25\u0e38\u0e48\u0e21. \u0e2b\u0e23\u0e37\u0e2d\u0e41\u0e21\u0e49\u0e41\u0e15\u0e48\u0e43" +
-            "\u0e19\u0e20\u0e32\u0e29\u0e32\u0e40\u0e14\u0e35\u0e48\u0e22\u0e27 \u0e40\u0e0a\u0e48\u0e19 \u0e20" +
-            "\u0e32\u0e29\u0e32\u0e2d\u0e31\u0e07\u0e01\u0e24\u0e29 \u0e01\u0e47\u0e44\u0e21\u0e48\u0e21\u0e35" +
-            " encoding \u0e43\u0e14\u0e17\u0e35\u0e48\u0e40\u0e1e\u0e35\u0e22\u0e07\u0e1e\u0e2d\u0e2a\u0e33\u0e2b" +
-            "\u0e23\u0e31\u0e1a\u0e17\u0e38\u0e01\u0e15\u0e31\u0e27\u0e2d\u0e31\u0e01\u0e29\u0e23, \u0e40\u0e04" +
-            "\u0e23\u0e37\u0e48\u0e2d\u0e07\u0e2b\u0e21\u0e32\u0e22\u0e27\u0e23\u0e23\u0e04\u0e15\u0e2d\u0e19" +
-            " \u0e41\u0e25\u0e30\u0e2a\u0e31\u0e0d\u0e25\u0e31\u0e01\u0e29\u0e13\u0e4c\u0e17\u0e32\u0e07\u0e40" +
-            "\u0e17\u0e04\u0e19\u0e34\u0e04\u0e17\u0e35\u0e48\u0e43\u0e0a\u0e49\u0e01\u0e31\u0e19\u0e2d\u0e22" +
-            "\u0e39\u0e48\u0e17\u0e31\u0e48\u0e27\u0e44\u0e1b.";
-
-        String latinText = 
-            "doy ph\u1ee5\u0304\u0302n \u1e6d\u0304h\u0101n l\u00e6\u0302w, khxmphiwtexr\u0312 ca ke\u012b\u0300" +
-            "ywk\u0304\u0125xng k\u1ea1b re\u1ee5\u0304\u0300xng k\u0304hxng t\u1ea1wlek\u0304h. khxmphiwtexr" +
-            "\u0312 c\u1ea1d k\u0115b t\u1ea1w x\u1ea1ks\u0304\u02b9r l\u00e6a x\u1ea1kk\u0304h ra x\u1ee5\u0304" +
-            "\u0300n\u00ab doy k\u0101r k\u1ea3h\u0304nd h\u0304m\u0101ylek\u0304h h\u0304\u0131\u0302 s\u0304" +
-            "\u1ea3h\u0304r\u1ea1b t\u00e6\u0300la t\u1ea1w. k\u0300xn h\u0304n\u0302\u0101 th\u012b\u0300\u0301" +
-            " Unicode ca t\u0304h\u016bk s\u0304r\u0302\u0101ng k\u0304h\u1ee5\u0302n, d\u1ecb\u0302 m\u012b " +
-            "rabb encoding xy\u016b\u0300 h\u0304l\u0101y r\u0302xy rabb s\u0304\u1ea3h\u0304r\u1ea1b k\u0101" +
-            "r k\u1ea3h\u0304nd h\u0304m\u0101ylek\u0304h h\u0304el\u0300\u0101 n\u012b\u0302. m\u1ecb\u0300m" +
-            "\u012b encoding d\u0131 th\u012b\u0300 m\u012b c\u1ea3nwn t\u1ea1w x\u1ea1kk\u0304hra m\u0101k p" +
-            "he\u012byng phx: yk t\u1ea1wx\u1ef3\u0101ng ch\u00e8n, c\u0304heph\u0101a n\u0131 kl\u00f9m s\u0304" +
-            "h\u0304p\u0323h\u0101ph yurop phe\u012byng h\u0304\u00e6\u0300ng de\u012byw k\u0306 t\u0302xngk\u0101" +
-            "r h\u0304l\u0101y encoding n\u0131 k\u0101r khrxbkhlum thuk p\u0323h\u0101s\u0304\u02b9\u0101 n\u0131" +
-            " kl\u00f9m. h\u0304r\u1ee5\u0304x m\u00e6\u0302t\u00e6\u0300 n\u0131 p\u0323h\u0101s\u0304\u02b9" +
-            "\u0101 de\u012b\u0300yw ch\u00e8n p\u0323h\u0101s\u0304\u02b9\u0101 x\u1ea1ngkvs\u0304\u02b9 k\u0306" +
-            " m\u1ecb\u0300m\u012b encoding d\u0131 th\u012b\u0300 phe\u012byng phx s\u0304\u1ea3h\u0304r\u1ea1" +
-            "b thuk t\u1ea1w x\u1ea1ks\u0304\u02b9r, kher\u1ee5\u0304\u0300xngh\u0304m\u0101y wrrkh txn l\u00e6" +
-            "a s\u0304\u1ea1\u1ef5l\u1ea1ks\u0304\u02b9\u1e47\u0312 th\u0101ng thekhnikh th\u012b\u0300 ch\u0131" +
-            "\u0302 k\u1ea1n xy\u016b\u0300 th\u1ea1\u0300wp\u1ecb.";
-
-            expect(tr, thaiText, latinText);
-    }
-    
-
     //======================================================================
     // These tests are not mirrored (yet) in icu4c at
     // source/test/intltest/transtst.cpp
@@ -3368,74 +3261,6 @@ the ::BEGIN/::END stuff)
         String result = anyLatin.transliterate(testString.toString());
         logln("Sample result for Any-Latin: " + result);
     }
-
-    /*
-     * Test case for threading problem in NormalizationTransliterator
-     * reported by ticket#5160
-     */
-    public void TestT5160() {
-        final String[] testData = {
-                "a",
-                "b",
-                "\u09BE",
-                "A\u0301",
-        };
-        final String[] expected = {
-                "a",
-                "b",
-                "\u09BE",
-                "\u00C1",
-            };
-        Transliterator translit = Transliterator.getInstance("NFC");
-        NormTranslitTask[] tasks = new NormTranslitTask[testData.length];
-        for (int i = 0; i < tasks.length; i++) {
-            tasks[i] = new NormTranslitTask(translit, testData[i], expected[i]);
-        }
-        TestUtil.runUntilDone(tasks);
-
-        for (int i = 0; i < tasks.length; i++) {
-            if (tasks[i].getErrorMessage() != null) {
-                System.out.println("Fail: thread#" + i + " " + tasks[i].getErrorMessage());
-                break;
-            }
-        }
-    }
-
-    static class NormTranslitTask implements Runnable {
-        Transliterator translit;
-        String testData;
-        String expectedData;
-        String errorMsg;
-
-        NormTranslitTask(Transliterator translit, String testData, String expectedData) {
-            this.translit = translit;
-            this.testData = testData;
-            this.expectedData = expectedData;
-        }
-
-        public void run() {
-            errorMsg = null;
-            StringBuffer inBuf = new StringBuffer(testData);
-            StringBuffer expectedBuf = new StringBuffer(expectedData);
-
-            for(int i = 0; i < 1000; i++) {
-                String in = inBuf.toString();
-                String out = translit.transliterate(in);
-                String expected = expectedBuf.toString();
-                if (!out.equals(expected)) {
-                    errorMsg = "in {" + in + "} / out {" + out + "} / expected {" + expected + "}";
-                    break;
-                }
-                inBuf.append(testData);
-                expectedBuf.append(expectedData);
-            }
-        }
-
-        public String getErrorMessage() {
-            return errorMsg;
-        }
-    }
-
     //======================================================================
     // Support methods
     //======================================================================
