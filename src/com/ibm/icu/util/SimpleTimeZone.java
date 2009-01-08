@@ -1,5 +1,5 @@
  /*
-*   Copyright (C) 1996-2009, International Business Machines
+*   Copyright (C) 1996-2008, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 */
 
@@ -739,11 +739,14 @@ public class SimpleTimeZone extends BasicTimeZone {
     public void getOffsetFromLocal(long date,
             int nonExistingTimeOpt, int duplicatedTimeOpt, int[] offsets) {
         offsets[0] = getRawOffset();
-        int fields[] = new int[6];
-        Grego.timeToFields(date, fields);
+        int fields[] = new int[4];
+        long day = floorDivide(date, Grego.MILLIS_PER_DAY, fields);
+        int millis = fields[0];
+
+        computeGregorianFields(day, fields);
         offsets[1] = getOffset(GregorianCalendar.AD,
               fields[0], fields[1], fields[2],
-              fields[3], fields[5]) - offsets[0];        
+              fields[3], millis) - offsets[0];        
 
         boolean recalc = false;
 
@@ -763,10 +766,12 @@ public class SimpleTimeZone extends BasicTimeZone {
         }
 
         if (recalc) {
-            Grego.timeToFields(date, fields);
+            day = floorDivide(date, Grego.MILLIS_PER_DAY, fields);
+            millis = fields[0];
+            computeGregorianFields(day, fields);
             offsets[1] = getOffset(GregorianCalendar.AD,
                     fields[0], fields[1], fields[2],
-                    fields[3], fields[5]) - offsets[0];        
+                    fields[3], millis) - offsets[0];        
         }
     }
 
@@ -1182,7 +1187,7 @@ public class SimpleTimeZone extends BasicTimeZone {
      * @stable ICU 3.8
      */
     public TimeZoneTransition getNextTransition(long base, boolean inclusive) {
-        if (!useDaylight) {
+        if (startMonth == 0) {
             return null;
         }
 
@@ -1207,7 +1212,7 @@ public class SimpleTimeZone extends BasicTimeZone {
      * @stable ICU 3.8
      */
     public TimeZoneTransition getPreviousTransition(long base, boolean inclusive) {
-        if (!useDaylight) {
+        if (startMonth == 0) {
             return null;
         }
 
@@ -1234,10 +1239,10 @@ public class SimpleTimeZone extends BasicTimeZone {
     public TimeZoneRule[] getTimeZoneRules() {
         initTransitionRules();
 
-        int size = useDaylight ? 3 : 1;
+        int size = (startMonth == 0) ? 1 : 3;
         TimeZoneRule[] rules = new TimeZoneRule[size];
         rules[0] = initialRule;
-        if (useDaylight) {
+        if (startMonth != 0) {
             rules[1] = stdRule;
             rules[2] = dstRule;
         }
@@ -1254,7 +1259,7 @@ public class SimpleTimeZone extends BasicTimeZone {
         if (transitionRulesInitialized) {
             return;
         }
-        if (useDaylight) {
+        if (startMonth != 0) {
             DateTimeRule dtRule = null;
             int timeRuleType;
             long firstStdStart, firstDstStart;

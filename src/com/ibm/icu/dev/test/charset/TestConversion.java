@@ -213,9 +213,17 @@ public class TestConversion extends ModuleTest {
             }
             
         } catch (Exception e) {
-            errln(cc.charset + " was not found");
+            // TODO implement loading of test data.
+            if (skipIfBeforeICU(4,1,0)) {
+                logln("Skipping test:(" + cc.charset + ") due to ICU Charset not supported at this time");
+            } else {
+                errln(cc.charset + " was not found");
+            }
             return;
         }
+        
+        
+        
         
         // set the callback for the encoder 
         if (cc.cbErrorAction != null) {
@@ -490,7 +498,7 @@ public class TestConversion extends ModuleTest {
 
         } catch (Exception e) {
             // TODO implement loading of test data.
-            if (skipIfBeforeICU(4,1,1)) {
+            if (skipIfBeforeICU(4,1,0)) {
                 logln("Skipping test:(" + cc.charset + ") due to ICU Charset not supported at this time");
             } else {
                 errln(cc.charset + " was not found");

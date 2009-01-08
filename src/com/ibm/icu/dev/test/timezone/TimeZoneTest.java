@@ -375,7 +375,7 @@ public class TimeZoneTest extends TestFmwk
         //    so the behavior of the timezone doesn't matter
         SimpleTimeZone zone2 = new SimpleTimeZone(0, "PST");
         zone2.setStartRule(Calendar.JANUARY, 1, 0);
-        zone2.setEndRule(Calendar.DECEMBER, 31, 86399999);
+        zone2.setEndRule(Calendar.DECEMBER, 31, 0);
         logln("Modified PST inDaylightTime->" + zone2.inDaylightTime(new Date()));
         name = zone2.getDisplayName(Locale.ENGLISH);
         logln("Modified PST->" + name);
@@ -1477,7 +1477,7 @@ public class TimeZoneTest extends TestFmwk
         int dstSavings = jdkCal.get(java.util.Calendar.DST_OFFSET);
 
         int[] offsets = new int[2];
-        icuCaracas.getOffset(jdkCal.getTime().getTime()/*jdkCal.getTimeInMillis()*/, false, offsets);
+        icuCaracas.getOffset(jdkCal.getTime().getTime(), false, offsets);
 
         boolean isTimeZoneSynchronized = true;
 

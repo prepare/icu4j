@@ -189,10 +189,10 @@
     </condition>
 
     <!-- JVM arguments for running test cases -->
-    <condition property="test.jvm.args" value="-Xms224m -Xmx256m">
+    <condition property="test.jvm.args" value="-Xms192m -Xmx224m">
         <isset property="before.java14" />
     </condition>
-    <condition property="test.jvm.args" value="-ea -Xms224m -Xmx256m -Xdisableexcessivegc">
+    <condition property="test.jvm.args" value="-ea -Xms192m -Xmx224m -Xdisableexcessivegc">
       <and>
         <not>
           <isset property="before.java15" />
@@ -200,12 +200,12 @@
         <equals arg1="${java.vm.vendor}" arg2="IBM Corporation"/>
       </and>
     </condition>
-    <condition property="test.jvm.args" value="-ea -Xms224m -Xmx256m -Djava.awt.headless=true">
+    <condition property="test.jvm.args" value="-ea -Xms192m -Xmx224m -Djava.awt.headless=true">
       <and>
         <equals arg1="${os.name}" arg2="Mac OS X"/>
       </and>
     </condition>
-    <condition property="test.jvm.args" value="-ea -Xms224m -Xmx256m">
+    <condition property="test.jvm.args" value="-ea -Xms192m -Xmx224m">
       <not>
         <isset property="test.jvm.args" />
       </not>
@@ -2112,7 +2112,6 @@
       </fileset>
       <fileset file="${basedir}/${jar.file}" />
       <fileset file="${build.dir}/${icu4j.data.path}/zoneinfo.res" />
-      <fileset file="${build.dir}/${icu4j.data.path}/metazoneInfo.res" />
     </copy>
   </target>
 
@@ -2146,12 +2145,10 @@
     <move todir="${tzu.temp.dir}">
       <fileset file="${tzu.bin.dir}/DirectorySearch.txt" />
       <fileset file="${tzu.bin.dir}/zoneinfo.res" />
-      <fileset file="${tzu.bin.dir}/metazoneInfo.res" />
     </move>
 
     <echo file="${tzu.bin.dir}/DirectorySearch.txt">+${tzu.test.dir}</echo>
-    <get dest="${tzu.bin.dir}/zoneinfo.res" src="http://icu-project.org/tzdata/2008d/be/zoneinfo.res" />
-    <get dest="${tzu.bin.dir}/metazoneInfo.res" src="http://icu-project.org/tzdata/2008d/be/metazoneInfo.res" />
+    <get dest="${tzu.bin.dir}/zoneinfo.res" src="http://icu-project.org/tzdata/2006a/be/zoneinfo.res" />
     <copy todir="${tzu.test.dir}" file="${tzu.bin.dir}/icu4j.jar" />
 
     <echo>Running ICUTZU in Discovery Mode ...</echo>
@@ -2192,32 +2189,25 @@
     <unjar src="${tzu.test.dir}/${jar.file}" dest="${tzu.test.dir}">
       <patternset>
         <include name="**/zoneinfo.res" />
-        <include name="**/metazoneInfo.res" />
       </patternset>
     </unjar>
     <copy todir="${tzu.test.dir}" file="${tzu.test.dir}/${icu4j.data.path}/zoneinfo.res" />
-    <copy todir="${tzu.test.dir}" file="${tzu.test.dir}/${icu4j.data.path}/metazoneInfo.res" />
-
     <condition property="tzu.zoneinfo.match">
       <filesmatch file1="${tzu.bin.dir}/zoneinfo.res" file2="${tzu.test.dir}/zoneinfo.res" />
     </condition>
-    <fail unless="tzu.zoneinfo.match">ICUTZU test failed. ${tzu.bin.dir}/zoneinfo.res does not match ${tzu.test.dir}/zoneinfo.res</fail>
 
-    <condition property="tzu.metazoneinfo.match">
-      <filesmatch file1="${tzu.bin.dir}/metazoneInfo.res" file2="${tzu.test.dir}/metazoneInfo.res" />
-    </condition>
-    <fail unless="tzu.metazoneinfo.match">ICUTZU test failed. ${tzu.bin.dir}/metazoneInfo.res does not match ${tzu.test.dir}/metazoneInfo.res</fail>
+    <fail unless="tzu.zoneinfo.match">ICUTZU test failed. ${tzu.bin.dir}/zoneinfo.res does not match ${tzu.test.dir}/zoneinfo.res</fail>
 
     <echo>Cleaning up ...</echo>
     <move todir="${tzu.bin.dir}">
       <fileset file="${tzu.temp.dir}/DirectorySearch.txt" />
       <fileset file="${tzu.temp.dir}/zoneinfo.res" />
-      <fileset file="${tzu.temp.dir}/metazoneInfo.res" />
     </move>
-    <delete includeEmptyDirs="true">
+  	<delete includeEmptyDirs="true">
         <fileset file="${tzu.temp.dir}" />
         <fileset dir="${tzu.test.dir}" />
-    </delete>
+	</delete>
+  	
     <echo>ICUTZU test successful.</echo>
   </target>
 

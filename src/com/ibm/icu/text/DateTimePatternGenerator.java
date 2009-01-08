@@ -1706,7 +1706,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
                 baseOriginal[typeValue] = Utility.repeat(String.valueOf(repeatChar),repeatCount);
                 int subTypeValue = row[2];
                 if (subTypeValue > 0) subTypeValue += field.length();
-                type[typeValue] = subTypeValue;
+                type[typeValue] = (byte) subTypeValue;
             }
             return this;
         }

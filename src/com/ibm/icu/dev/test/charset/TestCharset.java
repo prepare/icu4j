@@ -835,8 +835,7 @@ public class TestCharset extends TestFmwk {
         
         outer: for (int conv=0; conv<converters.length; conv++) {
             String converter = (String)converters[conv];
-            if (converter.equals("x-IMAP-mailbox-name") || converter.equals("UTF-7") || converter.equals("CESU-8") || converter.equals("BOCU-1") ||
-                    converter.equals("x-LMBCS-1")) {
+            if (converter.equals("x-IMAP-mailbox-name") || converter.equals("UTF-7") || converter.equals("CESU-8") || converter.equals("BOCU-1")) {
                 exempt.add(converter);
                 continue;
             }
@@ -3433,8 +3432,8 @@ public class TestCharset extends TestFmwk {
         ccus.clear();
         
         //test ascii overflow buffer
-        ccus.put((char)0x0A); ccus.put((char)0x0043);
-        ccbs.put((byte)0x00); ccbs.put((byte)0x00);
+        ccus.put((char)0x0A);
+        ccbs.put((byte)0x00);
         
         ccus.limit(ccus.position());
         ccus.position(0);
