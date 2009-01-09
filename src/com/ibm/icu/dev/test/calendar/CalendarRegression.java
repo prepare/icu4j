@@ -1,7 +1,6 @@
-//##header J2SE15
 /**
  *******************************************************************************
- * Copyright (C) 2000-2008, International Business Machines Corporation and    *
+ * Copyright (C) 2000-2009, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -13,8 +12,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
 import java.util.Locale;
 import java.util.MissingResourceException;
@@ -773,13 +770,13 @@ public class CalendarRegression extends com.ibm.icu.dev.test.TestFmwk {
     public void Test4108764() {
         java.util.Calendar tempcal = java.util.Calendar.getInstance();
         tempcal.clear();
-        tempcal.set(1997, Calendar.MARCH, 15, 12, 00, 00);
+        tempcal.set(1997, Calendar.FEBRUARY, 15, 12, 00, 00);
         Date d00 = tempcal.getTime();
-        tempcal.set(1997, Calendar.MARCH, 15, 12, 00, 56);
+        tempcal.set(1997, Calendar.FEBRUARY, 15, 12, 00, 56);
         Date d01 = tempcal.getTime();
-        tempcal.set(1997, Calendar.MARCH, 15, 12, 34, 00);
+        tempcal.set(1997, Calendar.FEBRUARY, 15, 12, 34, 00);
         Date d10 = tempcal.getTime();
-        tempcal.set(1997, Calendar.MARCH, 15, 12, 34, 56);
+        tempcal.set(1997, Calendar.FEBRUARY, 15, 12, 34, 56);
         Date d11 = tempcal.getTime();
         tempcal.set(1997, Calendar.JANUARY, 15, 12, 34, 56);
         Date dM  = tempcal.getTime();
@@ -818,13 +815,6 @@ public class CalendarRegression extends com.ibm.icu.dev.test.TestFmwk {
         if (!cal.getTime().equals(epoch))
             errln("Fail: after clear() expect " + epoch + ", got " + cal.getTime());
 
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//##        // This test case does not work well with JRE1.3 with
-//##        // the timezone update for US 2007 rule.  Java 1.3 only
-//##        // supports single DST rule for all years.  March 15
-//##        // was not in DST before, but with the new rule, it is
-//##        // in DST.
-//#else
         cal.setTime(d11);
         cal.clear( Calendar.MONTH ); 
         logln(cal.getTime().toString()); 
@@ -832,7 +822,6 @@ public class CalendarRegression extends com.ibm.icu.dev.test.TestFmwk {
             errln("Fail: " + d11 + " clear(MONTH) => expect " +
                   dM + ", got " + cal.getTime());
         }
-//#endif
     }
 
     public void Test4114578() {
@@ -2089,136 +2078,6 @@ public class CalendarRegression extends com.ibm.icu.dev.test.TestFmwk {
             logln("Year remained " + year2 + " - PASS.");
         }
     }
-    
-    public void TestGetKeywordValues(){
-        ArrayList got = new ArrayList();
-        ArrayList expected = new ArrayList();
-        
-        String expectedResult = "";
-        String gotResult = "";
-        
-        String inputLocale[] = {
-                "zh__PINYIN",
-                "zh_TW_STROKE",
-                "zh_MO",
-                "zh",
-                "zh_Hant_MO",
-                "uk_UA",
-                "sr_Latn_ME",
-                "sr_Latn",
-                "sr",
-                "de",
-                "de__PHONEBOOK",
-                "no_NO",
-                "pa_Guru_IN",
-                "es",
-                "es__TRADITIONAL",
-                "ko_KR",
-                "kok",
-                "ms_MY",
-                "ab_AA_jdhdj@collation=xyz",
-                "de__PHONEBOOK@calendar=japanese",
-            };
-        
-        String commonlyUsedCalendar[][] = {
-                {"gregorian","chinese"},
-                {"gregorian","chinese","roc"},
-                {"gregorian","chinese"},
-                {"gregorian","chinese"},
-                {"gregorian","chinese"},
-                {"gregorian"},
-                {"gregorian"},
-                {"gregorian"},
-                {"gregorian"},
-                {"gregorian"},
-                {"gregorian"},
-                {"gregorian"},
-                {"gregorian","indian"},
-                {"gregorian"},
-                {"gregorian"},
-                {"gregorian"},
-                {"gregorian","indian"},
-                {"gregorian"},
-                {"gregorian"},
-                {"japanese"}
-        };
-        
-        String calendar[]={
-                "roc",
-                "persian",
-                "islamic-civil",
-                "islamic",
-                "hebrew",
-                "buddhist",
-                "indian",
-                "japanese",
-                "gregorian",
-                "ethiopic",
-                "chinese",
-                "coptic",
-        };
-        
-        logln("Starting all available calendar keyword value test");
-        
-        for(int i=0;i<inputLocale.length;i++){
-            ULocale loc = new ULocale(inputLocale[i]);
-            for(int j=0;j<calendar.length;j++){
-                expected.add(calendar[j]);
-                expectedResult += calendar[j]+" ";
-            }
-            String[] s = Calendar.getKeywordValues("calendar", loc, false);
-            String s1;
-            for(int j=0;j<s.length;j++){
-                got.add((s1=s[j]));
-                gotResult +=s1+" ";
-            }
-            
-            Collections.sort(got);
-            Collections.sort(expected);
-            if(got.equals(expected)){
-                logln("PASS: Locale :"+inputLocale[i]);
-                logln("EXPECTED :"+expectedResult);
-                logln("GOT      :"+gotResult);
-            }else{
-                errln("FAIL: Locale :"+inputLocale[i]+" EXPECTED :"+expectedResult+" GOT :"+gotResult);
-            }
-            gotResult=expectedResult="";
-            got.clear();
-            expected.clear();
-        }
-        
-        logln("Starting preferred calendar keyword value test");
-        
-        for(int i=0;i<inputLocale.length;i++){
-            ULocale loc = new ULocale(inputLocale[i]);
-            for(int j=0;j<commonlyUsedCalendar[i].length;j++){
-                expected.add(commonlyUsedCalendar[i][j]);
-                expectedResult += commonlyUsedCalendar[i][j]+" ";
-               
-            }
-            String[] s = Calendar.getKeywordValues("calendar", loc, true);
-            String s1;
-            for(int j=0;j<s.length;j++){
-                got.add((s1=s[j]));
-                gotResult +=s1+" ";
-            }
-            Collections.sort(got);
-            Collections.sort(expected);
-            if(got.equals(expected)){
-                logln("PASS: Locale :"+inputLocale[i]);
-                logln("EXPECTED :"+expectedResult);
-                logln("GOT      :"+gotResult);
-            }else{
-                errln("FAIL: Locale :"+inputLocale[i]+" EXPECTED :"+expectedResult+" GOT :"+gotResult);
-            }
-            gotResult=expectedResult="";
-            got.clear();
-            expected.clear();
-            
-        } 
-    }
-
-   
 }
 
 //eof

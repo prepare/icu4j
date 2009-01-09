@@ -1,6 +1,6 @@
  /*
   *******************************************************************************
-  * Copyright (C) 2005-2009, International Business Machines Corporation and         *
+  * Copyright (C) 2005-2007, International Business Machines Corporation and         *
   * others. All Rights Reserved.                                                *
   *******************************************************************************
   */
@@ -19,6 +19,7 @@ import com.ibm.icu.util.TimeArrayTimeZoneRule;
 import com.ibm.icu.util.TimeZone;
 import com.ibm.icu.util.TimeZoneRule;
 import com.ibm.icu.util.TimeZoneTransition;
+import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.UResourceBundle;
 
 /**
@@ -172,19 +173,21 @@ public class OlsonTimeZone extends BasicTimeZone {
         if (getRawOffset() == offsetMillis) {
             return;
         }
-        long current = System.currentTimeMillis();
-        if (current < finalMillis) {
-            int[] fields = Grego.timeToFields(current, null);
-            finalYear = fields[0] - 1; // finalYear is (year of finalMillis) - 1
-            finalMillis = Grego.fieldsToDay(fields[0], 0, 1);
-        }
+        GregorianCalendar cal = new GregorianCalendar(ULocale.ROOT);
+        cal.setTimeZone(this);
+        int tmpFinalYear = cal.get(Calendar.YEAR) - 1;
 
+        // Apply the raw offset starting current year and beyond
+        if (finalYear > tmpFinalYear) {
+            finalYear = tmpFinalYear;
+            finalMillis = Grego.fieldsToDay(tmpFinalYear, 0, 1) * Grego.MILLIS_PER_DAY;
+        }
         if (finalZone == null) {
             // Create SimpleTimeZone instance to store the offset
             finalZone = new SimpleTimeZone(offsetMillis, getID());
         } else {
             finalZone.setRawOffset(offsetMillis);
-            finalZone.setStartYear(finalYear); // finalYear is (year of finalMillis) - 1
+            finalZone.setStartYear(finalYear);
         }
 
         transitionRulesInitialized = false;
@@ -487,7 +490,7 @@ public class OlsonTimeZone extends BasicTimeZone {
     private void getHistoricalOffset(long date, boolean local,
             int NonExistingTimeOpt, int DuplicatedTimeOpt, int[] offsets) {
         if (transitionCount != 0) {
-            long sec = Grego.floorDivide(date, Grego.MILLIS_PER_SECOND);
+            long sec = myFloorDivide(date, Grego.MILLIS_PER_SECOND);
             // Linear search from the end is the fastest approach, since
             // most lookups will happen at/near the end.
             int i = 0;
@@ -675,6 +678,25 @@ public class OlsonTimeZone extends BasicTimeZone {
         UResourceBundle r = top.get("Rules");
         r = r.get(ruleid);
         return r;
+    }
+
+    /**
+     * Divide two long integers, returning the floor of the quotient.
+     * <p>
+     * Unlike the built-in division, this is mathematically well-behaved.
+     * E.g., <code>-1/4</code> => 0
+     * but <code>floorDivide(-1,4)</code> => -1.
+     * @param numerator the numerator
+     * @param denominator a divisor which must be > 0
+     * @return the floor of the quotient.
+     * @stable ICU 2.0
+     */
+    private static final long myFloorDivide(long numerator, long denominator) {
+        // We do this computation in order to handle
+        // a numerator of Long.MIN_VALUE correctly
+        return (numerator >= 0) ?
+            numerator / denominator :
+            ((numerator + 1) / denominator) - 1;
     }
 
     public boolean equals(Object obj){

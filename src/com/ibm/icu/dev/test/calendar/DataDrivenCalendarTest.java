@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2007-2008, International Business Machines Corporation and         *
+ * Copyright (C) 2007, International Business Machines Corporation and         *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -29,7 +29,7 @@ public class DataDrivenCalendarTest extends ModuleTest {
     public DataDrivenCalendarTest() {
         super("com/ibm/icu/dev/data/testdata/", "calendar");
     }
-        
+
     /* (non-Javadoc)
      * @see com.ibm.icu.dev.test.ModuleTest#processModules()
      */
@@ -151,7 +151,6 @@ public class DataDrivenCalendarTest extends ModuleTest {
     
     private static final String kADD = "add";
     private static final String kROLL = "roll";
-    private static final String kMILLIS = "MILLIS=";
     
     private void testOps(TestDataModule.TestData testData, DataMap settings) {
         // Get 'from' time 
@@ -159,15 +158,12 @@ public class DataDrivenCalendarTest extends ModuleTest {
 //        DateFormat fmt = new SimpleDateFormat("EEE MMM dd yyyy / YYYY'-W'ww-ee");
         // Start the processing
         int n = 0;
-        long fromDate = 0;
-        long toDate = 0;
-        
-        boolean useDate = false;
-        
         for (Iterator iter = testData.getDataIterator(); iter.hasNext();) {
             ++n;
             DataMap currentCase = (DataMap) iter.next();
             
+            
+
             String caseString = "[case "+n+"]";
             // build to calendar
             //             Headers { "locale","from","operation","params","to" }
@@ -183,12 +179,7 @@ public class DataDrivenCalendarTest extends ModuleTest {
             // #2 'from' info
             param = "from";
             String from = testSetting=currentCase.getString(param);
-            if(from.startsWith(kMILLIS)){
-                useDate = true;
-                fromDate = Long.parseLong(from.substring(kMILLIS.length()));
-            }else{
-                fromSet.parseFrom(testSetting);
-            }
+            fromSet.parseFrom(testSetting);
 //            System.err.println("fromset: ["+testSetting+"] >> " + fromSet);
 
             // #4 'operation' info
@@ -205,13 +196,7 @@ public class DataDrivenCalendarTest extends ModuleTest {
             // #4 'to' info
             param = "to";
             String to = testSetting=currentCase.getString(param);
-           if(to.startsWith(kMILLIS)){
-                useDate = true;
-                toDate = Long.parseLong(to.substring(kMILLIS.length()));
-            }else{ 
-                toSet.parseFrom(testSetting, fromSet);
-           }
-            //toSet.parseFrom(testSetting, fromSet); // parse with inheritance.
+            toSet.parseFrom(testSetting, fromSet); // parse with inheritance.
 //            System.err.println("toSet: ["+testSetting+"] >> " + toSet);
 
             String caseContentsString = locale+":  from "+from+": "
@@ -222,11 +207,7 @@ public class DataDrivenCalendarTest extends ModuleTest {
             // now, do it.
 
             /// prepare calendar
-            if(useDate){
-                fromCalendar.setTimeInMillis(fromDate);
-            }else {
-                fromSet.setOnCalendar(fromCalendar);
-            }
+            fromSet.setOnCalendar(fromCalendar);
             
             // from calendar:  'starting date'
             
@@ -264,23 +245,14 @@ public class DataDrivenCalendarTest extends ModuleTest {
 
             // toset contains 'expected'
             
-            if(useDate) {
-                    if(toCalendar.getTimeInMillis()==toDate) {
-                        logln(caseString + " SUCCESS: got=expected="+toDate);
-                        logln("PASS: "+caseString+" matched! ");
-                    } else {
-                        errln(caseString + " FAIL: got " + 
-                                toCalendar.getTimeInMillis() + "  expected " + 
-                                toDate);
-                    }
-            }else if (!toSet.matches(toCalendar, diffSet)) {
+            if (!toSet.matches(toCalendar, diffSet)) {
                 String diffs = diffSet.diffFrom(toSet);
                 errln((String)"FAIL: "+caseString+" - , "+caseContentsString
                         +" Differences: "+ diffs );
-            } else{
+            } else {
                 logln("PASS: "+caseString+" matched! ");
             }
-            
+
         }
     }
 
