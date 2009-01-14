@@ -1,7 +1,7 @@
 //##header J2SE15
 /*
  *******************************************************************************
- * Copyright (C) 1996-2008, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2009, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -3526,8 +3526,7 @@ public class DecimalFormat extends NumberFormat {
          * [Richard/GCL]
          */
         // following are added to accomodate changes for currency plural format.
-        return style == other.style && 
-               currencySignCount == other.currencySignCount && 
+        return currencySignCount == other.currencySignCount && 
                (style == NumberFormat.PLURALCURRENCYSTYLE)? true :
                 ((posPrefixPattern != null &&
                     equals(posPrefixPattern, other.posPrefixPattern))

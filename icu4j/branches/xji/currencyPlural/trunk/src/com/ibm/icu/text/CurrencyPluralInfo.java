@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2008, International Business Machines Corporation and         *
+ * Copyright (C) 2009, International Business Machines Corporation and         *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -175,11 +175,11 @@ public class CurrencyPluralInfo implements Cloneable, Serializable {
     }
 
     /**
-     * Set plural rules.
-     * The plural rule is set when CurrencyPluralInfo
+     * Set currency plural patterns.
+     * The currency plural pattern is set when CurrencyPluralInfo
      * instance is created.
-     * You can call this method to reset plural rules only if you want
-     * to modify the default plural rule of the locale.
+     * You can call this method to reset currency plural patterns only if 
+     * you want to modify the default currency plural pattern of the locale.
      *
      * @param pluralCount the plural count for which the currency pattern will 
      *                    be overridden.
