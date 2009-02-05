@@ -1,6 +1,6 @@
 /*
  ******************************************************************************
- * Copyright (C) 1996-2008, International Business Machines Corporation and   *
+ * Copyright (C) 1996-2009, International Business Machines Corporation and   *
  * others. All Rights Reserved.                                               *
  ******************************************************************************
  */
@@ -70,7 +70,7 @@ public final class CharsetSelector {
 
         // handle excluded encodings
         // Simply set their values to all 1's in the pvec
-        if (excludedCodePoints.size() > 0) {
+        if (!excludedCodePoints.isEmpty()) {
             int itemCount = excludedCodePoints.getRangeCount();
             for (int j = 0; j < itemCount; ++j) {
                 int startChar = excludedCodePoints.getRangeStart(j);
@@ -108,7 +108,6 @@ public final class CharsetSelector {
 
         // now we know the exact space we need to index
         if (numOnes > 0) {
-            result.setSize(numOnes);
             int k = 0;
             for (int j = 0; j < columns; j++) {
                 int v = mask[j];
@@ -205,7 +204,9 @@ public final class CharsetSelector {
         int columns = (encodings.length + 31) / 32;
         int[] mask = new int[columns];
         for (int i = 0; i < columns; i++) {
-            mask[i] = 2 ^ 32 - 1; // set each bit to 1
+            mask[i] = - 1; // set each bit to 1
+                           // Note: All integers are signed in Java, assigning
+                           // 2 ^ 32 -1 to mask is wrong!
         }
         int index = 0;
         while (index < unicodeText.length()) {
