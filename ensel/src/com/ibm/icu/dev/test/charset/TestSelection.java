@@ -57,7 +57,7 @@ public class TestSelection extends TestFmwk {
         }
     }
 
-    private boolean verifyResultUTF16(String s, Vector encodings, List result,
+    private void verifyResultUTF16(String s, Vector encodings, List result,
             UnicodeSet excludedEncodings, int mappingTypes) {
         boolean[] resultsFromSystem = new boolean[availableCharsetNames.length];
         boolean[] resultsManually = new boolean[availableCharsetNames.length];
@@ -88,7 +88,6 @@ public class TestSelection extends TestFmwk {
 
         // fill the bool for the selector results
         fillBool(result, resultsFromSystem);
-        boolean successful = true;
         for (int i = 0; i < availableCharsetNames.length; i++) {
             if (resultsManually[i] != resultsFromSystem[i]) {
                 errln("failure in charset selector! Charset "
@@ -96,10 +95,8 @@ public class TestSelection extends TestFmwk {
                         + " had conflicting results manual: "
                         + resultsManually[i] + ", system: "
                         + resultsFromSystem[i] + "\n");
-                successful = false;
             }
         }
-        return successful;
     }
 
     protected void init() {
@@ -118,7 +115,9 @@ public class TestSelection extends TestFmwk {
          */
         int encodingsTestCases[] = { 
               92, 90, 92, 93, 94, 95, 96, 97, 98, 99, -1,
-                100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, -1,
+              
+              // The tests below could be used for more comprehensive testing
+/*              100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, -1,
                 1, 3, 7, 9, 11, 13, 12, 15, 19, 20, 22, 24, -1, 0, 1, 2, 3, 4,
                 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
                 22, 23, 24, 25, -1, 0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22,
@@ -139,8 +138,9 @@ public class TestSelection extends TestFmwk {
                 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171,
                 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183,
                 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195,
-                196, 197, 198, 199, 200, -1, 1, -1                
-                };
+                196, 197, 198, 199, 200, -1, 
+                1, -1                
+*/             };
 
         UnicodeSet[] excludedSets = new UnicodeSet[3];
         excludedSets[0] = new UnicodeSet();
@@ -162,14 +162,9 @@ public class TestSelection extends TestFmwk {
                 List result;
                 for (int i = 0; i < texts.length; i++) {
                     result = sel.selectForString(texts[i]);
-                    errln("Now testing: excludedSetId = " + excludedSetId +
-                            "  encoding is " + encodings.get(0) +
-                            "  texts Id = " + i + "\n");
-                    if (verifyResultUTF16(texts[i], encodings, result,
+                    verifyResultUTF16(texts[i], encodings, result,
                             excludedSets[excludedSetId],
-                            CharsetICU.ROUNDTRIP_SET)) {
-                        errln(" Passed!");
-                    }
+                            CharsetICU.ROUNDTRIP_SET);
                 }
                 prev = testCaseIdx + 1;
             }
@@ -177,7 +172,7 @@ public class TestSelection extends TestFmwk {
     }
     
     private String[] texts = {
-            /*               "\u0427\u0442\u043E \u0442\u0430\u043A\u043E\u0435 Unicode? Unicode - \u044D\u0442\u043E" +
+            "\u0427\u0442\u043E \u0442\u0430\u043A\u043E\u0435 Unicode? Unicode - \u044D\u0442\u043E" +
             " \u0443\u043D\u0438\u043A\u0430\u043B\u044C\u043D\u044B\u0439 \u043A\u043E\u0434" +
             " \u0434\u043B\u044F \u043B\u044E\u0431\u043E\u0433\u043E \u0441\u0438\u043C\u0432\u043E\u043B\u0430," +
             " \u043D\u0435\u0437\u0430\u0432\u0438\u0441\u0438\u043C\u043E \u043E\u0442 " +
@@ -339,7 +334,8 @@ public class TestSelection extends TestFmwk {
             "\u043F\u0440\u0435\u0434\u043E\u0445\u0440\u0430\u043D\u044F\u0435\u0442 \u044D\u0442\u0438 " +
             "\u0434\u0430\u043D\u043D\u044B\u0435 \u043E\u0442 \u043F\u043E\u0432\u0440\u0435\u0436\u0434\u0435",
             
-            "\u0645\u0627 \u0647\u064A \u0627\u0644\u0634\u0641\u0631\u0629 \u0627\u0644\u0645\u0648\u062D\u062F\u0629 " +
+         // The tests below could be used for more comprehensive testing
+/*            "\u0645\u0627 \u0647\u064A \u0627\u0644\u0634\u0641\u0631\u0629 \u0627\u0644\u0645\u0648\u062D\u062F\u0629 " +
             "\"\u064A\u0648\u0646\u0650\u0643\u0648\u062F\" \u061F\n\n\u0623\u0633\u0627\u0633\u064B\u0627\u060C " +
             "\u062A\u062A\u0639\u0627\u0645\u0644 \u0627\u0644\u062D\u0648\u0627\u0633\u064A\u0628 \u0641\u0642\u0637 \u0645\u0639 " +
             "\u0627\u0644\u0623\u0631\u0642\u0627\u0645\u060C \u0648\u062A\u0642\u0648\u0645 \u0628\u062A\u062E\u0632\u064A\u0646 " +
@@ -476,7 +472,7 @@ public class TestSelection extends TestFmwk {
             "\u570B\u5BB6\uFF0C\u800C\u4E0D\u9700\u8981\u91CD\u5EFA\u3002\u5B83\u53EF\u5C07\u8CC7\u6599\u50B3\u8F38" +
             "\u5230\u8A31\u591A\u4E0D\u540C\u7684\u7CFB\u7D71\uFF0C\u800C\u7121\u640D\u58DE\u3002\n\u95DC\u65BCUnicode" +
             "\u5B78\u8853\u5B78\u6703\n\nUnicode\u5B78\u8853\u5B78\u6703",
-*/           
+           
             "\u00C7\'\u00EBsht\u00EB UNICODE?\n\nUnicode siguron nj\u00EB num\u00EBr t\u00EB vet\u00EBm p\u00EBr \u00E7do " +
             "g\u00EBrm\u00EB,\np\u00EBr cil\u00EBndo platform\u00EB,\np\u00EBr cilindo program,\np\u00EBr cil\u00EBndo " +
             "gjuh\u00EB.\n\nN\u00EB themel, kompjuterat veprojn\u00EB me an\u00EBn e numrave. Ata ruajn\u00EB g\u00EBrmat " +
@@ -508,7 +504,7 @@ public class TestSelection extends TestFmwk {
             "softuer ose nj\u00EB faqe interneti t\u00EB p\u00EBrdoret p\u00EBr shum\u00EB platforma, gjuh\u00EB dhe vende " +
             "pa re-inxhinierim. Ai lejon t\u00EB dh\u00EBnat t\u00EB kalohen p\u00EBrmes shum\u00EB sistemeve t\u00EB ndryshme " +
             "pa korruptim.",
-/*                
+                
             "\u092F\u0942\u0928\u093F\u0915\u094B\u0921 \u0915\u094D\u092F\u093E \u0939\u0948?\n\n\u092F\u0942\u0928\u093F\u0915" +
             "\u094B\u0921 \u092A\u094D\u0930\u0924\u094D\u092F\u0947\u0915 \u0905\u0915\u094D\u0937\u0930 \u0915\u0947 " +
             "\u0932\u093F\u090F \u090F\u0915 \u0935\u093F\u0936\u0947\u0937 \u0928\u092E\u094D\u092C\u0930 \u092A\u094D" +
