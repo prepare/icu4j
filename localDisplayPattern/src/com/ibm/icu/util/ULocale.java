@@ -1207,6 +1207,28 @@ public final class ULocale implements Serializable {
         return name;
     }
 
+    private String localeDisplayPattern;
+    private char localeSeparator;
+    
+    /**
+     * Returns LocaleDisplayPattern for this locale, e.g., {0}({1})
+     * @return locale display pattern as a String.
+     * @draft ICU 4.2
+     */ 
+    public String getLocaleDisplayPattern() {
+      // TODO(claireho): Need to init localeDisplatPattern & localeSeparator.
+      return localeDisplayPattern;
+    }
+    
+    /**
+     * Returns LocaleDisplaySeparator for this locale.
+     * @return locale display separator as a char.
+     * @draft ICU 4.2
+     */ 
+    public char getLocaleSeparator() {
+      return localeSeparator;
+    }
+        
     /**
      * Returns a string representation of this object.
      * @stable ICU 3.0
