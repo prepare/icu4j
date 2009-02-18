@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2004-2007, International Business Machines Corporation and    *
+ * Copyright (C) 2004-2009, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
 */
@@ -299,5 +299,27 @@ public final class LocaleData {
         UResourceBundle obj = bundle.get(PAPER_SIZE);
         int[] size = obj.getIntVector();
         return new PaperSize(size[0], size[1]);
+    }
+    
+    /**
+     * Returns LocaleDisplayPattern for this locale, e.g., {0}({1})
+     * @return locale display pattern as a String.
+     * @draft ICU 4.2
+     */ 
+    public String getLocaleDisplayPattern() {
+      // TODO(claireho): Need to get localeDisplatPattern & localeSeparator from
+      // ResourceBundle.
+      String localeDisplayPattern;
+      return localeDisplayPattern;
+    }
+    
+    /**
+     * Returns LocaleDisplaySeparator for this locale.
+     * @return locale display separator as a char.
+     * @draft ICU 4.2
+     */ 
+    public char getLocaleSeparator() {
+      char  localeSeparator;
+      return localeSeparator;
     }
 }
