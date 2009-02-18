@@ -572,6 +572,49 @@ public class DecimalFormatSymbols implements Cloneable, Serializable {
         padEscape = c;
     }
 
+    public static final int CURRENCY_SPC_CURRENCY_MATCH = 0;
+    public static final int CURRENCT_SPC_SURROUNDING_MATCH = 1;
+    public static final int CURRENCY_SPC_INSERT = 2;
+    private String currencySpcCurMatchBeforeSym; // CURRENCY_SPC_CURRENCY_MATCH before currency symbol.
+    private String currencySpcSudMatchBeforeSym; // CURRENCT_SPC_SURROUNDING_MATCH before currency symbol.
+    private String currencySpcInsertBeforeSym; // CURRENCY_SPC_INSERT before currency symbol.
+    private String currencySpcCurMatchAfterSym; // CURRENCY_SPC_CURRENCY_MATCH after currency symbol.
+    private String currencySpcSudMatchAfterSym; // CURRENCT_SPC_SURROUNDING_MATCH after currency symbol.
+    private String currencySpcInsertAfterSym; // CURRENCY_SPC_INSERT after currency symbol.
+
+    /**
+     * Get pattern string for 'CurrencySpacing' that can be applied to
+     * currency format.
+     * This API gets the CurrencySpacing data from ResourceBundle. The pattern can
+     * be null if there is no data from current locale and its parent locales.
+     *
+     * @param itemType : CURRENCY_SPC_CURRENCY_MATCH, CURRENCY_SPC_SURROUNDING_MATCH
+     *                   or CURRENCY_SPC_INSERT
+     * @param beforeCurrency : true if the pattern is for before currency symbol.
+     *                         false if the pattern is for after currency symbol.
+     * @return  pattern string for currencyMatch, surroundingMatch or spaceInsert.
+     *     Return null of there is no data for this locale and its parent locales.
+     */
+    public String getPatternForCurrencySpacing(int itemType, boolean beforeCurrency)  {
+      
+      return null;
+    }
+
+    
+    /**
+     * Set pattern string for 'CurrencySpacing' that can be applied to
+     * CurrencyFormat.
+     * 
+     * @param itemType : CURRENCY_SPC_CURRENCY_MATCH, CURRENCY_SPC_SURROUNDING_MATCH
+     *                   or CURRENCY_SPC_INSERT
+     * @param beforeCurrency : true if the pattern is for before currency symbol.
+     *                         false if the pattern is for after currency symbol.
+     * @param  pattern string to override current setting.
+     */
+    public void setPatternForCurrencySpacing(int itemType, boolean beforeCurrency, String pattern) {
+      
+    }
+    
     /**
      * Returns the locale for which this object was constructed.
      * @return the locale for which this object was constructed
