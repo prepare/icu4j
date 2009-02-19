@@ -21,6 +21,9 @@ public final class LocaleData {
     private static final String EXEMPLAR_CHARS      = "ExemplarCharacters";
     private static final String MEASUREMENT_SYSTEM  = "MeasurementSystem";
     private static final String PAPER_SIZE          = "PaperSize";
+    private static final String LOCALE_DISPLAY_PATTERN  = "localeDisplayPattern";
+    private static final String PATTERN             = "pattern";
+    private static final String SEPARATOR           = "separator";
     private boolean noSubstitute;
     private ICUResourceBundle bundle;
 
@@ -309,7 +312,11 @@ public final class LocaleData {
     public String getLocaleDisplayPattern() {
       // TODO(claireho): Need to get localeDisplatPattern & localeSeparator from
       // ResourceBundle.
-      String localeDisplayPattern;
+      if (bundle == null) {
+        bundle = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, ULocale.getDefault());
+      }
+      ICUResourceBundle locDispBundle = (ICUResourceBundle) bundle.get(LOCALE_DISPLAY_PATTERN);
+      String localeDisplayPattern = locDispBundle.getStringWithFallback(PATTERN);
       return localeDisplayPattern;
     }
     
@@ -318,8 +325,12 @@ public final class LocaleData {
      * @return locale display separator as a char.
      * @draft ICU 4.2
      */ 
-    public char getLocaleSeparator() {
-      char  localeSeparator;
+    public String getLocaleSeparator() {
+      if (bundle == null) {
+        bundle = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, ULocale.getDefault());
+      }
+      ICUResourceBundle locDispBundle = (ICUResourceBundle) bundle.get(LOCALE_DISPLAY_PATTERN);
+      String  localeSeparator = locDispBundle.getStringWithFallback(SEPARATOR);
       return localeSeparator;
     }
 }
