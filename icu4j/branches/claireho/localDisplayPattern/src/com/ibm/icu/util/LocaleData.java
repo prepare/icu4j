@@ -310,10 +310,9 @@ public final class LocaleData {
      * @draft ICU 4.2
      */ 
     public String getLocaleDisplayPattern() {
-      // TODO(claireho): Need to get localeDisplatPattern & localeSeparator from
-      // ResourceBundle.
       if (bundle == null) {
-        bundle = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, ULocale.getDefault());
+        bundle = (ICUResourceBundle)UResourceBundle.getBundleInstance(
+                        ICUResourceBundle.ICU_BASE_NAME, ULocale.getDefault());
       }
       ICUResourceBundle locDispBundle = (ICUResourceBundle) bundle.get(LOCALE_DISPLAY_PATTERN);
       String localeDisplayPattern = locDispBundle.getStringWithFallback(PATTERN);
@@ -327,7 +326,8 @@ public final class LocaleData {
      */ 
     public String getLocaleSeparator() {
       if (bundle == null) {
-        bundle = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, ULocale.getDefault());
+        bundle = (ICUResourceBundle)UResourceBundle.getBundleInstance(
+                        ICUResourceBundle.ICU_BASE_NAME, ULocale.getDefault());
       }
       ICUResourceBundle locDispBundle = (ICUResourceBundle) bundle.get(LOCALE_DISPLAY_PATTERN);
       String  localeSeparator = locDispBundle.getStringWithFallback(SEPARATOR);
