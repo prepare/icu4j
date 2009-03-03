@@ -3971,6 +3971,32 @@ public final class ULocale implements Serializable {
         //TODO not implemented
         return null;
     }
+    
+    public static final int ALIAS_LANGUAGE = 0;
+    public static final int ALIAS_TERRITORY = 1;
+    public static final int ALIAS_TIMEZONE = 2;
+    public static final int ALIAS_VARIANT = 3;
+    private static final int ALIAS_TYPE_COUNT = 4;
+    
+    /**
+     * Returns a new alias array for given locale name.  If there is no
+     * aliases, the size of string array is 0.
+     * 
+     * @param type  ALIAS_LANGUAGE, ALIAS_TERRITORY, ALIAS_TIMEZONE or ALIAS_VARIANT.
+     * @param localeName   language tags when type is ALIAS_LANGUAGE
+     *                     ISO 3166 2-letter codes when type is ALIAS_TERRITORY.
+     *                     TimeZone IDs when type is ALIAS_TIMEZONE.
+     *                     variant name when type is ALIAS_VARIANT.
+     *                     
+     * @return a new alias String array for given locale name.  If there is no
+     * aliases, the size of string array is 0.
+     * 
+     * @draft ICU 4.2
+     * @provisional This API might change or be removed in a future release.
+     */
+    public String[] getAliases(int type, String localeName) {
+     
+   }
 
     /**
      * This class provides APIs to build an instance of ULocale.
