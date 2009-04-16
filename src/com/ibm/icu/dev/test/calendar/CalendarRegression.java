@@ -1,4 +1,3 @@
-//##header
 /**
  *******************************************************************************
  * Copyright (C) 2000-2009, International Business Machines Corporation and    *
@@ -6,25 +5,18 @@
  *******************************************************************************
  */
 package com.ibm.icu.dev.test.calendar;
+import com.ibm.icu.util.*;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.Locale;
 import java.util.MissingResourceException;
 
-import com.ibm.icu.impl.Utility;
-import com.ibm.icu.text.DateFormat;
-import com.ibm.icu.text.NumberFormat;
-import com.ibm.icu.text.SimpleDateFormat;
-import com.ibm.icu.util.Calendar;
-import com.ibm.icu.util.GregorianCalendar;
-import com.ibm.icu.util.SimpleTimeZone;
-import com.ibm.icu.util.TimeZone;
-import com.ibm.icu.util.ULocale;
+import com.ibm.icu.text.*;
 
 /**
  * @test 1.32 99/11/14
@@ -823,13 +815,6 @@ public class CalendarRegression extends com.ibm.icu.dev.test.TestFmwk {
         if (!cal.getTime().equals(epoch))
             errln("Fail: after clear() expect " + epoch + ", got " + cal.getTime());
 
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//##        // This test case does not work well with JRE1.3 with
-//##        // the timezone update for US 2007 rule.  Java 1.3 only
-//##        // supports single DST rule for all years.  March 15
-//##        // was not in DST before, but with the new rule, it is
-//##        // in DST.
-//#else
         cal.setTime(d11);
         cal.clear( Calendar.MONTH ); 
         logln(cal.getTime().toString()); 
@@ -837,7 +822,6 @@ public class CalendarRegression extends com.ibm.icu.dev.test.TestFmwk {
             errln("Fail: " + d11 + " clear(MONTH) => expect " +
                   dM + ", got " + cal.getTime());
         }
-//#endif
     }
 
     public void Test4114578() {
@@ -1368,7 +1352,6 @@ public class CalendarRegression extends com.ibm.icu.dev.test.TestFmwk {
                         cal.set(fields[0], fields[1], fields[2],
                                 fields[3], fields[4], fields[5]);
                         cal.set(Calendar.MILLISECOND, fields[6]);
-                        cal.setMinimalDaysInFirstWeek(1);
                         for (int i = 0; i < 2*limit; i++) {
                             if (op == 0) {
                                 cal.add(field, i < limit ? 1 : -1);
@@ -1912,7 +1895,7 @@ public class CalendarRegression extends com.ibm.icu.dev.test.TestFmwk {
             
                 cal.getDateTimeFormat(DateFormat.SHORT, DateFormat.FULL, loc),
                 "cal.getDateTimeFormat(DateFormat.SHORT, DateFormat.FULL, loc)",
-                "4/5/01 5:43:53 PM Pacific Daylight Time",
+                "4/5/01 5:43:53 PM PT",
 
                 cal.getDateTimeFormat(DateFormat.FULL, DateFormat.SHORT, loc),
                 "cal.getDateTimeFormat(DateFormat.FULL, DateFormat.SHORT, loc)",
@@ -2095,71 +2078,6 @@ public class CalendarRegression extends com.ibm.icu.dev.test.TestFmwk {
             logln("Year remained " + year2 + " - PASS.");
         }
     }
-
-    public void TestGetKeywordValuesForLocale(){
-
-        final String[][] PREFERRED = {
-            {"root",        "gregorian"},
-            {"und",         "gregorian"},
-            {"en_US",       "gregorian"},
-            {"en_029",      "gregorian"},
-            {"th_TH",       "buddhist", "gregorian"},
-            {"und_TH",      "buddhist", "gregorian"},
-            {"en_TH",       "buddhist", "gregorian"},
-            {"he_IL",       "gregorian", "hebrew", "islamic", "islamic-civil"},
-            {"ar_EG",       "gregorian", "coptic", "islamic", "islamic-civil"},
-            {"ja",          "gregorian", "japanese"},
-            {"ps_Guru_IN",  "gregorian", "indian"},
-            {"th@calendar=gregorian",   "buddhist", "gregorian"},
-            {"en@calendar=islamic",     "gregorian"},
-            {"zh_TW",       "gregorian", "roc", "chinese"},
-            {"ar_IR",       "gregorian", "persian", "islamic", "islamic-civil"},
-        };
-
-        String[] ALL = Calendar.getKeywordValuesForLocale("calendar", ULocale.getDefault(), false);
-        HashSet ALLSET = new HashSet();
-        for (int i = 0; i < ALL.length; i++) {
-            ALLSET.add(ALL[i]);
-        }
-
-        for (int i = 0; i < PREFERRED.length; i++) {
-            ULocale loc = new ULocale(PREFERRED[i][0]);
-            String[] expected = new String[PREFERRED[i].length - 1];
-            System.arraycopy(PREFERRED[i], 1, expected, 0, expected.length);
-
-            String[] pref = Calendar.getKeywordValuesForLocale("calendar", loc, true);
-            boolean matchPref = false;
-            if (pref.length == expected.length) {
-                matchPref = true;
-                for (int j = 0; j < pref.length; j++) {
-                    if (!pref[j].equals(expected[j])) {
-                        matchPref = false;
-                    }
-                }
-            }
-            if (!matchPref) {
-                errln("FAIL: Preferred values for locale " + loc 
-                        + " got:" + Utility.arrayToString(pref) + " expected:" + Utility.arrayToString(expected));
-            }
-
-            String[] all = Calendar.getKeywordValuesForLocale("calendar", loc, false);
-            boolean matchAll = false;
-            if (all.length == ALLSET.size()) {
-                matchAll = true;
-                for (int j = 0; j < all.length; j++) {
-                    if (!ALLSET.contains(all[j])) {
-                        matchAll = false;
-                        break;
-                    }
-                }
-            }
-            if (!matchAll) {
-                errln("FAIL: All values for locale " + loc
-                        + " got:" + Utility.arrayToString(all)); 
-            }
-        }
-    }
-
 }
 
 //eof

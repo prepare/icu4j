@@ -1,15 +1,12 @@
 /**
 *******************************************************************************
-* Copyright (C) 1996-2009, International Business Machines Corporation and    *
+* Copyright (C) 1996-2008, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 */
 package com.ibm.icu.text;
 
 import java.util.Comparator;
-import java.util.Enumeration;
-import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.Locale;
 import java.util.MissingResourceException;
 import java.util.Set;
@@ -17,7 +14,6 @@ import java.util.Set;
 import com.ibm.icu.impl.ICUDebug;
 import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.util.ULocale;
-import com.ibm.icu.util.UResourceBundle;
 import com.ibm.icu.util.VersionInfo;
 
 /**
@@ -615,64 +611,6 @@ public abstract class Collator implements Comparator, Cloneable
         return ICUResourceBundle.getKeywordValues(BASE, RESOURCE);
     }
 
-    /**
-     * Given a key and a locale, returns an array of string values in a preferred
-     * order that would make a difference. These are all and only those values where
-     * the open (creation) of the service with the locale formed from the input locale
-     * plus input keyword and that value has different behavior than creation with the
-     * input locale alone.
-     * @param key           one of the keys supported by this service.  For now, only
-     *                      "collation" is supported.
-     * @param locale        the locale
-     * @param commonlyUsed  if set to true it will return only commonly used values
-     *                      with the given locale in preferred order.  Otherwise,
-     *                      it will return all the available values for the locale.
-     * @return an array of string values for the given key and the locale.
-     * @draft ICU 4.2
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final String[] getKeywordValuesForLocale(String key, ULocale locale, boolean commonlyUsed) {
-        // Note: The parameter commonlyUsed is actually not used.
-        // The switch is in the method signature for consistency
-        // with other locale services.
-
-        // Read available collation values from collation bundles
-        String baseLoc = locale.getBaseName();
-        LinkedList values = new LinkedList();
-
-        UResourceBundle bundle = UResourceBundle.getBundleInstance(
-                ICUResourceBundle.ICU_BASE_NAME + "/coll", baseLoc);
-
-        String defcoll = null;
-        while (bundle != null) {
-            UResourceBundle collations = bundle.get("collations");
-            Enumeration collEnum = collations.getKeys();
-            while (collEnum.hasMoreElements()) {
-                String collkey = (String)collEnum.nextElement();
-                if (collkey.equals("default")) {
-                    if (defcoll == null) {
-                        // Keep the default
-                        defcoll = collations.getString("default");
-                    }
-                } else if (!values.contains(collkey)) {
-                    values.add(collkey);
-                }
-            }
-            bundle = ((ICUResourceBundle)bundle).getParent();
-        }
-        // Reordering
-        Iterator itr = values.iterator();
-        String[] result = new String[values.size()];
-        result[0] = defcoll;
-        int idx = 1;
-        while (itr.hasNext()) {
-            String collKey = (String)itr.next();
-            if (!collKey.equals(defcoll)) {
-                result[idx++] = collKey;
-            }
-        }
-        return result;
-    }
     /**
      * Return the functionally equivalent locale for the given
      * requested locale, with respect to given keyword, for the

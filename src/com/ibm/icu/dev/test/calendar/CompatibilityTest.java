@@ -1,4 +1,3 @@
-//##header
 /**
  *******************************************************************************
  * Copyright (C) 2000-2009, International Business Machines Corporation and    *
@@ -339,13 +338,6 @@ public class CompatibilityTest extends com.ibm.icu.dev.test.TestFmwk {
             logln(" Got: " + cal.getTime() + "  Expected: " + tempcal.getTime());
         }
 
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//##        // This test case does not work well with JRE1.3 with
-//##        // the timezone update for US 2007 rule.  Java 1.3 only
-//##        // supports single DST rule for all years.  April 2, 1985
-//##        // was actually not in DST, but with the new rule, the date
-//##        // is in DST (which is actually wrong).
-//#else
         cal.clear();
         cal.set(1985, 2, 2, 11, 49);
         tempcal.clear();
@@ -354,7 +346,6 @@ public class CompatibilityTest extends com.ibm.icu.dev.test.TestFmwk {
             errln("FAIL: Calendar.set(5 args) failed");
             logln(" Got: " + cal.getTime() + "  Expected: " + tempcal.getTime());
         }
-//#endif
 
         cal.clear();
         cal.set(1995, 9, 12, 1, 39, 55);
@@ -930,7 +921,6 @@ public class CompatibilityTest extends com.ibm.icu.dev.test.TestFmwk {
         }
         else {
             c.setTime(d);
-            c.setMinimalDaysInFirstWeek(1);
             for (int i=0; i<Calendar.ZONE_OFFSET; ++i) {
                 if (c.get(i) != EPOCH_FIELDS[i])
                     errln("Expected field " + i + " to have value " + EPOCH_FIELDS[i] +

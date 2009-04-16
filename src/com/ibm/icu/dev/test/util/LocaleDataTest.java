@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2003-2009, International Business Machines Corporation and    *
+ * Copyright (C) 2003-2008, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
 */
@@ -44,10 +44,7 @@ public class LocaleDataTest extends TestFmwk{
             if(lang.equals("in")){
                 continue;
             }
-            if(locale.toString().indexOf("_US") >= 0 || locale.toString().indexOf("_CA") >= 0 ||
-               locale.toString().indexOf("_PH") >= 0 || locale.toString().indexOf("_CL") >= 0 ||
-               locale.toString().indexOf("_PR") >= 0 || locale.toString().indexOf("_VE") >= 0 ||
-               locale.toString().indexOf("_CO") >= 0 || locale.toString().indexOf("_MX") >= 0 ){
+            if(locale.toString().indexOf("_US") >= 0 || locale.toString().indexOf("_CA") >= 0 ){
                 if(paperSize.getHeight()!= 279 || paperSize.getWidth() != 216 ){
                     errln("PaperSize did not return the expected value for locale "+ locale+
                           " Expected height: 279 width: 216."+
@@ -283,17 +280,5 @@ public class LocaleDataTest extends TestFmwk{
         logln(ld.getDelimiter(LocaleData.QUOTATION_END));
         logln(ld.getDelimiter(LocaleData.ALT_QUOTATION_START));
         logln(ld.getDelimiter(LocaleData.ALT_QUOTATION_END));
-    }
-
-    public void TestLocaleDisplayPattern(){
-        LocaleData ld = LocaleData.getInstance();
-        logln("Default locale "+ " LocaleDisplayPattern:" + ld.getLocaleDisplayPattern());
-        logln("Default locale "+ " LocaleSeparator:" + ld.getLocaleSeparator());
-        for(int i = 0; i < availableLocales.length; i++){
-          ULocale locale = availableLocales[i];
-          ld = LocaleData.getInstance(locale);
-          logln(locale.toString() + " LocaleDisplayPattern:" + ld.getLocaleDisplayPattern());
-          logln(locale.toString() + " LocaleSeparator:" + ld.getLocaleSeparator());
-        }
     }
 }

@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2009, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2008, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -206,7 +206,8 @@ public class UnicodeSetIterator {
     
     /**
      * Gets the current string from the iterator. Only use after calling next(), not nextRange().
-     * @stable ICU 4.0
+     * @draft ICU 4.0
+     * @provisional This API might change or be removed in a future release.
      */
     public String getString() {
         if (codepoint != IS_STRING) {

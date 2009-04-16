@@ -1,7 +1,7 @@
-//##header
+//##header J2SE15
 /*
 **********************************************************************
-* Copyright (c) 2004-2009, International Business Machines
+* Copyright (c) 2004-2008, International Business Machines
 * Corporation and others.  All Rights Reserved.
 **********************************************************************
 * Author: Alan Liu
@@ -1293,25 +1293,6 @@ public class TestMessageFormat extends com.ibm.icu.dev.test.TestFmwk {
         }
     }
 
-  // Test toPattern when there is a PluralFormat
-  public void testPluralFormatToPattern() {
-    String[] patterns = {
-      "Beware of vicious {0, plural, one {hamster} other {hamsters}}.",
-      "{0, plural, one {{0, number,C''''est #,##0.0# fichier}} other {Ce sont # fichiers}} dans la liste.",
-      "{0, plural, one {C''est # fichier} other {Ce sont # fichiers}} dans la liste.",
-    };
-
-    for (int i = 0; i < patterns.length; ++i) {
-      String pattern = patterns[i];
-      MessageFormat mf = new MessageFormat(pattern);
-      MessageFormat mf2 = new MessageFormat(mf.toPattern());
-      if (!mf.equals(mf2)) {
-        errln("message formats not equal for pattern:\n*** '" + pattern + "'\n*** '" +
-              mf.toPattern() + "'");
-      }
-    }
-  }
-
     // Test case for null arguments.
     // Ticket#6361
     public void TestNullArgs() {
@@ -1366,8 +1347,8 @@ public class TestMessageFormat extends com.ibm.icu.dev.test.TestFmwk {
         };
         
         String[] expectedStrings = {
-            "The 2\u207f\u1d48 folder 'tmp' contains 15 file(s), created at 9:58:08 AM on Jul 18, 2007.",
-            "The 2\u207f\u1d48 folder 'tmp' contains 15 file(s), created at 9:58:08 AM on Jul 18, 2007.",
+            "The 2nd folder 'tmp' contains 15 file(s), created at 9:58:08 AM on Jul 18, 2007.",
+            "The 2nd folder 'tmp' contains 15 file(s), created at 9:58:08 AM on Jul 18, 2007.",
             "The folder contains 34 files."
         };
 

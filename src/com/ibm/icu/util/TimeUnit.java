@@ -1,8 +1,8 @@
 /*
- **************************************************************************
- * Copyright (C) 2008-2009, Google, International Business Machines
- * Corporation and others. All Rights Reserved.
- **************************************************************************
+ *******************************************************************************
+ * Copyright (C) 2008, Google, International Business Machines Corporation and *
+ * others. All Rights Reserved.                                                *
+ *******************************************************************************
  */
 package com.ibm.icu.util;
 
@@ -11,7 +11,8 @@ package com.ibm.icu.util;
  * @see TimeUnitAmount
  * @see TimeUnit
  * @author markdavis
- * @stable ICU 4.0
+ * @draft ICU 4.0
+ * @provisional This API might change or be removed in a future release.
  */
 public class TimeUnit extends MeasureUnit {
     /** 
@@ -24,16 +25,17 @@ public class TimeUnit extends MeasureUnit {
 
     /** 
      * Constant value for supported time unit.
-     * @stable ICU 4.0
+     * @draft ICU 4.0
+     * @provisional This API might change or be removed in a future release.
      */
     public static TimeUnit
-    SECOND = new TimeUnit("second"),
-    MINUTE = new TimeUnit("minute"),
-    HOUR = new TimeUnit("hour"),
-    DAY = new TimeUnit("day"),
-    WEEK = new TimeUnit("week"),
-    MONTH = new TimeUnit("month"),
-    YEAR = new TimeUnit("year");
+    SECOND = new TimeUnit("SECOND"),
+    MINUTE = new TimeUnit("MINUTE"),
+    HOUR = new TimeUnit("HOUR"),
+    DAY = new TimeUnit("DAY"),
+    WEEK = new TimeUnit("WEEK"),
+    MONTH = new TimeUnit("MONTH"),
+    YEAR = new TimeUnit("YEAR");
 
     private TimeUnit(String name) {
         this.name = name;
@@ -42,7 +44,8 @@ public class TimeUnit extends MeasureUnit {
 
     /**
      * @return the available values
-     * @stable ICU 4.0
+     * @draft ICU 4.0
+     * @provisional This API might change or be removed in a future release.
      */
     public static TimeUnit[] values() {
         return (TimeUnit[])values.clone();
@@ -50,9 +53,8 @@ public class TimeUnit extends MeasureUnit {
 
     /**
      * A string representation for debugging.
-     * It is for debugging purpose. The value might change.
-     * Please do not count on the value.
-     * @stable ICU 4.0
+     * @draft ICU 4.0
+     * @provisional This API might change or be removed in a future release.
      */
     public String toString() {
         return name;

@@ -1,6 +1,6 @@
 /**
  *******************************************************************************
- * Copyright (C) 2006-2009, International Business Machines Corporation and    *
+ * Copyright (C) 2006-2008, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  *
@@ -160,14 +160,15 @@ public abstract class CharsetEncoderICU extends CharsetEncoder {
     }
     
     /**
-     * Sets the callback encoder method and context to be used if an illegal sequence is encountered.
+     * Sets the callback encoder method and context to be used if an illegal sequence is encounterd.
      * You would normally call this twice to set both the malform and unmappable error. In this case,
      * newContext should remain the same since using a different newContext each time will negate the last
      * one used.
      * @param err CoderResult
      * @param newCallback CharsetCallback.Encoder
      * @param newContext Object
-     * @stable ICU 4.0
+     * @draft ICU 4.0
+     * @provisional This API might change or be removed in a future release.
      */
     public final void setFromUCallback(CoderResult err, CharsetCallback.Encoder newCallback, Object newContext) {
         if (err.isMalformed()) {
@@ -188,7 +189,8 @@ public abstract class CharsetEncoderICU extends CharsetEncoder {
      * 
      * @param newContext Object
      * @exception IllegalArgumentException
-     * @stable ICU 4.0
+     * @draft ICU 4.0
+     * @provisional This API might change or be removed in a future release.
      */
     public final void setFromUContext(Object newContext) {
         fromUContext = newContext;

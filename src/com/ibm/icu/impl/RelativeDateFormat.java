@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2007-2009, International Business Machines Corporation and         *
+ * Copyright (C) 2007-2008, International Business Machines Corporation and         *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -219,34 +219,9 @@ public class RelativeDateFormat extends DateFormat {
         String pattern = "{1} {0}";
         try {
             CalendarData calData = new CalendarData(locale, cal.getType());
-            String[] patterns = calData.getDateTimePatterns();
+            String[] patterns = calData.get("DateTimePatterns").getStringArray();
             if (patterns != null && patterns.length >= 9) {
-                int glueIndex = 8;
-                if (patterns.length >= 13)
-                {
-                    switch (fDateStyle)
-                    {
-                        case DateFormat.RELATIVE_FULL:
-                        case DateFormat.FULL:
-                            glueIndex += (DateFormat.FULL + 1);
-                            break;
-                        case DateFormat.RELATIVE_LONG:
-                        case DateFormat.LONG:
-                            glueIndex += (DateFormat.LONG +1);
-                            break;
-                        case DateFormat.RELATIVE_MEDIUM:
-                        case DateFormat.MEDIUM:
-                            glueIndex += (DateFormat.MEDIUM +1);
-                            break;
-                        case DateFormat.RELATIVE_SHORT:
-                        case DateFormat.SHORT:
-                            glueIndex += (DateFormat.SHORT + 1);
-                            break;
-                        default:
-                            break;
-                    }
-                }
-                pattern = patterns[glueIndex];
+                pattern = patterns[8];
             }
         } catch (MissingResourceException e) {
             // use default

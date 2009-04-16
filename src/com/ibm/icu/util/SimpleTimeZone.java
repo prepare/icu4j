@@ -1,5 +1,5 @@
  /*
-*   Copyright (C) 1996-2009, International Business Machines
+*   Copyright (C) 1996-2008, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 */
 
@@ -18,9 +18,8 @@ import com.ibm.icu.impl.Grego;
  * <P>
  * Use a negative value for <code>dayOfWeekInMonth</code> to indicate that
  * <code>SimpleTimeZone</code> should count from the end of the month backwards.
- * For example, if Daylight Savings Time starts or ends at the last Sunday in a month,
- * use <code>dayOfWeekInMonth = -1</code> along with <code>dayOfWeek = Calendar.SUNDAY</code>
- * to specify the rule.
+ * For example, Daylight Savings Time ends at the last
+ * (dayOfWeekInMonth = -1) Sunday in October, at 2 AM in standard time.
  *
  * @see      Calendar
  * @see      GregorianCalendar
@@ -285,9 +284,9 @@ public class SimpleTimeZone extends BasicTimeZone {
 
     /**
      * Sets the daylight savings starting rule. For example, Daylight Savings
-     * Time starts at the second Sunday in March, at 2 AM in standard time.
+     * Time starts at the first Sunday in April, at 2 AM in standard time.
      * Therefore, you can set the start rule by calling:
-     * setStartRule(Calendar.MARCH, 2, Calendar.SUNDAY, 2*60*60*1000);
+     * setStartRule(TimeFields.APRIL, 1, TimeFields.SUNDAY, 2*60*60*1000);
      *
      * @param month             The daylight savings starting month. Month is
      *                          0-based. eg, 0 for January.
@@ -311,9 +310,9 @@ public class SimpleTimeZone extends BasicTimeZone {
     }
     /**
      * Sets the daylight savings starting rule. For example, in the U.S., Daylight Savings
-     * Time starts at the second Sunday in March, at 2 AM in standard time.
+     * Time starts at the first Sunday in April, at 2 AM in standard time.
      * Therefore, you can set the start rule by calling:
-     * setStartRule(Calendar.MARCH, 2, Calendar.SUNDAY, 2*60*60*1000);
+     * setStartRule(TimeFields.APRIL, 1, TimeFields.SUNDAY, 2*60*60*1000);
      * The dayOfWeekInMonth and dayOfWeek parameters together specify how to calculate
      * the exact starting date.  Their exact meaning depend on their respective signs,
      * allowing various types of rules to be constructed, as follows:<ul>
@@ -402,10 +401,10 @@ public class SimpleTimeZone extends BasicTimeZone {
     }
 
     /**
-     * Sets the daylight savings ending rule. For example, if Daylight Savings Time
-     * ends at the last (-1) Sunday in October, at 2 AM in standard time,
-     * you can set the end rule by calling:
-     * <code>setEndRule(Calendar.OCTOBER, -1, Calendar.SUNDAY, 2*60*60*1000);</code>
+     * Sets the daylight savings ending rule. For example, Daylight Savings Time
+     * ends at the last (-1) Sunday in October, at 2 AM in standard time.
+     * Therefore, you can set the end rule by calling:
+     * setEndRule(TimeFields.OCTOBER, -1, TimeFields.SUNDAY, 2*60*60*1000);
      *
      * @param month             The daylight savings ending month. Month is
      *                          0-based. eg, 0 for January.
@@ -470,9 +469,9 @@ public class SimpleTimeZone extends BasicTimeZone {
     }
     /**
      * Sets the daylight savings ending rule. For example, in the U.S., Daylight
-     * Savings Time ends at the first Sunday in November, at 2 AM in standard time.
+     * Savings Time ends at the last (-1) Sunday in October, at 2 AM in standard time.
      * Therefore, you can set the end rule by calling:
-     * setEndRule(Calendar.NOVEMBER, 1, Calendar.SUNDAY, 2*60*60*1000);
+     * setEndRule(TimeFields.OCTOBER, -1, TimeFields.SUNDAY, 2*60*60*1000);
      * Various other types of rules can be specified by manipulating the dayOfWeek
      * and dayOfWeekInMonth parameters.  For complete details, see the documentation
      * for setStartRule().
@@ -740,11 +739,14 @@ public class SimpleTimeZone extends BasicTimeZone {
     public void getOffsetFromLocal(long date,
             int nonExistingTimeOpt, int duplicatedTimeOpt, int[] offsets) {
         offsets[0] = getRawOffset();
-        int fields[] = new int[6];
-        Grego.timeToFields(date, fields);
+        int fields[] = new int[4];
+        long day = floorDivide(date, Grego.MILLIS_PER_DAY, fields);
+        int millis = fields[0];
+
+        computeGregorianFields(day, fields);
         offsets[1] = getOffset(GregorianCalendar.AD,
               fields[0], fields[1], fields[2],
-              fields[3], fields[5]) - offsets[0];        
+              fields[3], millis) - offsets[0];        
 
         boolean recalc = false;
 
@@ -764,10 +766,12 @@ public class SimpleTimeZone extends BasicTimeZone {
         }
 
         if (recalc) {
-            Grego.timeToFields(date, fields);
+            day = floorDivide(date, Grego.MILLIS_PER_DAY, fields);
+            millis = fields[0];
+            computeGregorianFields(day, fields);
             offsets[1] = getOffset(GregorianCalendar.AD,
                     fields[0], fields[1], fields[2],
-                    fields[3], fields[5]) - offsets[0];        
+                    fields[3], millis) - offsets[0];        
         }
     }
 
@@ -1183,7 +1187,7 @@ public class SimpleTimeZone extends BasicTimeZone {
      * @stable ICU 3.8
      */
     public TimeZoneTransition getNextTransition(long base, boolean inclusive) {
-        if (!useDaylight) {
+        if (startMonth == 0) {
             return null;
         }
 
@@ -1208,7 +1212,7 @@ public class SimpleTimeZone extends BasicTimeZone {
      * @stable ICU 3.8
      */
     public TimeZoneTransition getPreviousTransition(long base, boolean inclusive) {
-        if (!useDaylight) {
+        if (startMonth == 0) {
             return null;
         }
 
@@ -1235,10 +1239,10 @@ public class SimpleTimeZone extends BasicTimeZone {
     public TimeZoneRule[] getTimeZoneRules() {
         initTransitionRules();
 
-        int size = useDaylight ? 3 : 1;
+        int size = (startMonth == 0) ? 1 : 3;
         TimeZoneRule[] rules = new TimeZoneRule[size];
         rules[0] = initialRule;
-        if (useDaylight) {
+        if (startMonth != 0) {
             rules[1] = stdRule;
             rules[2] = dstRule;
         }
@@ -1255,7 +1259,7 @@ public class SimpleTimeZone extends BasicTimeZone {
         if (transitionRulesInitialized) {
             return;
         }
-        if (useDaylight) {
+        if (startMonth != 0) {
             DateTimeRule dtRule = null;
             int timeRuleType;
             long firstStdStart, firstDstStart;

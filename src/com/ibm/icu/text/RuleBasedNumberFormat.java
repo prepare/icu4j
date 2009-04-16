@@ -1,7 +1,7 @@
-//##header
+//##header J2SE15
 /*
  *******************************************************************************
- * Copyright (C) 1996-2009, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2008, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -14,7 +14,6 @@ import com.ibm.icu.impl.UCharacterProperty;
 import com.ibm.icu.impl.Utility;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.UResourceBundle;
-import com.ibm.icu.util.UResourceBundleIterator;
 
 import java.math.BigInteger;
 import java.text.FieldPosition;
@@ -509,13 +508,6 @@ public class RuleBasedNumberFormat extends NumberFormat {
      */
     public static final int DURATION = 3;
 
-    /**
-     * Selector code that tells the constructor to create a numbering system formatter
-     * @draft ICU 4.2
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final int NUMBERING_SYSTEM = 4;
-
     //-----------------------------------------------------------------------
     // data members
     //-----------------------------------------------------------------------
@@ -726,12 +718,10 @@ public class RuleBasedNumberFormat extends NumberFormat {
      * and duration.
      * @param locale The locale for the formatter.
      * @param format A selector code specifying which kind of formatter to create for that
-     * locale.  There are four legal values: SPELLOUT, which creates a formatter that
+     * locale.  There are three legal values: SPELLOUT, which creates a formatter that
      * spells out a value in words in the desired language, ORDINAL, which attaches
      * an ordinal suffix from the desired language to the end of a number (e.g. "123rd"),
-     * DURATION, which formats a duration in seconds as hours, minutes, and seconds, and
-     * NUMBERING_SYSTEM, which is used to invoke rules for alternate numbering
-     * systems such as the Hebrew numbering system, or for Roman numerals, etc..
+     * and DURATION, which formats a duration in seconds as hours, minutes, and seconds.
      * @stable ICU 3.2
      */
     public RuleBasedNumberFormat(ULocale locale, int format) {
@@ -750,22 +740,7 @@ public class RuleBasedNumberFormat extends NumberFormat {
         String[][] localizations = null;
 
         try {
-            // For backwards compatability - If we have a pre-4.2 style RBNF resource, attempt to read it.
             description = bundle.getString(rulenames[format-1]);
-        }
-        catch (MissingResourceException e) {
-            try {
-                ICUResourceBundle rules = bundle.getWithFallback("RBNFRules/"+rulenames[format-1]);
-                UResourceBundleIterator it = rules.getIterator(); 
-                while (it.hasNext()) {
-                   description = description.concat(it.nextString());
-                }
-            }
-            catch (MissingResourceException e1) {
-            } 
-        }
-
-        try {
             UResourceBundle locb = bundle.get(locnames[format-1]);
             localizations = new String[locb.getSize()][];
             for (int i = 0; i < localizations.length; ++i) {
@@ -780,10 +755,10 @@ public class RuleBasedNumberFormat extends NumberFormat {
     }
 
     private static final String[] rulenames = {
-        "SpelloutRules", "OrdinalRules", "DurationRules", "NumberingSystemRules",
+        "SpelloutRules", "OrdinalRules", "DurationRules",
     };
     private static final String[] locnames = {
-        "SpelloutLocalizations", "OrdinalLocalizations", "DurationLocalizations", "NumberingSystemLocalizations",
+        "SpelloutLocalizations", "OrdinalLocalizations", "DurationLocalizations",
     };
 
     /**
@@ -794,7 +769,6 @@ public class RuleBasedNumberFormat extends NumberFormat {
      * out a value in words in the default locale's langyage, ORDINAL, which attaches
      * an ordinal suffix from the default locale's language to a numeral, and
      * DURATION, which formats a duration in seconds as hours, minutes, and seconds.
-     * or NUMBERING_SYSTEM, which is used for alternate numbering systems such as Hebrew.
      * @stable ICU 2.0
      */
     public RuleBasedNumberFormat(int format) {
@@ -1282,23 +1256,14 @@ public class RuleBasedNumberFormat extends NumberFormat {
             if (publicRuleSetNames.length > 0) {
                 defaultRuleSet = findRuleSet(publicRuleSetNames[0]);
             } else {
-                defaultRuleSet = null;
-                int n = ruleSets.length;
-                while (--n >= 0) {
-                   String currentName = ruleSets[n].getName();
-                   if (currentName.equals("%spellout-numbering") || currentName.equals("%digits-ordinal") || currentName.equals("%duration")) {
-                       defaultRuleSet = ruleSets[n];
-                       return;
-                   } 
-                }
-
-                n = ruleSets.length;
-                while (--n >= 0) {
-                    if (ruleSets[n].isPublic()) {
-                        defaultRuleSet = ruleSets[n];
-                        break;
-                    }
-                }
+            defaultRuleSet = null;
+            int n = ruleSets.length;
+        while (--n >= 0) {
+          if (ruleSets[n].isPublic()) {
+            defaultRuleSet = ruleSets[n];
+            break;
+          }
+        }
             }
         } else if (ruleSetName.startsWith("%%")) {
             throw new IllegalArgumentException("cannot use private rule set: " + ruleSetName);
@@ -1507,29 +1472,11 @@ public class RuleBasedNumberFormat extends NumberFormat {
         // {dlf} Initialization of a fraction rule set requires the default rule
         // set to be known.  For purposes of initialization, this is always the
         // last public rule set, no matter what the localization data says.
-
-        // Set the default ruleset to the last public ruleset, unless one of the predefined
-        // ruleset names %spellout-numbering, %digits-ordinal, or %duration is found
-
-        boolean defaultNameFound = false;                  
-        int n = ruleSets.length;
         defaultRuleSet = ruleSets[ruleSets.length - 1];
-
-        while (--n >= 0) {
-            String currentName = ruleSets[n].getName();
-            if (currentName.equals("%spellout-numbering") || currentName.equals("%digits-ordinal") || currentName.equals("%duration")) {
-                defaultRuleSet = ruleSets[n];
-                defaultNameFound = true;                  
+        for (int i = ruleSets.length - 1; i >= 0; --i) {
+            if (!ruleSets[i].getName().startsWith("%%")) {
+                defaultRuleSet = ruleSets[i];
                 break;
-            } 
-        }
-
-        if ( !defaultNameFound ) {
-            for (int i = ruleSets.length - 1; i >= 0; --i) {
-                if (!ruleSets[i].getName().startsWith("%%")) {
-                    defaultRuleSet = ruleSets[i];
-                    break;
-                }
             }
         }
 

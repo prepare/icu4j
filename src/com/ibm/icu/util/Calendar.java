@@ -1,5 +1,5 @@
 /*
-*   Copyright (C) 1996-2009, International Business Machines
+*   Copyright (C) 1996-2008, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 */
 
@@ -9,10 +9,8 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
-import java.text.StringCharacterIterator;
 import java.util.Date;
 import java.util.Hashtable;
-import java.util.LinkedList;
 import java.util.Locale;
 import java.util.MissingResourceException;
 import java.util.Set;
@@ -1637,83 +1635,32 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
         return cal;
     }
 
+    private static final int BUDDHIST = 0;
+    private static final int CHINESE = 1;
+    private static final int COPTIC = 2;
+    private static final int ETHIOPIC = 3;
+    private static final int GREGORIAN = 4;
+    private static final int HEBREW = 5;
+    private static final int INDIAN = 6;
+    private static final int ISLAMIC = 7;
+    private static final int ISLAMIC_CIVIL = 8;
+    private static final int JAPANESE = 9;
+    private static final int TAIWAN = 10;
+    private static final int ETHIOPIC_AMETE_ALEM = 11;
+
     private static final String[] calTypes = {
-        "gregorian",
-        "japanese",
-        "buddhist",
-        "roc",
-        "persian",
-        "islamic-civil",
-        "islamic",
-        "hebrew",
-        "chinese",
-        "indian",
-        "coptic",
-        "ethiopic",
-        "ethiopic-amete-alem",
+        "buddhist", "chinese", "coptic", "ethiopic", "gregorian", "hebrew", 
+        "indian", "islamic", "islamic-civil", "japanese", "roc", "ethiopic-amete-alem"
     };
 
-    // must be in the order of calTypes above
-    private static final int CALTYPE_GREGORIAN = 0;
-    private static final int CALTYPE_JAPANESE = 1;
-    private static final int CALTYPE_BUDDHIST = 2;
-    private static final int CALTYPE_ROC = 3;
-    private static final int CALTYPE_PERSIAN = 4;  // not yet implemented
-    private static final int CALTYPE_ISLAMIC_CIVIL = 5;
-    private static final int CALTYPE_ISLAMIC = 6;
-    private static final int CALTYPE_HEBREW = 7;
-    private static final int CALTYPE_CHINESE = 8;
-    private static final int CALTYPE_INDIAN = 9;
-    private static final int CALTYPE_COPTIC = 10;
-    private static final int CALTYPE_ETHIOPIC = 11;
-    private static final int CALTYPE_ETHIOPIC_AMETE_ALEM = 12;
-    private static final int CALTYPE_UNKNOWN = -1;
-
-    private static int getCalendarTypeForLocale(ULocale l) {
-        int calType = CALTYPE_UNKNOWN;
-
-        // canonicalize, so grandfathered variant will be transformed to keywords
-        ULocale canonical = ULocale.createCanonical(l.toString());
-
-        String calTypeStr = canonical.getKeywordValue("calendar");
-        if (calTypeStr != null) {
-            calType = getCalendarType(calTypeStr);
-            if (calType != CALTYPE_UNKNOWN) {
-                return calType;
-            }
+    private static int getCalendarType(ULocale l) {
+        String s = l.getKeywordValue("calendar");
+        if (s == null) {
+            l = ICUResourceBundle.getFunctionalEquivalent(
+                ICUResourceBundle.ICU_BASE_NAME, "calendar", "calendar", l, null, false);
+            s = l.getKeywordValue("calendar");
         }
-
-        // when calendar keyword is not available or not supported, read supplementalData
-        // to get the default calendar type for the locale's region
-        String region = canonical.getCountry();
-        if (region.length() == 0) {
-            ULocale fullLoc = ULocale.addLikelySubtags(canonical);
-            region = fullLoc.getCountry();
-        }
-
-        try {
-            UResourceBundle rb = UResourceBundle.getBundleInstance(
-                                    ICUResourceBundle.ICU_BASE_NAME,
-                                    "supplementalData",
-                                    ICUResourceBundle.ICU_DATA_CLASS_LOADER);
-            UResourceBundle calPref = rb.get("calendarPreferenceData");
-            UResourceBundle order = null;
-            try {
-                order = calPref.get(region);
-            } catch (MissingResourceException mre) {
-                // use "001" as fallback
-                order = calPref.get("001");
-            }
-            // the first calendar type is the default for the region
-            calTypeStr = order.getString(0);
-            calType = getCalendarType(calTypeStr);
-        } catch (MissingResourceException mre) {
-            // fall through
-        }
-        if (calType == CALTYPE_UNKNOWN) {
-            return CALTYPE_GREGORIAN;
-        }
-        return calType;
+        return getCalendarType(s);
     }
 
     private static int getCalendarType(String s) {
@@ -1725,7 +1672,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
                 }
             }
         }
-        return CALTYPE_UNKNOWN;
+        return GREGORIAN;
     }
 
     /**
@@ -1805,64 +1752,41 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
     }
 
     static Calendar createInstance(ULocale locale) {
-        Calendar cal = null;
+        int calType = getCalendarType(locale);
         TimeZone zone = TimeZone.getDefault();
-        int calType = getCalendarTypeForLocale(locale);
-        if (calType == CALTYPE_UNKNOWN) {
-            // fallback to Gregorian
-            calType = CALTYPE_GREGORIAN;
-        }
 
         switch (calType) {
-        case CALTYPE_GREGORIAN:
-            cal = new GregorianCalendar(zone, locale);
-            break;
-        case CALTYPE_JAPANESE:
-            cal = new JapaneseCalendar(zone, locale);
-            break;
-        case CALTYPE_BUDDHIST:
-            cal = new BuddhistCalendar(zone, locale);
-            break;
-        case CALTYPE_ROC:
-            cal = new TaiwanCalendar(zone, locale);
-            break;
-        case CALTYPE_PERSIAN:
-            // Not yet implemented in ICU4J
-            cal = new GregorianCalendar(zone, locale);
-            break;
-        case CALTYPE_ISLAMIC_CIVIL:
-            cal = new IslamicCalendar(zone, locale);
-            break;
-        case CALTYPE_ISLAMIC:
-            cal = new IslamicCalendar(zone, locale);
-            ((IslamicCalendar)cal).setCivil(false);
-            break;
-        case CALTYPE_HEBREW:
-            cal = new HebrewCalendar(zone, locale);
-            break;
-        case CALTYPE_CHINESE:
-            cal = new ChineseCalendar(zone, locale);
-            break;
-        case CALTYPE_INDIAN:
-            cal = new IndianCalendar(zone, locale);
-            break;
-        case CALTYPE_COPTIC:
-            cal = new CopticCalendar(zone, locale);
-            break;
-        case CALTYPE_ETHIOPIC:
-            cal = new EthiopicCalendar(zone, locale);
-            break;
-        case CALTYPE_ETHIOPIC_AMETE_ALEM:
-            cal = new EthiopicCalendar(zone, locale);
-            ((EthiopicCalendar)cal).setAmeteAlemEra(true);
-            break;
-        default:
-            // we must not get here, because unknown type is mapped to
-            // Gregorian at the beginning of this method.
-            throw new IllegalArgumentException("Unknown calendar type");
+        case BUDDHIST:
+            return new BuddhistCalendar(zone, locale);
+        case CHINESE:
+            return new ChineseCalendar(zone, locale);
+        case COPTIC:
+            return new CopticCalendar(zone, locale);
+        case ETHIOPIC:
+            return new EthiopicCalendar(zone, locale);
+        case ETHIOPIC_AMETE_ALEM:
+            EthiopicCalendar ethiopicAA = new EthiopicCalendar(zone, locale);
+            ethiopicAA.setAmeteAlemEra(true);
+            return ethiopicAA;
+        case GREGORIAN:
+            return new GregorianCalendar(zone, locale);
+        case HEBREW:
+            return new HebrewCalendar(zone, locale);
+        case ISLAMIC:
+        case ISLAMIC_CIVIL: {
+            IslamicCalendar result = new IslamicCalendar(zone, locale);
+            result.setCivil(calType == ISLAMIC_CIVIL);
+            return result;
         }
-
-        return cal;
+        case JAPANESE:
+            return new JapaneseCalendar(zone, locale);
+        case TAIWAN:
+            return new TaiwanCalendar(zone, locale);
+        case INDIAN:
+            return new IndianCalendar(zone, locale);
+        default:
+            throw new IllegalStateException();
+        }
     }
 
     ///CLOVER:OFF
@@ -1898,109 +1822,6 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
 
     ///CLOVER:ON
     // ==== End of factory Stuff ====
-
-//    //TODO: The table below should be retrieved from ICU resource when CLDR supplementalData
-//    // is fully updated.
-//    private static final String[][] CALPREF = {
-//        {"001", "gregorian"},
-//        {"AE", "gregorian", "islamic", "islamic-civil"},
-//        {"AF", "gregorian", "islamic", "islamic-civil", "persian"},
-//        {"BH", "gregorian", "islamic", "islamic-civil"},
-//        {"CN", "gregorian", "chinese"},
-//        {"CX", "gregorian", "chinese"},
-//        {"DJ", "gregorian", "islamic", "islamic-civil"},
-//        {"DZ", "gregorian", "islamic", "islamic-civil"},
-//        {"EG", "gregorian", "islamic", "islamic-civil", "coptic"},
-//        {"EH", "gregorian", "islamic", "islamic-civil"},
-//        {"ER", "gregorian", "islamic", "islamic-civil"},
-//        {"ET", "gregorian", "ethiopic", "ethiopic-amete-alem"},
-//        {"HK", "gregorian", "chinese"},
-//        {"IL", "gregorian", "hebrew"},
-//        {"IL", "gregorian", "islamic", "islamic-civil"},
-//        {"IN", "gregorian", "indian"},
-//        {"IQ", "gregorian", "islamic", "islamic-civil"},
-//        {"IR", "gregorian", "islamic", "islamic-civil", "persian"},
-//        {"JO", "gregorian", "islamic", "islamic-civil"},
-//        {"JP", "gregorian", "japanese"},
-//        {"KM", "gregorian", "islamic", "islamic-civil"},
-//        {"KW", "gregorian", "islamic", "islamic-civil"},
-//        {"LB", "gregorian", "islamic", "islamic-civil"},
-//        {"LY", "gregorian", "islamic", "islamic-civil"},
-//        {"MA", "gregorian", "islamic", "islamic-civil"},
-//        {"MO", "gregorian", "chinese"},
-//        {"MR", "gregorian", "islamic", "islamic-civil"},
-//        {"OM", "gregorian", "islamic", "islamic-civil"},
-//        {"PS", "gregorian", "islamic", "islamic-civil"},
-//        {"QA", "gregorian", "islamic", "islamic-civil"},
-//        {"SA", "gregorian", "islamic", "islamic-civil"},
-//        {"SD", "gregorian", "islamic", "islamic-civil"},
-//        {"SG", "gregorian", "chinese"},
-//        {"SY", "gregorian", "islamic", "islamic-civil"},
-//        {"TD", "gregorian", "islamic", "islamic-civil"},
-//        {"TH", "buddhist", "gregorian"},
-//        {"TN", "gregorian", "islamic", "islamic-civil"},
-//        {"TW", "gregorian", "roc", "chinese"},
-//        {"YE", "gregorian", "islamic", "islamic-civil"},
-//    };
-
-    /**
-     * Given a key and a locale, returns an array of string values in a preferred
-     * order that would make a difference. These are all and only those values where
-     * the open (creation) of the service with the locale formed from the input locale
-     * plus input keyword and that value has different behavior than creation with the
-     * input locale alone.
-     * @param key           one of the keys supported by this service.  For now, only
-     *                      "calendar" is supported.
-     * @param locale        the locale
-     * @param commonlyUsed  if set to true it will return only commonly used values
-     *                      with the given locale in preferred order.  Otherwise,
-     *                      it will return all the available values for the locale.
-     * @return an array of string values for the given key and the locale.
-     * @draft ICU 4.2
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final String[] getKeywordValuesForLocale(String key, ULocale locale, boolean commonlyUsed) {
-        // Resolve region
-        String prefRegion = locale.getCountry();
-        if (prefRegion.length() == 0){
-            ULocale loc = ULocale.addLikelySubtags(locale);
-            prefRegion = loc.getCountry();
-        }
-
-        // Read preferred calendar values from supplementalData calendarPreferences
-        LinkedList values = new LinkedList();
-
-        UResourceBundle rb = UResourceBundle.getBundleInstance(
-                                        ICUResourceBundle.ICU_BASE_NAME,
-                                        "supplementalData",
-                                        ICUResourceBundle.ICU_DATA_CLASS_LOADER);
-        UResourceBundle calPref = rb.get("calendarPreferenceData");
-        UResourceBundle order = null;
-        try {
-            order = calPref.get(prefRegion);
-        } catch (MissingResourceException mre) {
-            // use "001" as fallback
-            order = calPref.get("001");
-        }
-
-        String[] caltypes = order.getStringArray();
-        if (commonlyUsed) {
-            // we have all commonly used calendar for the target region
-            return caltypes;
-        }
-
-        // if not commonlyUsed, add all preferred calendars in the order
-        for (int i = 0; i < caltypes.length; i++) {
-            values.add(caltypes[i]);
-        }
-        // then, add other available clanedars
-        for (int i = 0; i < calTypes.length; i++) {
-            if (!values.contains(calTypes[i])) {
-                values.add(calTypes[i]);
-            }
-        }
-        return (String[])values.toArray(new String[values.size()]);
-    }
 
     /**
      * Gets this Calendar's current time.
@@ -3195,7 +3016,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
      * @stable ICU 2.0
      */
     protected DateFormat handleGetDateFormat(String pattern, Locale locale) {
-        return handleGetDateFormat(pattern, null, ULocale.forLocale(locale));
+        return handleGetDateFormat(pattern, ULocale.forLocale(locale));
     }
 
     /**
@@ -3207,43 +3028,12 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
      * subclass
      * @param locale the locale for which the symbols should be drawn
      * @return a <code>DateFormat</code> appropriate to this calendar
-     * @stable ICU 2.0
-     */
-    protected DateFormat handleGetDateFormat(String pattern, String override, Locale locale) {
-        return handleGetDateFormat(pattern, override, ULocale.forLocale(locale));
-    }
-
-    /**
-     * Create a <code>DateFormat</code> appropriate to this calendar.
-     * This is a framework method for subclasses to override.  This method
-     * is responsible for creating the calendar-specific DateFormat and
-     * DateFormatSymbols objects as needed.
-     * @param pattern the pattern, specific to the <code>DateFormat</code>
-     * subclass
-     * @param locale the locale for which the symbols should be drawn
-     * @return a <code>DateFormat</code> appropriate to this calendar
-     * @stable ICU 2.0
-     */
-    protected DateFormat handleGetDateFormat(String pattern, ULocale locale) {
-        return handleGetDateFormat(pattern, null, locale);
-    }
-
-    /**
-     * Create a <code>DateFormat</code> appropriate to this calendar.
-     * This is a framework method for subclasses to override.  This method
-     * is responsible for creating the calendar-specific DateFormat and
-     * DateFormatSymbols objects as needed.
-     * @param pattern the pattern, specific to the <code>DateFormat</code>
-     * subclass
-     * @param locale the locale for which the symbols should be drawn
-     * @return a <code>DateFormat</code> appropriate to this calendar
-     * @draft ICU 3.2 (retain)
+     * @draft ICU 3.2
      * @provisional This API might change or be removed in a future release.
      */
-    protected DateFormat handleGetDateFormat(String pattern, String override, ULocale locale) {
+    protected DateFormat handleGetDateFormat(String pattern, ULocale locale) {
         FormatConfiguration fmtConfig = new FormatConfiguration();
         fmtConfig.pattern = pattern;
-        fmtConfig.override = override;
         fmtConfig.formatData = new DateFormatSymbols(this, locale);
         fmtConfig.loc = locale;
         fmtConfig.cal = this;
@@ -3263,10 +3053,6 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
         "yyyy MMMM d",
         "yyyy MMM d",
         "yy/MM/dd",
-        "{1} {0}",
-        "{1} {0}",
-        "{1} {0}",
-        "{1} {0}",
         "{1} {0}"
     };
 
@@ -3274,107 +3060,33 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
         // First, try to get a pattern from PATTERN_CACHE
         String key = loc.toString() + cal.getType();
         String[] patterns = (String[])PATTERN_CACHE.get(key);
-        String[] overrides = null;
-        String override = null;
         if (patterns == null) {
             // Cache missed.  Get one from bundle
             try {
                 CalendarData calData = new CalendarData(loc, cal.getType());
-                overrides = calData.getOverrides();
-                patterns = calData.getDateTimePatterns();
+                patterns = calData.get("DateTimePatterns").getStringArray();
             } catch (MissingResourceException e) {
                 patterns = DEFAULT_PATTERNS;
             }
             PATTERN_CACHE.put(key, patterns);
-        } 
-
+        }
         // Resolve a pattern for the date/time style
         String pattern = null;
         if ((timeStyle >= 0) && (dateStyle >= 0)) {
-            int glueIndex = 8;
-            if (patterns.length >= 13)
-            {
-                glueIndex += (dateStyle + 1);
-            }
-            pattern = MessageFormat.format(patterns[glueIndex],
+            pattern = MessageFormat.format(patterns[8],
                     new Object[] {patterns[timeStyle], patterns[dateStyle + 4]});
-            // Might need to merge the overrides from the date and time into a single override string
-            // TODO: Right now we are forcing the date's override into the time style.
-            if ( overrides != null ) {
-                String dateOverride = overrides[dateStyle + 4];
-                String timeOverride = overrides[timeStyle];
-                override = mergeOverrideStrings(patterns[dateStyle+4],patterns[timeStyle],dateOverride,timeOverride);
-            }
         } else if (timeStyle >= 0) {
             pattern = patterns[timeStyle];
-            if ( overrides != null ) {
-                override = overrides[timeStyle];
-            }
         } else if (dateStyle >= 0) {
             pattern = patterns[dateStyle + 4];
-            if ( overrides != null ) {
-                override = overrides[dateStyle + 4];
-            }
         } else {
             throw new IllegalArgumentException("No date or time style specified");
         }
-        DateFormat result = cal.handleGetDateFormat(pattern, override, loc);
+        DateFormat result = cal.handleGetDateFormat(pattern, loc);
         result.setCalendar(cal);
         return result;
     }
 
-    private static String mergeOverrideStrings( String datePattern, String timePattern, String dateOverride, String timeOverride ) {
-
-        if ( dateOverride == null && timeOverride == null ) {
-            return null;
-        }
-
-        if ( dateOverride == null ) {
-            return expandOverride(timePattern,timeOverride);
-        }
-
-        if ( timeOverride == null ) {
-            return expandOverride(datePattern,dateOverride);
-        }
-        
-        if ( dateOverride.equals(timeOverride) ) {
-            return dateOverride;
-        }
-
-        return (expandOverride(datePattern,dateOverride)+";"+expandOverride(timePattern,timeOverride));
-
-    }
-
-    private static final char QUOTE = '\'';
-    private static String expandOverride(String pattern, String override) {
-
-        if (override.indexOf('=') >= 0) {
-            return override;
-        }
-        boolean inQuotes = false;
-        char prevChar = ' ';
-        StringBuffer result = new StringBuffer();
-
-        StringCharacterIterator it = new StringCharacterIterator(pattern);
-
-        for (char c = it.first(); c!= StringCharacterIterator.DONE; c = it.next()) {
-            if ( c == QUOTE ) {
-               inQuotes = !inQuotes;
-               prevChar = c;
-               continue;
-            }
-            if ( !inQuotes && c != prevChar ) {
-                if (result.length() > 0) {
-                    result.append(";");
-                }
-                result.append(c);
-                result.append("=");
-                result.append(override);
-            }  
-            prevChar = c;
-        } 
-        return result.toString();
-    }
     /**
      * An instance of FormatConfiguration represents calendar specific
      * date format configuration and used for calling the ICU private
@@ -3385,7 +3097,6 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
      */
     public static class FormatConfiguration {
         private String pattern;
-        private String override;
         private DateFormatSymbols formatData;
         private Calendar cal;
         private ULocale loc;
@@ -3402,10 +3113,6 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
          */
         public String getPatternString() {
             return pattern;
-        }
-
-        public String getOverrideString() {
-            return override;
         }
 
         /**
@@ -4980,7 +4687,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
      * taking year and era into account.  Defaults to 0 (JANUARY) for Gregorian.
      * @param extendedYear the extendedYear, as returned by handleGetExtendedYear
      * @return the default month
-     * @draft ICU 3.6 (retain)
+     * @draft ICU 3.6
      * @provisional This API might change or be removed in a future release.
      * @see #MONTH
      */
@@ -4995,7 +4702,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable {
      * @param extendedYear the extendedYear, as returned by handleGetExtendedYear
      * @param month the month, as returned by getDefaultMonthInYear
      * @return the default day of the month
-     * @draft ICU 3.6 (retain)
+     * @draft ICU 3.6
      * @provisional This API might change or be removed in a future release.
      * @see #DAY_OF_MONTH
      */

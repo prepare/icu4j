@@ -1,7 +1,7 @@
-//##header
+//##header J2SE15
 /*
  *******************************************************************************
- * Copyright (C) 1996-2009, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2007, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -24,7 +24,6 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.Locale;
 import java.util.MissingResourceException;
 import java.util.Random;
@@ -395,18 +394,6 @@ public class TestFmwk extends AbstractTestLog {
                     handleException(e);
                 }
             }
-            // If non-exhaustive, check if the method target
-            // takes excessive time.
-            if (params.inclusion <= 5) {
-                double deltaSec = (double)(System.currentTimeMillis() - params.stack.millis)/1000;
-                if (deltaSec > params.maxTargetSec) {
-                    if (params.timeLog == null) {
-                        params.timeLog = new StringBuffer();
-                    }
-                    params.stack.appendPath(params.timeLog);
-                    params.timeLog.append(" (" + deltaSec + "s" + ")\n");
-                }
-            }
         }
 
         protected String getStackTrace(InvocationTargetException e) {
@@ -557,12 +544,6 @@ public class TestFmwk extends AbstractTestLog {
         if (localParams.errorSummary != null && localParams.errorSummary.length() > 0) {
             localParams.log.println("\nError summary:");
             localParams.log.println(localParams.errorSummary.toString());
-        }
-
-        if (localParams.timeLog != null && localParams.timeLog.length() > 0) {
-            localParams.log.println("\nTest cases taking excessive time (>" +
-                    localParams.maxTargetSec + "s):");
-            localParams.log.println(localParams.timeLog.toString());
         }
 
         if (prompt) {
@@ -810,14 +791,6 @@ public class TestFmwk extends AbstractTestLog {
         return params.errorCount;
     }
 
-    public String getProperty(String key) {
-        String val = null;
-        if (key != null && key.length() > 0 && params.props != null) {
-            val = (String)params.props.get(key.toLowerCase());
-        }
-        return val;
-    }
-
     protected TimeZone safeGetTimeZone(String id) {
         TimeZone tz = TimeZone.getTimeZone(id);
         if (tz == null) {
@@ -841,7 +814,7 @@ public class TestFmwk extends AbstractTestLog {
         pw.println("Usage: " + className + " option* target*");
         pw.println();
         pw.println("Options:");
-        pw.println(" -d[escribe] Print a short descriptive string for this test and all");
+        pw.println(" -describe Print a short descriptive string for this test and all");
         pw.println("       listed targets.");
         pw.println(" -e<n> Set exhaustiveness from 0..10.  Default is 0, fewest tests.\n"
                  + "       To run all tests, specify -e10.  Giving -e with no <n> is\n"
@@ -868,8 +841,7 @@ public class TestFmwk extends AbstractTestLog {
         //      pw.println(" -m[emory] print memory usage and force gc for
         // each test");
         pw.println(" -n[othrow] Message on test failure rather than exception");
-        pw.println(" -p[rompt] Prompt before exiting");
-        pw.println(" -prop:<key>=<value> Set optional property used by this test");
+        pw.println(" -prompt Prompt before exiting");
         pw.println(" -q[uiet] Do not show warnings");
         pw.println(" -r[andom][:<n>] If present, randomize targets.  If n is present,\n"
                         + "       use it as the seed.  If random is not set, targets will\n"
@@ -879,7 +851,6 @@ public class TestFmwk extends AbstractTestLog {
         pw.println(" -t[ime][:<n>] Print elapsed time for each test.  if n is present\n"
                         + "       only print times >= n milliseconds.");
         pw.println(" -v[erbose] Show log messages");
-        pw.println(" -u[nicode] Don't escape error or log messages");
         pw.println(" -w[arning] Continue in presence of warnings, and disable missing test warnings.");
         pw.println(" -nodata | -nd Do not warn if resource data is not present.");
         pw.println();
@@ -1084,7 +1055,6 @@ public class TestFmwk extends AbstractTestLog {
         public State stack;
 
         public StringBuffer errorSummary;
-        private StringBuffer timeLog;
 
         public PrintWriter log;
         public int indentLevel;
@@ -1096,8 +1066,6 @@ public class TestFmwk extends AbstractTestLog {
         public int testCount;
         private NumberFormat tformat;
         public Random random;
-        public int maxTargetSec = 10;
-        public HashMap props;
 
         private TestParams() {
         }
@@ -1230,22 +1198,6 @@ public class TestFmwk extends AbstractTestLog {
                             filter = filter == null ? temp : filter + "," + temp;
                         } else if (arg.startsWith("-s")) {
                             params.log = new NullWriter();
-                        } else if (arg.startsWith("-u")) {
-                            if (params.log instanceof ASCIIWriter) {
-                                params.log = log;
-                            }
-                        } else if (arg.startsWith("-prop:")) {
-                            String temp = arg.substring(6);
-                            int eql = temp.indexOf('=');
-                            if (eql <= 0) {
-                                log.println("*** Error: could not parse custom property '" + arg + "'");
-                                usageError = true;
-                                break;
-                            }
-                            if (params.props == null) {
-                                params.props = new HashMap();
-                            }
-                            params.props.put(temp.substring(0, eql), temp.substring(eql+1));
                         } else {
                             log.println("*** Error: unrecognized argument: "
                                         + args[i]);
@@ -1279,7 +1231,7 @@ public class TestFmwk extends AbstractTestLog {
         public String errorSummary() {
             return errorSummary == null ? "" : errorSummary.toString();
         }
-
+        
         public void init() {
             indentLevel = 0;
             needLineFeed = false;
@@ -1584,7 +1536,6 @@ public class TestFmwk extends AbstractTestLog {
                 }
                 log.print(")");
             }
-
             if (errorDelta != 0) {
                 log.println(" FAILED ("
                         + errorDelta

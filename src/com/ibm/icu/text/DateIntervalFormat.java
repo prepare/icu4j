@@ -1,5 +1,5 @@
 /*
-*   Copyright (C) 2008-2009, International Business Machines
+*   Copyright (C) 2008, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 */
 
@@ -243,7 +243,8 @@ import com.ibm.icu.text.SimpleDateFormat;
  * 
  *
  * </pre>
- * @stable ICU 4.0
+ * @draft ICU 4.0
+ * @provisional This API might change or be removed in a future release.
  */
 
 public class DateIntervalFormat extends UFormat {
@@ -357,7 +358,8 @@ public class DateIntervalFormat extends UFormat {
      *
      * @param skeleton  the skeleton on which interval format based.
      * @return          a date time interval formatter.
-     * @stable ICU 4.0
+     * @draft ICU 4.0
+     * @provisional This API might change or be removed in a future release.
      */
     public static final DateIntervalFormat 
         getInstance(String skeleton)
@@ -376,7 +378,8 @@ public class DateIntervalFormat extends UFormat {
      * @param skeleton  the skeleton on which interval format based.
      * @param locale    the given locale
      * @return          a date time interval formatter.
-     * @stable ICU 4.0
+     * @draft ICU 4.0
+     * @provisional This API might change or be removed in a future release.
      */
     public static final DateIntervalFormat 
         getInstance(String skeleton, Locale locale)  
@@ -412,7 +415,8 @@ public class DateIntervalFormat extends UFormat {
      * @param skeleton  the skeleton on which interval format based.
      * @param locale    the given locale
      * @return          a date time interval formatter.
-     * @stable ICU 4.0
+     * @draft ICU 4.0
+     * @provisional This API might change or be removed in a future release.
      */
     public static final DateIntervalFormat 
         getInstance(String skeleton, ULocale locale)  
@@ -434,7 +438,8 @@ public class DateIntervalFormat extends UFormat {
      * @param skeleton  the skeleton on which interval format based.
      * @param dtitvinf  the DateIntervalInfo object to be adopted.
      * @return          a date time interval formatter.
-     * @stable ICU 4.0
+     * @draft ICU 4.0
+     * @provisional This API might change or be removed in a future release.
      */
     public static final DateIntervalFormat getInstance(String skeleton, 
                                                    DateIntervalInfo dtitvinf)
@@ -455,7 +460,8 @@ public class DateIntervalFormat extends UFormat {
      * @param locale    the given locale
      * @param dtitvinf  the DateIntervalInfo object to be adopted.
      * @return          a date time interval formatter.
-     * @stable ICU 4.0
+     * @draft ICU 4.0
+     * @provisional This API might change or be removed in a future release.
      */
     public static final DateIntervalFormat getInstance(String skeleton,
                                                  Locale locale, 
@@ -500,7 +506,8 @@ public class DateIntervalFormat extends UFormat {
      * @param locale    the given locale
      * @param dtitvinf  the DateIntervalInfo object to be adopted.
      * @return          a date time interval formatter.
-     * @stable ICU 4.0
+     * @draft ICU 4.0
+     * @provisional This API might change or be removed in a future release.
      */
     public static final DateIntervalFormat getInstance(String skeleton,
                                                  ULocale locale, 
@@ -517,7 +524,8 @@ public class DateIntervalFormat extends UFormat {
     /**
      * Clone this Format object polymorphically. 
      * @return    A copy of the object.
-     * @stable ICU 4.0
+     * @draft ICU 4.0
+     * @provisional This API might change or be removed in a future release.
      */
     public Object clone()
     {
@@ -547,7 +555,8 @@ public class DateIntervalFormat extends UFormat {
      * @return                  Reference to 'appendTo' parameter.
      * @throws    IllegalArgumentException  if the formatted object is not 
      *                                      DateInterval object
-     * @stable ICU 4.0
+     * @draft ICU 4.0
+     * @provisional This API might change or be removed in a future release.
      */
     public final StringBuffer 
         format(Object obj, StringBuffer appendTo, FieldPosition fieldPosition)
@@ -569,7 +578,8 @@ public class DateIntervalFormat extends UFormat {
      * @param fieldPosition     On input: an alignment field, if desired.
      *                          On output: the offsets of the alignment field.
      * @return                  Reference to 'appendTo' parameter.
-     * @stable ICU 4.0
+     * @draft ICU 4.0
+     * @provisional This API might change or be removed in a future release.
      */
     public final StringBuffer format(DateInterval dtInterval,
                                      StringBuffer appendTo,
@@ -594,7 +604,8 @@ public class DateIntervalFormat extends UFormat {
      *                          On output: the offsets of the alignment field.
      * @return                  Reference to 'appendTo' parameter.
      * @throws    IllegalArgumentException  if the two calendars are not equivalent, or the calendars are not Gregorian calendar.
-     * @stable ICU 4.0
+     * @draft ICU 4.0
+     * @provisional This API might change or be removed in a future release.
      */
     public final StringBuffer format(Calendar fromCalendar,
                                      Calendar toCalendar,
@@ -783,7 +794,8 @@ public class DateIntervalFormat extends UFormat {
      * Gets the date time interval patterns.
      * @return a copy of the date time interval patterns associated with
      * this date interval formatter.
-     * @stable ICU 4.0
+     * @draft ICU 4.0
+     * @provisional This API might change or be removed in a future release.
      */
     public DateIntervalInfo getDateIntervalInfo()
     {
@@ -794,7 +806,8 @@ public class DateIntervalFormat extends UFormat {
     /**
      * Set the date time interval patterns. 
      * @param newItvPattern   the given interval patterns to copy.
-     * @stable ICU 4.0
+     * @draft ICU 4.0
+     * @provisional This API might change or be removed in a future release.
      */
     public void setDateIntervalInfo(DateIntervalInfo newItvPattern)
     {
@@ -813,7 +826,8 @@ public class DateIntervalFormat extends UFormat {
      * Gets the date formatter
      * @return a copy of the date formatter associated with
      * this date interval formatter.
-     * @stable ICU 4.0
+     * @draft ICU 4.0
+     * @provisional This API might change or be removed in a future release.
      */
     public DateFormat getDateFormat()
     {
@@ -1035,7 +1049,7 @@ public class DateIntervalFormat extends UFormat {
             // The date/time pattern ( such as {0} {1} ) is saved in
             // calendar, that is why need to get the CalendarData here.
             CalendarData calData = new CalendarData(locale, null);
-            String[] patterns = calData.getDateTimePatterns();
+            String[] patterns = calData.get("DateTimePatterns").getStringArray();
             String datePattern =dtpng.getBestPattern(dateSkeleton);
             concatSingleDate2TimeInterval(patterns[8], datePattern, Calendar.AM_PM, intervalPatterns);
             concatSingleDate2TimeInterval(patterns[8], datePattern, Calendar.HOUR, intervalPatterns);

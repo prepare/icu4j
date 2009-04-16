@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2009, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  *
@@ -11,10 +11,8 @@ package com.ibm.icu.dev.test.serializable;
 import java.util.Locale;
 
 import com.ibm.icu.impl.InvalidFormatException;
-import com.ibm.icu.impl.locale.LocaleSyntaxException;
 import com.ibm.icu.text.ArabicShapingException;
 import com.ibm.icu.text.StringPrepParseException;
-import com.ibm.icu.util.IllformedLocaleException;
 import com.ibm.icu.util.UResourceTypeMismatchException;
 
 /**
@@ -96,46 +94,6 @@ public class ExceptionTests
             }
             
             return exceptions;
-        }
-    }
-
-    static class IllformedLocaleExceptionHandler extends ExceptionHandler
-    {
-        public Object[] getTestObjects()
-        {
-            IllformedLocaleException[] exceptions = new IllformedLocaleException[2];
-            exceptions[0] = new IllformedLocaleException("msg1");
-            exceptions[1] = new IllformedLocaleException("msg2", 5);
-            return exceptions;
-        }
-        public boolean hasSameBehavior(Object a, Object b)
-        {
-            IllformedLocaleException ifeA = (IllformedLocaleException) a;
-            IllformedLocaleException ifeB = (IllformedLocaleException) b;
-            if (ifeA.getErrorIndex() != ifeB.getErrorIndex()) {
-                return false;
-            }
-            return super.hasSameBehavior(a, b);
-        }
-    }
-
-    static class LocaleSyntaxExceptionHandler extends ExceptionHandler
-    {
-        public Object[] getTestObjects()
-        {
-            LocaleSyntaxException[] exceptions = new LocaleSyntaxException[2];
-            exceptions[0] = new LocaleSyntaxException("msg1");
-            exceptions[1] = new LocaleSyntaxException("msg2", 5);
-            return exceptions;
-        }
-        public boolean hasSameBehavior(Object a, Object b)
-        {
-            LocaleSyntaxException ifeA = (LocaleSyntaxException) a;
-            LocaleSyntaxException ifeB = (LocaleSyntaxException) b;
-            if (ifeA.getErrorIndex() != ifeB.getErrorIndex()) {
-                return false;
-            }
-            return super.hasSameBehavior(a, b);
         }
     }
 

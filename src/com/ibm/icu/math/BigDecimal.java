@@ -1,15 +1,14 @@
-//##header
+//##header J2SE15
 /* Generated from 'BigDecimal.nrx' 8 Sep 2000 11:10:50 [v2.00] */
 /* Options: Binary Comments Crossref Format Java Logo Strictargs Strictcase Trace2 Verbose3 */
 package com.ibm.icu.math;
 import java.math.BigInteger;
 import com.ibm.icu.impl.Utility;
-import com.ibm.icu.lang.UCharacter;
 
 /* ------------------------------------------------------------------ */
 /* BigDecimal -- Decimal arithmetic for Java                          */
 /* ------------------------------------------------------------------ */
-/* Copyright IBM Corporation, 1996-2009.  All Rights Reserved.       */
+/* Copyright IBM Corporation, 1996-2008.  All Rights Reserved.       */
 /*                                                                    */
 /* The BigDecimal class provides immutable arbitrary-precision        */
 /* floating point (including integer) decimal numbers.                */
@@ -650,7 +649,7 @@ public class BigDecimal extends java.lang.Number implements java.io.Serializable
    if (si!='e') 
     if (si!='E') 
      { // expect an extra digit
-      if ((!(UCharacter.isDigit(si)))) 
+      if ((!(java.lang.Character.isDigit(si)))) 
        bad(inchars); // not a number
       // defer the base 10 check until later to avoid extra method call
       exotic=true; // will need conversion later
@@ -683,9 +682,9 @@ public class BigDecimal extends java.lang.Number implements java.io.Serializable
      bad(inchars); // always bad
     if (sj>'9') 
      { // maybe an exotic digit
-      if ((!(UCharacter.isDigit(sj)))) 
+      if ((!(java.lang.Character.isDigit(sj)))) 
        bad(inchars); // not a number
-      dvalue=UCharacter.digit(sj,10); // check base
+      dvalue=java.lang.Character.digit(sj,10); // check base
       if (dvalue<0) 
        bad(inchars); // not base 10
      }
@@ -727,7 +726,7 @@ public class BigDecimal extends java.lang.Number implements java.io.Serializable
       break i;/* non-0 */
      else 
       {/* exotic */
-       if ((UCharacter.digit(si,10))!=0) 
+       if ((java.lang.Character.digit(si,10))!=0) 
         break i; // non-0 or bad
        // is 0 .. strip like '0'
        offset++;
@@ -750,7 +749,7 @@ public class BigDecimal extends java.lang.Number implements java.io.Serializable
       mant[i]=(byte)(((int)(sj))-((int)('0')));/* easy */
      else 
       {
-       dvalue=UCharacter.digit(sj,10);
+       dvalue=java.lang.Character.digit(sj,10);
        if (dvalue<0) 
         bad(inchars); // not a number after all
        mant[i]=(byte)dvalue;

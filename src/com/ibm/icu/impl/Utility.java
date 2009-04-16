@@ -1,12 +1,11 @@
-//##header
+//##header J2SE15
 /*
  *******************************************************************************
- * Copyright (C) 1996-2009, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2008, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
 package com.ibm.icu.impl;
-
 import java.util.ArrayList;
 
 import com.ibm.icu.lang.*;
@@ -1359,9 +1358,9 @@ public final class Utility {
     public static StringBuffer trim(StringBuffer b) {
         // TODO update to handle surrogates
         int i;
-        for (i=0; i<b.length() && UCharacter.isWhitespace(b.charAt(i)); ++i) {}
+        for (i=0; i<b.length() && Character.isWhitespace(b.charAt(i)); ++i) {}
         b.delete(0, i);
-        for (i=b.length()-1; i>=0 && UCharacter.isWhitespace(b.charAt(i)); --i) {}
+        for (i=b.length()-1; i>=0 && Character.isWhitespace(b.charAt(i)); --i) {}
         return b.delete(i+1, b.length());
     }
 
@@ -1838,10 +1837,10 @@ public final class Utility {
         return buf.lastIndexOf(s, i);
 //#endif
     }
-
-   // !!! 1.3/1.4 compatibility
-   public static String replace(String src, String target, String replacement) {
-//#if defined(FOUNDATION10) || defined(J2SE13) || defined(J2SE14)
+   
+   // !!! 1.3 compatibility
+   public static String replaceAll(String src, String target, String replacement) {
+//#if defined(FOUNDATION10) || defined(J2SE13)
 //##       int i = src.indexOf(target);
 //##       if (i == -1) {
 //##           return src;
@@ -1858,15 +1857,6 @@ public final class Utility {
 //##           buf.append(src.substring(n));
 //##       }
 //##       return buf.toString();
-//#else
-       return src.replace(target, replacement);
-//#endif
-   }
-
-   // !!! 1.3 compatibility
-   public static String replaceAll(String src, String target, String replacement) {
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//##       return replace(src, target, replacement);
 //#else
        return src.replaceAll(target, replacement);
 //#endif
@@ -1950,23 +1940,5 @@ public final class Utility {
            return INT_CONST[val];
        }
        return new Integer(val);
-   }
-
-   // !!! 1.3/1.4 compatibility
-   // Arrays.toString(Object[])
-   public static String arrayToString(Object[] a) {
-       StringBuffer buf = new StringBuffer("[");
-       for (int i = 0; i < a.length; i++) {
-           if (i != 0) {
-               buf.append(", ");
-           }
-           if (a[i] == null) {
-               buf.append("null");
-           } else {
-               buf.append(a[i].toString());
-           }
-       }
-       buf.append("]");
-       return buf.toString();
    }
 }

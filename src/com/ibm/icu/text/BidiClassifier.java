@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2000-2009, International Business Machines Corporation and    *
+ * Copyright (C) 2000-2007, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -32,7 +32,8 @@ package com.ibm.icu.text;
  * to be determined.</p>
  *
  * @see Bidi#setCustomClassifier
- * @stable ICU 3.8
+ * @draft ICU 3.8
+ * @provisional This API might change or be removed in a future release.
  */
 
 public /*abstract*/ class BidiClassifier {
@@ -44,14 +45,16 @@ public /*abstract*/ class BidiClassifier {
      * For instance, this object can be used to save a reference to
      * a previous custom BidiClassifier while setting a new one, so as to
      * allow chaining between them.
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     protected Object context;
 
     /**
      * @param context Context for this classifier instance.
      *                May be null.
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public BidiClassifier(Object context) {
         this.context = context;
@@ -63,7 +66,8 @@ public /*abstract*/ class BidiClassifier {
      *
      * @param context Context for this classifier instance.
      *                May be null.
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public void setContext(Object context) {
         this.context = context;
@@ -71,7 +75,8 @@ public /*abstract*/ class BidiClassifier {
 
     /**
      * Returns the current classifier context.
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public Object getContext() {
         return this.context;
@@ -88,7 +93,8 @@ public /*abstract*/ class BidiClassifier {
      *         that there is no need to override the standard Bidi class for
      *         the given code point.
      * @see Bidi#CLASS_DEFAULT
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     public int classify(int c) {
         return Bidi.CLASS_DEFAULT;

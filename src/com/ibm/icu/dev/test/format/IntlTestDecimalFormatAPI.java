@@ -1,7 +1,6 @@
-//##header
 /*****************************************************************************************
  *
- *   Copyright (C) 1996-2009, International Business Machines
+ *   Copyright (C) 1996-2004, International Business Machines
  *   Corporation and others.  All Rights Reserved.
  **/
 
@@ -19,7 +18,6 @@ package com.ibm.icu.dev.test.format;
 
 import com.ibm.icu.text.*;
 import com.ibm.icu.math.BigDecimal;
-import com.ibm.icu.math.MathContext;
 import java.util.Locale;
 import java.text.ParsePosition;
 import java.text.Format;
@@ -266,103 +264,6 @@ public class IntlTestDecimalFormatAPI extends com.ibm.icu.dev.test.TestFmwk
             errln("ERROR: toLocalizedPattern() result did not match pattern applied");
         }
     }
-
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
-    public void testJB6134()
-    {
-        DecimalFormat decfmt = new DecimalFormat();
-        StringBuffer buf = new StringBuffer();
-
-        FieldPosition fposByInt = new FieldPosition(NumberFormat.INTEGER_FIELD);
-        decfmt.format(123, buf, fposByInt);
-
-        buf.setLength(0);
-        FieldPosition fposByField = new FieldPosition(NumberFormat.Field.INTEGER);
-        decfmt.format(123, buf, fposByField);
-
-        if (fposByInt.getEndIndex() != fposByField.getEndIndex())
-        {
-            errln("ERROR: End index for integer field - fposByInt:" + fposByInt.getEndIndex() +
-                " / fposByField: " + fposByField.getEndIndex());
-        }
-    }
-//#endif
-
-    public void testJB4971()
-    {
-        DecimalFormat decfmt = new DecimalFormat();
-        MathContext resultICU;
-
-        MathContext comp1 = new MathContext(0, MathContext.PLAIN);
-        resultICU = decfmt.getMathContextICU();
-        if ((comp1.getDigits() != resultICU.getDigits()) ||
-            (comp1.getForm() != resultICU.getForm()) ||
-            (comp1.getLostDigits() != resultICU.getLostDigits()) ||
-            (comp1.getRoundingMode() != resultICU.getRoundingMode()))
-        {
-            errln("ERROR: Math context 1 not equal - result: " + resultICU.toString() +
-                " / expected: " + comp1.toString());
-        }
-
-        MathContext comp2 = new MathContext(5, MathContext.ENGINEERING);
-        decfmt.setMathContextICU(comp2);
-        resultICU = decfmt.getMathContextICU();
-        if ((comp2.getDigits() != resultICU.getDigits()) ||
-            (comp2.getForm() != resultICU.getForm()) ||
-            (comp2.getLostDigits() != resultICU.getLostDigits()) ||
-            (comp2.getRoundingMode() != resultICU.getRoundingMode()))
-        {
-            errln("ERROR: Math context 2 not equal - result: " + resultICU.toString() +
-                " / expected: " + comp2.toString());
-        }
-
-//#if defined(FOUNDATION10) || defined(J2SE13) || defined(J2SE14)
-//#else
-
-        java.math.MathContext result;
-
-        java.math.MathContext comp3 = new java.math.MathContext(3, java.math.RoundingMode.DOWN);
-        decfmt.setMathContext(comp3);
-        result = decfmt.getMathContext();
-        if ((comp3.getPrecision() != result.getPrecision()) ||
-            (comp3.getRoundingMode() != result.getRoundingMode()))
-        {
-            errln("ERROR: Math context 3 not equal - result: " + result.toString() +
-                " / expected: " + comp3.toString());
-        }
-
-//#endif
-
-    }
-
-    public void testJB6354()
-    {
-        DecimalFormat pat = new DecimalFormat("#,##0.00");
-
-        // get default rounding increment
-//#if defined(FOUNDATION10)
-//##        com.ibm.icu.math.BigDecimal r1 = pat.getRoundingIncrement();
-//#else
-        java.math.BigDecimal r1 = pat.getRoundingIncrement();
-//#endif
-
-        // set rounding mode with zero increment.  Rounding 
-        // increment should be set by this operation
-        pat.setRoundingMode(BigDecimal.ROUND_UP);
-//#if defined(FOUNDATION10)
-//##        com.ibm.icu.math.BigDecimal r2 = pat.getRoundingIncrement();
-//#else
-        java.math.BigDecimal r2 = pat.getRoundingIncrement();
-//#endif
-
-        // check for different values
-        if ((r1 != null) && (r2 != null))
-        {
-            if (r1.compareTo(r2) == 0)
-            {
-                errln("ERROR: Rounding increment did not change");
-            }
-        }
-    }
 }
+
+

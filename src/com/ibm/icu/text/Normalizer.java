@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2000-2009, International Business Machines Corporation and    *
+ * Copyright (C) 2000-2008, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -29,16 +29,16 @@ import com.ibm.icu.impl.Utility;
  * In Unicode, this can be encoded as a single character (the
  * "composed" form):
  *
- * <pre>
+ * <p>
  *      00C1    LATIN CAPITAL LETTER A WITH ACUTE
- * </pre>
+ * </p>
  *
  * or as two separate characters (the "decomposed" form):
  *
- * <pre>
+ * <p>
  *      0041    LATIN CAPITAL LETTER A
  *      0301    COMBINING ACUTE ACCENT
- * </pre>
+ * </p>
  *
  * To a user of your program, however, both of these sequences should be
  * treated as the same "user-level" character "A with acute accent".  When you 
@@ -50,17 +50,17 @@ import com.ibm.icu.impl.Utility;
  *
  * Similarly, the string "ffi" can be encoded as three separate letters:
  *
- * <pre>
+ * <p>
  *      0066    LATIN SMALL LETTER F
  *      0066    LATIN SMALL LETTER F
  *      0069    LATIN SMALL LETTER I
- * </pre>
+ * <\p>
  *
  * or as the single character
  *
- * <pre>
+ * <p>
  *      FB03    LATIN SMALL LIGATURE FFI
- * </pre>
+ * <\p>
  *
  * The ffi ligature is not a distinct semantic character, and strictly speaking
  * it shouldn't be in Unicode at all, but it was included for compatibility

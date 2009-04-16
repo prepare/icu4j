@@ -223,8 +223,8 @@ class TransliteratorParser {
             int i = start;
             while (i < limit) {
                 char c = text.charAt(i);
-                if ((i==start && !UCharacter.isUnicodeIdentifierStart(c)) ||
-                    !UCharacter.isUnicodeIdentifierPart(c)) {
+                if ((i==start && !Character.isUnicodeIdentifierStart(c)) ||
+                    !Character.isUnicodeIdentifierPart(c)) {
                     break;
                 }
                 ++i;

@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 2006-2009, International Business Machines Corporation and    *
+* Copyright (C) 2006-2008, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 *
@@ -835,8 +835,7 @@ public class TestCharset extends TestFmwk {
         
         outer: for (int conv=0; conv<converters.length; conv++) {
             String converter = (String)converters[conv];
-            if (converter.equals("x-IMAP-mailbox-name") || converter.equals("UTF-7") || converter.equals("CESU-8") || converter.equals("BOCU-1") ||
-                    converter.equals("x-LMBCS-1")) {
+            if (converter.equals("x-IMAP-mailbox-name") || converter.equals("UTF-7") || converter.equals("CESU-8") || converter.equals("BOCU-1")) {
                 exempt.add(converter);
                 continue;
             }
@@ -3433,8 +3432,8 @@ public class TestCharset extends TestFmwk {
         ccus.clear();
         
         //test ascii overflow buffer
-        ccus.put((char)0x0A); ccus.put((char)0x0043);
-        ccbs.put((byte)0x00); ccbs.put((byte)0x00);
+        ccus.put((char)0x0A);
+        ccbs.put((byte)0x00);
         
         ccus.limit(ccus.position());
         ccus.position(0);
@@ -4808,6 +4807,21 @@ public class TestCharset extends TestFmwk {
         
         if (!result.isOverflow()) {
             errln("Overflow buffer while decoding ISO-2022-KR should have occurred.");
+        }
+        
+        /* This is part of the ambiguous converter test in ICU4C and is used here to provide
+         * better code coverage.
+         */
+        byte [] bytearray2 = {
+                0x61, 0x5b, 0x5c
+        };
+        
+        bb = ByteBuffer.wrap(bytearray2);
+        cb = CharBuffer.allocate(20);
+        
+        result = decoder.decode(bb, cb, true);
+        if (!result.isMalformed()) {
+            errln("Malformed error while decoding ISO-2022-KR should have occurred.");
         }
     }
     

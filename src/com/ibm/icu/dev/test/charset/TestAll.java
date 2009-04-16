@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 2009, International Business Machines Corporation and    *
+* Copyright (C) 2008, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 *
@@ -23,8 +23,7 @@ public class TestAll extends TestGroup {
         super(
               new String[] {
                   "TestCharset",
-                  "TestConversion",
-                  "TestSelection"
+                  "TestConversion"
               },
               "All ICU Charset Tests"
               );

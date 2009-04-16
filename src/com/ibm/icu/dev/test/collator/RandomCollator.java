@@ -1,9 +1,9 @@
-//##header
+//##header J2SE15
 //#if defined(FOUNDATION10) || defined(J2SE13)
 //#else
 /*
  *******************************************************************************
- * Copyright (C) 2002-2009, International Business Machines Corporation and    *
+ * Copyright (C) 2002-2007, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -53,6 +53,7 @@ public class RandomCollator extends TestFmwk {
 //            System.out.println("\nTestRandom skipped for 2003");
 //            return;
 //        }
+        if(skipIfBeforeICU(3,7,1)) return;
         //String fileName;
         PrintWriter pw = BagFormatter.openUTF8Writer(System.getProperty("user.dir")+File.separator, "RandomCollationTestLog.txt");
         TestCollator tc = new TestCollator(chars);

@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 2006-2009, International Business Machines Corporation and    *
+* Copyright (C) 2006-2008, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 *
@@ -62,7 +62,8 @@ public abstract class CharsetICU extends Charset{
     // typedef enum UConverterUnicodeSet {
      /** 
       * Parameter that select the set of roundtrippable Unicode code points. 
-      * @stable ICU 4.0
+      * @draft ICU 4.0
+      * @provisional This API might change or be removed in a future release.
       */
       public static final int ROUNDTRIP_SET=0; 
       /**
@@ -108,7 +109,20 @@ public abstract class CharsetICU extends Charset{
     }
     private static final HashMap algorithmicCharsets = new HashMap();
     static{
-        algorithmicCharsets.put("LMBCS-1",               "com.ibm.icu.charset.CharsetLMBCS");
+        /*
+        algorithmicCharsets.put("lmbcs1",                "com.ibm.icu.charset.CharsetLMBCS1" );
+        algorithmicCharsets.put("lmbcs11",               "com.ibm.icu.charset.CharsetLMBCS11" );
+        algorithmicCharsets.put("lmbcs16",               "com.ibm.icu.charset.CharsetLMBCS16" );
+        algorithmicCharsets.put("lmbcs17",               "com.ibm.icu.charset.CharsetLMBCS17" );
+        algorithmicCharsets.put("lmbcs18",               "com.ibm.icu.charset.CharsetLMBCS18" );
+        algorithmicCharsets.put("lmbcs19",               "com.ibm.icu.charset.CharsetLMBCS19" );
+        algorithmicCharsets.put("lmbcs2",                "com.ibm.icu.charset.CharsetLMBCS2" );
+        algorithmicCharsets.put("lmbcs3",                "com.ibm.icu.charset.CharsetLMBCS3" );
+        algorithmicCharsets.put("lmbcs4",                "com.ibm.icu.charset.CharsetLMBCS4" );
+        algorithmicCharsets.put("lmbcs5",                "com.ibm.icu.charset.CharsetLMBCS5" );
+        algorithmicCharsets.put("lmbcs6",                "com.ibm.icu.charset.CharsetLMBCS6" );
+        algorithmicCharsets.put("lmbcs8",                "com.ibm.icu.charset.CharsetLMBCS8" );
+        */
         algorithmicCharsets.put("BOCU-1",                "com.ibm.icu.charset.CharsetBOCU1" );
         algorithmicCharsets.put("SCSU",                  "com.ibm.icu.charset.CharsetSCSU" ); 
         algorithmicCharsets.put("US-ASCII",              "com.ibm.icu.charset.CharsetASCII" );
@@ -347,7 +361,8 @@ public abstract class CharsetICU extends Charset{
     *                   the converter's specific set is filled in.
     * @param which A selector; currently ROUNDTRIP_SET is the only supported value.
     * @throws IllegalArgumentException if the parameters does not match.              
-    * @stable ICU 4.0
+    * @draft ICU 4.0
+    * @provisional This API might change or be removed in a future release.
     */
        public void getUnicodeSet(UnicodeSet setFillIn, int which){
            if( setFillIn == null || which != ROUNDTRIP_SET ){

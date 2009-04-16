@@ -1,7 +1,7 @@
-//##header
+//##header J2SE15
 /*
  ********************************************************************************
- * Copyright (C) 2006-2009, Google, International Business Machines Corporation *
+ * Copyright (C) 2006-2008, Google, International Business Machines Corporation *
  * and others. All Rights Reserved.                                             *
  ********************************************************************************
  */
@@ -95,7 +95,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
     // debugging flags
     //static boolean SHOW_DISTANCE = false;
     // TODO add hack to fix months for CJK, as per bug ticket 1099
-
+    
     /**
      * Create empty generator, to be constructed with add(...) etc.
      * @stable ICU 3.6
@@ -103,14 +103,14 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
     public static DateTimePatternGenerator getEmptyInstance() {
         return new DateTimePatternGenerator();
     }
-
+    
     /**
      * Only for use by subclasses
      * @stable ICU 3.6
      */
-    protected DateTimePatternGenerator() {
+    protected DateTimePatternGenerator() {         
     }
-
+    
     /**
      * Construct a flexible generator according to data for a given locale.
      * @stable ICU 3.6
@@ -118,7 +118,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
     public static DateTimePatternGenerator getInstance() {
         return getInstance(ULocale.getDefault());
     }
-
+    
     /**
      * Construct a flexible generator according to data for a given locale.
      * @param uLocale
@@ -136,33 +136,16 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
           result.chineseMonthHack = true;
         }
         PatternInfo returnInfo = new PatternInfo();
-        String shortTimePattern = null;
+        String hackPattern = null;
         // first load with the ICU patterns
         for (int i = DateFormat.FULL; i <= DateFormat.SHORT; ++i) {
             SimpleDateFormat df = (SimpleDateFormat) DateFormat.getDateInstance(i, uLocale);
             result.addPattern(df.toPattern(), false, returnInfo);
             df = (SimpleDateFormat) DateFormat.getTimeInstance(i, uLocale);
             result.addPattern(df.toPattern(), false, returnInfo);
-            if (i == DateFormat.SHORT) {
-                // keep this pattern to populate other time field
-                // combination patterns by hackTimes later in this method.
-                shortTimePattern = df.toPattern();
-
-                // use hour style in SHORT time pattern as the default
-                // hour style for the locale
-                FormatParser fp = new FormatParser();
-                fp.set(shortTimePattern);
-                List items = fp.getItems();
-                for (int idx = 0; idx < items.size(); idx++) {
-                    Object item = items.get(idx);
-                    if (item instanceof VariableField) {
-                        VariableField fld = (VariableField)item;
-                        if (fld.getType() == HOUR) {
-                            result.defaultHourFormatChar = fld.toString().charAt(0);
-                            break;
-                        }
-                    }
-                }
+            // HACK for hh:ss
+            if (i == DateFormat.MEDIUM) {
+                hackPattern = df.toPattern();
             }
         }
 
@@ -170,7 +153,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         rb = rb.getWithFallback("calendar");
         ICUResourceBundle gregorianBundle = rb.getWithFallback("gregorian");
         // CLDR item formats
-
+        
         ICUResourceBundle itemBundle = gregorianBundle.getWithFallback("appendItems");
         for (int i=0; i<itemBundle.getSize(); ++i) {
             ICUResourceBundle formatBundle = (ICUResourceBundle)itemBundle.get(i);
@@ -178,7 +161,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
             String value = formatBundle.getString();
             result.setAppendItemFormat(getAppendFormatNumber(formatName), value);
         }
-
+        
         // CLDR item names
         itemBundle = gregorianBundle.getWithFallback("fields");
         ICUResourceBundle fieldBundle, dnBundle;
@@ -191,7 +174,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
                 result.setAppendItemName(i, value);
             }
         }
-
+          
         // set the AvailableFormat in CLDR
         try {
            ICUResourceBundle formatBundle =  gregorianBundle.getWithFallback("availableFormats");
@@ -205,7 +188,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
            } 
         }catch(Exception e) {
         }
-
+       
         ULocale parentLocale=uLocale;
         while ( (parentLocale=parentLocale.getFallback()) != null) {
             ICUResourceBundle prb = (ICUResourceBundle) UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, parentLocale);
@@ -227,28 +210,28 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
               
              }catch(Exception e) {
              }
-
+             
         }
         
         // assume it is always big endian (ok for CLDR right now)
         // some languages didn't add mm:ss or HH:mm, so put in a hack to compute that from the short time.
-        if (shortTimePattern != null) {
-            hackTimes(result, returnInfo, shortTimePattern);
+        if (hackPattern != null) {
+            hackTimes(result, returnInfo, hackPattern);
         }
-
+        
         // set the datetime pattern. This is ugly code -- there should be a public interface for this
         Calendar cal = Calendar.getInstance(uLocale);
         CalendarData calData = new CalendarData(uLocale, cal.getType());
-        String[] patterns = calData.getDateTimePatterns();
+        String[] patterns = calData.get("DateTimePatterns").getStringArray();
         result.setDateTimeFormat(patterns[8]);
-
+        
         // decimal point for seconds
         DecimalFormatSymbols dfs = new DecimalFormatSymbols(uLocale);
         result.setDecimal(String.valueOf(dfs.getDecimalSeparator()));
         DTPNG_CACHE.put(localeKey, result);
         return result;
     }
-
+    
     private static void hackTimes(DateTimePatternGenerator result, PatternInfo returnInfo, String hackPattern) {
         result.fp.set(hackPattern);
         String mmss = new String();
@@ -298,7 +281,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         String hhmm = getFilteredPattern(result.fp, nuke);
         result.addPattern(hhmm, false, returnInfo);
     }
-
+    
     private static String getFilteredPattern(FormatParser fp, BitSet nuke) {
         String result = new String();
         for (int i = 0; i < fp.items.size(); ++i) {
@@ -312,14 +295,14 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         }
         return result;
     }
-
+    
     /*private static int getAppendNameNumber(String string) {
         for (int i = 0; i < CLDR_FIELD_NAME.length; ++i) {
             if (CLDR_FIELD_NAME[i].equals(string)) return i;
         }
         return -1;
     }*/
-
+    
     private static int getAppendFormatNumber(String string) {
         for (int i = 0; i < CLDR_FIELD_APPEND.length; ++i) {
             if (CLDR_FIELD_APPEND[i].equals(string)) return i;
@@ -339,8 +322,8 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
             return true;
         }
     }
-
-
+    
+    
     /**
      * Return the best pattern matching the input skeleton. It is guaranteed to
      * have all of the fields in the skeleton.
@@ -351,7 +334,6 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
      * @stable ICU 3.6
      */
     public String getBestPattern(String skeleton) {
-        //if (!isComplete) complete();
         if (chineseMonthHack) {
 //#if defined(FOUNDATION10) || defined(J2SE13)
 //##            int monidx = skeleton.indexOf("MMM");
@@ -372,10 +354,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
             skeleton = skeleton.replaceAll("MMM+", "MM");
 //#endif
         }
-        // if skeleton contains meta hour field 'j', then
-        // replace it with the default hour format char
-        skeleton = Utility.replaceAll(skeleton, "j", String.valueOf(defaultHourFormatChar));
-
+        //if (!isComplete) complete();
         current.set(skeleton, fp);
         String best = getBestRaw(current, -1, _distanceInfo);
         if (_distanceInfo.missingFieldMask == 0 && _distanceInfo.extraFieldMask == 0) {
@@ -391,7 +370,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         if (timePattern == null) return datePattern;
         return MessageFormat.format(getDateTimeFormat(), new Object[]{timePattern, datePattern});
     }
-
+    
     /**
      * PatternInfo supplies output parameters for add(...). It is used because
      * Java doesn't have real output parameters. It is treated like a struct (eg
@@ -404,27 +383,27 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
          * @stable ICU 3.6
          */
         public static final int OK = 0;
-
+        
         /**
          * @stable ICU 3.6
          */
         public static final int BASE_CONFLICT = 1;
-
+        
         /**
          * @stable ICU 3.6
          */
         public static final int CONFLICT = 2;
-
+        
         /**
          * @stable ICU 3.6
          */
         public int status;
-
+        
         /**
          * @stable ICU 3.6
          */
         public String conflictingPattern;
-
+        
         /**
          * Simple constructor, since this is treated like a struct.
          * @stable ICU 3.6
@@ -504,7 +483,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
             return current.getBasePattern();
         }
     }
-
+    
     /**
      * Return a list of all the skeletons (in canonical form) from this class,
      * and the patterns that they map to.
@@ -537,7 +516,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         }
         return result;
     }
-
+    
     /**
      * Return a list of all the base skeletons (in canonical form) from this class
      * @stable ICU 3.6
@@ -547,7 +526,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         result.addAll(basePattern_pattern.keySet());
         return result;
     }
-
+    
     /**
      * Adjusts the field types (width and subtype) of a pattern to match what is
      * in a skeleton. That is, if you supply a pattern like "d-M H:m", and a
@@ -567,7 +546,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
             return adjustFieldTypes(pattern, current.set(skeleton, fp), false);
         }
     }
-
+    
     /**
      * The date time format is a message format pattern used to compose date and
      * time patterns. The default value is "{0} {1}", where {0} will be replaced
@@ -591,7 +570,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         checkFrozen();
         this.dateTimeFormat = dateTimeFormat;
     }
-
+    
     /**
      * Getter corresponding to setDateTimeFormat.
      * 
@@ -601,7 +580,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
     public String getDateTimeFormat() {
         return dateTimeFormat;
     }
-
+    
     /**
      * The decimal value is used in formatting fractions of seconds. If the
      * skeleton contains fractional seconds, then this is used with the
@@ -617,7 +596,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         checkFrozen();
         this.decimal = decimal;
     }
-
+    
     /**
      * Getter corresponding to setDecimal.
      * @return string corresponding to the decimal point
@@ -626,7 +605,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
     public String getDecimal() {
         return decimal;
     }
-
+    
     /**
      * Redundant patterns are those which if removed, make no difference in the
      * resulting getBestPattern values. This method returns a list of them, to
@@ -678,10 +657,10 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
             return output;
         }
     }
-
+    
     // Field numbers, used for AppendItem functions
-
-    /**
+    
+    /** 
      * @stable ICU 3.6
      */
     static final public int ERA = 0;
@@ -690,82 +669,82 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
      * @stable ICU 3.6
      */
     static final public int YEAR = 1; 
-
+    
     /**
      * @stable ICU 3.6
      */
     static final public int QUARTER = 2; 
-
+    
     /**
      * @stable ICU 3.6
      */
     static final public int MONTH = 3;
-
+    
     /**
      * @stable ICU 3.6
      */
     static final public int WEEK_OF_YEAR = 4; 
-
+    
     /**
      * @stable ICU 3.6
      */
     static final public int WEEK_OF_MONTH = 5; 
-
+    
     /**
      * @stable ICU 3.6
      */
     static final public int WEEKDAY = 6; 
-
+    
     /**
      * @stable ICU 3.6
      */
     static final public int DAY = 7;
-
+    
     /**
      * @stable ICU 3.6
      */
     static final public int DAY_OF_YEAR = 8; 
-
+    
     /**
      * @stable ICU 3.6
      */
     static final public int DAY_OF_WEEK_IN_MONTH = 9; 
-
+    
     /**
      * @stable ICU 3.6
      */
     static final public int DAYPERIOD = 10;
-
+    
     /**
      * @stable ICU 3.6
      */
     static final public int HOUR = 11; 
-
+    
     /**
      * @stable ICU 3.6
      */
     static final public int MINUTE = 12; 
-
+    
     /**
      * @stable ICU 3.6
      */
     static final public int SECOND = 13; 
-
+    
     /**
      * @stable ICU 3.6
      */
     static final public int FRACTIONAL_SECOND = 14;
-
+    
     /**
      * @stable ICU 3.6
      */
     static final public int ZONE = 15; 
-
+    
     /**
      * @stable ICU 3.6
      */
     static final public int TYPE_LIMIT = 16;
-
+    
     /**
      * An AppendItem format is a pattern used to append a field if there is no
      * good match. For example, suppose that the input skeleton is "GyyyyMMMd",
@@ -790,7 +769,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         checkFrozen();
         appendItemFormats[field] = value;
     }
-
+    
     /**
      * Getter corresponding to setAppendItemFormats. Values below 0 or at or
      * above TYPE_LIMIT are illegal arguments.
@@ -802,7 +781,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
     public String getAppendItemFormat(int field) {
         return appendItemFormats[field];
     }
-
+    
     /**
      * Sets the names of fields, eg "era" in English for ERA. These are only
      * used if the corresponding AppendItemFormat is used, and if it contains a
@@ -818,7 +797,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         checkFrozen();
         appendItemNames[field] = value;
     }
-
+    
     /**
      * Getter corresponding to setAppendItemNames. Values below 0 or at or above
      * TYPE_LIMIT are illegal arguments.
@@ -830,7 +809,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
     public String getAppendItemName(int field) {
         return appendItemNames[field];
     }
-
+    
     /**
      * Determines whether a skeleton contains a single field
      * 
@@ -846,7 +825,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         }
         return true;
     }
-
+    
      /**
      * Add key to HashSet cldrAvailableFormatKeys.
      * 
@@ -857,7 +836,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         checkFrozen();
         cldrAvailableFormatKeys.add(key);
     }
-
+    
     /**
      * This function checks the corresponding slot of CLDR_AVAIL_FORMAT_KEY[]
      * has been added to DateTimePatternGenerator.
@@ -880,7 +859,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
     public boolean isFrozen() {
         return frozen;
     }
-
+    
     /**
      * Boilerplate for Freezable
      * @stable ICU 3.6
@@ -889,7 +868,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         frozen = true;
         return this;
     }
-
+    
     /**
      * Boilerplate for Freezable
      * @stable ICU 3.6
@@ -899,7 +878,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         frozen = false;
         return result;
     }
-
+    
     /**
      * Boilerplate
      * @stable ICU 3.6
@@ -921,7 +900,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
             throw new IllegalArgumentException("Internal Error");
         }
     }
-
+    
     /**
      * Utility class for FormatParser. Immutable class that is only used to mark
      * the difference between a variable field and a literal string. Each
@@ -935,7 +914,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
     public static class VariableField {
         private final String string;
         private final int canonicalIndex;
-
+        
         /**
          * Create a variable field: equivalent to VariableField(string,false);
          * @param string
@@ -961,7 +940,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
             }
             this.string = string;
         }
-
+        
         /**
          * Get the main type of this variable. These types are ERA, QUARTER,
          * MONTH, DAY, WEEK_OF_YEAR, WEEK_OF_MONTH, WEEKDAY, DAY, DAYPERIOD
@@ -973,7 +952,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         public int getType() {
             return types[canonicalIndex][1];
         }
-
+        
         /**
          * Private method.
          */
@@ -990,7 +969,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
             return string;
         }
     }
-
+    
     /**
      * This class provides mechanisms for parsing a SimpleDateFormat pattern
      * or generating a new pattern, while handling the quoting. It represents
@@ -1043,7 +1022,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         final public FormatParser set(String string) {
             return set(string, false);
         }
-
+        
         /**
          * Parses the string into a list of items, taking into account all of the quoting that may be going on.
          * @param string
@@ -1075,14 +1054,14 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
             addVariable(variable, false);
             return this;
         }
-
+        
         private void addVariable(StringBuffer variable, boolean strict) {
             if (variable.length() != 0) {
                 items.add(new VariableField(variable.toString(), strict));
                 variable.setLength(0);
             }
         }
-
+        
 //        /** Private method. Return a collection of fields. These will be a mixture of literal Strings and VariableFields. Any "a" variable field is removed.
 //         * @param output List to append the items to. If null, is allocated as an ArrayList.
 //         * @return list
@@ -1104,7 +1083,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
 //            //System.out.println(output);
 //            return output;
 //        }
-
+        
 //        /**
 //         * Produce a string which concatenates all the variables. That is, it is the logically the same as the input with all literals removed.
 //         * @return a string which is a concatenation of all the variable fields
@@ -1120,7 +1099,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
 //            }
 //            return result.toString();
 //        }
-
+        
         /**
          * Returns modifiable list which is a mixture of Strings and VariableFields, in the order found during parsing. The strings represent literals, and have all quoting removed. Thus the string "dd 'de' MM" will parse into three items:
          * <pre>
@@ -1136,7 +1115,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         public List getItems() {
             return items;
         }
-
+        
         /** Provide display form of formatted input. Each literal string is quoted if necessary.. That is, if the input was "hh':'mm", the result would be "hh:mm", since the ":" doesn't need quoting. See quoteLiteral().
          * @return printable output string
          * @internal
@@ -1145,7 +1124,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         public String toString() {
             return toString(0, items.size());
         }
-
+        
         /**
          * Provide display form of a segment of the parsed input. Each literal string is minimally quoted. That is, if the input was "hh':'mm", the result would be "hh:mm", since the ":" doesn't need quoting. See quoteLiteral().
          * @param start item to start from
@@ -1167,7 +1146,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
             }
             return result.toString();
         }
-
+        
         /**
          * Returns true if it has a mixture of date and time variable fields: that is, at least one date variable and at least one time variable.
          * @return true or false
@@ -1187,7 +1166,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
             boolean isTime = (foundMask & TIME_MASK) != 0;
             return isDate && isTime;
         }
-
+        
 //        /**
 //         * Internal routine
 //         * @param value
@@ -1264,7 +1243,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
 //                    break;
 //                }
 //            }
-//
+//            
 //            return result;
 //        }
         
@@ -1291,10 +1270,10 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         public Object quoteLiteral(String string) {
             return tokenizer.quoteLiteral(string);
         }
-
+        
     }
     // ========= PRIVATES ============
-
+    
     private TreeMap skeleton2pattern = new TreeMap(); // items are in priority order
     private TreeMap basePattern_pattern = new TreeMap(); // items are in priority order
     private String decimal = "?";
@@ -1307,29 +1286,28 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
             appendItemNames[i] = "F" + i;
         }
     }
-    private char defaultHourFormatChar = 'H';
-    private boolean chineseMonthHack = false;
-    //private boolean isComplete = false;
-    private boolean frozen = false;
-
+    
     private transient DateTimeMatcher current = new DateTimeMatcher();
     private transient FormatParser fp = new FormatParser();
     private transient DistanceInfo _distanceInfo = new DistanceInfo();
+    //private transient boolean isComplete = false;
     private transient DateTimeMatcher skipMatcher = null; // only used temporarily, for internal purposes
-
-
+    private transient boolean frozen = false;
+    
+    private transient boolean chineseMonthHack = false;
+    
     private static final int FRACTIONAL_MASK = 1<<FRACTIONAL_SECOND;
     private static final int SECOND_AND_FRACTIONAL_MASK = (1<<SECOND) | (1<<FRACTIONAL_SECOND);
 
     // Cache for DateTimePatternGenerator
     private static ICUCache DTPNG_CACHE = new SimpleCache();
-
+    
     private void checkFrozen() {
         if (isFrozen()) {
             throw new UnsupportedOperationException("Attempt to modify frozen object");
         }
     }
-
+    
     /**
      * We only get called here if we failed to find an exact skeleton. We have broken it into date + time, and look for the pieces.
      * If we fail to find a complete skeleton, we compose in a loop until we have all the fields.
@@ -1339,7 +1317,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         if (missingFields != 0) {
             resultPattern = getBestRaw(current, missingFields, _distanceInfo);
             resultPattern = adjustFieldTypes(resultPattern, current, false);
-
+            
             while (_distanceInfo.missingFieldMask != 0) { // precondition: EVERY single field must work!
                 
                 // special hack for SSS. If we are missing SSS, and we had ss but found it, replace the s field according to the 
@@ -1350,7 +1328,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
                     _distanceInfo.missingFieldMask &= ~FRACTIONAL_MASK; // remove bit
                     continue;
                 }
-
+                
                 int startingMask = _distanceInfo.missingFieldMask;
                 String temp = getBestRaw(current, _distanceInfo.missingFieldMask, _distanceInfo);
                 temp = adjustFieldTypes(temp, current, false);
@@ -1361,14 +1339,14 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         }
         return resultPattern;
     }
-
+    
     private String getAppendName(int foundMask) {
         return "'" + appendItemNames[foundMask] + "'";
     }
     private String getAppendFormat(int foundMask) {
         return appendItemFormats[foundMask];
     }
-
+    
 //    /**
 //     * @param current2
 //     * @return
@@ -1377,7 +1355,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
 //        // TODO Auto-generated method stub
 //        return null;
 //    }
-
+    
     /**
      * @param foundMask
      * @return
@@ -1390,7 +1368,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         }
         return i-1;
     }
-
+    
     /**
      * 
      */
@@ -1406,7 +1384,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
     {
         complete();
     }
-
+    
     /**
      * 
      */
@@ -1431,7 +1409,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         }
         return bestPattern;
     }
-
+    
     /**
      * @param fixFractionalSeconds TODO
      * 
@@ -1473,7 +1451,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         //if (SHOW_DISTANCE) System.out.println("\tRaw: " + pattern);
         return newPattern.toString();
     }
-
+    
 //  public static String repeat(String s, int count) {
 //  StringBuffer result = new StringBuffer();
 //  for (int i = 0; i < count; ++i) {
@@ -1481,7 +1459,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
 //  }
 //  return result.toString();
 //  }
-
+    
     /**
      * internal routine
      * @param pattern
@@ -1502,7 +1480,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         }
         return newPattern.toString();
     }
-
+    
     private static String showMask(int mask) {
         String result = "";
         for (int i = 0; i < TYPE_LIMIT; ++i) {
@@ -1512,39 +1490,39 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         }
         return result;
     }
-
+    
     static private String[] CLDR_FIELD_APPEND = {
         "Era", "Year", "Quarter", "Month", "Week", "*", "Day-Of-Week", 
         "Day", "*", "*", "*", 
         "Hour", "Minute", "Second", "*", "Timezone"
     };
-
+    
     static private String[] CLDR_FIELD_NAME = {
         "era", "year", "*", "month", "week", "*", "weekday", 
         "day", "*", "*", "dayperiod", 
         "hour", "minute", "second", "*", "zone"
     };
-
+    
     static private String[] FIELD_NAME = {
         "Era", "Year", "Quarter", "Month", "Week_in_Year", "Week_in_Month", "Weekday", 
         "Day", "Day_Of_Year", "Day_of_Week_in_Month", "Dayperiod", 
         "Hour", "Minute", "Second", "Fractional_Second", "Zone"
     };
-
-
+    
+    
     static private String[] CANONICAL_ITEMS = {
         "G", "y", "Q", "M", "w", "W", "e", 
         "d", "D", "F", 
         "H", "m", "s", "S", "v"
     };
-
+    
     static private Set CANONICAL_SET = new HashSet(Arrays.asList(CANONICAL_ITEMS));
     private Set cldrAvailableFormatKeys = new HashSet(20);
-
+    
     static final private int 
     DATE_MASK = (1<<DAYPERIOD) - 1,
     TIME_MASK = (1<<TYPE_LIMIT) - 1 - DATE_MASK;
-
+    
     static final private int // numbers are chosen to express 'distance'
     DELTA = 0x10,
     NUMERIC = 0x100,
@@ -1554,8 +1532,8 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
     LONG = -0x103,
     EXTRA_FIELD =   0x10000,
     MISSING_FIELD = 0x1000;
-
-
+    
+    
     static private String getName(String s) {
         int i = getCanonicalIndex(s, true);
         String name = FIELD_NAME[types[i][1]];
@@ -1566,7 +1544,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         else name += ":N";
         return name;
     }
-
+    
     /**
      * Get the canonical index, or return -1 if illegal.
      * @param s
@@ -1596,18 +1574,18 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         }
         return strict ? -1 : bestRow;
     }
-
+    
     static private int[][] types = {
         // the order here makes a difference only when searching for single field.
         // format is:
         // pattern character, main type, weight, min length, weight
         {'G', ERA, SHORT, 1, 3},
         {'G', ERA, LONG, 4},
-
+        
         {'y', YEAR, NUMERIC, 1, 20},
         {'Y', YEAR, NUMERIC + DELTA, 1, 20},
         {'u', YEAR, NUMERIC + 2*DELTA, 1, 20},
-
+        
         {'Q', QUARTER, NUMERIC, 1, 2},
         {'Q', QUARTER, SHORT, 3},
         {'Q', QUARTER, LONG, 4},
@@ -1615,7 +1593,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         {'q', QUARTER, NUMERIC + DELTA, 1, 2},
         {'q', QUARTER, SHORT + DELTA, 3},
         {'q', QUARTER, LONG + DELTA, 4},
-
+        
         {'M', MONTH, NUMERIC, 1, 2},
         {'M', MONTH, SHORT, 3},
         {'M', MONTH, LONG, 4},
@@ -1624,10 +1602,10 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         {'L', MONTH, SHORT - DELTA, 3},
         {'L', MONTH, LONG - DELTA, 4},
         {'L', MONTH, NARROW - DELTA, 5},
-
+        
         {'w', WEEK_OF_YEAR, NUMERIC, 1, 2},
         {'W', WEEK_OF_MONTH, NUMERIC + DELTA, 1},
-
+        
         {'e', WEEKDAY, NUMERIC + DELTA, 1, 2},
         {'e', WEEKDAY, SHORT - DELTA, 3},
         {'e', WEEKDAY, LONG - DELTA, 4},
@@ -1639,25 +1617,26 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         {'c', WEEKDAY, SHORT - 2*DELTA, 3},
         {'c', WEEKDAY, LONG - 2*DELTA, 4},
         {'c', WEEKDAY, NARROW - 2*DELTA, 5},
-
+        
         {'d', DAY, NUMERIC, 1, 2},
         {'D', DAY_OF_YEAR, NUMERIC + DELTA, 1, 3},
         {'F', DAY_OF_WEEK_IN_MONTH, NUMERIC + 2*DELTA, 1},
         {'g', DAY, NUMERIC + 3*DELTA, 1, 20}, // really internal use, so we don't care
-
+        
         {'a', DAYPERIOD, SHORT, 1},
-
+        
         {'H', HOUR, NUMERIC + 10*DELTA, 1, 2}, // 24 hour
         {'k', HOUR, NUMERIC + 11*DELTA, 1, 2},
         {'h', HOUR, NUMERIC, 1, 2}, // 12 hour
         {'K', HOUR, NUMERIC + DELTA, 1, 2},
-
+        {'j', HOUR, NUMERIC + 20*DELTA, 1, 2},
+        
         {'m', MINUTE, NUMERIC, 1, 2},
-
+        
         {'s', SECOND, NUMERIC, 1, 2},
         {'S', FRACTIONAL_SECOND, NUMERIC + DELTA, 1, 1000},
         {'A', SECOND, NUMERIC + 2*DELTA, 1, 1000},
-
+        
         {'v', ZONE, SHORT - 2*DELTA, 1},
         {'v', ZONE, LONG - 2*DELTA, 4},
         {'z', ZONE, SHORT, 1, 3},
@@ -1667,16 +1646,16 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         {'V', ZONE, SHORT - DELTA, 1, 3},
         {'V', ZONE, LONG - DELTA, 4},
     };
-
+    
     private static class DateTimeMatcher implements Comparable {
         //private String pattern = null;
         private int[] type = new int[TYPE_LIMIT];
         private String[] original = new String[TYPE_LIMIT];
         private String[] baseOriginal = new String[TYPE_LIMIT];
-
+        
         // just for testing; fix to make multi-threaded later
         // private static FormatParser fp = new FormatParser();
-
+        
         public String toString() {
             StringBuffer result = new StringBuffer();
             for (int i = 0; i < TYPE_LIMIT; ++i) {
@@ -1684,7 +1663,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
             }
             return result.toString();
         }
-
+        
         String getBasePattern() {
             StringBuffer result = new StringBuffer();
             for (int i = 0; i < TYPE_LIMIT; ++i) {
@@ -1692,7 +1671,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
             }
             return result.toString();
         }
-
+        
         DateTimeMatcher set(String pattern, FormatParser fp) {
             for (int i = 0; i < TYPE_LIMIT; ++i) {
                 type[i] = NONE;
@@ -1727,7 +1706,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
                 baseOriginal[typeValue] = Utility.repeat(String.valueOf(repeatChar),repeatCount);
                 int subTypeValue = row[2];
                 if (subTypeValue > 0) subTypeValue += field.length();
-                type[typeValue] = subTypeValue;
+                type[typeValue] = (byte) subTypeValue;
             }
             return this;
         }
@@ -1742,7 +1721,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
             }
             return result;
         }
-
+        
         /**
          * 
          */
@@ -1757,7 +1736,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
                 }
             }
         }
-
+        
         int getDistance(DateTimeMatcher other, int includeMask, DistanceInfo distanceInfo) {
             int result = 0;
             distanceInfo.clear();
@@ -1777,7 +1756,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
             }
             return result;
         }
-
+        
         public int compareTo(Object o) {
             DateTimeMatcher that = (DateTimeMatcher) o;
             for (int i = 0; i < original.length; ++i) {
@@ -1785,8 +1764,8 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
                 if (comp != 0) return -comp;
             }
             return 0;
-        }
-
+        }       
+        
         public boolean equals(Object other) {
             if (other == null) return false;
             DateTimeMatcher that = (DateTimeMatcher) other;
@@ -1801,7 +1780,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
                 result ^= original[i].hashCode();
             }
             return result;
-        }
+        }       
     }
     
     private static class DistanceInfo {

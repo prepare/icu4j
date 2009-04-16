@@ -1,7 +1,7 @@
-//##header
+//##header J2SE15
 /*
  *******************************************************************************
- * Copyright (C) 1996-2009, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2008, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -1280,21 +1280,6 @@ public class UnicodeSet extends UnicodeFilter implements Freezable {
     }
 
     /**
-     * Remove all strings from this UnicodeSet
-     * @return this object, for chaining
-     * @draft ICU 4.2
-     * @provisional This API might change or be removed in a future release.
-     */
-    public final UnicodeSet removeAllStrings() {
-        checkFrozen();
-        if (strings.size() != 0) {
-            strings.clear();
-            pat = null;
-        }
-        return this;
-    }
-        
-    /**
      * Makes a set from a multicharacter string. Thus "ch" => {"ch"}
      * <br><b>Warning: you cannot add an empty string ("") to a UnicodeSet.</b>
      * @param s the source string
@@ -2255,10 +2240,8 @@ public class UnicodeSet extends UnicodeFilter implements Freezable {
      * @return an inversion list for the parsed substring
      * of <code>pattern</code>
      * @exception java.lang.IllegalArgumentException if the parse fails.
-     * @internal
-     * @deprecated - for internal use only
      */
-    public UnicodeSet applyPattern(String pattern,
+    UnicodeSet applyPattern(String pattern,
                       ParsePosition pos,
                       SymbolTable symbols,
                       int options) {

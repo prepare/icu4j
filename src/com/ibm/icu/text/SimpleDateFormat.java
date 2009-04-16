@@ -1,7 +1,7 @@
-//##header
+//##header J2SE15
 /*
  *******************************************************************************
- * Copyright (C) 1996-2009, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2008, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -12,12 +12,10 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.lang.ref.WeakReference;
-import java.lang.Character;
 import java.text.FieldPosition;
 import java.text.ParsePosition;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.MissingResourceException;
@@ -39,7 +37,6 @@ import com.ibm.icu.impl.ZoneStringFormat.ZoneStringInfo;
 import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.util.BasicTimeZone;
 import com.ibm.icu.util.Calendar;
-import com.ibm.icu.util.GregorianCalendar;
 import com.ibm.icu.util.TimeZone;
 import com.ibm.icu.util.TimeZoneTransition;
 import com.ibm.icu.util.ULocale;
@@ -178,7 +175,7 @@ import com.ibm.icu.util.ULocale;
  * "01/11/12" would be interpreted as Jan 11, 2012 while the string "05/04/64"
  * would be interpreted as May 4, 1964.
  * During parsing, only strings consisting of exactly two digits, as defined by
- * {@link com.ibm.icu.lang.UCharacter#isDigit(int)}, will be parsed into the default
+ * {@link java.lang.Character#isDigit(char)}, will be parsed into the default
  * century.
  * Any other numeric string, such as a one digit string, a three or more digit
  * string, or a two digit string that isn't all digits (for example, "-1"), is
@@ -304,25 +301,6 @@ public class SimpleDateFormat extends DateFormat {
     private String pattern;
 
     /**
-     * The override string of this formatter.  Used to override the
-     * numbering system for one or more fields.
-     * @serial
-     */
-    private String override;
-
-    /**
-     * The hash map used for number format overrides.
-     * @serial
-     */
-    private HashMap numberFormatters;
-
-    /**
-     * The hash map used for number format overrides.
-     * @serial
-     */
-    private HashMap overrideMap;
-
-    /**
      * The symbols used by this formatter for week names, month names,
      * etc.  May not be null.
      * @serial
@@ -376,7 +354,7 @@ public class SimpleDateFormat extends DateFormat {
      * @stable ICU 2.0
      */
     public SimpleDateFormat() {
-        this(getDefaultPattern(), null, null, null, null, true, null);
+        this(getDefaultPattern(), null, null, null, null, true);
     }
 
     /**
@@ -387,7 +365,7 @@ public class SimpleDateFormat extends DateFormat {
      */
     public SimpleDateFormat(String pattern)
     {
-        this(pattern, null, null, null, null, true, null);
+        this(pattern, null, null, null, null, true);
     }
 
     /**
@@ -398,7 +376,7 @@ public class SimpleDateFormat extends DateFormat {
      */
     public SimpleDateFormat(String pattern, Locale loc)
     {
-        this(pattern, null, null, null, ULocale.forLocale(loc), true, null);
+        this(pattern, null, null, null, ULocale.forLocale(loc), true);
     }
 
     /**
@@ -409,17 +387,7 @@ public class SimpleDateFormat extends DateFormat {
      */
     public SimpleDateFormat(String pattern, ULocale loc)
     {
-        this(pattern, null, null, null, loc, true, null);
-    }
-
-    /**
-     * Construct a SimpleDateFormat using the given pattern , override and locale.
-     * @draft ICU 4.2
-     * @provisional This API might change or be removed in a future release.
-     */
-    public SimpleDateFormat(String pattern, String override, ULocale loc)
-    {
-        this(pattern, null, null, null, loc, false,override);
+        this(pattern, null, null, null, loc, true);
     }
 
     /**
@@ -430,7 +398,7 @@ public class SimpleDateFormat extends DateFormat {
      */
     public SimpleDateFormat(String pattern, DateFormatSymbols formatData)
     {
-        this(pattern, (DateFormatSymbols)formatData.clone(), null, null, null, true, null);
+        this(pattern, (DateFormatSymbols)formatData.clone(), null, null, null, true);
     }
 
     /**
@@ -439,7 +407,7 @@ public class SimpleDateFormat extends DateFormat {
      */
     public SimpleDateFormat(String pattern, DateFormatSymbols formatData, ULocale loc)
     {
-        this(pattern, (DateFormatSymbols)formatData.clone(), null, null, loc, true,null);
+        this(pattern, (DateFormatSymbols)formatData.clone(), null, null, loc, true);
     }
 
     /**
@@ -449,27 +417,21 @@ public class SimpleDateFormat extends DateFormat {
      * TODO make this API public.
      */
     SimpleDateFormat(String pattern, DateFormatSymbols formatData, Calendar calendar, ULocale locale,
-                     boolean useFastFormat, String override) {
-        this(pattern, (DateFormatSymbols)formatData.clone(), (Calendar)calendar.clone(), null, locale, useFastFormat,override);
-    }
-
-    SimpleDateFormat(String pattern, DateFormatSymbols formatData, Calendar calendar, ULocale locale,
                      boolean useFastFormat) {
-        this(pattern, (DateFormatSymbols)formatData.clone(), (Calendar)calendar.clone(), null, locale, useFastFormat,null);
+        this(pattern, (DateFormatSymbols)formatData.clone(), (Calendar)calendar.clone(), null, locale, useFastFormat);
     }
 
     /*
      * The constructor called from all other SimpleDateFormat constructors
      */
     private SimpleDateFormat(String pattern, DateFormatSymbols formatData, Calendar calendar,
-            NumberFormat numberFormat, ULocale locale, boolean useFastFormat,String override) {
+            NumberFormat numberFormat, ULocale locale, boolean useFastFormat) {
         this.pattern = pattern;
         this.formatData = formatData;
         this.calendar = calendar;
         this.numberFormat = numberFormat;
         this.locale = locale; // time zone formatting
         this.useFastFormat = useFastFormat;
-        this.override = override;
         initialize();
     }
 
@@ -481,17 +443,12 @@ public class SimpleDateFormat extends DateFormat {
      * @deprecated This API is ICU internal only.
      */
     public static SimpleDateFormat getInstance(Calendar.FormatConfiguration formatConfig) {
-       
-        String ostr = formatConfig.getOverrideString();
-        boolean useFast = ( ostr != null && ostr.length() > 0 );
-
         return new SimpleDateFormat(formatConfig.getPatternString(),
                     formatConfig.getDateFormatSymbols(),
                     formatConfig.getCalendar(),
                     null,
                     formatConfig.getLocale(),
-                    useFast,
-                    formatConfig.getOverrideString());
+                    true);
     }
 
     /*
@@ -517,11 +474,6 @@ public class SimpleDateFormat extends DateFormat {
 
         setLocale(calendar.getLocale(ULocale.VALID_LOCALE ), calendar.getLocale(ULocale.ACTUAL_LOCALE));
         initLocalZeroPaddingNumberFormat();
-
-        if (override != null) {
-           initNumberFormatters(locale);
-        }
-
     }
 
     // privates for the default pattern
@@ -540,13 +492,8 @@ public class SimpleDateFormat extends DateFormat {
             Calendar cal = Calendar.getInstance(cachedDefaultLocale);
             try {
                 CalendarData calData = new CalendarData(cachedDefaultLocale, cal.getType());
-                String[] dateTimePatterns = calData.getDateTimePatterns();
-                int glueIndex = 8;
-                if (dateTimePatterns.length >= 13)
-                {
-                    glueIndex += (SHORT + 1);
-                }
-                cachedDefaultPattern = MessageFormat.format(dateTimePatterns[glueIndex],
+                String[] dateTimePatterns = calData.getStringArray("DateTimePatterns");
+                cachedDefaultPattern = MessageFormat.format(dateTimePatterns[8],
                         new Object[] {dateTimePatterns[SHORT], dateTimePatterns[SHORT + 4]});
             } catch (MissingResourceException e) {
                 cachedDefaultPattern = FALLBACKPATTERN;
@@ -634,22 +581,7 @@ public class SimpleDateFormat extends DateFormat {
      */
     public StringBuffer format(Calendar cal, StringBuffer toAppendTo,
                                FieldPosition pos) {
-        TimeZone backupTZ = null;
-        if (cal != calendar && !cal.getType().equals(calendar.getType())) {
-            // Different calendar type
-            // We use the time and time zone from the input calendar, but
-            // do not use the input calendar for field calculation.
-            calendar.setTimeInMillis(cal.getTimeInMillis());
-            backupTZ = calendar.getTimeZone();
-            calendar.setTimeZone(cal.getTimeZone());
-            cal = calendar;
-        }
-        StringBuffer result = format(cal, toAppendTo, pos, null);
-        if (backupTZ != null) {
-            // Restore the original time zone
-            calendar.setTimeZone(backupTZ);
-        }
-        return result;
+        return format(cal, toAppendTo, pos, null);
     }
 
     // The actual method to format date. If List attributes is not null,
@@ -779,7 +711,8 @@ public class SimpleDateFormat extends DateFormat {
      * @param ch The pattern character
      * @return DateFormat.Field associated with the pattern character
      * 
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     protected DateFormat.Field patternCharToDateFormatField(char ch) {
         int patternCharIndex = -1;
@@ -854,8 +787,6 @@ public class SimpleDateFormat extends DateFormat {
 
         String zoneString = null;
 
-        NumberFormat currentNumberFormat = getNumberFormat(ch);
-
         switch (patternCharIndex) {
         case 0: // 'G' - ERA
             if (count == 5) {
@@ -874,9 +805,9 @@ public class SimpleDateFormat extends DateFormat {
              * So I change the codes to meet the specification. [Richard/GCl]
              */
             if (count == 2)
-                zeroPaddingNumber(currentNumberFormat,buf, value, 2, 2); // clip 1996 to 96
+                zeroPaddingNumber(buf, value, 2, 2); // clip 1996 to 96
             else //count = 1 or count > 2
-                zeroPaddingNumber(currentNumberFormat,buf, value, count, maxIntCount);
+                zeroPaddingNumber(buf, value, count, maxIntCount);
             break;
         case 2: // 'M' - MONTH
             if (count == 5) {
@@ -886,16 +817,16 @@ public class SimpleDateFormat extends DateFormat {
             } else if (count == 3) {
                 safeAppend(formatData.shortMonths, value, buf);
             } else {
-                zeroPaddingNumber(currentNumberFormat,buf, value+1, count, maxIntCount);
+                zeroPaddingNumber(buf, value+1, count, maxIntCount);
             }
             break;
         case 4: // 'k' - HOUR_OF_DAY (1..24)
             if (value == 0)
-                zeroPaddingNumber(currentNumberFormat,buf,
+                zeroPaddingNumber(buf,
                                   cal.getMaximum(Calendar.HOUR_OF_DAY)+1,
                                   count, maxIntCount);
             else
-                zeroPaddingNumber(currentNumberFormat,buf, value, count, maxIntCount);
+                zeroPaddingNumber(buf, value, count, maxIntCount);
             break;
         case 8: // 'S' - FRACTIONAL_SECOND
             // Fractional seconds left-justify
@@ -929,11 +860,11 @@ public class SimpleDateFormat extends DateFormat {
             break;
         case 15: // 'h' - HOUR (1..12)
             if (value == 0)
-                zeroPaddingNumber(currentNumberFormat,buf,
+                zeroPaddingNumber(buf,
                                   cal.getLeastMaximum(Calendar.HOUR)+1,
                                   count, maxIntCount);
             else
-                zeroPaddingNumber(currentNumberFormat,buf, value, count, maxIntCount);
+                zeroPaddingNumber(buf, value, count, maxIntCount);
             break;
         case 17: // 'z' - ZONE_OFFSET
             if (count < 4) {
@@ -946,7 +877,7 @@ public class SimpleDateFormat extends DateFormat {
                 buf.append(zoneString);
             } else {
                 // Use localized GMT format as fallback
-                appendGMT(currentNumberFormat,buf, cal);
+                appendGMT(buf, cal);
             }
             break;
         case 23: // 'Z' - TIMEZONE_RFC
@@ -984,7 +915,7 @@ public class SimpleDateFormat extends DateFormat {
                 }
             } else {
                 // long form, localized GMT pattern
-                appendGMT(currentNumberFormat,buf, cal);
+                appendGMT(buf, cal);
             }
             break;
         case 24: // 'v' - TIMEZONE_GENERIC
@@ -999,7 +930,7 @@ public class SimpleDateFormat extends DateFormat {
                 buf.append(zoneString);
             } else {
                 // Use localized GMT format as fallback
-                appendGMT(currentNumberFormat,buf, cal);
+                appendGMT(buf, cal);
             }
             break;
         case 25: // 'c' - STANDALONE DAY
@@ -1010,7 +941,7 @@ public class SimpleDateFormat extends DateFormat {
             } else if (count == 3) {
                 safeAppend(formatData.standaloneShortWeekdays, value, buf);
             } else {
-                zeroPaddingNumber(currentNumberFormat,buf, value, 1, maxIntCount);
+                zeroPaddingNumber(buf, value, 1, maxIntCount);
             }
             break;
         case 26: // 'L' - STANDALONE MONTH
@@ -1021,7 +952,7 @@ public class SimpleDateFormat extends DateFormat {
             } else if (count == 3) {
                 safeAppend(formatData.standaloneShortMonths, value, buf);
             } else {
-                zeroPaddingNumber(currentNumberFormat,buf, value+1, count, maxIntCount);
+                zeroPaddingNumber(buf, value+1, count, maxIntCount);
             }
             break;
         case 27: // 'Q' - QUARTER
@@ -1030,7 +961,7 @@ public class SimpleDateFormat extends DateFormat {
             } else if (count == 3) {
                 safeAppend(formatData.shortQuarters, value/3, buf);
             } else {
-                zeroPaddingNumber(currentNumberFormat,buf, (value/3)+1, count, maxIntCount);
+                zeroPaddingNumber(buf, (value/3)+1, count, maxIntCount);
             }
             break;
         case 28: // 'q' - STANDALONE QUARTER
@@ -1039,7 +970,7 @@ public class SimpleDateFormat extends DateFormat {
             } else if (count == 3) {
                 safeAppend(formatData.standaloneShortQuarters, value/3, buf);
             } else {
-                zeroPaddingNumber(currentNumberFormat,buf, (value/3)+1, count, maxIntCount);
+                zeroPaddingNumber(buf, (value/3)+1, count, maxIntCount);
             }
             break;
         case 29: // 'V' - TIMEZONE_SPECIAL
@@ -1054,7 +985,7 @@ public class SimpleDateFormat extends DateFormat {
                 buf.append(zoneString);
             } else {
                 // Use localized GMT format as fallback
-                appendGMT(currentNumberFormat,buf, cal);
+                appendGMT(buf, cal);
             }
             break;
         default:
@@ -1073,7 +1004,7 @@ public class SimpleDateFormat extends DateFormat {
             // case 21: // 'g' - JULIAN_DAY
             // case 22: // 'A' - MILLISECONDS_IN_DAY
 
-            zeroPaddingNumber(currentNumberFormat,buf, value, count, maxIntCount);
+            zeroPaddingNumber(buf, value, count, maxIntCount);
             break;
         } // switch (patternCharIndex)
 
@@ -1206,21 +1137,17 @@ public class SimpleDateFormat extends DateFormat {
     /*
      * Time zone localized GMT format stuffs
      */
-    private static final String STR_GMT = "GMT";
-    private static final String STR_UT = "UT";
-    private static final String STR_UTC = "UTC";
-    private static final int STR_GMT_LEN = 3;
-    private static final int STR_UT_LEN = 2;
-    private static final int STR_UTC_LEN = 3;
+    private static final String DEFAULT_GMT_PREFIX = "GMT";
+    private static final int DEFAULT_GMT_PREFIX_LEN = 3;
     private static final char PLUS = '+';
     private static final char MINUS = '-';
     private static final char COLON = ':';
 
-    private void appendGMT(NumberFormat currentNumberFormat,StringBuffer buf, Calendar cal) {
+    private void appendGMT(StringBuffer buf, Calendar cal) {
         int offset = cal.get(Calendar.ZONE_OFFSET) + cal.get(Calendar.DST_OFFSET);
 
         if (isDefaultGMTFormat()) {
-            formatGMTDefault(currentNumberFormat,buf, offset);
+            formatGMTDefault(buf, offset);
         } else {
             int sign = DateFormatSymbols.OFFSET_POSITIVE;
             if (offset < 0) {
@@ -1234,8 +1161,8 @@ public class SimpleDateFormat extends DateFormat {
         }
     }
 
-    private void formatGMTDefault(NumberFormat currentNumberFormat,StringBuffer buf, int offset) {
-        buf.append(STR_GMT);
+    private void formatGMTDefault(StringBuffer buf, int offset) {
+        buf.append(DEFAULT_GMT_PREFIX);
         if (offset >= 0) {
             buf.append(PLUS);
         } else {
@@ -1248,16 +1175,16 @@ public class SimpleDateFormat extends DateFormat {
         int min = offset % 60;
         int hour = offset / 60;
 
-        zeroPaddingNumber(currentNumberFormat,buf, hour, 2, 2);
+        zeroPaddingNumber(buf, hour, 2, 2);
         buf.append(COLON);
-        zeroPaddingNumber(currentNumberFormat,buf, min, 2, 2);
+        zeroPaddingNumber(buf, min, 2, 2);
         if (sec != 0) {
             buf.append(COLON);
-            zeroPaddingNumber(currentNumberFormat,buf, sec, 2, 2);
+            zeroPaddingNumber(buf, sec, 2, 2);
         }
     }
 
-    private Integer parseGMT(String text, ParsePosition pos, NumberFormat currentNumberFormat) {
+    private Integer parseGMT(String text, ParsePosition pos) {
         if (!isDefaultGMTFormat()) {
             int start = pos.getIndex();
             String gmtPattern = formatData.gmtFormat;
@@ -1325,27 +1252,24 @@ public class SimpleDateFormat extends DateFormat {
             }
         }
 
-        return parseGMTDefault(text, pos, currentNumberFormat);
+        return parseGMTDefault(text, pos);
     }
 
-    private Integer parseGMTDefault(String text, ParsePosition pos, NumberFormat currentNumberFormat) {
+    private Integer parseGMTDefault(String text, ParsePosition pos) {
         int start = pos.getIndex();
 
-        if (start + STR_UT_LEN + 1 >= text.length()) {
+        if (start + DEFAULT_GMT_PREFIX_LEN + 1 >= text.length()) {
             pos.setErrorIndex(start);
             return null;
         }
 
         int cur = start;
         // "GMT"
-        if (text.regionMatches(true, start, STR_GMT, 0, STR_GMT_LEN)) {
-            cur += STR_GMT_LEN;
-        } else if (text.regionMatches(true, start, STR_UT, 0, STR_UT_LEN)) {
-            cur += STR_UT_LEN;
-        } else {
+        if (!text.regionMatches(true, start, DEFAULT_GMT_PREFIX, 0, DEFAULT_GMT_PREFIX_LEN)) {
             pos.setErrorIndex(start);
             return null;
         }
+        cur += DEFAULT_GMT_PREFIX_LEN;
         // Sign
         boolean negative = false;
         if (text.charAt(cur) == MINUS) {
@@ -1360,7 +1284,7 @@ public class SimpleDateFormat extends DateFormat {
         int numLen;
         pos.setIndex(cur);
 
-        Number n = parseInt(text, 6, pos, false,currentNumberFormat);
+        Number n = parseInt(text, 6, pos, false);
         numLen = pos.getIndex() - cur;
 
         if (n == null || numLen <= 0 || numLen > 6) {
@@ -1382,7 +1306,7 @@ public class SimpleDateFormat extends DateFormat {
             if (cur + 2 < text.length() && text.charAt(cur) == COLON) {
                 cur++;
                 pos.setIndex(cur);
-                n = parseInt(text, 2, pos, false,currentNumberFormat);
+                n = parseInt(text, 2, pos, false);
                 numLen = pos.getIndex() - cur;
                 if (n != null && numLen == 2) {
                     // got minute field
@@ -1391,7 +1315,7 @@ public class SimpleDateFormat extends DateFormat {
                     if (cur + 2 < text.length() && text.charAt(cur) == COLON) {
                         cur++;
                         pos.setIndex(cur);
-                        n = parseInt(text, 2, pos, false,currentNumberFormat);
+                        n = parseInt(text, 2, pos, false);
                         numLen = pos.getIndex() - cur;
                         if (n != null && numLen == 2) {
                             // got second field
@@ -1439,9 +1363,8 @@ public class SimpleDateFormat extends DateFormat {
         }
         if (fmt == null) {
             fmt = new MessageFormat(formatData.gmtFormat);
-            GregorianCalendar gcal = new GregorianCalendar(TimeZone.getTimeZone("Etc/UTC"));
             SimpleDateFormat sdf = (SimpleDateFormat)this.clone();
-            sdf.setCalendar(gcal);
+            sdf.setTimeZone(TimeZone.getTimeZone("Etc/UTC"));
             sdf.applyPattern(formatData.getGmtHourFormat(sign, width));
             fmt.setFormat(0, sdf);
             gmtfmtCache[cacheIdx] = new WeakReference(fmt);
@@ -1487,14 +1410,14 @@ public class SimpleDateFormat extends DateFormat {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    protected void zeroPaddingNumber(NumberFormat nf,StringBuffer buf, int value,
+    protected void zeroPaddingNumber(StringBuffer buf, int value,
                                      int minDigits, int maxDigits) {
         if (useLocalZeroPaddingNumberFormat) {
             fastZeroPaddingNumber(buf, value, minDigits, maxDigits);
         } else {
-            nf.setMinimumIntegerDigits(minDigits);
-            nf.setMaximumIntegerDigits(maxDigits);
-            nf.format(value, buf, new FieldPosition(-1));
+            numberFormat.setMinimumIntegerDigits(minDigits);
+            numberFormat.setMaximumIntegerDigits(maxDigits);
+            numberFormat.format(value, buf, new FieldPosition(-1));
         }
     }
 
@@ -1592,19 +1515,6 @@ public class SimpleDateFormat extends DateFormat {
      */
     public void parse(String text, Calendar cal, ParsePosition parsePos)
     {
-        TimeZone backupTZ = null;
-        Calendar resultCal = null;
-        if (cal != calendar && !cal.getType().equals(calendar.getType())) {
-            // Different calendar type
-            // We use the time/zone from the input calendar, but
-            // do not use the input calendar for field calculation.
-            calendar.setTimeInMillis(cal.getTimeInMillis());
-            backupTZ = calendar.getTimeZone();
-            calendar.setTimeZone(cal.getTimeZone());
-            resultCal = cal;
-            cal = calendar;
-        }
-
         int pos = parsePos.getIndex();
         int start = pos;
 
@@ -1665,9 +1575,6 @@ public class SimpleDateFormat extends DateFormat {
                             // can not make shorter any more
                             parsePos.setIndex(start);
                             parsePos.setErrorIndex(pos);
-                            if (backupTZ != null) {
-                                calendar.setTimeZone(backupTZ);
-                            }
                             return;
                         }
                         i = numericFieldStart;
@@ -1685,9 +1592,6 @@ public class SimpleDateFormat extends DateFormat {
                     if (pos < 0) {
                         parsePos.setIndex(start);
                         parsePos.setErrorIndex(s);
-                        if (backupTZ != null) {
-                            calendar.setTimeZone(backupTZ);
-                        }
                         return;
                     }
                 }
@@ -1723,9 +1627,6 @@ public class SimpleDateFormat extends DateFormat {
                     // Set the position of mismatch
                     parsePos.setIndex(start);
                     parsePos.setErrorIndex(pos);
-                    if (backupTZ != null) {
-                        calendar.setTimeZone(backupTZ);
-                    }
                     return;
                 }
             }
@@ -1886,20 +1787,6 @@ public class SimpleDateFormat extends DateFormat {
         catch (IllegalArgumentException e) {
             parsePos.setErrorIndex(pos);
             parsePos.setIndex(start);
-            if (backupTZ != null) {
-                calendar.setTimeZone(backupTZ);
-            }
-            return;
-        }
-        // Set the parsed result if local calendar is used
-        // instead of the input calendar
-        if (resultCal != null) {
-            resultCal.setTimeZone(cal.getTimeZone());
-            resultCal.setTimeInMillis(cal.getTimeInMillis());
-        }
-        // Restore the original time zone if required
-        if (backupTZ != null) {
-            calendar.setTimeZone(backupTZ);
         }
     }
 
@@ -2022,7 +1909,6 @@ public class SimpleDateFormat extends DateFormat {
                            boolean[] ambiguousYear, Calendar cal)
     {
         Number number = null;
-        NumberFormat currentNumberFormat = null;
         int value = 0;
         int i;
         ParsePosition pos = new ParsePosition(0);
@@ -2036,8 +1922,6 @@ public class SimpleDateFormat extends DateFormat {
             return -start;
         }
 
-        currentNumberFormat = getNumberFormat(ch);
- 
         int field = PATTERN_INDEX_TO_CALENDAR_FIELD[patternCharIndex];
 
         // If there are any spaces here, skip over them.  If we hit the end
@@ -2069,9 +1953,9 @@ public class SimpleDateFormat extends DateFormat {
                 if (obeyCount)
                     {
                         if ((start+count) > text.length()) return -start;
-                        number = parseInt(text, count, pos, allowNegative,currentNumberFormat);
+                        number = parseInt(text, count, pos, allowNegative);
                     }
-                else number = parseInt(text, pos, allowNegative,currentNumberFormat);
+                else number = parseInt(text, pos, allowNegative);
                 if (number == null)
                     return -start;
                 value = number.intValue();
@@ -2094,8 +1978,8 @@ public class SimpleDateFormat extends DateFormat {
                 // is treated literally:  "2250", "-1", "1", "002".
                 /* 'yy' is the only special case, 'y' is interpreted as number. [Richard/GCL]*/
                 if (count == 2 && (pos.getIndex() - start) == 2
-                    && UCharacter.isDigit(text.charAt(start))
-                    && UCharacter.isDigit(text.charAt(start+1)))
+                    && Character.isDigit(text.charAt(start))
+                    && Character.isDigit(text.charAt(start+1)))
                     {
                         // Assume for example that the defaultCenturyStart is 6/18/1903.
                         // This means that two-digit years will be forced into the range
@@ -2223,7 +2107,7 @@ public class SimpleDateFormat extends DateFormat {
 
                     // Step 1
                     // Check if this is a long GMT offset string (either localized or default)
-                    Integer gmtoff = parseGMT(text, pos, currentNumberFormat);
+                    Integer gmtoff = parseGMT(text, pos);
                     if (gmtoff != null) {
                         offset = gmtoff.intValue();
                         parsed = true;
@@ -2250,7 +2134,7 @@ public class SimpleDateFormat extends DateFormat {
                             // Parse digits
                             int orgPos = start + 1;
                             pos.setIndex(orgPos);
-                            number = parseInt(text, 6, pos, false,currentNumberFormat);
+                            number = parseInt(text, 6, pos, false);
                             int numLen = pos.getIndex() - orgPos;
                             if (numLen <= 0) {
                                 break;
@@ -2343,22 +2227,6 @@ public class SimpleDateFormat extends DateFormat {
                         cal.setTimeZone(tz);
                         return start + zsinfo.getString().length();
                     }
-                    // Step 4
-                    // Final attempt - is this standalone GMT/UT/UTC?
-                    int gmtLen = 0;
-                    if (text.regionMatches(true, start, STR_GMT, 0, STR_GMT_LEN)) {
-                        gmtLen = STR_GMT_LEN;
-                    } else if (text.regionMatches(true, start, STR_UTC, 0, STR_UTC_LEN)) {
-                        gmtLen = STR_UTC_LEN;
-                    } else if (text.regionMatches(true, start, STR_UT, 0, STR_UT_LEN)) {
-                        gmtLen = STR_UT_LEN;
-                    }
-                    if (gmtLen > 0) {
-                        tz = TimeZone.getTimeZone("Etc/GMT");
-                        cal.setTimeZone(tz);
-                        return start + gmtLen;
-                    }
-
                     // complete failure
                     return -start;
                 }
@@ -2431,9 +2299,9 @@ public class SimpleDateFormat extends DateFormat {
                 if (obeyCount)
                     {
                         if ((start+count) > text.length()) return -start;
-                        number = parseInt(text, count, pos, allowNegative,currentNumberFormat);
+                        number = parseInt(text, count, pos, allowNegative);
                     }
-                else number = parseInt(text, pos, allowNegative,currentNumberFormat);
+                else number = parseInt(text, pos, allowNegative);
                 if (number != null) {
                     cal.set(field, number.intValue());
                     return pos.getIndex();
@@ -2448,9 +2316,8 @@ public class SimpleDateFormat extends DateFormat {
      */
     private Number parseInt(String text,
                             ParsePosition pos,
-                            boolean allowNegative,
-                            NumberFormat fmt) {
-        return parseInt(text, -1, pos, allowNegative, fmt);
+                            boolean allowNegative) {
+        return parseInt(text, -1, pos, allowNegative);
     }
     
     /**
@@ -2459,27 +2326,26 @@ public class SimpleDateFormat extends DateFormat {
     private Number parseInt(String text,
                             int maxDigits,
                             ParsePosition pos,
-                            boolean allowNegative,
-                            NumberFormat fmt) {
+                            boolean allowNegative) {
         Number number;
         int oldPos = pos.getIndex();
         if (allowNegative) {
-            number = fmt.parse(text, pos);
+            number = numberFormat.parse(text, pos);
         } else {
             // Invalidate negative numbers
-            if (fmt instanceof DecimalFormat) {
-                String oldPrefix = ((DecimalFormat)fmt).getNegativePrefix();
-                ((DecimalFormat)fmt).setNegativePrefix(SUPPRESS_NEGATIVE_PREFIX);
-                number = fmt.parse(text, pos);
-                ((DecimalFormat)fmt).setNegativePrefix(oldPrefix);
+            if (numberFormat instanceof DecimalFormat) {
+                String oldPrefix = ((DecimalFormat)numberFormat).getNegativePrefix();
+                ((DecimalFormat)numberFormat).setNegativePrefix(SUPPRESS_NEGATIVE_PREFIX);
+                number = numberFormat.parse(text, pos);
+                ((DecimalFormat)numberFormat).setNegativePrefix(oldPrefix);
             } else {
-                boolean dateNumberFormat = (fmt instanceof DateNumberFormat);
+                boolean dateNumberFormat = (numberFormat instanceof DateNumberFormat);
                 if (dateNumberFormat) {
-                    ((DateNumberFormat)fmt).setParsePositiveOnly(true);
+                    ((DateNumberFormat)numberFormat).setParsePositiveOnly(true);
                 }
-                number = fmt.parse(text, pos);                
+                number = numberFormat.parse(text, pos);                
                 if (dateNumberFormat) {
-                    ((DateNumberFormat)fmt).setParsePositiveOnly(false);
+                    ((DateNumberFormat)numberFormat).setParsePositiveOnly(false);
                 }
             }
         }
@@ -3036,79 +2902,5 @@ public class SimpleDateFormat extends DateFormat {
             return true;
         }    
         return false;
-    }
-
-    protected NumberFormat getNumberFormat(char ch) {
-
-       Character ovrField;
-       ovrField = new Character(ch);
-       if (overrideMap != null && overrideMap.containsKey(ovrField)) {
-           String nsName = overrideMap.get(ovrField).toString();
-           NumberFormat nf = (NumberFormat)numberFormatters.get(nsName);
-           return nf;
-       } else {
-           return numberFormat;
-       }
-    }
-
-    private void initNumberFormatters(ULocale loc) {
-
-       numberFormatters = new HashMap();
-       overrideMap = new HashMap();
-       processOverrideString(loc,override); 
-
-    }
-
-    private void processOverrideString(ULocale loc, String str) {
-
-        if ( str == null || str.length() == 0 )
-            return;
-
-        int start = 0;
-        int end;
-        String nsName;
-        Character ovrField;
-        boolean moreToProcess = true;
-        boolean fullOverride;
-
-        while (moreToProcess) {
-            int delimiterPosition = str.indexOf(";",start);
-            if (delimiterPosition == -1) {
-                moreToProcess = false;
-                end = str.length();
-            } else {
-                end = delimiterPosition;
-            }
-
-            String currentString = str.substring(start,end);
-            int equalSignPosition = currentString.indexOf("=");
-            if (equalSignPosition == -1) { // Simple override string such as "hebrew"
-               nsName = currentString;
-               fullOverride = true;
-            } else { // Field specific override string such as "y=hebrew"
-               nsName = currentString.substring(equalSignPosition+1);
-               ovrField = new Character(currentString.charAt(0));
-               overrideMap.put(ovrField,nsName);
-               fullOverride = false;
-            }
-
-            ULocale ovrLoc = new ULocale(loc.getBaseName()+"@numbers="+nsName);
-            NumberFormat nf = NumberFormat.createInstance(ovrLoc,NumberFormat.NUMBERSTYLE);
-            
-            if (fullOverride) {
-                setNumberFormat(nf);
-            } else {
-                // Since one or more of the override number formatters might be complex,
-                // we can't rely on the fast numfmt where we have a partial field override.
-                useLocalZeroPaddingNumberFormat = false;
-            }
-
-            if (!numberFormatters.containsKey(nsName)) {
-                  numberFormatters.put(nsName,nf);
-            }
-
-            start = delimiterPosition + 1;
-
-        }    
     }
 }

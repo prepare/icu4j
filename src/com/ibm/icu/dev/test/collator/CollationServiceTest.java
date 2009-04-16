@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2003-2009, International Business Machines Corporation and    *
+ * Copyright (C) 2003-2007, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -8,16 +8,14 @@
 package com.ibm.icu.dev.test.collator;
 
 import java.util.Collections;
+import java.util.Locale;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Locale;
 import java.util.Map;
-import java.util.MissingResourceException;
 import java.util.Set;
-
+import java.util.MissingResourceException;
 import com.ibm.icu.dev.test.TestFmwk;
-import com.ibm.icu.impl.Utility;
 import com.ibm.icu.text.Collator;
 import com.ibm.icu.text.Collator.CollatorFactory;
 import com.ibm.icu.util.ULocale;
@@ -441,72 +439,4 @@ public class CollationServiceTest extends TestFmwk {
 //                }
 //        }
 //    }
-    
-    public void TestGetKeywordValues(){
-        final String[][] PREFERRED = {
-            {"und",             "standard"},
-            {"en_US",           "standard"},
-            {"en_029",          "standard"},
-            {"de_DE",           "standard", "phonebook"},
-            {"de_Latn_DE",      "standard", "phonebook"},
-            {"zh",              "pinyin", "big5han", "gb2312han", "standard", "stroke", "unihan"},
-            {"zh_Hans",         "pinyin", "big5han", "gb2312han", "standard", "stroke", "unihan"},
-            {"zh_CN",           "pinyin", "big5han", "gb2312han", "standard", "stroke", "unihan"},
-            {"zh_Hant",         "stroke", "big5han", "gb2312han", "pinyin", "standard", "unihan"},
-            {"zh_TW",           "stroke", "big5han", "gb2312han", "pinyin", "standard", "unihan"},
-            {"zh__PINYIN",      "pinyin", "big5han", "gb2312han", "standard", "stroke", "unihan"},
-            {"es_ES",           "standard", "traditional"},
-            {"es__TRADITIONAL", "traditional", "standard"},
-            {"und@collation=phonebook",     "standard"},
-            {"de_DE@collation=big5han",     "standard", "phonebook"},
-            {"zzz@collation=xxx",           "standard"},
-        };
-
-        for (int i = 0; i < PREFERRED.length; i++) {
-            ULocale loc = new ULocale(PREFERRED[i][0]);
-            String[] expected = new String[PREFERRED[i].length - 1];
-            System.arraycopy(PREFERRED[i], 1, expected, 0, expected.length);
-
-            String[] pref = Collator.getKeywordValuesForLocale("collation", loc, true);
-            boolean matchPref = false;
-            if (pref.length == expected.length) {
-                matchPref = true;
-                for (int j = 0; j < pref.length; j++) {
-                    if (!pref[j].equals(expected[j])) {
-                        matchPref = false;
-                    }
-                }
-            }
-            if (!matchPref) {
-                errln("FAIL: Preferred values for locale " + loc 
-                        + " got:" + Utility.arrayToString(pref) + " expected:" + Utility.arrayToString(expected));
-            }
- 
-            String[] all = Collator.getKeywordValuesForLocale("collation", loc, true);
-
-            // Collator.getKeywordValues return the same contents for both commonlyUsed
-            // true and false.
-            boolean matchAll = false;
-            if (pref.length == all.length) {
-                matchAll = true;
-                for (int j = 0; j < pref.length; j++) {
-                    boolean foundMatch = false;
-                    for (int k = 0; k < all.length; k++) {
-                        if (pref[j].equals(all[k])) {
-                            foundMatch = true;
-                            break;
-                        }
-                    }
-                    if (!foundMatch) {
-                        matchAll = false;
-                        break;
-                    }
-                }
-            }
-            if (!matchAll) {
-                errln("FAIL: All values for locale " + loc
-                        + " got:" + Utility.arrayToString(all) + " expected:" + Utility.arrayToString(pref));
-            }
-        }
-    }
 }

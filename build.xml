@@ -156,9 +156,6 @@
     <condition property="target.rt.version" value="JAVASE6">
       <contains string="${java.version}" substring="1.6." />
     </condition>
-    <condition property="target.rt.version" value="JAVASE7">
-      <contains string="${java.version}" substring="1.7." />
-    </condition>
 
     <fail message="Failed to detect Java runtime library version used for building ICU4J"
           unless="target.rt.version" />
@@ -192,10 +189,10 @@
     </condition>
 
     <!-- JVM arguments for running test cases -->
-    <condition property="test.jvm.args" value="-Xms224m -Xmx256m">
+    <condition property="test.jvm.args" value="-Xms192m -Xmx224m">
         <isset property="before.java14" />
     </condition>
-    <condition property="test.jvm.args" value="-ea -Xms224m -Xmx256m -Xdisableexcessivegc">
+    <condition property="test.jvm.args" value="-ea -Xms192m -Xmx224m -Xdisableexcessivegc">
       <and>
         <not>
           <isset property="before.java15" />
@@ -203,12 +200,12 @@
         <equals arg1="${java.vm.vendor}" arg2="IBM Corporation"/>
       </and>
     </condition>
-    <condition property="test.jvm.args" value="-ea -Xms224m -Xmx256m -Djava.awt.headless=true">
+    <condition property="test.jvm.args" value="-ea -Xms192m -Xmx224m -Djava.awt.headless=true">
       <and>
         <equals arg1="${os.name}" arg2="Mac OS X"/>
       </and>
     </condition>
-    <condition property="test.jvm.args" value="-ea -Xms224m -Xmx256m">
+    <condition property="test.jvm.args" value="-ea -Xms192m -Xmx224m">
       <not>
         <isset property="test.jvm.args" />
       </not>
@@ -253,14 +250,9 @@
       <include name="com/ibm/icu/dev/tool/docs/CodeMangler.java" />
     </javac>
     <!-- Run CodeMangler -->
-    <condition property="mangler.cmd.args" value="-d${default.target.rt.version} -n @preprocessor.txt">
-      <equals arg1="${default.target.rt.version}" arg2="${target.rt.version}"/>
-    </condition>
-
-    <property name="mangler.cmd.args" value="-d${target.rt.version} @preprocessor.txt"/>
-
     <antcall target="doMangle">
-      <param name="mangler.args" value="${mangler.cmd.args}"/>
+      <param name="target.defs" value="${target.rt.version}" />
+      <param name="input.file" value="@preprocessor.txt" />
     </antcall>
   </target>
 
@@ -268,7 +260,8 @@
           depends="buildMangle"
           description="Run the preprocessor to normalize Java sources to the ICU source repository target JDK version">
     <antcall target="doMangle">
-      <param name="mangler.args" value="-d${default.target.rt.version} -n -f @preprocessor.txt"/>
+      <param name="target.defs" value="${default.target.rt.version}" />
+      <param name="input.file" value="@preprocessor.txt" />
     </antcall>
   </target>
 
@@ -279,9 +272,10 @@
   </target>
 
   <target name="doMangle" unless="dontMangle">
-    <echo message="Running source code preprocessor [java com.ibm.icu.dev.tool.docs.CodeMangler ${mangler.args}]"/>
+    <echo message="Running source code preprocessor for [${target.defs}]"/>
     <java classname="com.ibm.icu.dev.tool.docs.CodeMangler" classpath="${build.dir}" logError="true" fork="true" dir="${basedir}">
-      <arg line="${mangler.args}"/>
+      <arg value="-d${target.defs}" />
+      <arg value="${input.file}" />
     </java>
   </target>
 
@@ -857,7 +851,7 @@
   <target name="checktags" depends="_requires14,_checktags" description="check API tags before release" />
 
   <target name="gatherapi" depends="tools" unless="before.java14" description="run API database generator tool">
-    <javadoc classpath="${build.dir}" sourcepath="${src.dir}" packagenames="com.ibm.icu.lang,com.ibm.icu.math,com.ibm.icu.text,com.ibm.icu.util,com.ibm.icu.charset" source="1.4">
+    <javadoc classpath="${build.dir}" sourcepath="${src.dir}" packagenames="com.ibm.icu.lang,com.ibm.icu.math,com.ibm.icu.text,com.ibm.icu.util" source="1.4">
       <doclet name="com.ibm.icu.dev.tool.docs.GatherAPIData" path="${build.dir}">
         <param name="-name" value="ICU4J ${icu4j.impl.version.string}" />
         <param name="-output" value="${api.dir}/icu4j${icu4j.version.number}.api" />
@@ -868,7 +862,7 @@
   </target>
 
   <target name="gatherapi.with.version" depends="tools" unless="before.java14" description="run API database generator tool">
-    <javadoc classpath="${build.dir}" sourcepath="${src.dir}" packagenames="com.ibm.icu.lang,com.ibm.icu.math,com.ibm.icu.text,com.ibm.icu.util,com.ibm.icu.charset" source="1.4">
+    <javadoc classpath="${build.dir}" sourcepath="${src.dir}" packagenames="com.ibm.icu.lang,com.ibm.icu.math,com.ibm.icu.text,com.ibm.icu.util" source="1.4">
       <doclet name="com.ibm.icu.dev.tool.docs.GatherAPIData" path="${build.dir}">
         <param name="-name" value="ICU4J ${icu4j.impl.version.string}" />
         <param name="-output" value="${api.dir}/icu4j${icu4j.version.number}.stver.api" />
@@ -1658,7 +1652,8 @@
 
   <target name="eclipseMangle" depends="buildMangle">
     <antcall target="doMangle">
-      <param name="mangler.args" value="-dFOUNDATION10 @preprocessor.txt"/>
+      <param name="target.defs" value="FOUNDATION10" />
+      <param name="input.file" value="@preprocessor.txt" />
     </antcall>
   </target>
 
@@ -1880,7 +1875,8 @@
   <target name="eclipseFragmentMangle" depends="buildMangle">
     <antcall target="initSrc"/>
     <antcall target="doMangle">
-      <param name="mangler.args" value="-dECLIPSE_FRAGMENT @eclipseFragment.txt"/>
+      <param name="target.defs" value="ECLIPSE_FRAGMENT" />
+      <param name="input.file" value="@eclipseFragment.txt" />
     </antcall>
   </target>
 
@@ -2116,7 +2112,6 @@
       </fileset>
       <fileset file="${basedir}/${jar.file}" />
       <fileset file="${build.dir}/${icu4j.data.path}/zoneinfo.res" />
-      <fileset file="${build.dir}/${icu4j.data.path}/metazoneInfo.res" />
     </copy>
   </target>
 
@@ -2150,12 +2145,10 @@
     <move todir="${tzu.temp.dir}">
       <fileset file="${tzu.bin.dir}/DirectorySearch.txt" />
       <fileset file="${tzu.bin.dir}/zoneinfo.res" />
-      <fileset file="${tzu.bin.dir}/metazoneInfo.res" />
     </move>
 
     <echo file="${tzu.bin.dir}/DirectorySearch.txt">+${tzu.test.dir}</echo>
-    <get dest="${tzu.bin.dir}/zoneinfo.res" src="http://icu-project.org/tzdata/2008d/be/zoneinfo.res" />
-    <get dest="${tzu.bin.dir}/metazoneInfo.res" src="http://icu-project.org/tzdata/2008d/be/metazoneInfo.res" />
+    <get dest="${tzu.bin.dir}/zoneinfo.res" src="http://icu-project.org/tzdata/2006a/be/zoneinfo.res" />
     <copy todir="${tzu.test.dir}" file="${tzu.bin.dir}/icu4j.jar" />
 
     <echo>Running ICUTZU in Discovery Mode ...</echo>
@@ -2196,32 +2189,25 @@
     <unjar src="${tzu.test.dir}/${jar.file}" dest="${tzu.test.dir}">
       <patternset>
         <include name="**/zoneinfo.res" />
-        <include name="**/metazoneInfo.res" />
       </patternset>
     </unjar>
     <copy todir="${tzu.test.dir}" file="${tzu.test.dir}/${icu4j.data.path}/zoneinfo.res" />
-    <copy todir="${tzu.test.dir}" file="${tzu.test.dir}/${icu4j.data.path}/metazoneInfo.res" />
-
     <condition property="tzu.zoneinfo.match">
       <filesmatch file1="${tzu.bin.dir}/zoneinfo.res" file2="${tzu.test.dir}/zoneinfo.res" />
     </condition>
-    <fail unless="tzu.zoneinfo.match">ICUTZU test failed. ${tzu.bin.dir}/zoneinfo.res does not match ${tzu.test.dir}/zoneinfo.res</fail>
 
-    <condition property="tzu.metazoneinfo.match">
-      <filesmatch file1="${tzu.bin.dir}/metazoneInfo.res" file2="${tzu.test.dir}/metazoneInfo.res" />
-    </condition>
-    <fail unless="tzu.metazoneinfo.match">ICUTZU test failed. ${tzu.bin.dir}/metazoneInfo.res does not match ${tzu.test.dir}/metazoneInfo.res</fail>
+    <fail unless="tzu.zoneinfo.match">ICUTZU test failed. ${tzu.bin.dir}/zoneinfo.res does not match ${tzu.test.dir}/zoneinfo.res</fail>
 
     <echo>Cleaning up ...</echo>
     <move todir="${tzu.bin.dir}">
       <fileset file="${tzu.temp.dir}/DirectorySearch.txt" />
       <fileset file="${tzu.temp.dir}/zoneinfo.res" />
-      <fileset file="${tzu.temp.dir}/metazoneInfo.res" />
     </move>
-    <delete includeEmptyDirs="true">
+  	<delete includeEmptyDirs="true">
         <fileset file="${tzu.temp.dir}" />
         <fileset dir="${tzu.test.dir}" />
-    </delete>
+	</delete>
+  	
     <echo>ICUTZU test successful.</echo>
   </target>
 

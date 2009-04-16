@@ -1,7 +1,7 @@
-//##header
+//##header J2SE15
 /*
  *******************************************************************************
- * Copyright (C) 2001-2009, International Business Machines Corporation and    *
+ * Copyright (C) 2001-2008, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -20,10 +20,8 @@ import com.ibm.icu.util.*;
 import com.ibm.icu.impl.LocaleUtility;
 import com.ibm.icu.impl.data.ResourceReader;
 import com.ibm.icu.impl.data.TokenIterator;
-import com.ibm.icu.impl.Utility;
 import com.ibm.icu.math.BigDecimal;
 
-import java.lang.Double;
 import java.math.BigInteger;
 import java.text.FieldPosition;
 import java.text.ParsePosition;
@@ -240,170 +238,6 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
 
     }
 
-    public void TestSpaceParsing() {
-        // the data are:
-        // the string to be parsed, parsed position, parsed error index
-        String[][] DATA = {
-            {"$124", "4", "-1"},
-            {"$124 $124", "4", "-1"},
-            {"$124 ", "4", "-1"},
-            {"$ 124 ", "5", "-1"},
-            {"$\u00A0124 ", "5", "-1"},
-            {" $ 124 ", "0", "0"}, // TODO: need to handle space correctly
-            {"124$", "0", "3"}, // TODO: need to handle space correctly
-            // {"124 $", "5", "-1"}, TODO: OK or NOT?
-            {"124 $", "0", "3"}, 
-        };
-        NumberFormat foo = NumberFormat.getCurrencyInstance();
-        for (int i = 0; i < DATA.length; ++i) {
-          ParsePosition parsePosition = new ParsePosition(0);
-          String stringToBeParsed = DATA[i][0];
-          int parsedPosition = Integer.parseInt(DATA[i][1]);
-          int errorIndex = Integer.parseInt(DATA[i][2]);
-          try {
-            Number result = foo.parse(stringToBeParsed, parsePosition);
-            if (parsePosition.getIndex() != parsedPosition ||
-                parsePosition.getErrorIndex() != errorIndex) {
-                errln("FAILED parse " + stringToBeParsed + "; parse position: " + parsePosition.getIndex() + "; error position: " + parsePosition.getErrorIndex());
-            }
-            if (parsePosition.getErrorIndex() == -1 &&
-                result.doubleValue() != 124) {
-                errln("FAILED parse " + stringToBeParsed + "; value " + result.doubleValue());
-            }
-          } catch (Exception e) {
-              errln("FAILED " + e.toString());
-          }
-        }
-    }
-
-
-    public void TestMultiCurrencySign() {
-        String[][] DATA = {
-            // the fields in the following test are:
-            // locale, 
-            // currency pattern (with negative pattern), 
-            // currency number to be formatted,
-            // currency format using currency symbol name, such as "$" for USD,
-            // currency format using currency ISO name, such as "USD",
-            // currency format using plural name, such as "US dollars".
-            // for US locale
-            {"en_US", "\u00A4#,##0.00;-\u00A4#,##0.00", "1234.56", "$1,234.56", "USD1,234.56", "US dollars1,234.56"}, 
-            {"en_US", "\u00A4#,##0.00;-\u00A4#,##0.00", "-1234.56", "-$1,234.56", "-USD1,234.56", "-US dollars1,234.56"}, 
-            {"en_US", "\u00A4#,##0.00;-\u00A4#,##0.00", "1", "$1.00", "USD1.00", "US dollar1.00"}, 
-            // for CHINA locale
-            {"zh_CN", "\u00A4#,##0.00;(\u00A4#,##0.00)", "1234.56", "\uFFE51,234.56", "CNY1,234.56", "\u4EBA\u6C11\u5E011,234.56"},
-            {"zh_CN", "\u00A4#,##0.00;(\u00A4#,##0.00)", "-1234.56", "(\uFFE51,234.56)", "(CNY1,234.56)", "(\u4EBA\u6C11\u5E011,234.56)"},
-            {"zh_CN", "\u00A4#,##0.00;(\u00A4#,##0.00)", "1", "\uFFE51.00", "CNY1.00", "\u4EBA\u6C11\u5E011.00"}
-        };
-
-        String doubleCurrencyStr = "\u00A4\u00A4";
-        String tripleCurrencyStr = "\u00A4\u00A4\u00A4";
-
-        for (int i=0; i<DATA.length; ++i) {
-            String locale = DATA[i][0];
-            String pat = DATA[i][1];
-            Double numberToBeFormat = new Double(DATA[i][2]);
-            DecimalFormatSymbols sym = new DecimalFormatSymbols(new ULocale(locale));
-            for (int j=1; j<=3; ++j) {
-                // j represents the number of currency sign in the pattern.
-                if (j == 2) {
-                    pat = Utility.replaceAll(pat, "\u00A4", doubleCurrencyStr);
-                } else if (j == 3) {
-                    pat = Utility.replaceAll(pat, "\u00A4\u00A4", tripleCurrencyStr);
-                }
-                DecimalFormat fmt = new DecimalFormat(pat, sym);
-                String s = ((NumberFormat) fmt).format(numberToBeFormat);
-                // DATA[i][3] is the currency format result using a
-                // single currency sign.
-                // DATA[i][4] is the currency format result using
-                // double currency sign.
-                // DATA[i][5] is the currency format result using
-                // triple currency sign.
-                // DATA[i][j+2] is the currency format result using
-                // 'j' number of currency sign.
-                String currencyFormatResult = DATA[i][2+j];
-                if (!s.equals(currencyFormatResult)) {
-                    errln("FAIL format: Expected " + currencyFormatResult);
-                }
-                try {
-                    // mix style parsing
-                    for (int k=3; k<=5; ++k) {
-                      // DATA[i][3] is the currency format result using a
-                      // single currency sign.
-                      // DATA[i][4] is the currency format result using
-                      // double currency sign.
-                      // DATA[i][5] is the currency format result using
-                      // triple currency sign.
-                      String oneCurrencyFormat = DATA[i][k];
-                      if (fmt.parse(oneCurrencyFormat).doubleValue() != 
-                          numberToBeFormat.doubleValue()) {
-                        errln("FAILED parse " + oneCurrencyFormat);
-                      }
-                    }
-                } catch (ParseException e) {
-                    errln("FAILED, DecimalFormat parse currency: " + e.toString());
-                }
-            }
-        }
-    }
-
-    public void TestCurrencyFormatForMixParsing() {
-        MeasureFormat curFmt = MeasureFormat.getCurrencyFormat(new ULocale("en_US"));
-        String[] formats = {
-            "$1,234.56",  // string to be parsed
-            "USD1,234.56",
-            "US dollars1,234.56",
-            "1,234.56 US dollars"
-        };
-        try {
-          for (int i = 0; i < formats.length; ++i) {
-            String stringToBeParsed = formats[i];
-            CurrencyAmount parsedVal = (CurrencyAmount)curFmt.parseObject(stringToBeParsed);
-            Number val = parsedVal.getNumber();
-            if (!val.equals(new BigDecimal("1234.56"))) {
-                errln("FAIL: getCurrencyFormat of default locale (en_US) failed roundtripping the number. val=" + val);
-            }
-            if (!parsedVal.getCurrency().equals(Currency.getInstance("USD"))) {
-                errln("FAIL: getCurrencyFormat of default locale (en_US) failed roundtripping the currency");
-            }
-          }
-        } catch (ParseException e) {
-            errln("parse FAILED: " + e.toString());
-        }
-    }
-
-    public void TestDecimalFormatCurrencyParse() {
-        // Locale.US
-        DecimalFormatSymbols sym = new DecimalFormatSymbols(Locale.US);
-        StringBuffer pat = new StringBuffer("");
-        char currency = 0x00A4;
-        // "\xA4#,##0.00;-\xA4#,##0.00"
-        pat.append(currency).append(currency).append(currency).append("#,##0.00;-").append(currency).append(currency).append(currency).append("#,##0.00");
-        DecimalFormat fmt = new DecimalFormat(pat.toString(), sym);
-        String[][] DATA = {
-            // the data are:
-            // string to be parsed, the parsed result (number)
-            {"$1.00", "1"},    
-            {"USD1.00", "1"},    
-            {"1.00 US dollar", "1"},    
-            {"$1,234.56", "1234.56"},    
-            {"USD1,234.56", "1234.56"},    
-            {"1,234.56 US dollar", "1234.56"},    
-        };
-        try {
-            for (int i = 0; i < DATA.length; ++i) {
-                String stringToBeParsed = DATA[i][0];
-                double parsedResult = Double.parseDouble(DATA[i][1]);
-                Number num = fmt.parse(stringToBeParsed);
-                if (num.doubleValue() != parsedResult) {
-                    errln("FAIL parse: Expected " + parsedResult);
-                }
-            }
-        } catch (ParseException e) {
-            errln("FAILED, DecimalFormat parse currency: " + e.toString());
-        }
-    } 
-
     /**
      * Test localized currency patterns.
      */
@@ -452,7 +286,6 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         ULocale.setDefault(ULocale.US);
         MeasureFormat curFmt = MeasureFormat.getCurrencyFormat();
         String strBuf = curFmt.format(new CurrencyAmount(new Float(1234.56), Currency.getInstance("USD")));
-
         try {
             CurrencyAmount parsedVal = (CurrencyAmount)curFmt.parseObject(strBuf);
             Number val = parsedVal.getNumber();
@@ -468,115 +301,6 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         }
         ULocale.setDefault(save);
     }
-
-    public void TestCurrencyIsoPluralFormat() {
-        String[][] DATA = {
-            // the data are:
-            // locale, 
-            // currency amount to be formatted,
-            // currency ISO code to be formatted,
-            // format result using CURRENCYSTYLE,
-            // format result using ISOCURRENCYSTYLE,
-            // format result using PLURALCURRENCYSTYLE,
-            {"en_US", "1", "USD", "$1.00", "USD1.00", "1.00 US dollar"},
-            {"en_US", "1234.56", "USD", "$1,234.56", "USD1,234.56", "1,234.56 US dollars"},
-            {"en_US", "-1234.56", "USD", "($1,234.56)", "(USD1,234.56)", "-1,234.56 US dollars"},
-            {"zh_CN", "1", "USD", "US$1.00", "USD1.00", "1.00 \u7F8E\u5143"}, 
-            {"zh_CN", "1234.56", "USD", "US$1,234.56", "USD1,234.56", "1,234.56 \u7F8E\u5143"},
-            //{"zh_CN", "1", "CHY", "CHY1.00", "CHY1.00", "1.00 CHY"},
-            //{"zh_CN", "1234.56", "CHY", "CHY1,234.56", "CHY1,234.56", "1,234.56 CHY"},
-            {"zh_CN", "1", "CNY", "\uFFE51.00", "CNY1.00", "1.00 \u4EBA\u6C11\u5E01"},
-            {"zh_CN", "1234.56", "CNY", "\uFFE51,234.56", "CNY1,234.56", "1,234.56 \u4EBA\u6C11\u5E01"}, 
-            {"ru_RU", "1", "RUB", "1,00\u00A0\u0440\u0443\u0431.", "1,00\u00A0RUB", "1,00 \u0420\u043E\u0441\u0441\u0438\u0439\u0441\u043A\u0438\u0439 \u0440\u0443\u0431\u043B\u044C"},
-            {"ru_RU", "2", "RUB", "2,00\u00A0\u0440\u0443\u0431.", "2,00\u00A0RUB", "2,00 \u0420\u043E\u0441\u0441\u0438\u0439\u0441\u043A\u0438\u0445 \u0440\u0443\u0431\u043B\u044F"},
-            {"ru_RU", "5", "RUB", "5,00\u00A0\u0440\u0443\u0431.", "5,00\u00A0RUB", "5,00 \u0420\u043E\u0441\u0441\u0438\u0439\u0441\u043A\u0438\u0445 \u0440\u0443\u0431\u043B\u0435\u0439"},
-            // test locale without currency information
-            {"ti_ET", "-1.23", "USD", "-US$1.23", "-USD1.23", "-1.23 USD"},
-            // test choice format
-            {"es_AR", "1", "INR", "\u20a8\u00A01,00", "INR\u00A01,00", "1,00 rupia india"},
-            {"ar_EG", "1", "USD", "US$\u00A0\u0661\u066B\u0660\u0660", "USD\u00a0\u0661\u066b\u0660\u0660", "\u0661\u066b\u0660\u0660 \u062f\u0648\u0644\u0627\u0631 \u0623\u0645\u0631\u064a\u0643\u064a"},
-        };
-        
-        for (int i=0; i<DATA.length; ++i) {
-          for (int k = NumberFormat.CURRENCYSTYLE;
-               k <= NumberFormat.PLURALCURRENCYSTYLE;
-               ++k) {
-            // k represents currency format style.
-            if ( k != NumberFormat.CURRENCYSTYLE &&
-                 k != NumberFormat.ISOCURRENCYSTYLE &&
-                 k != NumberFormat.PLURALCURRENCYSTYLE ) {
-                continue;
-            }
-            String localeString = DATA[i][0];
-            Double numberToBeFormat = new Double(DATA[i][1]);
-            String currencyISOCode = DATA[i][2];
-            ULocale locale = new ULocale(localeString);
-            NumberFormat numFmt = NumberFormat.getInstance(locale, k);
-            numFmt.setCurrency(Currency.getInstance(currencyISOCode));
-            String strBuf = numFmt.format(numberToBeFormat);
-            int resultDataIndex = k-1;
-            if ( k == NumberFormat.CURRENCYSTYLE ) {
-                resultDataIndex = k+2;
-            }
-            // DATA[i][resultDataIndex] is the currency format result
-            // using 'k' currency style.
-            String formatResult = DATA[i][resultDataIndex];
-            if (!strBuf.equals(formatResult)) {
-                errln("FAIL: Expected " + formatResult + " actual: " + Utility.escape(strBuf));
-            }
-            try {
-                // test parsing, and test parsing for all currency formats.
-                for (int j = 3; j < 6; ++j) {
-                    // DATA[i][3] is the currency format result using 
-                    // CURRENCYSTYLE formatter.
-                    // DATA[i][4] is the currency format result using
-                    // ISOCURRENCYSTYLE formatter.
-                    // DATA[i][5] is the currency format result using
-                    // PLURALCURRENCYSTYLE formatter.
-                    String oneCurrencyFormatResult = DATA[i][j];
-                    Number val = numFmt.parse(oneCurrencyFormatResult);
-                    if (val.doubleValue() != numberToBeFormat.doubleValue()) {
-                        errln("FAIL: getCurrencyFormat of locale " + localeString + " failed roundtripping the number. val=" + val + "; expected: " + numberToBeFormat);
-                    }
-                }
-            }
-            catch (ParseException e) {
-                errln("FAIL: " + e.getMessage());
-            }
-          }  
-        }
-    }
-
-
-    public void TestMiscCurrencyParsing() {
-        String[][] DATA = {
-            // each has: string to be parsed, parsed position, error position
-            {"1.00 ", "0", "4"},
-            {"1.00 UAE dirha", "0", "4"},
-            {"1.00 us dollar", "14", "-1"},
-            {"1.00 US DOLLAR", "14", "-1"},
-            {"1.00 usd", "0", "4"},
-        };
-        ULocale locale = new ULocale("en_US");
-        for (int i=0; i<DATA.length; ++i) {
-            String stringToBeParsed = DATA[i][0];
-            int parsedPosition = Integer.parseInt(DATA[i][1]);
-            int errorIndex = Integer.parseInt(DATA[i][2]);
-            NumberFormat numFmt = NumberFormat.getInstance(locale, NumberFormat.CURRENCYSTYLE);
-            ParsePosition parsePosition = new ParsePosition(0);
-            Number val = numFmt.parse(stringToBeParsed, parsePosition);
-            if (parsePosition.getIndex() != parsedPosition ||
-                parsePosition.getErrorIndex() != errorIndex) {
-                errln("FAIL: parse failed. expected error position: " + errorIndex + "; actual: " + parsePosition.getErrorIndex());
-                errln("FAIL: parse failed. expected position: " + parsedPosition +"; actual: " + parsePosition.getIndex());
-            }
-            if (parsePosition.getErrorIndex() == -1 &&
-                val.doubleValue() != 1.00) {
-                errln("FAIL: parse failed. expected 1.00, actual:" + val);
-            }
-        }
-    }
-
 
     /**
      * Test the Currency object handling, new as of ICU 2.2.
@@ -607,7 +331,7 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                        1234.56, "1 235 \u00A5JP"); // Yen
 
         expectCurrency(fmt, Currency.getInstance(new Locale("fr", "CH", "")),
-                       1234.56, "1 234,55 CHF"); // 0.25 rounding
+                       1234.56, "1 234,55 sFr."); // 0.25 rounding
 
         expectCurrency(fmt, Currency.getInstance(Locale.US),
                        1234.56, "1 234,56 $US");
@@ -1228,17 +952,15 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
      * Test currencies whose display name is a ChoiceFormat.
      */
     public void TestComplexCurrency() {
-//  CLDR No Longer uses complex currency symbols.
-//  Skipping this test.
-//        Locale loc = new Locale("kn", "IN", "");
-//        NumberFormat fmt = NumberFormat.getCurrencyInstance(loc);
+        Locale loc = new Locale("kn", "IN", "");
+        NumberFormat fmt = NumberFormat.getCurrencyInstance(loc);
 
-//        expect2(fmt, 1.0, "Re.\u00a01.00");
-//        expect(fmt, 1.001, "Re.\u00a01.00"); // tricky
-//        expect2(fmt, 12345678.0, "Rs.\u00a01,23,45,678.00");
-//        expect2(fmt, 0.5, "Rs.\u00a00.50");
-//        expect2(fmt, -1.0, "-Re.\u00a01.00");
-//        expect2(fmt, -10.0, "-Rs.\u00a010.00");
+        expect2(fmt, 1.0, "Re.\u00a01.00");
+        expect(fmt, 1.001, "Re.\u00a01.00"); // tricky
+        expect2(fmt, 12345678.0, "Rs.\u00a01,23,45,678.00");
+        expect2(fmt, 0.5, "Rs.\u00a00.50");
+        expect2(fmt, -1.0, "-Re.\u00a01.00");
+        expect2(fmt, -10.0, "-Rs.\u00a010.00");
     }
 
     public void TestCurrencyKeyword() {
@@ -1248,28 +970,6 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
     if (!"QQQ12.34".equals(result)) {
         errln("got unexpected currency: " + result);
     }
-    }
-
-    /**
-     * Test alternate numbering systems
-     */
-    public void TestNumberingSystems() {
-
-        ULocale loc1 = new ULocale("en_US@numbers=thai");
-        ULocale loc2 = new ULocale("en_US@numbers=hebr");
-        ULocale loc3 = new ULocale("en_US@numbers=arabext");
-        ULocale loc4 = new ULocale("hi_IN@numbers=foobar");
-        
-        NumberFormat fmt1 = NumberFormat.getInstance(loc1);
-        NumberFormat fmt2 = NumberFormat.getInstance(loc2);
-        NumberFormat fmt3 = NumberFormat.getInstance(loc3);
-        NumberFormat fmt4 = NumberFormat.getInstance(loc4);
-
-        expect2(fmt1,1234.567,"\u0e51,\u0e52\u0e53\u0e54.\u0e55\u0e56\u0e57");
-        expect3(fmt2,5678.0,"\u05d4\u05f3\u05ea\u05e8\u05e2\u05f4\u05d7");
-        expect2(fmt3,1234.567,"\u06f1,\u06f2\u06f3\u06f4.\u06f5\u06f6\u06f7");
-        expect2(fmt4,1234.567,"\u0967,\u0968\u0969\u096a.\u096b\u096c\u096d");
-
     }
 
     public void TestThreadedFormat() {
@@ -1708,29 +1408,15 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         expect(fmt, n, exp, false);
         expect(fmt, exp, n);
     }
-    // Format-Parse test
-    public void expect3(NumberFormat fmt, Number n, String exp) {
-        // Don't round-trip format test, since we explicitly do it
-        expect_rbnf(fmt, n, exp, false);
-        expect_rbnf(fmt, exp, n);
-    }
 
     // Format-Parse test (convenience)
     public void expect2(NumberFormat fmt, double n, String exp) {
         expect2(fmt, new Double(n), exp);
     }
-    // Format-Parse test (convenience)
-    public void expect3(NumberFormat fmt, double n, String exp) {
-        expect3(fmt, new Double(n), exp);
-    }
 
     // Format-Parse test (convenience)
     public void expect2(NumberFormat fmt, long n, String exp) {
         expect2(fmt, new Long(n), exp);
-    }
-    // Format-Parse test (convenience)
-    public void expect3(NumberFormat fmt, long n, String exp) {
-        expect3(fmt, new Long(n), exp);
     }
 
     // Format test
@@ -1763,36 +1449,6 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         } else {
             errln("FAIL " + n + " x " +
                   pat + " = \"" +
-                  saw + "\", expected \"" + exp + "\"");
-        }
-    }
-    // Format test
-    public void expect_rbnf(NumberFormat fmt, Number n, String exp, boolean rt) {
-        StringBuffer saw = new StringBuffer();
-        FieldPosition pos = new FieldPosition(0);
-        fmt.format(n, saw, pos);
-        if (saw.toString().equals(exp)) {
-            logln("Ok   " + n + " = \"" +
-                  saw + "\"");
-            // We should be able to round-trip the formatted string =>
-            // number => string (but not the other way around: number
-            // => string => number2, might have number2 != number):
-            if (rt) {
-                try {
-                    Number n2 = fmt.parse(exp);
-                    StringBuffer saw2 = new StringBuffer();
-                    fmt.format(n2, saw2, pos);
-                    if (!saw2.toString().equals(exp)) {
-                        errln("FAIL \"" + exp + "\" => " + n2 +
-                              " => \"" + saw2 + '"');
-                    }
-                } catch (ParseException e) {
-                    errln(e.getMessage());
-                    return;
-                }
-            }
-        } else {
-            errln("FAIL " + n + " = \"" +
                   saw + "\", expected \"" + exp + "\"");
         }
     }
@@ -1831,26 +1487,6 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         } else {
             errln("FAIL \"" + str + "\" x " +
                   pat + " = " +
-                  num + ", expected " + n);
-        }
-    }
-
-    // Parse test
-    public void expect_rbnf(NumberFormat fmt, String str, Number n) {
-        Number num = null;
-        try {
-            num = (Number) fmt.parse(str);
-        } catch (ParseException e) {
-            errln(e.getMessage());
-            return;
-        }
-        // A little tricky here -- make sure Double(12345.0) and
-        // Long(12345) match.
-        if (num.equals(n) || num.doubleValue() == n.doubleValue()) {
-            logln("Ok   \"" + str + " = " +
-                  num);
-        } else {
-            errln("FAIL \"" + str + " = " +
                   num + ", expected " + n);
         }
     }

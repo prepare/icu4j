@@ -1,4 +1,4 @@
-# Copyright (C) 2007-2009, International Business Machines Corporation and
+# Copyright (C) 2007-2008, International Business Machines Corporation and
 # others. All Rights Reserved.
 
 ## core sources
@@ -8,18 +8,15 @@ src/com/ibm/icu/impl/duration/BasicDurationFormat.java
 src/com/ibm/icu/impl/ICUResourceBundleImpl.java
 src/com/ibm/icu/impl/JavaTimeZone.java
 src/com/ibm/icu/impl/PatternTokenizer.java
-src/com/ibm/icu/impl/UnicodeRegex.java
 src/com/ibm/icu/impl/Utility.java
 src/com/ibm/icu/lang/UCharacter.java
 src/com/ibm/icu/math/BigDecimal.java
 src/com/ibm/icu/text/Bidi.java
-src/com/ibm/icu/text/CharsetRecog_sbcs.java
 src/com/ibm/icu/text/ChineseDateFormat.java
 src/com/ibm/icu/text/DateFormat.java
 src/com/ibm/icu/text/DateTimePatternGenerator.java
 src/com/ibm/icu/text/DecimalFormat.java
 src/com/ibm/icu/text/DigitList.java
-src/com/ibm/icu/text/IndexCharacters.java
 src/com/ibm/icu/text/MessageFormat.java
 src/com/ibm/icu/text/NumberFormat.java
 src/com/ibm/icu/text/RuleBasedCollator.java
@@ -34,16 +31,12 @@ src/com/ibm/icu/util/UResourceBundle.java
 src/com/ibm/icu/dev/test/bidi/TestAll.java
 src/com/ibm/icu/dev/test/bidi/TestCompatibility.java
 src/com/ibm/icu/dev/test/bigdec/DiagBigDecimal.java
-src/com/ibm/icu/dev/test/calendar/CalendarRegression.java
-src/com/ibm/icu/dev/test/calendar/CompatibilityTest.java
 src/com/ibm/icu/dev/test/charsetdet/TestCharsetDetector.java
 src/com/ibm/icu/dev/test/cldr/TestCLDRVsICU.java
-src/com/ibm/icu/dev/test/collator/IndexCharactersTest.java
 src/com/ibm/icu/dev/test/collator/RandomCollator.java
 src/com/ibm/icu/dev/test/duration/ICUDurationTest.java
 src/com/ibm/icu/dev/test/format/BigNumberFormatTest.java
 src/com/ibm/icu/dev/test/format/DateFormatTest.java
-src/com/ibm/icu/dev/test/format/IntlTestDecimalFormatAPI.java
 src/com/ibm/icu/dev/test/format/IntlTestDecimalFormatAPIC.java
 src/com/ibm/icu/dev/test/format/IntlTestNumberFormatAPI.java
 src/com/ibm/icu/dev/test/format/NumberFormatRegressionTest.java
@@ -61,7 +54,6 @@ src/com/ibm/icu/dev/test/TestUtil.java
 src/com/ibm/icu/dev/test/timezone/TimeZoneAliasTest.java
 src/com/ibm/icu/dev/test/timezone/TimeZoneRegression.java
 src/com/ibm/icu/dev/test/translit/UnicodeMapTest.java
-src/com/ibm/icu/dev/test/translit/RegexUtilitiesTest.java
 src/com/ibm/icu/dev/test/util/BagFormatter.java
 src/com/ibm/icu/dev/test/util/BNF.java
 src/com/ibm/icu/dev/test/util/CollectionUtilities.java

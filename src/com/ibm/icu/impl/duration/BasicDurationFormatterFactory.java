@@ -1,6 +1,6 @@
 /*
 ******************************************************************************
-* Copyright (C) 2007-2009, International Business Machines Corporation and   *
+* Copyright (C) 2007, International Business Machines Corporation and   *
 * others. All Rights Reserved.                                               *
 ******************************************************************************
 */
@@ -114,12 +114,6 @@ class BasicDurationFormatterFactory implements DurationFormatterFactory {
   public DurationFormatterFactory setLocale(String localeName) {
     if (!localeName.equals(this.localeName)) {
       this.localeName = localeName;
-      if (builder != null) {
-          builder = builder.withLocale(localeName);
-      }
-      if (formatter != null) {
-          formatter = formatter.withLocale(localeName);
-      }
       reset();
     }
     return this;
@@ -135,9 +129,6 @@ class BasicDurationFormatterFactory implements DurationFormatterFactory {
   public DurationFormatterFactory setTimeZone(TimeZone timeZone) {
     if (!timeZone.equals(this.timeZone)) {
       this.timeZone = timeZone;
-      if (builder != null) {
-          builder = builder.withTimeZone(timeZone);
-      }
       reset();
     }
     return this;
@@ -153,8 +144,11 @@ class BasicDurationFormatterFactory implements DurationFormatterFactory {
       if (fallback != null) {
         fallback = fallback.withLocale(localeName).withTimeZone(timeZone);
       }
-      formatter = getPeriodFormatter();
-      builder = getPeriodBuilder();
+      formatter = getPeriodFormatter()
+          .withLocale(localeName);
+      builder = getPeriodBuilder()
+          .withLocale(localeName)
+          .withTimeZone(timeZone);
 
       f = createFormatter();
     }
@@ -168,9 +162,7 @@ class BasicDurationFormatterFactory implements DurationFormatterFactory {
    */
   public PeriodFormatter getPeriodFormatter() {
     if (formatter == null) {
-      formatter = ps.newPeriodFormatterFactory()
-          .setLocale(localeName)
-          .getFormatter();
+      formatter = ps.newPeriodFormatterFactory().getFormatter();
     }
     return formatter;
   }
@@ -182,10 +174,7 @@ class BasicDurationFormatterFactory implements DurationFormatterFactory {
    */
   public PeriodBuilder getPeriodBuilder() {
     if (builder == null) {
-      builder = ps.newPeriodBuilderFactory()
-          .setLocale(localeName)
-          .setTimeZone(timeZone)
-          .getSingleUnitBuilder();
+      builder = ps.newPeriodBuilderFactory().getSingleUnitBuilder();
     }
     return builder;
   }

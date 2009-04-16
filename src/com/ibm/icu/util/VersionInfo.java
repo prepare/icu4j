@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2009, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2008, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -14,7 +14,7 @@ import java.util.HashMap;
  * @author synwee
  * @stable ICU 2.6
  */
-public final class VersionInfo implements Comparable
+public final class VersionInfo
 {
     // public data members -------------------------------------------------
 
@@ -114,12 +114,6 @@ public final class VersionInfo implements Comparable
     public static final VersionInfo UNICODE_5_0;
 
     /**
-     * Unicode 5.1 version
-     * @stable ICU 4.2
-     */
-    public static final VersionInfo UNICODE_5_1;
-
-    /**
      * ICU4J current release version
      * @stable ICU 2.8
      */
@@ -130,7 +124,7 @@ public final class VersionInfo implements Comparable
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    public static final String ICU_DATA_VERSION = "41b";
+    public static final String ICU_DATA_VERSION = "40b";
 
     /**
      * ICU4J collator runtime version
@@ -404,22 +398,6 @@ public final class VersionInfo implements Comparable
         return m_version_ - other.m_version_;
     }
 
-    /**
-     * Compares other with this VersionInfo.
-     * @param other VersionInfo to be compared. Throws ClassCastException if not a VersionInfo.
-     * @return 0 if the argument is a VersionInfo object that has version
-     *           information equals to this object.
-     *           Less than 0 if the argument is a VersionInfo object that has
-     *           version information greater than this object.
-     *           Greater than 0 if the argument is a VersionInfo object that
-     *           has version information less than this object.
-     * @draft ICU 4.2
-     * @provisional This API might change or be removed in a future release.
-     */
-    public int compareTo(Object other) {
-        return compareTo((VersionInfo)other);
-    }
-
     // private data members ----------------------------------------------
 
     /**
@@ -466,9 +444,8 @@ public final class VersionInfo implements Comparable
         UNICODE_4_0   = getInstance(4, 0, 0, 0);
         UNICODE_4_0_1 = getInstance(4, 0, 1, 0);
         UNICODE_4_1   = getInstance(4, 1, 0, 0);
-        UNICODE_5_0   = getInstance(5, 0, 0, 0);
-        UNICODE_5_1   = getInstance(5, 1, 0, 0);
-        ICU_VERSION   = getInstance(4, 1, 5, 0);
+        UNICODE_5_0   = getInstance(4, 1, 0, 0);
+        ICU_VERSION   = getInstance(4, 0, 1, 0);
         UCOL_RUNTIME_VERSION = getInstance(6);
         UCOL_BUILDER_VERSION = getInstance(7);
         UCOL_TAILORINGS_VERSION = getInstance(1);
@@ -496,5 +473,4 @@ public final class VersionInfo implements Comparable
     {
         return (major << 24) | (minor << 16) | (milli << 8) | micro;
     }
-
 }

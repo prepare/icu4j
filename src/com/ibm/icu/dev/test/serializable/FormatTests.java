@@ -1,7 +1,7 @@
-//##header
+//##header J2SE15
 /*
  *******************************************************************************
- * Copyright (C) 1996-2009, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2008, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  *
@@ -9,7 +9,6 @@
 
 package com.ibm.icu.dev.test.serializable;
 
-import java.text.AttributedCharacterIterator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Locale;
@@ -19,10 +18,10 @@ import com.ibm.icu.text.ChineseDateFormat;
 import com.ibm.icu.text.ChineseDateFormatSymbols;
 import com.ibm.icu.text.DateFormat;
 import com.ibm.icu.text.DateFormatSymbols;
+import com.ibm.icu.util.DateInterval;
 import com.ibm.icu.text.DateIntervalFormat;
 import com.ibm.icu.text.DateIntervalInfo;
 import com.ibm.icu.text.DecimalFormat;
-import com.ibm.icu.text.CurrencyPluralInfo;
 import com.ibm.icu.text.DecimalFormatSymbols;
 import com.ibm.icu.text.DurationFormat;
 import com.ibm.icu.text.MessageFormat;
@@ -33,7 +32,6 @@ import com.ibm.icu.text.RuleBasedNumberFormat;
 import com.ibm.icu.text.SimpleDateFormat;
 import com.ibm.icu.text.TimeUnitFormat;
 import com.ibm.icu.util.Calendar;
-import com.ibm.icu.util.DateInterval;
 import com.ibm.icu.util.GregorianCalendar;
 import com.ibm.icu.util.TimeUnit;
 import com.ibm.icu.util.TimeUnitAmount;
@@ -1101,21 +1099,7 @@ public class FormatTests
                 
                 formats[i] = getCannedDecimalFormat("#,##0.###", uloc);
             }
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
-            if (formats[0] != null) {
-                // Ticket#6449
-                // Once formatToCharacterIterator is called, NumberFormat.Field
-                // instances are created and stored in the private List field.
-                // NumberForamt.Field is not a serializable, so serializing such
-                // instances end up NotSerializableException.  This problem was
-                // reproduced since formatToCharacterIterator was introduced,
-                // up to ICU 4.0.
-
-                AttributedCharacterIterator aci = formats[0].formatToCharacterIterator(new Double(12.345D));
-                if (aci == null) {} // NOP - for resolving 'Unused local variable' warning.
-            }
-//#endif
+            
             return formats;
         }
     }
@@ -1689,24 +1673,6 @@ public class FormatTests
             char chars_b[] = getCharSymbols(dfs_b);
 
             return SerializableTest.compareStrings(strings_a, strings_b) && SerializableTest.compareChars(chars_a, chars_b);
-        }
-    }
-    
-    public static class CurrencyPluralInfoHandler implements SerializableTest.Handler
-    {
-        public Object[] getTestObjects()
-        {
-            CurrencyPluralInfo currencyPluralInfo[] = {
-                new CurrencyPluralInfo()
-            };
-            currencyPluralInfo[0].setPluralRules("one: n is 1; few: n in 2..4");
-            currencyPluralInfo[0].setCurrencyPluralPattern("few", "few currency");
-            return currencyPluralInfo;
-        }
-        
-        public boolean hasSameBehavior(Object a, Object b)
-        {
-            return a.equals(b);
         }
     }
     

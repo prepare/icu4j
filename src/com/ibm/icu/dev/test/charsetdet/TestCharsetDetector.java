@@ -1,7 +1,7 @@
-//##header
+//##header J2SE15
 /**
  *******************************************************************************
- * Copyright (C) 2005-2009, International Business Machines Corporation and    *
+ * Copyright (C) 2005-2008, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -28,10 +28,6 @@ import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 //#endif
-
-import com.ibm.icu.charset.CharsetProviderICU;
-import java.nio.charset.CharsetEncoder;
-import java.nio.CharBuffer;
 
 /**
  * @author andy
@@ -451,132 +447,4 @@ public class TestCharsetDetector extends TestFmwk
         }
     }
 //#endif
-    
-    public void TestArabic() throws Exception {
-        String  s = "\u0648\u0636\u0639\u062A \u0648\u0646\u0641\u0630\u062A \u0628\u0631\u0627" +
-        "\u0645\u062C \u062A\u0623\u0645\u064A\u0646 \u0639\u062F\u064A\u062F\u0629 \u0641\u064A " + 
-        "\u0645\u0624\u0633\u0633\u0629 \u0627\u0644\u062A\u0623\u0645\u064A\u0646 \u0627\u0644"  + 
-        "\u0648\u0637\u0646\u064A, \u0645\u0639 \u0645\u0644\u0627\u0626\u0645\u062A\u0647\u0627 " + 
-        "\u062F\u0627\u0626\u0645\u0627 \u0644\u0644\u0627\u062D\u062A\u064A\u0627\u062C" + 
-        "\u0627\u062A \u0627\u0644\u0645\u062A\u063A\u064A\u0631\u0629 \u0644\u0644\u0645\u062C" + 
-        "\u062A\u0645\u0639 \u0648\u0644\u0644\u062F\u0648\u0644\u0629. \u062A\u0648\u0633\u0639" + 
-        "\u062A \u0648\u062A\u0637\u0648\u0631\u062A \u0627\u0644\u0645\u0624\u0633\u0633\u0629 " + 
-        "\u0628\u0647\u062F\u0641 \u0636\u0645\u0627\u0646 \u0634\u0628\u0643\u0629 \u0623\u0645" + 
-        "\u0627\u0646 \u0644\u0633\u0643\u0627\u0646 \u062F\u0648\u0644\u0629 \u0627\u0633\u0631" + 
-        "\u0627\u0626\u064A\u0644 \u0628\u0648\u062C\u0647 \u0627\u0644\u0645\u062E\u0627\u0637" + 
-        "\u0631 \u0627\u0644\u0627\u0642\u062A\u0635\u0627\u062F\u064A\u0629 \u0648\u0627\u0644" + 
-        "\u0627\u062C\u062A\u0645\u0627\u0639\u064A\u0629.";
-        
-        CharsetMatch m = _test1256(s);
-        String charsetMatch = m.getName();
-        CheckAssert(charsetMatch.equals("windows-1256"));
-        
-        /* Create an encoder to get the bytes.
-         * Using String.getBytes("IBM420") can produce inconsistent results
-         * between different versions of the JDK.
-         */
-        CharsetEncoder encoder = new CharsetProviderICU().charsetForName("IBM420").newEncoder();
-        
-        m = _testIBM420_ar_rtl(s, encoder);
-        charsetMatch = m.getName();
-        CheckAssert(charsetMatch.equals("IBM420_rtl"));
-        
-         m = _testIBM420_ar_ltr(s, encoder);
-        charsetMatch = m.getName();
-        CheckAssert(charsetMatch.equals("IBM420_ltr"));
-
-    }
-    
-    private CharsetMatch _testIBM420_ar_rtl(String s, CharsetEncoder encoder) throws Exception {
-        CharsetDetector det = new CharsetDetector();
-        det.setText(encoder.encode(CharBuffer.wrap(s)).array());
-        CharsetMatch m = det.detect();
-        return m;
-    }
-    
-    
-    private CharsetMatch _testIBM420_ar_ltr(String s, CharsetEncoder encoder) throws Exception {
-        /**
-         * transformation of input string to CP420 left to right requires reversing the string
-         */    
-        
-        StringBuffer ltrStrBuf = new StringBuffer(s);
-        ltrStrBuf = ltrStrBuf.reverse();
-        
-        CharsetDetector det = new CharsetDetector();
-        det.setText(encoder.encode(CharBuffer.wrap(ltrStrBuf.toString())).array());
-        CharsetMatch m = det.detect();
-        return m;
-    }
-
-    private CharsetMatch _test1256(String s) throws Exception {
-        
-        byte [] bytes = s.getBytes("windows-1256");
-        CharsetDetector det = new CharsetDetector();
-        det.setText(bytes);
-        CharsetMatch m = det.detect();
-        return m;
-    }
-    
-    public void TestHebrew() throws Exception {
-        String  s =  "\u05D4\u05E4\u05E8\u05E7\u05DC\u05D9\u05D8 \u05D4\u05E6\u05D1\u05D0\u05D9 \u05D4" +
-            "\u05E8\u05D0\u05E9\u05D9, \u05EA\u05EA \u05D0\u05DC\u05D5\u05E3 \u05D0\u05D1\u05D9" + 
-            "\u05D7\u05D9 \u05DE\u05E0\u05D3\u05DC\u05D1\u05DC\u05D9\u05D8, \u05D4\u05D5\u05E8" + 
-            "\u05D4 \u05E2\u05DC \u05E4\u05EA\u05D9\u05D7\u05EA \u05D7\u05E7\u05D9\u05E8\u05EA " + 
-            "\u05DE\u05E6\"\u05D7 \u05D1\u05E2\u05E7\u05D1\u05D5\u05EA \u05E2\u05D3\u05D5\u05D9" + 
-            "\u05D5\u05EA \u05D7\u05D9\u05D9\u05DC\u05D9 \u05E6\u05D4\"\u05DC \u05DE\u05DE\u05D1" + 
-            "\u05E6\u05E2 \u05E2\u05D5\u05E4\u05E8\u05EA \u05D9\u05E6\u05D5\u05E7\u05D4 \u05D1+ " +
-            "\u05E8\u05E6\u05D5\u05E2\u05EA \u05E2\u05D6\u05D4. \u05DC\u05D3\u05D1\u05E8\u05D9 " + 
-            "\u05D4\u05E4\u05E6\"\u05E8, \u05DE\u05D4\u05E2\u05D3\u05D5\u05D9\u05D5\u05EA \u05E2" +
-            "\u05D5\u05DC\u05D4 \u05EA\u05DE\u05D5\u05E0\u05D4 \u05E9\u05DC \"\u05D4\u05EA\u05E0" + 
-            "\u05D4\u05D2\u05D5\u05EA \u05E4\u05E1\u05D5\u05DC\u05D4 \u05DC\u05DB\u05D0\u05D5\u05E8" + 
-            "\u05D4 \u05E9\u05DC \u05D7\u05D9\u05D9\u05DC\u05D9\u05DD \u05D1\u05DE\u05D4\u05DC\u05DA" + 
-            " \u05DE\u05D1\u05E6\u05E2 \u05E2\u05D5\u05E4\u05E8\u05EA \u05D9\u05E6\u05D5\u05E7\u05D4\"." + 
-            " \u05DE\u05E0\u05D3\u05DC\u05D1\u05DC\u05D9\u05D8 \u05E7\u05D9\u05D1\u05DC \u05D0\u05EA" +
-            " \u05D4\u05D7\u05DC\u05D8\u05EA\u05D5 \u05DC\u05D0\u05D7\u05E8 \u05E9\u05E2\u05D9\u05D9" +
-            "\u05DF \u05D1\u05EA\u05DE\u05DC\u05D9\u05DC \u05D4\u05E2\u05D3\u05D5\u05D9\u05D5\u05EA";
-        
-        CharsetMatch m = _test1255(s);
-        String charsetMatch = m.getName();
-        CheckAssert(charsetMatch.equals("ISO-8859-8"));
-        
-        m = _testIBM424_he_rtl(s);
-        charsetMatch = m.getName();
-        CheckAssert(charsetMatch.equals("IBM424_rtl"));
-        
-        m = _testIBM424_he_ltr(s);
-        charsetMatch = m.getName();
-        CheckAssert(charsetMatch.equals("IBM424_ltr"));
-    }
-
-    private CharsetMatch _test1255(String s) throws Exception {
-        byte [] bytes = s.getBytes("ISO-8859-8");
-        CharsetDetector det = new CharsetDetector();
-        det.setText(bytes);
-        CharsetMatch m = det.detect();
-        return m;
-    }
-    
-    private CharsetMatch _testIBM424_he_rtl(String s) throws Exception {
-        byte [] bytes = s.getBytes("IBM424");        
-        CharsetDetector det = new CharsetDetector();
-        det.setText(bytes);
-        CharsetMatch m = det.detect();
-        return m;
-    }
-    
-    private CharsetMatch _testIBM424_he_ltr(String s) throws Exception {
-        /**
-         * transformation of input string to CP420 left to right requires reversing the string
-         */    
-        
-        StringBuffer ltrStrBuf = new StringBuffer(s);
-        ltrStrBuf = ltrStrBuf.reverse();
-        byte [] bytes = ltrStrBuf.toString().getBytes("IBM424");
-        
-        CharsetDetector det = new CharsetDetector();
-        det.setText(bytes);
-        CharsetMatch m = det.detect();
-        return m;
-    }
 }

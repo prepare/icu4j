@@ -1,6 +1,6 @@
 /**
  *******************************************************************************
- * Copyright (C) 2006-2009, International Business Machines Corporation and    *
+ * Copyright (C) 2006-2008, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  *
@@ -156,14 +156,7 @@ class CharsetMBCS extends CharsetICU {
     public CharsetMBCS(String icuCanonicalName, String javaCanonicalName, String[] aliases, String classPath,
             ClassLoader loader) throws InvalidFormatException {
         super(icuCanonicalName, javaCanonicalName, aliases);
-        
-        /* See if the icuCanonicalName contains certain option information. */
-        if (icuCanonicalName.indexOf(UConverterConstants.OPTION_SWAP_LFNL_STRING) > -1) {
-            options = UConverterConstants.OPTION_SWAP_LFNL;
-            icuCanonicalName = icuCanonicalName.substring(0, icuCanonicalName.indexOf(UConverterConstants.OPTION_SWAP_LFNL_STRING));
-            super.icuCanonicalName = icuCanonicalName;
-        }
-        
+
         // now try to load the data
         sharedData = loadConverter(1, icuCanonicalName, classPath, loader);
 
@@ -176,8 +169,9 @@ class CharsetMBCS extends CharsetICU {
         subChar1 = sharedData.staticData.subChar1;
         fromUSubstitution = new byte[sharedData.staticData.subCharLen];
         System.arraycopy(sharedData.staticData.subChar, 0, fromUSubstitution, 0, sharedData.staticData.subCharLen);
-        
-        initializeConverter(options);
+
+        // TODO: pass options
+        initializeConverter(0);
     }
 
     public CharsetMBCS(String icuCanonicalName, String javaCanonicalName, String[] aliases)
@@ -887,15 +881,14 @@ class CharsetMBCS extends CharsetICU {
             // agljport:todo umtx_unlock(NULL);
 
             if (!isCached) {
-                try {
-                    if (!EBCDICSwapLFNL()) {
-                        /* this option does not apply, remove it */
-                        this.options = myOptions &= ~UConverterConstants.OPTION_SWAP_LFNL;
-                    }
-                } catch (Exception e) {
-                    /* something went wrong. */
-                    return;
-                }
+                // agljport:fix if(!_EBCDICSwapLFNL(cnv->sharedData, pErrorCode)) {
+                // agljport:fix if(U_FAILURE(*pErrorCode)) {
+                // agljport:fix return; /* something went wrong */
+                // agljport:fix }
+
+                /* the option does not apply, remove it */
+                // agljport:fix cnv->options=options&=~UCNV_OPTION_SWAP_LFNL;
+                // agljport:fix }
             }
         }
 
@@ -920,151 +913,6 @@ class CharsetMBCS extends CharsetICU {
                 maxBytesPerChar = maxBytesPerUChar;
             }
         }
-    }
-     /* EBCDIC swap LF<->NL--------------------------------------------------------------------------------*/
-     /*
-      * This code modifies a standard EBCDIC<->Unicode mappling table for
-      * OS/390 (z/OS) Unix System Services (Open Edition).
-      * The difference is in the mapping of Line Feed and New Line control codes:
-      * Standard EBDIC maps
-      * 
-      * <U000A> \x25 |0
-      * <U0085> \x15 |0
-      * 
-      * but OS/390 USS EBCDIC swaps the control codes for LF and NL,
-      * mapping
-      * 
-      * <U000A> \x15 |0
-      * <U0085> \x25 |0
-      * 
-      * This code modifies a loaded standard EBCDIC<->Unicode mapping table
-      * by copying it into allocated memory and swapping the LF and NL values.
-      * It allows to support the same EBCDIC charset in both version without
-      * duplicating the entire installed table.
-      */
-    /* standard EBCDIC codes */
-    private static final short EBCDIC_LF = 0x0025;
-    private static final short EBCDIC_NL = 0x0015;
-    
-    /* standard EBCDIC codes with roundtrip flag as stored in Unicode-to-single-byte tables */
-    private static final short EBCDIC_RT_LF = 0x0f25;
-    private static final short EBCDIC_RT_NL = 0x0f15;
-    
-    /* Unicode code points */
-    private static final short U_LF = 0x000A;
-    private static final short U_NL = 0x0085;
-    
-    private boolean EBCDICSwapLFNL() throws Exception {
-        UConverterMBCSTable mbcsTable;
-        
-        char[] table;
-        byte[] results;
-        byte[] bytes;
-        
-        int[][] newStateTable;
-        byte[] newResults;
-        String newName;
-        
-        int stage2Entry;
-//        int size;
-        int sizeofFromUBytes;
-        
-        mbcsTable = sharedData.mbcs;
-        
-        table = mbcsTable.fromUnicodeTable;
-        bytes = mbcsTable.fromUnicodeBytes;
-        results = bytes;
-        
-        /*
-         * Check that this is an EBCDIC table with SBCS portion -
-         * SBCS or EBCDIC with standard EBCDIC LF and NL mappings.
-         * 
-         * If not, ignore the option Options are always ignored if they do not apply.
-         */
-        if (!((mbcsTable.outputType == MBCS_OUTPUT_1 || mbcsTable.outputType == MBCS_OUTPUT_2_SISO) &&
-              mbcsTable.stateTable[0][EBCDIC_LF] == MBCS_ENTRY_FINAL(0, MBCS_STATE_VALID_DIRECT_16, U_LF) &&
-              mbcsTable.stateTable[0][EBCDIC_NL] == MBCS_ENTRY_FINAL(0, MBCS_STATE_VALID_DIRECT_16, U_NL))) {
-            return false;
-        }
-        
-        if (mbcsTable.outputType == MBCS_OUTPUT_1) {
-            if (!(EBCDIC_RT_LF == MBCS_SINGLE_RESULT_FROM_U(table, results, U_LF) &&
-                  EBCDIC_RT_NL == MBCS_SINGLE_RESULT_FROM_U(table, results, U_NL))) {
-                return false;
-            }
-        } else /* MBCS_OUTPUT_2_SISO */ {
-            stage2Entry = MBCS_STAGE_2_FROM_U(table, U_LF);
-            if (!(MBCS_FROM_U_IS_ROUNDTRIP(stage2Entry, U_LF) &&
-                  EBCDIC_LF == MBCS_VALUE_2_FROM_STAGE_2(bytes, stage2Entry, U_LF))) {
-                return false;
-            }
-            
-            stage2Entry = MBCS_STAGE_2_FROM_U(table, U_NL);
-            if (!(MBCS_FROM_U_IS_ROUNDTRIP(stage2Entry, U_NL) &&
-                  EBCDIC_NL == MBCS_VALUE_2_FROM_STAGE_2(bytes, stage2Entry, U_NL))) {
-                return false;
-            }
-        }
-        
-        if (mbcsTable.fromUBytesLength > 0) {
-            /*
-             * We _know_ the number of bytes in the fromUnicodeBytes array
-             * starting with header.version 4.1.
-             */
-            sizeofFromUBytes = mbcsTable.fromUBytesLength;
-        } else {
-            /*
-             * Otherwise:
-             * There used to be code to enumerate the fromUnicode
-             * trie and find the highest entry, but it was removed in ICU 3.2
-             * because it was not tested and caused a low code coverage number.
-             */
-            throw new Exception("U_INVALID_FORMAT_ERROR");
-        }
-        
-        /*
-         * The table has an appropriate format.
-         * Allocate and build
-         * - a modified to-Unicode state table
-         * - a modified from-Unicode output array
-         * - a converter name string with the swap option appended
-         */
-//        size = mbcsTable.countStates * 1024 + sizeofFromUBytes + UConverterConstants.MAX_CONVERTER_NAME_LENGTH + 20;
-        
-        /* copy and modify the to-Unicode state table */
-        newStateTable = new int[mbcsTable.stateTable.length][mbcsTable.stateTable[0].length];
-        for (int i = 0; i < newStateTable.length; i++) {
-            System.arraycopy(mbcsTable.stateTable[i], 0, newStateTable[i], 0, newStateTable[i].length);
-        }
-        
-        newStateTable[0][EBCDIC_LF] = MBCS_ENTRY_FINAL(0, MBCS_STATE_VALID_DIRECT_16, U_NL);
-        newStateTable[0][EBCDIC_NL] = MBCS_ENTRY_FINAL(0, MBCS_STATE_VALID_DIRECT_16, U_LF);
-        
-        /* copy and modify the from-Unicode result table */
-        newResults = new byte[sizeofFromUBytes];
-        System.arraycopy(bytes, 0, newResults, 0, sizeofFromUBytes);
-        /* conveniently, the table access macros work on the left side of expressions */
-        if (mbcsTable.outputType == MBCS_OUTPUT_1) {
-            MBCS_SINGLE_RESULT_FROM_U_SET(table, newResults, U_LF, EBCDIC_RT_NL);
-            MBCS_SINGLE_RESULT_FROM_U_SET(table, newResults, U_NL, EBCDIC_RT_LF);
-        } else /* MBCS_OUTPUT_2_SISO */ {
-            stage2Entry = MBCS_STAGE_2_FROM_U(table, U_LF);
-            MBCS_VALUE_2_FROM_STAGE_2_SET(newResults, stage2Entry, U_LF, EBCDIC_NL);
-            
-            stage2Entry = MBCS_STAGE_2_FROM_U(table, U_NL);
-            MBCS_VALUE_2_FROM_STAGE_2_SET(newResults, stage2Entry, U_NL, EBCDIC_LF);
-        }
-        
-        /* set the canonical converter name */
-        newName = new String(icuCanonicalName);
-        newName.concat(UConverterConstants.OPTION_SWAP_LFNL_STRING);
-        
-        if (mbcsTable.swapLFNLStateTable == null) {
-            mbcsTable.swapLFNLStateTable = newStateTable;
-            mbcsTable.swapLFNLFromUnicodeBytes = newResults;
-            mbcsTable.swapLFNLName = newName;
-        }
-        return true;
     }
 
     /**
@@ -1208,14 +1056,6 @@ class CharsetMBCS extends CharsetICU {
         int i = 2 * (table[i1] + (c & 0xf)); // used as index into byte[] array treated as char[] array
         return (char) (((results[i] & UConverterConstants.UNSIGNED_BYTE_MASK) << 8) | (results[i + 1] & UConverterConstants.UNSIGNED_BYTE_MASK));
     }
-    
-    /* single-byte fromUnicode: set the 16-bit result word with newValue*/
-    static void MBCS_SINGLE_RESULT_FROM_U_SET(char[] table, byte[] results, int c, int newValue) {
-        int i1 = table[c >>> 10] + ((c >>> 4) & 0x3f);
-        int i = 2 * (table[i1] + (c & 0xf)); // used as index into byte[] array treated as char[] array
-        results[i] = (byte)((newValue >> 8) & UConverterConstants.UNSIGNED_BYTE_MASK);
-        results[i + 1] =  (byte)(newValue & UConverterConstants.UNSIGNED_BYTE_MASK);
-    }
 
     /* multi-byte fromUnicode: get the 32-bit stage 2 entry */
     static int MBCS_STAGE_2_FROM_U(char[] table, int c) {
@@ -1232,12 +1072,6 @@ class CharsetMBCS extends CharsetICU {
     static char MBCS_VALUE_2_FROM_STAGE_2(byte[] bytes, int stage2Entry, int c) {
         int i = 2 * (16 * ((char) stage2Entry & UConverterConstants.UNSIGNED_SHORT_MASK) + (c & 0xf));
         return (char) (((bytes[i] & UConverterConstants.UNSIGNED_BYTE_MASK) << 8) | (bytes[i + 1] & UConverterConstants.UNSIGNED_BYTE_MASK));
-    }
-    
-    static void MBCS_VALUE_2_FROM_STAGE_2_SET(byte[] bytes, int stage2Entry, int c, int newValue) {
-        int i = 2 * (16 * ((char) stage2Entry & UConverterConstants.UNSIGNED_SHORT_MASK) + (c & 0xf));
-        bytes[i] = (byte)((newValue >> 8) & UConverterConstants.UNSIGNED_BYTE_MASK);
-        bytes[i + 1] = (byte)(newValue & UConverterConstants.UNSIGNED_BYTE_MASK);
     }
 
     private static int MBCS_VALUE_4_FROM_STAGE_2(byte[] bytes, int stage2Entry, int c) {
@@ -1573,8 +1407,330 @@ class CharsetMBCS extends CharsetICU {
         }
 
         protected CoderResult decodeLoop(ByteBuffer source, CharBuffer target, IntBuffer offsets, boolean flush) {
-        /* Just call cnvMBCSToUnicodeWithOffsets() to remove duplicate code. */
-            return cnvMBCSToUnicodeWithOffsets(source, target, offsets, flush);
+            CoderResult[] cr = { CoderResult.UNDERFLOW };
+
+            int sourceArrayIndex;
+            int stateTable[][/* 256 */];
+            char[] unicodeCodeUnits;
+
+            int offset;
+            byte state;
+            int byteIndex;
+            byte[] bytes;
+
+            int sourceIndex, nextSourceIndex;
+
+            int entry = 0;
+            char c;
+            byte action;
+
+            if (preToULength > 0) {
+                /*
+                 * pass sourceIndex=-1 because we continue from an earlier buffer in the future, this may change with
+                 * continuous offsets
+                 */
+                cr[0] = continueMatchToU(source, target, offsets, -1, flush);
+
+                if (cr[0].isError() || preToULength < 0) {
+                    return cr[0];
+                }
+            }
+
+            if (sharedData.mbcs.countStates == 1) {
+                if ((sharedData.mbcs.unicodeMask & UConverterConstants.HAS_SUPPLEMENTARY) == 0) {
+                    cr[0] = cnvMBCSSingleToBMPWithOffsets(source, target, offsets, flush);
+                } else {
+                    cr[0] = cnvMBCSSingleToUnicodeWithOffsets(source, target, offsets, flush);
+                }
+                return cr[0];
+            }
+
+            /* set up the local pointers */
+            sourceArrayIndex = source.position();
+
+            if ((options & UConverterConstants.OPTION_SWAP_LFNL) != 0) {
+                stateTable = sharedData.mbcs.swapLFNLStateTable;
+            } else {
+                stateTable = sharedData.mbcs.stateTable;
+            }
+            unicodeCodeUnits = sharedData.mbcs.unicodeCodeUnits;
+
+            /* get the converter state from UConverter */
+            offset = (int) toUnicodeStatus;
+            byteIndex = toULength;
+            bytes = toUBytesArray;
+
+            /*
+             * if we are in the SBCS state for a DBCS-only converter, then load the DBCS state from the MBCS data
+             * (dbcsOnlyState==0 if it is not a DBCS-only converter)
+             */
+            state = (byte)mode;
+            if (state == 0) {
+                state = sharedData.mbcs.dbcsOnlyState;
+            }
+
+            /* sourceIndex=-1 if the current character began in the previous buffer */
+            sourceIndex = byteIndex == 0 ? 0 : -1;
+            nextSourceIndex = 0;
+
+            /* conversion loop */
+            while (sourceArrayIndex < source.limit()) {
+                /*
+                 * This following test is to see if available input would overflow the output. It does not catch output
+                 * of more than one code unit that overflows as a result of a surrogate pair or callback output from the
+                 * last source byte. Therefore, those situations also test for overflows and will then break the loop,
+                 * too.
+                 */
+                if (!target.hasRemaining()) {
+                    /* target is full */
+                    cr[0] = CoderResult.OVERFLOW;
+                    break;
+                }
+
+                if (byteIndex == 0) {
+                    /* optimized loop for 1/2-byte input and BMP output */
+                    // agljport:todo see ucnvmbcs.c for deleted block
+                    do {
+                        entry = stateTable[state][source.get(sourceArrayIndex)&UConverterConstants.UNSIGNED_BYTE_MASK];
+                        if (MBCS_ENTRY_IS_TRANSITION(entry)) {
+                            state = (byte) MBCS_ENTRY_TRANSITION_STATE(entry);
+                            offset = MBCS_ENTRY_TRANSITION_OFFSET(entry);
+                            ++sourceArrayIndex;
+                            if (sourceArrayIndex < source.limit()
+                                    && MBCS_ENTRY_IS_FINAL(entry = stateTable[state][source.get(sourceArrayIndex)&UConverterConstants.UNSIGNED_BYTE_MASK])
+                                    && MBCS_ENTRY_FINAL_ACTION(entry) == MBCS_STATE_VALID_16
+                                    && (c = unicodeCodeUnits[offset + MBCS_ENTRY_FINAL_VALUE_16(entry)]) < 0xfffe) {
+                                ++sourceArrayIndex;
+                                target.put(c);
+                                if (offsets != null) {
+                                    offsets.put(sourceIndex);
+                                    sourceIndex = (nextSourceIndex += 2);
+                                }
+                                state = (byte) MBCS_ENTRY_FINAL_STATE(entry); /* typically 0 */
+                                offset = 0;
+                            } else {
+                                /* set the state and leave the optimized loop */
+                                ++nextSourceIndex;
+                                bytes[0] = source.get(sourceArrayIndex - 1);
+                                byteIndex = 1;
+                                break;
+                            }
+                        } else {
+                            if (MBCS_ENTRY_FINAL_IS_VALID_DIRECT_16(entry)) {
+                                /* output BMP code point */
+                                ++sourceArrayIndex;
+                                target.put((char) MBCS_ENTRY_FINAL_VALUE_16(entry));
+                                if (offsets != null) {
+                                    offsets.put(sourceIndex);
+                                    sourceIndex = ++nextSourceIndex;
+                                }
+                                state = (byte) MBCS_ENTRY_FINAL_STATE(entry); /* typically 0 */
+                            } else {
+                                /* leave the optimized loop */
+                                break;
+                            }
+                        }
+                    } while (sourceArrayIndex < source.limit() && target.hasRemaining());
+                    /*
+                     * these tests and break statements could be put inside the loop if C had "break outerLoop" like
+                     * Java
+                     */
+                    if (sourceArrayIndex >= source.limit()) {
+                        break;
+                    }
+                    if (!target.hasRemaining()) {
+                        /* target is full */
+                        cr[0] = CoderResult.OVERFLOW;
+                        break;
+                    }
+
+                    ++nextSourceIndex;
+                    bytes[byteIndex++] = source.get(sourceArrayIndex++);
+                } else /* byteIndex>0 */{
+                    ++nextSourceIndex;
+                    entry = stateTable[state][(bytes[byteIndex++] = source.get(sourceArrayIndex++))
+                            & UConverterConstants.UNSIGNED_BYTE_MASK];
+                }
+
+                if (MBCS_ENTRY_IS_TRANSITION(entry)) {
+                    state = (byte) MBCS_ENTRY_TRANSITION_STATE(entry);
+                    offset += MBCS_ENTRY_TRANSITION_OFFSET(entry);
+                    continue;
+                }
+
+                /* save the previous state for proper extension mapping with SI/SO-stateful converters */
+                mode = state;
+
+                /* set the next state early so that we can reuse the entry variable */
+                state = (byte) MBCS_ENTRY_FINAL_STATE(entry); /* typically 0 */
+
+                /*
+                 * An if-else-if chain provides more reliable performance for the most common cases compared to a
+                 * switch.
+                 */
+                action = (byte) (MBCS_ENTRY_FINAL_ACTION(entry));
+                if (action == MBCS_STATE_VALID_16) {
+                    offset += MBCS_ENTRY_FINAL_VALUE_16(entry);
+                    c = unicodeCodeUnits[offset];
+                    if (c < 0xfffe) {
+                        /* output BMP code point */
+                        target.put(c);
+                        if (offsets != null) {
+                            offsets.put(sourceIndex);
+                        }
+                        byteIndex = 0;
+                    } else if (c == 0xfffe) {
+                        if (isFallbackUsed() && (entry = (int) getFallback(sharedData.mbcs, offset)) != 0xfffe) {
+                            /* output fallback BMP code point */
+                            target.put((char) entry);
+                            if (offsets != null) {
+                                offsets.put(sourceIndex);
+                            }
+                            byteIndex = 0;
+                        }
+                    } else {
+                        /* callback(illegal) */
+                        cr[0] = CoderResult.malformedForLength(byteIndex);
+                    }
+                } else if (action == MBCS_STATE_VALID_DIRECT_16) {
+                    /* output BMP code point */
+                    target.put((char) MBCS_ENTRY_FINAL_VALUE_16(entry));
+                    if (offsets != null) {
+                        offsets.put(sourceIndex);
+                    }
+                    byteIndex = 0;
+                } else if (action == MBCS_STATE_VALID_16_PAIR) {
+                    offset += MBCS_ENTRY_FINAL_VALUE_16(entry);
+                    c = unicodeCodeUnits[offset++];
+                    if (c < 0xd800) {
+                        /* output BMP code point below 0xd800 */
+                        target.put(c);
+                        if (offsets != null) {
+                            offsets.put(sourceIndex);
+                        }
+                        byteIndex = 0;
+                    } else if (isFallbackUsed() ? c <= 0xdfff : c <= 0xdbff) {
+                        /* output roundtrip or fallback surrogate pair */
+                        target.put((char) (c & 0xdbff));
+                        if (offsets != null) {
+                            offsets.put(sourceIndex);
+                        }
+                        byteIndex = 0;
+                        if (target.hasRemaining()) {
+                            target.put(unicodeCodeUnits[offset]);
+                            if (offsets != null) {
+                                offsets.put(sourceIndex);
+                            }
+                        } else {
+                            /* target overflow */
+                            charErrorBufferArray[0] = unicodeCodeUnits[offset];
+                            charErrorBufferLength = 1;
+                            cr[0] = CoderResult.OVERFLOW;
+
+                            offset = 0;
+                            break;
+                        }
+                    } else if (isFallbackUsed() ? (c & 0xfffe) == 0xe000 : c == 0xe000) {
+                        /* output roundtrip BMP code point above 0xd800 or fallback BMP code point */
+                        target.put(unicodeCodeUnits[offset]);
+                        if (offsets != null) {
+                            offsets.put(sourceIndex);
+                        }
+                        byteIndex = 0;
+                    } else if (c == 0xffff) {
+                        /* callback(illegal) */
+                        cr[0] = CoderResult.malformedForLength(byteIndex);
+                    }
+                } else if (action == MBCS_STATE_VALID_DIRECT_20
+                        || (action == MBCS_STATE_FALLBACK_DIRECT_20 && isFallbackUsed())) {
+                    entry = MBCS_ENTRY_FINAL_VALUE(entry);
+                    /* output surrogate pair */
+                    target.put((char) (0xd800 | (char) (entry >> 10)));
+                    if (offsets != null) {
+                        offsets.put(sourceIndex);
+                    }
+                    byteIndex = 0;
+                    c = (char) (0xdc00 | (char) (entry & 0x3ff));
+                    if (target.hasRemaining()) {
+                        target.put(c);
+                        if (offsets != null) {
+                            offsets.put(sourceIndex);
+                        }
+                    } else {
+                        /* target overflow */
+                        charErrorBufferArray[0] = c;
+                        charErrorBufferLength = 1;
+                        cr[0] = CoderResult.OVERFLOW;
+
+                        offset = 0;
+                        break;
+                    }
+                } else if (action == MBCS_STATE_CHANGE_ONLY) {
+                    /*
+                     * This serves as a state change without any output. It is useful for reading simple stateful
+                     * encodings, for example using just Shift-In/Shift-Out codes. The 21 unused bits may later be used
+                     * for more sophisticated state transitions.
+                     */
+                    if (sharedData.mbcs.dbcsOnlyState == 0) {
+                        byteIndex = 0;
+                    } else {
+                        /* SI/SO are illegal for DBCS-only conversion */
+                        state = (byte) (mode); /* restore the previous state */
+
+                        /* callback(illegal) */
+                        cr[0] = CoderResult.malformedForLength(byteIndex);
+                    }
+                } else if (action == MBCS_STATE_FALLBACK_DIRECT_16) {
+                    if (isFallbackUsed()) {
+                        /* output BMP code point */
+                        target.put((char) MBCS_ENTRY_FINAL_VALUE_16(entry));
+                        if (offsets != null) {
+                            offsets.put(sourceIndex);
+                        }
+                        byteIndex = 0;
+                    }
+                } else if (action == MBCS_STATE_UNASSIGNED) {
+                    /* just fall through */
+                } else if (action == MBCS_STATE_ILLEGAL) {
+                    /* callback(illegal) */
+                    cr[0] = CoderResult.malformedForLength(byteIndex);
+                } else {
+                    /* reserved, must never occur */
+                    byteIndex = 0;
+                }
+
+                /* end of action codes: prepare for a new character */
+                offset = 0;
+
+                if (byteIndex == 0) {
+                    sourceIndex = nextSourceIndex;
+                } else if (cr[0].isError()) {
+                    /* callback(illegal) */
+                    break;
+                } else /* unassigned sequences indicated with byteIndex>0 */{
+                    /* try an extension mapping */
+                    int sourceBeginIndex = sourceArrayIndex;
+                    source.position(sourceArrayIndex);
+                    byteIndex = toU(byteIndex, source, target, offsets, sourceIndex, flush, cr);
+                    sourceArrayIndex = source.position();
+                    sourceIndex = nextSourceIndex + (int) (sourceArrayIndex - sourceBeginIndex);
+
+                    if (cr[0].isError() || cr[0].isOverflow()) {
+                        /* not mappable or buffer overflow */
+                        break;
+                    }
+                }
+            }
+
+            /* set the converter state back into UConverter */
+            toUnicodeStatus = offset;
+            mode = state;
+            toULength = byteIndex;
+
+            /* write back the updated pointers */
+            source.position(sourceArrayIndex);
+
+            return cr[0];
         }
 
         /*
@@ -1659,7 +1815,7 @@ class CharsetMBCS extends CharsetICU {
             ByteBuffer cx = sharedData.mbcs.extIndexes;
             IntBuffer toUTable, toUSection;
 
-            int value, matchValue, srcLength = 0;
+            int value, matchValue, srcLength;
             int i, j, index, length, matchLength;
             short b;
 
@@ -1673,9 +1829,7 @@ class CharsetMBCS extends CharsetICU {
 
             matchValue = 0;
             i = j = matchLength = 0;
-            if (source != null) { 
-                srcLength = source.remaining();
-            }
+            srcLength = source.remaining();
 
             if (sisoState == 0) {
                 /* SBCS state of an SI/SO stateful converter, look at only exactly 1 byte */
@@ -1931,134 +2085,132 @@ class CharsetMBCS extends CharsetICU {
 
         CoderResult cnvMBCSToUnicodeWithOffsets(ByteBuffer source, CharBuffer target, IntBuffer offsets, boolean flush) {
             CoderResult[] cr = { CoderResult.UNDERFLOW };
-
-            int sourceArrayIndex, sourceArrayIndexStart;
-            int stateTable[][/* 256 */];
+            
+            int[][] stateTable;
             char[] unicodeCodeUnits;
-
+            
+            int sourceIndex, nextSourceIndex;
+            
             int offset;
-            byte state;
+            short state;
             int byteIndex;
             byte[] bytes;
-
-            int sourceIndex, nextSourceIndex;
-
-            int entry = 0;
+            
+            int entry;
             char c;
-            byte action;
-
-            if (preToULength > 0) {
+            short action;
+            
+            if (this.preToULength > 0) {
                 /*
-                 * pass sourceIndex=-1 because we continue from an earlier buffer in the future, this may change with
-                 * continuous offsets
+                 * pass sourceIndex-1 because we continue from an earlier buffer
+                 * in the future, this may change with continuous offsets
                  */
                 cr[0] = continueMatchToU(source, target, offsets, -1, flush);
-
-                if (cr[0].isError() || preToULength < 0) {
+                if (cr[0].isError() || this.preToULength < 0) {
                     return cr[0];
                 }
             }
-
+            
             if (sharedData.mbcs.countStates == 1) {
-                if ((sharedData.mbcs.unicodeMask & UConverterConstants.HAS_SUPPLEMENTARY) == 0) {
+                if ((sharedData.mbcs.unicodeMask&UConverterConstants.HAS_SUPPLEMENTARY) == 0) {
                     cr[0] = cnvMBCSSingleToBMPWithOffsets(source, target, offsets, flush);
                 } else {
                     cr[0] = cnvMBCSSingleToUnicodeWithOffsets(source, target, offsets, flush);
                 }
                 return cr[0];
             }
-
-            /* set up the local pointers */
-            sourceArrayIndex = sourceArrayIndexStart = source.position();
-
-            if ((options & UConverterConstants.OPTION_SWAP_LFNL) != 0) {
+            
+            if ((options&UConverterConstants.OPTION_SWAP_LFNL) != 0) {
                 stateTable = sharedData.mbcs.swapLFNLStateTable;
             } else {
                 stateTable = sharedData.mbcs.stateTable;
             }
             unicodeCodeUnits = sharedData.mbcs.unicodeCodeUnits;
-
+            
             /* get the converter state from UConverter */
-            offset = (int)toUnicodeStatus;
-            byteIndex = toULength;
-            bytes = toUBytesArray;
-
+            offset = this.toUnicodeStatus;
+            byteIndex = this.toULength;
+            bytes = this.toUBytesArray;
+            
             /*
-             * if we are in the SBCS state for a DBCS-only converter, then load the DBCS state from the MBCS data
+             * if we are in the SBCS state for a DBCS-only converter,
+             * then load the DBCS state from the MBCS data
              * (dbcsOnlyState==0 if it is not a DBCS-only converter)
              */
-            state = (byte)mode;
+            state = (short)(UConverterConstants.UNSIGNED_BYTE_MASK&this.mode);
             if (state == 0) {
                 state = sharedData.mbcs.dbcsOnlyState;
             }
-
-            /* sourceIndex=-1 if the current character began in the previous buffer */
+            
+            /* sourceIndex=-1 if the current character begain in the previous buffer */
             sourceIndex = byteIndex == 0 ? 0 : -1;
             nextSourceIndex = 0;
-
+            
             /* conversion loop */
-            while (sourceArrayIndex < source.limit()) {
+            while (source.hasRemaining()) {
                 /*
-                 * This following test is to see if available input would overflow the output. It does not catch output
-                 * of more than one code unit that overflows as a result of a surrogate pair or callback output from the
-                 * last source byte. Therefore, those situations also test for overflows and will then break the loop,
-                 * too.
+                 * This following test is to see if available input would overflow the output.
+                 * It does not catch output of more than one code unit that
+                 * overflows as a result of a surrogate pair or callback output
+                 * from the last source byte.
+                 * Therefore, those situations also test for overflows and will
+                 * then break the loop, too.
                  */
                 if (!target.hasRemaining()) {
                     /* target is full */
                     cr[0] = CoderResult.OVERFLOW;
                     break;
                 }
-
+                
                 if (byteIndex == 0) {
                     /* optimized loop for 1/2-byte input and BMP output */
-                    // agljport:todo see ucnvmbcs.c for deleted block
                     do {
-                        entry = stateTable[state][source.get(sourceArrayIndex)&UConverterConstants.UNSIGNED_BYTE_MASK];
+                        entry = stateTable[state][(short)source.get(source.position()) & UConverterConstants.UNSIGNED_BYTE_MASK];
                         if (MBCS_ENTRY_IS_TRANSITION(entry)) {
-                            state = (byte)MBCS_ENTRY_TRANSITION_STATE(entry);
+                            state = (short)(UConverterConstants.UNSIGNED_BYTE_MASK&MBCS_ENTRY_TRANSITION_STATE(entry));
                             offset = MBCS_ENTRY_TRANSITION_OFFSET(entry);
-                            ++sourceArrayIndex;
-                            if (sourceArrayIndex < source.limit()
-                                    && MBCS_ENTRY_IS_FINAL(entry = stateTable[state][source.get(sourceArrayIndex)&UConverterConstants.UNSIGNED_BYTE_MASK])
-                                    && MBCS_ENTRY_FINAL_ACTION(entry) == MBCS_STATE_VALID_16
-                                    && (c = unicodeCodeUnits[offset + MBCS_ENTRY_FINAL_VALUE_16(entry)]) < 0xfffe) {
-                                ++sourceArrayIndex;
+                            
+                            source.get();
+                            if (source.hasRemaining() &&
+                                    MBCS_ENTRY_IS_FINAL(entry=stateTable[state][(short)source.get(source.position()) & UConverterConstants.UNSIGNED_BYTE_MASK]) &&
+                                    MBCS_ENTRY_FINAL_ACTION(entry) == MBCS_STATE_VALID_16 &&
+                                    (c = unicodeCodeUnits[offset+MBCS_ENTRY_FINAL_VALUE_16(entry)]) < 0xfffe) {
+                                source.get();
                                 target.put(c);
                                 if (offsets != null) {
                                     offsets.put(sourceIndex);
-                                    sourceIndex = (nextSourceIndex += 2);
+                                    sourceIndex = (nextSourceIndex + 2);
                                 }
-                                state = (byte)MBCS_ENTRY_FINAL_STATE(entry); /* typically 0 */
+                                state = (short)(UConverterConstants.UNSIGNED_BYTE_MASK&MBCS_ENTRY_FINAL_STATE(entry)); /* typically 0 */
                                 offset = 0;
                             } else {
                                 /* set the state and leave the optimized loop */
                                 ++nextSourceIndex;
-                                bytes[0] = source.get(sourceArrayIndex - 1);
+                                bytes[0] = source.get(source.position()-1);
                                 byteIndex = 1;
                                 break;
                             }
                         } else {
                             if (MBCS_ENTRY_FINAL_IS_VALID_DIRECT_16(entry)) {
                                 /* output BMP code point */
-                                ++sourceArrayIndex;
+                                source.get();
                                 target.put((char)MBCS_ENTRY_FINAL_VALUE_16(entry));
                                 if (offsets != null) {
                                     offsets.put(sourceIndex);
                                     sourceIndex = ++nextSourceIndex;
                                 }
-                                state = (byte)MBCS_ENTRY_FINAL_STATE(entry); /* typically 0 */
+                                state = (short)(UConverterConstants.UNSIGNED_BYTE_MASK&MBCS_ENTRY_FINAL_STATE(entry)); /* typically 0 */
                             } else {
                                 /* leave the optimized loop */
                                 break;
                             }
                         }
-                    } while (sourceArrayIndex < source.limit() && target.hasRemaining());
-                    /*
-                     * these tests and break statements could be put inside the loop if C had "break outerLoop" like
-                     * Java
+                    } while (source.hasRemaining() && target.hasRemaining());
+                    
+                    /* these tests and break statements could be put inside the loop
+                     * if C had "break outerLoop" like Java
                      */
-                    if (sourceArrayIndex >= source.limit()) {
+                    if (!source.hasRemaining()) {
                         break;
                     }
                     if (!target.hasRemaining()) {
@@ -2066,32 +2218,31 @@ class CharsetMBCS extends CharsetICU {
                         cr[0] = CoderResult.OVERFLOW;
                         break;
                     }
-
+                    
                     ++nextSourceIndex;
-                    bytes[byteIndex++] = source.get(sourceArrayIndex++);
-                } else /* byteIndex>0 */{
+                    bytes[byteIndex++] = source.get();
+                } else { /* byteIndex>0 */
                     ++nextSourceIndex;
-                    entry = stateTable[state][(bytes[byteIndex++] = source.get(sourceArrayIndex++))
-                            & UConverterConstants.UNSIGNED_BYTE_MASK];
+                    entry = stateTable[state][(short)(bytes[byteIndex++]=source.get()) & UConverterConstants.UNSIGNED_BYTE_MASK];
                 }
-
+                
                 if (MBCS_ENTRY_IS_TRANSITION(entry)) {
-                    state = (byte)MBCS_ENTRY_TRANSITION_STATE(entry);
-                    offset += MBCS_ENTRY_TRANSITION_OFFSET(entry);
+                    state = (short)(UConverterConstants.UNSIGNED_BYTE_MASK&MBCS_ENTRY_TRANSITION_STATE(entry));
+                    offset+=MBCS_ENTRY_FINAL_VALUE_16(entry);
                     continue;
                 }
-
+                
                 /* save the previous state for proper extension mapping with SI/SO-stateful converters */
                 mode = state;
-
+                
                 /* set the next state early so that we can reuse the entry variable */
-                state = (byte)MBCS_ENTRY_FINAL_STATE(entry); /* typically 0 */
-
+                state = (short)(UConverterConstants.UNSIGNED_BYTE_MASK&MBCS_ENTRY_FINAL_STATE(entry)); /* typically 0 */
+                
                 /*
-                 * An if-else-if chain provides more reliable performance for the most common cases compared to a
-                 * switch.
+                 * An if-else-if chain provides more reliable performance for
+                 * the most common cases compared to a switch.
                  */
-                action = (byte)MBCS_ENTRY_FINAL_ACTION(entry);
+                action = (short)(UConverterConstants.UNSIGNED_BYTE_MASK&MBCS_ENTRY_FINAL_ACTION(entry));
                 if (action == MBCS_STATE_VALID_16) {
                     offset += MBCS_ENTRY_FINAL_VALUE_16(entry);
                     c = unicodeCodeUnits[offset];
@@ -2103,7 +2254,7 @@ class CharsetMBCS extends CharsetICU {
                         }
                         byteIndex = 0;
                     } else if (c == 0xfffe) {
-                        if (isFallbackUsed() && (entry = (int)getFallback(sharedData.mbcs, offset)) != 0xfffe) {
+                        if (CharsetDecoderICU.isToUUseFallback() && (entry = (int)getFallback(sharedData.mbcs, offset)) != 0xfffe) {
                             /* output fallback BMP code point */
                             target.put((char)entry);
                             if (offsets != null) {
@@ -2113,7 +2264,7 @@ class CharsetMBCS extends CharsetICU {
                         }
                     } else {
                         /* callback(illegal) */
-                        cr[0] = CoderResult.malformedForLength(byteIndex);
+                        cr[0] = CoderResult.malformedForLength(1);
                     }
                 } else if (action == MBCS_STATE_VALID_DIRECT_16) {
                     /* output BMP code point */
@@ -2132,9 +2283,9 @@ class CharsetMBCS extends CharsetICU {
                             offsets.put(sourceIndex);
                         }
                         byteIndex = 0;
-                    } else if (isFallbackUsed() ? c <= 0xdfff : c <= 0xdbff) {
+                    } else if (CharsetDecoderICU.isToUUseFallback() ? c<=0xdfff : c<=0xdbff) {
                         /* output roundtrip or fallback surrogate pair */
-                        target.put((char)(c & 0xdbff));
+                        target.put((char)(c&0xdbff));
                         if (offsets != null) {
                             offsets.put(sourceIndex);
                         }
@@ -2149,11 +2300,11 @@ class CharsetMBCS extends CharsetICU {
                             charErrorBufferArray[0] = unicodeCodeUnits[offset];
                             charErrorBufferLength = 1;
                             cr[0] = CoderResult.OVERFLOW;
-
+                            
                             offset = 0;
                             break;
                         }
-                    } else if (isFallbackUsed() ? (c & 0xfffe) == 0xe000 : c == 0xe000) {
+                    } else if (CharsetDecoderICU.isToUUseFallback() ? (c&0xfffe)==0xe000 : c==0xe000) {
                         /* output roundtrip BMP code point above 0xd800 or fallback BMP code point */
                         target.put(unicodeCodeUnits[offset]);
                         if (offsets != null) {
@@ -2162,18 +2313,18 @@ class CharsetMBCS extends CharsetICU {
                         byteIndex = 0;
                     } else if (c == 0xffff) {
                         /* callback(illegal) */
-                        cr[0] = CoderResult.malformedForLength(byteIndex);
+                        cr[0] = CoderResult.malformedForLength(1);
                     }
-                } else if (action == MBCS_STATE_VALID_DIRECT_20
-                        || (action == MBCS_STATE_FALLBACK_DIRECT_20 && isFallbackUsed())) {
+                } else if (action == MBCS_STATE_VALID_DIRECT_20 ||
+                        action == MBCS_STATE_FALLBACK_DIRECT_20 && CharsetDecoderICU.isToUUseFallback()) {
                     entry = MBCS_ENTRY_FINAL_VALUE(entry);
                     /* output surrogate pair */
-                    target.put((char)(0xd800 | (char)(entry >> 10)));
+                    target.put((char)(0xd800 | (char)(entry&0x3ff)));
                     if (offsets != null) {
                         offsets.put(sourceIndex);
                     }
                     byteIndex = 0;
-                    c = (char)(0xdc00 | (char)(entry & 0x3ff));
+                    c = (char)(0xdc00 | (char)(entry>>10));
                     if (target.hasRemaining()) {
                         target.put(c);
                         if (offsets != null) {
@@ -2184,27 +2335,30 @@ class CharsetMBCS extends CharsetICU {
                         charErrorBufferArray[0] = c;
                         charErrorBufferLength = 1;
                         cr[0] = CoderResult.OVERFLOW;
-
+                        
                         offset = 0;
                         break;
                     }
+                    
                 } else if (action == MBCS_STATE_CHANGE_ONLY) {
                     /*
-                     * This serves as a state change without any output. It is useful for reading simple stateful
-                     * encodings, for example using just Shift-In/Shift-Out codes. The 21 unused bits may later be used
-                     * for more sophisticated state transitions.
+                     * This serves as a state change without any output.
+                     * It is useful for reading simple stateful encodings,
+                     * for example using just Shift-In/Shift-Out codes.
+                     * The 21 unused bits may later be used for more sophisticated
+                     * state transistions.
                      */
                     if (sharedData.mbcs.dbcsOnlyState == 0) {
                         byteIndex = 0;
                     } else {
                         /* SI/SO are illegal for DBCS-only conversion */
-                        state = (byte)(mode); /* restore the previous state */
-
+                        state = (short)(UConverterConstants.UNSIGNED_BYTE_MASK&mode); /* restore the previous state */
+                        
                         /* callback(illegal) */
-                        cr[0] = CoderResult.malformedForLength(byteIndex);
+                        cr[0] = CoderResult.malformedForLength(1);
                     }
                 } else if (action == MBCS_STATE_FALLBACK_DIRECT_16) {
-                    if (isFallbackUsed()) {
+                    if (CharsetDecoderICU.isToUUseFallback()) {
                         /* output BMP code point */
                         target.put((char)MBCS_ENTRY_FINAL_VALUE_16(entry));
                         if (offsets != null) {
@@ -2216,70 +2370,37 @@ class CharsetMBCS extends CharsetICU {
                     /* just fall through */
                 } else if (action == MBCS_STATE_ILLEGAL) {
                     /* callback(illegal) */
-                    cr[0] = CoderResult.malformedForLength(byteIndex);
+                    cr[0] = CoderResult.malformedForLength(1);
                 } else {
                     /* reserved, must never occur */
                     byteIndex = 0;
                 }
-
-                /* end of action codes: prepare for a new character */
+                
+                /* end of action codes: prepare for new character */
                 offset = 0;
-
+                
                 if (byteIndex == 0) {
                     sourceIndex = nextSourceIndex;
                 } else if (cr[0].isError()) {
                     /* callback(illegal) */
-                    if (byteIndex > 1) {
-                        /*
-                         * Ticket 5691: consistent illegal sequences:
-                         * - We include at least the first byte in the illegal sequence.
-                         * - If any of the non-initial bytes could be the start of a character,
-                         *   we stop the illegal sequence before the first one of those.
-                         */
-                        boolean isDBCSOnly = (sharedData.mbcs.dbcsOnlyState != 0);
-                        byte i;
-                        for (i = 1; i < byteIndex && !isSingleOrLead(stateTable, state, isDBCSOnly, (short)(bytes[i] & UConverterConstants.UNSIGNED_BYTE_MASK)); i++) {}
-                        if (i < byteIndex) {
-                            byte backOutDistance = (byte)(byteIndex - i);
-                            int bytesFromThisBuffer = sourceArrayIndex - sourceArrayIndexStart;
-                            byteIndex = i; /* length of reported illegal byte sequence */
-                            if (backOutDistance <= bytesFromThisBuffer) {
-                                sourceArrayIndex -= backOutDistance;
-                            } else {
-                                /* Back out bytes from the previous buffer: Need to replay them. */
-                                this.preToULength = (byte)(bytesFromThisBuffer - backOutDistance);
-                                /* preToULength is negative! */
-                                for (int n = 0; n < -this.preToULength; n++) {
-                                    this.preToUArray[n] = bytes[i+n];
-                                }
-                                sourceArrayIndex = sourceArrayIndexStart;
-                            }
-                        }
-                    }
                     break;
-                } else /* unassigned sequences indicated with byteIndex>0 */{
+                } else { /* unassigned sequences indicated with byteIndex>0 */
                     /* try an extension mapping */
-                    int sourceBeginIndex = sourceArrayIndex;
-                    source.position(sourceArrayIndex);
                     byteIndex = toU(byteIndex, source, target, offsets, sourceIndex, flush, cr);
-                    sourceArrayIndex = source.position();
-                    sourceIndex = nextSourceIndex += (int)(sourceArrayIndex - sourceBeginIndex);
-
-                    if (cr[0].isError() || cr[0].isOverflow()) {
+                    sourceIndex = nextSourceIndex + source.position();
+                    
+                    if (cr[0].isError()) {
                         /* not mappable or buffer overflow */
                         break;
                     }
                 }
             }
-
+            
             /* set the converter state back into UConverter */
             toUnicodeStatus = offset;
             mode = state;
             toULength = byteIndex;
-
-            /* write back the updated pointers */
-            source.position(sourceArrayIndex);
-
+            
             return cr[0];
         }
         /*
@@ -2614,12 +2735,12 @@ class CharsetMBCS extends CharsetICU {
             int entry;
             int c;
             int i = source.position();
-            int length = source.limit() - i;
 
             /* conversion loop */
             while (true) {
                 // entry=stateTable[state][(uint8_t)source[i++]];
-                entry = stateTable[state][source.get(i++) & UConverterConstants.UNSIGNED_BYTE_MASK];
+                entry = stateTable[state][source.get() & UConverterConstants.UNSIGNED_BYTE_MASK];
+                i = source.position();
 
                 if (MBCS_ENTRY_IS_TRANSITION(entry)) {
                     state = MBCS_ENTRY_TRANSITION_STATE(entry);
@@ -2700,61 +2821,12 @@ class CharsetMBCS extends CharsetICU {
             if (c == 0xfffe) {
                 /* try an extension mapping */
                 if (sharedData.mbcs.extIndexes != null) {
-                    /* Increase the limit for proper handling. Used in LMBCS. */
-                    if (source.limit() > i + length) {
-                        source.limit(i + length);
-                    }
                     return simpleMatchToU(source, useFallback);
                 }
             }
 
             return c;
         }
-        private boolean hasValidTrailBytes(int[][] stateTable, short state) {
-            int[] row = stateTable[state];
-            int b, entry;
-            /* First test for final entries in this state for some commonly valid byte values. */
-            entry = row[0xa1];
-            if (!MBCS_ENTRY_IS_TRANSITION(entry) && MBCS_ENTRY_FINAL_ACTION(entry) != MBCS_STATE_ILLEGAL) {
-                return true;
-            }
-            entry = row[0x41];
-            if (!MBCS_ENTRY_IS_TRANSITION(entry) && MBCS_ENTRY_FINAL_ACTION(entry) != MBCS_STATE_ILLEGAL) {
-                return true;
-            }
-            /* Then test for final entries in this state. */
-            for (b = 0; b <= 0xff; b++) {
-                entry = row[b];
-                if (!MBCS_ENTRY_IS_TRANSITION(entry) && MBCS_ENTRY_FINAL_ACTION(entry) != MBCS_STATE_ILLEGAL) {
-                    return true;
-                }
-            }
-            /* Then recurse for transition entries. */
-            for (b = 0; b <= 0xff; b++) {
-                entry = row[b];
-                if (MBCS_ENTRY_IS_TRANSITION(entry) && 
-                        hasValidTrailBytes(stateTable, (short)(MBCS_ENTRY_TRANSITION_STATE(entry) & UConverterConstants.UNSIGNED_BYTE_MASK))) {
-                    return true;
-                }
-            }
-            return false;
-        }
-        
-        private boolean isSingleOrLead(int[][] stateTable, int state, boolean isDBCSOnly, int b) {
-            int[] row = stateTable[state];
-            int entry = row[b];
-            if (MBCS_ENTRY_IS_TRANSITION(entry)) { /* lead byte */
-                return hasValidTrailBytes(stateTable, (short)(MBCS_ENTRY_TRANSITION_STATE(entry) & UConverterConstants.UNSIGNED_BYTE_MASK));
-            } else {
-                short action = (short)(MBCS_ENTRY_FINAL_ACTION(entry) & UConverterConstants.UNSIGNED_BYTE_MASK);
-                if (action == MBCS_STATE_CHANGE_ONLY && isDBCSOnly) {
-                    return false;   /* SI/SO are illegal for DBCS-only conversion */
-                } else {
-                    return (action != MBCS_STATE_ILLEGAL);
-                }
-            }
-        }
-        
 
     }
 

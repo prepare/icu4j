@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 2006-2009, International Business Machines Corporation and    *
+* Copyright (C) 2006-2008, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 *
@@ -29,61 +29,73 @@ import java.nio.charset.CoderResult;
  *  In the future we will provide set methods on CharsetEncoder and CharsetDecoder
  *  that will accept CharsetCallback fields.
  *
- * @stable ICU 3.6
+ * @draft ICU 3.6
+ * @provisional This API might change or be removed in a future release.
  */
 
 public class CharsetCallback {
-    /*
+   /**
      * FROM_U, TO_U context options for sub callback
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
-    private static final String SUB_STOP_ON_ILLEGAL = "i";
+    /*public*/ static final String SUB_STOP_ON_ILLEGAL = "i";
 
-//    /*
-//     * FROM_U, TO_U context options for skip callback
-//     */
-//    private static final String SKIP_STOP_ON_ILLEGAL = "i";
+    /**
+     * FROM_U, TO_U context options for skip callback
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
+     */
+    /*public*/ static final String SKIP_STOP_ON_ILLEGAL = "i";
 
-//    /*
-//     * FROM_U_CALLBACK_ESCAPE context option to escape the code unit according to ICU (%UXXXX) 
-//     */
-//    private static final String ESCAPE_ICU  = null;
-
-    /*
+    /**
+     * FROM_U_CALLBACK_ESCAPE context option to escape the code unit according to ICU (%UXXXX) 
+     * @draft ICU 3.6
+     */
+    /*public*/ static final String ESCAPE_ICU  = null;
+    /**
      * FROM_U_CALLBACK_ESCAPE context option to escape the code unit according to JAVA (\\uXXXX)
+     * @draft ICU 3.6
      */
-    private static final String ESCAPE_JAVA     =  "J";
-
-    /*
+    /*public*/ static final String ESCAPE_JAVA     =  "J";
+    /**
      * FROM_U_CALLBACK_ESCAPE context option to escape the code unit according to C (\\uXXXX \\UXXXXXXXX)
      * TO_U_CALLBACK_ESCAPE option to escape the character value accoding to C (\\xXXXX)
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
-    private static final String ESCAPE_C        = "C";
-
-    /*
+    /*public*/ static final String ESCAPE_C        = "C";
+    /**
      * FROM_U_CALLBACK_ESCAPE context option to escape the code unit according to XML Decimal escape \htmlonly(&amp;#DDDD;)\endhtmlonly
      * TO_U_CALLBACK_ESCAPE context option to escape the character value accoding to XML Decimal escape \htmlonly(&amp;#DDDD;)\endhtmlonly
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
-    private static final String ESCAPE_XML_DEC  = "D";
-
-    /*
+    /*public*/ static final String ESCAPE_XML_DEC  = "D";
+    /**
      * FROM_U_CALLBACK_ESCAPE context option to escape the code unit according to XML Hex escape \htmlonly(&amp;#xXXXX;)\endhtmlonly
      * TO_U_CALLBACK_ESCAPE context option to escape the character value according to XML Hex escape \htmlonly(&amp;#xXXXX;)\endhtmlonly
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
-    private static final String ESCAPE_XML_HEX  = "X";
-
-    /*
+    /*public*/ static final String ESCAPE_XML_HEX  = "X";
+    /**
      * FROM_U_CALLBACK_ESCAPE context option to escape the code unit according to Unicode (U+XXXXX)
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
-    private static final String ESCAPE_UNICODE  = "U";
-
-    /*
+    /*public*/ static final String ESCAPE_UNICODE  = "U";
+    /**
      * FROM_U_CALLBACK_ESCAPE context option to escape the code unit according to Unicode (U+XXXXX)
+     * @draft ICU 4.0
+     * @provisional This API might change or be removed in a future release.
      */
-    private static final String ESCAPE_CSS2  = "S";
+    /*public*/ static final String ESCAPE_CSS2  = "S";
 
     /**
      * Decoder Callback interface
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     public interface Decoder {
         /**
@@ -92,7 +104,8 @@ public class CharsetCallback {
          * 
          * @return Result of decoding action. This returned object is set to an error
          *  if this function could not handle the conversion.
-         * @stable ICU 3.6
+         * @draft ICU 3.6
+         * @provisional This API might change or be removed in a future release.
          */
         public CoderResult call(CharsetDecoderICU decoder, Object context, 
                                 ByteBuffer source, CharBuffer target, IntBuffer offsets,
@@ -100,7 +113,8 @@ public class CharsetCallback {
     }
     /**
      * Encoder Callback interface
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     public interface Encoder {
         /**
@@ -108,7 +122,8 @@ public class CharsetCallback {
          * and this function is meant to handle or fix the error if possible.
          * @return Result of decoding action. This returned object is set to an error
          *  if this function could not handle the conversion.
-         * @stable ICU 3.6
+         * @draft ICU 3.6
+         * @provisional This API might change or be removed in a future release.
          */
         public CoderResult call(CharsetEncoderICU encoder, Object context, 
                                 CharBuffer source, ByteBuffer target, IntBuffer offsets, 
@@ -116,7 +131,8 @@ public class CharsetCallback {
     }    
     /**
      * Skip callback
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     public static final Encoder FROM_U_CALLBACK_SKIP = new Encoder() {
         public CoderResult call(CharsetEncoderICU encoder, Object context, 
@@ -136,7 +152,8 @@ public class CharsetCallback {
     };
     /**
      * Skip callback
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     public static final Decoder TO_U_CALLBACK_SKIP = new Decoder() {
         public CoderResult call(CharsetDecoderICU decoder, Object context, 
@@ -156,7 +173,8 @@ public class CharsetCallback {
     };
     /**
      * Write substitute callback
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     public static final Encoder FROM_U_CALLBACK_SUBSTITUTE = new Encoder(){        
         public CoderResult call(CharsetEncoderICU encoder, Object context, 
@@ -178,7 +196,8 @@ public class CharsetCallback {
     private static final char[] kSubstituteChar = new char[] {0xFFFD};
     /**
      * Write substitute callback
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     public static final Decoder TO_U_CALLBACK_SUBSTITUTE  = new Decoder() {
         public CoderResult call(CharsetDecoderICU decoder, Object context, 
@@ -196,7 +215,8 @@ public class CharsetCallback {
     };
     /**
      * Stop callback
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     public static final Encoder FROM_U_CALLBACK_STOP = new Encoder() {
         public CoderResult call(CharsetEncoderICU encoder, Object context, 
@@ -207,7 +227,8 @@ public class CharsetCallback {
     };
     /**
      * Stop callback
-     * @stable ICU 3.6
+     * @draft ICU 3.6
+     * @provisional This API might change or be removed in a future release.
      */
     public static final Decoder TO_U_CALLBACK_STOP = new Decoder() {
         public CoderResult call(CharsetDecoderICU decoder, Object context, 
@@ -232,7 +253,8 @@ public class CharsetCallback {
     private static final char UNICODE_SPACE_CODEPOINT           = 0x0020;
     /**
      * Write escape callback
-     * @stable ICU 4.0
+     * @draft ICU 4.0
+     * @provisional This API might change or be removed in a future release.
      */
     public static final Encoder FROM_U_CALLBACK_ESCAPE = new Encoder() {
         public CoderResult call(CharsetEncoderICU encoder, Object context, 
@@ -310,14 +332,18 @@ public class CharsetCallback {
                     }
                 }
             }
-
+            
+            /* reset the error */
+            cr = CoderResult.UNDERFLOW;
+            
             cr = encoder.cbFromUWriteUChars(encoder, CharBuffer.wrap(valueString, 0, valueStringLength), target, offsets);
             return cr;
         }
     };
     /**
      * Write escape callback
-     * @stable ICU 4.0
+     * @draft ICU 4.0
+     * @provisional This API might change or be removed in a future release.
      */
     public static final Decoder TO_U_CALLBACK_ESCAPE = new Decoder() {
         public CoderResult call(CharsetDecoderICU decoder, Object context, 
@@ -330,7 +356,7 @@ public class CharsetCallback {
             if (context == null || !(context instanceof String)) {
                 while (i < length) {
                     uniValueString[valueStringLength++] = UNICODE_PERCENT_SIGN_CODEPOINT;   /* adding % */
-                    uniValueString[valueStringLength++] = UNICODE_X_CODEPOINT;              /* adding U */
+                    uniValueString[valueStringLength++] = UNICODE_X_CODEPOINT;              /* adding X */
                     valueStringLength += itou(uniValueString, valueStringLength, buffer[i++] & UConverterConstants.UNSIGNED_BYTE_MASK, 16, 2);
                 }
             } else {
@@ -350,11 +376,9 @@ public class CharsetCallback {
                         uniValueString[valueStringLength++] = UNICODE_SEMICOLON_CODEPOINT;  /* adding ; */
                     }
                 } else if (((String)context).equals(ESCAPE_C)) {
-                    while (i < length) {
-                        uniValueString[valueStringLength++] = UNICODE_RS_CODEPOINT;         /* adding \ */
-                        uniValueString[valueStringLength++] = UNICODE_X_LOW_CODEPOINT;      /* adding x */
-                        valueStringLength += itou(uniValueString, valueStringLength, buffer[i++] & UConverterConstants.UNSIGNED_BYTE_MASK, 16, 2);
-                    }
+                    uniValueString[valueStringLength++] = UNICODE_PERCENT_SIGN_CODEPOINT;   /* adding % */
+                    uniValueString[valueStringLength++] = UNICODE_X_CODEPOINT;              /* adding X */
+                    valueStringLength += itou(uniValueString, valueStringLength, buffer[i++] & UConverterConstants.UNSIGNED_BYTE_MASK, 16, 2);
                 } else {
                     while (i < length) {
                         uniValueString[valueStringLength++] = UNICODE_PERCENT_SIGN_CODEPOINT;   /* adding % */
@@ -364,8 +388,10 @@ public class CharsetCallback {
                     }
                 }
             }
+            /* reset the error */
+            cr = CoderResult.UNDERFLOW;
             
-            cr = CharsetDecoderICU.toUWriteUChars(decoder, uniValueString, 0, valueStringLength, target, offsets, 0);
+            CharsetDecoderICU.toUWriteUChars(decoder, uniValueString, 0, valueStringLength, target, offsets, 0);
             
             return cr;
         }
@@ -374,6 +400,8 @@ public class CharsetCallback {
      * Java port of uprv_itou() in ICU4C used by TO_U_CALLBACK_ESCAPE and FROM_U_CALLBACK_ESCAPE.
      * Fills in a char string with the radix-based representation of a number padded with zeroes
      * to minwidth.
+     * @draft ICU 4.0
+     * @provisional This API might change or be removed in a future release.
      */
     private static final int itou(char[] buffer, int sourceIndex, int i, int radix, int minwidth) {
         int length = 0;

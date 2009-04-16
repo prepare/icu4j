@@ -1,6 +1,6 @@
-//##header
+//##header J2SE15
 /*********************************************************************
- * Copyright (C) 2000-2009, International Business Machines Corporation and
+ * Copyright (C) 2000-2008, International Business Machines Corporation and
  * others. All Rights Reserved.
  *********************************************************************
  */
@@ -67,18 +67,8 @@ public class ChineseDateFormat extends SimpleDateFormat {
      * @stable ICU 3.2
      */
    public ChineseDateFormat(String pattern, ULocale locale) {
-       this(pattern, null, locale);
-    }
-
-    /**
-     * Construct a ChineseDateFormat from a date format pattern and locale
-     * @param pattern the pattern
-     * @param locale the locale
-     * @stable ICU 3.2
-     */
-   public ChineseDateFormat(String pattern, String override, ULocale locale) {
        super(pattern, new ChineseDateFormatSymbols(locale), 
-               new ChineseCalendar(TimeZone.getDefault(), locale), locale, true, override);
+               new ChineseCalendar(TimeZone.getDefault(), locale), locale, true);
     }
 
 // NOTE: This API still exists; we just inherit it from SimpleDateFormat
@@ -113,10 +103,9 @@ public class ChineseDateFormat extends SimpleDateFormat {
                              char ch, int count, int beginOffset,
                              FieldPosition pos,
                              Calendar cal) {
-
         switch (ch) {
         case 'G': // 'G' - ERA
-            zeroPaddingNumber(numberFormat,buf, cal.get(Calendar.ERA), 1, 9);
+            zeroPaddingNumber(buf, cal.get(Calendar.ERA), 1, 9);
             break;
         case 'l': // 'l' - IS_LEAP_MONTH
             buf.append(((ChineseDateFormatSymbols) getSymbols()).
@@ -194,7 +183,8 @@ public class ChineseDateFormat extends SimpleDateFormat {
     /**
      * {@inheritDoc}
      * 
-     * @stable ICU 3.8
+     * @draft ICU 3.8
+     * @provisional This API might change or be removed in a future release.
      */
     protected DateFormat.Field patternCharToDateFormatField(char ch) {
         if (ch == 'l') {

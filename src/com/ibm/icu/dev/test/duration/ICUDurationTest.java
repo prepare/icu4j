@@ -1,7 +1,7 @@
-//##header
+//##header J2SE15
 /*
  *******************************************************************************
- * Copyright (C) 2007-2009, International Business Machines Corporation and    *
+ * Copyright (C) 2007-2008, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -239,8 +239,5 @@ public class ICUDurationTest extends TestFmwk {
     public void TestResourceWithCalendar() {
         DurationFormat df = DurationFormat.getInstance(new ULocale("th@calendar=buddhist"));
         // should pass, but return a default formatter for th.
-        if (df == null) {
-            errln("FAIL: null DurationFormat returned.");
-        }
     }
 }

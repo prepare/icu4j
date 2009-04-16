@@ -28,8 +28,6 @@ import com.ibm.icu.text.SimpleDateFormat;
 import com.ibm.icu.text.NumberFormat.SimpleNumberFormatFactory;
 import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.ULocale;
-import com.ibm.icu.util.UResourceBundle;
-import com.ibm.icu.util.VersionInfo;
 
 public class ULocaleTest extends TestFmwk {
 
@@ -205,8 +203,6 @@ public class ULocaleTest extends TestFmwk {
         // Java Locale for ja_JP with Japanese calendar
         Locale jaJPJP = new Locale("ja", "JP", "JP");
         Locale jaJP = new Locale("ja", "JP");
-        // Java Locale for th_TH with Thai digits
-        Locale thTHTH = new Locale("th", "TH", "TH");
  
         Calendar cal = Calendar.getInstance(jaJPJP);
         String caltype = cal.getType();
@@ -267,13 +263,6 @@ public class ULocaleTest extends TestFmwk {
         defUloc = ULocale.getDefault();
         if (defUloc.toString().equals("nn_NY")) {
             errln("FAIL: Invalid default ULocale: " + defUloc + " /expected: nn_NY");
-        }
-        Locale.setDefault(backupDefault);
-
-        // Java th_TH_TH -> ICU th_TH@numbers=thai
-        ULocale.setDefault(new ULocale("th@numbers=thai"));
-        if (!Locale.getDefault().equals(thTHTH)) {
-            errln("FAIL: ULocale#setDefault failed to set Java Locale th_TH_TH /actual: " + Locale.getDefault());
         }
         Locale.setDefault(backupDefault);
 
@@ -968,7 +957,7 @@ public class ULocaleTest extends TestFmwk {
         if(locales.length<10){
             errln("Did not get the correct result from getAvailableLocales");
         }
-        if(!locales[locales.length-1].equals("zu_ZA")){
+        if(!locales[locales.length-1].equals("zh_Hant_TW")){
             errln("Did not get the expected result");
         }
     }
@@ -1217,7 +1206,7 @@ public class ULocaleTest extends TestFmwk {
         h[0].put("calendar", "calendar");
         h[0].put("currency", "Currency");
         h[0].put("phonebook", "Phonebook Order");
-        h[0].put("pinyin", "Simplified Chinese Pinyin Sort Order");
+        h[0].put("pinyin", "Pinyin Sort Order");
         h[0].put("traditional", "Traditional Sort Order");
         h[0].put("stroke", "Stroke Order");
         h[0].put("direct", "Direct Sort Order");
@@ -3706,36 +3695,4 @@ public class ULocaleTest extends TestFmwk {
             }
         }
     }
-    public void TestCLDRVersion() {
-        //VersionInfo zeroVersion = VersionInfo.getInstance(0, 0, 0, 0);
-        VersionInfo testExpect;
-        VersionInfo testCurrent;
-        VersionInfo cldrVersion;
- 
-        cldrVersion = ULocale.getCLDRVersion();
-        
-        this.logln("uloc_getCLDRVersion() returned: '"+cldrVersion+"'");
-        
-        // why isn't this public for tests somewhere?
-        final ClassLoader testLoader = ICUResourceBundleTest.class.getClassLoader();
-        UResourceBundle bundle = (UResourceBundle) UResourceBundle.getBundleInstance("com/ibm/icu/dev/data/testdata", ULocale.ROOT, testLoader);
-        
-        testExpect = VersionInfo.getInstance(bundle.getString("ExpectCLDRVersionAtLeast"));
-        testCurrent = VersionInfo.getInstance(bundle.getString("CurrentCLDRVersion"));
-
-        
-        logln("(data) ExpectCLDRVersionAtLeast { "+testExpect+""); 
-        if(cldrVersion.compareTo(testExpect)<0) {
-            errln("CLDR version is too old, expect at least "+testExpect+".");
-        }
-
-        int r = cldrVersion.compareTo(testCurrent);
-        if ( r < 0 ) {
-            logln("CLDR version is behind 'current' (for testdata/root.txt) "+testCurrent+". Some things may fail.\n");
-        } else if ( r > 0) {
-            logln("CLDR version is ahead of 'current' (for testdata/root.txt) "+testCurrent+". Some things may fail.\n");
-        } else {
-            // CLDR version is OK.
-        }
-  }
 }

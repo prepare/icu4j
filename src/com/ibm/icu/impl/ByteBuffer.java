@@ -1,8 +1,8 @@
-//##header
+//##header J2SE15
 //#if defined(FOUNDATION10) || defined(J2SE13) || defined(ECLIPSE_FRAGMENT)
 //##/*
 //## * *****************************************************************************
-//## * Copyright (C) 2006-2009, International Business Machines
+//## * Copyright (C) 2006-2007, International Business Machines
 //## * Corporation and others. All Rights Reserved.
 //## * *****************************************************************************
 //## */
@@ -45,10 +45,6 @@
 //##        return limit;
 //##    }
 //##
-//##    public int position() {
-//##        return pos;
-//##    }
-//##
 //##    public int remaining() {
 //##        return limit - pos;
 //##    }
@@ -67,28 +63,6 @@
 //##            dst[offset++] = data[pos++];
 //##        }
 //##    }
-//##
-//##    public void put(byte b) {
-//##        if (pos < limit) {
-//##            data[pos++] = b;
-//##        } else {
-//##            throw new IndexOutOfBoundsException();
-//##        }
-//##    }
-//##
-//##    public void put(byte[] src, int offset, int length) {
-//##        if (offset < 0 || offset + length > src.length || pos + length > limit) {
-//##            throw new IndexOutOfBoundsException();
-//##        }
-//##        for (int i = offset; i < offset + length; i++) {
-//##            put(src[i]);
-//##        }
-//##    }
-//##
-//##    public void put(byte[] src) {
-//##        put(src, 0, src.length);
-//##    }
-//##
 //##    public static final ByteBuffer allocate(int size){
 //##        ByteBuffer ret = new ByteBuffer();
 //##        ret.data = new byte[size];

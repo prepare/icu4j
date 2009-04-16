@@ -1,7 +1,7 @@
-//##header
+//##header J2SE15
 /*
  *******************************************************************************
- * Copyright (C) 2001-2009, International Business Machines Corporation and    *
+ * Copyright (C) 2001-2008, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -32,13 +32,9 @@ import com.ibm.icu.text.DateFormat;
 import com.ibm.icu.text.DateFormatSymbols;
 import com.ibm.icu.text.NumberFormat;
 import com.ibm.icu.text.SimpleDateFormat;
-import com.ibm.icu.util.BuddhistCalendar;
 import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.ChineseCalendar;
 import com.ibm.icu.util.GregorianCalendar;
-import com.ibm.icu.util.HebrewCalendar;
-import com.ibm.icu.util.IslamicCalendar;
-import com.ibm.icu.util.JapaneseCalendar;
 import com.ibm.icu.util.TimeZone;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.UResourceBundle;
@@ -298,16 +294,16 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         // Fields are given in order of DateFormat field number
         final String EXPECTED[] = {
              "", "1997", "August", "13", "", "", "34", "12", "",
-            "Wednesday", "", "", "", "", "PM", "2", "", "Pacific Daylight Time", "", "", "", "", "", "", "","","","","","",
+            "Wednesday", "", "", "", "", "PM", "2", "", "", "", "", "", "", "", "", "PT","","","","","",
 
             "", "1997", "ao\u00FBt", "13", "", "14", "34", "12", "",
-            "mercredi", "", "", "", "", "", "", "", "heure avanc\u00E9e du Pacifique", "", "", "", "", "", "", "","","","","","",
+            "mercredi", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "\u00C9tats-Unis (Los Angeles)","","","","","",
 
             "AD", "1997", "8", "13", "14", "14", "34", "12", "5",
-            "Wed", "225", "2", "33", "2", "PM", "2", "2", "PDT", "1997", "4", "1997", "2450674", "52452513", "-0700", "PT","4","8","3","3","PDT",
+            "Wed", "225", "2", "33", "3", "PM", "2", "2", "PDT", "1997", "4", "1997", "2450674", "52452513", "-0700", "PT","4","8","3","3","PDT",
 
             "Anno Domini", "1997", "August", "0013", "0014", "0014", "0034", "0012", "5130",
-            "Wednesday", "0225", "0002", "0033", "0002", "PM", "0002", "0002", "Pacific Daylight Time", "1997",
+            "Wednesday", "0225", "0002", "0033", "0003", "PM", "0002", "0002", "Pacific Daylight Time", "1997",
             "0004", "1997", "2450674", "52452513", "GMT-07:00", "Pacific Time","Wednesday","August", "3rd quarter", "3rd quarter","United States (Los Angeles)",
         };
 
@@ -350,26 +346,26 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             {"PM", "13", "Wednesday", "", "",
              "", "", "", "", "",
              "", "2", "", "", "",
-             "34", "August", "", "12", "Pacific Daylight Time",
+             "34", "August", "", "12", "PT",
              "", "", "1997", ""},
 
             {"", "13", "mercredi", "", "",
              "", "", "", "14", "",
              "", "", "", "", "",
-             "34", "ao\u00FBt", "", "12", "heure avanc\u00E9e du Pacifique",
+             "34", "ao\u00FBt", "", "12", "\u00C9tats-Unis (Los Angeles)",
              "", "", "1997", ""},
 
             {"PM", "13", "Wed", "2", "225",
              "4", "AD", "1997", "14", "14",
              "2", "2", "2450674", "5", "52452513",
              "34", "8", "3", "12", "PDT",
-             "2", "33", "1997", "1997"},
+             "3", "33", "1997", "1997"},
 
             {"PM", "0013", "Wednesday", "0002", "0225",
              "0004", "Anno Domini", "1997", "0014", "0014",
              "0002", "0002", "2450674", "5130", "52452513",
              "0034", "August", "3rd quarter", "0012", "Pacific Daylight Time",
-             "0002", "0033", "1997", "1997"},
+             "0003", "0033", "1997", "1997"},
         };
 //#endif
 
@@ -955,13 +951,13 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         { "zh", "America/Havana", "2004-01-15T00:00:00Z", "Z", "-0500", "-5:00" },
         { "zh", "America/Havana", "2004-01-15T00:00:00Z", "ZZZZ", GMT_ZH+"-0500", "-5:00" },
         { "zh", "America/Havana", "2004-01-15T00:00:00Z", "z", GMT_ZH+"-0500", "-5:00" },
-        { "zh", "America/Havana", "2004-01-15T00:00:00Z", "zzzz", "\u53e4\u5df4\u6807\u51c6\u65f6\u95f4", "-5:00" },
+        { "zh", "America/Havana", "2004-01-15T00:00:00Z", "zzzz", "\u53e4\u5df4\u6a19\u6e96\u6642\u9593", "-5:00" },
         { "zh", "America/Havana", "2004-07-15T00:00:00Z", "Z", "-0400", "-4:00" },
         { "zh", "America/Havana", "2004-07-15T00:00:00Z", "ZZZZ", GMT_ZH+"-0400", "-4:00" },
         { "zh", "America/Havana", "2004-07-15T00:00:00Z", "z", GMT_ZH+"-0400", "-4:00" },
-        { "zh", "America/Havana", "2004-07-15T00:00:00Z", "zzzz", "\u53e4\u5df4\u590f\u4ee4\u65f6\u95f4", "-4:00" },
-        { "zh", "America/Havana", "2004-07-15T00:00:00Z", "v", "\u53e4\u5df4\u65f6\u95f4", "America/Havana" },
-        { "zh", "America/Havana", "2004-07-15T00:00:00Z", "vvvv", "\u53e4\u5df4\u65f6\u95f4", "America/Havana" },
+        { "zh", "America/Havana", "2004-07-15T00:00:00Z", "zzzz", "\u53e4\u5df4\u590f\u4ee4\u6642\u9593", "-4:00" },
+        { "zh", "America/Havana", "2004-07-15T00:00:00Z", "v", "\u53e4\u5df4", "America/Havana" },
+        { "zh", "America/Havana", "2004-07-15T00:00:00Z", "vvvv", "\u53e4\u5df4\u6642\u9593", "America/Havana" },
 
         { "zh", "Australia/ACT", "2004-01-15T00:00:00Z", "Z", "+1100", "+11:00" },
         { "zh", "Australia/ACT", "2004-01-15T00:00:00Z", "ZZZZ", GMT_ZH+"+1100", "+11:00" },
@@ -995,9 +991,9 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         { "zh", "Europe/London", "2004-07-15T00:00:00Z", "z", GMT_ZH+"+0100", "+1:00" },
         { "zh", "Europe/London", "2004-07-15T00:00:00Z", "V", "BST", "+1:00" },
         { "zh", "Europe/London", "2004-07-15T00:00:00Z", "zzzz", GMT_ZH+"+0100", "+1:00" },
-        { "zh", "Europe/London", "2004-07-15T00:00:00Z", "v", "\u82f1\u56fd\u65f6\u95f4", "Europe/London" },
-        { "zh", "Europe/London", "2004-07-15T00:00:00Z", "vvvv", "\u82f1\u56fd\u65f6\u95f4", "Europe/London" },
-        { "zh", "Europe/London", "2004-07-15T00:00:00Z", "VVVV", "\u82f1\u56fd\u65f6\u95f4", "Europe/London" },
+        { "zh", "Europe/London", "2004-07-15T00:00:00Z", "v", "\u82f1\u56fd", "Europe/London" },
+        { "zh", "Europe/London", "2004-07-15T00:00:00Z", "vvvv", "\u82f1\u56fd", "Europe/London" },
+        { "zh", "Europe/London", "2004-07-15T00:00:00Z", "VVVV", "\u82f1\u56fd", "Europe/London" },
 
         { "zh", "Etc/GMT+3", "2004-01-15T00:00:00Z", "Z", "-0300", "-3:00" },
         { "zh", "Etc/GMT+3", "2004-01-15T00:00:00Z", "ZZZZ", GMT_ZH+"-0300", "-3:00" },
@@ -1019,7 +1015,7 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         { "zh", "Asia/Calcutta", "2004-07-15T00:00:00Z", "ZZZZ", GMT_ZH+"+0530", "+5:30" },
         { "zh", "Asia/Calcutta", "2004-07-15T00:00:00Z", "z", GMT_ZH+"+0530", "+05:30" },
         { "zh", "Asia/Calcutta", "2004-07-15T00:00:00Z", "zzzz", "\u5370\u5ea6\u6807\u51c6\u65f6\u95f4", "+5:30" },
-        { "zh", "Asia/Calcutta", "2004-07-15T00:00:00Z", "v", "\u5370\u5ea6\u65f6\u95f4", "Asia/Calcutta" },
+        { "zh", "Asia/Calcutta", "2004-07-15T00:00:00Z", "v", "\u5370\u5ea6", "Asia/Calcutta" },
         { "zh", "Asia/Calcutta", "2004-07-15T00:00:00Z", "vvvv", "\u5370\u5EA6\u6807\u51c6\u65f6\u95f4", "Asia/Calcutta" },
 
         // ==========
@@ -1032,8 +1028,8 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         { "hi", "America/Los_Angeles", "2004-07-15T00:00:00Z", "ZZZZ", "GMT-\u0966\u096d:\u0966\u0966", "-7:00" },
         { "hi", "America/Los_Angeles", "2004-07-15T00:00:00Z", "z", "GMT-\u0966\u096d:\u0966\u0966", "-7:00" },
         { "hi", "America/Los_Angeles", "2004-07-15T00:00:00Z", "zzzz", "GMT-\u0966\u096d:\u0966\u0966", "-7:00" },
-        { "hi", "America/Los_Angeles", "2004-07-15T00:00:00Z", "v", "\u0938\u0902\u092f\u0941\u0915\u094d\u0924 \u0930\u093e\u091c\u094d\u092f \u0905\u092e\u0947\u0930\u093f\u0915\u093e (\u0932\u094b\u0938 \u090f\u0902\u091c\u093f\u0932\u0947\u0938)", "America/Los_Angeles" },
-        { "hi", "America/Los_Angeles", "2004-07-15T00:00:00Z", "vvvv", "\u0938\u0902\u092f\u0941\u0915\u094d\u0924 \u0930\u093e\u091c\u094d\u092f \u0905\u092e\u0947\u0930\u093f\u0915\u093e (\u0932\u094b\u0938 \u090f\u0902\u091c\u093f\u0932\u0947\u0938)", "America/Los_Angeles" },
+        { "hi", "America/Los_Angeles", "2004-07-15T00:00:00Z", "v", "\u0938\u0902\u092f\u0941\u0915\u094d\u0924 \u0930\u093e\u091c\u094d\u092f \u0905\u092e\u0930\u093f\u0915\u093e (\u0932\u094b\u0938 \u090f\u0902\u091c\u093f\u0932\u0947\u0938)", "America/Los_Angeles" },
+        { "hi", "America/Los_Angeles", "2004-07-15T00:00:00Z", "vvvv", "\u0938\u0902\u092f\u0941\u0915\u094d\u0924 \u0930\u093e\u091c\u094d\u092f \u0905\u092e\u0930\u093f\u0915\u093e (\u0932\u094b\u0938 \u090f\u0902\u091c\u093f\u0932\u0947\u0938)", "America/Los_Angeles" },
 
         { "hi", "America/Argentina/Buenos_Aires", "2004-01-15T00:00:00Z", "Z", "-0300", "-3:00" },
         { "hi", "America/Argentina/Buenos_Aires", "2004-01-15T00:00:00Z", "ZZZZ", "GMT-\u0966\u0969:\u0966\u0966", "-3:00" },
@@ -1914,9 +1910,9 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         TimeZone tz = TimeZone.getTimeZone("PST");
         dfFrench.setTimeZone(tz);
         dfUS.setTimeZone(tz);
-        String expectedFRENCH_JDK12 = "lundi 15 septembre 1997 00:00:00 heure avanc\u00E9e du Pacifique";
+        String expectedFRENCH_JDK12 = "lundi 15 septembre 1997 00:00:00 \u00C9tats-Unis (Los Angeles)";
         //String expectedFRENCH = "lundi 15 septembre 1997 00 h 00 PDT";
-        String expectedUS = "Monday, September 15, 1997 12:00:00 AM Pacific Daylight Time";
+        String expectedUS = "Monday, September 15, 1997 12:00:00 AM PT";
         logln("Date set to : " + testDate);
         String out = dfFrench.format(testDate);
         logln("Date Formated with French Locale " + out);
@@ -2873,29 +2869,7 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         
         expect(EN_DATA, new Locale("en", "", ""));
     }
-*/
-
-    /**
-     * Test DateFormat's parsing of default GMT variants.  See ticket#6135
-     */
-    public void TestGMTParsing() {
-        String DATA[] = {
-            "HH:mm:ss Z",
-
-            // pattern, input, expected output (in quotes)
-            "HH:mm:ss Z",       "10:20:30 GMT+03:00",   "10:20:30 +0300",
-            "HH:mm:ss Z",       "10:20:30 UT-02:00",    "10:20:30 -0200",
-            "HH:mm:ss Z",       "10:20:30 GMT",         "10:20:30 +0000",
-            "HH:mm:ss vvvv",    "10:20:30 UT+10:00",    "10:20:30 +1000",
-            "HH:mm:ss zzzz",    "10:20:30 UTC",         "10:20:30 +0000",   // standalone "UTC"
-            "ZZZZ HH:mm:ss",    "UT 10:20:30",          "10:20:30 +0000",
-            "V HH:mm:ss",       "UT+0130 10:20:30",     "10:20:30 +0130",
-            "V HH:mm:ss",       "UTC+0130 10:20:30",    null,               // UTC+0130 is not a supported pattern
-            "HH mm Z ss",       "10 20 GMT-1100 30",    "10:20:30 -1100",
-        };
-        expectParse(DATA, new Locale("en", "", ""));
-    }
-
+*/    
     /**
      * Test parsing.  Input is an array that starts with the following
      * header:
@@ -3432,109 +3406,6 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                         errln("FAIL: formatter[" + j + "] returned \"" + tmp + "\" in locale " +
                                 testLocales[i] + " - expected: " + expected);
                     }
-                }
-            }
-        }
-    }
-
-    /*
-     * Test for format/parse method with calendar which is different
-     * from what DateFormat instance internally use.  See ticket#6420.
-     */
-    public void TestRoundtripWithCalendar() {
-        TimeZone tz = TimeZone.getTimeZone("Europe/Paris");
-        TimeZone gmt = TimeZone.getTimeZone("Etc/GMT");
-
-        final Calendar[] calendars = {
-            new GregorianCalendar(tz),
-            new BuddhistCalendar(tz),
-            new HebrewCalendar(tz),
-            new IslamicCalendar(tz),
-            new JapaneseCalendar(tz),
-        };
-
-        final String pattern = "GyMMMMdEEEEHHmmssVVVV";
-
-        //FIXME The formatters commented out below are currently failing because of
-        // the calendar calculation problem reported by #6691
-
-        // The order of test formatters mus match the order of calendars above.
-        final DateFormat[] formatters = {
-            DateFormat.getPatternInstance(pattern, new ULocale("en_US")), //calendar=gregorian
-            DateFormat.getPatternInstance(pattern, new ULocale("th_TH")), //calendar=buddhist
-            DateFormat.getPatternInstance(pattern, new ULocale("he_IL@calendar=hebrew")),
-//            DateFormat.getPatternInstance(pattern, new ULocale("ar_EG@calendar=islamic")),
-//            DateFormat.getPatternInstance(pattern, new ULocale("ja_JP@calendar=japanese")),
-        };
-
-        Date d = new Date();
-        StringBuffer buf = new StringBuffer();
-        FieldPosition fpos = new FieldPosition(0);
-        ParsePosition ppos = new ParsePosition(0);
-
-        for (int i = 0; i < formatters.length; i++) {
-            buf.setLength(0);
-            fpos.setBeginIndex(0);
-            fpos.setEndIndex(0);
-            calendars[i].setTime(d);
-
-            // Normal case output - the given calendar matches the calendar
-            // used by the formatter
-            formatters[i].format(calendars[i], buf, fpos);
-            String refStr = buf.toString();
-
-            for (int j = 0; j < calendars.length; j++) {
-                if (j == i) {
-                    continue;
-                }
-                buf.setLength(0);
-                fpos.setBeginIndex(0);
-                fpos.setEndIndex(0);
-                calendars[j].setTime(d);
-
-                // Even the different calendar type is specified,
-                // we should get the same result.
-                formatters[i].format(calendars[j], buf, fpos);
-                if (!refStr.equals(buf.toString())) {
-                    errln("FAIL: Different format result with a different calendar for the same time -"
-                            + "\n Reference calendar type=" + calendars[i].getType()
-                            + "\n Another calendar type=" + calendars[j].getType()
-                            + "\n Expected result=" + refStr
-                            + "\n Actual result=" + buf.toString());
-                }
-            }
-
-            calendars[i].setTimeZone(gmt);
-            calendars[i].clear();
-            ppos.setErrorIndex(-1);
-            ppos.setIndex(0);
-
-            // Normal case parse result - the given calendar matches the calendar
-            // used by the formatter
-            formatters[i].parse(refStr, calendars[i], ppos);
-
-            for (int j = 0; j < calendars.length; j++) {
-                if (j == i) {
-                    continue;
-                }
-                calendars[j].setTimeZone(gmt);
-                calendars[j].clear();
-                ppos.setErrorIndex(-1);
-                ppos.setIndex(0);
-
-                // Even the different calendar type is specified,
-                // we should get the same time and time zone.
-                formatters[i].parse(refStr, calendars[j], ppos);
-                if (calendars[i].getTimeInMillis() != calendars[j].getTimeInMillis()
-                        || !calendars[i].getTimeZone().equals(calendars[j].getTimeZone())) {
-                    errln("FAIL: Different parse result with a different calendar for the same string -"
-                            + "\n Reference calendar type=" + calendars[i].getType()
-                            + "\n Another calendar type=" + calendars[j].getType()
-                            + "\n Date string=" + refStr
-                            + "\n Expected time=" + calendars[i].getTimeInMillis()
-                            + "\n Expected time zone=" + calendars[i].getTimeZone().getID()
-                            + "\n Actual time=" + calendars[j].getTimeInMillis()
-                            + "\n Actual time zone=" + calendars[j].getTimeZone().getID());
                 }
             }
         }

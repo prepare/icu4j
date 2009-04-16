@@ -1,22 +1,22 @@
 /*
  * @(#)TimeZone.java    1.51 00/01/19
  *
- * Copyright (C) 1996-2009, International Business Machines
+ * Copyright (C) 1996-2008, International Business Machines
  * Corporation and others.  All Rights Reserved.
  */
 
 package com.ibm.icu.util;
 
 import java.io.Serializable;
+import java.lang.ref.SoftReference;
 import java.util.Date;
+import java.util.Hashtable;
 import java.util.Locale;
 import java.util.MissingResourceException;
 
 import com.ibm.icu.impl.Grego;
-import com.ibm.icu.impl.ICUCache;
 import com.ibm.icu.impl.ICUConfig;
 import com.ibm.icu.impl.JavaTimeZone;
-import com.ibm.icu.impl.SimpleCache;
 import com.ibm.icu.impl.TimeZoneAdapter;
 import com.ibm.icu.impl.ZoneMeta;
 import com.ibm.icu.text.SimpleDateFormat;
@@ -114,14 +114,16 @@ abstract public class TimeZone implements Serializable, Cloneable {
      * A time zone implementation type indicating ICU's own TimeZone used by
      * <code>getTimeZone</code>, <code>setDefaultTimeZoneType</code>
      * and <code>getDefaultTimeZoneType</code>.
-     * @stable ICU 4.0
+     * @draft ICU 4.0
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int TIMEZONE_ICU = 0;
     /**
      * A time zone implementation type indicating JDK TimeZone used by
      * <code>getTimeZone</code>, <code>setDefaultTimeZoneType</code>
      * and <code>getDefaultTimeZoneType</code>.
-     * @stable ICU 4.0
+     * @draft ICU 4.0
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int TIMEZONE_JDK = 1;
 
@@ -158,7 +160,7 @@ abstract public class TimeZone implements Serializable, Cloneable {
     /**
      * Cache to hold the SimpleDateFormat objects for a Locale.
      */
-    private static ICUCache cachedLocaleData = new SimpleCache();
+    private static Hashtable cachedLocaleData = new Hashtable(3);
 
     /**
      * Gets the time zone offset, for current date, modified in case of
@@ -236,12 +238,15 @@ abstract public class TimeZone implements Serializable, Cloneable {
         // To support the behavior above, we need to call getOffset
         // (with 6 args) twice when local == true and DST is
         // detected in the initial call.
-        int fields[] = new int[6];
+        int fields[] = new int[4];
         for (int pass = 0; ; pass++) {
-            Grego.timeToFields(date, fields);
+            long day = floorDivide(date, Grego.MILLIS_PER_DAY, fields);
+            int millis = fields[0];
+
+            computeGregorianFields(day, fields);
             offsets[1] = getOffset(GregorianCalendar.AD,
                                     fields[0], fields[1], fields[2],
-                                    fields[3], fields[5]) - offsets[0];
+                                    fields[3], millis) - offsets[0];
 
             if (pass != 0 || !local || offsets[1] == 0) {
                 break;
@@ -250,6 +255,128 @@ abstract public class TimeZone implements Serializable, Cloneable {
             date -= offsets[1];
         }
     }
+
+    /**
+     * Divide two long integers, returning the floor of the quotient.
+     * <p>
+     * Unlike the built-in division, this is mathematically well-behaved.
+     * E.g., <code>-1/4</code> => 0
+     * but <code>floorDivide(-1,4)</code> => -1.
+     * TODO: This duplicates a method in Calendar; clean up and
+     * consolidate in ICU 3.0.
+     * @param numerator the numerator
+     * @param denominator a divisor which must be > 0
+     * @return the floor of the quotient.
+     */
+    static long floorDivide(long numerator, long denominator) {
+        // We do this computation in order to handle
+        // a numerator of Long.MIN_VALUE correctly
+        return (numerator >= 0) ?
+            numerator / denominator :
+            ((numerator + 1) / denominator) - 1;
+    }
+
+    /**
+     * Divide two integers, returning the floor of the quotient, and
+     * the modulus remainder.
+     * <p>
+     * Unlike the built-in division, this is mathematically well-behaved.
+     * E.g., <code>-1/4</code> => 0 and <code>-1%4</code> => -1,
+     * but <code>floorDivide(-1,4)</code> => -1 with <code>remainder[0]</code> => 3.
+     * TODO: This duplicates a method in Calendar; clean up and
+     * consolidate in ICU 3.0.
+     * @param numerator the numerator
+     * @param denominator a divisor which must be > 0
+     * @param remainder an array of at least one element in which the value
+     * <code>numerator mod denominator</code> is returned. Unlike <code>numerator
+     * % denominator</code>, this will always be non-negative.
+     * @return the floor of the quotient.
+     */
+    static int floorDivide(long numerator, int denominator, int[] remainder) {
+        if (numerator >= 0) {
+            remainder[0] = (int)(numerator % denominator);
+            return (int)(numerator / denominator);
+        }
+        int quotient = (int)(((numerator + 1) / denominator) - 1);
+        remainder[0] = (int)(numerator - (quotient * denominator));
+        return quotient;
+    }
+
+    /**
+     * Compute the Gregorian calendar year, month, and day of month
+     * from the epoch day, and return them in the given array.
+     * TODO: This duplicates a method in Calendar; clean up and
+     * consolidate in ICU 3.0.
+     */
+    static void computeGregorianFields(long day, int fields[]) {
+        int year, month, dayOfMonth, dayOfYear;
+
+        // Convert from 1970 CE epoch to 1 CE epoch (Gregorian calendar)
+        // JULIAN_1_CE    = 1721426; // January 1, 1 CE Gregorian
+        // JULIAN_1970_CE = 2440588; // January 1, 1970 CE Gregorian
+        day += (2440588 - 1721426);
+
+        // Here we convert from the day number to the multiple radix
+        // representation.  We use 400-year, 100-year, and 4-year cycles.
+        // For example, the 4-year cycle has 4 years + 1 leap day; giving
+        // 1461 == 365*4 + 1 days.
+        int[] rem = new int[1];
+        int n400 = floorDivide(day, 146097, rem); // 400-year cycle length
+        int n100 = floorDivide(rem[0], 36524, rem); // 100-year cycle length
+        int n4 = floorDivide(rem[0], 1461, rem); // 4-year cycle length
+        int n1 = floorDivide(rem[0], 365, rem);
+        year = 400*n400 + 100*n100 + 4*n4 + n1;
+        dayOfYear = rem[0]; // zero-based day of year
+        if (n100 == 4 || n1 == 4) {
+            dayOfYear = 365; // Dec 31 at end of 4- or 400-yr cycle
+        } else {
+            ++year;
+        }
+
+        boolean isLeap = ((year&0x3) == 0) && // equiv. to (year%4 == 0)
+            (year%100 != 0 || year%400 == 0);
+
+        int correction = 0;
+        int march1 = isLeap ? 60 : 59; // zero-based DOY for March 1
+        if (dayOfYear >= march1) correction = isLeap ? 1 : 2;
+        month = (12 * (dayOfYear + correction) + 6) / 367; // zero-based month
+        dayOfMonth = dayOfYear -
+            GREGORIAN_MONTH_COUNT[month][isLeap?1:0] + 1; // one-based DOM
+
+        // Jan 1 1 CE is Monday
+        int dayOfWeek = (int) ((day + Calendar.MONDAY) % 7);
+        if (dayOfWeek < Calendar.SUNDAY) {
+            dayOfWeek += 7;
+        }
+
+        fields[0] = year;
+        fields[1] = month; // 0-based already
+        fields[2] = dayOfMonth; // 1-based already
+        fields[3] = dayOfWeek; // 1-based already
+        //fields[4] = dayOfYear + 1; // Convert from 0-based to 1-based
+    }
+
+    /**
+     * For each month, the days in a non-leap year before the start
+     * the of month, and the days in a leap year before the start of
+     * the month.
+     * TODO: This duplicates data in Calendar.java; clean up and
+     * consolidate in ICU 3.0.
+     */
+    static final int[][] GREGORIAN_MONTH_COUNT = {
+        {   0,   0 }, // Jan
+        {  31,  31 }, // Feb
+        {  59,  60 }, // Mar
+        {  90,  91 }, // Apr
+        { 120, 121 }, // May
+        { 151, 152 }, // Jun
+        { 181, 182 }, // Jul
+        { 212, 213 }, // Aug
+        { 243, 244 }, // Sep
+        { 273, 274 }, // Oct
+        { 304, 305 }, // Nov
+        { 334, 335 }  // Dec
+    };
 
     /**
      * Sets the base time zone offset to GMT.
@@ -391,10 +518,6 @@ abstract public class TimeZone implements Serializable, Cloneable {
      * internal version (which this calls) also accepts LONG_GENERIC/SHORT_GENERIC.
      */
     private synchronized String _getDisplayName(boolean daylight, int style, ULocale locale) {
-        if (locale == null) {
-            throw new NullPointerException("locale is null");
-        }
-
         /* NOTES:
          * (1) We use SimpleDateFormat for simplicity; we could do this
          * more efficiently but it would duplicate the SimpleDateFormat code
@@ -408,10 +531,12 @@ abstract public class TimeZone implements Serializable, Cloneable {
 
         // We keep a cache, indexed by locale.  The cache contains a
         // SimpleDateFormat object, which we create on demand.
-        SimpleDateFormat format = (SimpleDateFormat)cachedLocaleData.get(locale);
-        if (format == null) {
+        SoftReference data = (SoftReference)cachedLocaleData.get(locale);
+        SimpleDateFormat format;
+        if (data == null ||
+            (format = (SimpleDateFormat)data.get()) == null) {
             format = new SimpleDateFormat(null, locale);
-            cachedLocaleData.put(locale, format);
+            cachedLocaleData.put(locale, new SoftReference(format));
         }
 
         String[] patterns = { "z", "zzzz", "v", "vvvv" };
@@ -456,8 +581,6 @@ abstract public class TimeZone implements Serializable, Cloneable {
                 }
             } else {
                 // The display name for standard time was requested, but currently in DST
-                // or display name for daylight saving time was requested, but this zone no longer
-                // observes DST.
                 tz = new SimpleTimeZone(offsets[0], getID());
                 format.setTimeZone(tz);
             }
@@ -530,7 +653,8 @@ abstract public class TimeZone implements Serializable, Cloneable {
      * @param type Timezone type, either <code>TIMEZONE_ICU</code> or <code>TIMEZONE_JDK</code>.
      * @return the specified <code>TimeZone</code>, or the GMT zone if the given ID
      * cannot be understood.
-     * @stable ICU 4.0
+     * @draft ICU 4.0
+     * @provisional This API might change or be removed in a future release.
      */
     public static synchronized TimeZone getTimeZone(String ID, int type) {
         TimeZone result;
@@ -563,7 +687,8 @@ abstract public class TimeZone implements Serializable, Cloneable {
     /**
      * Sets the default timezone type used by <code>getTimeZone</code>.
      * @param type Timezone type, either <code>TIMEZONE_ICU</code> or <code>TIMEZONE_JDK</code>.
-     * @stable ICU 4.0
+     * @draft ICU 4.0
+     * @provisional This API might change or be removed in a future release.
      */
     public static synchronized void setDefaultTimeZoneType(int type) {
         if (type != TIMEZONE_ICU && type != TIMEZONE_JDK) {
@@ -575,7 +700,8 @@ abstract public class TimeZone implements Serializable, Cloneable {
     /**
      * Returns the default timezone type currently used.
      * @return The default timezone type, either <code>TIMEZONE_ICU</code> or <code>TIMEZONE_JDK</code>.
-     * @stable ICU 4.0
+     * @draft ICU 4.0
+     * @provisional This API might change or be removed in a future release.
      */
     public static int getDefaultTimeZoneType() {
         return TZ_IMPL;
@@ -802,7 +928,8 @@ abstract public class TimeZone implements Serializable, Cloneable {
      * in normalized format for the given timezone ID.  When the given timezone ID
      * is neither a known system time zone ID nor a valid custom timezone ID,
      * null is returned.
-     * @stable ICU 4.0
+     * @draft ICU 4.0
+     * @provisional This API might change or be removed in a future release.
      */
     public static String getCanonicalID(String id) {
         return getCanonicalID(id, null);
@@ -818,7 +945,8 @@ abstract public class TimeZone implements Serializable, Cloneable {
      * in normalized format for the given timezone ID.  When the given timezone ID
      * is neither a known system time zone ID nor a valid custom timezone ID,
      * null is returned.
-     * @stable ICU 4.0
+     * @draft ICU 4.0
+     * @provisional This API might change or be removed in a future release.
      */
     public static String getCanonicalID(String id, boolean[] isSystemID) {
         String canonicalID = null;

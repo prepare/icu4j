@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2005-2009, International Business Machines Corporation and    *
+ * Copyright (C) 2005-2007, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  *
@@ -105,17 +105,17 @@ public class CoverageTest extends CompatibilityTest implements URLHandler.URLVis
         
         public void execute() throws Exception
         {
-            Class c = Class.forName(name);
-            try {
-                /*Field uid = */c.getDeclaredField("serialVersionUID");
-            } catch (Exception e) {
-                errln("No serialVersionUID");
-            }
-            
             if (inputStream == null) {
                 params.testCount += 1;
             } else {
-               if (path != null) {
+                Class c = Class.forName(name);
+                try {
+                    /*Field uid = */c.getDeclaredField("serialVersionUID");
+                } catch (Exception e) {
+                    errln("No serialVersionUID");
+                }
+                
+                if (path != null) {
                     writeFile(name, bytes);
                 }
                 
@@ -144,7 +144,7 @@ public class CoverageTest extends CompatibilityTest implements URLHandler.URLVis
                 int   m = c.getModifiers();
                 
                 if (serializable.isAssignableFrom(c)) {
-                    if (Modifier.isPublic(m) && !Modifier.isInterface(m)) { 
+                    if (Modifier.isPublic(m)) {
                         SerializableTest.Handler handler = SerializableTest.getHandler(className);
                         
                         if (handler != null) {
@@ -183,12 +183,7 @@ public class CoverageTest extends CompatibilityTest implements URLHandler.URLVis
         
         if (System.getSecurityManager() != null) {
             // This test won't run under a security manager
-
-            // TODO: Is the above statement really true?
-            // We probably need to set up the security policy properly
-            // for writing/reading serialized data.
-
-            return null;
+            return new CoverageTarget("Skipped Due To Security Manager", Modifier.ABSTRACT, null);
         }
         
         if(serializable==null){
