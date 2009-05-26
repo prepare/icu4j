@@ -1,4 +1,3 @@
-//##header
 /*
  ********************************************************************************
  * Copyright (C) 2006-2009, Google, International Business Machines Corporation *
@@ -6,6 +5,18 @@
  ********************************************************************************
  */
 package com.ibm.icu.text;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.BitSet;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 
 import com.ibm.icu.impl.ICUCache;
 import com.ibm.icu.impl.ICUResourceBundle;
@@ -16,25 +27,6 @@ import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.Freezable;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.UResourceBundle;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.BitSet;
-import java.util.Collection;
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//##import java.util.HashMap;
-//#endif
-import java.util.HashSet;
-import java.util.Iterator;
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
-//import java.util.LinkedHashMap;
-//import java.util.LinkedHashSet;
-//#endif
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
 
 /**
  * This class provides flexible generation of date format patterns, like
@@ -125,7 +117,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
      */
     public static DateTimePatternGenerator getInstance(ULocale uLocale) {
         String localeKey = uLocale.toString();
-        DateTimePatternGenerator result = (DateTimePatternGenerator)DTPNG_CACHE.get(localeKey);
+        DateTimePatternGenerator result = DTPNG_CACHE.get(localeKey);
         if (result != null) {
             return result;
         }
@@ -151,7 +143,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
                 // hour style for the locale
                 FormatParser fp = new FormatParser();
                 fp.set(shortTimePattern);
-                List items = fp.getItems();
+                List<Object> items = fp.getItems();
                 for (int idx = 0; idx < items.size(); idx++) {
                     Object item = items.get(idx);
                     if (item instanceof VariableField) {
@@ -348,28 +340,11 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
     public String getBestPattern(String skeleton) {
         //if (!isComplete) complete();
         if (chineseMonthHack) {
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//##            int monidx = skeleton.indexOf("MMM");
-//##            if (monidx >= 0) {
-//##                StringBuffer tmp = new StringBuffer(skeleton.substring(0, monidx));
-//##                tmp.append("MM");
-//##                monidx += 3;
-//##                while (monidx < skeleton.length()) {
-//##                    if (skeleton.charAt(monidx) != 'M') {
-//##                        break;
-//##                    }
-//##                    monidx++;
-//##                }
-//##                tmp.append(skeleton.substring(monidx));
-//##                skeleton = tmp.toString();
-//##            }
-//#else
             skeleton = skeleton.replaceAll("MMM+", "MM");
-//#endif
         }
         // if skeleton contains meta hour field 'j', then
         // replace it with the default hour format char
-        skeleton = Utility.replaceAll(skeleton, "j", String.valueOf(defaultHourFormatChar));
+        skeleton = skeleton.replaceAll("j", String.valueOf(defaultHourFormatChar));
 
         current.set(skeleton, fp);
         String best = getBestRaw(current, -1, _distanceInfo);
@@ -446,13 +421,13 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         checkFrozen();
         DateTimeMatcher matcher = new DateTimeMatcher().set(pattern, fp);
         String basePattern = matcher.getBasePattern();
-        String previousPatternWithSameBase = (String)basePattern_pattern.get(basePattern);
+        String previousPatternWithSameBase = basePattern_pattern.get(basePattern);
         if (previousPatternWithSameBase != null) {
             returnInfo.status = PatternInfo.BASE_CONFLICT;
             returnInfo.conflictingPattern = previousPatternWithSameBase;
             if (!override) return this;
         }
-        String previousValue = (String)skeleton2pattern.get(matcher);
+        String previousValue = skeleton2pattern.get(matcher);
         if (previousValue != null) {
             returnInfo.status = PatternInfo.CONFLICT;
             returnInfo.conflictingPattern = previousValue;
@@ -516,18 +491,15 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
      * @return the input Map containing the values.
      * @stable ICU 3.6
      */
-    public Map getSkeletons(Map result) {
+    public Map<String, String> getSkeletons(Map<String, String> result) {
         if (result == null) {
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//##            result = new HashMap();
-//#else
-//            result = new LinkedHashMap();
-//#endif
+            result = new LinkedHashMap<String, String>();
         }
-        for (Iterator it = skeleton2pattern.keySet().iterator(); it.hasNext();) {
-            DateTimeMatcher item = (DateTimeMatcher) it.next();
-            String pattern = (String) skeleton2pattern.get(item);
-            if (CANONICAL_SET.contains(pattern)) continue;
+        for (DateTimeMatcher item : skeleton2pattern.keySet()) {
+            String pattern = skeleton2pattern.get(item);
+            if (CANONICAL_SET.contains(pattern)) {
+                continue;
+            }
             result.put(item.toString(), pattern);
         }
         return result;
@@ -537,8 +509,10 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
      * Return a list of all the base skeletons (in canonical form) from this class
      * @stable ICU 3.6
      */
-    public Set getBaseSkeletons(Set result) {
-        if (result == null) result = new HashSet();
+    public Set<String> getBaseSkeletons(Set<String> result) {
+        if (result == null) {
+            result = new HashSet<String>();
+        }
         result.addAll(basePattern_pattern.keySet());
         return result;
     }
@@ -635,19 +609,16 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    public Collection getRedundants(Collection output) {
+    public Collection<String> getRedundants(Collection<String> output) {
         synchronized (this) { // synchronized since a getter must be thread-safe
             if (output == null) {
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//##                output = new HashSet();
-//#else
-//                output = new LinkedHashSet();
-//#endif
+                output = new LinkedHashSet<String>();
             }
-            for (Iterator it = skeleton2pattern.keySet().iterator(); it.hasNext();) {
-                DateTimeMatcher cur = (DateTimeMatcher) it.next();
-                String pattern = (String) skeleton2pattern.get(cur);
-                if (CANONICAL_SET.contains(pattern)) continue;
+            for (DateTimeMatcher cur : skeleton2pattern.keySet()) {
+                String pattern = skeleton2pattern.get(cur);
+                if (CANONICAL_SET.contains(pattern)) {
+                    continue;
+                }
                 skipMatcher = cur;
                 String trial = getBestPattern(cur.toString());
                 if (trial.equals(pattern)) {
@@ -657,10 +628,11 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
             if (false) { // ordered
                 DateTimePatternGenerator results = new DateTimePatternGenerator();
                 PatternInfo pinfo = new PatternInfo();
-                for (Iterator it = skeleton2pattern.keySet().iterator(); it.hasNext();) {
-                    DateTimeMatcher cur = (DateTimeMatcher) it.next();
-                    String pattern = (String) skeleton2pattern.get(cur);
-                    if (CANONICAL_SET.contains(pattern)) continue;
+                for (DateTimeMatcher cur : skeleton2pattern.keySet()) {
+                    String pattern = skeleton2pattern.get(cur);
+                    if (CANONICAL_SET.contains(pattern)) {
+                        continue;
+                    }
                     //skipMatcher = current;
                     String trial = results.getBestPattern(cur.toString());
                     if (trial.equals(pattern)) {
@@ -899,11 +871,12 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
      * Boilerplate
      * @stable ICU 3.6
      */
+    @SuppressWarnings("unchecked")
     public Object clone() {
         try {
             DateTimePatternGenerator result = (DateTimePatternGenerator) (super.clone());
-            result.skeleton2pattern = (TreeMap) skeleton2pattern.clone();
-            result.basePattern_pattern = (TreeMap) basePattern_pattern.clone();
+            result.skeleton2pattern = (TreeMap<DateTimeMatcher, String>) skeleton2pattern.clone();
+            result.basePattern_pattern = (TreeMap<String, String>) basePattern_pattern.clone();
             result.appendItemFormats = (String[]) appendItemFormats.clone();
             result.appendItemNames = (String[]) appendItemNames.clone();
             result.current = new DateTimeMatcher();
@@ -1018,7 +991,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         .setExtraQuotingCharacters(new UnicodeSet("[[[:script=Latn:][:script=Cyrl:]]&[[:L:][:M:]]]"))
         //.setEscapeCharacters(new UnicodeSet("[^\\u0020-\\u007E]")) // WARNING: DateFormat doesn't accept \\uXXXX
         .setUsingQuote(true);
-        private List items = new ArrayList();
+        private List<Object> items = new ArrayList<Object>();
         
         /**
          * Construct an empty date format parser, to which strings and variables can be added with set(...).
@@ -1128,7 +1101,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        public List getItems() {
+        public List<Object> getItems() {
             return items;
         }
 
@@ -1171,8 +1144,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
          */
         public boolean hasDateAndTimeFields() {
             int foundMask = 0;
-            for (Iterator it = items.iterator(); it.hasNext();) {
-                Object item = it.next();
+            for (Object item : items) {
                 if (item instanceof VariableField) {
                     int type = ((VariableField)item).getType();
                     foundMask |= 1 << type;    
@@ -1290,8 +1262,8 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
     }
     // ========= PRIVATES ============
 
-    private TreeMap skeleton2pattern = new TreeMap(); // items are in priority order
-    private TreeMap basePattern_pattern = new TreeMap(); // items are in priority order
+    private TreeMap<DateTimeMatcher, String> skeleton2pattern = new TreeMap<DateTimeMatcher, String>(); // items are in priority order
+    private TreeMap<String, String> basePattern_pattern = new TreeMap<String, String>(); // items are in priority order
     private String decimal = "?";
     private String dateTimeFormat = "{1} {0}";
     private String[] appendItemFormats = new String[TYPE_LIMIT];
@@ -1317,7 +1289,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
     private static final int SECOND_AND_FRACTIONAL_MASK = (1<<SECOND) | (1<<FRACTIONAL_SECOND);
 
     // Cache for DateTimePatternGenerator
-    private static ICUCache DTPNG_CACHE = new SimpleCache();
+    private static ICUCache<String, DateTimePatternGenerator> DTPNG_CACHE = new SimpleCache<String, DateTimePatternGenerator>();
 
     private void checkFrozen() {
         if (isFrozen()) {
@@ -1411,17 +1383,20 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         int bestDistance = Integer.MAX_VALUE;
         String bestPattern = "";
         DistanceInfo tempInfo = new DistanceInfo();
-        for (Iterator it = skeleton2pattern.keySet().iterator(); it.hasNext();) {
-            DateTimeMatcher trial = (DateTimeMatcher) it.next();
-            if (trial.equals(skipMatcher)) continue;
+        for (DateTimeMatcher trial : skeleton2pattern.keySet()) {
+            if (trial.equals(skipMatcher)) {
+                continue;
+            }
             int distance = source.getDistance(trial, includeMask, tempInfo);
 //          if (SHOW_DISTANCE) System.out.println("\tDistance: " + trial.pattern + ":\t" 
 //          + distance + ",\tmissing fields: " + tempInfo);
             if (distance < bestDistance) {
                 bestDistance = distance;
-                bestPattern = (String) skeleton2pattern.get(trial);
+                bestPattern = skeleton2pattern.get(trial);
                 missingFields.setTo(tempInfo);
-                if (distance == 0) break;
+                if (distance == 0) {
+                    break;
+                }
             }
         }
         return bestPattern;
@@ -1434,8 +1409,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
     private String adjustFieldTypes(String pattern, DateTimeMatcher inputRequest, boolean fixFractionalSeconds) {
         fp.set(pattern);
         StringBuffer newPattern = new StringBuffer();
-        for (Iterator it = fp.getItems().iterator(); it.hasNext();) {
-            Object item = it.next();
+        for (Object item : fp.getItems()) {
             if (item instanceof String) {
                 newPattern.append(fp.quoteLiteral((String)item));
             } else {
@@ -1487,8 +1461,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
     public String getFields(String pattern) {
         fp.set(pattern);
         StringBuffer newPattern = new StringBuffer();
-        for (Iterator it = fp.getItems().iterator(); it.hasNext();) {
-            Object item = it.next();
+        for (Object item : fp.getItems()) {
             if (item instanceof String) {
                 newPattern.append(fp.quoteLiteral((String)item));
             } else {
@@ -1533,8 +1506,8 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         "H", "m", "s", "S", "v"
     };
 
-    static private Set CANONICAL_SET = new HashSet(Arrays.asList(CANONICAL_ITEMS));
-    private Set cldrAvailableFormatKeys = new HashSet(20);
+    static private Set<String> CANONICAL_SET = new HashSet<String>(Arrays.asList(CANONICAL_ITEMS));
+    private Set<String> cldrAvailableFormatKeys = new HashSet<String>(20);
 
     static final private int 
     DATE_MASK = (1<<DAYPERIOD) - 1,
@@ -1663,7 +1636,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
         {'V', ZONE, LONG - DELTA, 4},
     };
 
-    private static class DateTimeMatcher implements Comparable {
+    private static class DateTimeMatcher implements Comparable<DateTimeMatcher> {
         //private String pattern = null;
         private int[] type = new int[TYPE_LIMIT];
         private String[] original = new String[TYPE_LIMIT];
@@ -1695,8 +1668,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
                 baseOriginal[i] = "";
             }
             fp.set(pattern);
-            for (Iterator it = fp.getItems().iterator(); it.hasNext();) {
-                Object obj = it.next();
+            for (Object obj : fp.getItems()) {
                 if (!(obj instanceof VariableField)) {
                     continue;
                 }
@@ -1773,8 +1745,7 @@ public class DateTimePatternGenerator implements Freezable, Cloneable {
             return result;
         }
 
-        public int compareTo(Object o) {
-            DateTimeMatcher that = (DateTimeMatcher) o;
+        public int compareTo(DateTimeMatcher that) {
             for (int i = 0; i < original.length; ++i) {
                 int comp = original[i].compareTo(that.original[i]);
                 if (comp != 0) return -comp;

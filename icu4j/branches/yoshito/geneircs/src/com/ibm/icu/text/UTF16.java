@@ -1,4 +1,3 @@
-//##header
 /**
  *******************************************************************************
  * Copyright (C) 1996-2009, International Business Machines Corporation and    *
@@ -258,8 +257,6 @@ public final class UTF16 {
         return single; // return unmatched surrogate
     }
 
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
     /**
      * Extract a single UTF-32 value from a string. Used when iterating forwards or backwards (with
      * <code>UTF16.getCharCount()</code>, as well as random access. If a validity check is
@@ -318,8 +315,6 @@ public final class UTF16 {
         }
         return single; // return unmatched surrogate
     }
-
-//#endif
 
     /**
      * Extract a single UTF-32 value from a string. Used when iterating forwards or backwards (with
@@ -2508,7 +2503,7 @@ public final class UTF16 {
      * @see #FOLD_CASE_EXCLUDE_SPECIAL_I
      * @stable ICU 2.1
      */
-    public static final class StringComparator implements java.util.Comparator {
+    public static final class StringComparator implements java.util.Comparator<String> {
         // public constructor ------------------------------------------------
 
         /**
@@ -2678,24 +2673,21 @@ public final class UTF16 {
          *                thrown when either a or b is not a String object
          * @stable ICU 2.4
          */
-        public int compare(Object a, Object b) {
-            String str1 = (String) a;
-            String str2 = (String) b;
-
-            if (str1 == str2) {
+        public int compare(String a, String b) {
+            if (a == b) {
                 return 0;
             }
-            if (str1 == null) {
+            if (a == null) {
                 return -1;
             }
-            if (str2 == null) {
+            if (b == null) {
                 return 1;
             }
 
             if (m_ignoreCase_) {
-                return compareCaseInsensitive(str1, str2);
+                return compareCaseInsensitive(a, b);
             }
-            return compareCaseSensitive(str1, str2);
+            return compareCaseSensitive(a, b);
         }
 
         // private data member ----------------------------------------------

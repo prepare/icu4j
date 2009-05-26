@@ -6,11 +6,6 @@
  */
 package com.ibm.icu.text;
 
-import com.ibm.icu.impl.ICUResourceBundle;
-import com.ibm.icu.impl.Utility;
-import com.ibm.icu.util.ULocale;
-import com.ibm.icu.util.UResourceBundle;
-
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -19,6 +14,10 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.MissingResourceException;
 import java.util.Set;
+
+import com.ibm.icu.impl.ICUResourceBundle;
+import com.ibm.icu.util.ULocale;
+import com.ibm.icu.util.UResourceBundle;
 
 /**
  * This class represents the information needed by 
@@ -127,13 +126,11 @@ public class CurrencyPluralInfo implements Cloneable, Serializable {
      * @provisional This API might change or be removed in a future release.
      */
     public String getCurrencyPluralPattern(String pluralCount) {
-        String currencyPluralPattern = 
-            (String)pluralCountToCurrencyUnitPattern.get(pluralCount);
+        String currencyPluralPattern = pluralCountToCurrencyUnitPattern.get(pluralCount);
         if (currencyPluralPattern == null) {
             // fall back to "other"
             if (!pluralCount.equals("other")) {
-                currencyPluralPattern = 
-                    (String)pluralCountToCurrencyUnitPattern.get("other");
+                currencyPluralPattern = pluralCountToCurrencyUnitPattern.get("other");
             }
             if (currencyPluralPattern == null) {
                 // no currencyUnitPatterns defined, 
@@ -218,10 +215,8 @@ public class CurrencyPluralInfo implements Cloneable, Serializable {
             //other.pluralRules = pluralRules;
             // clone content
             //other.pluralCountToCurrencyUnitPattern = pluralCountToCurrencyUnitPattern;
-            other.pluralCountToCurrencyUnitPattern = new HashMap();
-            Iterator iter = pluralCountToCurrencyUnitPattern.keySet().iterator();
-            while (iter.hasNext()) {
-                String pluralCount = (String)iter.next();
+            other.pluralCountToCurrencyUnitPattern = new HashMap<String, String>();
+            for (String pluralCount : pluralCountToCurrencyUnitPattern.keySet()) {
                 String currencyPattern = (String)pluralCountToCurrencyUnitPattern.get(pluralCount);
                 other.pluralCountToCurrencyUnitPattern.put(pluralCount, currencyPattern);
             }
@@ -259,7 +254,7 @@ public class CurrencyPluralInfo implements Cloneable, Serializable {
      *
      * @return a iterator on currency plural pattern key set.
      */
-    Iterator pluralPatternIterator() {
+    Iterator<String> pluralPatternIterator() {
         return pluralCountToCurrencyUnitPattern.keySet().iterator();
     }
 
@@ -271,8 +266,8 @@ public class CurrencyPluralInfo implements Cloneable, Serializable {
 
    
     private void setupCurrencyPluralPattern(ULocale uloc) {
-        pluralCountToCurrencyUnitPattern = new HashMap();
-        Set pluralCountSet = new HashSet();
+        pluralCountToCurrencyUnitPattern = new HashMap<String, String>();
+        Set<String> pluralCountSet = new HashSet<String>();
         ULocale parentLocale = uloc;
         String numberStylePattern = NumberFormat.getPattern(uloc, NumberFormat.NUMBERSTYLE);
         // Split the number style pattern into pos and neg if applicable
@@ -295,12 +290,12 @@ public class CurrencyPluralInfo implements Cloneable, Serializable {
                     String pattern = currencyRes.get(index).getString();
                     // replace {0} with numberStylePattern
                     // and {1} with triple currency sign
-                    String patternWithNumber = Utility.replace(pattern, "{0}", numberStylePattern);
-                    String patternWithCurrencySign = Utility.replace(patternWithNumber, "{1}", tripleCurrencyStr);
+                    String patternWithNumber = pattern.replace("{0}", numberStylePattern);
+                    String patternWithCurrencySign = patternWithNumber.replace("{1}", tripleCurrencyStr);
                     if (separatorIndex != -1) {
                         String negPattern = pattern;
-                        String negWithNumber = Utility.replace(negPattern, "{0}", negNumberPattern); 
-                        String negWithCurrSign = Utility.replace(negWithNumber, "{1}", tripleCurrencyStr); 
+                        String negWithNumber = negPattern.replace("{0}", negNumberPattern); 
+                        String negWithCurrSign = negWithNumber.replace("{1}", tripleCurrencyStr); 
                         StringBuffer posNegPatterns = new StringBuffer(patternWithCurrencySign);
                         posNegPatterns.append(";");
                         posNegPatterns.append(negWithCurrSign);
@@ -333,7 +328,7 @@ public class CurrencyPluralInfo implements Cloneable, Serializable {
     // map from plural count to currency plural pattern, for example
     // one (plural count) --> {0} {1} (currency plural pattern, 
     // in which, {0} is the amount number, and {1} is the currency plural name.
-    private Map pluralCountToCurrencyUnitPattern = null;
+    private Map<String, String> pluralCountToCurrencyUnitPattern = null;
 
     /*
      * The plural rule is used to format currency plural name,

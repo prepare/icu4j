@@ -1,4 +1,3 @@
-//##header
 /*
  *******************************************************************************
  * Copyright (C) 2004-2009, International Business Machines Corporation and    *
@@ -7,6 +6,7 @@
  */
 package com.ibm.icu.impl;
 
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.MissingResourceException;
 
@@ -14,11 +14,6 @@ import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.UResourceBundle;
 import com.ibm.icu.util.UResourceBundleIterator;
 import com.ibm.icu.util.UResourceTypeMismatchException;
-
-//#if defined(FOUNDATION10) || defined(J2SE13) || defined(ECLIPSE_FRAGMENT)
-//#else
-import java.nio.ByteBuffer;
-//#endif
 
 class ICUResourceBundleImpl {
 
@@ -39,7 +34,7 @@ class ICUResourceBundleImpl {
             return handleGetStringArray();
         }
 
-        protected UResourceBundle handleGetImpl(String indexStr, HashMap table, UResourceBundle requested,
+        protected UResourceBundle handleGetImpl(String indexStr, HashMap<String, String> table, UResourceBundle requested,
                 int[] index, boolean[] isAlias) {
             index[0] = getIndex(indexStr);
             if (index[0] > -1) {
@@ -48,7 +43,7 @@ class ICUResourceBundleImpl {
             throw new UResourceTypeMismatchException("Could not get the correct value for index: "+ index);
         }
 
-        protected UResourceBundle handleGetImpl(int index, HashMap table, UResourceBundle requested,
+        protected UResourceBundle handleGetImpl(int index, HashMap<String, String> table, UResourceBundle requested,
                 boolean[] isAlias) {
             if (index > size) {
                 throw new IndexOutOfBoundsException();
@@ -161,7 +156,7 @@ class ICUResourceBundleImpl {
 
     static final class ResourceTable extends ICUResourceBundle {
 
-        protected UResourceBundle handleGetImpl(String resKey, HashMap table, UResourceBundle requested,
+        protected UResourceBundle handleGetImpl(String resKey, HashMap<String, String> table, UResourceBundle requested,
                 int[] index, boolean[] isAlias) {
             if(size<=0){
                 return null;
@@ -190,7 +185,7 @@ class ICUResourceBundleImpl {
         public int getOffset(int currentOffset, int index) {
             return getChar(rawData, currentOffset + getCharOffset(index));
         }
-        protected UResourceBundle handleGetImpl(int index, HashMap table, UResourceBundle requested,
+        protected UResourceBundle handleGetImpl(int index, HashMap<String, String> table, UResourceBundle requested,
                 boolean[] isAlias) {
             if (index > size) {
                 throw new IndexOutOfBoundsException();
@@ -246,7 +241,7 @@ class ICUResourceBundleImpl {
     }
     static final class ResourceTable32 extends ICUResourceBundle{
 
-        protected UResourceBundle handleGetImpl(String resKey, HashMap table, UResourceBundle requested,
+        protected UResourceBundle handleGetImpl(String resKey, HashMap<String, String> table, UResourceBundle requested,
                 int[] index, boolean[] isAlias) {
             int offset = RES_GET_OFFSET(resource);
             // offset+0 contains number of entries
@@ -271,7 +266,7 @@ class ICUResourceBundleImpl {
         public int getOffset(int currentOffset, int index) {
             return ICUResourceBundle.getInt(rawData, currentOffset + getIntOffset(index));
         }
-        protected UResourceBundle handleGetImpl(int index, HashMap table, UResourceBundle requested,
+        protected UResourceBundle handleGetImpl(int index, HashMap<String, String> table, UResourceBundle requested,
                 boolean[] isAlias) {
             if(size<=0){
                 return null;
