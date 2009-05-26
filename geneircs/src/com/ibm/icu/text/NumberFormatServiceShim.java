@@ -63,7 +63,7 @@ class NumberFormatServiceShim extends NumberFormat.NumberFormatShim {
             return null;
         }
 
-        protected Set getSupportedIDs() {
+        protected Set<String> getSupportedIDs() {
             return delegate.getSupportedLocaleNames();
         }
     }

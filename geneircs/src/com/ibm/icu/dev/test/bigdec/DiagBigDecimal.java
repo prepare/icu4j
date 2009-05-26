@@ -1,4 +1,3 @@
-//##header
 /* Generated from 'DiagBigDecimal.nrx' 27 Mar 2000 22:38:44 [v1.162] */
 /* Options: Binary Comments Crossref Format Java Logo Trace1 Verbose3 */
 package com.ibm.icu.dev.test.bigdec;
@@ -407,8 +406,6 @@ public class DiagBigDecimal extends TestFmwk {
         (new Test("con006")).ok = (com.ibm.icu.math.BigDecimal.TEN.intValueExact()) == 10;
 
         // [java.math.] BigDecimal
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
         (new Test("cbd001")).ok = ((new com.ibm.icu.math.BigDecimal(new java.math.BigDecimal("0"))).toString()).equals("0");
         (new Test("cbd002")).ok = ((new com.ibm.icu.math.BigDecimal(new java.math.BigDecimal("1"))).toString()).equals("1");
         (new Test("cbd003")).ok = ((new com.ibm.icu.math.BigDecimal(new java.math.BigDecimal("10"))).toString()).equals("10");
@@ -440,7 +437,6 @@ public class DiagBigDecimal extends TestFmwk {
             flag = true;
         }/* checknull */
         (new Test("cbi015")).ok = flag;
-//#endif
 
         // BigInteger
         bip = new BigInteger("987654321987654321987654321"); // biggie +ve
@@ -588,8 +584,6 @@ public class DiagBigDecimal extends TestFmwk {
         }/* checkbound3 */
         (new Test("cca204")).ok = flag;
 
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
         // double [deprecated]
         // Note that many of these differ from the valueOf(double) results.
         dzer = (double) 0;
@@ -644,7 +638,6 @@ public class DiagBigDecimal extends TestFmwk {
         d = d / ((double) 10);
         if (!isJDK15OrLater)
             (new Test("cdo018")).ok = ((new com.ibm.icu.math.BigDecimal(d)).toString()).equals("0.000000008999999999999997872197332322678764437995369007694534957408905029296875");
-//#endif
 
         try {
             new com.ibm.icu.math.BigDecimal(
@@ -3091,41 +3084,41 @@ public class DiagBigDecimal extends TestFmwk {
      */
 
     public void diagcomparetoObj() {
-        boolean flag = false;
-        com.ibm.icu.math.BigDecimal d;
-        com.ibm.icu.math.BigDecimal long1;
-        com.ibm.icu.math.BigDecimal long2;
-
-        d = new com.ibm.icu.math.BigDecimal(17);
-        (new Test("cto001")).ok = (d
-                .compareTo((java.lang.Object) (new com.ibm.icu.math.BigDecimal(
-                        66)))) == (-1);
-        (new Test("cto002")).ok = (d
-                .compareTo((java.lang.Object) ((new com.ibm.icu.math.BigDecimal(
-                        10)).add(new com.ibm.icu.math.BigDecimal(7))))) == 0;
-        (new Test("cto003")).ok = (d
-                .compareTo((java.lang.Object) (new com.ibm.icu.math.BigDecimal(
-                        10)))) == 1;
-        long1 = new com.ibm.icu.math.BigDecimal("12345678903");
-        long2 = new com.ibm.icu.math.BigDecimal("12345678900");
-        (new Test("cto004")).ok = (long1.compareTo((java.lang.Object) long2)) == 1;
-        (new Test("cto005")).ok = (long2.compareTo((java.lang.Object) long1)) == (-1);
-        (new Test("cto006")).ok = (long2.compareTo((java.lang.Object) long2)) == 0;
-        try {
-            d.compareTo((java.lang.Object) null);
-            flag = false;
-        } catch (java.lang.NullPointerException $92) {
-            flag = true; // should get here
-        }
-        (new Test("cto101")).ok = flag;
-        try {
-            d.compareTo((java.lang.Object) "foo");
-            flag = false;
-        } catch (java.lang.ClassCastException $93) {
-            flag = true; // should get here
-        }
-        (new Test("cto102")).ok = flag;
-        summary("compareTo(Obj)");
+//        boolean flag = false;
+//        com.ibm.icu.math.BigDecimal d;
+//        com.ibm.icu.math.BigDecimal long1;
+//        com.ibm.icu.math.BigDecimal long2;
+//
+//        d = new com.ibm.icu.math.BigDecimal(17);
+//        (new Test("cto001")).ok = (d
+//                .compareTo((java.lang.Object) (new com.ibm.icu.math.BigDecimal(
+//                        66)))) == (-1);
+//        (new Test("cto002")).ok = (d
+//                .compareTo((java.lang.Object) ((new com.ibm.icu.math.BigDecimal(
+//                        10)).add(new com.ibm.icu.math.BigDecimal(7))))) == 0;
+//        (new Test("cto003")).ok = (d
+//                .compareTo((java.lang.Object) (new com.ibm.icu.math.BigDecimal(
+//                        10)))) == 1;
+//        long1 = new com.ibm.icu.math.BigDecimal("12345678903");
+//        long2 = new com.ibm.icu.math.BigDecimal("12345678900");
+//        (new Test("cto004")).ok = (long1.compareTo((java.lang.Object) long2)) == 1;
+//        (new Test("cto005")).ok = (long2.compareTo((java.lang.Object) long1)) == (-1);
+//        (new Test("cto006")).ok = (long2.compareTo((java.lang.Object) long2)) == 0;
+//        try {
+//            d.compareTo((java.lang.Object) null);
+//            flag = false;
+//        } catch (java.lang.NullPointerException $92) {
+//            flag = true; // should get here
+//        }
+//        (new Test("cto101")).ok = flag;
+//        try {
+//            d.compareTo((java.lang.Object) "foo");
+//            flag = false;
+//        } catch (java.lang.ClassCastException $93) {
+//            flag = true; // should get here
+//        }
+//        (new Test("cto102")).ok = flag;
+//        summary("compareTo(Obj)");
     }
 
     /* ----------------------------------------------------------------- */
@@ -4256,8 +4249,6 @@ public class DiagBigDecimal extends TestFmwk {
     /** Test the {@link com.ibm.icu.math.BigDecimal#toBigDecimal} method. */
 
     public void diagtobigdecimal() {
-//#if defined(FOUNDATION10) || defined(J2SE13)
-//#else
         (new Test("tbd001")).ok=((new com.ibm.icu.math.BigDecimal("0")).toBigDecimal().toString()).equals("0");
         (new Test("tbd002")).ok=((new com.ibm.icu.math.BigDecimal("-1")).toBigDecimal().toString()).equals("-1");
         (new Test("tbd003")).ok=((new com.ibm.icu.math.BigDecimal("+1")).toBigDecimal().toString()).equals("1");
@@ -4273,7 +4264,6 @@ public class DiagBigDecimal extends TestFmwk {
         (new Test("tbd009")).ok=((new com.ibm.icu.math.BigDecimal("1E10")).toBigDecimal().toString()).equals("10000000000");
         (new Test("tbd010")).ok=((new com.ibm.icu.math.BigDecimal("1E12")).toBigDecimal().toString()).equals("1000000000000");
         summary("toBigDecimal");
-//#endif
     }
 
     /* ----------------------------------------------------------------- */

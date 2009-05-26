@@ -97,7 +97,7 @@ import com.ibm.icu.text.UTF16;
  * @author syn wee
  * @stable ICU 2.4
  */
-public final class StringTokenizer implements Enumeration 
+public final class StringTokenizer implements Enumeration<Object>
 {
     // public constructors ---------------------------------------------
      
