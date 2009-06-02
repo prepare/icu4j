@@ -12,6 +12,9 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.MissingResourceException;
 
+/* TODO: Remove (Testing logging API) */
+import com.ibm.icu.impl.ICULogger;
+
 import com.ibm.icu.impl.Grego;
 import com.ibm.icu.impl.ICUCache;
 import com.ibm.icu.impl.ICUConfig;
@@ -99,6 +102,9 @@ import com.ibm.icu.text.SimpleDateFormat;
  * @stable ICU 2.0
  */
 abstract public class TimeZone implements Serializable, Cloneable {
+    /* TODO: Remove (Test for logging API) */
+    public static ICULogger TimeZoneLogger = ICULogger.getICULogger(TimeZone.class.getName());
+    
     // using serialver from jdk1.4.2_05
     private static final long serialVersionUID = -744942128318337471L;
 
@@ -552,6 +558,8 @@ abstract public class TimeZone implements Serializable, Cloneable {
                 result = ZoneMeta.getCustomTimeZone(ID);
             }
             if (result == null) {
+                /* TODO: Remove (Test for logging API) */
+                TimeZoneLogger.warning("\"" +ID + "\" is a bogus id so timezone is falling back to GMT.");
                 result = ZoneMeta.getGMT();
             }
         }
