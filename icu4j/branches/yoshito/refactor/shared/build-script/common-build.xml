@@ -1,0 +1,213 @@
+<!--
+*******************************************************************************
+* Copyright (C) 2009, International Business Machines Corporation and         *
+* others. All Rights Reserved.                                                *
+*******************************************************************************
+-->
+<project name="common-build" basedir=".">
+    <dirname property="shared.build-script.dir" file="${ant.file.common-build}"/>
+    <dirname property="shared.dir" file="${shared.build-script.dir}"/>
+    <dirname property="icu4j.root.dir" file="${shared.dir}"/>
+    <property file="${shared.build-script.dir}/common-build.properties"/>
+
+    <!-- common targets -->
+
+    <target name="@clean">
+        <delete dir="${out.dir}"/>
+    </target>
+
+    <target name="@compile">
+        <echo message="--- java compiler arguments ------------------------"/>
+        <echo message="source dir:     ${basedir}/${src.dir}"/>
+        <echo message="output dir:     ${basedir}/${bin.dir}"/>
+        <echo message="classpath:      ${toString:javac.classpathref}"/>
+        <echo message="source:         ${javac.source}"/>
+        <echo message="target:         ${javac.target}"/>
+        <echo message="debug:          ${javac.debug}"/>
+        <echo message="deprecation:    ${javac.deprecation}"/>
+        <echo message="encoding:       ${javac.encoding}"/>
+        <echo message="----------------------------------------------------"/>
+
+        <mkdir dir="${bin.dir}"/>
+        <javac
+            srcdir="${src.dir}"
+            destdir="${bin.dir}"
+            classpathref="javac.classpathref"
+            source="${javac.source}"
+            target="${javac.target}"
+            debug="${javac.debug}"
+            deprecation="${javac.deprecation}"/>
+    </target>
+
+    <target name="@copy">
+        <mkdir dir="${bin.dir}"/>
+        <copy todir="${bin.dir}">
+            <fileset dir="${src.dir}">
+                <exclude name="**/*.java"/>
+            </fileset>
+        </copy>
+    </target>
+
+    <target name="@jar">
+        <echo message="--- jar manifest attirbutes ------------------------"/>
+        <echo message="Built-By:                   ${jar.built.by}"/>
+        <echo message="Specification-Title:        ${jar.spec.title}"/>
+        <echo message="Specification-Version:      ${jar.spec.version}"/>
+        <echo message="Specification-Vendor:       ${jar.spec.vendor}"/>
+        <echo message="Implementation-Title:       ${jar.impl.title}"/>
+        <echo message="Implementation-Version:     ${jar.impl.version}"/>
+        <echo message="Implementation-Vendor:      ${jar.impl.vendor}"/>
+        <echo message="Implementation-Vendor-Id:   ${jar.impl.vendor.id}"/>
+        <echo message="Sealed:                     ${jar.sealed}"/>
+        <echo message="Copyright-Info:             ${jar.copyright.info}"/>
+        <echo message="----------------------------------------------------"/>
+
+        <mkdir dir="${jar.dir}"/>
+        <jar jarfile="${jar.file}" compress="true">
+            <fileset dir="${bin.dir}" includes="**/*"/>
+            <fileset dir="${icu4j.root.dir}">
+                <include name="license.html"/>
+                <include name="unicode-license.txt"/>
+            </fileset>
+            <manifest>
+                <attribute name="Built-By" value="${jar.built.by}"/>
+                <attribute name="Specification-Version" value="${jar.spec.version}"/>
+                <attribute name="Specification-Title" value="${jar.spec.title}"/>
+                <attribute name="Specification-Vendor" value="${jar.spec.vendor}"/>
+                <attribute name="Implementation-Title" value="${jar.impl.title}"/>
+                <attribute name="Implementation-Version" value="${jar.impl.version}"/>
+                <attribute name="Implementation-Vendor" value="${jar.impl.vendor}"/>
+                <attribute name="Implementation-Vendor-Id" value="${jar.impl.vendor.id}"/>
+                <attribute name="Sealed" value="${jar.sealed}"/>
+                <attribute name="Copyright-Info" value="${jar.copyright.info}"/>
+            </manifest>
+        </jar>
+    </target>
+
+    <target name="@build-dependencies">
+        <antcall target="_all.${ant.project.name}"/>
+    </target>
+
+    <!-- Dependencies -->
+
+    <!-- core -->
+    <path id="javac.classpathref.core"/>
+
+    <target name="_all.core">
+        <ant dir="${icu4j.core.dir}" inheritAll="false"/>
+    </target>
+
+    <!-- charset -->
+    <path id="javac.classpathref.charset">
+        <pathelement location="${icu4j.core.jar}"/>
+    </path>
+
+    <target name="_all.charset" depends="_all.core">
+        <ant dir="${icu4j.charset.dir}" inheritAll="false"/>
+    </target>
+
+    <!-- localespi -->
+    <path id="javac.classpathref.localespi">
+        <pathelement location="${icu4j.core.jar}"/>
+    </path>
+
+    <target name="_all.localespi" depends="_all.core">
+        <ant dir="${icu4j.localespi.dir}" inheritAll="false"/>
+    </target>
+
+    <!-- test-framework -->
+    <path id="javac.classpathref.test-framework">
+        <pathelement location="${icu4j.core.jar}"/>
+    </path>
+
+    <target name="_all.test-framework" depends="_all.core">
+        <ant dir="${icu4j.test-framework.dir}" inheritAll = "false"/>
+    </target>
+
+    <!-- core-tests -->
+    <path id="javac.classpathref.core-tests">
+        <pathelement location="${icu4j.core.jar}"/>
+        <pathelement location="${icu4j.test-framework.jar}"/>
+    </path>
+
+    <target name="_all.core-tests" depends="_all.core, _all.test-framework">
+        <ant dir="${icu4j.core-tests.dir}" inheritAll="false"/>
+    </target>
+
+    <!-- charset-tests -->
+    <path id="javac.classpathref.charset-tests">
+        <pathelement location="${icu4j.core.jar}"/>
+        <pathelement location="${icu4j.charset.jar}"/>
+        <pathelement location="${icu4j.test-framework.jar}"/>
+    </path>
+
+    <target name="_all.charset-tests" depends="_all.core, _all.charset, _all.test-framework">
+        <ant dir="${icu4j.charset-tests.dir}" inheritAll="false"/>
+    </target>
+
+    <!-- localespi-tests -->
+    <path id="javac.classpathref.localespi-tests">
+        <pathelement location="${icu4j.core.jar}"/>
+        <pathelement location="${icu4j.localespi.jar}"/>
+        <pathelement location="${icu4j.test-framework.jar}"/>
+    </path>
+
+    <target name="_all.localespi-tests" depends="_all.core, _all.localespi, _all.test-framework">
+        <ant dir="${icu4j.localespi-tests.dir}" inheritAll="false"/>
+    </target>
+
+    <!-- richtext -->
+    <path id="javac.classpathref.richtext">
+        <pathelement location="${icu4j.core.jar}"/>
+    </path>
+
+    <target name="_all.richtext" depends="_all.core">
+        <ant dir="${icu4j.richtext.dir}" inheritAll="false"/>
+    </target>
+
+    <!-- richtext-tests -->
+    <path id="javac.classpathref.richtext-tests">
+        <pathelement location="${icu4j.core.jar}"/>
+        <pathelement location="${icu4j.richtext.jar}"/>
+        <pathelement location="${icu4j.test-framework.jar}"/>
+    </path>
+
+    <target name="_all.richtext-tests" depends="_all.core, _all.richtext, _all.test-framework">
+        <ant dir="${icu4j.richtext-tests.dir}" inheritAll="false"/>
+    </target>
+
+    <!-- build-tools -->
+    <path id="javac.classpathref.build-tools"/>
+
+    <target name="_all.build-tools">
+        <ant dir="${icu4j.build-tools.dir}" inheritAll="false"/>
+    </target>
+
+    <!-- tools-->
+    <path id="javac.classpathref.tools">
+        <pathelement location="${icu4j.core.jar}"/>
+        <pathelement location="${icu4j.charset.jar}"/>
+        <pathelement location="${icu4j.core-tests.jar}"/>
+    </path>
+
+    <target name="_all.tools" depends="_all.core, _all.charset, _all.core-tests">
+        <ant dir="${icu4j.tools.dir}" inheritAll="false"/>
+    </target>
+
+    <!-- tzu -->
+    <path id="javac.classpathref.tzu"/>
+
+    <target name="_all.tzu">
+        <ant dir="${icu4j.tzu.dir}" inheritAll="false"/>
+    </target>
+
+    <!-- xliff -->
+    <path id="javac.classpathref.xliff">
+        <pathelement location="${icu4j.core.jar}"/>
+    </path>
+
+    <target name="_all.xliff" depends="_all.core">
+        <ant dir="${icu4j.xliff.dir}" inheritAll="false"/>
+    </target>
+
+</project>
