@@ -18,7 +18,7 @@
 			<arguments>
 				<dictionary>
 					<key>LaunchConfigHandle</key>
-					<value>&lt;project&gt;/.externalToolBuilders/icu4j-core build.xml.launch</value>
+					<value>&lt;project&gt;/.externalToolBuilders/icu4j-core-custom.launch</value>
 				</dictionary>
 			</arguments>
 		</buildCommand>
