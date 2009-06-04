@@ -21,7 +21,7 @@
 			<arguments>
 				<dictionary>
 					<key>LaunchConfigHandle</key>
-					<value>&lt;project&gt;/.externalToolBuilders/icu4j-charset-tests build.xml.launch</value>
+					<value>&lt;project&gt;/.externalToolBuilders/icu4j-charset-tests-custom.launch</value>
 				</dictionary>
 			</arguments>
 		</buildCommand>
