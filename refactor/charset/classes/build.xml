@@ -22,8 +22,17 @@
 
     <target name="compile" depends="@compile" description="Compile java source files"/>
 
-    <target name="copy" depends="@copy" description="Copy non-java runtime files to the project's binary directory"/>
+    <target name="copy" depends="@copy, copy-charset-data" description="Copy non-java runtime files to the project's binary directory"/>
 
     <target name="jar" depends="compile, copy, @jar" description="Create the project's jar file"/>
+
+    <target name="copy-charset-data" description="Extract pre-built ICU charset data files and copy them to the project's binary directory">
+        <unjar src="${icu4j.data.jar}" dest="${bin.dir}">
+            <patternset>
+                <include name="**/*.cnv"/>
+                <include name="**/cnvalias.icu"/>
+            </patternset>
+        </unjar>
+    </target>
 
 </project>

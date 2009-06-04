@@ -3,6 +3,7 @@
 	<name>icu4j-charset</name>
 	<comment></comment>
 	<projects>
+		<project>icu4j-build-script</project>
 		<project>icu4j-core</project>
 		<project>icu4j-data</project>
 	</projects>
@@ -10,6 +11,16 @@
 		<buildCommand>
 			<name>org.eclipse.jdt.core.javabuilder</name>
 			<arguments>
+			</arguments>
+		</buildCommand>
+		<buildCommand>
+			<name>org.eclipse.ui.externaltools.ExternalToolBuilder</name>
+			<triggers>full,incremental,</triggers>
+			<arguments>
+				<dictionary>
+					<key>LaunchConfigHandle</key>
+					<value>&lt;project&gt;/.externalToolBuilders/icu4j-charset build.xml.launch</value>
+				</dictionary>
 			</arguments>
 		</buildCommand>
 	</buildSpec>
