@@ -3,6 +3,7 @@
 	<name>icu4j-tools-build</name>
 	<comment></comment>
 	<projects>
+		<project>icu4j-shared</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

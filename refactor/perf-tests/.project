@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>icu4j-core-pref-tests</name>
+	<name>icu4j-perf-tests</name>
 	<comment></comment>
 	<projects>
+		<project>icu4j-charset</project>
+		<project>icu4j-core</project>
+		<project>icu4j-shared</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
@@ -14,4 +17,11 @@
 	<natures>
 		<nature>org.eclipse.jdt.core.javanature</nature>
 	</natures>
+	<linkedResources>
+		<link>
+			<name>shared-src</name>
+			<type>2</type>
+			<location>C:/devj/refactor/shared/java-src</location>
+		</link>
+	</linkedResources>
 </projectDescription>
