@@ -3,10 +3,9 @@
 	<name>icu4j-charset-tests</name>
 	<comment></comment>
 	<projects>
-		<project>icu4j-build-script</project>
 		<project>icu4j-charset</project>
 		<project>icu4j-core</project>
-		<project>icu4j-data</project>
+		<project>icu4j-shared</project>
 		<project>icu4j-test-freamework</project>
 	</projects>
 	<buildSpec>

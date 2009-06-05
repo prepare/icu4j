@@ -3,6 +3,8 @@
 	<name>icu4j-xliff</name>
 	<comment></comment>
 	<projects>
+		<project>icu4j-core</project>
+		<project>icu4j-shared</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
@@ -14,4 +16,11 @@
 	<natures>
 		<nature>org.eclipse.jdt.core.javanature</nature>
 	</natures>
+	<linkedResources>
+		<link>
+			<name>shared-src</name>
+			<type>2</type>
+			<location>C:/devj/refactor/shared/java-src</location>
+		</link>
+	</linkedResources>
 </projectDescription>

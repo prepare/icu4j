@@ -3,6 +3,8 @@
 	<name>icu4j-test-freamework</name>
 	<comment></comment>
 	<projects>
+		<project>icu4j-core</project>
+		<project>icu4j-shared</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

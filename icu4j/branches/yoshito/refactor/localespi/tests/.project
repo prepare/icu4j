@@ -5,6 +5,7 @@
 	<projects>
 		<project>icu4j-core</project>
 		<project>icu4j-localespi</project>
+		<project>icu4j-shared</project>
 		<project>icu4j-test-freamework</project>
 	</projects>
 	<buildSpec>
