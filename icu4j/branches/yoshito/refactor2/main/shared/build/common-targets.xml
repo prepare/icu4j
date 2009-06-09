@@ -67,7 +67,7 @@
         </jar>
     </target>
 
-    <target name="@build-dependencies">
+    <target name="@build-all">
         <antcall target="_all.${ant.project.name}"/>
     </target>
 
@@ -168,10 +168,11 @@
     <!-- tools -->
     <path id="javac.classpathref.tools">
         <pathelement location="${icu4j.core.jar}"/>
+        <pathelement location="${icu4j.test-framework.jar}"/>
         <pathelement location="${icu4j.core-tests.jar}"/>
     </path>
 
-    <target name="_all.tools" depends="_all.core, _all.core-tests">
+    <target name="_all.tools" depends="_all.core, _all.test-framework, _all.core-tests">
         <ant dir="${icu4j.tools.dir}" inheritAll="false"/>
     </target>
 
