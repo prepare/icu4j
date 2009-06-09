@@ -16,7 +16,7 @@
 
     <target name="build" depends="compile, copy, jar" description="Build the project"/>
 
-    <target name="build-dependencies" depends="@build-dependencies" description="Build the project including all dependencies"/>
+    <target name="build-all" depends="@build-all" description="Build the project including all dependencies"/>
 
     <target name="clean" depends="@clean" description="Clean up the build outputs"/>
 
