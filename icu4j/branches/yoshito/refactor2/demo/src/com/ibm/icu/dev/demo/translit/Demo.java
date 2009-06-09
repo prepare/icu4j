@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2008, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2009, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -11,7 +11,6 @@ import java.awt.event.*;
 import java.util.*;
 import java.text.CharacterIterator;
 
-import com.ibm.icu.dev.test.util.Differ;
 import com.ibm.icu.lang.*;
 import com.ibm.icu.text.*;
 
