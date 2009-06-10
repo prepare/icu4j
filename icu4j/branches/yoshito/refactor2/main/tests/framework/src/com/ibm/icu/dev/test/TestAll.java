@@ -21,7 +21,7 @@ public class TestAll extends TestGroup {
         super(
               new String[] {
                   "com.ibm.icu.dev.test.TestAllCore",
-                  "com.ibm.icu.dev.test.charset",
+                  "com.ibm.icu.dev.test.charset.TestAll",
               },
               "All tests in ICU");
     }
