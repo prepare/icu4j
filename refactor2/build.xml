@@ -5,73 +5,31 @@
 *******************************************************************************
 -->
 <project name="icu4j" default="main" basedir=".">
+    <property environment="env"/>
+
     <property name="shared.dir" value="main/shared"/>
     <import file="${shared.dir}/build/common-targets.xml"/>
 
     <property name="icu4j.jar.file" value="icu4j.jar"/>
     <property name="icu4j-charsets.jar.file" value="icu4j-charsets.jar"/>
     <property name="icu4j-localespi.jar.file" value="icu4j-localespi.jar"/>
-    <property name="icu4j.api.doc.dir" value="docs"/>
+    <property name="icu4jdocs.jar.file" value="icu4jdocs.jar"/>
+    <property name="icu4jsrc.jar.file" value="icu4jsrc.jar"/>
 
-    <target name="all" depends="info, main, tests, build-tools, tools, richedit, demos, jar, docs" description="Build all primary targets"/>
+    <property name="docs.dir" value="docs"/>
 
-    <target name="main" depends="info, core, charset, localespi" description="Build ICU4J API classes"/>
-    <target name="tests" depends="info, core-tests, charset-tests, localespi-tests" description="Build ICU4J API test classes"/>
-
-    <target name="check" depends="info, main, tests" description="Run the standard ICU4J test suite">
-        <antcall target="_runCheck">
-            <param name="runcheck.arg" value="-n"/>
-            <param name="runcheck.jvmarg" value=""/>
-        </antcall>
-    </target>
-
-    <target name="jdktzCheck" depends="info, main, tests" description="Run the standard ICU4J test suite with JDK TimeZone">
-        <antcall target="_runCheck">
-            <param name="runcheck.arg" value="-n"/>
-            <param name="runcheck.jvmarg" value="-Dcom.ibm.icu.util.TimeZone.DefaultTimeZoneType=JDK"/>
-        </antcall>
-    </target>
-
-    <target name="exhaustiveCheck" depends="info, main, tests" description="Run the standard ICU4J test suite in exhaustive mode">
-        <antcall target="_runCheck">
-            <param name="runcheck.arg" value="-n -e10"/>
-            <param name="runcheck.jvmarg" value=""/>
-        </antcall>
-    </target>
-
-    <target name="_runCheck">
-        <java classname="com.ibm.icu.dev.test.TestAll" fork="yes" failonerror="true">
-            <arg line="${runcheck.arg}"/>
-            <jvmarg line="${runcheck.jvmarg}"/>
-            <classpath>
-                <pathelement path="${icu4j.core.jar}"/>
-                <pathelement path="${icu4j.charset.jar}"/>
-                <pathelement path="${icu4j.test-framework.jar}"/>
-                <pathelement path="${icu4j.core-tests.jar}"/>
-                <pathelement path="${icu4j.charset-tests.jar}"/>
-            </classpath>
-        </java>
-    </target>
-
-    <target name="jar" depends="main" description="Build ICU4J API jar files">
-        <copy file="${icu4j.core.jar}" tofile="${icu4j.jar.file}"/>
-        <copy file="${icu4j.charset.jar}" tofile="${icu4j-charsets.jar.file}"/>
-        <copy file="${icu4j.localespi.jar}" tofile="${icu4j-localespi.jar.file}"/>
-    </target>
-
-    <target name="info" description="Print build environment information">
-        <property environment="env"/>
-        <property name="env.COMPUTERNAME" value="${env.HOSTNAME}"/>
-
-        <echo message="Java Home:    ${java.home}"/>
-        <echo message="Java Version: ${java.version}"/>
-        <echo message="Ant Home:     ${ant.home}"/>
-        <echo message="Ant Version:  ${ant.version}"/>
-        <echo message="OS:           ${os.name}"/>
-        <echo message="OS Version:   ${os.version}"/>
-        <echo message="OS Arch:      ${os.arch}"/>
-        <echo message="Host:         ${env.COMPUTERNAME}"/>
-    </target>
+    <!-- Build environment info -->
+    <property name="env.COMPUTERNAME" value="${env.HOSTNAME}"/>
+    <echo message="----- Build Environment Information -------------------"/>
+    <echo message="Java Home:    ${java.home}"/>
+    <echo message="Java Version: ${java.version}"/>
+    <echo message="Ant Home:     ${ant.home}"/>
+    <echo message="Ant Version:  ${ant.version}"/>
+    <echo message="OS:           ${os.name}"/>
+    <echo message="OS Version:   ${os.version}"/>
+    <echo message="OS Arch:      ${os.arch}"/>
+    <echo message="Host:         ${env.COMPUTERNAME}"/>
+    <echo message="-------------------------------------------------------"/>
 
     <target name="clean" description="Clean up build outputs">
         <ant dir="${icu4j.core.dir}" target="clean" inheritAll="false"/>
@@ -91,9 +49,75 @@
         <delete file="${icu4j-charsets.jar.file}"/>
         <delete file="${icu4j-localespi.jar.file}"/>
 
-        <delete dir="${icu4j.api.doc.dir}"/>
+        <delete dir="${docs.dir}"/>
     </target>
 
+    <!-- meta build targets -->
+    <target name="all" depends="main, tests, build-tools, tools, demos, jar, docs" description="Build all primary targets"/>
+    <target name="main" depends="core, charset, localespi" description="Build ICU4J API classes"/>
+    <target name="tests" depends="core-tests, charset-tests, localespi-tests" description="Build ICU4J API test classes"/>
+    <target name="releaseJar" depends="jar, jarDocs, jarSrc" description="Build all jar files for distribution"/>
+
+    <target name="check" description="Run the standard ICU4J test suite">
+        <antcall target="_runCheck">
+            <param name="runcheck.arg" value="-n"/>
+            <param name="runcheck.jvmarg" value=""/>
+        </antcall>
+    </target>
+
+    <target name="jdktzCheck" description="Run the standard ICU4J test suite with JDK TimeZone">
+        <antcall target="_runCheck">
+            <param name="runcheck.arg" value="-n"/>
+            <param name="runcheck.jvmarg" value="-Dcom.ibm.icu.util.TimeZone.DefaultTimeZoneType=JDK"/>
+        </antcall>
+    </target>
+
+    <target name="exhaustiveCheck" description="Run the standard ICU4J test suite in exhaustive mode">
+        <antcall target="_runCheck">
+            <param name="runcheck.arg" value="-n -e10"/>
+            <param name="runcheck.jvmarg" value=""/>
+        </antcall>
+    </target>
+
+    <target name="_runCheck" depends="main, tests">
+        <java classname="com.ibm.icu.dev.test.TestAll" fork="yes" failonerror="true">
+            <arg line="${runcheck.arg}"/>
+            <jvmarg line="${runcheck.jvmarg}"/>
+            <classpath>
+                <pathelement path="${icu4j.core.jar}"/>
+                <pathelement path="${icu4j.charset.jar}"/>
+                <pathelement path="${icu4j.test-framework.jar}"/>
+                <pathelement path="${icu4j.core-tests.jar}"/>
+                <pathelement path="${icu4j.charset-tests.jar}"/>
+            </classpath>
+        </java>
+    </target>
+
+    <!-- jar targets -->
+    <target name="jar" depends="main" description="Build ICU4J API jar files">
+        <copy file="${icu4j.core.jar}" tofile="${icu4j.jar.file}"/>
+        <copy file="${icu4j.charset.jar}" tofile="${icu4j-charsets.jar.file}"/>
+        <copy file="${icu4j.localespi.jar}" tofile="${icu4j-localespi.jar.file}"/>
+    </target>
+
+    <target name="jarDocs" depends="docs" description="Build ICU4J API doc jar file">
+        <jar jarfile="${icu4jdocs.jar.file}" compress="true" basedir="${docs.dir}"/>
+    </target>
+
+    <target name="jarSrc" description="Build ICU4J source jar file">
+        <jar jarfile="${icu4jsrc.jar.file}" compress="true">
+            <fileset dir=".">
+                <include name="main/**/*"/>
+                <include name="demos/**/*"/>
+                <include name="tools/**/*"/>
+                <include name="*.html"/>
+                <include name="*.xml"/>
+                <exclude name="**/out/**/*"/>
+            </fileset>
+        </jar>
+    </target>
+
+    <!-- compile targets -->
     <target name="core" description="Build core classes">
         <ant dir="${icu4j.core.dir}" inheritAll="false"/>
     </target>
@@ -122,14 +146,6 @@
         <ant dir="${icu4j.localespi-tests.dir}" inheritAll="false"/>
     </target>
 
-    <target name="richedit" depends="core" description="Build richedit classes">
-        <ant dir="${icu4j.richedit.dir}" inheritAll="false"/>
-    </target>
-
-    <target name="richedit-tests" depends="richedit, test-framework" description="Build richedit tests">
-        <ant dir="${icu4j.richedit-tests.dir}" inheritAll="false"/>
-    </target>
-
     <target name="demos" depends="core, charset" description="Build demo classes">
         <ant dir="${icu4j.demos.dir}" inheritAll="false"/>
     </target>
@@ -142,9 +158,10 @@
         <ant dir="${icu4j.tools.dir}" inheritAll="false"/>
     </target>
 
+    <!-- doc targets -->
     <target name="docs" depends="build-tools" description="Build API documents">
         <javadoc
-                destdir="${icu4j.api.doc.dir}"
+                destdir="${docs.dir}"
                 nodeprecatedlist="true"
                 windowtitle="icu4j"
                 doctitle="icu4j"
