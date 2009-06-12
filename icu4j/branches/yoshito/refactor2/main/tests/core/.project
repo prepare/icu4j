@@ -3,6 +3,9 @@
 	<name>icu4j-core-tests</name>
 	<comment></comment>
 	<projects>
+		<project>icu4j-core</project>
+		<project>icu4j-shared</project>
+		<project>icu4j-test-framework</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
