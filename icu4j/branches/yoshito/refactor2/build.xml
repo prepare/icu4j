@@ -15,8 +15,9 @@
     <property name="icu4j-localespi.jar.file" value="icu4j-localespi.jar"/>
     <property name="icu4jdocs.jar.file" value="icu4jdocs.jar"/>
     <property name="icu4jsrc.jar.file" value="icu4jsrc.jar"/>
+    <property name="icu4jdemos.jar.file" value="icu4jdemos.jar"/>
 
-    <property name="docs.dir" value="docs"/>
+    <property name="doc.dir" value="doc"/>
 
     <!-- Build environment info -->
     <property name="env.COMPUTERNAME" value="${env.HOSTNAME}"/>
@@ -48,8 +49,9 @@
         <delete file="${icu4j.jar.file}"/>
         <delete file="${icu4j-charsets.jar.file}"/>
         <delete file="${icu4j-localespi.jar.file}"/>
+        <delete file="${icu4jdemos.jar.file}"/>
 
-        <delete dir="${docs.dir}"/>
+        <delete dir="${doc.dir}"/>
     </target>
 
     <!-- meta build targets -->
@@ -65,13 +67,6 @@
         </antcall>
     </target>
 
-    <target name="jdktzCheck" description="Run the standard ICU4J test suite with JDK TimeZone">
-        <antcall target="_runCheck">
-            <param name="runcheck.arg" value="-n"/>
-            <param name="runcheck.jvmarg" value="-Dcom.ibm.icu.util.TimeZone.DefaultTimeZoneType=JDK"/>
-        </antcall>
-    </target>
-
     <target name="exhaustiveCheck" description="Run the standard ICU4J test suite in exhaustive mode">
         <antcall target="_runCheck">
             <param name="runcheck.arg" value="-n -e10"/>
@@ -79,7 +74,24 @@
         </antcall>
     </target>
 
+    <target name="secureCheck" description="Run the secure (applet-like) ICU4J test suite">
+        <antcall target="_runCheck">
+            <param name="runcheck.arg" value="-n -w"/>
+            <param name="runcheck.jvmarg" value="-Djava.security.manager -Djava.security.policy=${shared.dir}/data/security.policy"/>
+        </antcall>
+    </target>
+
+    <target name="jdktzCheck" description="Run the standard ICU4J test suite with JDK TimeZone">
+        <antcall target="_runCheck">
+            <param name="runcheck.arg" value="-n"/>
+            <param name="runcheck.jvmarg" value="-Dcom.ibm.icu.util.TimeZone.DefaultTimeZoneType=JDK"/>
+        </antcall>
+    </target>
+
     <target name="_runCheck" depends="main, tests">
+        <echo message="JVM argument:   ${runcheck.jvmarg}"/>
+        <echo message="Test argument:   ${runcheck.arg}"/>
+
         <java classname="com.ibm.icu.dev.test.TestAll" fork="yes" failonerror="true">
             <arg line="${runcheck.arg}"/>
             <jvmarg line="${runcheck.jvmarg}"/>
@@ -101,7 +113,7 @@
     </target>
 
     <target name="jarDocs" depends="docs" description="Build ICU4J API doc jar file">
-        <jar jarfile="${icu4jdocs.jar.file}" compress="true" basedir="${docs.dir}"/>
+        <jar jarfile="${icu4jdocs.jar.file}" compress="true" basedir="${doc.dir}"/>
     </target>
 
     <target name="jarSrc" description="Build ICU4J source jar file">
@@ -115,6 +127,10 @@
                 <exclude name="**/out/**/*"/>
             </fileset>
         </jar>
+    </target>
+
+    <target name="jarDemos" depends="demos" description="Build ICU4J demo jar file">
+        <copy file="${icu4j.demos.jar}" tofile="${icu4jdemos.jar.file}"/>
     </target>
 
     <!-- compile targets -->
@@ -161,7 +177,7 @@
     <!-- doc targets -->
     <target name="docs" depends="build-tools" description="Build API documents">
         <javadoc
-                destdir="${docs.dir}"
+                destdir="${doc.dir}"
                 nodeprecatedlist="true"
                 windowtitle="icu4j"
                 doctitle="icu4j"
@@ -181,6 +197,43 @@
                 <include name="com/ibm/icu/charset/**"/>
             </packageset>
         </javadoc>
+    </target>
+
+
+    <!-- Release management targets -->
+    <target name="checktags" description="Check API tags before release">
+        <!-- TODO -->
+    </target>
+
+    <target name="gatherapi" description="Run API database generator tool">
+        <!-- TODO -->
+    </target>
+
+    <target name="apireport" description="Run API report generator tool">
+        <!-- TODO -->
+    </target>
+
+    <target name="swatDeprecated" description="Convert @deprecated @draft tags to @provisional">
+        <!-- TODO -->
+    </target>
+
+    <target name="restoreDeprecated" description="Convert @provisional tags to @deprecated">
+        <!-- TODO -->
+    </target>
+
+
+
+    <!-- Special packaging targets -->
+    <target name="translitIMEJar" description="Build transliterator IME 'icutransime.jar' jar file">
+        <!-- TODO -->
+    </target>
+
+    <target name="indicIMEJar" description="Build indic IME 'icuindicime.jar' jar file">
+        <!-- TODO -->
+    </target>
+
+    <target name="cldrUtil" description="Build Utilities for CLDR">
+        <!-- TODO -->
     </target>
 
 </project>
