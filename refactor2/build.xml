@@ -5,7 +5,7 @@
 *******************************************************************************
 -->
 <project name="icu4j" default="main" basedir=".">
-    <property environment="env"/>
+    <property file="build.properties"/>
 
     <property name="shared.dir" value="main/shared"/>
     <import file="${shared.dir}/build/common-targets.xml"/>
@@ -18,6 +18,8 @@
     <property name="icu4jdemos.jar.file" value="icu4jdemos.jar"/>
 
     <property name="doc.dir" value="doc"/>
+
+    <property environment="env"/>
 
     <!-- Build environment info -->
     <property name="env.COMPUTERNAME" value="${env.HOSTNAME}"/>
@@ -52,6 +54,7 @@
         <delete file="${icu4jdemos.jar.file}"/>
 
         <delete dir="${doc.dir}"/>
+        <delete dir="${out.dir}"/>
     </target>
 
     <!-- meta build targets -->
@@ -201,16 +204,55 @@
 
 
     <!-- Release management targets -->
-    <target name="checktags" description="Check API tags before release">
-        <!-- TODO -->
+    <target name="checktags" depends="build-tools" description="Check API tags before release">
+        <javadoc source="1.5">
+            <packageset dir="${icu4j.core.dir}/src">
+                <include name="com/ibm/icu/lang/**"/>
+                <include name="com/ibm/icu/math/**"/>
+                <include name="com/ibm/icu/text/**"/>
+                <include name="com/ibm/icu/util/**"/>
+            </packageset>
+            <packageset dir="${icu4j.charset.dir}/src">
+                <include name="com/ibm/icu/charset/**"/>
+            </packageset>
+            <doclet name="com.ibm.icu.dev.tool.docs.CheckTags" path="${icu4j.build-tools.jar}"/>
+        </javadoc>
     </target>
 
-    <target name="gatherapi" description="Run API database generator tool">
-        <!-- TODO -->
+    <target name="gatherapi" depends="build-tools" description="Run API database generator tool">
+        <mkdir dir="${out.dir}"/>
+        <javadoc source="1.5">
+            <packageset dir="${icu4j.core.dir}/src">
+                <include name="com/ibm/icu/lang/**"/>
+                <include name="com/ibm/icu/math/**"/>
+                <include name="com/ibm/icu/text/**"/>
+                <include name="com/ibm/icu/util/**"/>
+            </packageset>
+            <packageset dir="${icu4j.charset.dir}/src">
+                <include name="com/ibm/icu/charset/**"/>
+            </packageset>
+            <doclet name="com.ibm.icu.dev.tool.docs.GatherAPIData" path="${icu4j.build-tools.jar}">
+                <param name="-name" value="ICU4J ${api.report.version}"/>
+                <param name="-output" value="${out.dir}/icu4j${api.report.version}.api"/>
+                <param name="-internal"/>
+                <param name="-gzip"/>
+            </doclet>
+        </javadoc>
     </target>
 
-    <target name="apireport" description="Run API report generator tool">
-        <!-- TODO -->
+    <target name="apireport" depends="gatherapi" description="Run API report generator tool">
+        <java   classname="com.ibm.icu.dev.tool.docs.ReportAPI"
+                classpath="${icu4j.build-tools.jar}"
+                failonerror="true">
+            <arg value="-old:" />
+            <arg value="${icu4j.build-tools.dir}/icu4j${api.report.prev.version}.api.gz" />
+            <arg value="-new:" />
+            <arg value="${out.dir}/icu4j${api.report.version}.api.gz" />
+            <arg value="-html" />
+            <arg value="-internal" />
+            <arg value="-out:" />
+            <arg value="${out.dir}/icu4j_compare_${api.report.prev.version}_${api.report.version}.html" />
+        </java>
     </target>
 
     <target name="swatDeprecated" description="Convert @deprecated @draft tags to @provisional">
