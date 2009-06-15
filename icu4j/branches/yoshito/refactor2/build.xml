@@ -241,7 +241,7 @@
     </target>
 
     <target name="apireport" depends="gatherapi" description="Run API report generator tool">
-        <java   classname="com.ibm.icu.dev.tool.docs.ReportAPI"
+        <java classname="com.ibm.icu.dev.tool.docs.ReportAPI"
                 classpath="${icu4j.build-tools.jar}"
                 failonerror="true">
             <arg value="-old:" />
@@ -255,27 +255,126 @@
         </java>
     </target>
 
-    <target name="swatDeprecated" description="Convert @deprecated @draft tags to @provisional">
-        <!-- TODO -->
+    <target name="swatDeprecated" depends="build-tools" description="Convert @deprecated @draft tags to @provisional">
+        <antcall target="_runSwatDeprecated">
+            <param name="swat.deprecated.opt" value="-dep"/>
+        </antcall>
     </target>
 
-    <target name="restoreDeprecated" description="Convert @provisional tags to @deprecated">
-        <!-- TODO -->
+    <target name="swatProvisional" depends="build-tools" description="Convert @provisional tags to @deprecated @draft">
+        <antcall target="_runSwatDeprecated">
+            <param name="swat.deprecated.opt" value="-prov"/>
+        </antcall>
     </target>
 
+    <target name="_runSwatDeprecated">
+        <java classname="com.ibm.icu.dev.tool.docs.SwatDeprecated"
+                classpath="${icu4j.build-tools.jar}"
+                failonerror="true">
+            <arg value="${swat.deprecated.opt}"/>
+            <arg value="-src"/>
+            <arg value="${icu4j.core.dir}/src"/>
+            <arg value="-dst"/>
+            <arg value="${icu4j.core.dir}/src"/>
+            <arg value="-overwrite"/>
+            <arg value="-verbose"/>
+        </java>
+        <java classname="com.ibm.icu.dev.tool.docs.SwatDeprecated"
+                classpath="${icu4j.build-tools.jar}"
+                failonerror="true">
+            <arg value="${swat.deprecated.opt}"/>
+            <arg value="-src"/>
+            <arg value="${icu4j.charset.dir}/src"/>
+            <arg value="-dst"/>
+            <arg value="${icu4j.charset.dir}/src"/>
+            <arg value="-overwrite"/>
+            <arg value="-verbose"/>
+        </java>
+    </target>
 
 
     <!-- Special packaging targets -->
     <target name="translitIMEJar" description="Build transliterator IME 'icutransime.jar' jar file">
-        <!-- TODO -->
+        <property name="translit.ime.out.dir" value="${out.dir}/translit_ime"/>
+ 
+        <mkdir dir="${translit.ime.out.dir}/bin"/>
+        <javac destdir="${translit.ime.out.dir}/bin"
+                source="${javac.source}"
+                target="${javac.target}"
+                debug="on" deprecation="off">
+            <src path="${icu4j.core.dir}/src"/>
+            <src path="${icu4j.tools.dir}/src"/>
+            <include name="com/ibm/icu/dev/tool/ime/translit/*.java"/>
+        </javac>
+
+        <copy file="${icu4j.tools.dir}/src/com/ibm/icu/dev/tool/ime/translit/Transliterator.properties"
+                todir="${translit.ime.out.dir}/bin/com/ibm/icu/dev/tool/ime/translit"/>
+
+        <mkdir dir="${translit.ime.out.dir}/lib"/>
+        <jar jarfile="${translit.ime.out.dir}/lib/icutransime.jar"
+                compress="true"
+                basedir="${translit.ime.out.dir}/bin"
+                includes="com/ibm/icu/dev/tool/ime/translit/**/*"
+                manifest="${icu4j.tools.dir}/src/com/ibm/icu/dev/tool/ime/translit/manifest.stub">
+            <metainf dir="${icu4j.tools.dir}/src/com/ibm/icu/dev/tool/ime/translit" includes="services/*" />
+        </jar>
     </target>
 
     <target name="indicIMEJar" description="Build indic IME 'icuindicime.jar' jar file">
-        <!-- TODO -->
+        <property name="indic.ime.out.dir" value="${out.dir}/indic_ime"/>
+ 
+        <mkdir dir="${indic.ime.out.dir}/bin"/>
+        <javac destdir="${indic.ime.out.dir}/bin"
+                source="${javac.source}"
+                target="${javac.target}"
+                debug="on" deprecation="off">
+            <src path="${icu4j.core.dir}/src"/>
+            <src path="${icu4j.tools.dir}/src"/>
+            <include name="com/ibm/icu/dev/tool/ime/indic/*.java"/>
+        </javac>
+
+        <copy file="${icu4j.tools.dir}/src/com/ibm/icu/dev/tool/ime/indic/DisplayNames.properties"
+                todir="${indic.ime.out.dir}/bin/com/ibm/icu/dev/tool/ime/indic"/>
+
+        <mkdir dir="${indic.ime.out.dir}/lib"/>
+        <jar jarfile="${indic.ime.out.dir}/lib/icuindicime.jar"
+                compress="true"
+                basedir="${indic.ime.out.dir}/bin"
+                includes="com/ibm/icu/dev/tool/ime/indic/**/*"
+                manifest="${icu4j.tools.dir}/src/com/ibm/icu/dev/tool/ime/indic/manifest.stub">
+            <metainf dir="${icu4j.tools.dir}/src/com/ibm/icu/dev/tool/ime/indic" includes="services/*" />
+        </jar>
     </target>
 
     <target name="cldrUtil" description="Build Utilities for CLDR">
-        <!-- TODO -->
+        <property name="cldr.util.out.dir" value="${out.dir}/cldr_util"/>
+
+        <mkdir dir="${cldr.util.out.dir}/bin"/>
+
+        <javac destdir="${cldr.util.out.dir}/bin"
+                source="${javac.source}"
+                target="${javac.target}"
+                debug="on" deprecation="off">
+
+            <src path="${icu4j.core.dir}/src"/>
+            <src path="${icu4j.core-tests.dir}/src"/>
+            <src path="${icu4j.test-framework.dir}/src"/>
+
+            <include name="com/ibm/icu/dev/test/TestFmwk.java" />
+            <include name="com/ibm/icu/dev/test/util/*.java" />
+            <include name="com/ibm/icu/dev/tool/UOption.java" />
+        </javac>
+
+        <mkdir dir="${cldr.util.out.dir}/lib"/>
+        <jar jarfile="${cldr.util.out.dir}/lib/utilities.jar"
+                compress="true"
+                basedir="${cldr.util.out.dir}/bin">
+            <include name="com/ibm/icu/dev/test/util/*.class"/>
+            <include name="com/ibm/icu/dev/test/TestFmwk*.class"/>
+            <include name="com/ibm/icu/dev/test/AbstractTest*.class"/>
+            <include name="com/ibm/icu/dev/test/TestLog*.class"/>
+            <include name="com/ibm/icu/dev/tool/UOption*.class"/>
+        </jar>
     </target>
 
 </project>
