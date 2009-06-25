@@ -2486,5 +2486,48 @@ public class CollationMiscTest extends TestFmwk {
             }
         }   
     }
-}
 
+    public void TestSameStrengthList() {
+        String[] testSourceCases = {
+            "\u0061",
+            "\u0061",
+            "\u006c\u0061",
+            "\u0061\u0061\u0061",
+            "\u0062",
+        };
+        
+        String[] testTargetCases = {
+            "\u0031",
+            "\u0066",
+            "\u006b\u0062",
+            "\u0031\u0032\u0033",
+            "\u007a",
+        };
+        
+        int[] results = {
+            0,
+            -1,
+            -1,
+            0,
+            -1
+        };
+
+        Collator  myCollation;
+        String rules = "&a<*bcd &b<<*klm &k<<<*xyz &a=*123";
+        try {
+            myCollation = new RuleBasedCollator(rules);
+        } catch (Exception e) {
+            warnln("ERROR: in creation of rule based collator");
+            return;
+        }
+        // logln("Testing some A letters, for some reason");
+        myCollation.setDecomposition(Collator.CANONICAL_DECOMPOSITION);
+        myCollation.setStrength(Collator.TERTIARY);
+        for (int i = 0; i < 4 ; i++)
+        {
+            CollationTest.doTest(this, (RuleBasedCollator)myCollation, 
+                                 testSourceCases[i], testTargetCases[i], 
+                                 results[i]);
+        }
+    }
+}
