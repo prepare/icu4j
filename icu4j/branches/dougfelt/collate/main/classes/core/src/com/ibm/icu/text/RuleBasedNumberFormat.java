@@ -541,7 +541,8 @@ public class RuleBasedNumberFormat extends NumberFormat {
      * the collator is actually created the first time the client does a parse
      * with lenient-parse mode turned on.
      */
-    private transient Collator collator = null;
+  //    private transient Collator collator = null;
+    private transient RbnfLenientScannerProvider scannerProvider = null;
 
     /**
      * The DecimalFormatSymbols object that any DecimalFormat objects this
@@ -1272,9 +1273,9 @@ public class RuleBasedNumberFormat extends NumberFormat {
 
         // if we're leaving lenient-parse mode, throw away the collator
         // we've been using
-        if (!enabled) {
-            collator = null;
-        }
+        // if (!enabled) {
+          //            collator = null;
+        // }
     }
 
     /**
@@ -1286,6 +1287,27 @@ public class RuleBasedNumberFormat extends NumberFormat {
      */
     public boolean lenientParseEnabled() {
         return lenientParse;
+    }
+
+    /**
+     * Sets the provider for the lenient scanner.  If this has not been set, {@link #setLenientParseMode}
+     * has no effect.  This is necessary to decouple collation from format code.
+     * @param scannerProvider the provider
+     * @see #setLenientParseMode
+     * @see #getLenientScannerProvider
+     * @draft ICU 4.4
+     */
+    public void setLenientScannerProvider(RbnfLenientScannerProvider scannerProvider) {
+        this.scannerProvider = scannerProvider;
+    }
+
+    /**
+     * Returns the lenient scanner provider, or null if none is set.
+     * @see #setLenientScannerProvider
+     * @draft ICU 4.4
+     */
+    public RbnfLenientScannerProvider getLenientScannerProvider() {
+        return scannerProvider;
     }
 
     /**
@@ -1357,34 +1379,41 @@ public class RuleBasedNumberFormat extends NumberFormat {
      * @return The collator to use for lenient parsing, or null if lenient parsing
      * is turned off.
      */
-    Collator getCollator() {
-        // lazy-evaulate the collator
-        if (collator == null && lenientParse) {
-            try {
-                // create a default collator based on the formatter's locale,
-                // then pull out that collator's rules, append any additional
-                // rules specified in the description, and create a _new_
-                // collator based on the combinaiton of those rules
-                RuleBasedCollator temp = (RuleBasedCollator)Collator.getInstance(locale);
-                String rules = temp.getRules() + (lenientParseRules == null ? "" : lenientParseRules);
-
-                collator = new RuleBasedCollator(rules);
-                collator.setDecomposition(Collator.CANONICAL_DECOMPOSITION);
-            }
-            catch (Exception e) {
-                // If we get here, it means we have a malformed set of
-                // collation rules, which hopefully won't happen
-                if(DEBUG){
-                    e.printStackTrace();
-                }
-                collator = null;
-            }
+    RbnfLenientScanner getLenientScanner() {
+        if (lenientParse && scannerProvider != null) {
+            return scannerProvider.get(locale, lenientParseRules);
         }
-
-        // if lenient-parse mode is off, this will be null
-        // (see setLenientParseMode())
-        return collator;
+        return null;
     }
+
+    // Collator getCollator() {
+    //     // lazy-evaulate the collator
+    //     if (collator == null && lenientParse) {
+    //         try {
+    //             // create a default collator based on the formatter's locale,
+    //             // then pull out that collator's rules, append any additional
+    //             // rules specified in the description, and create a _new_
+    //             // collator based on the combinaiton of those rules
+    //             RuleBasedCollator temp = (RuleBasedCollator)Collator.getInstance(locale);
+    //             String rules = temp.getRules() + (lenientParseRules == null ? "" : lenientParseRules);
+
+    //             collator = new RuleBasedCollator(rules);
+    //             collator.setDecomposition(Collator.CANONICAL_DECOMPOSITION);
+    //         }
+    //         catch (Exception e) {
+    //             // If we get here, it means we have a malformed set of
+    //             // collation rules, which hopefully won't happen
+    //             if(DEBUG){
+    //                 e.printStackTrace();
+    //             }
+    //             collator = null;
+    //         }
+    //     }
+
+    //     // if lenient-parse mode is off, this will be null
+    //     // (see setLenientParseMode())
+    //     return collator;
+    // }
 
     /**
      * Returns the DecimalFormatSymbols object that should be used by all DecimalFormat
