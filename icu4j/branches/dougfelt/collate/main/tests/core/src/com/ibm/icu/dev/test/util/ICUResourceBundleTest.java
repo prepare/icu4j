@@ -20,7 +20,9 @@ import java.util.jar.JarEntry;
 import com.ibm.icu.dev.test.TestFmwk;
 import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.impl.Utility;
+import com.ibm.icu.text.Collator;
 import com.ibm.icu.text.UTF16;
+import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.Holiday;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.UResourceBundle;
@@ -821,15 +823,18 @@ public final class ICUResourceBundleTest extends TestFmwk {
 
        logln("Testing functional equivalents for collation...");
        getFunctionalEquivalentTestCases(ICUResourceBundle.ICU_COLLATION_BASE_NAME,
+                                        Collator.class.getClassLoader(),
                COLLATION_RESNAME, COLLATION_KEYWORD, true, collCases);
 
-       logln("Testing functional equivalents for calenadr...");
+       logln("Testing functional equivalents for calendar...");
        getFunctionalEquivalentTestCases(ICUResourceBundle.ICU_BASE_NAME,
+                                        Calendar.class.getClassLoader(),
                CALENDAR_RESNAME, CALENDAR_KEYWORD, false, calCases);
 
        logln("Testing error conditions:");
        try {
-           ICUResourceBundle.getFunctionalEquivalent(ICUResourceBundle.ICU_COLLATION_BASE_NAME, "calendar",
+           ClassLoader cl = Collator.class.getClassLoader();
+           ICUResourceBundle.getFunctionalEquivalent(ICUResourceBundle.ICU_COLLATION_BASE_NAME, cl, "calendar",
               "calendar", new ULocale("ar_EG@calendar=islamic"), new boolean[1], true);
            errln("Err: expected MissingResourceException");
        } catch ( MissingResourceException t ) {
@@ -837,7 +842,7 @@ public final class ICUResourceBundleTest extends TestFmwk {
        }
     }
 
-    private void getFunctionalEquivalentTestCases(String path, String resName, String keyword,
+    private void getFunctionalEquivalentTestCases(String path, ClassLoader cl, String resName, String keyword,
             boolean truncate, String[] testCases) {
         //String F_STR = "f";
         String T_STR = "t";
@@ -852,7 +857,7 @@ public final class ICUResourceBundleTest extends TestFmwk {
             logln(new Integer(i/3).toString() + ": " + new Boolean(expectAvail).toString() + "\t\t" +
                     inLocale.toString() + "\t\t" + expectLocale.toString());
 
-            ULocale equivLocale = ICUResourceBundle.getFunctionalEquivalent(path, resName, keyword, inLocale, isAvail, truncate);
+            ULocale equivLocale = ICUResourceBundle.getFunctionalEquivalent(path, cl, resName, keyword, inLocale, isAvail, truncate);
             boolean gotAvail = isAvail[0];
 
             if((gotAvail != expectAvail) || !equivLocale.equals(expectLocale)) {
@@ -1103,4 +1108,3 @@ public final class ICUResourceBundleTest extends TestFmwk {
         }
     }
 }
-

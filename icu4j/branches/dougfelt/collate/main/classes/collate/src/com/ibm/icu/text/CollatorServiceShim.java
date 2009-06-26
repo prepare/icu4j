@@ -53,7 +53,7 @@ final class CollatorServiceShim extends Collator.ServiceShim {
             CollatorFactory delegate;
 
             CFactory(CollatorFactory fctry) {
-                super(fctry.visible()); 
+                super(fctry.visible());
                 this.delegate = fctry;
             }
 
@@ -61,7 +61,7 @@ final class CollatorServiceShim extends Collator.ServiceShim {
                 Object coll = delegate.createCollator(loc);
                 return coll;
             }
-                
+
             public String getDisplayName(String id, ULocale displayLocale) {
                 ULocale objectLocale = new ULocale(id);
                 return delegate.getDisplayName(objectLocale, displayLocale);
@@ -81,17 +81,25 @@ final class CollatorServiceShim extends Collator.ServiceShim {
 
     Locale[] getAvailableLocales() {
         // TODO rewrite this to just wrap getAvailableULocales later
+        Locale[] result;
         if (service.isDefault()) {
-            return ICUResourceBundle.getAvailableLocales(ICUResourceBundle.ICU_COLLATION_BASE_NAME);
+            ClassLoader cl = getClass().getClassLoader();
+            result = ICUResourceBundle.getAvailableLocales(ICUResourceBundle.ICU_COLLATION_BASE_NAME, cl);
+        } else {
+            result = service.getAvailableLocales();
         }
-        return service.getAvailableLocales();
+        return result;
     }
 
     ULocale[] getAvailableULocales() {
+        ULocale[] result;
         if (service.isDefault()) {
-            return ICUResourceBundle.getAvailableULocales(ICUResourceBundle.ICU_COLLATION_BASE_NAME);
+            ClassLoader cl = getClass().getClassLoader();
+            result = ICUResourceBundle.getAvailableULocales(ICUResourceBundle.ICU_COLLATION_BASE_NAME, cl);
+        } else {
+            result = service.getAvailableULocales();
         }
-        return service.getAvailableULocales();
+        return result;
     }
 
     String getDisplayName(ULocale objectLocale, ULocale displayLocale) {

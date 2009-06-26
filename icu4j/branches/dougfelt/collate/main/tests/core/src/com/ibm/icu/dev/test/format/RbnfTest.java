@@ -15,6 +15,8 @@ import java.util.Random;
 
 import com.ibm.icu.dev.test.TestFmwk;
 import com.ibm.icu.text.RuleBasedNumberFormat;
+import com.ibm.icu.text.RbnfLenientScannerProvider;
+import com.ibm.icu.text.RbnfScannerProviderImpl;
 import com.ibm.icu.util.ULocale;
 
 public class RbnfTest extends TestFmwk {
@@ -30,6 +32,8 @@ public class RbnfTest extends TestFmwk {
             e.printStackTrace();
         }
     }
+
+    static RbnfLenientScannerProvider provider = new RbnfScannerProviderImpl();
 
     static String fracRules = 
         "%main:\n" +
@@ -318,6 +322,7 @@ public class RbnfTest extends TestFmwk {
 
         doTest(formatter, testData, true);
 
+        formatter.setLenientScannerProvider(provider);
         formatter.setLenientParseMode(true);
         String[][] lpTestData = {
             { "FOurhundred     thiRTY six", "436" },
@@ -385,6 +390,7 @@ public class RbnfTest extends TestFmwk {
 
         doTest(formatter, testData, true);
 
+        formatter.setLenientScannerProvider(provider);
         formatter.setLenientParseMode(true);
         String[][] lpTestData = {
             { "2-51-33", "10,293" }
@@ -466,6 +472,7 @@ public class RbnfTest extends TestFmwk {
 
         doTest(formatter, testData, true);
 
+        formatter.setLenientScannerProvider(provider);
         formatter.setLenientParseMode(true);
         String[][] lpTestData = {
             { "trente-et-un", "31" },
@@ -577,6 +584,7 @@ public class RbnfTest extends TestFmwk {
 
         doTest(formatter, testData, true);
 
+        formatter.setLenientScannerProvider(provider);
         formatter.setLenientParseMode(true);
         String[][] lpTestData = {
             { "ein Tausend sechs Hundert fuenfunddreissig", "1,635" }
@@ -931,6 +939,7 @@ public class RbnfTest extends TestFmwk {
                             logln(loc.getName() + names[j] + "success parse: " + s + " -> " + num);
 
                             // lenient parse
+                            fmt.setLenientScannerProvider(provider);
                             fmt.setLenientParseMode(true);
                             num = fmt.parse(s);
                             logln(loc.getName() + names[j] + "success parse (lenient): " + s + " -> " + num);
@@ -1091,4 +1100,3 @@ public class RbnfTest extends TestFmwk {
         + "    & ' ' , ',' ;\n";
 
 }
-
