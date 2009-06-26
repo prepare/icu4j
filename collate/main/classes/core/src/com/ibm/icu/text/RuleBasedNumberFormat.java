@@ -1238,34 +1238,11 @@ public class RuleBasedNumberFormat extends NumberFormat {
     /**
      * Turns lenient parse mode on and off.
      *
-     * When in lenient parse mode, the formatter uses a Collator for parsing the text.
-     * Only primary differences are treated as significant.  This means that case
-     * differences, accent differences, alternate spellings of the same letter
-     * (e.g., ae and a-umlaut in German), ignorable characters, etc. are ignored in
-     * matching the text.  In many cases, numerals will be accepted in place of words
-     * or phrases as well.
-     *
-     * For example, all of the following will correctly parse as 255 in English in
-     * lenient-parse mode:
-     * <br>"two hundred fifty-five"
-     * <br>"two hundred fifty five"
-     * <br>"TWO HUNDRED FIFTY-FIVE"
-     * <br>"twohundredfiftyfive"
-     * <br>"2 hundred fifty-5"
-     *
-     * The Collator used is determined by the locale that was
-     * passed to this object on construction.  The description passed to this object
-     * on construction may supply additional collation rules that are appended to the
-     * end of the default collator for the locale, enabling additional equivalences
-     * (such as adding more ignorable characters or permitting spelled-out version of
-     * symbols; see the demo program for examples).
-     *
-     * It's important to emphasize that even strict parsing is relatively lenient: it
-     * will accept some text that it won't produce as output.  In English, for example,
-     * it will correctly parse "two hundred zero" and "fifteen hundred".
+     * When in lenient parse mode, the formatter uses an RbnfLenientScanner
+     * for parsing the text.  Lenient parsing is only in effect if a scanner
+     * is set.
      *
      * @param enabled If true, turns lenient-parse mode on; if false, turns it off.
-     * @see RuleBasedCollator
      * @stable ICU 2.0
      */
     public void setLenientParseMode(boolean enabled) {
