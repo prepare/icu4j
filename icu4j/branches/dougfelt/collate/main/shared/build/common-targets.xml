@@ -128,6 +128,17 @@
         <ant dir="${icu4j.core-tests.dir}" inheritAll="false"/>
     </target>
 
+    <!-- collate-tests -->
+    <path id="javac.classpathref.collate-tests">
+        <pathelement location="${icu4j.core.jar}"/>
+        <pathelement location="${icu4j.collate.jar}"/>
+        <pathelement location="${icu4j.test-framework.jar}"/>
+    </path>
+
+    <target name="_all.collate-tests" depends="_all.core, _all.collate, _all.test-framework">
+        <ant dir="${icu4j.collate-tests.dir}" inheritAll="false"/>
+    </target>
+
     <!-- charset-tests -->
     <path id="javac.classpathref.charset-tests">
         <pathelement location="${icu4j.core.jar}"/>
