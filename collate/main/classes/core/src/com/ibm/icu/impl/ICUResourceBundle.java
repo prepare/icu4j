@@ -545,7 +545,6 @@ public  class ICUResourceBundle extends UResourceBundle {
                         final List<String> lst = new ArrayList<String>();
                         while (urls.hasMoreElements()) {
                             URL url = urls.nextElement();
-                            System.out.println("ICURB URL: " + url);
                             URLHandler handler = URLHandler.get(url);
                             if (handler != null) {
                                 URLVisitor v = new URLVisitor() {
