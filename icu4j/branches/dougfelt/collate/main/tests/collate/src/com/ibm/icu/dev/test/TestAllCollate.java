@@ -31,5 +31,5 @@ public class TestAllCollate extends TestGroup {
               "All tests in ICU collation");
     }
 
-    public static final String CLASS_TARGET_NAME  = "ICU-Collation";
+    public static final String CLASS_TARGET_NAME  = "Collate";
 }
