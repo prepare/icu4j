@@ -32,11 +32,12 @@
                 <include name="**/DataDrivenCollationTest.res"/>
             </patternset>
         </unjar>
-	<copy todir="${bin.dir}">
+        <copy todir="${bin.dir}">
             <fileset dir="${icu4j.collate-tests.dir}/src">
                 <include name="com/ibm/icu/dev/data/riwords.txt"/>
                 <include name="com/ibm/icu/dev/data/CollationTest_*.txt"/>
+                <include name="com/ibm/icu/dev/data/resources/*"/>
             </fileset>
-	</copy>
+        </copy>
     </target>
 </project>

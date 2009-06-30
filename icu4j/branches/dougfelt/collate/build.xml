@@ -128,7 +128,7 @@
         </antcall>
     </target>
 
-    <target name="_runCheck" depends="info, core, collate, charset, core-tests, charset-tests">
+    <target name="_runCheck" depends="info, core, collate, charset, core-tests, collate-tests, charset-tests">
         <echo message="JVM argument:   ${runcheck.jvmarg}"/>
         <echo message="Test argument:   ${runcheck.arg}"/>
 
@@ -141,20 +141,33 @@
                 <pathelement path="${icu4j.charset.jar}"/>
                 <pathelement path="${icu4j.test-framework.jar}"/>
                 <pathelement path="${icu4j.core-tests.jar}"/>
+                <pathelement path="${icu4j.collate-tests.jar}"/>
                 <pathelement path="${icu4j.charset-tests.jar}"/>
             </classpath>
         </java>
     </target>
 
-    <target name="collateCheck" depends="info, core, collate, collate-tests" description="Run the collation tests">
-        <java classname="com.ibm.icu.dev.test.collator.TestAll" fork="yes" failonerror="true">
-	    <arg line="-n"/>
+    <target name="coreCheck" depends="info, core, core-tests" description="Run only the core tests">
+        <java classname="com.ibm.icu.dev.test.TestAllCore" fork="yes" failonerror="true">
+            <arg line="-n"/>
             <classpath>
-	        <pathelement path="${icu4j.core.jar}"/>
-	        <pathelement path="${icu4j.collate.jar}"/>
-	        <pathelement path="${icu4j.test-framework.jar}"/>
-		<pathelement path="${icu4j.collate-tests.jar}"/>
-	    </classpath>
+                <pathelement path="${icu4j.core.jar}"/>
+                <pathelement path="${icu4j.charset.jar}"/>
+                <pathelement path="${icu4j.test-framework.jar}"/>
+                <pathelement path="${icu4j.core-tests.jar}"/>
+            </classpath>
+        </java>
+    </target>
+
+    <target name="collateCheck" depends="info, core, collate, collate-tests" description="Run the only collation tests">
+        <java classname="com.ibm.icu.dev.test.TestAllCollate" fork="yes" failonerror="true">
+            <arg line="-n"/>
+            <classpath>
+                <pathelement path="${icu4j.core.jar}"/>
+                <pathelement path="${icu4j.collate.jar}"/>
+                <pathelement path="${icu4j.test-framework.jar}"/>
+                <pathelement path="${icu4j.collate-tests.jar}"/>
+            </classpath>
         </java>
     </target>
 
