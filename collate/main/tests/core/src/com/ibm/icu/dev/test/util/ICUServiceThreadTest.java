@@ -15,7 +15,7 @@ import com.ibm.icu.impl.ICULocaleService;
 import com.ibm.icu.util.ULocale;
 
 // use java collator to remove test dependency on ICU collator
-import com.ibm.icu.text.Collator;
+import java.text.Collator;
 import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Collection;
