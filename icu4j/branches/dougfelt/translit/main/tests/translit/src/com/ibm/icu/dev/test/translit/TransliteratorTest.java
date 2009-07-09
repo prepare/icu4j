@@ -3692,6 +3692,29 @@ the ::BEGIN/::END stuff)
         assertEquals(message + " " + expected, source, back.transform(expected));
     }
 
+    /* Tests the method
+     * public Enumeration<String> getAvailableTargets(String source)
+     */
+    public void TestGetAvailableTargets(){
+        try {
+            // Tests when if (targets == null) is true
+            Transliterator.getAvailableTargets("");
+        } catch(Exception e){
+            errln("TransliteratorRegistry.getAvailableTargets(String) was not " +
+                    "supposed to return an exception.");
+        }
+    }
+
+    /* Tests the method
+     * public Enumeration<String> getAvailableVariants(String source, String target)
+     */
+    public void TestGetAvailableVariants(){
+        try {
+            // Tests when if (targets == null) is true
+            Transliterator.getAvailableVariants("","");
+        } catch(Exception e){
+            errln("TransliteratorRegistry.getAvailableVariants(String) was not " +
+                    "supposed to return an exception.");
+        }
+    }
 }
-
-
