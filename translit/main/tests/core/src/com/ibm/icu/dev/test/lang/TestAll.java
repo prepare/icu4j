@@ -18,10 +18,11 @@ public class TestAll extends TestGroup {
 
     public TestAll() {
         super(
-              new String[] { 
-                  "TestCharacter", 
-                  "TestUScript", 
-                  "TestUScriptRun" 
+              new String[] {
+                  "TestCharacter",
+                  "TestUScript",
+                  "TestUScriptRun",
+                  "UnicodeSetTest"
               },
               "Character and Script Tests");
     }
