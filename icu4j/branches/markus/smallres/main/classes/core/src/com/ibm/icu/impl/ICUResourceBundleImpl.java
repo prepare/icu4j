@@ -155,6 +155,9 @@ class ICUResourceBundleImpl {
     }
 
     static final class ResourceTable extends ICUResourceBundle {
+        private char[] keyOffsets;
+        private ICUResourceBundleReader reader;
+        private int itemsOffset;
 
         protected UResourceBundle handleGetImpl(String resKey, HashMap<String, String> table, UResourceBundle requested,
                 int[] index, boolean[] isAlias) {
@@ -212,7 +215,7 @@ class ICUResourceBundleImpl {
             this(key, resPath, resource, bundle, false);
         }
         ResourceTable(ICUResourceBundleReader reader, String baseName, String localeID, ClassLoader loader) {
-
+            this.reader = reader;
             this.rawData = reader.getData();
             this.rootResource = (UNSIGNED_INT_MASK) & reader.getRootResource();
             this.noFallback = reader.getNoFallback();
@@ -232,6 +235,8 @@ class ICUResourceBundleImpl {
             isTopLevel = topLevel;
             size = countItems();
             resPath = resourcePath;
+            keyOffsets = reader.getTableKeyOffsets((int)resOffset);
+            itemsOffset = (int)resOffset + 2 * (1+keyOffsets.length);
             createLookupCache(); // Use bundle cache to access nested resources
         }
         ResourceTable(String key, String resPath, long resource,
