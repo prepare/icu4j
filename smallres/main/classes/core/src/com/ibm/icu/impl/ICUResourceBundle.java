@@ -818,8 +818,8 @@ public  class ICUResourceBundle extends UResourceBundle {
         return obj;
     }
     //protected byte[] version;
-    protected byte[] rawData;
-    protected long rootResource;
+    protected byte[] rawData;  // TODO: remove
+    protected long rootResource;  // TODO: move to Impl
     protected boolean noFallback;
 
     protected String localeID;
@@ -838,11 +838,15 @@ public  class ICUResourceBundle extends UResourceBundle {
      */
     public static ICUResourceBundle createBundle(String baseName,
             String localeID, ClassLoader root) {
-
-        ICUResourceBundleReader reader = ICUResourceBundleReader.getReader( baseName, localeID, root);
+        ICUResourceBundleReader reader = ICUResourceBundleReader.getReader( baseName, "de_AT" /* TODO: localeID */, root);
         // could not open the .res file so return null
         if (reader == null) {
             return null;
+        }
+        /* TODO */
+        if(reader.getUsesPoolBundle()) {
+            ICUResourceBundleReader poolBundleReader = ICUResourceBundleReader.getReader( baseName, "pool", root);
+            reader.setPoolBundleKeys(poolBundleReader);
         }
         return getBundle(reader, baseName, localeID, root);
     }
