@@ -300,7 +300,7 @@ public final class ICUResourceBundleReader implements ICUBinary.Authenticate{
         return reader;
     }
     
-    public final void setPoolBundleKeys(String poolBundleKeys) {
+    public void setPoolBundleKeys(String poolBundleKeys) {
         this.poolBundleKeys = poolBundleKeys;
     }
 
@@ -424,27 +424,27 @@ public final class ICUResourceBundleReader implements ICUBinary.Authenticate{
         return noFallback;
     }
 
-    public static final int RES_GET_TYPE(int res) {
+    public static int RES_GET_TYPE(int res) {
         return res >>> 28;
     }
-    public static final int RES_GET_OFFSET(int res) {
+    public static int RES_GET_OFFSET(int res) {
         return (res & 0x0fffffff) << 2; // * 4
     }
     /* get signed and unsigned integer values directly from the Resource handle */
-    public static final int RES_GET_INT(int res) {
+    public static int RES_GET_INT(int res) {
         return (res << 4) >> 4;
     }
-    public static final int RES_GET_UINT(int res) {
+    public static int RES_GET_UINT(int res) {
         return res & 0x0fffffff;
     }
-    private final CharSequence RES_GET_KEY16(int keyOffset) {
+    private CharSequence RES_GET_KEY16(int keyOffset) {
         if(keyOffset < localKeyLimit) {
             return keyStrings.subSequence(keyOffset, keyStrings.length());
         } else {
             return poolBundleKeys.subSequence(keyOffset - localKeyLimit, poolBundleKeys.length());
         }
     }
-    private final CharSequence RES_GET_KEY32(int keyOffset) {
+    private CharSequence RES_GET_KEY32(int keyOffset) {
         if(keyOffset >= 0) {
             return keyStrings.subSequence(keyOffset, keyStrings.length());
         } else {
@@ -453,7 +453,7 @@ public final class ICUResourceBundleReader implements ICUBinary.Authenticate{
     }
     // Compare the length-specified input key with the
     // NUL-terminated tableKey.
-    private static final int compareKeys(CharSequence key, CharSequence tableKey) {
+    private static int compareKeys(CharSequence key, CharSequence tableKey) {
         int i;
         for(i = 0; i < key.length(); ++i) {
             int c2 = tableKey.charAt(i);
@@ -468,7 +468,7 @@ public final class ICUResourceBundleReader implements ICUBinary.Authenticate{
         return -(int)tableKey.charAt(i);
     }
     private static final int URESDATA_ITEM_NOT_FOUND = -1;
-    private final int findTableItem(char[] keyOffsets, CharSequence key) {
+    private int findTableItem(char[] keyOffsets, CharSequence key) {
         int mid, start, limit;
         int result;
 
@@ -489,7 +489,7 @@ public final class ICUResourceBundleReader implements ICUBinary.Authenticate{
         }
         return URESDATA_ITEM_NOT_FOUND;  /* not found or table is empty. */
     }
-    private final int findTable32Item(int[] keyOffsets, CharSequence key) {
+    private int findTable32Item(int[] keyOffsets, CharSequence key) {
         int mid, start, limit;
         int result;
 
@@ -510,11 +510,14 @@ public final class ICUResourceBundleReader implements ICUBinary.Authenticate{
         }
         return URESDATA_ITEM_NOT_FOUND;  /* not found or table is empty. */
     }
-    private final char getChar(int offset) {
+    private static char[] emptyChars = new char[0];
+    private static int[] emptyInts = new int[0];
+    private static String emptyString;
+    private char getChar(int offset) {
         offset -= resourceBottom;
         return (char)((resourceBytes[offset] << 8) | (resourceBytes[offset + 1] & 0xff));
     }
-    private final char[] getChars(int offset, int count) {
+    private char[] getChars(int offset, int count) {
         offset -= resourceBottom;
         char[] chars = new char[count];
         for(int i = 0; i < count; offset += 2, ++i) {
@@ -522,22 +525,46 @@ public final class ICUResourceBundleReader implements ICUBinary.Authenticate{
         }
         return chars;
     }
-    private final int getInt(int offset) {
+    private int getInt(int offset) {
         offset -= resourceBottom;
         return (int)((resourceBytes[offset] << 24) |
-                    ((resourceBytes[offset+1] & 0xff) << 16) |
-                    ((resourceBytes[offset+2] & 0xff) << 8) |
-                    ((resourceBytes[offset+3] & 0xff)));
+                     ((resourceBytes[offset+1] & 0xff) << 16) |
+                     ((resourceBytes[offset+2] & 0xff) << 8) |
+                     ((resourceBytes[offset+3] & 0xff)));
     }
-    private final int[] getInts(int offset, int count) {
+    private int[] getInts(int offset, int count) {
         offset -= resourceBottom;
         int[] ints = new int[count];
         for(int i = 0; i < count; offset += 4, ++i) {
             ints[i] = (int)((resourceBytes[offset] << 24) |
-                           ((resourceBytes[offset+1] & 0xff) << 16) |
-                           ((resourceBytes[offset+2] & 0xff) << 8) |
-                           ((resourceBytes[offset+3] & 0xff)));
+                            ((resourceBytes[offset+1] & 0xff) << 16) |
+                            ((resourceBytes[offset+2] & 0xff) << 8) |
+                            ((resourceBytes[offset+3] & 0xff)));
         }
         return ints;
+    }
+    public char[] getTable16KeyOffsets(int offset) {
+        int length = s16BitUnits.charAt(offset++);
+        if(length > 0) {
+            return s16BitUnits.substring(offset, offset + length).toCharArray();
+        } else {
+            return emptyChars;
+        }
+    }
+    public char[] getTableKeyOffsets(int offset) {
+        int length = getChar(offset++);
+        if(length > 0) {
+            return getChars(offset, length);
+        } else {
+            return emptyChars;
+        }
+    }
+    public int[] getTable32KeyOffsets(int offset) {
+        int length = getInt(offset++);
+        if(length > 0) {
+            return getInts(offset, length);
+        } else {
+            return emptyInts;
+        }
     }
 }
