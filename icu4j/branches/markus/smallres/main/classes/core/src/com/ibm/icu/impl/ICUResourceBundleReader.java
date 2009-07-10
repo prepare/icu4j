@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2004-2008, International Business Machines Corporation and         *
+ * Copyright (C) 2004-2009, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -14,15 +14,51 @@ import java.io.InputStream;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.VersionInfo;
 
-
-
 /**
  * This class reads the *.res resource bundle format
  *
  * (For the latest version of the file format documentation see
  * ICU4C's source/common/uresdata.h file.)
  *
- * File format for .res resource bundle files (formatVersion=1.2)
+ * File format for .res resource bundle files (formatVersion=2, ICU 4.4)
+ *
+ * New in formatVersion 2 compared with 1.3: -------------
+ *
+ * Three new resource types -- String-v2, Table16 and Array16 -- have their
+ * values stored in a new array of 16-bit units between the table key strings
+ * and the start of the other resources.
+ *
+ * genrb eliminates duplicates among Unicode string-v2 values.
+ * Multiple Unicode strings may use the same offset and string data,
+ * or a short string may point to the suffix of a longer string. ("Suffix sharing")
+ * For example, one string "abc" may be reused for another string "bc" by pointing
+ * to the second character. (Short strings-v2 are NUL-terminated
+ * and not preceded by an explicit length value.)
+ *
+ * It is allowed for all resource types to share values.
+ * The swapper code (ures_swap()) has been modified so that it swaps each item
+ * exactly once.
+ *
+ * A resource bundle may use a special pool bundle. Some or all of the table key strings
+ * of the using-bundle are omitted, and the key string offsets for such key strings refer
+ * to offsets in the pool bundle.
+ * The using-bundle's and the pool-bundle's indexes[URES_INDEX_POOL_CHECKSUM] values
+ * must match.
+ * Two bits in indexes[URES_INDEX_ATTRIBUTES] indicate whether a resource bundle
+ * is or uses a pool bundle.
+ *
+ * Table key strings must be compared in ASCII order, even if they are not
+ * stored in ASCII.
+ *
+ * New in formatVersion 1.3 compared with 1.2: -------------
+ *
+ * genrb eliminates duplicates among key strings.
+ * Multiple table items may share one key string, or one item may point
+ * to the suffix of another's key string. ("Suffix sharing")
+ * For example, one key "abc" may be reused for another key "bc" by pointing
+ * to the second character. (Key strings are NUL-terminated.)
+ *
+ * -------------
  *
  * An ICU4C resource bundle file (.res) is a binary, memory-mappable file
  * with nested, hierarchical data structures.
@@ -38,6 +74,12 @@ import com.ibm.icu.util.VersionInfo;
  *                   (minus the space for root and indexes[]),
  *                   which consist of invariant characters (ASCII/EBCDIC) and are NUL-terminated;
  *                   padded to multiple of 4 bytes for 4-alignment of the following data
+ *   uint16_t 16BitUnits[]; -- resources that are stored entirely as sequences of 16-bit units
+ *                             (new in formatVersion 2/ICU 4.4)
+ *                             data is indexed by the offset values in 16-bit resource types,
+ *                             with offset 0 pointing to the beginning of this array;
+ *                             there is a 0 at offset 0, for empty resources;
+ *                             padded to multiple of 4 bytes for 4-alignment of the following data
  *   data; -- data directly and indirectly indexed by the root item;
  *            the structure is determined by walking the tree
  *
@@ -48,8 +90,17 @@ import com.ibm.icu.util.VersionInfo;
  * Leaves of the tree may be stored first or last or anywhere in between,
  * and it is in theory possible to have unreferenced holes in the file.
  *
+ * 16-bit-unit values:
+ * Starting with formatVersion 2/ICU 4.4, some resources are stored in a special
+ * array of 16-bit units. Each resource value is a sequence of 16-bit units,
+ * with no per-resource padding to a 4-byte boundary.
+ * 16-bit container types (Table16 and Array16) contain Resource16 values
+ * which are offsets to String-v2 resources in the same 16-bit-units array.
+ *
  * Direct values:
  * - Empty Unicode strings have an offset value of 0 in the Resource handle itself.
+ * - Starting with formatVersion 2/ICU 4.4, an offset value of 0 for
+ *   _any_ resource type indicates an empty value.
  * - Integer values are 28-bit values stored in the Resource handle itself;
  *   the interpretation of unsigned vs. signed integers is up to the application.
  *
@@ -59,18 +110,38 @@ import com.ibm.icu.util.VersionInfo;
  * To get byte offsets, the offset is multiplied by 4 (or shifted left by 2 bits).
  * All resource item values are 4-aligned.
  *
+ * New in formatVersion 2/ICU 4.4: Some types use offsets into the 16-bit-units array,
+ * indexing 16-bit units in that array.
+ *
  * The structures (memory layouts) for the values for each item type are listed
- * in the table above.
+ * in the table below.
  *
  * Nested, hierarchical structures: -------------
  *
- * Table items contain key-value pairs where the keys are 16-bit offsets to char * key strings.
- * Key string offsets are also relative to the start of the resource data (of the root handle),
- * i.e., the first string has an offset of 4 (after the 4-byte root handle).
+ * Table items contain key-value pairs where the keys are offsets to char * key strings.
+ * The values of these pairs are either Resource handles or
+ * offsets into the 16-bit-units array, depending on the table type.
  *
- * The values of these pairs are Resource handles.
+ * Array items are simple vectors of Resource handles,
+ * or of offsets into the 16-bit-units array, depending on the array type.
  *
- * Array items are simple vectors of Resource handles.
+ * Table key string offsets: -------
+ *
+ * Key string offsets are relative to the start of the resource data (of the root handle),
+ * i.e., the first string has an offset of 4+sizeof(indexes).
+ * (After the 4-byte root handle and after the indexes array.)
+ *
+ * If the resource bundle uses a pool bundle, then some key strings are stored
+ * in the pool bundle rather than in the local bundle itself.
+ * - In a Table or Table16, the 16-bit key string offset is local if it is
+ *   less than indexes[URES_INDEX_KEYS_TOP]<<2.
+ *   Otherwise, subtract indexes[URES_INDEX_KEYS_TOP]<<2 to get the offset into
+ *   the pool bundle key strings.
+ * - In a Table32, the 32-bit key string offset is local if it is non-negative.
+ *   Otherwise, reset bit 31 to get the pool key string offset.
+ *
+ * Unlike the local offset, the pool key offset is relative to
+ * the start of the key strings, not to the start of the bundle.
  *
  * An alias item is special (and new in ICU 2.4): --------------
  *
@@ -89,31 +160,45 @@ import com.ibm.icu.util.VersionInfo;
  * Some resource values are stored directly in the offset field of the Resource itself.
  * See UResType in unicode/ures.h for enumeration constants for Resource types.
  *
+ * Some resources have their values stored as sequences of 16-bit units,
+ * at 2-byte offsets from the start of a contiguous 16-bit-unit array between
+ * the table key strings and the other resources. (new in formatVersion 2/ICU 4.4)
+ * At offset 0 of that array is a 16-bit zero value for empty 16-bit resources.
+ * Resource16 values in Table16 and Array16 are 16-bit offsets to String-v2
+ * resources, with the offsets relative to the start of the 16-bit-units array.
+ *
  * Type Name            Memory layout of values
  *                      (in parentheses: scalar, non-offset values)
  *
  * 0  Unicode String:   int32_t length, UChar[length], (UChar)0, (padding)
  *                  or  (empty string ("") if offset==0)
  * 1  Binary:           int32_t length, uint8_t[length], (padding)
- *                      - this value should be 32-aligned -
+ *                      - the start of the bytes is 16-aligned -
  * 2  Table:            uint16_t count, uint16_t keyStringOffsets[count], (uint16_t padding), Resource[count]
  * 3  Alias:            (physically same value layout as string, new in ICU 2.4)
  * 4  Table32:          int32_t count, int32_t keyStringOffsets[count], Resource[count]
  *                      (new in formatVersion 1.1/ICU 2.8)
- *
+ * 5  Table16:          uint16_t count, uint16_t keyStringOffsets[count], Resource16[count]
+ *                      (stored in the 16-bit-units array; new in formatVersion 2/ICU 4.4)
+ * 6  Unicode String-v2:UChar[length], (UChar)0; length determined by the first UChar:
+ *                      - if first is not a trail surrogate, then the length is implicit
+ *                        and u_strlen() needs to be called
+ *                      - if first<0xdfef then length=first&0x3ff (and skip first)
+ *                      - if first<0xdfff then length=((first-0xdfef)<<16) | second UChar
+ *                      - if first==0xdfff then length=((second UChar)<<16) | third UChar
+ *                      (stored in the 16-bit-units array; new in formatVersion 2/ICU 4.4)
  * 7  Integer:          (28-bit offset is integer value)
  * 8  Array:            int32_t count, Resource[count]
- *
+ * 9  Array16:          uint16_t count, Resource16[count]
+ *                      (stored in the 16-bit-units array; new in formatVersion 2/ICU 4.4)
  * 14 Integer Vector:   int32_t length, int32_t[length]
  * 15 Reserved:         This value denotes special purpose resources and is for internal use.
  *
  * Note that there are 3 types with data vector values:
  * - Vectors of 8-bit bytes stored as type Binary.
- * - Vectors of 16-bit words stored as type Unicode String
+ * - Vectors of 16-bit words stored as type Unicode String or Unicode String-v2
  *                     (no value restrictions, all values 0..ffff allowed!).
  * - Vectors of 32-bit words stored as type Integer Vector.
- *
- *
  */
 public final class ICUResourceBundleReader implements ICUBinary.Authenticate{
 
@@ -125,19 +210,25 @@ public final class ICUResourceBundleReader implements ICUBinary.Authenticate{
                                                      (byte)0x73, (byte)0x42};
 
     private static final String ICU_RESOURCE_SUFFIX = ".res";
-    
-    /* indexes[] value names; indexes are generally 32-bit (Resource) indexes */
-    private static final int    URES_INDEX_LENGTH           = 0;        /* [0] contains URES_INDEX_TOP==the length of indexes[] */
-    //private static final int    URES_INDEX_STRINGS_TOP      = 1;        /* [1] contains the top of the strings, */
-                                                                        /*     same as the bottom of resources, rounded up */
-    //private static final int    URES_INDEX_RESOURCES_TOP    = 2;        /* [2] contains the top of all resources */
-    private static final int    URES_INDEX_BUNDLE_TOP       = 3;        /* [3] contains the top of the bundle, */
-                                                                        /*     in case it were ever different from [2] */
-    //private static final int    URES_INDEX_MAX_TABLE_LENGTH = 4;        /* [4] max. length of any table */
-    private static final int    URES_INDEX_ATTRIBUTES       = 5;        /* [5] attributes bit set, see URES_ATT_* (new in formatVersion 1.2) */
-    //private static final int    URES_INDEX_TOP              = 6;
 
-    //private static final int    URES_STRINGS_BOTTOM=(1+URES_INDEX_TOP)*4;
+    /* indexes[] value names; indexes are generally 32-bit (Resource) indexes */
+    private static final int URES_INDEX_LENGTH           = 0;   /* contains URES_INDEX_TOP==the length of indexes[];
+                                                                 * formatVersion==1: all bits contain the length of indexes[]
+                                                                 *   but the length is much less than 0xff;
+                                                                 * formatVersion>1:
+                                                                 *   only bits  7..0 contain the length of indexes[],
+                                                                 *        bits 31..8 are reserved and set to 0 */
+    private static final int URES_INDEX_KEYS_TOP         = 1;   /* contains the top of the key strings, */
+                                                                /* same as the bottom of resources or UTF-16 strings, rounded up */
+    private static final int URES_INDEX_RESOURCES_TOP    = 2;   /* contains the top of all resources */
+    private static final int URES_INDEX_BUNDLE_TOP       = 3;   /* contains the top of the bundle, */
+                                                                /* in case it were ever different from [2] */
+    private static final int URES_INDEX_MAX_TABLE_LENGTH = 4;   /* max. length of any table */
+    private static final int URES_INDEX_ATTRIBUTES       = 5;   /* attributes bit set, see URES_ATT_* (new in formatVersion 1.2) */
+    private static final int URES_INDEX_16BIT_TOP        = 6;   /* top of the 16-bit units (UTF-16 string v2 UChars, URES_TABLE16, URES_ARRAY16),
+                                                                 * rounded up (new in formatVersion 2.0, ICU 4.4) */
+    private static final int URES_INDEX_POOL_CHECKSUM    = 7;   /* checksum of the pool bundle (new in formatVersion 2.0, ICU 4.4) */
+    private static final int URES_INDEX_TOP              = 8;
 
     /*
      * Nofallback attribute, attribute bit 0 in indexes[URES_INDEX_ATTRIBUTES].
@@ -152,15 +243,33 @@ public final class ICUResourceBundleReader implements ICUBinary.Authenticate{
      */
     private static final int URES_ATT_NO_FALLBACK = 1;
 
+    /*
+     * Attributes for bundles that are, or use, a pool bundle.
+     * A pool bundle provides key strings that are shared among several other bundles
+     * to reduce their total size.
+     * New in formatVersion 2 (ICU 4.4).
+     */
+    private static final int URES_ATT_IS_POOL_BUNDLE = 2;
+    private static final int URES_ATT_USES_POOL_BUNDLE = 4;
+
     private static final boolean DEBUG = false;
     
     private byte[] /* formatVersion, */ dataVersion;
 
+    // See the ResourceData struct in ICU4C/source/common/uresdata.h.
+    private String s16BitUnits;
+    private String poolBundleKeys;
     private int rootRes;
-    private int[] indexes;
+    private int localKeyLimit;
     private boolean noFallback; /* see URES_ATT_NO_FALLBACK */
+    private boolean isPoolBundle;
+    private boolean usesPoolBundle;
 
-    private byte[] data;
+    // Fields specific to the Java port.
+    private int[] indexes;
+    private String keyStrings;
+    private byte[] resourceBytes;
+    private int resourceBottom;  // File offset where the mixed-type resources start.
 
     private ICUResourceBundleReader(InputStream stream, String resolvedName){
 
@@ -190,62 +299,81 @@ public final class ICUResourceBundleReader implements ICUBinary.Authenticate{
         ICUResourceBundleReader reader = new ICUResourceBundleReader(stream, resolvedName);
         return reader;
     }
-
-    private static void writeInt(int i, byte[] bytes, int offset) {
-        bytes[offset++]=(byte)(i>>24);
-        bytes[offset++]=(byte)(i>>16);
-        bytes[offset++]=(byte)(i>>8);
-        bytes[offset]=(byte)i;
+    
+    public final void setPoolBundleKeys(String poolBundleKeys) {
+        this.poolBundleKeys = poolBundleKeys;
     }
 
-    private void readData(InputStream stream)
-            throws IOException{
-        
+    // See res_init() in ICU4C/source/common/uresdata.c.
+    private void readData(InputStream stream) throws IOException {
         DataInputStream ds = new DataInputStream(stream);
 
         if(DEBUG) System.out.println("The DataInputStream class is: " + ds.getClass().getName());
         if(DEBUG) System.out.println("The available bytes in the stream before reading the data: "+ds.available());
 
-        /*
-         * The following will read two integers before ds.mark().
-         * Later, the two integers need to be placed into data[],
-         * then ds.reset(), then ds.readFully(into rest of data[]).
-         *
-         * This is necessary because we don't know the readLimit for ds.mark()
-         * until we have read the second integer (indexLength).
-         */
         rootRes = ds.readInt();
 
         // read the variable-length indexes[] array
-        int indexLength = ds.readInt();
-        ds.mark((indexLength-1)*4);
-
+        int indexes0 = ds.readInt();
+        int indexLength = indexes0 & 0xff;
         indexes = new int[indexLength];
-        indexes[URES_INDEX_LENGTH] = indexLength;
-
+        indexes[URES_INDEX_LENGTH] = indexes0;
         for(int i=1; i<indexLength; i++){
             indexes[i] = ds.readInt();   
         }
+        resourceBottom = (1 + indexLength) << 2;
 
-        // determine if this resource bundle falls back to a parent bundle
-        // along normal locale ID fallback
-        noFallback =
-            indexLength > URES_INDEX_ATTRIBUTES &&
-            (indexes[URES_INDEX_ATTRIBUTES]&URES_ATT_NO_FALLBACK)!=0;
+        if(indexLength > URES_INDEX_ATTRIBUTES) {
+            // determine if this resource bundle falls back to a parent bundle
+            // along normal locale ID fallback
+            int att = indexes[URES_INDEX_ATTRIBUTES];
+            noFallback = (att & URES_ATT_NO_FALLBACK) != 0;
+            isPoolBundle = (att & URES_ATT_IS_POOL_BUNDLE) != 0;
+            usesPoolBundle = (att & URES_ATT_USES_POOL_BUNDLE) != 0;
+        }
 
-        // read the entire bundle (after the header) into data[]
-        // put rootRes and indexLength into data[0..7]
-        // and the rest of the data into data[8..length-1]
         int length = indexes[URES_INDEX_BUNDLE_TOP]*4;
         if(DEBUG) System.out.println("The number of bytes in the bundle: "+length);
-    
-        data = new byte[length];
-        writeInt(rootRes, data, 0);
-        writeInt(indexLength, data, 4);
 
-        // now reset to the mark, which was set after reading rootRes and indexLength
-        ds.reset();
-        ds.readFully(data, 8, length-8);
+        // Read the local key strings.
+        // The keyStrings include NUL characters corresponding to the bytes
+        // up to the end of the indexes.
+        if(indexes[URES_INDEX_KEYS_TOP] > (1 + indexLength)) {
+            int keysBottom = (1 + indexLength) << 2;
+            int keysTop = indexes[URES_INDEX_KEYS_TOP] << 2;
+            byte[] keys = new byte[keysTop];
+            ds.readFully(keys, keysBottom, keysTop - keysBottom);
+            // Overwrite trailing padding bytes so that the conversion works.
+            while(keysBottom < keysTop && keys[keysTop - 1] == (byte)0xaa) {
+                keys[--keysBottom] = 0;
+            }
+            keyStrings = new String(keys, "US-ASCII");
+            localKeyLimit = keysBottom;
+            resourceBottom = keysTop;
+        }
+
+        // Read the array of 16-bit units.
+        // We are not using
+        //   new String(keys, "UTF-16BE")
+        // because the 16-bit units may not be well-formed Unicode.
+        if( indexLength > URES_INDEX_16BIT_TOP &&
+            indexes[URES_INDEX_16BIT_TOP] > indexes[URES_INDEX_KEYS_TOP]
+        ) {
+            int num16BitUnits = (indexes[URES_INDEX_16BIT_TOP] -
+                                 indexes[URES_INDEX_KEYS_TOP]) * 2;
+            char[] c16BitUnits = new char[num16BitUnits];
+            for(int i = 1; i < num16BitUnits; ++i) {
+                c16BitUnits[i] = ds.readChar();
+            }
+            s16BitUnits = new String(c16BitUnits);
+            resourceBottom = indexes[URES_INDEX_16BIT_TOP] << 2;
+        } else {
+            s16BitUnits = "\0";
+        }
+
+        // Read the block of bytes for the mixed-type resources.
+        resourceBytes = new byte[length - resourceBottom];
+        ds.readFully(resourceBytes);
     }
 
     /**
@@ -283,16 +411,133 @@ public final class ICUResourceBundleReader implements ICUBinary.Authenticate{
         // while ICU4C can read formatVersion 1.0 and up,
         // ICU4J requires 1.1 as a minimum
         // formatVersion = version;
-        return version[0] == 1 && version[1] >= 1;
+        return ((version[0] == 1 && version[1] >= 1) || version[0] == 2);
     }
     
     public byte[] getData(){
-        return data;   
+        return null;   
     }
     public int getRootResource() {
         return rootRes;
     }
     public boolean getNoFallback() {
         return noFallback;
+    }
+
+    public static final int RES_GET_TYPE(int res) {
+        return res >>> 28;
+    }
+    public static final int RES_GET_OFFSET(int res) {
+        return (res & 0x0fffffff) << 2; // * 4
+    }
+    /* get signed and unsigned integer values directly from the Resource handle */
+    public static final int RES_GET_INT(int res) {
+        return (res << 4) >> 4;
+    }
+    public static final int RES_GET_UINT(int res) {
+        return res & 0x0fffffff;
+    }
+    private final CharSequence RES_GET_KEY16(int keyOffset) {
+        if(keyOffset < localKeyLimit) {
+            return keyStrings.subSequence(keyOffset, keyStrings.length());
+        } else {
+            return poolBundleKeys.subSequence(keyOffset - localKeyLimit, poolBundleKeys.length());
+        }
+    }
+    private final CharSequence RES_GET_KEY32(int keyOffset) {
+        if(keyOffset >= 0) {
+            return keyStrings.subSequence(keyOffset, keyStrings.length());
+        } else {
+            return poolBundleKeys.subSequence(keyOffset & 0x7fffffff, poolBundleKeys.length());
+        }
+    }
+    // Compare the length-specified input key with the
+    // NUL-terminated tableKey.
+    private static final int compareKeys(CharSequence key, CharSequence tableKey) {
+        int i;
+        for(i = 0; i < key.length(); ++i) {
+            int c2 = tableKey.charAt(i);
+            if(c2 == 0) {
+                return 1;  // key > tableKey because key is longer.
+            }
+            int diff = (int)key.charAt(i) - c2;
+            if(diff != 0) {
+                return diff;
+            }
+        }
+        return -(int)tableKey.charAt(i);
+    }
+    private static final int URESDATA_ITEM_NOT_FOUND = -1;
+    private final int findTableItem(char[] keyOffsets, CharSequence key) {
+        int mid, start, limit;
+        int result;
+
+        /* do a binary search for the key */
+        start=0;
+        limit=keyOffsets.length;
+        while(start<limit) {
+            mid = (start + limit) / 2;
+            result = compareKeys(key, RES_GET_KEY16(keyOffsets[mid]));
+            if (result < 0) {
+                limit = mid;
+            } else if (result > 0) {
+                start = mid + 1;
+            } else {
+                /* We found it! */
+                return mid;
+            }
+        }
+        return URESDATA_ITEM_NOT_FOUND;  /* not found or table is empty. */
+    }
+    private final int findTable32Item(int[] keyOffsets, CharSequence key) {
+        int mid, start, limit;
+        int result;
+
+        /* do a binary search for the key */
+        start=0;
+        limit=keyOffsets.length;
+        while(start<limit) {
+            mid = (start + limit) / 2;
+            result = compareKeys(key, RES_GET_KEY32(keyOffsets[mid]));
+            if (result < 0) {
+                limit = mid;
+            } else if (result > 0) {
+                start = mid + 1;
+            } else {
+                /* We found it! */
+                return mid;
+            }
+        }
+        return URESDATA_ITEM_NOT_FOUND;  /* not found or table is empty. */
+    }
+    private final char getChar(int offset) {
+        offset -= resourceBottom;
+        return (char)((resourceBytes[offset] << 8) | (resourceBytes[offset + 1] & 0xff));
+    }
+    private final char[] getChars(int offset, int count) {
+        offset -= resourceBottom;
+        char[] chars = new char[count];
+        for(int i = 0; i < count; offset += 2, ++i) {
+            chars[i] = (char)(((int)resourceBytes[offset] << 8) | (resourceBytes[offset + 1] & 0xff));
+        }
+        return chars;
+    }
+    private final int getInt(int offset) {
+        offset -= resourceBottom;
+        return (int)((resourceBytes[offset] << 24) |
+                    ((resourceBytes[offset+1] & 0xff) << 16) |
+                    ((resourceBytes[offset+2] & 0xff) << 8) |
+                    ((resourceBytes[offset+3] & 0xff)));
+    }
+    private final int[] getInts(int offset, int count) {
+        offset -= resourceBottom;
+        int[] ints = new int[count];
+        for(int i = 0; i < count; offset += 4, ++i) {
+            ints[i] = (int)((resourceBytes[offset] << 24) |
+                           ((resourceBytes[offset+1] & 0xff) << 16) |
+                           ((resourceBytes[offset+2] & 0xff) << 8) |
+                           ((resourceBytes[offset+3] & 0xff)));
+        }
+        return ints;
     }
 }
