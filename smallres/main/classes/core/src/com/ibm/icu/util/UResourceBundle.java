@@ -770,11 +770,7 @@ public abstract class UResourceBundle extends ResourceBundle{
      * @stable ICU 3.8
      */
     public int getType() {
-        int type = ICUResourceBundle.RES_GET_TYPE(resource);
-        if(type==TABLE32){
-            return TABLE; //Mask the table32's real type
-        }
-        return type;
+        return NONE;
     }
 
     /**
@@ -803,7 +799,7 @@ public abstract class UResourceBundle extends ResourceBundle{
      * @stable ICU 3.8
      */
     public String getKey() {
-        return key;
+        return null;
     }
     /**
      * Resource type constant for "no resource".
@@ -830,25 +826,6 @@ public abstract class UResourceBundle extends ResourceBundle{
     public static final int TABLE = 2;
 
     /**
-     * Resource type constant for aliases;
-     * internally stores a string which identifies the actual resource
-     * storing the data (can be in a different resource bundle).
-     * Resolved internally before delivering the actual resource through the API.
-     * @internal ICU 3.8
-     * @deprecated This API is ICU internal only.
-     */
-    // TODO: protected static final int ALIAS = 3;
-
-    /**
-     * Internal use only.
-     * Alternative resource type constant for tables of key-value pairs.
-     * Never returned by getType().
-     * @internal ICU 3.8
-     * @deprecated This API is ICU internal only.
-     */
-    // TODO: protected static final int TABLE32 = 4;
-
-    /**
      * Resource type constant for a single 28-bit integer, interpreted as
      * signed or unsigned by the getInt() function.
      * @see #getInt
@@ -870,12 +847,6 @@ public abstract class UResourceBundle extends ResourceBundle{
     public static final int INT_VECTOR = 14;
 
     //====== protected members ==============
-    /**
-     * Data member where the subclasses store the key
-     * @internal
-     * @deprecated This API is ICU internal only.
-     */
-    protected String key;  // TODO: Move to Impl class?
 
     /**
      * Actual worker method for fetching a resource based on the given key.
@@ -925,13 +896,7 @@ public abstract class UResourceBundle extends ResourceBundle{
      * @stable ICU 3.8
      */
     protected Enumeration<String> handleGetKeys(){
-        Vector<String> resKeys = new Vector<String>();
-        UResourceBundle item = null;
-        for (int i = 0; i < size; i++) {
-            item = get(i);
-            resKeys.add(item.getKey());
-        }
-        return resKeys.elements();
+        return null;
     }
 
     /**
