@@ -203,7 +203,6 @@ import com.ibm.icu.util.VersionInfo;
  * - Vectors of 32-bit words stored as type Integer Vector.
  */
 public final class ICUResourceBundleReader implements ICUBinary.Authenticate {
-    public static final int RES_BOGUS = -1;
     /**
      * Resource type constant for aliases;
      * internally stores a string which identifies the actual resource
@@ -478,6 +477,32 @@ public final class ICUResourceBundleReader implements ICUBinary.Authenticate {
         return usesPoolBundle;
     }
 
+    static final int[] gPublicTypes = new int[] {
+        UResourceBundle.STRING,
+        UResourceBundle.BINARY,
+        UResourceBundle.TABLE,
+        ALIAS,
+
+        UResourceBundle.TABLE,      /* TABLE32 */
+        UResourceBundle.TABLE,      /* TABLE16 */
+        UResourceBundle.STRING,     /* STRING_V2 */
+        UResourceBundle.INT,
+
+        UResourceBundle.ARRAY,
+        UResourceBundle.ARRAY,      /* ARRAY16 */
+        UResourceBundle.NONE,
+        UResourceBundle.NONE,
+
+        UResourceBundle.NONE,
+        UResourceBundle.NONE,
+        UResourceBundle.INT_VECTOR,
+        UResourceBundle.NONE
+    };
+
+    public static int getPublicType(int res) {
+        return gPublicTypes[RES_GET_TYPE(res)];
+    }
+
     public static int RES_GET_TYPE(int res) {
         return res >>> 28;
     }
@@ -493,6 +518,9 @@ public final class ICUResourceBundleReader implements ICUBinary.Authenticate {
     }
     public static int RES_GET_UINT(int res) {
         return res & 0x0fffffff;
+    }
+    public static boolean URES_IS_TABLE(int type) {
+        return type==UResourceBundle.TABLE || type==TABLE16 || type==TABLE32;
     }
 
     private static byte[] emptyBytes = new byte[0];
