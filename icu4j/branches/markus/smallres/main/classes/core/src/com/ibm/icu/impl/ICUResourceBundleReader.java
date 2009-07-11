@@ -10,8 +10,10 @@ import java.io.BufferedInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
 
 import com.ibm.icu.util.ULocale;
+import com.ibm.icu.util.UResourceBundle;  // For resource type constants.
 import com.ibm.icu.util.VersionInfo;
 
 /**
@@ -200,7 +202,33 @@ import com.ibm.icu.util.VersionInfo;
  *                     (no value restrictions, all values 0..ffff allowed!).
  * - Vectors of 32-bit words stored as type Integer Vector.
  */
-public final class ICUResourceBundleReader implements ICUBinary.Authenticate{
+public final class ICUResourceBundleReader implements ICUBinary.Authenticate {
+    public static final int RES_BOGUS = -1;
+    /**
+     * Resource type constant for aliases;
+     * internally stores a string which identifies the actual resource
+     * storing the data (can be in a different resource bundle).
+     * Resolved internally before delivering the actual resource through the API.
+     */
+    public static final int ALIAS = 3;
+
+    /** Resource type constant for tables with 32-bit count, key offsets and values. */
+    public static final int TABLE32 = 4;
+
+    /**
+     * Resource type constant for tables with 16-bit count, key offsets and values.
+     * All values are STRING_V2 strings.
+     */
+    public static final int TABLE16 = 5;
+
+    /** Resource type constant for 16-bit Unicode strings in formatVersion 2. */
+    public static final int STRING_V2 = 6;
+
+    /**
+     * Resource type constant for arrays with 16-bit count and values.
+     * All values are STRING_V2 strings.
+     */
+    public static final int ARRAY16 = 9;
 
     /**
      * File format version that this class understands.
@@ -220,15 +248,15 @@ public final class ICUResourceBundleReader implements ICUBinary.Authenticate{
                                                                  *        bits 31..8 are reserved and set to 0 */
     private static final int URES_INDEX_KEYS_TOP         = 1;   /* contains the top of the key strings, */
                                                                 /* same as the bottom of resources or UTF-16 strings, rounded up */
-    private static final int URES_INDEX_RESOURCES_TOP    = 2;   /* contains the top of all resources */
+    //ivate static final int URES_INDEX_RESOURCES_TOP    = 2;   /* contains the top of all resources */
     private static final int URES_INDEX_BUNDLE_TOP       = 3;   /* contains the top of the bundle, */
                                                                 /* in case it were ever different from [2] */
-    private static final int URES_INDEX_MAX_TABLE_LENGTH = 4;   /* max. length of any table */
+    //ivate static final int URES_INDEX_MAX_TABLE_LENGTH = 4;   /* max. length of any table */
     private static final int URES_INDEX_ATTRIBUTES       = 5;   /* attributes bit set, see URES_ATT_* (new in formatVersion 1.2) */
     private static final int URES_INDEX_16BIT_TOP        = 6;   /* top of the 16-bit units (UTF-16 string v2 UChars, URES_TABLE16, URES_ARRAY16),
                                                                  * rounded up (new in formatVersion 2.0, ICU 4.4) */
     private static final int URES_INDEX_POOL_CHECKSUM    = 7;   /* checksum of the pool bundle (new in formatVersion 2.0, ICU 4.4) */
-    private static final int URES_INDEX_TOP              = 8;
+    //ivate static final int URES_INDEX_TOP              = 8;
 
     /*
      * Nofallback attribute, attribute bit 0 in indexes[URES_INDEX_ATTRIBUTES].
@@ -303,7 +331,12 @@ public final class ICUResourceBundleReader implements ICUBinary.Authenticate{
     }
     
     public void setPoolBundleKeys(ICUResourceBundleReader poolBundleReader) {
-        // TODO: verify poolBundleReader.isPoolBundle and checksums match
+        if(!poolBundleReader.isPoolBundle) {
+            throw new IllegalStateException("pool.res is not a pool bundle");
+        }
+        if(poolBundleReader.indexes[URES_INDEX_POOL_CHECKSUM] != indexes[URES_INDEX_POOL_CHECKSUM]) {
+            throw new IllegalStateException("pool.res has a different checksum than this bundle");
+        }
         poolBundleKeys = poolBundleReader.keyStrings;
         poolBundleKeysAsString = poolBundleReader.keyStringsAsString;
     }
@@ -462,9 +495,18 @@ public final class ICUResourceBundleReader implements ICUBinary.Authenticate{
         return res & 0x0fffffff;
     }
 
+    private static byte[] emptyBytes = new byte[0];
+    private static ByteBuffer emptyByteBuffer;
     private static char[] emptyChars = new char[0];
     private static int[] emptyInts = new int[0];
     private static String emptyString;
+
+    public char get16BitUnit(int offset) {
+        return s16BitUnits.charAt(offset);
+    }
+    public int get16BitResource(int offset) {
+        return (STRING_V2 << 28) | s16BitUnits.charAt(offset);
+    }
     public char getChar(int offset) {
         return (char)((resourceBytes[offset] << 8) | (resourceBytes[offset + 1] & 0xff));
     }
@@ -628,5 +670,109 @@ public final class ICUResourceBundleReader implements ICUBinary.Authenticate{
             }
         }
         return URESDATA_ITEM_NOT_FOUND;  /* not found or table is empty. */
+    }
+
+    public String getString(int res) {
+        int offset=RES_GET_OFFSET(res);
+        int length;
+        if(RES_GET_TYPE(res)==STRING_V2) {
+            int first = s16BitUnits.charAt(offset);
+            if((first&0xfffffc00)!=0xdc00) {  // C: if(!U16_IS_TRAIL(first)) {
+                if(first==0) {
+                    return emptyString;
+                }
+                int endOffset;
+                for(endOffset=offset+1; s16BitUnits.charAt(endOffset)!=0; ++endOffset) {}
+                return s16BitUnits.substring(offset, endOffset);
+            } else if(first<0xdfef) {
+                length=first&0x3ff;
+                ++offset;
+            } else if(first<0xdfff) {
+                length=((first-0xdfef)<<16)|s16BitUnits.charAt(offset+1);
+                offset+=2;
+            } else {
+                length=((int)s16BitUnits.charAt(offset+1)<<16)|s16BitUnits.charAt(offset+2);
+                offset+=3;
+            }
+            return s16BitUnits.substring(offset, offset+length);
+        } else if(res==offset) /* RES_GET_TYPE(res)==URES_STRING */ {
+            if(res==0) {
+                return emptyString;
+            } else {
+                offset=getResourceByteOffset(offset);
+                length=getInt(offset);
+                return new String(getChars(offset+4, length));
+            }
+        } else {
+            return null;
+        }
+    }
+
+    public String getAlias(int res) {
+        int offset=RES_GET_OFFSET(res);
+        int length;
+        if(RES_GET_TYPE(res)==ALIAS) {
+            if(offset==0) {
+                return emptyString;
+            } else {
+                offset=getResourceByteOffset(offset);
+                length=getInt(offset);
+                return new String(getChars(offset+4, length));
+            }
+        } else {
+            return null;
+        }
+    }
+
+    public byte[] getBinary(int res, byte[] ba) {
+        int offset=RES_GET_OFFSET(res);
+        int length;
+        if(RES_GET_TYPE(res)==UResourceBundle.BINARY) {
+            if(offset==0) {
+                return emptyBytes;
+            } else {
+                offset=getResourceByteOffset(offset);
+                length=getInt(offset);
+                if(ba==null || ba.length!=length) {
+                    ba=new byte[length];
+                }
+                System.arraycopy(resourceBytes, offset+4, ba, 0, length);
+                return ba;
+            }
+        } else {
+            return null;
+        }
+    }
+
+    public ByteBuffer getBinary(int res) {
+        int offset=RES_GET_OFFSET(res);
+        int length;
+        if(RES_GET_TYPE(res)==UResourceBundle.BINARY) {
+            if(offset==0) {
+                return emptyByteBuffer;
+            } else {
+                offset=getResourceByteOffset(offset);
+                length=getInt(offset);
+                return ByteBuffer.wrap(resourceBytes, offset+4, length).asReadOnlyBuffer();
+            }
+        } else {
+            return null;
+        }
+    }
+
+    public int[] getIntVector(int res) {
+        int offset=RES_GET_OFFSET(res);
+        int length;
+        if(RES_GET_TYPE(res)==UResourceBundle.INT_VECTOR) {
+            if(offset==0) {
+                return emptyInts;
+            } else {
+                offset=getResourceByteOffset(offset);
+                length=getInt(offset);
+                return getInts(offset+4, length);
+            }
+        } else {
+            return null;
+        }
     }
 }

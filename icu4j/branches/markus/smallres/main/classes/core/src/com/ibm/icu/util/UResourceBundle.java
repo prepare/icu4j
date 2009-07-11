@@ -495,7 +495,7 @@ public abstract class UResourceBundle extends ResourceBundle{
     }
 
     /**
-     * Loads a new resource bundle for the give base name, locale and class loader.
+     * Loads a new resource bundle for the given base name, locale and class loader.
      * Optionally will disable loading of fallback bundles.
      * @param baseName the base name of the resource bundle, a fully qualified class name
      * @param localeName the locale for which a resource bundle is desired
@@ -757,7 +757,7 @@ public abstract class UResourceBundle extends ResourceBundle{
      * @stable ICU 3.8
      */
     public int getSize() {
-        return size;
+        return 1;
     }
 
     /**
@@ -837,7 +837,7 @@ public abstract class UResourceBundle extends ResourceBundle{
      * @internal ICU 3.8
      * @deprecated This API is ICU internal only.
      */
-    protected static final int ALIAS = 3;
+    // TODO: protected static final int ALIAS = 3;
 
     /**
      * Internal use only.
@@ -846,7 +846,7 @@ public abstract class UResourceBundle extends ResourceBundle{
      * @internal ICU 3.8
      * @deprecated This API is ICU internal only.
      */
-    protected static final int TABLE32 = 4;
+    // TODO: protected static final int TABLE32 = 4;
 
     /**
      * Resource type constant for a single 28-bit integer, interpreted as
@@ -875,27 +875,7 @@ public abstract class UResourceBundle extends ResourceBundle{
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    protected String key;
-    /**
-     * Data member where the subclasses store the size of resources
-     * @internal
-     * @deprecated This API is ICU internal only.
-     */
-    protected int size = 1;
-    /**
-     * Data member where the subclasses store the offset within resource data
-     * @internal
-     * @deprecated This API is ICU internal only.
-     */
-    protected long resource = RES_BOGUS;
-    /**
-     * Data member where the subclasses store whether the resource is top level
-     * @internal
-     * @deprecated This API is ICU internal only.
-     */
-    protected boolean isTopLevel = false;
-
-    private static final long RES_BOGUS = 0xffffffff;
+    protected String key;  // TODO: Move to Impl class?
 
     /**
      * Actual worker method for fetching a resource based on the given key.
