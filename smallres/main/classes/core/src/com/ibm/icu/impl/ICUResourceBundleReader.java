@@ -672,7 +672,7 @@ public final class ICUResourceBundleReader implements ICUBinary.Authenticate {
     }
 
     Container getArray(int res) {
-        switch(res) {
+        switch(RES_GET_TYPE(res)) {
         case UResourceBundle.ARRAY:
             return new Array(this, res);
         case ICUResourceBundle.ARRAY16:
@@ -683,7 +683,7 @@ public final class ICUResourceBundleReader implements ICUBinary.Authenticate {
     }
 
     Table getTable(int res) {
-        switch(res) {
+        switch(RES_GET_TYPE(res)) {
         case UResourceBundle.TABLE:
             return new Table1632(this, res);
         case ICUResourceBundle.TABLE16:
