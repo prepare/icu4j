@@ -12,7 +12,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 
-import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.UResourceBundle;  // For resource type constants.
 import com.ibm.icu.util.VersionInfo;
 
@@ -204,39 +203,11 @@ import com.ibm.icu.util.VersionInfo;
  */
 public final class ICUResourceBundleReader implements ICUBinary.Authenticate {
     /**
-     * Resource type constant for aliases;
-     * internally stores a string which identifies the actual resource
-     * storing the data (can be in a different resource bundle).
-     * Resolved internally before delivering the actual resource through the API.
-     */
-    public static final int ALIAS = 3;
-
-    /** Resource type constant for tables with 32-bit count, key offsets and values. */
-    public static final int TABLE32 = 4;
-
-    /**
-     * Resource type constant for tables with 16-bit count, key offsets and values.
-     * All values are STRING_V2 strings.
-     */
-    public static final int TABLE16 = 5;
-
-    /** Resource type constant for 16-bit Unicode strings in formatVersion 2. */
-    public static final int STRING_V2 = 6;
-
-    /**
-     * Resource type constant for arrays with 16-bit count and values.
-     * All values are STRING_V2 strings.
-     */
-    public static final int ARRAY16 = 9;
-
-    /**
      * File format version that this class understands.
      * "ResB"
      */
     private static final byte DATA_FORMAT_ID[] = {(byte)0x52, (byte)0x65, 
                                                      (byte)0x73, (byte)0x42};
-
-    private static final String ICU_RESOURCE_SUFFIX = ".res";
 
     /* indexes[] value names; indexes are generally 32-bit (Resource) indexes */
     private static final int URES_INDEX_LENGTH           = 0;   /* contains URES_INDEX_TOP==the length of indexes[];
@@ -301,7 +272,6 @@ public final class ICUResourceBundleReader implements ICUBinary.Authenticate {
     private int resourceBottom;  // File offset where the mixed-type resources start.
 
     private ICUResourceBundleReader(InputStream stream, String resolvedName){
-
         BufferedInputStream bs = new BufferedInputStream(stream);
         try{
             if(DEBUG) System.out.println("The InputStream class is: " + stream.getClass().getName());
@@ -318,8 +288,7 @@ public final class ICUResourceBundleReader implements ICUBinary.Authenticate {
             throw new RuntimeException("Data file "+ resolvedName+ " is corrupt - " + ex.getMessage());   
         }
     }
-    public static ICUResourceBundleReader getReader(String baseName, String localeName, ClassLoader root){
-        String resolvedName = getFullName(baseName, localeName);
+    static ICUResourceBundleReader getReader(String resolvedName, ClassLoader root) {
         InputStream stream = ICUData.getStream(root,resolvedName);
         
         if(stream==null){
@@ -329,7 +298,7 @@ public final class ICUResourceBundleReader implements ICUBinary.Authenticate {
         return reader;
     }
     
-    public void setPoolBundleKeys(ICUResourceBundleReader poolBundleReader) {
+    void setPoolBundleKeys(ICUResourceBundleReader poolBundleReader) {
         if(!poolBundleReader.isPoolBundle) {
             throw new IllegalStateException("pool.res is not a pool bundle");
         }
@@ -423,35 +392,7 @@ public final class ICUResourceBundleReader implements ICUBinary.Authenticate {
         ds.readFully(resourceBytes);
     }
 
-    /**
-     * Gets the full name of the resource with suffix.
-     */
-    public static String getFullName(String baseName, String localeName){
-        if(baseName==null || baseName.length()==0){
-            if(localeName.length()==0){
-                return ULocale.getDefault().toString()+ICU_RESOURCE_SUFFIX;   
-            }else{
-                return localeName+ICU_RESOURCE_SUFFIX;
-            }
-        }else{
-            if(baseName.indexOf('.')==-1){
-                if(baseName.charAt(baseName.length()-1)!= '/'){
-                    return baseName+"/"+localeName+ICU_RESOURCE_SUFFIX;
-                }else{
-                    return baseName+localeName+ICU_RESOURCE_SUFFIX;   
-                }
-            }else{
-                baseName = baseName.replace('.','/');
-                if(localeName.length()==0){
-                    return baseName+ICU_RESOURCE_SUFFIX;   
-                }else{
-                    return baseName+"_"+localeName+ICU_RESOURCE_SUFFIX;
-                }
-            }
-        }
-    }
-    
-    public VersionInfo getVersion(){
+    VersionInfo getVersion(){
         return VersionInfo.getInstance(dataVersion[0],dataVersion[1],dataVersion[2],dataVersion[3]);   
     }
     public boolean isDataVersionAcceptable(byte version[]){
@@ -461,66 +402,34 @@ public final class ICUResourceBundleReader implements ICUBinary.Authenticate {
         return ((version[0] == 1 && version[1] >= 1) || version[0] == 2);
     }
     
-    public byte[] getData(){
-        return null;   
-    }
-    public int getRootResource() {
+    int getRootResource() {
         return rootRes;
     }
-    public boolean getNoFallback() {
+    boolean getNoFallback() {
         return noFallback;
     }
-    public boolean getIsPoolBundle() {
-        return isPoolBundle;
-    }
-    public boolean getUsesPoolBundle() {
+    boolean getUsesPoolBundle() {
         return usesPoolBundle;
     }
 
-    static final int[] gPublicTypes = new int[] {
-        UResourceBundle.STRING,
-        UResourceBundle.BINARY,
-        UResourceBundle.TABLE,
-        ALIAS,
-
-        UResourceBundle.TABLE,      /* TABLE32 */
-        UResourceBundle.TABLE,      /* TABLE16 */
-        UResourceBundle.STRING,     /* STRING_V2 */
-        UResourceBundle.INT,
-
-        UResourceBundle.ARRAY,
-        UResourceBundle.ARRAY,      /* ARRAY16 */
-        UResourceBundle.NONE,
-        UResourceBundle.NONE,
-
-        UResourceBundle.NONE,
-        UResourceBundle.NONE,
-        UResourceBundle.INT_VECTOR,
-        UResourceBundle.NONE
-    };
-
-    public static int getPublicType(int res) {
-        return gPublicTypes[RES_GET_TYPE(res)];
-    }
-
-    public static int RES_GET_TYPE(int res) {
+    static int RES_GET_TYPE(int res) {
         return res >>> 28;
     }
-    public static int RES_GET_OFFSET(int res) {
+    private static int RES_GET_OFFSET(int res) {
         return res & 0x0fffffff;
     }
-    public int getResourceByteOffset(int res) {
+    private int getResourceByteOffset(int res) {
         return (RES_GET_OFFSET(res) << 2) - resourceBottom;
     }
     /* get signed and unsigned integer values directly from the Resource handle */
-    public static int RES_GET_INT(int res) {
+    static int RES_GET_INT(int res) {
         return (res << 4) >> 4;
     }
-    public static int RES_GET_UINT(int res) {
+    static int RES_GET_UINT(int res) {
         return res & 0x0fffffff;
     }
-    public static boolean URES_IS_TABLE(int type) {
-        return type==UResourceBundle.TABLE || type==TABLE16 || type==TABLE32;
+    static boolean URES_IS_TABLE(int type) {
+        return type==UResourceBundle.TABLE || type==ICUResourceBundle.TABLE16 || type==ICUResourceBundle.TABLE32;
     }
 
     private static byte[] emptyBytes = new byte[0];
@@ -529,29 +438,23 @@ public final class ICUResourceBundleReader implements ICUBinary.Authenticate {
     private static int[] emptyInts = new int[0];
     private static String emptyString;
 
-    public char get16BitUnit(int offset) {
-        return s16BitUnits.charAt(offset);
-    }
-    public int get16BitResource(int offset) {
-        return (STRING_V2 << 28) | s16BitUnits.charAt(offset);
-    }
-    public char getChar(int offset) {
+    private char getChar(int offset) {
         return (char)((resourceBytes[offset] << 8) | (resourceBytes[offset + 1] & 0xff));
     }
-    public char[] getChars(int offset, int count) {
+    private char[] getChars(int offset, int count) {
         char[] chars = new char[count];
         for(int i = 0; i < count; offset += 2, ++i) {
             chars[i] = (char)(((int)resourceBytes[offset] << 8) | (resourceBytes[offset + 1] & 0xff));
         }
         return chars;
     }
-    public int getInt(int offset) {
+    private int getInt(int offset) {
         return (int)((resourceBytes[offset] << 24) |
                      ((resourceBytes[offset+1] & 0xff) << 16) |
                      ((resourceBytes[offset+2] & 0xff) << 8) |
                      ((resourceBytes[offset+3] & 0xff)));
     }
-    public int[] getInts(int offset, int count) {
+    private int[] getInts(int offset, int count) {
         int[] ints = new int[count];
         for(int i = 0; i < count; offset += 4, ++i) {
             ints[i] = (int)((resourceBytes[offset] << 24) |
@@ -561,7 +464,7 @@ public final class ICUResourceBundleReader implements ICUBinary.Authenticate {
         }
         return ints;
     }
-    public char[] getTable16KeyOffsets(int offset) {
+    private char[] getTable16KeyOffsets(int offset) {
         int length = s16BitUnits.charAt(offset++);
         if(length > 0) {
             return s16BitUnits.substring(offset, offset + length).toCharArray();
@@ -569,7 +472,7 @@ public final class ICUResourceBundleReader implements ICUBinary.Authenticate {
             return emptyChars;
         }
     }
-    public char[] getTableKeyOffsets(int offset) {
+    private char[] getTableKeyOffsets(int offset) {
         int length = getChar(offset);
         if(length > 0) {
             return getChars(offset + 2, length);
@@ -577,7 +480,7 @@ public final class ICUResourceBundleReader implements ICUBinary.Authenticate {
             return emptyChars;
         }
     }
-    public int[] getTable32KeyOffsets(int offset) {
+    private int[] getTable32KeyOffsets(int offset) {
         int length = getInt(offset);
         if(length > 0) {
             return getInts(offset + 4, length);
@@ -586,6 +489,7 @@ public final class ICUResourceBundleReader implements ICUBinary.Authenticate {
         }
     }
 
+    /** Refers to ASCII key string bytes, for key string matching. */
     private static final class ByteSequence {
         private byte[] bytes;
         private int offset;
@@ -612,14 +516,14 @@ public final class ICUResourceBundleReader implements ICUBinary.Authenticate {
         }
         return poolBundleKeysAsString.substring(keyOffset, endOffset);
     }
-    private ByteSequence RES_GET_KEY16(int keyOffset) {
+    private ByteSequence RES_GET_KEY16(char keyOffset) {
         if(keyOffset < localKeyLimit) {
             return new ByteSequence(keyStrings, keyOffset);
         } else {
             return new ByteSequence(poolBundleKeys, keyOffset - localKeyLimit);
         }
     }
-    public String getKey16String(int keyOffset) {
+    private String getKey16String(int keyOffset) {
         if(keyOffset < localKeyLimit) {
             return makeKeyStringFromBytes(keyOffset);
         } else {
@@ -633,7 +537,7 @@ public final class ICUResourceBundleReader implements ICUBinary.Authenticate {
             return new ByteSequence(poolBundleKeys, keyOffset & 0x7fffffff);
         }
     }
-    public String getKey32String(int keyOffset) {
+    private String getKey32String(int keyOffset) {
         if(keyOffset >= 0) {
             return makeKeyStringFromBytes(keyOffset);
         } else {
@@ -656,54 +560,17 @@ public final class ICUResourceBundleReader implements ICUBinary.Authenticate {
         }
         return -(int)tableKey.charAt(i);
     }
-    private static final int URESDATA_ITEM_NOT_FOUND = -1;
-    public int findTableItem(char[] keyOffsets, CharSequence key) {
-        int mid, start, limit;
-        int result;
-
-        /* do a binary search for the key */
-        start=0;
-        limit=keyOffsets.length;
-        while(start<limit) {
-            mid = (start + limit) / 2;
-            result = compareKeys(key, RES_GET_KEY16(keyOffsets[mid]));
-            if (result < 0) {
-                limit = mid;
-            } else if (result > 0) {
-                start = mid + 1;
-            } else {
-                /* We found it! */
-                return mid;
-            }
-        }
-        return URESDATA_ITEM_NOT_FOUND;  /* not found or table is empty. */
+    private int compareKeys(CharSequence key, char keyOffset) {
+        return compareKeys(key, RES_GET_KEY16(keyOffset));
     }
-    public int findTable32Item(int[] keyOffsets, CharSequence key) {
-        int mid, start, limit;
-        int result;
-
-        /* do a binary search for the key */
-        start=0;
-        limit=keyOffsets.length;
-        while(start<limit) {
-            mid = (start + limit) / 2;
-            result = compareKeys(key, RES_GET_KEY32(keyOffsets[mid]));
-            if (result < 0) {
-                limit = mid;
-            } else if (result > 0) {
-                start = mid + 1;
-            } else {
-                /* We found it! */
-                return mid;
-            }
-        }
-        return URESDATA_ITEM_NOT_FOUND;  /* not found or table is empty. */
+    private int compareKeys32(CharSequence key, int keyOffset) {
+        return compareKeys(key, RES_GET_KEY32(keyOffset));
     }
 
-    public String getString(int res) {
+    String getString(int res) {
         int offset=RES_GET_OFFSET(res);
         int length;
-        if(RES_GET_TYPE(res)==STRING_V2) {
+        if(RES_GET_TYPE(res)==ICUResourceBundle.STRING_V2) {
             int first = s16BitUnits.charAt(offset);
             if((first&0xfffffc00)!=0xdc00) {  // C: if(!U16_IS_TRAIL(first)) {
                 if(first==0) {
@@ -736,10 +603,10 @@ public final class ICUResourceBundleReader implements ICUBinary.Authenticate {
         }
     }
 
-    public String getAlias(int res) {
+    String getAlias(int res) {
         int offset=RES_GET_OFFSET(res);
         int length;
-        if(RES_GET_TYPE(res)==ALIAS) {
+        if(RES_GET_TYPE(res)==ICUResourceBundle.ALIAS) {
             if(offset==0) {
                 return emptyString;
             } else {
@@ -752,7 +619,7 @@ public final class ICUResourceBundleReader implements ICUBinary.Authenticate {
         }
     }
 
-    public byte[] getBinary(int res, byte[] ba) {
+    byte[] getBinary(int res, byte[] ba) {
         int offset=RES_GET_OFFSET(res);
         int length;
         if(RES_GET_TYPE(res)==UResourceBundle.BINARY) {
@@ -772,7 +639,7 @@ public final class ICUResourceBundleReader implements ICUBinary.Authenticate {
         }
     }
 
-    public ByteBuffer getBinary(int res) {
+    ByteBuffer getBinary(int res) {
         int offset=RES_GET_OFFSET(res);
         int length;
         if(RES_GET_TYPE(res)==UResourceBundle.BINARY) {
@@ -788,7 +655,7 @@ public final class ICUResourceBundleReader implements ICUBinary.Authenticate {
         }
     }
 
-    public int[] getIntVector(int res) {
+    int[] getIntVector(int res) {
         int offset=RES_GET_OFFSET(res);
         int length;
         if(RES_GET_TYPE(res)==UResourceBundle.INT_VECTOR) {
@@ -801,6 +668,161 @@ public final class ICUResourceBundleReader implements ICUBinary.Authenticate {
             }
         } else {
             return null;
+        }
+    }
+
+    Container getArray(int res) {
+        switch(res) {
+        case UResourceBundle.ARRAY:
+            return new Array(this, res);
+        case ICUResourceBundle.ARRAY16:
+            return new Array16(this, res);
+        default:
+            return null;
+        }
+    }
+
+    Table getTable(int res) {
+        switch(res) {
+        case UResourceBundle.TABLE:
+            return new Table1632(this, res);
+        case ICUResourceBundle.TABLE16:
+            return new Table16(this, res);
+        case ICUResourceBundle.TABLE32:
+            return new Table32(this, res);
+        default:
+            return null;
+        }
+    }
+
+    // Container value classes --------------------------------------------- ***
+
+    static class Container {
+        protected ICUResourceBundleReader reader;
+        protected int size;
+        protected int itemsOffset;
+
+        public int getSize() {
+            return size;
+        }
+        public int getContainerResource(int index) {
+            return ICUResourceBundle.RES_BOGUS;
+        }
+        protected int getContainer16Resource(int index) {
+            if (index < 0 || size <= index) {
+                return ICUResourceBundle.RES_BOGUS;
+            }
+            return (ICUResourceBundle.STRING_V2 << 28) |
+                   reader.s16BitUnits.charAt(itemsOffset + index);
+        }
+        protected int getContainer32Resource(int index) {
+            if (index < 0 || size <= index) {
+                return ICUResourceBundle.RES_BOGUS;
+            }
+            return reader.getInt(itemsOffset + 4 * index);
+        }
+        Container(ICUResourceBundleReader reader) {
+            this.reader = reader;
+        }
+    }
+    private static final class Array extends Container {
+        public int getContainerResource(int index) {
+            return getContainer32Resource(index);
+        }
+        Array(ICUResourceBundleReader reader, int resource) {
+            super(reader);
+            int offset = reader.getResourceByteOffset(resource);
+            size = reader.getInt(offset);
+            itemsOffset = offset + 4;
+        }
+    }
+    private static final class Array16 extends Container {
+        public int getContainerResource(int index) {
+            return getContainer16Resource(index);
+        }
+        Array16(ICUResourceBundleReader reader, int resource) {
+            super(reader);
+            int offset = ICUResourceBundleReader.RES_GET_OFFSET(resource);
+            size = reader.s16BitUnits.charAt(offset);
+            itemsOffset = offset + 1;
+        }
+    }
+    static class Table extends Container {
+        protected char[] keyOffsets;
+        protected int[] key32Offsets;
+
+        public String getKey(int index) {
+            return keyOffsets != null ?
+                        reader.getKey16String(keyOffsets[index]) :
+                        reader.getKey32String(key32Offsets[index]);
+        }
+        private static final int URESDATA_ITEM_NOT_FOUND = -1;
+        public int findTableItem(CharSequence key) {
+            int mid, start, limit;
+            int result;
+
+            /* do a binary search for the key */
+            start=0;
+            limit=size;
+            while(start<limit) {
+                mid = (start + limit) / 2;
+                if (keyOffsets != null) {
+                    result = reader.compareKeys(key, keyOffsets[mid]);
+                } else {
+                    result = reader.compareKeys32(key, key32Offsets[mid]);
+                }
+                if (result < 0) {
+                    limit = mid;
+                } else if (result > 0) {
+                    start = mid + 1;
+                } else {
+                    /* We found it! */
+                    return mid;
+                }
+            }
+            return URESDATA_ITEM_NOT_FOUND;  /* not found or table is empty. */
+        }
+        public int getTableResource(String resKey) {
+            return getContainerResource(findTableItem(resKey));
+        }
+        Table(ICUResourceBundleReader reader) {
+            super(reader);
+        }
+    }
+    private static final class Table1632 extends Table {
+        public int getContainerResource(int index) {
+            return getContainer32Resource(index);
+        }
+        Table1632(ICUResourceBundleReader reader, int resource) {
+            super(reader);
+            int offset = reader.getResourceByteOffset(resource);
+            keyOffsets = reader.getTableKeyOffsets(offset);
+            size = keyOffsets.length;
+            itemsOffset = offset + 2 * ((size + 2) & ~1);  // Skip padding for 4-alignment.
+        }
+    }
+    private static final class Table16 extends Table {
+        public int getContainerResource(int index) {
+            return getContainer16Resource(index);
+        }
+        Table16(ICUResourceBundleReader reader, int resource) {
+            super(reader);
+            int offset = ICUResourceBundleReader.RES_GET_OFFSET(resource);
+            keyOffsets = reader.getTable16KeyOffsets(offset);
+            size = keyOffsets.length;
+            itemsOffset = offset + 1 + size;
+        }
+    }
+    private static final class Table32 extends Table {
+        public int getContainerResource(int index) {
+            return getContainer32Resource(index);
+        }
+        Table32(ICUResourceBundleReader reader, int resource) {
+            super(reader);
+            int offset = reader.getResourceByteOffset(resource);
+            key32Offsets = reader.getTable32KeyOffsets(offset);
+            size = key32Offsets.length;
+            itemsOffset = offset + 4 * (1 + size);
         }
     }
 }

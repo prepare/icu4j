@@ -125,7 +125,6 @@ public  class ICUResourceBundle extends UResourceBundle {
         }
      }
 
-
     /**
      * Returns the respath of this bundle
      * @return
@@ -727,7 +726,7 @@ public  class ICUResourceBundle extends UResourceBundle {
         if(localeName.indexOf('@')>0){
             localeName = ULocale.getBaseName(localeID);
         }
-        String fullName = ICUResourceBundleReader.getFullName(baseName, localeName);
+        String fullName = getFullName(baseName, localeName);
         ICUResourceBundle b = (ICUResourceBundle)loadFromCache(root, fullName, defaultLocale);
 
         // here we assume that java type resource bundle organization
@@ -805,8 +804,7 @@ public  class ICUResourceBundle extends UResourceBundle {
                 obj = (ICUResourceBundle)obj.get(aKey, table, requested);
             }
             if (obj == null) {
-                String fullName = ICUResourceBundleReader.getFullName(
-                        getBaseName(), getLocaleID());
+                String fullName = getFullName(getBaseName(), getLocaleID());
                 throw new MissingResourceException(
                         "Can't find resource for bundle " + fullName + ", key "
                                 + aKey, this.getClass().getName(), aKey);
@@ -815,6 +813,39 @@ public  class ICUResourceBundle extends UResourceBundle {
         ((ICUResourceBundle)obj).setLoadingStatus(((ICUResourceBundle)requested).getLocaleID());
         return obj;
     }
+
+    private static final String ICU_RESOURCE_SUFFIX = ".res";
+    /**
+     * Gets the full name of the resource with suffix.
+     */
+    public static String getFullName(String baseName, String localeName){
+        if(baseName==null || baseName.length()==0){
+            if(localeName.length()==0){
+                return localeName=ULocale.getDefault().toString();   
+            }
+            return localeName+ICU_RESOURCE_SUFFIX;
+        }else{
+            if(baseName.indexOf('.')==-1){
+                if(baseName.charAt(baseName.length()-1)!= '/'){
+                    return baseName+"/"+localeName+ICU_RESOURCE_SUFFIX;
+                }else{
+                    return baseName+localeName+ICU_RESOURCE_SUFFIX;   
+                }
+            }else{
+                baseName = baseName.replace('.','/');
+                if(localeName.length()==0){
+                    return baseName+ICU_RESOURCE_SUFFIX;   
+                }else{
+                    return baseName+"_"+localeName+ICU_RESOURCE_SUFFIX;
+                }
+            }
+        }
+    }
+
+    protected String localeID;
+    protected String baseName;
+    protected ULocale ulocale;
+    protected ClassLoader loader;
 
     /**
      * Access to the bits and bytes of the resource bundle.
@@ -826,10 +857,41 @@ public  class ICUResourceBundle extends UResourceBundle {
     /** Data member where the subclasses store the offset within resource data. */
     protected int resource;
 
-    protected String localeID;
-    protected String baseName;
-    protected ULocale ulocale;
-    protected ClassLoader loader;
+    /**
+     * A resource word value that means "no resource".
+     * Note: 0xffffffff == -1
+     * This has the same value as UResourceBundle.NONE, but they are semantically
+     * different and should be used appropriately according to context:
+     * NONE means "no type".
+     * (The type of RES_BOGUS is RES_RESERVED=15 which was defined in ICU4C ures.h.)
+     */
+    public static final int RES_BOGUS = 0xffffffff;
+
+    /**
+     * Resource type constant for aliases;
+     * internally stores a string which identifies the actual resource
+     * storing the data (can be in a different resource bundle).
+     * Resolved internally before delivering the actual resource through the API.
+     */
+    public static final int ALIAS = 3;
+
+    /** Resource type constant for tables with 32-bit count, key offsets and values. */
+    public static final int TABLE32 = 4;
+
+    /**
+     * Resource type constant for tables with 16-bit count, key offsets and values.
+     * All values are STRING_V2 strings.
+     */
+    public static final int TABLE16 = 5;
+
+    /** Resource type constant for 16-bit Unicode strings in formatVersion 2. */
+    public static final int STRING_V2 = 6;
+
+    /**
+     * Resource type constant for arrays with 16-bit count and values.
+     * All values are STRING_V2 strings.
+     */
+    public static final int ARRAY16 = 9;
 
     /**
      *
@@ -840,7 +902,8 @@ public  class ICUResourceBundle extends UResourceBundle {
      */
     public static ICUResourceBundle createBundle(String baseName,
             String localeID, ClassLoader root) {
-        ICUResourceBundleReader reader = ICUResourceBundleReader.getReader( baseName, "de_AT" /* TODO: localeID */, root);
+        String resolvedName = getFullName(baseName, "de_AT" /* TODO: localeID */);
+        ICUResourceBundleReader reader = ICUResourceBundleReader.getReader(resolvedName, root);
         // could not open the .res file so return null
         if (reader == null) {
             return null;
@@ -872,8 +935,30 @@ public  class ICUResourceBundle extends UResourceBundle {
         return key;
     }
 
+    private static final int[] gPublicTypes = new int[] {
+        STRING,
+        BINARY,
+        TABLE,
+        ALIAS,
+
+        TABLE,      /* TABLE32 */
+        TABLE,      /* TABLE16 */
+        STRING,     /* STRING_V2 */
+        INT,
+
+        ARRAY,
+        ARRAY,      /* ARRAY16 */
+        NONE,
+        NONE,
+
+        NONE,
+        NONE,
+        INT_VECTOR,
+        NONE
+    };
+
     public int getType() {
-        return ICUResourceBundleReader.getPublicType(resource);
+        return gPublicTypes[ICUResourceBundleReader.RES_GET_TYPE(resource)];
     }
 
     /**
@@ -889,17 +974,9 @@ public  class ICUResourceBundle extends UResourceBundle {
                                                ClassLoader loader) {
         ICUResourceBundleImpl bundle;
         int rootRes = reader.getRootResource();
-        switch(ICUResourceBundleReader.RES_GET_TYPE(reader.getRootResource())) {
-        case TABLE:
+        if(gPublicTypes[ICUResourceBundleReader.RES_GET_TYPE(rootRes)] == TABLE) {
             bundle = new ICUResourceBundleImpl.ResourceTable(reader, null, "", rootRes, null);
-            break;
-        case ICUResourceBundleReader.TABLE16:
-            bundle = new ICUResourceBundleImpl.ResourceTable16(reader, null, "", rootRes, null);
-            break;
-        case ICUResourceBundleReader.TABLE32:
-            bundle = new ICUResourceBundleImpl.ResourceTable32(reader, null, "", rootRes, null);
-            break;
-        default:
+        } else {
             throw new IllegalStateException("Invalid format error");
         }
         bundle.baseName = baseName;
@@ -907,8 +984,8 @@ public  class ICUResourceBundle extends UResourceBundle {
         bundle.ulocale = new ULocale(localeID);
         bundle.loader = loader;
         if(bundle.reader.getUsesPoolBundle()) {
-            ((ICUResourceBundleImpl)UResourceBundle.getBundleInstance(baseName, "pool")).
-                setThisAsPoolBundleFor(bundle);
+            bundle.reader.setPoolBundleKeys(
+                ((ICUResourceBundleImpl)UResourceBundle.getBundleInstance(baseName, "pool")).reader);
         }
         UResourceBundle alias = bundle.handleGetImpl("%%ALIAS", null, bundle, null, null); // handleGet will cache the bundle with no parent set
         if(alias != null) {
@@ -1107,10 +1184,10 @@ public  class ICUResourceBundle extends UResourceBundle {
      * @author Brian Rower
      */
     protected int getTableResource(String resKey) {
-        return UResourceBundle.NONE;
+        return RES_BOGUS;
     }
     protected int getTableResource(int index) {
-        return UResourceBundle.NONE;
+        return RES_BOGUS;
     }
 
     /**
@@ -1128,8 +1205,7 @@ public  class ICUResourceBundle extends UResourceBundle {
     {
         //TODO this is part of a workaround for ticket #6514
         //if index is out of the resource, return false.
-        return ICUResourceBundleReader.RES_GET_TYPE(getTableResource(index)) ==
-               ICUResourceBundleReader.ALIAS;
+        return ICUResourceBundleReader.RES_GET_TYPE(getTableResource(index)) == ALIAS;
     }
 
     /**
@@ -1141,8 +1217,7 @@ public  class ICUResourceBundle extends UResourceBundle {
     public boolean isAlias()
     {
         //TODO this is part of a workaround for ticket #6514
-        return ICUResourceBundleReader.RES_GET_TYPE(resource) ==
-               ICUResourceBundleReader.ALIAS;
+        return ICUResourceBundleReader.RES_GET_TYPE(resource) == ALIAS;
     }
 
     /**
@@ -1160,8 +1235,7 @@ public  class ICUResourceBundle extends UResourceBundle {
     {
         //TODO this is part of a workaround for ticket #6514
         //this only applies to tables
-        return ICUResourceBundleReader.RES_GET_TYPE(getTableResource(k)) ==
-               ICUResourceBundleReader.ALIAS;
+        return ICUResourceBundleReader.RES_GET_TYPE(getTableResource(k)) == ALIAS;
     }
 
     public String getAliasValue(int res) {
@@ -1251,7 +1325,7 @@ public  class ICUResourceBundle extends UResourceBundle {
             String itemKey;
             int itemResource = getTableResource(i);
             int itemType = ICUResourceBundleReader.RES_GET_TYPE(itemResource);
-            if(itemType == UResourceBundle.NONE || itemType == ICUResourceBundleReader.ALIAS) {
+            if(itemResource == RES_BOGUS || itemType == ALIAS) {
                 // Complicated behavior.
                 itemKey = get(i).getKey();
             } else {

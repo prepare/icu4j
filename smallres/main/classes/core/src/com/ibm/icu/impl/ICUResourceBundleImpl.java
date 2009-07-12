@@ -18,9 +18,6 @@ class ICUResourceBundleImpl extends ICUResourceBundle {
                                     ICUResourceBundleImpl container) {
         super(reader, key, resPath, resource, container);
     }
-    public void setThisAsPoolBundleFor(ICUResourceBundleImpl target) {
-        target.reader.setPoolBundleKeys(reader);
-    }
     protected final ICUResourceBundle createBundleObject(String _key,
                                                          int _resource,
                                                          HashMap<String, String> table,
@@ -32,11 +29,11 @@ class ICUResourceBundleImpl extends ICUResourceBundle {
         String _resPath = resPath + "/" + _key;
         switch(ICUResourceBundleReader.RES_GET_TYPE(_resource)) {
         case STRING :
-        case ICUResourceBundleReader.STRING_V2:
+        case STRING_V2:
             return new ICUResourceBundleImpl.ResourceString(reader, _key, _resPath, _resource, this);
         case BINARY:
             return new ICUResourceBundleImpl.ResourceBinary(reader, _key, _resPath, _resource, this);
-        case ICUResourceBundleReader.ALIAS:
+        case ALIAS:
             if (isAlias != null) {
                 isAlias[0] = true;
             }
@@ -46,29 +43,94 @@ class ICUResourceBundleImpl extends ICUResourceBundle {
         case INT_VECTOR:
             return new ICUResourceBundleImpl.ResourceIntVector(reader, _key, _resPath, _resource, this);
         case ARRAY:
+        case ARRAY16:
             return new ICUResourceBundleImpl.ResourceArray(reader, _key, _resPath, _resource, this);
-        case ICUResourceBundleReader.ARRAY16:
-            return new ICUResourceBundleImpl.ResourceArray16(reader, _key, _resPath, _resource, this);
-        case ICUResourceBundleReader.TABLE32:
-            return new ICUResourceBundleImpl.ResourceTable32(reader, _key, _resPath, _resource, this);
         case TABLE:
+        case TABLE16:
+        case TABLE32:
             return new ICUResourceBundleImpl.ResourceTable(reader, _key, _resPath, _resource, this);
-        case ICUResourceBundleReader.TABLE16:
-            return new ICUResourceBundleImpl.ResourceTable16(reader, _key, _resPath, _resource, this);
         default :
             throw new IllegalStateException("The resource type is unknown");
         }
     }
 
-    static class ResourceArrayBase extends ICUResourceBundleImpl {
-        protected int size;
-        protected int itemsOffset;
+    // Scalar values ------------------------------------------------------- ***
+
+    private static final class ResourceBinary extends ICUResourceBundleImpl {
+        public ByteBuffer getBinary() {
+            return reader.getBinary(resource);
+        }
+        public byte [] getBinary(byte []ba) {
+            return reader.getBinary(resource, ba);
+        }
+        ResourceBinary(ICUResourceBundleReader reader, String key, String resPath, int resource,
+                       ICUResourceBundleImpl container) {
+            super(reader, key, resPath, resource, container);
+        }
+    }
+    private static final class ResourceInt extends ICUResourceBundleImpl {
+        public int getInt() {
+            return ICUResourceBundleReader.RES_GET_INT(resource);
+        }
+        public int getUInt() {
+            return ICUResourceBundleReader.RES_GET_UINT(resource);
+        }
+        ResourceInt(ICUResourceBundleReader reader, String key, String resPath, int resource,
+                    ICUResourceBundleImpl container) {
+            super(reader, key, resPath, resource, container);
+        }
+    }
+    private static final class ResourceString extends ICUResourceBundleImpl {
+        private String value;
+        public String getString() {
+            return value;
+        }
+        ResourceString(ICUResourceBundleReader reader, String key, String resPath, int resource,
+                       ICUResourceBundleImpl container) {
+            super(reader, key, resPath, resource, container);
+            value = reader.getString(resource);
+        }
+    }
+    private static final class ResourceIntVector extends ICUResourceBundleImpl {
+        private int[] value;
+        public int[] getIntVector() {
+            return value;
+        }
+        ResourceIntVector(ICUResourceBundleReader reader, String key, String resPath, int resource,
+                          ICUResourceBundleImpl container) {
+            super(reader, key, resPath, resource, container);
+            value = reader.getIntVector(resource);
+        }
+    }
+
+    // Container values ---------------------------------------------------- ***
+
+    private static class ResourceContainer extends ICUResourceBundleImpl {
+        protected ICUResourceBundleReader.Container value;
 
         public int getSize() {
-            return size;
+            return value.getSize();
         }
+        protected int getContainerResource(int index) {
+            return value.getContainerResource(index);
+        }
+        protected UResourceBundle createBundleObject(int index, String resKey, HashMap<String, String> table,
+                                                     UResourceBundle requested, boolean[] isAlias) {
+            int item = getContainerResource(index);
+            if (item == RES_BOGUS) {
+                throw new IndexOutOfBoundsException();
+            }
+            return createBundleObject(resKey, item, table, requested, isAlias);
+        }
+        ResourceContainer(ICUResourceBundleReader reader, String key, String resPath, int resource,
+                          ICUResourceBundleImpl container) {
+            super(reader, key, resPath, resource, container);
+            createLookupCache(); // Use bundle cache to access container entries
+        }
+    }
+    private static class ResourceArray extends ResourceContainer {
         protected String[] handleGetStringArray() {
-            String[] strings = new String[size];
+            String[] strings = new String[value.getSize()];
             UResourceBundleIterator iter = getIterator();
             int i = 0;
             while (iter.hasNext()) {
@@ -86,257 +148,49 @@ class ICUResourceBundleImpl extends ICUResourceBundle {
             if(index != null) {
                 index[0] = i;
             }
-            if (i >= 0) {
-                return handleGetImpl(i, table, requested, isAlias);
+            if (i < 0) {
+                throw new UResourceTypeMismatchException("Could not get the correct value for index: "+ index);
             }
-            throw new UResourceTypeMismatchException("Could not get the correct value for index: "+ index);
+            return createBundleObject(i, indexStr, table, requested, isAlias);
         }
-        ResourceArrayBase(ICUResourceBundleReader reader, String key, String resPath, int resource,
-                          ICUResourceBundleImpl container) {
-            super(reader, key, resPath, resource, container);
-            createLookupCache(); // Use bundle cache to access array entries
-        }
-    }
-    static final class ResourceArray extends ResourceArrayBase {
         protected UResourceBundle handleGetImpl(int index, HashMap<String, String> table,
                                                 UResourceBundle requested, boolean[] isAlias) {
-            if (index < 0 || size <= index) {
-                throw new IndexOutOfBoundsException();
-            }
-            int item = reader.getInt(itemsOffset + 4 * index);
-            return createBundleObject(Integer.toString(index), item, table, requested, isAlias);
+            return createBundleObject(index, Integer.toString(index), table, requested, isAlias);
         }
         ResourceArray(ICUResourceBundleReader reader, String key, String resPath, int resource,
                       ICUResourceBundleImpl container) {
             super(reader, key, resPath, resource, container);
-            int offset = reader.getResourceByteOffset(resource);
-            size = reader.getInt(offset);
-            itemsOffset = offset + 4;
+            value = reader.getArray(resource);
         }
     }
-    static final class ResourceArray16 extends ResourceArrayBase {
-        protected UResourceBundle handleGetImpl(int index, HashMap<String, String> table,
-                                                UResourceBundle requested, boolean[] isAlias) {
-            if (index < 0 || size <= index) {
-                throw new IndexOutOfBoundsException();
-            }
-            int item = reader.get16BitResource(itemsOffset + index);
-            return createBundleObject(Integer.toString(index), item, table, requested, isAlias);
-        }
-        ResourceArray16(ICUResourceBundleReader reader, String key, String resPath, int resource,
-                        ICUResourceBundleImpl container) {
-            super(reader, key, resPath, resource, container);
-            int offset = ICUResourceBundleReader.RES_GET_OFFSET(resource);
-            size = reader.get16BitUnit(offset);
-            itemsOffset = offset + 1;
-        }
-    }
-    static final class ResourceBinary extends ICUResourceBundleImpl {
-        public ByteBuffer getBinary() {
-            return reader.getBinary(resource);
-        }
-        public byte [] getBinary(byte []ba) {
-            return reader.getBinary(resource, ba);
-        }
-        ResourceBinary(ICUResourceBundleReader reader, String key, String resPath, int resource,
-                       ICUResourceBundleImpl container) {
-            super(reader, key, resPath, resource, container);
-        }
-    }
-    static final class ResourceInt extends ICUResourceBundleImpl {
-        public int getInt() {
-            return ICUResourceBundleReader.RES_GET_INT(resource);
-        }
-        public int getUInt() {
-            return ICUResourceBundleReader.RES_GET_UINT(resource);
-        }
-        ResourceInt(ICUResourceBundleReader reader, String key, String resPath, int resource,
-                    ICUResourceBundleImpl container) {
-            super(reader, key, resPath, resource, container);
-        }
-    }
-    static final class ResourceString extends ICUResourceBundleImpl {
-        private String value;
-        public String getString() {
-            return value;
-        }
-        ResourceString(ICUResourceBundleReader reader, String key, String resPath, int resource,
-                       ICUResourceBundleImpl container) {
-            super(reader, key, resPath, resource, container);
-            value = reader.getString(resource);
-        }
-    }
-    static final class ResourceIntVector extends ICUResourceBundleImpl {
-        private int[] value;
-        public int[] getIntVector() {
-            return value;
-        }
-        ResourceIntVector(ICUResourceBundleReader reader, String key, String resPath, int resource,
-                          ICUResourceBundleImpl container) {
-            super(reader, key, resPath, resource, container);
-            value = reader.getIntVector(resource);
-        }
-    }
-    static final class ResourceTable extends ICUResourceBundleImpl {
-        private char[] keyOffsets;
-        private int itemsOffset;
-
-        public int getSize() {
-            return keyOffsets.length;
-        }
+    static class ResourceTable extends ResourceContainer {
         protected int getTableResource(String resKey) {
-            int index = reader.findTableItem(keyOffsets, resKey);
-            if (index < 0) {
-                return UResourceBundle.NONE;
-            }
-            return reader.getInt(itemsOffset + 4 * index);
+            return ((ICUResourceBundleReader.Table)value).getTableResource(resKey);
         }
         protected int getTableResource(int index) {
-            if (index < 0 || keyOffsets.length <= index) {
-                return UResourceBundle.NONE;
-            }
-            return reader.getInt(itemsOffset + 4 * index);
-        }
-        protected String getKey(int index) {
-            return reader.getKey16String(keyOffsets[index]);
+            return getContainerResource(index);
         }
         protected UResourceBundle handleGetImpl(String resKey, HashMap<String, String> table,
                                                 UResourceBundle requested,
                                                 int[] index, boolean[] isAlias) {
-            int i = reader.findTableItem(keyOffsets, resKey);
+            int i = ((ICUResourceBundleReader.Table)value).findTableItem(resKey);
             if(index != null) {
                 index[0] = i;
             }
             if (i < 0) {
                 return null;
             }
-            int item = reader.getInt(itemsOffset + 4 * i);
-            return createBundleObject(resKey, item, table, requested, isAlias);
+            return createBundleObject(i, resKey, table, requested, isAlias);
         }
         protected UResourceBundle handleGetImpl(int index, HashMap<String, String> table,
                                                 UResourceBundle requested, boolean[] isAlias) {
-            if (index < 0 || keyOffsets.length <= index) {
-                throw new IndexOutOfBoundsException();
-            }
-            int item = reader.getInt(itemsOffset + 4 * index);
-            String itemKey = reader.getKey16String(keyOffsets[index]);
-            return createBundleObject(itemKey, item, table, requested, isAlias);
+            String itemKey = ((ICUResourceBundleReader.Table)value).getKey(index);
+            return createBundleObject(index, itemKey, table, requested, isAlias);
         }
         ResourceTable(ICUResourceBundleReader reader, String key, String resPath, int resource,
                       ICUResourceBundleImpl container) {
             super(reader, key, resPath, resource, container);
-            int offset = reader.getResourceByteOffset(resource);
-            keyOffsets = reader.getTableKeyOffsets(offset);
-            itemsOffset = offset + 2 * ((keyOffsets.length + 2) & ~1);  // Skip padding for 4-alignment.
-            createLookupCache(); // Use bundle cache to access nested resources
-        }
-    }
-    static final class ResourceTable16 extends ICUResourceBundleImpl {
-        private char[] keyOffsets;
-        private int itemsOffset;
-
-        public int getSize() {
-            return keyOffsets.length;
-        }
-        protected int getTableResource(String resKey) {
-            int index = reader.findTableItem(keyOffsets, resKey);
-            if (index < 0) {
-                return UResourceBundle.NONE;
-            }
-            return reader.get16BitResource(itemsOffset + index);
-        }
-        protected int getTableResource(int index) {
-            if (index < 0 || keyOffsets.length <= index) {
-                return UResourceBundle.NONE;
-            }
-            return reader.get16BitResource(itemsOffset + index);
-        }
-        protected String getKey(int index) {
-            return reader.getKey16String(keyOffsets[index]);
-        }
-        protected UResourceBundle handleGetImpl(String resKey, HashMap<String, String> table,
-                                                UResourceBundle requested,
-                                                int[] index, boolean[] isAlias) {
-            int i = reader.findTableItem(keyOffsets, resKey);
-            if(index != null) {
-                index[0] = i;
-            }
-            if (i < 0) {
-                return null;
-            }
-            int item = reader.get16BitResource(itemsOffset + i);
-            return createBundleObject(resKey, item, table, requested, isAlias);
-        }
-        protected UResourceBundle handleGetImpl(int index, HashMap<String, String> table,
-                                                UResourceBundle requested, boolean[] isAlias) {
-            if (index < 0 || keyOffsets.length <= index) {
-                throw new IndexOutOfBoundsException();
-            }
-            int item = reader.get16BitResource(itemsOffset + index);
-            String itemKey = reader.getKey16String(keyOffsets[index]);
-            return createBundleObject(itemKey, item, table, requested, isAlias);
-        }
-        ResourceTable16(ICUResourceBundleReader reader, String key, String resPath, int resource,
-                        ICUResourceBundleImpl container) {
-            super(reader, key, resPath, resource, container);
-            int offset = ICUResourceBundleReader.RES_GET_OFFSET(resource);
-            keyOffsets = reader.getTable16KeyOffsets(offset);
-            itemsOffset = offset + 1 + keyOffsets.length;
-            createLookupCache(); // Use bundle cache to access nested resources
-        }
-    }
-    static final class ResourceTable32 extends ICUResourceBundleImpl {
-        private int[] keyOffsets;
-        private int itemsOffset;
-
-        public int getSize() {
-            return keyOffsets.length;
-        }
-        protected int getTableResource(String resKey) {
-            int index = reader.findTable32Item(keyOffsets, resKey);
-            if (index < 0) {
-                return UResourceBundle.NONE;
-            }
-            return reader.getInt(itemsOffset + 4 * index);
-        }
-        protected int getTableResource(int index) {
-            if (index < 0 || keyOffsets.length <= index) {
-                return UResourceBundle.NONE;
-            }
-            return reader.getInt(itemsOffset + 4 * index);
-        }
-        protected String getKey(int index) {
-            return reader.getKey32String(keyOffsets[index]);
-        }
-        protected UResourceBundle handleGetImpl(String resKey, HashMap<String, String> table,
-                                                UResourceBundle requested,
-                                                int[] index, boolean[] isAlias) {
-            int i = reader.findTable32Item(keyOffsets, resKey);
-            if(index != null) {
-                index[0] = i;
-            }
-            if (i < 0) {
-                return null;
-            }
-            int item = reader.getInt(itemsOffset + 4 * i);
-            return createBundleObject(resKey, item, table, requested, isAlias);
-        }
-        protected UResourceBundle handleGetImpl(int index, HashMap<String, String> table,
-                                                UResourceBundle requested, boolean[] isAlias) {
-            if (index < 0 || keyOffsets.length <= index) {
-                throw new IndexOutOfBoundsException();
-            }
-            int item = reader.getInt(itemsOffset + 4 * index);
-            String itemKey = reader.getKey32String(keyOffsets[index]);
-            return createBundleObject(itemKey, item, table, requested, isAlias);
-        }
-        ResourceTable32(ICUResourceBundleReader reader, String key, String resPath, int resource,
-                        ICUResourceBundleImpl container) {
-            super(reader, key, resPath, resource, container);
-            int offset = reader.getResourceByteOffset(resource);
-            keyOffsets = reader.getTable32KeyOffsets(offset);
-            itemsOffset = offset + 4 * (1 + keyOffsets.length);
-            createLookupCache(); // Use bundle cache to access nested resources
+            value = reader.getTable(resource);
         }
     }
 }

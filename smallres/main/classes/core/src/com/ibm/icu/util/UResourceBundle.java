@@ -517,7 +517,7 @@ public abstract class UResourceBundle extends ResourceBundle{
         {
         case ROOT_ICU:
             if(disableFallback) {
-                String fullName = ICUResourceBundleReader.getFullName(baseName, localeName);
+                String fullName = ICUResourceBundle.getFullName(baseName, localeName);
                 synchronized(cacheKey){
                     cacheKey.setKeyValues(root, fullName, defaultLocale);
                     b = loadFromCache(cacheKey);
@@ -668,8 +668,7 @@ public abstract class UResourceBundle extends ResourceBundle{
                 obj = res.handleGet(aKey, null, this);
             }
             if (obj == null) {
-                String fullName = ICUResourceBundleReader.getFullName(
-                        getBaseName(), getLocaleID());
+                String fullName = ICUResourceBundle.getFullName(getBaseName(), getLocaleID());
                 throw new MissingResourceException(
                         "Can't find resource for bundle " + fullName + ", key "
                                 + aKey, this.getClass().getName(), aKey);
