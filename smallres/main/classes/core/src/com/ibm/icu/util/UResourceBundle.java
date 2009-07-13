@@ -19,7 +19,6 @@ import java.util.Vector;
 
 import com.ibm.icu.impl.ICUCache;
 import com.ibm.icu.impl.ICUResourceBundle;
-import com.ibm.icu.impl.ICUResourceBundleReader;
 import com.ibm.icu.impl.ResourceBundleWrapper;
 import com.ibm.icu.impl.SimpleCache;
 
@@ -545,9 +544,9 @@ public abstract class UResourceBundle extends ResourceBundle{
     }
 
     /**
-     * Returns a binary data from a binary resource.
+     * Returns a binary data item from a binary resource, as a read-only ByteBuffer.
      *
-     * @return a pointer to a chuck of unsigned bytes which live in a memory mapped/DLL file.
+     * @return a pointer to a chunk of unsigned bytes which live in a memory mapped/DLL file.
      * @see #getIntVector
      * @see #getInt
      * @throws MissingResourceException
@@ -588,10 +587,11 @@ public abstract class UResourceBundle extends ResourceBundle{
     }
 
     /**
-     * Returns a binary data from a binary resource.
+     * Returns a binary data from a binary resource, as a byte array with a copy
+     * of the bytes from the resource bundle.
      *
      * @param ba  The byte array to write the bytes to. A null variable is OK.
-     * @return an array bytes containing the binary data from the resource.
+     * @return an array of bytes containing the binary data from the resource.
      * @see #getIntVector
      * @see #getInt
      * @throws MissingResourceException
