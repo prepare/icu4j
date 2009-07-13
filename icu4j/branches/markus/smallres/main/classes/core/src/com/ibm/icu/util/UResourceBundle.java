@@ -324,7 +324,7 @@ public abstract class UResourceBundle extends ResourceBundle{
     }
 
     /**
-     * Method used by subclasses to add the a particular resource bundle object to the managed cache
+     * Method used by subclasses to add a resource bundle object to the managed cache
      * @internal revisit for ICU 3.6
      * @deprecated This API is ICU internal only.
      */
@@ -548,7 +548,6 @@ public abstract class UResourceBundle extends ResourceBundle{
             return b;
         }
     }
-
 
     /**
      * Returns a binary data from a binary resource.

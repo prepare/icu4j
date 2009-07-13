@@ -737,7 +737,7 @@ public  class ICUResourceBundle extends UResourceBundle {
         // com.mycompany.data.MyLocaleElements.res
         //
         final String rootLocale = (baseName.indexOf('.')==-1) ? "root" : "";
-        final String defaultID = ULocale.getDefault().toString();
+        final String defaultID = defaultLocale.toString();
 
         if(localeName.equals("")){
             localeName = rootLocale;
@@ -902,7 +902,7 @@ public  class ICUResourceBundle extends UResourceBundle {
      */
     public static ICUResourceBundle createBundle(String baseName,
             String localeID, ClassLoader root) {
-        String resolvedName = getFullName(baseName, "de_AT" /* TODO: localeID */);
+        String resolvedName = getFullName(baseName, localeID);
         ICUResourceBundleReader reader = ICUResourceBundleReader.getReader(resolvedName, root);
         // could not open the .res file so return null
         if (reader == null) {
@@ -985,7 +985,7 @@ public  class ICUResourceBundle extends UResourceBundle {
         bundle.loader = loader;
         if(bundle.reader.getUsesPoolBundle()) {
             bundle.reader.setPoolBundleKeys(
-                ((ICUResourceBundleImpl)UResourceBundle.getBundleInstance(baseName, "pool")).reader);
+                ((ICUResourceBundleImpl)getBundleInstance(baseName, "pool", loader, true)).reader);
         }
         UResourceBundle alias = bundle.handleGetImpl("%%ALIAS", null, bundle, null, null); // handleGet will cache the bundle with no parent set
         if(alias != null) {
@@ -1238,7 +1238,7 @@ public  class ICUResourceBundle extends UResourceBundle {
         return ICUResourceBundleReader.RES_GET_TYPE(getTableResource(k)) == ALIAS;
     }
 
-    public String getAliasValue(int res) {
+    private String getAliasValue(int res) {
         String result = reader.getAlias(res);
         return result != null ? result : "";
     }

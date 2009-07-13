@@ -125,7 +125,6 @@ class ICUResourceBundleImpl extends ICUResourceBundle {
         ResourceContainer(ICUResourceBundleReader reader, String key, String resPath, int resource,
                           ICUResourceBundleImpl container) {
             super(reader, key, resPath, resource, container);
-            createLookupCache(); // Use bundle cache to access container entries
         }
     }
     private static class ResourceArray extends ResourceContainer {
@@ -161,6 +160,7 @@ class ICUResourceBundleImpl extends ICUResourceBundle {
                       ICUResourceBundleImpl container) {
             super(reader, key, resPath, resource, container);
             value = reader.getArray(resource);
+            createLookupCache(); // Use bundle cache to access array entries
         }
     }
     static class ResourceTable extends ResourceContainer {
@@ -185,12 +185,16 @@ class ICUResourceBundleImpl extends ICUResourceBundle {
         protected UResourceBundle handleGetImpl(int index, HashMap<String, String> table,
                                                 UResourceBundle requested, boolean[] isAlias) {
             String itemKey = ((ICUResourceBundleReader.Table)value).getKey(index);
+            if (itemKey == null) {
+                throw new IndexOutOfBoundsException();
+            }
             return createBundleObject(index, itemKey, table, requested, isAlias);
         }
         ResourceTable(ICUResourceBundleReader reader, String key, String resPath, int resource,
                       ICUResourceBundleImpl container) {
             super(reader, key, resPath, resource, container);
             value = reader.getTable(resource);
+            createLookupCache(); // Use bundle cache to access table entries
         }
     }
 }
