@@ -355,7 +355,7 @@ public final class ICUResourceBundleReader implements ICUBinary.Authenticate {
                 keysTop -= keysBottom;
                 keysBottom = 0;
             } else {
-                localKeyLimit = keysBottom;
+                localKeyLimit = keysTop;
             }
             keyStrings = new byte[keysTop];
             ds.readFully(keyStrings, keysBottom, keysTop - keysBottom);
@@ -767,7 +767,6 @@ public final class ICUResourceBundleReader implements ICUBinary.Authenticate {
         }
         Array16(ICUResourceBundleReader reader, int offset) {
             super(reader);
-            offset = ICUResourceBundleReader.RES_GET_OFFSET(offset);
             size = reader.s16BitUnits.charAt(offset);
             itemsOffset = offset + 1;
         }
@@ -835,7 +834,6 @@ public final class ICUResourceBundleReader implements ICUBinary.Authenticate {
         }
         Table16(ICUResourceBundleReader reader, int offset) {
             super(reader);
-            offset = ICUResourceBundleReader.RES_GET_OFFSET(offset);
             keyOffsets = reader.getTable16KeyOffsets(offset);
             size = keyOffsets.length;
             itemsOffset = offset + 1 + size;
