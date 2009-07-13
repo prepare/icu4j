@@ -318,20 +318,24 @@ public abstract class UResourceBundle extends ResourceBundle{
         //TODO figure a way around this method(see method comment)
         BUNDLE_CACHE = new SimpleCache<ResourceCacheKey, UResourceBundle>();
     }
-    
-    private static void addToCache(ResourceCacheKey key, UResourceBundle b) {
-        BUNDLE_CACHE.put(key, b);
-    }
 
     /**
-     * Method used by subclasses to add a resource bundle object to the managed cache
+     * Method used by subclasses to add a resource bundle object to the managed cache.
+     * Works like a putIfAbsent(): If the cache already contains a matching bundle,
+     * that one will be retained and returned.
      * @internal revisit for ICU 3.6
      * @deprecated This API is ICU internal only.
      */
-    protected static void addToCache(ClassLoader cl, String fullName, ULocale defaultLocale,  UResourceBundle b){
+    protected static UResourceBundle addToCache(ClassLoader cl, String fullName,
+                                                ULocale defaultLocale, UResourceBundle b) {
         synchronized(cacheKey){
             cacheKey.setKeyValues(cl, fullName, defaultLocale);
-            addToCache((ResourceCacheKey)cacheKey.clone(), b);
+            UResourceBundle cachedBundle = BUNDLE_CACHE.get(cacheKey);
+            if (cachedBundle != null) {
+                return cachedBundle;
+            }
+            BUNDLE_CACHE.put((ResourceCacheKey)cacheKey.clone(), b);
+            return b;
         }
     }
     /**
@@ -342,11 +346,8 @@ public abstract class UResourceBundle extends ResourceBundle{
     protected static UResourceBundle loadFromCache(ClassLoader cl, String fullName, ULocale defaultLocale){
         synchronized(cacheKey){
             cacheKey.setKeyValues(cl, fullName, defaultLocale);
-            return loadFromCache(cacheKey);
+            return BUNDLE_CACHE.get(cacheKey);
         }
-    }
-    private static UResourceBundle loadFromCache(ResourceCacheKey key) {
-        return BUNDLE_CACHE.get(key);
     }
 
     /**
@@ -518,15 +519,9 @@ public abstract class UResourceBundle extends ResourceBundle{
         case ROOT_ICU:
             if(disableFallback) {
                 String fullName = ICUResourceBundle.getFullName(baseName, localeName);
-                synchronized(cacheKey){
-                    cacheKey.setKeyValues(root, fullName, defaultLocale);
-                    b = loadFromCache(cacheKey);
-                }
-
+                b = loadFromCache(root, fullName, defaultLocale);
                 if (b == null) {
                     b = ICUResourceBundle.getBundleInstance(baseName, localeName, root, disableFallback);
-                    //cacheKey.setKeyValues(root, fullName, defaultLocale);
-                    addToCache(cacheKey, b);
                 }
             } else {
                 b = ICUResourceBundle.getBundleInstance(baseName, localeName, root, disableFallback);
