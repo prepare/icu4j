@@ -10,6 +10,8 @@ import java.text.ParseException;
 import java.util.Arrays;
 import java.util.Hashtable;
 
+import com.ibm.icu.impl.ICUResourceBundle;
+import com.ibm.icu.util.UResourceBundle;
 import com.ibm.icu.impl.UCharacterProperty;
 import com.ibm.icu.lang.UCharacter;
 
@@ -36,7 +38,8 @@ final class CollationRuleParser
      */
     CollationRuleParser(String rules) throws ParseException
     {
-        extractSetsFromRules(rules);
+        rules = preprocessRules(rules);
+        System.out.println(rules);
         m_source_ = new StringBuffer(Normalizer.decompose(rules, false).trim());
         m_rules_ = m_source_.toString();
         m_current_ = 0;
@@ -553,7 +556,7 @@ final class CollationRuleParser
         INDIRECT_BOUNDARIES_[14].m_limitCE_
                  = RuleBasedCollator.UCA_CONSTANTS_.PRIMARY_SPECIAL_MIN_ << 24;
 
-        RULES_OPTIONS_ = new TokenOption[19];
+        RULES_OPTIONS_ = new TokenOption[20];
         String option[] = {"non-ignorable", "shifted"};
         int value[] = {RuleBasedCollator.AttributeValue.NON_IGNORABLE_,
                        RuleBasedCollator.AttributeValue.SHIFTED_};
@@ -662,6 +665,9 @@ final class CollationRuleParser
                                   RuleBasedCollator.Attribute.LIMIT_,
                                   null, null);
         RULES_OPTIONS_[18] = new TokenOption("charset",
+                                  RuleBasedCollator.Attribute.LIMIT_,
+                                  null, null);
+        RULES_OPTIONS_[19] = new TokenOption("import",
                                   RuleBasedCollator.Attribute.LIMIT_,
                                   null, null);
     }
@@ -2078,7 +2084,7 @@ final class CollationRuleParser
         return tailored;
     }
 
-    final private void extractSetsFromRules(String rules) throws ParseException {
+    final private String preprocessRules(String rules) throws ParseException {
       int optionNumber = -1;
       int setStart = 0;
       int i = 0;
@@ -2100,9 +2106,34 @@ final class CollationRuleParser
               } else {
                 m_removeSet_.addAll(newSet);
               }
+          } else if(optionNumber == 19) {
+              int optionEndOffset = rules.indexOf(']', i) + 1;
+              //int optionEndOffsetFromLoc = rules.indexOf(']', i) - setStart;
+
+              int extensionIndex = rules.indexOf("-u-coll", i);
+              String locale;
+              String type;
+              if(extensionIndex == -1){
+                  locale = rules.substring(setStart, optionEndOffset-1).trim();
+                  type = "standard";
+              }else{
+                  locale = rules.substring(setStart, extensionIndex);
+                  type = rules.substring(extensionIndex+8, optionEndOffset-1).trim();
+              }
+
+              UResourceBundle bundle = UResourceBundle.getBundleInstance(
+                  ICUResourceBundle.ICU_BASE_NAME + "/coll", locale);
+
+              String importRules = bundle.get("collations")
+                      .get(type)
+                      .get("Sequence")
+                      .getString();
+
+              rules = rules.substring(0, i) + importRules + rules.substring(optionEndOffset);
           }
         }
         i++;
       }
+      return rules;
     }
 }
