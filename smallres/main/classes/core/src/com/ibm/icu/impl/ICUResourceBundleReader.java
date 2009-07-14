@@ -644,7 +644,10 @@ public final class ICUResourceBundleReader implements ICUBinary.Authenticate {
         int length;
         if(RES_GET_TYPE(res)==UResourceBundle.BINARY) {
             if(offset==0) {
-                return emptyByteBuffer;
+                // Don't just
+                //   return emptyByteBuffer;
+                // in case it matters whether the buffer's mark is defined or undefined.
+                return emptyByteBuffer.slice();
             } else {
                 offset=getResourceByteOffset(offset);
                 length=getInt(offset);

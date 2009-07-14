@@ -593,7 +593,7 @@ public final class ICUResourceBundleTest extends TestFmwk {
             if(b.getSize()>0){
                 logln("%%ALIAS mechanism works");
             }else{
-                errln("%%ALIAS mechanism failed for iw_IL collations");
+                errln("%%ALIAS mechanism failed for iw_IL NumberPatterns");
             }
         }else{
             errln("%%ALIAS mechanism failed for iw_IL");

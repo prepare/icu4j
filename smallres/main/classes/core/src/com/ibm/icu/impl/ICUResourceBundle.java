@@ -700,6 +700,9 @@ public  class ICUResourceBundle extends UResourceBundle {
         return sub;
     }
     public boolean equals(Object other) {
+        if (this == other) {
+            return true;
+        }
         if (other instanceof ICUResourceBundle) {
             ICUResourceBundle o = (ICUResourceBundle) other;
             if (getBaseName().equals(o.getBaseName())
@@ -1009,8 +1012,8 @@ public  class ICUResourceBundle extends UResourceBundle {
         }
     }
 
-    private final String getStringValue(int res) {
-        String result = reader.getString(res);
+    private String getAliasValue(int res) {
+        String result = reader.getAlias(res);
         return result != null ? result : "";
     }
     private static final char RES_PATH_SEP_CHAR = '/';
@@ -1025,7 +1028,7 @@ public  class ICUResourceBundle extends UResourceBundle {
         ClassLoader loaderToUse = loader;
         String locale = null, keyPath = null;
         String bundleName;
-        String rpath = getStringValue(_resource);
+        String rpath = getAliasValue(_resource);
         if (table == null) {
             table = new HashMap<String, String>();
         }
@@ -1038,8 +1041,9 @@ public  class ICUResourceBundle extends UResourceBundle {
             int i = rpath.indexOf(RES_PATH_SEP_CHAR, 1);
             int j = rpath.indexOf(RES_PATH_SEP_CHAR, i + 1);
             bundleName = rpath.substring(1, i);
-            locale = rpath.substring(i + 1);
-            if (j != -1) {
+            if (j < 0) {
+                locale = rpath.substring(i + 1);
+            } else {
                 locale = rpath.substring(i + 1, j);
                 keyPath = rpath.substring(j + 1, rpath.length());
             }
@@ -1074,7 +1078,9 @@ public  class ICUResourceBundle extends UResourceBundle {
             keyPath = rpath.substring(LOCALE.length() + 2/* prepending and appending / */, rpath.length());
             locale = ((ICUResourceBundle)requested).getLocaleID();
             sub = ICUResourceBundle.findResourceWithFallback(keyPath, requested, null);
-            sub.resPath = "/" + sub.getLocaleID() + "/" + keyPath;
+            if (sub != null) {
+                sub.resPath = "/" + sub.getLocaleID() + "/" + keyPath;
+            }
         }else{
             if (locale == null) {
                 // {dlf} must use requestor's class loader to get resources from same jar
@@ -1101,7 +1107,9 @@ public  class ICUResourceBundle extends UResourceBundle {
                 // the key of this alias resource
                 sub = (ICUResourceBundle)bundle.get(_key);
             }
-            sub.resPath = rpath;
+            if (sub != null) {
+                sub.resPath = rpath;
+            }
         }
         if (sub == null) {
             throw new MissingResourceException(localeID, baseName, _key);
@@ -1237,10 +1245,6 @@ public  class ICUResourceBundle extends UResourceBundle {
         return ICUResourceBundleReader.RES_GET_TYPE(getTableResource(k)) == ALIAS;
     }
 
-    private String getAliasValue(int res) {
-        String result = reader.getAlias(res);
-        return result != null ? result : "";
-    }
     /**
      * This method can be used to retrieve the underlying alias path (aka where the alias points to)
      * This method was written to allow conversion from ICU back to LDML format.
