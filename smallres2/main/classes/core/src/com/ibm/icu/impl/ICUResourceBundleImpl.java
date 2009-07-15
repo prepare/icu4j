@@ -164,6 +164,9 @@ class ICUResourceBundleImpl extends ICUResourceBundle {
         }
     }
     static class ResourceTable extends ResourceContainer {
+        protected String getKey(int index) {
+            return ((ICUResourceBundleReader.Table)value).getKey(index);
+        }
         protected int getTableResource(String resKey) {
             return ((ICUResourceBundleReader.Table)value).getTableResource(resKey);
         }
