@@ -647,11 +647,11 @@ public final class ICUResourceBundleReader implements ICUBinary.Authenticate {
                 // Don't just
                 //   return emptyByteBuffer;
                 // in case it matters whether the buffer's mark is defined or undefined.
-                return emptyByteBuffer.slice();
+                return emptyByteBuffer.duplicate();
             } else {
                 offset=getResourceByteOffset(offset);
                 length=getInt(offset);
-                return ByteBuffer.wrap(resourceBytes, offset+4, length).asReadOnlyBuffer();
+                return ByteBuffer.wrap(resourceBytes, offset+4, length).slice().asReadOnlyBuffer();
             }
         } else {
             return null;
