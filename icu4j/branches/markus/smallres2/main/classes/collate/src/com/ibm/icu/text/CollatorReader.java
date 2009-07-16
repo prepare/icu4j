@@ -7,7 +7,6 @@
 package com.ibm.icu.text;
 
 import java.io.BufferedInputStream;
-import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
