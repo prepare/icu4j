@@ -20,6 +20,7 @@ import com.ibm.icu.impl.SimpleCache;
 import com.ibm.icu.impl.TimeZoneAdapter;
 import com.ibm.icu.impl.ZoneMeta;
 import com.ibm.icu.text.SimpleDateFormat;
+import com.ibm.icu.impl.ICULogger;
 
 /**
  * <code>TimeZone</code> represents a time zone offset, and also figures out daylight
@@ -99,6 +100,10 @@ import com.ibm.icu.text.SimpleDateFormat;
  * @stable ICU 2.0
  */
 abstract public class TimeZone implements Serializable, Cloneable {
+    /* TODO: Remove (Test for logging API) */
+    public static ICULogger TimeZoneLogger = ICULogger.getICULogger(TimeZone.class.getName());
+
+    
     // using serialver from jdk1.4.2_05
     private static final long serialVersionUID = -744942128318337471L;
 
@@ -552,6 +557,11 @@ abstract public class TimeZone implements Serializable, Cloneable {
                 result = ZoneMeta.getCustomTimeZone(ID);
             }
             if (result == null) {
+                /* TODO: Remove (Test for logging API) */
+                if (TimeZoneLogger != null && TimeZoneLogger.isLoggingOn()) {
+                    TimeZoneLogger.warning("\"" +ID + "\" is a bogus id so timezone is falling back to GMT.");
+                }
+
                 result = ZoneMeta.getGMT();
             }
         }
