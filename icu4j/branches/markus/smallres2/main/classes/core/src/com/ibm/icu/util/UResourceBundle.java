@@ -9,12 +9,16 @@ package com.ibm.icu.util;
 
 import java.lang.ref.SoftReference;
 import java.nio.ByteBuffer;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
 import java.util.MissingResourceException;
 import java.util.ResourceBundle;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.Vector;
 
 import com.ibm.icu.impl.ICUCache;
@@ -716,28 +720,55 @@ public abstract class UResourceBundle extends ResourceBundle{
     }
     /**
      * Returns the keys in this bundle as an enumeration
-     * @return an enumeration containing key strings
+     * @return an enumeration containing key strings,
+     *         which is empty if this is not a bundle or a table resource
      * @stable ICU 3.8
      */
     public Enumeration<String> getKeys() {
-        initKeysVector();
-        return keys.elements();
+        return Collections.enumeration(keySet());
     }
-
-    private Vector<String> keys = null;
-    private synchronized void initKeysVector(){
-        if(keys != null){
-            return;
-        }
-        //ICUResourceBundle current = this;
-        keys = new Vector<String>();
-        Enumeration<String> e = this.handleGetKeys();
-        while(e.hasMoreElements()){
-            String elem = e.nextElement();
-            if(!keys.contains(elem)){
-                keys.add(elem);
+    /**
+     * Returns a Set of all keys contained in this ResourceBundle and its parent bundles.
+     * @return a Set of all keys contained in this ResourceBundle and its parent bundles,
+     *         which is empty if this is not a bundle or a table resource
+     * @internal
+     * @deprecated This API is ICU internal only.
+     */
+    public Set<String> keySet() {
+        if(keys == null) {
+            if(isTopLevelResource()) {
+                TreeSet<String> newKeySet;
+                if(parent == null) {
+                    newKeySet = new TreeSet<String>();
+                } else if(parent instanceof UResourceBundle) {
+                    newKeySet = new TreeSet<String>(((UResourceBundle)parent).keySet());
+                } else {
+                    // TODO: Java 6 ResourceBundle has keySet(); use it when we upgrade to Java 6
+                    // and remove this else branch.
+                    newKeySet = new TreeSet<String>();
+                    Enumeration<String> parentKeys = parent.getKeys();
+                    while(parentKeys.hasMoreElements()) {
+                        newKeySet.add(parentKeys.nextElement());
+                    }
+                }
+                newKeySet.addAll(handleKeySet());
+                keys = Collections.unmodifiableSet(newKeySet);
+            } else {
+                return handleKeySet();
             }
         }
+        return keys;
+    }
+    private Set<String> keys = null;
+    /**
+     * Returns a Set of the keys contained <i>only</i> in this ResourceBundle.
+     * This does not include further keys from parent bundles.
+     * @return a Set of the keys contained only in this ResourceBundle,
+     *         which is empty if this is not a bundle or a table resource
+     * @draft ICU 4.4
+     */
+    protected Set<String> handleKeySet() {
+        return Collections.emptySet();
     }
 
     /**
@@ -957,4 +988,14 @@ public abstract class UResourceBundle extends ResourceBundle{
      * @deprecated This API is ICU internal only.
      */
     protected abstract void setLoadingStatus(int newStatus);
+
+    /**
+     * Is this a top-level resource, that is, a whole bundle?
+     * @return true if this is a top-level resource
+     * @internal
+     * @deprecated This API is ICU internal only.
+     */
+    protected boolean isTopLevelResource() {
+        return true;
+    }
 }
