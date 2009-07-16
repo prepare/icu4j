@@ -1321,22 +1321,16 @@ public  class ICUResourceBundle extends UResourceBundle {
     }
 
     // This is the worker function for the public getKeys().
-    protected Enumeration<String> handleGetKeys(){
-        Vector<String> resKeys = new Vector<String>();
-        int size = getSize();
-        for (int i = 0; i < size; i++) {
-            String itemKey;
-            int itemResource = getTableResource(i);
-            int itemType = ICUResourceBundleReader.RES_GET_TYPE(itemResource);
-            if(itemResource == RES_BOGUS || itemType == ALIAS) {
-                // Complicated behavior.
-                itemKey = get(i).getKey();
-            } else {
-                // For most items we can get the keys without building the objects.
-                itemKey = getKey(i);
-            }
-            resKeys.add(itemKey);
-        }
-        return resKeys.elements();
+    // TODO: Now that UResourceBundle uses handleKeySet(), this function is obsolete.
+    // It is also not inherited from ResourceBundle, and it is not implemented
+    // by ResourceBundleWrapper despite its documentation requiring all subclasses to
+    // implement it.
+    // Consider deprecating UResourceBundle.handleGetKeys(), and consider making it always return null.
+    protected Enumeration<String> handleGetKeys() {
+        return Collections.enumeration(handleKeySet());
+    }
+
+    protected boolean isTopLevelResource() {
+        return resPath.length() == 0;
     }
 }

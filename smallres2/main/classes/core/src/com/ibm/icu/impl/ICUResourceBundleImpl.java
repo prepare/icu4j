@@ -8,6 +8,8 @@ package com.ibm.icu.impl;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;
+import java.util.Set;
+import java.util.TreeSet;
 
 import com.ibm.icu.util.UResourceBundle;
 import com.ibm.icu.util.UResourceBundleIterator;
@@ -166,6 +168,14 @@ class ICUResourceBundleImpl extends ICUResourceBundle {
     static class ResourceTable extends ResourceContainer {
         protected String getKey(int index) {
             return ((ICUResourceBundleReader.Table)value).getKey(index);
+        }
+        protected Set<String> handleKeySet() {
+            TreeSet<String> keySet = new TreeSet<String>();
+            ICUResourceBundleReader.Table table = (ICUResourceBundleReader.Table)value;
+            for (int i = 0; i < table.getSize(); ++i) {
+                keySet.add(table.getKey(i));
+            }
+            return keySet;
         }
         protected int getTableResource(String resKey) {
             return ((ICUResourceBundleReader.Table)value).getTableResource(resKey);
