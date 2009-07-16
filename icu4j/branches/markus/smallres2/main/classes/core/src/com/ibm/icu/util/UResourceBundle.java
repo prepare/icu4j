@@ -765,7 +765,8 @@ public abstract class UResourceBundle extends ResourceBundle{
      * This does not include further keys from parent bundles.
      * @return a Set of the keys contained only in this ResourceBundle,
      *         which is empty if this is not a bundle or a table resource
-     * @draft ICU 4.4
+     * @internal
+     * @deprecated This API is ICU internal only.
      */
     protected Set<String> handleKeySet() {
         return Collections.emptySet();
