@@ -22,7 +22,10 @@ import com.ibm.icu.text.CollationElementIterator;
 import com.ibm.icu.text.CollationKey;
 import com.ibm.icu.text.Collator;
 import com.ibm.icu.text.Normalizer;
+import com.ibm.icu.text.RawCollationKey;
 import com.ibm.icu.text.RuleBasedCollator;
+import com.ibm.icu.text.UnicodeSet;
+import com.ibm.icu.text.UnicodeSetIterator;
 import com.ibm.icu.text.UTF16;
 
 import java.util.Set;
@@ -2528,6 +2531,62 @@ public class CollationMiscTest extends TestFmwk {
             CollationTest.doTest(this, (RuleBasedCollator)myCollation, 
                                  testSourceCases[i], testTargetCases[i], 
                                  results[i]);
+        }
+    }
+
+    public void TestImport(){
+        try{
+            RuleBasedCollator vicoll = (RuleBasedCollator)Collator.getInstance(new ULocale("vi"));
+            RuleBasedCollator escoll = (RuleBasedCollator)Collator.getInstance(new ULocale("es"));
+            RuleBasedCollator viescoll = new RuleBasedCollator(vicoll.getRules() + escoll.getRules());
+            RuleBasedCollator importviescoll = new RuleBasedCollator("[import vi][import es]");
+
+            UnicodeSet tailoredSet = viescoll.getTailoredSet();
+            UnicodeSet importTailoredSet = importviescoll.getTailoredSet();
+
+            if(!tailoredSet.equals(importTailoredSet)){
+                warnln("Tailored set not equal");
+            }
+
+            for (UnicodeSetIterator it = new UnicodeSetIterator(tailoredSet); it.next();) {
+                String t = it.getString();
+                CollationKey sk1 = viescoll.getCollationKey(t);
+                CollationKey sk2 = importviescoll.getCollationKey(t);
+                if(!sk1.equals(sk2)){
+                    warnln("Collation key's not equal for " + t);
+                }
+            }
+
+        }catch(Exception e){
+            warnln("ERROR: in creation of rule based collator");
+        }
+    }
+
+    public void TestImportWithType(){
+        try{
+            RuleBasedCollator vicoll = (RuleBasedCollator)Collator.getInstance(new ULocale("vi"));
+            RuleBasedCollator decoll = (RuleBasedCollator)Collator.getInstance(ULocale.forLanguageTag("de-u-co-phonebk"));
+            RuleBasedCollator videcoll = new RuleBasedCollator(vicoll.getRules() + decoll.getRules());
+            RuleBasedCollator importvidecoll = new RuleBasedCollator("[import vi][import de-u-co-phonebk]");
+
+            UnicodeSet tailoredSet = videcoll.getTailoredSet();
+            UnicodeSet importTailoredSet = importvidecoll.getTailoredSet();
+
+            if(!tailoredSet.equals(importTailoredSet)){
+                warnln("Tailored set not equal");
+            }
+
+            for (UnicodeSetIterator it = new UnicodeSetIterator(tailoredSet); it.next();) {
+                String t = it.getString();
+                CollationKey sk1 = videcoll.getCollationKey(t);
+                CollationKey sk2 = importvidecoll.getCollationKey(t);
+                if(!sk1.equals(sk2)){
+                    warnln("Collation key's not equal for " + t);
+                }
+            }
+
+        }catch(Exception e){
+            warnln("ERROR: in creation of rule based collator");
         }
     }
 }
