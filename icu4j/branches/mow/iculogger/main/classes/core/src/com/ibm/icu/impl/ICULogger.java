@@ -6,6 +6,7 @@
  */
 package com.ibm.icu.impl;
 
+import java.util.logging.ConsoleHandler;
 import java.util.logging.Logger;
 import java.util.logging.Level;
 
@@ -23,10 +24,10 @@ import java.util.logging.Level;
  * @draft ICU 4.4
  */
 public class ICULogger extends Logger {
-    private final static boolean LOGGER_OFF = false;
-    private final static boolean LOGGER_ON = true;
+    private static enum LOGGER_STATUS { ON, OFF, NULL };
+    private static final String GLOBAL_FLAG_TURN_ON_LOGGING = "all";
     
-    private boolean status;
+    private LOGGER_STATUS currentStatus;
     
     /**
      * ICULogger constructor that calls the parent constructor with the desired parameters.
@@ -39,29 +40,34 @@ public class ICULogger extends Logger {
      * Set the status to either on or off. If status is switching from off to on
      * set the level of the logger to INFO.
      */
-    private void setStatus(boolean newStatus) {
-        if (status != newStatus) {
-            status = newStatus;
+    private void setStatus(LOGGER_STATUS newStatus) {
+        if (currentStatus != newStatus) {
+            currentStatus = newStatus;
             
             /* Default to level INFO. */
-            if (status == LOGGER_ON) {
+            if (currentStatus == LOGGER_STATUS.OFF) {
                 this.setLevel(Level.INFO);
-            } else {
+            } else if (currentStatus == LOGGER_STATUS.OFF){
                 this.setLevel(Level.OFF);
             }
         }
     }
     
     /**
-     * Check the system property "debug.logging" to see if it is set to on.
+     * Check the system property "debug.logging" to see if it is set.
      * return true if it is otherwise return false.
      */
-    private static boolean checkGlobalLoggingFlag() {
-        String loggingProp = System.getProperty("debug.logging");
-        if (loggingProp != null && loggingProp.equals("on")) {
-            return true;
+    private static LOGGER_STATUS checkGlobalLoggingFlag() {
+        String prop = System.getProperty("debug.logging");
+        
+        if (prop != null) {
+            if (prop.equals(GLOBAL_FLAG_TURN_ON_LOGGING)) {
+                return LOGGER_STATUS.ON;
+            }
+            return LOGGER_STATUS.OFF;
         }
-        return false;
+        
+        return LOGGER_STATUS.NULL;
     }
     
     /**
@@ -84,10 +90,20 @@ public class ICULogger extends Logger {
      * @draft ICU 4.4
      */
     public static ICULogger getICULogger(String name, String resourceBundleName) {
-        if (checkGlobalLoggingFlag()) {
+        LOGGER_STATUS flag = checkGlobalLoggingFlag();
+        if (flag != LOGGER_STATUS.NULL) {
             ICULogger logger = new ICULogger(name, resourceBundleName);
-            /* Turn off logging by default. */
-            logger.turnOffLogging();
+            
+            /* Add a default handler to logger*/
+            logger.addHandler(new ConsoleHandler());
+            
+            /* Turn off logging by default unless debug.logging property is set to "all" */
+            if (flag == LOGGER_STATUS.ON) {
+                logger.turnOnLogging();
+            } else {
+                logger.turnOffLogging();
+            }
+            
             return logger;
         }
         return null;
@@ -100,7 +116,11 @@ public class ICULogger extends Logger {
      * @draft ICU 4.4
      */
     public boolean isLoggingOn() {
-        return status;
+        if (currentStatus == LOGGER_STATUS.ON) {
+            return true;
+        } else {
+            return false;
+        }
     }
     
     /**
@@ -109,7 +129,7 @@ public class ICULogger extends Logger {
      * @draft ICU 4.4
      */
     public void turnOnLogging() {
-        setStatus(LOGGER_ON);
+        setStatus(LOGGER_STATUS.ON);
     }
     
     /**
@@ -118,7 +138,7 @@ public class ICULogger extends Logger {
      * @draft ICU 4.4
      */
     public void turnOffLogging() {
-        setStatus(LOGGER_OFF);
+        setStatus(LOGGER_STATUS.OFF);
     }
     
 }

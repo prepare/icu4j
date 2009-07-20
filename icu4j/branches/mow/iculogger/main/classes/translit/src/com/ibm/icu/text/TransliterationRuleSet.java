@@ -191,29 +191,29 @@ class TransliterationRuleSet {
             int m = rules[i].matchAndReplace(text, pos, incremental);
             switch (m) {
             case UnicodeMatcher.U_MATCH:
-                if (Transliterator.DEBUG) {
-                    System.out.println((incremental ? "Rule.i: match ":"Rule: match ") +
+                if (Transliterator.TranslitLogger != null && Transliterator.TranslitLogger.isLoggingOn()) {
+                    Transliterator.TranslitLogger.info((incremental ? "Rule.i: match ":"Rule: match ") +
                                        rules[i].toRule(true) + " => " +
                                        UtilityExtensions.formatInput(text, pos));
                 }
                 return true;
             case UnicodeMatcher.U_PARTIAL_MATCH:
-                if (Transliterator.DEBUG) {
-                    System.out.println((incremental ? "Rule.i: partial match ":"Rule: partial match ") +
+                if (Transliterator.TranslitLogger != null && Transliterator.TranslitLogger.isLoggingOn()) {
+                    Transliterator.TranslitLogger.info((incremental ? "Rule.i: partial match ":"Rule: partial match ") +
                                        rules[i].toRule(true) + " => " +
                                        UtilityExtensions.formatInput(text, pos));
                 }
                 return false;
                 default:
-                    if (Transliterator.DEBUG) {
-                        System.out.println("Rule: no match " + rules[i]);
+                    if (Transliterator.TranslitLogger != null && Transliterator.TranslitLogger.isLoggingOn()) {
+                        Transliterator.TranslitLogger.info("Rule: no match " + rules[i]);
                     }
             }
         }
         // No match or partial match from any rule
         pos.start += UTF16.getCharCount(text.char32At(pos.start));
-        if (Transliterator.DEBUG) {
-            System.out.println((incremental ? "Rule.i: no match => ":"Rule: no match => ") +
+        if (Transliterator.TranslitLogger != null && Transliterator.TranslitLogger.isLoggingOn()) {
+            Transliterator.TranslitLogger.info((incremental ? "Rule.i: no match => ":"Rule: no match => ") +
                                UtilityExtensions.formatInput(text, pos));
         }
         return true;

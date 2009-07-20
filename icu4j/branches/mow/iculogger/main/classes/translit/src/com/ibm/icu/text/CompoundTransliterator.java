@@ -431,11 +431,11 @@ class CompoundTransliterator extends Transliterator {
 
         StringBuffer log = null;
         ///CLOVER:OFF
-        if (DEBUG) {
+        if (TranslitLogger != null && TranslitLogger.isLoggingOn()) {
             log = new StringBuffer("CompoundTransliterator{" + getID() +
                                    (incremental ? "}i: IN=" : "}: IN="));
             UtilityExtensions.formatInput(log, text, index);
-            System.out.println(Utility.escape(log.toString()));
+            TranslitLogger.info(Utility.escape(log.toString()));
         }
         ///CLOVER:ON
 
@@ -448,8 +448,8 @@ class CompoundTransliterator extends Transliterator {
             if (index.start == index.limit) {
                 // Short circuit for empty range
                 ///CLOVER:OFF
-                if (DEBUG) {
-                    System.out.println("CompoundTransliterator[" + i +
+                if (TranslitLogger != null && TranslitLogger.isLoggingOn()) {
+                    TranslitLogger.info("CompoundTransliterator[" + i +
                                        ".." + (trans.length-1) +
                                        (incremental ? "]i: " : "]: ") +
                                        UtilityExtensions.formatInput(text, index) +
@@ -460,7 +460,7 @@ class CompoundTransliterator extends Transliterator {
             }
 
             ///CLOVER:OFF
-            if (DEBUG) {
+            if (TranslitLogger != null && TranslitLogger.isLoggingOn()) {
                 log.setLength(0);
                 log.append("CompoundTransliterator[" + i + "=" +
                            trans[i].getID() +
@@ -483,10 +483,10 @@ class CompoundTransliterator extends Transliterator {
             }
 
             ///CLOVER:OFF
-            if (DEBUG) {
+            if (TranslitLogger != null && TranslitLogger.isLoggingOn()) {
                 log.append(" => ");
                 UtilityExtensions.formatInput(log, text, index);
-                System.out.println(Utility.escape(log.toString()));
+                TranslitLogger.info(Utility.escape(log.toString()));
             }
             ///CLOVER:ON
 
@@ -511,12 +511,12 @@ class CompoundTransliterator extends Transliterator {
         index.limit = compoundLimit;
 
         ///CLOVER:OFF
-        if (DEBUG) {
+        if (TranslitLogger != null && TranslitLogger.isLoggingOn()) {
             log.setLength(0);
             log.append("CompoundTransliterator{" + getID() +
                        (incremental ? "}i: OUT=" : "}: OUT="));
             UtilityExtensions.formatInput(log, text, index);
-            System.out.println(Utility.escape(log.toString()));
+            TranslitLogger.info(Utility.escape(log.toString()));
         }
         ///CLOVER:ON
     }

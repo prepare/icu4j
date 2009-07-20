@@ -15,6 +15,8 @@ import com.ibm.icu.util.CaseInsensitiveString;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.UResourceBundle;
 
+import com.ibm.icu.impl.ICULogger;
+
 import java.text.MessageFormat;
 import java.util.Enumeration;
 import java.util.Hashtable;
@@ -499,7 +501,8 @@ public abstract class Transliterator implements StringTransform  {
      *
      * <<This generates a lot of output.>>
      */
-    static final boolean DEBUG = false;
+    public static ICULogger TranslitLogger = ICULogger.getICULogger(Transliterator.class.getName());
+    // TODO: Remove for testing. static final boolean DEBUG = false;
 
     /**
      * Default constructor.
@@ -856,7 +859,7 @@ public abstract class Transliterator implements StringTransform  {
         // unfiltered characters (which are transliterated).
 
         StringBuffer log = null;
-        if (DEBUG) {
+        if (TranslitLogger != null && TranslitLogger.isLoggingOn()) {
             log = new StringBuffer();
         }
 
@@ -927,9 +930,9 @@ public abstract class Transliterator implements StringTransform  {
 
             if (rollback && isIncrementalRun) {
 
-                if (DEBUG) {
+                if (TranslitLogger != null && TranslitLogger.isLoggingOn()) {
                     log.setLength(0);
-                    System.out.println("filteredTransliterate{"+getID()+"}i: IN=" +
+                    TranslitLogger.info("filteredTransliterate{"+getID()+"}i: IN=" +
                                        UtilityExtensions.formatInput(text, index));
                 }
 
@@ -975,7 +978,7 @@ public abstract class Transliterator implements StringTransform  {
 
                     index.limit = passLimit;
 
-                    if (DEBUG) {
+                    if (TranslitLogger != null && TranslitLogger.isLoggingOn()) {
                         log.setLength(0);
                         log.append("filteredTransliterate{"+getID()+"}i: ");
                         UtilityExtensions.formatInput(log, text, index);
@@ -987,7 +990,7 @@ public abstract class Transliterator implements StringTransform  {
                     // adjusted for length changes.
                     handleTransliterate(text, index, true);
 
-                    if (DEBUG) {
+                    if (TranslitLogger != null && TranslitLogger.isLoggingOn()) {
                         log.append(" => ");
                         UtilityExtensions.formatInput(log, text, index);
                     }
@@ -1013,7 +1016,7 @@ public abstract class Transliterator implements StringTransform  {
                         index.limit = passLimit;
                         index.contextLimit -= delta;
 
-                        if (DEBUG) {
+                        if (TranslitLogger != null && TranslitLogger.isLoggingOn()) {
                             log.append(" (ROLLBACK)");
                         }
                     }
@@ -1037,8 +1040,8 @@ public abstract class Transliterator implements StringTransform  {
                         totalDelta += delta;
                     }
 
-                    if (DEBUG) {
-                        System.out.println(Utility.escape(log.toString()));
+                    if (TranslitLogger != null && TranslitLogger.isLoggingOn()) {
+                        TranslitLogger.info(Utility.escape(log.toString()));
                     }
                 }
 
@@ -1057,7 +1060,7 @@ public abstract class Transliterator implements StringTransform  {
 
             else {
                 // Delegate to subclass for actual transliteration.
-                if (DEBUG) {
+                if (TranslitLogger != null && TranslitLogger.isLoggingOn()) {
                     log.setLength(0);
                     log.append("filteredTransliterate{"+getID()+"}: ");
                     UtilityExtensions.formatInput(log, text, index);
@@ -1067,7 +1070,7 @@ public abstract class Transliterator implements StringTransform  {
                 handleTransliterate(text, index, isIncrementalRun);
                 delta = index.limit - limit; // change in length
 
-                if (DEBUG) {
+                if (TranslitLogger != null && TranslitLogger.isLoggingOn()) {
                     log.append(" => ");
                     UtilityExtensions.formatInput(log, text, index);
                 }
@@ -1088,8 +1091,8 @@ public abstract class Transliterator implements StringTransform  {
                 // maintains that.
                 globalLimit += delta;
 
-                if (DEBUG) {
-                    System.out.println(Utility.escape(log.toString()));
+                if (TranslitLogger != null && TranslitLogger.isLoggingOn()) {
+                    TranslitLogger.info(Utility.escape(log.toString()));
                 }
             }
 
@@ -1105,8 +1108,8 @@ public abstract class Transliterator implements StringTransform  {
         // it was, modulo adjustments for deletions/insertions.
         index.limit = globalLimit;
 
-        if (DEBUG) {
-            System.out.println("filteredTransliterate{"+getID()+"}: OUT=" +
+        if (TranslitLogger != null && TranslitLogger.isLoggingOn()) {
+            TranslitLogger.info("filteredTransliterate{"+getID()+"}: OUT=" +
                                UtilityExtensions.formatInput(text, index));
         }
     }
