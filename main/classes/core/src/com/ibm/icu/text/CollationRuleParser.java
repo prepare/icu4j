@@ -12,6 +12,7 @@ import java.util.Hashtable;
 
 import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.util.UResourceBundle;
+import com.ibm.icu.util.ULocale;
 import com.ibm.icu.impl.UCharacterProperty;
 import com.ibm.icu.lang.UCharacter;
 
@@ -39,7 +40,6 @@ final class CollationRuleParser
     CollationRuleParser(String rules) throws ParseException
     {
         rules = preprocessRules(rules);
-        System.out.println(rules);
         m_source_ = new StringBuffer(Normalizer.decompose(rules, false).trim());
         m_rules_ = m_source_.toString();
         m_current_ = 0;
@@ -2108,21 +2108,16 @@ final class CollationRuleParser
               }
           } else if(optionNumber == 19) {
               int optionEndOffset = rules.indexOf(']', i) + 1;
-              //int optionEndOffsetFromLoc = rules.indexOf(']', i) - setStart;
 
-              int extensionIndex = rules.indexOf("-u-coll", i);
-              String locale;
-              String type;
-              if(extensionIndex == -1){
-                  locale = rules.substring(setStart, optionEndOffset-1).trim();
-                  type = "standard";
-              }else{
-                  locale = rules.substring(setStart, extensionIndex);
-                  type = rules.substring(extensionIndex+8, optionEndOffset-1).trim();
-              }
+              ULocale locale = ULocale.forLanguageTag(rules.substring(setStart, optionEndOffset-1));
 
               UResourceBundle bundle = UResourceBundle.getBundleInstance(
-                  ICUResourceBundle.ICU_BASE_NAME + "/coll", locale);
+                  ICUResourceBundle.ICU_BASE_NAME + "/coll", locale.getBaseName());
+
+              String type = locale.getKeywordValue("collation");
+              if(type == null){
+                type = "standard";
+              }
 
               String importRules = bundle.get("collations")
                       .get(type)
