@@ -106,5 +106,5 @@ public interface RangeValueIterator
     * Resets the iterator to the beginning of the iteration.
     * @stable ICU 2.6
     */
-    public void reset();
+    public RangeValueIterator reset();
 }

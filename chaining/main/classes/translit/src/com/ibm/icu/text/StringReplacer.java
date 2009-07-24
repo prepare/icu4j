@@ -315,8 +315,9 @@ class StringReplacer implements UnicodeReplacer {
      * Union the set of all characters that may output by this object
      * into the given set.
      * @param toUnionTo the set into which to union the output characters
+     * @return 
      */
-    public void addReplacementSetTo(UnicodeSet toUnionTo) {
+    public StringReplacer addReplacementSetTo(UnicodeSet toUnionTo) {
         int ch;
         for (int i=0; i<output.length(); i+=UTF16.getCharCount(ch)) {
             ch = UTF16.charAt(output, i);
@@ -327,6 +328,7 @@ class StringReplacer implements UnicodeReplacer {
                 r.addReplacementSetTo(toUnionTo);
             }
         }
+        return this;
     }
 }
 

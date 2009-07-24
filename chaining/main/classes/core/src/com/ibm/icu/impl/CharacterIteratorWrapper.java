@@ -77,11 +77,13 @@ public class CharacterIteratorWrapper extends UCharacterIterator {
     }
 
     /**
+     * @return 
      * @see UCharacterIterator#setIndex(int)
      */
-    public void setIndex(int index) {
+    public CharacterIteratorWrapper setIndex(int index) {
         try{
             iterator.setIndex(index);
+            return this;
         }catch(IllegalArgumentException e){
             throw new IndexOutOfBoundsException();
         }
@@ -90,8 +92,9 @@ public class CharacterIteratorWrapper extends UCharacterIterator {
     /**
      * @see UCharacterIterator#setToLimit()
      */
-    public void setToLimit() {
+    public CharacterIteratorWrapper setToLimit() {
         iterator.setIndex(iterator.getEndIndex());
+        return this;
     }
 
     /**
