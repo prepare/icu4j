@@ -58,7 +58,7 @@ interface UnicodeReplacer {
      * into the given set.
      * @param toUnionTo the set into which to union the output characters
      */
-    public abstract void addReplacementSetTo(UnicodeSet toUnionTo);
+    public abstract UnicodeReplacer addReplacementSetTo(UnicodeSet toUnionTo);
 }
 
 //eof

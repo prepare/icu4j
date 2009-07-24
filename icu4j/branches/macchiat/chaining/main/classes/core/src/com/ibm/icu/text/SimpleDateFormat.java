@@ -596,10 +596,12 @@ public class SimpleDateFormat extends DateFormat {
      * to begin on the date the user specifies.
      * @param startDate During parsing, two digit years will be placed in the range
      * <code>startDate</code> to <code>startDate + 100 years</code>.
+     * @return 
      * @stable ICU 2.0
      */
-    public void set2DigitYearStart(Date startDate) {
+    public SimpleDateFormat set2DigitYearStart(Date startDate) {
         parseAmbiguousDatesAsAfter(startDate);
+        return this;
     }
 
     /**
@@ -2571,25 +2573,29 @@ public class SimpleDateFormat extends DateFormat {
 
     /**
      * Apply the given unlocalized pattern string to this date format.
+     * @return 
      * @stable ICU 2.0
      */
-    public void applyPattern(String pat)
+    public SimpleDateFormat applyPattern(String pat)
     {
         this.pattern = pat;
         setLocale(null, null);
         // reset parsed pattern items
         patternItems = null;
+        return this;
     }
 
     /**
      * Apply the given localized pattern string to this date format.
+     * @return 
      * @stable ICU 2.0
      */
-    public void applyLocalizedPattern(String pat) {
+    public SimpleDateFormat applyLocalizedPattern(String pat) {
         this.pattern = translatePattern(pat,
                                         formatData.localPatternChars,
                                         DateFormatSymbols.patternChars);
         setLocale(null, null);
+        return this;
     }
 
     /**
@@ -2606,12 +2612,14 @@ public class SimpleDateFormat extends DateFormat {
     /**
      * Allows you to set the date/time formatting data.
      * @param newFormatSymbols the new symbols
+     * @return 
      * @stable ICU 2.0
      */
-    public void setDateFormatSymbols(DateFormatSymbols newFormatSymbols)
+    public SimpleDateFormat setDateFormatSymbols(DateFormatSymbols newFormatSymbols)
     {
         this.formatData = (DateFormatSymbols)newFormatSymbols.clone();
         gmtfmtCache = null;
+        return this;
     }
 
     /**

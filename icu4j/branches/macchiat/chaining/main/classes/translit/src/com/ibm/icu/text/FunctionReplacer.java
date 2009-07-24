@@ -75,9 +75,11 @@ class FunctionReplacer implements UnicodeReplacer {
      * Union the set of all characters that may output by this object
      * into the given set.
      * @param toUnionTo the set into which to union the output characters
+     * @return 
      */
-    public void addReplacementSetTo(UnicodeSet toUnionTo) {
+    public FunctionReplacer addReplacementSetTo(UnicodeSet toUnionTo) {
         toUnionTo.addAll(translit.getTargetSet());
+        return this;
     }
 }
 
