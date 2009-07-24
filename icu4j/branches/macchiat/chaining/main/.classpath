@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="classes/charset/src"/>
+	<classpathentry kind="src" path="classes/collate/src"/>
+	<classpathentry kind="src" path="classes/core/src"/>
+	<classpathentry kind="src" path="classes/translit/src"/>
+	<classpathentry kind="src" path="tests/charset/src"/>
+	<classpathentry kind="src" path="tests/collate/src"/>
+	<classpathentry kind="src" path="tests/core/src"/>
+	<classpathentry kind="src" path="tests/framework/src"/>
+	<classpathentry kind="src" path="tests/translit/src"/>
+	<classpathentry kind="lib" path="shared/data/icudata.jar"/>
+	<classpathentry kind="lib" path="shared/data/testdata.jar"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>

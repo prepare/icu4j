@@ -1520,12 +1520,14 @@ public class SimpleDateFormat extends DateFormat {
 
     /**
      * Overrides superclass method
+     * @return 
      * @stable ICU 2.0
      */
-    public void setNumberFormat(NumberFormat newNumberFormat) {
+    public SimpleDateFormat setNumberFormat(NumberFormat newNumberFormat) {
         // Override this method to update local zero padding number formatter
         super.setNumberFormat(newNumberFormat);
         initLocalZeroPaddingNumberFormat();
+        return this;
     }
 
     private void initLocalZeroPaddingNumberFormat() {
@@ -1607,10 +1609,11 @@ public class SimpleDateFormat extends DateFormat {
 
     /**
      * Overrides DateFormat
+     * @return 
      * @see DateFormat
      * @stable ICU 2.0
      */
-    public void parse(String text, Calendar cal, ParsePosition parsePos)
+    public SimpleDateFormat parse(String text, Calendar cal, ParsePosition parsePos)
     {
         TimeZone backupTZ = null;
         Calendar resultCal = null;
@@ -1688,7 +1691,7 @@ public class SimpleDateFormat extends DateFormat {
                             if (backupTZ != null) {
                                 calendar.setTimeZone(backupTZ);
                             }
-                            return;
+                            return this;
                         }
                         i = numericFieldStart;
                         pos = numericStartPos;
@@ -1708,7 +1711,7 @@ public class SimpleDateFormat extends DateFormat {
                         if (backupTZ != null) {
                             calendar.setTimeZone(backupTZ);
                         }
-                        return;
+                        return this;
                     }
                 }
             } else {
@@ -1746,7 +1749,7 @@ public class SimpleDateFormat extends DateFormat {
                     if (backupTZ != null) {
                         calendar.setTimeZone(backupTZ);
                     }
-                    return;
+                    return this;
                 }
             }
             ++i;
@@ -1909,7 +1912,7 @@ public class SimpleDateFormat extends DateFormat {
             if (backupTZ != null) {
                 calendar.setTimeZone(backupTZ);
             }
-            return;
+            return this;
         }
         // Set the parsed result if local calendar is used
         // instead of the input calendar
@@ -1921,6 +1924,7 @@ public class SimpleDateFormat extends DateFormat {
         if (backupTZ != null) {
             calendar.setTimeZone(backupTZ);
         }
+        return this;
     }
 
     /**
