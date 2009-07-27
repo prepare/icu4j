@@ -1420,7 +1420,7 @@ final class CollationRuleParser
                             if (m_prevStrength_ == TOKEN_UNSET_) {
                                 // quote is illegal until we have a strength
                                 throwParseException(m_rules_, m_current_);
-                            }else{
+                            }else{ // If prevStrength is set, then we're currently parsing a compact list
                                 newstrength = m_prevStrength_;
                             }
                         }
@@ -1510,7 +1510,7 @@ final class CollationRuleParser
                         if (newstrength == TOKEN_UNSET_) {
                             if(m_prevStrength_ == TOKEN_UNSET_){
                                 throwParseException(m_rules_, m_current_);
-                            }else{
+                            }else{ // If prevStrength is set, then we're parsing a compact list
                                 newstrength = m_prevStrength_;
                             }
                         }
@@ -1525,7 +1525,7 @@ final class CollationRuleParser
                                 m_parsedToken_.m_charsOffset_ = m_current_;
                             }
                             m_parsedToken_.m_charsLen_++;
-                            if(m_prevStrength_ != TOKEN_UNSET_){
+                            if(m_prevStrength_ != TOKEN_UNSET_){ // If we're parsing a compact list, return the current token immediately
                                 char[] fullchar = Character.toChars(Character.codePointAt(m_source_, m_current_));
                                 m_current_ += fullchar.length;
                                 m_parsedToken_.m_charsLen_ += fullchar.length - 1;
