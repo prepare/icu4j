@@ -33,6 +33,9 @@ public class Trie2 {
      * When iterating over the contents of a Trie2, Elements of this type are produced.
      * The iterator will return one item for each contiguous range of codepoints  with the same value.  
      * 
+     * When iterating, the same Trie2EnumRange object will be reused and returned for each range.
+     * If you need to retain the complete iteration results, clone each returned Trie2EnumRange,
+     * or save the range in some other way, before advancing to the next iteration step.
      */
     public static class Trie2EnumRange {
         public int   startCodePoint;
@@ -53,16 +56,14 @@ public class Trie2 {
      * TrieValueMapper m = new TrieValueMapper() {
      *    int map(int in) {return in & 0x1f;};
      * }
-     * for (Iterator<Trie2EnumRange> iter = trie.iterator(m); i.hasNext; ) {
+     * for (Iterator<Trie2EnumRange> iter = trie.iterator(m); i.hasNext(); ) {
      *     Trie2EnumRange r = i.next();
      *     ...  // Do something with the range r.
      * }
      *    
      */
-    public class TrieValueMapper {
-        public int  map(int originalVal) {
-            return originalVal;
-        }
+    public interface TrieValueMapper {
+        public int  map(int originalVal);
     }
     
     /**
@@ -155,11 +156,12 @@ public class Trie2 {
     
     /**
      * Create a new, empty, writable Trie2. At build time, 32-bit data values are used.
-     * TODO:  where to specifiy the data size?  ICU4C trie does not specify valuebits on create,
+     * Note:  where to specifiy the data size?  ICU4C UTrie2 does not specify valuebits on create,
      *        but on freeze().  But ICU4J freeze comes from the Freezable interface.
      *        It seems to me that anyone creating a trie will know what size data they
-     *        are intending to put into it, implying having to know the size upfront shouldn't
-     *        be a problem.
+     *        are intending to put into it, so having to know the size upfront shouldn't
+     *        be a problem.  Also, knowing in advance allows checking the values as
+     *        they are added.
      *
      * @param initialValue the initial value that is set for all code points
      * @param errorValue the value for out-of-range code points and illegal UTF-8
@@ -180,11 +182,10 @@ public class Trie2 {
 
     /**
      * Set a value for a code point.
+     * Throws UnsupportedOperationException if the Trie2 is frozen.
      *
      * @param c the code point
      * @param value the value
-     * TODO:  throws
-     * - U_NO_WRITE_PERMISSION if the trie is frozen
      */
     public Trie2 set(int c, int value) {
         return null;
@@ -194,13 +195,12 @@ public class Trie2 {
      * Set a value in a range of code points [start..end].
      * All code points c with start<=c<=end will get the value if
      * overwrite is TRUE or if the old value is the initial value.
+     * Throws UnsupportedOperationException if the Trie2 is frozen.
      *
      * @param start the first code point to get the value
      * @param end the last code point to get the value (inclusive)
      * @param value the value
      * @param overwrite flag for whether old non-initial values are to be overwritten
-     * TODO:  throws
-     * - UnsupportedOperationException if the trie is frozen
      */
      public Trie2 setRange(int start, int end,
                            int value, boolean overwrite) {
@@ -215,12 +215,12 @@ public class Trie2 {
      * 
      * TODO:  ICU4C UTrie2::freeze() takes a valueBits parameter, for 16 or 32 bit data size.
      *        Because ICU4J freeze() comes from Freezable, that option is does not fit as
-     *        cleanly on freeze().
+     *        cleanly here..
      *        
      *
      * @see cloneAsThawed
      */
-    public Trie2 utrie2_freeze() {
+    public Trie2 freeze() {
         return null;
     }
      
@@ -297,7 +297,7 @@ public class Trie2 {
      *         The returned Trie will contain identical data.
      *         The returned Trie may be a different Java object.
      *         TODO:  The idea is that freezing a build-time Trie will create
-     *           an optimized read-only Trie implementing the common Trie interface.
+     *           an optimized read-only Trie implementing the common Trie2 interface.
      *           The original object, now frozen, will delegate everything to the
      *           read-only optimized object.  This function will return the
      *           read-only object, bypassing the delegation.  If freeze() weren't
@@ -313,6 +313,8 @@ public class Trie2 {
      * Get the next code point, post-increment the index, and get the value 
      * for the code point from the trie.  This function will correctly handle 
      * UTF-16 input containing supplementary characters.
+     * 
+     * TODO:  An alternative might be to use a Java iterator.
      *
      * @param src    input text
      * @param index  input text index.  In/Out parameter, 
