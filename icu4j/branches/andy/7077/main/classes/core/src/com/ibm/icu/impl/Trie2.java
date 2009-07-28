@@ -31,23 +31,39 @@ public class Trie2 {
     
     /**
      * When iterating over the contents of a Trie2, Elements of this type are produced.
-     * The iterator will return one item for each contiguous range of codepoints in
-     * the Trie with the same _transformed_ value.  The raw value stored in the
-     * Trie will be passed through the valueTransform function before checking for 
-     * contiguous ranges.
+     * The iterator will return one item for each contiguous range of codepoints  with the same value.  
      * 
-     * To provide a transform function, subclass Trie2EnumRange and override the valueTransform.
-     *
      */
-    public class Trie2EnumRange {
+    public static class Trie2EnumRange {
         public int   startCodePoint;
         public int   endCodePoint;     // Inclusive.
         public int   value;
-        public int   valueTransform(int in) {
-            return in;
-        }
     }
     
+    
+    /**
+     * When iterating over the contents of a Trie, an instance of TrieValueMapper may
+     * be used to remap the values from the Trie.  The remapped values will be used
+     * both in determining the ranges of codepoints and as the value to be returned
+     * for each range.
+     * 
+     * Example of use, with an anonymous subclass of TrieValueMapper.
+     * 
+     * 
+     * TrieValueMapper m = new TrieValueMapper() {
+     *    int map(int in) {return in & 0x1f;};
+     * }
+     * for (Iterator<Trie2EnumRange> iter = trie.iterator(m); i.hasNext; ) {
+     *     Trie2EnumRange r = i.next();
+     *     ...  // Do something with the range r.
+     * }
+     *    
+     */
+    public class TrieValueMapper {
+        public int  map(int originalVal) {
+            return originalVal;
+        }
+    }
     
     /**
      * Create a frozen trie from its serialized form.
@@ -109,14 +125,27 @@ public class Trie2 {
     
     /**
      *  Return an iterator over the value ranges in this Trie2.
-     *  TODO:  this will create a lot of little Trie2EnumRange objects.
-     *         We could provide a variant with a value object that is
-     *            reused, filling in new values on each call to the Iterator object.
-     *  Note:  doesn't provide the value remapping function that ICU4C has.  But this
-     *         is a one-liner to add by the caller; can we just omit it.
+     *  Values from the Trie are not remapped or filtered, but are returned as they
+     *  appear in the Trie.
+     *  
+     *  This 
      * @return
      */
     public Iterator<Trie2EnumRange> iterator() {
+        return null;
+    }
+    
+    /**
+     * Return an iterator over the value ranges from this Trie2.
+     * Values from the trie are passed through a caller-supplied remapping function,
+     * and it is the remapped values that determine the ranges that
+     * are iterated over.
+     * 
+     * 
+     * @param value
+     * @return
+     */
+    public Iterator<Trie2EnumRange> iterator(TrieValueMapper value) {
         return null;
     }
     
@@ -383,3 +412,8 @@ public class Trie2 {
         return null;
     }
 
+    public Iterator<Trie2EnumRange> iterator(int leadSurrogateValue, TrieValueMapper valueMapper) {
+        return null;
+    }
+
+}
