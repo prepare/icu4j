@@ -37,6 +37,8 @@ public class Trie2Test extends TestFmwk {
      
      public void iterateAPI() {
          
+         // See what API usage looks like with a value mapping function.
+         
          Trie2.ValueMapper m = new Trie2.ValueMapper() {
              public int map(int in) {return in & 0x1f;};             
          };
@@ -45,6 +47,11 @@ public class Trie2Test extends TestFmwk {
          for (Iterator<Trie2.EnumRange> iter = trie.iterator(m); iter.hasNext(); ) {
              Trie2.EnumRange r = iter.next();
 
+         }
+         
+         // Plain iteration, no mapping
+         for (Trie2.EnumRange r: trie) {
+             
          }
          
      }

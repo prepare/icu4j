@@ -317,10 +317,10 @@ public class Trie2 implements Iterable<Trie2.EnumRange> {
      * TODO:  An alternative might be to use a Java iterator.
      *
      * @param src    input text
-     * @param index  input text index.  In/Out parameter, 
+     * @param index  input text index, in index[0].  In/Out parameter, 
      * @return       the Trie value for the code point at index.
      */
-    int nextUTF16(CharSequence src, Integer index) {
+    int nextUTF16(CharSequence src, int[] index) {
         return 0;
     }
     
@@ -331,10 +331,10 @@ public class Trie2 implements Iterable<Trie2.EnumRange> {
      * UTF-16 input containing supplementary characters.
      * 
      * @param src    input text
-     * @param index  input text index.  In/Out parameter
+     * @param index  input text index, in index[0].  In/Out parameter
      * @return       The Trie value for the code point preceding index.
      */
-    int prevUTF16(CharSequence src, Integer index) {
+    int prevUTF16(CharSequence src, int[] index) {
         return 0;
     }
     
@@ -347,7 +347,7 @@ public class Trie2 implements Iterable<Trie2.EnumRange> {
      * The following functions  are used for highly optimized UTF-16
      * text processing. 
      *
-     * A UTrie2 stores separate values for lead surrogate code _units_ vs. code _points_.
+     * A Trie2 stores separate values for lead surrogate code _units_ vs. code _points_.
      * UTF-16 text processing can be optimized by detecting surrogate pairs and
      * assembling supplementary code points only when there is non-trivial data
      * available.
@@ -373,13 +373,15 @@ public class Trie2 implements Iterable<Trie2.EnumRange> {
      
     
     /**
-     * Get a value from a lead surrogate code unit as stored in the trie.
-     *
+     * Get a 16-bit trie value from a UTF-16 single/lead code unit (<=U+ffff).
+     * Same as UTRIE2_GET16() if c is a BMP code point except for lead surrogates,
+     * but faster.
+     * 
      * @param trie the trie
-     * @param c the code unit (U+D800..U+DBFF)
+     * @param c the code unit (0x0000 .. 0x0000ffff)
      * @return the value
      */
-    int get32FromLeadSurrogateCodeUnit(int c) {
+    int getFromU16SingleLead(int c) {
         return 0;
     }
    
