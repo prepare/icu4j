@@ -19,14 +19,14 @@ import java.util.Iterator;
  *
  * This is the second common version of a Unicode trie (hence the name Trie2).
  */
-public class Trie2 {
+public class Trie2 implements Iterable<Trie2.EnumRange> {
 
    /**
     * Selectors for the width of a UTrie2 data value.
     */   
-    public enum Trie2ValueBits {
-        UTRIE2_16_VALUE_BITS,
-        UTRIE2_32_VALUE_BITS
+    public enum ValueWidth {
+        BITS_16,
+        BITS_32
     }
     
     /**
@@ -37,7 +37,7 @@ public class Trie2 {
      * If you need to retain the complete iteration results, clone each returned Trie2EnumRange,
      * or save the range in some other way, before advancing to the next iteration step.
      */
-    public static class Trie2EnumRange {
+    public static class EnumRange {
         public int   startCodePoint;
         public int   endCodePoint;     // Inclusive.
         public int   value;
@@ -62,7 +62,7 @@ public class Trie2 {
      * }
      *    
      */
-    public interface TrieValueMapper {
+    public interface ValueMapper {
         public int  map(int originalVal);
     }
     
@@ -81,7 +81,7 @@ public class Trie2 {
      * @see utrie2_open
      * @see utrie2_serialize
      */
-    public static Trie2  createFromSerialized(Trie2ValueBits valueBits, 
+    public static Trie2  createFromSerialized(ValueWidth valueBits, 
                                 InputStream data) 
         throws IOException {
         return null;
@@ -107,7 +107,7 @@ public class Trie2 {
      * @see utrie2_openFromSerialized
      * @see utrie2_open
      */
-    public static Trie2 createDummy(Trie2ValueBits valueBits,
+    public static Trie2 createDummy(ValueWidth valueBits,
                                     int initialValue, 
                                     int errorValue) {
         return null;
@@ -132,7 +132,7 @@ public class Trie2 {
      *  This 
      * @return
      */
-    public Iterator<Trie2EnumRange> iterator() {
+    public Iterator<EnumRange> iterator() {
         return null;
     }
     
@@ -146,7 +146,7 @@ public class Trie2 {
      * @param value
      * @return
      */
-    public Iterator<Trie2EnumRange> iterator(TrieValueMapper value) {
+    public Iterator<EnumRange> iterator(ValueMapper value) {
         return null;
     }
     
@@ -167,7 +167,7 @@ public class Trie2 {
      * @param errorValue the value for out-of-range code points and illegal UTF-8
      * @return a pointer to the allocated and initialized new trie
      */
-    public static Trie2 createTrie2(Trie2ValueBits valueBits, int initialValue, int errorValue) {
+    public static Trie2 create(ValueWidth valueBits, int initialValue, int errorValue) {
         return null;
     }
     
@@ -410,11 +410,11 @@ public class Trie2 {
      * @param context an opaque pointer that is passed on to the callback functions
      */
 
-    public Iterator<Trie2EnumRange> iterator(int leadSurrogateValue) {
+    public Iterator<EnumRange> iterator(int leadSurrogateValue) {
         return null;
     }
 
-    public Iterator<Trie2EnumRange> iterator(int leadSurrogateValue, TrieValueMapper valueMapper) {
+    public Iterator<EnumRange> iterator(int leadSurrogateValue, ValueMapper valueMapper) {
         return null;
     }
 
