@@ -10,6 +10,7 @@ import java.util.Iterator;
 
 import com.ibm.icu.dev.test.TestFmwk;
 import com.ibm.icu.impl.Trie2;
+import com.ibm.icu.impl.Trie2Builder;
 
 /**
  * @author aheninger
@@ -43,7 +44,7 @@ public class Trie2Test extends TestFmwk {
              public int map(int in) {return in & 0x1f;};             
          };
          
-         Trie2 trie = Trie2.create(Trie2.ValueWidth.BITS_32, 0, 0xffffffff);
+         Trie2 trie = new Trie2Builder(0, 0);
          for (Iterator<Trie2.EnumRange> iter = trie.iterator(m); iter.hasNext(); ) {
              Trie2.EnumRange r = iter.next();
 
