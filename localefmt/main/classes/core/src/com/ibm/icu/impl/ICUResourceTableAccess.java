@@ -14,6 +14,21 @@ import com.ibm.icu.util.UResourceBundle;
  *
  */
 public class ICUResourceTableAccess {
+    /**
+     * Utility to fetch data from resource bundle tables.
+     */
+    public static String getTableString(String tableName, String subtableName, String item, String displayLocaleID) {
+        try {
+            if (item.length() > 0) {
+                ICUResourceBundle bundle = (ICUResourceBundle)UResourceBundle.
+                    getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, displayLocaleID);
+                return getTableString(tableName, subtableName, item, bundle);
+            }
+        } catch (Exception e) {
+//          System.out.println("gtsu: " + e.getMessage());
+        }
+        return item;
+    }
 
     /**
      * Utility to fetch data from resource bundle tables.
@@ -59,32 +74,16 @@ public class ICUResourceTableAccess {
                         if(fallbackLocale.equals(table.getULocale().getBaseName())){
                             return item;
                         }
-                        bundle = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, 
+                        bundle = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME,
                                 fallbackLocale);
-                        //                          System.out.println("fallback from " + table.getULocale() + " to " + fallbackLocale + 
-                        //                                             ", got bundle " + bundle.getULocale());                      
+                        //                          System.out.println("fallback from " + table.getULocale() + " to " + fallbackLocale +
+                        //                                             ", got bundle " + bundle.getULocale());
                     }
                 }
             }
         }
         catch (Exception e) {
             //          System.out.println("gtsi: " + e.getMessage());
-        }
-        return item;
-    }
-
-    /**
-     * Utility to fetch data from resource bundle tables.
-     */
-    public static String getTableString(String tableName, String subtableName, String item, String displayLocaleID) {
-        if (item.length() > 0) {
-            try {
-                ICUResourceBundle bundle = (ICUResourceBundle)UResourceBundle.
-                getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, displayLocaleID);
-                return getTableString(tableName, subtableName, item, bundle);
-            } catch (Exception e) {
-                //              System.out.println("gtsu: " + e.getMessage());
-            }
         }
         return item;
     }

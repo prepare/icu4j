@@ -1265,7 +1265,10 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         NumberFormat fmt2 = NumberFormat.getInstance(loc2);
         NumberFormat fmt3 = NumberFormat.getInstance(loc3);
         NumberFormat fmt4 = NumberFormat.getInstance(loc4);
-
+        
+        NumberFormat fmt5 = NumberFormat.getInstance(loc3);
+        fmt5 = NumberFormat.getInstance(loc3);
+        
         expect2(fmt1,1234.567,"\u0e51,\u0e52\u0e53\u0e54.\u0e55\u0e56\u0e57");
         expect3(fmt2,5678.0,"\u05d4\u05f3\u05ea\u05e8\u05e2\u05f4\u05d7");
         expect2(fmt3,1234.567,"\u06f1,\u06f2\u06f3\u06f4.\u06f5\u06f6\u06f7");
@@ -2436,11 +2439,39 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
     /*
      * Tests the method public static ULocale[] getAvailableLocales()
      */
+    @SuppressWarnings("static-access")
     public void TestGetAvailableLocales() {
         // Tests when "if (shim == null)" is true
+        @SuppressWarnings("serial")
+        class TestGetAvailableLocales extends NumberFormat {
+            public StringBuffer format(double number, StringBuffer toAppendTo, FieldPosition pos) {
+                return null;
+            }
+
+            public StringBuffer format(long number, StringBuffer toAppendTo, FieldPosition pos) {
+                return null;
+            }
+
+            public StringBuffer format(BigInteger number, StringBuffer toAppendTo, FieldPosition pos) {
+                return null;
+            }
+
+            public StringBuffer format(java.math.BigDecimal number, StringBuffer toAppendTo, FieldPosition pos) {
+                return null;
+            }
+
+            public StringBuffer format(BigDecimal number, StringBuffer toAppendTo, FieldPosition pos) {
+                return null;
+            }
+
+            public Number parse(String text, ParsePosition parsePosition) {
+                return null;
+            }
+        }
+
         try {
-            @SuppressWarnings("unused")
-            Locale[] nf = NumberFormat.getAvailableLocales();
+            TestGetAvailableLocales test = new TestGetAvailableLocales();
+            test.getAvailableLocales();
         } catch (Exception e) {
             errln("NumberFormat.getAvailableLocales() was not suppose to "
                     + "return an exception when getting getting available locales.");

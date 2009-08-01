@@ -2203,6 +2203,18 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         sym.equals(null);
         
         sym = new ChineseDateFormatSymbols();
+        sym = new ChineseDateFormatSymbols(new Locale("en_US"));
+        try{
+            sym = new ChineseDateFormatSymbols(null, new Locale("en_US"));
+            errln("ChineseDateFormatSymbols(Calender, Locale) was suppose to return a null " +
+                    "pointer exception for a null paramater.");
+        } catch(Exception e){}
+        sym = new ChineseDateFormatSymbols(new ChineseCalendar(), new Locale("en_US"));
+        try{
+            sym = new ChineseDateFormatSymbols(null, new ULocale("en_US"));
+            errln("ChineseDateFormatSymbols(Calender, ULocale) was suppose to return a null " +
+                    "pointer exception for a null paramater.");
+        } catch(Exception e){}
         sym = new ChineseDateFormatSymbols(new ChineseCalendar(), foo);
         // cover new ChineseDateFormatSymbols(Calendar, ULocale)
         ChineseCalendar ccal = new ChineseCalendar();
@@ -3328,7 +3340,7 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
 
         // ChineseDateFormat.Field#ofCalendarField and getCalendarField
         int ccalField = ChineseDateFormat.Field.IS_LEAP_MONTH.getCalendarField();
-        if (ccalField != ChineseCalendar.IS_LEAP_MONTH) {
+        if (ccalField != Calendar.IS_LEAP_MONTH) {
             errln("FAIL: ChineseCalendar field " + ccalField + " is returned for ChineseDateFormat.Field.IS_LEAP_MONTH.getCalendarField()");
         } else {
             DateFormat.Field cfield = ChineseDateFormat.Field.ofCalendarField(ccalField);
@@ -3642,13 +3654,26 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
      */
     public void TestOfCalendarField() {
         // Tests when if (calendarField == ChineseCalendar.IS_LEAP_MONTH) is false
-        int[] cases = { ChineseCalendar.IS_LEAP_MONTH - 1};
+        int[] cases = { Calendar.IS_LEAP_MONTH - 1};
         for (int i = 0; i < cases.length; i++) {
             try {
                 Field.ofCalendarField(cases[i]);
             } catch (Exception e) {
                 errln("Field.ofCalendarField(int) is not suppose to " + "return an exception for parameter " + cases[i]);
             }
+        }
+    }
+    
+    /* Tests the method public final static DateFormat getPatternInstance */
+    public void TestGetPatternInstance(){
+        //public final static DateFormat getPatternInstance(String pattern)
+        try{
+            @SuppressWarnings("unused")
+            DateFormat df = DateFormat.getPatternInstance("");
+            df = DateFormat.getPatternInstance("", new Locale("en_US"));
+            df = DateFormat.getPatternInstance(null, "", new Locale("en_US"));
+        } catch(Exception e) {
+            errln("DateFormat.getPatternInstance is not suppose to return an exception.");
         }
     }
 }
