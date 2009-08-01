@@ -1,16 +1,16 @@
 /**
 *******************************************************************************
-* Copyright (C) 1996-2008, International Business Machines Corporation and    *
+* Copyright (C) 1996-2009, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 */
 package com.ibm.icu.text;
 
 import java.io.BufferedInputStream;
-import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 
 import com.ibm.icu.impl.ICUBinary;
 import com.ibm.icu.impl.ICUData;
@@ -44,14 +44,31 @@ final class CollatorReader
         b.close();
         return result;
     }
-    
-    static void initRBC(RuleBasedCollator rbc, byte[] data) throws IOException {
+
+    public static InputStream makeByteBufferInputStream(final ByteBuffer buf) {
+        return new InputStream() {
+            public int read() throws IOException {
+                if (!buf.hasRemaining()) {
+                    return -1;
+                }
+                return buf.get() & 0xff;
+            }
+            public int read(byte[] bytes, int off, int len) throws IOException {
+                len = Math.min(len, buf.remaining());
+                buf.get(bytes, off, len);
+                return len;
+            }
+        };
+    }
+
+    static void initRBC(RuleBasedCollator rbc, ByteBuffer data) throws IOException {
         final int MIN_BINARY_DATA_SIZE_ = (42 + 25) << 2;
-        
-        InputStream i = new ByteArrayInputStream(data);
-        BufferedInputStream b = new BufferedInputStream(i);
-        CollatorReader reader = new CollatorReader(b, false);
-        if (data.length > MIN_BINARY_DATA_SIZE_) {
+        int dataLength = data.remaining();
+        // TODO: Change the rest of this class to use the ByteBuffer directly, rather than
+        // a DataInputStream, except for passing an InputStream to ICUBinary.readHeader().
+        // Consider changing ICUBinary to also work with a ByteBuffer.
+        CollatorReader reader = new CollatorReader(makeByteBufferInputStream(data), false);
+        if (dataLength > MIN_BINARY_DATA_SIZE_) {
             reader.readImp(rbc, null);
         } else {
             reader.readHeader(rbc);
@@ -202,7 +219,9 @@ final class CollatorReader
         m_dataInputStream_.skipBytes(56); // for future use
         readcount += 56;
         if (m_headerSize_ < readcount) {
+            ///CLOVER:OFF
             throw new IOException("Internal Error: Header size error");
+            ///CLOVER:ON
         }
         m_dataInputStream_.skipBytes(m_headerSize_ - readcount);
 
@@ -275,7 +294,9 @@ final class CollatorReader
         readcount += 60;
         m_dataInputStream_.skipBytes(m_optionSize_ - readcount);
         if (m_optionSize_ < readcount) {
+            ///CLOVER:OFF
             throw new IOException("Internal Error: Option size error");
+            ///CLOVER:ON
         }
     }
     
@@ -448,12 +469,16 @@ final class CollatorReader
             }
             readcount += m_UCAValuesSize_;
             if (readcount != m_size_) {
+                ///CLOVER:OFF
                 throw new IOException("Internal Error: Data file size error");
+                ///CLOVER:ON
             }
             return result;
         }
         if (readcount != m_size_) {
+            ///CLOVER:OFF
             throw new IOException("Internal Error: Data file size error");
+            ///CLOVER:ON
         }
         return null;
     }

@@ -10,6 +10,9 @@ import com.ibm.icu.dev.test.*;
 import com.ibm.icu.text.BreakIterator;
 import com.ibm.icu.text.DictionaryBasedBreakIterator;
 
+import java.io.DataInputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.StringCharacterIterator;
@@ -846,40 +849,51 @@ public class BreakIteratorTest extends TestFmwk
         }
     }
     
-    /* Tests the constructors
-     *      public DictionaryBasedBreakIterator(String rules, ...
-     *      public DictionaryBasedBreakIterator(InputStream compiledRules, ...
+    /*
+     * Tests the constructors public DictionaryBasedBreakIterator(String rules, ... public
+     * DictionaryBasedBreakIterator(InputStream compiledRules, ...
      */
-    public void TestDictionaryBasedBreakIterator() throws IOException{
+    public void TestDictionaryBasedBreakIterator() throws IOException {
         // The following class allows the testing of the constructor
-        //      public DictionaryBasedBreakIterator(String rules, ...
-        class TestDictionaryBasedBreakIterator extends DictionaryBasedBreakIterator{
-            public TestDictionaryBasedBreakIterator() throws IOException{
-                super("",null);
+        // public DictionaryBasedBreakIterator(String rules, ...
+        class TestDictionaryBasedBreakIterator extends DictionaryBasedBreakIterator {
+            public TestDictionaryBasedBreakIterator(InputStream is) throws IOException {
+                super("", is);
             }
         }
-        try{
+        try {
             @SuppressWarnings("unused")
-            TestDictionaryBasedBreakIterator td = new TestDictionaryBasedBreakIterator();
-            errln("DictionaryBasedBreakIterator constructor is suppose to return an " +
-                    "exception for an empty string.");
-        } catch(Exception e){}
-
-        // The following class allows the testing of the constructor
-        //      public DictionaryBasedBreakIterator(InputStream compiledRules, ...
-        class TestDictionaryBasedBreakIterator1 extends DictionaryBasedBreakIterator{
-            public TestDictionaryBasedBreakIterator1() throws IOException{
-                super((InputStream)null,(InputStream)null);
-            }
-            
+            TestDictionaryBasedBreakIterator td = new TestDictionaryBasedBreakIterator(null);
+            errln("DictionaryBasedBreakIterator constructor is suppose to return an "
+                    + "exception for an empty string.");
+        } catch (Exception e) {
         }
-        try{
+        
+        try {
+            File file = File.createTempFile("dummy", "");
+            FileInputStream fis = new FileInputStream(file);
+            DataInputStream dis = new DataInputStream(fis);
+            @SuppressWarnings("unused")
+            TestDictionaryBasedBreakIterator td = new TestDictionaryBasedBreakIterator(dis);
+            errln("DictionaryBasedBreakIterator constructor is suppose to return an "
+                    + "exception for a temporary file with EOF.");
+        } catch (Exception e) {
+        }
+        
+        // The following class allows the testing of the constructor
+        // public DictionaryBasedBreakIterator(InputStream compiledRules, ...
+        class TestDictionaryBasedBreakIterator1 extends DictionaryBasedBreakIterator {
+            public TestDictionaryBasedBreakIterator1() throws IOException {
+                super((InputStream) null, (InputStream) null);
+            }
+
+        }
+        try {
             @SuppressWarnings("unused")
             TestDictionaryBasedBreakIterator1 td1 = new TestDictionaryBasedBreakIterator1();
-            errln("DictionaryBasedBreakIterator constructor is suppose to return an " +
-            "exception for an null input stream.");
-        } catch(Exception e){}
-        
-        
-    }
+            errln("DictionaryBasedBreakIterator constructor is suppose to return an "
+                    + "exception for an null input stream.");
+        } catch (Exception e) {
+        }
+    }   
 }
