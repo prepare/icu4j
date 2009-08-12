@@ -2616,7 +2616,7 @@ public class CollationMiscTest extends TestFmwk {
             0
         };
 
-        RuleBasedCollator  myCollation;
+        Collator  myCollation;
         String rules = "[scriptReorder Grek]";
         try {
             myCollation = new RuleBasedCollator(rules);
@@ -2691,7 +2691,7 @@ public class CollationMiscTest extends TestFmwk {
             -1
         };
 
-        RuleBasedCollator  myCollation;
+        Collator  myCollation;
         String rules = "[scriptReorder Latn Zzzz Zyyy]";
         try {
             myCollation = new RuleBasedCollator(rules);
