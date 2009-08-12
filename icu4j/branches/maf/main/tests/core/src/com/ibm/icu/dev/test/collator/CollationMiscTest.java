@@ -18,6 +18,7 @@ import com.ibm.icu.util.UResourceBundle;
 import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.impl.ImplicitCEGenerator;
 import com.ibm.icu.impl.Utility;
+import com.ibm.icu.lang.UScript;
 import com.ibm.icu.text.CollationElementIterator;
 import com.ibm.icu.text.CollationKey;
 import com.ibm.icu.text.Collator;
@@ -2526,7 +2527,7 @@ public class CollationMiscTest extends TestFmwk {
         // logln("Testing some A letters, for some reason");
         myCollation.setDecomposition(Collator.CANONICAL_DECOMPOSITION);
         myCollation.setStrength(Collator.TERTIARY);
-        for (int i = 0; i < 4 ; i++)
+        for (int i = 0; i < 5 ; i++)
         {
             CollationTest.doTest(this, (RuleBasedCollator)myCollation, 
                                  testSourceCases[i], testTargetCases[i], 
@@ -2587,6 +2588,156 @@ public class CollationMiscTest extends TestFmwk {
 
         }catch(Exception e){
             warnln("ERROR: in creation of rule based collator");
+        }
+    }
+
+    public void TestGreekFirstReorder(){
+        String[] testSourceCases = {
+            "\u0041",
+            "\u03b1\u0041",
+            "\u0061",
+            "\u0041\u0061",
+            "\u0391",
+        };
+
+        String[] testTargetCases = {
+            "\u03b1",
+            "\u0041\u03b1",
+            "\u0391",
+            "\u0391\u03b1",
+            "\u0391",
+        };
+
+        int[] results = {
+            1,
+            -1,
+            1,
+            1,
+            0
+        };
+
+        RuleBasedCollator  myCollation;
+        String rules = "[scriptReorder Grek]";
+        try {
+            myCollation = new RuleBasedCollator(rules);
+        } catch (Exception e) {
+            warnln("ERROR: in creation of rule based collator");
+            return;
+        }
+        myCollation.setDecomposition(Collator.CANONICAL_DECOMPOSITION);
+        myCollation.setStrength(Collator.TERTIARY);
+        for (int i = 0; i < 5 ; i++)
+        {
+            CollationTest.doTest(this, (RuleBasedCollator)myCollation, 
+                                 testSourceCases[i], testTargetCases[i], 
+                                 results[i]);
+        }
+
+        try {
+            myCollation = new RuleBasedCollator("");
+        } catch (Exception e) {
+            warnln("ERROR: in creation of rule based collator");
+            return;
+        }
+        myCollation.setDecomposition(Collator.CANONICAL_DECOMPOSITION);
+        myCollation.setStrength(Collator.TERTIARY);
+        myCollation.setScriptOrder(new int[]{UScript.GREEK});
+        for (int i = 0; i < 5 ; i++)
+        {
+            CollationTest.doTest(this, (RuleBasedCollator)myCollation, 
+                                 testSourceCases[i], testTargetCases[i], 
+                                 results[i]);
+        }
+
+        try {
+            myCollation = new RuleBasedCollator("");
+        } catch (Exception e) {
+            warnln("ERROR: in creation of rule based collator");
+            return;
+        }
+        myCollation.setDecomposition(Collator.CANONICAL_DECOMPOSITION);
+        myCollation.setStrength(Collator.TERTIARY);
+        myCollation.setScriptOrder(UScript.GREEK);
+        for (int i = 0; i < 5 ; i++)
+        {
+            CollationTest.doTest(this, (RuleBasedCollator)myCollation, 
+                                 testSourceCases[i], testTargetCases[i], 
+                                 results[i]);
+        }
+    }
+
+    public void TestUnknownReorder(){
+        String[] testSourceCases = {
+            "\u0041",
+            "\u0041",
+            "\u0031",
+            "\u0391",
+            "\u0031",
+        };
+
+        String[] testTargetCases = {
+            "\u03b1",
+            "\u0031",
+            "\u0391",
+            "\u099d",
+            "\u0032",
+        };
+
+        int[] results = {
+            -1,
+            -1,
+            1,
+            -1,
+            -1
+        };
+
+        RuleBasedCollator  myCollation;
+        String rules = "[scriptReorder Latn Zzzz Zyyy]";
+        try {
+            myCollation = new RuleBasedCollator(rules);
+        } catch (Exception e) {
+            warnln("ERROR: in creation of rule based collator");
+            return;
+        }
+        myCollation.setDecomposition(Collator.CANONICAL_DECOMPOSITION);
+        myCollation.setStrength(Collator.TERTIARY);
+        for (int i = 0; i < 5 ; i++)
+        {
+            CollationTest.doTest(this, (RuleBasedCollator)myCollation, 
+                                 testSourceCases[i], testTargetCases[i], 
+                                 results[i]);
+        }
+
+        try {
+            myCollation = new RuleBasedCollator("");
+        } catch (Exception e) {
+            warnln("ERROR: in creation of rule based collator");
+            return;
+        }
+        myCollation.setDecomposition(Collator.CANONICAL_DECOMPOSITION);
+        myCollation.setStrength(Collator.TERTIARY);
+        myCollation.setScriptOrder(new int[]{UScript.LATIN, UScript.UNKNOWN, UScript.COMMON});
+        for (int i = 0; i < 5 ; i++)
+        {
+            CollationTest.doTest(this, (RuleBasedCollator)myCollation, 
+                                 testSourceCases[i], testTargetCases[i], 
+                                 results[i]);
+        }
+
+        try {
+            myCollation = new RuleBasedCollator("");
+        } catch (Exception e) {
+            warnln("ERROR: in creation of rule based collator");
+            return;
+        }
+        myCollation.setDecomposition(Collator.CANONICAL_DECOMPOSITION);
+        myCollation.setStrength(Collator.TERTIARY);
+        myCollation.setScriptOrder(UScript.LATIN, UScript.UNKNOWN, UScript.COMMON);
+        for (int i = 0; i < 5 ; i++)
+        {
+            CollationTest.doTest(this, (RuleBasedCollator)myCollation, 
+                                 testSourceCases[i], testTargetCases[i], 
+                                 results[i]);
         }
     }
 }

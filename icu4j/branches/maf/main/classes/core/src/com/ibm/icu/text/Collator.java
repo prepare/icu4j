@@ -298,6 +298,17 @@ public abstract class Collator implements Comparator<Object>, Cloneable
         m_decomposition_ = decomposition;
     }
 
+    /**
+     * Set the order for scripts to be ordered in. 
+     * @param order the reordering of scripts
+     * @see #getScriptOrder
+     * @stable 
+     */
+    public void setScriptOrder(int... order)
+    {
+        throw new UnsupportedOperationException();
+    }
+
     // public getters --------------------------------------------------------
 
     /**
@@ -802,6 +813,17 @@ public abstract class Collator implements Comparator<Object>, Cloneable
     public int getDecomposition()
     {
         return m_decomposition_;
+    }
+
+    /** 
+     * Method to retrieve the script reordering
+     * @see #setScriptOrder
+     * @return the ordering of the scripts if one has been set, null otherwise.
+     * @stable 
+     */
+    public int[] getScriptOrder()
+    {
+        throw new UnsupportedOperationException();
     }
 
     // public other methods -------------------------------------------------

@@ -23,6 +23,7 @@ import com.ibm.icu.impl.Trie;
 import com.ibm.icu.impl.TrieIterator;
 import com.ibm.icu.impl.Utility;
 import com.ibm.icu.lang.UCharacter;
+import com.ibm.icu.lang.UScript;
 import com.ibm.icu.util.RangeValueIterator;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.UResourceBundle;
@@ -481,6 +482,17 @@ public final class RuleBasedCollator extends Collator
         setNumericCollation(m_defaultIsNumericCollation_);
         updateInternalState();        
     }
+    
+    /**
+     * Method to set the script order to its default value.
+     * @see #getScriptOrder
+     * @see #setScriptOrder
+     * @stable 
+     */
+    public void setScriptOrderDefault()
+    {
+        setScriptOrder(m_defaultScriptOrder_);
+    }
 
     /**
      * Sets the mode for the direction of SECONDARY weights to be used in
@@ -680,7 +692,27 @@ public final class RuleBasedCollator extends Collator
         m_isNumericCollation_ = flag;
         updateInternalState();
     }
-
+    
+    /**
+     * Set the order for scripts to be ordered in. 
+     * @param order the reordering of scripts
+     * @see #getScriptOrder
+     * @see #setScriptOrderDefault
+     * @stable 
+     */
+    public void setScriptOrder(int... order)
+    {
+        if(order != null){
+            m_scriptOrder_ = new int[order.length];
+            for(int i = 0; i < order.length; i++){
+                m_scriptOrder_[i] = order[i];
+            }
+        }else{
+            m_scriptOrder_ = null;
+        }
+        buildScriptReorderTable();
+    }
+    
     // public getters --------------------------------------------------------
 
     /**
@@ -1116,6 +1148,26 @@ public final class RuleBasedCollator extends Collator
         return m_isNumericCollation_;
     }
     
+    /** 
+     * Method to retrieve the script reordering
+     * @see #setScriptOrder
+     * @see #setScriptOrderDefault
+     * @return the ordering of the scripts if one has been set, null otherwise.
+     * @stable 
+     */
+    public int[] getScriptOrder()
+    {
+        if(m_scriptOrder_ != null){
+            int[] ret = new int[m_scriptOrder_.length];
+            for(int i = 0; i < m_scriptOrder_.length; i++){
+                ret[i] = m_scriptOrder_[i];
+            }
+            return ret;
+        }else{
+            return null;
+        }
+    }
+    
     // public other methods -------------------------------------------------
 
     /**
@@ -1150,6 +1202,19 @@ public final class RuleBasedCollator extends Collator
                || other.m_isFrenchCollation_ != m_isFrenchCollation_
                || other.m_isHiragana4_ != m_isHiragana4_) {
             return false;
+        }
+        if(m_scriptOrder_ != null ^ other.m_scriptOrder_ != null){
+            return false;
+        }
+        if(m_scriptOrder_ != null){
+            if(m_scriptOrder_.length != other.m_scriptOrder_.length){
+                return false;
+            }
+            for(int i = 0; i < m_scriptOrder_.length; i++){
+                if(m_scriptOrder_[i] != other.m_scriptOrder_[i]){
+                    return false;
+                }
+            }
         }
         boolean rules = m_rules_ == other.m_rules_;
         if (!rules && (m_rules_ != null && other.m_rules_ != null)) {
@@ -1595,6 +1660,7 @@ public final class RuleBasedCollator extends Collator
     int m_defaultStrength_;
     boolean m_defaultIsHiragana4_;
     boolean m_defaultIsNumericCollation_;
+    int[] m_defaultScriptOrder_;
     
     /**
      * Value of the variable top
@@ -1612,6 +1678,10 @@ public final class RuleBasedCollator extends Collator
      * Numeric collation option
      */
     boolean m_isNumericCollation_;
+    /**
+     * Script order
+     */
+    int[] m_scriptOrder_;
 
     // end Collator options --------------------------------------------------
 
@@ -2081,6 +2151,10 @@ public final class RuleBasedCollator extends Collator
     private int m_topCount3_;
     private int m_bottomCount3_;
     /**
+     * Script reordering table
+     */
+    private byte[] m_scriptReorderTable_;
+    /**
      * Case first constants
      */
     private static final int CASE_SWITCH_ = 0xC0;
@@ -2260,6 +2334,7 @@ public final class RuleBasedCollator extends Collator
         builder.setRules(this);
         m_rules_ = rules;
         init();
+        buildScriptReorderTable();
         initUtility(false);
     }
     
@@ -2769,12 +2844,11 @@ public final class RuleBasedCollator extends Collator
 
             notIsContinuation = !isContinuation(ce);
 
-            /*
-             * if (notIsContinuation) {
-                    if (scriptOrder != NULL) {
-                        primary1 = scriptOrder[primary1];
-                    }
-                }*/
+            if (notIsContinuation) {
+                if (m_scriptReorderTable_ != null){
+                    ce = (m_scriptReorderTable_[((ce>>24)+256)%256] << 24) | (ce & 0x00FFFFFF);
+                }
+            }
             boolean isPrimaryByteIgnorable = (ce & CE_PRIMARY_MASK_) == 0;
             // actually we can just check that the first byte is 0
             // generation stuffs the order left first
@@ -3275,6 +3349,11 @@ public final class RuleBasedCollator extends Collator
                     m_tgtUtilCEBufferSize_ ++;
                     torder &= CE_PRIMARY_MASK_;
                 } while (torder == CollationElementIterator.IGNORABLE);
+
+                if (!isContinuation(sorder) && m_scriptReorderTable_ != null){
+                    sorder = (m_scriptReorderTable_[((sorder>>24)+256)%256] << 24) | (sorder & 0x00FFFFFF);
+                    torder = (m_scriptReorderTable_[((torder>>24)+256)%256] << 24) | (torder & 0x00FFFFFF);
+                }
 
                 // if both primaries are the same
                 if (sorder == torder) {
@@ -3928,6 +4007,336 @@ public final class RuleBasedCollator extends Collator
     }
 
     /**
+     * Builds the script reordering table
+     */
+    private void buildScriptReorderTable(){
+        int[] defaultScriptOrder = {
+            /* 0x00 */ UScript.INVALID_CODE, /* UScript.INVALID_CODE represents scripts that should not be reordered */
+            /* 0x01 */ UScript.INVALID_CODE,
+            /* 0x02 */ UScript.INVALID_CODE,
+            /* 0x03 */ UScript.INVALID_CODE,
+            /* 0x04 */ UScript.INVALID_CODE,
+            /* 0x05 */ UScript.COMMON,
+            /* 0x06 */ UScript.COMMON,
+            /* 0x07 */ UScript.COMMON,
+            /* 0x08 */ UScript.COMMON,
+            /* 0x09 */ UScript.COMMON,
+            /* 0x0A */ UScript.COMMON,
+            /* 0x0B */ UScript.COMMON,
+            /* 0x0C */ UScript.COMMON,
+            /* 0x0D */ UScript.COMMON,
+            /* 0x0E */ UScript.COMMON,
+            /* 0x0F */ UScript.COMMON,
+            /* 0x10 */ UScript.COMMON,
+            /* 0x11 */ UScript.COMMON,
+            /* 0x12 */ UScript.COMMON,
+            /* 0x13 */ UScript.COMMON,
+            /* 0x14 */ UScript.COMMON,
+            /* 0x15 */ UScript.COMMON,
+            /* 0x16 */ UScript.COMMON,
+            /* 0x17 */ UScript.COMMON,
+            /* 0x18 */ UScript.COMMON,
+            /* 0x19 */ UScript.COMMON,
+            /* 0x1A */ UScript.COMMON,
+            /* 0x1B */ UScript.COMMON,
+            /* 0x1C */ UScript.COMMON,
+            /* 0x1D */ UScript.COMMON,
+            /* 0x1E */ UScript.COMMON,
+            /* 0x1F */ UScript.COMMON,
+            /* 0x20 */ UScript.COMMON,
+            /* 0x21 */ UScript.COMMON,
+            /* 0x22 */ UScript.COMMON,
+            /* 0x23 */ UScript.COMMON,
+            /* 0x24 */ UScript.COMMON,
+            /* 0x25 */ UScript.COMMON,
+            /* 0x26 */ UScript.COMMON,
+            /* 0x27 */ UScript.COMMON,
+            /* 0x28 */ UScript.COMMON,
+            /* 0x29 */ UScript.COMMON,
+            /* 0x2A */ UScript.COMMON,
+            /* 0x2B */ UScript.COMMON,
+            /* 0x2C */ UScript.LATIN,
+            /* 0x2D */ UScript.LATIN,
+            /* 0x2E */ UScript.LATIN,
+            /* 0x2F */ UScript.LATIN,
+            /* 0x30 */ UScript.LATIN,
+            /* 0x31 */ UScript.LATIN,
+            /* 0x32 */ UScript.LATIN,
+            /* 0x33 */ UScript.LATIN,
+            /* 0x34 */ UScript.LATIN,
+            /* 0x35 */ UScript.LATIN,
+            /* 0x36 */ UScript.LATIN,
+            /* 0x37 */ UScript.LATIN,
+            /* 0x38 */ UScript.LATIN,
+            /* 0x39 */ UScript.LATIN,
+            /* 0x3A */ UScript.LATIN,
+            /* 0x3B */ UScript.LATIN,
+            /* 0x3C */ UScript.LATIN,
+            /* 0x3D */ UScript.LATIN,
+            /* 0x3E */ UScript.LATIN,
+            /* 0x3F */ UScript.LATIN,
+            /* 0x40 */ UScript.LATIN,
+            /* 0x41 */ UScript.LATIN,
+            /* 0x42 */ UScript.LATIN,
+            /* 0x43 */ UScript.LATIN,
+            /* 0x44 */ UScript.LATIN,
+            /* 0x45 */ UScript.LATIN,
+            /* 0x46 */ UScript.LATIN,
+            /* 0x47 */ UScript.LATIN,
+            /* 0x48 */ UScript.LATIN,
+            /* 0x49 */ UScript.LATIN,
+            /* 0x4A */ UScript.LATIN,
+            /* 0x4B */ UScript.LATIN,
+            /* 0x4C */ UScript.LATIN,
+            /* 0x4D */ UScript.LATIN,
+            /* 0x4E */ UScript.LATIN,
+            /* 0x4F */ UScript.LATIN,
+            /* 0x50 */ UScript.LATIN,
+            /* 0x51 */ UScript.LATIN,
+            /* 0x52 */ UScript.LATIN,
+            /* 0x53 */ UScript.LATIN,
+            /* 0x54 */ UScript.LATIN,
+            /* 0x55 */ UScript.LATIN,
+            /* 0x56 */ UScript.LATIN,
+            /* 0x57 */ UScript.LATIN,
+            /* 0x58 */ UScript.LATIN,
+            /* 0x59 */ UScript.LATIN,
+            /* 0x5A */ UScript.LATIN,
+            /* 0x5B */ UScript.LATIN,
+            /* 0x5C */ UScript.LATIN,
+            /* 0x5D */ UScript.LATIN,
+            /* 0x5E */ UScript.LATIN,
+            /* 0x5F */ UScript.LATIN,
+            /* 0x60 */ UScript.GREEK,
+            /* 0x61 */ UScript.COPTIC,
+            /* 0x62 */ UScript.CYRILLIC,
+            /* 0x63 */ UScript.CYRILLIC,
+            /* 0x64 */ UScript.GLAGOLITIC,
+            /* 0x65 */ UScript.GEORGIAN,
+            /* 0x66 */ UScript.ARMENIAN,
+            /* 0x67 */ UScript.HEBREW,
+            /* 0x68 */ UScript.ARABIC,
+            /* 0x69 */ UScript.ARABIC,
+            /* 0x6A */ UScript.SYRIAC,
+            /* 0x6B */ UScript.THAANA,
+            /* 0x6C */ UScript.NKO,
+            /* 0x6D */ UScript.TIFINAGH,
+            /* 0x6E */ UScript.ETHIOPIC,
+            /* 0x6F */ UScript.ETHIOPIC,
+            /* 0x70 */ UScript.ETHIOPIC,
+            /* 0x71 */ UScript.ETHIOPIC,
+            /* 0x72 */ UScript.DEVANAGARI,
+            /* 0x73 */ UScript.BENGALI,
+            /* 0x74 */ UScript.GURMUKHI,
+            /* 0x75 */ UScript.GUJARATI,
+            /* 0x76 */ UScript.ORIYA,
+            /* 0x77 */ UScript.TAMIL,
+            /* 0x78 */ UScript.TELUGU,
+            /* 0x79 */ UScript.KANNADA,
+            /* 0x7A */ UScript.MALAYALAM,
+            /* 0x7B */ UScript.SINHALA,
+            /* 0x7C */ UScript.SYLOTI_NAGRI,
+            /* 0x7D */ UScript.SAURASHTRA,
+            /* 0x7E */ UScript.SUNDANESE,
+            /* 0x7F */ UScript.THAI,
+            /* 0x80 */ UScript.LAO,
+            /* 0x81 */ UScript.TIBETAN,
+            /* 0x82 */ UScript.LEPCHA,
+            /* 0x83 */ UScript.PHAGS_PA,
+            /* 0x84 */ UScript.LIMBU,
+            /* 0x85 */ UScript.TAGALOG,
+            /* 0x86 */ UScript.HANUNOO,
+            /* 0x87 */ UScript.BUHID,
+            /* 0x88 */ UScript.TAGBANWA,
+            /* 0x89 */ UScript.BUGINESE,
+            /* 0x8A */ UScript.REJANG,
+            /* 0x8B */ UScript.KAYAH_LI,
+            /* 0x8C */ UScript.MYANMAR,
+            /* 0x8D */ UScript.MYANMAR,
+            /* 0x8E */ UScript.KHMER,
+            /* 0x8F */ UScript.TAI_LE,
+            /* 0x90 */ UScript.NEW_TAI_LUE,
+            /* 0x91 */ UScript.CHAM,
+            /* 0x92 */ UScript.BALINESE,
+            /* 0x93 */ UScript.MONGOLIAN,
+            /* 0x94 */ UScript.MONGOLIAN,
+            /* 0x95 */ UScript.OL_CHIKI,
+            /* 0x96 */ UScript.CHEROKEE,
+            /* 0x97 */ UScript.CANADIAN_ABORIGINAL,
+            /* 0x98 */ UScript.CANADIAN_ABORIGINAL,
+            /* 0x99 */ UScript.CANADIAN_ABORIGINAL,
+            /* 0x9A */ UScript.CANADIAN_ABORIGINAL,
+            /* 0x9B */ UScript.CANADIAN_ABORIGINAL,
+            /* 0x9C */ UScript.CANADIAN_ABORIGINAL,
+            /* 0x9D */ UScript.OGHAM,
+            /* 0x9E */ UScript.RUNIC,
+            /* 0x9F */ UScript.VAI,
+            /* 0xA0 */ UScript.VAI,
+            /* 0xA1 */ UScript.VAI,
+            /* 0xA2 */ UScript.HANGUL,
+            /* 0xA3 */ UScript.HIRAGANA,
+            /* 0xA4 */ UScript.BOPOMOFO,
+            /* 0xA5 */ UScript.YI,
+            /* 0xA6 */ UScript.YI,
+            /* 0xA7 */ UScript.YI,
+            /* 0xA8 */ UScript.YI,
+            /* 0xA9 */ UScript.YI,
+            /* 0xAA */ UScript.YI,
+            /* 0xAB */ UScript.YI,
+            /* 0xAC */ UScript.YI,
+            /* 0xAD */ UScript.YI,
+            /* 0xAE */ UScript.YI,
+            /* 0xAF */ UScript.CARIAN,
+            /* 0xB0 */ UScript.DESERET,
+            /* 0xB1 */ UScript.LINEAR_B,
+            /* 0xB2 */ UScript.LINEAR_B,
+            /* 0xB3 */ UScript.UGARITIC,
+            /* 0xB4 */ UScript.CUNEIFORM,
+            /* 0xB5 */ UScript.CUNEIFORM,
+            /* 0xB6 */ UScript.CUNEIFORM,
+            /* 0xB7 */ UScript.CUNEIFORM,
+            /* 0xB8 */ UScript.CUNEIFORM,
+            /* 0xB9 */ UScript.CUNEIFORM,
+            /* 0xBA */ UScript.CUNEIFORM,
+            /* 0xBB */ UScript.INVALID_CODE,
+            /* 0xBC */ UScript.INVALID_CODE,
+            /* 0xBD */ UScript.INVALID_CODE,
+            /* 0xBE */ UScript.INVALID_CODE,
+            /* 0xBF */ UScript.INVALID_CODE,
+            /* 0xC0 */ UScript.INVALID_CODE,
+            /* 0xC1 */ UScript.INVALID_CODE,
+            /* 0xC2 */ UScript.INVALID_CODE,
+            /* 0xC3 */ UScript.INVALID_CODE,
+            /* 0xC4 */ UScript.INVALID_CODE,
+            /* 0xC5 */ UScript.INVALID_CODE,
+            /* 0xC6 */ UScript.INVALID_CODE,
+            /* 0xC7 */ UScript.INVALID_CODE,
+            /* 0xC8 */ UScript.INVALID_CODE,
+            /* 0xC9 */ UScript.INVALID_CODE,
+            /* 0xCA */ UScript.INVALID_CODE,
+            /* 0xCB */ UScript.INVALID_CODE,
+            /* 0xCC */ UScript.INVALID_CODE,
+            /* 0xCD */ UScript.INVALID_CODE,
+            /* 0xCE */ UScript.INVALID_CODE,
+            /* 0xCF */ UScript.INVALID_CODE,
+            /* 0xD0 */ UScript.INVALID_CODE,
+            /* 0xD1 */ UScript.INVALID_CODE,
+            /* 0xD2 */ UScript.INVALID_CODE,
+            /* 0xD3 */ UScript.INVALID_CODE,
+            /* 0xD4 */ UScript.INVALID_CODE,
+            /* 0xD5 */ UScript.INVALID_CODE,
+            /* 0xD6 */ UScript.INVALID_CODE,
+            /* 0xD7 */ UScript.INVALID_CODE,
+            /* 0xD8 */ UScript.INVALID_CODE,
+            /* 0xD9 */ UScript.INVALID_CODE,
+            /* 0xDA */ UScript.INVALID_CODE,
+            /* 0xDB */ UScript.INVALID_CODE,
+            /* 0xDC */ UScript.INVALID_CODE,
+            /* 0xDD */ UScript.INVALID_CODE,
+            /* 0xDE */ UScript.INVALID_CODE,
+            /* 0xDF */ UScript.INVALID_CODE,
+            /* 0xE0 */ UScript.HAN,
+            /* 0xE1 */ UScript.HAN,
+            /* 0xE2 */ UScript.INVALID_CODE,
+            /* 0xE3 */ UScript.INVALID_CODE,
+            /* 0xE4 */ UScript.INVALID_CODE,
+            /* 0xE5 */ UScript.INVALID_CODE,
+            /* 0xE6 */ UScript.INVALID_CODE,
+            /* 0xE7 */ UScript.INVALID_CODE,
+            /* 0xE8 */ UScript.INVALID_CODE,
+            /* 0xE9 */ UScript.INVALID_CODE,
+            /* 0xEA */ UScript.INVALID_CODE,
+            /* 0xEB */ UScript.INVALID_CODE,
+            /* 0xEC */ UScript.INVALID_CODE,
+            /* 0xED */ UScript.INVALID_CODE,
+            /* 0xEE */ UScript.INVALID_CODE,
+            /* 0xEF */ UScript.INVALID_CODE,
+            /* 0xF0 */ UScript.INVALID_CODE,
+            /* 0xF1 */ UScript.INVALID_CODE,
+            /* 0xF2 */ UScript.INVALID_CODE,
+            /* 0xF3 */ UScript.INVALID_CODE,
+            /* 0xF4 */ UScript.INVALID_CODE,
+            /* 0xF5 */ UScript.INVALID_CODE,
+            /* 0xF6 */ UScript.INVALID_CODE,
+            /* 0xF7 */ UScript.INVALID_CODE,
+            /* 0xF8 */ UScript.INVALID_CODE,
+            /* 0xF9 */ UScript.INVALID_CODE,
+            /* 0xFA */ UScript.INVALID_CODE,
+            /* 0xFB */ UScript.INVALID_CODE,
+            /* 0xFC */ UScript.INVALID_CODE,
+            /* 0xFD */ UScript.INVALID_CODE,
+            /* 0xFE */ UScript.INVALID_CODE,
+            /* 0xFF */ UScript.INVALID_CODE
+        };
+
+        // The lowest byte that hasn't been assigned a mapping
+        int toBottom = 0;
+        // The highest byte that hasn't been assigned a mapping
+        int toTop = 255;
+
+        boolean[] filled = new boolean[256];
+        for(int i = 0; i < 256; i++){
+            filled[i] = false;
+        }
+        if(m_scriptOrder_ != null){
+            if(m_scriptReorderTable_ == null){
+                m_scriptReorderTable_ = new byte[256];
+            }
+            /* Start from the front of the list and place each script we encounter at the
+               earliest possible locatation in the permutation table. If we encounter
+               UNKNOWN, start processing from the back, and place each script in the last
+               possible location. At each step, we also need to make sure that any scripts
+               that need to not be moved are copied to their same location in the final table.*/
+            int next = 0;
+            while(next < m_scriptOrder_.length){
+                if(m_scriptOrder_[next] != UScript.UNKNOWN){
+                    for (int i = 0; i < 256; i++){
+                        while(defaultScriptOrder[toBottom] == UScript.INVALID_CODE){
+                            filled[toBottom] = true;
+                            m_scriptReorderTable_[toBottom] = (byte)toBottom++;
+                        }
+                        if(defaultScriptOrder[i] == m_scriptOrder_[next]){
+                            filled[i] = true;
+                            m_scriptReorderTable_[i] = (byte)toBottom++;
+                        }
+                    }
+                }else{
+                    int last = m_scriptOrder_.length-1;
+                    while(last > next){
+                        for (int i = 255; i >= 0; i--){
+                            while(defaultScriptOrder[toTop] == UScript.INVALID_CODE){
+                                filled[toTop] = true;
+                                m_scriptReorderTable_[toTop] = (byte)toTop--;
+                            }
+                            if(defaultScriptOrder[i] == m_scriptOrder_[last]){
+                                filled[i] = true;
+                                m_scriptReorderTable_[i] = (byte)toTop--;
+                            }
+                        }
+                        --last;
+                    }
+                    break;
+                }
+                ++next;
+            }
+
+            /* Copy everything that's left over */
+            for (int i = 0; i < 256; i++){
+                if(!filled[i]){
+                    m_scriptReorderTable_[i] = (byte)toBottom++;
+                }
+            }
+            for (int i = 0; i < 256; i++){
+                System.out.println(Integer.toString(i, 16) + " -> " + Integer.toString(m_scriptReorderTable_[i], 16));
+            }
+        }else{
+            if(m_scriptReorderTable_ != null){
+                m_scriptReorderTable_ = null;
+            }
+        }
+    }
+
+    /**
      * Resets the internal case data members and compression values.
      */
     private void updateInternalState()
@@ -4023,6 +4432,14 @@ public final class RuleBasedCollator extends Collator
         m_caseFirst_ = m_defaultCaseFirst_;
         m_isHiragana4_ = m_defaultIsHiragana4_;
         m_isNumericCollation_ = m_defaultIsNumericCollation_;
+        if(m_defaultScriptOrder_ != null){
+            m_scriptOrder_ = new int[m_defaultScriptOrder_.length];
+            for(int i = 0; i < m_defaultScriptOrder_.length; i++){
+                m_scriptOrder_[i] = m_defaultScriptOrder_[i];
+            }
+        }else{
+            m_scriptOrder_ = null;
+        }
         latinOneFailed_ = false;
         updateInternalState();
     }
@@ -4437,7 +4854,10 @@ public final class RuleBasedCollator extends Collator
           if(endOfSource) { // source is finished, but target is not, say the result.
               return -1;
           }
-
+          if (!isContinuation(sOrder) && m_scriptReorderTable_ != null){
+              sOrder = (m_scriptReorderTable_[((sOrder>>24)+256)%256] << 24) | (sOrder & 0x00FFFFFF);
+              tOrder = (m_scriptReorderTable_[((tOrder>>24)+256)%256] << 24) | (tOrder & 0x00FFFFFF);
+          }
           if(sOrder == tOrder) { // if we have same CEs, we continue the loop
             sOrder = 0; tOrder = 0;
             continue;
