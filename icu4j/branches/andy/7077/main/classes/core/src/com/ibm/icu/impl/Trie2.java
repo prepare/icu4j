@@ -230,10 +230,20 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
     }
     
 
-    public abstract  CharSequenceIterator iterator(CharSequence text, int index);
+    /** Return an iterator that will produce the value from the Trie for
+     *  the sequence of code points in an input text.
+     *  
+     *  This function is overridden in classes Trie2_16 and Trie2_32
+     * @param text
+     * @param index
+     * @return
+     */
+    public CharSequenceIterator iterator(CharSequence text, int index) {
+        return new CharSequenceIterator(text, index);
+    }
     
     
-    abstract class CharSequenceIterator implements Iterator<IterationResults> {
+    public class CharSequenceIterator implements Iterator<IterationResults> {
         CharSequenceIterator(CharSequence text, int index) { 
             set(text, index);
         }
@@ -265,10 +275,33 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
         }
         
         
-        public abstract Trie2.IterationResults next();
+        public Trie2.IterationResults next() {
+            int c = Character.codePointAt(text, index);
+            int val = get(c);
 
-        public abstract Trie2.IterationResults previous();
-            
+            fResults.index = index;
+            fResults.c = c;
+            fResults.val = val;
+            index++;
+            if (c >= 0x10000) {
+                index++;
+            }            
+            return fResults;
+        }
+
+        
+        public Trie2.IterationResults previous() {
+            int c = Character.codePointBefore(text, index);
+            int val = get(c);
+            index--;
+            if (c >= 0x10000) {
+                index--;
+            }
+            fResults.index = index;
+            fResults.c = c;
+            fResults.val = val;
+            return fResults;
+        }
             
         /** 
          * Iterator.remove() is not supported by Trie2.CharSequenceIterator.
@@ -414,7 +447,8 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
      */
     class UTrie2 {
         /* protected: used by macros and functions for reading values */
-        char index[];
+        char index1[];     // First level index (upper bits of character)
+        char index2[];     // Second level index (middle bits of character
         char data16[];     /* for fast UTF-8 ASCII access, if 16b data */
         int  data32[];     /* NULL if 16b data is used via index */
 

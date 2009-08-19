@@ -94,12 +94,9 @@ public class Trie2Builder extends Trie2 {
       * Produce an optimized, read-only Trie2_32 from the Trie being built.
       * 
       */
-     public Trie2_16 getAsFrozen_32() {
+     public Trie2_32 getAsFrozen_32() {
          return null;
      }
       
-
-
-
 
 }

@@ -35,6 +35,7 @@ public final class Trie2_16 extends Trie2 {
         
         // #define _UTRIE2_GET(trie, data, asciiOffset, c) \
         //    (trie)->data[_UTRIE2_INDEX_FROM_CP(trie, asciiOffset, c)]
+        //    (trie)->index[_UTRIE2_INDEX_FROM_CP(trie, (trie)->indexLength, c)]
         
         //#define _UTRIE2_INDEX_FROM_CP(trie, asciiOffset, c) \
        // ((uint32_t)(c)<0xd800 ? \
@@ -49,25 +50,36 @@ public final class Trie2_16 extends Trie2 {
         //                (trie)->highValueIndex : \
         //                _UTRIE2_INDEX_FROM_SUPP((trie)->index, c))
         
-        int i2, block;
+        //  #define _UTRIE2_INDEX_RAW(offset, trieIndex, c) \
+        //  (((int32_t)((trieIndex)[(offset)+((c)>>UTRIE2_SHIFT_2)]) \
+        //  <<UTRIE2_INDEX_SHIFT)+ \
+        //  ((c)&UTRIE2_DATA_MASK))
+
+        
+        int value = 0;
         
         if (codePoint < 0x0d800) {
-            i2 = trie.index1[codePoint>>UTRIE2_SHIFT_1] +
-                ((codePoint>>UTRIE2_SHIFT_2)&UTRIE2_INDEX_2_MASK);
+            int index = trie.index1[codePoint >> UTRIE2_SHIFT_2];
+            index = (index << UTRIE2_INDEX_SHIFT) + (codePoint & UTRIE2_DATA_MASK);
+            value = trie.data16[index];
+        } else if (codePoint <= 0xffff) {
+            value = 666;   // TODO
         }
 
-        return 0;
+        return value;
     }
 
     
-    public CharSequenceIterator iterator(CharSequence text, int index) {
-        return new CharSequenceIterator16(text, index);
-    }
-        
-    
-    public final class CharSequenceIterator16 extends CharSequenceIterator {
-
-        CharSequenceIterator16(CharSequence text, int index) {
+    /**
+     * Iterator class that will produce the values from the Trie for
+     *  the sequence of code points in an input text.
+     *
+     *  This class is functionally identical to Trie2.CharSequenceIterator.
+     *  Direct use of this class (Trie2_16.CharSequenceIterator) will be 
+     *  slightly faster access via the base class. 
+     */
+    public final class CharSequenceIterator extends Trie2.CharSequenceIterator {
+        CharSequenceIterator(CharSequence text, int index) {
             super(text, index);
         }
 
@@ -101,5 +113,10 @@ public final class Trie2_16 extends Trie2 {
         }
    }
 
+    public CharSequenceIterator iterator(CharSequence text, int index) {
+        return new CharSequenceIterator(text, index);
+    }
+        
     
+
 }
