@@ -67,8 +67,13 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
     }
     
     /**
-     * Create a frozen trie from its serialized form.
-     * Inverse of utrie2_serialize().
+     * Create a Trie2 from its serialized form.  Inverse of utrie2_serialize().
+     * 
+     * The actual type of the returned Trie2 will be either Trie2_16 or Trie2_32, depending
+     * on the width of the data.  Logically this doesn't matter, because the entire API
+     * for accessing the Trie data is available via the Trie2 base class.  But there
+     * may some slight speed improvement available by casting to the actual type in advance
+     * when repeatedly accessing the Trie.
      *
      * @param valueBits selects the data entry size; results in an
      *                  TODO:<which> exception if it does not match the serialized form
@@ -77,9 +82,11 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
      *                      can be NULL
      * @param pErrorCode an in/out ICU UErrorCode
      * @return the unserialized trie
+     * @throws IllegalArgumentException if the stream does not contain a serialized trie
+     *                                  or if the value width of the trie does not match valueBits.
+     * @throws IOException if a read error occurs on the InputStream.
+     * 
      *
-     * @see utrie2_open
-     * @see utrie2_serialize
      */
     public static Trie2  createFromSerialized(ValueWidth valueBits, 
                                 InputStream data) 
@@ -192,71 +199,80 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
      * The serialized data is compatible with ICU4C UTrie2 serialization.
      * Trie serialization is unrelated to Java object serialization.
      * 
-     * Throw an UnsupportedOperationException if the Trie contains data that is
-     * larger than the specified width.
-     * 
-     * Any type of Trie2 may be serialized - a m
      * @param os the stream to which the serialized Trie data will be written.
      *           Can be null, in which case the size of the function will return the
      *           size (in bytes) of the serialized data, without attempting to write the data.
      * @param width the data width of for the serialized Trie.  
-     * @return the number of bytes written or needed for the trie
-     *
+     * @return the number of bytes written.
+     * @throw an UnsupportedOperationException if the Trie contains data that is
+     *        larger than the specified width.
      */
-    public int utrie2_serialize(OutputStream os, ValueWidth width) throws IOException {
+    public int serialize(OutputStream os, ValueWidth width) throws IOException {
         return 0;
     }
 
     
         
-    
+    /**
+     * Struct-like class for holding the results returned by a UTrie2 CharSequence iterator.
+     * The iteration walks over a CharSequence, and for each Unicode code point therein
+     * returns the associated Trie value.
+     */
     static class IterationResults {
-        public int i;
+        /** string index of the current code point. */
+        public int index;
+        
+        /** The code point at index.  */
         public int c;
-        public int val;
-        public IterationResults() {
-            i = 0;
-            c = 0;
-            val = 0;
-        }
+        
+        /** The Trie value for the current code point */
+        public int val;  
     }
     
-    public class CharSequenceIterator<XYZ> implements Iterator {
-        public CharSequenceIterator(CharSequence text, int index) {
+
+    public abstract  CharSequenceIterator iterator(CharSequence text, int index);
+    
+    
+    abstract class CharSequenceIterator implements Iterator<IterationResults> {
+        CharSequenceIterator(CharSequence text, int index) { 
             set(text, index);
         }
             
-        public void set(CharSequence text, int index) {
-            fIndex = index;
-            fText  = text;            
-        }
-        public boolean hasNext() {
-            return fIndex<fText.length();
-        }
-        private CharSequence fText;
-        private int fIndex;
-        private Trie2.IterationResults fResults = new Trie2.IterationResults();
+        CharSequence text;
+        private int textLength;
+        int index;
+        Trie2.IterationResults fResults = new Trie2.IterationResults();
         
-        public Trie2.IterationResults next() {
-            int c = Character.codePointAt(fText, fIndex);
-            int val = get(fResults.c);
-            
-            fResults.i = fIndex;
-            fResults.c = c;
-            fResults.val = val;
-            fIndex++;
-            if (c >= 0x10000) {
-                fIndex++;
-            }            
-            return fResults;
+        public void set(CharSequence t, int i) {
+            if (i<0 || i > t.length()) {
+                throw new IndexOutOfBoundsException();
+            }
+            index = i;
+            text  = t;
+            textLength = text.length();
         }
+        
+        public void set(int i) {
+            if (i < 0 || i > textLength) {
+                throw new IndexOutOfBoundsException();
+            }
+            index = i;
+        }
+        
+        
+        public final boolean hasNext() {
+            return index<textLength;
+        }
+        
+        
+        public abstract Trie2.IterationResults next();
 
-        public Trie2.IterationResults previous() {
-            return fResults;
-        }
+        public abstract Trie2.IterationResults previous();
             
             
-        /* (non-Javadoc)
+        /** 
+         * Iterator.remove() is not supported by Trie2.CharSequenceIterator.
+         * @throws UnsupportedOperationException
          * @see java.util.Iterator#remove()
          */
         public void remove() {
@@ -264,34 +280,7 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
             
         }
     }
-    /**
-     * Get the next code point, post-increment the index, and get the value 
-     * for the code point from the trie.  This function will correctly handle 
-     * UTF-16 input containing supplementary characters.
-     * 
-     * TODO:  An alternative might be to use a Java iterator.
-     *
-     * @param src    input text
-     * @param index  input text index, in index[0].  In/Out parameter, 
-     * @return       the Trie value for the code point at index.
-     */
-    int nextUTF16(CharSequence src, int[] index) {
-        return 0;
-    }
-    
-    
-    /**
-     * Get the previous code point, pre-decrementing index, and get the value 
-     * for the code point from the trie.  This function will correctly handle 
-     * UTF-16 input containing supplementary characters.
-     * 
-     * @param src    input text
-     * @param index  input text index, in index[0].  In/Out parameter
-     * @return       The Trie value for the code point preceding index.
-     */
-    int prevUTF16(CharSequence src, int[] index) {
-        return 0;
-    }
+ 
     
     // Note:  ICU4C contains UTrie2 macros for optimized handling of UTF-8 text.
     //    I don't think that this makes sense for Java.  No "ByteSequence"
@@ -345,7 +334,7 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
      * Enumerate the trie values for the 1024=0x400 code points
      * corresponding to a given lead surrogate.
      * For example, for the lead surrogate U+D87E it will enumerate the values
-     * for [U+2F800..U+2FC00[.
+     * for [U+2F800..U+2FC00].
      * Used by data builder code that sets special lead surrogate code unit values
      * for optimized UTF-16 string processing.
      *
@@ -366,5 +355,188 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
     public Iterator<EnumRange> iterator(int leadSurrogateValue, ValueMapper valueMapper) {
         return null;
     }
+    
+    
+    //
+    // Below this point are internal implementation items.  No further public API.
+    //
+    
+    /**
+     * Trie data structure in serialized form:
+     *
+     * UTrie2Header header;
+     * uint16_t index[header.index2Length];
+     * uint16_t data[header.shiftedDataLength<<2];  -- or uint32_t data[...]
+     * 
+     * For Java, this is read from the stream into one of these.
+     * (The C version just places a struct over the raw serialized data.)
+     * 
+     * @internal
+     */
+    class UTrie2Header {
+        /** "Tri2" in big-endian US-ASCII (0x54726932) */
+        int signature;
+        
+        /**
+         * options bit field (uint16_t):
+         * 15.. 4   reserved (0)
+         *  3.. 0   UTrie2ValueBits valueBits
+         */
+        int  options;
+
+        /** UTRIE2_INDEX_1_OFFSET..UTRIE2_MAX_INDEX_LENGTH  (uint16_t) */
+        int  indexLength;
+        
+        /** (UTRIE2_DATA_START_OFFSET..UTRIE2_MAX_DATA_LENGTH)>>UTRIE2_INDEX_SHIFT  (uint16_t) */
+        int  shiftedDataLength;
+
+        /** Null index and data blocks, not shifted.  (uint16_t) */
+        int  index2NullOffset, dataNullOffset;
+
+        /**
+         * First code point of the single-value range ending with U+10ffff,
+         * rounded up and then shifted right by UTRIE2_SHIFT_1.  (uint16_t)
+         */
+        int shiftedHighStart;
+    }
+    
+    static final int UTRIE2_OPTIONS_VALUE_BITS_MASK=0x000f;
+    
+    
+    /*
+     * UTrie2 structure definition.
+     *
+     * Either the data table is 16 bits wide and accessed via the index
+     * pointer, with each index item increased by indexLength;
+     * in this case, data32==NULL, and data16 is used for direct ASCII access.
+     *
+     * Or the data table is 32 bits wide and accessed via the data32 pointer.
+     */
+    class UTrie2 {
+        /* protected: used by macros and functions for reading values */
+        char index[];
+        char data16[];     /* for fast UTF-8 ASCII access, if 16b data */
+        int  data32[];     /* NULL if 16b data is used via index */
+
+        int  indexLength, dataLength;
+        int  index2NullOffset;  /* 0xffff if there is no dedicated index-2 null block */
+        int  dataNullOffset;
+        int  initialValue;
+        /** Value returned for out-of-range code points and illegal UTF-8. */
+        int  errorValue;
+
+        /* Start of the last range which ends at U+10ffff, and its value. */
+        int  highStart;
+        int  highValueIndex;
+    };
+    
+    UTrie2   trie;
+
+    /**
+     * Trie constants, defining shift widths, index array lengths, etc.
+     *
+     * These are needed for the runtime macros but users can treat these as
+     * implementation details and skip to the actual public API further below.
+     */
+    /** Shift size for getting the index-1 table offset. */
+    static final int UTRIE2_SHIFT_1=6+5;
+
+    /** Shift size for getting the index-2 table offset. */
+    static final int UTRIE2_SHIFT_2=5;
+
+    /**
+     * Difference between the two shift sizes,
+     * for getting an index-1 offset from an index-2 offset. 6=11-5
+     */
+    static final int UTRIE2_SHIFT_1_2=UTRIE2_SHIFT_1-UTRIE2_SHIFT_2;
+
+    /**
+     * Number of index-1 entries for the BMP. 32=0x20
+     * This part of the index-1 table is omitted from the serialized form.
+     */
+    static final int UTRIE2_OMITTED_BMP_INDEX_1_LENGTH=0x10000>>UTRIE2_SHIFT_1;
+
+    /** Number of code points per index-1 table entry. 2048=0x800 */
+    static final int UTRIE2_CP_PER_INDEX_1_ENTRY=1<<UTRIE2_SHIFT_1;
+    
+    /** Number of entries in an index-2 block. 64=0x40 */
+    static final int UTRIE2_INDEX_2_BLOCK_LENGTH=1<<UTRIE2_SHIFT_1_2;
+    
+    /** Mask for getting the lower bits for the in-index-2-block offset. */
+    static final int UTRIE2_INDEX_2_MASK=UTRIE2_INDEX_2_BLOCK_LENGTH-1;
+    
+    /** Number of entries in a data block. 32=0x20 */
+    static final int UTRIE2_DATA_BLOCK_LENGTH=1<<UTRIE2_SHIFT_2;
+    
+    /** Mask for getting the lower bits for the in-data-block offset. */
+    static final int UTRIE2_DATA_MASK=UTRIE2_DATA_BLOCK_LENGTH-1;
+    
+    /**
+     * Shift size for shifting left the index array values.
+     * Increases possible data size with 16-bit index values at the cost
+     * of compactability.
+     * This requires data blocks to be aligned by UTRIE2_DATA_GRANULARITY.
+     */
+    static final int UTRIE2_INDEX_SHIFT=2;
+    
+    /** The alignment size of a data block. Also the granularity for compaction. */
+    static final int UTRIE2_DATA_GRANULARITY=1<<UTRIE2_INDEX_SHIFT;
+    
+    /* Fixed layout of the first part of the index array. ------------------- */
+    
+    /**
+     * The BMP part of the index-2 table is fixed and linear and starts at offset 0.
+     * Length=2048=0x800=0x10000>>UTRIE2_SHIFT_2.
+     */
+    static final int UTRIE2_INDEX_2_OFFSET=0;
+    
+    /**
+     * The part of the index-2 table for U+D800..U+DBFF stores values for
+     * lead surrogate code _units_ not code _points_.
+     * Values for lead surrogate code _points_ are indexed with this portion of the table.
+     * Length=32=0x20=0x400>>UTRIE2_SHIFT_2. (There are 1024=0x400 lead surrogates.)
+     */
+    static final int UTRIE2_LSCP_INDEX_2_OFFSET=0x10000>>UTRIE2_SHIFT_2;
+    static final int UTRIE2_LSCP_INDEX_2_LENGTH=0x400>>UTRIE2_SHIFT_2;
+    
+    /** Count the lengths of both BMP pieces. 2080=0x820 */
+    static final int UTRIE2_INDEX_2_BMP_LENGTH=UTRIE2_LSCP_INDEX_2_OFFSET+UTRIE2_LSCP_INDEX_2_LENGTH;
+    
+    /**
+     * The 2-byte UTF-8 version of the index-2 table follows at offset 2080=0x820.
+     * Length 32=0x20 for lead bytes C0..DF, regardless of UTRIE2_SHIFT_2.
+     */
+    static final int UTRIE2_UTF8_2B_INDEX_2_OFFSET=UTRIE2_INDEX_2_BMP_LENGTH;
+    static final int UTRIE2_UTF8_2B_INDEX_2_LENGTH=0x800>>6;  /* U+0800 is the first code point after 2-byte UTF-8 */
+    
+    /**
+     * The index-1 table, only used for supplementary code points, at offset 2112=0x840.
+     * Variable length, for code points up to highStart, where the last single-value range starts.
+     * Maximum length 512=0x200=0x100000>>UTRIE2_SHIFT_1.
+     * (For 0x100000 supplementary code points U+10000..U+10ffff.)
+     *
+     * The part of the index-2 table for supplementary code points starts
+     * after this index-1 table.
+     *
+     * Both the index-1 table and the following part of the index-2 table
+     * are omitted completely if there is only BMP data.
+     */
+    static final int UTRIE2_INDEX_1_OFFSET=UTRIE2_UTF8_2B_INDEX_2_OFFSET+UTRIE2_UTF8_2B_INDEX_2_LENGTH;
+    static final int UTRIE2_MAX_INDEX_1_LENGTH=0x100000>>UTRIE2_SHIFT_1;
+    
+    /*
+     * Fixed layout of the first part of the data array. -----------------------
+     * Starts with 4 blocks (128=0x80 entries) for ASCII.
+     */
+    
+    /**
+     * The illegal-UTF-8 data block follows the ASCII block, at offset 128=0x80.
+     * Used with linear access for single bytes 0..0xbf for simple error handling.
+     * Length 64=0x40, not UTRIE2_DATA_BLOCK_LENGTH.
+     */
+    static final int UTRIE2_BAD_UTF8_DATA_OFFSET=0x80;
+    
+    /** The start of non-linear-ASCII data blocks, at offset 192=0xc0. */
+    static final int UTRIE2_DATA_START_OFFSET=0xc0;
 
 }
