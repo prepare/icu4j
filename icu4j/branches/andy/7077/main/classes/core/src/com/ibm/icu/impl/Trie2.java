@@ -13,11 +13,14 @@ import java.util.Iterator;
 
 
 /**
- * This is a common implementation of a Unicode trie.
- * It is a kind of compressed, serializable table of 16- or 32-bit values associated with
- * Unicode code points (0..0x10ffff). (A map from code points to integers.)
+ * This is the interface and common implementation of a Unicode trie.
+ * It is a kind of compressed table that maps from Unicode code points (0..0x10ffff)
+ * to 16- or 32-bit integer values.  It works best when there are ranges of
+ * characters with the same value, which is generally the case with Unicode
+ * character properties.
  *
  * This is the second common version of a Unicode trie (hence the name Trie2).
+ * 
  */
 public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
 
@@ -27,20 +30,6 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
     public enum ValueWidth {
         BITS_16,
         BITS_32
-    }
-    
-    /**
-     * When iterating over the contents of a Trie2, Elements of this type are produced.
-     * The iterator will return one item for each contiguous range of codepoints  with the same value.  
-     * 
-     * When iterating, the same Trie2EnumRange object will be reused and returned for each range.
-     * If you need to retain the complete iteration results, clone each returned Trie2EnumRange,
-     * or save the range in some other way, before advancing to the next iteration step.
-     */
-    public static class EnumRange {
-        public int   startCodePoint;
-        public int   endCodePoint;     // Inclusive.
-        public int   value;
     }
     
     
@@ -75,47 +64,43 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
      * may some slight speed improvement available by casting to the actual type in advance
      * when repeatedly accessing the Trie.
      *
-     * @param valueBits selects the data entry size; results in an
-     *                  TODO:<which> exception if it does not match the serialized form
      * @param data an input stream to the serialized form of a UTrie2.  
-     * @param pActualLength receives the actual number of bytes at data taken up by the trie data;
-     *                      can be NULL
-     * @param pErrorCode an in/out ICU UErrorCode
      * @return the unserialized trie
      * @throws IllegalArgumentException if the stream does not contain a serialized trie
      *                                  or if the value width of the trie does not match valueBits.
      * @throws IOException if a read error occurs on the InputStream.
      * 
-     *
+     * Note: dropped the valueWidth parameter (16 or 32 bits) at Mark's suggestion.  If it matters,
+     *       check the returned type. 
      */
-    public static Trie2  createFromSerialized(ValueWidth valueBits, 
-                                InputStream data) 
-        throws IOException {
+    public static Trie2  createFromSerialized(InputStream data) throws IOException {
         return null;
     }
     
     
     /**
-     * Create a frozen, empty "dummy" trie.
+     * Create a frozen, empty "dummy" trie with 16 bit data.
      * A dummy trie is an empty trie, used when a real data trie cannot
      * be loaded. 
      *
      * The trie always returns the initialValue,
      * or the errorValue for out-of-range code points.
      *
-     * @param valueBits selects the data entry size
      * @param initialValue the initial value that is set for all code points
      * @param errorValue the value for out-of-range code points and illegal UTF-8
      * @return the dummy trie
      *
      */
-    public static Trie2 createDummy(ValueWidth valueBits,
-                                    int initialValue, 
-                                    int errorValue) {
+    public static Trie2 createDummy(int initialValue, ValueWidth bitWidth, int errorValue) {
         return null;
     }
     
-    /**
+    
+    public Trie2 clone() {
+        return null;
+    }
+    
+     /**
      * Get the UTrie version from an InputStream containing the serialized form
      * of either a Trie (version 1) or a Trie2 (version 2).
      *
@@ -157,51 +142,56 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
      * @param codePoint the code point
      * @return the value
      */
-    public int get(int codePoint) {
-        return 0;
-    }
+    abstract public int get(int codePoint);
 
     
     /**
-     *  Return an iterator over the value ranges in this Trie2.
+     * When iterating over the contents of a Trie2, Elements of this type are produced.
+     * The iterator will return one item for each contiguous range of codepoints  with the same value.  
+     * 
+     * When iterating, the same Trie2EnumRange object will be reused and returned for each range.
+     * If you need to retain the complete iteration results, clone each returned Trie2EnumRange,
+     * or save the range in some other way, before advancing to the next iteration step.
+     */
+    public static class EnumRange {
+        public int   startCodePoint;
+        public int   endCodePoint;     // Inclusive.
+        public int   value;
+    }
+    
+    /**
+     *  Create an iterator over the value ranges in this Trie2.
      *  Values from the Trie are not remapped or filtered, but are returned as they
      *  appear in the Trie.
      *  
-     *  This 
-     * @return
+     * @return an Iterator
      */
     public Iterator<EnumRange> iterator() {
         return null;
     }
     
     /**
-     * Return an iterator over the value ranges from this Trie2.
+     * Create an iterator over the value ranges from this Trie2.
      * Values from the trie are passed through a caller-supplied remapping function,
      * and it is the remapped values that determine the ranges that
-     * are iterated over.
+     * will be produced by the iterator.
      * 
      * 
-     * @param value
-     * @return
+     * @param mapper provides a function to remap values obtained from the Trie.
+     * @return an Interator
      */
-    public Iterator<EnumRange> iterator(ValueMapper value) {
+    public Iterator<EnumRange> iterator(ValueMapper mapper) {
         return null;
     }
     
     
-    public Trie2 clone() {
-        return null;
-    }
-    
-    /**
+   /**
      * Serialize a trie onto an OutputStream.
      * A trie can be serialized multiple times.
      * The serialized data is compatible with ICU4C UTrie2 serialization.
      * Trie serialization is unrelated to Java object serialization.
      * 
      * @param os the stream to which the serialized Trie data will be written.
-     *           Can be null, in which case the size of the function will return the
-     *           size (in bytes) of the serialized data, without attempting to write the data.
      * @param width the data width of for the serialized Trie.  
      * @return the number of bytes written.
      * @throw an UnsupportedOperationException if the Trie contains data that is
@@ -230,12 +220,11 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
     }
     
 
-    /** Return an iterator that will produce the value from the Trie for
+    /** Create an iterator that will produce the values from the Trie for
      *  the sequence of code points in an input text.
      *  
-     *  This function is overridden in classes Trie2_16 and Trie2_32
-     * @param text
-     * @param index
+     * @param text A text string to be iterated over.
+     * @param index The starting iteration position within the input text.
      * @return
      */
     public CharSequenceIterator iterator(CharSequence text, int index) {
@@ -243,6 +232,12 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
     }
     
     
+    /**
+     * An iterator that operates over an input text, and for each Unicode code point
+     * in the input returns the associated value from the Trie.
+     * 
+     * The iterator can move forwards or backwards, and can be reset to an 
+     */
     public class CharSequenceIterator implements Iterator<IterationResults> {
         CharSequenceIterator(CharSequence text, int index) { 
             set(text, index);
@@ -447,10 +442,8 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
      */
     class UTrie2 {
         /* protected: used by macros and functions for reading values */
-        char index1[];     // First level index (upper bits of character)
-        char index2[];     // Second level index (middle bits of character
-        char data16[];     /* for fast UTF-8 ASCII access, if 16b data */
-        int  data32[];     /* NULL if 16b data is used via index */
+        char index[];     // Index array.  Includes data for 16 bit Tries.
+        int  data32[];    // NULL if 16b data is used via index 
 
         int  indexLength, dataLength;
         int  index2NullOffset;  /* 0xffff if there is no dedicated index-2 null block */

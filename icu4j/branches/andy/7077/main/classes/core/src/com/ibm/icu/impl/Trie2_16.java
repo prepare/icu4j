@@ -31,42 +31,43 @@ public final class Trie2_16 extends Trie2 {
      * @return the value
      */
     public final int get(int codePoint) {
-        //#define UTRIE2_GET16(trie, c) _UTRIE2_GET((trie), index, (trie)->indexLength, (c))
+        int value;
+        int ix;
         
-        // #define _UTRIE2_GET(trie, data, asciiOffset, c) \
-        //    (trie)->data[_UTRIE2_INDEX_FROM_CP(trie, asciiOffset, c)]
-        //    (trie)->index[_UTRIE2_INDEX_FROM_CP(trie, (trie)->indexLength, c)]
-        
-        //#define _UTRIE2_INDEX_FROM_CP(trie, asciiOffset, c) \
-       // ((uint32_t)(c)<0xd800 ? \
-       //     _UTRIE2_INDEX_RAW(0, (trie)->index, c) : \
-        //    (uint32_t)(c)<=0xffff ? \
-        //        _UTRIE2_INDEX_RAW( \
-        //            (c)<=0xdbff ? UTRIE2_LSCP_INDEX_2_OFFSET-(0xd800>>UTRIE2_SHIFT_2) : 0, \
-        //            (trie)->index, c) : \
-        //        (uint32_t)(c)>0x10ffff ? \
-        //            (asciiOffset)+UTRIE2_BAD_UTF8_DATA_OFFSET : \
-        //            (c)>=(trie)->highStart ? \
-        //                (trie)->highValueIndex : \
-        //                _UTRIE2_INDEX_FROM_SUPP((trie)->index, c))
-        
-        //  #define _UTRIE2_INDEX_RAW(offset, trieIndex, c) \
-        //  (((int32_t)((trieIndex)[(offset)+((c)>>UTRIE2_SHIFT_2)]) \
-        //  <<UTRIE2_INDEX_SHIFT)+ \
-        //  ((c)&UTRIE2_DATA_MASK))
-
-        
-        int value = 0;
-        
-        if (codePoint < 0x0d800) {
-            int index = trie.index1[codePoint >> UTRIE2_SHIFT_2];
-            index = (index << UTRIE2_INDEX_SHIFT) + (codePoint & UTRIE2_DATA_MASK);
-            value = trie.data16[index];
-        } else if (codePoint <= 0xffff) {
-            value = 666;   // TODO
+        if (codePoint > 0) {
+            if (codePoint < 0x0d800 || (codePoint > 0x0dbff && codePoint <= 0x0ffff)) {
+                // Ordinary BMP code point, excluding leading surrogates.
+                // BMP uses a single level lookup.  BMP index starts at offset 0 in the trie index.
+                // 16 bit data is stored in the index array itself.
+                ix = trie.index[codePoint >> UTRIE2_SHIFT_2];
+                ix = (ix << UTRIE2_INDEX_SHIFT) + (codePoint & UTRIE2_DATA_MASK);
+                value = trie.index[ix];
+                return value;
+            } 
+            if (codePoint <= 0xffff) {
+                // Lead Surrogate Code Point.  A Separate index section is stored for
+                // lead surrogate code units and code points.
+                //   The main index has the code unit data.
+                //   For this function, we need the code point data.
+                // Note: this expression could be refactored for slightly improved efficiency, but
+                //       surrogate code points will be so rare in practice that it's not worth it.
+                ix = trie.index[UTRIE2_LSCP_INDEX_2_OFFSET + ((codePoint - 0xd800) >> UTRIE2_SHIFT_2)];
+                ix = (ix << UTRIE2_INDEX_SHIFT) + (codePoint & UTRIE2_DATA_MASK);
+                value = trie.index[ix];
+                return value;
+            }
+            if (codePoint < trie.highStart) {
+                // Supplemental, needs full lookup.
+                return 666;
+            }
+            if (codePoint <= 0x10ffff) {
+                value = trie.index[trie.highValueIndex];
+                return value;
+            }
         }
-
-        return value;
+        
+        // Fall through.  The code point is outside of the legal range of 0..0x10ffff.
+        return trie.errorValue;
     }
 
     

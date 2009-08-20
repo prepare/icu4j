@@ -15,7 +15,7 @@ import com.ibm.icu.impl.Trie2.ValueWidth;
  * Functions for reading data from the Trie are all from class Trie2.
  * 
  */
-public class Trie2Builder extends Trie2 {
+public class Trie2Writable extends Trie2 {
     
     
     /**
@@ -24,7 +24,7 @@ public class Trie2Builder extends Trie2 {
      * @param initialValue the initial value that is set for all code points
      * @param errorValue the value for out-of-range code points and illegal UTF-8
      */
-    public  Trie2Builder(int initialValue, int errorValue) {
+    public  Trie2Writable(int initialValue, int errorValue) {
     }
     
     
@@ -33,7 +33,7 @@ public class Trie2Builder extends Trie2 {
      * 
      * @param source
      */
-    public Trie2Builder(Trie2 source) {
+    public Trie2Writable(Trie2 source) {
     }
     
     
@@ -43,7 +43,7 @@ public class Trie2Builder extends Trie2 {
      * @param c the code point
      * @param value the value
      */
-    public Trie2Builder set(int c, int value) {
+    public Trie2Writable set(int c, int value) {
         return this;
     }
     
@@ -58,7 +58,7 @@ public class Trie2Builder extends Trie2 {
      * @param value the value
      * @param overwrite flag for whether old non-initial values are to be overwritten
      */
-     public Trie2Builder setRange(int start, int end,
+     public Trie2Writable setRange(int start, int end,
                            int value, boolean overwrite) {
     
         return this;
@@ -75,7 +75,7 @@ public class Trie2Builder extends Trie2 {
       * @param lead the lead surrogate code unit (U+D800..U+DBFF)
       * @param value the value
       */
-     public Trie2Builder setForLeadSurrogateCodeUnit(int lead, int value) {
+     public Trie2Writable setForLeadSurrogateCodeUnit(int lead, int value) {
          return this;
      }
 
