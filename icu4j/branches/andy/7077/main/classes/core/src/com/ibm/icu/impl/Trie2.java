@@ -6,6 +6,7 @@
  */
 package com.ibm.icu.impl;
 
+import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -32,27 +33,14 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
         BITS_32
     }
     
-    
     /**
-     * When iterating over the contents of a Trie, an instance of TrieValueMapper may
-     * be used to remap the values from the Trie.  The remapped values will be used
-     * both in determining the ranges of codepoints and as the value to be returned
-     * for each range.
-     * 
-     * Example of use, with an anonymous subclass of TrieValueMapper.
-     * 
-     * 
-     * TrieValueMapper m = new TrieValueMapper() {
-     *    int map(int in) {return in & 0x1f;};
-     * }
-     * for (Iterator<Trie2EnumRange> iter = trie.iterator(m); i.hasNext(); ) {
-     *     Trie2EnumRange r = i.next();
-     *     ...  // Do something with the range r.
-     * }
-     *    
+     * Internal only constructor.  Wraps a Trie2 around a set of unserialized data
+     *    for a read-only Trie.  Invoked from UTrie2_16 and UTrie2_32.
+     * @param trieData  the trie data.
+     * @internal
      */
-    public interface ValueMapper {
-        public int  map(int originalVal);
+    Trie2(UTrie2 trieData) {
+        trie = trieData;
     }
     
     /**
@@ -61,10 +49,10 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
      * The actual type of the returned Trie2 will be either Trie2_16 or Trie2_32, depending
      * on the width of the data.  Logically this doesn't matter, because the entire API
      * for accessing the Trie data is available via the Trie2 base class.  But there
-     * may some slight speed improvement available by casting to the actual type in advance
-     * when repeatedly accessing the Trie.
+     * may some slight speed improvement available when repeatedly accessing the Trie
+     * by casting to the actual type in advance.
      *
-     * @param data an input stream to the serialized form of a UTrie2.  
+     * @param is an input stream to the serialized form of a UTrie2.  
      * @return the unserialized trie
      * @throws IllegalArgumentException if the stream does not contain a serialized trie
      *                                  or if the value width of the trie does not match valueBits.
@@ -73,32 +61,129 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
      * Note: dropped the valueWidth parameter (16 or 32 bits) at Mark's suggestion.  If it matters,
      *       check the returned type. 
      */
-    public static Trie2  createFromSerialized(InputStream data) throws IOException {
-        return null;
+    public static Trie2  createFromSerialized(InputStream is) throws IOException {
+         //    From ICU4C utrie2_impl.h
+         //    * Trie data structure in serialized form:
+         //     *
+         //     * UTrie2Header header;
+         //     * uint16_t index[header.index2Length];
+         //     * uint16_t data[header.shiftedDataLength<<2];  -- or uint32_t data[...]
+         //     * @internal
+         //     */
+         //    typedef struct UTrie2Header {
+         //        /** "Tri2" in big-endian US-ASCII (0x54726932) */
+         //        uint32_t signature;
+    
+         //       /**
+         //         * options bit field:
+         //         * 15.. 4   reserved (0)
+         //         *  3.. 0   UTrie2ValueBits valueBits
+         //         */
+         //        uint16_t options;
+         // 
+         //        /** UTRIE2_INDEX_1_OFFSET..UTRIE2_MAX_INDEX_LENGTH */
+         //        uint16_t indexLength;
+         // 
+         //        /** (UTRIE2_DATA_START_OFFSET..UTRIE2_MAX_DATA_LENGTH)>>UTRIE2_INDEX_SHIFT */
+         //        uint16_t shiftedDataLength;
+         // 
+         //        /** Null index and data blocks, not shifted. */
+         //        uint16_t index2NullOffset, dataNullOffset;
+         // 
+         //        /**
+         //         * First code point of the single-value range ending with U+10ffff,
+         //         * rounded up and then shifted right by UTRIE2_SHIFT_1.
+         //         */
+         //        uint16_t shiftedHighStart;
+         //    } UTrie2Header;
+        
+        DataInputStream dis = new DataInputStream(is);        
+        UTrie2  trie = new UTrie2();
+        boolean needByteSwap = false;
+        
+        /* check the signature */
+        trie.header.signature = dis.readInt();
+        switch (trie.header.signature) {
+        case 0x54726932:
+            needByteSwap = false;
+            break;
+        case 0x32697254:
+            needByteSwap = true;
+            trie.header.signature = Integer.reverseBytes(trie.header.signature);
+            final DataInputStream originalIS = dis;
+            dis = new DataInputStream(originalIS) {
+                         int ReadUnsignedShort() throws IOException 
+                            {return Short.reverseBytes(super.readShort());
+                      }
+            };
+            break;
+        default:
+            throw new IllegalArgumentException("Stream does not contain a serialized UTrie2");
+        }
+        
+        trie.header.options = dis.readUnsignedShort();
+        trie.header.indexLength = dis.readUnsignedShort();
+        trie.header.shiftedDataLength = dis.readUnsignedShort();
+        trie.header.index2NullOffset = dis.readUnsignedShort();
+        trie.header.shiftedHighStart = dis.readUnsignedShort();
+        
+        // Trie data width - 0: 16 bits
+        //                   1: 32 bits
+        if ((trie.header.options & UTRIE2_OPTIONS_VALUE_BITS_MASK) > 1) {
+            throw new IllegalArgumentException("UTrie2 serialized format error.");
+        }
+        trie.dataWidth = (trie.header.options & UTRIE2_OPTIONS_VALUE_BITS_MASK) == 0 ? 
+                ValueWidth.BITS_16: ValueWidth.BITS_32;
+        
+        /* get the length values and offsets */
+        trie.indexLength      = trie.header.indexLength;
+        trie.dataLength       = trie.header.shiftedDataLength << UTRIE2_INDEX_SHIFT;
+        trie.index2NullOffset = trie.header.index2NullOffset;
+        trie.dataNullOffset   = trie.header.dataNullOffset;
+
+        trie.highStart        = trie.header.shiftedHighStart << UTRIE2_SHIFT_1;
+        trie.highValueIndex   = trie.dataLength - UTRIE2_DATA_GRANULARITY;
+        if (trie.dataWidth == ValueWidth.BITS_16) {
+            trie.highValueIndex += trie.indexLength;
+        }
+
+        /* Read in the index */
+        trie.index = new char[trie.indexLength];
+        int i;
+        for (i=0; i<trie.indexLength; i++) {
+            trie.index[i] = dis.readChar();
+        }
+        
+        /* Read in the data.  16 bit data goes in the same array as the index,
+         * which will need to grow to accommodate the data.
+         * 32 bit data goes in its own separate data array.
+         */
+        if (trie.dataWidth == ValueWidth.BITS_16) {
+            int newIndexSize = trie.index.length + trie.dataLength;
+            char newIndex[] = new char[newIndexSize];
+            System.arraycopy(trie.index, 0, newIndex, 0, trie.index.length);
+            trie.index = newIndex;
+            for (i=0; i<trie.dataLength; i++) {
+                trie.index[trie.indexLength + i] = dis.readChar();
+            }
+        } else {
+            trie.data32 = new int[trie.dataLength];
+            for (i=0; i<trie.dataLength; i++) {
+                trie.data32[i] = dis.readInt();
+            }
+        }
+        
+        /* Create the Trie object of the appropriate type to be returned to the user.
+         */
+        Trie2 result = null;
+        if (trie.dataWidth == ValueWidth.BITS_16) {
+            result = new Trie2_16(trie);
+        } else {
+            result = new Trie2_32(trie);
+        }
+        return result;
     }
     
-    
-    /**
-     * Create a frozen, empty "dummy" trie with 16 bit data.
-     * A dummy trie is an empty trie, used when a real data trie cannot
-     * be loaded. 
-     *
-     * The trie always returns the initialValue,
-     * or the errorValue for out-of-range code points.
-     *
-     * @param initialValue the initial value that is set for all code points
-     * @param errorValue the value for out-of-range code points and illegal UTF-8
-     * @return the dummy trie
-     *
-     */
-    public static Trie2 createDummy(int initialValue, ValueWidth bitWidth, int errorValue) {
-        return null;
-    }
-    
-    
-    public Trie2 clone() {
-        return null;
-    }
     
      /**
      * Get the UTrie version from an InputStream containing the serialized form
@@ -146,6 +231,17 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
 
     
     /**
+     * Get a 16-bit trie value from a UTF-16 single/lead code unit (<=U+ffff).
+     * Same as get() if c is a BMP code point except for lead surrogates,
+     * but faster.
+     * 
+     * @param trie the trie
+     * @param c the code unit (0x0000 .. 0x0000ffff)
+     * @return the value
+     */
+    abstract int getFromU16SingleLead(int c);
+   
+    /**
      * When iterating over the contents of a Trie2, Elements of this type are produced.
      * The iterator will return one item for each contiguous range of codepoints  with the same value.  
      * 
@@ -184,6 +280,28 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
         return null;
     }
     
+    /**
+     * When iterating over the contents of a Trie, an instance of TrieValueMapper may
+     * be used to remap the values from the Trie.  The remapped values will be used
+     * both in determining the ranges of codepoints and as the value to be returned
+     * for each range.
+     * 
+     * Example of use, with an anonymous subclass of TrieValueMapper.
+     * 
+     * 
+     * TrieValueMapper m = new TrieValueMapper() {
+     *    int map(int in) {return in & 0x1f;};
+     * }
+     * for (Iterator<Trie2EnumRange> iter = trie.iterator(m); i.hasNext(); ) {
+     *     Trie2EnumRange r = i.next();
+     *     ...  // Do something with the range r.
+     * }
+     *    
+     */
+    public interface ValueMapper {
+        public int  map(int originalVal);
+    }
+    
     
    /**
      * Serialize a trie onto an OutputStream.
@@ -191,11 +309,17 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
      * The serialized data is compatible with ICU4C UTrie2 serialization.
      * Trie serialization is unrelated to Java object serialization.
      * 
+     * A read-only Trie, of type Trie2_16 or Trie2_32 can only be serialized
+     * with its actual data width.  A writeable Trie may be serialized with
+     * either 16 or 32 bit data width, although serializing to 16 bit width
+     * will fail if the actual data is wider.
+     * 
      * @param os the stream to which the serialized Trie data will be written.
      * @param width the data width of for the serialized Trie.  
      * @return the number of bytes written.
      * @throw an UnsupportedOperationException if the Trie contains data that is
-     *        larger than the specified width.
+     *        larger than the specified width, or, for a read only Trie, if the
+     *        actual width is different from the specified width.
      */
     public int serialize(OutputStream os, ValueWidth width) throws IOException {
         return 0;
@@ -206,7 +330,7 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
     /**
      * Struct-like class for holding the results returned by a UTrie2 CharSequence iterator.
      * The iteration walks over a CharSequence, and for each Unicode code point therein
-     * returns the associated Trie value.
+     * returns the character and its associated Trie value.
      */
     static class IterationResults {
         /** string index of the current code point. */
@@ -239,8 +363,10 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
      * The iterator can move forwards or backwards, and can be reset to an 
      */
     public class CharSequenceIterator implements Iterator<IterationResults> {
-        CharSequenceIterator(CharSequence text, int index) { 
-            set(text, index);
+        CharSequenceIterator(CharSequence t, int index) { 
+            text = t;
+            textLength = text.length();
+            set(index);
         }
             
         CharSequence text;
@@ -248,14 +374,6 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
         int index;
         Trie2.IterationResults fResults = new Trie2.IterationResults();
         
-        public void set(CharSequence t, int i) {
-            if (i<0 || i > t.length()) {
-                throw new IndexOutOfBoundsException();
-            }
-            index = i;
-            text  = t;
-            textLength = text.length();
-        }
         
         public void set(int i) {
             if (i < 0 || i > textLength) {
@@ -270,6 +388,8 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
         }
         
         
+        // Note: next() is overridden in Trie2_16 and Trie_32 for potential efficiency gains.
+        //       The functionality is identical.  This implementation is used by writable tries.
         public Trie2.IterationResults next() {
             int c = Character.codePointAt(text, index);
             int val = get(c);
@@ -285,6 +405,8 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
         }
 
         
+        // Note: previous() is overridden in Trie2_16 and Trie_32 for potential efficiency gains.
+        //       The functionality is identical.  This implementation is used by writable tries.
         public Trie2.IterationResults previous() {
             int c = Character.codePointBefore(text, index);
             int val = get(c);
@@ -344,19 +466,6 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
      */
      
     
-    /**
-     * Get a 16-bit trie value from a UTF-16 single/lead code unit (<=U+ffff).
-     * Same as get() if c is a BMP code point except for lead surrogates,
-     * but faster.
-     * 
-     * @param trie the trie
-     * @param c the code unit (0x0000 .. 0x0000ffff)
-     * @return the value
-     */
-    int getFromU16SingleLead(int c) {
-        return 0;
-    }
-   
 
     /**
      * Enumerate the trie values for the 1024=0x400 code points
@@ -401,7 +510,7 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
      * 
      * @internal
      */
-    class UTrie2Header {
+    static class UTrie2Header {
         /** "Tri2" in big-endian US-ASCII (0x54726932) */
         int signature;
         
@@ -431,17 +540,26 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
     static final int UTRIE2_OPTIONS_VALUE_BITS_MASK=0x000f;
     
     
-    /*
+    /**
      * UTrie2 structure definition.
+     * This class closely parallels struct UTrie2 from the C implementation.
+     * All data describing a frozen trie, of either data size, is contained or
+     * referenced from here.
      *
      * Either the data table is 16 bits wide and accessed via the index
      * pointer, with each index item increased by indexLength;
      * in this case, data32==NULL, and data16 is used for direct ASCII access.
      *
      * Or the data table is 32 bits wide and accessed via the data32 pointer.
+     * 
+     * 
+     * @internal
      */
-    class UTrie2 {
+    static class UTrie2 {
         /* protected: used by macros and functions for reading values */
+        UTrie2Header  header = new UTrie2Header();
+        ValueWidth    dataWidth;
+        
         char index[];     // Index array.  Includes data for 16 bit Tries.
         int  data32[];    // NULL if 16b data is used via index 
 

@@ -6,6 +6,8 @@
  */
 package com.ibm.icu.impl;
 
+import com.ibm.icu.impl.Trie2.ValueWidth;
+
 
 /**
  * @author aheninger
@@ -22,6 +24,28 @@ package com.ibm.icu.impl;
  * with calling the same methods via the abstract UTrie2 base class.
  */
 public final class Trie2_16 extends Trie2 {
+    
+    /**
+     * Create an empty Trie2_16.  Corresponds to utrie2_openDummy() in the C API.
+     * 
+     * The trie always returns the initialValue,
+     * or the errorValue for out-of-range code points.
+     *
+     * @param initialValue  the initial value that is set for all code points.
+     * @param errorValue the value for out-of-range code points.
+     */
+    public Trie2_16(int initialValue, int errorValue) { 
+        super(null);   // TODO: implement this.
+    }
+    
+    /**
+     * Construct a Trie2_16 around an unserialized set of Trie2 data.
+     * @internal
+     */
+    Trie2_16(UTrie2 data) {
+        super(data);
+    }
+    
     
     /**
      * Get a value for a code point as stored in the trie.
@@ -57,8 +81,14 @@ public final class Trie2_16 extends Trie2 {
                 return value;
             }
             if (codePoint < trie.highStart) {
-                // Supplemental, needs full lookup.
-                return 666;
+                // Supplemental code point, use two-level lookup.
+                ix = (UTRIE2_INDEX_1_OFFSET - UTRIE2_OMITTED_BMP_INDEX_1_LENGTH) + (codePoint >> UTRIE2_SHIFT_1);
+                ix = trie.index[ix];
+                ix += (codePoint >> UTRIE2_SHIFT_2) & UTRIE2_INDEX_2_MASK;
+                ix = trie.index[ix];
+                ix = (ix << UTRIE2_INDEX_SHIFT) + (codePoint & UTRIE2_DATA_MASK);
+                value = trie.index[ix];
+                return value;
             }
             if (codePoint <= 0x10ffff) {
                 value = trie.index[trie.highValueIndex];
@@ -70,6 +100,51 @@ public final class Trie2_16 extends Trie2 {
         return trie.errorValue;
     }
 
+    
+    /**
+     * Get a 16-bit trie value from a UTF-16 single/lead code unit (<=U+ffff).
+     * Same as get() if c is a BMP code point except for lead surrogates,
+     * but faster.
+     * 
+     * @param trie the trie
+     * @param c the code unit (0x0000 .. 0x0000ffff)
+     * @return the value
+     */
+    int getFromU16SingleLead(int codePoint){
+        int value;
+        int ix;
+        
+        if (codePoint > 0) {
+            if (codePoint < 0x0ffff) {
+                // Ordinary BMP code point, including surrogates.
+                // BMP uses a single level lookup.  BMP index starts at offset 0 in the trie index.
+                // 16 bit data is stored in the index array itself.
+                ix = trie.index[codePoint >> UTRIE2_SHIFT_2];
+                ix = (ix << UTRIE2_INDEX_SHIFT) + (codePoint & UTRIE2_DATA_MASK);
+                value = trie.index[ix];
+                return value;
+            } 
+            if (codePoint < trie.highStart) {
+                // Supplemental code point, use two-level lookup.
+                ix = (UTRIE2_INDEX_1_OFFSET - UTRIE2_OMITTED_BMP_INDEX_1_LENGTH) + (codePoint >> UTRIE2_SHIFT_1);
+                ix = trie.index[ix];
+                ix += (codePoint >> UTRIE2_SHIFT_2) & UTRIE2_INDEX_2_MASK;
+                ix = trie.index[ix];
+                ix = (ix << UTRIE2_INDEX_SHIFT) + (codePoint & UTRIE2_DATA_MASK);
+                value = trie.index[ix];
+                return value;
+            }
+            if (codePoint <= 0x10ffff) {
+                value = trie.index[trie.highValueIndex];
+                return value;
+            }
+        }
+        
+        // Fall through.  The code point is outside of the legal range of 0..0x10ffff.
+        return trie.errorValue;
+       
+    }
+    
     
     /**
      * Iterator class that will produce the values from the Trie for
