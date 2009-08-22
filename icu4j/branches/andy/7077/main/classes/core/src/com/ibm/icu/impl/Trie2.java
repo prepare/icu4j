@@ -51,6 +51,8 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
      * for accessing the Trie data is available via the Trie2 base class.  But there
      * may some slight speed improvement available when repeatedly accessing the Trie
      * by casting to the actual type in advance.
+     * 
+     * The serialized Trie on the stream may be in either little or big endian byte order.
      *
      * @param is an input stream to the serialized form of a UTrie2.  
      * @return the unserialized trie
@@ -110,22 +112,16 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
         case 0x32697254:
             needByteSwap = true;
             trie.header.signature = Integer.reverseBytes(trie.header.signature);
-            final DataInputStream originalIS = dis;
-            dis = new DataInputStream(originalIS) {
-                         int ReadUnsignedShort() throws IOException 
-                            {return Short.reverseBytes(super.readShort());
-                      }
-            };
             break;
         default:
             throw new IllegalArgumentException("Stream does not contain a serialized UTrie2");
         }
-        
-        trie.header.options = dis.readUnsignedShort();
-        trie.header.indexLength = dis.readUnsignedShort();
-        trie.header.shiftedDataLength = dis.readUnsignedShort();
-        trie.header.index2NullOffset = dis.readUnsignedShort();
-        trie.header.shiftedHighStart = dis.readUnsignedShort();
+                
+        trie.header.options = swapShort(needByteSwap, dis.readUnsignedShort());
+        trie.header.indexLength = swapShort(needByteSwap, dis.readUnsignedShort());
+        trie.header.shiftedDataLength = swapShort(needByteSwap, dis.readUnsignedShort());
+        trie.header.index2NullOffset = swapShort(needByteSwap, dis.readUnsignedShort());
+        trie.header.shiftedHighStart = swapShort(needByteSwap, dis.readUnsignedShort());
         
         // Trie data width - 0: 16 bits
         //                   1: 32 bits
@@ -147,29 +143,32 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
             trie.highValueIndex += trie.indexLength;
         }
 
+        // Allocate the trie index array.  If the data width is 16 bits, the array also
+        //   includes the space for the data.
+        
+        int indexArraySize = trie.indexLength;
+        if (trie.dataWidth == ValueWidth.BITS_16) {
+            indexArraySize += trie.dataLength;
+        }
+        trie.index = new char[indexArraySize];
+        
         /* Read in the index */
-        trie.index = new char[trie.indexLength];
         int i;
         for (i=0; i<trie.indexLength; i++) {
-            trie.index[i] = dis.readChar();
+            trie.index[i] = swapChar(needByteSwap, dis.readChar());
         }
         
-        /* Read in the data.  16 bit data goes in the same array as the index,
-         * which will need to grow to accommodate the data.
+        /* Read in the data.  16 bit data goes in the same array as the index.
          * 32 bit data goes in its own separate data array.
          */
         if (trie.dataWidth == ValueWidth.BITS_16) {
-            int newIndexSize = trie.index.length + trie.dataLength;
-            char newIndex[] = new char[newIndexSize];
-            System.arraycopy(trie.index, 0, newIndex, 0, trie.index.length);
-            trie.index = newIndex;
             for (i=0; i<trie.dataLength; i++) {
-                trie.index[trie.indexLength + i] = dis.readChar();
+                trie.index[trie.indexLength + i] = swapChar(needByteSwap, dis.readChar());
             }
         } else {
             trie.data32 = new int[trie.dataLength];
             for (i=0; i<trie.dataLength; i++) {
-                trie.data32[i] = dis.readInt();
+                trie.data32[i] = swapInt(needByteSwap, dis.readInt());
             }
         }
         
@@ -182,6 +181,16 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
             result = new Trie2_32(trie);
         }
         return result;
+    }
+    
+    private static int swapShort(boolean needSwap, int value) {
+        return needSwap? ((int)Short.reverseBytes((short)value)) & 0x0000ffff : value;
+    }
+    private static char swapChar(boolean needSwap, char value) {
+        return needSwap? (char)Short.reverseBytes((short)value) : value;
+    }
+    private static int swapInt(boolean needSwap, int value) {
+        return needSwap? Integer.reverseBytes(value) : value;
     }
     
     
@@ -198,8 +207,31 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
      *             TODO:  dump this option, always allow either endian?  Or allow only big endian?
      * @return the Trie version of the serialized form, or 0 if it is not
      *         recognized as a serialized UTrie
+     * @throws IOException on errors in reading from the input stream.
      */
-    public static int getVersion(InputStream is, boolean anyEndianOk) {
+    public static int getVersion(InputStream is, boolean anyEndianOk) throws IOException {
+        if (! is.markSupported()) {
+            throw new IllegalArgumentException("Input stream must support mark().");
+            }
+        is.mark(4);
+        byte sig[] = new byte[4];
+        is.read(sig);
+        is.reset();
+        
+        if (sig[0]=='T' && sig[1]=='r' && sig[2]=='i' && sig[3]=='e') {
+            return 1;
+        }
+        if (sig[0]=='T' && sig[1]=='r' && sig[2]=='i' && sig[3]=='2') {
+            return 2;
+        }
+        if (anyEndianOk) {
+            if (sig[0]=='e' && sig[1]=='i' && sig[2]=='r' && sig[3]=='T') {
+                return 1;
+            }
+            if (sig[0]=='2' && sig[1]=='i' && sig[2]=='r' && sig[3]=='T') {
+                return 2;
+            }
+        }
         return 0;
     }
     
@@ -263,7 +295,12 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
      * @return an Iterator
      */
     public Iterator<EnumRange> iterator() {
-        return null;
+        ValueMapper vm = new ValueMapper() {
+            public int map(int in) { 
+                return in;
+            }
+        };
+        return iterator(vm);
     }
     
     /**
@@ -289,7 +326,7 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
      * Example of use, with an anonymous subclass of TrieValueMapper.
      * 
      * 
-     * TrieValueMapper m = new TrieValueMapper() {
+     * ValueMapper m = new ValueMapper() {
      *    int map(int in) {return in & 0x1f;};
      * }
      * for (Iterator<Trie2EnumRange> iter = trie.iterator(m); i.hasNext(); ) {
@@ -301,7 +338,7 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
     public interface ValueMapper {
         public int  map(int originalVal);
     }
-    
+       
     
    /**
      * Serialize a trie onto an OutputStream.
@@ -683,5 +720,215 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
     
     /** The start of non-linear-ASCII data blocks, at offset 192=0xc0. */
     static final int UTRIE2_DATA_START_OFFSET=0xc0;
+    
+    
+    
+    class TrieIterator implements Iterator<EnumRange> {
+        TrieIterator() {
+            
+        }
+        
+        public EnumRange next() {
+            return null;
+        }
+        
+        public boolean hasNext() {
+            return false;
+        }
+        
+        public void remove() {
+            throw new UnsupportedOperationException();
+        }
+        
+        //
+        //   Iteration State Variables
+        //
+        int    data32[] = null;
+        char   idx[] = null;
+        
+        int    value;
+        int    prevValue;
+        int    initialValue;
+        
+        int    c;             // UChar32
+        int    prev;          // UChar32
+        int    highStart;     // UChar32
+        
+        int    j, i2Block, prevI2Block, index2NullOffset, block, prevBlock, nullBlock;
+
+        
+        /**
+         * Enumerate all ranges of code points with the same relevant values.
+         * The values are transformed from the raw trie entries by the enumValue function.
+         *
+         * Currently requires start<limit and both start and limit must be multiples
+         * of UTRIE2_DATA_BLOCK_LENGTH.
+         *
+         * Optimizations:
+         * - Skip a whole block if we know that it is filled with a single value,
+         *   and it is the same as we visited just before.
+         * - Handle the null block specially because we know a priori that it is filled
+         *   with a single value.
+         */
+         void enumEitherTrie(int start, int limit) {
+ 
+                /* frozen trie */
+                idx=trie.index;
+                data32=trie.data32;
+
+                index2NullOffset=trie.index2NullOffset;
+                nullBlock=trie.dataNullOffset;
+            //} else {
+            //    /* unfrozen, mutable trie */
+            //    idx=NULL;
+            //    data32=trie->newTrie->data;
+            //
+            //    index2NullOffset=trie->newTrie->index2NullOffset;
+            //    nullBlock=trie->newTrie->dataNullOffset;
+            // }
+
+            highStart=trie.highStart;
+
+            /* get the enumeration value that corresponds to an initial-value trie data entry */
+            initialValue=enumValue(context, trie->initialValue);
+
+            /* set variables for previous range */
+            prevI2Block=-1;
+            prevBlock=-1;
+            prev=start;
+            prevValue=0;
+
+            /* enumerate index-2 blocks */
+            for(c=start; c<limit && c<highStart;) {
+                /* Code point limit for iterating inside this i2Block. */
+                UChar32 tempLimit=c+UTRIE2_CP_PER_INDEX_1_ENTRY;
+                if(limit<tempLimit) {
+                    tempLimit=limit;
+                }
+                if(c<=0xffff) {
+                    if(!U_IS_SURROGATE(c)) {
+                        i2Block=c>>UTRIE2_SHIFT_2;
+                    } else if(U_IS_SURROGATE_LEAD(c)) {
+                        /*
+                         * Enumerate values for lead surrogate code points, not code units:
+                         * This special block has half the normal length.
+                         */
+                        i2Block=UTRIE2_LSCP_INDEX_2_OFFSET;
+                        tempLimit=MIN(0xdc00, limit);
+                    } else {
+                        /*
+                         * Switch back to the normal part of the index-2 table.
+                         * Enumerate the second half of the surrogates block.
+                         */
+                        i2Block=0xd800>>UTRIE2_SHIFT_2;
+                        tempLimit=MIN(0xe000, limit);
+                    }
+                } else {
+                    /* supplementary code points */
+                    if(idx!=NULL) {
+                        i2Block=idx[(UTRIE2_INDEX_1_OFFSET-UTRIE2_OMITTED_BMP_INDEX_1_LENGTH)+
+                                      (c>>UTRIE2_SHIFT_1)];
+                    } else {
+                        i2Block=trie->newTrie->index1[c>>UTRIE2_SHIFT_1];
+                    }
+                    if(i2Block==prevI2Block && (c-prev)>=UTRIE2_CP_PER_INDEX_1_ENTRY) {
+                        /*
+                         * The index-2 block is the same as the previous one, and filled with prevValue.
+                         * Only possible for supplementary code points because the linear-BMP index-2
+                         * table creates unique i2Block values.
+                         */
+                        c+=UTRIE2_CP_PER_INDEX_1_ENTRY;
+                        continue;
+                    }
+                }
+                prevI2Block=i2Block;
+                if(i2Block==index2NullOffset) {
+                    /* this is the null index-2 block */
+                    if(prevValue!=initialValue) {
+                        if(prev<c && !enumRange(context, prev, c-1, prevValue)) {
+                            return;
+                        }
+                        prevBlock=nullBlock;
+                        prev=c;
+                        prevValue=initialValue;
+                    }
+                    c+=UTRIE2_CP_PER_INDEX_1_ENTRY;
+                } else {
+                    /* enumerate data blocks for one index-2 block */
+                    int32_t i2, i2Limit;
+                    i2=(c>>UTRIE2_SHIFT_2)&UTRIE2_INDEX_2_MASK;
+                    if((c>>UTRIE2_SHIFT_1)==(tempLimit>>UTRIE2_SHIFT_1)) {
+                        i2Limit=(tempLimit>>UTRIE2_SHIFT_2)&UTRIE2_INDEX_2_MASK;
+                    } else {
+                        i2Limit=UTRIE2_INDEX_2_BLOCK_LENGTH;
+                    }
+                    for(; i2<i2Limit; ++i2) {
+                        if(idx!=NULL) {
+                            block=(int32_t)idx[i2Block+i2]<<UTRIE2_INDEX_SHIFT;
+                        } else {
+                            block=trie->newTrie->index2[i2Block+i2];
+                        }
+                        if(block==prevBlock && (c-prev)>=UTRIE2_DATA_BLOCK_LENGTH) {
+                            /* the block is the same as the previous one, and filled with prevValue */
+                            c+=UTRIE2_DATA_BLOCK_LENGTH;
+                            continue;
+                        }
+                        prevBlock=block;
+                        if(block==nullBlock) {
+                            /* this is the null data block */
+                            if(prevValue!=initialValue) {
+                                if(prev<c && !enumRange(context, prev, c-1, prevValue)) {
+                                    return;
+                                }
+                                prev=c;
+                                prevValue=initialValue;
+                            }
+                            c+=UTRIE2_DATA_BLOCK_LENGTH;
+                        } else {
+                            for(j=0; j<UTRIE2_DATA_BLOCK_LENGTH; ++j) {
+                                value=enumValue(context, data32!=NULL ? data32[block+j] : idx[block+j]);
+                                if(value!=prevValue) {
+                                    if(prev<c && !enumRange(context, prev, c-1, prevValue)) {
+                                        return;
+                                    }
+                                    prev=c;
+                                    prevValue=value;
+                                }
+                                ++c;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if(c>limit) {
+                c=limit;  /* could be higher if in the index2NullOffset */
+            } else if(c<limit) {
+                /* c==highStart<limit */
+                uint32_t highValue;
+                if(idx!=NULL) {
+                    highValue=
+                        data32!=NULL ?
+                            data32[trie->highValueIndex] :
+                            idx[trie->highValueIndex];
+                } else {
+                    highValue=trie->newTrie->data[trie->newTrie->dataLength-UTRIE2_DATA_GRANULARITY];
+                }
+                value=enumValue(context, highValue);
+                if(value!=prevValue) {
+                    if(prev<c && !enumRange(context, prev, c-1, prevValue)) {
+                        return;
+                    }
+                    prev=c;
+                    prevValue=value;
+                }
+                c=limit;
+            }
+
+            /* deliver last range */
+            enumRange(context, prev, c-1, prevValue);
+        }
+
+    }
 
 }
