@@ -756,6 +756,7 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
         
         int    j, i2Block, prevI2Block, index2NullOffset, block, prevBlock, nullBlock;
 
+        ValueMapper    mapper;
         
         /**
          * Enumerate all ranges of code points with the same relevant values.
@@ -790,7 +791,7 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
             highStart=trie.highStart;
 
             /* get the enumeration value that corresponds to an initial-value trie data entry */
-            initialValue=enumValue(context, trie->initialValue);
+            initialValue = mapper.map(trie.initialValue);
 
             /* set variables for previous range */
             prevI2Block=-1;
@@ -801,35 +802,35 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
             /* enumerate index-2 blocks */
             for(c=start; c<limit && c<highStart;) {
                 /* Code point limit for iterating inside this i2Block. */
-                UChar32 tempLimit=c+UTRIE2_CP_PER_INDEX_1_ENTRY;
+                int tempLimit=c+UTRIE2_CP_PER_INDEX_1_ENTRY;
                 if(limit<tempLimit) {
                     tempLimit=limit;
                 }
                 if(c<=0xffff) {
-                    if(!U_IS_SURROGATE(c)) {
+                    if (c<Character.MIN_SURROGATE || c>Character.MAX_SURROGATE) {
                         i2Block=c>>UTRIE2_SHIFT_2;
-                    } else if(U_IS_SURROGATE_LEAD(c)) {
+                    } else if(Character.isHighSurrogate((char)c)) {
                         /*
                          * Enumerate values for lead surrogate code points, not code units:
                          * This special block has half the normal length.
                          */
                         i2Block=UTRIE2_LSCP_INDEX_2_OFFSET;
-                        tempLimit=MIN(0xdc00, limit);
+                        tempLimit=Math.min(0xdc00, limit);
                     } else {
                         /*
                          * Switch back to the normal part of the index-2 table.
                          * Enumerate the second half of the surrogates block.
                          */
                         i2Block=0xd800>>UTRIE2_SHIFT_2;
-                        tempLimit=MIN(0xe000, limit);
+                        tempLimit=Math.min(0xe000, limit);
                     }
                 } else {
                     /* supplementary code points */
-                    if(idx!=NULL) {
+                    if(idx!=null) {
                         i2Block=idx[(UTRIE2_INDEX_1_OFFSET-UTRIE2_OMITTED_BMP_INDEX_1_LENGTH)+
                                       (c>>UTRIE2_SHIFT_1)];
                     } else {
-                        i2Block=trie->newTrie->index1[c>>UTRIE2_SHIFT_1];
+                        i2Block=trie.newTrie.index1[c>>UTRIE2_SHIFT_1];
                     }
                     if(i2Block==prevI2Block && (c-prev)>=UTRIE2_CP_PER_INDEX_1_ENTRY) {
                         /*
@@ -855,7 +856,7 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
                     c+=UTRIE2_CP_PER_INDEX_1_ENTRY;
                 } else {
                     /* enumerate data blocks for one index-2 block */
-                    int32_t i2, i2Limit;
+                    int i2, i2Limit;
                     i2=(c>>UTRIE2_SHIFT_2)&UTRIE2_INDEX_2_MASK;
                     if((c>>UTRIE2_SHIFT_1)==(tempLimit>>UTRIE2_SHIFT_1)) {
                         i2Limit=(tempLimit>>UTRIE2_SHIFT_2)&UTRIE2_INDEX_2_MASK;
@@ -863,10 +864,10 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
                         i2Limit=UTRIE2_INDEX_2_BLOCK_LENGTH;
                     }
                     for(; i2<i2Limit; ++i2) {
-                        if(idx!=NULL) {
-                            block=(int32_t)idx[i2Block+i2]<<UTRIE2_INDEX_SHIFT;
+                        if(idx!=null) {
+                            block=(int)idx[i2Block+i2]<<UTRIE2_INDEX_SHIFT;
                         } else {
-                            block=trie->newTrie->index2[i2Block+i2];
+                            block=trie.newTrie.index2[i2Block+i2];
                         }
                         if(block==prevBlock && (c-prev)>=UTRIE2_DATA_BLOCK_LENGTH) {
                             /* the block is the same as the previous one, and filled with prevValue */
@@ -905,14 +906,14 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
                 c=limit;  /* could be higher if in the index2NullOffset */
             } else if(c<limit) {
                 /* c==highStart<limit */
-                uint32_t highValue;
-                if(idx!=NULL) {
+                int highValue;
+                if(idx!=null) {
                     highValue=
-                        data32!=NULL ?
-                            data32[trie->highValueIndex] :
-                            idx[trie->highValueIndex];
+                        data32!=null ?
+                            data32[trie.highValueIndex] :
+                            idx[trie.highValueIndex];
                 } else {
-                    highValue=trie->newTrie->data[trie->newTrie->dataLength-UTRIE2_DATA_GRANULARITY];
+                    highValue=trie.newTrie.data[trie.newTrie.dataLength-UTRIE2_DATA_GRANULARITY];
                 }
                 value=enumValue(context, highValue);
                 if(value!=prevValue) {
