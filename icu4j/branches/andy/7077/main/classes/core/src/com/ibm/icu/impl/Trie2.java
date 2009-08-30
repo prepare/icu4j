@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 
 
 /**
@@ -314,7 +315,7 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
      * @return an Interator
      */
     public Iterator<EnumRange> iterator(ValueMapper mapper) {
-        return null;
+        return new TrieIterator(mapper);
     }
     
     /**
@@ -530,10 +531,11 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
         return null;
     }
     
-    
+    //--------------------------------------------------------------------------------
     //
     // Below this point are internal implementation items.  No further public API.
     //
+    //--------------------------------------------------------------------------------
     
     /**
      * Trie data structure in serialized form:
@@ -574,7 +576,6 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
         int shiftedHighStart;
     }
     
-    static final int UTRIE2_OPTIONS_VALUE_BITS_MASK=0x000f;
     
     
     /**
@@ -610,16 +611,68 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
         /* Start of the last range which ends at U+10ffff, and its value. */
         int  highStart;
         int  highValueIndex;
+        
+        UNewTrie2   newTrie;
     };
     
+    
+    /*
+     * Build-time trie structure.
+     *
+     * Just using a boolean flag for "repeat use" could lead to data array overflow
+     * because we would not be able to detect when a data block becomes unused.
+     * It also leads to orphan data blocks that are kept through serialization.
+     *
+     * Need to use reference counting for data blocks,
+     * and allocDataBlock() needs to look for a free block before increasing dataLength.
+     *
+     * This scheme seems like overkill for index-2 blocks since the whole index array is
+     * preallocated anyway (unlike the growable data array).
+     * Just allocating multiple index-2 blocks as needed.
+     */
+    static class UNewTrie2 {
+        int[]      index1 = new int[UNEWTRIE2_INDEX_1_LENGTH];
+        int[]      index2 = new int[UNEWTRIE2_MAX_INDEX_2_LENGTH];
+        int[]      data;
+
+        int        initialValue, errorValue;
+        int        index2Length, dataCapacity, dataLength;
+        int        firstFreeBlock;
+        int        index2NullOffset, dataNullOffset;
+        int        highStart;     // UChar32
+        boolean    isCompacted;
+
+        /**
+         * Multi-purpose per-data-block table.
+         *
+         * Before compacting:
+         *
+         * Per-data-block reference counters/free-block list.
+         *  0: unused
+         * >0: reference counter (number of index-2 entries pointing here)
+         * <0: next free data block in free-block list
+         *
+         * While compacting:
+         *
+         * Map of adjusted indexes, used in compactData() and compactIndex2().
+         * Maps from original indexes to new ones.
+         */
+        int[]      map = new int[UNEWTRIE2_MAX_DATA_LENGTH>>UTRIE2_SHIFT_2];
+    };
+
     UTrie2   trie;
 
+    
     /**
      * Trie constants, defining shift widths, index array lengths, etc.
      *
      * These are needed for the runtime macros but users can treat these as
      * implementation details and skip to the actual public API further below.
      */
+    
+    static final int UTRIE2_OPTIONS_VALUE_BITS_MASK=0x000f;
+    
+    
     /** Shift size for getting the index-1 table offset. */
     static final int UTRIE2_SHIFT_1=6+5;
 
@@ -721,19 +774,93 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
     /** The start of non-linear-ASCII data blocks, at offset 192=0xc0. */
     static final int UTRIE2_DATA_START_OFFSET=0xc0;
     
-    
-    
+    /* Building a trie ---------------------------------------------------------- */
+
+    /*
+     * These definitions are mostly needed by utrie2_builder.c, but also by
+     * utrie2_get32() and utrie2_enum().
+     */
+
+    /*
+     * At build time, leave a gap in the index-2 table,
+     * at least as long as the maximum lengths of the 2-byte UTF-8 index-2 table
+     * and the supplementary index-1 table.
+     * Round up to UTRIE2_INDEX_2_BLOCK_LENGTH for proper compacting.
+     */
+    static final int UNEWTRIE2_INDEX_GAP_OFFSET = UTRIE2_INDEX_2_BMP_LENGTH;
+    static final int UNEWTRIE2_INDEX_GAP_LENGTH =
+        ((UTRIE2_UTF8_2B_INDEX_2_LENGTH + UTRIE2_MAX_INDEX_1_LENGTH) + UTRIE2_INDEX_2_MASK) &
+        ~UTRIE2_INDEX_2_MASK;
+
+    /**
+     * Maximum length of the build-time index-2 array.
+     * Maximum number of Unicode code points (0x110000) shifted right by UTRIE2_SHIFT_2,
+     * plus the part of the index-2 table for lead surrogate code points,
+     * plus the build-time index gap,
+     * plus the null index-2 block.
+     */
+    static final int UNEWTRIE2_MAX_INDEX_2_LENGTH=
+        (0x110000>>UTRIE2_SHIFT_2)+
+        UTRIE2_LSCP_INDEX_2_LENGTH+
+        UNEWTRIE2_INDEX_GAP_LENGTH+
+        UTRIE2_INDEX_2_BLOCK_LENGTH;
+
+    static final int UNEWTRIE2_INDEX_1_LENGTH = 0x110000>>UTRIE2_SHIFT_1;
+
+    /**
+     * Maximum length of the build-time data array.
+     * One entry per 0x110000 code points, plus the illegal-UTF-8 block and the null block,
+     * plus values for the 0x400 surrogate code units.
+     */
+    static final int  UNEWTRIE2_MAX_DATA_LENGTH = (0x110000+0x40+0x40+0x400);
+
+ 
+   
+    /** 
+     * Implementation class for an iterator over a Trie2.
+     * 
+     *     The structure of the implementation is largely unchanged from the C code
+     *     which uses a callback model rather than an iterator model.  Efficiency could
+     *     probably be improved by reworking things a bit.
+     *     
+     * @internal
+     */
     class TrieIterator implements Iterator<EnumRange> {
-        TrieIterator() {
-            
+        TrieIterator(ValueMapper vm) {
+            mapper = vm;
+
+            if (trie.newTrie == null) {
+                /* frozen trie */
+                idx=trie.index;
+                data32=trie.data32;
+
+                index2NullOffset=trie.index2NullOffset;
+                nullBlock=trie.dataNullOffset;
+            } else {
+                /* unfrozen, mutable trie */
+                idx=null;
+                data32=trie.newTrie.data;
+
+                index2NullOffset=trie.newTrie.index2NullOffset;
+                nullBlock=trie.newTrie.dataNullOffset;
+            }
+
+            highStart=trie.highStart;
+
+            /* get the enumeration value that corresponds to an initial-value trie data entry */
+            initialValue = mapper.map(trie.initialValue);
         }
         
         public EnumRange next() {
-            return null;
+            if (lastReturnedChar >= 0x10ffff) {
+                throw new NoSuchElementException();
+            }
+            enumEitherTrie(lastReturnedChar+1, 0x110000);
+            return returnValue;
         }
         
         public boolean hasNext() {
-            return false;
+            return lastReturnedChar < 0x10ffff;
         }
         
         public void remove() {
@@ -747,7 +874,7 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
         char   idx[] = null;
         
         int    value;
-        int    prevValue;
+        int    prevValue = 0;
         int    initialValue;
         
         int    c;             // UChar32
@@ -756,7 +883,9 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
         
         int    j, i2Block, prevI2Block, index2NullOffset, block, prevBlock, nullBlock;
 
-        ValueMapper    mapper;
+        private ValueMapper    mapper;
+        private EnumRange      returnValue = new EnumRange();
+        private int            lastReturnedChar;
         
         /**
          * Enumerate all ranges of code points with the same relevant values.
@@ -770,34 +899,17 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
          *   and it is the same as we visited just before.
          * - Handle the null block specially because we know a priori that it is filled
          *   with a single value.
+         *   
+         * TODO:  For java iteration, this is just doing a next(), returning just the
+         *        first range from 'start', rather than returning them all via callbacks. 
+         *        The code could no doubt be restructured to do that more efficiently
          */
-         void enumEitherTrie(int start, int limit) {
+         private void enumEitherTrie(int start, int limit) {
  
-                /* frozen trie */
-                idx=trie.index;
-                data32=trie.data32;
-
-                index2NullOffset=trie.index2NullOffset;
-                nullBlock=trie.dataNullOffset;
-            //} else {
-            //    /* unfrozen, mutable trie */
-            //    idx=NULL;
-            //    data32=trie->newTrie->data;
-            //
-            //    index2NullOffset=trie->newTrie->index2NullOffset;
-            //    nullBlock=trie->newTrie->dataNullOffset;
-            // }
-
-            highStart=trie.highStart;
-
-            /* get the enumeration value that corresponds to an initial-value trie data entry */
-            initialValue = mapper.map(trie.initialValue);
-
-            /* set variables for previous range */
-            prevI2Block=-1;
-            prevBlock=-1;
-            prev=start;
-            prevValue=0;
+             /* set variables for previous range */
+             prevI2Block=-1;
+             prevBlock=-1;
+             prev=start;
 
             /* enumerate index-2 blocks */
             for(c=start; c<limit && c<highStart;) {
@@ -846,7 +958,14 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
                 if(i2Block==index2NullOffset) {
                     /* this is the null index-2 block */
                     if(prevValue!=initialValue) {
-                        if(prev<c && !enumRange(context, prev, c-1, prevValue)) {
+                        // if(prev<c && !enumRange(context, prev, c-1, prevValue)) { 
+                        //    return;
+                        //}
+                        if (prev<c) {
+                            returnValue.startCodePoint = prev;
+                            returnValue.endCodePoint = c-1;
+                            returnValue.value = prevValue;
+                            lastReturnedChar = c-1;
                             return;
                         }
                         prevBlock=nullBlock;
@@ -878,7 +997,14 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
                         if(block==nullBlock) {
                             /* this is the null data block */
                             if(prevValue!=initialValue) {
-                                if(prev<c && !enumRange(context, prev, c-1, prevValue)) {
+                                //if(prev<c && !enumRange(context, prev, c-1, prevValue)) {
+                                //    return;
+                                //}
+                                if (prev < c) {
+                                    returnValue.startCodePoint = prev;
+                                    returnValue.endCodePoint = c-1;
+                                    returnValue.value = prevValue;
+                                    lastReturnedChar = c-1;
                                     return;
                                 }
                                 prev=c;
@@ -887,9 +1013,16 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
                             c+=UTRIE2_DATA_BLOCK_LENGTH;
                         } else {
                             for(j=0; j<UTRIE2_DATA_BLOCK_LENGTH; ++j) {
-                                value=enumValue(context, data32!=NULL ? data32[block+j] : idx[block+j]);
+                                value = mapper.map(data32!=null ? data32[block+j] : idx[block+j]);
                                 if(value!=prevValue) {
-                                    if(prev<c && !enumRange(context, prev, c-1, prevValue)) {
+                                    //if(prev<c && !enumRange(context, prev, c-1, prevValue)) {
+                                    //    return;
+                                    //}
+                                    if (prev < c) {
+                                        returnValue.startCodePoint = prev;
+                                        returnValue.endCodePoint = c-1;
+                                        returnValue.value = prevValue;
+                                        lastReturnedChar = c-1;
                                         return;
                                     }
                                     prev=c;
@@ -915,9 +1048,16 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
                 } else {
                     highValue=trie.newTrie.data[trie.newTrie.dataLength-UTRIE2_DATA_GRANULARITY];
                 }
-                value=enumValue(context, highValue);
+                value=mapper.map(highValue);
                 if(value!=prevValue) {
-                    if(prev<c && !enumRange(context, prev, c-1, prevValue)) {
+                    //if(prev<c && !enumRange(context, prev, c-1, prevValue)) {
+                    //    return;
+                    //}
+                    if (prev < c) {
+                        returnValue.startCodePoint = prev;
+                        returnValue.endCodePoint = c-1;
+                        returnValue.value = prevValue;
+                        lastReturnedChar = c-1;
                         return;
                     }
                     prev=c;
@@ -927,7 +1067,12 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
             }
 
             /* deliver last range */
-            enumRange(context, prev, c-1, prevValue);
+            // enumRange(context, prev, c-1, prevValue);
+            returnValue.startCodePoint = prev;
+            returnValue.endCodePoint = c-1;
+            returnValue.value = prevValue;
+            lastReturnedChar = c-1;
+            return;
         }
 
     }
