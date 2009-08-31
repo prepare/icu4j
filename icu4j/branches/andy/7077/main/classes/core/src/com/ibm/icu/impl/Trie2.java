@@ -272,7 +272,7 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
      * @param c the code unit (0x0000 .. 0x0000ffff)
      * @return the value
      */
-    abstract int getFromU16SingleLead(int c);
+    abstract public int getFromU16SingleLead(int c);
    
     /**
      * When iterating over the contents of a Trie2, Elements of this type are produced.

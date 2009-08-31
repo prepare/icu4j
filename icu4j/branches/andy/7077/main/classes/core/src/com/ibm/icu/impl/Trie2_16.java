@@ -58,7 +58,7 @@ public final class Trie2_16 extends Trie2 {
         int value;
         int ix;
         
-        if (codePoint > 0) {
+        if (codePoint >= 0) {
             if (codePoint < 0x0d800 || (codePoint > 0x0dbff && codePoint <= 0x0ffff)) {
                 // Ordinary BMP code point, excluding leading surrogates.
                 // BMP uses a single level lookup.  BMP index starts at offset 0 in the trie index.
@@ -110,7 +110,7 @@ public final class Trie2_16 extends Trie2 {
      * @param c the code unit (0x0000 .. 0x0000ffff)
      * @return the value
      */
-    int getFromU16SingleLead(int codePoint){
+    public int getFromU16SingleLead(int codePoint){
         int value;
         int ix;
         

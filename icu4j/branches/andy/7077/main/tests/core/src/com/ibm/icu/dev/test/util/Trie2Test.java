@@ -14,6 +14,8 @@ import java.util.Iterator;
 
 import com.ibm.icu.dev.test.TestFmwk;
 import com.ibm.icu.impl.Trie2;
+import com.ibm.icu.impl.Trie2_16;
+import com.ibm.icu.impl.Trie2_32;
 import com.ibm.icu.impl.Trie2Writable;
 
 public class Trie2Test extends TestFmwk {
@@ -210,7 +212,84 @@ public class Trie2Test extends TestFmwk {
      };
 
 
-     private void testTrieRanges(String testName, String serializedName, boolean withClone,
+     private void trieGettersTest(String testName,
+             Trie2 trie, Trie2.ValueWidth valueBits,
+             int[][] checkRanges) {
+         int countCheckRanges = checkRanges.length;
+
+         int initialValue, errorValue;
+         int value, value2;
+         int start, limit;
+         int i, countSpecials;
+
+         boolean isFrozen = trie instanceof Trie2_16 || trie instanceof Trie2_32;
+
+         String typeName= isFrozen ? "frozen trie" : "newTrie";
+
+         countSpecials=0;  /*getSpecialValues(checkRanges, countCheckRanges, &initialValue, &errorValue);*/
+         errorValue = 0x0bad;
+         initialValue = 0;
+         if (checkRanges[countSpecials][0] == 0) {
+             initialValue = checkRanges[countSpecials][1];
+             countSpecials++;
+         }
+
+         start=0;
+         for(i=countSpecials; i<countCheckRanges; ++i) {
+             limit=checkRanges[i][0];
+             value=checkRanges[i][1];
+
+             while(start<limit) {
+                 value2=trie.get(start);
+                 if(value!=value2) {
+                     errln(testName + ".get(" + Integer.toHexString(start) +") == " + 
+                             Integer.toHexString(value2) + " instead of " + Integer.toHexString(value));
+                 }
+                 ++start;
+             }
+         }
+
+
+         if(!testName.startsWith("dummy") && !testName.startsWith("trie1")) {
+             /* test values for lead surrogate code units */
+             for(start=0xd7ff; start<0xdc01; ++start) {
+                 switch(start) {
+                 case 0xd7ff:
+                 case 0xdc00:
+                     value=errorValue;
+                     break;
+                 case 0xd800:
+                     value=90;
+                     break;
+                 case 0xd999:
+                     value=94;
+                     break;
+                 case 0xdbff:
+                     value=99;
+                     break;
+                 default:
+                     value=initialValue;
+                     break;
+                 }
+                 value2 = trie.getFromU16SingleLead(start);
+                 if(value2!=value) {
+                     errln("trie2.getFromU16SingleLead() failed.  char, exected, actual = " +
+                             start + ", " + value + ", " + value2);
+                 }
+             }
+         }
+
+         /* test errorValue */
+         value=trie.get(-1);
+         value2=trie.get(0x110000);
+         if(value!=errorValue || value2!=errorValue) {
+             errln("trie2.get() error value test.  Expected, actual1, actual2 = " +
+                     errorValue + ", " + value + ", " + value2);
+         }
+     }
+                     
+     // Was testTrieRanges in ICU4C.  Renamed to not conflict with ICU4J test framework.
+     private void checkTrieRanges(String testName, String serializedName, boolean withClone,
              int[][] setRanges, int [][] checkRanges) throws IOException {
          
          // We don't have the Trie2 builder yet.
@@ -219,24 +298,29 @@ public class Trie2Test extends TestFmwk {
          String fileName32 = "Trie2Test." + serializedName + ".32.tri2";
          String currentDir = new File(".").getAbsolutePath();
          System.out.println(currentDir);
-         FileInputStream is = new FileInputStream(fileName16);
+         
+         // TODO:  find out the right way to access the test data.
+         String testDir = "src/com/ibm/icu/dev/test/util/";
+         FileInputStream is = new FileInputStream(testDir + fileName16);
          Trie2  trie16 = Trie2.createFromSerialized(is);
          is.close();
          
-         is = new FileInputStream(fileName32);
+         trieGettersTest(testName, trie16, Trie2.ValueWidth.BITS_16, checkRanges);
+         
+         is = new FileInputStream(testDir + fileName32);
          Trie2  trie32 = Trie2.createFromSerialized(is);
          is.close();
      }
      
      // Was "TrieTest" in trie2test.c 
      public void TestRanges() throws IOException {
-         testTrieRanges("set1",           "setRanges1",     false, setRanges1,     checkRanges1);         
-         testTrieRanges("set2-overlap",   "setRanges2",     false, setRanges2,     checkRanges2);
-         testTrieRanges("set3-initial-9", "setRanges3",     false, setRanges3,     checkRanges3);
-         testTrieRanges("set-empty",      "setRangesEmpty", false, setRangesEmpty, checkRangesEmpty);
-         testTrieRanges("set-single-value", "setRangesSingleValue", false, setRangesSingleValue, 
+         checkTrieRanges("set1",           "setRanges1",     false, setRanges1,     checkRanges1);         
+         checkTrieRanges("set2-overlap",   "setRanges2",     false, setRanges2,     checkRanges2);
+         checkTrieRanges("set3-initial-9", "setRanges3",     false, setRanges3,     checkRanges3);
+         checkTrieRanges("set-empty",      "setRangesEmpty", false, setRangesEmpty, checkRangesEmpty);
+         checkTrieRanges("set-single-value", "setRangesSingleValue", false, setRangesSingleValue, 
              checkRangesSingleValue);
-         testTrieRanges("set2-overlap.withClone", "setRanges2", true, setRanges2,     checkRanges2);
+         checkTrieRanges("set2-overlap.withClone", "setRanges2", true, setRanges2,     checkRanges2);
      }
 
 }
