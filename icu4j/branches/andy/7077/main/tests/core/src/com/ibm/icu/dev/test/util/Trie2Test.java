@@ -251,12 +251,15 @@ public class Trie2Test extends TestFmwk {
 
 
          if(!testName.startsWith("dummy") && !testName.startsWith("trie1")) {
-             /* test values for lead surrogate code units */
+             /* Test values for lead surrogate code units.
+              * For non-lead-surrogate code units,  getFromU16SingleLead() and get()
+              *   should be the same.
+              */
              for(start=0xd7ff; start<0xdc01; ++start) {
                  switch(start) {
                  case 0xd7ff:
                  case 0xdc00:
-                     value=errorValue;
+                     value=trie.get(start);
                      break;
                  case 0xd800:
                      value=90;
@@ -274,7 +277,7 @@ public class Trie2Test extends TestFmwk {
                  value2 = trie.getFromU16SingleLead(start);
                  if(value2!=value) {
                      errln("trie2.getFromU16SingleLead() failed.  char, exected, actual = " +
-                             start + ", " + value + ", " + value2);
+                             Integer.toHexString(start) + ", " + Integer.toHexString(value) + ", " + Integer.toHexString(value2));
                  }
              }
          }
@@ -297,7 +300,6 @@ public class Trie2Test extends TestFmwk {
          String fileName16 = "Trie2Test." + serializedName + ".16.tri2";
          String fileName32 = "Trie2Test." + serializedName + ".32.tri2";
          String currentDir = new File(".").getAbsolutePath();
-         System.out.println(currentDir);
          
          // TODO:  find out the right way to access the test data.
          String testDir = "src/com/ibm/icu/dev/test/util/";

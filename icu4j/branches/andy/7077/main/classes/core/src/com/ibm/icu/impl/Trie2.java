@@ -122,6 +122,7 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
         trie.header.indexLength = swapShort(needByteSwap, dis.readUnsignedShort());
         trie.header.shiftedDataLength = swapShort(needByteSwap, dis.readUnsignedShort());
         trie.header.index2NullOffset = swapShort(needByteSwap, dis.readUnsignedShort());
+        trie.header.dataNullOffset   = swapShort(needByteSwap, dis.readUnsignedShort());
         trie.header.shiftedHighStart = swapShort(needByteSwap, dis.readUnsignedShort());
         
         // Trie data width - 0: 16 bits
@@ -163,8 +164,9 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
          * 32 bit data goes in its own separate data array.
          */
         if (trie.dataWidth == ValueWidth.BITS_16) {
+            trie.data16 = trie.indexLength;
             for (i=0; i<trie.dataLength; i++) {
-                trie.index[trie.indexLength + i] = swapChar(needByteSwap, dis.readChar());
+                trie.index[trie.data16 + i] = swapChar(needByteSwap, dis.readChar());
             }
         } else {
             trie.data32 = new int[trie.dataLength];
@@ -172,6 +174,23 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
                 trie.data32[i] = swapInt(needByteSwap, dis.readInt());
             }
         }
+        
+        /* get the data */
+        switch(trie.dataWidth) {
+        case BITS_16:
+            trie.data32 = null;
+            trie.initialValue = trie.index[trie.dataNullOffset];
+            trie.errorValue   = trie.index[trie.data16+UTRIE2_BAD_UTF8_DATA_OFFSET];
+            break;
+        case BITS_32:
+            trie.data16=0;
+            trie.initialValue=trie.data32[trie.dataNullOffset];
+            trie.errorValue=trie.data32[UTRIE2_BAD_UTF8_DATA_OFFSET];
+            break;
+        default:
+            throw new IllegalArgumentException("UTrie2 serialized format error.");
+        }
+
         
         /* Create the Trie object of the appropriate type to be returned to the user.
          */
@@ -599,6 +618,8 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
         ValueWidth    dataWidth;
         
         char index[];     // Index array.  Includes data for 16 bit Tries.
+        int  data16;      // Offset to data portion of the index array, if 16 bit data.
+                          //    zero if 32 bit data.
         int  data32[];    // NULL if 16b data is used via index 
 
         int  indexLength, dataLength;
