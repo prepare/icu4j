@@ -868,18 +868,44 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
 
             highStart=trie.highStart;
 
-            /* get the enumeration value that corresponds to an initial-value trie data entry */
-            initialValue = mapper.map(trie.initialValue);
         }
         
+        /**
+         *  The main next() function for Trie iterators
+         *  
+         */
         public EnumRange next() {
             if (lastReturnedChar >= 0x10ffff) {
                 throw new NoSuchElementException();
             }
-            enumEitherTrie(lastReturnedChar+1, 0x110000);
+            int   c = lastReturnedChar + 1;
+            int   endOfRange = 0;
+            int   val = get(c);
+            int   mappedVal = mapper.map(val);
+            
+            // Loop once for each range in the Trie with the same raw (unmapped) value.
+            // Loop continues so long as the mapped values are the same.
+            for (;;) {
+                endOfRange = rangeEnd(c);
+                if (endOfRange == 0x10ffff) {
+                    break;
+                }
+                val = get(c);
+                if (mapper.map(val) != mappedVal) {
+                    break;
+                }
+                c = endOfRange+1;
+            }
+            returnValue.startCodePoint = lastReturnedChar + 1;
+            returnValue.endCodePoint   = endOfRange;
+            returnValue.value          = mappedVal;
+            lastReturnedChar           = endOfRange;            
             return returnValue;
         }
         
+        /**
+         * 
+         */
         public boolean hasNext() {
             return lastReturnedChar < 0x10ffff;
         }
@@ -888,21 +914,54 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
             throw new UnsupportedOperationException();
         }
         
+        
+        /**
+         * Find the last character in a contiguous range of characters with the
+         * same Trie value as the input character.
+         * 
+         * @param c  The character to begin with.
+         * @return   The last contiguous character with the same value.
+         */
+        private int rangeEnd(int startingC) {
+            if (c >= trie.highStart) {
+                return 0x10ffff;
+            }
+            
+            // TODO: add optimizations
+            int c;
+            int val = get(startingC);
+            for (c = startingC+1; c <= trie.highStart; c++) {
+                if (get(c) != val) {
+                    break;
+                }
+            }
+            if (c < trie.highStart) {
+                return c-1;
+            } else {
+                return 0x10ffff;
+            }
+        }
+        
+        
+        //
+        //   Fixed references to parts of this Trie.
+        //     Depends only on the Trie itself; unchanged during iteration.
+        //
+        int    data32[] = null;
+        char   idx[]    = null;
+        int    nullBlock;
+        
         //
         //   Iteration State Variables
         //
-        int    data32[] = null;
-        char   idx[] = null;
-        
         int    value;
-        int    prevValue = 0;
         int    initialValue;
         
         int    c;             // UChar32
         int    prev;          // UChar32
         int    highStart;     // UChar32
         
-        int    j, i2Block, prevI2Block, index2NullOffset, block, prevBlock, nullBlock;
+        int    j, i2Block, prevI2Block, index2NullOffset, block, prevBlock;
 
         private ValueMapper    mapper;
         private EnumRange      returnValue = new EnumRange();
@@ -931,6 +990,7 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
              prevI2Block=-1;
              prevBlock=-1;
              prev=start;
+             int prevValue = 0;
 
             /* enumerate index-2 blocks */
             for(c=start; c<limit && c<highStart;) {

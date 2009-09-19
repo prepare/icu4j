@@ -18,6 +18,9 @@ import com.ibm.icu.impl.Trie2.UTrie2;
  *
  * See class Trie2 for descriptions of the API for accessing the contents of a trie.
  * 
+ * The fundamental data access methods are declared final in this class, with
+ * the intent that applications might gain a little extra performance, when compared
+ * with calling the same methods via the abstract UTrie2 base class.
  */
 
 public class Trie2_32 extends Trie2 {
@@ -42,6 +45,106 @@ public class Trie2_32 extends Trie2 {
     Trie2_32(UTrie2 data) {
         super(data);
     }
+    
+    
+    /**
+     * Get a value for a code point as stored in the trie.
+     *
+     * @param trie the trie
+     * @param codePoint the code point
+     * @return the value
+     */
+    public final int get(int codePoint) {
+        int value;
+        int ix;
+        
+        if (codePoint >= 0) {
+            if (codePoint < 0x0d800 || (codePoint > 0x0dbff && codePoint <= 0x0ffff)) {
+                // Ordinary BMP code point, excluding leading surrogates.
+                // BMP uses a single level lookup.  BMP index starts at offset 0 in the trie index.
+                // 32 bit data is stored in the index array itself.
+                ix = trie.index[codePoint >> UTRIE2_SHIFT_2];
+                ix = (ix << UTRIE2_INDEX_SHIFT) + (codePoint & UTRIE2_DATA_MASK);
+                value = trie.data32[ix];
+                return value;
+            } 
+            if (codePoint <= 0xffff) {
+                // Lead Surrogate Code Point.  A Separate index section is stored for
+                // lead surrogate code units and code points.
+                //   The main index has the code unit data.
+                //   For this function, we need the code point data.
+                // Note: this expression could be refactored for slightly improved efficiency, but
+                //       surrogate code points will be so rare in practice that it's not worth it.
+                ix = trie.index[UTRIE2_LSCP_INDEX_2_OFFSET + ((codePoint - 0xd800) >> UTRIE2_SHIFT_2)];
+                ix = (ix << UTRIE2_INDEX_SHIFT) + (codePoint & UTRIE2_DATA_MASK);
+                value = trie.data32[ix];
+                return value;
+            }
+            if (codePoint < trie.highStart) {
+                // Supplemental code point, use two-level lookup.
+                ix = (UTRIE2_INDEX_1_OFFSET - UTRIE2_OMITTED_BMP_INDEX_1_LENGTH) + (codePoint >> UTRIE2_SHIFT_1);
+                ix = trie.index[ix];
+                ix += (codePoint >> UTRIE2_SHIFT_2) & UTRIE2_INDEX_2_MASK;
+                ix = trie.index[ix];
+                ix = (ix << UTRIE2_INDEX_SHIFT) + (codePoint & UTRIE2_DATA_MASK);
+                value = trie.data32[ix];
+                return value;
+            }
+            if (codePoint <= 0x10ffff) {
+                value = trie.data32[trie.highValueIndex];
+                return value;
+            }
+        }
+        
+        // Fall through.  The code point is outside of the legal range of 0..0x10ffff.
+        return trie.errorValue;
+    }
+
+    
+    /**
+     * Get a 32-bit trie value from a UTF-16 single/lead code unit (<=U+ffff).
+     * Same as get() if c is a BMP code point except for lead surrogates,
+     * but slightly faster.
+     * 
+     * @param trie the trie
+     * @param c the code unit (0x0000 .. 0x0000ffff)
+     * @return the value
+     */
+    public int getFromU16SingleLead(int codePoint){
+        int value;
+        int ix;
+        
+        if (codePoint > 0) {
+            if (codePoint < 0x0ffff) {
+                // Ordinary BMP code point, including surrogates.
+                // BMP uses a single level lookup.  BMP index starts at offset 0 in the trie index.
+                // 16 bit data is stored in the index array itself.
+                ix = trie.index[codePoint >> UTRIE2_SHIFT_2];
+                ix = (ix << UTRIE2_INDEX_SHIFT) + (codePoint & UTRIE2_DATA_MASK);
+                value = trie.data32[ix];
+                return value;
+            } 
+            if (codePoint < trie.highStart) {
+                // Supplemental code point, use two-level lookup.
+                ix = (UTRIE2_INDEX_1_OFFSET - UTRIE2_OMITTED_BMP_INDEX_1_LENGTH) + (codePoint >> UTRIE2_SHIFT_1);
+                ix = trie.index[ix];
+                ix += (codePoint >> UTRIE2_SHIFT_2) & UTRIE2_INDEX_2_MASK;
+                ix = trie.index[ix];
+                ix = (ix << UTRIE2_INDEX_SHIFT) + (codePoint & UTRIE2_DATA_MASK);
+                value = trie.data32[ix];
+                return value;
+            }
+            if (codePoint <= 0x10ffff) {
+                value = trie.data32[trie.highValueIndex];
+                return value;
+            }
+        }
+        
+        // Fall through.  The code point is outside of the legal range of 0..0x10ffff.
+        return trie.errorValue;
+       
+    }
+    
     
     
 

@@ -25,6 +25,7 @@ public class Trie2Writable extends Trie2 {
      * @param errorValue the value for out-of-range code points and illegal UTF-8
      */
     public  Trie2Writable(int initialValue, int errorValue) {
+        super(null);   // TODO: implement this.
     }
     
     
@@ -34,8 +35,9 @@ public class Trie2Writable extends Trie2 {
      * @param source
      */
     public Trie2Writable(Trie2 source) {
+        super(null);   // TODO: implement this.
     }
-    
+        
     
     /**
      * Set a value for a code point.
@@ -97,6 +99,26 @@ public class Trie2Writable extends Trie2 {
      public Trie2_32 getAsFrozen_32() {
          return null;
      }
+
+
+    /* (non-Javadoc)
+     * @see com.ibm.icu.impl.Trie2#get(int)
+     */
+    @Override
+    public int get(int codePoint) {
+        // TODO Auto-generated method stub
+        return 0;
+    }
+
+
+    /* (non-Javadoc)
+     * @see com.ibm.icu.impl.Trie2#getFromU16SingleLead(int)
+     */
+    @Override
+    public int getFromU16SingleLead(int c) {
+        // TODO Auto-generated method stub
+        return 0;
+    }
       
 
 }

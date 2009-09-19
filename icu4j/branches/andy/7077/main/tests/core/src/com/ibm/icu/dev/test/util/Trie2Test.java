@@ -212,9 +212,19 @@ public class Trie2Test extends TestFmwk {
      };
 
 
-     private void trieGettersTest(String testName,
-             Trie2 trie, Trie2.ValueWidth valueBits,
-             int[][] checkRanges) {
+     //
+     //  Check the expected values from a single Trie.
+     //
+     private void trieGettersTest(String           testName,
+                                  Trie2            trie,         // The Trie to test.
+                                  Trie2.ValueWidth valueBits,    // Data width.  Mattered for C, where
+                                                                 //   different macros were used.  Not important w Java.
+                                  int[][]          checkRanges)  // Expected data. 
+                                                                 //   Tuples of (value, high limit code point)
+                                                                 //   High limit is first code point following the range
+                                                                 //   with the indicated value.
+                                                                 //      (Structures copied from ICU4C tests.)
+     {
          int countCheckRanges = checkRanges.length;
 
          int initialValue, errorValue;
@@ -289,6 +299,17 @@ public class Trie2Test extends TestFmwk {
              errln("trie2.get() error value test.  Expected, actual1, actual2 = " +
                      errorValue + ", " + value + ", " + value2);
          }
+         
+         // Check Trie contents enumration
+         Iterator<Trie2.EnumRange> it = trie.iterator();
+         while (it.hasNext()) {
+             Trie2.EnumRange range = it.next();
+             System.out.println("(start, end, value) = ("    + Integer.toHexString(range.startCodePoint) +
+                                                        ", " + Integer.toHexString(range.endCodePoint) + 
+                                                        ", " + Integer.toHexString(range.value) + ")");
+         }
+         System.out.println("\n\n");
+         
      }
                      
      // Was testTrieRanges in ICU4C.  Renamed to not conflict with ICU4J test framework.
@@ -312,6 +333,8 @@ public class Trie2Test extends TestFmwk {
          is = new FileInputStream(testDir + fileName32);
          Trie2  trie32 = Trie2.createFromSerialized(is);
          is.close();
+         
+         trieGettersTest(testName, trie32, Trie2.ValueWidth.BITS_32, checkRanges);
      }
      
      // Was "TrieTest" in trie2test.c 
