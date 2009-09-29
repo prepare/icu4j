@@ -12,7 +12,8 @@ import com.ibm.icu.util.Freezable;
 
 
 @SuppressWarnings("unchecked")
-public class Row<C0, C1, C2, C3, C4> implements java.lang.Comparable, Cloneable, Freezable{
+public class Row<C0, C1, C2, C3, C4> implements java.lang.Comparable, Cloneable,
+                                        Freezable<Row<C0, C1, C2, C3, C4>>{
     protected Object[] items;
     protected boolean frozen;
 
@@ -153,7 +154,7 @@ public class Row<C0, C1, C2, C3, C4> implements java.lang.Comparable, Cloneable,
         return frozen;
     }
 
-    public Object freeze() {
+    public Row<C0, C1, C2, C3, C4> freeze() {
         frozen = true;
         return this;
     }
@@ -169,7 +170,7 @@ public class Row<C0, C1, C2, C3, C4> implements java.lang.Comparable, Cloneable,
         }
     }
 
-    public Object cloneAsThawed() {
+    public Row<C0, C1, C2, C3, C4> cloneAsThawed() {
         try {
             Row result = (Row) super.clone();
             items = items.clone();
