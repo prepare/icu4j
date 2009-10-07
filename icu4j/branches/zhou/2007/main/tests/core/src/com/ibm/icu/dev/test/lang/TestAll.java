@@ -22,7 +22,8 @@ public class TestAll extends TestGroup {
                   "TestCharacter",
                   "TestUScript",
                   "TestUScriptRun",
-                  "UnicodeSetTest"
+                  "UnicodeSetTest",
+                  "UnicodeSetStringSpanTest"
               },
               "Character and Script Tests");
     }
