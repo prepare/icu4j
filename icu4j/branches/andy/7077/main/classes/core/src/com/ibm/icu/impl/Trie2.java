@@ -35,17 +35,9 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
     }
     
     /**
-     * Internal only constructor.  Wraps a Trie2 around a set of unserialized data
-     *    for a read-only Trie.  Invoked from UTrie2_16 and UTrie2_32.
-     * @param trieData  the trie data.
-     * @internal
-     */
-    Trie2(UTrie2 trieData) {
-        trie = trieData;
-    }
-    
-    /**
      * Create a Trie2 from its serialized form.  Inverse of utrie2_serialize().
+     * The serialized format is identical between ICU4C and ICU4J, so this function
+     * will work with serialized Tries from either.
      * 
      * The actual type of the returned Trie2 will be either Trie2_16 or Trie2_32, depending
      * on the width of the data.  Logically this doesn't matter, because the entire API
@@ -53,12 +45,15 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
      * may some slight speed improvement available when repeatedly accessing the Trie
      * by casting to the actual type in advance.
      * 
+     * To obtain the width of the Trie, check the actual class type of the returned Trie.
+     * 
      * The serialized Trie on the stream may be in either little or big endian byte order.
+     * This allows using serialized Tries from ICU4C without needing to consider the
+     * byte order of the system that created them.
      *
      * @param is an input stream to the serialized form of a UTrie2.  
-     * @return the unserialized trie
-     * @throws IllegalArgumentException if the stream does not contain a serialized trie
-     *                                  or if the value width of the trie does not match valueBits.
+     * @return An unserialized trie, ready for use.
+     * @throws IllegalArgumentException if the stream does not contain a serialized trie.
      * @throws IOException if a read error occurs on the InputStream.
      * 
      * Note: dropped the valueWidth parameter (16 or 32 bits) at Mark's suggestion.  If it matters,
@@ -218,16 +213,16 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
      * Get the UTrie version from an InputStream containing the serialized form
      * of either a Trie (version 1) or a Trie2 (version 2).
      *
-     * @param is an InputStream containing the serialized form
+     * @param is   an InputStream containing the serialized form
      *             of a UTrie, version 1 or 2.  The stream must support mark() and reset().
      *             TODO:  is requiring mark and reset ok?
      *             The position of the input stream will be left unchanged.
      * @param anyEndianOk If FALSE, only big-endian (Java native) serialized forms are recognized.
      *                    If TRUE, little-endian serialized forms are recognized as well.
      *             TODO:  dump this option, always allow either endian?  Or allow only big endian?
-     * @return the Trie version of the serialized form, or 0 if it is not
-     *         recognized as a serialized UTrie
-     * @throws IOException on errors in reading from the input stream.
+     * @return     the Trie version of the serialized form, or 0 if it is not
+     *             recognized as a serialized UTrie
+     * @throws     IOException on errors in reading from the input stream.
      */
     public static int getVersion(InputStream is, boolean anyEndianOk) throws IOException {
         if (! is.markSupported()) {
@@ -273,7 +268,7 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
 
     
     /**
-     * Get a value for a code point as stored in the trie.
+     * Get the value for a code point as stored in the trie.
      *
      * @param trie the trie
      * @param codePoint the code point
@@ -283,22 +278,27 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
 
     
     /**
-     * Get a 16-bit trie value from a UTF-16 single/lead code unit (<=U+ffff).
-     * Same as get() if c is a BMP code point except for lead surrogates,
-     * but faster.
+     * Get the trie value from a code point or a UTF-16 lead code unit.
+     * Lead surrogates are in the range of (0xd800 <= x <=U+0xdbff).
+     * This function is the same as get() if the character is outside
+     * of the lead surrogate range
+     * 
+     * There are two values stored in a Trie for inputs in the lead
+     * surrogate range.  This function returns the alternate value,
+     * while Trie2.get() returns the main value.
      * 
      * @param trie the trie
-     * @param c the code unit (0x0000 .. 0x0000ffff)
+     * @param c the code point or lead surrogate value.
      * @return the value
      */
     abstract public int getFromU16SingleLead(int c);
    
     /**
      * When iterating over the contents of a Trie2, Elements of this type are produced.
-     * The iterator will return one item for each contiguous range of codepoints  with the same value.  
+     * The iterator will return one item for each contiguous range of codepoints  having the same value.  
      * 
      * When iterating, the same Trie2EnumRange object will be reused and returned for each range.
-     * If you need to retain the complete iteration results, clone each returned Trie2EnumRange,
+     * If you need to retain complete iteration results, clone each returned Trie2EnumRange,
      * or save the range in some other way, before advancing to the next iteration step.
      */
     public static class EnumRange {
@@ -310,7 +310,7 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
     /**
      *  Create an iterator over the value ranges in this Trie2.
      *  Values from the Trie are not remapped or filtered, but are returned as they
-     *  appear in the Trie.
+     *  are stored in the Trie.
      *  
      * @return an Iterator
      */
@@ -343,7 +343,7 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
      * both in determining the ranges of codepoints and as the value to be returned
      * for each range.
      * 
-     * Example of use, with an anonymous subclass of TrieValueMapper.
+     * Example of use, with an anonymous subclass of TrieValueMapper:
      * 
      * 
      * ValueMapper m = new ValueMapper() {
@@ -417,7 +417,7 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
      * An iterator that operates over an input text, and for each Unicode code point
      * in the input returns the associated value from the Trie.
      * 
-     * The iterator can move forwards or backwards, and can be reset to an 
+     * The iterator can move forwards or backwards, and can be reset to an arbitrary index.
      */
     public class CharSequenceIterator implements Iterator<IterationResults> {
         CharSequenceIterator(CharSequence t, int index) { 
@@ -555,6 +555,16 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
     // Below this point are internal implementation items.  No further public API.
     //
     //--------------------------------------------------------------------------------
+    
+    /**
+     * Internal only constructor.  Wraps a Trie2 around a set of unserialized data
+     *    for a read-only Trie.  Invoked from UTrie2_16 and UTrie2_32.
+     * @param trieData  the trie data.
+     * @internal
+     */
+    Trie2(UTrie2 trieData) {
+        trie = trieData;
+    }
     
     /**
      * Trie data structure in serialized form:

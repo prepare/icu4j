@@ -48,7 +48,7 @@ public class Trie2_32 extends Trie2 {
     
     
     /**
-     * Get a value for a code point as stored in the trie.
+     * Get the value for a code point as stored in the trie.
      *
      * @param trie the trie
      * @param codePoint the code point
@@ -102,19 +102,24 @@ public class Trie2_32 extends Trie2 {
 
     
     /**
-     * Get a 32-bit trie value from a UTF-16 single/lead code unit (<=U+ffff).
-     * Same as get() if c is a BMP code point except for lead surrogates,
-     * but slightly faster.
+     * Get a trie value from a code point or a UTF-16 lead code unit.
+     * Lead surrogates are in the range of (0xd800 <= x <=U+0xdbff).
+     * This function is the same as get() if the character is outside
+     * of the lead surrogate range
+     * 
+     * There are two values stored in a Trie for inputs in the lead
+     * surrogate range.  This function returns the alternate value,
+     * while Trie2.get() returns the main value.
      * 
      * @param trie the trie
-     * @param c the code unit (0x0000 .. 0x0000ffff)
+     * @param c the code point or lead surrogate value.
      * @return the value
      */
     public int getFromU16SingleLead(int codePoint){
         int value;
         int ix;
         
-        if (codePoint > 0) {
+        if (codePoint >= 0) {
             if (codePoint < 0x0ffff) {
                 // Ordinary BMP code point, including surrogates.
                 // BMP uses a single level lookup.  BMP index starts at offset 0 in the trie index.
