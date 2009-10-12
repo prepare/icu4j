@@ -278,20 +278,26 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
 
     
     /**
-     * Get the trie value from a code point or a UTF-16 lead code unit.
-     * Lead surrogates are in the range of (0xd800 <= x <=U+0xdbff).
-     * This function is the same as get() if the character is outside
-     * of the lead surrogate range
+     * Get the trie value for a UTF-16 code unit.
+     *
+     * A Trie2 stores two distinct values for input in the lead surrogate
+     * range, one for lead surrogates, which is the value that will be
+     * returned by this function, and a second value that is returned
+     * by Trie2.get().
      * 
-     * There are two values stored in a Trie for inputs in the lead
-     * surrogate range.  This function returns the alternate value,
-     * while Trie2.get() returns the main value.
+     * For code units outside of the lead surrogate range, this function
+     * returns the same result as Trie2.get().
+     * 
+     * This function, together with the alternate value for lead surrogates,
+     * makes possible very efficient processing of UTF-16 strings without
+     * first converting surrogate pairs to their corresponding 32 bit code point
+     * values.
      * 
      * @param trie the trie
      * @param c the code point or lead surrogate value.
      * @return the value
      */
-    abstract public int getFromU16SingleLead(int c);
+    abstract public int getFromU16SingleLead(char c);
    
     /**
      * When iterating over the contents of a Trie2, Elements of this type are produced.

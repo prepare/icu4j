@@ -284,7 +284,7 @@ public class Trie2Test extends TestFmwk {
                      value=initialValue;
                      break;
                  }
-                 value2 = trie.getFromU16SingleLead(start);
+                 value2 = trie.getFromU16SingleLead((char)start);
                  if(value2!=value) {
                      errln("trie2.getFromU16SingleLead() failed.  char, exected, actual = " +
                              Integer.toHexString(start) + ", " + Integer.toHexString(value) + ", " + Integer.toHexString(value2));

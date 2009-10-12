@@ -102,10 +102,10 @@ public final class Trie2_16 extends Trie2 {
 
     
     /**
-     * Get a trie value from a code point or a UTF-16 lead code unit.
-     * Lead surrogates are in the range of (0xd800 <= x <=U+0xdbff).
-     * This function is the same as get() if the character is outside
-     * of the lead surrogate range
+     * Get a trie value for a UTF-16 code unit.
+     * 
+     * This function returns the same value as get() if the input 
+     * character is outside of the lead surrogate range
      * 
      * There are two values stored in a Trie for inputs in the lead
      * surrogate range.  This function returns the alternate value,
@@ -115,39 +115,16 @@ public final class Trie2_16 extends Trie2 {
      * @param c the code point or lead surrogate value.
      * @return the value
      */
-    public int getFromU16SingleLead(int codePoint){
+    public int getFromU16SingleLead(char codeUnit){
         int value;
         int ix;
-        
-        if (codePoint >= 0) {
-            if (codePoint < 0x0ffff) {
-                // Ordinary BMP code point, including surrogates.
-                // BMP uses a single level lookup.  BMP index starts at offset 0 in the trie index.
-                // 16 bit data is stored in the index array itself.
-                ix = trie.index[codePoint >> UTRIE2_SHIFT_2];
-                ix = (ix << UTRIE2_INDEX_SHIFT) + (codePoint & UTRIE2_DATA_MASK);
-                value = trie.index[ix];
-                return value;
-            } 
-            if (codePoint < trie.highStart) {
-                // Supplemental code point, use two-level lookup.
-                ix = (UTRIE2_INDEX_1_OFFSET - UTRIE2_OMITTED_BMP_INDEX_1_LENGTH) + (codePoint >> UTRIE2_SHIFT_1);
-                ix = trie.index[ix];
-                ix += (codePoint >> UTRIE2_SHIFT_2) & UTRIE2_INDEX_2_MASK;
-                ix = trie.index[ix];
-                ix = (ix << UTRIE2_INDEX_SHIFT) + (codePoint & UTRIE2_DATA_MASK);
-                value = trie.index[ix];
-                return value;
-            }
-            if (codePoint <= 0x10ffff) {
-                value = trie.index[trie.highValueIndex];
-                return value;
-            }
-        }
-        
-        // Fall through.  The code point is outside of the legal range of 0..0x10ffff.
-        return trie.errorValue;
-       
+
+        // Because the input is a 16 bit char, we can skip the tests for it being in
+        // the BMP range.  It is.
+        ix = trie.index[codeUnit >> UTRIE2_SHIFT_2];
+        ix = (ix << UTRIE2_INDEX_SHIFT) + (codeUnit & UTRIE2_DATA_MASK);
+        value = trie.index[ix];
+        return value;
     }
     
     
