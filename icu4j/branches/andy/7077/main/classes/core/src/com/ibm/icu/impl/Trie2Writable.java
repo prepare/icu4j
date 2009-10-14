@@ -11,7 +11,7 @@ import com.ibm.icu.impl.Trie2.ValueWidth;
 /**
  * @author aheninger
  *
- * A Trie2Builder is a modifiable, or build-time Trie2.
+ * A Trie2Writable is a modifiable, or build-time Trie2.
  * Functions for reading data from the Trie are all from class Trie2.
  * 
  */
@@ -68,23 +68,29 @@ public class Trie2Writable extends Trie2 {
      
      
      /**
-      * Set a value for a lead surrogate code unit.
+      * Set a value for a UTF-16 code unit.
       * Note that a Trie2 stores separate values for 
-      * supplementary code points (via the plain get() and set() interfaces)
-      * and lead surrogates, via setForLeadSurrogateCodeUnit() and
-      * getFromU16SingleLead()
+      * supplementary code points in the lead surrogate range
+      * (accessed via the plain set() and get() interfaces)
+      * and for lead surrogate code units.
+      * 
+      * The lead surrogate code unit values are set via this function and
+      * read by the function getFromU16SingleLead().
+      * 
+      * For code units outside of the lead surrogate range, this function
+      * behaves identically to set().
       *
-      * @param lead the lead surrogate code unit (U+D800..U+DBFF)
+      * @param lead A UTF-16 code unit. 
       * @param value the value
       */
-     public Trie2Writable setForLeadSurrogateCodeUnit(int lead, int value) {
+     public Trie2Writable setForLeadSurrogateCodeUnit(char codeUnit, int value) {
          return this;
      }
 
      
      /**
       * Produce an optimized, read-only Trie2_16 from the Trie being built.
-      * The data values must all fit in 16 bits.
+      * The data values must all fit as an unsigned 16 bit value.
       * 
       */
      public Trie2_16 getAsFrozen_16() {
@@ -101,9 +107,13 @@ public class Trie2Writable extends Trie2 {
      }
 
 
-    /* (non-Javadoc)
-     * @see com.ibm.icu.impl.Trie2#get(int)
-     */
+     /**
+      * Get the value for a code point as stored in the trie.
+      *
+      * @param trie the trie
+      * @param codePoint the code point
+      * @return the value
+      */
     @Override
     public int get(int codePoint) {
         // TODO Auto-generated method stub
@@ -111,14 +121,37 @@ public class Trie2Writable extends Trie2 {
     }
 
 
-    /* (non-Javadoc)
-     * @see com.ibm.icu.impl.Trie2#getFromU16SingleLead(int)
+    /**
+     * Get a trie value for a UTF-16 code unit.
+     * 
+     * This function returns the same value as get() if the input 
+     * character is outside of the lead surrogate range
+     * 
+     * There are two values stored in a Trie for inputs in the lead
+     * surrogate range.  This function returns the alternate value,
+     * while Trie2.get() returns the main value.
+     * 
+     * @param trie the trie
+     * @param c the code point or lead surrogate value.
+     * @return the value
      */
     @Override
-    public int getFromU16SingleLead(int c) {
+    public int getFromU16SingleLead(char c) {
         // TODO Auto-generated method stub
         return 0;
     }
       
+    
+    private  int[]   index1 = new int[UNEWTRIE2_INDEX_1_LENGTH];
+    private  int[]   index2 = new int[UNEWTRIE2_MAX_INDEX_2_LENGTH];
+    private  int[]   data;
+
+    private  int     initialValue, errorValue;
+    private  int     index2Length, dataCapacity, dataLength;
+    private  int     firstFreeBlock;
+    private  int     index2NullOffset, dataNullOffset;
+    private  int     highStart;
+    private  boolean isCompacted;
+
 
 }

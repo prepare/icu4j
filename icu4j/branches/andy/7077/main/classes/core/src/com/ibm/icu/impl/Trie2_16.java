@@ -115,6 +115,7 @@ public final class Trie2_16 extends Trie2 {
      * @param c the code point or lead surrogate value.
      * @return the value
      */
+    @Override
     public int getFromU16SingleLead(char codeUnit){
         int value;
         int ix;
