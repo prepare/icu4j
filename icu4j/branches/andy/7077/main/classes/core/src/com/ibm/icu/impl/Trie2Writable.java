@@ -25,7 +25,9 @@ public class Trie2Writable extends Trie2 {
      * @param errorValue the value for out-of-range code points and illegal UTF-8
      */
     public  Trie2Writable(int initialValue, int errorValue) {
-        super(null);   // TODO: implement this.
+        // TODO: implement this.
+        
+        // This constructor corresponds to utrie2_open() in ICU4C.
     }
     
     
@@ -35,7 +37,7 @@ public class Trie2Writable extends Trie2 {
      * @param source
      */
     public Trie2Writable(Trie2 source) {
-        super(null);   // TODO: implement this.
+        // TODO: implement this.
     }
         
     
@@ -141,10 +143,17 @@ public class Trie2Writable extends Trie2 {
         return 0;
     }
       
-    
+    /* Start with allocation of 16k data entries. */
+    private static int UNEWTRIE2_INITIAL_DATA_LENGTH = 1<<14;
+
+    /* Grow about 8x each time. */
+    private static int UNEWTRIE2_MEDIUM_DATA_LENGTH = 1<<17;
+
+    // Private data members.  From struct UNewTrie2 in ICU4C
+    //
     private  int[]   index1 = new int[UNEWTRIE2_INDEX_1_LENGTH];
     private  int[]   index2 = new int[UNEWTRIE2_MAX_INDEX_2_LENGTH];
-    private  int[]   data;
+    private  int[]   data   = new int[UNEWTRIE2_INITIAL_DATA_LENGTH];
 
     private  int     initialValue, errorValue;
     private  int     index2Length, dataCapacity, dataLength;
@@ -153,5 +162,21 @@ public class Trie2Writable extends Trie2 {
     private  int     highStart;
     private  boolean isCompacted;
 
+    /*
+     * Multi-purpose per-data-block table.
+     *
+     * Before compacting:
+     *
+     * Per-data-block reference counters/free-block list.
+     *  0: unused
+     * >0: reference counter (number of index-2 entries pointing here)
+     * <0: next free data block in free-block list
+     *
+     * While compacting:
+     *
+     * Map of adjusted indexes, used in compactData() and compactIndex2().
+     * Maps from original indexes to new ones.
+     */
+     private  int[]   map = new int[UNEWTRIE2_MAX_DATA_LENGTH>>UTRIE2_SHIFT_2];
 
 }

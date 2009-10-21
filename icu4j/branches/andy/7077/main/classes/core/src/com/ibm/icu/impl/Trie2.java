@@ -96,114 +96,117 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
          //    } UTrie2Header;
         
         DataInputStream dis = new DataInputStream(is);        
-        UTrie2  trie = new UTrie2();
         boolean needByteSwap = false;
         
+        UTrie2Header  header = new UTrie2Header();
+        
         /* check the signature */
-        trie.header.signature = dis.readInt();
-        switch (trie.header.signature) {
+        header.signature = dis.readInt();
+        switch (header.signature) {
         case 0x54726932:
             needByteSwap = false;
             break;
         case 0x32697254:
             needByteSwap = true;
-            trie.header.signature = Integer.reverseBytes(trie.header.signature);
+            header.signature = Integer.reverseBytes(header.signature);
             break;
         default:
             throw new IllegalArgumentException("Stream does not contain a serialized UTrie2");
         }
                 
-        trie.header.options = swapShort(needByteSwap, dis.readUnsignedShort());
-        trie.header.indexLength = swapShort(needByteSwap, dis.readUnsignedShort());
-        trie.header.shiftedDataLength = swapShort(needByteSwap, dis.readUnsignedShort());
-        trie.header.index2NullOffset = swapShort(needByteSwap, dis.readUnsignedShort());
-        trie.header.dataNullOffset   = swapShort(needByteSwap, dis.readUnsignedShort());
-        trie.header.shiftedHighStart = swapShort(needByteSwap, dis.readUnsignedShort());
+        header.options = swapShort(needByteSwap, dis.readUnsignedShort());
+        header.indexLength = swapShort(needByteSwap, dis.readUnsignedShort());
+        header.shiftedDataLength = swapShort(needByteSwap, dis.readUnsignedShort());
+        header.index2NullOffset = swapShort(needByteSwap, dis.readUnsignedShort());
+        header.dataNullOffset   = swapShort(needByteSwap, dis.readUnsignedShort());
+        header.shiftedHighStart = swapShort(needByteSwap, dis.readUnsignedShort());
         
         // Trie data width - 0: 16 bits
         //                   1: 32 bits
-        if ((trie.header.options & UTRIE2_OPTIONS_VALUE_BITS_MASK) > 1) {
+        if ((header.options & UTRIE2_OPTIONS_VALUE_BITS_MASK) > 1) {
             throw new IllegalArgumentException("UTrie2 serialized format error.");
         }
-        trie.dataWidth = (trie.header.options & UTRIE2_OPTIONS_VALUE_BITS_MASK) == 0 ? 
-                ValueWidth.BITS_16: ValueWidth.BITS_32;
+        ValueWidth  width;
+        Trie2 This;
+        if ((header.options & UTRIE2_OPTIONS_VALUE_BITS_MASK) == 0) {
+            width = ValueWidth.BITS_16;
+            This  = new Trie2_16();
+        } else {
+            width = ValueWidth.BITS_32;
+            This  = new Trie2_32();
+        }
+        This.header = header;
         
         /* get the length values and offsets */
-        trie.indexLength      = trie.header.indexLength;
-        trie.dataLength       = trie.header.shiftedDataLength << UTRIE2_INDEX_SHIFT;
-        trie.index2NullOffset = trie.header.index2NullOffset;
-        trie.dataNullOffset   = trie.header.dataNullOffset;
+        This.indexLength      = header.indexLength;
+        This.dataLength       = header.shiftedDataLength << UTRIE2_INDEX_SHIFT;
+        This.index2NullOffset = header.index2NullOffset;
+        This.dataNullOffset   = header.dataNullOffset;
 
-        trie.highStart        = trie.header.shiftedHighStart << UTRIE2_SHIFT_1;
-        trie.highValueIndex   = trie.dataLength - UTRIE2_DATA_GRANULARITY;
-        if (trie.dataWidth == ValueWidth.BITS_16) {
-            trie.highValueIndex += trie.indexLength;
+        This.highStart        = header.shiftedHighStart << UTRIE2_SHIFT_1;
+        This.highValueIndex   = This.dataLength - UTRIE2_DATA_GRANULARITY;
+        if (width == ValueWidth.BITS_16) {
+            This.highValueIndex += This.indexLength;
         }
 
         // Allocate the trie index array.  If the data width is 16 bits, the array also
         //   includes the space for the data.
         
-        int indexArraySize = trie.indexLength;
-        if (trie.dataWidth == ValueWidth.BITS_16) {
-            indexArraySize += trie.dataLength;
+        int indexArraySize = This.indexLength;
+        if (width == ValueWidth.BITS_16) {
+            indexArraySize += This.dataLength;
         }
-        trie.index = new char[indexArraySize];
+        This.index = new char[indexArraySize];
         
         /* Read in the index */
         int i;
-        for (i=0; i<trie.indexLength; i++) {
-            trie.index[i] = swapChar(needByteSwap, dis.readChar());
+        for (i=0; i<This.indexLength; i++) {
+            This.index[i] = swapChar(needByteSwap, dis.readChar());
         }
         
         /* Read in the data.  16 bit data goes in the same array as the index.
          * 32 bit data goes in its own separate data array.
          */
-        if (trie.dataWidth == ValueWidth.BITS_16) {
-            trie.data16 = trie.indexLength;
-            for (i=0; i<trie.dataLength; i++) {
-                trie.index[trie.data16 + i] = swapChar(needByteSwap, dis.readChar());
+        if (width == ValueWidth.BITS_16) {
+            This.data16 = This.indexLength;
+            for (i=0; i<This.dataLength; i++) {
+                This.index[This.data16 + i] = swapChar(needByteSwap, dis.readChar());
             }
         } else {
-            trie.data32 = new int[trie.dataLength];
-            for (i=0; i<trie.dataLength; i++) {
-                trie.data32[i] = swapInt(needByteSwap, dis.readInt());
+            This.data32 = new int[This.dataLength];
+            for (i=0; i<This.dataLength; i++) {
+                This.data32[i] = swapInt(needByteSwap, dis.readInt());
             }
         }
         
         /* get the data */
-        switch(trie.dataWidth) {
+        switch(width) {
         case BITS_16:
-            trie.data32 = null;
-            trie.initialValue = trie.index[trie.dataNullOffset];
-            trie.errorValue   = trie.index[trie.data16+UTRIE2_BAD_UTF8_DATA_OFFSET];
+            This.data32 = null;
+            This.initialValue = This.index[This.dataNullOffset];
+            This.errorValue   = This.index[This.data16+UTRIE2_BAD_UTF8_DATA_OFFSET];
             break;
         case BITS_32:
-            trie.data16=0;
-            trie.initialValue=trie.data32[trie.dataNullOffset];
-            trie.errorValue=trie.data32[UTRIE2_BAD_UTF8_DATA_OFFSET];
+            This.data16=0;
+            This.initialValue=This.data32[This.dataNullOffset];
+            This.errorValue=This.data32[UTRIE2_BAD_UTF8_DATA_OFFSET];
             break;
         default:
             throw new IllegalArgumentException("UTrie2 serialized format error.");
         }
 
-        
-        /* Create the Trie object of the appropriate type to be returned to the user.
-         */
-        Trie2 result = null;
-        if (trie.dataWidth == ValueWidth.BITS_16) {
-            result = new Trie2_16(trie);
-        } else {
-            result = new Trie2_32(trie);
-        }
-        return result;
+        return This;
     }
+    
     
     private static int swapShort(boolean needSwap, int value) {
         return needSwap? ((int)Short.reverseBytes((short)value)) & 0x0000ffff : value;
     }
+    
     private static char swapChar(boolean needSwap, char value) {
         return needSwap? (char)Short.reverseBytes((short)value) : value;
     }
+    
     private static int swapInt(boolean needSwap, int value) {
         return needSwap? Integer.reverseBytes(value) : value;
     }
@@ -562,15 +565,6 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
     //
     //--------------------------------------------------------------------------------
     
-    /**
-     * Internal only constructor.  Wraps a Trie2 around a set of unserialized data
-     *    for a read-only Trie.  Invoked from UTrie2_16 and UTrie2_32.
-     * @param trieData  the trie data.
-     * @internal
-     */
-    Trie2(UTrie2 trieData) {
-        trie = trieData;
-    }
     
     /**
      * Trie data structure in serialized form:
@@ -611,7 +605,24 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
         int shiftedHighStart;
     }
     
-    
+    UTrie2Header  header;
+    ValueWidth    dataWidth;
+    char index[];     // Index array.  Includes data for 16 bit Tries.
+    int  data16;      // Offset to data portion of the index array, if 16 bit data.
+                      //    zero if 32 bit data.
+    int  data32[];    // NULL if 16b data is used via index 
+
+    int  indexLength, dataLength;
+    int  index2NullOffset;  /* 0xffff if there is no dedicated index-2 null block */
+    int  dataNullOffset;
+    int  initialValue;
+    /** Value returned for out-of-range code points and illegal UTF-8. */
+    int  errorValue;
+
+    /* Start of the last range which ends at U+10ffff, and its value. */
+    int  highStart;
+    int  highValueIndex;
+
     
     /**
      * UTrie2 structure definition.
@@ -628,29 +639,29 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
      * 
      * @internal
      */
-    static class UTrie2 {
+   // static class UTrie2 {
         /* protected: used by macros and functions for reading values */
-        UTrie2Header  header = new UTrie2Header();
-        ValueWidth    dataWidth;
+     //   UTrie2Header  header = new UTrie2Header();
+        // ValueWidth    dataWidth;
         
-        char index[];     // Index array.  Includes data for 16 bit Tries.
-        int  data16;      // Offset to data portion of the index array, if 16 bit data.
+        //char index[];     // Index array.  Includes data for 16 bit Tries.
+        //int  data16;      // Offset to data portion of the index array, if 16 bit data.
                           //    zero if 32 bit data.
-        int  data32[];    // NULL if 16b data is used via index 
+        //int  data32[];    // NULL if 16b data is used via index 
 
-        int  indexLength, dataLength;
-        int  index2NullOffset;  /* 0xffff if there is no dedicated index-2 null block */
-        int  dataNullOffset;
-        int  initialValue;
+        //int  indexLength, dataLength;
+        //int  index2NullOffset;  /* 0xffff if there is no dedicated index-2 null block */
+        //int  dataNullOffset;
+       // int  initialValue;
         /** Value returned for out-of-range code points and illegal UTF-8. */
-        int  errorValue;
+        //int  errorValue;
 
         /* Start of the last range which ends at U+10ffff, and its value. */
-        int  highStart;
-        int  highValueIndex;
+        //int  highStart;
+        //int  highValueIndex;
         
-        UNewTrie2   newTrie;
-    };
+        //UNewTrie2   newTrie;
+   // };
     
     
     /*
@@ -696,8 +707,6 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
          */
         int[]      map = new int[UNEWTRIE2_MAX_DATA_LENGTH>>UTRIE2_SHIFT_2];
     };
-
-    UTrie2   trie;
 
     
     /**
@@ -865,25 +874,6 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
     class TrieIterator implements Iterator<EnumRange> {
         TrieIterator(ValueMapper vm) {
             mapper = vm;
-
-            if (trie.newTrie == null) {
-                /* frozen trie */
-                idx=trie.index;
-                data32=trie.data32;
-
-                index2NullOffset=trie.index2NullOffset;
-                nullBlock=trie.dataNullOffset;
-            } else {
-                /* unfrozen, mutable trie */
-                idx=null;
-                data32=trie.newTrie.data;
-
-                index2NullOffset=trie.newTrie.index2NullOffset;
-                nullBlock=trie.newTrie.dataNullOffset;
-            }
-
-            highStart=trie.highStart;
-
         }
         
         /**
@@ -939,238 +929,34 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
          * @return   The last contiguous character with the same value.
          */
         private int rangeEnd(int startingC) {
-            if (c >= trie.highStart) {
+            if (startingC >= highStart) {
                 return 0x10ffff;
             }
             
             // TODO: add optimizations
             int c;
             int val = get(startingC);
-            for (c = startingC+1; c <= trie.highStart; c++) {
+            for (c = startingC+1; c <= highStart; c++) {
                 if (get(c) != val) {
                     break;
                 }
             }
-            if (c < trie.highStart) {
+            if (c < highStart) {
                 return c-1;
             } else {
                 return 0x10ffff;
             }
         }
-        
-        
-        //
-        //   Fixed references to parts of this Trie.
-        //     Depends only on the Trie itself; unchanged during iteration.
-        //
-        int    data32[] = null;
-        char   idx[]    = null;
-        int    nullBlock;
-        
+                
         //
         //   Iteration State Variables
         //
-        int    value;
-        int    initialValue;
         
-        int    c;             // UChar32
-        int    prev;          // UChar32
-        int    highStart;     // UChar32
         
-        int    j, i2Block, prevI2Block, index2NullOffset, block, prevBlock;
-
         private ValueMapper    mapper;
         private EnumRange      returnValue = new EnumRange();
         private int            lastReturnedChar;
         
-        /**
-         * Enumerate all ranges of code points with the same relevant values.
-         * The values are transformed from the raw trie entries by the enumValue function.
-         *
-         * Currently requires start<limit and both start and limit must be multiples
-         * of UTRIE2_DATA_BLOCK_LENGTH.
-         *
-         * Optimizations:
-         * - Skip a whole block if we know that it is filled with a single value,
-         *   and it is the same as we visited just before.
-         * - Handle the null block specially because we know a priori that it is filled
-         *   with a single value.
-         *   
-         * TODO:  For java iteration, this is just doing a next(), returning just the
-         *        first range from 'start', rather than returning them all via callbacks. 
-         *        The code could no doubt be restructured to do that more efficiently
-         */
-         private void enumEitherTrie(int start, int limit) {
- 
-             /* set variables for previous range */
-             prevI2Block=-1;
-             prevBlock=-1;
-             prev=start;
-             int prevValue = 0;
-
-            /* enumerate index-2 blocks */
-            for(c=start; c<limit && c<highStart;) {
-                /* Code point limit for iterating inside this i2Block. */
-                int tempLimit=c+UTRIE2_CP_PER_INDEX_1_ENTRY;
-                if(limit<tempLimit) {
-                    tempLimit=limit;
-                }
-                if(c<=0xffff) {
-                    if (c<Character.MIN_SURROGATE || c>Character.MAX_SURROGATE) {
-                        i2Block=c>>UTRIE2_SHIFT_2;
-                    } else if(Character.isHighSurrogate((char)c)) {
-                        /*
-                         * Enumerate values for lead surrogate code points, not code units:
-                         * This special block has half the normal length.
-                         */
-                        i2Block=UTRIE2_LSCP_INDEX_2_OFFSET;
-                        tempLimit=Math.min(0xdc00, limit);
-                    } else {
-                        /*
-                         * Switch back to the normal part of the index-2 table.
-                         * Enumerate the second half of the surrogates block.
-                         */
-                        i2Block=0xd800>>UTRIE2_SHIFT_2;
-                        tempLimit=Math.min(0xe000, limit);
-                    }
-                } else {
-                    /* supplementary code points */
-                    if(idx!=null) {
-                        i2Block=idx[(UTRIE2_INDEX_1_OFFSET-UTRIE2_OMITTED_BMP_INDEX_1_LENGTH)+
-                                      (c>>UTRIE2_SHIFT_1)];
-                    } else {
-                        i2Block=trie.newTrie.index1[c>>UTRIE2_SHIFT_1];
-                    }
-                    if(i2Block==prevI2Block && (c-prev)>=UTRIE2_CP_PER_INDEX_1_ENTRY) {
-                        /*
-                         * The index-2 block is the same as the previous one, and filled with prevValue.
-                         * Only possible for supplementary code points because the linear-BMP index-2
-                         * table creates unique i2Block values.
-                         */
-                        c+=UTRIE2_CP_PER_INDEX_1_ENTRY;
-                        continue;
-                    }
-                }
-                prevI2Block=i2Block;
-                if(i2Block==index2NullOffset) {
-                    /* this is the null index-2 block */
-                    if(prevValue!=initialValue) {
-                        // if(prev<c && !enumRange(context, prev, c-1, prevValue)) { 
-                        //    return;
-                        //}
-                        if (prev<c) {
-                            returnValue.startCodePoint = prev;
-                            returnValue.endCodePoint = c-1;
-                            returnValue.value = prevValue;
-                            lastReturnedChar = c-1;
-                            return;
-                        }
-                        prevBlock=nullBlock;
-                        prev=c;
-                        prevValue=initialValue;
-                    }
-                    c+=UTRIE2_CP_PER_INDEX_1_ENTRY;
-                } else {
-                    /* enumerate data blocks for one index-2 block */
-                    int i2, i2Limit;
-                    i2=(c>>UTRIE2_SHIFT_2)&UTRIE2_INDEX_2_MASK;
-                    if((c>>UTRIE2_SHIFT_1)==(tempLimit>>UTRIE2_SHIFT_1)) {
-                        i2Limit=(tempLimit>>UTRIE2_SHIFT_2)&UTRIE2_INDEX_2_MASK;
-                    } else {
-                        i2Limit=UTRIE2_INDEX_2_BLOCK_LENGTH;
-                    }
-                    for(; i2<i2Limit; ++i2) {
-                        if(idx!=null) {
-                            block=(int)idx[i2Block+i2]<<UTRIE2_INDEX_SHIFT;
-                        } else {
-                            block=trie.newTrie.index2[i2Block+i2];
-                        }
-                        if(block==prevBlock && (c-prev)>=UTRIE2_DATA_BLOCK_LENGTH) {
-                            /* the block is the same as the previous one, and filled with prevValue */
-                            c+=UTRIE2_DATA_BLOCK_LENGTH;
-                            continue;
-                        }
-                        prevBlock=block;
-                        if(block==nullBlock) {
-                            /* this is the null data block */
-                            if(prevValue!=initialValue) {
-                                //if(prev<c && !enumRange(context, prev, c-1, prevValue)) {
-                                //    return;
-                                //}
-                                if (prev < c) {
-                                    returnValue.startCodePoint = prev;
-                                    returnValue.endCodePoint = c-1;
-                                    returnValue.value = prevValue;
-                                    lastReturnedChar = c-1;
-                                    return;
-                                }
-                                prev=c;
-                                prevValue=initialValue;
-                            }
-                            c+=UTRIE2_DATA_BLOCK_LENGTH;
-                        } else {
-                            for(j=0; j<UTRIE2_DATA_BLOCK_LENGTH; ++j) {
-                                value = mapper.map(data32!=null ? data32[block+j] : idx[block+j]);
-                                if(value!=prevValue) {
-                                    //if(prev<c && !enumRange(context, prev, c-1, prevValue)) {
-                                    //    return;
-                                    //}
-                                    if (prev < c) {
-                                        returnValue.startCodePoint = prev;
-                                        returnValue.endCodePoint = c-1;
-                                        returnValue.value = prevValue;
-                                        lastReturnedChar = c-1;
-                                        return;
-                                    }
-                                    prev=c;
-                                    prevValue=value;
-                                }
-                                ++c;
-                            }
-                        }
-                    }
-                }
-            }
-
-            if(c>limit) {
-                c=limit;  /* could be higher if in the index2NullOffset */
-            } else if(c<limit) {
-                /* c==highStart<limit */
-                int highValue;
-                if(idx!=null) {
-                    highValue=
-                        data32!=null ?
-                            data32[trie.highValueIndex] :
-                            idx[trie.highValueIndex];
-                } else {
-                    highValue=trie.newTrie.data[trie.newTrie.dataLength-UTRIE2_DATA_GRANULARITY];
-                }
-                value=mapper.map(highValue);
-                if(value!=prevValue) {
-                    //if(prev<c && !enumRange(context, prev, c-1, prevValue)) {
-                    //    return;
-                    //}
-                    if (prev < c) {
-                        returnValue.startCodePoint = prev;
-                        returnValue.endCodePoint = c-1;
-                        returnValue.value = prevValue;
-                        lastReturnedChar = c-1;
-                        return;
-                    }
-                    prev=c;
-                    prevValue=value;
-                }
-                c=limit;
-            }
-
-            /* deliver last range */
-            // enumRange(context, prev, c-1, prevValue);
-            returnValue.startCodePoint = prev;
-            returnValue.endCodePoint = c-1;
-            returnValue.value = prevValue;
-            lastReturnedChar = c-1;
-            return;
-        }
 
     }
 

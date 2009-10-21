@@ -55,8 +55,7 @@ public class Trie2Test extends TestFmwk {
          // Plain iteration, no mapping
          for (Trie2.EnumRange r: trie) {
              
-         }
-         
+         }         
      }
      
      

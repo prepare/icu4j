@@ -35,15 +35,11 @@ public final class Trie2_16 extends Trie2 {
      * @param errorValue the value for out-of-range code points.
      */
     public Trie2_16(int initialValue, int errorValue) { 
-        super(null);   // TODO: implement this.
+        // TODO: implement this.
     }
     
-    /**
-     * Construct a Trie2_16 around an unserialized set of Trie2 data.
-     * @internal
-     */
-    Trie2_16(UTrie2 data) {
-        super(data);
+     
+    Trie2_16() {
     }
     
     
@@ -63,9 +59,9 @@ public final class Trie2_16 extends Trie2 {
                 // Ordinary BMP code point, excluding leading surrogates.
                 // BMP uses a single level lookup.  BMP index starts at offset 0 in the trie index.
                 // 16 bit data is stored in the index array itself.
-                ix = trie.index[codePoint >> UTRIE2_SHIFT_2];
+                ix = index[codePoint >> UTRIE2_SHIFT_2];
                 ix = (ix << UTRIE2_INDEX_SHIFT) + (codePoint & UTRIE2_DATA_MASK);
-                value = trie.index[ix];
+                value = index[ix];
                 return value;
             } 
             if (codePoint <= 0xffff) {
@@ -75,29 +71,29 @@ public final class Trie2_16 extends Trie2 {
                 //   For this function, we need the code point data.
                 // Note: this expression could be refactored for slightly improved efficiency, but
                 //       surrogate code points will be so rare in practice that it's not worth it.
-                ix = trie.index[UTRIE2_LSCP_INDEX_2_OFFSET + ((codePoint - 0xd800) >> UTRIE2_SHIFT_2)];
+                ix = index[UTRIE2_LSCP_INDEX_2_OFFSET + ((codePoint - 0xd800) >> UTRIE2_SHIFT_2)];
                 ix = (ix << UTRIE2_INDEX_SHIFT) + (codePoint & UTRIE2_DATA_MASK);
-                value = trie.index[ix];
+                value = index[ix];
                 return value;
             }
-            if (codePoint < trie.highStart) {
+            if (codePoint < highStart) {
                 // Supplemental code point, use two-level lookup.
                 ix = (UTRIE2_INDEX_1_OFFSET - UTRIE2_OMITTED_BMP_INDEX_1_LENGTH) + (codePoint >> UTRIE2_SHIFT_1);
-                ix = trie.index[ix];
+                ix = index[ix];
                 ix += (codePoint >> UTRIE2_SHIFT_2) & UTRIE2_INDEX_2_MASK;
-                ix = trie.index[ix];
+                ix = index[ix];
                 ix = (ix << UTRIE2_INDEX_SHIFT) + (codePoint & UTRIE2_DATA_MASK);
-                value = trie.index[ix];
+                value = index[ix];
                 return value;
             }
             if (codePoint <= 0x10ffff) {
-                value = trie.index[trie.highValueIndex];
+                value = index[highValueIndex];
                 return value;
             }
         }
         
         // Fall through.  The code point is outside of the legal range of 0..0x10ffff.
-        return trie.errorValue;
+        return errorValue;
     }
 
     
@@ -122,9 +118,9 @@ public final class Trie2_16 extends Trie2 {
 
         // Because the input is a 16 bit char, we can skip the tests for it being in
         // the BMP range.  It is.
-        ix = trie.index[codeUnit >> UTRIE2_SHIFT_2];
+        ix = index[codeUnit >> UTRIE2_SHIFT_2];
         ix = (ix << UTRIE2_INDEX_SHIFT) + (codeUnit & UTRIE2_DATA_MASK);
-        value = trie.index[ix];
+        value = index[ix];
         return value;
     }
     
