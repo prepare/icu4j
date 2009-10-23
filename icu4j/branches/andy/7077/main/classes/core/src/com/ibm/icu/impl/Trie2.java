@@ -607,108 +607,24 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
     
     UTrie2Header  header;
     ValueWidth    dataWidth;
-    char index[];     // Index array.  Includes data for 16 bit Tries.
-    int  data16;      // Offset to data portion of the index array, if 16 bit data.
-                      //    zero if 32 bit data.
-    int  data32[];    // NULL if 16b data is used via index 
+    char          index[];           // Index array.  Includes data for 16 bit Tries.
+    int           data16;            // Offset to data portion of the index array, if 16 bit data.
+                                     //    zero if 32 bit data.
+    int           data32[];          // NULL if 16b data is used via index 
 
-    int  indexLength, dataLength;
-    int  index2NullOffset;  /* 0xffff if there is no dedicated index-2 null block */
-    int  dataNullOffset;
-    int  initialValue;
+    int           indexLength;
+    int           dataLength;
+    int           index2NullOffset;  // 0xffff if there is no dedicated index-2 null block
+    int           dataNullOffset;
+    int           initialValue;
     /** Value returned for out-of-range code points and illegal UTF-8. */
-    int  errorValue;
+    int           errorValue;
 
     /* Start of the last range which ends at U+10ffff, and its value. */
-    int  highStart;
-    int  highValueIndex;
+    int           highStart;
+    int           highValueIndex;
 
-    
-    /**
-     * UTrie2 structure definition.
-     * This class closely parallels struct UTrie2 from the C implementation.
-     * All data describing a frozen trie, of either data size, is contained or
-     * referenced from here.
-     *
-     * Either the data table is 16 bits wide and accessed via the index
-     * pointer, with each index item increased by indexLength;
-     * in this case, data32==NULL, and data16 is used for direct ASCII access.
-     *
-     * Or the data table is 32 bits wide and accessed via the data32 pointer.
-     * 
-     * 
-     * @internal
-     */
-   // static class UTrie2 {
-        /* protected: used by macros and functions for reading values */
-     //   UTrie2Header  header = new UTrie2Header();
-        // ValueWidth    dataWidth;
         
-        //char index[];     // Index array.  Includes data for 16 bit Tries.
-        //int  data16;      // Offset to data portion of the index array, if 16 bit data.
-                          //    zero if 32 bit data.
-        //int  data32[];    // NULL if 16b data is used via index 
-
-        //int  indexLength, dataLength;
-        //int  index2NullOffset;  /* 0xffff if there is no dedicated index-2 null block */
-        //int  dataNullOffset;
-       // int  initialValue;
-        /** Value returned for out-of-range code points and illegal UTF-8. */
-        //int  errorValue;
-
-        /* Start of the last range which ends at U+10ffff, and its value. */
-        //int  highStart;
-        //int  highValueIndex;
-        
-        //UNewTrie2   newTrie;
-   // };
-    
-    
-    /*
-     * Build-time trie structure.
-     *
-     * Just using a boolean flag for "repeat use" could lead to data array overflow
-     * because we would not be able to detect when a data block becomes unused.
-     * It also leads to orphan data blocks that are kept through serialization.
-     *
-     * Need to use reference counting for data blocks,
-     * and allocDataBlock() needs to look for a free block before increasing dataLength.
-     *
-     * This scheme seems like overkill for index-2 blocks since the whole index array is
-     * preallocated anyway (unlike the growable data array).
-     * Just allocating multiple index-2 blocks as needed.
-     */
-    static class UNewTrie2 {
-        int[]      index1 = new int[UNEWTRIE2_INDEX_1_LENGTH];
-        int[]      index2 = new int[UNEWTRIE2_MAX_INDEX_2_LENGTH];
-        int[]      data;
-
-        int        initialValue, errorValue;
-        int        index2Length, dataCapacity, dataLength;
-        int        firstFreeBlock;
-        int        index2NullOffset, dataNullOffset;
-        int        highStart;     // UChar32
-        boolean    isCompacted;
-
-        /**
-         * Multi-purpose per-data-block table.
-         *
-         * Before compacting:
-         *
-         * Per-data-block reference counters/free-block list.
-         *  0: unused
-         * >0: reference counter (number of index-2 entries pointing here)
-         * <0: next free data block in free-block list
-         *
-         * While compacting:
-         *
-         * Map of adjusted indexes, used in compactData() and compactIndex2().
-         * Maps from original indexes to new ones.
-         */
-        int[]      map = new int[UNEWTRIE2_MAX_DATA_LENGTH>>UTRIE2_SHIFT_2];
-    };
-
-    
     /**
      * Trie constants, defining shift widths, index array lengths, etc.
      *
