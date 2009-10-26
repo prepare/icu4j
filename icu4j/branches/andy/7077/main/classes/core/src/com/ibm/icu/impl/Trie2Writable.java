@@ -6,6 +6,9 @@
  */
 package com.ibm.icu.impl;
 
+import java.io.IOException;
+import java.io.OutputStream;
+
 import com.ibm.icu.impl.Trie2.ValueWidth;
 
 /**
@@ -489,25 +492,6 @@ public class Trie2Writable extends Trie2 {
 
      
      /**
-      * Produce an optimized, read-only Trie2_16 from the Trie being built.
-      * The data values must all fit as an unsigned 16 bit value.
-      * 
-      */
-     public Trie2_16 getAsFrozen_16() {
-         return null;
-     }
-      
-
-     /**
-      * Produce an optimized, read-only Trie2_32 from the Trie being built.
-      * 
-      */
-     public Trie2_32 getAsFrozen_32() {
-         return null;
-     }
-
-
-     /**
       * Get the value for a code point as stored in the trie.
       *
       * @param trie the trie
@@ -684,7 +668,7 @@ public class Trie2Writable extends Trie2 {
      * It does not
      * - try to move and overlap blocks that are not already adjacent
      */
-    private int compactData() {
+    private void compactData() {
         int start, newStart, movedStart;
         int blockLength, overlap;
         int i, mapIndex, blockCount;
@@ -782,8 +766,8 @@ public class Trie2Writable extends Trie2 {
 
         if  (UTRIE2_DEBUG) {
             /* we saved some space */
-            printf("compacting UTrie2: count of 32-bit data words %lu->%lu\n",
-                (long)dataLength, (long)newStart);
+            System.out.printf("compacting UTrie2: count of 32-bit data words %d->%d\n",
+                dataLength, newStart);
         }
 
         dataLength=newStart;
@@ -863,8 +847,8 @@ public class Trie2Writable extends Trie2 {
 
         if (UTRIE2_DEBUG) {
             /* we saved some space */
-            printf("compacting UTrie2: count of 16-bit index-2 words %lu->%lu\n",
-                    (long)index2Length, (long)newStart);
+            System.out.printf("compacting UTrie2: count of 16-bit index-2 words %d->%d\n",
+                    index2Length, newStart);
         }
 
         index2Length=newStart;
@@ -890,8 +874,8 @@ public class Trie2Writable extends Trie2 {
         this.highStart=localHighStart;
 
         if (UTRIE2_DEBUG) {
-            printf("UTrie2: highStart U+%04lx  highValue 0x%lx  initialValue 0x%lx\n",
-                (long)highStart, (long)highValue, (long)initialValue);
+            System.out.printf("UTrie2: highStart U+%04x  highValue 0x%x  initialValue 0x%x\n",
+                highStart, highValue, initialValue);
         }
 
         if(highStart<0x110000) {
@@ -905,8 +889,8 @@ public class Trie2Writable extends Trie2 {
             compactIndex2();
         } else {
             if (UTRIE2_DEBUG) {
-                 printf("UTrie2: highStart U+%04lx  count of 16-bit index-2 words %lu->%lu\n",
-                         (long)highStart, (long)index2Length, (long)UTRIE2_INDEX_1_OFFSET);
+                 System.out.printf("UTrie2: highStart U+%04x  count of 16-bit index-2 words %d->%d\n",
+                         highStart, index2Length, UTRIE2_INDEX_1_OFFSET);
             }
         }
 
@@ -920,13 +904,194 @@ public class Trie2Writable extends Trie2 {
             data[dataLength++]=initialValue;
         }
 
-        isCompacted=TRUE;
+        isCompacted=true;
     }
 
 
     
-    
-    
+    /* serialization ------------------------------------------------------------ */
+
+
+    /**
+     * Produce an optimized, read-only Trie2_16 from this writable Trie.
+     * The data values must all fit as an unsigned 16 bit value.
+     * 
+     */
+    public Trie2_16 getAsFrozen_16() {
+        Trie2_16 frozenTrie = new Trie2_16();
+        freeze(frozenTrie, ValueWidth.BITS_16);
+        return frozenTrie;
+    }
+     
+
+    /**
+     * Produce an optimized, read-only Trie2_32 from this writable Trie.
+     * 
+     */
+    public Trie2_32 getAsFrozen_32() {
+        return null;
+    }
+
+  
+    /**
+     * Maximum length of the runtime index array.
+     * Limited by its own 16-bit index values, and by uint16_t UTrie2Header.indexLength.
+     * (The actual maximum length is lower,
+     * (0x110000>>UTRIE2_SHIFT_2)+UTRIE2_UTF8_2B_INDEX_2_LENGTH+UTRIE2_MAX_INDEX_1_LENGTH.)
+     */
+    private static final int UTRIE2_MAX_INDEX_LENGTH = 0xffff;
+
+    /**
+     * Maximum length of the runtime data array.
+     * Limited by 16-bit index values that are left-shifted by UTRIE2_INDEX_SHIFT,
+     * and by uint16_t UTrie2Header.shiftedDataLength.
+     */
+    private static final int  UTRIE2_MAX_DATA_LENGTH = 0xffff<<UTRIE2_INDEX_SHIFT;
+
+    /* Compact the data and then populate an optimized read-only Trie.  */
+    private void freeze(Trie2 dest, ValueWidth valueBits) {
+        int  i, length;
+        int  allIndexesLength;
+        int  dataMove;  /* >0 if the data is moved to the end of the index array */
+
+
+        /* compact if necessary */
+        if(!isCompacted) {
+            compactTrie();
+        }
+
+        if(highStart<=0x10000) {
+            allIndexesLength=UTRIE2_INDEX_1_OFFSET;
+        } else {
+            allIndexesLength=index2Length;
+        }
+        if(valueBits==ValueWidth.BITS_16) {
+            dataMove=allIndexesLength;
+        } else {
+            dataMove=0;
+        }
+
+        /* are indexLength and dataLength within limits? */
+        if( /* for unshifted indexLength */
+            allIndexesLength>UTRIE2_MAX_INDEX_LENGTH ||
+            /* for unshifted dataNullOffset */
+            (dataMove+dataNullOffset)>0xffff ||
+            /* for unshifted 2-byte UTF-8 index-2 values */
+            (dataMove+UNEWTRIE2_DATA_0800_OFFSET)>0xffff ||
+            /* for shiftedDataLength */
+            (dataMove+dataLength)>UTRIE2_MAX_DATA_LENGTH) {
+                throw new UnsupportedOperationException("Trie2 data is too large.");
+        }
+
+        /* calculate the sizes of, and allocate, the index and data arrays */
+        int indexLength = allIndexesLength;
+        if (valueBits==ValueWidth.BITS_16) {
+            indexLength += dataLength;
+        } else {
+            dest.data32 = new int[dataLength];
+        }
+        dest.index = new char[indexLength];
+        
+        dest.indexLength = allIndexesLength;
+        dest.dataLength  = dataLength;
+        if(highStart<=0x10000) {
+            dest.index2NullOffset = 0xffff;
+        } else {
+            dest.index2NullOffset = UTRIE2_INDEX_2_OFFSET + index2NullOffset;
+        }
+        dest.dataNullOffset = (dataMove+dataNullOffset);
+        dest.highValueIndex = dataMove + dataLength - UTRIE2_DATA_GRANULARITY;
+
+        // Create a header and set the its fields.
+        //   (This is only used in the event that we serialize the Trie, but is
+        //    convenient to do here.)
+        dest.header = new Trie2.UTrie2Header();
+        dest.header.signature         = 0x54726932; /* "Tri2" */
+        dest.header.options           = valueBits==ValueWidth.BITS_16 ? 0 : 1;
+        dest.header.indexLength       = indexLength;
+        dest.header.shiftedDataLength = dataLength>>UTRIE2_INDEX_SHIFT;
+        dest.header.index2NullOffset  = index2NullOffset;
+        dest.header.dataNullOffset    = dataNullOffset;
+        dest.header.shiftedHighStart  = highStart>>UTRIE2_SHIFT_1;
+
+        /* write the index-2 array values shifted right by UTRIE2_INDEX_SHIFT, after adding dataMove */
+        int destIdx = 0;
+        for(i=0; i<UTRIE2_INDEX_2_BMP_LENGTH; i++) {
+            dest.index[destIdx++] = (char)((index2[i]+dataMove) >> UTRIE2_INDEX_SHIFT);
+        }
+
+        /* write UTF-8 2-byte index-2 values, not right-shifted */
+        for(i=0; i<(0xc2-0xc0); ++i) {                                  /* C0..C1 */
+            dest.index[destIdx++] = (char)(dataMove+UTRIE2_BAD_UTF8_DATA_OFFSET);
+        }
+        for(; i<(0xe0-0xc0); ++i) {                                     /* C2..DF */
+            dest.index[destIdx++]=(char)(dataMove+index2[i<<(6-UTRIE2_SHIFT_2)]);
+        }
+
+        if(highStart>0x10000) {
+            int index1Length = (highStart-0x10000)>>UTRIE2_SHIFT_1;
+            int index2Offset = UTRIE2_INDEX_2_BMP_LENGTH + UTRIE2_UTF8_2B_INDEX_2_LENGTH + index1Length;
+
+            /* write 16-bit index-1 values for supplementary code points */
+            //p=(uint32_t *)newTrie->index1+UTRIE2_OMITTED_BMP_INDEX_1_LENGTH;
+            for(i=0; i<index1Length; i++) {
+                //*dest16++=(uint16_t)(UTRIE2_INDEX_2_OFFSET + *p++);
+                dest.index[destIdx++] = (char)(UTRIE2_INDEX_2_OFFSET + index1[i+UTRIE2_OMITTED_BMP_INDEX_1_LENGTH]);
+            }
+
+            /*
+             * write the index-2 array values for supplementary code points,
+             * shifted right by UTRIE2_INDEX_SHIFT, after adding dataMove
+             */
+            for(i=0; i<index2Length-index2Offset; i++) {
+                dest.index[destIdx++] = (char)((dataMove + index2[index2Offset+i])>>UTRIE2_INDEX_SHIFT);
+            }
+        }
+
+        /* write the 16/32-bit data array */
+        switch(valueBits) {
+        case BITS_16:
+            /* write 16-bit data values */
+            for(i=0; i<dataLength; i++) {
+                dest.index[destIdx++] = (char)data[i];
+            }
+            break;
+        case BITS_32:
+            /* write 32-bit data values */
+            for (i=0; i<dataLength; i++) {
+                dest.data32[i] = this.data[i];
+            }
+            break;
+        }
+        
+        // The writable, but compressed, Trie stays around unless the caller drops its references to it.
+
+    }
+
+
+    /*
+     * Serialize of a writable Trie.
+     * The strategy is to create a frozen Trie of the desired data size, then
+     *     use the frozen Trie's serialize function.  Unlike ICU4C, the data for an ICU4J read-only
+     *     Trie is not bit-for-bit the same as the serialized form, but it is much closer
+     *     than the a Trie2Writable's data.
+     */
+    public int serialize(OutputStream os, ValueWidth width) throws IOException {
+
+        Trie2   frozenTrie;
+        switch (width) {
+        case BITS_16:
+              frozenTrie = this.getAsFrozen_16();
+              break;
+        case BITS_32:
+              frozenTrie = this.getAsFrozen_32();
+              break;
+        default:
+            throw new IllegalArgumentException("Unknown data width");
+        }
+        return frozenTrie.serialize(os, width);
+    }    
+
     
     /* Start with allocation of 16k data entries. */
     private static final int UNEWTRIE2_INITIAL_DATA_LENGTH = 1<<14;
@@ -967,8 +1132,10 @@ public class Trie2Writable extends Trie2 {
 
     private  int     index2Length, dataCapacity;
     private  int     firstFreeBlock;
-    private  int     index2NullOffset, dataNullOffset;
+    private  int     index2NullOffset;
     private  boolean isCompacted;
+
+    private  int     initialValue;
 
     /*
      * Multi-purpose per-data-block table.

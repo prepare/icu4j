@@ -7,6 +7,7 @@
 package com.ibm.icu.impl;
 
 import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -141,7 +142,6 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
         This.indexLength      = header.indexLength;
         This.dataLength       = header.shiftedDataLength << UTRIE2_INDEX_SHIFT;
         This.index2NullOffset = header.index2NullOffset;
-        This.dataNullOffset   = header.dataNullOffset;
 
         This.highStart        = header.shiftedHighStart << UTRIE2_SHIFT_1;
         This.highValueIndex   = This.dataLength - UTRIE2_DATA_GRANULARITY;
@@ -183,12 +183,10 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
         switch(width) {
         case BITS_16:
             This.data32 = null;
-            This.initialValue = This.index[This.dataNullOffset];
             This.errorValue   = This.index[This.data16+UTRIE2_BAD_UTF8_DATA_OFFSET];
             break;
         case BITS_32:
             This.data16=0;
-            This.initialValue=This.data32[This.dataNullOffset];
             This.errorValue=This.data32[UTRIE2_BAD_UTF8_DATA_OFFSET];
             break;
         default:
@@ -316,6 +314,17 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
         public int   value;
     }
     
+    
+    public final boolean equals(Object other) {
+        if(!(other instanceof Trie2)) {
+            return false;
+        }
+        // TODO: finish implementation.
+    }
+    
+    //TODO:  hash function
+    
+    // TODO: equals() on EnumRange
     /**
      *  Create an iterator over the value ranges in this Trie2.
      *  Values from the Trie are not remapped or filtered, but are returned as they
@@ -388,9 +397,50 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
      *        actual width is different from the specified width.
      */
     public int serialize(OutputStream os, ValueWidth width) throws IOException {
-        return 0;
+        // Note:  class Trie2Writable overrides this serialize function.
+        //        This implementation will be directly called only for read-only Tries2s.
+        
+        // Verify that the requested data width matches with the width of the Trie.
+        if (this instanceof Trie2_16 && width != ValueWidth.BITS_16) {
+            throw new UnsupportedOperationException("Trie2 serialize requested width does not match the data.");
+        }
+        
+        // Write the header.  It is already set and ready to use, having been
+        //  created when the Trie2 was unserialized or when it was frozen.
+        DataOutputStream dos = new DataOutputStream(os);
+        int  bytesWritten = 0;
+        
+        dos.write(header.signature);  
+        dos.write((char)header.options);
+        dos.write((char)header.indexLength);
+        dos.write((char)header.shiftedDataLength);
+        dos.write((char)header.index2NullOffset);
+        dos.write((char)header.dataNullOffset);
+        dos.write((char)header.shiftedHighStart);
+        bytesWritten += 16;
+        
+        // Write the index
+        int i;
+        for (i=0; i< header.indexLength; i++) {
+            dos.write(index[i]);
+        }
+        bytesWritten += header.indexLength;
+        
+        // Write the data
+        if (this instanceof Trie2_16) {
+            for (i=0; i<dataLength; i++) {
+                dos.write(index[data16+i]);
+            }
+            bytesWritten += dataLength*2;
+        } else {
+            for (i=0; i<dataLength; i++) {
+                dos.write(data32[i]);
+            }
+            bytesWritten += dataLength*4;
+        }
+        
+        return bytesWritten;        
     }
-
     
         
     /**
@@ -606,7 +656,6 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
     }
     
     UTrie2Header  header;
-    ValueWidth    dataWidth;
     char          index[];           // Index array.  Includes data for 16 bit Tries.
     int           data16;            // Offset to data portion of the index array, if 16 bit data.
                                      //    zero if 32 bit data.
@@ -615,14 +664,14 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
     int           indexLength;
     int           dataLength;
     int           index2NullOffset;  // 0xffff if there is no dedicated index-2 null block
-    int           dataNullOffset;
-    int           initialValue;
     /** Value returned for out-of-range code points and illegal UTF-8. */
     int           errorValue;
 
     /* Start of the last range which ends at U+10ffff, and its value. */
     int           highStart;
     int           highValueIndex;
+    
+    int           dataNullOffset;
 
         
     /**

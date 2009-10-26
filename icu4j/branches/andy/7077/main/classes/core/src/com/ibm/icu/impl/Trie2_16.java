@@ -38,8 +38,13 @@ public final class Trie2_16 extends Trie2 {
         // TODO: implement this.
     }
     
-     
+    /**
+     *  Default constructor, not public.
+     *  Used by Trie2Writable.getAsFrozen_16() to construct the Trie that will
+     *  subsequently be filled in.
+     */
     Trie2_16() {
+        
     }
     
     
