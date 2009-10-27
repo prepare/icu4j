@@ -300,6 +300,35 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
      */
     abstract public int getFromU16SingleLead(char c);
    
+
+    /**
+     * Equals function.  Two Tries are equal if their contents are equal.
+     * The type need not be the same, so a Trie2Writable will be equal to 
+     * (frozen) Trie2_16 or Trie2_32 so long as the are storing the same values.
+     * 
+     */
+    public final boolean equals(Object other) {
+        if(!(other instanceof Trie2)) {
+            return false;
+        }
+        Trie2 OtherTrie = (Trie2)other;
+        // TODO: finish implementation.
+        EnumRange  rangeFromOther;
+        
+        Iterator<Trie2.EnumRange> otherIter = OtherTrie.iterator();
+        for (Trie2.EnumRange rangeFromThis: this) {
+            if (otherIter.hasNext() == false) {
+                return false;
+            }
+            rangeFromOther = otherIter.next();
+            if (rangeFromThis != rangeFromOther) {
+                return false;
+            }
+        }
+        // TODO:  compare the lead surrogate ranges.
+        return true;
+    }
+    
     /**
      * When iterating over the contents of a Trie2, Elements of this type are produced.
      * The iterator will return one item for each contiguous range of codepoints  having the same value.  
@@ -312,19 +341,23 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
         public int   startCodePoint;
         public int   endCodePoint;     // Inclusive.
         public int   value;
-    }
-    
-    
-    public final boolean equals(Object other) {
-        if(!(other instanceof Trie2)) {
-            return false;
+        
+        public boolean equals(EnumRange other) {
+            return this.startCodePoint == other.startCodePoint &&
+                   this.endCodePoint   == other.endCodePoint   &&
+                   this.value          == other.endCodePoint;
         }
-        // TODO: finish implementation.
+        
+        public int hashCode() {
+            int h = initHash();
+            h = hashUChar32(h, startCodePoint);
+            h = hashUChar32(h, endCodePoint);
+            h = hashInt(h, value);
+            return h;
+        }
     }
     
-    //TODO:  hash function
     
-    // TODO: equals() on EnumRange
     /**
      *  Create an iterator over the value ranges in this Trie2.
      *  Values from the Trie are not remapped or filtered, but are returned as they
@@ -923,6 +956,35 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
         private int            lastReturnedChar;
         
 
+    }
+    
+    
+    //
+    //  Hashing implementation functions.  FNV hash.  Respected public domain algorithm.
+    //
+    private static int initHash() {
+        return 0x811c9DC5;  // unsigned 2166136261
+    }
+    
+    private static int hashByte(int h, int b) {
+        h = h * 16777619;
+        h = h ^ b;
+        return h;
+    }
+    
+    private static int hashUChar32(int h, int c) {
+        h = Trie2.hashByte(h, c & 255);
+        h = Trie2.hashByte(h, (c>>8) & 255);
+        h = Trie2.hashByte(h, c>>16);
+        return h;
+    }
+    
+    private static int hashInt(int h, int i) {
+        h = Trie2.hashByte(h, i & 255);
+        h = Trie2.hashByte(h, (i>>8) & 255);
+        h = Trie2.hashByte(h, (i>>16) & 255);
+        h = Trie2.hashByte(h, (i>>24) & 255);
+        return h;
     }
 
 }
