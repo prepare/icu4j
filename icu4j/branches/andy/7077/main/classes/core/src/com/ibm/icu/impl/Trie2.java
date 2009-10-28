@@ -263,6 +263,7 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
      * @return The frozen Trie2 with the same values as the source Trie.
      */
     public static Trie2 createFromTrie(Trie trie1, int errorValue) {
+        // TODO:  implement this.
         return null;
     }
     
@@ -312,7 +313,6 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
             return false;
         }
         Trie2 OtherTrie = (Trie2)other;
-        // TODO: finish implementation.
         EnumRange  rangeFromOther;
         
         Iterator<Trie2.EnumRange> otherIter = OtherTrie.iterator();

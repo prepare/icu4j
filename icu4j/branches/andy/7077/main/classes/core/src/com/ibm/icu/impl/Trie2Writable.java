@@ -1001,7 +1001,8 @@ public class Trie2Writable extends Trie2 {
         }
         dest.dataNullOffset = (dataMove+dataNullOffset);
         dest.highValueIndex = dataMove + dataLength - UTRIE2_DATA_GRANULARITY;
-
+        dest.highStart      = highStart;
+        
         // Create a header and set the its fields.
         //   (This is only used in the event that we serialize the Trie, but is
         //    convenient to do here.)
@@ -1013,6 +1014,8 @@ public class Trie2Writable extends Trie2 {
         dest.header.index2NullOffset  = index2NullOffset;
         dest.header.dataNullOffset    = dataNullOffset;
         dest.header.shiftedHighStart  = highStart>>UTRIE2_SHIFT_1;
+            
+
 
         /* write the index-2 array values shifted right by UTRIE2_INDEX_SHIFT, after adding dataMove */
         int destIdx = 0;

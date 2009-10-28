@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.util.Iterator;
 
 import com.ibm.icu.dev.test.TestFmwk;
+import com.ibm.icu.impl.Trie;
 import com.ibm.icu.impl.Trie2;
 import com.ibm.icu.impl.Trie2_16;
 import com.ibm.icu.impl.Trie2_32;
@@ -58,7 +59,85 @@ public class Trie2Test extends TestFmwk {
          }         
      }
      
+     //
+     //  TestAPI.  Check that all API methods can be called, and do at least some minimal
+     //            operation correctly.  This is not a full test of correct behavior.
+     //
+     public void TestAPI() {
+         // Trie2.createFromSerialized()
+         //   TODO:
+         
+         // Trie2.getVersion(InputStream is, boolean anyEndianOk)
+         //   TODO:
+         
+         // Trie2.createFromTrie(Trie trie1, int errorValue)
+         //   TODO:
+         
+         //
+         //   Trie2Writable methods
+         //
+         
+         // Trie2Writable constructor
+         Trie2 t1 = new Trie2Writable(6, 666);
+         
+         // Constructor from another Trie2
+         //Trie2 t2 = new Trie2Writable(t1);
+         //if (t1.equals(t2) == false) {
+         //    errln("t1 not equal t2");
+         // }
+         
+         // Set / Get
+         Trie2Writable t1w = new Trie2Writable(10, 666);
+         t1w.set(0x4567, 99);
+         assertEquals(where(), 10, t1w.get(0x4566));
+         assertEquals(where(), 99, t1w.get(0x4567));
+         assertEquals(where(), 666, t1w.get(-1));
+         assertEquals(where(), 666, t1w.get(0x110000));
+         
+         
+         // SetRange
+         t1w = new Trie2Writable(10, 666);
+         t1w.setRange(13 /*start*/, 6666 /*end*/, 7788 /*value*/, false  /*overwrite */);
+         t1w.setRange(6000, 7000, 9900, true);
+         assertEquals(where(),   10, t1w.get(12));
+         assertEquals(where(), 7788, t1w.get(13));
+         assertEquals(where(), 7788, t1w.get(5999));
+         assertEquals(where(), 9900, t1w.get(6000));
+         assertEquals(where(), 9900, t1w.get(7000));
+         assertEquals(where(),   10, t1w.get(7001));
+         assertEquals(where(),  666, t1w.get(0x110000));
+         
+         
+         // setForLeadSurrogateCodeUnit
+         t1w = new Trie2Writable(10, 666);
+         assertEquals(where(), 10, t1w.getFromU16SingleLead((char)0x0d801));
+         t1w.setForLeadSurrogateCodeUnit((char)0xd801, 5000);
+         assertEquals(where(), 5000, t1w.getFromU16SingleLead((char)0x0d801));
+         assertEquals(where(), 10, t1w.get(0x0d801));
+         
+         
+         // Trie2_16 getAsFrozen_16()
+         t1w = new Trie2Writable(10, 666);
+         t1w.set(42, 5555);
+         t1w.set(0x1ff00, 224);
+         Trie2_16 t1_16 = t1w.getAsFrozen_16();
+         assertTrue(where(), t1w.equals(t1_16));
+         // TODO:  alter t1w and then re-serialize.
+         
+         // Trie2_32 getAsFrozen_32()
+         t1w = new Trie2Writable(10, 666);
+         t1w.set(42, 5555);
+         t1w.set(0x1ff00, 224);
+         Trie2_32 t1_32 = t1w.getAsFrozen_32();
+         assertTrue(where(), t1w.equals(t1_32));
+         
+         
+     }
      
+     
+     //
+     //  Port of Tests from ICU4C ...
+     //
      String[] trieNames = {"setRanges1", "setRanges2", "setRanges3", "setRangesEmpty", "setRangesSingleValue"};
      /* set consecutive ranges, even with value 0 */
           
@@ -347,4 +426,10 @@ public class Trie2Test extends TestFmwk {
          checkTrieRanges("set2-overlap.withClone", "setRanges2", true, setRanges2,     checkRanges2);
      }
 
+     // TODO: push this where() function up into the test framework implementation of assert
+     private String where() {
+         StackTraceElement[] st = new Throwable().getStackTrace();
+         String w = "File: " + st[1].getFileName() + ", Line " + st[1].getLineNumber();
+         return w;
+     }
 }
