@@ -929,7 +929,9 @@ public class Trie2Writable extends Trie2 {
      * 
      */
     public Trie2_32 getAsFrozen_32() {
-        return null;
+        Trie2_32 frozenTrie = new Trie2_32();
+        freeze(frozenTrie, ValueWidth.BITS_32);
+        return frozenTrie;
     }
 
   
@@ -999,9 +1001,10 @@ public class Trie2Writable extends Trie2 {
         } else {
             dest.index2NullOffset = UTRIE2_INDEX_2_OFFSET + index2NullOffset;
         }
-        dest.dataNullOffset = (dataMove+dataNullOffset);
-        dest.highValueIndex = dataMove + dataLength - UTRIE2_DATA_GRANULARITY;
+        dest.errorValue     = errorValue;
         dest.highStart      = highStart;
+        dest.highValueIndex = dataMove + dataLength - UTRIE2_DATA_GRANULARITY;
+        dest.dataNullOffset = (dataMove+dataNullOffset);
         
         // Create a header and set the its fields.
         //   (This is only used in the event that we serialize the Trie, but is
@@ -1055,6 +1058,8 @@ public class Trie2Writable extends Trie2 {
         switch(valueBits) {
         case BITS_16:
             /* write 16-bit data values */
+            assert(destIdx == dataMove);
+            dest.data16 = destIdx;
             for(i=0; i<dataLength; i++) {
                 dest.index[destIdx++] = (char)data[i];
             }
@@ -1126,7 +1131,7 @@ public class Trie2Writable extends Trie2 {
      */
     private static final int UNEWTRIE2_DATA_0800_OFFSET = UNEWTRIE2_DATA_START_OFFSET+0x780;
 
-
+    //
     // Private data members.  From struct UNewTrie2 in ICU4C
     //
     private  int[]   index1 = new int[UNEWTRIE2_INDEX_1_LENGTH];

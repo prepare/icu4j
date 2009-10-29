@@ -43,8 +43,7 @@ public final class Trie2_16 extends Trie2 {
      *  Used by Trie2Writable.getAsFrozen_16() to construct the Trie that will
      *  subsequently be filled in.
      */
-    Trie2_16() {
-        
+    Trie2_16() {        
     }
     
     
@@ -149,8 +148,8 @@ public final class Trie2_16 extends Trie2 {
             int val = get(c);
 
             fResults.index = index;
-            fResults.c = c;
-            fResults.val = val;
+            fResults.codePoint = c;
+            fResults.value = val;
             index++;
             if (c >= 0x10000) {
                 index++;
@@ -167,8 +166,8 @@ public final class Trie2_16 extends Trie2 {
                 index--;
             }
             fResults.index = index;
-            fResults.c = c;
-            fResults.val = val;
+            fResults.codePoint = c;
+            fResults.value = val;
             return fResults;
         }
    }

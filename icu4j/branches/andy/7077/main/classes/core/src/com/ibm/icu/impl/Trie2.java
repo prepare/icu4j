@@ -305,7 +305,7 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
     /**
      * Equals function.  Two Tries are equal if their contents are equal.
      * The type need not be the same, so a Trie2Writable will be equal to 
-     * (frozen) Trie2_16 or Trie2_32 so long as the are storing the same values.
+     * (frozen) Trie2_16 or Trie2_32 so long as they are storing the same values.
      * 
      */
     public final boolean equals(Object other) {
@@ -321,7 +321,7 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
                 return false;
             }
             rangeFromOther = otherIter.next();
-            if (rangeFromThis != rangeFromOther) {
+            if (!rangeFromThis.equals(rangeFromOther)) {
                 return false;
             }
         }
@@ -342,11 +342,16 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
         public int   endCodePoint;     // Inclusive.
         public int   value;
         
-        public boolean equals(EnumRange other) {
-            return this.startCodePoint == other.startCodePoint &&
-                   this.endCodePoint   == other.endCodePoint   &&
-                   this.value          == other.endCodePoint;
+        public boolean equals(Object other) {
+            if (other == null || !(other.getClass().equals(getClass()))) {
+                return false;
+            }
+            EnumRange tother = (EnumRange)other;
+            return this.startCodePoint == tother.startCodePoint &&
+                   this.endCodePoint   == tother.endCodePoint   &&
+                   this.value          == tother.value;
         }
+        
         
         public int hashCode() {
             int h = initHash();
@@ -481,15 +486,17 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
      * The iteration walks over a CharSequence, and for each Unicode code point therein
      * returns the character and its associated Trie value.
      */
-    static class IterationResults {
+    public static class IterationResults {
+        // TODO:  a better name for this class?  What kind of iteration?
+        
         /** string index of the current code point. */
         public int index;
         
         /** The code point at index.  */
-        public int c;
+        public int codePoint;
         
         /** The Trie value for the current code point */
-        public int val;  
+        public int value;  
     }
     
 
@@ -537,15 +544,19 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
         }
         
         
-        // Note: next() is overridden in Trie2_16 and Trie_32 for potential efficiency gains.
+        public final boolean hasPrevious() {
+            return index>0;
+        }
+        
+       // Note: next() is overridden in Trie2_16 and Trie_32 for potential efficiency gains.
         //       The functionality is identical.  This implementation is used by writable tries.
         public Trie2.IterationResults next() {
             int c = Character.codePointAt(text, index);
             int val = get(c);
 
             fResults.index = index;
-            fResults.c = c;
-            fResults.val = val;
+            fResults.codePoint = c;
+            fResults.value = val;
             index++;
             if (c >= 0x10000) {
                 index++;
@@ -564,8 +575,8 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
                 index--;
             }
             fResults.index = index;
-            fResults.c = c;
-            fResults.val = val;
+            fResults.codePoint = c;
+            fResults.value = val;
             return fResults;
         }
             

@@ -63,7 +63,7 @@ public class Trie2Test extends TestFmwk {
      //  TestAPI.  Check that all API methods can be called, and do at least some minimal
      //            operation correctly.  This is not a full test of correct behavior.
      //
-     public void TestAPI() {
+     public void TestTrie2API() {
          // Trie2.createFromSerialized()
          //   TODO:
          
@@ -72,7 +72,10 @@ public class Trie2Test extends TestFmwk {
          
          // Trie2.createFromTrie(Trie trie1, int errorValue)
          //   TODO:
-         
+     }
+     
+     
+     public void TestTrie2WritableAPI() {
          //
          //   Trie2Writable methods
          //
@@ -131,6 +134,50 @@ public class Trie2Test extends TestFmwk {
          Trie2_32 t1_32 = t1w.getAsFrozen_32();
          assertTrue(where(), t1w.equals(t1_32));
          
+         
+         // serialize
+         //   TODO:
+                
+     }
+     
+     public void TestCharSequenceIterator() {
+         String text = "abc123\ud800\udc01 ";    // Includes a Unicode supplemental character
+         String vals = "LLLNNNX?S";
+         
+         Trie2Writable  tw = new Trie2Writable(0, 666);
+         tw.setRange('a', 'z', 'L', false);
+         tw.setRange('1', '9', 'N', false);
+         tw.set(' ', 'S');
+         tw.set(0x10001, 'X');
+
+         Trie2.CharSequenceIterator it = tw.iterator(text, 0);
+         
+         // Check forwards iteration.
+         Trie2.IterationResults ir;
+         int i;
+         for (i=0; it.hasNext(); i++) {
+             ir = it.next();
+             int expectedCP = Character.codePointAt(text, i);
+             assertEquals(where() + " i="+i, expectedCP,     ir.codePoint);
+             assertEquals(where() + " i="+i, i,              ir.index);
+             assertEquals(where() + " i="+i, vals.charAt(i), ir.value);
+             if (expectedCP >= 0x10000) {
+                 i++;
+             }
+         }
+         assertEquals(where(), text.length(), i);
+         
+         // Check reverse iteration, starting at an intermediate point.
+         it.set(5);
+         for (i=5; it.hasPrevious(); ) {
+             ir = it.previous();
+             int expectedCP = Character.codePointBefore(text, i);
+             i -= (expectedCP < 0x10000? 1 : 2);            
+             assertEquals(where() + " i="+i, expectedCP,     ir.codePoint);
+             assertEquals(where() + " i="+i, i,              ir.index);
+             assertEquals(where() + " i="+i, vals.charAt(i), ir.value);
+         }
+         assertEquals(where(), 0, i);
          
      }
      
