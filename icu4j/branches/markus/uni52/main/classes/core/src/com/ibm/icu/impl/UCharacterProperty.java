@@ -167,33 +167,6 @@ public final class UCharacterProperty
         // this all is an inlined form of return m_trie_.getCodePointValue(ch);
     }
 
-    /*
-    * Getting the signed numeric value of a character embedded in the property
-    * argument
-    * @param prop the character
-    * @return signed numberic value
-    */
-//    public static int getSignedValue(int prop)
-//    {
-//        return ((short)prop >> VALUE_SHIFT_);
-//    }
-
-    /**
-    * Getting the unsigned numeric value of a character embedded in the property
-    * argument
-    * @param prop the character
-    * @return unsigned numberic value
-    */
-    public static int getUnsignedValue(int prop)
-    {
-        return (prop >> VALUE_SHIFT_) & UNSIGNED_VALUE_MASK_AFTER_SHIFT_;
-    }
-
-    /* internal numeric pseudo-types for special encodings of numeric values */
-    public static final int NT_FRACTION=4; /* ==UCharacter.NumericType.COUNT, must not change unless binary format version changes */
-    public static final int NT_LARGE=5;
-    public static final int NT_COUNT=6;
-
     /**
      * Gets the unicode additional properties.
      * C version getUnicodeProperties.
@@ -743,26 +716,6 @@ public final class UCharacterProperty
     * Default buffer size of datafile
     */
     private static final int DATA_BUFFER_SIZE_ = 25000;
-
-    /**
-    * Numeric value shift
-    */
-    private static final int VALUE_SHIFT_ = 8;
-
-    /**
-    * Mask to be applied after shifting to obtain an unsigned numeric value
-    */
-    private static final int UNSIGNED_VALUE_MASK_AFTER_SHIFT_ = 0xFF;
-
-    /*
-     *
-     */
-    //private static final int NUMERIC_TYPE_SHIFT = 5;
-
-    /*
-    * To get the last 5 bits out from a data type
-    */
-    //private static final int LAST_5_BIT_MASK_ = 0x1F;
 
     /**
     * Shift value for lead surrogate to form a supplementary character.

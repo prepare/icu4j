@@ -3027,15 +3027,16 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
      */
     public static int digit(int ch, int radix)
     {
-        // when ch is out of bounds getProperty == 0
-        int props = getProperty(ch);
-        int value;        
-        if (getNumericType(props) == NumericType.DECIMAL) {
-            value = UCharacterProperty.getUnsignedValue(props);
+        if (2 <= radix && radix <= 36) {
+            int value = digit(ch);
+            if (value < 0) {
+                // ch is not a decimal digit, try latin letters
+                value = getEuropeanDigit(ch);
+            }
+            return (value < radix) ? value : -1;
         } else {
-            value = getEuropeanDigit(ch);
+            return -1;  // invalid radix
         }
-        return (0 <= value && value < radix) ? value : -1;
     }
     
     /**
@@ -3054,8 +3055,9 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
     public static int digit(int ch)
     {
         int props = getProperty(ch);
-        if (getNumericType(props) == NumericType.DECIMAL) {
-            return UCharacterProperty.getUnsignedValue(props);
+        int value = getNumericTypeValue(props) - NTV_DECIMAL_START_;
+        if(value<=9) {
+            return value;
         } else {
             return -1;
         }
@@ -3079,72 +3081,38 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
     {
         // slightly pruned version of getUnicodeNumericValue(), plus getEuropeanDigit()
         int props = PROPERTY_.getProperty(ch);
-        int numericType = getNumericType(props);
-        
-        if(numericType==0) {
+        int ntv = getNumericTypeValue(props);
+
+        if(ntv==NTV_NONE_) {
             return getEuropeanDigit(ch);
-        }
-        if(numericType==UCharacterProperty.NT_FRACTION || numericType>=UCharacterProperty.NT_COUNT) {
+        } else if(ntv<NTV_DIGIT_START_) {
+            /* decimal digit */
+            return ntv-NTV_DECIMAL_START_;
+        } else if(ntv<NTV_NUMERIC_START_) {
+            /* other digit */
+            return ntv-NTV_DIGIT_START_;
+        } else if(ntv<NTV_FRACTION_START_) {
+            /* small integer */
+            return ntv-NTV_NUMERIC_START_;
+        } else if(ntv<NTV_LARGE_START_) {
+            /* fraction */
             return -2;
-        }
-        
-        int numericValue = UCharacterProperty.getUnsignedValue(props);
-
-        if(numericType<NumericType.COUNT) {
-            /* normal type, the value is stored directly */
-            return numericValue;
-        } else /* numericType==NT_LARGE */ {
-            /* large value with exponent */
-            long numValue;
-            int mant, exp;
-
-            mant=numericValue>>LARGE_MANT_SHIFT;
-            exp=numericValue&LARGE_EXP_MASK;
-            /* Values were tested for "int ch" from -100000000 to 100000000 and
-             * none of the values ever reached the "if(mant==0)" or
-             * "else if(mant>9)"
-             */
-            if(mant==0) {
-                mant=1;
-                exp+=LARGE_EXP_OFFSET_EXTRA;
-            } else if(mant>9) { 
-                return -2; /* reserved mantissa value */
-            } else {
-                exp+=LARGE_EXP_OFFSET;
-            }
-            if(exp>9) {
-                return -2;
-            }
-
-            numValue=mant;
-
-            /* multiply by 10^exp without math.h */
-            while(exp>=4) {
-                numValue*=10000.;
-                exp-=4;
-            }
-            switch(exp) {
-            case 3:
-                numValue*=1000.;
-                break;
-            case 2:
-                numValue*=100.;
-                break;
-            case 1:
-                numValue*=10.;
-                break;
-            case 0:
-            /* Values were tested for "int ch" from -100000000 to 100000000 and
-             * none of the values ever reached the "default" case
-             */
-            default: if(exp!=0) 
-                break;
-            }
-            if(numValue<=Integer.MAX_VALUE) {
-                return (int)numValue;
+        } else if(ntv<NTV_RESERVED_START_) {
+            /* large, single-significant-digit integer */
+            int mant=(ntv>>5)-14;
+            int exp=(ntv&0x1f)+2;
+            if(exp<9 || (exp==9 && mant<=2)) {
+                int numValue=mant;
+                do {
+                    numValue*=10;
+                } while(--exp>0);
+                return numValue;
             } else {
                 return -2;
             }
+        } else {
+            /* reserved */
+            return -2;
         }
     }
     
@@ -3168,44 +3136,29 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
     {
         // equivalent to c version double u_getNumericValue(UChar32 c)
         int props = PROPERTY_.getProperty(ch);
-        int numericType = getNumericType(props);
+        int ntv = getNumericTypeValue(props);
 
-        if(numericType==0 || numericType>=UCharacterProperty.NT_COUNT) {
+        if(ntv==NTV_NONE_) {
             return NO_NUMERIC_VALUE;
-        }
-
-        int numericValue = UCharacterProperty.getUnsignedValue(props);
-
-        if(numericType<NumericType.COUNT) {
-            /* normal type, the value is stored directly */
-            return numericValue;
-        } else if(numericType==UCharacterProperty.NT_FRACTION) {
-            /* fraction value */
-            int numerator, denominator;
-
-            numerator=numericValue>>FRACTION_NUM_SHIFT;
-            denominator=(numericValue&FRACTION_DEN_MASK)+FRACTION_DEN_OFFSET;
-
-            if(numerator==0) {
-                numerator=-1;
-            }
-            return (double)numerator/(double)denominator;
-        } else /* numericType==NT_LARGE */ {
-            /* large value with exponent */
+        } else if(ntv<NTV_DIGIT_START_) {
+            /* decimal digit */
+            return ntv-NTV_DECIMAL_START_;
+        } else if(ntv<NTV_NUMERIC_START_) {
+            /* other digit */
+            return ntv-NTV_DIGIT_START_;
+        } else if(ntv<NTV_FRACTION_START_) {
+            /* small integer */
+            return ntv-NTV_NUMERIC_START_;
+        } else if(ntv<NTV_LARGE_START_) {
+            /* fraction */
+            int numerator=(ntv>>4)-12;
+            int denominator=(ntv&0xf)+1;
+            return (double)numerator/denominator;
+        } else if(ntv<NTV_RESERVED_START_) {
+            /* large, single-significant-digit integer */
             double numValue;
-            int mant, exp;
-
-            mant=numericValue>>LARGE_MANT_SHIFT;
-            exp=numericValue&LARGE_EXP_MASK;
-            if(mant==0) { 
-                mant=1;
-                exp+=LARGE_EXP_OFFSET_EXTRA;
-            } else if(mant>9) {
-                return NO_NUMERIC_VALUE; /* reserved mantissa value */
-            } else {
-                exp+=LARGE_EXP_OFFSET;
-            }
-
+            int mant=(ntv>>5)-14;
+            int exp=(ntv&0x1f)+2;
             numValue=mant;
 
             /* multiply by 10^exp without math.h */
@@ -3224,11 +3177,14 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
                 numValue*=10.;
                 break;
             case 0:
-            default: if(exp!=0)
+            default:
                 break;
             }
 
             return numValue;
+        } else {
+            /* reserved */
+            return NO_NUMERIC_VALUE;
         }
     }
   
@@ -4746,8 +4702,7 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
                     while((c=iter.nextCaseMapCP())>=0 && UCaseProps.NONE==gCsp.getType(c)) {}
                     titleStart=iter.getCPStart();
                     if(prev<titleStart) {
-                        // TODO: With Java 5, this would want to be result.append(str, prev, titleStart);
-                        result.append(str.substring(prev, titleStart));
+                        result.append(str, prev, titleStart);
                     }
                 } else {
                     titleStart=prev;
@@ -5298,12 +5253,7 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
                 case UProperty.LINE_BREAK:
                     return (PROPERTY_.getAdditional(ch, LB_VWORD)& LB_MASK)>>LB_SHIFT;
                 case UProperty.NUMERIC_TYPE:
-                    type=getNumericType(PROPERTY_.getProperty(ch));
-                    if(type>NumericType.NUMERIC) {
-                        /* keep internal variants of NumericType.NUMERIC from becoming visible */
-                        type=NumericType.NUMERIC;
-                    }
-                    return type;
+                    return ntvGetType(getNumericTypeValue(PROPERTY_.getProperty(ch)));
                 case UProperty.SCRIPT:
                     return UScript.getScript(ch);
                 case UProperty.HANGUL_SYLLABLE_TYPE:
@@ -5374,8 +5324,6 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
      */
     ///CLOVER:OFF
     public static String getStringPropertyValue(int propertyEnum, int codepoint, int nameChoice) {
-
-        // TODO some of these are less efficient, since a string is forced!
         if ((propertyEnum >= UProperty.BINARY_START && propertyEnum < UProperty.BINARY_LIMIT) ||
                 (propertyEnum >= UProperty.INT_START && propertyEnum < UProperty.INT_LIMIT)) {
             return getPropertyValueName(propertyEnum, getIntPropertyValue(codepoint, propertyEnum), nameChoice);
@@ -6225,39 +6173,29 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
      * Delete code point
      */
     private static final int DELETE_ = 0x007F;
-    /*
-     * ISO control character first range upper limit 0x0 - 0x1F
-     */
-    //private static final int ISO_CONTROL_FIRST_RANGE_MAX_ = 0x1F;
     /**
-     * Shift to get numeric type
+     * Numeric types and values in the main properties words.
      */
-    private static final int NUMERIC_TYPE_SHIFT_ = 5;
-    /**
-     * Mask to get numeric type
-     */
-    private static final int NUMERIC_TYPE_MASK_ = 0x7 << NUMERIC_TYPE_SHIFT_;
-      
-    /* encoding of fractional and large numbers */
-    //private static final int MAX_SMALL_NUMBER=0xff;
+    private static final int NUMERIC_TYPE_VALUE_SHIFT_ = 6;
+    private static final int getNumericTypeValue(int props) {
+        return props >> NUMERIC_TYPE_VALUE_SHIFT_;
+    }
+    /* constants for the storage form of numeric types and values */
+    private static final int NTV_NONE_ = 0;
+    private static final int NTV_DECIMAL_START_ = 1;
+    private static final int NTV_DIGIT_START_ = 11;
+    private static final int NTV_NUMERIC_START_ = 21;
+    private static final int NTV_FRACTION_START_ = 0xb0;
+    private static final int NTV_LARGE_START_ = 0x1e0;
+    private static final int NTV_RESERVED_START_ = 0x300;
 
-    private static final int FRACTION_NUM_SHIFT=3;        /* numerator: bits 7..3 */
-    private static final int FRACTION_DEN_MASK=7;         /* denominator: bits 2..0 */
-
-    //private static final int FRACTION_MAX_NUM=31;
-    private static final int FRACTION_DEN_OFFSET=2;       /* denominator values are 2..9 */
-
-    //private static final int FRACTION_MIN_DEN=FRACTION_DEN_OFFSET;
-    //private static final int FRACTION_MAX_DEN=FRACTION_MIN_DEN+FRACTION_DEN_MASK;
-
-    private static final int LARGE_MANT_SHIFT=4;          /* mantissa: bits 7..4 */
-    private static final int LARGE_EXP_MASK=0xf;          /* exponent: bits 3..0 */
-    private static final int LARGE_EXP_OFFSET=2;          /* regular exponents 2..17 */
-    private static final int LARGE_EXP_OFFSET_EXTRA=18;   /* extra large exponents 18..33 */
-
-    //private static final int LARGE_MIN_EXP=LARGE_EXP_OFFSET;
-    //private static final int LARGE_MAX_EXP=LARGE_MIN_EXP+LARGE_EXP_MASK;
-    //private static final int LARGE_MAX_EXP_EXTRA=LARGE_EXP_OFFSET_EXTRA+LARGE_EXP_MASK;
+    private static final int ntvGetType(int ntv) {
+        return
+            (ntv==NTV_NONE_) ? NumericType.NONE :
+            (ntv<NTV_DIGIT_START_) ?  NumericType.DECIMAL :
+            (ntv<NTV_NUMERIC_START_) ? NumericType.DIGIT :
+            NumericType.NUMERIC;
+    }
 
     /**
      * Han digit characters
@@ -6392,16 +6330,6 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
         }
         // ch >= 0xff41 && ch <= 0xff5a
         return ch + 10 - 0xff41;
-    }
-    
-    /**
-     * Gets the numeric type of the property argument
-     * @param props 32 bit property
-     * @return the numeric type
-     */
-    private static int getNumericType(int props)
-    {
-        return (props & NUMERIC_TYPE_MASK_) >> NUMERIC_TYPE_SHIFT_;
     }
     
     /**
