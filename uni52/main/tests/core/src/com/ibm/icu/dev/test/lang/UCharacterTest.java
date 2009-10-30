@@ -46,7 +46,7 @@ public final class UCharacterTest extends TestFmwk
     /**
     * ICU4J data version number
     */
-    private final VersionInfo VERSION_ = VersionInfo.getInstance("5.1.0.0");
+    private final VersionInfo VERSION_ = VersionInfo.getInstance("5.2.0.0");
 
     // constructor ===================================================
 
