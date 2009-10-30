@@ -143,7 +143,7 @@ public final class Trie2_16 extends Trie2 {
         }
 
         
-        public Trie2.IterationResults next() {
+        public Trie2.CharSequenceValues next() {
             int c = Character.codePointAt(text, index);
             int val = get(c);
 
@@ -158,7 +158,7 @@ public final class Trie2_16 extends Trie2 {
         }
 
         
-        public Trie2.IterationResults previous() {
+        public Trie2.CharSequenceValues previous() {
             int c = Character.codePointBefore(text, index);
             int val = get(c);
             index--;

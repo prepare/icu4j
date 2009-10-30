@@ -25,7 +25,7 @@ import java.util.NoSuchElementException;
  * This is the second common version of a Unicode trie (hence the name Trie2).
  * 
  */
-public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
+public abstract class Trie2 implements Iterable<Trie2.Range> {
 
    /**
     * Selectors for the width of a UTrie2 data value.
@@ -179,15 +179,16 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
             }
         }
         
-        /* get the data */
         switch(width) {
         case BITS_16:
             This.data32 = null;
+            This.initialValue = This.index[This.dataNullOffset];
             This.errorValue   = This.index[This.data16+UTRIE2_BAD_UTF8_DATA_OFFSET];
             break;
         case BITS_32:
             This.data16=0;
-            This.errorValue=This.data32[UTRIE2_BAD_UTF8_DATA_OFFSET];
+            This.initialValue = This.data32[This.dataNullOffset];
+            This.errorValue   = This.data32[UTRIE2_BAD_UTF8_DATA_OFFSET];
             break;
         default:
             throw new IllegalArgumentException("UTrie2 serialized format error.");
@@ -313,10 +314,10 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
             return false;
         }
         Trie2 OtherTrie = (Trie2)other;
-        EnumRange  rangeFromOther;
+        Range  rangeFromOther;
         
-        Iterator<Trie2.EnumRange> otherIter = OtherTrie.iterator();
-        for (Trie2.EnumRange rangeFromThis: this) {
+        Iterator<Trie2.Range> otherIter = OtherTrie.iterator();
+        for (Trie2.Range rangeFromThis: this) {
             if (otherIter.hasNext() == false) {
                 return false;
             }
@@ -337,16 +338,17 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
      * If you need to retain complete iteration results, clone each returned Trie2EnumRange,
      * or save the range in some other way, before advancing to the next iteration step.
      */
-    public static class EnumRange {
-        public int   startCodePoint;
-        public int   endCodePoint;     // Inclusive.
-        public int   value;
+    public static class Range {
+        public int     startCodePoint;
+        public int     endCodePoint;     // Inclusive.
+        public int     value;
+        public boolean leadSurrogate;
         
         public boolean equals(Object other) {
             if (other == null || !(other.getClass().equals(getClass()))) {
                 return false;
             }
-            EnumRange tother = (EnumRange)other;
+            Range tother = (Range)other;
             return this.startCodePoint == tother.startCodePoint &&
                    this.endCodePoint   == tother.endCodePoint   &&
                    this.value          == tother.value;
@@ -370,7 +372,7 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
      *  
      * @return an Iterator
      */
-    public Iterator<EnumRange> iterator() {
+    public Iterator<Range> iterator() {
         ValueMapper vm = new ValueMapper() {
             public int map(int in) { 
                 return in;
@@ -389,7 +391,7 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
      * @param mapper provides a function to remap values obtained from the Trie.
      * @return an Interator
      */
-    public Iterator<EnumRange> iterator(ValueMapper mapper) {
+    public Iterator<Range> iterator(ValueMapper mapper) {
         return new TrieIterator(mapper);
     }
     
@@ -486,8 +488,8 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
      * The iteration walks over a CharSequence, and for each Unicode code point therein
      * returns the character and its associated Trie value.
      */
-    public static class IterationResults {
-        // TODO:  a better name for this class?  What kind of iteration?
+    public static class CharSequenceValues {
+        // TODO:  a better name for this class? 
         
         /** string index of the current code point. */
         public int index;
@@ -513,12 +515,12 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
     
     
     /**
-     * An iterator that operates over an input text, and for each Unicode code point
+     * An iterator that operates over an input CharSequence, and for each Unicode code point
      * in the input returns the associated value from the Trie.
      * 
      * The iterator can move forwards or backwards, and can be reset to an arbitrary index.
      */
-    public class CharSequenceIterator implements Iterator<IterationResults> {
+    public class CharSequenceIterator implements Iterator<CharSequenceValues> {
         CharSequenceIterator(CharSequence t, int index) { 
             text = t;
             textLength = text.length();
@@ -528,7 +530,7 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
         CharSequence text;
         private int textLength;
         int index;
-        Trie2.IterationResults fResults = new Trie2.IterationResults();
+        Trie2.CharSequenceValues fResults = new Trie2.CharSequenceValues();
         
         
         public void set(int i) {
@@ -548,9 +550,9 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
             return index>0;
         }
         
-       // Note: next() is overridden in Trie2_16 and Trie_32 for potential efficiency gains.
+        // Note: next() is overridden in Trie2_16 and Trie_32 for potential efficiency gains.
         //       The functionality is identical.  This implementation is used by writable tries.
-        public Trie2.IterationResults next() {
+        public Trie2.CharSequenceValues next() {
             int c = Character.codePointAt(text, index);
             int val = get(c);
 
@@ -567,7 +569,7 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
         
         // Note: previous() is overridden in Trie2_16 and Trie_32 for potential efficiency gains.
         //       The functionality is identical.  This implementation is used by writable tries.
-        public Trie2.IterationResults previous() {
+        public Trie2.CharSequenceValues previous() {
             int c = Character.codePointBefore(text, index);
             int val = get(c);
             index--;
@@ -645,11 +647,11 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
      *                  of code points with the same (transformed) value
      */
 
-    public Iterator<EnumRange> iterator(int leadSurrogateValue) {
+    public Iterator<Range> iterator(int leadSurrogateValue) {
         return null;
     }
 
-    public Iterator<EnumRange> iterator(int leadSurrogateValue, ValueMapper valueMapper) {
+    public Iterator<Range> iterator(int leadSurrogateValue, ValueMapper valueMapper) {
         return null;
     }
     
@@ -699,6 +701,9 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
         int shiftedHighStart;
     }
     
+    //
+    //  Data members.
+    //
     UTrie2Header  header;
     char          index[];           // Index array.  Includes data for 16 bit Tries.
     int           data16;            // Offset to data portion of the index array, if 16 bit data.
@@ -708,6 +713,8 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
     int           indexLength;
     int           dataLength;
     int           index2NullOffset;  // 0xffff if there is no dedicated index-2 null block
+    int           initialValue;
+
     /** Value returned for out-of-range code points and illegal UTF-8. */
     int           errorValue;
 
@@ -874,13 +881,12 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
     /** 
      * Implementation class for an iterator over a Trie2.
      * 
-     *     The structure of the implementation is largely unchanged from the C code
-     *     which uses a callback model rather than an iterator model.  Efficiency could
-     *     probably be improved by reworking things a bit.
+     *   The iteration first returns all of the values that are indexed by code points,
+     *   then returns the special alternate values for the lead surrogate range
      *     
      * @internal
      */
-    class TrieIterator implements Iterator<EnumRange> {
+    class TrieIterator implements Iterator<Range> {
         TrieIterator(ValueMapper vm) {
             mapper = vm;
         }
@@ -889,31 +895,59 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
          *  The main next() function for Trie iterators
          *  
          */
-        public EnumRange next() {
-            if (lastReturnedChar >= 0x10ffff) {
+        public Range next() {
+            if (leadSurrogates && lastReturnedChar >= 0xdbff) {
                 throw new NoSuchElementException();
+            }
+            if (lastReturnedChar >= 0x10ffff) {
+                // Switch over from iterating normal code point values to
+                //   doing the alternate lead-surrogate values.
+                leadSurrogates = true;
+                lastReturnedChar = 0xd7ff;
             }
             int   c = lastReturnedChar + 1;
             int   endOfRange = 0;
-            int   val = get(c);
-            int   mappedVal = mapper.map(val);
+            int   val = 0;
+            int   mappedVal = 0;
             
-            // Loop once for each range in the Trie with the same raw (unmapped) value.
-            // Loop continues so long as the mapped values are the same.
-            for (;;) {
-                endOfRange = rangeEnd(c);
-                if (endOfRange == 0x10ffff) {
-                    break;
-                }
+            if (leadSurrogates) {
                 val = get(c);
-                if (mapper.map(val) != mappedVal) {
-                    break;
+                mappedVal = mapper.map(val);
+                // Loop once for each range in the Trie with the same raw (unmapped) value.
+                // Loop continues so long as the mapped values are the same.
+                for (;;) {
+                    endOfRange = rangeEnd(c);
+                    if (endOfRange == 0x10ffff) {
+                        break;
+                    }
+                    val = get(c);
+                    if (mapper.map(val) != mappedVal) {
+                        break;
+                    }
+                    c = endOfRange+1;
                 }
-                c = endOfRange+1;
+            } else {
+                // Iteration over the alternate lead surrogate values.
+                val = getFromU16SingleLead((char)c); 
+                mappedVal = mapper.map(val);
+                // Loop once for each range in the Trie with the same raw (unmapped) value.
+                // Loop continues so long as the mapped values are the same.
+                for (;;) {
+                    endOfRange = rangeEndLS((char)c);
+                    if (endOfRange == 0xdbff) {
+                        break;
+                    }
+                    val = getFromU16SingleLead((char)c);
+                    if (mapper.map(val) != mappedVal) {
+                        break;
+                    }
+                    c = endOfRange+1;
+                }
             }
             returnValue.startCodePoint = lastReturnedChar + 1;
             returnValue.endCodePoint   = endOfRange;
             returnValue.value          = mappedVal;
+            returnValue.leadSurrogate  = leadSurrogates;
             lastReturnedChar           = endOfRange;            
             return returnValue;
         }
@@ -922,7 +956,7 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
          * 
          */
         public boolean hasNext() {
-            return lastReturnedChar < 0x10ffff;
+            return !leadSurrogates || lastReturnedChar < 0xdbff;
         }
         
         public void remove() {
@@ -957,16 +991,39 @@ public abstract class Trie2 implements Iterable<Trie2.EnumRange> {
             }
         }
                 
+        /**
+         * Find the last lead surrogate in a contiguous range  with the
+         * same Trie value as the input character.
+         * 
+         * Use the alternate Lead Surrogate values from the Trie,
+         * not the code-point values.
+         * 
+         * @param c  The character to begin with.
+         * @return   The last contiguous character with the same value.
+         */
+        private int rangeEndLS(char startingLS) {
+            if (startingLS >= 0xdbff) {
+                return 0xdbff;
+            }
+            
+            // TODO: add optimizations
+            int c;
+            int val = getFromU16SingleLead(startingLS);
+            for (c = startingLS+1; c <= 0x0dbff; c++) {
+                if (getFromU16SingleLead((char)c) != val) {
+                    break;
+                }
+            }
+            return c-1;
+        }
+        
         //
         //   Iteration State Variables
         //
-        
-        
         private ValueMapper    mapper;
-        private EnumRange      returnValue = new EnumRange();
+        private Range          returnValue = new Range();
         private int            lastReturnedChar;
-        
-
+        private boolean        leadSurrogates = false;
     }
     
     

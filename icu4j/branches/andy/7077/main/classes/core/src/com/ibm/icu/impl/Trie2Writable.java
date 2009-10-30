@@ -29,6 +29,11 @@ public class Trie2Writable extends Trie2 {
      */
     public  Trie2Writable(int initialValueP, int errorValueP) {       
         // This constructor corresponds to utrie2_open() in ICU4C.
+        init(initialValueP, errorValueP);
+    }
+    
+    
+    private void init(int initialValueP, int errorValueP) { 
         this.initialValue = initialValueP;
         this.errorValue   = errorValueP;
         this.highStart    = 0x110000;
@@ -141,7 +146,11 @@ public class Trie2Writable extends Trie2 {
      * @param source
      */
     public Trie2Writable(Trie2 source) {
-        // TODO: implement this.
+        init(source.initialValue, source.errorValue);
+        
+        for (Range r: source) {
+            setRange(r, true);
+        }
     }
     
     
@@ -295,12 +304,49 @@ public class Trie2Writable extends Trie2 {
     private Trie2Writable set(int c, boolean forLSCP, int value) {
         int block;
         if (isCompacted) {
-            // TODO:  Restore the Trie so that this will work.
-            throw new UnsupportedOperationException("Writing to a compacted Trie is not supported yet.");
+            uncompact();
         }
         block = getDataBlock(c, forLSCP);
         data[block + (c&UTRIE2_DATA_MASK)] = value;
         return this;
+    }
+    
+    
+    /*
+     * Uncompact a compacted Trie2Writable.
+     * This is needed if a the WritableTrie2 was compacted in preparation for creating a read-only
+     * Trie2, and then is subsequently altered.
+     * 
+     * The structure is a bit awkward - it would be cleaner to leave the original
+     * Trie2 unaltered - but compacting in place was taken directly from the ICU4C code.
+     * 
+     * The approach is to create a new (uncompacted) Trie2Writable from this one, then transfer
+     * the guts from the new to the old.
+     */
+    private void uncompact() {
+        Trie2Writable tempTrie = new Trie2Writable(this);
+        
+        // Members from Trie2Writable
+        this.index1       = tempTrie.index1;
+        this.index2       = tempTrie.index2;
+        this.data         = tempTrie.data;
+        this.index2Length = tempTrie.index2Length;
+        this.dataCapacity = tempTrie.dataCapacity;
+        this.isCompacted  = tempTrie.isCompacted;
+        
+        // Members From Trie2
+        this.header           = tempTrie.header;
+        this.index            = tempTrie.index;
+        this.data16           = tempTrie.data16;
+        this.data32           = tempTrie.data32;
+        this.indexLength      = tempTrie.indexLength;
+        this.dataLength       = tempTrie.dataLength;
+        this.index2NullOffset = tempTrie.index2NullOffset;
+        this.initialValue     = tempTrie.initialValue;        
+        this.errorValue       = tempTrie.errorValue;        
+        this.highStart        = tempTrie.highStart;        
+        this.highValueIndex   = tempTrie.highValueIndex;        
+        this.dataNullOffset   = tempTrie.dataNullOffset;        
     }
     
     
@@ -336,7 +382,6 @@ public class Trie2Writable extends Trie2 {
      * Set a value in a range of code points [start..end].
      * All code points c with start<=c<=end will get the value if
      * overwrite is TRUE or if the old value is the initial value.
-     * Throws UnsupportedOperationException if the Trie2 is frozen.
      *
      * @param start the first code point to get the value
      * @param end the last code point to get the value (inclusive)
@@ -465,6 +510,34 @@ public class Trie2Writable extends Trie2 {
          return this;
      }    
      
+     /**
+      * Set the values from a Trie2.Range.
+      * 
+      * All code points within the range will get the value if
+      * overwrite is TRUE or if the old value is the initial value.
+      *
+      * Ranges with the lead surrogate flag set will set the alternate
+      * lead-surrogate values in the Trie, rather than the code point values.
+      * 
+      * This function is intended to work with the ranges produced when iterating
+      * the contents of a source Trie.
+      * 
+      * @param range contains the range of code points and the value to be set.
+      * @param overwrite flag for whether old non-initial values are to be overwritten
+      */
+      public Trie2Writable setRange(Trie2.Range range, boolean overwrite) {
+          if (range.leadSurrogate) {
+              //  TODO:  optimize this.
+              for (int c=range.startCodePoint; c<=range.endCodePoint; c++) {
+                  if (overwrite || getFromU16SingleLead((char)c) == this.initialValue)  {
+                      setForLeadSurrogateCodeUnit((char)c, range.value); 
+                  }
+              }
+          } else {
+              setRange(range.startCodePoint, range.endCodePoint, range.value, overwrite);
+          }
+          return this;
+      }
      
      /**
       * Set a value for a UTF-16 code unit.
@@ -1138,12 +1211,12 @@ public class Trie2Writable extends Trie2 {
     private  int[]   index2 = new int[UNEWTRIE2_MAX_INDEX_2_LENGTH];
     private  int[]   data;
 
-    private  int     index2Length, dataCapacity;
+    private  int     index2Length;
+    private  int     dataCapacity;
     private  int     firstFreeBlock;
     private  int     index2NullOffset;
     private  boolean isCompacted;
 
-    private  int     initialValue;
 
     /*
      * Multi-purpose per-data-block table.

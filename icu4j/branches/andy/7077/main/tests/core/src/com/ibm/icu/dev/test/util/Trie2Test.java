@@ -48,13 +48,13 @@ public class Trie2Test extends TestFmwk {
          };
          
          Trie2 trie = new Trie2Writable(0, 0);
-         for (Iterator<Trie2.EnumRange> iter = trie.iterator(m); iter.hasNext(); ) {
-             Trie2.EnumRange r = iter.next();
+         for (Iterator<Trie2.Range> iter = trie.iterator(m); iter.hasNext(); ) {
+             Trie2.Range r = iter.next();
 
          }
          
          // Plain iteration, no mapping
-         for (Trie2.EnumRange r: trie) {
+         for (Trie2.Range r: trie) {
              
          }         
      }
@@ -125,7 +125,11 @@ public class Trie2Test extends TestFmwk {
          t1w.set(0x1ff00, 224);
          Trie2_16 t1_16 = t1w.getAsFrozen_16();
          assertTrue(where(), t1w.equals(t1_16));
-         // TODO:  alter t1w and then re-serialize.
+         // alter the writable trie and then re-freeze.
+         t1w.set(152, 129);
+         t1_16 = t1w.getAsFrozen_16();
+         assertTrue(where(), t1w.equals(t1_16));
+         assertEquals(where(), 129, t1w.get(152));
          
          // Trie2_32 getAsFrozen_32()
          t1w = new Trie2Writable(10, 666);
@@ -133,6 +137,11 @@ public class Trie2Test extends TestFmwk {
          t1w.set(0x1ff00, 224);
          Trie2_32 t1_32 = t1w.getAsFrozen_32();
          assertTrue(where(), t1w.equals(t1_32));
+         // alter the writable trie and then re-freeze.
+         t1w.set(152, 129);
+         t1_32 = t1w.getAsFrozen_32();
+         assertTrue(where(), t1w.equals(t1_32));
+         assertEquals(where(), 129, t1w.get(152));
          
          
          // serialize
@@ -153,7 +162,7 @@ public class Trie2Test extends TestFmwk {
          Trie2.CharSequenceIterator it = tw.iterator(text, 0);
          
          // Check forwards iteration.
-         Trie2.IterationResults ir;
+         Trie2.CharSequenceValues ir;
          int i;
          for (i=0; it.hasNext(); i++) {
              ir = it.next();
@@ -426,9 +435,9 @@ public class Trie2Test extends TestFmwk {
          }
          
          // Check Trie contents enumration
-         Iterator<Trie2.EnumRange> it = trie.iterator();
+         Iterator<Trie2.Range> it = trie.iterator();
          while (it.hasNext()) {
-             Trie2.EnumRange range = it.next();
+             Trie2.Range range = it.next();
              System.out.println("(start, end, value) = ("    + Integer.toHexString(range.startCodePoint) +
                                                         ", " + Integer.toHexString(range.endCodePoint) + 
                                                         ", " + Integer.toHexString(range.value) + ")");
