@@ -326,7 +326,6 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
                 return false;
             }
         }
-        // TODO:  compare the lead surrogate ranges.
         return true;
     }
     
@@ -450,31 +449,31 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
         DataOutputStream dos = new DataOutputStream(os);
         int  bytesWritten = 0;
         
-        dos.write(header.signature);  
-        dos.write((char)header.options);
-        dos.write((char)header.indexLength);
-        dos.write((char)header.shiftedDataLength);
-        dos.write((char)header.index2NullOffset);
-        dos.write((char)header.dataNullOffset);
-        dos.write((char)header.shiftedHighStart);
+        dos.writeInt(header.signature);  
+        dos.writeShort(header.options);
+        dos.writeShort(header.indexLength);
+        dos.writeShort(header.shiftedDataLength);
+        dos.writeShort(header.index2NullOffset);
+        dos.writeShort(header.dataNullOffset);
+        dos.writeShort(header.shiftedHighStart);
         bytesWritten += 16;
         
         // Write the index
         int i;
         for (i=0; i< header.indexLength; i++) {
-            dos.write(index[i]);
+            dos.writeChar(index[i]);
         }
         bytesWritten += header.indexLength;
         
         // Write the data
         if (this instanceof Trie2_16) {
             for (i=0; i<dataLength; i++) {
-                dos.write(index[data16+i]);
+                dos.writeChar(index[data16+i]);
             }
             bytesWritten += dataLength*2;
         } else {
             for (i=0; i<dataLength; i++) {
-                dos.write(data32[i]);
+                dos.writeInt(data32[i]);
             }
             bytesWritten += dataLength*4;
         }
@@ -910,7 +909,8 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
             int   val = 0;
             int   mappedVal = 0;
             
-            if (leadSurrogates) {
+            if (!leadSurrogates) {
+                // Iteration over code point values.
                 val = get(c);
                 mappedVal = mapper.map(val);
                 // Loop once for each range in the Trie with the same raw (unmapped) value.

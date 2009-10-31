@@ -6,10 +6,13 @@
  */
 package com.ibm.icu.dev.test.util;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.Iterator;
 
 import com.ibm.icu.dev.test.TestFmwk;
@@ -18,6 +21,7 @@ import com.ibm.icu.impl.Trie2;
 import com.ibm.icu.impl.Trie2_16;
 import com.ibm.icu.impl.Trie2_32;
 import com.ibm.icu.impl.Trie2Writable;
+import com.ibm.icu.impl.Trie2.ValueWidth;
 
 public class Trie2Test extends TestFmwk {
     /**
@@ -77,17 +81,16 @@ public class Trie2Test extends TestFmwk {
      
      public void TestTrie2WritableAPI() {
          //
-         //   Trie2Writable methods
+         //   Trie2Writable methods.  Check that all functions are present and 
+         //      nominally working.  Not an in-depth test.
          //
          
          // Trie2Writable constructor
          Trie2 t1 = new Trie2Writable(6, 666);
          
          // Constructor from another Trie2
-         //Trie2 t2 = new Trie2Writable(t1);
-         //if (t1.equals(t2) == false) {
-         //    errln("t1 not equal t2");
-         // }
+         Trie2 t2 = new Trie2Writable(t1);
+         assertTrue(where(), t1.equals(t2));
          
          // Set / Get
          Trie2Writable t1w = new Trie2Writable(10, 666);
@@ -110,14 +113,32 @@ public class Trie2Test extends TestFmwk {
          assertEquals(where(),   10, t1w.get(7001));
          assertEquals(where(),  666, t1w.get(0x110000));
          
+         // setRange from a Trie2.Range
+         //    (Ranges are more commonly created by iterating over a Trie,
+         //     but create one by hand here)
+         Trie2.Range r = new Trie2.Range();
+         r.startCodePoint = 50;
+         r.endCodePoint   = 52;
+         r.value          = 0x12345678;
+         r.leadSurrogate  = false;
+         t1w = new Trie2Writable(0, 0xbad);
+         t1w.setRange(r, true);
+         assertEquals(where(), 0, t1w.get(49));
+         assertEquals(where(), 0x12345678, t1w.get(50));
+         assertEquals(where(), 0x12345678, t1w.get(52));
+         assertEquals(where(), 0, t1w.get(53));
          
-         // setForLeadSurrogateCodeUnit
-         t1w = new Trie2Writable(10, 666);
+         
+         // setForLeadSurrogateCodeUnit / getFromU16SingleLead
+         t1w = new Trie2Writable(10, 0xbad);
          assertEquals(where(), 10, t1w.getFromU16SingleLead((char)0x0d801));
          t1w.setForLeadSurrogateCodeUnit((char)0xd801, 5000);
+         t1w.set(0xd801, 6000);
          assertEquals(where(), 5000, t1w.getFromU16SingleLead((char)0x0d801));
-         assertEquals(where(), 10, t1w.get(0x0d801));
+         assertEquals(where(), 6000, t1w.get(0x0d801));
          
+         // get().  Is covered by nearly every other test.
+                 
          
          // Trie2_16 getAsFrozen_16()
          t1w = new Trie2Writable(10, 666);
@@ -132,6 +153,7 @@ public class Trie2Test extends TestFmwk {
          assertEquals(where(), 129, t1w.get(152));
          
          // Trie2_32 getAsFrozen_32()
+         //
          t1w = new Trie2Writable(10, 666);
          t1w.set(42, 5555);
          t1w.set(0x1ff00, 224);
@@ -144,8 +166,42 @@ public class Trie2Test extends TestFmwk {
          assertEquals(where(), 129, t1w.get(152));
          
          
-         // serialize
-         //   TODO:
+         // serialize(OutputStream os, ValueWidth width)
+         // 
+         ByteArrayOutputStream os = new ByteArrayOutputStream();
+         t1w = new Trie2Writable(0, 0xbad);
+         t1w.set(0x41, 0x100);
+         t1w.set(0xc2, 0x200);
+         t1w.set(0x404, 0x300);
+         t1w.set(0xd903, 0x500);
+         t1w.set(0xdd29, 0x600);
+         t1w.set(0x1055d3, 0x700);
+         t1w.setForLeadSurrogateCodeUnit((char)0xda1a, 0x800);
+         try {
+             // Serialize to 16 bits.
+             int serializedLen = t1w.serialize(os, Trie2.ValueWidth.BITS_16);
+             // Fragile test.  Serialized length could change with changes to compaction.
+             //                But it should not change unexpectedly.
+             assertEquals(where(), 3940, serializedLen);
+             ByteArrayInputStream is = new ByteArrayInputStream(os.toByteArray());
+             Trie2 t1ws16 = Trie2.createFromSerialized(is);
+             assertEquals(where(), t1ws16.getClass(), Trie2_16.class);
+             assertEquals(where(), t1w, t1ws16);
+             
+             // Serialize to 32 bits
+             os.reset();
+             serializedLen = t1w.serialize(os, Trie2.ValueWidth.BITS_32);
+             // Fragile test.  Serialized length could change with changes to compaction.
+             //                But it should not change unexpectedly.
+             assertEquals(where(), 4352, serializedLen);
+             is = new ByteArrayInputStream(os.toByteArray());
+             Trie2 t1ws32 = Trie2.createFromSerialized(is);
+             assertEquals(where(), t1ws32.getClass(), Trie2_32.class);
+             assertEquals(where(), t1w, t1ws32);
+         } catch (IOException e) {
+             errln(where() + e.toString());
+         }
+         
                 
      }
      
