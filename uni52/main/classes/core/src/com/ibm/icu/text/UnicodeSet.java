@@ -3097,9 +3097,6 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
                 UCharacterProperty.getInstance().addPropertyStarts(incl);
                 UCharacterProperty.getInstance().upropsvec_addPropertyStarts(incl);
                 break;
-            case UCharacterProperty.SRC_HST:
-                UCharacterProperty.getInstance().uhst_addPropertyStarts(incl);
-                break;
             case UCharacterProperty.SRC_NORM:
                 NormalizerImpl.addPropertyStarts(incl);
                 break;

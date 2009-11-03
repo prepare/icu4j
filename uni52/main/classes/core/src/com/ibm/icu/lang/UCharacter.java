@@ -932,13 +932,73 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
          */
         public static final int DOMINO_TILES_ID = 171; /* [1F030] */
 
+        /* New blocks in Unicode 5.2 */
+
+        /** @draft ICU 4.4 */
+        public static final int SAMARITAN_ID = 172; /*[0800]*/
+        /** @draft ICU 4.4 */
+        public static final int UNIFIED_CANADIAN_ABORIGINAL_SYLLABICS_EXTENDED_ID = 173; /*[18B0]*/
+        /** @draft ICU 4.4 */
+        public static final int TAI_THAM_ID = 174; /*[1A20]*/
+        /** @draft ICU 4.4 */
+        public static final int VEDIC_EXTENSIONS_ID = 175; /*[1CD0]*/
+        /** @draft ICU 4.4 */
+        public static final int LISU_ID = 176; /*[A4D0]*/
+        /** @draft ICU 4.4 */
+        public static final int BAMUM_ID = 177; /*[A6A0]*/
+        /** @draft ICU 4.4 */
+        public static final int COMMON_INDIC_NUMBER_FORMS_ID = 178; /*[A830]*/
+        /** @draft ICU 4.4 */
+        public static final int DEVANAGARI_EXTENDED_ID = 179; /*[A8E0]*/
+        /** @draft ICU 4.4 */
+        public static final int HANGUL_JAMO_EXTENDED_A_ID = 180; /*[A960]*/
+        /** @draft ICU 4.4 */
+        public static final int JAVANESE_ID = 181; /*[A980]*/
+        /** @draft ICU 4.4 */
+        public static final int MYANMAR_EXTENDED_A_ID = 182; /*[AA60]*/
+        /** @draft ICU 4.4 */
+        public static final int TAI_VIET_ID = 183; /*[AA80]*/
+        /** @draft ICU 4.4 */
+        public static final int MEETEI_MAYEK_ID = 184; /*[ABC0]*/
+        /** @draft ICU 4.4 */
+        public static final int HANGUL_JAMO_EXTENDED_B_ID = 185; /*[D7B0]*/
+        /** @draft ICU 4.4 */
+        public static final int IMPERIAL_ARAMAIC_ID = 186; /*[10840]*/
+        /** @draft ICU 4.4 */
+        public static final int OLD_SOUTH_ARABIAN_ID = 187; /*[10A60]*/
+        /** @draft ICU 4.4 */
+        public static final int AVESTAN_ID = 188; /*[10B00]*/
+        /** @draft ICU 4.4 */
+        public static final int INSCRIPTIONAL_PARTHIAN_ID = 189; /*[10B40]*/
+        /** @draft ICU 4.4 */
+        public static final int INSCRIPTIONAL_PAHLAVI_ID = 190; /*[10B60]*/
+        /** @draft ICU 4.4 */
+        public static final int OLD_TURKIC_ID = 191; /*[10C00]*/
+        /** @draft ICU 4.4 */
+        public static final int RUMI_NUMERAL_SYMBOLS_ID = 192; /*[10E60]*/
+        /** @draft ICU 4.4 */
+        public static final int KAITHI_ID = 193; /*[11080]*/
+        /** @draft ICU 4.4 */
+        public static final int EGYPTIAN_HIEROGLYPHS_ID = 194; /*[13000]*/
+        /** @draft ICU 4.4 */
+        public static final int ENCLOSED_ALPHANUMERIC_SUPPLEMENT_ID = 195; /*[1F100]*/
+        /** @draft ICU 4.4 */
+        public static final int ENCLOSED_IDEOGRAPHIC_SUPPLEMENT_ID = 196; /*[1F200]*/
+        /** @draft ICU 4.4 */
+        public static final int CJK_UNIFIED_IDEOGRAPHS_EXTENSION_C_ID = 197; /*[2A700]*/
+
         /** 
          * @stable ICU 2.4 
          */
-        public static final int COUNT = 172;
+        public static final int COUNT = 198;
 
         // blocks objects ---------------------------------------------------
         
+        /**
+         * Array of UnicodeBlocks, for easy access in getInstance(int)
+         */
+        private final static UnicodeBlock BLOCKS_[] = new UnicodeBlock[COUNT];
+
         /** 
          * @stable ICU 2.6
          */
@@ -1827,6 +1887,92 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
          * @stable ICU 4.0
          */
         public static final UnicodeBlock DOMINO_TILES = new UnicodeBlock("DOMINO_TILES", DOMINO_TILES_ID); /* [1F030] */
+
+        /* New blocks in Unicode 5.2 */
+
+        /** @draft ICU 4.4 */
+        public static final UnicodeBlock SAMARITAN =
+            new UnicodeBlock("SAMARITAN", SAMARITAN_ID); /*[0800]*/
+        /** @draft ICU 4.4 */
+        public static final UnicodeBlock UNIFIED_CANADIAN_ABORIGINAL_SYLLABICS_EXTENDED =
+            new UnicodeBlock("UNIFIED_CANADIAN_ABORIGINAL_SYLLABICS_EXTENDED",
+                             UNIFIED_CANADIAN_ABORIGINAL_SYLLABICS_EXTENDED_ID); /*[18B0]*/
+        /** @draft ICU 4.4 */
+        public static final UnicodeBlock TAI_THAM =
+            new UnicodeBlock("TAI_THAM", TAI_THAM_ID); /*[1A20]*/
+        /** @draft ICU 4.4 */
+        public static final UnicodeBlock VEDIC_EXTENSIONS =
+            new UnicodeBlock("VEDIC_EXTENSIONS", VEDIC_EXTENSIONS_ID); /*[1CD0]*/
+        /** @draft ICU 4.4 */
+        public static final UnicodeBlock LISU =
+            new UnicodeBlock("LISU", LISU_ID); /*[A4D0]*/
+        /** @draft ICU 4.4 */
+        public static final UnicodeBlock BAMUM =
+            new UnicodeBlock("BAMUM", BAMUM_ID); /*[A6A0]*/
+        /** @draft ICU 4.4 */
+        public static final UnicodeBlock COMMON_INDIC_NUMBER_FORMS =
+            new UnicodeBlock("COMMON_INDIC_NUMBER_FORMS", COMMON_INDIC_NUMBER_FORMS_ID); /*[A830]*/
+        /** @draft ICU 4.4 */
+        public static final UnicodeBlock DEVANAGARI_EXTENDED =
+            new UnicodeBlock("DEVANAGARI_EXTENDED", DEVANAGARI_EXTENDED_ID); /*[A8E0]*/
+        /** @draft ICU 4.4 */
+        public static final UnicodeBlock HANGUL_JAMO_EXTENDED_A =
+            new UnicodeBlock("HANGUL_JAMO_EXTENDED_A", HANGUL_JAMO_EXTENDED_A_ID); /*[A960]*/
+        /** @draft ICU 4.4 */
+        public static final UnicodeBlock JAVANESE =
+            new UnicodeBlock("JAVANESE", JAVANESE_ID); /*[A980]*/
+        /** @draft ICU 4.4 */
+        public static final UnicodeBlock MYANMAR_EXTENDED_A =
+            new UnicodeBlock("MYANMAR_EXTENDED_A", MYANMAR_EXTENDED_A_ID); /*[AA60]*/
+        /** @draft ICU 4.4 */
+        public static final UnicodeBlock TAI_VIET =
+            new UnicodeBlock("TAI_VIET", TAI_VIET_ID); /*[AA80]*/
+        /** @draft ICU 4.4 */
+        public static final UnicodeBlock MEETEI_MAYEK =
+            new UnicodeBlock("MEETEI_MAYEK", MEETEI_MAYEK_ID); /*[ABC0]*/
+        /** @draft ICU 4.4 */
+        public static final UnicodeBlock HANGUL_JAMO_EXTENDED_B =
+            new UnicodeBlock("HANGUL_JAMO_EXTENDED_B", HANGUL_JAMO_EXTENDED_B_ID); /*[D7B0]*/
+        /** @draft ICU 4.4 */
+        public static final UnicodeBlock IMPERIAL_ARAMAIC =
+            new UnicodeBlock("IMPERIAL_ARAMAIC", IMPERIAL_ARAMAIC_ID); /*[10840]*/
+        /** @draft ICU 4.4 */
+        public static final UnicodeBlock OLD_SOUTH_ARABIAN =
+            new UnicodeBlock("OLD_SOUTH_ARABIAN", OLD_SOUTH_ARABIAN_ID); /*[10A60]*/
+        /** @draft ICU 4.4 */
+        public static final UnicodeBlock AVESTAN =
+            new UnicodeBlock("AVESTAN", AVESTAN_ID); /*[10B00]*/
+        /** @draft ICU 4.4 */
+        public static final UnicodeBlock INSCRIPTIONAL_PARTHIAN =
+            new UnicodeBlock("INSCRIPTIONAL_PARTHIAN", INSCRIPTIONAL_PARTHIAN_ID); /*[10B40]*/
+        /** @draft ICU 4.4 */
+        public static final UnicodeBlock INSCRIPTIONAL_PAHLAVI =
+            new UnicodeBlock("INSCRIPTIONAL_PAHLAVI", INSCRIPTIONAL_PAHLAVI_ID); /*[10B60]*/
+        /** @draft ICU 4.4 */
+        public static final UnicodeBlock OLD_TURKIC =
+            new UnicodeBlock("OLD_TURKIC", OLD_TURKIC_ID); /*[10C00]*/
+        /** @draft ICU 4.4 */
+        public static final UnicodeBlock RUMI_NUMERAL_SYMBOLS =
+            new UnicodeBlock("RUMI_NUMERAL_SYMBOLS", RUMI_NUMERAL_SYMBOLS_ID); /*[10E60]*/
+        /** @draft ICU 4.4 */
+        public static final UnicodeBlock KAITHI =
+            new UnicodeBlock("KAITHI", KAITHI_ID); /*[11080]*/
+        /** @draft ICU 4.4 */
+        public static final UnicodeBlock EGYPTIAN_HIEROGLYPHS =
+            new UnicodeBlock("EGYPTIAN_HIEROGLYPHS", EGYPTIAN_HIEROGLYPHS_ID); /*[13000]*/
+        /** @draft ICU 4.4 */
+        public static final UnicodeBlock ENCLOSED_ALPHANUMERIC_SUPPLEMENT =
+            new UnicodeBlock("ENCLOSED_ALPHANUMERIC_SUPPLEMENT",
+                             ENCLOSED_ALPHANUMERIC_SUPPLEMENT_ID); /*[1F100]*/
+        /** @draft ICU 4.4 */
+        public static final UnicodeBlock ENCLOSED_IDEOGRAPHIC_SUPPLEMENT =
+            new UnicodeBlock("ENCLOSED_IDEOGRAPHIC_SUPPLEMENT",
+                             ENCLOSED_IDEOGRAPHIC_SUPPLEMENT_ID); /*[1F200]*/
+        /** @draft ICU 4.4 */
+        public static final UnicodeBlock CJK_UNIFIED_IDEOGRAPHS_EXTENSION_C =
+            new UnicodeBlock("CJK_UNIFIED_IDEOGRAPHS_EXTENSION_C",
+                             CJK_UNIFIED_IDEOGRAPHS_EXTENSION_C_ID); /*[2A700]*/
+
         /** 
          * @stable ICU 2.4 
          */
@@ -1941,135 +2087,6 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
         // private data members ---------------------------------------------
         
         /**
-         * Array of UnicodeBlocks, for easy access in getInstance(int)
-         */
-        private final static UnicodeBlock BLOCKS_[] = {
-            NO_BLOCK, BASIC_LATIN, 
-            LATIN_1_SUPPLEMENT, LATIN_EXTENDED_A, 
-            LATIN_EXTENDED_B, IPA_EXTENSIONS, 
-            SPACING_MODIFIER_LETTERS, COMBINING_DIACRITICAL_MARKS,
-            GREEK, CYRILLIC,
-            ARMENIAN, HEBREW,
-            ARABIC, SYRIAC, 
-            THAANA, DEVANAGARI, 
-            BENGALI, GURMUKHI, 
-            GUJARATI, ORIYA, 
-            TAMIL, TELUGU, 
-            KANNADA, MALAYALAM, 
-            SINHALA, THAI, 
-            LAO, TIBETAN, 
-            MYANMAR, GEORGIAN, 
-            HANGUL_JAMO, ETHIOPIC, 
-            CHEROKEE, UNIFIED_CANADIAN_ABORIGINAL_SYLLABICS,
-            OGHAM, RUNIC, 
-            KHMER, MONGOLIAN, 
-            LATIN_EXTENDED_ADDITIONAL, GREEK_EXTENDED, 
-            GENERAL_PUNCTUATION, SUPERSCRIPTS_AND_SUBSCRIPTS,
-            CURRENCY_SYMBOLS, COMBINING_MARKS_FOR_SYMBOLS, 
-            LETTERLIKE_SYMBOLS, NUMBER_FORMS, 
-            ARROWS, MATHEMATICAL_OPERATORS, 
-            MISCELLANEOUS_TECHNICAL, CONTROL_PICTURES,
-            OPTICAL_CHARACTER_RECOGNITION, ENCLOSED_ALPHANUMERICS,
-            BOX_DRAWING, BLOCK_ELEMENTS,
-            GEOMETRIC_SHAPES, MISCELLANEOUS_SYMBOLS,
-            DINGBATS, BRAILLE_PATTERNS,
-            CJK_RADICALS_SUPPLEMENT, KANGXI_RADICALS,
-            IDEOGRAPHIC_DESCRIPTION_CHARACTERS, CJK_SYMBOLS_AND_PUNCTUATION,
-            HIRAGANA, KATAKANA, 
-            BOPOMOFO, HANGUL_COMPATIBILITY_JAMO,
-            KANBUN, BOPOMOFO_EXTENDED, 
-            ENCLOSED_CJK_LETTERS_AND_MONTHS, CJK_COMPATIBILITY,
-            CJK_UNIFIED_IDEOGRAPHS_EXTENSION_A, CJK_UNIFIED_IDEOGRAPHS,
-            YI_SYLLABLES, YI_RADICALS, 
-            HANGUL_SYLLABLES, HIGH_SURROGATES,
-            HIGH_PRIVATE_USE_SURROGATES, LOW_SURROGATES,
-            PRIVATE_USE_AREA, CJK_COMPATIBILITY_IDEOGRAPHS,
-            ALPHABETIC_PRESENTATION_FORMS, ARABIC_PRESENTATION_FORMS_A,
-            COMBINING_HALF_MARKS, CJK_COMPATIBILITY_FORMS,
-            SMALL_FORM_VARIANTS, ARABIC_PRESENTATION_FORMS_B,
-            SPECIALS, HALFWIDTH_AND_FULLWIDTH_FORMS,
-            OLD_ITALIC, GOTHIC, 
-            DESERET, BYZANTINE_MUSICAL_SYMBOLS,
-            MUSICAL_SYMBOLS, MATHEMATICAL_ALPHANUMERIC_SYMBOLS,
-            CJK_UNIFIED_IDEOGRAPHS_EXTENSION_B, 
-            CJK_COMPATIBILITY_IDEOGRAPHS_SUPPLEMENT, 
-            TAGS, CYRILLIC_SUPPLEMENT,
-            TAGALOG, HANUNOO, 
-            BUHID, TAGBANWA, 
-            MISCELLANEOUS_MATHEMATICAL_SYMBOLS_A, SUPPLEMENTAL_ARROWS_A,
-            SUPPLEMENTAL_ARROWS_B, MISCELLANEOUS_MATHEMATICAL_SYMBOLS_B,
-            SUPPLEMENTAL_MATHEMATICAL_OPERATORS, 
-            KATAKANA_PHONETIC_EXTENSIONS,
-            VARIATION_SELECTORS, SUPPLEMENTARY_PRIVATE_USE_AREA_A,
-            SUPPLEMENTARY_PRIVATE_USE_AREA_B,
-            LIMBU, TAI_LE, KHMER_SYMBOLS, PHONETIC_EXTENSIONS,
-            MISCELLANEOUS_SYMBOLS_AND_ARROWS, YIJING_HEXAGRAM_SYMBOLS,
-            LINEAR_B_SYLLABARY, LINEAR_B_IDEOGRAMS, AEGEAN_NUMBERS,
-            UGARITIC, SHAVIAN, OSMANYA, CYPRIOT_SYLLABARY,
-            TAI_XUAN_JING_SYMBOLS, VARIATION_SELECTORS_SUPPLEMENT,
-
-            /* New blocks in Unicode 4.1 */
-            ANCIENT_GREEK_MUSICAL_NOTATION,
-            ANCIENT_GREEK_NUMBERS,
-            ARABIC_SUPPLEMENT,
-            BUGINESE,
-            CJK_STROKES,
-            COMBINING_DIACRITICAL_MARKS_SUPPLEMENT,
-            COPTIC,
-            ETHIOPIC_EXTENDED,
-            ETHIOPIC_SUPPLEMENT,
-            GEORGIAN_SUPPLEMENT,
-            GLAGOLITIC,
-            KHAROSHTHI,
-            MODIFIER_TONE_LETTERS,
-            NEW_TAI_LUE,
-            OLD_PERSIAN,
-            PHONETIC_EXTENSIONS_SUPPLEMENT,
-            SUPPLEMENTAL_PUNCTUATION,
-            SYLOTI_NAGRI,
-            TIFINAGH,
-            VERTICAL_FORMS,
-            NKO,
-            BALINESE,
-            LATIN_EXTENDED_C,
-            LATIN_EXTENDED_D,
-            PHAGS_PA,
-            PHOENICIAN,
-            CUNEIFORM,
-            CUNEIFORM_NUMBERS_AND_PUNCTUATION,
-            COUNTING_ROD_NUMERALS,
-
-            /* New blocks in Unicode 5.8 */
-            SUNDANESE,
-            LEPCHA,
-            OL_CHIKI,
-            CYRILLIC_EXTENDED_A,
-            VAI,
-            CYRILLIC_EXTENDED_B,
-            SAURASHTRA,
-            KAYAH_LI,
-            REJANG,
-            CHAM,
-            ANCIENT_SYMBOLS,
-            PHAISTOS_DISC,
-            LYCIAN,
-            CARIAN,
-            LYDIAN,
-            MAHJONG_TILES,
-            DOMINO_TILES,
-        };
-
-        static {
-            // The following will only be true if COUNT or the array BLOCKS_
-            // is every changed to be inconsistent
-            ///CLOVER:OFF
-            if (COUNT!=BLOCKS_.length) {
-                throw new java.lang.IllegalStateException("UnicodeBlock fields are inconsistent!");
-            }
-            ///CLOVER:ON
-        }
-        
-        /**
          * Identification code for this UnicodeBlock
          */
         private int m_id_;
@@ -2086,9 +2103,10 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
         {
             super(name);
             m_id_ = id;
+            BLOCKS_[id] = this;
         }
     }
-    
+
     /**
      * East Asian Width constants.
      * @see UProperty#EAST_ASIAN_WIDTH
@@ -2475,11 +2493,15 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
         /**
          * @stable ICU 4.0 
          */
-        public static final int BURUSHASKI_YEH_BARREE = 54;   
+        public static final int BURUSHASKI_YEH_BARREE = 54;
+        /** @draft ICU 4.4 */
+        public static final int FARSI_YEH = 55;
+        /** @draft ICU 4.4 */
+        public static final int NYA = 56;
         /**
-         * @stable ICU 4.0
+         * @stable ICU 2.4
          */
-        public static final int COUNT = 55;
+        public static final int COUNT = 57;
     }
 
     /**
@@ -2840,11 +2862,12 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
          * @stable ICU 3.4
          */
         public static final int  JV = 35;
-
+        /** @draft ICU 4.4 */
+        public static final int  CLOSE_PARENTHESIS = 36; /*[CP]*/ /* new in Unicode 5.2/ICU 4.4 */
         /**
          * @stable ICU 2.4
          */
-        public static final int COUNT = 36;
+        public static final int COUNT = 37;
     }
     
     /**
@@ -2926,7 +2949,7 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
      * The highest Unicode code point value (scalar value) according to the 
      * Unicode Standard. 
      * This is a 21-bit value (21 bits, rounded up).<br>
-     * Up-to-date Unicode implementation of java.lang.Character.MIN_VALUE
+     * Up-to-date Unicode implementation of java.lang.Character.MAX_VALUE
      * @stable ICU 2.1
      */
     public static final int MAX_VALUE = UTF16.CODEPOINT_MAX_VALUE; 
@@ -3973,11 +3996,37 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
         ///CLOVER:ON
         return NAME_.getName(ch, UCharacterNameChoice.EXTENDED_CHAR_NAME);
     }
-    
+
+    /**
+     * Retrieve the corrected name from NameAliases.txt if there is one.
+     * Returns null if the character is unassigned or outside the range 
+     * UCharacter.MIN_VALUE and UCharacter.MAX_VALUE or does not have a name.
+     * <br>
+     * Note calling any methods related to code point names, e.g. get*Name*() 
+     * incurs a one-time initialisation cost to construct the name tables.
+     * @param ch the code point for which to get the name alias
+     * @return Unicode name alias, or null
+     * draft ICU 4.4
+     */
+    public static String getNameAlias(int ch)
+    {
+        ///CLOVER:OFF
+        // NAME_ is always initialized when the class is initialized
+        if(NAME_==null){
+            throw new MissingResourceException("Could not load unames.icu", "", "");
+        }
+        ///CLOVER:ON
+        return NAME_.getName(ch, UCharacterNameChoice.CHAR_NAME_ALIAS);
+    }
+
     /**
      * Get the ISO 10646 comment for a character.
      * The ISO 10646 comment is an informative field in the Unicode Character
      * Database (UnicodeData.txt field 11) and is from the ISO 10646 names list.
+     *
+     * Note: Unicode 5.2 removes all ISO comment data, resulting in empty strings
+     * returned for all characters.
+     *
      * @param ch The code point for which to get the ISO comment.
      *           It must be <code>0<=c<=0x10ffff</code>.
      * @return The ISO comment, or null if there is no comment for this 
@@ -4071,6 +4120,25 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
         ///CLOVER:ON
         return NAME_.getCharFromName(
                      UCharacterNameChoice.EXTENDED_CHAR_NAME, name);
+    }
+
+    /**
+     * <p>Find a Unicode character by its corrected name alias and return 
+     * its code point value. All Unicode names are in uppercase.</p>
+     * Note calling any methods related to code point names, e.g. get*Name*() 
+     * incurs a one-time initialisation cost to construct the name tables.
+     * @param name Unicode name alias whose code point is to be returned
+     * @return code point or -1 if name is not found
+     * @draft ICU 4.4
+     */
+    public static int getCharFromNameAlias(String name){
+        ///CLOVER:OFF
+        // NAME_ is always initialized when the class is initialized
+        if(NAME_==null){
+            throw new MissingResourceException("Could not load unames.icu", "", "");
+        }
+        ///CLOVER:ON
+        return NAME_.getCharFromName(UCharacterNameChoice.CHAR_NAME_ALIAS, name);
     }
 
     /**
@@ -5179,6 +5247,26 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
     return hasBinaryProperty(ch, UProperty.WHITE_SPACE);
     }
 
+    /*
+     * Map some of the Grapheme Cluster Break values to Hangul Syllable Types.
+     * Hangul_Syllable_Type is fully redundant with a subset of Grapheme_Cluster_Break.
+     */
+    private static final int /* UHangulSyllableType */ gcbToHst[]={
+        HangulSyllableType.NOT_APPLICABLE,   /* U_GCB_OTHER */
+        HangulSyllableType.NOT_APPLICABLE,   /* U_GCB_CONTROL */
+        HangulSyllableType.NOT_APPLICABLE,   /* U_GCB_CR */
+        HangulSyllableType.NOT_APPLICABLE,   /* U_GCB_EXTEND */
+        HangulSyllableType.LEADING_JAMO,     /* U_GCB_L */
+        HangulSyllableType.NOT_APPLICABLE,   /* U_GCB_LF */
+        HangulSyllableType.LV_SYLLABLE,      /* U_GCB_LV */
+        HangulSyllableType.LVT_SYLLABLE,     /* U_GCB_LVT */
+        HangulSyllableType.TRAILING_JAMO,    /* U_GCB_T */
+        HangulSyllableType.VOWEL_JAMO        /* U_GCB_V */
+        /*
+         * Omit GCB values beyond what we need for hst.
+         * The code below checks for the array length.
+         */
+    };
 
     /**
      * <p>Gets the property value for an Unicode property type of a code point. 
@@ -5256,36 +5344,15 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
                     return ntvGetType(getNumericTypeValue(PROPERTY_.getProperty(ch)));
                 case UProperty.SCRIPT:
                     return UScript.getScript(ch);
-                case UProperty.HANGUL_SYLLABLE_TYPE:
-                    /* purely algorithmic; hardcode known characters, check for assigned new ones */ 
-                    if(ch<NormalizerImpl.JAMO_L_BASE) { 
-                        /* NA */ 
-                    } else if(ch<=0x11ff) { 
-                        /* Jamo range */ 
-                        if(ch<=0x115f) { 
-                            /* Jamo L range, HANGUL CHOSEONG ... */ 
-                            if(ch==0x115f || ch<=0x1159 || getType(ch)==UCharacterCategory.OTHER_LETTER) { 
-                                return HangulSyllableType.LEADING_JAMO; 
-                            } 
-                        } else if(ch<=0x11a7) { 
-                            /* Jamo V range, HANGUL JUNGSEONG ... */ 
-                            if(ch<=0x11a2 || getType(ch)==UCharacterCategory.OTHER_LETTER) { 
-                                return HangulSyllableType.VOWEL_JAMO; 
-                            } 
-                        } else { 
-                            /* Jamo T range */ 
-                            if(ch<=0x11f9 || getType(ch)==UCharacterCategory.OTHER_LETTER) { 
-                                return HangulSyllableType.TRAILING_JAMO; 
-                            } 
-                        } 
-                    } else if((ch-=NormalizerImpl.HANGUL_BASE)<0) { 
-                        /* NA */ 
-                    } else if(ch<NormalizerImpl.HANGUL_COUNT) { 
-                        /* Hangul syllable */ 
-                        return ch%NormalizerImpl.JAMO_T_COUNT==0 ? HangulSyllableType.LV_SYLLABLE : HangulSyllableType.LVT_SYLLABLE; 
-                    } 
-                    return 0; /* NA */ 
-
+                case UProperty.HANGUL_SYLLABLE_TYPE: {
+                    /* see comments on gcbToHst[] above */
+                    int gcb=(PROPERTY_.getAdditional(ch, 2)&GCB_MASK)>>GCB_SHIFT;
+                    if(gcb<gcbToHst.length) {
+                        return gcbToHst[gcb];
+                    } else {
+                        return HangulSyllableType.NOT_APPLICABLE;
+                    }
+                }
                 case UProperty.NFD_QUICK_CHECK:
                 case UProperty.NFKD_QUICK_CHECK:
                 case UProperty.NFC_QUICK_CHECK:
