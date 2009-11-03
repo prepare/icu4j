@@ -90,18 +90,18 @@ public final class UCharacterProperty
     public static final int SRC_CHAR=1;
     /** From uchar.c/uprops.icu properties vectors trie */
     public static final int SRC_PROPSVEC=2;
-    /** Hangul_Syllable_Type, from uchar.c/uprops.icu */
-    public static final int SRC_HST=3;
     /** From unames.c/unames.icu */
-    public static final int SRC_NAMES=4;
+    public static final int SRC_NAMES=3;
     /** From unorm.cpp/unorm.icu */
-    public static final int SRC_NORM=5;
+    public static final int SRC_NORM=4;
     /** From ucase.c/ucase.icu */
-    public static final int SRC_CASE=6;
+    public static final int SRC_CASE=5;
     /** From ubidi_props.c/ubidi.icu */
-    public static final int SRC_BIDI=7;
+    public static final int SRC_BIDI=6;
     /** From uchar.c/uprops.icu main trie as well as properties vectors trie */
-    public static final int SRC_CHAR_AND_PROPSVEC=8;
+    public static final int SRC_CHAR_AND_PROPSVEC=7;
+    /** From ucase.c/ucase.icu as well as unorm.cpp/unorm.icu */
+    public static final int SRC_CASE_AND_NORM=8;
     /** One more than the highest UPropertySource (SRC_) constant. */
     public static final int SRC_COUNT=9;
 
@@ -461,9 +461,6 @@ public final class UCharacterProperty
             case UProperty.GENERAL_CATEGORY:
             case UProperty.NUMERIC_TYPE:
                 return SRC_CHAR;
-
-            case UProperty.HANGUL_SYLLABLE_TYPE:
-                return SRC_HST;
 
             case UProperty.CANONICAL_COMBINING_CLASS:
             case UProperty.NFD_QUICK_CHECK:
@@ -856,58 +853,6 @@ public final class UCharacterProperty
     private static final int U_FW_f  = 0xff46;
     private static final int U_FW_z  = 0xff5a;
     private static final int ZWNBSP  = 0xfeff;
-
-    /* for Hangul_Syllable_Type */
-    public void uhst_addPropertyStarts(UnicodeSet set) {
-        /* add code points with hardcoded properties, plus the ones following them */
-
-        /*
-         * Add Jamo type boundaries for UCHAR_HANGUL_SYLLABLE_TYPE.
-         * First, we add fixed boundaries for the blocks of Jamos.
-         * Then we check in loops to see where the current Unicode version
-         * actually stops assigning such Jamos. We start each loop
-         * at the end of the per-Jamo-block assignments in Unicode 4 or earlier.
-         * (These have not changed since Unicode 2.)
-         */
-        int c, value, value2;
-
-        set.add(0x1100);
-        value=UCharacter.HangulSyllableType.LEADING_JAMO;
-        for(c=0x115a; c<=0x115f; ++c) {
-            value2= UCharacter.getIntPropertyValue(c, UProperty.HANGUL_SYLLABLE_TYPE);
-            if(value!=value2) {
-                value=value2;
-                set.add(c);
-            }
-        }
-
-        set.add(0x1160);
-        value=UCharacter.HangulSyllableType.VOWEL_JAMO;
-        for(c=0x11a3; c<=0x11a7; ++c) {
-            value2=UCharacter.getIntPropertyValue(c, UProperty.HANGUL_SYLLABLE_TYPE);
-            if(value!=value2) {
-                value=value2;
-                set.add(c);
-            }
-        }
-
-        set.add(0x11a8);
-        value=UCharacter.HangulSyllableType.TRAILING_JAMO;
-        for(c=0x11fa; c<=0x11ff; ++c) {
-            value2=UCharacter.getIntPropertyValue(c, UProperty.HANGUL_SYLLABLE_TYPE);
-            if(value!=value2) {
-                value=value2;
-                set.add(c);
-            }
-        }
-
-        /* Add Hangul type boundaries for UCHAR_HANGUL_SYLLABLE_TYPE. */
-        for(c=NormalizerImpl.HANGUL_BASE; c<(NormalizerImpl.HANGUL_BASE+NormalizerImpl.HANGUL_COUNT); c+=NormalizerImpl.JAMO_T_COUNT) {
-            set.add(c);
-            set.add(c+1);
-        }
-        set.add(c);
-    }
 
     public UnicodeSet addPropertyStarts(UnicodeSet set) {
         /* add the start code point of each same-value range of the main trie */
