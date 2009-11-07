@@ -264,7 +264,8 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
      * @return The frozen Trie2 with the same values as the source Trie.
      */
     public static Trie2 createFromTrie(Trie trie1, int errorValue) {
-        // TODO:  implement this.
+        // TODO:  I don't think that we need this function, and propose that we drop
+        //        it from the API.
         return null;
     }
     
@@ -296,6 +297,23 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
      * first converting surrogate pairs to their corresponding 32 bit code point
      * values.
      * 
+     * At build-time, enumerate the contents of the Trie to see if there
+     * is non-trivial (non-initialValue) data for any of the supplementary
+     * code points associated with a lead surrogate.
+     * If so, then set a special (application-specific) value for the
+     * lead surrogate code _unit_, with Trie2Writable.setForLeadSurrogateCodeUnit().
+     *
+     * At runtime, use Trie2.getFromU16SingleLead(). If there is non-trivial
+     * data and the code unit is a lead surrogate, then check if a trail surrogate
+     * follows. If so, assemble the supplementary code point and look up its value 
+     * with Trie2.get(); otherwise reset the lead
+     * surrogate's value or do a code point lookup for it.
+     *
+     * If there is only trivial data for lead and trail surrogates, then processing
+     * can often skip them. For example, in normalization or case mapping
+     * all characters that do not have any mappings are simply copied as is.
+
+     * 
      * @param trie the trie
      * @param c the code point or lead surrogate value.
      * @return the value
@@ -310,6 +328,7 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
      * 
      */
     public final boolean equals(Object other) {
+        // TODO:  should the error and default values be considered for equality?
         if(!(other instanceof Trie2)) {
             return false;
         }
@@ -326,7 +345,22 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
                 return false;
             }
         }
+        if (otherIter.hasNext()) {
+            return false;
+        }
         return true;
+    }
+    
+    
+    public int hashCode() {
+        if (fHash == 0) {
+            int hash = initHash();
+            for (Range r: this) {
+                hash = hashInt(hash, r.hashCode());
+            }
+            fHash = hash;
+        }
+        return fHash;
     }
     
     /**
@@ -380,6 +414,9 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
         return iterator(vm);
     }
     
+    // TODO:  add an iterator(int startingCodePoint) to allow iteration over a limited range?
+    //        Would simplify the supplementary character optimizations.
+    
     /**
      * Create an iterator over the value ranges from this Trie2.
      * Values from the trie are passed through a caller-supplied remapping function,
@@ -416,7 +453,7 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
         public int  map(int originalVal);
     }
        
-    
+
    /**
      * Serialize a trie onto an OutputStream.
      * A trie can be serialized multiple times.
@@ -598,62 +635,7 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
     //
     
     
-    /*
-     * The following functions  are used for highly optimized UTF-16
-     * text processing. 
-     *
-     * A Trie2 stores separate values for lead surrogate code _units_ vs. code _points_.
-     * UTF-16 text processing can be optimized by detecting surrogate pairs and
-     * assembling supplementary code points only when there is non-trivial data
-     * available.
-     *
-     * At build-time, use utrie2_enumForLeadSurrogate() to see if there
-     * is non-trivial (non-initialValue) data for any of the supplementary
-     * code points associated with a lead surrogate.
-     * If so, then set a special (application-specific) value for the
-     * lead surrogate code _unit_, with utrie2_set32ForLeadSurrogateCodeUnit().
-     *
-     * At runtime, use UTRIE2_GET16_FROM_U16_SINGLE_LEAD() or
-     * UTRIE2_GET32_FROM_U16_SINGLE_LEAD() per code unit. If there is non-trivial
-     * data and the code unit is a lead surrogate, then check if a trail surrogate
-     * follows. If so, assemble the supplementary code point with
-     * U16_GET_SUPPLEMENTARY() and look up its value with UTRIE2_GET16_FROM_SUPP()
-     * or UTRIE2_GET32_FROM_SUPP(); otherwise reset the lead
-     * surrogate's value or do a code point lookup for it.
-     *
-     * If there is only trivial data for lead and trail surrogates, then processing
-     * can often skip them. For example, in normalization or case mapping
-     * all characters that do not have any mappings are simply copied as is.
-     */
-     
-    
-
-    /**
-     * Enumerate the trie values for the 1024=0x400 code points
-     * corresponding to a given lead surrogate.
-     * For example, for the lead surrogate U+D87E it will enumerate the values
-     * for [U+2F800..U+2FC00].
-     * Used by data builder code that sets special lead surrogate code unit values
-     * for optimized UTF-16 string processing.
-     *
-     * Do not modify the trie during the enumeration.
-     *
-     * Each contiguous range of code points with a given value will be
-     * returned by the iterator.
-     *
-     * @param leadSurrogateValue A UTF-16 lead surrogate value, in the
-     *                  range of 0xd800 - 0xdbff
-     *                  of code points with the same (transformed) value
-     */
-
-    public Iterator<Range> iterator(int leadSurrogateValue) {
-        return null;
-    }
-
-    public Iterator<Range> iterator(int leadSurrogateValue, ValueMapper valueMapper) {
-        return null;
-    }
-    
+   
     //--------------------------------------------------------------------------------
     //
     // Below this point are internal implementation items.  No further public API.
@@ -701,7 +683,7 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
     }
     
     //
-    //  Data members.
+    //  Data members of UTrie2.
     //
     UTrie2Header  header;
     char          index[];           // Index array.  Includes data for 16 bit Tries.
@@ -722,6 +704,11 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
     int           highValueIndex;
     
     int           dataNullOffset;
+    
+    int           fHash;              // Zero if not yet computed.
+                                      //  Shared by Trie2Writable, Trie2_16, Trie2_32.
+                                      //  Thread safety:  if two racing threads compute
+                                      //     the same hash on a frozen Trie, no damage is done.
 
         
     /**
@@ -895,16 +882,16 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
          *  
          */
         public Range next() {
-            if (leadSurrogates && lastReturnedChar >= 0xdbff) {
+            if (leadSurrogates && nextStart >= 0xdc00) {
                 throw new NoSuchElementException();
             }
-            if (lastReturnedChar >= 0x10ffff) {
+            if (nextStart >= 0x110000) {
                 // Switch over from iterating normal code point values to
                 //   doing the alternate lead-surrogate values.
                 leadSurrogates = true;
-                lastReturnedChar = 0xd7ff;
+                nextStart = 0xd800;
             }
-            int   c = lastReturnedChar + 1;
+            int   c = nextStart;
             int   endOfRange = 0;
             int   val = 0;
             int   mappedVal = 0;
@@ -944,11 +931,11 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
                     c = endOfRange+1;
                 }
             }
-            returnValue.startCodePoint = lastReturnedChar + 1;
+            returnValue.startCodePoint = nextStart;
             returnValue.endCodePoint   = endOfRange;
             returnValue.value          = mappedVal;
             returnValue.leadSurrogate  = leadSurrogates;
-            lastReturnedChar           = endOfRange;            
+            nextStart           = endOfRange+1;            
             return returnValue;
         }
         
@@ -956,7 +943,7 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
          * 
          */
         public boolean hasNext() {
-            return !leadSurrogates || lastReturnedChar < 0xdbff;
+            return !leadSurrogates || nextStart < 0xdc00;
         }
         
         public void remove() {
@@ -1022,7 +1009,7 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
         //
         private ValueMapper    mapper;
         private Range          returnValue = new Range();
-        private int            lastReturnedChar;
+        private int            nextStart = 0;
         private boolean        leadSurrogates = false;
     }
     

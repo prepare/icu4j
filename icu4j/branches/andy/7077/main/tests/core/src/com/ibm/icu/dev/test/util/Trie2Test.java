@@ -43,25 +43,6 @@ public class Trie2Test extends TestFmwk {
          }
      }
      
-     public void iterateAPI() {
-         
-         // See what API usage looks like with a value mapping function.
-         
-         Trie2.ValueMapper m = new Trie2.ValueMapper() {
-             public int map(int in) {return in & 0x1f;};             
-         };
-         
-         Trie2 trie = new Trie2Writable(0, 0);
-         for (Iterator<Trie2.Range> iter = trie.iterator(m); iter.hasNext(); ) {
-             Trie2.Range r = iter.next();
-
-         }
-         
-         // Plain iteration, no mapping
-         for (Trie2.Range r: trie) {
-             
-         }         
-     }
      
      //
      //  TestAPI.  Check that all API methods can be called, and do at least some minimal
@@ -69,13 +50,105 @@ public class Trie2Test extends TestFmwk {
      //
      public void TestTrie2API() {
          // Trie2.createFromSerialized()
-         //   TODO:
+         //   This function is well exercised by TestRanges().   
          
          // Trie2.getVersion(InputStream is, boolean anyEndianOk)
-         //   TODO:
+         //   
+         try {
+             Trie2 trie = new Trie2Writable(0,0);
+             ByteArrayOutputStream os = new ByteArrayOutputStream();
+             trie.serialize(os, Trie2.ValueWidth.BITS_16);
+             ByteArrayInputStream is = new ByteArrayInputStream(os.toByteArray());
+             assertEquals(where(), 2, Trie2.getVersion(is, true));
+         } catch (IOException e) {
+             errln(where() + e.toString());            
+         }
          
-         // Trie2.createFromTrie(Trie trie1, int errorValue)
-         //   TODO:
+         // Equals & hashCode
+         //
+         {
+             Trie2Writable trieWA = new Trie2Writable(0,0);
+             Trie2Writable trieWB = new Trie2Writable(0,0);
+             Trie2 trieA = trieWA;
+             Trie2 trieB = trieWB;
+             assertTrue(where(), trieA.equals(trieB));
+             assertEquals(where(), trieA, trieB);
+             assertEquals(where(), trieA.hashCode(), trieB.hashCode());
+             trieWA.set(500, 2);
+             assertNotEquals(where(), trieA, trieB);
+             // Note that the hash codes do not strictly need to be different,
+             //   but it's highly likely that something is wrong if they are the same.
+             assertNotEquals(where(), trieA.hashCode(), trieB.hashCode());
+             trieWB.set(500, 2);
+             trieA = trieWA.getAsFrozen_16();
+             assertEquals(where(), trieA, trieB);
+             assertEquals(where(), trieA.hashCode(), trieB.hashCode());
+         }
+         
+         // 
+         // Iterator creation
+         //
+         {
+             Trie2Writable trie = new Trie2Writable(17,0);
+             Iterator<Trie2.Range>   it;
+             it = trie.iterator();
+             
+             Trie2.Range r = it.next();
+             assertEquals(where(), 0, r.startCodePoint);
+             assertEquals(where(), 0x10ffff, r.endCodePoint);
+             assertEquals(where(), 17, r.value);
+             assertEquals(where(), false, r.leadSurrogate);
+             
+             r = it.next();
+             assertEquals(where(), 0xd800, r.startCodePoint);
+             assertEquals(where(), 0xdbff, r.endCodePoint);
+             assertEquals(where(), 17, r.value);
+             assertEquals(where(), true, r.leadSurrogate);
+             
+        
+             int i = 0;
+             for (Trie2.Range rr: trie) {
+                 switch (i) {
+                 case 0:
+                     assertEquals(where(), 0, rr.startCodePoint);
+                     assertEquals(where(), 0x10ffff, rr.endCodePoint);
+                     assertEquals(where(), 17, rr.value);
+                     assertEquals(where(), false, rr.leadSurrogate);
+                     break;
+                 case 1:
+                     assertEquals(where(), 0xd800, rr.startCodePoint);
+                     assertEquals(where(), 0xdbff, rr.endCodePoint);
+                     assertEquals(where(), 17, rr.value);
+                     assertEquals(where(), true, rr.leadSurrogate);
+                     break;
+                 default:
+                     errln(where() + " Unexpected iteration result");
+                 }
+                 i++;
+             }
+         }
+         
+         // Iteration with a value mapping function
+         //
+         {
+             Trie2Writable trie = new Trie2Writable(0xbadfeed, 0);
+             trie.set(0x10123, 42);
+             
+             Trie2.ValueMapper vm = new Trie2.ValueMapper() {
+                 public int map(int v) {
+                     if (v == 0xbadfeed) {
+                         v = 42;
+                     }
+                     return v;
+                 }
+             };
+             Iterator<Trie2.Range> it = trie.iterator(vm);
+             Trie2.Range r = it.next();
+             assertEquals(where(), 0, r.startCodePoint);
+             assertEquals(where(), 0x10ffff, r.endCodePoint);
+             assertEquals(where(), 42, r.value);
+             assertEquals(where(), false, r.leadSurrogate);
+         }
      }
      
      

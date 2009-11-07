@@ -298,6 +298,7 @@ public class Trie2Writable extends Trie2 {
             throw new IllegalArgumentException("Invalid code point.");
         }
         set(c, true, value);
+        fHash = 0;
         return this;
     }
     
@@ -401,6 +402,7 @@ public class Trie2Writable extends Trie2 {
          if(start>0x10ffff || start<0 || end>0x10ffff || end<0 || start>end) {
              throw new IllegalArgumentException("Invalid code point range.");
          }
+         fHash = 0;
          if(isCompacted) {
              // TODO: Fix this
              throw new UnsupportedOperationException("Writing to a compacted Trie is not supported yet.");
@@ -526,6 +528,7 @@ public class Trie2Writable extends Trie2 {
       * @param overwrite flag for whether old non-initial values are to be overwritten
       */
       public Trie2Writable setRange(Trie2.Range range, boolean overwrite) {
+          fHash = 0;
           if (range.leadSurrogate) {
               //  TODO:  optimize this.
               for (int c=range.startCodePoint; c<=range.endCodePoint; c++) {
@@ -559,6 +562,7 @@ public class Trie2Writable extends Trie2 {
       * @param value the value
       */
      public Trie2Writable setForLeadSurrogateCodeUnit(char codeUnit, int value) {
+         fHash = 0;
          set(codeUnit, false, value);
          return this;
      }
