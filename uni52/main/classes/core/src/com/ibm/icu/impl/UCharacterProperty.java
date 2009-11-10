@@ -345,23 +345,10 @@ public final class UCharacterProperty
             } else {
                 if(column==SRC_CASE) {
                     /* case mapping properties */
-                    UCaseProps csp;
                     try {
-                        csp = UCaseProps.getSingleton();
+                        return UCaseProps.getSingleton().hasBinaryProperty(codepoint, property);
                     } catch (IOException e) {
                         return false;
-                    }
-                    switch(property) {
-                    case UProperty.LOWERCASE:
-                        return UCaseProps.LOWER==csp.getType(codepoint);
-                    case UProperty.UPPERCASE:
-                        return UCaseProps.UPPER==csp.getType(codepoint);
-                    case UProperty.SOFT_DOTTED:
-                        return csp.isSoftDotted(codepoint);
-                    case UProperty.CASE_SENSITIVE:
-                        return csp.isCaseSensitive(codepoint);
-                    default:
-                        break;
                     }
                 } else if(column==SRC_NORM) {
                     /* normalization properties from unorm.icu */

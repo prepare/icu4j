@@ -1978,7 +1978,16 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
          */
         public static final UnicodeBlock INVALID_CODE 
             = new UnicodeBlock("INVALID_CODE", INVALID_CODE_ID);
-                   
+
+        static {
+            for (int blockId = 0; blockId < COUNT; ++blockId) {
+                if (BLOCKS_[blockId] == null) {
+                    throw new java.lang.IllegalStateException(
+                        "UnicodeBlock.BLOCKS_[" + blockId + "] not initialized");
+                }
+            }
+        }
+
         // public methods --------------------------------------------------
         
         /** 
@@ -2103,7 +2112,9 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
         {
             super(name);
             m_id_ = id;
-            BLOCKS_[id] = this;
+            if (id >= 0) {
+                BLOCKS_[id] = this;
+            }
         }
     }
 
