@@ -149,6 +149,34 @@ public class Trie2Test extends TestFmwk {
              assertEquals(where(), 42, r.value);
              assertEquals(where(), false, r.leadSurrogate);
          }
+         
+         
+         // Iteration over a leading surrogate range.
+         //
+         {
+             Trie2Writable trie = new Trie2Writable(0xdefa17, 0);
+             trie.set(0x2f810, 10);
+             Iterator<Trie2.Range> it = trie.iteratorForLeadSurrogate((char)0xd87e);
+             Trie2.Range r = it.next();
+             assertEquals(where(), 0x2f800,  r.startCodePoint);
+             assertEquals(where(), 0x2f80f,  r.endCodePoint);
+             assertEquals(where(), 0xdefa17, r.value);
+             assertEquals(where(), false,    r.leadSurrogate);
+             
+             r = it.next();
+             assertEquals(where(), 0x2f810, r.startCodePoint);
+             assertEquals(where(), 0x2f810, r.endCodePoint);
+             assertEquals(where(), 10,      r.value);
+             assertEquals(where(), false,   r.leadSurrogate);
+
+             r = it.next();
+             assertEquals(where(), 0x2f811,  r.startCodePoint);
+             assertEquals(where(), 0x2fbff,  r.endCodePoint);
+             assertEquals(where(), 0xdefa17, r.value);
+             assertEquals(where(), false,    r.leadSurrogate);
+             
+             assertFalse(where(), it.hasNext());
+         }
      }
      
      

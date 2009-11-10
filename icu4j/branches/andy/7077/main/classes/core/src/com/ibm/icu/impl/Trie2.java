@@ -414,8 +414,6 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
         return iterator(vm);
     }
     
-    // TODO:  add an iterator(int startingCodePoint) to allow iteration over a limited range?
-    //        Would simplify the supplementary character optimizations.
     
     /**
      * Create an iterator over the value ranges from this Trie2.
@@ -430,7 +428,47 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
     public Iterator<Range> iterator(ValueMapper mapper) {
         return new TrieIterator(mapper);
     }
+
     
+    /**
+     * Create an iterator over the trie values for the 1024=0x400 code points
+     * corresponding to a given lead surrogate.
+     * For example, for the lead surrogate U+D87E it will enumerate the values
+     * for [U+2F800..U+2FC00[.
+     * Used by data builder code that sets special lead surrogate code unit values
+     * for optimized UTF-16 string processing.
+     *
+     * Do not modify the trie during the iteration.
+     *
+     * Except for the limited code point range, this functions just like Trie2.iterator().
+     *
+     */
+    public Iterator<Range> iteratorForLeadSurrogate(char lead, ValueMapper mapper) {
+        return new TrieIterator(lead, mapper);
+    }
+
+    /**
+     * Create an iterator over the trie values for the 1024=0x400 code points
+     * corresponding to a given lead surrogate.
+     * For example, for the lead surrogate U+D87E it will enumerate the values
+     * for [U+2F800..U+2FC00[.
+     * Used by data builder code that sets special lead surrogate code unit values
+     * for optimized UTF-16 string processing.
+     *
+     * Do not modify the trie during the iteration.
+     *
+     * Except for the limited code point range, this functions just like Trie2.iterator().
+     *
+     */
+    public Iterator<Range> iteratorForLeadSurrogate(char lead) {
+        ValueMapper mapper = new ValueMapper() {
+            public int map(int in) { 
+                return in;
+            }
+        };
+        return new TrieIterator(lead, mapper);
+    }
+
     /**
      * When iterating over the contents of a Trie, an instance of TrieValueMapper may
      * be used to remap the values from the Trie.  The remapped values will be used
@@ -867,14 +905,32 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
     /** 
      * Implementation class for an iterator over a Trie2.
      * 
-     *   The iteration first returns all of the values that are indexed by code points,
-     *   then returns the special alternate values for the lead surrogate range
+     *   Iteration over a Trie2 first returns all of the ranges that are indexed by code points,
+     *   then returns the special alternate values for the lead surrogates
      *     
      * @internal
      */
     class TrieIterator implements Iterator<Range> {
+        // The normal constructor that configures the iterator to cover the complete
+        //   contents of the Trie
         TrieIterator(ValueMapper vm) {
-            mapper = vm;
+            mapper    = vm;
+            nextStart = 0;
+            limitCP   = 0x110000;
+            doLeadSurrogates = true;
+        }
+        
+        // An alternate constructor that configures the iterator to cover only the
+        //   code points corresponding to a particular Lead Surrogate value.
+        TrieIterator(char leadSurrogate, ValueMapper vm) {
+            if (leadSurrogate < 0xd800 || leadSurrogate > 0xdbff) {
+                throw new IllegalArgumentException("Bad lead surrogate value.");
+            }
+            mapper    = vm;
+            nextStart = 0x10000 + (leadSurrogate - 0xd800) * 1024;
+            limitCP   = nextStart + 1024;
+            doLeadSurrogates = false;   // Do not iterate over lead the special lead surrogate
+                                        //   values after completing iteration over code points.
         }
         
         /**
@@ -882,60 +938,59 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
          *  
          */
         public Range next() {
-            if (leadSurrogates && nextStart >= 0xdc00) {
+            if (!doingCodePoints && nextStart >= 0xdc00) {
                 throw new NoSuchElementException();
             }
-            if (nextStart >= 0x110000) {
+            if (nextStart >= limitCP) {
                 // Switch over from iterating normal code point values to
                 //   doing the alternate lead-surrogate values.
-                leadSurrogates = true;
+                doingCodePoints = false;
                 nextStart = 0xd800;
             }
-            int   c = nextStart;
             int   endOfRange = 0;
             int   val = 0;
             int   mappedVal = 0;
             
-            if (!leadSurrogates) {
+            if (doingCodePoints) {
                 // Iteration over code point values.
-                val = get(c);
+                val = get(nextStart);
                 mappedVal = mapper.map(val);
+                endOfRange = rangeEnd(nextStart);
                 // Loop once for each range in the Trie with the same raw (unmapped) value.
                 // Loop continues so long as the mapped values are the same.
                 for (;;) {
-                    endOfRange = rangeEnd(c);
-                    if (endOfRange == 0x10ffff) {
+                    if (endOfRange >= limitCP-1) {
                         break;
                     }
-                    val = get(c);
+                    val = get(endOfRange+1);
                     if (mapper.map(val) != mappedVal) {
                         break;
                     }
-                    c = endOfRange+1;
+                    endOfRange = rangeEnd(endOfRange+1);
                 }
             } else {
                 // Iteration over the alternate lead surrogate values.
-                val = getFromU16SingleLead((char)c); 
+                val = getFromU16SingleLead((char)nextStart); 
                 mappedVal = mapper.map(val);
+                endOfRange = rangeEndLS((char)nextStart);
                 // Loop once for each range in the Trie with the same raw (unmapped) value.
                 // Loop continues so long as the mapped values are the same.
                 for (;;) {
-                    endOfRange = rangeEndLS((char)c);
-                    if (endOfRange == 0xdbff) {
+                    if (endOfRange >= 0xdbff) {
                         break;
                     }
-                    val = getFromU16SingleLead((char)c);
+                    val = getFromU16SingleLead((char)(endOfRange+1));
                     if (mapper.map(val) != mappedVal) {
                         break;
                     }
-                    c = endOfRange+1;
+                    endOfRange = rangeEndLS((char)(endOfRange+1));
                 }
             }
             returnValue.startCodePoint = nextStart;
             returnValue.endCodePoint   = endOfRange;
             returnValue.value          = mappedVal;
-            returnValue.leadSurrogate  = leadSurrogates;
-            nextStart           = endOfRange+1;            
+            returnValue.leadSurrogate  = !doingCodePoints;
+            nextStart                  = endOfRange+1;            
             return returnValue;
         }
         
@@ -943,7 +998,7 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
          * 
          */
         public boolean hasNext() {
-            return !leadSurrogates || nextStart < 0xdc00;
+            return doingCodePoints && doLeadSurrogates || nextStart < 0xdc00;
         }
         
         public void remove() {
@@ -959,23 +1014,20 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
          * @return   The last contiguous character with the same value.
          */
         private int rangeEnd(int startingC) {
-            if (startingC >= highStart) {
-                return 0x10ffff;
-            }
-            
             // TODO: add optimizations
             int c;
             int val = get(startingC);
-            for (c = startingC+1; c <= highStart; c++) {
+            int limit = Math.min(highStart, limitCP);
+            
+            for (c = startingC+1; c <= limit; c++) {
                 if (get(c) != val) {
                     break;
                 }
             }
-            if (c < highStart) {
-                return c-1;
-            } else {
-                return 0x10ffff;
+            if (c >= highStart) {
+                c = limitCP;
             }
+            return c - 1;
         }
                 
         /**
@@ -1009,8 +1061,19 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
         //
         private ValueMapper    mapper;
         private Range          returnValue = new Range();
-        private int            nextStart = 0;
-        private boolean        leadSurrogates = false;
+        // The starting code point for the next range to be returned.
+        private int            nextStart;
+        // The upper limit for the last normal range to be returned.  Normally 0x110000, but
+        //   may be lower when iterating over the code points for a single lead surrogate.
+        private int            limitCP;
+        
+        // True while iterating over the the trie values for code points.
+        // False while iterating over the alternate values for lead surrogates.
+        private boolean        doingCodePoints = true;
+        
+        // True if the iterator should iterate the special values for lead surrogates in
+        //   addition to the normal values for code points.
+        private boolean        doLeadSurrogates = true;
     }
     
     
