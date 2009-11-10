@@ -252,7 +252,7 @@ public final class UCharacterProperty
        /*
         * column and mask values for binary properties from u_getUnicodeProperties().
         * Must be in order of corresponding UProperty,
-        * and there must be exacly one entry per binary UProperty.
+        * and there must be exactly one entry per binary UProperty.
         */
        new BinaryProperties(  1,                (  1 << ALPHABETIC_PROPERTY_) ),
        new BinaryProperties(  1,                (  1 << ASCII_HEX_DIGIT_PROPERTY_) ),
@@ -302,7 +302,14 @@ public final class UCharacterProperty
        new BinaryProperties( SRC_CHAR,  0 ),                                        /* UCHAR_POSIX_BLANK */
        new BinaryProperties( SRC_CHAR,  0 ),                                        /* UCHAR_POSIX_GRAPH */
        new BinaryProperties( SRC_CHAR,  0 ),                                        /* UCHAR_POSIX_PRINT */
-       new BinaryProperties( SRC_CHAR,  0 )                                         /* UCHAR_POSIX_XDIGIT */
+       new BinaryProperties( SRC_CHAR,  0 ),                                        /* UCHAR_POSIX_XDIGIT */
+       new BinaryProperties( SRC_CASE,  0 ),                                        /* UCHAR_CASED */
+       new BinaryProperties( SRC_CASE,  0 ),                                        /* UCHAR_CASE_IGNORABLE */
+       new BinaryProperties( SRC_CASE,  0 ),                                        /* UCHAR_CHANGES_WHEN_LOWERCASED */
+       new BinaryProperties( SRC_CASE,  0 ),                                        /* UCHAR_CHANGES_WHEN_UPPERCASED */
+       new BinaryProperties( SRC_CASE,  0 ),                                        /* UCHAR_CHANGES_WHEN_TITLECASED */
+       new BinaryProperties( SRC_CASE_AND_NORM,  0 ),                               /* UCHAR_CHANGES_WHEN_CASEFOLDED */
+       new BinaryProperties( SRC_CASE,  0 )                                         /* UCHAR_CHANGES_WHEN_CASEMAPPED */
    };
 
 
@@ -423,6 +430,45 @@ public final class UCharacterProperty
                     switch(property) {
                     case UProperty.POSIX_ALNUM:
                         return UCharacter.isUAlphabetic(codepoint) || UCharacter.isDigit(codepoint);
+                    default:
+                        break;
+                    }
+                } else if(column==SRC_CASE_AND_NORM) {
+                    char nfd[]=new char[4];
+                    switch(property) {
+                    case UProperty.CHANGES_WHEN_CASEFOLDED:
+                        int nfdLength=NormalizerImpl.getDecomposition(codepoint, false, nfd, 0, nfd.length);
+                        if(nfdLength>0) {
+                            /* c has a decomposition */
+                            if(nfdLength==1) {
+                                codepoint=nfd[0];  /* single BMP code point */
+                            } else if(nfdLength<=2) {
+                                codepoint=Character.codePointAt(nfd, 0);
+                                if(Character.charCount(codepoint)==nfdLength) {
+                                    /* single supplementary code point */
+                                } else {
+                                    codepoint=-1;
+                                }
+                            } else {
+                                codepoint=-1;
+                            }
+                        } else if(codepoint<0) {
+                            return false;  /* protect against bad input */
+                        }
+                        if(codepoint>=0) {
+                            /* single code point */
+                            try {
+                                UCaseProps csp=UCaseProps.getSingleton();
+                                UCaseProps.dummyStringBuffer.setLength(0);
+                                return csp.toFullFolding(codepoint, UCaseProps.dummyStringBuffer, UCharacter.FOLD_CASE_DEFAULT)>=0;
+                            } catch (IOException e) {
+                                return false;
+                            }
+                        } else {
+                            String nfdString=new String(nfd, 0, nfdLength);
+                            String folded=UCharacter.foldCase(nfdString, true);
+                            return folded!=nfdString;
+                        }
                     default:
                         break;
                     }

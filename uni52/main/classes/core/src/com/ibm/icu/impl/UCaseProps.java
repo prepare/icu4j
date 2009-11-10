@@ -528,25 +528,6 @@ public final class UCaseProps {
         return (trie.getCodePointValue(c)&SENSITIVE)!=0;
     }
 
-    public final boolean hasBinaryProperty(int c, int which) {
-        switch(which) {
-        case UProperty.LOWERCASE:
-            return LOWER==getType(c);
-        case UProperty.UPPERCASE:
-            return UPPER==getType(c);
-        case UProperty.SOFT_DOTTED:
-            return isSoftDotted(c);
-        case UProperty.CASE_SENSITIVE:
-            return isCaseSensitive(c);
-        case UProperty.CASED:
-            return NONE!=getType(c);
-        case UProperty.CASE_IGNORABLE:
-            return (getTypeOrIgnorable(c)>>2)!=0;
-        default:
-            return false;
-        }
-    }
-
     // string casing ------------------------------------------------------- ***
 
     /*
@@ -1302,6 +1283,68 @@ public final class UCaseProps {
         }
 
         return (result==c) ? ~result : result;
+    }
+
+    /* case mapping properties API ---------------------------------------------- */
+
+    private static final ULocale rootLocale = new ULocale("");
+    private static final int[] rootLocCache = { LOC_ROOT };
+    /*
+     * We need a StringBuffer for multi-code point output from the
+     * full case mapping functions. However, we do not actually use that output,
+     * we just check whether the input character was mapped to anything else.
+     * We use a shared StringBuffer to avoid allocating a new one in each call.
+     * We remove its contents each time so that it does not grow large over time.
+     *
+     * @internal
+     */
+    public static final StringBuffer dummyStringBuffer = new StringBuffer();
+
+    public final boolean hasBinaryProperty(int c, int which) {
+        switch(which) {
+        case UProperty.LOWERCASE:
+            return LOWER==getType(c);
+        case UProperty.UPPERCASE:
+            return UPPER==getType(c);
+        case UProperty.SOFT_DOTTED:
+            return isSoftDotted(c);
+        case UProperty.CASE_SENSITIVE:
+            return isCaseSensitive(c);
+        case UProperty.CASED:
+            return NONE!=getType(c);
+        case UProperty.CASE_IGNORABLE:
+            return (getTypeOrIgnorable(c)>>2)!=0;
+        /*
+         * Note: The following Changes_When_Xyz are defined as testing whether
+         * the NFD form of the input changes when Xyz-case-mapped.
+         * However, this simpler implementation of these properties,
+         * ignoring NFD, passes the tests.
+         * The implementation needs to be changed if the tests start failing.
+         * When that happens, optimizations should be used to work with the
+         * per-single-code point ucase_toFullXyz() functions unless
+         * the NFD form has more than one code point,
+         * and the property starts set needs to be the union of the
+         * start sets for normalization and case mappings.
+         */
+        case UProperty.CHANGES_WHEN_LOWERCASED:
+            dummyStringBuffer.setLength(0);
+            return toFullLower(c, null, dummyStringBuffer, rootLocale, rootLocCache)>=0;
+        case UProperty.CHANGES_WHEN_UPPERCASED:
+            dummyStringBuffer.setLength(0);
+            return toFullUpper(c, null, dummyStringBuffer, rootLocale, rootLocCache)>=0;
+        case UProperty.CHANGES_WHEN_TITLECASED:
+            dummyStringBuffer.setLength(0);
+            return toFullTitle(c, null, dummyStringBuffer, rootLocale, rootLocCache)>=0;
+        /* case UProperty.CHANGES_WHEN_CASEFOLDED: -- in UCharacterProperty.java */
+        case UProperty.CHANGES_WHEN_CASEMAPPED:
+            dummyStringBuffer.setLength(0);
+            return
+                toFullLower(c, null, dummyStringBuffer, rootLocale, rootLocCache)>=0 ||
+                toFullUpper(c, null, dummyStringBuffer, rootLocale, rootLocCache)>=0 ||
+                toFullTitle(c, null, dummyStringBuffer, rootLocale, rootLocCache)>=0;
+        default:
+            return false;
+        }
     }
 
     // data members -------------------------------------------------------- ***
