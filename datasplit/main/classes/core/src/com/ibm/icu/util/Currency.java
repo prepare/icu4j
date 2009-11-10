@@ -580,7 +580,7 @@ public class Currency extends MeasureUnit implements Serializable {
         String s = null;
 
          try {
-            UResourceBundle rb = UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME,locale);
+            UResourceBundle rb = UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_CURR_BASE_NAME,locale);
             ICUResourceBundle currencies = (ICUResourceBundle)rb.get("Currencies");
 
             // Fetch resource with multi-level resource inheritance fallback
@@ -677,7 +677,7 @@ public class Currency extends MeasureUnit implements Serializable {
         ICUResourceBundle isoCodeBundle;
         // search at run time, not saved in initialization
         try {
-            UResourceBundle rb = UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME,locale);
+            UResourceBundle rb = UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_CURR_BASE_NAME,locale);
             // get handles fallback
             ICUResourceBundle currencies = (ICUResourceBundle)rb.get("CurrencyPlurals");
 
@@ -822,7 +822,7 @@ public class Currency extends MeasureUnit implements Serializable {
         HashSet<String> visited = new HashSet<String>();
         ULocale parentLocale = locale;
         while (parentLocale != null) {
-            UResourceBundle rb = UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME,parentLocale);
+            UResourceBundle rb = UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_CURR_BASE_NAME,parentLocale);
             // We can't cast this to String[][]; the cast has to happen later
             try {
                 UResourceBundle currencies = rb.get("Currencies");
@@ -877,7 +877,7 @@ public class Currency extends MeasureUnit implements Serializable {
         Map<String, Set<String>> visitedInMap = new HashMap<String, Set<String>>();
         parentLocale = locale;
         while (parentLocale != null) {
-            UResourceBundle rb = UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME,parentLocale);
+            UResourceBundle rb = UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_CURR_BASE_NAME,parentLocale);
             try {
                 UResourceBundle currencies;
                 currencies = rb.get("CurrencyPlurals");
