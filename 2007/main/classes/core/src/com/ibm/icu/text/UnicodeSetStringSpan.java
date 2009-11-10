@@ -837,8 +837,7 @@ public class UnicodeSetStringSpan {
  * list.
  * 
  * Note: In principle, the caller should setMaxLength() to the maximum of the max string length and U16_LENGTH/U8_LENGTH
- * to account for "long" single code points. However, this implementation uses at least a staticList with more than
- * U8_LENGTH entries anyway.
+ * to account for "long" single code points.
  * 
  * Note: If maxLength were guaranteed to be no more than 32 or 64, the list could be stored as bit flags in a single
  * integer. Rather than handling a circular buffer with a start list index, the integer would simply be shifted when
