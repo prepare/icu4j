@@ -938,7 +938,7 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
          *  
          */
         public Range next() {
-            if (!doingCodePoints && nextStart >= 0xdc00) {
+            if (!hasNext()) {
                 throw new NoSuchElementException();
             }
             if (nextStart >= limitCP) {
@@ -998,7 +998,7 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
          * 
          */
         public boolean hasNext() {
-            return doingCodePoints && doLeadSurrogates || nextStart < 0xdc00;
+            return doingCodePoints && (doLeadSurrogates || nextStart < limitCP) || nextStart < 0xdc00;
         }
         
         public void remove() {
@@ -1019,7 +1019,7 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
             int val = get(startingC);
             int limit = Math.min(highStart, limitCP);
             
-            for (c = startingC+1; c <= limit; c++) {
+            for (c = startingC+1; c < limit; c++) {
                 if (get(c) != val) {
                     break;
                 }
