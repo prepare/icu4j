@@ -6,8 +6,6 @@
  */
 package com.ibm.icu.impl;
 
-import com.ibm.icu.impl.Trie2.ValueWidth;
-
 
 /**
  * @author aheninger
@@ -37,6 +35,8 @@ public final class Trie2_16 extends Trie2 {
     public Trie2_16(int initialValue, int errorValue) { 
         // TODO: implement this.
         // TODO: I think that we should drop this from the API.  I don't see the purpose.
+       // Remove for now, comment that it's gone
+        
     }
     
     /**
@@ -115,7 +115,7 @@ public final class Trie2_16 extends Trie2 {
      * @return the value
      */
     @Override
-    public int getFromU16SingleLead(char codeUnit){
+    public int getFromU16SingleLead(char codeUnit) {
         int value;
         int ix;
 

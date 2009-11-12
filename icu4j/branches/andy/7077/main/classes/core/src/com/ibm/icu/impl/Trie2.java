@@ -421,8 +421,8 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
      * will be produced by the iterator.
      * 
      * 
-     * @param mapper provides a function to remap values obtained from the Trie.
-     * @return an Interator
+     * @param mapper provides a function to remap values obtained from the Trie2.
+     * @return an Iterator
      */
     public Iterator<Range> iterator(ValueMapper mapper) {
         return new TrieIterator(mapper);
@@ -561,12 +561,7 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
      * The iteration walks over a CharSequence, and for each Unicode code point therein
      * returns the character and its associated Trie value.
      */
-    public static class CharSequenceValues {
-        // TODO:  a better name for this class? 
-        // TODO:  an equals() function?  Not sure that it would be useful, because the
-        //        index will generally be different.
-        // TODO:  Accessor functions rather than direct member access?
-        
+    public static class CharSequenceValues {        
         /** string index of the current code point. */
         public int index;
         
@@ -596,8 +591,15 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
      * in the input returns the associated value from the Trie.
      * 
      * The iterator can move forwards or backwards, and can be reset to an arbitrary index.
+     * 
+     * Note that Trie2_16 and Trie2_32 subclass Trie2.CharSequenceIterator.  This is done
+     * only for performance reasons.  It does require that any changes made here be propagated
+     * into the corresponding code in the subclasses.
      */
     public class CharSequenceIterator implements Iterator<CharSequenceValues> {
+        /**
+         * Internal constructor.
+         */
         CharSequenceIterator(CharSequence t, int index) { 
             text = t;
             textLength = text.length();

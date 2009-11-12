@@ -9,8 +9,6 @@ package com.ibm.icu.impl;
 import java.io.IOException;
 import java.io.OutputStream;
 
-import com.ibm.icu.impl.Trie2.ValueWidth;
-
 /**
  * @author aheninger
  *
@@ -38,7 +36,7 @@ public class Trie2Writable extends Trie2 {
         this.errorValue   = errorValueP;
         this.highStart    = 0x110000;
 
-        this.data           = new int[UNEWTRIE2_INITIAL_DATA_LENGTH];;
+        this.data           = new int[UNEWTRIE2_INITIAL_DATA_LENGTH];
         this.dataCapacity   = UNEWTRIE2_INITIAL_DATA_LENGTH;
         this.initialValue   = initialValueP;
         this.errorValue     = errorValueP;
@@ -991,7 +989,7 @@ public class Trie2Writable extends Trie2 {
     /**
      * Produce an optimized, read-only Trie2_16 from this writable Trie.
      * The data values must all fit as an unsigned 16 bit value.
-     * 
+     * TODO: rename
      */
     public Trie2_16 getAsFrozen_16() {
         Trie2_16 frozenTrie = new Trie2_16();
@@ -1028,7 +1026,7 @@ public class Trie2Writable extends Trie2 {
 
     /* Compact the data and then populate an optimized read-only Trie.  */
     private void freeze(Trie2 dest, ValueWidth valueBits) {
-        int  i, length;
+        int  i;
         int  allIndexesLength;
         int  dataMove;  /* >0 if the data is moved to the end of the index array */
 
