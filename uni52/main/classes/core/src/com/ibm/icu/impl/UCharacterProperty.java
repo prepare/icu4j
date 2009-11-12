@@ -434,7 +434,9 @@ public final class UCharacterProperty
                         break;
                     }
                 } else if(column==SRC_CASE_AND_NORM) {
-                    char nfd[]=new char[4];
+                    // Need a bigger buffer in Java than in C because long decompositions are copied here,
+                    // where the C code would just return a pointer.
+                    char nfd[]=new char[32];
                     switch(property) {
                     case UProperty.CHANGES_WHEN_CASEFOLDED:
                         int nfdLength=NormalizerImpl.getDecomposition(codepoint, false, nfd, 0, nfd.length);
