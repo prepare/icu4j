@@ -206,7 +206,7 @@ public final class UCharacterTest extends TestFmwk
     */
     public void TestDefined()
     {
-        int undefined[] = {0xfff1, 0xfff7, 0xfa6b};
+        int undefined[] = {0xfff1, 0xfff7, 0xfa6e};
         int defined[] = {0x523E, 0x004f88, 0x00fffd};
 
         int size = undefined.length;
@@ -1321,7 +1321,7 @@ public final class UCharacterTest extends TestFmwk
     }
 
     /**
-    * This method is alittle different from the type test in icu4c.
+    * This method is a little different from the type test in icu4c.
     * But combined with testUnicodeData, they basically do the same thing.
     */
     public void TestIteration()
@@ -3188,21 +3188,27 @@ public final class UCharacterTest extends TestFmwk
         int[] radixResult = {
                 10,11,12,13,14,15,16,17,18,19,20,21,22,
                 23,24,25,26,27,28,29,30,31,32,33,34,35};
-        int[] radixCase1 = {0,1,5,10};
-        int[] radixCase2 = {100,250,500,1000};
+        // Invalid and too-small-for-these-digits radix values. 
+        int[] radixCase1 = {0,1,5,10,100};
+        // Radix values that work for at least some of the "digits".
+        int[] radixCase2 = {12,16,20,36};
         
         for(int i=0xFF41; i<=0xFF5A; i++){
             for(int j=0; j < radixCase1.length; j++){
                 if(UCharacter.digit(i, radixCase1[j]) != -1){
-                    errln("UCharacter.digit(int,int) was suppose to return -1 for radix " + radixCase1[j]
-                            + ". Value passed: " + i + ". Got: " + UCharacter.digit(i, radixCase1[j]));
+                    errln("UCharacter.digit(int,int) was supposed to return -1 for radix " + radixCase1[j]
+                            + ". Value passed: U+" + Integer.toHexString(i) + ". Got: " + UCharacter.digit(i, radixCase1[j]));
                 }
             }
             for(int j=0; j < radixCase2.length; j++){
-                if(UCharacter.digit(i, radixCase2[j]) != radixResult[i-0xFF41]){
-                    errln("UCharacter.digit(int,int) was suppose to return " +
-                            radixResult[i-0xFF41] + " for radix " + radixCase2[j] +
-                            ". Value passed: " + i + ". Got: " + UCharacter.digit(i, radixCase2[j]));
+                int radix = radixCase2[j];
+                int expected = (radixResult[i-0xFF41] < radix) ? radixResult[i-0xFF41] : -1;
+                int actual = UCharacter.digit(i, radix);
+                if(actual != expected){
+                    errln("UCharacter.digit(int,int) was supposed to return " +
+                            expected + " for radix " + radix +
+                            ". Value passed: U+" + Integer.toHexString(i) + ". Got: " + actual);
+                    break;
                 }
             }
         }
