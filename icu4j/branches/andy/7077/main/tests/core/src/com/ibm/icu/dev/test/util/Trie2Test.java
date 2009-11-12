@@ -319,6 +319,7 @@ public class Trie2Test extends TestFmwk {
          assertTrue(where(), t1w.equals(t1_32));
          // alter the writable trie and then re-freeze.
          t1w.set(152, 129);
+         assertNotEquals(where(), t1_32, t1w);
          t1_32 = t1w.getAsFrozen_32();
          assertTrue(where(), t1w.equals(t1_32));
          assertEquals(where(), 129, t1w.get(152));
@@ -568,6 +569,7 @@ public class Trie2Test extends TestFmwk {
      };
 
      private static int[][] setRangesSingleValue={
+         { 0,        0,        3,  0 },   // Initial value = 3
          { 0,        0x110000, 5, 1 },
      };
 
@@ -685,8 +687,9 @@ public class Trie2Test extends TestFmwk {
                  }
                  value2 = trie.getFromU16SingleLead((char)start);
                  if(value2!=value) {
-                     errln("trie2.getFromU16SingleLead() failed.  char, exected, actual = " +
-                             Integer.toHexString(start) + ", " + Integer.toHexString(value) + ", " + Integer.toHexString(value2));
+                     errln(where() + " testName: " + testName + " getFromU16SingleLead() failed." +
+                             "char, exected, actual = " + Integer.toHexString(start) + ", " + 
+                             Integer.toHexString(value) + ", " + Integer.toHexString(value2));
                  }
              }
          }
@@ -715,13 +718,12 @@ public class Trie2Test extends TestFmwk {
      private void checkTrieRanges(String testName, String serializedName, boolean withClone,
              int[][] setRanges, int [][] checkRanges) throws IOException {
          
-         // We don't have the Trie2 builder yet.
          // Run tests against Tries that were built by ICU4C and serialized.
          String fileName16 = "Trie2Test." + serializedName + ".16.tri2";
          String fileName32 = "Trie2Test." + serializedName + ".32.tri2";
          String currentDir = new File(".").getAbsolutePath();
          
-         // TODO:  find out the right way to access the test data.
+         // TODO:  find out the official way to access the test data.
          String testDir = "src/com/ibm/icu/dev/test/util/";
          FileInputStream is = new FileInputStream(testDir + fileName16);
          Trie2  trie16 = Trie2.createFromSerialized(is);
@@ -738,6 +740,16 @@ public class Trie2Test extends TestFmwk {
          // Run the same tests against locally contructed Tries.
          Trie2Writable trieW = genTrieFromSetRanges(setRanges);
          trieGettersTest(testName, trieW, Trie2.ValueWidth.BITS_32, checkRanges);
+         assertEquals(where(), trieW, trie16);   // Locally built tries must be
+         assertEquals(where(), trieW, trie32);   //   the same as those imported from ICU4C
+         
+         
+         Trie2_32 trie32a = trieW.getAsFrozen_32();
+         trieGettersTest(testName, trie32a, Trie2.ValueWidth.BITS_32, checkRanges);
+
+         Trie2_16 trie16a = trieW.getAsFrozen_16();
+         trieGettersTest(testName, trie16a, Trie2.ValueWidth.BITS_16, checkRanges);
+
 
      }
      

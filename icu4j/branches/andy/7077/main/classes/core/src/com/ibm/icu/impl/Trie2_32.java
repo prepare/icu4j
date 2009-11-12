@@ -34,11 +34,12 @@ public class Trie2_32 extends Trie2 {
      */
     public Trie2_32(int initialValue, int errorValue) { 
         // TODO: implement this.
+        // TODO: I think that we should drop this from the API.  I don't see the purpose.
     }
     
     
     /**
-     * Internal constructor, used from Trie2.createFromSerialized().
+     * Internal constructor, not for general use.
      */
     Trie2_32() {
     }
@@ -123,7 +124,55 @@ public class Trie2_32 extends Trie2 {
 
     }
     
-    
+
+    /**
+     * Iterator class that will produce the values from the Trie for
+     *  the sequence of code points in an input text.
+     *
+     *  This class is functionally identical to Trie2.CharSequenceIterator.
+     *  Direct use of this class (Trie2_16.CharSequenceIterator) will be 
+     *  slightly faster access via the base class. 
+     */
+    public final class CharSequenceIterator extends Trie2.CharSequenceIterator {
+        CharSequenceIterator(CharSequence text, int index) {
+            super(text, index);
+        }
+
+        
+        public Trie2.CharSequenceValues next() {
+            int c = Character.codePointAt(text, index);
+            int val = get(c);
+
+            fResults.index = index;
+            fResults.codePoint = c;
+            fResults.value = val;
+            index++;
+            if (c >= 0x10000) {
+                index++;
+            }            
+            return fResults;
+        }
+
+        
+        public Trie2.CharSequenceValues previous() {
+            int c = Character.codePointBefore(text, index);
+            int val = get(c);
+            index--;
+            if (c >= 0x10000) {
+                index--;
+            }
+            fResults.index = index;
+            fResults.codePoint = c;
+            fResults.value = val;
+            return fResults;
+        }
+   }
+
+    public CharSequenceIterator iterator(CharSequence text, int index) {
+        return new CharSequenceIterator(text, index);
+    }
+        
+
     
 
 }

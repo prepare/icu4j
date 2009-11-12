@@ -264,8 +264,7 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
      * @return The frozen Trie2 with the same values as the source Trie.
      */
     public static Trie2 createFromTrie(Trie trie1, int errorValue) {
-        // TODO:  I don't think that we need this function, and propose that we drop
-        //        it from the API.
+        // TODO:  Do we really need this function?  Permanently?
         return null;
     }
     

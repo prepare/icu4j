@@ -402,13 +402,12 @@ public class Trie2Writable extends Trie2 {
          if(start>0x10ffff || start<0 || end>0x10ffff || end<0 || start>end) {
              throw new IllegalArgumentException("Invalid code point range.");
          }
-         fHash = 0;
-         if(isCompacted) {
-             // TODO: Fix this
-             throw new UnsupportedOperationException("Writing to a compacted Trie is not supported yet.");
-         }
          if(!overwrite && value==initialValue) {
              return this; /* nothing to do */
+         }
+         fHash = 0;
+         if(isCompacted) {
+             this.uncompact();
          }
 
          limit=end+1;

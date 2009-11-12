@@ -36,12 +36,11 @@ public final class Trie2_16 extends Trie2 {
      */
     public Trie2_16(int initialValue, int errorValue) { 
         // TODO: implement this.
+        // TODO: I think that we should drop this from the API.  I don't see the purpose.
     }
     
     /**
-     *  Default constructor, not public.
-     *  Used by Trie2Writable.getAsFrozen_16() to construct the Trie that will
-     *  subsequently be filled in.
+     *  Internal constructor, not for general use.
      */
     Trie2_16() {        
     }
