@@ -189,7 +189,7 @@ public class Trie2Writable extends Trie2 {
     private int getIndex2Block(int c, boolean forLSCP) {
         int i1, i2;
 
-        if(Character.isHighSurrogate((char)c) && forLSCP) {
+        if(c>=0xd800 && c<0xdc00 && forLSCP) {
             return UTRIE2_LSCP_INDEX_2_OFFSET;
         }
 
@@ -587,11 +587,11 @@ public class Trie2Writable extends Trie2 {
     private int get(int c, boolean fromLSCP) {
         int i2, block;
 
-        if(c>=highStart && (!Character.isHighSurrogate((char)c) || fromLSCP)) {
+        if(c>=highStart && (!(c>=0xd800 && c<0xdc00) || fromLSCP)) {
             return data[dataLength-UTRIE2_DATA_GRANULARITY];
         }
 
-        if(Character.isHighSurrogate((char)c) && fromLSCP) {
+        if((c>=0xd800 && c<0xdc00) && fromLSCP) {
             i2=(UTRIE2_LSCP_INDEX_2_OFFSET-(0xd800>>UTRIE2_SHIFT_2))+
                 (c>>UTRIE2_SHIFT_2);
         } else {
@@ -939,7 +939,7 @@ public class Trie2Writable extends Trie2 {
         /* find highStart and round it up */
         highValue=get(0x10ffff);
         localHighStart=findHighStart(highValue);
-        localHighStart=(highStart+(UTRIE2_CP_PER_INDEX_1_ENTRY-1))&~(UTRIE2_CP_PER_INDEX_1_ENTRY-1);
+        localHighStart=(localHighStart+(UTRIE2_CP_PER_INDEX_1_ENTRY-1))&~(UTRIE2_CP_PER_INDEX_1_ENTRY-1);
         if(localHighStart==0x110000) {
             highValue=errorValue;
         }
@@ -1078,6 +1078,7 @@ public class Trie2Writable extends Trie2 {
         } else {
             dest.index2NullOffset = UTRIE2_INDEX_2_OFFSET + index2NullOffset;
         }
+        dest.initialValue   = initialValue;
         dest.errorValue     = errorValue;
         dest.highStart      = highStart;
         dest.highValueIndex = dataMove + dataLength - UTRIE2_DATA_GRANULARITY;
@@ -1102,6 +1103,9 @@ public class Trie2Writable extends Trie2 {
         for(i=0; i<UTRIE2_INDEX_2_BMP_LENGTH; i++) {
             dest.index[destIdx++] = (char)((index2[i]+dataMove) >> UTRIE2_INDEX_SHIFT);
         }
+        if (UTRIE2_DEBUG) {
+            System.out.println("\n\nIndex2 for BMP limit is " + Integer.toHexString(destIdx));
+        }
 
         /* write UTF-8 2-byte index-2 values, not right-shifted */
         for(i=0; i<(0xc2-0xc0); ++i) {                                  /* C0..C1 */
@@ -1109,6 +1113,9 @@ public class Trie2Writable extends Trie2 {
         }
         for(; i<(0xe0-0xc0); ++i) {                                     /* C2..DF */
             dest.index[destIdx++]=(char)(dataMove+index2[i<<(6-UTRIE2_SHIFT_2)]);
+        }
+        if (UTRIE2_DEBUG) {
+            System.out.println("Index2 for UTF-8 2byte values limit is " + Integer.toHexString(destIdx));
         }
 
         if(highStart>0x10000) {
@@ -1121,6 +1128,9 @@ public class Trie2Writable extends Trie2 {
                 //*dest16++=(uint16_t)(UTRIE2_INDEX_2_OFFSET + *p++);
                 dest.index[destIdx++] = (char)(UTRIE2_INDEX_2_OFFSET + index1[i+UTRIE2_OMITTED_BMP_INDEX_1_LENGTH]);
             }
+            if (UTRIE2_DEBUG) {
+                System.out.println("Index 1 for supplementals, limit is " + Integer.toHexString(destIdx));
+            }
 
             /*
              * write the index-2 array values for supplementary code points,
@@ -1129,8 +1139,11 @@ public class Trie2Writable extends Trie2 {
             for(i=0; i<index2Length-index2Offset; i++) {
                 dest.index[destIdx++] = (char)((dataMove + index2[index2Offset+i])>>UTRIE2_INDEX_SHIFT);
             }
+            if (UTRIE2_DEBUG) {
+                System.out.println("Index 2 for supplementals, limit is " + Integer.toHexString(destIdx));
+            }
         }
-
+        
         /* write the 16/32-bit data array */
         switch(valueBits) {
         case BITS_16:
@@ -1147,10 +1160,8 @@ public class Trie2Writable extends Trie2 {
                 dest.data32[i] = this.data[i];
             }
             break;
-        }
-        
+        }        
         // The writable, but compressed, Trie stays around unless the caller drops its references to it.
-
     }
 
 

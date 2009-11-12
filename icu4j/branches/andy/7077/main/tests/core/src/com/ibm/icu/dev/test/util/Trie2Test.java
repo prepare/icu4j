@@ -53,7 +53,8 @@ public class Trie2Test extends TestFmwk {
          //   This function is well exercised by TestRanges().   
          
          // Trie2.getVersion(InputStream is, boolean anyEndianOk)
-         //   
+         //
+         
          try {
              Trie2 trie = new Trie2Writable(0,0);
              ByteArrayOutputStream os = new ByteArrayOutputStream();
@@ -177,6 +178,62 @@ public class Trie2Test extends TestFmwk {
              
              assertFalse(where(), it.hasNext());
          }
+         
+         // Iteration over a leading surrogate range with a ValueMapper.
+         //
+         {
+             Trie2Writable trie = new Trie2Writable(0xdefa17, 0);
+             trie.set(0x2f810, 10);
+             Trie2.ValueMapper m = new Trie2.ValueMapper() {
+                 public int map(int in) {
+                     if (in==10) {
+                         in = 0xdefa17;                         
+                     }
+                     return in;
+                 }               
+             };
+             Iterator<Trie2.Range> it = trie.iteratorForLeadSurrogate((char)0xd87e, m);
+             Trie2.Range r = it.next();
+             assertEquals(where(), 0x2f800,  r.startCodePoint);
+             assertEquals(where(), 0x2fbff,  r.endCodePoint);
+             assertEquals(where(), 0xdefa17, r.value);
+             assertEquals(where(), false,    r.leadSurrogate);
+
+             assertFalse(where(), it.hasNext());
+         }
+         
+         // Trie2.serialize()
+         //     Test the implementation in Trie2, which is used with Read Only Tries.
+         //
+         {
+             Trie2Writable trie = new Trie2Writable(101, 0);
+             trie.setRange(0xf000, 0x3c000, 200, true);
+             trie.set(0xffee, 300);
+             Trie2  frozen16 = trie.getAsFrozen_16();
+             Trie2  frozen32 = trie.getAsFrozen_32();
+             assertEquals(where(), trie, frozen16);
+             assertEquals(where(), trie, frozen32);
+             assertEquals(where(), frozen16, frozen32);
+             ByteArrayOutputStream os = new ByteArrayOutputStream();
+             try {
+                 frozen16.serialize(os, Trie2.ValueWidth.BITS_16);
+                 ByteArrayInputStream is = new ByteArrayInputStream(os.toByteArray());
+                 Trie2 unserialized16 = Trie2.createFromSerialized(is);
+                 assertEquals(where(), trie, unserialized16);
+                 assertEquals(where(), Trie2_16.class, unserialized16.getClass());
+                 
+                 os.reset();
+                 frozen32.serialize(os, Trie2.ValueWidth.BITS_32);
+                 is = new ByteArrayInputStream(os.toByteArray());
+                 Trie2 unserialized32 = Trie2.createFromSerialized(is);
+                 assertEquals(where(), trie, unserialized32);
+                 assertEquals(where(), Trie2_32.class, unserialized32.getClass());
+             } catch (IOException e) {
+                 errln(where() + " Unexpected exception:  " + e);
+             }
+                 
+             
+         }
      }
      
      
@@ -185,7 +242,7 @@ public class Trie2Test extends TestFmwk {
          //   Trie2Writable methods.  Check that all functions are present and 
          //      nominally working.  Not an in-depth test.
          //
-         
+                 
          // Trie2Writable constructor
          Trie2 t1 = new Trie2Writable(6, 666);
          
@@ -283,7 +340,7 @@ public class Trie2Test extends TestFmwk {
              int serializedLen = t1w.serialize(os, Trie2.ValueWidth.BITS_16);
              // Fragile test.  Serialized length could change with changes to compaction.
              //                But it should not change unexpectedly.
-             assertEquals(where(), 3940, serializedLen);
+             assertEquals(where(), 3920, serializedLen);
              ByteArrayInputStream is = new ByteArrayInputStream(os.toByteArray());
              Trie2 t1ws16 = Trie2.createFromSerialized(is);
              assertEquals(where(), t1ws16.getClass(), Trie2_16.class);
@@ -294,7 +351,7 @@ public class Trie2Test extends TestFmwk {
              serializedLen = t1w.serialize(os, Trie2.ValueWidth.BITS_32);
              // Fragile test.  Serialized length could change with changes to compaction.
              //                But it should not change unexpectedly.
-             assertEquals(where(), 4352, serializedLen);
+             assertEquals(where(), 4332, serializedLen);
              is = new ByteArrayInputStream(os.toByteArray());
              Trie2 t1ws32 = Trie2.createFromSerialized(is);
              assertEquals(where(), t1ws32.getClass(), Trie2_32.class);
@@ -351,11 +408,26 @@ public class Trie2Test extends TestFmwk {
      //
      //  Port of Tests from ICU4C ...
      //
+     //     setRanges array elements are
+     //        {start Code point, limit CP, value, overwrite}
+     //
+     //     There must be an entry with limit 0 and with the intialValue.
+     //     It may be preceded by an entry with negative limit and the errorValue.
+     //
+     //     checkRanges array elemets are
+     //        { limit code point, value}
+     // 
+     //     The expected value range is from the previous boundary's limit to before
+     //        this boundary's limit
+
+     // 
      String[] trieNames = {"setRanges1", "setRanges2", "setRanges3", "setRangesEmpty", "setRangesSingleValue"};
      /* set consecutive ranges, even with value 0 */
           
+    
          
      private static int[][] setRanges1 ={
+         { 0,        0,        0,      0 },
          { 0,        0x40,     0,      0 },
          { 0x40,     0xe7,     0x1234, 0 },
          { 0xe7,     0x3400,   0,      0 },
@@ -393,6 +465,7 @@ public class Trie2Test extends TestFmwk {
 
      /* set some interesting overlapping ranges */
      private static  int [][] setRanges2={
+         { 0,        0,        0,      0 },
          { 0x21,     0x7f,     0x5555, 1 },
          { 0x2f800,  0x2fedc,  0x7a,   1 },
          { 0x72,     0xdd,     3,      1 },
@@ -460,6 +533,7 @@ public class Trie2Test extends TestFmwk {
 
      /* use a non-zero initial value */
      private static int[][] setRanges3={
+         { 0,        0,        9, 0 },     // non-zero initial value.
          { 0x31,     0xa4,     1, 0 },
          { 0x3400,   0x6789,   2, 0 },
          { 0x8000,   0x89ab,   9, 1 },
@@ -485,7 +559,7 @@ public class Trie2Test extends TestFmwk {
 
      /* empty or single-value tries, testing highStart==0 */
      private static int[][] setRangesEmpty={
-         //{ 0,        0,        0, FALSE },  /* need some values for it to compile (in C) */
+         { 0,        0,        3, 0 }         // Only the element with the initial value.
      };
 
      private static int[][] checkRangesEmpty={
@@ -503,6 +577,40 @@ public class Trie2Test extends TestFmwk {
      };
 
 
+     //
+     // Create a test Trie from a setRanges test array.
+     //    Range data ported from C.
+     //
+     private Trie2Writable genTrieFromSetRanges(int [][] ranges) {
+         int i = 0;
+         int initialValue = 0;
+         int errorValue   = 0x0bad;
+         
+         if (ranges[i][1] < 0) {
+             errorValue = ranges[i][2];
+             i++;
+         }
+         initialValue = ranges[i++][2];
+         Trie2Writable trie = new Trie2Writable(initialValue, errorValue);
+         
+         for (; i<ranges.length; i++) {
+             int     rangeStart = ranges[i][0];
+             int     rangeEnd   = ranges[i][1]-1;
+             int     value      = ranges[i][2];
+             boolean overwrite = (ranges[i][3] != 0);
+             trie.setRange(rangeStart, rangeEnd, value, overwrite);
+         }
+         
+         // Insert some non-default values for lead surrogates.
+         //   TODO:  this should be represented in the data.
+         trie.setForLeadSurrogateCodeUnit((char)0xd800, 90);
+         trie.setForLeadSurrogateCodeUnit((char)0xd999, 94);
+         trie.setForLeadSurrogateCodeUnit((char)0xdbff, 99);
+         
+         return trie;
+     }
+
+     
      //
      //  Check the expected values from a single Trie.
      //
@@ -592,14 +700,14 @@ public class Trie2Test extends TestFmwk {
          }
          
          // Check Trie contents enumration
-         Iterator<Trie2.Range> it = trie.iterator();
-         while (it.hasNext()) {
-             Trie2.Range range = it.next();
-             System.out.println("(start, end, value) = ("    + Integer.toHexString(range.startCodePoint) +
-                                                        ", " + Integer.toHexString(range.endCodePoint) + 
-                                                        ", " + Integer.toHexString(range.value) + ")");
+         for (Trie2.Range range: trie) {
+             if (false) {
+                 System.out.println("(start, end, value) = ("    + Integer.toHexString(range.startCodePoint) +
+                                                            ", " + Integer.toHexString(range.endCodePoint) + 
+                                                            ", " + Integer.toHexString(range.value) + ")");
+             }
          }
-         System.out.println("\n\n");
+         if (false) System.out.println("\n\n");
          
      }
                      
@@ -626,6 +734,11 @@ public class Trie2Test extends TestFmwk {
          is.close();
          
          trieGettersTest(testName, trie32, Trie2.ValueWidth.BITS_32, checkRanges);
+         
+         // Run the same tests against locally contructed Tries.
+         Trie2Writable trieW = genTrieFromSetRanges(setRanges);
+         trieGettersTest(testName, trieW, Trie2.ValueWidth.BITS_32, checkRanges);
+
      }
      
      // Was "TrieTest" in trie2test.c 
@@ -639,6 +752,8 @@ public class Trie2Test extends TestFmwk {
          checkTrieRanges("set2-overlap.withClone", "setRanges2", true, setRanges2,     checkRanges2);
      }
 
+     
+     
      // TODO: push this where() function up into the test framework implementation of assert
      private String where() {
          StackTraceElement[] st = new Throwable().getStackTrace();

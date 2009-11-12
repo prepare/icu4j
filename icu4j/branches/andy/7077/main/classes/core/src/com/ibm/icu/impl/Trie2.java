@@ -564,6 +564,9 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
      */
     public static class CharSequenceValues {
         // TODO:  a better name for this class? 
+        // TODO:  an equals() function?  Not sure that it would be useful, because the
+        //        index will generally be different.
+        // TODO:  Accessor functions rather than direct member access?
         
         /** string index of the current code point. */
         public int index;
@@ -573,6 +576,7 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
         
         /** The Trie value for the current code point */
         public int value;  
+        
     }
     
 
