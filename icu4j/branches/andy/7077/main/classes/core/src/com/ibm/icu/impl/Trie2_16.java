@@ -11,13 +11,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-import com.ibm.icu.impl.Trie2.ValueWidth;
-
 
 /**
  * @author aheninger
  * 
- * A frozen (read-only) Trie2, holding 16 bit data values.
+ * A read-only Trie2, holding 16 bit data values.
  * 
  * A Trie2 is a highly optimized data structure for mapping from Unicode
  * code points (values ranging from 0 to 0x10ffff) to a 16 or 32 bit value.
@@ -30,21 +28,6 @@ import com.ibm.icu.impl.Trie2.ValueWidth;
  */
 public final class Trie2_16 extends Trie2 {
     
-    /**
-     * Create an empty Trie2_16.  Corresponds to utrie2_openDummy() in the C API.
-     * 
-     * The trie always returns the initialValue,
-     * or the errorValue for out-of-range code points.
-     *
-     * @param initialValue  the initial value that is set for all code points.
-     * @param errorValue the value for out-of-range code points.
-     */
-    public Trie2_16(int initialValue, int errorValue) { 
-        // TODO: implement this.
-        // TODO: I think that we should drop this from the API.  I don't see the purpose.
-       // Remove for now, comment that it's gone
-        
-    }
     
     /**
      *  Internal constructor, not for general use.
@@ -64,7 +47,7 @@ public final class Trie2_16 extends Trie2 {
      *
      * @param is an input stream to the serialized form of a UTrie2.  
      * @return An unserialized Trie_16, ready for use.
-     * @throws IllegalArgumentException if the stream does not contain a serialized trie.
+     * @throws IllegalArgumentException if the stream does not contain a serialized Trie2.
      * @throws IOException if a read error occurs on the InputStream.
      * @throws ClassCastException if the stream contains a serialized Trie2_32
      */
@@ -73,9 +56,8 @@ public final class Trie2_16 extends Trie2 {
     }
 
     /**
-     * Get the value for a code point as stored in the trie.
+     * Get the value for a code point as stored in the Trie2.
      *
-     * @param trie the trie
      * @param codePoint the code point
      * @return the value
      */
@@ -87,7 +69,7 @@ public final class Trie2_16 extends Trie2 {
         if (codePoint >= 0) {
             if (codePoint < 0x0d800 || (codePoint > 0x0dbff && codePoint <= 0x0ffff)) {
                 // Ordinary BMP code point, excluding leading surrogates.
-                // BMP uses a single level lookup.  BMP index starts at offset 0 in the trie index.
+                // BMP uses a single level lookup.  BMP index starts at offset 0 in the Trie2 index.
                 // 16 bit data is stored in the index array itself.
                 ix = index[codePoint >> UTRIE2_SHIFT_2];
                 ix = (ix << UTRIE2_INDEX_SHIFT) + (codePoint & UTRIE2_DATA_MASK);
@@ -128,17 +110,16 @@ public final class Trie2_16 extends Trie2 {
 
     
     /**
-     * Get a trie value for a UTF-16 code unit.
+     * Get a Trie2 value for a UTF-16 code unit.
      * 
      * This function returns the same value as get() if the input 
      * character is outside of the lead surrogate range
      * 
-     * There are two values stored in a Trie for inputs in the lead
+     * There are two values stored in a Trie2 for inputs in the lead
      * surrogate range.  This function returns the alternate value,
      * while Trie2.get() returns the main value.
      * 
-     * @param trie the trie
-     * @param c the code point or lead surrogate value.
+     * @param c a 16 bit code unit or lead surrogate value.
      * @return the value
      */
     @Override

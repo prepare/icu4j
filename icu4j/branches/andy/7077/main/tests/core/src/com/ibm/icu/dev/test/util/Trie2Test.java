@@ -10,18 +10,14 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.util.Iterator;
 
 import com.ibm.icu.dev.test.TestFmwk;
-import com.ibm.icu.impl.Trie;
 import com.ibm.icu.impl.Trie2;
 import com.ibm.icu.impl.Trie2_16;
 import com.ibm.icu.impl.Trie2_32;
 import com.ibm.icu.impl.Trie2Writable;
-import com.ibm.icu.impl.Trie2.ValueWidth;
 
 public class Trie2Test extends TestFmwk {
     /**
@@ -272,7 +268,7 @@ public class Trie2Test extends TestFmwk {
          assertEquals(where(),  666, t1w.get(0x110000));
          
          // setRange from a Trie2.Range
-         //    (Ranges are more commonly created by iterating over a Trie,
+         //    (Ranges are more commonly created by iterating over a Trie2,
          //     but create one by hand here)
          Trie2.Range r = new Trie2.Range();
          r.startCodePoint = 50;
@@ -304,7 +300,7 @@ public class Trie2Test extends TestFmwk {
          t1w.set(0x1ff00, 224);
          Trie2_16 t1_16 = t1w.toTrie2_16();
          assertTrue(where(), t1w.equals(t1_16));
-         // alter the writable trie and then re-freeze.
+         // alter the writable Trie2 and then re-freeze.
          t1w.set(152, 129);
          t1_16 = t1w.toTrie2_16();
          assertTrue(where(), t1w.equals(t1_16));
@@ -317,7 +313,7 @@ public class Trie2Test extends TestFmwk {
          t1w.set(0x1ff00, 224);
          Trie2_32 t1_32 = t1w.toTrie2_32();
          assertTrue(where(), t1w.equals(t1_32));
-         // alter the writable trie and then re-freeze.
+         // alter the writable Trie2 and then re-freeze.
          t1w.set(152, 129);
          assertNotEquals(where(), t1_32, t1w);
          t1_32 = t1w.toTrie2_32();
@@ -580,7 +576,7 @@ public class Trie2Test extends TestFmwk {
 
 
      //
-     // Create a test Trie from a setRanges test array.
+     // Create a test Trie2 from a setRanges test array.
      //    Range data ported from C.
      //
      private Trie2Writable genTrieFromSetRanges(int [][] ranges) {
@@ -614,12 +610,10 @@ public class Trie2Test extends TestFmwk {
 
      
      //
-     //  Check the expected values from a single Trie.
+     //  Check the expected values from a single Trie2.
      //
      private void trieGettersTest(String           testName,
-                                  Trie2            trie,         // The Trie to test.
-                                  Trie2.ValueWidth valueBits,    // Data width.  Mattered for C, where
-                                                                 //   different macros were used.  Not important w Java.
+                                  Trie2            trie,         // The Trie2 to test.
                                   int[][]          checkRanges)  // Expected data. 
                                                                  //   Tuples of (value, high limit code point)
                                                                  //   High limit is first code point following the range
@@ -740,26 +734,26 @@ public class Trie2Test extends TestFmwk {
          Trie2  trie16 = Trie2.createFromSerialized(is);
          is.close();
          
-         trieGettersTest(testName, trie16, Trie2.ValueWidth.BITS_16, checkRanges);
+         trieGettersTest(testName, trie16, checkRanges);
          
          is = new FileInputStream(testDir + fileName32);
          Trie2  trie32 = Trie2.createFromSerialized(is);
          is.close();
          
-         trieGettersTest(testName, trie32, Trie2.ValueWidth.BITS_32, checkRanges);
+         trieGettersTest(testName, trie32, checkRanges);
          
          // Run the same tests against locally contructed Tries.
          Trie2Writable trieW = genTrieFromSetRanges(setRanges);
-         trieGettersTest(testName, trieW, Trie2.ValueWidth.BITS_32, checkRanges);
+         trieGettersTest(testName, trieW,  checkRanges);
          assertEquals(where(), trieW, trie16);   // Locally built tries must be
          assertEquals(where(), trieW, trie32);   //   the same as those imported from ICU4C
          
          
          Trie2_32 trie32a = trieW.toTrie2_32();
-         trieGettersTest(testName, trie32a, Trie2.ValueWidth.BITS_32, checkRanges);
+         trieGettersTest(testName, trie32a, checkRanges);
 
          Trie2_16 trie16a = trieW.toTrie2_16();
-         trieGettersTest(testName, trie16a, Trie2.ValueWidth.BITS_16, checkRanges);
+         trieGettersTest(testName, trie16a, checkRanges);
      }
      
      // Was "TrieTest" in trie2test.c 

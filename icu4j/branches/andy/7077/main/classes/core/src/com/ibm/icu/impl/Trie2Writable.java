@@ -6,9 +6,6 @@
  */
 package com.ibm.icu.impl;
 
-import java.io.IOException;
-import java.io.OutputStream;
-
 /**
  * @author aheninger
  *

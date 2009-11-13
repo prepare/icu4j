@@ -10,13 +10,12 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 
 /**
- * This is the interface and common implementation of a Unicode trie.
+ * This is the interface and common implementation of a Unicode Trie2.
  * It is a kind of compressed table that maps from Unicode code points (0..0x10ffff)
  * to 16- or 32-bit integer values.  It works best when there are ranges of
  * characters with the same value, which is generally the case with Unicode
@@ -29,8 +28,10 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
 
    /**
     * Selectors for the width of a UTrie2 data value.
+    * TODO: this can probably be removed.  It's no longer used in the
+    *       primary API
     */   
-    public enum ValueWidth {
+    enum ValueWidth {
         BITS_16,
         BITS_32
     }
@@ -43,23 +44,23 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
      * The actual type of the returned Trie2 will be either Trie2_16 or Trie2_32, depending
      * on the width of the data.  
      * 
-     * To obtain the width of the Trie, check the actual class type of the returned Trie.
+     * To obtain the width of the Trie2, check the actual class type of the returned Trie2.
      * Or use the createFromSerialized() function of Trie2_16 or Trie2_32, which will
      * return only Tries of their specific type/size.
      * 
-     * The serialized Trie on the stream may be in either little or big endian byte order.
+     * The serialized Trie2 on the stream may be in either little or big endian byte order.
      * This allows using serialized Tries from ICU4C without needing to consider the
      * byte order of the system that created them.
      *
      * @param is an input stream to the serialized form of a UTrie2.  
-     * @return An unserialized trie, ready for use.
-     * @throws IllegalArgumentException if the stream does not contain a serialized trie.
+     * @return An unserialized Trie2, ready for use.
+     * @throws IllegalArgumentException if the stream does not contain a serialized Trie2.
      * @throws IOException if a read error occurs on the InputStream.
      * 
      */
     public static Trie2  createFromSerialized(InputStream is) throws IOException {
          //    From ICU4C utrie2_impl.h
-         //    * Trie data structure in serialized form:
+         //    * Trie2 data structure in serialized form:
          //     *
          //     * UTrie2Header header;
          //     * uint16_t index[header.index2Length];
@@ -119,8 +120,8 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
         header.dataNullOffset   = swapShort(needByteSwap, dis.readUnsignedShort());
         header.shiftedHighStart = swapShort(needByteSwap, dis.readUnsignedShort());
         
-        // Trie data width - 0: 16 bits
-        //                   1: 32 bits
+        // Trie2 data width - 0: 16 bits
+        //                    1: 32 bits
         if ((header.options & UTRIE2_OPTIONS_VALUE_BITS_MASK) > 1) {
             throw new IllegalArgumentException("UTrie2 serialized format error.");
         }
@@ -146,7 +147,7 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
             This.highValueIndex += This.indexLength;
         }
 
-        // Allocate the trie index array.  If the data width is 16 bits, the array also
+        // Allocate the Trie2 index array.  If the data width is 16 bits, the array also
         //   includes the space for the data.
         
         int indexArraySize = This.indexLength;
@@ -251,26 +252,8 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
     
     
     /**
-     * Create a Trie2 (version 2) from a Trie (version 1).
-     * Enumerates all values in the Trie and builds a Trie2 with the same values.
-     * The resulting Trie2 will be frozen, of type Trie2_16 or Trie2_32, depending
-     * on the width of the source Trie.
+     * Get the value for a code point as stored in the Trie2.
      *
-     * @param trie1 the version 1 Trie to be enumerated
-     * @param errorValue the value for out-of-range code points and illegal UTF-8
-     * @return The frozen Trie2 with the same values as the source Trie.
-     */
-    public static Trie2 createFromTrie(Trie trie1, int errorValue) {
-        // TODO:  Do we really need this function?  Permanently?
-        return null;
-    }
-    
-
-    
-    /**
-     * Get the value for a code point as stored in the trie.
-     *
-     * @param trie the trie
      * @param codePoint the code point
      * @return the value
      */
@@ -293,7 +276,7 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
      * first converting surrogate pairs to their corresponding 32 bit code point
      * values.
      * 
-     * At build-time, enumerate the contents of the Trie to see if there
+     * At build-time, enumerate the contents of the Trie2 to see if there
      * is non-trivial (non-initialValue) data for any of the supplementary
      * code points associated with a lead surrogate.
      * If so, then set a special (application-specific) value for the
@@ -308,9 +291,7 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
      * If there is only trivial data for lead and trail surrogates, then processing
      * can often skip them. For example, in normalization or case mapping
      * all characters that do not have any mappings are simply copied as is.
-
      * 
-     * @param trie the trie
      * @param c the code point or lead surrogate value.
      * @return the value
      */
@@ -406,24 +387,24 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
     
     /**
      *  Create an iterator over the value ranges in this Trie2.
-     *  Values from the Trie are not remapped or filtered, but are returned as they
-     *  are stored in the Trie.
+     *  Values from the Trie2 are not remapped or filtered, but are returned as they
+     *  are stored in the Trie2.
      *  
      * @return an Iterator
      */
     public Iterator<Range> iterator() {
-        ValueMapper vm = new ValueMapper() {
-            public int map(int in) { 
-                return in;
-            }
-        };
-        return iterator(vm);
+        return iterator(defaultValueMapper);
     }
     
+    private static ValueMapper defaultValueMapper = new ValueMapper() {
+        public int map(int in) { 
+            return in;
+        }
+    };
     
     /**
      * Create an iterator over the value ranges from this Trie2.
-     * Values from the trie are passed through a caller-supplied remapping function,
+     * Values from the Trie2 are passed through a caller-supplied remapping function,
      * and it is the remapped values that determine the ranges that
      * will be produced by the iterator.
      * 
@@ -432,52 +413,47 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
      * @return an Iterator
      */
     public Iterator<Range> iterator(ValueMapper mapper) {
-        return new TrieIterator(mapper);
+        return new Trie2Iterator(mapper);
     }
 
     
     /**
-     * Create an iterator over the trie values for the 1024=0x400 code points
+     * Create an iterator over the Trie2 values for the 1024=0x400 code points
      * corresponding to a given lead surrogate.
      * For example, for the lead surrogate U+D87E it will enumerate the values
      * for [U+2F800..U+2FC00[.
      * Used by data builder code that sets special lead surrogate code unit values
      * for optimized UTF-16 string processing.
      *
-     * Do not modify the trie during the iteration.
+     * Do not modify the Trie2 during the iteration.
      *
      * Except for the limited code point range, this functions just like Trie2.iterator().
      *
      */
     public Iterator<Range> iteratorForLeadSurrogate(char lead, ValueMapper mapper) {
-        return new TrieIterator(lead, mapper);
+        return new Trie2Iterator(lead, mapper);
     }
 
     /**
-     * Create an iterator over the trie values for the 1024=0x400 code points
+     * Create an iterator over the Trie2 values for the 1024=0x400 code points
      * corresponding to a given lead surrogate.
      * For example, for the lead surrogate U+D87E it will enumerate the values
      * for [U+2F800..U+2FC00[.
      * Used by data builder code that sets special lead surrogate code unit values
      * for optimized UTF-16 string processing.
      *
-     * Do not modify the trie during the iteration.
+     * Do not modify the Trie2 during the iteration.
      *
      * Except for the limited code point range, this functions just like Trie2.iterator().
      *
      */
     public Iterator<Range> iteratorForLeadSurrogate(char lead) {
-        ValueMapper mapper = new ValueMapper() {
-            public int map(int in) { 
-                return in;
-            }
-        };
-        return new TrieIterator(lead, mapper);
+        return new Trie2Iterator(lead, defaultValueMapper);
     }
 
     /**
-     * When iterating over the contents of a Trie, an instance of TrieValueMapper may
-     * be used to remap the values from the Trie.  The remapped values will be used
+     * When iterating over the contents of a Trie2, an instance of TrieValueMapper may
+     * be used to remap the values from the Trie2.  The remapped values will be used
      * both in determining the ranges of codepoints and as the value to be returned
      * for each range.
      * 
@@ -501,7 +477,7 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
    /**
      * Serialize a trie2 Header and Index onto an OutputStream.  This is
      * common code used for  both the Trie2_16 and Trie2_32 serialize functions.
-     * @param dos the stream to which the serialized Trie data will be written.
+     * @param dos the stream to which the serialized Trie2 data will be written.
      * @return the number of bytes written.
      */
     protected int serializeHeader(DataOutputStream dos) throws IOException {        
@@ -531,19 +507,19 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
     /**
      * Struct-like class for holding the results returned by a UTrie2 CharSequence iterator.
      * The iteration walks over a CharSequence, and for each Unicode code point therein
-     * returns the character and its associated Trie value.
+     * returns the character and its associated Trie2 value.
      */
     public static class CharSequenceValues {        
         /** string index of the current code point. */
         public int index;        
         /** The code point at index.  */
         public int codePoint;        
-        /** The Trie value for the current code point */
+        /** The Trie2 value for the current code point */
         public int value;          
     }
     
 
-    /** Create an iterator that will produce the values from the Trie for
+    /** Create an iterator that will produce the values from the Trie2 for
      *  the sequence of code points in an input text.
      *  
      * @param text A text string to be iterated over.
@@ -560,7 +536,7 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
     
     /**
      * An iterator that operates over an input CharSequence, and for each Unicode code point
-     * in the input returns the associated value from the Trie.
+     * in the input returns the associated value from the Trie2.
      * 
      * The iterator can move forwards or backwards, and can be reset to an arbitrary index.
      * 
@@ -649,7 +625,7 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
     
     
     /**
-     * Trie data structure in serialized form:
+     * Trie2 data structure in serialized form:
      *
      * UTrie2Header header;
      * uint16_t index[header.index2Length];
@@ -713,11 +689,11 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
     int           fHash;              // Zero if not yet computed.
                                       //  Shared by Trie2Writable, Trie2_16, Trie2_32.
                                       //  Thread safety:  if two racing threads compute
-                                      //     the same hash on a frozen Trie, no damage is done.
+                                      //     the same hash on a frozen Trie2, no damage is done.
 
         
     /**
-     * Trie constants, defining shift widths, index array lengths, etc.
+     * Trie2 constants, defining shift widths, index array lengths, etc.
      *
      * These are needed for the runtime macros but users can treat these as
      * implementation details and skip to the actual public API further below.
@@ -827,7 +803,7 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
     /** The start of non-linear-ASCII data blocks, at offset 192=0xc0. */
     static final int UTRIE2_DATA_START_OFFSET=0xc0;
     
-    /* Building a trie ---------------------------------------------------------- */
+    /* Building a Trie2 ---------------------------------------------------------- */
 
     /*
      * These definitions are mostly needed by utrie2_builder.c, but also by
@@ -877,10 +853,10 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
      *     
      * @internal
      */
-    class TrieIterator implements Iterator<Range> {
+    class Trie2Iterator implements Iterator<Range> {
         // The normal constructor that configures the iterator to cover the complete
-        //   contents of the Trie
-        TrieIterator(ValueMapper vm) {
+        //   contents of the Trie2
+        Trie2Iterator(ValueMapper vm) {
             mapper    = vm;
             nextStart = 0;
             limitCP   = 0x110000;
@@ -889,7 +865,7 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
         
         // An alternate constructor that configures the iterator to cover only the
         //   code points corresponding to a particular Lead Surrogate value.
-        TrieIterator(char leadSurrogate, ValueMapper vm) {
+        Trie2Iterator(char leadSurrogate, ValueMapper vm) {
             if (leadSurrogate < 0xd800 || leadSurrogate > 0xdbff) {
                 throw new IllegalArgumentException("Bad lead surrogate value.");
             }
@@ -901,7 +877,7 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
         }
         
         /**
-         *  The main next() function for Trie iterators
+         *  The main next() function for Trie2 iterators
          *  
          */
         public Range next() {
@@ -923,7 +899,7 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
                 val = get(nextStart);
                 mappedVal = mapper.map(val);
                 endOfRange = rangeEnd(nextStart);
-                // Loop once for each range in the Trie with the same raw (unmapped) value.
+                // Loop once for each range in the Trie2 with the same raw (unmapped) value.
                 // Loop continues so long as the mapped values are the same.
                 for (;;) {
                     if (endOfRange >= limitCP-1) {
@@ -940,7 +916,7 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
                 val = getFromU16SingleLead((char)nextStart); 
                 mappedVal = mapper.map(val);
                 endOfRange = rangeEndLS((char)nextStart);
-                // Loop once for each range in the Trie with the same raw (unmapped) value.
+                // Loop once for each range in the Trie2 with the same raw (unmapped) value.
                 // Loop continues so long as the mapped values are the same.
                 for (;;) {
                     if (endOfRange >= 0xdbff) {
@@ -975,7 +951,7 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
         
         /**
          * Find the last character in a contiguous range of characters with the
-         * same Trie value as the input character.
+         * same Trie2 value as the input character.
          * 
          * @param c  The character to begin with.
          * @return   The last contiguous character with the same value.
@@ -999,9 +975,9 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
                 
         /**
          * Find the last lead surrogate in a contiguous range  with the
-         * same Trie value as the input character.
+         * same Trie2 value as the input character.
          * 
-         * Use the alternate Lead Surrogate values from the Trie,
+         * Use the alternate Lead Surrogate values from the Trie2,
          * not the code-point values.
          * 
          * @param c  The character to begin with.
@@ -1034,7 +1010,7 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
         //   may be lower when iterating over the code points for a single lead surrogate.
         private int            limitCP;
         
-        // True while iterating over the the trie values for code points.
+        // True while iterating over the the Trie2 values for code points.
         // False while iterating over the alternate values for lead surrogates.
         private boolean        doingCodePoints = true;
         
