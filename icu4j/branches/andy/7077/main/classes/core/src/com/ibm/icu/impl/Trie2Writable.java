@@ -581,6 +581,7 @@ public class Trie2Writable extends Trie2 {
         }
     }
 
+    
     private int get(int c, boolean fromLSCP) {
         int i2, block;
 
@@ -989,9 +990,8 @@ public class Trie2Writable extends Trie2 {
     /**
      * Produce an optimized, read-only Trie2_16 from this writable Trie.
      * The data values must all fit as an unsigned 16 bit value.
-     * TODO: rename
      */
-    public Trie2_16 getAsFrozen_16() {
+    public Trie2_16 toTrie2_16() {
         Trie2_16 frozenTrie = new Trie2_16();
         freeze(frozenTrie, ValueWidth.BITS_16);
         return frozenTrie;
@@ -1002,7 +1002,7 @@ public class Trie2Writable extends Trie2 {
      * Produce an optimized, read-only Trie2_32 from this writable Trie.
      * 
      */
-    public Trie2_32 getAsFrozen_32() {
+    public Trie2_32 toTrie2_32() {
         Trie2_32 frozenTrie = new Trie2_32();
         freeze(frozenTrie, ValueWidth.BITS_32);
         return frozenTrie;
@@ -1088,10 +1088,10 @@ public class Trie2Writable extends Trie2 {
         dest.header.signature         = 0x54726932; /* "Tri2" */
         dest.header.options           = valueBits==ValueWidth.BITS_16 ? 0 : 1;
         dest.header.indexLength       = indexLength;
-        dest.header.shiftedDataLength = dataLength>>UTRIE2_INDEX_SHIFT;
-        dest.header.index2NullOffset  = index2NullOffset;
-        dest.header.dataNullOffset    = dataNullOffset;
-        dest.header.shiftedHighStart  = highStart>>UTRIE2_SHIFT_1;
+        dest.header.shiftedDataLength = dest.dataLength>>UTRIE2_INDEX_SHIFT;
+        dest.header.index2NullOffset  = dest.index2NullOffset;
+        dest.header.dataNullOffset    = dest.dataNullOffset;
+        dest.header.shiftedHighStart  = dest.highStart>>UTRIE2_SHIFT_1;
             
 
 
@@ -1162,30 +1162,6 @@ public class Trie2Writable extends Trie2 {
     }
 
 
-    /*
-     * Serialize of a writable Trie.
-     * The strategy is to create a frozen Trie of the desired data size, then
-     *     use the frozen Trie's serialize function.  Unlike ICU4C, the data for an ICU4J read-only
-     *     Trie is not bit-for-bit the same as the serialized form, but it is much closer
-     *     than the a Trie2Writable's data.
-     */
-    public int serialize(OutputStream os, ValueWidth width) throws IOException {
-
-        Trie2   frozenTrie;
-        switch (width) {
-        case BITS_16:
-              frozenTrie = this.getAsFrozen_16();
-              break;
-        case BITS_32:
-              frozenTrie = this.getAsFrozen_32();
-              break;
-        default:
-            throw new IllegalArgumentException("Unknown data width");
-        }
-        return frozenTrie.serialize(os, width);
-    }    
-
-    
     /* Start with allocation of 16k data entries. */
     private static final int UNEWTRIE2_INITIAL_DATA_LENGTH = 1<<14;
 

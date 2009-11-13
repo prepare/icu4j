@@ -6,6 +6,11 @@
  */
 package com.ibm.icu.impl;
 
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+
 /**
  * @author aheninger
  *
@@ -46,12 +51,32 @@ public class Trie2_32 extends Trie2 {
     
     
     /**
+     * Create a Trie2 from its serialized form.  Inverse of utrie2_serialize().
+     * The serialized format is identical between ICU4C and ICU4J, so this function
+     * will work with serialized Trie2s from either.
+     * 
+     * The serialized Trie2 on the stream may be in either little or big endian byte order.
+     * This allows using serialized Tries from ICU4C without needing to consider the
+     * byte order of the system that created them.
+     *
+     * @param is an input stream to the serialized form of a UTrie2.  
+     * @return An unserialized Trie_32, ready for use.
+     * @throws IllegalArgumentException if the stream does not contain a serialized trie.
+     * @throws IOException if a read error occurs on the InputStream.
+     * @throws ClassCastException if the stream contains a serialized Trie2_16
+     */
+    public static Trie2_32  createFromSerialized(InputStream is) throws IOException {
+        return (Trie2_32) Trie2.createFromSerialized(is);
+    }
+
+    /**
      * Get the value for a code point as stored in the trie.
      *
      * @param trie the trie
      * @param codePoint the code point
      * @return the value
      */
+    @Override
     public final int get(int codePoint) {
         int value;
         int ix;
@@ -113,6 +138,7 @@ public class Trie2_32 extends Trie2 {
      * @param c the code point or lead surrogate value.
      * @return the value
      */
+    @Override
     public int getFromU16SingleLead(char codePoint){
         int value;
         int ix;
@@ -124,55 +150,27 @@ public class Trie2_32 extends Trie2 {
 
     }
     
-
     /**
-     * Iterator class that will produce the values from the Trie for
-     *  the sequence of code points in an input text.
-     *
-     *  This class is functionally identical to Trie2.CharSequenceIterator.
-     *  Direct use of this class (Trie2_16.CharSequenceIterator) will be 
-     *  slightly faster access via the base class. 
+     * Serialize a Trie2_32 onto an OutputStream.
+     * 
+     * A Trie2 can be serialized multiple times.
+     * The serialized data is compatible with ICU4C UTrie2 serialization.
+     * Trie2 serialization is unrelated to Java object serialization.
+     *  
+     * @param os the stream to which the serialized Trie2 data will be written.
+     * @return the number of bytes written.
+     * @throw IOException on an error writing to the OutputStream.
      */
-    public final class CharSequenceIterator extends Trie2.CharSequenceIterator {
-        CharSequenceIterator(CharSequence text, int index) {
-            super(text, index);
-        }
-
+    public int serialize(OutputStream os) throws IOException {
+        DataOutputStream dos = new DataOutputStream(os);
+        int  bytesWritten = 0;
         
-        public Trie2.CharSequenceValues next() {
-            int c = Character.codePointAt(text, index);
-            int val = get(c);
-
-            fResults.index = index;
-            fResults.codePoint = c;
-            fResults.value = val;
-            index++;
-            if (c >= 0x10000) {
-                index++;
-            }            
-            return fResults;
+        bytesWritten += serializeHeader(dos);        
+        for (int i=0; i<dataLength; i++) {
+            dos.writeInt(data32[i]);
         }
-
-        
-        public Trie2.CharSequenceValues previous() {
-            int c = Character.codePointBefore(text, index);
-            int val = get(c);
-            index--;
-            if (c >= 0x10000) {
-                index--;
-            }
-            fResults.index = index;
-            fResults.codePoint = c;
-            fResults.value = val;
-            return fResults;
-        }
-   }
-
-    public CharSequenceIterator iterator(CharSequence text, int index) {
-        return new CharSequenceIterator(text, index);
+        bytesWritten += dataLength*4;
+        return bytesWritten;
     }
-        
-
-    
-
 }
+

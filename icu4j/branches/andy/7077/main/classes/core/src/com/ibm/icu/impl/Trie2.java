@@ -38,15 +38,14 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
     /**
      * Create a Trie2 from its serialized form.  Inverse of utrie2_serialize().
      * The serialized format is identical between ICU4C and ICU4J, so this function
-     * will work with serialized Tries from either.
+     * will work with serialized Trie2s from either.
      * 
      * The actual type of the returned Trie2 will be either Trie2_16 or Trie2_32, depending
-     * on the width of the data.  Logically this doesn't matter, because the entire API
-     * for accessing the Trie data is available via the Trie2 base class.  But there
-     * may some slight speed improvement available when repeatedly accessing the Trie
-     * by casting to the actual type in advance.
+     * on the width of the data.  
      * 
      * To obtain the width of the Trie, check the actual class type of the returned Trie.
+     * Or use the createFromSerialized() function of Trie2_16 or Trie2_32, which will
+     * return only Tries of their specific type/size.
      * 
      * The serialized Trie on the stream may be in either little or big endian byte order.
      * This allows using serialized Tries from ICU4C without needing to consider the
@@ -57,8 +56,6 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
      * @throws IllegalArgumentException if the stream does not contain a serialized trie.
      * @throws IOException if a read error occurs on the InputStream.
      * 
-     * Note: dropped the valueWidth parameter (16 or 32 bits) at Mark's suggestion.  If it matters,
-     *       check the returned type. 
      */
     public static Trie2  createFromSerialized(InputStream is) throws IOException {
          //    From ICU4C utrie2_impl.h
@@ -323,11 +320,10 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
     /**
      * Equals function.  Two Tries are equal if their contents are equal.
      * The type need not be the same, so a Trie2Writable will be equal to 
-     * (frozen) Trie2_16 or Trie2_32 so long as they are storing the same values.
+     * (read-only) Trie2_16 or Trie2_32 so long as they are storing the same values.
      * 
      */
     public final boolean equals(Object other) {
-        // TODO:  should the error and default values be considered for equality?
         if(!(other instanceof Trie2)) {
             return false;
         }
@@ -347,6 +343,12 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
         if (otherIter.hasNext()) {
             return false;
         }
+        
+        if (errorValue   != OtherTrie.errorValue ||
+            initialValue != OtherTrie.initialValue) {
+            return false;
+        }
+       
         return true;
     }
     
@@ -356,6 +358,9 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
             int hash = initHash();
             for (Range r: this) {
                 hash = hashInt(hash, r.hashCode());
+            }
+            if (hash == 0) {
+                hash = 1;
             }
             fHash = hash;
         }
@@ -383,7 +388,8 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
             Range tother = (Range)other;
             return this.startCodePoint == tother.startCodePoint &&
                    this.endCodePoint   == tother.endCodePoint   &&
-                   this.value          == tother.value;
+                   this.value          == tother.value          && 
+                   this.leadSurrogate  == tother.leadSurrogate;
         }
         
         
@@ -392,6 +398,7 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
             h = hashUChar32(h, startCodePoint);
             h = hashUChar32(h, endCodePoint);
             h = hashInt(h, value);
+            h = hashByte(h, leadSurrogate? 1: 0);
             return h;
         }
     }
@@ -492,35 +499,14 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
        
 
    /**
-     * Serialize a trie onto an OutputStream.
-     * A trie can be serialized multiple times.
-     * The serialized data is compatible with ICU4C UTrie2 serialization.
-     * Trie serialization is unrelated to Java object serialization.
-     * 
-     * A read-only Trie, of type Trie2_16 or Trie2_32 can only be serialized
-     * with its actual data width.  A writeable Trie may be serialized with
-     * either 16 or 32 bit data width, although serializing to 16 bit width
-     * will fail if the actual data is wider.
-     * 
-     * @param os the stream to which the serialized Trie data will be written.
-     * @param width the data width of for the serialized Trie.  
+     * Serialize a trie2 Header and Index onto an OutputStream.  This is
+     * common code used for  both the Trie2_16 and Trie2_32 serialize functions.
+     * @param dos the stream to which the serialized Trie data will be written.
      * @return the number of bytes written.
-     * @throw an UnsupportedOperationException if the Trie contains data that is
-     *        larger than the specified width, or, for a read only Trie, if the
-     *        actual width is different from the specified width.
      */
-    public int serialize(OutputStream os, ValueWidth width) throws IOException {
-        // Note:  class Trie2Writable overrides this serialize function.
-        //        This implementation will be directly called only for read-only Tries2s.
-        
-        // Verify that the requested data width matches with the width of the Trie.
-        if (this instanceof Trie2_16 && width != ValueWidth.BITS_16) {
-            throw new UnsupportedOperationException("Trie2 serialize requested width does not match the data.");
-        }
-        
+    protected int serializeHeader(DataOutputStream dos) throws IOException {        
         // Write the header.  It is already set and ready to use, having been
         //  created when the Trie2 was unserialized or when it was frozen.
-        DataOutputStream dos = new DataOutputStream(os);
         int  bytesWritten = 0;
         
         dos.writeInt(header.signature);  
@@ -537,21 +523,7 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
         for (i=0; i< header.indexLength; i++) {
             dos.writeChar(index[i]);
         }
-        bytesWritten += header.indexLength;
-        
-        // Write the data
-        if (this instanceof Trie2_16) {
-            for (i=0; i<dataLength; i++) {
-                dos.writeChar(index[data16+i]);
-            }
-            bytesWritten += dataLength*2;
-        } else {
-            for (i=0; i<dataLength; i++) {
-                dos.writeInt(data32[i]);
-            }
-            bytesWritten += dataLength*4;
-        }
-        
+        bytesWritten += header.indexLength;       
         return bytesWritten;        
     }
     
@@ -563,14 +535,11 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
      */
     public static class CharSequenceValues {        
         /** string index of the current code point. */
-        public int index;
-        
+        public int index;        
         /** The code point at index.  */
-        public int codePoint;
-        
+        public int codePoint;        
         /** The Trie value for the current code point */
-        public int value;  
-        
+        public int value;          
     }
     
 
@@ -581,10 +550,13 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
      * @param index The starting iteration position within the input text.
      * @return
      */
-    public CharSequenceIterator iterator(CharSequence text, int index) {
+    public CharSequenceIterator charSequenceIterator(CharSequence text, int index) {
         return new CharSequenceIterator(text, index);
     }
     
+    // TODO:  Survey usage of the equivalent of CharSequenceIterator in ICU4C
+    //        and if there is none, remove it from here.
+    //        Don't waste time testing and maintaining unused code.
     
     /**
      * An iterator that operates over an input CharSequence, and for each Unicode code point
@@ -606,10 +578,10 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
             set(index);
         }
             
-        CharSequence text;
+        private CharSequence text;
         private int textLength;
-        int index;
-        Trie2.CharSequenceValues fResults = new Trie2.CharSequenceValues();
+        private int index;
+        private Trie2.CharSequenceValues fResults = new Trie2.CharSequenceValues();
         
         
         public void set(int i) {
@@ -629,8 +601,7 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
             return index>0;
         }
         
-        // Note: next() is overridden in Trie2_16 and Trie_32 for potential efficiency gains.
-        //       The functionality is identical.  This implementation is used by writable tries.
+
         public Trie2.CharSequenceValues next() {
             int c = Character.codePointAt(text, index);
             int val = get(c);
@@ -646,8 +617,6 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
         }
 
         
-        // Note: previous() is overridden in Trie2_16 and Trie_32 for potential efficiency gains.
-        //       The functionality is identical.  This implementation is used by writable tries.
         public Trie2.CharSequenceValues previous() {
             int c = Character.codePointBefore(text, index);
             int val = get(c);
@@ -667,17 +636,10 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
          * @see java.util.Iterator#remove()
          */
         public void remove() {
-            throw new UnsupportedOperationException("Trie2.CharSequenceIterator does not support remove().");
-            
+            throw new UnsupportedOperationException("Trie2.CharSequenceIterator does not support remove().");            
         }
     }
- 
-    
-    // Note:  ICU4C contains UTrie2 macros for optimized handling of UTF-8 text.
-    //    I don't think that this makes sense for Java.  No "ByteSequence"
-    //
-    
-    
+     
    
     //--------------------------------------------------------------------------------
     //
@@ -693,7 +655,7 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
      * uint16_t index[header.index2Length];
      * uint16_t data[header.shiftedDataLength<<2];  -- or uint32_t data[...]
      * 
-     * For Java, this is read from the stream into one of these.
+     * For Java, this is read from the stream into an instance of UTrie2Header.
      * (The C version just places a struct over the raw serialized data.)
      * 
      * @internal
