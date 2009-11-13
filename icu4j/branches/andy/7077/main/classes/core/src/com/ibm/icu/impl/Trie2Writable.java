@@ -1087,7 +1087,7 @@ public class Trie2Writable extends Trie2 {
         dest.header = new Trie2.UTrie2Header();
         dest.header.signature         = 0x54726932; /* "Tri2" */
         dest.header.options           = valueBits==ValueWidth.BITS_16 ? 0 : 1;
-        dest.header.indexLength       = indexLength;
+        dest.header.indexLength       = dest.indexLength;
         dest.header.shiftedDataLength = dest.dataLength>>UTRIE2_INDEX_SHIFT;
         dest.header.index2NullOffset  = dest.index2NullOffset;
         dest.header.dataNullOffset    = dest.dataNullOffset;

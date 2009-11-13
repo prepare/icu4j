@@ -341,7 +341,7 @@ public class Trie2Test extends TestFmwk {
              int serializedLen = t1w.toTrie2_16().serialize(os);
              // Fragile test.  Serialized length could change with changes to compaction.
              //                But it should not change unexpectedly.
-             assertEquals(where(), 3920, serializedLen);
+             assertEquals(where(), 3508, serializedLen);
              ByteArrayInputStream is = new ByteArrayInputStream(os.toByteArray());
              Trie2 t1ws16 = Trie2.createFromSerialized(is);
              assertEquals(where(), t1ws16.getClass(), Trie2_16.class);
@@ -702,12 +702,23 @@ public class Trie2Test extends TestFmwk {
                      errorValue + ", " + value + ", " + value2);
          }
          
-         // Check Trie contents enumration
+         // Check that Trie enumeration produces the same contents as simple get()
          for (Trie2.Range range: trie) {
              if (false) {
                  System.out.println("(start, end, value) = ("    + Integer.toHexString(range.startCodePoint) +
                                                             ", " + Integer.toHexString(range.endCodePoint) + 
                                                             ", " + Integer.toHexString(range.value) + ")");
+             }
+             String wa = where() + "a";  // TODO:  fix asserts to do where only on error.
+             String wb = where() + "b";
+             String wc = where() + "c";
+             for (int cp=range.startCodePoint; cp<=range.endCodePoint; cp++) {
+                 if (range.leadSurrogate) {
+                     assertTrue(wa, cp>=(char)0xd800 && cp<(char)0xdc00);
+                     assertEquals(wb, range.value, trie.getFromU16SingleLead((char)cp));
+                 } else {
+                     assertEquals(wc, range.value, trie.get(cp));
+                 }
              }
          }
          if (false) System.out.println("\n\n");
@@ -740,9 +751,8 @@ public class Trie2Test extends TestFmwk {
          // Run the same tests against locally contructed Tries.
          Trie2Writable trieW = genTrieFromSetRanges(setRanges);
          trieGettersTest(testName, trieW, Trie2.ValueWidth.BITS_32, checkRanges);
-         // TODO:  Unexplained problem with 16 bit data Initial Value.
-         //assertEquals(where(), trieW, trie16);   // Locally built tries must be
-         //assertEquals(where(), trieW, trie32);   //   the same as those imported from ICU4C
+         assertEquals(where(), trieW, trie16);   // Locally built tries must be
+         assertEquals(where(), trieW, trie32);   //   the same as those imported from ICU4C
          
          
          Trie2_32 trie32a = trieW.toTrie2_32();
@@ -750,8 +760,6 @@ public class Trie2Test extends TestFmwk {
 
          Trie2_16 trie16a = trieW.toTrie2_16();
          trieGettersTest(testName, trie16a, Trie2.ValueWidth.BITS_16, checkRanges);
-
-
      }
      
      // Was "TrieTest" in trie2test.c 

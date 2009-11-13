@@ -139,7 +139,7 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
         This.indexLength      = header.indexLength;
         This.dataLength       = header.shiftedDataLength << UTRIE2_INDEX_SHIFT;
         This.index2NullOffset = header.index2NullOffset;
-
+        This.dataNullOffset   = header.dataNullOffset;
         This.highStart        = header.shiftedHighStart << UTRIE2_SHIFT_1;
         This.highValueIndex   = This.dataLength - UTRIE2_DATA_GRANULARITY;
         if (width == ValueWidth.BITS_16) {
