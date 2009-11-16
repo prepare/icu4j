@@ -608,7 +608,7 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
             
         /** 
          * Iterator.remove() is not supported by Trie2.CharSequenceIterator.
-         * @throws UnsupportedOperationException
+         * @throws UnsupportedOperationException remove() is not supported.
          * @see java.util.Iterator#remove()
          */
         public void remove() {
