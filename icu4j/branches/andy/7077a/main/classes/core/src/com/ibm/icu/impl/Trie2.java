@@ -524,7 +524,7 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
      *  
      * @param text A text string to be iterated over.
      * @param index The starting iteration position within the input text.
-     * @return
+     * @return the CharSequenceIterator
      */
     public CharSequenceIterator charSequenceIterator(CharSequence text, int index) {
         return new CharSequenceIterator(text, index);
@@ -898,7 +898,7 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
                 // Iteration over code point values.
                 val = get(nextStart);
                 mappedVal = mapper.map(val);
-                endOfRange = rangeEnd(nextStart);
+                endOfRange = rangeEnd(nextStart, limitCP, val);
                 // Loop once for each range in the Trie2 with the same raw (unmapped) value.
                 // Loop continues so long as the mapped values are the same.
                 for (;;) {
@@ -909,7 +909,7 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
                     if (mapper.map(val) != mappedVal) {
                         break;
                     }
-                    endOfRange = rangeEnd(endOfRange+1);
+                    endOfRange = rangeEnd(endOfRange+1, limitCP, val);
                 }
             } else {
                 // Iteration over the alternate lead surrogate values.
@@ -948,31 +948,7 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
             throw new UnsupportedOperationException();
         }
         
-        
-        /**
-         * Find the last character in a contiguous range of characters with the
-         * same Trie2 value as the input character.
-         * 
-         * @param c  The character to begin with.
-         * @return   The last contiguous character with the same value.
-         */
-        private int rangeEnd(int startingC) {
-            // TODO: add optimizations
-            int c;
-            int val = get(startingC);
-            int limit = Math.min(highStart, limitCP);
-            
-            for (c = startingC+1; c < limit; c++) {
-                if (get(c) != val) {
-                    break;
-                }
-            }
-            if (c >= highStart) {
-                c = limitCP;
-            }
-            return c - 1;
-        }
-                
+                 
         /**
          * Find the last lead surrogate in a contiguous range  with the
          * same Trie2 value as the input character.
@@ -1019,6 +995,29 @@ public abstract class Trie2 implements Iterable<Trie2.Range> {
         private boolean        doLeadSurrogates = true;
     }
     
+    /**
+     * Find the last character in a contiguous range of characters with the
+     * same Trie2 value as the input character.
+     * 
+     * @param c  The character to begin with.
+     * @return   The last contiguous character with the same value.
+     */
+    int rangeEnd(int start, int limitp, int val) {
+        // TODO: add optimizations
+        int c;
+        int limit = Math.min(highStart, limitp);
+        
+        for (c = start+1; c < limit; c++) {
+            if (get(c) != val) {
+                break;
+            }
+        }
+        if (c >= highStart) {
+            c = limitp;
+        }
+        return c - 1;
+    }
+            
     
     //
     //  Hashing implementation functions.  FNV hash.  Respected public domain algorithm.
