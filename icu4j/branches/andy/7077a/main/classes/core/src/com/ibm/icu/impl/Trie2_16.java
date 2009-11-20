@@ -194,7 +194,7 @@ public final class Trie2_16 extends Trie2 {
             } else if (cp < 0xffff) {
                 // Lead Surrogate Code Point, 0xd800 <= cp < 0xdc00
                 index2Block = UTRIE2_LSCP_INDEX_2_OFFSET;
-                block       = index[index2Block + (cp - 0xd800)] << UTRIE2_INDEX_SHIFT;
+                block       = index[index2Block + ((cp - 0xd800) >> UTRIE2_SHIFT_2)] << UTRIE2_INDEX_SHIFT;
             } else if (cp < highStart) {
                 // Supplemental code point, use two-level lookup.
                 int ix = (UTRIE2_INDEX_1_OFFSET - UTRIE2_OMITTED_BMP_INDEX_1_LENGTH) + (cp >> UTRIE2_SHIFT_1);
@@ -202,7 +202,7 @@ public final class Trie2_16 extends Trie2 {
                 block = index[index2Block + ((cp >> UTRIE2_SHIFT_2) & UTRIE2_INDEX_2_MASK)] << UTRIE2_INDEX_SHIFT;
             } else  {
                 // Code point above highStart.
-                if (value == initialValue) {
+                if (value == index[highValueIndex]) {
                     cp = limit;
                 }
                 break;
