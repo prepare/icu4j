@@ -7,12 +7,13 @@
  ******************************************************************************
  */
 
-package com.ibm.icu.text;
+package com.ibm.icu.impl;
 
 import java.util.Vector;
 import com.ibm.icu.impl.UCharacterProperty;
 import com.ibm.icu.text.UTF16;
-import com.ibm.icu.text.UnicodeSet.USetSpanCondition;
+import com.ibm.icu.text.UnicodeSet;
+import com.ibm.icu.text.UnicodeSet.SpanCondition;
 
 /*
  * Implement span() etc. for a set with strings.
@@ -25,18 +26,18 @@ public class UnicodeSetStringSpan {
      * Which span() variant will be used? The object is either built for one variant and used once, or built for all and
      * may be used many times.
      */
-    static final int FWD           = 0x20;
-    static final int BACK          = 0x10;
-    static final int UTF16         = 8;
-    static final int CONTAINED     = 2;
-    static final int NOT_CONTAINED = 1;
+    public static final int FWD           = 0x20;
+    public static final int BACK          = 0x10;
+    public static final int UTF16         = 8;
+    public static final int CONTAINED     = 2;
+    public static final int NOT_CONTAINED = 1;
 
-    static final int ALL = 0x3f;
+    public static final int ALL = 0x3f;
 
-    static final int FWD_UTF16_CONTAINED      = FWD  | UTF16 |     CONTAINED;
-    static final int FWD_UTF16_NOT_CONTAINED  = FWD  | UTF16 | NOT_CONTAINED;
-    static final int BACK_UTF16_CONTAINED     = BACK | UTF16 |     CONTAINED;
-    static final int BACK_UTF16_NOT_CONTAINED = BACK | UTF16 | NOT_CONTAINED;
+    public static final int FWD_UTF16_CONTAINED      = FWD  | UTF16 |     CONTAINED;
+    public static final int FWD_UTF16_NOT_CONTAINED  = FWD  | UTF16 | NOT_CONTAINED;
+    public static final int BACK_UTF16_CONTAINED     = BACK | UTF16 |     CONTAINED;
+    public static final int BACK_UTF16_NOT_CONTAINED = BACK | UTF16 | NOT_CONTAINED;
 
     // Special spanLength short values. (since Java has not unsigned byte type)
     // All code points in the string are contained in the parent set.
@@ -95,7 +96,7 @@ public class UnicodeSetStringSpan {
             String string = strings.elementAt(i);
             int length16 = string.length();
             boolean thisRelevant;
-            spanLength = spanSet.span(string, length16, USetSpanCondition.USET_SPAN_CONTAINED);
+            spanLength = spanSet.span(string, 0, length16, SpanCondition.CONTAINED);
             if (spanLength < length16) { // Relevant string.
                 someRelevant = thisRelevant = true;
             } else {
@@ -143,7 +144,7 @@ public class UnicodeSetStringSpan {
             String string = strings.elementAt(i);
 
             int length16 = string.length();
-            spanLength = spanSet.span(string, length16, USetSpanCondition.USET_SPAN_CONTAINED);
+            spanLength = spanSet.span(string, 0, length16, SpanCondition.CONTAINED);
             if (spanLength < length16) { // Relevant string.
                 if (0 != (which & UTF16)) {
                     if (0 != (which & CONTAINED)) {
@@ -152,7 +153,7 @@ public class UnicodeSetStringSpan {
                         }
                         if (0 != (which & BACK)) {
                             spanLength = length16
-                                    - spanSet.spanBack(string, length16, USetSpanCondition.USET_SPAN_CONTAINED);
+                                    - spanSet.spanBack(string, length16, SpanCondition.CONTAINED);
                             spanLengths[spanBackLengthsOffset + i] = makeSpanLengthByte(spanLength);
                         }
                     } else /* not CONTAINED, not all, but NOT_CONTAINED */{
@@ -252,7 +253,7 @@ public class UnicodeSetStringSpan {
      */
 
     /*
-     * Algorithm for span(USetSpanCondition.USET_SPAN_CONTAINED)
+     * Algorithm for span(SpanCondition.CONTAINED)
      * 
      * Theoretical algorithm: - Iterate through the string, and at each code point boundary: + If the code point there
      * is in the set, then remember to continue after it. + If a set string matches at the current position, then
@@ -269,10 +270,10 @@ public class UnicodeSetStringSpan {
      * Create and cache a spanSet which contains all of the single code points of the original set but none of its
      * strings.
      * 
-     * - Start with spanLength=spanSet.span(USetSpanCondition.USET_SPAN_CONTAINED). - Loop: + Try to match each set
+     * - Start with spanLength=spanSet.span(SpanCondition.CONTAINED). - Loop: + Try to match each set
      * string at the end of the spanLength. ~ Set strings that start with set-contained code points must be matched with
      * a partial overlap because the recursive algorithm would have tried to match them at every position. ~ Set strings
-     * that entirely consist of set-contained code points are irrelevant for span(USetSpanCondition.USET_SPAN_CONTAINED)
+     * that entirely consist of set-contained code points are irrelevant for span(SpanCondition.CONTAINED)
      * because the recursive algorithm would continue after them anyway and find the longest recursive match from their
      * end. ~ Rather than recursing, note each end point of a set string match. + If no set string matched after
      * spanSet.span(), then return with where the spanSet.span() ended. + If at least one set string matched after
@@ -280,7 +281,7 @@ public class UnicodeSetStringSpan {
      * strings from there. + If at least one more set string matched after a previous string match, then test if the
      * code point after the previous string match is also contained in the set. Continue the loop with the shortest end
      * point of either this code point or a matching set string. + If no more set string matched after a previous string
-     * match, then try another spanLength=spanSet.span(USetSpanCondition.USET_SPAN_CONTAINED). Stop if spanLength==0,
+     * match, then try another spanLength=spanSet.span(SpanCondition.CONTAINED). Stop if spanLength==0,
      * otherwise continue the loop.
      * 
      * By noting each end point of a set string match, the function visits each string position at most once and
@@ -291,7 +292,7 @@ public class UnicodeSetStringSpan {
      */
 
     /*
-     * Algorithm for span(USET_SPAN_SIMPLE)
+     * Algorithm for span(SIMPLE)
      * 
      * Theoretical algorithm: - Iterate through the string, and at each code point boundary: + If the code point there
      * is in the set, then remember to continue after it. + If a set string matches at the current position, then
@@ -302,7 +303,7 @@ public class UnicodeSetStringSpan {
      * 
      * (Same assumption and spanSet as above.)
      * 
-     * - Start with spanLength=spanSet.span(USetSpanCondition.USET_SPAN_CONTAINED). - Loop: + Try to match each set
+     * - Start with spanLength=spanSet.span(SpanCondition.CONTAINED). - Loop: + Try to match each set
      * string at the end of the spanLength. ~ Set strings that start with set-contained code points must be matched with
      * a partial overlap because the standard algorithm would have tried to match them earlier. ~ Set strings that
      * entirely consist of set-contained code points must be matched with a full overlap because the longest-match
@@ -312,13 +313,9 @@ public class UnicodeSetStringSpan {
      * matched after spanSet.span(), then return with where the spanSet.span() ended. + If at least one set string
      * matched, then continue the loop after the longest match from the earliest position. + If no more set string
      * matched after a previous string match, then try another
-     * spanLength=spanSet.span(USetSpanCondition.USET_SPAN_CONTAINED). Stop if spanLength==0, otherwise continue the
+     * spanLength=spanSet.span(SpanCondition.CONTAINED). Stop if spanLength==0, otherwise continue the
      * loop.
      */
-    public synchronized int span(final String s, int length, USetSpanCondition spanCondition) {
-        return span(s, 0, length, spanCondition);
-    }
-
     /**
      * Span a string.
      * 
@@ -326,20 +323,20 @@ public class UnicodeSetStringSpan {
      * @param start The start index that the span begins
      * @param spanCondition The span condition
      * @return the length of the span
-     * @stable ICU 3.8
+     * @draft ICU 4.4
      */
-    public synchronized int span(final String s, int start, int length, USetSpanCondition spanCondition) {
-        if (spanCondition == USetSpanCondition.USET_SPAN_NOT_CONTAINED) {
+    public synchronized int span(final String s, int start, int length, SpanCondition spanCondition) {
+        if (spanCondition == SpanCondition.NOT_CONTAINED) {
             return spanNot(s, start, length);
         }
-        int spanLength = spanSet.span(s, start, length, USetSpanCondition.USET_SPAN_CONTAINED);
+        int spanLength = spanSet.span(s, start, length, SpanCondition.CONTAINED);
         if (spanLength == length) {
             return length;
         }
 
         // Consider strings; they may overlap with the span.
         int initSize = 0;
-        if (spanCondition == USetSpanCondition.USET_SPAN_CONTAINED) {
+        if (spanCondition == SpanCondition.CONTAINED) {
             // Use offset list to try all possibilities.
             initSize = maxLength16;
         }
@@ -347,7 +344,7 @@ public class UnicodeSetStringSpan {
         int pos = start + spanLength, rest = length - spanLength;
         int i, stringsLength = strings.size();
         for (;;) {
-            if (spanCondition == USetSpanCondition.USET_SPAN_CONTAINED) {
+            if (spanCondition == SpanCondition.CONTAINED) {
                 for (i = 0; i < stringsLength; ++i) {
                     int overlap = spanLengths[i];
                     if (overlap == ALL_CP_CONTAINED) {
@@ -386,7 +383,7 @@ public class UnicodeSetStringSpan {
                         ++inc;
                     }
                 }
-            } else /* USET_SPAN_SIMPLE */{
+            } else /* SIMPLE */{
                 int maxInc = 0, maxOverlap = 0;
                 for (i = 0; i < stringsLength; ++i) {
                     int overlap = spanLengths[i];
@@ -452,7 +449,7 @@ public class UnicodeSetStringSpan {
                 if (offsets.isEmpty()) {
                     // No more strings matched after a previous string match.
                     // Try another code point span from after the last string match.
-                    spanLength = spanSet.span(s, pos, rest, USetSpanCondition.USET_SPAN_CONTAINED);
+                    spanLength = spanSet.span(s, pos, rest, SpanCondition.CONTAINED);
                     if (spanLength == rest || // Reached the end of the string, or
                             spanLength == 0 // neither strings nor span progressed.
                     ) {
@@ -495,13 +492,13 @@ public class UnicodeSetStringSpan {
      * @param s The string to be spanned
      * @param spanCondition The span condition
      * @return The string index which starts the span (i.e. inclusive).
-     * @stable ICU 3.8
+     * @draft ICU 4.4
      */
-    public synchronized int spanBack(final String s, int length, USetSpanCondition spanCondition) {
-        if (spanCondition == USetSpanCondition.USET_SPAN_NOT_CONTAINED) {
+    public synchronized int spanBack(final String s, int length, SpanCondition spanCondition) {
+        if (spanCondition == SpanCondition.NOT_CONTAINED) {
             return spanNotBack(s, length);
         }
-        int pos = spanSet.spanBack(s, length, USetSpanCondition.USET_SPAN_CONTAINED);
+        int pos = spanSet.spanBack(s, length, SpanCondition.CONTAINED);
         if (pos == 0) {
             return 0;
         }
@@ -509,7 +506,7 @@ public class UnicodeSetStringSpan {
 
         // Consider strings; they may overlap with the span.
         int initSize = 0;
-        if (spanCondition == USetSpanCondition.USET_SPAN_CONTAINED) {
+        if (spanCondition == SpanCondition.CONTAINED) {
             // Use offset list to try all possibilities.
             initSize = maxLength16;
         }
@@ -520,7 +517,7 @@ public class UnicodeSetStringSpan {
             spanBackLengthsOffset = stringsLength;
         }
         for (;;) {
-            if (spanCondition == USetSpanCondition.USET_SPAN_CONTAINED) {
+            if (spanCondition == SpanCondition.CONTAINED) {
                 for (i = 0; i < stringsLength; ++i) {
                     int overlap = spanLengths[spanBackLengthsOffset + i];
                     if (overlap == ALL_CP_CONTAINED) {
@@ -560,7 +557,7 @@ public class UnicodeSetStringSpan {
                         ++dec;
                     }
                 }
-            } else /* USET_SPAN_SIMPLE */{
+            } else /* SIMPLE */{
                 int maxDec = 0, maxOverlap = 0;
                 for (i = 0; i < stringsLength; ++i) {
                     int overlap = spanLengths[spanBackLengthsOffset + i];
@@ -626,7 +623,7 @@ public class UnicodeSetStringSpan {
                     // No more strings matched before a previous string match.
                     // Try another code point span from before the last string match.
                     int oldPos = pos;
-                    pos = spanSet.spanBack(s, oldPos, USetSpanCondition.USET_SPAN_CONTAINED);
+                    pos = spanSet.spanBack(s, oldPos, SpanCondition.CONTAINED);
                     spanLength = oldPos - pos;
                     if (pos == 0 || // Reached the start of the string, or
                             spanLength == 0 // neither strings nor span progressed.
@@ -660,7 +657,7 @@ public class UnicodeSetStringSpan {
     }
 
     /*
-     * Algorithm for spanNot()==span(USetSpanCondition.USET_SPAN_NOT_CONTAINED)
+     * Algorithm for spanNot()==span(SpanCondition.NOT_CONTAINED)
      * 
      * Theoretical algorithm: - Iterate through the string, and at each code point boundary: + If the code point there
      * is in the set, then return with the current position. + If a set string matches at the current position, then
@@ -674,7 +671,7 @@ public class UnicodeSetStringSpan {
      * strings. For each set string add its initial code point to the spanNotSet. (Also add its final code point for
      * spanNotBack().)
      * 
-     * - Loop: + Do spanLength=spanNotSet.span(USetSpanCondition.USET_SPAN_NOT_CONTAINED). + If the current code point
+     * - Loop: + Do spanLength=spanNotSet.span(SpanCondition.NOT_CONTAINED). + If the current code point
      * is in the original set, then return the current position. + If any set string matches at the current position,
      * then return the current position. + If there is no match at the current position, neither for the code point
      * there nor for any set string, then skip this code point and continue the loop. This happens for
@@ -687,7 +684,7 @@ public class UnicodeSetStringSpan {
         do {
             // Span until we find a code point from the set,
             // or a code point that starts or ends some string.
-            i = spanNotSet.span(s, pos, rest, USetSpanCondition.USET_SPAN_NOT_CONTAINED);
+            i = spanNotSet.span(s, pos, rest, SpanCondition.NOT_CONTAINED);
             if (i == rest) {
                 return length; // Reached the end of the string.
             }
@@ -729,7 +726,7 @@ public class UnicodeSetStringSpan {
         do {
             // Span until we find a code point from the set,
             // or a code point that starts or ends some string.
-            pos = spanNotSet.spanBack(s, pos, USetSpanCondition.USET_SPAN_NOT_CONTAINED);
+            pos = spanNotSet.spanBack(s, pos, SpanCondition.NOT_CONTAINED);
             if (pos == 0) {
                 return 0; // Reached the start of the string.
             }

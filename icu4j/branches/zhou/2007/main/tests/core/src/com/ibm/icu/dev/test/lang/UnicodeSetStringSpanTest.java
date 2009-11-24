@@ -10,13 +10,12 @@ import com.ibm.icu.dev.test.TestFmwk;
 import com.ibm.icu.impl.Utility;
 import com.ibm.icu.text.UTF16;
 import com.ibm.icu.text.UnicodeSet;
-import com.ibm.icu.text.UnicodeSet.USetSpanCondition;
+import com.ibm.icu.text.UnicodeSet.SpanCondition;
 import com.ibm.icu.text.UnicodeSetIterator;
-import com.ibm.icu.text.UnicodeSetStringSpan;
 
 /**
  * @test
- * @summary General test of UnicodeSetStringSpan.
+ * @summary General test of UnicodeSet string span.
  */
 public class UnicodeSetStringSpanTest extends TestFmwk {
 
@@ -30,24 +29,24 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
         String string = "abc";
         UnicodeSet set = new UnicodeSet(pattern);
         set.complement();
-        int length = set.spanBack(string, 3, USetSpanCondition.USET_SPAN_SIMPLE);
+        int length = set.spanBack(string, 3, SpanCondition.SIMPLE);
         if (length != 1) {
             errln(String.format("FAIL: UnicodeSet(%s).spanBack(%s) returns the wrong value length %d (!= 1)",
                     set.toString(), string, length));
         }
-        length = set.span(string, 3, USetSpanCondition.USET_SPAN_SIMPLE);
+        length = set.span(string, SpanCondition.SIMPLE);
         if (length != 3) {
             errln(String.format("FAIL: UnicodeSet(%s).span(%s) returns the wrong value length %d (!= 3)",
                     set.toString(), string, length));
         }
-        length = set.span(string, 1, 2, USetSpanCondition.USET_SPAN_SIMPLE);
+        length = set.span(string, 1, SpanCondition.SIMPLE);
         if (length != 2) {
             errln(String.format("FAIL: UnicodeSet(%s).span(%s) returns the wrong value length %d (!= 2)",
                     set.toString(), string, length));
         }
     }
 
-    // Test select patterns and strings, and test USET_SPAN_SIMPLE.
+    // Test select patterns and strings, and test SIMPLE.
     public void TestSimpleStringSpanAndFreeze() {
         String pattern = "[x{xy}{xya}{axy}{ax}]";
         final String string = "xx"
@@ -67,29 +66,27 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
         }
 
         String s16 = "byayaxya";
-        if (   set.span(s16, 8, USetSpanCondition.USET_SPAN_NOT_CONTAINED) != 4
-            || set.span(s16, 7, USetSpanCondition.USET_SPAN_NOT_CONTAINED) != 4
-            || set.span(s16, 6, USetSpanCondition.USET_SPAN_NOT_CONTAINED) != 4
-            || set.span(s16, 5, USetSpanCondition.USET_SPAN_NOT_CONTAINED) != 5
-            || set.span(s16, 4, USetSpanCondition.USET_SPAN_NOT_CONTAINED) != 4
-            || set.span(s16, 3, USetSpanCondition.USET_SPAN_NOT_CONTAINED) != 3) {
+        if (   set.span(s16.substring(0, 8), SpanCondition.NOT_CONTAINED) != 4
+            || set.span(s16.substring(0, 7), SpanCondition.NOT_CONTAINED) != 4
+            || set.span(s16.substring(0, 6), SpanCondition.NOT_CONTAINED) != 4
+            || set.span(s16.substring(0, 5), SpanCondition.NOT_CONTAINED) != 5
+            || set.span(s16.substring(0, 4), SpanCondition.NOT_CONTAINED) != 4
+            || set.span(s16.substring(0, 3), SpanCondition.NOT_CONTAINED) != 3) {
             errln("FAIL: UnicodeSet(" + pattern + ").span(while not) returns the wrong value");
         }
 
         pattern = "[a{ab}{abc}{cd}]";
         set.applyPattern(pattern);
         s16 = "acdabcdabccd";
-        if (   set.span(s16, 12, USetSpanCondition.USET_SPAN_CONTAINED) != 12
-            || set.span(s16, 12, USetSpanCondition.USET_SPAN_SIMPLE) != 6
-            || set.span(s16, 7, 5, USetSpanCondition.USET_SPAN_SIMPLE) != 5
-            || set.span(s16.substring(7), 5, USetSpanCondition.USET_SPAN_SIMPLE) != 5) {
+        if (   set.span(s16.substring(0, 12), SpanCondition.CONTAINED) != 12
+            || set.span(s16.substring(0, 12), SpanCondition.SIMPLE) != 6
+            || set.span(s16.substring(7),     SpanCondition.SIMPLE) != 5) {
             errln("FAIL: UnicodeSet(" + pattern + ").span(while longest match) returns the wrong value");
         }
         set.freeze();
-        if (   set.span(s16, 12, USetSpanCondition.USET_SPAN_CONTAINED) != 12
-            || set.span(s16, 12, USetSpanCondition.USET_SPAN_SIMPLE) != 6
-            || set.span(s16, 7, 5, USetSpanCondition.USET_SPAN_SIMPLE) != 5
-            || set.span(s16.substring(7), 5, USetSpanCondition.USET_SPAN_SIMPLE) != 5) {
+        if (   set.span(s16.substring(0, 12), SpanCondition.CONTAINED) != 12
+            || set.span(s16.substring(0, 12), SpanCondition.SIMPLE) != 6
+            || set.span(s16.substring(7),     SpanCondition.SIMPLE) != 5) {
             errln("FAIL: UnicodeSet(" + pattern + ").span(while longest match) returns the wrong value");
         }
 
@@ -97,9 +94,9 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
         set = (UnicodeSet)set.cloneAsThawed();
         set.applyPattern(pattern).freeze();
         s16 = "abbcdabcdabd";
-        if (   set.spanBack(s16, 12, USetSpanCondition.USET_SPAN_CONTAINED) != 0
-            || set.spanBack(s16, 12, USetSpanCondition.USET_SPAN_SIMPLE) != 6
-            || set.spanBack(s16,  5, USetSpanCondition.USET_SPAN_SIMPLE) != 0) {
+        if (   set.spanBack(s16, 12, SpanCondition.CONTAINED) != 0
+            || set.spanBack(s16, 12, SpanCondition.SIMPLE) != 6
+            || set.spanBack(s16,  5, SpanCondition.SIMPLE) != 0) {
             errln("FAIL: UnicodeSet(" + pattern + ").spanBack(while longest match) returns the wrong value");
         }
     }
@@ -191,11 +188,11 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
 
     // Implement span() with contains() for comparison.
     static int containsSpanUTF16(final UnicodeSetWithStrings set, final String s, int length,
-            USetSpanCondition spanCondition) {
+            SpanCondition spanCondition) {
         final UnicodeSet realSet = set.getSet();
         if (!set.hasStrings()) {
             boolean spanContained = false;
-            if (spanCondition != USetSpanCondition.USET_SPAN_NOT_CONTAINED) {
+            if (spanCondition != SpanCondition.NOT_CONTAINED) {
                 spanContained = true; // Pin to 0/1 values.
             }
 
@@ -209,7 +206,7 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
                 }
             }
             return prev;
-        } else if (spanCondition == USetSpanCondition.USET_SPAN_NOT_CONTAINED) {
+        } else if (spanCondition == SpanCondition.NOT_CONTAINED) {
             UnicodeSetWithStringsIterator iter = new UnicodeSetWithStringsIterator(set);
             int c;
             int start, next;
@@ -230,7 +227,7 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
                 start = next;
             }
             return start;
-        } else /* USET_SPAN_CONTAINED or USET_SPAN_SIMPLE */{
+        } else /* CONTAINED or SIMPLE */{
             UnicodeSetWithStringsIterator iter = new UnicodeSetWithStringsIterator(set);
             int c;
             int start, next, maxSpanLimit = 0;
@@ -249,7 +246,7 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
                         if (matchLimit == length) {
                             return length;
                         }
-                        if (spanCondition == USetSpanCondition.USET_SPAN_CONTAINED) {
+                        if (spanCondition == SpanCondition.CONTAINED) {
                             // Iterate for the shortest match at each position.
                             // Recurse for each but the shortest match.
                             if (next == start) {
@@ -263,7 +260,7 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
                                 }
                                 // Recurse for non-shortest match from start.
                                 int spanLength = containsSpanUTF16(set, s.substring(matchLimit), length - matchLimit,
-                                        USetSpanCondition.USET_SPAN_CONTAINED);
+                                        SpanCondition.CONTAINED);
                                 if ((matchLimit + spanLength) > maxSpanLimit) {
                                     maxSpanLimit = matchLimit + spanLength;
                                     if (maxSpanLimit == length) {
@@ -271,7 +268,7 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
                                     }
                                 }
                             }
-                        } else /* spanCondition==USET_SPAN_SIMPLE */{
+                        } else /* spanCondition==SIMPLE */{
                             if (matchLimit > next) {
                                 // Remember longest match from start.
                                 next = matchLimit;
@@ -293,14 +290,14 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
     }
 
     static int containsSpanBackUTF16(final UnicodeSetWithStrings set, final String s, int length,
-            USetSpanCondition spanCondition) {
+            SpanCondition spanCondition) {
         if (length == 0) {
             return 0;
         }
         final UnicodeSet realSet = set.getSet();
         if (!set.hasStrings()) {
             boolean spanContained = false;
-            if (spanCondition != USetSpanCondition.USET_SPAN_NOT_CONTAINED) {
+            if (spanCondition != SpanCondition.NOT_CONTAINED) {
                 spanContained = true; // Pin to 0/1 values.
             }
 
@@ -314,7 +311,7 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
                 prev = s.offsetByCodePoints(prev, -1);
             } while (prev > 0);
             return prev;
-        } else if (spanCondition == USetSpanCondition.USET_SPAN_NOT_CONTAINED) {
+        } else if (spanCondition == SpanCondition.NOT_CONTAINED) {
             UnicodeSetWithStringsIterator iter = new UnicodeSetWithStringsIterator(set);
             int c;
             int prev = length, length0 = length;
@@ -334,7 +331,7 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
                 prev = s.offsetByCodePoints(prev, -1);
             } while (prev > 0);
             return prev;
-        } else /* USetSpanCondition.USET_SPAN_CONTAINED or USET_SPAN_SIMPLE */{
+        } else /* SpanCondition.CONTAINED or SIMPLE */{
             UnicodeSetWithStringsIterator iter = new UnicodeSetWithStringsIterator(set);
             int c;
             int prev = length, minSpanStart = length, length0 = length;
@@ -353,7 +350,7 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
                         if (matchStart == 0) {
                             return 0;
                         }
-                        if (spanCondition == USetSpanCondition.USET_SPAN_CONTAINED) {
+                        if (spanCondition == SpanCondition.CONTAINED) {
                             // Iterate for the shortest match at each position.
                             // Recurse for each but the shortest match.
                             if (length == prev) {
@@ -367,7 +364,7 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
                                 }
                                 // Recurse for non-shortest match from prev.
                                 int spanStart = containsSpanBackUTF16(set, s, matchStart,
-                                        USetSpanCondition.USET_SPAN_CONTAINED);
+                                        SpanCondition.CONTAINED);
                                 if (spanStart < minSpanStart) {
                                     minSpanStart = spanStart;
                                     if (minSpanStart == 0) {
@@ -375,7 +372,7 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
                                     }
                                 }
                             }
-                        } else /* spanCondition==USET_SPAN_SIMPLE */{
+                        } else /* spanCondition==SIMPLE */{
                             if (matchStart < length) {
                                 // Remember longest match from prev.
                                 length = matchStart;
@@ -414,9 +411,9 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
 
     static final int SPAN_ALL = 0x33f;
 
-    static USetSpanCondition invertSpanCondition(USetSpanCondition spanCondition, USetSpanCondition contained) {
-        return spanCondition == USetSpanCondition.USET_SPAN_NOT_CONTAINED ? contained
-                : USetSpanCondition.USET_SPAN_NOT_CONTAINED;
+    static SpanCondition invertSpanCondition(SpanCondition spanCondition, SpanCondition contained) {
+        return spanCondition == SpanCondition.NOT_CONTAINED ? contained
+                : SpanCondition.NOT_CONTAINED;
     }
 
     /*
@@ -430,7 +427,7 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
             int expectCount) {
         final UnicodeSet realSet = set.getSet();
         int start, count, i;
-        USetSpanCondition spanCondition, firstSpanCondition, contained;
+        SpanCondition spanCondition, firstSpanCondition, contained;
         boolean isForward;
 
         if (type < 0 || 7 < type) {
@@ -458,21 +455,21 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
             isForward = false;
         }
         if ((type & 1) == 0) {
-            // use USetSpanCondition.USET_SPAN_CONTAINED
+            // use SpanCondition.CONTAINED
             if ((whichSpans & SPAN_CONTAINED) == 0) {
                 return -1;
             }
-            contained = USetSpanCondition.USET_SPAN_CONTAINED;
+            contained = SpanCondition.CONTAINED;
         } else {
-            // use USET_SPAN_SIMPLE
+            // use SIMPLE
             if ((whichSpans & SPAN_SIMPLE) == 0) {
                 return -1;
             }
-            contained = USetSpanCondition.USET_SPAN_SIMPLE;
+            contained = SpanCondition.SIMPLE;
         }
 
         // Default first span condition for going forward with an uncomplemented set.
-        spanCondition = USetSpanCondition.USET_SPAN_NOT_CONTAINED;
+        spanCondition = SpanCondition.NOT_CONTAINED;
         if (isComplement) {
             spanCondition = invertSpanCondition(spanCondition, contained);
         }
@@ -515,7 +512,7 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
         case 3:
             start = 0;
             for (;;) {
-                start += realSet.span(s.substring(start), length >= 0 ? length - start : length, spanCondition);
+                start += realSet.span(s.substring(start), 0, length >= 0 ? length - start : length, spanCondition);
                 if (count < limitsCapacity) {
                     limits[count] = start;
                 }
@@ -843,8 +840,8 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
         // "-options" limits the scope of testing for the current set.
         // By default, the test verifies that equivalent boundaries are found
         // for UTF-16 and UTF-8, going forward and backward,
-        // alternating USET_SPAN_NOT_CONTAINED with
-        // either USET_SPAN_CONTAINED or USET_SPAN_SIMPLE.
+        // alternating NOT_CONTAINED with
+        // either CONTAINED or SIMPLE.
         // Single-character options:
         // 8 -- UTF-16 and UTF-8 boundaries may differ.
         // Cause: contains(U+FFFD) is inconsistent with contains(some surrogates),
@@ -853,15 +850,15 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
         // c -- set.span() and set.complement().span() boundaries may differ.
         // Cause: Set strings are not complemented.
         // b -- span() and spanBack() boundaries may differ.
-        // Cause: Strings in the set overlap, and spanBack(USET_SPAN_CONTAINED)
-        // and spanBack(USET_SPAN_SIMPLE) are defined to
+        // Cause: Strings in the set overlap, and spanBack(CONTAINED)
+        // and spanBack(SIMPLE) are defined to
         // match with non-overlapping substrings.
         // For example, with a set containing "ab" and "ba",
         // span() of "aba" yields boundaries { 0, 2, 3 }
         // because the initial "ab" matches from 0 to 2,
         // while spanBack() yields boundaries { 0, 1, 3 }
         // because the final "ba" matches from 1 to 3.
-        // l -- USET_SPAN_CONTAINED and USET_SPAN_SIMPLE boundaries may differ.
+        // l -- CONTAINED and SIMPLE boundaries may differ.
         // Cause: Strings in the set overlap, and a longer match may
         // require a sequence including non-longest substrings.
         // For example, with a set containing "ab", "abc" and "cd",
@@ -1046,9 +1043,9 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
                                 0);
                         break;
                     case 'l':
-                        // test USET_SPAN_CONTAINED FWD & BACK, and separately
-                        // USET_SPAN_SIMPLE only FWD, and separately
-                        // USET_SPAN_SIMPLE only BACK
+                        // test CONTAINED FWD & BACK, and separately
+                        // SIMPLE only FWD, and separately
+                        // SIMPLE only BACK
                         whichSpansCount = addAlternative(whichSpans, whichSpansCount, ~(SPAN_DIRS | SPAN_CONDITION),
                                 SPAN_DIRS | SPAN_CONTAINED, SPAN_FWD | SPAN_SIMPLE, SPAN_BACK | SPAN_SIMPLE);
                         break;
