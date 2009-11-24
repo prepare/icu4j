@@ -94,133 +94,133 @@ import com.ibm.icu.text.LocaleDisplayNames.DialectHandling;
  * @author weiv
  * @author Alan Liu
  * @author Ram Viswanadha
- * @stable ICU 2.8 
+ * @stable ICU 2.8
  */
 public final class ULocale implements Serializable {
     // using serialver from jdk1.4.2_05
     private static final long serialVersionUID = 3715177670352309217L;
 
-    /** 
+    /**
      * Useful constant for language.
      * @stable ICU 3.0
      */
     public static final ULocale ENGLISH = new ULocale("en", Locale.ENGLISH);
 
-    /** 
+    /**
      * Useful constant for language.
      * @stable ICU 3.0
      */
     public static final ULocale FRENCH = new ULocale("fr", Locale.FRENCH);
 
-    /** 
+    /**
      * Useful constant for language.
      * @stable ICU 3.0
      */
     public static final ULocale GERMAN = new ULocale("de", Locale.GERMAN);
 
-    /** 
+    /**
      * Useful constant for language.
      * @stable ICU 3.0
      */
     public static final ULocale ITALIAN = new ULocale("it", Locale.ITALIAN);
 
-    /** 
+    /**
      * Useful constant for language.
      * @stable ICU 3.0
      */
     public static final ULocale JAPANESE = new ULocale("ja", Locale.JAPANESE);
 
-    /** 
+    /**
      * Useful constant for language.
      * @stable ICU 3.0
      */
     public static final ULocale KOREAN = new ULocale("ko", Locale.KOREAN);
 
-    /** 
+    /**
      * Useful constant for language.
      * @stable ICU 3.0
      */
     public static final ULocale CHINESE = new ULocale("zh", Locale.CHINESE);
 
-    /** 
+    /**
      * Useful constant for language.
      * @stable ICU 3.0
      */
     public static final ULocale SIMPLIFIED_CHINESE = new ULocale("zh_Hans", Locale.CHINESE);
 
-    /** 
+    /**
      * Useful constant for language.
      * @stable ICU 3.0
      */
     public static final ULocale TRADITIONAL_CHINESE = new ULocale("zh_Hant", Locale.CHINESE);
 
-    /** 
+    /**
      * Useful constant for country/region.
      * @stable ICU 3.0
      */
     public static final ULocale FRANCE = new ULocale("fr_FR", Locale.FRANCE);
 
-    /** 
+    /**
      * Useful constant for country/region.
      * @stable ICU 3.0
      */
     public static final ULocale GERMANY = new ULocale("de_DE", Locale.GERMANY);
 
-    /** 
+    /**
      * Useful constant for country/region.
      * @stable ICU 3.0
      */
     public static final ULocale ITALY = new ULocale("it_IT", Locale.ITALY);
 
-    /** 
+    /**
      * Useful constant for country/region.
      * @stable ICU 3.0
      */
     public static final ULocale JAPAN = new ULocale("ja_JP", Locale.JAPAN);
 
-    /** 
+    /**
      * Useful constant for country/region.
      * @stable ICU 3.0
      */
     public static final ULocale KOREA = new ULocale("ko_KR", Locale.KOREA);
 
-    /** 
+    /**
      * Useful constant for country/region.
      * @stable ICU 3.0
      */
     public static final ULocale CHINA = new ULocale("zh_Hans_CN", Locale.CHINA);
 
-    /** 
+    /**
      * Useful constant for country/region.
      * @stable ICU 3.0
      */
     public static final ULocale PRC = CHINA;
 
-    /** 
+    /**
      * Useful constant for country/region.
      * @stable ICU 3.0
      */
     public static final ULocale TAIWAN = new ULocale("zh_Hant_TW", Locale.TAIWAN);
 
-    /** 
+    /**
      * Useful constant for country/region.
      * @stable ICU 3.0
      */
     public static final ULocale UK = new ULocale("en_GB", Locale.UK);
 
-    /** 
+    /**
      * Useful constant for country/region.
      * @stable ICU 3.0
      */
     public static final ULocale US = new ULocale("en_US", Locale.US);
 
-    /** 
+    /**
      * Useful constant for country/region.
      * @stable ICU 3.0
      */
     public static final ULocale CANADA = new ULocale("en_CA", Locale.CANADA);
 
-    /** 
+    /**
      * Useful constant for country/region.
      * @stable ICU 3.0
      */
@@ -240,9 +240,9 @@ public final class ULocale implements Serializable {
     /**
      * The root ULocale.
      * @stable ICU 2.8
-     */ 
+     */
     public static final ULocale ROOT = new ULocale("root", EMPTY_LOCALE);
-    
+
     private static final SimpleCache<Locale, ULocale> CACHE = new SimpleCache<Locale, ULocale>();
 
     /**
@@ -327,7 +327,7 @@ public final class ULocale implements Serializable {
                 { "zh_XIANG",       "zh__XIANG", null, null }, /* registered name */
                 { "zh_YUE",         "zh__YUE", null, null } /* registered name */
             };
-    
+
             synchronized (ULocale.class) {
                 if (CANONICALIZE_MAP == null) {
                     CANONICALIZE_MAP = tempCANONICALIZE_MAP;
@@ -344,7 +344,7 @@ public final class ULocale implements Serializable {
                     { "PINYIN", "collation", "pinyin" }, /* Solaris variant */
                     { "STROKE", "collation", "stroke" }  /* Solaris variant */
             };
-    
+
             synchronized (ULocale.class) {
                 if (variantsToKeywords == null) {
                     variantsToKeywords = tempVariantsToKeywords;
@@ -424,7 +424,7 @@ public final class ULocale implements Serializable {
 
     /**
      * Construct a ULocale from a RFC 3066 locale ID. The locale ID consists
-     * of optional language, script, country, and variant fields in that order, 
+     * of optional language, script, country, and variant fields in that order,
      * separated by underscores, followed by an optional keyword list.  The
      * script, if present, is four characters long-- this distinguishes it
      * from a country code, which is two characters long.  Other fields
@@ -437,17 +437,17 @@ public final class ULocale implements Serializable {
      * to "zh@collation=pinyin".  By default ICU only recognizes the
      * latter as specifying pinyin collation.  Use {@link #createCanonical}
      * or {@link #canonicalize} if you need to canonicalize the localeID.
-     * 
+     *
      * @param localeID string representation of the locale, e.g:
      * "en_US", "sy_Cyrl_YU", "zh__pinyin", "es_ES@currency=EUR;collation=traditional"
      * @stable ICU 2.8
-     */ 
+     */
     public ULocale(String localeID) {
         this.localeID = getName(localeID);
     }
 
     /**
-     * Convenience overload of ULocale(String, String, String) for 
+     * Convenience overload of ULocale(String, String, String) for
      * compatibility with java.util.Locale.
      * @see #ULocale(String, String, String)
      * @stable ICU 3.4
@@ -460,7 +460,7 @@ public final class ULocale implements Serializable {
      * Construct a ULocale from a localeID constructed from the three 'fields' a, b, and c.  These
      * fields are concatenated using underscores to form a localeID of
      * the form a_b_c, which is then handled like the localeID passed
-     * to <code>ULocale(String localeID)</code>.  
+     * to <code>ULocale(String localeID)</code>.
      *
      * <p>Java locale strings consisting of language, country, and
      * variant will be handled by this form, since the country code
@@ -474,7 +474,7 @@ public final class ULocale implements Serializable {
      * @param b second component of the locale id
      * @param c third component of the locale id
      * @see #ULocale(String)
-     * @stable ICU 3.0 
+     * @stable ICU 3.0
      */
     public ULocale(String a, String b, String c) {
         localeID = getName(lscvToID(a, b, c, EMPTY_STRING));
@@ -492,7 +492,7 @@ public final class ULocale implements Serializable {
 
     private static String lscvToID(String lang, String script, String country, String variant) {
         StringBuilder buf = new StringBuilder();
-     
+
         if (lang != null && lang.length() > 0) {
             buf.append(lang);
         }
@@ -554,7 +554,7 @@ public final class ULocale implements Serializable {
     /**
      * Returns the current default ULocale.
      * @stable ICU 2.8
-     */ 
+     */
     public static ULocale getDefault() {
         synchronized (ULocale.class) {
             Locale currentDefault = Locale.getDefault();
@@ -577,13 +577,13 @@ public final class ULocale implements Serializable {
      * @throws NullPointerException if <code>newLocale</code> is null
      * @see SecurityManager#checkPermission(java.security.Permission)
      * @see java.util.PropertyPermission
-     * @stable ICU 3.0 
+     * @stable ICU 3.0
      */
     public static synchronized void setDefault(ULocale newLocale){
         Locale.setDefault(newLocale.toLocale());
         defaultULocale = newLocale;
     }
-    
+
     /**
      * This is for compatibility with Locale-- in actuality, since ULocale is
      * immutable, there is no reason to clone it, so this API returns 'this'.
@@ -600,7 +600,7 @@ public final class ULocale implements Serializable {
     public int hashCode() {
         return localeID.hashCode();
     }
-    
+
     /**
      * Returns true if the other object is another ULocale with the
      * same full name, or is a String localeID that matches the full name.
@@ -608,21 +608,21 @@ public final class ULocale implements Serializable {
      * function identically might not compare equal.
      *
      * @return true if this Locale is equal to the specified object.
-     * @stable ICU 3.0 
+     * @stable ICU 3.0
      */
     public boolean equals(Object obj) {
         if (this == obj) {
             return true;
         }
         if (obj instanceof String) {
-            return localeID.equals((String)obj);   
+            return localeID.equals((String)obj);
         }
         if (obj instanceof ULocale) {
             return localeID.equals(((ULocale)obj).localeID);
         }
         return false;
     }
-    
+
     /**
      * Returns a list of all installed locales.
      * @stable ICU 3.0
@@ -662,7 +662,7 @@ public final class ULocale implements Serializable {
     public String getLanguage() {
         return getLanguage(localeID);
     }
-    
+
     /**
      * Returns the language code for the locale ID,
      * which will either be the empty string
@@ -674,7 +674,7 @@ public final class ULocale implements Serializable {
     public static String getLanguage(String localeID) {
         return new LocaleIDParser(localeID).getLanguage();
     }
-     
+
     /**
      * Returns the script code for this locale, which might be the empty string.
      * @see #getDisplayScript()
@@ -694,7 +694,7 @@ public final class ULocale implements Serializable {
     public static String getScript(String localeID) {
         return new LocaleIDParser(localeID).getScript();
     }
-    
+
     /**
      * Returns the country/region code for this locale, which will either be the empty string
      * or an uppercase ISO 3166 2-letter code.
@@ -717,7 +717,7 @@ public final class ULocale implements Serializable {
     public static String getCountry(String localeID) {
         return new LocaleIDParser(localeID).getCountry();
     }
-    
+
     /**
      * Returns the variant code for this locale, which might be the empty string.
      * @see #getDisplayVariant()
@@ -780,7 +780,7 @@ public final class ULocale implements Serializable {
     public String getBaseName() {
         return getBaseName(localeID);
     }
-    
+
     /**
      * Returns the (normalized) base name for the specified locale.
      * @param localeID the locale ID as a string
@@ -799,7 +799,7 @@ public final class ULocale implements Serializable {
      *
      * @return String the full name of the localeID
      * @stable ICU 3.0
-     */ 
+     */
     public String getName() {
         return localeID; // always normalized
     }
@@ -829,7 +829,7 @@ public final class ULocale implements Serializable {
     }
 
     /**
-     * Returns an iterator over keywords for this locale.  If there 
+     * Returns an iterator over keywords for this locale.  If there
      * are no keywords, returns null.
      * @return iterator over keywords, or null if there are no keywords.
      * @stable ICU 3.0
@@ -839,7 +839,7 @@ public final class ULocale implements Serializable {
     }
 
     /**
-     * Returns an iterator over keywords for the specified locale.  If there 
+     * Returns an iterator over keywords for the specified locale.  If there
      * are no keywords, returns null.
      * @return an iterator over the keywords in the specified locale, or null
      * if there are no keywords.
@@ -858,9 +858,10 @@ public final class ULocale implements Serializable {
     public String getKeywordValue(String keywordName){
         return getKeywordValue(localeID, keywordName);
     }
-    
+
     /**
-     * Returns the value for a keyword in the specified locale. If the keyword is not defined, returns null. 
+     * Returns the value for a keyword in the specified locale. If the keyword is not defined,
+     * returns null.
      * The locale name does not need to be normalized.
      * @param keywordName name of the keyword whose value is desired. Case insensitive.
      * @return String the value of the keyword as a string
@@ -881,7 +882,7 @@ public final class ULocale implements Serializable {
         LocaleIDParser parser = new LocaleIDParser(localeID, true);
         String baseName = parser.getBaseName();
         boolean foundVariant = false;
-      
+
         // formerly, we always set to en_US_POSIX if the basename was empty, but
         // now we require that the entire id be empty, so that "@foo=bar"
         // will pass through unchanged.
@@ -935,7 +936,7 @@ public final class ULocale implements Serializable {
 
         return parser.getName();
     }
-    
+
     /**
      * Given a keyword and a value, return a new locale with an updated
      * keyword and value.  If keyword is null, this removes all keywords from the locale id.
@@ -1012,7 +1013,7 @@ public final class ULocale implements Serializable {
     public static String getISO3Language(String localeID) {
         return LocaleIDs.getISO3Language(getLanguage(localeID));
     }
-    
+
     /**
      * Returns a three-letter abbreviation for this locale's country/region.  If the locale
      * doesn't specify a country, returns the empty string.  Otherwise, returns
@@ -1024,7 +1025,7 @@ public final class ULocale implements Serializable {
     public String getISO3Country() {
         return getISO3Country(localeID);
     }
-    
+
     /**
      * Returns a three-letter abbreviation for this locale's country/region.  If the locale
      * doesn't specify a country, returns the empty string.  Otherwise, returns
@@ -1036,7 +1037,7 @@ public final class ULocale implements Serializable {
     public static String getISO3Country(String localeID) {
         return LocaleIDs.getISO3Country(getCountry(localeID));
     }
-    
+
     // display names
 
     /**
@@ -1057,7 +1058,7 @@ public final class ULocale implements Serializable {
     public String getDisplayLanguage(ULocale displayLocale) {
         return getDisplayLanguageInternal(this, displayLocale, false);
     }
-    
+
     /**
      * Returns a locale's language localized for display in the provided locale.
      * This is a cover for the ICU4C API.
@@ -1067,7 +1068,8 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public static String getDisplayLanguage(String localeID, String displayLocaleID) {
-        return getDisplayLanguageInternal(new ULocale(localeID), new ULocale(displayLocaleID), false);
+        return getDisplayLanguageInternal(new ULocale(localeID), new ULocale(displayLocaleID),
+                false);
     }
 
     /**
@@ -1080,7 +1082,7 @@ public final class ULocale implements Serializable {
      */
     public static String getDisplayLanguage(String localeID, ULocale displayLocale) {
         return getDisplayLanguageInternal(new ULocale(localeID), displayLocale, false);
-    } 
+    }
     /**
      * Returns this locale's language localized for display in the default locale.
      * If a dialect name is present in the data, then it is returned.
@@ -1103,7 +1105,7 @@ public final class ULocale implements Serializable {
     public String getDisplayLanguageWithDialect(ULocale displayLocale) {
         return getDisplayLanguageInternal(this, displayLocale, true);
     }
-    
+
     /**
      * Returns a locale's language localized for display in the provided locale.
      * If a dialect name is present in the data, then it is returned.
@@ -1115,7 +1117,8 @@ public final class ULocale implements Serializable {
      * @provisional This API might change or be removed in a future release.
      */
     public static String getDisplayLanguageWithDialect(String localeID, String displayLocaleID) {
-        return getDisplayLanguageInternal(new ULocale(localeID), new ULocale(displayLocaleID), true);
+        return getDisplayLanguageInternal(new ULocale(localeID), new ULocale(displayLocaleID),
+                true);
     }
 
     /**
@@ -1130,14 +1133,14 @@ public final class ULocale implements Serializable {
      */
     public static String getDisplayLanguageWithDialect(String localeID, ULocale displayLocale) {
         return getDisplayLanguageInternal(new ULocale(localeID), displayLocale, true);
-    } 
+    }
 
-    private static String getDisplayLanguageInternal(ULocale locale, ULocale displayLocale, 
+    private static String getDisplayLanguageInternal(ULocale locale, ULocale displayLocale,
             boolean useDialect) {
         String lang = useDialect ? locale.getBaseName() : locale.getLanguage();
         return LocaleDisplayNames.getInstance(displayLocale).languageDisplayName(lang);
     }
-     
+
     /**
      * Returns this locale's script localized for display in the default locale.
      * @return the localized script name.
@@ -1156,7 +1159,7 @@ public final class ULocale implements Serializable {
     public String getDisplayScript(ULocale displayLocale) {
         return getDisplayScriptInternal(this, displayLocale);
     }
-    
+
     /**
      * Returns a locale's script localized for display in the provided locale.
      * This is a cover for the ICU4C API.
@@ -1194,7 +1197,7 @@ public final class ULocale implements Serializable {
     public String getDisplayCountry() {
         return getDisplayCountryInternal(this, getDefault());
     }
-    
+
     /**
      * Returns this locale's country localized for display in the provided locale.
      * @param displayLocale the locale in which to display the name.
@@ -1202,9 +1205,9 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public String getDisplayCountry(ULocale displayLocale){
-        return getDisplayCountryInternal(this, displayLocale);   
+        return getDisplayCountryInternal(this, displayLocale);
     }
-    
+
     /**
      * Returns a locale's country localized for display in the provided locale.
      * This is a cover for the ICU4C API.
@@ -1234,14 +1237,14 @@ public final class ULocale implements Serializable {
         return LocaleDisplayNames.getInstance(displayLocale)
             .regionDisplayName(locale.getCountry());
     }
-    
+
     /**
      * Returns this locale's variant localized for display in the default locale.
      * @return the localized variant name.
      * @stable ICU 3.0
      */
     public String getDisplayVariant() {
-        return getDisplayVariantInternal(this, getDefault());   
+        return getDisplayVariantInternal(this, getDefault());
     }
 
     /**
@@ -1251,9 +1254,9 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public String getDisplayVariant(ULocale displayLocale) {
-        return getDisplayVariantInternal(this, displayLocale);   
+        return getDisplayVariantInternal(this, displayLocale);
     }
-    
+
     /**
      * Returns a locale's variant localized for display in the provided locale.
      * This is a cover for the ICU4C API.
@@ -1265,7 +1268,7 @@ public final class ULocale implements Serializable {
     public static String getDisplayVariant(String localeID, String displayLocaleID){
         return getDisplayVariantInternal(new ULocale(localeID), new ULocale(displayLocaleID));
     }
-    
+
     /**
      * Returns a locale's variant localized for display in the provided locale.
      * This is a cover for the ICU4C API.
@@ -1291,9 +1294,9 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public static String getDisplayKeyword(String keyword) {
-        return getDisplayKeywordInternal(keyword, getDefault());   
+        return getDisplayKeywordInternal(keyword, getDefault());
     }
-    
+
     /**
      * Returns a keyword localized for display in the specified locale.
      * @param keyword the keyword to be displayed.
@@ -1303,7 +1306,7 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public static String getDisplayKeyword(String keyword, String displayLocaleID) {
-        return getDisplayKeywordInternal(keyword, new ULocale(displayLocaleID));   
+        return getDisplayKeywordInternal(keyword, new ULocale(displayLocaleID));
     }
 
     /**
@@ -1331,7 +1334,7 @@ public final class ULocale implements Serializable {
     public String getDisplayKeywordValue(String keyword) {
         return getDisplayKeywordValueInternal(this, keyword, getDefault());
     }
-    
+
     /**
      * Returns a keyword value localized for display in the specified locale.
      * @param keyword the keyword whose value is to be displayed.
@@ -1340,7 +1343,7 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public String getDisplayKeywordValue(String keyword, ULocale displayLocale) {
-        return getDisplayKeywordValueInternal(this, keyword, displayLocale);   
+        return getDisplayKeywordValueInternal(this, keyword, displayLocale);
     }
 
     /**
@@ -1352,8 +1355,10 @@ public final class ULocale implements Serializable {
      * @return the localized value name.
      * @stable ICU 3.0
      */
-    public static String getDisplayKeywordValue(String localeID, String keyword, String displayLocaleID) {
-        return getDisplayKeywordValueInternal(new ULocale(localeID), keyword, new ULocale(displayLocaleID));
+    public static String getDisplayKeywordValue(String localeID, String keyword,
+            String displayLocaleID) {
+        return getDisplayKeywordValueInternal(new ULocale(localeID), keyword,
+                new ULocale(displayLocaleID));
     }
 
     /**
@@ -1365,17 +1370,19 @@ public final class ULocale implements Serializable {
      * @return the localized value name.
      * @stable ICU 3.0
      */
-    public static String getDisplayKeywordValue(String localeID, String keyword, ULocale displayLocale) {
+    public static String getDisplayKeywordValue(String localeID, String keyword,
+            ULocale displayLocale) {
         return getDisplayKeywordValueInternal(new ULocale(localeID), keyword, displayLocale);
     }
 
     // displayLocaleID is canonical, localeID need not be since parsing will fix this.
-    private static String getDisplayKeywordValueInternal(ULocale locale, String keyword, ULocale displayLocale) {
+    private static String getDisplayKeywordValueInternal(ULocale locale, String keyword,
+            ULocale displayLocale) {
         keyword = AsciiUtil.toLowerString(keyword.trim());
         String value = locale.getKeywordValue(keyword);
         return LocaleDisplayNames.getInstance(displayLocale).keyValueDisplayName(keyword, value);
     }
-    
+
     /**
      * Returns this locale name localized for display in the default locale.
      * @return the localized locale name.
@@ -1384,7 +1391,7 @@ public final class ULocale implements Serializable {
     public String getDisplayName() {
         return getDisplayNameInternal(this, getDefault());
     }
-    
+
     /**
      * Returns this locale name localized for display in the provided locale.
      * @param displayLocale the locale in which to display the locale name.
@@ -1394,7 +1401,7 @@ public final class ULocale implements Serializable {
     public String getDisplayName(ULocale displayLocale) {
         return getDisplayNameInternal(this, displayLocale);
     }
-    
+
     /**
      * Returns the locale ID localized for display in the provided locale.
      * This is a cover for the ICU4C API.
@@ -1418,73 +1425,11 @@ public final class ULocale implements Serializable {
     public static String getDisplayName(String localeID, ULocale displayLocale) {
         return getDisplayNameInternal(new ULocale(localeID), displayLocale);
     }
-    
-    private static String getDisplayNameInternal(ULocale locale, ULocale displayLocale) {
-        return LocaleDisplayNames.getInstance(displayLocale)
-           .localeDisplayName(locale);
-//        return new YourFavoriteClassNameImpl(displayLocale, DialectHandling.THE_WAY_ITS_ALWAYS_BEEN).localeDisplayName(locale);
-        // lang
-        // lang (script, country, variant, keyword=value, ...)
-        // script, country, variant, keyword=value, ...
 
-//        final String[] tableNames = { "Languages", "Scripts", "Countries", "Variants" };
-//
-//        String displayLocaleID = displayLocale.getBaseName();
-//        ICUResourceBundle langbundle = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_LANG_BASE_NAME, displayLocaleID);
-//        ICUResourceBundle regionbundle = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_REGION_BASE_NAME, displayLocaleID);
-//
-//        StringBuffer buf = new StringBuffer();
-//
-//        LocaleIDParser parser = new LocaleIDParser(displayLocaleID);
-//        String[] names = parser.getLanguageScriptCountryVariant();
-//
-//        boolean haveLanguage = names[0].length() > 0;
-//        boolean openParen = false;
-//        for (int i = 0; i < names.length; ++i) {
-//            String name = names[i];
-//            if (name.length() > 0) {
-//                ICUResourceBundle bundle = i == 2 ? regionbundle : langbundle;
-//                name = ICUResourceTableAccess.getTableStringFromBundle(tableNames[i], null, name, bundle);
-//                if (buf.length() > 0) { // need a separator
-//                    if (haveLanguage & !openParen) {
-//                        buf.append(" (");
-//                        openParen = true;
-//                    } else {
-//                        buf.append(", ");
-//                    }
-//                }
-//                buf.append(name);
-//            }
-//        }
-//
-//        Map m = parser.getKeywordMap();
-//        if (!m.isEmpty()) {
-//            Iterator keys = m.entrySet().iterator();
-//            while (keys.hasNext()) {
-//                if (buf.length() > 0) {
-//                    if (haveLanguage & !openParen) {
-//                        buf.append(" (");
-//                        openParen = true;
-//                    } else {
-//                        buf.append(", ");
-//                    }
-//                }
-//                Map.Entry e = (Map.Entry)keys.next();
-//                String key = (String)e.getKey();
-//                String val = (String)e.getValue();
-//                buf.append(ICUResourceTableAccess.getTableStringFromBundle("Keys", null, key, langbundle));
-//                buf.append("=");
-//                buf.append(ICUResourceTableAccess.getTableStringFromBundle("Types", key, val, langbundle));
-//            }
-//        }
-//
-//        if (openParen) {
-//            buf.append(")");
-//        }
-//            
-//        return buf.toString();
+    private static String getDisplayNameInternal(ULocale locale, ULocale displayLocale) {
+        return LocaleDisplayNames.getInstance(displayLocale).localeDisplayName(locale);
     }
-    
+
     /**
      * Returns this locale name localized for display in the default locale.
      * If a dialect name is present in the locale data, then it is returned.
@@ -1495,7 +1440,7 @@ public final class ULocale implements Serializable {
     public String getDisplayNameWithDialect() {
         return getDisplayNameWithDialectInternal(this, getDefault());
     }
-    
+
     /**
      * Returns this locale name localized for display in the provided locale.
      * If a dialect name is present in the locale data, then it is returned.
@@ -1507,7 +1452,7 @@ public final class ULocale implements Serializable {
     public String getDisplayNameWithDialect(ULocale displayLocale) {
         return getDisplayNameWithDialectInternal(this, displayLocale);
     }
-    
+
     /**
      * Returns the locale ID localized for display in the provided locale.
      * If a dialect name is present in the locale data, then it is returned.
@@ -1519,7 +1464,8 @@ public final class ULocale implements Serializable {
      * @provisional This API might change or be removed in a future release.
      */
     public static String getDisplayNameWithDialect(String localeID, String displayLocaleID) {
-        return getDisplayNameWithDialectInternal(new ULocale(localeID), new ULocale(displayLocaleID));
+        return getDisplayNameWithDialectInternal(new ULocale(localeID),
+                new ULocale(displayLocaleID));
     }
 
     /**
@@ -1549,7 +1495,8 @@ public final class ULocale implements Serializable {
      * @stable ICU 4.0
      */
     public String getCharacterOrientation() {
-        return ICUResourceTableAccess.getTableString("layout", null, "characters", getName());
+        return ICUResourceTableAccess.getTableString(ICUResourceBundle.ICU_BASE_NAME, this,
+                "layout", "characters");
     }
 
     /**
@@ -1560,10 +1507,11 @@ public final class ULocale implements Serializable {
      * @stable ICU 4.0
      */
     public String getLineOrientation() {
-        return ICUResourceTableAccess.getTableString("layout", null, "lines", getName());
+        return ICUResourceTableAccess.getTableString(ICUResourceBundle.ICU_BASE_NAME, this,
+                "layout", "lines");
     }
 
-    /** 
+    /**
      * Selector for <tt>getLocale()</tt> indicating the locale of the
      * resource containing the data.  This is always at or above the
      * valid locale.  If the valid locale does not contain the
@@ -1576,7 +1524,7 @@ public final class ULocale implements Serializable {
      */
     public static Type ACTUAL_LOCALE = new Type();
 
-    /** 
+    /**
      * Selector for <tt>getLocale()</tt> indicating the most specific
      * locale for which any data exists.  This is always at or above
      * the requested locale, and at or below the actual locale.  If
@@ -1589,7 +1537,7 @@ public final class ULocale implements Serializable {
      * 3.0 or later.  In ICU 2.8, it is not returned correctly.
      * @draft ICU 2.8 (retain)
      * @provisional This API might change or be removed in a future release.
-     */ 
+     */
     public static Type VALID_LOCALE = new Type();
 
     /**
@@ -1608,7 +1556,7 @@ public final class ULocale implements Serializable {
     * Based on a HTTP formatted list of acceptable locales, determine an available locale for the user.
     * NullPointerException is thrown if acceptLanguageList or availableLocales is
     * null.  If fallback is non-null, it will contain true if a fallback locale (one
-    * not in the acceptLanguageList) was returned.  The value on entry is ignored. 
+    * not in the acceptLanguageList) was returned.  The value on entry is ignored.
     * ULocale will be one of the locales in availableLocales, or the ROOT ULocale if
     * if a ROOT locale was used as a fallback (because nothing else in
     * availableLocales matched).  No ULocale array element should be null; behavior
@@ -1620,7 +1568,7 @@ public final class ULocale implements Serializable {
     * @stable ICU 3.4
     */
 
-    public static ULocale acceptLanguage(String acceptLanguageList, ULocale[] availableLocales, 
+    public static ULocale acceptLanguage(String acceptLanguageList, ULocale[] availableLocales,
                                          boolean[] fallback) {
         if (acceptLanguageList == null) {
             throw new NullPointerException();
@@ -1641,7 +1589,7 @@ public final class ULocale implements Serializable {
     * Based on a list of acceptable locales, determine an available locale for the user.
     * NullPointerException is thrown if acceptLanguageList or availableLocales is
     * null.  If fallback is non-null, it will contain true if a fallback locale (one
-    * not in the acceptLanguageList) was returned.  The value on entry is ignored. 
+    * not in the acceptLanguageList) was returned.  The value on entry is ignored.
     * ULocale will be one of the locales in availableLocales, or the ROOT ULocale if
     * if a ROOT locale was used as a fallback (because nothing else in
     * availableLocales matched).  No ULocale array element should be null; behavior
@@ -1689,7 +1637,7 @@ public final class ULocale implements Serializable {
     * Based on a HTTP formatted list of acceptable locales, determine an available locale for the user.
     * NullPointerException is thrown if acceptLanguageList or availableLocales is
     * null.  If fallback is non-null, it will contain true if a fallback locale (one
-    * not in the acceptLanguageList) was returned.  The value on entry is ignored. 
+    * not in the acceptLanguageList) was returned.  The value on entry is ignored.
     * ULocale will be one of the locales in availableLocales, or the ROOT ULocale if
     * if a ROOT locale was used as a fallback (because nothing else in
     * availableLocales matched).  No ULocale array element should be null; behavior
@@ -1710,7 +1658,7 @@ public final class ULocale implements Serializable {
     * Based on an ordered array of acceptable locales, determine an available locale for the user.
     * NullPointerException is thrown if acceptLanguageList or availableLocales is
     * null.  If fallback is non-null, it will contain true if a fallback locale (one
-    * not in the acceptLanguageList) was returned.  The value on entry is ignored. 
+    * not in the acceptLanguageList) was returned.  The value on entry is ignored.
     * ULocale will be one of the locales in availableLocales, or the ROOT ULocale if
     * if a ROOT locale was used as a fallback (because nothing else in
     * availableLocales matched).  No ULocale array element should be null; behavior
@@ -1967,7 +1915,7 @@ public final class ULocale implements Serializable {
                 if (languageRangeBuf.charAt(0) != '*') {
                     int serial = map.size();
                     ULocaleAcceptLanguageQ entry = new ULocaleAcceptLanguageQ(q, serial);
-                    map.put(entry, new ULocale(canonicalize(languageRangeBuf.toString()))); // sort in reverse order..   1.0, 0.9, 0.8 .. etc                    
+                    map.put(entry, new ULocale(canonicalize(languageRangeBuf.toString()))); // sort in reverse order..   1.0, 0.9, 0.8 .. etc
                 }
 
                 // reset buffer and parse state
@@ -1981,7 +1929,7 @@ public final class ULocale implements Serializable {
             throw new ParseException("Invalid AcceptlLanguage", n);
         }
 
-        // pull out the map 
+        // pull out the map
         ULocale acceptList[] = map.values().toArray(new ULocale[map.size()]);
         return acceptList;
     }
@@ -2000,7 +1948,7 @@ public final class ULocale implements Serializable {
      * data available available for maximization, it will be returned.  For example,
      * "und-Zzzz" cannot be maximized, since there is no reasonable maximization.
      * Otherwise, a new ULocale instance with the maximal form is returned.
-     * 
+     *
      * Examples:
      *
      * "en" maximizes to "en_Latn_US"
@@ -2022,7 +1970,7 @@ public final class ULocale implements Serializable {
     {
         String[] tags = new String[3];
         String trailing = null;
-  
+
         int trailingIndex = parseTagString(
             loc.localeID,
             tags);
@@ -2195,7 +2143,7 @@ public final class ULocale implements Serializable {
     private static boolean isEmptyString(String string) {
       return string == null || string.length() == 0;
     }
-    
+
     /**
      * Append a tag to a StringBuilder, adding the separator if necessary.The tag must
      * not be a zero-length string.
@@ -2207,14 +2155,14 @@ public final class ULocale implements Serializable {
     appendTag(
         String tag,
         StringBuilder buffer) {
-    
+
         if (buffer.length() != 0) {
             buffer.append(UNDERSCORE);
         }
-    
+
         buffer.append(tag);
     }
-    
+
     /**
      * Create a tag string from the supplied parameters.  The lang, script and region
      * parameters may be null references.
@@ -2243,7 +2191,7 @@ public final class ULocale implements Serializable {
         boolean regionAppended = false;
 
         StringBuilder tag = new StringBuilder();
-    
+
         if (!isEmptyString(lang)) {
             appendTag(
                 lang,
@@ -2260,9 +2208,9 @@ public final class ULocale implements Serializable {
         }
         else {
             parser = new LocaleIDParser(alternateTags);
-    
+
             String alternateLang = parser.getLanguage();
-    
+
             /*
              * Append the value for an unknown language, if
              * we found no language.
@@ -2271,7 +2219,7 @@ public final class ULocale implements Serializable {
                 !isEmptyString(alternateLang) ? alternateLang : UNDEFINED_LANGUAGE,
                 tag);
         }
-    
+
         if (!isEmptyString(script)) {
             appendTag(
                 script,
@@ -2284,16 +2232,16 @@ public final class ULocale implements Serializable {
             if (parser == null) {
                 parser = new LocaleIDParser(alternateTags);
             }
-    
+
             String alternateScript = parser.getScript();
-    
+
             if (!isEmptyString(alternateScript)) {
                 appendTag(
                     alternateScript,
                     tag);
             }
         }
-    
+
         if (!isEmptyString(region)) {
             appendTag(
                 region,
@@ -2308,9 +2256,9 @@ public final class ULocale implements Serializable {
             if (parser == null) {
                 parser = new LocaleIDParser(alternateTags);
             }
-    
+
             String alternateRegion = parser.getCountry();
-    
+
             if (!isEmptyString(alternateRegion)) {
                 appendTag(
                     alternateRegion,
@@ -2319,7 +2267,7 @@ public final class ULocale implements Serializable {
                 regionAppended = true;
             }
         }
-    
+
         if (trailing != null && trailing.length() > 1) {
             /*
              * The current ICU format expects two underscores
@@ -2328,7 +2276,7 @@ public final class ULocale implements Serializable {
              */
             int separators = 0;
 
-            if (trailing.charAt(0) == UNDERSCORE) { 
+            if (trailing.charAt(0) == UNDERSCORE) {
                 if (trailing.charAt(1) == UNDERSCORE) {
                     separators = 2;
                 }
@@ -2360,10 +2308,10 @@ public final class ULocale implements Serializable {
                 tag.append(trailing);
             }
         }
-    
+
         return tag.toString();
     }
-    
+
     /**
      * Create a tag string from the supplied parameters.  The lang, script and region
      * parameters may be null references.If the lang parameter is an empty string, the
@@ -2381,7 +2329,7 @@ public final class ULocale implements Serializable {
             String script,
             String region,
             String trailing) {
-    
+
         return createTagString(
                     lang,
                     script,
@@ -2389,7 +2337,7 @@ public final class ULocale implements Serializable {
                     trailing,
                     null);
     }
-    
+
     /**
      * Parse the language, script, and region subtags from a tag string, and return the results.
      *
@@ -2405,60 +2353,60 @@ public final class ULocale implements Serializable {
         String tags[])
     {
         LocaleIDParser parser = new LocaleIDParser(localeID);
-    
+
         String lang = parser.getLanguage();
         String script = parser.getScript();
         String region = parser.getCountry();
-    
+
         if (isEmptyString(lang)) {
             tags[0] = UNDEFINED_LANGUAGE;
         }
         else {
             tags[0] = lang;
         }
-    
+
         if (script.equals(UNDEFINED_SCRIPT)) {
             tags[1] = "";
         }
         else {
             tags[1] = script;
         }
-        
+
         if (region.equals(UNDEFINED_REGION)) {
             tags[2] = "";
         }
         else {
             tags[2] = region;
         }
-    
+
         /*
          * Search for the variant.  If there is one, then return the index of
          * the preceeding separator.
          * If there's no variant, search for the keyword delimiter,
          * and return its index.  Otherwise, return the length of the
          * string.
-         * 
+         *
          * $TOTO(dbertoni) we need to take into account that we might
          * find a part of the language as the variant, since it can
          * can have a variant portion that is long enough to contain
-         * the same characters as the variant. 
+         * the same characters as the variant.
          */
         String variant = parser.getVariant();
-    
-        if (!isEmptyString(variant)){
-            int index = localeID.indexOf(variant); 
 
-            
+        if (!isEmptyString(variant)){
+            int index = localeID.indexOf(variant);
+
+
             return  index > 0 ? index - 1 : index;
         }
         else
         {
             int index = localeID.indexOf('@');
-    
+
             return index == -1 ? localeID.length() : index;
         }
     }
-    
+
     private static String
     lookupLikelySubtags(String localeId) {
         UResourceBundle bundle =
@@ -2478,19 +2426,19 @@ public final class ULocale implements Serializable {
         String script,
         String region,
         String variants) {
-    
+
         /**
          * Try the language with the script and region first.
          **/
         if (!isEmptyString(script) && !isEmptyString(region)) {
-    
+
             String searchTag =
                 createTagString(
                     lang,
                     script,
                     region,
                     null);
-    
+
             String likelySubtags = lookupLikelySubtags(searchTag);
 
             /*
@@ -2518,20 +2466,20 @@ public final class ULocale implements Serializable {
                             likelySubtags);
             }
         }
-    
+
         /**
          * Try the language with just the script.
          **/
         if (!isEmptyString(script)) {
-    
+
             String searchTag =
                 createTagString(
                     lang,
                     script,
                     null,
                     null);
-    
-            String likelySubtags = lookupLikelySubtags(searchTag);    
+
+            String likelySubtags = lookupLikelySubtags(searchTag);
             if (likelySubtags != null) {
                 // Always use the language tag from the
                 // maximal string, since it may be more
@@ -2544,21 +2492,21 @@ public final class ULocale implements Serializable {
                             likelySubtags);
             }
         }
-    
+
         /**
          * Try the language with just the region.
          **/
         if (!isEmptyString(region)) {
-    
+
             String searchTag =
                 createTagString(
                     lang,
                     null,
                     region,
                     null);
-    
-            String likelySubtags = lookupLikelySubtags(searchTag);    
-    
+
+            String likelySubtags = lookupLikelySubtags(searchTag);
+
             if (likelySubtags != null) {
                 // Always use the language tag from the
                 // maximal string, since it may be more
@@ -2571,7 +2519,7 @@ public final class ULocale implements Serializable {
                             likelySubtags);
             }
         }
-    
+
         /**
          * Finally, try just the language.
          **/
@@ -2582,9 +2530,9 @@ public final class ULocale implements Serializable {
                     null,
                     null,
                     null);
-    
-            String likelySubtags = lookupLikelySubtags(searchTag);    
-  
+
+            String likelySubtags = lookupLikelySubtags(searchTag);
+
             if (likelySubtags != null) {
                 // Always use the language tag from the
                 // maximal string, since it may be more
@@ -2597,7 +2545,7 @@ public final class ULocale implements Serializable {
                             likelySubtags);
             }
         }
-    
+
         return null;
     }
 
@@ -2607,10 +2555,10 @@ public final class ULocale implements Serializable {
 
     /**
      * The key for the private use locale extension ('x').
-     * 
-     * @see #getExtension(char) 
+     *
+     * @see #getExtension(char)
      * @see Builder#setExtension(char, String)
-     * 
+     *
      * @draft ICU 4.2
      * @provisional This API might change or be removed in a future release.
      */
@@ -2618,10 +2566,10 @@ public final class ULocale implements Serializable {
 
     /**
      * The key for Unicode locale extension ('u').
-     * 
+     *
      * @see #getExtension(char)
      * @see Builder#setExtension(char, String)
-     * 
+     *
      * @draft ICU 4.2
      * @provisional This API might change or be removed in a future release.
      */
@@ -2633,14 +2581,14 @@ public final class ULocale implements Serializable {
      * associated with the key.  To be valid, the key must be one
      * of <code>[0-9A-Za-z]</code>.  Keys are case-insensitive, so
      * for example 'z' and 'Z' represent the same extension.
-     * 
+     *
      * @param key the extension key
-     * @return the extension, or null if this locale defines no 
+     * @return the extension, or null if this locale defines no
      * extension for the specified key
      * @throws IllegalArgumentException if the key is not valid
      * @see #PRIVATE_USE_EXTENSION
      * @see #UNICODE_LOCALE_EXTENSION
-     * 
+     *
      * @draft ICU 4.2
      * @provisional This API might change or be removed in a future release.
      */
@@ -2658,7 +2606,7 @@ public final class ULocale implements Serializable {
      *
      * @return the set of extension keys, or the empty set if this locale has
      * no extensions
-     * 
+     *
      * @draft ICU 4.2
      * @provisional This API might change or be removed in a future release.
      */
@@ -2673,10 +2621,10 @@ public final class ULocale implements Serializable {
      * two alphanumeric characters in length, or an IllegalArgumentException
      * is thrown.
      * @param key the Unicode locale key
-     * @return the Unicode locale type associated with the key, or null if the 
+     * @return the Unicode locale type associated with the key, or null if the
      * locale does not define a value for the key.
      * @throws IllegalArgumentException if the key is not valid.
-     * 
+     *
      * @draft ICU 4.4
      * @provisional This API might change or be removed in a future release.
      */
@@ -2691,9 +2639,9 @@ public final class ULocale implements Serializable {
      * Returns the set of keys for Unicode locale keywords defined by this locale,
      * or null if this locale has no locale extension.  The returned set is
      * immutable.
-     * 
+     *
      * @return the set of the Unicode locale keys, or null
-     * 
+     *
      * @draft ICU 4.4
      * @provisional This API might change or be removed in a future release.
      */
@@ -2704,7 +2652,7 @@ public final class ULocale implements Serializable {
     /**
      * Returns a well-formed IETF BCP 47 language tag representing
      * this locale.
-     * 
+     *
      * <p>
      * If this <code>ULocale</code> object has language, country, or variant
      * that does not satisfy the IETF BCP 47 language tag syntax requirements,
@@ -2738,7 +2686,7 @@ public final class ULocale implements Serializable {
      * to be well-formed).  For example, "Solaris_isjustthecoolestthing" is emitted
      * as "x-jvariant-Solaris", not as "solaris".</li>
      * </ul>
-     * 
+     *
      * <p><b>Note:</b> Although the language tag created by this method
      * satisfies the syntax requirements defined by the IETF BCP 47
      * specification, it is not always a valid BCP 47 language tag.
@@ -2750,10 +2698,10 @@ public final class ULocale implements Serializable {
      * are invalid because they are not registered in the
      * <a href="http://www.iana.org/assignments/language-subtag-registry">
      * IANA Language Subtag Registry</a>.
-     * 
+     *
      * @return a BCP47 language tag representing the locale
      * @see #forLanguageTag(String)
-     * 
+     *
      * @draft ICU 4.2
      * @provisional This API might change or be removed in a future release.
      */
@@ -2766,7 +2714,7 @@ public final class ULocale implements Serializable {
      * Returns a locale for the specified IETF BCP 47 language tag string.
      * If the specified language tag contains any ill-formed subtags,
      * the first such subtag and all following subtags are ignored.
-     * 
+     *
      * <p>This implements the 'Language-Tag' production of BCP47, and
      * so supports grandfathered (regular and irregular) as well as
      * private use language tags.  Stand alone private use tags are
@@ -2775,11 +2723,11 @@ public final class ULocale implements Serializable {
      * where they exist.  Note that a few grandfathered tags have no
      * modern replacement; these will be converted using the fallback
      * described above so some information might be lost.
-     * 
+     *
      * <p>For a list of grandfathered tags, see the
      * <a href="http://www.iana.org/assignments/language-subtag-registry">
      * IANA Language Subtag Registry</a>.
-     * 
+     *
      * <p><b>Notes:</b> This method converts private use subtags prefixed
      * by "variant" to variant field in the result locale.  For example,
      * the code below will return "POSIX".
@@ -2791,7 +2739,7 @@ public final class ULocale implements Serializable {
      * @return the locale that best represents the language tag
      * @exception NullPointerException if <code>languageTag</code> is <code>null</code>
      * @see #toLanguageTag()
-     * 
+     *
      * @draft ICU 4.2
      * @provisional This API might change or be removed in a future release.
      */
@@ -2809,7 +2757,7 @@ public final class ULocale implements Serializable {
      * class.  A <code>ULocale</code> object created by a <code>Builder</code> is
      * well-formed and can be transformed to a well-formed IETF BCP 47 language tag
      * without losing information.
-     * 
+     *
      * <p>
      * <b>Note:</b> The <code>ULocale</code> class does not provide
      * any syntactical restrictions on variant, while BCP 47
@@ -2822,7 +2770,7 @@ public final class ULocale implements Serializable {
      * skip the syntax validation for variant.  However, you should keep in
      * mind that a <code>Locale</code> object created this way might lose
      * the variant information when transformed to a BCP 47 language tag.
-     * 
+     *
      * <p>
      * The following example shows how to create a <code>ULocale</code> object
      * with the <code>Builder</code>.
@@ -2831,12 +2779,12 @@ public final class ULocale implements Serializable {
      *     ULocale aLocale = new Builder().setLanguage("sr").setScript("Latn").setRegion("RS").build();
      * </pre>
      * </blockquote>
-     * 
+     *
      * <p>Builders can be reused; <code>clear()</code> resets all
      * fields to their default values.
-     * 
+     *
      * @see ULocale#toLanguageTag()
-     * 
+     *
      * @draft ICU 4.2
      * @provisional This API might change or be removed in a future release.
      */
@@ -2848,7 +2796,7 @@ public final class ULocale implements Serializable {
          * Constructs an empty Builder. The default value of all
          * fields, extensions, and private use information is the
          * empty string.
-         * 
+         *
          * @draft ICU 4.2
          * @provisional This API might change or be removed in a future release.
          */
@@ -2860,11 +2808,11 @@ public final class ULocale implements Serializable {
          * Constructs an empty Builder with an option whether to allow
          * <code>setVariant</code> to accept a value that does not
          * conform to the IETF BCP 47 variant subtag's syntax requirements.
-         * 
+         *
          * @param isLenientVariant When true, this <code>Builder</code>
          * will accept an ill-formed variant.
          * @see #setVariant(String)
-         * 
+         *
          * @draft ICU 4.4
          * @provisional This API might change or be removed in a future release.
          */
@@ -2876,9 +2824,9 @@ public final class ULocale implements Serializable {
          * Returns true if this <code>Builder</code> accepts a value that does
          * not conform to the IETF BCP 47 variant subtag's syntax requirements
          * in <code>setVariant</code>
-         * 
+         *
          * @return true if this <code>Build</code> accepts an ill-formed variant.
-         * 
+         *
          * @draft ICU 4.4
          * @provisional This API might change or be removed in a future release.
          */
@@ -2897,7 +2845,7 @@ public final class ULocale implements Serializable {
          * @return this builder
          * @throws IllformedLocaleException if <code>locale</code> has
          * any ill-formed fields.
-         * 
+         *
          * @draft ICU 4.2
          * @provisional This API might change or be removed in a future release.
          */
@@ -2919,7 +2867,7 @@ public final class ULocale implements Serializable {
          * @throws IllformedLocaleException if <code>languageTag</code> is ill-formed.
          * @throws NullPointerException if <code>languageTag</code> is null.
          * @see ULocale#forLanguageTag(String)
-         * 
+         *
          * @draft ICU 4.2
          * @provisional This API might change or be removed in a future release.
          */
@@ -2954,7 +2902,7 @@ public final class ULocale implements Serializable {
          * @param language the language
          * @return this builder
          * @throws IllformedLocaleException if <code>language</code> is ill-formed
-         * 
+         *
          * @draft ICU 4.2
          * @provisional This API might change or be removed in a future release.
          */
@@ -2980,7 +2928,7 @@ public final class ULocale implements Serializable {
          * @param script the script
          * @return this builder
          * @throws IllformedLocaleException if <code>script</code> is ill-formed
-         * 
+         *
          * @draft ICU 4.2
          * @provisional This API might change or be removed in a future release.
          */
@@ -3005,7 +2953,7 @@ public final class ULocale implements Serializable {
          * @param region the region
          * @return this builder
          * @throws IllformedLocaleException if <code>region</code> is ill-formed
-         * 
+         *
          * @draft ICU 4.2
          * @provisional This API might change or be removed in a future release.
          */
@@ -3032,7 +2980,7 @@ public final class ULocale implements Serializable {
          * @param variant the variant
          * @return this builder
          * @throws IllformedLocaleException if <code>variant</code> is ill-formed
-         * 
+         *
          * @draft ICU 4.2
          * @provisional This API might change or be removed in a future release.
          */
@@ -3072,10 +3020,10 @@ public final class ULocale implements Serializable {
          * @param key the extension key
          * @param value the extension value
          * @return this builder
-         * @throws IllformedLocaleException if <code>key</code> is illegal 
+         * @throws IllformedLocaleException if <code>key</code> is illegal
          * or <code>value</code> is ill-formed
          * @see #setUnicodeLocaleKeyword(String, String)
-         * 
+         *
          * @draft ICU 4.2
          * @provisional This API might change or be removed in a future release.
          */
@@ -3103,7 +3051,7 @@ public final class ULocale implements Serializable {
          * @throws IllformedLocaleException if <code>key</code> or <code>type</code>
          * is ill-formed
          * @see #setExtension(char, String)
-         * 
+         *
          * @draft ICU 4.4
          * @provisional This API might change or be removed in a future release.
          */
@@ -3120,7 +3068,7 @@ public final class ULocale implements Serializable {
          * Resets the builder to its initial, empty state.
          *
          * @return this builder
-         * 
+         *
          * @draft ICU 4.2
          * @provisional This API might change or be removed in a future release.
          */
@@ -3135,7 +3083,7 @@ public final class ULocale implements Serializable {
          *
          * @return this builder
          * @see #setExtension(char, String)
-         * 
+         *
          * @draft ICU 4.2
          * @provisional This API might change or be removed in a future release.
          */
@@ -3149,7 +3097,7 @@ public final class ULocale implements Serializable {
          * on this builder.
          *
          * @return a new Locale
-         * 
+         *
          * @draft ICU 4.4
          * @provisional This API might change or be removed in a future release.
          */
@@ -3159,7 +3107,8 @@ public final class ULocale implements Serializable {
     }
 
     private static ULocale getInstance(BaseLocale base, LocaleExtensions exts) {
-        String id = lscvToID(base.getLanguage(), base.getScript(), base.getRegion(), base.getVariant());
+        String id = lscvToID(base.getLanguage(), base.getScript(), base.getRegion(),
+                base.getVariant());
 
         Set<Character> extKeys = exts.getKeys();
         if (!extKeys.isEmpty()) {
@@ -3239,7 +3188,8 @@ public final class ULocale implements Serializable {
                         }
                     } else if (key.length() == 1 && (key.charAt(0) != UNICODE_LOCALE_EXTENSION)) {
                         try  {
-                            intbld.setExtension(key.charAt(0), getKeywordValue(key).replace("_", LanguageTag.SEP));
+                            intbld.setExtension(key.charAt(0), getKeywordValue(key).replace("_",
+                                    LanguageTag.SEP));
                         } catch (LocaleSyntaxException e) {
                             // ignore and fall through
                         }
@@ -3322,7 +3272,7 @@ public final class ULocale implements Serializable {
         } catch (MissingResourceException mre) {
             // fall through
         }
-        
+
         if (bcpType == null) {
             int typeLen = type.length();
             if (typeLen >= 3 && typeLen <= 8 && LanguageTag.isExtensionSubtag(type)) {

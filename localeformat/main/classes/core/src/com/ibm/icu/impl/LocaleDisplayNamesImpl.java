@@ -281,8 +281,8 @@ public class LocaleDisplayNamesImpl extends LocaleDisplayNames {
         }
 
         public String get(String tableName, String subTableName, String code) {
-            return ICUResourceTableAccess.getTableStringFromBundle(tableName, subTableName, code,
-                    bundle);
+            return ICUResourceTableAccess.getTableString(bundle, tableName, subTableName,
+                    code);
         }
     }
 
