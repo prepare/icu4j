@@ -9,8 +9,6 @@ package com.ibm.icu.util;
 
 import java.io.Serializable;
 import java.text.ParseException;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
@@ -20,6 +18,9 @@ import java.util.TreeMap;
 
 import com.ibm.icu.impl.ICUCache;
 import com.ibm.icu.impl.ICUResourceBundle;
+import com.ibm.icu.impl.ICUResourceTableAccess;
+import com.ibm.icu.impl.LocaleIDParser;
+import com.ibm.icu.impl.LocaleIDs;
 import com.ibm.icu.impl.LocaleUtility;
 import com.ibm.icu.impl.SimpleCache;
 import com.ibm.icu.impl.locale.AsciiUtil;
@@ -30,7 +31,8 @@ import com.ibm.icu.impl.locale.LanguageTag;
 import com.ibm.icu.impl.locale.LocaleExtensions;
 import com.ibm.icu.impl.locale.LocaleSyntaxException;
 import com.ibm.icu.impl.locale.UnicodeLocaleExtension;
-import com.ibm.icu.text.MessageFormat;
+import com.ibm.icu.text.LocaleDisplayNames;
+import com.ibm.icu.text.LocaleDisplayNames.DialectHandling;
 
 /**
  * A class analogous to {@link java.util.Locale} that provides additional
@@ -229,7 +231,7 @@ public final class ULocale implements Serializable {
      */
     private static final String EMPTY_STRING = "";
 
-    // Used in both ULocale and IDParser, so moved up here.
+    // Used in both ULocale and LocaleIDParser, so moved up here.
     private static final char UNDERSCORE            = '_';
 
     // default empty locale
@@ -260,384 +262,6 @@ public final class ULocale implements Serializable {
     private transient volatile BaseLocale baseLocale;
     private transient volatile LocaleExtensions extensions;
 
-    /**
-     * Tables used in normalizing portions of the id.
-     */
-    /* tables updated per http://lcweb.loc.gov/standards/iso639-2/ 
-       to include the revisions up to 2001/7/27 *CWB*/
-    /* The 3 character codes are the terminology codes like RFC 3066.  
-       This is compatible with prior ICU codes */
-    /* "in" "iw" "ji" "jw" & "sh" have been withdrawn but are still in 
-       the table but now at the end of the table because 
-       3 character codes are duplicates.  This avoids bad searches
-       going from 3 to 2 character codes.*/
-    /* The range qaa-qtz is reserved for local use. */
-
-    private static String[] _languages;
-    private static String[] _replacementLanguages;
-    private static String[] _obsoleteLanguages;
-    private static String[] _languages3;
-    private static String[] _obsoleteLanguages3;
-
-    // Avoid initializing languages tables unless we have to.
-    private static void initLanguageTables() {
-        if (_languages == null) {
-
-            /* This list MUST be in sorted order, and MUST contain the two-letter codes
-               if one exists otherwise use the three letter code */
-            String[] tempLanguages = {
-                "aa",  "ab",  "ace", "ach", "ada", "ady", "ae",  "af",  "afa",
-                "afh", "ak",  "akk", "ale", "alg", "am",  "an",  "ang", "apa",
-                "ar",  "arc", "arn", "arp", "art", "arw", "as",  "ast",
-                "ath", "aus", "av",  "awa", "ay",  "az",  "ba",  "bad",
-                "bai", "bal", "ban", "bas", "bat", "be",  "bej",
-                "bem", "ber", "bg",  "bh",  "bho", "bi",  "bik", "bin",
-                "bla", "bm",  "bn",  "bnt", "bo",  "br",  "bra", "bs",
-                "btk", "bua", "bug", "byn", "ca",  "cad", "cai", "car", "cau",
-                "ce",  "ceb", "cel", "ch",  "chb", "chg", "chk", "chm",
-                "chn", "cho", "chp", "chr", "chy", "cmc", "co",  "cop",
-                "cpe", "cpf", "cpp", "cr",  "crh", "crp", "cs",  "csb", "cu",  "cus",
-                "cv",  "cy",  "da",  "dak", "dar", "day", "de",  "del", "den",
-                "dgr", "din", "doi", "dra", "dsb", "dua", "dum", "dv",  "dyu",
-                "dz",  "ee",  "efi", "egy", "eka", "el",  "elx", "en",
-                "enm", "eo",  "es",  "et",  "eu",  "ewo", "fa",
-                "fan", "fat", "ff",  "fi",  "fiu", "fj",  "fo",  "fon",
-                "fr",  "frm", "fro", "fur", "fy",  "ga",  "gaa", "gay",
-                "gba", "gd",  "gem", "gez", "gil", "gl",  "gmh", "gn",
-                "goh", "gon", "gor", "got", "grb", "grc", "gu",  "gv",
-                "gwi", "ha",  "hai", "haw", "he",  "hi",  "hil", "him",
-                "hit", "hmn", "ho",  "hr",  "hsb", "ht",  "hu",  "hup", "hy",  "hz",
-                "ia",  "iba", "id",  "ie",  "ig",  "ii",  "ijo", "ik",
-                "ilo", "inc", "ine", "inh", "io",  "ira", "iro", "is",  "it",
-                "iu",  "ja",  "jbo", "jpr", "jrb", "jv",  "ka",  "kaa", "kab",
-                "kac", "kam", "kar", "kaw", "kbd", "kg",  "kha", "khi",
-                "kho", "ki",  "kj",  "kk",  "kl",  "km",  "kmb", "kn",
-                "ko",  "kok", "kos", "kpe", "kr",  "krc", "kro", "kru", "ks",
-                "ku",  "kum", "kut", "kv",  "kw",  "ky",  "la",  "lad",
-                "lah", "lam", "lb",  "lez", "lg",  "li",  "ln",  "lo",  "lol",
-                "loz", "lt",  "lu",  "lua", "lui", "lun", "luo", "lus",
-                "lv",  "mad", "mag", "mai", "mak", "man", "map", "mas",
-                "mdf", "mdr", "men", "mg",  "mga", "mh",  "mi",  "mic", "min",
-                "mis", "mk",  "mkh", "ml",  "mn",  "mnc", "mni", "mno",
-                "mo",  "moh", "mos", "mr",  "ms",  "mt",  "mul", "mun",
-                "mus", "mwr", "my",  "myn", "myv", "na",  "nah", "nai", "nap",
-                "nb",  "nd",  "nds", "ne",  "new", "ng",  "nia", "nic",
-                "niu", "nl",  "nn",  "no",  "nog", "non", "nr",  "nso", "nub",
-                "nv",  "nwc", "ny",  "nym", "nyn", "nyo", "nzi", "oc",  "oj",
-                "om",  "or",  "os",  "osa", "ota", "oto", "pa",  "paa",
-                "pag", "pal", "pam", "pap", "pau", "peo", "phi", "phn",
-                "pi",  "pl",  "pon", "pra", "pro", "ps",  "pt",  "qu",
-                "raj", "rap", "rar", "rm",  "rn",  "ro",  "roa", "rom",
-                "ru",  "rup", "rw",  "sa",  "sad", "sah", "sai", "sal", "sam",
-                "sas", "sat", "sc",  "sco", "sd",  "se",  "sel", "sem",
-                "sg",  "sga", "sgn", "shn", "si",  "sid", "sio", "sit",
-                "sk",  "sl",  "sla", "sm",  "sma", "smi", "smj", "smn",
-                "sms", "sn",  "snk", "so",  "sog", "son", "sq",  "sr",
-                "srr", "ss",  "ssa", "st",  "su",  "suk", "sus", "sux",
-                "sv",  "sw",  "syr", "ta",  "tai", "te",  "tem", "ter",
-                "tet", "tg",  "th",  "ti",  "tig", "tiv", "tk",  "tkl",
-                "tl",  "tlh", "tli", "tmh", "tn",  "to",  "tog", "tpi", "tr",
-                "ts",  "tsi", "tt",  "tum", "tup", "tut", "tvl", "tw",
-                "ty",  "tyv", "udm", "ug",  "uga", "uk",  "umb", "und", "ur",
-                "uz",  "vai", "ve",  "vi",  "vo",  "vot", "wa",  "wak",
-                "wal", "war", "was", "wen", "wo",  "xal", "xh",  "yao", "yap",
-                "yi",  "yo",  "ypk", "za",  "zap", "zen", "zh",  "znd",
-                "zu",  "zun", 
-            };
-
-            String[] tempReplacementLanguages = {
-                "id", "he", "yi", "jv", "sr", "nb",/* replacement language codes */
-            };
-
-            String[] tempObsoleteLanguages = {
-                "in", "iw", "ji", "jw", "sh", "no",    /* obsolete language codes */         
-            };
-
-            /* This list MUST contain a three-letter code for every two-letter code in the
-               list above, and they MUST ne in the same order (i.e., the same language must
-               be in the same place in both lists)! */
-            String[] tempLanguages3 = {
-                /*"aa",  "ab",  "ace", "ach", "ada", "ady", "ae",  "af",  "afa",    */
-                "aar", "abk", "ace", "ach", "ada", "ady", "ave", "afr", "afa",
-                /*"afh", "ak",  "akk", "ale", "alg", "am",  "an",  "ang", "apa",    */
-                "afh", "aka", "akk", "ale", "alg", "amh", "arg", "ang", "apa",
-                /*"ar",  "arc", "arn", "arp", "art", "arw", "as",  "ast",    */
-                "ara", "arc", "arn", "arp", "art", "arw", "asm", "ast",
-                /*"ath", "aus", "av",  "awa", "ay",  "az",  "ba",  "bad",    */
-                "ath", "aus", "ava", "awa", "aym", "aze", "bak", "bad",
-                /*"bai", "bal", "ban", "bas", "bat", "be",  "bej",    */
-                "bai", "bal", "ban", "bas", "bat", "bel", "bej",
-                /*"bem", "ber", "bg",  "bh",  "bho", "bi",  "bik", "bin",    */
-                "bem", "ber", "bul", "bih", "bho", "bis", "bik", "bin",
-                /*"bla", "bm",  "bn",  "bnt", "bo",  "br",  "bra", "bs",     */
-                "bla", "bam",  "ben", "bnt", "bod", "bre", "bra", "bos",
-                /*"btk", "bua", "bug", "byn", "ca",  "cad", "cai", "car", "cau",    */
-                "btk", "bua", "bug", "byn", "cat", "cad", "cai", "car", "cau",
-                /*"ce",  "ceb", "cel", "ch",  "chb", "chg", "chk", "chm",    */
-                "che", "ceb", "cel", "cha", "chb", "chg", "chk", "chm",
-                /*"chn", "cho", "chp", "chr", "chy", "cmc", "co",  "cop",    */
-                "chn", "cho", "chp", "chr", "chy", "cmc", "cos", "cop",
-                /*"cpe", "cpf", "cpp", "cr",  "crh", "crp", "cs",  "csb", "cu",  "cus",    */
-                "cpe", "cpf", "cpp", "cre", "crh", "crp", "ces", "csb", "chu", "cus",
-                /*"cv",  "cy",  "da",  "dak", "dar", "day", "de",  "del", "den",    */
-                "chv", "cym", "dan", "dak", "dar", "day", "deu", "del", "den",
-                /*"dgr", "din", "doi", "dra", "dsb", "dua", "dum", "dv",  "dyu",    */
-                "dgr", "din", "doi", "dra", "dsb", "dua", "dum", "div", "dyu",
-                /*"dz",  "ee",  "efi", "egy", "eka", "el",  "elx", "en",     */
-                "dzo", "ewe", "efi", "egy", "eka", "ell", "elx", "eng",
-                /*"enm", "eo",  "es",  "et",  "eu",  "ewo", "fa",     */
-                "enm", "epo", "spa", "est", "eus", "ewo", "fas",
-                /*"fan", "fat", "ff",  "fi",  "fiu", "fj",  "fo",  "fon",    */
-                "fan", "fat", "ful", "fin", "fiu", "fij", "fao", "fon",
-                /*"fr",  "frm", "fro", "fur", "fy",  "ga",  "gaa", "gay",    */
-                "fra", "frm", "fro", "fur", "fry", "gle", "gaa", "gay",
-                /*"gba", "gd",  "gem", "gez", "gil", "gl",  "gmh", "gn",     */
-                "gba", "gla", "gem", "gez", "gil", "glg", "gmh", "grn",
-                /*"goh", "gon", "gor", "got", "grb", "grc", "gu",  "gv",     */
-                "goh", "gon", "gor", "got", "grb", "grc", "guj", "glv",
-                /*"gwi", "ha",  "hai", "haw", "he",  "hi",  "hil", "him",    */
-                "gwi", "hau", "hai", "haw", "heb", "hin", "hil", "him",
-                /*"hit", "hmn", "ho",  "hr",  "hsb", "ht",  "hu",  "hup", "hy",  "hz",     */
-                "hit", "hmn", "hmo", "hrv", "hsb", "hat", "hun", "hup", "hye", "her",
-                /*"ia",  "iba", "id",  "ie",  "ig",  "ii",  "ijo", "ik",     */
-                "ina", "iba", "ind", "ile", "ibo", "iii", "ijo", "ipk",
-                /*"ilo", "inc", "ine", "inh", "io",  "ira", "iro", "is",  "it",      */
-                "ilo", "inc", "ine", "inh", "ido", "ira", "iro", "isl", "ita",
-                /*"iu",  "ja",  "jbo", "jpr", "jrb", "jv",  "ka",  "kaa", "kab",   */
-                "iku", "jpn", "jbo", "jpr", "jrb", "jaw", "kat", "kaa", "kab",
-                /*"kac", "kam", "kar", "kaw", "kbd", "kg",  "kha", "khi",    */
-                "kac", "kam", "kar", "kaw", "kbd", "kon", "kha", "khi",
-                /*"kho", "ki",  "kj",  "kk",  "kl",  "km",  "kmb", "kn",     */
-                "kho", "kik", "kua", "kaz", "kal", "khm", "kmb", "kan",
-                /*"ko",  "kok", "kos", "kpe", "kr",  "krc", "kro", "kru", "ks",     */
-                "kor", "kok", "kos", "kpe", "kau", "krc", "kro", "kru", "kas",
-                /*"ku",  "kum", "kut", "kv",  "kw",  "ky",  "la",  "lad",    */
-                "kur", "kum", "kut", "kom", "cor", "kir", "lat", "lad",
-                /*"lah", "lam", "lb",  "lez", "lg",  "li",  "ln",  "lo",  "lol",    */
-                "lah", "lam", "ltz", "lez", "lug", "lim", "lin", "lao", "lol",
-                /*"loz", "lt",  "lu",  "lua", "lui", "lun", "luo", "lus",    */
-                "loz", "lit", "lub", "lua", "lui", "lun", "luo", "lus",
-                /*"lv",  "mad", "mag", "mai", "mak", "man", "map", "mas",    */
-                "lav", "mad", "mag", "mai", "mak", "man", "map", "mas",
-                /*"mdf", "mdr", "men", "mg",  "mga", "mh",  "mi",  "mic", "min",    */
-                "mdf", "mdr", "men", "mlg", "mga", "mah", "mri", "mic", "min",
-                /*"mis", "mk",  "mkh", "ml",  "mn",  "mnc", "mni", "mno",    */
-                "mis", "mkd", "mkh", "mal", "mon", "mnc", "mni", "mno",
-                /*"mo",  "moh", "mos", "mr",  "ms",  "mt",  "mul", "mun",    */
-                "mol", "moh", "mos", "mar", "msa", "mlt", "mul", "mun",
-                /*"mus", "mwr", "my",  "myn", "myv", "na",  "nah", "nai", "nap",    */
-                "mus", "mwr", "mya", "myn", "myv", "nau", "nah", "nai", "nap",
-                /*"nb",  "nd",  "nds", "ne",  "new", "ng",  "nia", "nic",    */
-                "nob", "nde", "nds", "nep", "new", "ndo", "nia", "nic",
-                /*"niu", "nl",  "nn",  "no",  "nog", "non", "nr",  "nso", "nub",    */
-                "niu", "nld", "nno", "nor", "nog", "non", "nbl", "nso", "nub",
-                /*"nv",  "nwc", "ny",  "nym", "nyn", "nyo", "nzi", "oc",  "oj",     */
-                "nav", "nwc", "nya", "nym", "nyn", "nyo", "nzi", "oci", "oji",
-                /*"om",  "or",  "os",  "osa", "ota", "oto", "pa",  "paa",    */
-                "orm", "ori", "oss", "osa", "ota", "oto", "pan", "paa",
-                /*"pag", "pal", "pam", "pap", "pau", "peo", "phi", "phn",    */
-                "pag", "pal", "pam", "pap", "pau", "peo", "phi", "phn",
-                /*"pi",  "pl",  "pon", "pra", "pro", "ps",  "pt",  "qu",     */
-                "pli", "pol", "pon", "pra", "pro", "pus", "por", "que",
-                /*"raj", "rap", "rar", "rm",  "rn",  "ro",  "roa", "rom",    */
-                "raj", "rap", "rar", "roh", "run", "ron", "roa", "rom",
-                /*"ru",  "rup", "rw",  "sa",  "sad", "sah", "sai", "sal", "sam",    */
-                "rus", "rup", "kin", "san", "sad", "sah", "sai", "sal", "sam",
-                /*"sas", "sat", "sc",  "sco", "sd",  "se",  "sel", "sem",    */
-                "sas", "sat", "srd", "sco", "snd", "sme", "sel", "sem",
-                /*"sg",  "sga", "sgn", "shn", "si",  "sid", "sio", "sit",    */
-                "sag", "sga", "sgn", "shn", "sin", "sid", "sio", "sit",
-                /*"sk",  "sl",  "sla", "sm",  "sma", "smi", "smj", "smn",    */
-                "slk", "slv", "sla", "smo", "sma", "smi", "smj", "smn",
-                /*"sms", "sn",  "snk", "so",  "sog", "son", "sq",  "sr",     */
-                "sms", "sna", "snk", "som", "sog", "son", "sqi", "srp",
-                /*"srr", "ss",  "ssa", "st",  "su",  "suk", "sus", "sux",    */
-                "srr", "ssw", "ssa", "sot", "sun", "suk", "sus", "sux",
-                /*"sv",  "sw",  "syr", "ta",  "tai", "te",  "tem", "ter",    */
-                "swe", "swa", "syr", "tam", "tai", "tel", "tem", "ter",
-                /*"tet", "tg",  "th",  "ti",  "tig", "tiv", "tk",  "tkl",    */
-                "tet", "tgk", "tha", "tir", "tig", "tiv", "tuk", "tkl",
-                /*"tl",  "tlh", "tli", "tmh", "tn",  "to",  "tog", "tpi", "tr",     */
-                "tgl", "tlh", "tli", "tmh", "tsn", "ton", "tog", "tpi", "tur",
-                /*"ts",  "tsi", "tt",  "tum", "tup", "tut", "tvl", "tw",     */
-                "tso", "tsi", "tat", "tum", "tup", "tut", "tvl", "twi",
-                /*"ty",  "tyv", "udm", "ug",  "uga", "uk",  "umb", "und", "ur",     */
-                "tah", "tyv", "udm", "uig", "uga", "ukr", "umb", "und", "urd",
-                /*"uz",  "vai", "ve",  "vi",  "vo",  "vot", "wa",  "wak",    */
-                "uzb", "vai", "ven", "vie", "vol", "vot", "wln", "wak",
-                /*"wal", "war", "was", "wen", "wo",  "xal", "xh",  "yao", "yap",    */
-                "wal", "war", "was", "wen", "wol", "xal", "xho", "yao", "yap",
-                /*"yi",  "yo",  "ypk", "za",  "zap", "zen", "zh",  "znd",    */
-                "yid", "yor", "ypk", "zha", "zap", "zen", "zho", "znd",
-                /*"zu",  "zun",                                              */
-                "zul", "zun",  
-            };
-    
-            String[] tempObsoleteLanguages3 = {
-                /* "in",  "iw",  "ji",  "jw",  "sh", */
-                "ind", "heb", "yid", "jaw", "srp", 
-            };
-
-            synchronized (ULocale.class) {
-                if (_languages == null) {
-                    _languages = tempLanguages;
-                    _replacementLanguages = tempReplacementLanguages;
-                    _obsoleteLanguages = tempObsoleteLanguages;
-                    _languages3 = tempLanguages3;
-                    _obsoleteLanguages3 = tempObsoleteLanguages3;
-                }
-            }
-        }
-    }
-
-    private static String[] _countries;
-    private static String[] _deprecatedCountries;
-    private static String[] _replacementCountries;
-    private static String[] _obsoleteCountries;
-    private static String[] _countries3;
-    private static String[] _obsoleteCountries3;  
-
-    // Avoid initializing country tables unless we have to.
-    private static void initCountryTables() {    
-        if (_countries == null) {
-            /* ZR(ZAR) is now CD(COD) and FX(FXX) is PS(PSE) as per
-               http://www.evertype.com/standards/iso3166/iso3166-1-en.html 
-               added new codes keeping the old ones for compatibility
-               updated to include 1999/12/03 revisions *CWB*/
-    
-            /* RO(ROM) is now RO(ROU) according to 
-               http://www.iso.org/iso/en/prods-services/iso3166ma/03updates-on-iso-3166/nlv3e-rou.html
-            */
-    
-            /* This list MUST be in sorted order, and MUST contain only two-letter codes! */
-            String[] tempCountries = {
-                "AD",  "AE",  "AF",  "AG",  "AI",  "AL",  "AM",  "AN",
-                "AO",  "AQ",  "AR",  "AS",  "AT",  "AU",  "AW",  "AX",  "AZ",
-                "BA",  "BB",  "BD",  "BE",  "BF",  "BG",  "BH",  "BI",
-                "BJ",  "BL",  "BM",  "BN",  "BO",  "BR",  "BS",  "BT",  "BV",
-                "BW",  "BY",  "BZ",  "CA",  "CC",  "CD",  "CF",  "CG",
-                "CH",  "CI",  "CK",  "CL",  "CM",  "CN",  "CO",  "CR",
-                "CU",  "CV",  "CX",  "CY",  "CZ",  "DE",  "DJ",  "DK",
-                "DM",  "DO",  "DZ",  "EC",  "EE",  "EG",  "EH",  "ER",
-                "ES",  "ET",  "FI",  "FJ",  "FK",  "FM",  "FO",  "FR",
-                "GA",  "GB",  "GD",  "GE",  "GF",  "GG",  "GH",  "GI",  "GL",
-                "GM",  "GN",  "GP",  "GQ",  "GR",  "GS",  "GT",  "GU",
-                "GW",  "GY",  "HK",  "HM",  "HN",  "HR",  "HT",  "HU",
-                "ID",  "IE",  "IL",  "IM",  "IN",  "IO",  "IQ",  "IR",  "IS",
-                "IT",  "JE",  "JM",  "JO",  "JP",  "KE",  "KG",  "KH",  "KI",
-                "KM",  "KN",  "KP",  "KR",  "KW",  "KY",  "KZ",  "LA",
-                "LB",  "LC",  "LI",  "LK",  "LR",  "LS",  "LT",  "LU",
-                "LV",  "LY",  "MA",  "MC",  "MD",  "ME",  "MF",  "MG",  "MH",  "MK",
-                "ML",  "MM",  "MN",  "MO",  "MP",  "MQ",  "MR",  "MS",
-                "MT",  "MU",  "MV",  "MW",  "MX",  "MY",  "MZ",  "NA",
-                "NC",  "NE",  "NF",  "NG",  "NI",  "NL",  "NO",  "NP",
-                "NR",  "NU",  "NZ",  "OM",  "PA",  "PE",  "PF",  "PG",
-                "PH",  "PK",  "PL",  "PM",  "PN",  "PR",  "PS",  "PT",
-                "PW",  "PY",  "QA",  "RE",  "RO",  "RS",  "RU",  "RW",  "SA",
-                "SB",  "SC",  "SD",  "SE",  "SG",  "SH",  "SI",  "SJ",
-                "SK",  "SL",  "SM",  "SN",  "SO",  "SR",  "ST",  "SV",
-                "SY",  "SZ",  "TC",  "TD",  "TF",  "TG",  "TH",  "TJ",
-                "TK",  "TL",  "TM",  "TN",  "TO",  "TR",  "TT",  "TV",
-                "TW",  "TZ",  "UA",  "UG",  "UM",  "US",  "UY",  "UZ",
-                "VA",  "VC",  "VE",  "VG",  "VI",  "VN",  "VU",  "WF",
-                "WS",  "YE",  "YT",  "ZA",  "ZM",  "ZW",
-            };
-
-            /* this table is used for 3 letter codes */
-            String[] tempObsoleteCountries = {
-                "FX",  "CS",  "RO",  "TP",  "YU",  "ZR",  /* obsolete country codes */      
-            };
-            
-            String[] tempDeprecatedCountries = {
-               "BU", "CS", "DY", "FX", "HV", "NH", "RH", "TP", "YU", "ZR" /* deprecated country list */
-            };
-            String[] tempReplacementCountries = {
-           /*  "BU", "CS", "DY", "FX", "HV", "NH", "RH", "TP", "YU", "ZR" */
-               "MM", "RS", "BJ", "FR", "BF", "VU", "ZW", "TL", "RS", "CD",   /* replacement country codes */      
-            };
-    
-            /* This list MUST contain a three-letter code for every two-letter code in
-               the above list, and they MUST be listed in the same order! */
-            String[] tempCountries3 = {
-                /*  "AD",  "AE",  "AF",  "AG",  "AI",  "AL",  "AM",  "AN",     */
-                    "AND", "ARE", "AFG", "ATG", "AIA", "ALB", "ARM", "ANT",
-                /*  "AO",  "AQ",  "AR",  "AS",  "AT",  "AU",  "AW",  "AX",  "AZ",     */
-                    "AGO", "ATA", "ARG", "ASM", "AUT", "AUS", "ABW", "ALA", "AZE",
-                /*  "BA",  "BB",  "BD",  "BE",  "BF",  "BG",  "BH",  "BI",     */
-                    "BIH", "BRB", "BGD", "BEL", "BFA", "BGR", "BHR", "BDI",
-                /*  "BJ",  "BL",  "BM",  "BN",  "BO",  "BR",  "BS",  "BT",  "BV",     */
-                    "BEN", "BLM", "BMU", "BRN", "BOL", "BRA", "BHS", "BTN", "BVT",
-                /*  "BW",  "BY",  "BZ",  "CA",  "CC",  "CD",  "CF",  "CG",     */
-                    "BWA", "BLR", "BLZ", "CAN", "CCK", "COD", "CAF", "COG",
-                /*  "CH",  "CI",  "CK",  "CL",  "CM",  "CN",  "CO",  "CR",     */
-                    "CHE", "CIV", "COK", "CHL", "CMR", "CHN", "COL", "CRI",
-                /*  "CU",  "CV",  "CX",  "CY",  "CZ",  "DE",  "DJ",  "DK",     */
-                    "CUB", "CPV", "CXR", "CYP", "CZE", "DEU", "DJI", "DNK",
-                /*  "DM",  "DO",  "DZ",  "EC",  "EE",  "EG",  "EH",  "ER",     */
-                    "DMA", "DOM", "DZA", "ECU", "EST", "EGY", "ESH", "ERI",
-                /*  "ES",  "ET",  "FI",  "FJ",  "FK",  "FM",  "FO",  "FR",     */
-                    "ESP", "ETH", "FIN", "FJI", "FLK", "FSM", "FRO", "FRA",
-                /*  "GA",  "GB",  "GD",  "GE",  "GF",  "GG",  "GH",  "GI",  "GL",     */
-                    "GAB", "GBR", "GRD", "GEO", "GUF", "GGY", "GHA", "GIB", "GRL",
-                /*  "GM",  "GN",  "GP",  "GQ",  "GR",  "GS",  "GT",  "GU",     */
-                    "GMB", "GIN", "GLP", "GNQ", "GRC", "SGS", "GTM", "GUM",
-                /*  "GW",  "GY",  "HK",  "HM",  "HN",  "HR",  "HT",  "HU",     */
-                    "GNB", "GUY", "HKG", "HMD", "HND", "HRV", "HTI", "HUN",
-                /*  "ID",  "IE",  "IL",  "IM",  "IN",  "IO",  "IQ",  "IR",  "IS" */
-                    "IDN", "IRL", "ISR", "IMN", "IND", "IOT", "IRQ", "IRN", "ISL",
-                /*  "IT",  "JE",  "JM",  "JO",  "JP",  "KE",  "KG",  "KH",  "KI",     */
-                    "ITA", "JEY", "JAM", "JOR", "JPN", "KEN", "KGZ", "KHM", "KIR",
-                /*  "KM",  "KN",  "KP",  "KR",  "KW",  "KY",  "KZ",  "LA",     */
-                    "COM", "KNA", "PRK", "KOR", "KWT", "CYM", "KAZ", "LAO",
-                /*  "LB",  "LC",  "LI",  "LK",  "LR",  "LS",  "LT",  "LU",     */
-                    "LBN", "LCA", "LIE", "LKA", "LBR", "LSO", "LTU", "LUX",
-                /*  "LV",  "LY",  "MA",  "MC",  "MD",  "ME",  "MF",  "MG",  "MH",  "MK",     */
-                    "LVA", "LBY", "MAR", "MCO", "MDA", "MNE", "MAF", "MDG", "MHL", "MKD",
-                /*  "ML",  "MM",  "MN",  "MO",  "MP",  "MQ",  "MR",  "MS",     */
-                    "MLI", "MMR", "MNG", "MAC", "MNP", "MTQ", "MRT", "MSR",
-                /*  "MT",  "MU",  "MV",  "MW",  "MX",  "MY",  "MZ",  "NA",     */
-                    "MLT", "MUS", "MDV", "MWI", "MEX", "MYS", "MOZ", "NAM",
-                /*  "NC",  "NE",  "NF",  "NG",  "NI",  "NL",  "NO",  "NP",     */
-                    "NCL", "NER", "NFK", "NGA", "NIC", "NLD", "NOR", "NPL",
-                /*  "NR",  "NU",  "NZ",  "OM",  "PA",  "PE",  "PF",  "PG",     */
-                    "NRU", "NIU", "NZL", "OMN", "PAN", "PER", "PYF", "PNG",
-                /*  "PH",  "PK",  "PL",  "PM",  "PN",  "PR",  "PS",  "PT",     */
-                    "PHL", "PAK", "POL", "SPM", "PCN", "PRI", "PSE", "PRT",
-                /*  "PW",  "PY",  "QA",  "RE",  "RO",  "RS",  "RU",  "RW",  "SA",     */
-                    "PLW", "PRY", "QAT", "REU", "ROU", "SRB", "RUS", "RWA", "SAU",
-                /*  "SB",  "SC",  "SD",  "SE",  "SG",  "SH",  "SI",  "SJ",     */
-                    "SLB", "SYC", "SDN", "SWE", "SGP", "SHN", "SVN", "SJM",
-                /*  "SK",  "SL",  "SM",  "SN",  "SO",  "SR",  "ST",  "SV",     */
-                    "SVK", "SLE", "SMR", "SEN", "SOM", "SUR", "STP", "SLV",
-                /*  "SY",  "SZ",  "TC",  "TD",  "TF",  "TG",  "TH",  "TJ",     */
-                    "SYR", "SWZ", "TCA", "TCD", "ATF", "TGO", "THA", "TJK",
-                /*  "TK",  "TL",  "TM",  "TN",  "TO",  "TR",  "TT",  "TV",     */
-                    "TKL", "TLS", "TKM", "TUN", "TON", "TUR", "TTO", "TUV",
-                /*  "TW",  "TZ",  "UA",  "UG",  "UM",  "US",  "UY",  "UZ",     */
-                    "TWN", "TZA", "UKR", "UGA", "UMI", "USA", "URY", "UZB",
-                /*  "VA",  "VC",  "VE",  "VG",  "VI",  "VN",  "VU",  "WF",     */
-                    "VAT", "VCT", "VEN", "VGB", "VIR", "VNM", "VUT", "WLF",
-                /*  "WS",  "YE",  "YT",  "ZA",  "ZM",  "ZW"          */
-                    "WSM", "YEM", "MYT", "ZAF", "ZMB", "ZWE",
-            };
-    
-            String[] tempObsoleteCountries3 = {
-                /*"FX",  "CS",  "RO",  "TP",  "YU",  "ZR",   */
-                "FXX", "SCG", "ROM", "TMP", "YUG", "ZAR",    
-            };
-
-            synchronized (ULocale.class) {
-                if (_countries == null) {
-                    _countries = tempCountries;
-                    _deprecatedCountries = tempDeprecatedCountries;
-                    _replacementCountries = tempReplacementCountries;
-                    _obsoleteCountries = tempObsoleteCountries;
-                    _countries3 = tempCountries3;
-                    _obsoleteCountries3 = tempObsoleteCountries3;
-                }
-            }
-        }
-    }
 
     private static String[][] CANONICALIZE_MAP;
     private static String[][] variantsToKeywords;
@@ -784,7 +408,7 @@ public final class ULocale implements Serializable {
                 } else {
                     for (int i = 0; i < _javaLocaleMap.length; i++) {
                         if (_javaLocaleMap[i][0].equals(locStr)) {
-                            IDParser p = new IDParser(_javaLocaleMap[i][1]);
+                            LocaleIDParser p = new LocaleIDParser(_javaLocaleMap[i][1]);
                             p.setKeywordValue(_javaLocaleMap[i][2], _javaLocaleMap[i][3]);
                             locStr = p.getName();
                             break;
@@ -898,18 +522,18 @@ public final class ULocale implements Serializable {
      */
     public Locale toLocale() {
         if (locale == null) {
-            IDParser p = new IDParser(localeID);
+            LocaleIDParser p = new LocaleIDParser(localeID);
             String base = p.getBaseName();
             for (int i = 0; i < _javaLocaleMap.length; i++) {
                 if (base.equals(_javaLocaleMap[i][1]) || base.equals(_javaLocaleMap[i][4])) {
                     if (_javaLocaleMap[i][2] != null) {
                         String val = p.getKeywordValue(_javaLocaleMap[i][2]);
                         if (val != null && val.equals(_javaLocaleMap[i][3])) {
-                            p = new IDParser(_javaLocaleMap[i][0]);
+                            p = new LocaleIDParser(_javaLocaleMap[i][0]);
                             break;
                         }
                     } else {
-                        p = new IDParser(_javaLocaleMap[i][0]);
+                        p = new LocaleIDParser(_javaLocaleMap[i][0]);
                         break;
                     }
                 }
@@ -1013,8 +637,7 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public static String[] getISOCountries() {
-        initCountryTables();
-        return _countries.clone();
+        return LocaleIDs.getISOCountries();
     }
 
     /**
@@ -1026,8 +649,7 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public static String[] getISOLanguages() {
-        initLanguageTables();
-        return _languages.clone();
+        return LocaleIDs.getISOLanguages();
     }
 
     /**
@@ -1050,7 +672,7 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public static String getLanguage(String localeID) {
-        return new IDParser(localeID).getLanguage();
+        return new LocaleIDParser(localeID).getLanguage();
     }
      
     /**
@@ -1070,7 +692,7 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public static String getScript(String localeID) {
-        return new IDParser(localeID).getScript();
+        return new LocaleIDParser(localeID).getScript();
     }
     
     /**
@@ -1093,7 +715,7 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public static String getCountry(String localeID) {
-        return new IDParser(localeID).getCountry();
+        return new LocaleIDParser(localeID).getCountry();
     }
     
     /**
@@ -1113,7 +735,7 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public static String getVariant(String localeID) {
-        return new IDParser(localeID).getVariant();
+        return new LocaleIDParser(localeID).getVariant();
     }
 
     /**
@@ -1169,7 +791,7 @@ public final class ULocale implements Serializable {
         if (localeID.indexOf('@') == -1) {
             return localeID;
         }
-        return new IDParser(localeID).getBaseName();
+        return new LocaleIDParser(localeID).getBaseName();
     }
 
     /**
@@ -1192,7 +814,7 @@ public final class ULocale implements Serializable {
     public static String getName(String localeID){
         String name = nameCache.get(localeID);
         if (name == null) {
-            name = new IDParser(localeID).getName();
+            name = new LocaleIDParser(localeID).getName();
             nameCache.put(localeID, name);
         }
         return name;
@@ -1224,7 +846,7 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public static Iterator<String> getKeywords(String localeID){
-        return new IDParser(localeID).getKeywords();
+        return new LocaleIDParser(localeID).getKeywords();
     }
 
     /**
@@ -1245,772 +867,8 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public static String getKeywordValue(String localeID, String keywordName) {
-        return new IDParser(localeID).getKeywordValue(keywordName);
+        return new LocaleIDParser(localeID).getKeywordValue(keywordName);
     }
-
-    /*
-     * Utility class to handle getDisplayLanguageWithDialect() functions and remember
-     * which fields got eaten.
-     */
-    private static final class DisplayLanguageResult {
-        String value;
-        boolean ateCountry = false;
-        boolean ateScript = false;
-    }
- 
-    /**
-     * Utility class to parse and normalize locale ids (including POSIX style)
-     */
-    private static final class IDParser {
-        private char[] id;
-        private int index;
-        private char[] buffer;
-        private int blen;
-        // um, don't handle POSIX ids unless we request it.  why not?  well... because.
-        private boolean canonicalize;
-        private boolean hadCountry;
-
-        // used when canonicalizing
-        Map<String, String> keywords;
-        String baseName;
-
-        /**
-         * Parsing constants.
-         */
-        private static final char KEYWORD_SEPARATOR     = '@';
-        private static final char HYPHEN                = '-';
-        private static final char KEYWORD_ASSIGN        = '=';
-        private static final char COMMA                 = ',';
-        private static final char ITEM_SEPARATOR        = ';';
-        private static final char DOT                   = '.';
-
-        private IDParser(String localeID) {
-            this(localeID, false);
-        }
-
-        private IDParser(String localeID, boolean canonicalize) {
-            id = localeID.toCharArray();
-            index = 0;
-            buffer = new char[id.length + 5];
-            blen = 0;
-            this.canonicalize = canonicalize;
-        }
-
-        private void reset() {
-            index = blen = 0;
-        }
-
-        // utilities for working on text in the buffer
-
-        /**
-         * Append c to the buffer.
-         */
-        private void append(char c) {
-            try {
-                buffer[blen] = c;
-            }
-            catch (IndexOutOfBoundsException e) {
-                if (buffer.length > 512) {
-                    // something is seriously wrong, let this go
-                    throw e;
-                }
-                char[] nbuffer = new char[buffer.length * 2];
-                System.arraycopy(buffer, 0, nbuffer, 0, buffer.length);
-                nbuffer[blen] = c;
-                buffer = nbuffer;
-            }
-            ++blen;
-        }
-
-        private void addSeparator() {
-            append(UNDERSCORE);
-        }
-
-        /**
-         * Returns the text in the buffer from start to blen as a String.
-         */
-        private String getString(int start) {
-            if (start == blen) {
-                return EMPTY_STRING;
-            }
-            return new String(buffer, start, blen-start);
-        }
-
-        /**
-         * Set the length of the buffer to pos, then append the string.
-         */
-        private void set(int pos, String s) {
-            this.blen = pos; // no safety
-            append(s);
-        }
-
-        /**
-         * Append the string to the buffer.
-         */
-        private void append(String s) {
-            for (int i = 0; i < s.length(); ++i) {
-                append(s.charAt(i));
-            }
-        }
-
-        // utilities for parsing text out of the id
-
-        /**
-         * Character to indicate no more text is available in the id.
-         */
-        private static final char DONE = '\uffff';
-
-        /**
-         * Returns the character at index in the id, and advance index.  The returned character
-         * is DONE if index was at the limit of the buffer.  The index is advanced regardless
-         * so that decrementing the index will always 'unget' the last character returned.
-         */
-        private char next() {
-            if (index == id.length) {
-                index++;
-                return DONE; 
-            }
-
-            return id[index++];
-        }
-
-        /**
-         * Advance index until the next terminator or id separator, and leave it there.
-         */
-        private void skipUntilTerminatorOrIDSeparator() {
-            while (!isTerminatorOrIDSeparator(next())) {
-            }
-            --index;
-        }
-
-        /**
-         * Returns true if the character at index in the id is a terminator.
-         */
-        private boolean atTerminator() {
-            return index >= id.length || isTerminator(id[index]);
-        }
-
-        /*
-         * Returns true if the character is an id separator (underscore or hyphen).
-         */
-/*        private boolean isIDSeparator(char c) {
-            return c == UNDERSCORE || c == HYPHEN;
-        }*/
-
-        /**
-         * Returns true if the character is a terminator (keyword separator, dot, or DONE).
-         * Dot is a terminator because of the POSIX form, where dot precedes the codepage.
-         */
-        private boolean isTerminator(char c) {
-            // always terminate at DOT, even if not handling POSIX.  It's an error...
-            return c == KEYWORD_SEPARATOR || c == DONE || c == DOT;
-        }
-
-        /**
-         * Returns true if the character is a terminator or id separator.
-         */
-        private boolean isTerminatorOrIDSeparator(char c) {
-            return c == KEYWORD_SEPARATOR || c == UNDERSCORE || c == HYPHEN || 
-                c == DONE || c == DOT;   
-        }
-
-        /**
-         * Returns true if the start of the buffer has an experimental or private language 
-         * prefix, the pattern '[ixIX][-_].' shows the syntax checked.
-         */
-        private boolean haveExperimentalLanguagePrefix() {
-            if (id.length > 2) {
-                char c = id[1];
-                if (c == HYPHEN || c == UNDERSCORE) {
-                    c = id[0];
-                    return c == 'x' || c == 'X' || c == 'i' || c == 'I';
-                }
-            }
-            return false;
-        }
-
-        /**
-         * Returns true if a value separator occurs at or after index.
-         */
-        private boolean haveKeywordAssign() {
-            // assume it is safe to start from index
-            for (int i = index; i < id.length; ++i) {
-                if (id[i] == KEYWORD_ASSIGN) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        /**
-         * Advance index past language, and accumulate normalized language code in buffer.
-         * Index must be at 0 when this is called.  Index is left at a terminator or id 
-         * separator.  Returns the start of the language code in the buffer.
-         */
-        private int parseLanguage() {
-            if (haveExperimentalLanguagePrefix()) {
-                append(Character.toLowerCase(id[0]));
-                append(HYPHEN);
-                index = 2;
-            }
-        
-            char c;
-            while(!isTerminatorOrIDSeparator(c = next())) {
-                append(Character.toLowerCase(c));
-            }
-            --index; // unget
-
-            if (blen == 3) {
-                initLanguageTables();
-
-                /* convert 3 character code to 2 character code if possible *CWB*/
-                String lang = getString(0);
-                int offset = findIndex(_languages3, lang);
-                if (offset >= 0) {
-                    set(0, _languages[offset]);
-                } else {
-                    offset = findIndex(_obsoleteLanguages3, lang);
-                    if (offset >= 0) {
-                        set(0, _obsoleteLanguages[offset]);
-                    }
-                }
-            }
-
-            return 0;
-        }
-
-        /**
-         * Advance index past language.  Index must be at 0 when this is called.  Index
-         * is left at a terminator or id separator.
-         */
-        private void skipLanguage() {
-            if (haveExperimentalLanguagePrefix()) {
-                index = 2;
-            }
-            skipUntilTerminatorOrIDSeparator();
-        }
-
-        /**
-         * Advance index past script, and accumulate normalized script in buffer.
-         * Index must be immediately after the language.
-         * If the item at this position is not a script (is not four characters
-         * long) leave index and buffer unchanged.  Otherwise index is left at
-         * a terminator or id separator.  Returns the start of the script code
-         * in the buffer (this may be equal to the buffer length, if there is no
-         * script).
-         */
-        private int parseScript() {
-            if (!atTerminator()) {
-                int oldIndex = index; // save original index
-                ++index;
-
-                int oldBlen = blen; // get before append hyphen, if we truncate everything is undone
-                char c;
-                while(!isTerminatorOrIDSeparator(c = next())) {
-                    if (blen == oldBlen) { // first pass
-                        addSeparator();
-                        append(Character.toUpperCase(c));
-                    } else {
-                        append(Character.toLowerCase(c));
-                    }
-                }
-                --index; // unget
-
-                /* If it's not exactly 4 characters long, then it's not a script. */
-                if (index - oldIndex != 5) { // +1 to account for separator
-                    index = oldIndex;
-                    blen = oldBlen;
-                } else {
-                    oldBlen++; // index past hyphen, for clients who want to extract just the script
-                }
-
-                return oldBlen;
-            }
-            return blen;
-        }
-
-        /**
-         * Advance index past script.
-         * Index must be immediately after the language and IDSeparator.
-         * If the item at this position is not a script (is not four characters
-         * long) leave index.  Otherwise index is left at a terminator or
-         * id separator.
-         */
-        private void skipScript() {
-            if (!atTerminator()) {
-                int oldIndex = index;
-                ++index;
-
-                skipUntilTerminatorOrIDSeparator();
-                if (index - oldIndex != 5) { // +1 to account for separator
-                    index = oldIndex;
-                }
-            }
-        }
-
-        /**
-         * Advance index past country, and accumulate normalized country in buffer.
-         * Index must be immediately after the script (if there is one, else language)
-         * and IDSeparator.  Return the start of the country code in the buffer.
-         */
-        private int parseCountry() {
-            if (!atTerminator()) {
-                int oldIndex = index;
-                ++index;
-
-                int oldBlen = blen;
-                char c;
-                while (!isTerminatorOrIDSeparator(c = next())) {
-                    if (oldBlen == blen) { // first, add hyphen
-                        hadCountry = true; // we have a country, let variant parsing know
-                        addSeparator();
-                        ++oldBlen; // increment past hyphen
-                    }
-                    append(Character.toUpperCase(c));
-                }
-                --index; // unget
-
-                int charsAppended = blen - oldBlen;
-
-                if (charsAppended == 0) {
-                    // Do nothing.
-                }
-                else if (charsAppended < 2 || charsAppended > 3) {
-                    // It's not a country, so return index and blen to
-                    // their previous values.
-                    index = oldIndex;
-                    --oldBlen;
-                    blen = oldBlen;
-                    hadCountry = false;
-                }
-                else if (charsAppended == 3) {
-                    initCountryTables();
-
-                    /* convert 3 character code to 2 character code if possible *CWB*/
-                    int offset = findIndex(_countries3, getString(oldBlen));
-                    if (offset >= 0) {
-                        set(oldBlen, _countries[offset]);
-                    } else {
-                        offset = findIndex(_obsoleteCountries3, getString(oldBlen));
-                        if (offset >= 0) {
-                            set(oldBlen, _obsoleteCountries[offset]);
-                        }
-                    }
-                }
-
-                return oldBlen;
-            }
-
-            return blen;
-        }  
-
-        /**
-         * Advance index past country.
-         * Index must be immediately after the script (if there is one, else language)
-         * and IDSeparator.
-         */
-        private void skipCountry() {
-            if (!atTerminator()) {
-                ++index;
-                /* 
-                 * Save the index point after the separator, since the format
-                 * requires two separators if the country is not present.
-                 */
-                int oldIndex = index;
-
-                skipUntilTerminatorOrIDSeparator();
-                int charsSkipped = index - oldIndex;
-                if (charsSkipped < 2 || charsSkipped > 3) {
-                    index = oldIndex;
-                }
-            }
-        }
-
-        /**
-         * Advance index past variant, and accumulate normalized variant in buffer.  This ignores
-         * the codepage information from POSIX ids.  Index must be immediately after the country
-         * or script.  Index is left at the keyword separator or at the end of the text.  Return
-         * the start of the variant code in the buffer.
-         *
-         * In standard form, we can have the following forms:
-         * ll__VVVV
-         * ll_CC_VVVV
-         * ll_Ssss_VVVV
-         * ll_Ssss_CC_VVVV
-         *
-         * This also handles POSIX ids, which can have the following forms (pppp is code page id):
-         * ll_CC.pppp          --> ll_CC
-         * ll_CC.pppp@VVVV     --> ll_CC_VVVV
-         * ll_CC@VVVV          --> ll_CC_VVVV
-         *
-         * We identify this use of '@' in POSIX ids by looking for an '=' following
-         * the '@'.  If there is one, we consider '@' to start a keyword list, instead of
-         * being part of a POSIX id.
-         *
-         * Note:  since it was decided that we want an option to not handle POSIX ids, this
-         * becomes a bit more complex.
-         */
-        private int parseVariant() {
-            int oldBlen = blen;
-
-            boolean start = true;
-            boolean needSeparator = true;
-            boolean skipping = false;
-            char c;
-            while ((c = next()) != DONE) {
-                if (c == DOT) {
-                    start = false;
-                    skipping = true;
-                } else if (c == KEYWORD_SEPARATOR) {
-                    if (haveKeywordAssign()) {
-                        break;
-                    }
-                    skipping = false;
-                    start = false;
-                    needSeparator = true; // add another underscore if we have more text
-                } else if (start) {
-                    start = false;
-                } else if (!skipping) {
-                    if (needSeparator) {
-                        boolean incOldBlen = blen == oldBlen; // need to skip separators
-                        needSeparator = false;
-                        if (incOldBlen && !hadCountry) { // no country, we'll need two
-                            addSeparator();
-                            ++oldBlen; // for sure
-                        }
-                        addSeparator();
-                        if (incOldBlen) { // only for the first separator
-                            ++oldBlen;
-                        }
-                    }
-                    c = Character.toUpperCase(c);
-                    if (c == HYPHEN || c == COMMA) {
-                        c = UNDERSCORE;
-                    }
-                    append(c);
-                }
-            }
-            --index; // unget
-            
-            return oldBlen;
-        }
-
-        // no need for skipvariant, to get the keywords we'll just scan directly for 
-        // the keyword separator
-
-        /**
-         * Returns the normalized language id, or the empty string.
-         */
-        public String getLanguage() {
-            reset();
-            return getString(parseLanguage());
-        }
-   
-        /**
-         * Returns the normalized script id, or the empty string.
-         */
-        public String getScript() {
-            reset();
-            skipLanguage();
-            return getString(parseScript());
-        }
-    
-        /**
-         * return the normalized country id, or the empty string.
-         */
-        public String getCountry() {
-            reset();
-            skipLanguage();
-            skipScript();
-            return getString(parseCountry());
-        }
-
-        /**
-         * Returns the normalized variant id, or the empty string.
-         */
-        public String getVariant() {
-            reset();
-            skipLanguage();
-            skipScript();
-            skipCountry();
-            return getString(parseVariant());
-        }
-
-        /**
-         * Returns the language, script, country, and variant as separate strings.
-         */
-        public String[] getLanguageScriptCountryVariant() {
-            reset();
-            return new String[] {
-                getString(parseLanguage()),
-                getString(parseScript()),
-                getString(parseCountry()),
-                getString(parseVariant())
-            };
-        }
-
-        public void setBaseName(String baseName) {
-            this.baseName = baseName;
-        }
-
-        public void parseBaseName() {
-            if (baseName != null) {
-                set(0, baseName);
-            } else {
-                reset();
-                parseLanguage();
-                parseScript();
-                parseCountry();
-                parseVariant();
-            
-                // catch unwanted trailing underscore after country if there was no variant
-                if (blen > 1 && buffer[blen-1] == UNDERSCORE) {
-                    --blen;
-                }
-            }
-        }
-
-        /**
-         * Returns the normalized base form of the locale id.  The base
-         * form does not include keywords.
-         */
-        public String getBaseName() {
-            if (baseName != null) {
-                return baseName;
-            }
-            parseBaseName();
-            return getString(0);
-        }
-
-        /**
-         * Returns the normalized full form of the locale id.  The full
-         * form includes keywords if they are present.
-         */
-        public String getName() {
-            parseBaseName();
-            parseKeywords();
-            return getString(0);
-        }
-
-        // keyword utilities
-
-        /**
-         * If we have keywords, advance index to the start of the keywords and return true, 
-         * otherwise return false.
-         */
-        private boolean setToKeywordStart() {
-            for (int i = index; i < id.length; ++i) {
-                if (id[i] == KEYWORD_SEPARATOR) {
-                    if (canonicalize) {
-                        for (int j = ++i; j < id.length; ++j) { // increment i past separator for return
-                            if (id[j] == KEYWORD_ASSIGN) {
-                                index = i;
-                                return true;
-                            }
-                        }
-                    } else {
-                        if (++i < id.length) {
-                            index = i;
-                            return true;
-                        }
-                    }
-                    break;
-                }
-            }
-            return false;
-        }
-        
-        private static boolean isDoneOrKeywordAssign(char c) {
-            return c == DONE || c == KEYWORD_ASSIGN;
-        }
-
-        private static boolean isDoneOrItemSeparator(char c) {
-            return c == DONE || c == ITEM_SEPARATOR;
-        }
-
-        private String getKeyword() {
-            int start = index;
-            while (!isDoneOrKeywordAssign(next())) {
-            }
-            --index;
-            return AsciiUtil.toLowerString(new String(id, start, index-start).trim());
-        }
-
-        private String getValue() {
-            int start = index;
-            while (!isDoneOrItemSeparator(next())) {
-            }
-            --index;
-            return new String(id, start, index-start).trim(); // leave case alone
-        }
-
-        private Comparator<String> getKeyComparator() {
-            final Comparator<String> comp = new Comparator<String>() {
-                    public int compare(String lhs, String rhs) {
-                        return lhs.compareTo(rhs);
-                    }
-                };
-            return comp;
-        }
-
-        /**
-         * Returns a map of the keywords and values, or null if there are none.
-         */
-        private Map<String, String> getKeywordMap() {
-            if (keywords == null) {
-                TreeMap<String, String> m = null;
-                if (setToKeywordStart()) {
-                    // trim spaces and convert to lower case, both keywords and values.
-                    do {
-                        String key = getKeyword();
-                        if (key.length() == 0) {
-                            break;
-                        }
-                        char c = next();
-                        if (c != KEYWORD_ASSIGN) {
-                            // throw new IllegalArgumentException("key '" + key + "' missing a value.");
-                            if (c == DONE) {
-                                break;
-                            } else {
-                                continue;
-                            }
-                        }
-                        String value = getValue();
-                        if (value.length() == 0) {
-                            // throw new IllegalArgumentException("key '" + key + "' missing a value.");
-                            continue;
-                        }
-                        if (m == null) {
-                            m = new TreeMap<String, String>(getKeyComparator());
-                        } else if (m.containsKey(key)) {
-                            // throw new IllegalArgumentException("key '" + key + "' already has a value.");
-                            continue;
-                        }
-                        m.put(key, value);
-                    } while (next() == ITEM_SEPARATOR);
-                }               
-                keywords = m != null ? m : Collections.<String, String>emptyMap();
-            }
-
-            return keywords;
-        }
-
-
-        /**
-         * Parse the keywords and return start of the string in the buffer.
-         */
-        private int parseKeywords() {
-            int oldBlen = blen;
-            Map<String, String> m = getKeywordMap();
-            if (!m.isEmpty()) {
-                boolean first = true;
-                for (Map.Entry<String, String> e : m.entrySet()) {
-                    append(first ? KEYWORD_SEPARATOR : ITEM_SEPARATOR);
-                    first = false;
-                    append(e.getKey());
-                    append(KEYWORD_ASSIGN);
-                    append(e.getValue());
-                }
-                if (blen != oldBlen) {
-                    ++oldBlen;
-                }
-            }
-            return oldBlen;
-        }
-
-        /**
-         * Returns an iterator over the keywords, or null if we have an empty map.
-         */
-        public Iterator<String> getKeywords() {
-            Map<String, String> m = getKeywordMap();
-            return m.isEmpty() ? null : m.keySet().iterator();
-        }
-
-        /**
-         * Returns the value for the named keyword, or null if the keyword is not
-         * present.
-         */
-        public String getKeywordValue(String keywordName) {
-            Map<String, String> m = getKeywordMap();
-            return m.isEmpty() ? null : m.get(AsciiUtil.toLowerString(keywordName.trim()));
-        }
-
-        /**
-         * Set the keyword value only if it is not already set to something else.
-         */
-        public void defaultKeywordValue(String keywordName, String value) {
-            setKeywordValue(keywordName, value, false);
-        }
-            
-        /**
-         * Set the value for the named keyword, or unset it if value is null.  If
-         * keywordName itself is null, unset all keywords.  If keywordName is not null,
-         * value must not be null.
-         */
-        public void setKeywordValue(String keywordName, String value) {
-            setKeywordValue(keywordName, value, true);
-        }
-
-        /**
-         * Set the value for the named keyword, or unset it if value is null.  If
-         * keywordName itself is null, unset all keywords.  If keywordName is not null,
-         * value must not be null.  If reset is true, ignore any previous value for 
-         * the keyword, otherwise do not change the keyword (including removal of
-         * one or all keywords).
-         */
-        private void setKeywordValue(String keywordName, String value, boolean reset) {
-            if (keywordName == null) {
-                if (reset) {
-                    // force new map, ignore value
-                    keywords = Collections.<String, String>emptyMap();
-                }
-            } else {
-                keywordName = AsciiUtil.toLowerString(keywordName.trim());
-                if (keywordName.length() == 0) {
-                    throw new IllegalArgumentException("keyword must not be empty");
-                }
-                if (value != null) {
-                    value = value.trim();
-                    if (value.length() == 0) {
-                        throw new IllegalArgumentException("value must not be empty");
-                    }
-                }
-                Map<String, String> m = getKeywordMap();
-                if (m.isEmpty()) { // it is EMPTY_MAP
-                    if (value != null) {
-                        // force new map
-                        keywords = new TreeMap<String, String>(getKeyComparator());
-                        keywords.put(keywordName, value.trim());
-                    }
-                } else {
-                    if (reset || !m.containsKey(keywordName)) {
-                        if (value != null) {
-                            m.put(keywordName, value);
-                        } else {
-                            m.remove(keywordName);
-                            if (m.isEmpty()) {
-                                // force new map
-                                keywords = Collections.<String, String>emptyMap();
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    /**
-     * linear search of the string array. the arrays are unfortunately ordered by the
-     * two-letter target code, not the three-letter search code, which seems backwards.
-     */
-    private static int findIndex(String[] array, String target){
-        for (int i = 0; i < array.length; i++) {
-            if (target.equals(array[i])) {
-                return i;
-            }
-        }
-        return -1;
-    }    
 
     /**
      * Returns the canonical name for the specified locale ID.  This is used to convert POSIX
@@ -2020,7 +878,7 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public static String canonicalize(String localeID){
-        IDParser parser = new IDParser(localeID, true);
+        LocaleIDParser parser = new LocaleIDParser(localeID, true);
         String baseName = parser.getBaseName();
         boolean foundVariant = false;
       
@@ -2106,7 +964,7 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.2
      */
     public static String setKeywordValue(String localeID, String keyword, String value) {
-        IDParser parser = new IDParser(localeID);
+        LocaleIDParser parser = new LocaleIDParser(localeID);
         parser.setKeywordValue(keyword, value);
         return parser.getName();
     }
@@ -2122,7 +980,7 @@ public final class ULocale implements Serializable {
      * @internal
      */
 /*    private static String defaultKeywordValue(String localeID, String keyword, String value) {
-        IDParser parser = new IDParser(localeID);
+        LocaleIDParser parser = new LocaleIDParser(localeID);
         parser.defaultKeywordValue(keyword, value);
         return parser.getName();
     }*/
@@ -2151,20 +1009,8 @@ public final class ULocale implements Serializable {
      * three-letter language abbreviation is not available for this locale.
      * @stable ICU 3.0
      */
-    public static String getISO3Language(String localeID){
-        initLanguageTables();
-
-        String language = getLanguage(localeID);
-        int offset = findIndex(_languages, language);
-        if(offset>=0){
-            return _languages3[offset];
-        } else {
-            offset = findIndex(_obsoleteLanguages, language);
-            if (offset >= 0) {
-                return _obsoleteLanguages3[offset];
-            }
-        }
-        return EMPTY_STRING;
+    public static String getISO3Language(String localeID) {
+        return LocaleIDs.getISO3Language(getLanguage(localeID));
     }
     
     /**
@@ -2175,9 +1021,10 @@ public final class ULocale implements Serializable {
      * three-letter country abbreviation is not available for this locale.
      * @stable ICU 3.0
      */
-    public String getISO3Country(){
+    public String getISO3Country() {
         return getISO3Country(localeID);
     }
+    
     /**
      * Returns a three-letter abbreviation for this locale's country/region.  If the locale
      * doesn't specify a country, returns the empty string.  Otherwise, returns
@@ -2186,115 +1033,11 @@ public final class ULocale implements Serializable {
      * three-letter country abbreviation is not available for this locale.
      * @stable ICU 3.0
      */
-    public static String getISO3Country(String localeID){
-        initCountryTables();
-
-        String country = getCountry(localeID);
-        int offset = findIndex(_countries, country);
-        if(offset>=0){
-            return _countries3[offset];
-        }else{
-            offset = findIndex(_obsoleteCountries, country);
-            if(offset>=0){
-                return _obsoleteCountries3[offset];   
-            }
-        }
-        return EMPTY_STRING;
+    public static String getISO3Country(String localeID) {
+        return LocaleIDs.getISO3Country(getCountry(localeID));
     }
     
     // display names
-
-    /**
-     * Utility to fetch locale display data from resource bundle tables.
-     */
-    private static String getTableString(String tableName, String subtableName, String item, String displayLocaleID) {
-        try {
-            if (item.length() > 0) {
-                // hack this for now
-                String path = null;
-                if ("currency".equals(subtableName)) {
-                    path = ICUResourceBundle.ICU_CURR_BASE_NAME;
-                } else if ("layout".equals(tableName)) {
-                    path = ICUResourceBundle.ICU_BASE_NAME;
-                } else if ("Countries".equals(tableName)) {
-                    path = ICUResourceBundle.ICU_REGION_BASE_NAME;
-                } else if ("Currencies".equals(tableName)) {
-                    path = ICUResourceBundle.ICU_CURR_BASE_NAME;
-                } else if ("locale".equals(tableName)) {
-                    path = ICUResourceBundle.ICU_BASE_NAME;
-                } else {
-                    path = ICUResourceBundle.ICU_LANG_BASE_NAME;
-                }
-                ICUResourceBundle bundle = (ICUResourceBundle) UResourceBundle.
-                    getBundleInstance(path, displayLocaleID);
-                return getTableStringFromBundle(tableName, subtableName, item, bundle);
-            }
-        } catch (Exception e) {
-//          System.out.println("gtsu: " + e.getMessage());
-        }        
-        return item;
-    }
-        
-    /**
-     * Utility to fetch locale display data from resource bundle tables.
-     */
-    private static String getTableStringFromBundle(String tableName, String subtableName, String item, ICUResourceBundle bundle) {
-//      System.out.println("gts table: " + tableName + 
-//                         " subtable: " + subtableName +
-//                         " item: " + item +
-//                         " bundle: " + bundle.getULocale());
-        try {
-            for (;;) {
-                // special case currency
-                if ("currency".equals(subtableName)) {
-                    ICUResourceBundle table = bundle.getWithFallback("Currencies");
-                    table = table.getWithFallback(item);
-                    return table.getString(1);
-                } else {
-                    ICUResourceBundle table = bundle.getWithFallback(tableName);
-                    try {
-                        if (subtableName != null) {
-                            table = table.getWithFallback(subtableName);
-                        }
-                        return table.getStringWithFallback(item);
-                    }
-                    catch (MissingResourceException e) {
-                        
-                        if(subtableName==null){
-                            try{
-                                // may be a deprecated code
-                                String currentName = null;
-                                if(tableName.equals("Countries")){
-                                    currentName = getCurrentCountryID(item);
-                                }else if(tableName.equals("Languages")){
-                                    currentName = getCurrentLanguageID(item);
-                                }
-                                return table.getStringWithFallback(currentName);
-                            }catch (MissingResourceException ex){/* fall through*/}
-                        }
-                        
-                        // still can't figure out ?.. try the fallback mechanism
-                        String fallbackLocale = table.getWithFallback("Fallback").getString();
-                        if (fallbackLocale.length() == 0) {
-                            fallbackLocale = "root";
-                        }
-//                      System.out.println("bundle: " + bundle.getULocale() + " fallback: " + fallbackLocale);
-                        if(fallbackLocale.equals(table.getULocale().localeID)){
-                            return item;
-                        }
-                        bundle = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, 
-                                                                                      fallbackLocale);
-//                          System.out.println("fallback from " + table.getULocale() + " to " + fallbackLocale + 
-//                                             ", got bundle " + bundle.getULocale());                      
-                    }
-                }
-            }
-        }
-        catch (Exception e) {
-//          System.out.println("gtsi: " + e.getMessage());
-        }
-        return item;
-    }
 
     /**
      * Returns this locale's language localized for display in the default locale.
@@ -2302,7 +1045,7 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public String getDisplayLanguage() {
-        return getDisplayLanguageInternal(localeID, getDefault().localeID);
+        return getDisplayLanguageInternal(this, getDefault(), false);
     }
 
     /**
@@ -2312,7 +1055,7 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public String getDisplayLanguage(ULocale displayLocale) {
-        return getDisplayLanguageInternal(localeID, displayLocale.localeID);
+        return getDisplayLanguageInternal(this, displayLocale, false);
     }
     
     /**
@@ -2324,7 +1067,7 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public static String getDisplayLanguage(String localeID, String displayLocaleID) {
-        return getDisplayLanguageInternal(localeID, getName(displayLocaleID));
+        return getDisplayLanguageInternal(new ULocale(localeID), new ULocale(displayLocaleID), false);
     }
 
     /**
@@ -2336,7 +1079,7 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public static String getDisplayLanguage(String localeID, ULocale displayLocale) {
-        return getDisplayLanguageInternal(localeID, displayLocale.localeID);
+        return getDisplayLanguageInternal(new ULocale(localeID), displayLocale, false);
     } 
     /**
      * Returns this locale's language localized for display in the default locale.
@@ -2346,7 +1089,7 @@ public final class ULocale implements Serializable {
      * @provisional This API might change or be removed in a future release.
      */
     public String getDisplayLanguageWithDialect() {
-        return getDisplayLanguageWithDialectInternal(localeID, getDefault().localeID).value;
+        return getDisplayLanguageInternal(this, getDefault(), true);
     }
 
     /**
@@ -2358,7 +1101,7 @@ public final class ULocale implements Serializable {
      * @provisional This API might change or be removed in a future release.
      */
     public String getDisplayLanguageWithDialect(ULocale displayLocale) {
-        return getDisplayLanguageWithDialectInternal(localeID, displayLocale.localeID).value;
+        return getDisplayLanguageInternal(this, displayLocale, true);
     }
     
     /**
@@ -2372,7 +1115,7 @@ public final class ULocale implements Serializable {
      * @provisional This API might change or be removed in a future release.
      */
     public static String getDisplayLanguageWithDialect(String localeID, String displayLocaleID) {
-        return getDisplayLanguageWithDialectInternal(localeID, getName(displayLocaleID)).value;
+        return getDisplayLanguageInternal(new ULocale(localeID), new ULocale(displayLocaleID), true);
     }
 
     /**
@@ -2386,81 +1129,22 @@ public final class ULocale implements Serializable {
      * @provisional This API might change or be removed in a future release.
      */
     public static String getDisplayLanguageWithDialect(String localeID, ULocale displayLocale) {
-        return getDisplayLanguageWithDialectInternal(localeID, displayLocale.localeID).value;
+        return getDisplayLanguageInternal(new ULocale(localeID), displayLocale, true);
     } 
 
-    static String getCurrentCountryID(String oldID){
-        initCountryTables();
-        int offset = findIndex(_deprecatedCountries, oldID);
-        if (offset >= 0) {
-            return _replacementCountries[offset];
-        }
-        return oldID;
+    private static String getDisplayLanguageInternal(ULocale locale, ULocale displayLocale, 
+            boolean useDialect) {
+        String lang = useDialect ? locale.getBaseName() : locale.getLanguage();
+        return LocaleDisplayNames.getInstance(displayLocale).languageDisplayName(lang);
     }
-    static String getCurrentLanguageID(String oldID){
-        initLanguageTables();
-        int offset = findIndex(_obsoleteLanguages, oldID);
-        if (offset >= 0) {
-            return _replacementLanguages[offset];
-        }
-        return oldID;        
-    }
-
-
-    // displayLocaleID is canonical, localeID need not be since parsing will fix this.
-    private static String getDisplayLanguageInternal(String localeID, String displayLocaleID) {
-        return getTableString("Languages", null, new IDParser(localeID).getLanguage(), displayLocaleID);
-    }
-    
-    private static DisplayLanguageResult getDisplayLanguageWithDialectInternal(String localeID, String displayLocaleID) {
-        IDParser parser = new IDParser(localeID);
-        String[] names = parser.getLanguageScriptCountryVariant();
-
-        boolean hasScript = names[1].length() > 0;
-        boolean hasCountry = names[2].length() > 0;
-        DisplayLanguageResult dlr = new DisplayLanguageResult();
-        
-        if (hasScript && hasCountry) {
-            String langScriptCountry = names[0] + UNDERSCORE + names[1] + UNDERSCORE + names[2];
-            String result = getTableString("Languages", null, langScriptCountry, displayLocaleID);
-            if (!result.equals(langScriptCountry)) {
-                dlr.value = result;
-                dlr.ateScript = true;
-                dlr.ateCountry = true;
-                return dlr;
-            }
-        }
-        if (hasScript) {
-            String langScript = names[0] + UNDERSCORE + names[1];
-            String result = getTableString("Languages", null, langScript, displayLocaleID);
-            if (!result.equals(langScript)) {
-                dlr.value = result;
-                dlr.ateScript = true;
-                return dlr;
-            }
-        }
-        if (hasCountry) {
-            String langCountry = names[0] + UNDERSCORE + names[2];
-            String result = getTableString("Languages", null, langCountry, displayLocaleID);
-            if (!result.equals(langCountry)) {
-                dlr.value = result;
-                dlr.ateCountry = true;
-                return dlr;
-            }
-        }
-        
-        
-        dlr.value = getTableString("Languages", null, names[0], displayLocaleID);
-        return dlr;
-    }
- 
+     
     /**
      * Returns this locale's script localized for display in the default locale.
      * @return the localized script name.
      * @stable ICU 3.0
      */
     public String getDisplayScript() {
-        return getDisplayScriptInternal(localeID, getDefault().localeID);
+        return getDisplayScriptInternal(this, getDefault());
     }
 
     /**
@@ -2470,7 +1154,7 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public String getDisplayScript(ULocale displayLocale) {
-        return getDisplayScriptInternal(localeID, displayLocale.localeID);
+        return getDisplayScriptInternal(this, displayLocale);
     }
     
     /**
@@ -2482,7 +1166,7 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public static String getDisplayScript(String localeID, String displayLocaleID) {
-        return getDisplayScriptInternal(localeID, getName(displayLocaleID));
+        return getDisplayScriptInternal(new ULocale(localeID), new ULocale(displayLocaleID));
     }
 
     /**
@@ -2493,12 +1177,13 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public static String getDisplayScript(String localeID, ULocale displayLocale) {
-        return getDisplayScriptInternal(localeID, displayLocale.localeID);
+        return getDisplayScriptInternal(new ULocale(localeID), displayLocale);
     }
 
     // displayLocaleID is canonical, localeID need not be since parsing will fix this.
-    private static String getDisplayScriptInternal(String localeID, String displayLocaleID) {
-        return getTableString("Scripts", null, new IDParser(localeID).getScript(), displayLocaleID);
+    private static String getDisplayScriptInternal(ULocale locale, ULocale displayLocale) {
+        return LocaleDisplayNames.getInstance(displayLocale)
+            .scriptDisplayName(locale.getScript());
     }
 
     /**
@@ -2507,7 +1192,7 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public String getDisplayCountry() {
-        return getDisplayCountryInternal(localeID, getDefault().localeID);
+        return getDisplayCountryInternal(this, getDefault());
     }
     
     /**
@@ -2517,7 +1202,7 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public String getDisplayCountry(ULocale displayLocale){
-        return getDisplayCountryInternal(localeID, displayLocale.localeID);   
+        return getDisplayCountryInternal(this, displayLocale);   
     }
     
     /**
@@ -2529,7 +1214,7 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public static String getDisplayCountry(String localeID, String displayLocaleID) {
-        return getDisplayCountryInternal(localeID, getName(displayLocaleID));
+        return getDisplayCountryInternal(new ULocale(localeID), new ULocale(displayLocaleID));
     }
 
     /**
@@ -2541,12 +1226,13 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public static String getDisplayCountry(String localeID, ULocale displayLocale) {
-        return getDisplayCountryInternal(localeID, displayLocale.localeID);
+        return getDisplayCountryInternal(new ULocale(localeID), displayLocale);
     }
 
     // displayLocaleID is canonical, localeID need not be since parsing will fix this.
-    private static String getDisplayCountryInternal(String localeID, String displayLocaleID) {
-        return getTableString("Countries", null,  new IDParser(localeID).getCountry(), displayLocaleID);
+    private static String getDisplayCountryInternal(ULocale locale, ULocale displayLocale) {
+        return LocaleDisplayNames.getInstance(displayLocale)
+            .regionDisplayName(locale.getCountry());
     }
     
     /**
@@ -2555,7 +1241,7 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public String getDisplayVariant() {
-        return getDisplayVariantInternal(localeID, getDefault().localeID);   
+        return getDisplayVariantInternal(this, getDefault());   
     }
 
     /**
@@ -2565,7 +1251,7 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public String getDisplayVariant(ULocale displayLocale) {
-        return getDisplayVariantInternal(localeID, displayLocale.localeID);   
+        return getDisplayVariantInternal(this, displayLocale);   
     }
     
     /**
@@ -2577,7 +1263,7 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public static String getDisplayVariant(String localeID, String displayLocaleID){
-        return getDisplayVariantInternal(localeID, getName(displayLocaleID));
+        return getDisplayVariantInternal(new ULocale(localeID), new ULocale(displayLocaleID));
     }
     
     /**
@@ -2589,12 +1275,12 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public static String getDisplayVariant(String localeID, ULocale displayLocale) {
-        return getDisplayVariantInternal(localeID, displayLocale.localeID);
+        return getDisplayVariantInternal(new ULocale(localeID), displayLocale);
     }
 
-    // displayLocaleID is canonical, localeID need not be since parsing will fix this.
-    private static String getDisplayVariantInternal(String localeID, String displayLocaleID) {
-        return getTableString("Variants", null, new IDParser(localeID).getVariant(), displayLocaleID);
+    private static String getDisplayVariantInternal(ULocale locale, ULocale displayLocale) {
+        return LocaleDisplayNames.getInstance(displayLocale)
+            .variantDisplayName(locale.getVariant());
     }
 
     /**
@@ -2605,7 +1291,7 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public static String getDisplayKeyword(String keyword) {
-        return getDisplayKeywordInternal(keyword, getDefault().localeID);   
+        return getDisplayKeywordInternal(keyword, getDefault());   
     }
     
     /**
@@ -2617,7 +1303,7 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public static String getDisplayKeyword(String keyword, String displayLocaleID) {
-        return getDisplayKeywordInternal(keyword, getName(displayLocaleID));   
+        return getDisplayKeywordInternal(keyword, new ULocale(displayLocaleID));   
     }
 
     /**
@@ -2629,12 +1315,11 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public static String getDisplayKeyword(String keyword, ULocale displayLocale) {
-        return getDisplayKeywordInternal(keyword, displayLocale.localeID);
+        return getDisplayKeywordInternal(keyword, displayLocale);
     }
 
-    // displayLocaleID is canonical, localeID need not be since parsing will fix this.
-    private static String getDisplayKeywordInternal(String keyword, String displayLocaleID) {
-        return getTableString("Keys", null, AsciiUtil.toLowerString(keyword.trim()), displayLocaleID);
+    private static String getDisplayKeywordInternal(String keyword, ULocale displayLocale) {
+        return LocaleDisplayNames.getInstance(displayLocale).keyDisplayName(keyword);
     }
 
     /**
@@ -2644,7 +1329,7 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public String getDisplayKeywordValue(String keyword) {
-        return getDisplayKeywordValueInternal(localeID, keyword, getDefault().localeID);
+        return getDisplayKeywordValueInternal(this, keyword, getDefault());
     }
     
     /**
@@ -2655,7 +1340,7 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public String getDisplayKeywordValue(String keyword, ULocale displayLocale) {
-        return getDisplayKeywordValueInternal(localeID, keyword, displayLocale.localeID);   
+        return getDisplayKeywordValueInternal(this, keyword, displayLocale);   
     }
 
     /**
@@ -2668,7 +1353,7 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public static String getDisplayKeywordValue(String localeID, String keyword, String displayLocaleID) {
-        return getDisplayKeywordValueInternal(localeID, keyword, getName(displayLocaleID));
+        return getDisplayKeywordValueInternal(new ULocale(localeID), keyword, new ULocale(displayLocaleID));
     }
 
     /**
@@ -2681,14 +1366,14 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public static String getDisplayKeywordValue(String localeID, String keyword, ULocale displayLocale) {
-        return getDisplayKeywordValueInternal(localeID, keyword, displayLocale.localeID);
+        return getDisplayKeywordValueInternal(new ULocale(localeID), keyword, displayLocale);
     }
 
     // displayLocaleID is canonical, localeID need not be since parsing will fix this.
-    private static String getDisplayKeywordValueInternal(String localeID, String keyword, String displayLocaleID) {
+    private static String getDisplayKeywordValueInternal(ULocale locale, String keyword, ULocale displayLocale) {
         keyword = AsciiUtil.toLowerString(keyword.trim());
-        String value = new IDParser(localeID).getKeywordValue(keyword);
-        return getTableString("Types", keyword, value, displayLocaleID);
+        String value = locale.getKeywordValue(keyword);
+        return LocaleDisplayNames.getInstance(displayLocale).keyValueDisplayName(keyword, value);
     }
     
     /**
@@ -2697,7 +1382,7 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public String getDisplayName() {
-        return getDisplayNameInternal(localeID, getDefault().localeID);
+        return getDisplayNameInternal(this, getDefault());
     }
     
     /**
@@ -2707,7 +1392,7 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public String getDisplayName(ULocale displayLocale) {
-        return getDisplayNameInternal(localeID, displayLocale.localeID);
+        return getDisplayNameInternal(this, displayLocale);
     }
     
     /**
@@ -2719,7 +1404,7 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public static String getDisplayName(String localeID, String displayLocaleID) {
-        return getDisplayNameInternal(localeID, getName(displayLocaleID));
+        return getDisplayNameInternal(new ULocale(localeID), new ULocale(displayLocaleID));
     }
 
     /**
@@ -2731,83 +1416,73 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public static String getDisplayName(String localeID, ULocale displayLocale) {
-        return getDisplayNameInternal(localeID, displayLocale.localeID);
+        return getDisplayNameInternal(new ULocale(localeID), displayLocale);
     }
-
-    // displayLocaleID is canonical, localeID need not be since parsing will fix this.
-    private static String getDisplayNameInternal(String localeID, String displayLocaleID) {
+    
+    private static String getDisplayNameInternal(ULocale locale, ULocale displayLocale) {
+        return LocaleDisplayNames.getInstance(displayLocale)
+           .localeDisplayName(locale);
+//        return new YourFavoriteClassNameImpl(displayLocale, DialectHandling.THE_WAY_ITS_ALWAYS_BEEN).localeDisplayName(locale);
         // lang
         // lang (script, country, variant, keyword=value, ...)
         // script, country, variant, keyword=value, ...
 
-        final String[] tableNames = { "Languages", "Scripts", "Countries", "Variants" };
-
-        StringBuilder buf0 = new StringBuilder();
-        StringBuilder buf1 = new StringBuilder();
-
-        ICUResourceBundle langBundle = (ICUResourceBundle)
-            UResourceBundle.getBundleInstance(
-                ICUResourceBundle.ICU_LANG_BASE_NAME, displayLocaleID);
-        ICUResourceBundle regionBundle = (ICUResourceBundle)
-            UResourceBundle.getBundleInstance(
-                ICUResourceBundle.ICU_REGION_BASE_NAME, displayLocaleID);
-        String sep = ", ";
-        try {
-            sep = langBundle.get("localeDisplayPattern").getString("separator");
-        } catch (MissingResourceException ex) {
-        }
-
-        IDParser parser = new IDParser(localeID);
-        String[] names = parser.getLanguageScriptCountryVariant();
-        for (int i = 0; i < names.length; ++i) {
-            String name = names[i];
-            if (name.length() > 0) {
-                ICUResourceBundle bundle = i == 2 ? regionBundle : langBundle;
-                name = getTableStringFromBundle(tableNames[i], null, name, bundle);
-                if (i == 0) {
-                    buf0.append(name);
-                } else {
-                    if (buf1.length() > 0) {
-                        buf1.append(sep);
-                    }
-                    buf1.append(name);
-                }
-            }
-        }
-
-        Map<String, String> m = parser.getKeywordMap();
-        if (!m.isEmpty()) {
-            for (Map.Entry<String, String> e : m.entrySet()) {
-                if (buf1.length() > 0) {
-                    buf1.append(sep);
-                }
-                String key = e.getKey();
-                buf1.append(getTableStringFromBundle("Keys", null, key, langBundle));
-                buf1.append("=");
-                buf1.append(getTableStringFromBundle("Types", key, e.getValue(), langBundle));
-            }
-        }
-
-        if (buf0.length() > 0 && buf1.length() > 0) {
-            String locDispPattern;
-            try {
-                locDispPattern = langBundle.get("localeDisplayPattern").getString("pattern");
-            } catch (MissingResourceException ex) {
-                locDispPattern = "{0} ({1})";
-            }
-
-            Object[] args = {
-                buf0.toString(),
-                buf1.toString()
-            };
-            return MessageFormat.format(locDispPattern, args);
-        }
-
-        if (buf0.length() > 0) {
-            return buf0.toString();
-        }
-
-        return buf1.toString();
+//        final String[] tableNames = { "Languages", "Scripts", "Countries", "Variants" };
+//
+//        String displayLocaleID = displayLocale.getBaseName();
+//        ICUResourceBundle langbundle = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_LANG_BASE_NAME, displayLocaleID);
+//        ICUResourceBundle regionbundle = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_REGION_BASE_NAME, displayLocaleID);
+//
+//        StringBuffer buf = new StringBuffer();
+//
+//        LocaleIDParser parser = new LocaleIDParser(displayLocaleID);
+//        String[] names = parser.getLanguageScriptCountryVariant();
+//
+//        boolean haveLanguage = names[0].length() > 0;
+//        boolean openParen = false;
+//        for (int i = 0; i < names.length; ++i) {
+//            String name = names[i];
+//            if (name.length() > 0) {
+//                ICUResourceBundle bundle = i == 2 ? regionbundle : langbundle;
+//                name = ICUResourceTableAccess.getTableStringFromBundle(tableNames[i], null, name, bundle);
+//                if (buf.length() > 0) { // need a separator
+//                    if (haveLanguage & !openParen) {
+//                        buf.append(" (");
+//                        openParen = true;
+//                    } else {
+//                        buf.append(", ");
+//                    }
+//                }
+//                buf.append(name);
+//            }
+//        }
+//
+//        Map m = parser.getKeywordMap();
+//        if (!m.isEmpty()) {
+//            Iterator keys = m.entrySet().iterator();
+//            while (keys.hasNext()) {
+//                if (buf.length() > 0) {
+//                    if (haveLanguage & !openParen) {
+//                        buf.append(" (");
+//                        openParen = true;
+//                    } else {
+//                        buf.append(", ");
+//                    }
+//                }
+//                Map.Entry e = (Map.Entry)keys.next();
+//                String key = (String)e.getKey();
+//                String val = (String)e.getValue();
+//                buf.append(ICUResourceTableAccess.getTableStringFromBundle("Keys", null, key, langbundle));
+//                buf.append("=");
+//                buf.append(ICUResourceTableAccess.getTableStringFromBundle("Types", key, val, langbundle));
+//            }
+//        }
+//
+//        if (openParen) {
+//            buf.append(")");
+//        }
+//            
+//        return buf.toString();
     }
     
     /**
@@ -2818,7 +1493,7 @@ public final class ULocale implements Serializable {
      * @provisional This API might change or be removed in a future release.
      */
     public String getDisplayNameWithDialect() {
-        return getDisplayNameWithDialectInternal(localeID, getDefault().localeID);
+        return getDisplayNameWithDialectInternal(this, getDefault());
     }
     
     /**
@@ -2830,7 +1505,7 @@ public final class ULocale implements Serializable {
      * @provisional This API might change or be removed in a future release.
      */
     public String getDisplayNameWithDialect(ULocale displayLocale) {
-        return getDisplayNameWithDialectInternal(localeID, displayLocale.localeID);
+        return getDisplayNameWithDialectInternal(this, displayLocale);
     }
     
     /**
@@ -2844,7 +1519,7 @@ public final class ULocale implements Serializable {
      * @provisional This API might change or be removed in a future release.
      */
     public static String getDisplayNameWithDialect(String localeID, String displayLocaleID) {
-        return getDisplayNameWithDialectInternal(localeID, getName(displayLocaleID));
+        return getDisplayNameWithDialectInternal(new ULocale(localeID), new ULocale(displayLocaleID));
     }
 
     /**
@@ -2858,85 +1533,12 @@ public final class ULocale implements Serializable {
      * @provisional This API might change or be removed in a future release.
      */
     public static String getDisplayNameWithDialect(String localeID, ULocale displayLocale) {
-        return getDisplayNameWithDialectInternal(localeID, displayLocale.localeID);
+        return getDisplayNameWithDialectInternal(new ULocale(localeID), displayLocale);
     }
 
-
-    // displayLocaleID is canonical, localeID need not be since parsing will fix this.
-    private static String getDisplayNameWithDialectInternal(String localeID, String displayLocaleID) {
-        // lang
-        // lang (script, country, variant, keyword=value, ...)
-        // script, country, variant, keyword=value, ...
-
-        final String[] tableNames = { "Languages", "Scripts", "Countries", "Variants" };
-
-        StringBuilder buf0 = new StringBuilder();
-        StringBuilder buf1 = new StringBuilder();
-
-        ICUResourceBundle langBundle = (ICUResourceBundle) UResourceBundle.getBundleInstance(
-            ICUResourceBundle.ICU_LANG_BASE_NAME, displayLocaleID);
-        ICUResourceBundle regionBundle = (ICUResourceBundle) UResourceBundle.getBundleInstance(
-            ICUResourceBundle.ICU_REGION_BASE_NAME, displayLocaleID);
-
-        String sep = ", ";
-        try {
-            sep = langBundle.get("localeDisplayPattern").getString("separator");
-        } catch (MissingResourceException ex) {
-        }
-
-        DisplayLanguageResult dlr = null;
-        IDParser parser = new IDParser(localeID);
-        String[] names = parser.getLanguageScriptCountryVariant();
-        for (int i = 0; i < names.length; ++i) {
-            String name = names[i];
-            if (name.length() > 0) {
-                if (i == 0) {
-                    dlr = getDisplayLanguageWithDialectInternal(localeID, displayLocaleID);
-                    buf0.append(dlr.value);
-                } else if (i > 2 || (i == 1 && !dlr.ateScript) || (i == 2 && !dlr.ateCountry)) {
-                    ICUResourceBundle bundle = i == 2 ? regionBundle : langBundle;
-                    name = getTableStringFromBundle(tableNames[i], null, name, bundle);
-                    if (buf1.length() > 0) {
-                        buf1.append(sep);
-                    }
-                    buf1.append(name);
-                }
-            }
-        }
-
-        Map<String, String> m = parser.getKeywordMap();
-        if (!m.isEmpty()) {
-            for (Map.Entry<String, String> e : m.entrySet()) {
-                if (buf1.length() > 0) {
-                    buf1.append(sep);
-                }
-                String key = e.getKey();
-                buf1.append(getTableStringFromBundle("Keys", null, key, langBundle));
-                buf1.append("=");
-                buf1.append(getTableStringFromBundle("Types", key, e.getValue(), langBundle));
-            }
-        }
-
-        if (buf0.length() > 0 && buf1.length() > 0) {
-            String locDispPattern;
-            try {
-                locDispPattern = langBundle.get("localeDisplayPattern").getString("pattern");
-            } catch (MissingResourceException ex) {
-                locDispPattern = "{0} ({1})";
-            }
-
-            Object[] args = {
-                buf0.toString(),
-                buf1.toString()
-            };
-            return MessageFormat.format(locDispPattern, args);
-        }
-
-        if (buf0.length() > 0) {
-            return buf0.toString();
-        }
-
-        return buf1.toString();
+    private static String getDisplayNameWithDialectInternal(ULocale locale, ULocale displayLocale) {
+        return LocaleDisplayNames.getInstance(displayLocale, DialectHandling.USE_DIALECT_NAMES)
+            .localeDisplayName(locale);
     }
 
     /**
@@ -2947,7 +1549,7 @@ public final class ULocale implements Serializable {
      * @stable ICU 4.0
      */
     public String getCharacterOrientation() {
-        return getTableString("layout", null, "characters", getName());
+        return ICUResourceTableAccess.getTableString("layout", null, "characters", getName());
     }
 
     /**
@@ -2958,7 +1560,7 @@ public final class ULocale implements Serializable {
      * @stable ICU 4.0
      */
     public String getLineOrientation() {
-        return getTableString("layout", null, "lines", getName());
+        return ICUResourceTableAccess.getTableString("layout", null, "lines", getName());
     }
 
     /** 
@@ -3637,7 +2239,7 @@ public final class ULocale implements Serializable {
         String trailing,
         String alternateTags) {
 
-        IDParser parser = null;
+        LocaleIDParser parser = null;
         boolean regionAppended = false;
 
         StringBuilder tag = new StringBuilder();
@@ -3657,7 +2259,7 @@ public final class ULocale implements Serializable {
                 tag);
         }
         else {
-            parser = new IDParser(alternateTags);
+            parser = new LocaleIDParser(alternateTags);
     
             String alternateLang = parser.getLanguage();
     
@@ -3680,7 +2282,7 @@ public final class ULocale implements Serializable {
              * Parse the alternateTags string for the script.
              */
             if (parser == null) {
-                parser = new IDParser(alternateTags);
+                parser = new LocaleIDParser(alternateTags);
             }
     
             String alternateScript = parser.getScript();
@@ -3704,7 +2306,7 @@ public final class ULocale implements Serializable {
              * Parse the alternateTags string for the region.
              */
             if (parser == null) {
-                parser = new IDParser(alternateTags);
+                parser = new LocaleIDParser(alternateTags);
             }
     
             String alternateRegion = parser.getCountry();
@@ -3802,7 +2404,7 @@ public final class ULocale implements Serializable {
         String localeID,
         String tags[])
     {
-        IDParser parser = new IDParser(localeID);
+        LocaleIDParser parser = new LocaleIDParser(localeID);
     
         String lang = parser.getLanguage();
         String script = parser.getScript();
