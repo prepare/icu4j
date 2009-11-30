@@ -190,6 +190,17 @@
         <ant dir="${icu4j.localespi-tests.dir}" inheritAll="false"/>
     </target>
 
+    <!-- packaging-tests -->
+    <path id="javac.classpathref.packaging-tests">
+        <pathelement location="${icu4j.core.jar}"/>
+        <pathelement location="${icu4j.charset.jar}"/>
+        <pathelement location="${icu4j.test-framework.jar}"/>
+    </path>
+
+    <target name="_all.packaging-tests" depends="_all.core, _all.charset, _all.test-framework">
+        <ant dir="${icu4j.packaging-tests.dir}" inheritAll="false"/>
+    </target>
+
     <!-- translit-tests -->
     <path id="javac.classpathref.translit-tests">
         <pathelement location="${icu4j.core.jar}"/>
