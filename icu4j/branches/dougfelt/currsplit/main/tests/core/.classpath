@@ -6,5 +6,6 @@
 	<classpathentry combineaccessrules="false" kind="src" path="/icu4j-test-framework"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/icu4j-langdata"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/icu4j-regiondata"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/icu4j-currdata"/>
 	<classpathentry kind="output" path="out/bin"/>
 </classpath>
