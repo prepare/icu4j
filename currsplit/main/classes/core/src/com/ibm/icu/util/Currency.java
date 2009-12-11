@@ -25,7 +25,6 @@ import com.ibm.icu.impl.SimpleCache;
 import com.ibm.icu.impl.TextTrieMap;
 import com.ibm.icu.impl.CurrencyMetaInfo.CurrencyDigits;
 import com.ibm.icu.impl.CurrencyMetaInfo.CurrencyFilter;
-import com.ibm.icu.impl.CurrencyMetaInfo.CurrencyInfo;
 
 /**
  * A class encapsulating a currency, as defined by ISO 4217.  A
