@@ -1,0 +1,161 @@
+/*
+ *******************************************************************************
+ * Copyright (C) 2007-2009, International Business Machines Corporation and    *
+ * others. All Rights Reserved.                                                *
+ *******************************************************************************
+ */
+package com.ibm.icu.dev.test.format;
+
+import com.ibm.icu.dev.test.TestFmwk;
+import com.ibm.icu.impl.Utility;
+import com.ibm.icu.text.SelectFormat;
+import java.text.FieldPosition;
+
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * @author kirtig 
+ * This class does the unit testing for the SelectFormat
+ */
+public class SelectFormatUnitTest extends TestFmwk {
+  
+static final String SIMPLE_PATTERN = "feminine {feminineVerbValue} other{otherVerbValue}";
+static final int SELECT_PATTERN_DATA = 4 ;
+static final int SELECT_SYNTAX_DATA = 10 ;
+static final int EXP_FORMAT_RESULT_DATA = 12 ;
+static final int NUM_OF_FORMAT_ARGS = 3 ;
+
+  public static void main(String[] args) throws Exception {
+    new SelectFormatUnitTest().run(args);
+  }
+  
+  public void TestPatternSyntax() {
+    log("Inside TestPatternSyntax");
+    System.out.println("\nInside TestPatternSyntax");
+
+    String checkSyntaxData[] = {
+        "odd{foo} odd{bar} other{foobar}",
+        "odd{foo} other{bar} other{foobar}",
+        "odd{foo}",
+        "1odd{foo} other{bar}",
+        "odd{foo},other{bar}",
+        "od d{foo} other{bar}",
+        "odd{foo}{foobar}other{foo}",
+        "odd{foo1}other{foo2}}",  
+        "odd{foo1}other{{foo2}",  
+        "odd{fo{o1}other{foo2}}"
+    };
+
+    //Test SelectFormat pattern syntax
+    try{
+        SelectFormat selFmt = new SelectFormat();
+        for (int i=0; i<SELECT_SYNTAX_DATA; ++i) {
+            try{
+                selFmt.applyPattern(checkSyntaxData[i]);
+                errln("\nERROR: Unexpected result - SelectFormat Unit Test failed to detect syntax error with pattern: "+checkSyntaxData[i]);
+            }catch(IllegalArgumentException e){
+                continue;
+            }
+        }
+    }catch(UnsupportedOperationException e){
+       System.out.println("Not implemented yet - TestPatternSyntax ");
+    }catch(Exception e){
+        errln("Exception encountered in TestPatternSyntax ");
+    }
+  }//end of TestpatternSyntax
+
+  public void TestApplyFormat() {
+    //Test applying and formatting with various pattern
+    log("Inside TestApplyFormat");
+    System.out.println("\nInside TestApplyFormat");
+
+    String patternTestData[] = {
+        "fem {femValue} other{even}",
+        "other{odd or even}",
+        "odd{The number {0, number, integer} is odd.}other{The number {0, number, integer} is even.}",
+        "odd{The number {1} is odd}other{The number {1} is even}"
+    };
+
+   String formatArgs[] = {
+        "fem",
+        "other",
+        "odd"
+    };
+
+    String expFormatResult[][] = {
+        {
+            "femValue",
+            "even",
+            "even",
+        },
+        {
+            "odd or even",
+            "odd or even",
+            "odd or even",
+        },
+        {
+            "The number {0, number, integer} is even.",
+            "The number {0, number, integer} is even.",
+            "The number {0, number, integer} is odd.",
+        },
+        {
+            "The number {1} is even",
+            "The number {1} is even",
+            "The number {1} is odd",
+        }
+    };
+
+    log("SelectFormat Unit test: Testing  applyPattern() and format() ...");
+    SelectFormat selFmt = null; 
+    try{
+        selFmt = new SelectFormat();
+    }catch(UnsupportedOperationException e){
+       System.out.println("Not implemented yet - TestApplyFormat ");
+    }catch(Exception e){
+        errln("Exception encountered in TestApplyFormat ");
+    }
+
+    for(int i=0; i<SELECT_PATTERN_DATA; ++i) {
+        try{
+            selFmt.applyPattern(patternTestData[i]);
+        }catch(Exception e){
+            errln("ERROR: SelectFormat Unit Test failed to apply pattern- "+patternTestData[i] );
+            continue;
+        }
+
+        //Format with the keyword array
+        for(int j=0; j<3; j++) {
+            assertEquals("ERROR: SelectFormat Unit test failed in format() with unexpected result", selFmt.format(formatArgs[j]) ,expFormatResult[i][j] );
+        }
+    }
+ 
+  }//end of TestApplyFormat
+
+  public void TesInvalidKeyword() {
+    //Test formatting with invalid keyword
+    log("Inside TestInvalidKeyword");
+    System.out.println("\nInside TestInvalidKeyword");
+    
+    String keywords[] = {
+        "9Keyword-_",       //Starts with a digit
+        "-Keyword-_",       //Starts with a hyphen
+        "_Keyword-_",       //Starts with a underscore
+        "\\u00E9Keyword-_", //Starts with non-ASCII character
+        "Key*word-_",        //Contains a sepial character not allowed
+        "*Keyword-_"       //Starts with a sepial character not allowed
+    };
+
+    SelectFormat selFmt = new SelectFormat(SIMPLE_PATTERN); 
+    for (int i = 0; i< 6; i++ ){
+        try{
+            selFmt.format( keywords[i]);
+        }catch(Exception e){
+            errln("ERROR: SelectFormat Unit test failed in format() with keyWord and with an invalid keyword as : "+ keywords[i]);
+        }
+    }
+
+  }
+
+}
+

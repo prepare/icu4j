@@ -20,15 +20,18 @@ public class TestAll extends TestGroup {
 
     public TestAll() {
         super(new String[] {
+/*
                   "TestAll$RBNF",
                   "TestAll$NumberFormat",
                   "TestAll$DateFormat",
                   "TestAll$DateIntervalFormat",
                   "TestAll$TimeUnitFormat",
-                  "TestAll$MessageFormat",
-                  "TestAll$PluralFormat",
                   "com.ibm.icu.dev.test.format.BigNumberFormatTest",
-                  "DataDrivenFormatTest"
+                  "DataDrivenFormatTest",
+                  "TestAll$PluralFormat",
+                  "TestAll$MessageFormat",
+*/
+                  "TestAll$SelectFormat"
               },
               "Formatting Tests");
     }
@@ -102,6 +105,15 @@ public class TestAll extends TestGroup {
                 "PluralFormatUnitTest",
                 "PluralFormatTest",
                 "PluralRulesTest",
+            });
+        }
+    }
+
+    public static class SelectFormat extends TestGroup {
+        public SelectFormat() {
+            super(new String[] {
+                "SelectFormatUnitTest",
+                //"SelectFormatTest",
             });
         }
     }
