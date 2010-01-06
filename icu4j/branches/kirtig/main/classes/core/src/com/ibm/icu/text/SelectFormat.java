@@ -155,12 +155,47 @@ import com.ibm.icu.impl.UCharacterProperty;
 public class SelectFormat extends Format {
     private static final long serialVersionUID = 1L;
 
+   /*
+     * The applied pattern string.
+     */
+    private String pattern = null;
+
+    /*
+     * The format messages for each plural case. It is a mapping:
+     *  <code>String</code>(select case keyword) --&gt; <code>String</code>
+     *  (message for this select case).
+     */
+    private Map<String, String> parsedValues = null;
+
+    /**
+     * Common name for the default select form.  This name is returned
+     * for values to which no other form in the rule applies.  It 
+     * can additionally be assigned rules of its own.
+     * @draft ICU 4.4
+     */
+    public static final String KEYWORD_OTHER = "other";
+
+    /*
+     * The set of all characters a valid keyword can start with.
+     */
+    private static final UnicodeSet START_CHARS =
+        new UnicodeSet("[[:ID_Start:][_]]");
+
+    /*
+     * The set of all characters a valid keyword can contain after 
+     * the first character.
+     */
+    private static final UnicodeSet CONT_CHARS =
+        new UnicodeSet("[:ID_Continue:]");
+
+
     /**
      * Creates a new <code>SelectFormat</code> 
      * @throws UnsupportedOperationException
      * @draft ICU 4.4
      */
     public SelectFormat() {
+        init();
         throw new UnsupportedOperationException("Constructor SelectFormat() is not implemented yet.");
     }
 
@@ -171,7 +206,20 @@ public class SelectFormat extends Format {
      * @draft ICU 4.4
      */
     public SelectFormat(String pattern) {
-        throw new UnsupportedOperationException("Constructor SelectFormat(String) is not implemented yet.");
+        init();
+        applyPattern(pattern);
+        //throw new UnsupportedOperationException("Constructor SelectFormat(String) is not implemented yet.");
+    }
+
+    /*
+     * Initializes the <code>SelectFormat</code> object.
+     * Postcondition:<br/>
+     *   <code>parsedValues</code>: is <code>null</code><br/>
+     *   <code>pattern</code>:      is <code>null</code><br/>
+     */
+    private void init() {
+        parsedValues = null;
+        pattern = null;
     }
 
     /**
@@ -194,7 +242,7 @@ public class SelectFormat extends Format {
      * @draft ICU 4.4
      */
     public String toPattern() {
-        throw new UnsupportedOperationException("SelectFormat.toPattern() is not implemented yet.");
+        return pattern;
     }
 
     /**
@@ -202,11 +250,25 @@ public class SelectFormat extends Format {
      *
      * @param keyword a keyword for which the select message should be formatted.
      * @return the string containing the formatted select message.
-     * @throws UnsupportedOperationException
+     * @throws Exception
      * @draft ICU 4.4
      */
     public final String format(String keyword) {
-        throw new UnsupportedOperationException("SelectFormat.format(String) is not implemented yet.");
+        //ToDo: Check for the validity of the keyword
+
+        // If no pattern was applied, throw an exception
+        if (parsedValues == null) {
+            parsingFailure("Invalid format error.");
+        }
+
+        // Get appropriate format pattern.
+        String selectedPattern = parsedValues.get(keyword);
+        if (selectedPattern == null) { // Fallback to others.
+            selectedPattern = parsedValues.get(KEYWORD_OTHER);
+        }
+        return selectedPattern;
+
+       //throw new UnsupportedOperationException("SelectFormat.format(String) is not implemented yet.");
     }
 
     /**
@@ -223,7 +285,13 @@ public class SelectFormat extends Format {
      */
     public StringBuffer format(Object keyword, StringBuffer toAppendTo,
             FieldPosition pos) {
-        throw new UnsupportedOperationException("SelectFormat.format( Object, StringBuffer,FieldPosition) is not implemented yet.");
+        if (keyword instanceof String) {
+            toAppendTo.append(format( (String)keyword));
+        }else{
+            parsingFailure("'" + keyword + "' is not a String");
+        }
+        return toAppendTo;
+        //throw new UnsupportedOperationException("SelectFormat.format( Object, StringBuffer,FieldPosition) is not implemented yet.");
     }
 
     /**
@@ -240,12 +308,42 @@ public class SelectFormat extends Format {
         throw new UnsupportedOperationException();
     }
 
+    /*
+     * Checks if the applied pattern provided enough information,
+     * i.e., if the attribute <code>parsedValues</code> stores enough
+     * information for select formatting.
+     * Will be called at the end of pattern parsing.
+     * @throws IllegalArgumentException if there's not sufficient information
+     *     provided.
+     */
+    private void checkSufficientDefinition() {
+        // Check that at least the default rule is defined.
+        if (parsedValues.get(KEYWORD_OTHER) == null) {
+            parsingFailure("Malformed formatting expression.\n"
+                    + "Value for case \"" + KEYWORD_OTHER
+                    + "\" was not defined.");
+        }
+    }
+
+    /*
+     * Helper method that resets the <code>SelectFormat</code> object and throws
+     * an <code>IllegalArgumentException</code> with a given error text.
+     * @param errorText the error text of the exception message.
+     * @throws IllegalArgumentException will always be thrown by this method.
+     */
+    private void parsingFailure(String errorText) {
+        // Set SelectFormat to a valid state.
+        init();
+        throw new IllegalArgumentException(errorText);
+    }
+
     /**
      * {@inheritDoc}
      * @draft ICU 4.4
      */
     public boolean equals(Object rhs) {
-        throw new UnsupportedOperationException("SelectFormat.equals(Object) is not implemented yet.");
+        return rhs instanceof SelectFormat && equals((SelectFormat) rhs);
+        //throw new UnsupportedOperationException("SelectFormat.equals(Object) is not implemented yet.");
     }
 
     /**
@@ -264,7 +362,8 @@ public class SelectFormat extends Format {
      * @draft ICU 4.4
      */
     public int hashCode() {
-        throw new UnsupportedOperationException("SelectFormat.hashCode() is not implemented yet.");
+        return parsedValues.hashCode();
+        //throw new UnsupportedOperationException("SelectFormat.hashCode() is not implemented yet.");
     }
 
     /**
@@ -276,6 +375,10 @@ public class SelectFormat extends Format {
      * @draft ICU 4.4
      */
     public String toString() {
-        throw new UnsupportedOperationException("SelectFormat.toString() is not implemented yet.");
+        StringBuffer buf = new StringBuffer();
+        buf.append("pattern='" + pattern + "'");
+        buf.append(", parsedValues='" + parsedValues + "'");
+        return buf.toString();
+        //throw new UnsupportedOperationException("SelectFormat.toString() is not implemented yet.");
     }
 }
