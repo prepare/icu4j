@@ -14,7 +14,7 @@ import com.ibm.icu.text.UnicodeSet.SpanCondition;
 /*
  * Helper class for frozen UnicodeSets, implements contains() and span() optimized for BMP code points.
  * 
- * ASCII: Look up bytes. 2-byte characters: Bits organized vertically. 3-byte characters: Use zero/one/mixed data
+ * Latin-1: Look up bytes. 2-byte characters: Bits organized vertically. 3-byte characters: Use zero/one/mixed data
  * per 64-block in U+0000..U+FFFF, with mixed for illegal ranges. Supplementary characters: Call contains() on the
  * parent set.
  */
@@ -22,10 +22,9 @@ public final class BMPSet {
     public static int U16_SURROGATE_OFFSET = ((0xd800 << 10) + 0xdc00 - 0x10000);
 
     /*
-     * One byte per Latin-1 character, or trail byte in lead position. 0 or 1 for Latin-1 characters [0 .. 0xFF]. The
-     * value for trail bytes is the result of contains(FFFD) for faster validity checking at runtime.
+     * One boolean ('true' or 'false') per Latin-1 character.
      */
-    private byte[] latin1Bytes;
+    private boolean[] latin1Contains;
 
     /*
      * One bit per code point from U+0000..U+07FF. The bits are organized vertically; consecutive code points
@@ -66,7 +65,7 @@ public final class BMPSet {
     public BMPSet(final int[] parentList, int parentListLength) {
         list = parentList;
         listLength = parentListLength;
-        latin1Bytes = new byte[0x100];
+        latin1Contains = new boolean[0x100];
         table7FF = new int[64];
         bmpBlockBits = new int[64];
         list4kStarts = new int[18];
@@ -84,13 +83,12 @@ public final class BMPSet {
         list4kStarts[0x11] = listLength - 1;
 
         initBits();
-        overrideIllegal();
     }
 
     public BMPSet(final BMPSet otherBMPSet, final int[] newParentList, int newParentListLength) {
         list = newParentList;
         listLength = newParentListLength;
-        latin1Bytes = otherBMPSet.latin1Bytes.clone();
+        latin1Contains = otherBMPSet.latin1Contains.clone();
         table7FF = otherBMPSet.table7FF.clone();
         bmpBlockBits = otherBMPSet.bmpBlockBits.clone();
         list4kStarts = otherBMPSet.list4kStarts.clone();
@@ -98,9 +96,9 @@ public final class BMPSet {
 
     public boolean contains(int c) {
         if (c <= 0xff) {
-            return (0 != latin1Bytes[c]);
+            return (latin1Contains[c]);
         } else if (c <= 0x7ff) {
-            return ((table7FF[c & 0x3f] & ((int) 1 << (c >> 6))) != 0);
+            return ((table7FF[c & 0x3f] & (1 << (c >> 6))) != 0);
         } else if (c < 0xd800 || (c >= 0xe000 && c <= 0xffff)) {
             int lead = c >> 12;
             int twoBits = (bmpBlockBits[(c >> 6) & 0x3f] >> lead) & 0x10001;
@@ -126,29 +124,31 @@ public final class BMPSet {
      * Span the initial substring for which each character c has spanCondition==contains(c). It must be
      * spanCondition==0 or 1.
      * 
+     * @param relativeLimit, from the start (start may not == 0)
      * @return The length of the span.
      *
      * NOTE: to reduce the overhead of function call to contains(c), it is manually inlined here. Check for
      * sufficient length for trail unit for each surrogate pair. Handle single surrogates as surrogate code points
      * as usual in ICU.
      */
-    public final int span(final String s, int start, int limit, SpanCondition spanCondition) {
+    public final int span(final String s, int start, int relativeLimit, SpanCondition spanCondition) {
         char c, c2;
         int i = start;
-        limit = Math.min(s.length(), start + limit);
+        int limit = Math.min(s.length(), start + relativeLimit);
         if (SpanCondition.NOT_CONTAINED != spanCondition) {
             // span
             while (i < limit) {
                 c = s.charAt(i);
                 if (c <= 0xff) {
-                    if (0 == latin1Bytes[c]) {
+                    if (!latin1Contains[c]) {
                         break;
                     }
                 } else if (c <= 0x7ff) {
-                    if ((table7FF[c & 0x3f] & ((int) 1 << (c >> 6))) == 0) {
+                    if ((table7FF[c & 0x3f] & (1 << (c >> 6))) == 0) {
                         break;
                     }
-                } else if (c < 0xd800 || c >= 0xe000) {
+                } else if (c < 0xd800 ||
+                           c >= 0xdc00 || (i + 1) == limit || (c2 = s.charAt(i + 1)) < 0xdc00 || c2 >= 0xe000) {
                     int lead = c >> 12;
                     int twoBits = (bmpBlockBits[(c >> 6) & 0x3f] >> lead) & 0x10001;
                     if (twoBits <= 1) {
@@ -162,11 +162,6 @@ public final class BMPSet {
                         if (!containsSlow(c, list4kStarts[lead], list4kStarts[lead + 1])) {
                             break;
                         }
-                    }
-                } else if (c >= 0xdc00 || (i + 1) == limit || (c2 = s.charAt(i + 1)) < 0xdc00 || c2 >= 0xe000) {
-                    // surrogate code point
-                    if (!containsSlow(c, list4kStarts[0xd], list4kStarts[0xe])) {
-                        break;
                     }
                 } else {
                     // surrogate pair
@@ -183,14 +178,15 @@ public final class BMPSet {
             while (i < limit) {
                 c = s.charAt(i);
                 if (c <= 0xff) {
-                    if (0 != latin1Bytes[c]) {
+                    if (latin1Contains[c]) {
                         break;
                     }
                 } else if (c <= 0x7ff) {
-                    if ((table7FF[c & 0x3f] & ((int) 1 << (c >> 6))) != 0) {
+                    if ((table7FF[c & 0x3f] & (1 << (c >> 6))) != 0) {
                         break;
                     }
-                } else if (c < 0xd800 || c >= 0xe000) {
+                } else if (c < 0xd800 ||
+                           c >= 0xdc00 || (i + 1) == limit || (c2 = s.charAt(i + 1)) < 0xdc00 || c2 >= 0xe000) {
                     int lead = c >> 12;
                     int twoBits = (bmpBlockBits[(c >> 6) & 0x3f] >> lead) & 0x10001;
                     if (twoBits <= 1) {
@@ -204,11 +200,6 @@ public final class BMPSet {
                         if (containsSlow(c, list4kStarts[lead], list4kStarts[lead + 1])) {
                             break;
                         }
-                    }
-                } else if (c >= 0xdc00 || (i + 1) == limit || (c2 = s.charAt(i + 1)) < 0xdc00 || c2 >= 0xe000) {
-                    // surrogate code point
-                    if (containsSlow(c, list4kStarts[0xd], list4kStarts[0xe])) {
-                        break;
                     }
                 } else {
                     // surrogate pair
@@ -240,14 +231,15 @@ public final class BMPSet {
             for (;;) {
                 c = s.charAt(--limit);
                 if (c <= 0xff) {
-                    if (0 == latin1Bytes[c]) {
+                    if (!latin1Contains[c]) {
                         break;
                     }
                 } else if (c <= 0x7ff) {
-                    if ((table7FF[c & 0x3f] & ((int) 1 << (c >> 6))) == 0) {
+                    if ((table7FF[c & 0x3f] & (1 << (c >> 6))) == 0) {
                         break;
                     }
-                } else if (c < 0xd800 || c >= 0xe000) {
+                } else if (c < 0xd800 ||
+                           c < 0xdc00 || 0 == limit || (c2 = s.charAt(limit - 1)) < 0xd800 || c2 >= 0xdc00) {
                     int lead = c >> 12;
                     int twoBits = (bmpBlockBits[(c >> 6) & 0x3f] >> lead) & 0x10001;
                     if (twoBits <= 1) {
@@ -261,11 +253,6 @@ public final class BMPSet {
                         if (!containsSlow(c, list4kStarts[lead], list4kStarts[lead + 1])) {
                             break;
                         }
-                    }
-                } else if (c < 0xdc00 || 0 == limit || (c2 = s.charAt(limit - 1)) < 0xd800 || c2 >= 0xdc00) {
-                    // surrogate code point
-                    if (!containsSlow(c, list4kStarts[0xd], list4kStarts[0xe])) {
-                        break;
                     }
                 } else {
                     // surrogate pair
@@ -284,14 +271,15 @@ public final class BMPSet {
             for (;;) {
                 c = s.charAt(--limit);
                 if (c <= 0xff) {
-                    if (0 != latin1Bytes[c]) {
+                    if (latin1Contains[c]) {
                         break;
                     }
                 } else if (c <= 0x7ff) {
-                    if ((table7FF[c & 0x3f] & ((int) 1 << (c >> 6))) != 0) {
+                    if ((table7FF[c & 0x3f] & (1 << (c >> 6))) != 0) {
                         break;
                     }
-                } else if (c < 0xd800 || c >= 0xe000) {
+                } else if (c < 0xd800 ||
+                           c < 0xdc00 || 0 == limit || (c2 = s.charAt(limit - 1)) < 0xd800 || c2 >= 0xdc00) {
                     int lead = c >> 12;
                     int twoBits = (bmpBlockBits[(c >> 6) & 0x3f] >> lead) & 0x10001;
                     if (twoBits <= 1) {
@@ -305,11 +293,6 @@ public final class BMPSet {
                         if (containsSlow(c, list4kStarts[lead], list4kStarts[lead + 1])) {
                             break;
                         }
-                    }
-                } else if (c < 0xdc00 || 0 == limit || (c2 = s.charAt(limit - 1)) < 0xd800 || c2 >= 0xdc00) {
-                    // surrogate code point
-                    if (containsSlow(c, list4kStarts[0xd], list4kStarts[0xe])) {
-                        break;
                     }
                 } else {
                     // surrogate pair
@@ -336,7 +319,7 @@ public final class BMPSet {
         int trail = start & 0x3f;
 
         // Set one bit indicating an all-one block.
-        int bits = (int) 1 << lead;
+        int bits = 1 << lead;
         if ((start + 1) == limit) { // Single-character shortcut.
             table[trail] |= bits;
             return;
@@ -380,7 +363,7 @@ public final class BMPSet {
         int start, limit;
         int listIndex = 0;
 
-        // Set latin1Bytes[].
+        // Set latin1Contains[].
         do {
             start = list[listIndex++];
             if (listIndex < listLength) {
@@ -392,7 +375,7 @@ public final class BMPSet {
                 break;
             }
             do {
-                latin1Bytes[start++] = 1;
+                latin1Contains[start++] = true;
             } while (start < limit && start < 0x100);
         } while (limit <= 0x100);
 
@@ -459,42 +442,9 @@ public final class BMPSet {
         }
     }
 
-    /*
-     * Override some bits and bytes to the result of contains(FFFD) for faster validity checking at runtime. No need
-     * to set 0 values where they were reset to 0 in the constructor and not modified by initBits(). (
-     * table7FF[] 0..7F, bmpBlockBits[] 0..7FF) Need to set 0 values for surrogates D800..DFFF.
-     */
-    private void overrideIllegal() {
-        int bits, mask;
-        int i;
-
-        if (containsSlow(0xfffd, list4kStarts[0xf], list4kStarts[0x10])) {
-            bits = 3; // Lead bytes 0xC0 and 0xC1.
-            for (i = 0; i < 64; ++i) {
-                table7FF[i] |= bits;
-            }
-
-            bits = 1; // Lead byte 0xE0.
-            for (i = 0; i < 32; ++i) { // First half of 4k block.
-                bmpBlockBits[i] |= bits;
-            }
-
-            mask = ~(0x10001 << 0xd); // Lead byte 0xED.
-            bits = 1 << 0xd;
-            for (i = 32; i < 64; ++i) { // Second half of 4k block.
-                bmpBlockBits[i] = (bmpBlockBits[i] & mask) | bits;
-            }
-        } else {
-            // contains(FFFD)==false
-            mask = ~(0x10001 << 0xd); // Lead byte 0xED.
-            for (i = 32; i < 64; ++i) { // Second half of 4k block.
-                bmpBlockBits[i] &= mask;
-            }
-        }
-    }
 
     /**
-     * Same as UnicodeSet.findCodePoint(int c) final except that the binary search is restricted for finding code
+     * Same as UnicodeSet.findCodePoint(int c) except that the binary search is restricted for finding code
      * points in a certain range.
      * 
      * For restricting the search for finding in the range start..end, pass in lo=findCodePoint(start) and
