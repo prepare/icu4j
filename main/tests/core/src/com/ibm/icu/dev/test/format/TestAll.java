@@ -20,7 +20,6 @@ public class TestAll extends TestGroup {
 
     public TestAll() {
         super(new String[] {
-/*
                   "TestAll$RBNF",
                   "TestAll$NumberFormat",
                   "TestAll$DateFormat",
@@ -30,7 +29,6 @@ public class TestAll extends TestGroup {
                   "DataDrivenFormatTest",
                   "TestAll$PluralFormat",
                   "TestAll$MessageFormat",
-*/
                   "TestAll$SelectFormat"
               },
               "Formatting Tests");
@@ -113,7 +111,7 @@ public class TestAll extends TestGroup {
         public SelectFormat() {
             super(new String[] {
                 "SelectFormatUnitTest",
-                //"SelectFormatTest",
+                "SelectFormatTest",
             });
         }
     }
