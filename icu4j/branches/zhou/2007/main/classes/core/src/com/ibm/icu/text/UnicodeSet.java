@@ -2045,7 +2045,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
      * @stable ICU 2.0
      */
     public boolean containsNone(String s) {
-        return (span(s, 0, s.length(), SpanCondition.NOT_CONTAINED) == s.length());
+        return span(s, 0, SpanCondition.NOT_CONTAINED) == s.length();
     }
 
     /**
@@ -3841,7 +3841,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
 
             // Optimize contains() and span() and similar functions.
             if (!strings.isEmpty()) {
-                stringSpan = new UnicodeSetStringSpan(this, new Vector(strings), UnicodeSetStringSpan.ALL);
+                stringSpan = new UnicodeSetStringSpan(this, new Vector<String>(strings), UnicodeSetStringSpan.ALL);
                 if (!stringSpan.needsStringSpanUTF16()) {
                     // All strings are irrelevant for span() etc. because
                     // all of each string's code points are contained in this set.
@@ -3867,7 +3867,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
      * @return the length of the span
      * @draft ICU 4.4
      */
-    public int span(final String s, SpanCondition spanCondition) {
+    public int span(CharSequence s, SpanCondition spanCondition) {
         return span(s, 0, spanCondition);
     }
 
@@ -3880,8 +3880,8 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
      * @return the length of the span
      * @draft ICU 4.4
      */
-    public int span(final String s, int start, SpanCondition spanCondition) {
-        return span(s, start, s.length() - start, spanCondition);
+    public int span(CharSequence s, int start, SpanCondition spanCondition) {
+        return span(s, start, s.length(), spanCondition);
     }
 
     /**
@@ -3889,29 +3889,35 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
      * 
      * @param s The string to be spanned
      * @param start The start index that the span begins
-     * @param limit The limit of the number of chars that the string should be spanned
+     * @param end   The end   index (exclusive) that the string should be spanned
      * @param spanCondition The span condition
      * @return the length of the span
      * @draft ICU 4.4
      */
-    public int span(final String s, int start, int limit, SpanCondition spanCondition) {
-        if (limit > 0 && bmpSet != null) {
-            return bmpSet.span(s, start, limit, spanCondition);
+    public int span(CharSequence s, int start, int end, SpanCondition spanCondition) {
+        if (end > s.length()) {
+            end = s.length();
         }
-        if (limit < 0) {
-            limit = s.length() - start;
+        int len = end - start;
+        if (len > 0 && bmpSet != null) {
+            return bmpSet.span(s, start, end, spanCondition);
         }
-        if (limit <= 0) {
+        if (len < 0) {
+            end = s.length();
+            len = end - start;
+        }
+        if (len <= 0) {
             return 0;
         }
+
         if (stringSpan != null) {
-            return stringSpan.span(s, start, limit, spanCondition);
+            return stringSpan.span(s, start, len, spanCondition);
         } else if (!strings.isEmpty()) {
             int which = spanCondition == SpanCondition.NOT_CONTAINED ? UnicodeSetStringSpan.FWD_UTF16_NOT_CONTAINED
                     : UnicodeSetStringSpan.FWD_UTF16_CONTAINED;
-            UnicodeSetStringSpan strSpan = new UnicodeSetStringSpan(this, new Vector(strings), which);
+            UnicodeSetStringSpan strSpan = new UnicodeSetStringSpan(this, new Vector<String>(strings), which);
             if (strSpan.needsStringSpanUTF16()) {
-                return strSpan.span(s, start, limit, spanCondition);
+                return strSpan.span(s, start, len, spanCondition);
             }
         }
 
@@ -3920,13 +3926,12 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
 
         int c;
         int begin = start;
-        int end   = start + limit;
         do {
-            c = s.codePointAt(start);
+            c = Character.codePointAt(s, start);
             if (spanContained != contains(c)) {
                 break;
             }
-            start = s.offsetByCodePoints(start, 1);
+            start = Character.offsetByCodePoints(s, start, 1);
         } while (start < end);
         return start - begin;
     }
@@ -3935,14 +3940,26 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
      * Span a string backwards (from the limit) using this UnicodeSet.
      * 
      * @param s The string to be spanned
-     * @param limit The index of the char that the string should be spanned backwards
      * @param spanCondition The span condition
      * @return The string index which starts the span (i.e. inclusive).
      * @draft ICU 4.4
      */
-    public int spanBack(final String s, int limit, SpanCondition spanCondition) {
+    public int spanBack(CharSequence s, SpanCondition spanCondition) {
+      return spanBack(s, s.length(), spanCondition);
+    }
+
+    /**
+     * Span a string backwards (from the limit) using this UnicodeSet.
+     * 
+     * @param s The string to be spanned
+     * @param limit The index of the char (exclusive) that the string should be spanned backwards
+     * @param spanCondition The span condition
+     * @return The string index which starts the span (i.e. inclusive).
+     * @draft ICU 4.4
+     */
+    public int spanBack(CharSequence s, int limit, SpanCondition spanCondition) {
         if (limit > 0 && bmpSet != null) {
-            return (int) (bmpSet.spanBack(s, limit, spanCondition));
+            return bmpSet.spanBack(s, limit, spanCondition);
         }
         if (limit < 0) {
             limit = s.length();
@@ -3956,7 +3973,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
             int which = (spanCondition == SpanCondition.NOT_CONTAINED)
                     ? UnicodeSetStringSpan.BACK_UTF16_NOT_CONTAINED
                     : UnicodeSetStringSpan.BACK_UTF16_CONTAINED;
-            UnicodeSetStringSpan strSpan = new UnicodeSetStringSpan(this, new Vector(strings), which);
+            UnicodeSetStringSpan strSpan = new UnicodeSetStringSpan(this, new Vector<String>(strings), which);
             if (strSpan.needsStringSpanUTF16()) {
                 return strSpan.spanBack(s, limit, spanCondition);
             }
@@ -3968,11 +3985,11 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
         int c;
         int prev = limit;
         do {
-            c = s.codePointBefore(prev);
+            c = Character.codePointBefore(s, prev);
             if (spanContained != contains(c)) {
                 break;
             }
-            prev = s.offsetByCodePoints(prev, -1);
+            prev = Character.offsetByCodePoints(s, prev, -1);
         } while (prev > 0);
         return prev;
     }
