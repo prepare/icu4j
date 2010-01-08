@@ -124,17 +124,18 @@ public final class BMPSet {
      * Span the initial substring for which each character c has spanCondition==contains(c). It must be
      * spanCondition==0 or 1.
      * 
-     * @param relativeLimit, from the start (start may not == 0)
+     * @param start The start index
+     * @param end   The end   index
      * @return The length of the span.
      *
      * NOTE: to reduce the overhead of function call to contains(c), it is manually inlined here. Check for
      * sufficient length for trail unit for each surrogate pair. Handle single surrogates as surrogate code points
      * as usual in ICU.
      */
-    public final int span(final String s, int start, int relativeLimit, SpanCondition spanCondition) {
+    public final int span(CharSequence s, int start, int end, SpanCondition spanCondition) {
         char c, c2;
         int i = start;
-        int limit = Math.min(s.length(), start + relativeLimit);
+        int limit = Math.min(s.length(), end);
         if (SpanCondition.NOT_CONTAINED != spanCondition) {
             // span
             while (i < limit) {
@@ -222,7 +223,7 @@ public final class BMPSet {
      * 
      * @return The string index which starts the span (i.e. inclusive).
      */
-    public final int spanBack(final String s, int limit, SpanCondition spanCondition) {
+    public final int spanBack(CharSequence s, int limit, SpanCondition spanCondition) {
         char c, c2;
 
         limit = Math.min(s.length(), limit);
