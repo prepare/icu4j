@@ -47,6 +47,19 @@ static final int NUM_OF_FORMAT_ARGS = 3 ;
         "odd{fo{o1}other{foo2}}"
     };
 
+   String expectedErrorMsgs[] = {
+        "Duplicate keyword error.",
+        "Duplicate keyword error.",
+        "Pattern syntax error.Value for case \"other\" was not defined.",
+        "Pattern syntax error.",
+        "Pattern syntax error.",
+        "Pattern syntax error.",
+        "Pattern syntax error.",
+        "Pattern syntax error.",
+        "Pattern syntax error.",
+        "Pattern syntax error.Value for case \"other\" was not defined.",
+    };
+
     //Test SelectFormat pattern syntax
     try{
         SelectFormat selFmt = new SelectFormat();
@@ -55,15 +68,44 @@ static final int NUM_OF_FORMAT_ARGS = 3 ;
                 selFmt.applyPattern(checkSyntaxData[i]);
                 errln("\nERROR: Unexpected result - SelectFormat Unit Test failed to detect syntax error with pattern: "+checkSyntaxData[i]);
             }catch(IllegalArgumentException e){
+                assertEquals("Error:TestPatternSyntax failed with unexpected error message for pattern: " + checkSyntaxData[i] , expectedErrorMsgs[i], e.getMessage() );
                 continue;
             }
         }
-    }catch(UnsupportedOperationException e){
-       System.out.println("Not implemented yet - TestPatternSyntax ");
     }catch(Exception e){
         errln("Exception encountered in TestPatternSyntax ");
     }
   }//end of TestpatternSyntax
+
+  public void TestInvalidKeyword() {
+    //Test formatting with invalid keyword
+    log("Inside TestInvalidKeyword");
+    System.out.println("\nInside TestInvalidKeyword");
+
+    String keywords[] = {
+        "9Keyword-_",       //Starts with a digit
+        "-Keyword-_",       //Starts with a hyphen
+        "_Keyword-_",       //Starts with an underscore
+        "\\u00E9Keyword-_", //Starts with non-ASCII character
+        "Key*word-_",        //Contains a sepial character not allowed
+        "*Keyword-_"       //Starts with a sepial character not allowed
+    };
+
+    String expected = "Invalid formatting argument.";
+    SelectFormat selFmt = new SelectFormat(SIMPLE_PATTERN);
+    for (int i = 0; i< 6; i++ ){
+        try{
+            selFmt.format( keywords[i]);
+            fail("Error:TestInvalidKeyword failed to detect Invalid keyword for keyword: " + keywords[i]  );
+        }catch(IllegalArgumentException e){
+                assertEquals("Error:TestInvalidKeyword failed with unexpected error message for keyword: " + keywords[i] , expected , e.getMessage() );
+                continue;
+        }catch(Exception e){
+            errln("ERROR:TestInvalidKeyword failed with an invalid keyword: "+ keywords[i] + " with exception: " + e.getMessage() );
+        }
+    }
+
+  }
 
   public void TestApplyFormat() {
     //Test applying and formatting with various pattern
@@ -110,8 +152,6 @@ static final int NUM_OF_FORMAT_ARGS = 3 ;
     SelectFormat selFmt = null; 
     try{
         selFmt = new SelectFormat();
-    }catch(UnsupportedOperationException e){
-       System.out.println("Not implemented yet - TestApplyFormat ");
     }catch(Exception e){
         errln("Exception encountered in TestApplyFormat ");
     }
@@ -131,31 +171,6 @@ static final int NUM_OF_FORMAT_ARGS = 3 ;
     }
  
   }//end of TestApplyFormat
-
-  public void TesInvalidKeyword() {
-    //Test formatting with invalid keyword
-    log("Inside TestInvalidKeyword");
-    System.out.println("\nInside TestInvalidKeyword");
-    
-    String keywords[] = {
-        "9Keyword-_",       //Starts with a digit
-        "-Keyword-_",       //Starts with a hyphen
-        "_Keyword-_",       //Starts with a underscore
-        "\\u00E9Keyword-_", //Starts with non-ASCII character
-        "Key*word-_",        //Contains a sepial character not allowed
-        "*Keyword-_"       //Starts with a sepial character not allowed
-    };
-
-    SelectFormat selFmt = new SelectFormat(SIMPLE_PATTERN); 
-    for (int i = 0; i< 6; i++ ){
-        try{
-            selFmt.format( keywords[i]);
-        }catch(Exception e){
-            errln("ERROR: SelectFormat Unit test failed in format() with keyWord and with an invalid keyword as : "+ keywords[i]);
-        }
-    }
-
-  }
 
 }
 
