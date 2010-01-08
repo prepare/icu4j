@@ -457,19 +457,14 @@ public class SelectFormat extends Format {
             }//end of switch(state)
         }
 
-        //Check if the stae machine is back to START_STATE
+        //Check if the state machine is back to START_STATE
         if ( state != START_STATE){
             parsingFailure("Pattern syntax error.");
-        }
- 
-        if (braceCount != 0) {
-            parsingFailure(
-                    "Malformed formatting expression. Braces do not match.");
         }
 
         //Check if "other" keyword is present 
         if ( !checkSufficientDefinition() ) {
-            parsingFailure("Malformed formatting expression.\n"
+            parsingFailure("Pattern syntax error." 
                     + "Value for case \"" + KEYWORD_OTHER
                     + "\" was not defined.");
         }
