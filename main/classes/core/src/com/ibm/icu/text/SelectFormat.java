@@ -161,7 +161,7 @@ public class SelectFormat extends Format {
     private String pattern = null;
 
     /*
-     * The format messages for each plural case. It is a mapping:
+     * The format messages for each select case. It is a mapping:
      *  <code>String</code>(select case keyword) --&gt; <code>String</code>
      *  (message for this select case).
      */
@@ -176,39 +176,40 @@ public class SelectFormat extends Format {
     public static final String KEYWORD_OTHER = "other";
 
     /*
-     * The set of all characters a valid keyword can start with.
+     * The types of character classifications 
      */
-    private static final UnicodeSet START_CHARS =
-        new UnicodeSet("[[:ID_Start:][_]]");
+    private static final int T_START_KEYWORD = 0;
+    private static final int T_CONTINUE_KEYWORD = 1;
+    private static final int T_LEFT_BRACE = 2;
+    private static final int T_RIGHT_BRACE = 3;
+    private static final int T_SPACE = 4;
+    private static final int T_OTHER = 5;
 
     /*
-     * The set of all characters a valid keyword can contain after 
-     * the first character.
+     * The different states needed in state machine
+     * in applyPattern method. 
      */
-    private static final UnicodeSet CONT_CHARS =
-        new UnicodeSet("[:ID_Continue:]");
-
+    private static final int START_STATE = 0;
+    private static final int KEYWORD_STATE = 1;
+    private static final int PAST_KEYWORD_STATE = 2;
+    private static final int PHRASE_STATE = 3;
 
     /**
      * Creates a new <code>SelectFormat</code> 
-     * @throws UnsupportedOperationException
      * @draft ICU 4.4
      */
     public SelectFormat() {
         init();
-        throw new UnsupportedOperationException("Constructor SelectFormat() is not implemented yet.");
     }
 
     /**
      * Creates a new <code>SelectFormat</code> for a given pattern string.
      * @param  pattern the pattern for this <code>SelectFormat</code>.
-     * @throws UnsupportedOperationException
      * @draft ICU 4.4
      */
     public SelectFormat(String pattern) {
         init();
         applyPattern(pattern);
-        //throw new UnsupportedOperationException("Constructor SelectFormat(String) is not implemented yet.");
     }
 
     /*
@@ -223,22 +224,262 @@ public class SelectFormat extends Format {
     }
 
     /**
+     * Classifies the characters used in applyPattern
+     */
+    private boolean checkValidKeyword(String argKeyword) {
+        StringBuffer keyword = new StringBuffer();
+
+        //Initialize
+        int state = START_STATE;
+        keyword.delete(0,keyword.length());
+
+        //Start the processing
+        for (int i = 0; i < argKeyword.length(); ++i) {
+            //Get the character and check its type
+            char ch = argKeyword.charAt(i);
+            int type = classifyCharacter(ch);
+
+            //Any character that is not allowed
+            if ( type == T_OTHER ) {
+                return false;
+            }
+
+            //Process the state machine
+            switch (state) {
+                //At the start of pattern
+                case START_STATE:
+                    switch (type) {
+                        case T_SPACE:
+                            break;
+                        case T_START_KEYWORD:
+                            state = KEYWORD_STATE;
+                            keyword.append(ch);
+                            break;
+                        //If anything else is encountered, it's a syntax error
+                        default:
+                            return false;
+                    }//end of switch(type)
+                    break;
+
+                //Handle the keyword state
+                case KEYWORD_STATE:
+                    switch (type) {
+                        case T_SPACE:
+                            state = PAST_KEYWORD_STATE;
+                            break;
+                        case T_START_KEYWORD:
+                        case T_CONTINUE_KEYWORD:
+                            keyword.append(ch);
+                            break;
+                        //If anything else is encountered,it's a syntax error
+                        default:
+                            return false;
+                    }//end of switch(type)
+                    break;
+
+                //Handle the pastkeyword state
+                case PAST_KEYWORD_STATE:
+                    switch (type) {
+                        case T_SPACE:
+                            break;
+                        //If anything else is encountered,it's a syntax error
+                        default:
+                            return false;
+                    }//end of switch(type)
+                    break;
+
+                default:
+                  return false;
+                }//end of switch(state)
+
+            }//end of loop of argKeyword
+
+        return true;
+    }
+
+    /**
+     * Classifies the characters
+     */
+    private int classifyCharacter(char ch) {
+        if ((ch >= 'A') && (ch <= 'Z')) {
+            return T_START_KEYWORD;
+        }
+        if ((ch >= 'a') && (ch <= 'z')) {
+            return T_START_KEYWORD;
+        }
+        if ((ch >= '0') && (ch <= '9')) {
+            return T_CONTINUE_KEYWORD;
+        }
+        switch (ch) {
+            case '{':
+                return T_LEFT_BRACE;
+            case '}':
+                return T_RIGHT_BRACE;
+            case ' ':
+            case '\t':
+                return T_SPACE;
+            case '-':
+            case '_':
+                return T_CONTINUE_KEYWORD;
+            default :
+                return T_OTHER;
+        }
+    }
+
+    /**
      * Sets the pattern used by this select format.
      * Patterns and their interpretation are specified in the class description.
      *
      * @param pattern the pattern for this select format.
-     * @throws UnsupportedOperationException
      * @draft ICU 4.4
      */
     public void applyPattern(String pattern) {
-        throw new UnsupportedOperationException("SelectFormat.applyPattern(String) is not implemented yet.");
+        parsedValues = null;
+        this.pattern = pattern;
+
+        //Initialization
+        StringBuffer keyword = new StringBuffer();
+        StringBuffer phrase = new StringBuffer();
+        int braceCount = 0;
+
+        if( parsedValues == null){
+            parsedValues = new HashMap<String, String>();
+        }
+
+        //Process the state machine
+        int state = START_STATE;
+        for(int i = 0; i < pattern.length(); i++ ){
+            //Get the character and check its type
+            char ch = pattern.charAt(i);
+            int type = classifyCharacter(ch);
+
+            //Allow any character in phrase but nowhere else
+            if ( type == T_OTHER ) {
+                if ( state == PHRASE_STATE ){
+                    phrase.append(ch);
+                    continue;
+                }else {
+                    parsingFailure("Pattern syntax error.");
+                }
+            }
+     
+            //Process the state machine
+            switch (state) {
+                //At the start of pattern
+                case START_STATE:
+                    switch (type) {
+                        case T_SPACE:
+                            break;
+                        case T_START_KEYWORD:
+                            state = KEYWORD_STATE;
+                            keyword.append(ch);
+                            break;
+                        //If anything else is encountered, it's a syntax error
+                        default:
+                            parsingFailure("Pattern syntax error.");
+                }//end of switch(type)
+                break;
+
+                //Handle the keyword state
+                case KEYWORD_STATE:
+                    switch (type) {
+                        case T_SPACE:
+                            state = PAST_KEYWORD_STATE;
+                            break;
+                        case T_START_KEYWORD:
+                        case T_CONTINUE_KEYWORD:
+                            keyword.append(ch);
+                            break;
+                        case T_LEFT_BRACE:
+                            state = PHRASE_STATE;
+                        break;
+                        //If anything else is encountered, it's a syntax error
+                        default:
+                            parsingFailure("Pattern syntax error.");
+                    }//end of switch(type)
+                    break;
+
+                //Handle the pastkeyword state
+                case PAST_KEYWORD_STATE:
+                    switch (type) {
+                        case T_SPACE:
+                            break;
+                        case T_LEFT_BRACE:
+                            state = PHRASE_STATE;
+                            break;
+                        //If anything else is encountered, it's a syntax error
+                        default:
+                            parsingFailure("Pattern syntax error.");
+                    }//end of switch(type)
+                        break;
+
+               //Handle the phrase state
+                case PHRASE_STATE:
+                    switch (type) {
+                        case T_LEFT_BRACE:
+                            braceCount++;
+                            phrase.append(ch);
+                            break;
+                        case T_RIGHT_BRACE:
+                            //Matching keyword, phrase pair found
+                            if (braceCount == 0){
+                                //Check validity of keyword
+                                if (parsedValues.get(keyword.toString()) != null) {
+                                    parsingFailure("Duplicate keyword error.");
+                                }
+                                if (keyword.length() == 0) {
+                                    parsingFailure("Pattern syntax error.");
+                                }
+
+                                //Store the keyword, phrase pair in hashTable
+                                parsedValues.put( keyword.toString(), phrase.toString());
+
+                               //Reinitialize
+                                keyword.delete(0, keyword.length());
+                                phrase.delete(0, phrase.length());
+                                state = START_STATE;
+                            }
+
+                            if (braceCount > 0){
+                                braceCount-- ;
+                                phrase.append(ch);
+                            }
+                            break;
+                        default:
+                            phrase.append(ch);
+                    }//end of switch(type)
+                    break;
+
+                //Handle the  default case of switch(state)
+                default:
+                    parsingFailure("Pattern syntax error.");
+
+            }//end of switch(state)
+        }
+
+        //Check if the stae machine is back to START_STATE
+        if ( state != START_STATE){
+            parsingFailure("Pattern syntax error.");
+        }
+ 
+        if (braceCount != 0) {
+            parsingFailure(
+                    "Malformed formatting expression. Braces do not match.");
+        }
+
+        //Check if "other" keyword is present 
+        if ( !checkSufficientDefinition() ) {
+            parsingFailure("Malformed formatting expression.\n"
+                    + "Value for case \"" + KEYWORD_OTHER
+                    + "\" was not defined.");
+        }
+        return;
     }
 
     /**
      * Returns the pattern for this <code>SelectFormat</code>
      *
      * @return the pattern string
-     * @throws UnsupportedOperationException
      * @draft ICU 4.4
      */
     public String toPattern() {
@@ -255,6 +496,9 @@ public class SelectFormat extends Format {
      */
     public final String format(String keyword) {
         //ToDo: Check for the validity of the keyword
+        if( !checkValidKeyword(keyword) ){
+            parsingFailure("Invalid formatting argument.");
+        }
 
         // If no pattern was applied, throw an exception
         if (parsedValues == null) {
@@ -267,8 +511,6 @@ public class SelectFormat extends Format {
             selectedPattern = parsedValues.get(KEYWORD_OTHER);
         }
         return selectedPattern;
-
-       //throw new UnsupportedOperationException("SelectFormat.format(String) is not implemented yet.");
     }
 
     /**
@@ -280,7 +522,6 @@ public class SelectFormat extends Format {
      * @param pos will be ignored by this method.
      * @return the string buffer passed in as toAppendTo, with formatted text
      *         appended.
-     * @throws UnsupportedOperationException
      * @draft ICU 4.4
      */
     public StringBuffer format(Object keyword, StringBuffer toAppendTo,
@@ -291,7 +532,6 @@ public class SelectFormat extends Format {
             parsingFailure("'" + keyword + "' is not a String");
         }
         return toAppendTo;
-        //throw new UnsupportedOperationException("SelectFormat.format( Object, StringBuffer,FieldPosition) is not implemented yet.");
     }
 
     /**
@@ -316,13 +556,12 @@ public class SelectFormat extends Format {
      * @throws IllegalArgumentException if there's not sufficient information
      *     provided.
      */
-    private void checkSufficientDefinition() {
+    private boolean checkSufficientDefinition() {
         // Check that at least the default rule is defined.
         if (parsedValues.get(KEYWORD_OTHER) == null) {
-            parsingFailure("Malformed formatting expression.\n"
-                    + "Value for case \"" + KEYWORD_OTHER
-                    + "\" was not defined.");
+            return false;
         }
+        return true;
     }
 
     /*
@@ -343,18 +582,16 @@ public class SelectFormat extends Format {
      */
     public boolean equals(Object rhs) {
         return rhs instanceof SelectFormat && equals((SelectFormat) rhs);
-        //throw new UnsupportedOperationException("SelectFormat.equals(Object) is not implemented yet.");
     }
 
     /**
      * Returns true if this equals the provided <code>SelectFormat<code>.
      * @param rhs the SelectFormat to compare against
      * @return true if this equals rhs
-     * @throws UnsupportedOperationException
      * @draft ICU 4.4
      */
     public boolean equals(SelectFormat rhs) {
-        throw new UnsupportedOperationException("SelectFormat.equals(SelectFormat) is not implemented yet.");
+       return parsedValues.equals(rhs.parsedValues); 
     }
 
     /**
@@ -363,7 +600,6 @@ public class SelectFormat extends Format {
      */
     public int hashCode() {
         return parsedValues.hashCode();
-        //throw new UnsupportedOperationException("SelectFormat.hashCode() is not implemented yet.");
     }
 
     /**
@@ -371,7 +607,6 @@ public class SelectFormat extends Format {
      * @return a text representation of the format object.
      * The result string includes the class name and
      * the pattern string returned by <code>toPattern()</code>.
-     * @throws UnsupportedOperationException
      * @draft ICU 4.4
      */
     public String toString() {
@@ -379,6 +614,5 @@ public class SelectFormat extends Format {
         buf.append("pattern='" + pattern + "'");
         buf.append(", parsedValues='" + parsedValues + "'");
         return buf.toString();
-        //throw new UnsupportedOperationException("SelectFormat.toString() is not implemented yet.");
     }
 }
