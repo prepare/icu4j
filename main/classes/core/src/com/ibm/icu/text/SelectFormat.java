@@ -581,7 +581,7 @@ public class SelectFormat extends Format {
      * @draft ICU 4.4
      */
     public boolean equals(Object rhs) {
-        return rhs instanceof SelectFormat && equals((SelectFormat) rhs);
+        return rhs instanceof SelectFormat && this.equals((SelectFormat) rhs);
     }
 
     /**
@@ -591,7 +591,13 @@ public class SelectFormat extends Format {
      * @draft ICU 4.4
      */
     public boolean equals(SelectFormat rhs) {
-       return parsedValues.equals(rhs.parsedValues); 
+        if( parsedValues == null && rhs.parsedValues == null){ 
+            return true;
+        }
+        if( parsedValues != null && rhs.parsedValues != null){ 
+           return parsedValues.equals(rhs.parsedValues); 
+        }
+        return false;
     }
 
     /**
@@ -599,7 +605,10 @@ public class SelectFormat extends Format {
      * @draft ICU 4.4
      */
     public int hashCode() {
-        return parsedValues.hashCode();
+        if( parsedValues!=null){
+            return parsedValues.hashCode();
+        }
+        return 0;
     }
 
     /**
