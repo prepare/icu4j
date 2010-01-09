@@ -5,7 +5,6 @@
  * Copyright (C) 2009 , Yahoo! Inc.                                            *
  *******************************************************************************
  */
-
 package com.ibm.icu.text;
 
 import java.text.Format;
@@ -224,77 +223,23 @@ public class SelectFormat extends Format {
     }
 
     /**
-     * Classifies the characters used in applyPattern
+     * Classifies the characters 
      */
     private boolean checkValidKeyword(String argKeyword) {
-        StringBuffer keyword = new StringBuffer();
-
-        //Initialize
-        int state = START_STATE;
-        keyword.delete(0,keyword.length());
-
-        //Start the processing
-        for (int i = 0; i < argKeyword.length(); ++i) {
-            //Get the character and check its type
-            char ch = argKeyword.charAt(i);
-            int type = classifyCharacter(ch);
-
-            //Any character that is not allowed
-            if ( type == T_OTHER ) {
-                return false;
-            }
-
-            //Process the state machine
-            switch (state) {
-                //At the start of pattern
-                case START_STATE:
-                    switch (type) {
-                        case T_SPACE:
-                            break;
-                        case T_START_KEYWORD:
-                            state = KEYWORD_STATE;
-                            keyword.append(ch);
-                            break;
-                        //If anything else is encountered, it's a syntax error
-                        default:
-                            return false;
-                    }//end of switch(type)
-                    break;
-
-                //Handle the keyword state
-                case KEYWORD_STATE:
-                    switch (type) {
-                        case T_SPACE:
-                            state = PAST_KEYWORD_STATE;
-                            break;
-                        case T_START_KEYWORD:
-                        case T_CONTINUE_KEYWORD:
-                            keyword.append(ch);
-                            break;
-                        //If anything else is encountered,it's a syntax error
-                        default:
-                            return false;
-                    }//end of switch(type)
-                    break;
-
-                //Handle the pastkeyword state
-                case PAST_KEYWORD_STATE:
-                    switch (type) {
-                        case T_SPACE:
-                            break;
-                        //If anything else is encountered,it's a syntax error
-                        default:
-                            return false;
-                    }//end of switch(type)
-                    break;
-
-                default:
-                  return false;
-                }//end of switch(state)
-
-            }//end of loop of argKeyword
-
-        return true;
+         int len = argKeyword.length();
+         if (len < 1) {
+             return false;
+         };
+         if (classifyCharacter(argKeyword.charAt(0)) != T_START_KEYWORD) {
+             return false;
+         };
+         for (int i = 1; i < len; i++) {
+                int type = classifyCharacter(argKeyword.charAt(i));
+             if (type != T_START_KEYWORD && type != T_CONTINUE_KEYWORD) {
+                 return false;
+             };
+         };
+         return true;
     }
 
     /**
@@ -331,6 +276,7 @@ public class SelectFormat extends Format {
      * Patterns and their interpretation are specified in the class description.
      *
      * @param pattern the pattern for this select format.
+     * @throws IllegalArgumentException
      * @draft ICU 4.4
      */
     public void applyPattern(String pattern) {
@@ -486,11 +432,11 @@ public class SelectFormat extends Format {
      *
      * @param keyword a keyword for which the select message should be formatted.
      * @return the string containing the formatted select message.
-     * @throws Exception
+     * @throws IllegalArgumentException
      * @draft ICU 4.4
      */
     public final String format(String keyword) {
-        //ToDo: Check for the validity of the keyword
+        //Check for the validity of the keyword
         if( !checkValidKeyword(keyword) ){
             parsingFailure("Invalid formatting argument.");
         }
@@ -515,6 +461,7 @@ public class SelectFormat extends Format {
      * @param toAppendTo the formatted message will be appended to this
      *        <code>StringBuffer</code>.
      * @param pos will be ignored by this method.
+     * @throws IllegalArgumentException
      * @return the string buffer passed in as toAppendTo, with formatted text
      *         appended.
      * @draft ICU 4.4
@@ -548,8 +495,6 @@ public class SelectFormat extends Format {
      * i.e., if the attribute <code>parsedValues</code> stores enough
      * information for select formatting.
      * Will be called at the end of pattern parsing.
-     * @throws IllegalArgumentException if there's not sufficient information
-     *     provided.
      */
     private boolean checkSufficientDefinition() {
         // Check that at least the default rule is defined.
