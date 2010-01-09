@@ -1328,7 +1328,6 @@ public class TestMessageFormat extends com.ibm.icu.dev.test.TestFmwk {
     * This tests SelectFormats used inside MessageFormats.
     */
   public void testSelectFormat() {
-    System.out.println("\n**************Inside testSelectFormat() ******\n");
     String pattern = null; 
     MessageFormat msgFmt = null ;
 
@@ -1368,28 +1367,7 @@ public class TestMessageFormat extends com.ibm.icu.dev.test.TestFmwk {
     for( int i=0; i< 3; i++){
         assertEquals("ERROR:Failure in format with quoted French Pattern" ,
                       exp1[i] , msgFmt.format(testArgs1[i]) ); 
-        System.out.println(msgFmt.format(testArgs1[i]));
     }
-
-    //English Pattern
-    pattern = "{0, select , male {MALE FR company} female {FEMALE FR company} other {FR otherValue}} published new books.";
-    msgFmt = new MessageFormat(pattern);
-    assertNotNull( "ERROR:Failure in constructing with English pattern", msgFmt);
-
-/* ToDo: Look why it's producing casting exception at the format() call
-    //Format 
-    Object testArgs2[] ={new Object("female"),new Object("other"),new Object("male")} ;
-    Object testArgs2[] ={"female","other","male"} ;
-    String exp2[] = {
-            "FEMALE FR company published new books." ,
-            "FR otherValue published new books.",
-            "MALE FR company published new books."};
-    for( int i=0; i< 3; i++){
-        assertEquals("ERROR:Failure in format with English Pattern" ,
-                      exp2[i] , msgFmt.format(testArgs2[i]) ); 
-        System.out.println(msgFmt.format(testArgs2[i]));
-    }
-*/
 
     //Nested patterns with plural, number ,choice ,select format etc.
     //Select Format with embedded number format
@@ -1410,7 +1388,6 @@ public class TestMessageFormat extends com.ibm.icu.dev.test.TestFmwk {
     for( int i=0; i< 3; i++){
         assertEquals("ERROR:Failure in format with nested Pattern 1" ,
                       exp3[i] , msgFmt.format(testArgs3[i]) ); 
-        System.out.println(msgFmt.format(testArgs3[i]));
     }
 
     //Plural format with embedded select format
@@ -1432,7 +1409,6 @@ public class TestMessageFormat extends com.ibm.icu.dev.test.TestFmwk {
     for( int i=0; i< 4; i++){
         assertEquals("ERROR:Failure in format with nested Pattern 2" ,
                       exp4[i] , msgFmt.format(testArgs4[i]) ); 
-        System.out.println(msgFmt.format(testArgs4[i]));
     }
 
     //Select, plural, and number formats heavily nested 
@@ -1476,7 +1452,6 @@ public class TestMessageFormat extends com.ibm.icu.dev.test.TestFmwk {
     for( int i=0; i< 14; i++){
         assertEquals("ERROR:Failure in format with nested Pattern 3" ,
                       exp5[i] , msgFmt.format(testArgs5[i]) ); 
-        System.out.println(msgFmt.format(testArgs5[i]));
     }
   }
 
@@ -1484,7 +1459,6 @@ public class TestMessageFormat extends com.ibm.icu.dev.test.TestFmwk {
     * Test toPattern when there is a SelectFormat
     */
   public void testSelectFormatToPattern() {
-    System.out.println("\n**************Inside testSelectFormatToPattern() ******\n");
     String[] patterns = {
       //Pattern with some text at start and at end
       "{0} est {1, select, female {all\\u00E9e} other {all\\u00E9}} \\u00E0 Paris.",
