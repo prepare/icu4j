@@ -2,6 +2,7 @@
  *******************************************************************************
  * Copyright (C) 2007-2009, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
+ * Copyright (C) 2009, Yahoo! Inc.                                             *
  *******************************************************************************
  */
 package com.ibm.icu.dev.test.format;
@@ -10,6 +11,7 @@ import com.ibm.icu.dev.test.TestFmwk;
 import com.ibm.icu.impl.Utility;
 import com.ibm.icu.text.SelectFormat;
 import java.text.FieldPosition;
+import java.text.ParsePosition;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -20,20 +22,17 @@ import java.util.Map;
  */
 public class SelectFormatTest extends TestFmwk {
   
-static final String SIMPLE_PATTERN = "feminine {feminineVerbValue} other{otherVerbValue}";
-static final int SELECT_PATTERN_DATA = 4 ;
-static final int SELECT_SYNTAX_DATA = 10 ;
-static final int EXP_FORMAT_RESULT_DATA = 12 ;
-static final int NUM_OF_FORMAT_ARGS = 3 ;
+  static final String SIMPLE_PATTERN = "feminine {feminineVerbValue} other{otherVerbValue}";
 
   public static void main(String[] args) throws Exception {
     new SelectFormatTest().run(args);
   }
   
+  /**
+    * API tests for constructors
+    */
   public void TestConstructors() {
     log("Inside TestConstructors");
-    System.out.println("\nInside TestConstructors");
-
     //Default constructor
     try{
         SelectFormat selFmt = new SelectFormat();
@@ -53,9 +52,11 @@ static final int NUM_OF_FORMAT_ARGS = 3 ;
     }
   }
 
+  /**
+    * API tests for equals() method
+    */
   public void TestEquals() {
     log("Inside TestEquals");
-    System.out.println("\nInside TestEquals");
     SelectFormat selFmt1 = null;
     SelectFormat selFmt3 = null;
 
@@ -94,9 +95,11 @@ static final int NUM_OF_FORMAT_ARGS = 3 ;
     }
   }//end of TestEquals
 
+  /**
+    * API tests for applyPattern() method
+    */
   public void TestApplyPatternToPattern() {
     log("Inside TestApplyPatternToPattern");
-    System.out.println("\nInside TestApplyPatternToPattern");
     SelectFormat selFmt = null;
     String pattern = "masculine{masculineVerbValue} other{otherVerbValue}";
 
@@ -121,9 +124,11 @@ static final int NUM_OF_FORMAT_ARGS = 3 ;
     }
   }
 
+  /**
+    * API tests for toString() method
+    */
   public void TestToString(){
     log("Inside TestToString");
-    System.out.println("\nInside TestToString");
     SelectFormat selFmt = null;
 
     //Check toString for Default constructed SelectFormat
@@ -149,9 +154,11 @@ static final int NUM_OF_FORMAT_ARGS = 3 ;
     }
   }
 
+  /**
+    * API tests for hashCode() method
+    */
   public void TestHashCode(){
     log("Inside TestHashCode");
-    System.out.println("\nInside TestHashCode");
     SelectFormat selFmt = null;
 
     //Check hashCode for Default constructed SelectFormat
@@ -178,9 +185,11 @@ static final int NUM_OF_FORMAT_ARGS = 3 ;
 
   }
 
+  /**
+    * API tests for toPattern() method
+    */
   public void TestToPattern(){
     log("Inside TestToPattern");
-    System.out.println("\nInside TestToPattern");
     SelectFormat selFmt = null;
 
     //Check toPattern for Default constructed SelectFormat
@@ -204,9 +213,11 @@ static final int NUM_OF_FORMAT_ARGS = 3 ;
     }
   }
 
+  /**
+    * API tests for format() method
+    */
   public void TestFormat(){
     log("Inside TestFormat");
-    System.out.println("\nInside TestFormat");
 
     //Check format for pattern constructed object
     try{
@@ -255,6 +266,26 @@ static final int NUM_OF_FORMAT_ARGS = 3 ;
                     , expected , e.getMessage() );
     }catch(Exception e){
         fail("Failed in TestFormat 4 with exception as " + e.getMessage());
+    }
+  }
+
+  /**
+    * API tests for parseObject() method
+    */
+  public void TestParseObject(){
+    log("Inside TestToPattern");
+    System.out.println("Inside TestToPattern");
+
+    //Check parseObject for Default constructed SelectFormat
+    try{
+        SelectFormat selFmt = new SelectFormat();
+        selFmt.parseObject("feminine", new ParsePosition(0) );
+        fail("Failed in TestParseObject - UnsupportedOperationException not received");
+    }catch(UnsupportedOperationException e){
+        //Expect this Exception
+    }catch(Exception e){
+        errln("Exception encountered in TestParseObject with message : "
+              + e.getMessage());
     }
   }
 

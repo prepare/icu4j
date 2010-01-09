@@ -2,6 +2,7 @@
  *******************************************************************************
  * Copyright (C) 2007-2009, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
+ * Copyright (C) 2009, Yahoo! Inc.                                             *
  *******************************************************************************
  */
 package com.ibm.icu.dev.test.format;
@@ -20,16 +21,17 @@ import java.util.Map;
  */
 public class SelectFormatUnitTest extends TestFmwk {
   
-static final String SIMPLE_PATTERN = "feminine {feminineVerbValue} other{otherVerbValue}";
-static final int SELECT_PATTERN_DATA = 4 ;
-static final int SELECT_SYNTAX_DATA = 10 ;
-static final int EXP_FORMAT_RESULT_DATA = 12 ;
-static final int NUM_OF_FORMAT_ARGS = 3 ;
+  static final String SIMPLE_PATTERN = "feminine {feminineVerbValue} other{otherVerbValue}";
+  static final int SELECT_PATTERN_DATA = 4 ;
+  static final int SELECT_SYNTAX_DATA = 10 ;
 
   public static void main(String[] args) throws Exception {
     new SelectFormatUnitTest().run(args);
   }
   
+  /**
+    * Unit tests for pattern syntax
+    */
   public void TestPatternSyntax() {
     log("Inside TestPatternSyntax");
     System.out.println("\nInside TestPatternSyntax");
@@ -77,6 +79,9 @@ static final int NUM_OF_FORMAT_ARGS = 3 ;
     }
   }//end of TestpatternSyntax
 
+  /**
+    * Unit tests for Invalid keywords 
+    */
   public void TestInvalidKeyword() {
     //Test formatting with invalid keyword
     log("Inside TestInvalidKeyword");
@@ -107,6 +112,9 @@ static final int NUM_OF_FORMAT_ARGS = 3 ;
 
   }
 
+  /**
+    * API tests for  applyPattern and format
+    */
   public void TestApplyFormat() {
     //Test applying and formatting with various pattern
     log("Inside TestApplyFormat");
