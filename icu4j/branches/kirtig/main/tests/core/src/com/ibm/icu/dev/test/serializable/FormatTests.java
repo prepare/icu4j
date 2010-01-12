@@ -25,6 +25,7 @@ import com.ibm.icu.text.DecimalFormat;
 import com.ibm.icu.text.DecimalFormatSymbols;
 import com.ibm.icu.text.DurationFormat;
 import com.ibm.icu.text.MessageFormat;
+import com.ibm.icu.text.SelectFormat;
 import com.ibm.icu.text.NumberFormat;
 import com.ibm.icu.text.PluralFormat;
 import com.ibm.icu.text.PluralRules;
@@ -2084,6 +2085,23 @@ public class FormatTests
 
         public boolean hasSameBehavior(Object a, Object b) {
             return a.equals(b);
+        }
+    }
+
+    public static class SelectFormatHandler implements SerializableTest.Handler {
+
+        public Object[] getTestObjects() {
+            SelectFormat[] selfmts = {new SelectFormat("keyword{phrase} other{otherPhrase}")};
+
+            return selfmts;
+        }
+
+        public boolean hasSameBehavior(Object a, Object b) {
+            SelectFormat sfa = (SelectFormat) a;
+            SelectFormat sfb = (SelectFormat) b;
+            String argument = "keyword";
+
+            return sfa.format(argument) != sfb.format(argument);
         }
     }
 
