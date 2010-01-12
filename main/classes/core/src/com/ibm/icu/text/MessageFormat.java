@@ -2053,8 +2053,7 @@ public class MessageFormat extends UFormat implements BaseFormat<Object,StringBu
                                                     unquotedPattern.toString());
                     newFormat = pls;
                 }else{
-                    SelectFormat selFmt = new SelectFormat( unquotedPattern.toString());
-                    newFormat = selFmt;
+                    newFormat = new SelectFormat( unquotedPattern.toString());
                 }
             }
             break;
