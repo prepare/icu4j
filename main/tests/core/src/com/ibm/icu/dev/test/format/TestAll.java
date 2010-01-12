@@ -111,7 +111,7 @@ public class TestAll extends TestGroup {
         public SelectFormat() {
             super(new String[] {
                 "SelectFormatUnitTest",
-                "SelectFormatTest",
+                "SelectFormatAPITest",
             });
         }
     }
