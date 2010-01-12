@@ -299,18 +299,6 @@ public class SelectFormat extends Format{
             char ch = pattern.charAt(i);
             CharacterClass type = classifyCharacter(ch);
 
-/*
-            //Allow any character in phrase but nowhere else
-            if ( type == CharacterClass.T_OTHER ) {
-                if ( state == State.PHRASE_STATE ){
-                    phrase.append(ch);
-                    continue;
-                }else {
-                    parsingFailure("Pattern syntax error.");
-                }
-            }
-*/
-     
             //Process the state machine
             switch (state) {
                 //At the start of pattern
