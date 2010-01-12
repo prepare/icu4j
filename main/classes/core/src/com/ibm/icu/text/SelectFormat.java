@@ -39,16 +39,16 @@ import com.ibm.icu.impl.UCharacterProperty;
   * The gender only affects pronouns: "he", "she", "it", "they".
   *
   * <li>German differs from English in that the gender of nouns is  rather
-  * arbitrary, even for nouns referring to people ("Mädchen", girl, is  neutral).
+  * arbitrary, even for nouns referring to people ("M&#u00E4;dchen", girl, is  neutral).
   * The gender affects pronouns ("er", "sie", "es"), articles ("der",  "die",
-  * "das"), and adjective forms ("guter Mann", "gute Frau", "gutes  Mädchen").
+  * "das"), and adjective forms ("guter Mann", "gute Frau", "gutes  M&#u00E4;dchen").
   *
   * <li>French has only two genders; as in German the gender of nouns
   * is rather arbitrary – for sun and moon, the genders
   * are the opposite of those in German. The gender affects
   * pronouns ("il", "elle"), articles ("le", "la"),
   * adjective forms ("bon", "bonne"), and sometimes
-  * verb forms ("allé", "allée").
+  * verb forms ("all&#u00E9;", "all&#u00E9;e").
   *
   * <li>Polish distinguishes five genders (or noun classes),
   * human masculine, animate non-human masculine, inanimate masculine,
@@ -89,7 +89,7 @@ import com.ibm.icu.impl.UCharacterProperty;
   * <p>The sentence pattern for French, where the gender of the person affects
   * the form of the participle, uses a select format based on argument 1:</p>
   *
-  * <pre>{0} est {1, select, female {allée} other {allé}} à {2}.</pre>
+  * <pre>{0} est {1, select, female {all&#u00E9;e} other {all&#u00E9;}} &#u00E0; {2}.</pre>
   *
   * <p>Patterns can be nested, so that it's possible to handle  interactions of
   * number and gender where necessary. For example, if the above  sentence should
@@ -99,8 +99,8 @@ import com.ibm.icu.impl.UCharacterProperty;
   * argument 3 the city name):</p>
   *
   * <pre>{0} {1, plural, 
-  * one {est {2, select, female {allée} other  {allé}}}
-  * other {sont {2, select, female {allées} other {allés}}}
+  * one {est {2, select, female {all&#u00E9;e} other  {all&#u00E9;}}}
+  * other {sont {2, select, female {all&#u00E9;es} other {all&#u00E9;s}}}
   * }à {3}.</pre>
   *
   * <h4>Patterns and Their Interpretation</h4>
@@ -140,19 +140,21 @@ import com.ibm.icu.impl.UCharacterProperty;
   * <p>Example:
   * <pre>
   * MessageFormat msgFmt = new MessageFormat("{0} est " +
-  *     "{1, select, female {allée} other {allé}} à Paris.",
+  *     "{1, select, female {all&#u00E9;e} other {all&#u00E9;}} &#u00E0; Paris.",
   *     new ULocale("fr"));
   * Object args[] = {"Kirti","female"};
   * System.out.println(msgFmt.format(args));
   * </pre>
   * <pre>
   * Produces the output:<br/>
-  * <code>Input is Kirti,female and result is: Kirti est allée à  Paris.</code>
+  * <code>Input is Kirti,female and result is: Kirti est all&#u00E9;e &#u00E0; Paris.</code>
   * </pre>
+  *
+  * @draft ICU 4.4
   */
 
-public class SelectFormat extends Format {
-    private static final long serialVersionUID = 1L;
+public class SelectFormat extends Format{
+    static final long serialVersionUID = 1L;
 
    /*
      * The applied pattern string.
@@ -177,21 +179,20 @@ public class SelectFormat extends Format {
     /*
      * The types of character classifications 
      */
-    private static final int T_START_KEYWORD = 0;
-    private static final int T_CONTINUE_KEYWORD = 1;
-    private static final int T_LEFT_BRACE = 2;
-    private static final int T_RIGHT_BRACE = 3;
-    private static final int T_SPACE = 4;
-    private static final int T_OTHER = 5;
+    public enum CharacterClass {
+        T_START_KEYWORD, T_CONTINUE_KEYWORD, T_LEFT_BRACE,
+        T_RIGHT_BRACE, T_SPACE, T_OTHER
+    };
 
     /*
      * The different states needed in state machine
      * in applyPattern method. 
      */
-    private static final int START_STATE = 0;
-    private static final int KEYWORD_STATE = 1;
-    private static final int PAST_KEYWORD_STATE = 2;
-    private static final int PHRASE_STATE = 3;
+    public enum State {
+       START_STATE, KEYWORD_STATE,
+       PAST_KEYWORD_STATE, PHRASE_STATE      
+    };
+
 
     /**
      * Creates a new <code>SelectFormat</code> 
@@ -230,12 +231,13 @@ public class SelectFormat extends Format {
          if (len < 1) {
              return false;
          };
-         if (classifyCharacter(argKeyword.charAt(0)) != T_START_KEYWORD) {
+         if (classifyCharacter(argKeyword.charAt(0)) != CharacterClass.T_START_KEYWORD) {
              return false;
          };
          for (int i = 1; i < len; i++) {
-                int type = classifyCharacter(argKeyword.charAt(i));
-             if (type != T_START_KEYWORD && type != T_CONTINUE_KEYWORD) {
+             CharacterClass type = classifyCharacter(argKeyword.charAt(i));
+             if (type != CharacterClass.T_START_KEYWORD && 
+                 type != CharacterClass.T_CONTINUE_KEYWORD) {
                  return false;
              };
          };
@@ -245,29 +247,29 @@ public class SelectFormat extends Format {
     /**
      * Classifies the characters
      */
-    private int classifyCharacter(char ch) {
+    private CharacterClass classifyCharacter(char ch) {
         if ((ch >= 'A') && (ch <= 'Z')) {
-            return T_START_KEYWORD;
+            return CharacterClass.T_START_KEYWORD;
         }
         if ((ch >= 'a') && (ch <= 'z')) {
-            return T_START_KEYWORD;
+            return CharacterClass.T_START_KEYWORD;
         }
         if ((ch >= '0') && (ch <= '9')) {
-            return T_CONTINUE_KEYWORD;
+            return CharacterClass.T_CONTINUE_KEYWORD;
         }
         switch (ch) {
             case '{':
-                return T_LEFT_BRACE;
+                return CharacterClass.T_LEFT_BRACE;
             case '}':
-                return T_RIGHT_BRACE;
+                return CharacterClass.T_RIGHT_BRACE;
             case ' ':
             case '\t':
-                return T_SPACE;
+                return CharacterClass.T_SPACE;
             case '-':
             case '_':
-                return T_CONTINUE_KEYWORD;
+                return CharacterClass.T_CONTINUE_KEYWORD;
             default :
-                return T_OTHER;
+                return CharacterClass.T_OTHER;
         }
     }
 
@@ -288,26 +290,26 @@ public class SelectFormat extends Format {
         StringBuffer phrase = new StringBuffer();
         int braceCount = 0;
 
-        if( parsedValues == null){
-            parsedValues = new HashMap<String, String>();
-        }
+        parsedValues = new HashMap<String, String>();
 
         //Process the state machine
-        int state = START_STATE;
+        State state = State.START_STATE;
         for(int i = 0; i < pattern.length(); i++ ){
             //Get the character and check its type
             char ch = pattern.charAt(i);
-            int type = classifyCharacter(ch);
+            CharacterClass type = classifyCharacter(ch);
 
+/*
             //Allow any character in phrase but nowhere else
-            if ( type == T_OTHER ) {
-                if ( state == PHRASE_STATE ){
+            if ( type == CharacterClass.T_OTHER ) {
+                if ( state == State.PHRASE_STATE ){
                     phrase.append(ch);
                     continue;
                 }else {
                     parsingFailure("Pattern syntax error.");
                 }
             }
+*/
      
             //Process the state machine
             switch (state) {
@@ -317,7 +319,7 @@ public class SelectFormat extends Format {
                         case T_SPACE:
                             break;
                         case T_START_KEYWORD:
-                            state = KEYWORD_STATE;
+                            state = State.KEYWORD_STATE;
                             keyword.append(ch);
                             break;
                         //If anything else is encountered, it's a syntax error
@@ -330,14 +332,14 @@ public class SelectFormat extends Format {
                 case KEYWORD_STATE:
                     switch (type) {
                         case T_SPACE:
-                            state = PAST_KEYWORD_STATE;
+                            state = State.PAST_KEYWORD_STATE;
                             break;
                         case T_START_KEYWORD:
                         case T_CONTINUE_KEYWORD:
                             keyword.append(ch);
                             break;
                         case T_LEFT_BRACE:
-                            state = PHRASE_STATE;
+                            state = State.PHRASE_STATE;
                         break;
                         //If anything else is encountered, it's a syntax error
                         default:
@@ -351,7 +353,7 @@ public class SelectFormat extends Format {
                         case T_SPACE:
                             break;
                         case T_LEFT_BRACE:
-                            state = PHRASE_STATE;
+                            state = State.PHRASE_STATE;
                             break;
                         //If anything else is encountered, it's a syntax error
                         default:
@@ -381,9 +383,9 @@ public class SelectFormat extends Format {
                                 parsedValues.put( keyword.toString(), phrase.toString());
 
                                //Reinitialize
-                                keyword.delete(0, keyword.length());
-                                phrase.delete(0, phrase.length());
-                                state = START_STATE;
+                                keyword.setLength(0);
+                                phrase.setLength(0);
+                                state = State.START_STATE;
                             }
 
                             if (braceCount > 0){
@@ -404,15 +406,15 @@ public class SelectFormat extends Format {
         }
 
         //Check if the state machine is back to START_STATE
-        if ( state != START_STATE){
+        if ( state != State.START_STATE){
             parsingFailure("Pattern syntax error.");
         }
 
         //Check if "other" keyword is present 
         if ( !checkSufficientDefinition() ) {
-            parsingFailure("Pattern syntax error." 
+            parsingFailure("Pattern syntax error. " 
                     + "Value for case \"" + KEYWORD_OTHER
-                    + "\" was not defined.");
+                    + "\" was not defined. ");
         }
         return;
     }
@@ -428,7 +430,7 @@ public class SelectFormat extends Format {
     }
 
     /**
-     * Formats a select message for a given keyword.
+     * Selects the phrase for the given keyword.
      *
      * @param keyword a keyword for which the select message should be formatted.
      * @return the string containing the formatted select message.
@@ -438,12 +440,12 @@ public class SelectFormat extends Format {
     public final String format(String keyword) {
         //Check for the validity of the keyword
         if( !checkValidKeyword(keyword) ){
-            parsingFailure("Invalid formatting argument.");
+            throw new IllegalArgumentException("Invalid formatting argument.");
         }
 
         // If no pattern was applied, throw an exception
         if (parsedValues == null) {
-            parsingFailure("Invalid format error.");
+            throw new IllegalStateException("Invalid format error.");
         }
 
         // Get appropriate format pattern.
@@ -455,8 +457,8 @@ public class SelectFormat extends Format {
     }
 
     /**
-     * Formats a select message for a given keyword and appends the formatted
-     * message to the given <code>StringBuffer</code>.
+     * Selects the phrase for the given keyword.
+     * and appends the formatted message to the given <code>StringBuffer</code>.
      * @param keyword a keyword for which the select message should be formatted.
      * @param toAppendTo the formatted message will be appended to this
      *        <code>StringBuffer</code>.
@@ -471,7 +473,7 @@ public class SelectFormat extends Format {
         if (keyword instanceof String) {
             toAppendTo.append(format( (String)keyword));
         }else{
-            parsingFailure("'" + keyword + "' is not a String");
+            throw new IllegalArgumentException("'" + keyword + "' is not a String");
         }
         return toAppendTo;
     }
@@ -498,10 +500,7 @@ public class SelectFormat extends Format {
      */
     private boolean checkSufficientDefinition() {
         // Check that at least the default rule is defined.
-        if (parsedValues.get(KEYWORD_OTHER) == null) {
-            return false;
-        }
-        return true;
+        return parsedValues.get(KEYWORD_OTHER) != null; 
     }
 
     /*
@@ -561,7 +560,6 @@ public class SelectFormat extends Format {
     public String toString() {
         StringBuffer buf = new StringBuffer();
         buf.append("pattern='" + pattern + "'");
-        buf.append(", parsedValues='" + parsedValues + "'");
         return buf.toString();
     }
 }
