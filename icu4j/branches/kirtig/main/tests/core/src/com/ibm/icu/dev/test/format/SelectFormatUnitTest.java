@@ -52,14 +52,14 @@ public class SelectFormatUnitTest extends TestFmwk {
    String expectedErrorMsgs[] = {
         "Duplicate keyword error.",
         "Duplicate keyword error.",
-        "Pattern syntax error.Value for case \"other\" was not defined.",
+        "Pattern syntax error. Value for case \"other\" was not defined. ",
         "Pattern syntax error.",
         "Pattern syntax error.",
         "Pattern syntax error.",
         "Pattern syntax error.",
         "Pattern syntax error.",
         "Pattern syntax error.",
-        "Pattern syntax error.Value for case \"other\" was not defined.",
+        "Pattern syntax error. Value for case \"other\" was not defined. ",
     };
 
     //Test SelectFormat pattern syntax
@@ -77,10 +77,10 @@ public class SelectFormatUnitTest extends TestFmwk {
     }catch(Exception e){
         errln("Exception encountered in TestPatternSyntax ");
     }
-  }//end of TestpatternSyntax
+  }
 
   /**
-    * Unit tests for Invalid keywords 
+    * Unit tests for invalid keywords 
     */
   public void TestInvalidKeyword() {
     //Test formatting with invalid keyword
@@ -101,7 +101,7 @@ public class SelectFormatUnitTest extends TestFmwk {
     for (int i = 0; i< 6; i++ ){
         try{
             selFmt.format( keywords[i]);
-            fail("Error:TestInvalidKeyword failed to detect Invalid keyword for keyword: " + keywords[i]  );
+            fail("Error:TestInvalidKeyword failed to detect invalid keyword for keyword: " + keywords[i]  );
         }catch(IllegalArgumentException e){
                 assertEquals("Error:TestInvalidKeyword failed with unexpected error message for keyword: " + keywords[i] , expected , e.getMessage() );
                 continue;
@@ -178,7 +178,7 @@ public class SelectFormatUnitTest extends TestFmwk {
         }
     }
  
-  }//end of TestApplyFormat
+  }
 
 }
 

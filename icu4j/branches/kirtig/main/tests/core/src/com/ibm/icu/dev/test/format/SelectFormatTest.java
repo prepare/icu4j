@@ -103,7 +103,7 @@ public class SelectFormatTest extends TestFmwk {
     SelectFormat selFmt = null;
     String pattern = "masculine{masculineVerbValue} other{otherVerbValue}";
 
-    //Check toString for Default constructed SelectFormat
+    //Check toPattern for Default constructed SelectFormat
     try{
         selFmt = new SelectFormat();
         selFmt.applyPattern(pattern);
@@ -113,7 +113,7 @@ public class SelectFormatTest extends TestFmwk {
         errln("Exception encountered in TestApplyPatternToPattern 1");
     }
 
-    //Check toString for Default constructed SelectFormat
+    //Check toPattern for pattern constructed SelectFormat
     try{
         selFmt = new SelectFormat(SIMPLE_PATTERN);
         selFmt.applyPattern(pattern);
@@ -134,7 +134,7 @@ public class SelectFormatTest extends TestFmwk {
     //Check toString for Default constructed SelectFormat
     try{
         selFmt = new SelectFormat();
-        String expected = "pattern='null', parsedValues='null'";
+        String expected = "pattern='null'";
         assertEquals("Failed in TestToString with unexpected output 1"
                      , expected, selFmt.toString() );
     }catch(Exception e){
@@ -144,9 +144,7 @@ public class SelectFormatTest extends TestFmwk {
     //Check toString for pattern constructed SelectFormat
     try{
         selFmt = new SelectFormat(SIMPLE_PATTERN);
-        String expected = "pattern='feminine {feminineVerbValue} other{otherVerbValue}'"
-                          + ", parsedValues='{other=otherVerbValue, "
-                          + "feminine=feminineVerbValue}'";
+        String expected = "pattern='feminine {feminineVerbValue} other{otherVerbValue}'";
         assertEquals("Failed in TestToString with unexpected output 2"
                      , expected, selFmt.toString() );
     }catch(Exception e){
@@ -160,26 +158,34 @@ public class SelectFormatTest extends TestFmwk {
   public void TestHashCode(){
     log("Inside TestHashCode");
     SelectFormat selFmt = null;
+    SelectFormat selFmt1 = null;
+    SelectFormat selFmt2 = null;
 
     //Check hashCode for Default constructed SelectFormat
     try{
         selFmt = new SelectFormat();
-        int expected = 0;
+        selFmt1 = new SelectFormat();
+        selFmt2 = new SelectFormat(SIMPLE_PATTERN);
         assertEquals("Failed in TestHashCode 1 with unexpected output"
-                     , expected, selFmt.hashCode() );
+                     , selFmt.hashCode(), selFmt1.hashCode() );
+        assertNotEquals("Failed in TestHashCode 2 with unexpected output"
+                     , selFmt.hashCode(), selFmt2.hashCode() );
     }catch(Exception e){
-        errln("Exception encountered in TestHashCode 1 with message : " 
+        errln("Exception encountered in TestHashCode 3 with message : " 
               + e.getMessage());
     }
 
     //Check hashCode for pattern constructed SelectFormat
     try{
         selFmt = new SelectFormat(SIMPLE_PATTERN);
-        int expected = -1199738118;
-        assertEquals("Failed in TestHashCode 2 with unexpected output"
-                     , expected, selFmt.hashCode() );
+        selFmt1 = new SelectFormat(SIMPLE_PATTERN);
+        selFmt2 = new SelectFormat();
+        assertEquals("Failed in TestHashCode 4 with unexpected output"
+                     , selFmt.hashCode(), selFmt1.hashCode() );
+        assertNotEquals("Failed in TestHashCode 5 with unexpected output"
+                     , selFmt.hashCode(), selFmt2.hashCode() );
     }catch(Exception e){
-        errln("Exception encountered in TestHashCode 2 with message : " 
+        errln("Exception encountered in TestHashCode 6 with message : " 
               + e.getMessage());
     }
 
@@ -246,21 +252,21 @@ public class SelectFormatTest extends TestFmwk {
     SelectFormat selFmt1 = new SelectFormat();
     try{
         selFmt1.format("feminine");
-        fail("Failed in TestFormat 4 as did not receive the expected IllegalArgumentException.");
-    }catch(IllegalArgumentException e){
+        fail("Failed in TestFormat 3 as did not receive the expected IllegalStateException.");
+    }catch(IllegalStateException e){
         String expected = "Invalid format error.";
-        assertEquals("Failed in TestFormat 4 with unexpected excpetion message"
+        assertEquals("Failed in TestFormat 3 with unexpected excpetion message"
                     , expected , e.getMessage() );
     }catch(Exception e){
-        fail("Failed in TestFormat 4 with exception as " + e.getMessage());
+        fail("Failed in TestFormat 3 with exception as " + e.getMessage());
     }
 
     //Check format with appendTo for Default constructed object
     try{
         StringBuffer strBuf = new StringBuffer("AppendHere-");
         selFmt1.format("other",strBuf, new FieldPosition(0));
-        fail("Failed in TestFormat 4 as did not receive the expected IllegalArgumentException.");
-    }catch(IllegalArgumentException e){
+        fail("Failed in TestFormat 4 as did not receive the expected IllegalStateException.");
+    }catch(IllegalStateException e){
         String expected = "Invalid format error.";
         assertEquals("Failed in TestFormat 4 with unexpected excpetion message"
                     , expected , e.getMessage() );
