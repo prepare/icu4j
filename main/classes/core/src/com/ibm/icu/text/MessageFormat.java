@@ -1,6 +1,6 @@
 /*
 **********************************************************************
-* Copyright (c) 2004-2009, International Business Machines
+* Copyright (c) 2004-2010, International Business Machines
 * Corporation and others.  All Rights Reserved.
 **********************************************************************
 * Author: Alan Liu
@@ -36,54 +36,67 @@ import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.util.ULocale;
 
 /**
- * <code>MessageFormat</code> provides a means to produce concatenated
- * messages in language-neutral way. Use this to construct messages
- * displayed for end users.
+ * MessageFormat produces concatenated messages in a language-neutral
+ * way. Use this whenever concatenating strings that are displayed to
+ * end users.
  *
- * <p>
- * <code>MessageFormat</code> takes a set of objects, formats them, then
- * inserts the formatted strings into the pattern at the appropriate places.
+ * <p>A MessageFormat contains an array of <em>subformats</em> arranged
+ * within a <em>template string</em>.  Together, the subformats and
+ * template string determine how the MessageFormat will operate during
+ * formatting and parsing.
+ * 
+ * <p>Typically, both the subformats and the template string are
+ * specified at once in a <em>pattern</em>.  By using different
+ * patterns for different locales, messages may be localized.
+ * 
+ * <p>When formatting, MessageFormat takes a collection of arguments
+ * and produces a user-readable string.  The arguments may be passed
+ * as an array or as a Map.  Each argument is matched up with its
+ * corresponding subformat, which then formats it into a string.  The
+ * resulting strings are then assembled within the string template of
+ * the MessageFormat to produce the final output string.
  *
- * <p>
- * <strong>Note:</strong>
+ * <p><strong>Note:</strong>
  * <code>MessageFormat</code> differs from the other <code>Format</code>
  * classes in that you create a <code>MessageFormat</code> object with one
  * of its constructors (not with a <code>getInstance</code> style factory
  * method). The factory methods aren't necessary because <code>MessageFormat</code>
- * itself doesn't implement locale specific behavior. Any locale specific
- * behavior is defined by the pattern that you provide as well as the
+ * itself doesn't implement locale-specific behavior. Any locale-specific
+ * behavior is defined by the pattern that you provide and the
  * subformats used for inserted arguments.
  *
- * <p>
- * <strong>Note:</strong>
+ * <p><strong>Note:</strong>
  * In ICU 3.8 MessageFormat supports named arguments.  If a named argument
  * is used, all arguments must be named.  Names start with a character in
  * <code>:ID_START:</code> and continue with characters in <code>:ID_CONTINUE:</code>,
  * in particular they do not start with a digit.  If named arguments
  * are used, {@link #usesNamedArguments()} will return true.
- * <p>
- * The other new APIs supporting named arguments are
+ * 
+ * <p>The other new methods supporting named arguments are
  * {@link #setFormatsByArgumentName(Map)},
  * {@link #setFormatByArgumentName(String, Format)},
  * {@link #format(Map, StringBuffer, FieldPosition)},
  * {@link #format(String, Map)}, {@link #parseToMap(String, ParsePosition)},
- * and {@link #parseToMap(String)}.  These APIs are all compatible
+ * and {@link #parseToMap(String)}.  These methods are all compatible
  * with patterns that do not used named arguments-- in these cases
  * the keys in the input or output <code>Map</code>s use
  * <code>String</code>s that name the argument indices, e.g. "0",
  * "1", "2"... etc.
- * <p>
- * When named arguments are used, certain APIs on Message that take or
+ * 
+ * <p>When named arguments are used, certain methods on MessageFormat that take or
  * return arrays will throw an exception, since it is not possible to
- * identify positions in an array using a name.  These APIs are {@link
- * #setFormatsByArgumentIndex(Format[])}, {@link #getFormatsByArgumentIndex()},
+ * identify positions in an array using a name.  These methods are 
+ * {@link #setFormatsByArgumentIndex(Format[])}, 
+ * {@link #setFormatByArgumentIndex(int, Format)},
+ * {@link #getFormatsByArgumentIndex()},
+ * {@link #getFormats()},
  * {@link #format(Object[], StringBuffer, FieldPosition)},
- * {@link #format(String, Object[])},{@link #parse(String, ParsePosition)},
- * and {@link #parse(String)}.
+ * {@link #format(String, Object[])},
+ * {@link #parse(String, ParsePosition)}, and
+ * {@link #parse(String)}.
  * These APIs all have corresponding new versions as listed above.
- * <p>
-
- * The API {@link #format(Object, StringBuffer, FieldPosition)} has
+ * 
+ * <p>The API {@link #format(Object, StringBuffer, FieldPosition)} has
  * been modified so that the <code>Object</code> argument can be
  * either an <code>Object</code> array or a <code>Map</code>.  If this
  * format uses named arguments, this argument must not be an
@@ -109,7 +122,7 @@ import com.ibm.icu.util.ULocale;
  *         [:ID_START:][:ID_CONTINUE:]*
  *
  * <i>FormatType: one of </i>
- *         number date time choice
+ *         number date time choice spellout ordinal duration plural
  *
  * <i>FormatStyle:</i>
  *         short
@@ -120,6 +133,7 @@ import com.ibm.icu.util.ULocale;
  *         currency
  *         percent
  *         <i>SubformatPattern</i>
+ *         <i>RulesetName</i>
  *
  * <i>String:</i>
  *         <i>StringPart<sub>opt</sub></i>
@@ -139,6 +153,8 @@ import com.ibm.icu.util.ULocale;
  *         <i>UnquotedPattern</i>
  * </pre></blockquote>
  *
+ * <i>RulesetName:</i>
+ *         <i>UnquotedString</i>
  * <p>
  * Within a <i>String</i>, <code>"''"</code> represents a single
  * quote. A <i>QuotedString</i> can contain arbitrary characters
@@ -255,16 +271,19 @@ import com.ibm.icu.util.ULocale;
  *       <td><code>new ChoiceFormat(subformatPattern)</code>
  *    <tr>
  *       <td><code>spellout</code>
- *       <td><i>Ruleset name (optional)</i>
- *       <td><code>new RuleBasedNumberFormat(getLocale(), RuleBasedNumberFormat.SPELLOUT)<br/>&nbsp;&nbsp;&nbsp;&nbsp;.setDefaultRuleset(ruleset);</code>
+ *       <td><i>RulesetName (optional)</i>
+ *       <td><code>new RuleBasedNumberFormat(getLocale(), RuleBasedNumberFormat.SPELLOUT)
+ *           <br/>&nbsp;&nbsp;&nbsp;&nbsp;.setDefaultRuleset(ruleset);</code>
  *    <tr>
  *       <td><code>ordinal</code>
- *       <td><i>Ruleset name (optional)</i>
- *       <td><code>new RuleBasedNumberFormat(getLocale(), RuleBasedNumberFormat.ORDINAL)<br/>&nbsp;&nbsp;&nbsp;&nbsp;.setDefaultRuleset(ruleset);</code>
+ *       <td><i>RulesetName (optional)</i>
+ *       <td><code>new RuleBasedNumberFormat(getLocale(), RuleBasedNumberFormat.ORDINAL)
+ *           <br/>&nbsp;&nbsp;&nbsp;&nbsp;.setDefaultRuleset(ruleset);</code>
  *    <tr>
  *       <td><code>duration</code>
- *       <td><i>Ruleset name (optional)</i>
- *       <td><code>new RuleBasedNumberFormat(getLocale(), RuleBasedNumberFormat.DURATION)<br/>&nbsp;&nbsp;&nbsp;&nbsp;.setDefaultRuleset(ruleset);</code>
+ *       <td><i>RulesetName (optional)</i>
+ *       <td><code>new RuleBasedNumberFormat(getLocale(), RuleBasedNumberFormat.DURATION)
+ *           <br/>&nbsp;&nbsp;&nbsp;&nbsp;.setDefaultRuleset(ruleset);</code>
  *    <tr>
  *       <td><code>plural</code>
  *       <td><i>SubformatPattern</i>
@@ -397,9 +416,6 @@ import com.ibm.icu.util.ULocale;
  * @author       Mark Davis
  * @stable ICU 3.0
  */
- // TODO: Update JavaDoc class description with regards to named arguments.
- // TODO: Update JavaDoc class description with regards to PluralFormat
- //       integration.
 public class MessageFormat extends UFormat implements BaseFormat<Object,StringBuffer,String> {
 
     // Generated by serialver from JDK 1.4.1_01
@@ -593,7 +609,6 @@ public class MessageFormat extends UFormat implements BaseFormat<Object,StringBu
         }
         this.pattern = segments[0].toString();
     }
-
 
     /**
      * Returns a pattern representing the current state of the message format.
@@ -817,7 +832,7 @@ public class MessageFormat extends UFormat implements BaseFormat<Object,StringBu
      *
      * @param argumentIndex the argument index for which to use the new format
      * @param newFormat the new format to use
-     * @exception IllegalArgumentException if alphanumeric arguments where used in MessageFormat.
+     * @throws IllegalArgumentException if this format uses named arguments
      * @stable ICU 3.0
      */
     public void setFormatByArgumentIndex(int argumentIndex, Format newFormat) {
@@ -946,6 +961,7 @@ public class MessageFormat extends UFormat implements BaseFormat<Object,StringBu
      * argument names. Otherwise an IllegalArgumentException is thrown.
      *
      * @return the formats used for the format elements in the pattern
+     * @throws IllegalArgumentException if this format uses named arguments
      * @stable ICU 3.0
      */
     public Format[] getFormats() {
@@ -955,7 +971,8 @@ public class MessageFormat extends UFormat implements BaseFormat<Object,StringBu
     }
     
     /**
-     * Get the format argument names. For more details, see {@link #setFormatByArgumentName(String, Format)}.
+     * Get the format argument names. For more details, see 
+     * {@link #setFormatByArgumentName(String, Format)}.
      * @return List of names
      * @deprecated This API is ICU internal only.
      * @internal
@@ -969,7 +986,8 @@ public class MessageFormat extends UFormat implements BaseFormat<Object,StringBu
     }
     
     /**
-     * Get the formats according to their argument names. For more details, see {@link #setFormatByArgumentName(String, Format)}.
+     * Get the formats according to their argument names. For more details, see 
+     * {@link #setFormatByArgumentName(String, Format)}.
      * @return format associated with the name, or null if there isn't one.
      * @deprecated This API is ICU internal only.
      * @internal
@@ -1026,7 +1044,8 @@ public class MessageFormat extends UFormat implements BaseFormat<Object,StringBu
      *    <tr>
      *       <td><code>null</code>
      *       <td><code>instanceof Date</code>
-     *       <td><code>DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT, getLocale()).format(argument)</code>
+     *       <td><code>DateFormat.getDateTimeInstance(DateFormat.SHORT, 
+     *           DateFormat.SHORT, getLocale()).format(argument)</code>
      *    <tr>
      *       <td><code>null</code>
      *       <td><code>instanceof String</code>
@@ -1103,7 +1122,9 @@ public class MessageFormat extends UFormat implements BaseFormat<Object,StringBu
      * Creates a MessageFormat with the given pattern and uses it
      * to format the given arguments. This is equivalent to
      * <blockquote>
-     *     <code>(new {@link #MessageFormat(String) MessageFormat}(pattern)).{@link #format(java.lang.Object[], java.lang.StringBuffer, java.text.FieldPosition) format}(arguments, new StringBuffer(), null).toString()</code>
+     *     <code>(new {@link #MessageFormat(String) MessageFormat}(pattern)).{@link 
+     *     #format(java.lang.Object[], java.lang.StringBuffer, java.text.FieldPosition) 
+     *     format}(arguments, new StringBuffer(), null).toString()</code>
      * </blockquote>
      *
      * @throws IllegalArgumentException if the pattern is invalid,
@@ -1154,8 +1175,10 @@ public class MessageFormat extends UFormat implements BaseFormat<Object,StringBu
      * provided <code>StringBuffer</code>.
      * This is equivalent to either of
      * <blockquote>
-     *     <code>{@link #format(java.lang.Object[], java.lang.StringBuffer, java.text.FieldPosition) format}((Object[]) arguments, result, pos)</code>
-     *     <code>{@link #format(java.util.Map, java.lang.StringBuffer, java.text.FieldPosition) format}((Map) arguments, result, pos)</code>
+     *     <code>{@link #format(java.lang.Object[], java.lang.StringBuffer, 
+     *     java.text.FieldPosition) format}((Object[]) arguments, result, pos)</code>
+     *     <code>{@link #format(java.util.Map, java.lang.StringBuffer, 
+     *     java.text.FieldPosition) format}((Map) arguments, result, pos)</code>
      * </blockquote>
      * A map must be provided if this format uses named arguments, otherwise
      * an IllegalArgumentException will be thrown.
@@ -1197,7 +1220,8 @@ public class MessageFormat extends UFormat implements BaseFormat<Object,StringBu
      * The text of the returned <code>AttributedCharacterIterator</code> is
      * the same that would be returned by
      * <blockquote>
-     *     <code>{@link #format(java.lang.Object[], java.lang.StringBuffer, java.text.FieldPosition) format}(arguments, new StringBuffer(), null).toString()</code>
+     *     <code>{@link #format(java.lang.Object[], java.lang.StringBuffer, 
+     *     java.text.FieldPosition) format}(arguments, new StringBuffer(), null).toString()</code>
      * </blockquote>
      * <p>
      * In addition, the <code>AttributedCharacterIterator</code> contains at
@@ -1224,7 +1248,8 @@ public class MessageFormat extends UFormat implements BaseFormat<Object,StringBu
     @SuppressWarnings("unchecked")
     public AttributedCharacterIterator formatToCharacterIterator(Object arguments) {
         StringBuffer result = new StringBuffer();
-        ArrayList<AttributedCharacterIterator> iterators = new ArrayList<AttributedCharacterIterator>();
+        ArrayList<AttributedCharacterIterator> iterators = 
+            new ArrayList<AttributedCharacterIterator>();
 
         if (arguments == null) {
             throw new NullPointerException(
@@ -1562,7 +1587,8 @@ public class MessageFormat extends UFormat implements BaseFormat<Object,StringBu
          */
         protected Object readResolve() throws InvalidObjectException {
             if (this.getClass() != MessageFormat.Field.class) {
-                throw new InvalidObjectException("A subclass of MessageFormat.Field must implement readResolve.");
+                throw new InvalidObjectException(
+                    "A subclass of MessageFormat.Field must implement readResolve.");
             }
             if (this.getName().equals(ARGUMENT.getName())) {
                 return ARGUMENT;
@@ -1670,7 +1696,7 @@ public class MessageFormat extends UFormat implements BaseFormat<Object,StringBu
      *            expected by the format element(s) that use it.
      */
     private StringBuffer subformat(Object[] arguments, StringBuffer result,
-                                   FieldPosition fp, List<AttributedCharacterIterator> characterIterators) {
+        FieldPosition fp,  List<AttributedCharacterIterator> characterIterators) {
         return subformat(arrayToMap(arguments), result, fp, characterIterators);
     }
 
@@ -1682,7 +1708,7 @@ public class MessageFormat extends UFormat implements BaseFormat<Object,StringBu
      *         expected by the format element(s) that use it.
      */
     private StringBuffer subformat(Map<String, Object> arguments, StringBuffer result,
-                                   FieldPosition fp, List<AttributedCharacterIterator> characterIterators) {
+        FieldPosition fp, List<AttributedCharacterIterator> characterIterators) {
         // note: this implementation assumes a fast substring & index.
         // if this is not true, would be better to append chars one by one.
         int lastOffset = 0;
@@ -1756,9 +1782,11 @@ public class MessageFormat extends UFormat implements BaseFormat<Object,StringBu
                         append(result, subIterator);
                         if (last != result.length()) {
                             characterIterators.add(
-                                         _createAttributedCharacterIterator(
-                                         subIterator, Field.ARGUMENT,
-                                         argumentNamesAreNumeric ? (Object)new Integer(argumentName) : (Object)argumentName));
+                                _createAttributedCharacterIterator(
+                                subIterator, Field.ARGUMENT,
+                                argumentNamesAreNumeric ? 
+                                    (Object)new Integer(argumentName) : 
+                                    (Object)argumentName));
                             last = result.length();
                         }
                         arg = null;
@@ -1766,9 +1794,11 @@ public class MessageFormat extends UFormat implements BaseFormat<Object,StringBu
                     if (arg != null && arg.length() > 0) {
                         result.append(arg);
                         characterIterators.add(
-                                 _createAttributedCharacterIterator(
-                                 arg, Field.ARGUMENT,
-                                 argumentNamesAreNumeric ? (Object)new Integer(argumentName) : (Object)argumentName));
+                            _createAttributedCharacterIterator(
+                                arg, Field.ARGUMENT,
+                                argumentNamesAreNumeric ? 
+                                    (Object)new Integer(argumentName) : 
+                                    (Object)argumentName));
                         last = result.length();
                     }
                 } else {
@@ -1923,7 +1953,8 @@ public class MessageFormat extends UFormat implements BaseFormat<Object,StringBu
                 newFormat = NumberFormat.getIntegerInstance(ulocale);
                 break;
             default: // pattern
-                newFormat = new DecimalFormat(segments[3].toString(), new DecimalFormatSymbols(ulocale));
+                newFormat = new DecimalFormat(segments[3].toString(), 
+                        new DecimalFormatSymbols(ulocale));
                 break;
             }
             break;
@@ -1981,7 +2012,8 @@ public class MessageFormat extends UFormat implements BaseFormat<Object,StringBu
             break;
         case TYPE_SPELLOUT:
             {
-                RuleBasedNumberFormat rbnf = new RuleBasedNumberFormat(ulocale, RuleBasedNumberFormat.SPELLOUT);
+                RuleBasedNumberFormat rbnf = new RuleBasedNumberFormat(ulocale, 
+                        RuleBasedNumberFormat.SPELLOUT);
                 String ruleset = segments[3].toString().trim();
                 if (ruleset.length() != 0) {
                     try {
@@ -1996,7 +2028,8 @@ public class MessageFormat extends UFormat implements BaseFormat<Object,StringBu
             break;
         case TYPE_ORDINAL:
             {
-                RuleBasedNumberFormat rbnf = new RuleBasedNumberFormat(ulocale, RuleBasedNumberFormat.ORDINAL);
+                RuleBasedNumberFormat rbnf = new RuleBasedNumberFormat(ulocale, 
+                        RuleBasedNumberFormat.ORDINAL);
                 String ruleset = segments[3].toString().trim();
                 if (ruleset.length() != 0) {
                     try {
@@ -2011,7 +2044,8 @@ public class MessageFormat extends UFormat implements BaseFormat<Object,StringBu
             break;
         case TYPE_DURATION:
             {
-                RuleBasedNumberFormat rbnf = new RuleBasedNumberFormat(ulocale, RuleBasedNumberFormat.DURATION);
+                RuleBasedNumberFormat rbnf = new RuleBasedNumberFormat(ulocale, 
+                        RuleBasedNumberFormat.DURATION);
                 String ruleset = segments[3].toString().trim();
                 if (ruleset.length() != 0) {
                     try {
@@ -2076,7 +2110,8 @@ public class MessageFormat extends UFormat implements BaseFormat<Object,StringBu
         return -1;
     }
 
-    private static final void copyAndFixQuotes(String source, int start, int end, StringBuffer target) {
+    private static final void copyAndFixQuotes(String source, int start, int end, 
+            StringBuffer target) {
         // added 'gotLB' logic from ICU4C - questionable [alan]
         boolean gotLB = false;
         for (int i = start; i < end; ++i) {
@@ -2129,7 +2164,8 @@ public class MessageFormat extends UFormat implements BaseFormat<Object,StringBu
             }
         }
         if (!isValid) {
-            throw new InvalidObjectException("Could not reconstruct MessageFormat from corrupt stream.");
+            throw new InvalidObjectException(
+                "Could not reconstruct MessageFormat from corrupt stream.");
         }
         if (ulocale == null) {
             ulocale = ULocale.forLocale(locale);
@@ -2274,7 +2310,8 @@ public class MessageFormat extends UFormat implements BaseFormat<Object,StringBu
         return as.getIterator();
     }
 
-    private static AttributedCharacterIterator _createAttributedCharacterIterator(AttributedCharacterIterator[] iterators) {
+    private static AttributedCharacterIterator _createAttributedCharacterIterator(
+            AttributedCharacterIterator[] iterators) {
         if (iterators == null || iterators.length == 0) {
             return _createAttributedCharacterIterator("");
         }
@@ -2315,7 +2352,8 @@ public class MessageFormat extends UFormat implements BaseFormat<Object,StringBu
         return as.getIterator();
     }
 
-    private static AttributedCharacterIterator _createAttributedCharacterIterator(AttributedCharacterIterator iterator,
+    private static AttributedCharacterIterator _createAttributedCharacterIterator(
+            AttributedCharacterIterator iterator,
             AttributedCharacterIterator.Attribute key, Object value) {
         AttributedString as = new AttributedString(iterator);
         as.addAttribute(key, value);

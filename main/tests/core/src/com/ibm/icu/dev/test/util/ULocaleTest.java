@@ -977,7 +977,7 @@ public class ULocaleTest extends TestFmwk {
                 String country = l.getDisplayCountry();
                 String variant = l.getDisplayVariant();
 
-                checkName(name, language, script, country, variant);
+                checkName(name, language, script, country, variant, ULocale.getDefault());
 
                 for (int j = 0; j < locales.length; ++j) {
                     ULocale dl = locales[j];
@@ -988,7 +988,7 @@ public class ULocaleTest extends TestFmwk {
                     country = l.getDisplayCountry(dl);
                     variant = l.getDisplayVariant(dl);
 
-                    if (!checkName(name, language, script, country, variant)) {
+                    if (!checkName(name, language, script, country, variant, dl)) {
                         break;
                     }
                 }
@@ -1023,21 +1023,21 @@ public class ULocaleTest extends TestFmwk {
         }
     }
 
-    private boolean checkName(String name, String language, String script, String country, String variant) {
+    private boolean checkName(String name, String language, String script, String country, String variant, ULocale dl) {
         if (language.length() > 0 && name.indexOf(language) == -1) {
-            errln("name '" + name + "' does not contain language '" + language + "'");
+            errln("loc: " + dl + " name '" + name + "' does not contain language '" + language + "'");
             return false;
         }
         if (script.length() > 0 && name.indexOf(script) == -1) {
-            errln("name '" + name + "' does not contain script '" + script + "'");
+            errln("loc: " + dl + " name '" + name + "' does not contain script '" + script + "'");
             return false;
         }
         if (country.length() > 0 && name.indexOf(country) == -1) {
-            errln("name '" + name + "' does not contain country '" + country + "'");
+            errln("loc: " + dl + " name '" + name + "' does not contain country '" + country + "'");
             return false;
         }
         if (variant.length() > 0 && name.indexOf(variant) == -1) {
-            errln("name '" + name + "' does not contain variant '" + variant + "'");
+            errln("loc: " + dl + " name '" + name + "' does not contain variant '" + variant + "'");
             return false;
         }
         return true;
@@ -1061,7 +1061,7 @@ public class ULocaleTest extends TestFmwk {
                 country = ULocale.getDisplayCountry(localeID, testLocale);
                 variant = ULocale.getDisplayVariant(localeID, testLocale);
 
-                if (!checkName(name, language, script, country, variant)) {
+                if (!checkName(name, language, script, country, variant, new ULocale(testLocale))) {
                     break;
                 }
             }
@@ -1078,7 +1078,7 @@ public class ULocaleTest extends TestFmwk {
                 country = ULocale.getDisplayCountry(localeID, loc);
                 variant = ULocale.getDisplayVariant(localeID, loc);
 
-                if (!checkName(name, language, script, country, variant)) {
+                if (!checkName(name, language, script, country, variant, loc)) {
                     break;
                 }
             }
@@ -3875,4 +3875,40 @@ public class ULocaleTest extends TestFmwk {
         }  
     }
 
+    public void TestGetFallback() {
+        // Testing static String getFallback(String)
+        final String[][] TESTIDS =
+        {
+            {"en_US", "en", "", ""},    // ULocale.getFallback("") should return ""
+            {"EN_us_Var", "en_US", "en", ""},   // Case is always normalized
+            {"de_DE@collation=phonebook", "de@collation=phonebook", "@collation=phonebook", "@collation=phonebook"},    // Keyword is preserved
+            {"en__POSIX", "en", ""},    // Trailing empty segment should be truncated
+            {"_US_POSIX", "_US", ""},   // Same as above
+            {"root", ""},               // No canonicalization
+        };
+
+        for (String[] chain : TESTIDS) {
+            for (int i = 1; i < chain.length; i++) {
+                String fallback = ULocale.getFallback(chain[i-1]);
+                assertEquals("getFallback(\"" + chain[i-1] + "\")", chain[i], fallback);
+            }
+        }
+
+        // Testing ULocale getFallback()
+        final ULocale[][] TESTLOCALES = 
+        {
+            {new ULocale("en_US"), new ULocale("en"), ULocale.ROOT, null},
+            {new ULocale("en__POSIX"), new ULocale("en"), ULocale.ROOT, null},
+            {new ULocale("de_DE@collation=phonebook"), new ULocale("de@collation=phonebook"), new ULocale("@collation=phonebook"), null},
+            {new ULocale("_US_POSIX"), new ULocale("_US"), ULocale.ROOT, null},
+            {new ULocale("root"), ULocale.ROOT, null},
+        };
+
+        for(ULocale[] chain : TESTLOCALES) {
+            for (int i = 1; i < chain.length; i++) {
+                ULocale fallback = chain[i-1].getFallback();
+                assertEquals("ULocale(" + chain[i-1] + ").getFallback()", chain[i], fallback);
+            }
+        }
+    }
 }

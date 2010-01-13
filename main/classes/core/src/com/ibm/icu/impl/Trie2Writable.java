@@ -17,10 +17,10 @@ public class Trie2Writable extends Trie2 {
     
     
     /**
-     * Create a new, empty, writable Trie2. At build time, 32-bit data values are used.
+     * Create a new, empty, writable Trie2. 32-bit data values are used.
      *
-     * @param initialValue the initial value that is set for all code points
-     * @param errorValue the value for out-of-range code points and illegal UTF-8
+     * @param initialValueP the initial value that is set for all code points
+     * @param errorValueP the value for out-of-range code points and illegal UTF-8
      */
     public  Trie2Writable(int initialValueP, int errorValueP) {       
         // This constructor corresponds to utrie2_open() in ICU4C.
@@ -136,9 +136,9 @@ public class Trie2Writable extends Trie2 {
     
     
     /**
-     * Create a new build time (modifiable) Trie2 whose contents are the same as the source Trie.
+     * Create a new build time (modifiable) Trie2 whose contents are the same as the source Trie2.
      * 
-     * @param source
+     * @param source the source Trie2.  Its contents will be copied into the new Trie2.
      */
     public Trie2Writable(Trie2 source) {
         init(source.initialValue, source.errorValue);
@@ -524,7 +524,6 @@ public class Trie2Writable extends Trie2 {
       public Trie2Writable setRange(Trie2.Range range, boolean overwrite) {
           fHash = 0;
           if (range.leadSurrogate) {
-              //  TODO:  optimize this.
               for (int c=range.startCodePoint; c<=range.endCodePoint; c++) {
                   if (overwrite || getFromU16SingleLead((char)c) == this.initialValue)  {
                       setForLeadSurrogateCodeUnit((char)c, range.value); 
@@ -549,11 +548,8 @@ public class Trie2Writable extends Trie2 {
       * For code units outside of the lead surrogate range, this function
       * behaves identically to set().
       * 
-      * TODO:  ICU4C restricts this function to lead surrogates only.
-      *        Should ICU4J match, or should ICU4C be loosened? 
-      *
-      * @param lead A UTF-16 code unit. 
-      * @param value the value
+      * @param codeUnit A UTF-16 code unit. 
+      * @param value the value to be stored in the Trie2.
       */
      public Trie2Writable setForLeadSurrogateCodeUnit(char codeUnit, int value) {
          fHash = 0;
@@ -563,9 +559,8 @@ public class Trie2Writable extends Trie2 {
 
      
      /**
-      * Get the value for a code point as stored in the trie.
+      * Get the value for a code point as stored in the Trie2.
       *
-      * @param trie the trie
       * @param codePoint the code point
       * @return the value
       */
@@ -607,7 +602,6 @@ public class Trie2Writable extends Trie2 {
      * surrogate range.  This function returns the alternate value,
      * while Trie2.get() returns the main value.
      * 
-     * @param trie the trie
      * @param c the code point or lead surrogate value.
      * @return the value
      */
@@ -980,13 +974,10 @@ public class Trie2Writable extends Trie2 {
     }
 
 
-    
-    /* serialization ------------------------------------------------------------ */
-
-
     /**
      * Produce an optimized, read-only Trie2_16 from this writable Trie.
-     * The data values must all fit as an unsigned 16 bit value.
+     * The data values outside of the range that will fit in a 16 bit
+     * unsigned value will be truncated.
      */
     public Trie2_16 toTrie2_16() {
         Trie2_16 frozenTrie = new Trie2_16();
@@ -1155,7 +1146,7 @@ public class Trie2Writable extends Trie2 {
             }
             break;
         }        
-        // The writable, but compressed, Trie stays around unless the caller drops its references to it.
+        // The writable, but compressed, Trie2 stays around unless the caller drops its references to it.
     }
 
 

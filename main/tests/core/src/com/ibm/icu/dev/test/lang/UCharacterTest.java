@@ -832,7 +832,7 @@ public final class UCharacterTest extends TestFmwk
     public void TestNames()
     {
         try{
-            int length = UCharacterName.getInstance().getMaxCharNameLength();
+            int length = UCharacterName.INSTANCE.getMaxCharNameLength();
             if (length < 83) { // Unicode 3.2 max char name length
                errln("getMaxCharNameLength()=" + length + " is too short");
             }
@@ -975,7 +975,7 @@ public final class UCharacterTest extends TestFmwk
                 // letters than actual character names contain because
                 // it includes all the characters in lowercased names of
                 // general categories, for the full possible set of extended names.
-                UCharacterName.getInstance().getCharNameCharacters(set);
+                UCharacterName.INSTANCE.getCharNameCharacters(set);
 
                 // build set the dumb (but sure-fire) way
                 Arrays.fill(map, false);
@@ -997,7 +997,7 @@ public final class UCharacterTest extends TestFmwk
                     }
                 }
 
-                length = UCharacterName.getInstance().getMaxCharNameLength();
+                length = UCharacterName.INSTANCE.getMaxCharNameLength();
                 if (length != maxLength) {
                     errln("getMaxCharNameLength()=" + length
                           + " differs from the maximum length " + maxLength
@@ -1893,6 +1893,13 @@ public final class UCharacterTest extends TestFmwk
             { 0x1ffc, UProperty.SENTENCE_BREAK, UCharacter.SentenceBreak.UPPER },
             { 0xff63, UProperty.SENTENCE_BREAK, UCharacter.SentenceBreak.CLOSE },
             { 0x2028, UProperty.SENTENCE_BREAK, UCharacter.SentenceBreak.SEP },
+
+            { -1, 0x520, 0 }, /* version break for Unicode 5.2 */
+
+            /* test some script codes >127 */
+            { 0xa6e6,  UProperty.SCRIPT, UScript.BAMUM },
+            { 0xa4d0,  UProperty.SCRIPT, UScript.LISU },
+            { 0x10a7f,  UProperty.SCRIPT, UScript.OLD_SOUTH_ARABIAN },
 
             /* undefined UProperty values */
             { 0x61, 0x4a7, 0 },

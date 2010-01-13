@@ -34,15 +34,22 @@ import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.lang.UProperty;
 
 public final class UCaseProps {
+
     // constructors etc. --------------------------------------------------- ***
 
     // port of ucase_openProps()
-    public UCaseProps() throws IOException {
+    private UCaseProps() throws IOException {
         InputStream is=ICUData.getRequiredStream(ICUResourceBundle.ICU_BUNDLE+"/"+DATA_FILE_NAME);
         BufferedInputStream b=new BufferedInputStream(is, 4096 /* data buffer size */);
         readData(b);
         b.close();
         is.close();
+    }
+
+    private UCaseProps(boolean makeDummy) { // ignore makeDummy, only creates a unique signature
+        indexes=new int[IX_TOP];
+        indexes[0]=IX_TOP;
+        trie=new CharTrie(0, 0, null); // dummy trie, always returns 0
     }
 
     private final void readData(InputStream is) throws IOException {
@@ -94,24 +101,18 @@ public final class UCaseProps {
         }
     }
 
-    // UCaseProps singleton
-    private static UCaseProps gCsp=null;
-
     // port of ucase_getSingleton()
-    public static final synchronized UCaseProps getSingleton() throws IOException {
-        if(gCsp==null) {
-            gCsp=new UCaseProps();
+    //
+    // Note: Do we really need this API?
+    public static UCaseProps getSingleton() throws IOException {
+        if (FULL_INSTANCE == null) {
+            synchronized (UCaseProps.class) {
+                if (FULL_INSTANCE == null) {
+                    FULL_INSTANCE = new UCaseProps();
+                }
+            }
         }
-        return gCsp;
-    }
-
-    // UCaseProps dummy singleton
-    private static UCaseProps gCspDummy=null;
-
-    private UCaseProps(boolean makeDummy) { // ignore makeDummy, only creates a unique signature
-        indexes=new int[IX_TOP];
-        indexes[0]=IX_TOP;
-        trie=new CharTrie(0, 0, null); // dummy trie, always returns 0
+        return FULL_INSTANCE;
     }
 
     /**
@@ -120,11 +121,16 @@ public final class UCaseProps {
      * Using the dummy can reduce checks for available data after an initial failure.
      * Port of ucase_getDummy().
      */
-    public static final synchronized UCaseProps getDummy() {
-        if(gCspDummy==null) {
-            gCspDummy=new UCaseProps(true);
+    // Note: do we really need this API?
+    public static UCaseProps getDummy() {
+        if (DUMMY_INSTANCE == null) {
+            synchronized (UCaseProps.class) {
+                if (DUMMY_INSTANCE == null) {
+                    DUMMY_INSTANCE = new UCaseProps(true);
+                }
+            }
         }
-        return gCspDummy;
+        return DUMMY_INSTANCE;
     }
 
     // set of property starts for UnicodeSet ------------------------------- ***
@@ -982,7 +988,7 @@ public final class UCaseProps {
                     excOffset=(int)(value>>32)+1;
 
                     /* set the output pointer to the lowercase mapping */
-                    out.append(new String(exceptions, excOffset, full));
+                    out.append(exceptions, excOffset, full);
 
                     /* return the string length */
                     return full;
@@ -1072,7 +1078,7 @@ public final class UCaseProps {
 
                 if(full!=0) {
                     /* set the output pointer to the result string */
-                    out.append(new String(exceptions, excOffset, full));
+                    out.append(exceptions, excOffset, full);
 
                     /* return the string length */
                     return full;
@@ -1265,7 +1271,7 @@ public final class UCaseProps {
 
                 if(full!=0) {
                     /* set the output pointer to the result string */
-                    out.append(new String(exceptions, excOffset, full));
+                    out.append(exceptions, excOffset, full);
 
                     /* return the string length */
                     return full;
@@ -1287,7 +1293,6 @@ public final class UCaseProps {
 
     /* case mapping properties API ---------------------------------------------- */
 
-    private static final ULocale rootLocale = new ULocale("");
     private static final int[] rootLocCache = { LOC_ROOT };
     /*
      * We need a StringBuffer for multi-code point output from the
@@ -1328,20 +1333,20 @@ public final class UCaseProps {
          */
         case UProperty.CHANGES_WHEN_LOWERCASED:
             dummyStringBuffer.setLength(0);
-            return toFullLower(c, null, dummyStringBuffer, rootLocale, rootLocCache)>=0;
+            return toFullLower(c, null, dummyStringBuffer, ULocale.ROOT, rootLocCache)>=0;
         case UProperty.CHANGES_WHEN_UPPERCASED:
             dummyStringBuffer.setLength(0);
-            return toFullUpper(c, null, dummyStringBuffer, rootLocale, rootLocCache)>=0;
+            return toFullUpper(c, null, dummyStringBuffer, ULocale.ROOT, rootLocCache)>=0;
         case UProperty.CHANGES_WHEN_TITLECASED:
             dummyStringBuffer.setLength(0);
-            return toFullTitle(c, null, dummyStringBuffer, rootLocale, rootLocCache)>=0;
+            return toFullTitle(c, null, dummyStringBuffer, ULocale.ROOT, rootLocCache)>=0;
         /* case UProperty.CHANGES_WHEN_CASEFOLDED: -- in UCharacterProperty.java */
         case UProperty.CHANGES_WHEN_CASEMAPPED:
             dummyStringBuffer.setLength(0);
             return
-                toFullLower(c, null, dummyStringBuffer, rootLocale, rootLocCache)>=0 ||
-                toFullUpper(c, null, dummyStringBuffer, rootLocale, rootLocCache)>=0 ||
-                toFullTitle(c, null, dummyStringBuffer, rootLocale, rootLocCache)>=0;
+                toFullLower(c, null, dummyStringBuffer, ULocale.ROOT, rootLocCache)>=0 ||
+                toFullUpper(c, null, dummyStringBuffer, ULocale.ROOT, rootLocCache)>=0 ||
+                toFullTitle(c, null, dummyStringBuffer, ULocale.ROOT, rootLocCache)>=0;
         default:
             return false;
         }
@@ -1460,4 +1465,28 @@ public final class UCaseProps {
     private static final int UNFOLD_ROWS=0;
     private static final int UNFOLD_ROW_WIDTH=1;
     private static final int UNFOLD_STRING_WIDTH=2;
+
+
+    /*
+     * public singleton instance
+     */
+    public static final UCaseProps INSTANCE;
+
+    private static volatile UCaseProps FULL_INSTANCE;
+    private static volatile UCaseProps DUMMY_INSTANCE;
+
+    // This static initializer block must be placed after
+    // other static member initialization
+    static {
+        UCaseProps cp;
+        try {
+            cp = new UCaseProps();
+            FULL_INSTANCE = cp;
+        } catch (IOException e) {
+            // creating dummy
+            cp = new UCaseProps(true);
+            DUMMY_INSTANCE = cp;
+        }
+        INSTANCE = cp;
+    }
 }
