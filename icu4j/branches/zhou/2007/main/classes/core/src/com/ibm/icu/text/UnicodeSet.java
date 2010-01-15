@@ -13,7 +13,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.MissingResourceException;
 import java.util.TreeSet;
-import java.util.Vector;
+import java.util.ArrayList;
 
 import com.ibm.icu.impl.BMPSet;
 import com.ibm.icu.impl.NormalizerImpl;
@@ -32,10 +32,16 @@ import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.VersionInfo;
 
 /**
- * A mutable set of Unicode characters and multicharacter strings.  Objects of this class
- * represent <em>character classes</em> used in regular expressions.
- * A character specifies a subset of Unicode code points.  Legal
- * code points are U+0000 to U+10FFFF, inclusive.
+ * A mutable set of Unicode characters and multicharacter strings.
+ * Objects of this class represent <em>character classes</em> used
+ * in regular expressions. A character specifies a subset of Unicode
+ * code points.  Legal code points are U+0000 to U+10FFFF, inclusive.
+ *
+ * Note: method freeze() will not only makes the set immutable, but
+ * also makes important methods much higher performance:
+ * containsNone(...), span(...), spanBack(...) etc.
+ * After the object is frozen, any subsequent call that want to change
+ * the object will throw UnsupportedOperationException.
  *
  * <p>The UnicodeSet class is not designed to be subclassed.
  *
@@ -2045,7 +2051,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
      * @stable ICU 2.0
      */
     public boolean containsNone(String s) {
-        return span(s, 0, SpanCondition.NOT_CONTAINED) == s.length();
+        return span(s, SpanCondition.NOT_CONTAINED) == s.length();
     }
 
     /**
@@ -3841,7 +3847,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
 
             // Optimize contains() and span() and similar functions.
             if (!strings.isEmpty()) {
-                stringSpan = new UnicodeSetStringSpan(this, new Vector<String>(strings), UnicodeSetStringSpan.ALL);
+                stringSpan = new UnicodeSetStringSpan(this, new ArrayList<String>(strings), UnicodeSetStringSpan.ALL);
                 if (!stringSpan.needsStringSpanUTF16()) {
                     // All strings are irrelevant for span() etc. because
                     // all of each string's code points are contained in this set.
@@ -3873,54 +3879,38 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
 
     /**
      * Span a string using this UnicodeSet.
+     *   If the start index is less than 0, span will start from 0.
+     *   If the start index is greater than the string length, span returns the string length.
      * 
      * @param s The string to be spanned
      * @param start The start index that the span begins
      * @param spanCondition The span condition
-     * @return the length of the span
+     * @return the string index which ends the span (i.e. exclusive)
      * @draft ICU 4.4
      */
     public int span(CharSequence s, int start, SpanCondition spanCondition) {
-        return spanReal(s, start, s.length(), spanCondition);
-    }
-
-    /**
-     * Span a string using this UnicodeSet.
-     * 
-     * @param s The string to be spanned
-     * @param start The start index that the span begins
-     * @param end   The end   index (exclusive) that the string should be spanned
-     * @param spanCondition The span condition
-     * @return the length of the span
-     * @draft ICU 4.4
-     */
-    private int spanReal(CharSequence s, int start, int end, SpanCondition spanCondition) {
         if (start < 0) {
           start = 0;
         } else if (start > s.length()) {
-          start = s.length();
+          return s.length();
         }
-        if (end < start) {
-          end = start;
-        } else if (end > s.length()) {
-          end = s.length();
-        }
+        int end = s.length();
         int len = end - start;
         if (len <= 0) {
-            return 0;
+            return start;
         }
         if (bmpSet != null) {
-            return bmpSet.span(s, start, end, spanCondition);
+            return start + bmpSet.span(s, start, end, spanCondition);
         }
 
         if (stringSpan != null) {
-            return stringSpan.span(s, start, len, spanCondition);
+            return start + stringSpan.span(s, start, len, spanCondition);
         } else if (!strings.isEmpty()) {
             int which = spanCondition == SpanCondition.NOT_CONTAINED ? UnicodeSetStringSpan.FWD_UTF16_NOT_CONTAINED
                     : UnicodeSetStringSpan.FWD_UTF16_CONTAINED;
-            UnicodeSetStringSpan strSpan = new UnicodeSetStringSpan(this, new Vector<String>(strings), which);
+            UnicodeSetStringSpan strSpan = new UnicodeSetStringSpan(this, new ArrayList<String>(strings), which);
             if (strSpan.needsStringSpanUTF16()) {
-                return strSpan.span(s, start, len, spanCondition);
+                return start + strSpan.span(s, start, len, spanCondition);
             }
         }
 
@@ -3928,15 +3918,15 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
         boolean spanContained = (spanCondition != SpanCondition.NOT_CONTAINED);
 
         int c;
-        int begin = start;
+        int next = start;
         do {
-            c = Character.codePointAt(s, start);
+            c = Character.codePointAt(s, next);
             if (spanContained != contains(c)) {
                 break;
             }
-            start = Character.offsetByCodePoints(s, start, 1);
-        } while (start < end);
-        return start - begin;
+            next = Character.offsetByCodePoints(s, next, 1);
+        } while (next < end);
+        return next;
     }
 
     /**
@@ -3953,6 +3943,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
 
     /**
      * Span a string backwards (from the fromIndex) using this UnicodeSet.
+     *   If the fromIndex is less than 0 or greater than string length, it will span back from the string length.
      * 
      * @param s The string to be spanned
      * @param fromIndex The index of the char (exclusive) that the string should be spanned backwards
@@ -3961,11 +3952,12 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
      * @draft ICU 4.4
      */
     public int spanBack(CharSequence s, int fromIndex, SpanCondition spanCondition) {
+        if (fromIndex < 0 ||
+            fromIndex > s.length()) {
+            fromIndex = s.length();
+        }
         if (fromIndex > 0 && bmpSet != null) {
             return bmpSet.spanBack(s, fromIndex, spanCondition);
-        }
-        if (fromIndex < 0) {
-            fromIndex = s.length();
         }
         if (fromIndex == 0) {
             return 0;
@@ -3976,7 +3968,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
             int which = (spanCondition == SpanCondition.NOT_CONTAINED)
                     ? UnicodeSetStringSpan.BACK_UTF16_NOT_CONTAINED
                     : UnicodeSetStringSpan.BACK_UTF16_CONTAINED;
-            UnicodeSetStringSpan strSpan = new UnicodeSetStringSpan(this, new Vector<String>(strings), which);
+            UnicodeSetStringSpan strSpan = new UnicodeSetStringSpan(this, new ArrayList<String>(strings), which);
             if (strSpan.needsStringSpanUTF16()) {
                 return strSpan.spanBack(s, fromIndex, spanCondition);
             }

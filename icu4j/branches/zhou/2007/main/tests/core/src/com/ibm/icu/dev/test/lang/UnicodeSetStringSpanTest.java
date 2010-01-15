@@ -29,20 +29,20 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
         String string = "abc";
         UnicodeSet set = new UnicodeSet(pattern);
         set.complement();
-        int length = set.spanBack(string, 3, SpanCondition.SIMPLE);
-        if (length != 1) {
-            errln(String.format("FAIL: UnicodeSet(%s).spanBack(%s) returns the wrong value length %d (!= 1)",
-                    set.toString(), string, length));
+        int pos = set.spanBack(string, 3, SpanCondition.SIMPLE);
+        if (pos != 1) {
+            errln(String.format("FAIL: UnicodeSet(%s).spanBack(%s) returns the wrong value pos %d (!= 1)",
+                    set.toString(), string, pos));
         }
-        length = set.span(string, SpanCondition.SIMPLE);
-        if (length != 3) {
-            errln(String.format("FAIL: UnicodeSet(%s).span(%s) returns the wrong value length %d (!= 3)",
-                    set.toString(), string, length));
+        pos = set.span(string, SpanCondition.SIMPLE);
+        if (pos != 3) {
+            errln(String.format("FAIL: UnicodeSet(%s).span(%s) returns the wrong value pos %d (!= 3)",
+                    set.toString(), string, pos));
         }
-        length = set.span(string, 1, SpanCondition.SIMPLE);
-        if (length != 2) {
-            errln(String.format("FAIL: UnicodeSet(%s).span(%s) returns the wrong value length %d (!= 2)",
-                    set.toString(), string, length));
+        pos = set.span(string, 1, SpanCondition.SIMPLE);
+        if (pos != 3) {
+            errln(String.format("FAIL: UnicodeSet(%s).span(%s) returns the wrong value pos %d (!= 3)",
+                    set.toString(), string, pos));
         }
     }
 
@@ -543,7 +543,7 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
         case 3:
             start = 0;
             for (;;) {
-                start += realSet.span(s, start, spanCondition);
+                start = realSet.span(s, start, spanCondition);
                 if (count < limitsCapacity) {
                     limits[count] = start;
                 }
@@ -812,7 +812,7 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
                   interestingString, start, len, expect));
         }
 
-        len = uset.span(interestingString, start, spanCondition);
+        len = uset.span(interestingString, start, spanCondition) - start;
         if (expect != len) {
             errln(String.format("FAIL: UnicodeSet(unicodeSet1).span(\"%s\", %d) = %d (expect %d)",
                   interestingString, start, len, expect));
@@ -877,7 +877,7 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
                   string, start, len, expect));
         }
 
-        len = uset.span(string, start, spanCondition);
+        len = uset.span(string, start, spanCondition) - start;
         if (expect != len) {
             errln(String.format("FAIL: UnicodeSet(patternWithUnpairedSurrogate).span(\"%s\", %d) = %d (expect %d)",
                   string, start, len, expect));
