@@ -3881,7 +3881,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
      * @draft ICU 4.4
      */
     public int span(CharSequence s, int start, SpanCondition spanCondition) {
-        return span(s, start, s.length(), spanCondition);
+        return spanReal(s, start, s.length(), spanCondition);
     }
 
     /**
@@ -3894,20 +3894,23 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
      * @return the length of the span
      * @draft ICU 4.4
      */
-    public int span(CharSequence s, int start, int end, SpanCondition spanCondition) {
-        if (end > s.length()) {
-            end = s.length();
+    private int spanReal(CharSequence s, int start, int end, SpanCondition spanCondition) {
+        if (start < 0) {
+          start = 0;
+        } else if (start > s.length()) {
+          start = s.length();
+        }
+        if (end < start) {
+          end = start;
+        } else if (end > s.length()) {
+          end = s.length();
         }
         int len = end - start;
-        if (len > 0 && bmpSet != null) {
-            return bmpSet.span(s, start, end, spanCondition);
-        }
-        if (len < 0) {
-            end = s.length();
-            len = end - start;
-        }
         if (len <= 0) {
             return 0;
+        }
+        if (bmpSet != null) {
+            return bmpSet.span(s, start, end, spanCondition);
         }
 
         if (stringSpan != null) {
@@ -3937,7 +3940,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
     }
 
     /**
-     * Span a string backwards (from the limit) using this UnicodeSet.
+     * Span a string backwards (from the end) using this UnicodeSet.
      * 
      * @param s The string to be spanned
      * @param spanCondition The span condition
@@ -3949,33 +3952,33 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
     }
 
     /**
-     * Span a string backwards (from the limit) using this UnicodeSet.
+     * Span a string backwards (from the fromIndex) using this UnicodeSet.
      * 
      * @param s The string to be spanned
-     * @param limit The index of the char (exclusive) that the string should be spanned backwards
+     * @param fromIndex The index of the char (exclusive) that the string should be spanned backwards
      * @param spanCondition The span condition
      * @return The string index which starts the span (i.e. inclusive).
      * @draft ICU 4.4
      */
-    public int spanBack(CharSequence s, int limit, SpanCondition spanCondition) {
-        if (limit > 0 && bmpSet != null) {
-            return bmpSet.spanBack(s, limit, spanCondition);
+    public int spanBack(CharSequence s, int fromIndex, SpanCondition spanCondition) {
+        if (fromIndex > 0 && bmpSet != null) {
+            return bmpSet.spanBack(s, fromIndex, spanCondition);
         }
-        if (limit < 0) {
-            limit = s.length();
+        if (fromIndex < 0) {
+            fromIndex = s.length();
         }
-        if (limit == 0) {
+        if (fromIndex == 0) {
             return 0;
         }
         if (stringSpan != null) {
-            return stringSpan.spanBack(s, limit, spanCondition);
+            return stringSpan.spanBack(s, fromIndex, spanCondition);
         } else if (!strings.isEmpty()) {
             int which = (spanCondition == SpanCondition.NOT_CONTAINED)
                     ? UnicodeSetStringSpan.BACK_UTF16_NOT_CONTAINED
                     : UnicodeSetStringSpan.BACK_UTF16_CONTAINED;
             UnicodeSetStringSpan strSpan = new UnicodeSetStringSpan(this, new Vector<String>(strings), which);
             if (strSpan.needsStringSpanUTF16()) {
-                return strSpan.spanBack(s, limit, spanCondition);
+                return strSpan.spanBack(s, fromIndex, spanCondition);
             }
         }
 
@@ -3983,7 +3986,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
         boolean spanContained = (spanCondition != SpanCondition.NOT_CONTAINED);
 
         int c;
-        int prev = limit;
+        int prev = fromIndex;
         do {
             c = Character.codePointBefore(s, prev);
             if (spanContained != contains(c)) {

@@ -96,7 +96,7 @@ public class UnicodeSetStringSpan {
             String string = strings.elementAt(i);
             int length16 = string.length();
             boolean thisRelevant;
-            spanLength = spanSet.span(string, 0, length16, SpanCondition.CONTAINED);
+            spanLength = spanSet.span(string.substring(0, length16), SpanCondition.CONTAINED);
             if (spanLength < length16) { // Relevant string.
                 someRelevant = thisRelevant = true;
             } else {
@@ -144,7 +144,7 @@ public class UnicodeSetStringSpan {
             String string = strings.elementAt(i);
 
             int length16 = string.length();
-            spanLength = spanSet.span(string, 0, length16, SpanCondition.CONTAINED);
+            spanLength = spanSet.span(string.substring(0, length16), SpanCondition.CONTAINED);
             if (spanLength < length16) { // Relevant string.
                 if (0 != (which & UTF16)) {
                     if (0 != (which & CONTAINED)) {
@@ -230,12 +230,7 @@ public class UnicodeSetStringSpan {
             if (spanSet.contains(c)) {
                 return; // Nothing to do.
             }
-            UnicodeSet newSet = spanSet.cloneAsThawed();
-            if (newSet == null) {
-                return; // Out of memory.
-            } else {
-                spanNotSet = newSet;
-            }
+            spanNotSet = spanSet.cloneAsThawed();
         }
         spanNotSet.add(c);
     }
@@ -329,7 +324,7 @@ public class UnicodeSetStringSpan {
         if (spanCondition == SpanCondition.NOT_CONTAINED) {
             return spanNot(s, start, length);
         }
-        int spanLength = spanSet.span(s, start, start + length, SpanCondition.CONTAINED);
+        int spanLength = spanSet.span(s.subSequence(start, start + length), SpanCondition.CONTAINED);
         if (spanLength == length) {
             return length;
         }
@@ -449,7 +444,7 @@ public class UnicodeSetStringSpan {
                 if (offsets.isEmpty()) {
                     // No more strings matched after a previous string match.
                     // Try another code point span from after the last string match.
-                    spanLength = spanSet.span(s, pos, pos + rest, SpanCondition.CONTAINED);
+                    spanLength = spanSet.span(s.subSequence(pos, pos + rest), SpanCondition.CONTAINED);
                     if (spanLength == rest || // Reached the end of the string, or
                             spanLength == 0 // neither strings nor span progressed.
                     ) {
@@ -671,12 +666,16 @@ public class UnicodeSetStringSpan {
      * strings. For each set string add its initial code point to the spanNotSet. (Also add its final code point for
      * spanNotBack().)
      * 
-     * - Loop: + Do spanLength=spanNotSet.span(SpanCondition.NOT_CONTAINED). + If the current code point
-     * is in the original set, then return the current position. + If any set string matches at the current position,
-     * then return the current position. + If there is no match at the current position, neither for the code point
+     * - Loop:
+     *   + Do spanLength=spanNotSet.span(SpanCondition.NOT_CONTAINED).
+     *   + If the current code point is in the original set, then return the current position.
+     *   + If any set string matches at the current position, then return the current position.
+     *   + If there is no match at the current position, neither for the code point
      * there nor for any set string, then skip this code point and continue the loop. This happens for
      * set-string-initial code points that were added to spanNotSet when there is not actually a match for such a set
      * string.
+     *
+     * @return the length of the span
      */
     private int spanNot(CharSequence s, int start, int length) {
         int pos = start, rest = length;
@@ -684,7 +683,7 @@ public class UnicodeSetStringSpan {
         do {
             // Span until we find a code point from the set,
             // or a code point that starts or ends some string.
-            i = spanNotSet.span(s, pos, pos + rest, SpanCondition.NOT_CONTAINED);
+            i = spanNotSet.span(s.subSequence(pos, pos + rest), SpanCondition.NOT_CONTAINED);
             if (i == rest) {
                 return length; // Reached the end of the string.
             }
@@ -695,7 +694,7 @@ public class UnicodeSetStringSpan {
             // without the string starts and ends.
             int cpLength = spanOne(spanSet, s, pos, rest);
             if (cpLength > 0) {
-                return pos; // There is a set element at pos.
+                return pos - start; // There is a set element at pos.
             }
 
             // Try to match the strings at pos.
@@ -707,7 +706,7 @@ public class UnicodeSetStringSpan {
 
                 int length16 = string.length();
                 if (length16 <= rest && matches16CPB(s, pos, length, string, length16)) {
-                    return pos; // There is a set element at pos.
+                    return pos - start; // There is a set element at pos.
                 }
             }
 
@@ -781,20 +780,19 @@ public class UnicodeSetStringSpan {
     // Compare 16-bit Unicode strings (which may be malformed UTF-16)
     // at code point boundaries.
     // That is, each edge of a match must not be in the middle of a surrogate pair.
-    static boolean matches16CPB(CharSequence s, int start, int limit, final String t, int length) {
-        limit -= start;
-        return matches16(s, start, t, length)
+    static boolean matches16CPB(CharSequence s, int start, int slength, final String t, int tlength) {
+        return matches16(s, start, t, tlength)
                 && !(0 < start && com.ibm.icu.text.UTF16.isLeadSurrogate (s.charAt(start - 1)) &&
                                   com.ibm.icu.text.UTF16.isTrailSurrogate(s.charAt(start + 0)))
-                && !(length < limit && com.ibm.icu.text.UTF16.isLeadSurrogate (s.charAt(start + length - 1)) &&
-                                       com.ibm.icu.text.UTF16.isTrailSurrogate(s.charAt(start + length)));
+                && !(tlength < slength && com.ibm.icu.text.UTF16.isLeadSurrogate (s.charAt(start + tlength - 1)) &&
+                                       com.ibm.icu.text.UTF16.isTrailSurrogate(s.charAt(start + tlength)));
     }
 
     // Does the set contain the next code point?
     // If so, return its length; otherwise return its negative length.
     static int spanOne(final UnicodeSet set, CharSequence s, int start, int length) {
         char c = s.charAt(start);
-        if (c >= 0xd800 && c <= 0xdbff && length >= (start + 2)) {
+        if (c >= 0xd800 && c <= 0xdbff && length >= 2) {
             char c2 = s.charAt(start + 1);
             if (com.ibm.icu.text.UTF16.isTrailSurrogate(c2)) {
                 int supplementary = UCharacterProperty.getRawSupplementary(c, c2);
