@@ -46,6 +46,31 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
         }
     }
 
+    // test our slow implementation
+    public void TestSimpleStringSpanSlow() {
+        String pattern = "[a{ab}{bc}]";
+        String string = "abc";
+        UnicodeSet uset = new UnicodeSet(pattern);
+        uset.complement();
+        UnicodeSetWithStrings set = new UnicodeSetWithStrings(uset);
+
+        int length = containsSpanBackUTF16(set, string, 3, SpanCondition.SIMPLE);
+        if (length != 1) {
+            errln(String.format("FAIL: UnicodeSet(%s) containsSpanBackUTF16(%s) returns the wrong value length %d (!= 1)",
+                    set.toString(), string, length));
+        }
+        length = containsSpanUTF16(set, string, SpanCondition.SIMPLE);
+        if (length != 3) {
+            errln(String.format("FAIL: UnicodeSet(%s) containsSpanUTF16(%s) returns the wrong value length %d (!= 3)",
+                    set.toString(), string, length));
+        }
+        length = containsSpanUTF16(set, string.substring(1), SpanCondition.SIMPLE);
+        if (length != 2) {
+            errln(String.format("FAIL: UnicodeSet(%s) containsSpanUTF16(%s) returns the wrong value length %d (!= 2)",
+                    set.toString(), string, length));
+        }
+    }
+
     // Test select patterns and strings, and test SIMPLE.
     public void TestSimpleStringSpanAndFreeze() {
         String pattern = "[x{xy}{xya}{axy}{ax}]";
@@ -187,9 +212,10 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
     }
 
     // Implement span() with contains() for comparison.
-    static int containsSpanUTF16(final UnicodeSetWithStrings set, final String s, int length,
+    static int containsSpanUTF16(final UnicodeSetWithStrings set, final String s,
             SpanCondition spanCondition) {
         final UnicodeSet realSet = set.getSet();
+        int length = s.length();
         if (!set.hasStrings()) {
             boolean spanContained = false;
             if (spanCondition != SpanCondition.NOT_CONTAINED) {
@@ -259,7 +285,7 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
                                     matchLimit = temp;
                                 }
                                 // Recurse for non-shortest match from start.
-                                int spanLength = containsSpanUTF16(set, s.substring(matchLimit), length - matchLimit,
+                                int spanLength = containsSpanUTF16(set, s.substring(matchLimit),
                                         SpanCondition.CONTAINED);
                                 if ((matchLimit + spanLength) > maxSpanLimit) {
                                     maxSpanLimit = matchLimit + spanLength;
@@ -422,21 +448,29 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
      * according to the expected number of spans. Sets typeName to an empty string if there is no such type. Returns -1
      * if the span option is filtered out.
      */
-    static int getSpans(final UnicodeSetWithStrings set, boolean isComplement, final String s, int length,
-            boolean isUTF16, int whichSpans, int type, String[] typeName, int limits[], int limitsCapacity,
+    static int getSpans(final UnicodeSetWithStrings set, boolean isComplement, final String s,
+            int whichSpans, int type, String[] typeName, int limits[], int limitsCapacity,
             int expectCount) {
         final UnicodeSet realSet = set.getSet();
         int start, count, i;
         SpanCondition spanCondition, firstSpanCondition, contained;
         boolean isForward;
 
+        int length = s.length();
         if (type < 0 || 7 < type) {
             typeName[0] = null;
             return 0;
         }
 
-        final String typeNames16[] = { "contains", "contains(LM)", "span", "span(LM)", "containsBack",
-                "containsBack(LM)", "spanBack", "spanBack(LM)" };
+        final String typeNames16[] = {
+                "contains",
+                "contains(LM)",
+                "span",
+                "span(LM)",
+                "containsBack",
+                "containsBack(LM)",
+                "spanBack",
+                "spanBack(LM)" };
 
         typeName[0] = typeNames16[type];
 
@@ -493,11 +527,8 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
         case 0:
         case 1:
             start = 0;
-            if (length < 0) {
-                length = s.length();
-            }
             for (;;) {
-                start += containsSpanUTF16(set, s.substring(start), length - start, spanCondition);
+                start += containsSpanUTF16(set, s.substring(start), spanCondition);
                 if (count < limitsCapacity) {
                     limits[count] = start;
                 }
@@ -512,12 +543,12 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
         case 3:
             start = 0;
             for (;;) {
-                start += realSet.span(s.substring(start), 0, length >= 0 ? length - start : length, spanCondition);
+                start += realSet.span(s, start, spanCondition);
                 if (count < limitsCapacity) {
                     limits[count] = start;
                 }
                 ++count;
-                if (length >= 0 ? start >= length : start == s.length()) {
+                if (start >= length) {
                     break;
                 }
                 spanCondition = invertSpanCondition(spanCondition, contained);
@@ -525,9 +556,6 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
             break;
         case 4:
         case 5:
-            if (length < 0) {
-                length = s.length();
-            }
             for (;;) {
                 ++count;
                 if (count <= limitsCapacity) {
@@ -552,9 +580,6 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
                 if (count <= limitsCapacity) {
                     limits[limitsCapacity - count] = length >= 0 ? length : s.length();
                 }
-                // Note: Length<0 is tested only for the first spanBack().
-                // If we wanted to keep length<0 for all spanBack()s, we would have to
-                // temporarily modify the string by placing a NUL where the previous spanBack() stopped.
                 length = realSet.spanBack(s, length, spanCondition);
                 if (length == 0 && spanCondition == firstSpanCondition) {
                     break;
@@ -592,7 +617,7 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
      * The expectLimits[] are either provided by the caller (with expectCount>=0) or returned to the caller (with an
      * input expectCount<0).
      */
-    void verifySpan(final UnicodeSetWithStrings sets[], final String s, int length, boolean isUTF16, int whichSpans,
+    void verifySpan(final UnicodeSetWithStrings sets[], final String s, int whichSpans,
             int expectLimits[], int expectCount, // TODO
             final String testName, int index) {
         int[] limits = new int[500];
@@ -614,7 +639,7 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
                 }
             }
             for (type = 0;; ++type) {
-                limitsCount = getSpans(sets[i], (0 != (i & 1)), s, length, isUTF16, whichSpans, type, typeName, limits,
+                limitsCount = getSpans(sets[i], (0 != (i & 1)), s, whichSpans, type, typeName, limits,
                         limits.length, expectCount);
                 if (typeName[0] == null) {
                     break; // All types tried.
@@ -649,7 +674,7 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
 
         // Compare span() with containsAll()/containsNone(),
         // but only if we have expectLimits[] from the uncomplemented set.
-        if (isUTF16 && (whichSpans & SPAN_SET) != 0) {
+        if ((whichSpans & SPAN_SET) != 0) {
             final String s16 = s;
             String string;
             int prev = 0, limit, len;
@@ -688,45 +713,18 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
     }
 
     // Specifically test either UTF-16 or UTF-8.
-    void verifySpan(final UnicodeSetWithStrings sets[], final String s, int length, boolean isUTF16, int whichSpans,
+    void verifySpan(final UnicodeSetWithStrings sets[], final String s, int whichSpans,
             final String testName, int index) {
         int[] expectLimits = new int[500];
         int expectCount = -1;
-        verifySpan(sets, s, length, isUTF16, whichSpans, expectLimits, expectCount, testName, index);
-    }
-
-    boolean stringContainsUnpairedSurrogate(final String s, int length) {
-        char c, c2;
-        int i = 0;
-
-        if (length >= 0) {
-            while (length > 0) {
-                c = s.charAt(i++);
-                --length;
-                if (0xd800 <= c && c < 0xe000) {
-                    if (c >= 0xdc00 || length == 0 || !UTF16.isTrailSurrogate(c2 = s.charAt(i++))) {
-                        return true;
-                    }
-                    --length;
-                }
-            }
-        } else {
-            while ((c = s.charAt(i++)) != 0) {
-                if (0xd800 <= c && c < 0xe000) {
-                    if (c >= 0xdc00 || !UTF16.isTrailSurrogate(c2 = s.charAt(i++))) {
-                        return true;
-                    }
-                }
-            }
-        }
-        return false;
+        verifySpan(sets, s, whichSpans, expectLimits, expectCount, testName, index);
     }
 
     // Test both UTF-16 and UTF-8 versions of span() etc. on the same sets and text,
     // unless either UTF is turned off in whichSpans.
     // Testing UTF-16 and UTF-8 together requires that surrogate code points
     // have the same contains(c) value as U+FFFD.
-    void verifySpanBothUTFs(final UnicodeSetWithStrings sets[], final String s16, int length16, int whichSpans,
+    void verifySpanBothUTFs(final UnicodeSetWithStrings sets[], final String s16, int whichSpans,
             final String testName, int index) {
         int[] expectLimits = new int[500];
         int expectCount;
@@ -734,7 +732,7 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
         expectCount = -1; // Get expectLimits[] from verifySpan().
 
         if ((whichSpans & SPAN_UTF16) != 0) {
-            verifySpan(sets, s16, length16, true, whichSpans, expectLimits, expectCount, testName, index);
+            verifySpan(sets, s16, whichSpans, expectLimits, expectCount, testName, index);
         }
     }
 
@@ -762,27 +760,17 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
 
     // Verify that all implementations represent the same set.
     void verifySpanContents(final UnicodeSetWithStrings sets[], int whichSpans, final String testName) {
-        // contains(U+FFFD) is inconsistent with contains(some surrogates),
-        // if the string contains surrogates -
-        // because it is likely to produce a different result.
-        boolean inconsistentSurrogates = (!(sets[0].getSet().contains(0xfffd) ? sets[0].getSet().contains(0xd800,
-                0xdfff) : sets[0].getSet().containsNone(0xd800, 0xdfff)) || sets[0].hasStringsWithSurrogates());
-
         StringBuffer s = new StringBuffer();
-        int length = 0;
         int localWhichSpans;
         int c, first;
         for (first = c = 0;; c = nextCodePoint(c)) {
-            if (c > 0x10ffff || length > (s.length() - UTF16.LEAD_SURROGATE_BOUNDARY)) {
+            if (c > 0x10ffff || s.length() > 1024) {
                 localWhichSpans = whichSpans;
-                if (stringContainsUnpairedSurrogate(s.toString(), length) && inconsistentSurrogates) {
-                    localWhichSpans &= ~SPAN_UTF8;
-                }
-                verifySpanBothUTFs(sets, s.toString(), length, localWhichSpans, testName, first);
+                verifySpanBothUTFs(sets, s.toString(), localWhichSpans, testName, first);
                 if (c > 0x10ffff) {
                     break;
                 }
-                length = 0;
+                s.delete(0, s.length());
                 first = c;
             }
             UTF16.append(s, c);
@@ -791,25 +779,51 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
 
     // Test with a particular, interesting string.
     // Specify length and try NUL-termination.
-    void verifySpanUTF16String(final UnicodeSetWithStrings sets[], int whichSpans, final String testName) {
-        final char cs[] = { 0x61, 0x62, 0x20, // Latin, space
-                0x3b1, 0x3b2, 0x3b3, // Greek
-                0xd900, // lead surrogate
-                0x3000, 0x30ab, 0x30ad, // wide space, Katakana
-                0xdc05, // trail surrogate
-                0xa0, 0xac00, 0xd7a3, // nbsp, Hangul
-                0xd900, 0xdc05, // unassigned supplementary
-                0xd840, 0xdfff, 0xd860, 0xdffe, // Han supplementary
-                0xd7a4, 0xdc05, 0xd900, 0x2028, // unassigned, surrogates in wrong order, LS
-                0 // NUL
-        };
-        String s = new String(cs);
+    static final char interestingStringChars[] = { 0x61, 0x62, 0x20, // Latin, space
+            0x3b1, 0x3b2, 0x3b3, // Greek
+            0xd900, // lead surrogate
+            0x3000, 0x30ab, 0x30ad, // wide space, Katakana
+            0xdc05, // trail surrogate
+            0xa0, 0xac00, 0xd7a3, // nbsp, Hangul
+            0xd900, 0xdc05, // unassigned supplementary
+            0xd840, 0xdfff, 0xd860, 0xdffe, // Han supplementary
+            0xd7a4, 0xdc05, 0xd900, 0x2028  // unassigned, surrogates in wrong order, LS
+    };
+    static String interestingString = new String(interestingStringChars);
+    static final String unicodeSet1 = "[[[:ID_Continue:]-[\\u30ab\\u30ad]]{\\u3000\\u30ab}{\\u3000\\u30ab\\u30ad}]";
 
+    public void TestInterestingStringSpan() {
+        UnicodeSet uset = new UnicodeSet(Utility.unescape(unicodeSet1));
+        SpanCondition spanCondition = SpanCondition.NOT_CONTAINED;
+        int expect = 2;
+        int start = 14;
+
+        int c = 0xd840;
+        boolean contains = uset.contains(c);
+        if (false != contains) {
+            errln(String.format("FAIL: UnicodeSet(unicodeSet1).contains(%d) = true (expect false)",
+                  c));
+        }
+
+        UnicodeSetWithStrings set = new UnicodeSetWithStrings(uset);
+        int len = containsSpanUTF16(set, interestingString.substring(start), spanCondition);
+        if (expect != len) {
+            errln(String.format("FAIL: containsSpanUTF16(unicodeSet1, \"%s(%d)\") = %d (expect %d)",
+                  interestingString, start, len, expect));
+        }
+
+        len = uset.span(interestingString, start, spanCondition);
+        if (expect != len) {
+            errln(String.format("FAIL: UnicodeSet(unicodeSet1).span(\"%s\", %d) = %d (expect %d)",
+                  interestingString, start, len, expect));
+        }
+    }
+
+    void verifySpanUTF16String(final UnicodeSetWithStrings sets[], int whichSpans, final String testName) {
         if ((whichSpans & SPAN_UTF16) == 0) {
             return;
         }
-        verifySpan(sets, s, -1,             true, (whichSpans & ~SPAN_UTF8), testName, 0);
-        verifySpan(sets, s, s.length() - 1, true, (whichSpans & ~SPAN_UTF8), testName, 1);
+        verifySpan(sets, interestingString, (whichSpans & ~SPAN_UTF8), testName, 1);
     }
 
     // Take a set of span options and multiply them so that
@@ -831,6 +845,43 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
             }
         }
         return b == 0 ? whichSpansCount : c == 0 ? 2 * whichSpansCount : 3 * whichSpansCount;
+    }
+
+    // They are not representable in UTF-8, and a leading trail surrogate
+    // and a trailing lead surrogate must not match in the middle of a proper surrogate pair.
+    // U+20001 == \\uD840\\uDC01
+    // U+20400 == \\uD841\\uDC00
+    static final String patternWithUnpairedSurrogate =
+        "[a\\U00020001\\U00020400{ab}{b\\uD840}{\\uDC00a}]";
+    static final String stringWithUnpairedSurrogate =
+        "aaab\\U00020001ba\\U00020400aba\\uD840ab\\uD840\\U00020000b\\U00020000a\\U00020000\\uDC00a\\uDC00babbb";
+
+    static final String _63_a = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    static final String _64_a = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    static final String _63_b = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+    static final String _64_b = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+    static final String longPattern =
+        "[a{" + _64_a + _64_a + _64_a + _64_a + "b}" + "{a" + _64_b + _64_b + _64_b + _64_b + "}]";
+
+    public void TestStringWithUnpairedSurrogateSpan() {
+        String string = Utility.unescape(stringWithUnpairedSurrogate);
+        UnicodeSet uset = new UnicodeSet(Utility.unescape(patternWithUnpairedSurrogate));
+        SpanCondition spanCondition = SpanCondition.NOT_CONTAINED;
+        int start = 17;
+        int expect = 5;
+
+        UnicodeSetWithStrings set = new UnicodeSetWithStrings(uset);
+        int len = containsSpanUTF16(set, string.substring(start), spanCondition);
+        if (expect != len) {
+            errln(String.format("FAIL: containsSpanUTF16(patternWithUnpairedSurrogate, \"%s(%d)\") = %d (expect %d)",
+                  string, start, len, expect));
+        }
+
+        len = uset.span(string, start, spanCondition);
+        if (expect != len) {
+            errln(String.format("FAIL: UnicodeSet(patternWithUnpairedSurrogate).span(\"%s\", %d) = %d (expect %d)",
+                  string, start, len, expect));
+        }
     }
 
     public void TestSpan() {
@@ -868,10 +919,6 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
         // A "-" without options resets the options.
         // The options are also reset for each new set.
         // Other strings will be spanned.
-        final String _63_a = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-        final String _64_a = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-        final String _63_b = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
-        final String _64_b = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
         final String testdata[] = {
                 "[:ID_Continue:]",
                 "*",
@@ -885,7 +932,7 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
                 "*",
                 "[\\u007F\\u07FF\\uFFFF\\U0010FFFF]",
                 "*",
-                "[[[:ID_Continue:]-[\\u30ab\\u30ad]]{\\u3000\\u30ab}{\\u3000\\u30ab\\u30ad}]",
+                unicodeSet1,
                 "-c",
                 "*",
                 "[[[:ID_Continue:]-[\\u30ab\\u30ad]]{\\u30ab\\u30ad}{\\u3000\\u30ab\\u30ad}]",
@@ -971,7 +1018,7 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
 
                 // Test with set strings with an initial or final code point span
                 // longer than 254.
-                "[a{" + _64_a + _64_a + _64_a + _64_a + "b}" + "{a" + _64_b + _64_b + _64_b + _64_b + "}]",
+                longPattern,
                 "-c",
                 _64_a + _64_a + _64_a + _63_a + "b",
                 _64_a + _64_a + _64_a + _64_a + "b",
@@ -981,12 +1028,8 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
                 "aaaabbbb" + _64_b + _64_b + _64_b + _64_b,
 
                 // Test with strings containing unpaired surrogates.
-                // They are not representable in UTF-8, and a leading trail surrogate
-                // and a trailing lead surrogate must not match in the middle of a proper surrogate pair.
-                // U+20001 == \\uD840\\uDC01
-                // U+20400 == \\uD841\\uDC00
-                "[a\\U00020001\\U00020400{ab}{b\\uD840}{\\uDC00a}]", "-8cl",
-                "aaab\\U00020001ba\\U00020400aba\\uD840ab\\uD840\\U00020000b\\U00020000a\\U00020000\\uDC00a\\uDC00babbb" };
+                patternWithUnpairedSurrogate, "-8cl",
+                stringWithUnpairedSurrogate };
         int i, j;
         int whichSpansCount = 1;
         int[] whichSpans = new int[96];
@@ -1081,13 +1124,9 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
                     if (whichSpansCount > 1) {
                         testNameLimit += String.format("%%0x%3x", whichSpans[j]);
                     }
-                    verifySpanBothUTFs(sets_with_str, string, string.length(), whichSpans[j], testName, i);
+                    verifySpanBothUTFs(sets_with_str, string, whichSpans[j], testName, i);
                 }
             }
-        }
-        for (j = 0; j < SET_COUNT; ++j) {
-            sets_with_str[j] = null;
-            sets[j] = null;
         }
     }
 
