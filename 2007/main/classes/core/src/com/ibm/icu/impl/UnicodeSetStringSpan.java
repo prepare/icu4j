@@ -9,7 +9,7 @@
 
 package com.ibm.icu.impl;
 
-import java.util.Vector;
+import java.util.ArrayList;
 import com.ibm.icu.impl.UCharacterProperty;
 import com.ibm.icu.text.UTF16;
 import com.ibm.icu.text.UnicodeSet;
@@ -53,7 +53,7 @@ public class UnicodeSetStringSpan {
     private UnicodeSet spanNotSet;
 
     // The strings of the parent set.
-    private Vector<String> strings;
+    private ArrayList<String> strings;
 
     // the lengths of span(), spanBack() etc. for each string.
     private short[] spanLengths;
@@ -69,7 +69,7 @@ public class UnicodeSetStringSpan {
 
     // Construct for all variants of span(), or only for any one variant.
     // Initialize as little as possible, for single use.
-    public UnicodeSetStringSpan(final UnicodeSet set, final Vector<String> setStrings, int which) {
+    public UnicodeSetStringSpan(final UnicodeSet set, final ArrayList<String> setStrings, int which) {
         spanSet = new UnicodeSet(0, 0x10ffff);
         strings = setStrings;
         all = (which == ALL);
@@ -93,10 +93,10 @@ public class UnicodeSetStringSpan {
         int i, spanLength;
         boolean someRelevant = false;
         for (i = 0; i < stringsLength; ++i) {
-            String string = strings.elementAt(i);
+            String string = strings.get(i);
             int length16 = string.length();
             boolean thisRelevant;
-            spanLength = spanSet.span(string.substring(0, length16), SpanCondition.CONTAINED);
+            spanLength = spanSet.span(string, SpanCondition.CONTAINED);
             if (spanLength < length16) { // Relevant string.
                 someRelevant = thisRelevant = true;
             } else {
@@ -141,10 +141,9 @@ public class UnicodeSetStringSpan {
         int utf8Count = 0; // Count UTF-8 bytes written so far.
 
         for (i = 0; i < stringsLength; ++i) {
-            String string = strings.elementAt(i);
-
+            String string = strings.get(i);
             int length16 = string.length();
-            spanLength = spanSet.span(string.substring(0, length16), SpanCondition.CONTAINED);
+            spanLength = spanSet.span(string, SpanCondition.CONTAINED);
             if (spanLength < length16) { // Relevant string.
                 if (0 != (which & UTF16)) {
                     if (0 != (which & CONTAINED)) {
@@ -194,10 +193,10 @@ public class UnicodeSetStringSpan {
      * Constructs a copy of an existing UnicodeSetStringSpan.
      * Assumes which==ALL for a frozen set.
      */
-    public UnicodeSetStringSpan(final UnicodeSetStringSpan otherStringSpan, final Vector<String> newParentSetStrings) {
-        spanSet = (otherStringSpan.spanSet);
-        strings = (newParentSetStrings);
-        maxLength16 = (otherStringSpan.maxLength16);
+    public UnicodeSetStringSpan(final UnicodeSetStringSpan otherStringSpan, final ArrayList<String> newParentSetStrings) {
+        spanSet = otherStringSpan.spanSet;
+        strings = newParentSetStrings;
+        maxLength16 = otherStringSpan.maxLength16;
         all = true;
         if (otherStringSpan.spanNotSet == otherStringSpan.spanSet) {
             spanNotSet = spanSet;
@@ -345,7 +344,7 @@ public class UnicodeSetStringSpan {
                     if (overlap == ALL_CP_CONTAINED) {
                         continue; // Irrelevant string.
                     }
-                    String string = strings.elementAt(i);
+                    String string = strings.get(i);
 
                     int length16 = string.length();
 
@@ -385,7 +384,7 @@ public class UnicodeSetStringSpan {
                     // For longest match, we do need to try to match even an all-contained string
                     // to find the match from the earliest start.
 
-                    String string = strings.elementAt(i);
+                    String string = strings.get(i);
 
                     int length16 = string.length();
 
@@ -518,7 +517,7 @@ public class UnicodeSetStringSpan {
                     if (overlap == ALL_CP_CONTAINED) {
                         continue; // Irrelevant string.
                     }
-                    String string = strings.elementAt(i);
+                    String string = strings.get(i);
 
                     int length16 = string.length();
 
@@ -559,7 +558,7 @@ public class UnicodeSetStringSpan {
                     // For longest match, we do need to try to match even an all-contained string
                     // to find the match from the latest end.
 
-                    String string = strings.elementAt(i);
+                    String string = strings.get(i);
 
                     int length16 = string.length();
 
@@ -702,7 +701,7 @@ public class UnicodeSetStringSpan {
                 if (spanLengths[i] == ALL_CP_CONTAINED) {
                     continue; // Irrelevant string.
                 }
-                String string = strings.elementAt(i);
+                String string = strings.get(i);
 
                 int length16 = string.length();
                 if (length16 <= rest && matches16CPB(s, pos, length, string, length16)) {
@@ -745,7 +744,7 @@ public class UnicodeSetStringSpan {
                 if (spanLengths[i] == ALL_CP_CONTAINED) {
                     continue; // Irrelevant string.
                 }
-                String string = strings.elementAt(i);
+                String string = strings.get(i);
 
                 int length16 = string.length();
                 if (length16 <= pos && matches16CPB(s, pos - length16, length, string, length16)) {
@@ -777,15 +776,20 @@ public class UnicodeSetStringSpan {
         return true;
     }
 
-    // Compare 16-bit Unicode strings (which may be malformed UTF-16)
-    // at code point boundaries.
-    // That is, each edge of a match must not be in the middle of a surrogate pair.
+    /**
+     * Compare 16-bit Unicode strings (which may be malformed UTF-16)
+     * at code point boundaries.
+     * That is, each edge of a match must not be in the middle of a surrogate pair.
+     * @param start   The start index of s.
+     * @param slength The length of s from start.
+     * @param tlength The length of t.
+     */
     static boolean matches16CPB(CharSequence s, int start, int slength, final String t, int tlength) {
-        return matches16(s, start, t, tlength)
-                && !(0 < start && com.ibm.icu.text.UTF16.isLeadSurrogate (s.charAt(start - 1)) &&
-                                  com.ibm.icu.text.UTF16.isTrailSurrogate(s.charAt(start + 0)))
+        return !(0 < start && com.ibm.icu.text.UTF16.isLeadSurrogate (s.charAt(start - 1)) &&
+                              com.ibm.icu.text.UTF16.isTrailSurrogate(s.charAt(start + 0)))
                 && !(tlength < slength && com.ibm.icu.text.UTF16.isLeadSurrogate (s.charAt(start + tlength - 1)) &&
-                                       com.ibm.icu.text.UTF16.isTrailSurrogate(s.charAt(start + tlength)));
+                                       com.ibm.icu.text.UTF16.isTrailSurrogate(s.charAt(start + tlength)))
+                && matches16(s, start, t, tlength);
     }
 
     // Does the set contain the next code point?
@@ -814,121 +818,120 @@ public class UnicodeSetStringSpan {
         return set.contains(c) ? 1 : -1;
     }
 
-}
 
+    /*
+     * Helper class for UnicodeSetStringSpan.
+     *
+     * List of offsets from the current position from where to try matching a code point or a string. Store offsets rather
+     * than indexes to simplify the code and use the same list for both increments (in span()) and decrements (in
+     * spanBack()).
+     * 
+     * Assumption: The maximum offset is limited, and the offsets that are stored at any one time are relatively dense, that
+     * is, there are normally no gaps of hundreds or thousands of offset values.
+     * 
+     * The implementation uses a circular buffer of byte flags, each indicating whether the corresponding offset is in the
+     * list. This avoids inserting into a sorted list of offsets (or absolute indexes) and physically moving part of the
+     * list.
+     * 
+     * Note: In principle, the caller should setMaxLength() to the maximum of the max string length and U16_LENGTH/U8_LENGTH
+     * to account for "long" single code points.
+     * 
+     * Note: If maxLength were guaranteed to be no more than 32 or 64, the list could be stored as bit flags in a single
+     * integer. Rather than handling a circular buffer with a start list index, the integer would simply be shifted when
+     * lower offsets are removed. UnicodeSet does not have a limit on the lengths of strings.
+     */
+    static class OffsetList {
+        private boolean[] list;
+        private int length;
+        private int start;
 
-/*
- * Helper class for UnicodeSetStringSpan.
- *
- * List of offsets from the current position from where to try matching a code point or a string. Store offsets rather
- * than indexes to simplify the code and use the same list for both increments (in span()) and decrements (in
- * spanBack()).
- * 
- * Assumption: The maximum offset is limited, and the offsets that are stored at any one time are relatively dense, that
- * is, there are normally no gaps of hundreds or thousands of offset values.
- * 
- * The implementation uses a circular buffer of byte flags, each indicating whether the corresponding offset is in the
- * list. This avoids inserting into a sorted list of offsets (or absolute indexes) and physically moving part of the
- * list.
- * 
- * Note: In principle, the caller should setMaxLength() to the maximum of the max string length and U16_LENGTH/U8_LENGTH
- * to account for "long" single code points.
- * 
- * Note: If maxLength were guaranteed to be no more than 32 or 64, the list could be stored as bit flags in a single
- * integer. Rather than handling a circular buffer with a start list index, the integer would simply be shifted when
- * lower offsets are removed. UnicodeSet does not have a limit on the lengths of strings.
- */
-class OffsetList {
-    private boolean[] list;
-    private int length;
-    private int start;
-
-    public OffsetList() {
-        list = new boolean[16];  // default size
-    }
-
-    public void setMaxLength(int maxLength) {
-        if (maxLength > list.length) {
-            list = new boolean[maxLength];
+        public OffsetList() {
+            list = new boolean[16];  // default size
         }
-        clear();
-    }
 
-    public void clear() {
-        for (int i = list.length; i-- > 0;) {
-            list[i] = false;
+        public void setMaxLength(int maxLength) {
+            if (maxLength > list.length) {
+                list = new boolean[maxLength];
+            }
+            clear();
         }
-        start = length = 0;
-    }
 
-    public boolean isEmpty() {
-        return (length == 0);
-    }
-
-    // Reduce all stored offsets by delta, used when the current position
-    // moves by delta.
-    // There must not be any offsets lower than delta.
-    // If there is an offset equal to delta, it is removed.
-    // delta=[1..maxLength]
-    public void shift(int delta) {
-        int i = start + delta;
-        if (i >= list.length) {
-            i -= list.length;
+        public void clear() {
+            for (int i = list.length; i-- > 0;) {
+                list[i] = false;
+            }
+            start = length = 0;
         }
-        if (list[i]) {
-            list[i] = false;
-            --length;
-        }
-        start = i;
-    }
 
-    // Add an offset. The list must not contain it yet.
-    // offset=[1..maxLength]
-    public void addOffset(int offset) {
-        int i = start + offset;
-        if (i >= list.length) {
-            i -= list.length;
+        public boolean isEmpty() {
+            return (length == 0);
         }
-        list[i] = true;
-        ++length;
-    }
 
-    // offset=[1..maxLength]
-    public boolean containsOffset(int offset) {
-        int i = start + offset;
-        if (i >= list.length) {
-            i -= list.length;
-        }
-        return list[i];
-    }
-
-    // Find the lowest stored offset from a non-empty list, remove it,
-    // and reduce all other offsets by this minimum.
-    // Returns [1..maxLength].
-    public int popMinimum() {
-        // Look for the next offset in list[start+1..list.length-1].
-        int i = start, result;
-        while (++i < list.length) {
+        // Reduce all stored offsets by delta, used when the current position
+        // moves by delta.
+        // There must not be any offsets lower than delta.
+        // If there is an offset equal to delta, it is removed.
+        // delta=[1..maxLength]
+        public void shift(int delta) {
+            int i = start + delta;
+            if (i >= list.length) {
+                i -= list.length;
+            }
             if (list[i]) {
                 list[i] = false;
                 --length;
-                result = i - start;
-                start = i;
-                return result;
             }
+            start = i;
         }
-        // i==list.length
 
-        // Wrap around and look for the next offset in list[0..start].
-        // Since the list is not empty, there will be one.
-        result = list.length - start;
-        i = 0;
-        while (!list[i]) {
-            ++i;
+        // Add an offset. The list must not contain it yet.
+        // offset=[1..maxLength]
+        public void addOffset(int offset) {
+            int i = start + offset;
+            if (i >= list.length) {
+                i -= list.length;
+            }
+            list[i] = true;
+            ++length;
         }
-        list[i] = false;
-        --length;
-        start = i;
-        return result += i;
+
+        // offset=[1..maxLength]
+        public boolean containsOffset(int offset) {
+            int i = start + offset;
+            if (i >= list.length) {
+                i -= list.length;
+            }
+            return list[i];
+        }
+
+        // Find the lowest stored offset from a non-empty list, remove it,
+        // and reduce all other offsets by this minimum.
+        // Returns [1..maxLength].
+        public int popMinimum() {
+            // Look for the next offset in list[start+1..list.length-1].
+            int i = start, result;
+            while (++i < list.length) {
+                if (list[i]) {
+                    list[i] = false;
+                    --length;
+                    result = i - start;
+                    start = i;
+                    return result;
+                }
+            }
+            // i==list.length
+
+            // Wrap around and look for the next offset in list[0..start].
+            // Since the list is not empty, there will be one.
+            result = list.length - start;
+            i = 0;
+            while (!list[i]) {
+                ++i;
+            }
+            list[i] = false;
+            --length;
+            start = i;
+            return result += i;
+        }
     }
 }
