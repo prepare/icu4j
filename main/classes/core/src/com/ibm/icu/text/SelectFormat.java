@@ -175,12 +175,12 @@ public class SelectFormat extends Format{
      * can additionally be assigned rules of its own.
      * @draft ICU 4.4
      */
-    public static final String KEYWORD_OTHER = "other";
+    private static final String KEYWORD_OTHER = "other";
 
     /*
      * The types of character classifications 
      */
-    public enum CharacterClass {
+    private enum CharacterClass {
         T_START_KEYWORD, T_CONTINUE_KEYWORD, T_LEFT_BRACE,
         T_RIGHT_BRACE, T_SPACE, T_OTHER
     };
@@ -189,7 +189,7 @@ public class SelectFormat extends Format{
      * The different states needed in state machine
      * in applyPattern method. 
      */
-    public enum State {
+    private enum State {
        START_STATE, KEYWORD_STATE,
        PAST_KEYWORD_STATE, PHRASE_STATE      
     };
@@ -505,14 +505,6 @@ public class SelectFormat extends Format{
     }
 
     /**
-     * {@inheritDoc}
-     * @draft ICU 4.4
-     */
-    public boolean equals(Object rhs) {
-        return rhs instanceof SelectFormat && this.equals((SelectFormat) rhs);
-    }
-
-    /**
      * Returns true if this equals the provided <code>SelectFormat<code>.
      * @param rhs the SelectFormat to compare against
      * @return true if this equals rhs
@@ -533,8 +525,8 @@ public class SelectFormat extends Format{
      * @draft ICU 4.4
      */
     public int hashCode() {
-        if( parsedValues!=null){
-            return parsedValues.hashCode();
+        if( pattern!=null){
+            return pattern.hashCode();
         }
         return 0;
     }
