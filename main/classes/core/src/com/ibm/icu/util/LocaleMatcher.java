@@ -1,7 +1,7 @@
 /*
  ****************************************************************************************
- * Copyright (C) 2009, Google, Inc.; International Business Machines Corporation and    *
- * others. All Rights Reserved.                                                         *
+ * Copyright (C) 2009-2010, Google, Inc.; International Business Machines Corporation   *
+ * and others. All Rights Reserved.                                                     *
  ****************************************************************************************
  */
 package com.ibm.icu.util;
@@ -41,6 +41,7 @@ import com.ibm.icu.impl.Row.R3;
  * 
  * @author markdavis@google.com
  * @draft ICU 4.4
+ * @provisional This API might change or be removed in a future release.
  */
 public class LocaleMatcher {
     private static final boolean DEBUG = false;
@@ -64,6 +65,8 @@ public class LocaleMatcher {
      * of the page.
      * 
      * @param languagePriorityList weighted list
+     * @draft ICU 4.4
+     * @provisional This API might change or be removed in a future release.
      */
     public LocaleMatcher(LocalePriorityList languagePriorityList) {
         this(languagePriorityList, defaultWritten);
@@ -74,6 +77,8 @@ public class LocaleMatcher {
      * language is the default.
      * 
      * @param languagePriorityListString String form of LanguagePriorityList
+     * @draft ICU 4.4
+     * @provisional This API might change or be removed in a future release.
      */
     public LocaleMatcher(String languagePriorityListString) {
         this(LocalePriorityList.add(languagePriorityListString).build());
@@ -81,9 +86,10 @@ public class LocaleMatcher {
 
     /**
      * Internal testing function; may expose API later.
-     * @internal
      * @param languagePriorityList LocalePriorityList to match
      * @param matcherData Internal matching data
+     * @internal
+     * @deprecated This API is ICU internal only.
      */
     public LocaleMatcher(LocalePriorityList languagePriorityList, LanguageMatcherData matcherData) {
         this.matcherData = matcherData;
@@ -105,6 +111,8 @@ public class LocaleMatcher {
      * @param supported Supported locale
      * @param supportedMax Maximized locale (using likely subtags)
      * @return value between 0 and 1, inclusive.
+     * @draft ICU 4.4
+     * @provisional This API might change or be removed in a future release.
      */
     public double match(ULocale desired, ULocale desiredMax, ULocale supported, ULocale supportedMax) {
         return matcherData.match(desired, desiredMax, supported, supportedMax);
@@ -112,12 +120,16 @@ public class LocaleMatcher {
 
 
     /**
-     * Canonicalize a locale (language). Note that for now, it is canonicalizing according to CLDR conventions (he vs iw, etc), since that is what is needed for likelySubtags.
-     * TODO Get the data from CLDR, use Java conventions.
+     * Canonicalize a locale (language). Note that for now, it is canonicalizing
+     * according to CLDR conventions (he vs iw, etc), since that is what is needed
+     * for likelySubtags.
      * @param ulocale language/locale code
      * @return ULocale with remapped subtags.
+     * @draft ICU 4.4
+     * @provisional This API might change or be removed in a future release.
      */
     public ULocale canonicalize(ULocale ulocale) {
+        // TODO Get the data from CLDR, use Java conventions.
         String lang = ulocale.getLanguage();
         String lang2 = canonicalMap.get(lang);
         String script = ulocale.getScript();
@@ -139,6 +151,8 @@ public class LocaleMatcher {
      * 
      * @param languageList list to match
      * @return best matching language code
+     * @draft ICU 4.4
+     * @provisional This API might change or be removed in a future release.
      */
     public ULocale getBestMatch(LocalePriorityList languageList) {
         double bestWeight = 0;
@@ -162,6 +176,8 @@ public class LocaleMatcher {
      * 
      * @param languageList String form of language priority list
      * @return best matching language code
+     * @draft ICU 4.4
+     * @provisional This API might change or be removed in a future release.
      */
     public ULocale getBestMatch(String languageList) {
         return getBestMatch(LocalePriorityList.add(languageList).build());
@@ -172,11 +188,18 @@ public class LocaleMatcher {
      * 
      * @param ulocale locale/language code to match
      * @return best matching language code
+     * @draft ICU 4.4
+     * @provisional This API might change or be removed in a future release.
      */
     public ULocale getBestMatch(ULocale ulocale) {
         return getBestMatchInternal(ulocale).get0();
     }
 
+    /**
+     * {@inheritDoc}
+     * @draft ICU 4.4
+     * @provisional This API might change or be removed in a future release.
+     */
     @Override
     public String toString() {
         return "{" + defaultLanguage + ", " 
@@ -450,12 +473,17 @@ public class LocaleMatcher {
     /**
      * Only for testing and use by tools. Interface may change!!
      * @internal
+     * @deprecated This API is ICU internal only.
      */
     public static class LanguageMatcherData implements Freezable<LanguageMatcherData> {
         ScoreData languageScores = new ScoreData(Level.language);
         ScoreData scriptScores = new ScoreData(Level.script);
         ScoreData regionScores = new ScoreData(Level.region);
 
+        /**
+         * @internal
+         * @deprecated This API is ICU internal only.
+         */
         public double match(ULocale a, ULocale aMax, ULocale b, ULocale bMax) {
             double diff = 0;
             diff += languageScores.getScore(a, aMax, a.getLanguage(), aMax.getLanguage(), b, bMax, b.getLanguage(), bMax.getLanguage());
@@ -480,19 +508,23 @@ public class LocaleMatcher {
          * symmetric. We don't bother producing an equivalence class because there are
          * so few cases; this function depends on the other permutations being
          * added specifically.
-         * @param desired
-         * @param supported
-         * @param distance
-         * @param bidirectional TODO
-         * @return 
+         * @internal
+         * @deprecated This API is ICU internal only.
          */
         private LanguageMatcherData addDistance(String desired, String supported, int percent) {
             return addDistance(desired, supported, percent, false, null);
         }
+        /**
+         * @internal
+         * @deprecated This API is ICU internal only.
+         */
         public LanguageMatcherData addDistance(String desired, String supported, int percent, String comment) {
             return addDistance(desired, supported, percent, false, comment);
         }
-
+        /**
+         * @internal
+         * @deprecated This API is ICU internal only.
+         */
         public LanguageMatcherData addDistance(String desired, String supported, int percent, boolean oneway) {
             return addDistance(desired, supported, percent, oneway, null);
         }
@@ -554,8 +586,10 @@ public class LocaleMatcher {
             return this;
         }
 
-        /* (non-Javadoc)
-         * @see com.ibm.icu.util.Freezable#cloneAsThawed()
+        /** 
+         * {@inheritDoc}
+         * @internal
+         * @deprecated This API is ICU internal only.
          */
         public LanguageMatcherData cloneAsThawed() {
             LanguageMatcherData result;
@@ -573,10 +607,20 @@ public class LocaleMatcher {
 
         private boolean frozen = false;
 
+        /** 
+         * {@inheritDoc}
+         * @internal
+         * @deprecated This API is ICU internal only.
+         */
         public LanguageMatcherData freeze() {
             return this;
         }
 
+        /** 
+         * {@inheritDoc}
+         * @internal
+         * @deprecated This API is ICU internal only.
+         */
         public boolean isFrozen() {
             return frozen;
         }

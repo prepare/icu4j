@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2009, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2010, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -166,48 +166,41 @@ public abstract class NumberFormat extends UFormat {
 
     /**
      * Constants to specify normal number style of format.
-     * @draft ICU 4.2
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 4.2
      */
     public static final int NUMBERSTYLE = 0;
     /**
      * Constants to specify currency style of format which uses currency symbol
      * to represent currency, for example: "$3.00".
-     * @draft ICU 4.2
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 4.2
      */
     public static final int CURRENCYSTYLE = 1;
     /**
      * Constants to specify a style of format to display percent.
-     * @draft ICU 4.2
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 4.2
      */
     public static final int PERCENTSTYLE = 2;
     /**
      * Constants to specify a style of format to display scientific number.
-     * @draft ICU 4.2
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 4.2
      */
     public static final int SCIENTIFICSTYLE = 3;
     /**
      * Constants to specify a integer number style format.
-     * @draft ICU 4.2
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 4.2
      */
     public static final int INTEGERSTYLE = 4;
     /**
      * Constants to specify currency style of format which uses currency 
      * ISO code to represent currency, for example: "USD3.00".
-     * @draft ICU 4.2
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 4.2
      */
     public static final int ISOCURRENCYSTYLE = 5;
     /**
      * Constants to specify currency style of format which uses currency 
      * long name with plural format to represent currency, for example,
      * "3.00 US Dollars".
-     * @draft ICU 4.2
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 4.2
      */
     public static final int PLURALCURRENCYSTYLE = 6;
 
@@ -430,8 +423,6 @@ public abstract class NumberFormat extends UFormat {
      * on output, the position after the last matched character. If
      * the parse fails, the position in unchanged upon output.
      * @return a CurrencyAmount, or null upon failure
-     * @internal
-     * @deprecated This API is ICU internal only.
      */
     CurrencyAmount parseCurrency(String text, ParsePosition pos) {
         ///CLOVER:OFF
@@ -538,8 +529,7 @@ public abstract class NumberFormat extends UFormat {
     /**
      * Returns a specific style number format for default locale.
      * @param style  number format style
-     * @draft ICU 4.2
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 4.2
      */
     public final static NumberFormat getInstance(int style) {
         return getInstance(ULocale.getDefault(), style);
@@ -549,8 +539,7 @@ public abstract class NumberFormat extends UFormat {
      * Returns a specific style number format for a specific locale.
      * @param inLocale  the specific locale.
      * @param style     number format style
-     * @draft ICU 4.2
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 4.2
      */
     public static NumberFormat getInstance(Locale inLocale, int style) {
         return getInstance(ULocale.forLocale(inLocale), style);
@@ -1243,8 +1232,7 @@ public abstract class NumberFormat extends UFormat {
      *                                   PERCENTSTYLE, SCIENTIFICSTYLE, 
      *                                   INTEGERSTYLE, 
      *                                   ISOCURRENCYSTYLE, PLURALCURRENCYSTYLE,
-     * @draft ICU 4.2
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 4.2
      */
     public static NumberFormat getInstance(ULocale desiredLocale, int choice) {
         if (choice < NUMBERSTYLE || choice > PLURALCURRENCYSTYLE) {

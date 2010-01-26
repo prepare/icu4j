@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2003-2009, International Business Machines Corporation and    *
+ * Copyright (C) 2003-2010, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -20,7 +20,7 @@ import com.ibm.icu.util.ULocale;
  * @draft ICU 2.8 (retain)
  * @provisional This API might change or be removed in a future release.
  */
-public abstract class UFormat extends Format implements BaseFormat<Object,StringBuffer,String> {
+public abstract class UFormat extends Format {
     // jdk1.4.2 serialver
     private static final long serialVersionUID = -4964390515840164416L;
 
@@ -76,7 +76,6 @@ public abstract class UFormat extends Format implements BaseFormat<Object,String
      * @see com.ibm.icu.util.ULocale
      * @see com.ibm.icu.util.ULocale#VALID_LOCALE
      * @see com.ibm.icu.util.ULocale#ACTUAL_LOCALE
-     * @internal
      */
     final void setLocale(ULocale valid, ULocale actual) {
         // Change the following to an assertion later
@@ -94,7 +93,6 @@ public abstract class UFormat extends Format implements BaseFormat<Object,String
     /**
      * The most specific locale containing any resource data, or null.
      * @see com.ibm.icu.util.ULocale
-     * @internal
      */
     private ULocale validLocale;
 
@@ -102,7 +100,6 @@ public abstract class UFormat extends Format implements BaseFormat<Object,String
      * The locale containing data used to construct this object, or
      * null.
      * @see com.ibm.icu.util.ULocale
-     * @internal
      */
     private ULocale actualLocale;
 

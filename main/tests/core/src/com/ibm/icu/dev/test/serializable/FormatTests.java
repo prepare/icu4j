@@ -1,11 +1,10 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2009, International Business Machines Corporation and    *
- * others. All Rights Reserved.                                                *
+ * Copyright (c) 2004-2010, International Business Machines
+ * Corporation and others.  All Rights Reserved.
  *******************************************************************************
  *
  */
-
 package com.ibm.icu.dev.test.serializable;
 
 import java.text.AttributedCharacterIterator;
