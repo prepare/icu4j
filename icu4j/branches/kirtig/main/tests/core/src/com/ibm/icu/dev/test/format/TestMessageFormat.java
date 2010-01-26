@@ -1,6 +1,6 @@
 /*
 **********************************************************************
-* Copyright (c) 2004-2009, International Business Machines
+* Copyright (c) 2004-2010, International Business Machines
 * Corporation and others.  All Rights Reserved.
 **********************************************************************
 * Author: Alan Liu
@@ -1470,15 +1470,15 @@ public class TestMessageFormat extends com.ibm.icu.dev.test.TestFmwk {
     public void testSelectFormatToPattern() {
         String[] patterns = {
           //Pattern with some text at start and at end
-          "{0} est {1, select, female {all\\u00E9e} other {all\\u00E9}} \\u00E0 Paris.",
+          "{0} est {1,select, female {all\\u00E9e} other {all\\u00E9}} \\u00E0 Paris.",
           //Pattern with some text at start 
-          "{0} est {1, select, female {all\\u00E9e} other {all\\u00E9}}",
+          "{0} est {1,select, female {all\\u00E9e} other {all\\u00E9}}",
           //Pattern with some text at end
-          "{1, select, female {all\\u00E9e} other {all\\u00E9}} \\u00E0 Paris.",
+          "{1, select,female {all\\u00E9e} other {all\\u00E9}} \\u00E0 Paris.",
           //Pattern with no text at any  end
-          "{1, select, female {all\\u00E9e} other {all\\u00E9}}.",
+          "{1, select,female {all\\u00E9e} other {all\\u00E9}}.",
           //Quoted French pattern
-          "{0} est {1, select, female {all\\u00E9e c''est} other {all\\u00E9 c''est}} \\u00E0 Paris.",
+          "{0} est {1,select, female {all\\u00E9e c''est} other {all\\u00E9 c''est}} \\u00E0 Paris.",
         };
 
         for (int i = 0; i < patterns.length; ++i) {

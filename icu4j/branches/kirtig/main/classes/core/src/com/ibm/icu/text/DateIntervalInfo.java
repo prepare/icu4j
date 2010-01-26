@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2008-2009, International Business Machines Corporation and    *
+ * Copyright (C) 2008-2010, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -291,7 +291,7 @@ public class DateIntervalInfo implements Cloneable, Freezable<DateIntervalInfo>,
      * and is recommended to be used only for power users who
      * wants to create their own interval patterns and use them to create
      * date interval formatter.
-     * @internal ICU 4.0
+     * @internal
      * @deprecated This API is ICU internal only.
      */
     public DateIntervalInfo() 
@@ -620,8 +620,6 @@ public class DateIntervalInfo implements Cloneable, Freezable<DateIntervalInfo>,
      * @param laterDateFirst   whether the first date in intervalPattern
      *                         is earlier date or later date
      * @return                 pattern info object
-     * @internal ICU 4.0
-     * @deprecated This API is ICU internal only.
      */
     static PatternInfo genPatternInfo(String intervalPattern, 
                                       boolean laterDateFirst) {
@@ -777,7 +775,7 @@ public class DateIntervalInfo implements Cloneable, Freezable<DateIntervalInfo>,
     
     /**
      * Boilerplate for Freezable
-     * @stable ICU 4.0
+     * @stable ICU 4.4
      */
     public DateIntervalInfo freeze() {
         frozen = true;
@@ -786,7 +784,7 @@ public class DateIntervalInfo implements Cloneable, Freezable<DateIntervalInfo>,
     
     /**
      * Boilerplate for Freezable
-     * @stable ICU 4.0
+     * @stable ICU 4.4
      */
     public DateIntervalInfo cloneAsThawed() {
         DateIntervalInfo result = (DateIntervalInfo) (this.cloneUnfrozenDII());
@@ -800,8 +798,6 @@ public class DateIntervalInfo implements Cloneable, Freezable<DateIntervalInfo>,
      * and adjust pattern field width.
      * @param skeleton            skeleton to be parsed
      * @param skeletonFieldWidth  parsed skeleton field width
-     * @internal ICU 4.0
-     * @deprecated This API is ICU internal only.
      */
     static void parseSkeleton(String skeleton, int[] skeletonFieldWidth) {
         int PATTERN_CHAR_BASE = 0x41;

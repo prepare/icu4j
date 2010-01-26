@@ -1,6 +1,6 @@
 /*
 ******************************************************************************
-* Copyright (C) 2003-2009, International Business Machines Corporation and   *
+* Copyright (C) 2003-2010, International Business Machines Corporation and   *
 * others. All Rights Reserved.                                               *
 ******************************************************************************
 */
@@ -379,8 +379,6 @@ public final class ULocale implements Serializable {
     /**
      * Construct a ULocale object from a {@link java.util.Locale}.
      * @param loc a JDK locale
-     * @stable ICU 2.8
-     * @internal
      */
     private ULocale(Locale loc) {
         this.localeID = getName(forLocale(loc).toString());
@@ -986,7 +984,6 @@ public final class ULocale implements Serializable {
      * @param keyword the keyword to add, if not already present
      * @param value the value to add, if not already present
      * @return the updated locale id
-     * @internal
      */
 /*    private static String defaultKeywordValue(String localeID, String keyword, String value) {
         LocaleIDParser parser = new LocaleIDParser(localeID);
@@ -1491,7 +1488,7 @@ public final class ULocale implements Serializable {
     }
 
     private static String getDisplayNameWithDialectInternal(ULocale locale, ULocale displayLocale) {
-        return LocaleDisplayNames.getInstance(displayLocale, DialectHandling.USE_DIALECT_NAMES)
+        return LocaleDisplayNames.getInstance(displayLocale, DialectHandling.DIALECT_NAMES)
             .localeDisplayName(locale);
     }
 
@@ -1686,12 +1683,8 @@ public final class ULocale implements Serializable {
 
     /**
      * Package local method used for parsing Accept-Language string
-     * @internal ICU 3.8
      */
     static ULocale[] parseAcceptLanguage(String acceptLanguage, boolean isLenient) throws ParseException {
-        /**
-         * @internal ICU 3.4
-         */
         class ULocaleAcceptLanguageQ implements Comparable<ULocaleAcceptLanguageQ> {
             private double q;
             private double serial;

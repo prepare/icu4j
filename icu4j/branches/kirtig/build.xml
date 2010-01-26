@@ -1,6 +1,6 @@
 <!--
 *******************************************************************************
-* Copyright (C) 1997-2009, International Business Machines Corporation and    *
+* Copyright (C) 1997-2010, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 -->
@@ -192,19 +192,21 @@
         </java>
     </target>
 
-    <target name="coreCheck" depends="info, core, core-tests" description="Run only the core tests">
+    <target name="coreCheck" depends="info, core, currdata, langdata, regiondata, core-tests" description="Run only the core tests">
         <java classname="com.ibm.icu.dev.test.TestAllCore" fork="yes" failonerror="true">
             <arg line="-n"/>
             <classpath>
                 <pathelement path="${icu4j.core.jar}"/>
-                <pathelement path="${icu4j.charset.jar}"/>
+                <pathelement path="${icu4j.currdata.jar}"/>
+                <pathelement path="${icu4j.langdata.jar}"/>
+                <pathelement path="${icu4j.regiondata.jar}"/>
                 <pathelement path="${icu4j.test-framework.jar}"/>
                 <pathelement path="${icu4j.core-tests.jar}"/>
             </classpath>
         </java>
     </target>
 
-    <target name="collateCheck" depends="info, core, collate, collate-tests" description="Run only the collation tests">
+    <target name="collateCheck" depends="info, core, collate, currdata, langdata, regiondata, collate-tests" description="Run only the collation tests">
         <java classname="com.ibm.icu.dev.test.TestAllCollate" fork="yes" failonerror="true">
             <arg line="-n"/>
             <classpath>
@@ -212,6 +214,11 @@
                 <pathelement path="${icu4j.collate.jar}"/>
                 <pathelement path="${icu4j.test-framework.jar}"/>
                 <pathelement path="${icu4j.collate-tests.jar}"/>
+
+                <!-- for now, collateCheck needs currdata, langdata and regiondata, because of GlobalizationPreferencesTest" -->
+                <pathelement path="${icu4j.currdata.jar}"/>
+                <pathelement path="${icu4j.langdata.jar}"/>
+                <pathelement path="${icu4j.regiondata.jar}"/>
             </classpath>
         </java>
     </target>
@@ -234,7 +241,7 @@
 
     <target name="_runLocalespiCheck" depends="localespi, localespi-tests">
         <java classname="com.ibm.icu.dev.test.localespi.TestAll" fork="yes" failonerror="true">
-            <jvmarg line="-Djava.ext.dirs=${icu4j.core.dir}/${jar.dir}${path.separator}${icu4j.localespi.dir}/${jar.dir}${path.separator}${icu4j.collate.dir}/${jar.dir}${path.separator}${java.ext.dirs}"/>
+            <jvmarg line="-Djava.ext.dirs=${icu4j.core.dir}/${jar.dir}${path.separator}${icu4j.localespi.dir}/${jar.dir}${path.separator}${icu4j.collate.dir}/${jar.dir}${path.separator}${icu4j.currdata.dir}/${jar.dir}${path.separator}${icu4j.langdata.dir}/${jar.dir}${path.separator}${icu4j.regiondata.dir}/${jar.dir}${path.separator}${java.ext.dirs}"/>
             <arg value="-n"/>
             <classpath>
                 <pathelement path="${icu4j.localespi-tests.jar}"/>
@@ -360,7 +367,7 @@
         <antcall target="_build-localespi"/>
     </target>
 
-    <target name="_build-localespi" depends="core, collate">
+    <target name="_build-localespi" depends="core, collate, currdata, langdata, regiondata">
         <ant dir="${icu4j.localespi.dir}" inheritAll="false"/>
     </target>
 
@@ -553,13 +560,14 @@
                 <include name="com/ibm/icu/util/**"/>
             </packageset>
             <packageset dir="${icu4j.collate.dir}/src">
-                <include name="com/ibm/icu/**"/>
+                <include name="com/ibm/icu/text/**"/>
+                <include name="com/ibm/icu/util/**"/>
             </packageset>
             <packageset dir="${icu4j.charset.dir}/src">
                 <include name="com/ibm/icu/charset/**"/>
             </packageset>
             <packageset dir="${icu4j.translit.dir}/src">
-                <include name="com/ibm/icu/**"/>
+                <include name="com/ibm/icu/text/**"/>
             </packageset>
             <doclet name="com.ibm.icu.dev.tool.docs.GatherAPIData" path="${icu4j.build-tools.jar}">
                 <param name="-name" value="ICU4J ${icu4j.impl.version}"/>
@@ -987,6 +995,18 @@
             <include name="com/ibm/icu/text/UnicodeSetIterator.java"/>
             <include name="com/ibm/icu/util/CalendarServiceShim.java"/>
         </javac>
+
+        <javac srcdir="${icu4j.regiondata.dir}/src"
+                destdir="${module.bin.dir}"
+                source="${javac.source}"
+                target="${javac.target}"
+                debug="on" deprecation="off"/>
+
+        <javac srcdir="${icu4j.currdata.dir}/src"
+                destdir="${module.bin.dir}"
+                source="${javac.source}"
+                target="${javac.target}"
+                debug="on" deprecation="off"/>
 
         <!-- Format does not require BreakIterator data -->
         <unjar src="${icu4j.data.jar}" dest="${module.bin.dir}">

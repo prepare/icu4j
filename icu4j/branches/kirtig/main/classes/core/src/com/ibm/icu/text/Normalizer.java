@@ -1,15 +1,17 @@
 /*
  *******************************************************************************
- * Copyright (C) 2000-2009, International Business Machines Corporation and    *
+ * Copyright (C) 2000-2010, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
 package com.ibm.icu.text;
 import com.ibm.icu.impl.NormalizerImpl;
+import com.ibm.icu.impl.Norm2AllModes;
 import com.ibm.icu.impl.UCharacterProperty;
 import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.util.VersionInfo;
 
+import java.nio.CharBuffer;
 import java.text.CharacterIterator;
 import com.ibm.icu.impl.Utility;
 
@@ -842,7 +844,7 @@ public final class Normalizer implements Cloneable {
     
     /**
      * Compose a string.
-     * The string will be composed to according the the specified mode.
+     * The string will be composed to according to the specified mode.
      * @param str        The string to compose.
      * @param compat     If true the string will be composed accoding to 
      *                    NFKC rules and if false will be composed according to 
@@ -856,7 +858,7 @@ public final class Normalizer implements Cloneable {
     
     /**
      * Compose a string.
-     * The string will be composed to according the the specified mode.
+     * The string will be composed to according to the specified mode.
      * @param str        The string to compose.
      * @param compat     If true the string will be composed accoding to 
      *                    NFKC rules and if false will be composed according to 
@@ -893,7 +895,7 @@ public final class Normalizer implements Cloneable {
     
     /**
      * Compose a string.
-     * The string will be composed to according the the specified mode.
+     * The string will be composed to according to the specified mode.
      * @param source The char array to compose.
      * @param target A char buffer to receive the normalized text.
      * @param compat If true the char array will be composed accoding to 
@@ -928,7 +930,7 @@ public final class Normalizer implements Cloneable {
     
     /**
      * Compose a string.
-     * The string will be composed to according the the specified mode.
+     * The string will be composed to according to the specified mode.
      * @param src       The char array to compose.
      * @param srcStart  Start index of the source
      * @param srcLimit  Limit index of the source
@@ -972,7 +974,7 @@ public final class Normalizer implements Cloneable {
     
     /**
      * Decompose a string.
-     * The string will be decomposed to according the the specified mode.
+     * The string will be decomposed to according to the specified mode.
      * @param str       The string to decompose.
      * @param compat    If true the string will be decomposed accoding to NFKD 
      *                   rules and if false will be decomposed according to NFD 
@@ -986,7 +988,7 @@ public final class Normalizer implements Cloneable {
     
     /**
      * Decompose a string.
-     * The string will be decomposed to according the the specified mode.
+     * The string will be decomposed to according to the specified mode.
      * @param str     The string to decompose.
      * @param compat  If true the string will be decomposed accoding to NFKD 
      *                 rules and if false will be decomposed according to NFD 
@@ -996,7 +998,9 @@ public final class Normalizer implements Cloneable {
      * @stable ICU 2.6
      */         
     public static String decompose(String str, boolean compat, int options) {
-        
+        if(!compat && options == 0) {
+            return Norm2AllModes.getNFCInstanceNoIOException().decomp.normalize(str);
+        }
         char[] dest = new char[str.length()*MAX_BUF_SIZE_DECOMPOSE];
         int[] trailCC = new int[1];
         int destSize=0;
@@ -1016,7 +1020,7 @@ public final class Normalizer implements Cloneable {
     
     /**
      * Decompose a string.
-     * The string will be decomposed to according the the specified mode.
+     * The string will be decomposed to according to the specified mode.
      * @param source The char array to decompose.
      * @param target A char buffer to receive the normalized text.
      * @param compat If true the char array will be decomposed accoding to NFKD 
@@ -1030,21 +1034,12 @@ public final class Normalizer implements Cloneable {
      * @stable ICU 2.6
      */
     public static int decompose(char[] source,char[] target, boolean compat, int options) {
-        int[] trailCC = new int[1];
-        UnicodeSet nx = NormalizerImpl.getNX(options);
-        int length = NormalizerImpl.decompose(source,0,source.length,
-                                              target,0,target.length,
-                                              compat,trailCC,nx);
-        if(length<=target.length) {
-            return length;
-        } else {
-            throw new IndexOutOfBoundsException(Integer.toString(length));
-        } 
+        return decompose(source, 0, source.length, target, 0, target.length, compat, options);
     }
     
     /**
      * Decompose a string.
-     * The string will be decomposed to according the the specified mode.
+     * The string will be decomposed to according to the specified mode.
      * @param src       The char array to compose.
      * @param srcStart  Start index of the source
      * @param srcLimit  Limit index of the source
@@ -1064,6 +1059,12 @@ public final class Normalizer implements Cloneable {
     public static int decompose(char[] src,int srcStart, int srcLimit,
                                 char[] dest,int destStart, int destLimit,
                                 boolean compat, int options) {
+        if(!compat && options == 0) {
+            CharBuffer srcBuffer = CharBuffer.wrap(src, srcStart, srcLimit - srcStart);
+            CharsAppendable app = new CharsAppendable(dest, destStart, destLimit);
+            Norm2AllModes.getNFCInstanceNoIOException().decomp.normalize(srcBuffer, app);
+            return app.length();
+        }
         int[] trailCC = new int[1];
         UnicodeSet nx = NormalizerImpl.getNX(options);
         int length = NormalizerImpl.decompose(src,srcStart,srcLimit,
@@ -1075,7 +1076,7 @@ public final class Normalizer implements Cloneable {
             throw new IndexOutOfBoundsException(Integer.toString(length));
         } 
     }
-        
+
     private static String makeFCD(String src,int options) {
         int srcLen = src.length();
         char[] dest = new char[MAX_BUF_SIZE_DECOMPOSE*srcLen];
@@ -1108,12 +1109,15 @@ public final class Normalizer implements Cloneable {
      * @stable ICU 2.6
      */
     public static String normalize(String str, Mode mode, int options) {
+        if(mode == NFD && options == 0) {
+            return Norm2AllModes.getNFCInstanceNoIOException().decomp.normalize(str);
+        }
         return mode.normalize(str,options);
     }
     
     /**
      * Normalize a string.
-     * The string will be normalized according the the specified normalization 
+     * The string will be normalized according to the specified normalization 
      * mode and options.
      * @param src        The string to normalize.
      * @param mode       The normalization mode; one of Normalizer.NONE, 
@@ -1128,7 +1132,7 @@ public final class Normalizer implements Cloneable {
     }
     /**
      * Normalize a string.
-     * The string will be normalized according the the specified normalization 
+     * The string will be normalized according to the specified normalization 
      * mode and options.
      * @param source The char array to normalize.
      * @param target A char buffer to receive the normalized text.
@@ -1143,17 +1147,12 @@ public final class Normalizer implements Cloneable {
      * @stable ICU 2.6     
      */
     public static int normalize(char[] source,char[] target, Mode  mode, int options) {
-        int length = normalize(source,0,source.length,target,0,target.length,mode, options);
-        if(length<=target.length) {
-            return length;
-        } else {
-            throw new IndexOutOfBoundsException(Integer.toString(length));
-        } 
+        return normalize(source,0,source.length,target,0,target.length,mode, options);
     }
-    
+
     /**
      * Normalize a string.
-     * The string will be normalized according the the specified normalization
+     * The string will be normalized according to the specified normalization
      * mode and options.
      * @param src       The char array to compose.
      * @param srcStart  Start index of the source
@@ -1174,8 +1173,14 @@ public final class Normalizer implements Cloneable {
     public static int normalize(char[] src,int srcStart, int srcLimit, 
                                 char[] dest,int destStart, int destLimit,
                                 Mode  mode, int options) {
+        if(mode == NFD && options == 0) {
+            CharBuffer srcBuffer = CharBuffer.wrap(src, srcStart, srcLimit - srcStart);
+            CharsAppendable app = new CharsAppendable(dest, destStart, destLimit);
+            Norm2AllModes.getNFCInstanceNoIOException().decomp.normalize(srcBuffer, app);
+            return app.length();
+        }
         int length = mode.normalize(src,srcStart,srcLimit,dest,destStart,destLimit, options);
-       
+
         if(length<=(destLimit-destStart)) {
             return length;
         } else {
@@ -1184,10 +1189,10 @@ public final class Normalizer implements Cloneable {
     }
     
     /**
-     * Normalize a codepoint accoding to the given mode
+     * Normalize a codepoint according to the given mode
      * @param char32    The input string to be normalized.
      * @param mode      The normalization mode
-     * @param options   Options for use with exclusion set an tailored Normalization
+     * @param options   Options for use with exclusion set and tailored Normalization
      *                                   The only option that is currently recognized is UNICODE_3_2
      * @return String   The normalized string
      * @stable ICU 2.6
@@ -1200,11 +1205,10 @@ public final class Normalizer implements Cloneable {
     }
 
     /**
-     * Conveinience method to normalize a codepoint accoding to the given mode
+     * Convenience method to normalize a codepoint according to the given mode
      * @param char32    The input string to be normalized.
      * @param mode      The normalization mode
      * @return String   The normalized string
-     * @see #UNICODE_3_2                
      * @stable ICU 2.6
      */
     // TODO: actually do the optimization when the guts of Normalizer are 
@@ -2807,10 +2811,57 @@ public final class Normalizer implements Cloneable {
     /**
      * Fetches the Unicode version burned into the Normalization data file
      * @return VersionInfo version information of the normalizer
-     * @internal
-     * @deprecated This API is ICU internal only.
      */
     static VersionInfo getUnicodeVersion() {
         return NormalizerImpl.getUnicodeVersion();
+    }
+
+    /**
+     * An Appendable that writes into a char array with a capacity that may be
+     * less than array.length.
+     * (By contrast, CharBuffer will write beyond destLimit all the way up to array.length.)
+     * <p>
+     * An overflow is only reported at the end, for the old Normalizer API functions that write
+     * to char arrays.
+     */
+    private static final class CharsAppendable implements Appendable {
+        public CharsAppendable(char[] dest, int destStart, int destLimit) {
+            chars=dest;
+            start=offset=destStart;
+            limit=destLimit;
+        }
+        public int length() {
+            int len=offset-start;
+            if(offset<=limit) {
+                return len;
+            } else {
+                throw new IndexOutOfBoundsException(Integer.toString(len));
+            }
+        }
+        public Appendable append(char c) {
+            if(offset<limit) {
+                chars[offset]=c;
+            }
+            ++offset;
+            return this;
+        }
+        public Appendable append(CharSequence s) {
+            return append(s, 0, s.length());
+        }
+        public Appendable append(CharSequence s, int sStart, int sLimit) {
+            int len=sLimit-sStart;
+            if(len<=(limit-offset)) {
+                while(sStart<sLimit) {  // TODO: Is there a better way to copy the characters?
+                    chars[offset++]=s.charAt(sStart++);
+                }
+            } else {
+                offset+=len;
+            }
+            return this;
+        }
+
+        private final char[] chars;
+        private final int start, limit;
+        private int offset;
     }
 }
