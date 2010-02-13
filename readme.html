@@ -7,20 +7,24 @@
   <meta name="COPYRIGHT" content="Copyright 2000-2010, International Business Machines Corporation and others. All Rights Reserved.">
   <style type="text/css">
 h3.doc { background: #CCCCFF }
+h4.doc { text-decoration: underline }
   </style>
 </head>
 <body style="background-color: rgb(255, 255, 255);" lang="EN-US"
  link="#0000ff" vlink="#800080">
 <h2>International Components for Unicode for Java (ICU4J)</h2>
-<h3>Read Me for ICU4J 4.4M4</h3>
+<h3>Read Me for ICU4J 4.2.1.1</h3>
 <hr size="2" width="100%">
 <p><b>Release Date</b><br>
-January 22, 2010<br>
+February 12, 2010<br>
 </p>
+<!-- <p><b>Note:</b> This is major release of ICU4J.  It contains bug fixes
+and adds implementations of inherited API and introduces new API
+or functionality. -->
 
-<p><b>Note:</b> This is a development milestone release of ICU4J 4.4.
-The official release of ICU4J 4.4 is planned in March 2010.
-Following contents may be out of date.
+<p><b>Note:</b> This is an update release of ICU4J 4.2.  This release contains
+several bug fixes and updated data, but does not introduce any new APIs or
+functionalities.
 </p>
 
 <p>For the most recent release, see the <a
@@ -130,11 +134,46 @@ current and complete version is always found in ICU4J.</p>
 
 <h3 class="doc"><a name="news"></a>What Is New In This Release?</h3>
 <p>
-See the <a href="http://www.icu-project.org/download/latest_milestone.html">ICU 4.4 milestone download page</a> about
+See the <a href="http://www.icu-project.org/download/">ICU 4.2 download page</a> about
 new features in this release.  The list of API changes since the previous ICU4J release
 is available
-<a href="http://source.icu-project.org/repos/icu/icu4j/tags/milestone-4-3-2/APIChangeReport.html">here</a>.
+<a href="http://source.icu-project.org/repos/icu/icu4j/tags/release-4-2/APIChangeReport.html">here</a>.
 </p>
+
+<h4 class="doc">Summary of changes in 4.2.1.1 (February 12, 2010)</h4>
+<p><b>Time zone data update</b></p>
+<p>ICU4J 4.2.1.1 updates the time zone data to version
+<a href="http://source.icu-project.org/repos/icu/data/trunk/tzdata/icu/2010b/">2010b</a>
+from the Olson tz database.</p>
+
+<p><b>Bug fixes</b></p>
+<p>This release contains following bug fixes ported from ICU4J 4.4 development code stream
+<ul>
+<li><a href="http://bugs.icu-project.org/trac/ticket/7107">#7107</a> Synchronization issue in TimeZone.getDisplayName</li>
+<li><a href="http://bugs.icu-project.org/trac/ticket/7137">#7137</a> ICU4J SimpleDateFormat takes too much time for initializing DateFormatSymbols</li>
+<li><a href="http://bugs.icu-project.org/trac/ticket/7140">#7140</a> SimpleDateFormat constructor takes too much time on initializing NumberingSystem</li>
+<li><a href="http://bugs.icu-project.org/trac/ticket/7169">#7169</a> DatTimePatternGenerator threading problem</li>
+</ul>
+
+
+<h4 class="doc">Summary of changes in 4.2.1 (July 1, 2009)</h4>
+<p><b>Locale data update</b></p>
+<p>ICU4J 4.2.1 updates the CLDR version to
+<a href="http://cldr.unicode.org/index/downloads/cldr-1-7-1">1.7.1</a>.</p>
+
+<p><b>Time zone data update</b></p>
+<p>ICU4J 4.2.1 updates the time zone data to version
+<a href="http://source.icu-project.org/repos/icu/data/trunk/tzdata/icu/2009j/">2009j</a>
+from the Olson tz database.</p>
+
+<p><b>Bug fixes</b></p>
+<p>This release contains following bug fixes (not a complete list)
+<ul>
+<li><a href="http://bugs.icu-project.org/trac/ticket/6918">#6918</a> Date formatting should honor @numbers</li>
+<li><a href="http://bugs.icu-project.org/trac/ticket/7014">#7014</a> TimeZone.getTimeZone("Asia/Amman") returns GMT with tzdata 2009i</li>
+<li><a href="http://bugs.icu-project.org/trac/ticket/7017">#7017</a> ICU4J time zone test failure with tzdata2009i</li>
+</ul>
+
 <h3 class="doc"><a name="license"></a>License Information</h3>
 <p>
 The ICU projects (ICU4C and ICU4J) use the X license. The X
@@ -175,33 +214,50 @@ used by the ICU development team.
 <table bgcolor="#CCCCFF">
 <tr>
   <th rowspan="2" bgcolor="#FFFFFF">Operating System</th>
-  <th colspan="2" bgcolor="#FFFFFF">Sun Java SE</th>
-  <th colspan="2" bgcolor="#FFFFFF">IBM Java SE</th>
+  <th colspan="3" bgcolor="#FFFFFF">Sun Java SE</th>
+  <th colspan="3" bgcolor="#FFFFFF">IBM Java SE</th>
 </tr>
 <tr>
   <th bgcolor="#FFFFFF">1.6.0</th>
   <th bgcolor="#FFFFFF">1.5.0</th>
+  <th bgcolor="#FFFFFF">1.4.2</th>
   <th bgcolor="#FFFFFF">1.6.0</th>
   <th bgcolor="#FFFFFF">1.5.0</th>
+  <th bgcolor="#FFFFFF">1.4.2</th>
+</tr>
+<tr>
+  <th bgcolor="#FFFFFF">AIX 5.2</th>
+  <td align="center" bgcolor="#FFFFFF">-</td>
+  <td align="center" bgcolor="#FFFFFF">-</td>
+  <td align="center" bgcolor="#FFFFFF">-</td>
+  <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
+  <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
+  <td align="center" bgcolor="#DDDDFF">Rarely tested</td>
 </tr>
 <tr>
   <th bgcolor="#FFFFFF">AIX 5.3</th>
   <td align="center" bgcolor="#FFFFFF">-</td>
   <td align="center" bgcolor="#FFFFFF">-</td>
+  <td align="center" bgcolor="#FFFFFF">-</td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
+  <td align="center" bgcolor="#DDDDFF">Rarely tested</td>
 </tr>
 <tr>
   <th bgcolor="#FFFFFF">AIX 6.1</th>
   <td align="center" bgcolor="#FFFFFF">-</td>
   <td align="center" bgcolor="#FFFFFF">-</td>
+  <td align="center" bgcolor="#FFFFFF">-</td>
   <td align="center" bgcolor="#CCCCFF"><em><b>Reference platform</b></em></td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
+  <td align="center" bgcolor="#DDDDFF">Rarely tested</td>
 </tr>
 <tr>
   <th bgcolor="#FFFFFF">HP-UX 11 (PA-RISC)</th>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
+  <td align="center" bgcolor="#DDDDFF">Rarely tested</td>
+  <td align="center" bgcolor="#FFFFFF">-</td>
   <td align="center" bgcolor="#FFFFFF">-</td>
   <td align="center" bgcolor="#FFFFFF">-</td>
 </tr>
@@ -209,6 +265,8 @@ used by the ICU development team.
   <th bgcolor="#FFFFFF">HP-UX 11 (IA64)</th>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
+  <td align="center" bgcolor="#DDDDFF">Rarely tested</td>
+  <td align="center" bgcolor="#FFFFFF">-</td>
   <td align="center" bgcolor="#FFFFFF">-</td>
   <td align="center" bgcolor="#FFFFFF">-</td>
 </tr>
@@ -216,20 +274,26 @@ used by the ICU development team.
   <th bgcolor="#FFFFFF">Redhat Enterprise Linux 4 (x86)</th>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
+  <td align="center" bgcolor="#DDDDFF">Rarely tested</td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
+  <td align="center" bgcolor="#DDDDFF">Rarely tested</td>
 </tr>
 <tr bgcolor="#FFFFFF">
   <th>Redhat Enterprise Linux 5 (x86)</th>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
+  <td align="center" bgcolor="#DDDDFF">Rarely tested</td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
+  <td align="center" bgcolor="#DDDDFF">Rarely tested</td>
 </tr>
 <tr bgcolor="#FFFFFF">
   <th>Solaris 9 (SPARC)</th>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
+  <td align="center" bgcolor="#DDDDFF">Rarely tested</td>
+  <td align="center" bgcolor="#FFFFFF">-</td>
   <td align="center" bgcolor="#FFFFFF">-</td>
   <td align="center" bgcolor="#FFFFFF">-</td>
 </tr>
@@ -237,6 +301,8 @@ used by the ICU development team.
   <th>Solaris 10 (SPARC)</th>
   <td align="center" bgcolor="#CCCCFF"><em><b>Reference platform</b></em></td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
+  <td align="center" bgcolor="#DDDDFF">Rarely tested</td>
+  <td align="center" bgcolor="#FFFFFF">-</td>
   <td align="center" bgcolor="#FFFFFF">-</td>
   <td align="center" bgcolor="#FFFFFF">-</td>
 </tr>
@@ -244,22 +310,28 @@ used by the ICU development team.
   <th bgcolor="#FFFFFF">Windows XP</th>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
+  <td align="center" bgcolor="#DDDDFF">Rarely tested</td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
+  <td align="center" bgcolor="#DDDDFF">Rarely tested</td>
 </tr>
 <tr>
   <th bgcolor="#FFFFFF">Windows Vista</th>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
+  <td align="center" bgcolor="#DDDDFF">Rarely tested</td>
   <td align="center" bgcolor="#CCCCFF"><em><b>Reference platform</b></em></td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
+  <td align="center" bgcolor="#DDDDFF">Rarely tested</td>
 </tr>
 <tr>
   <th bgcolor="#FFFFFF">Windows 2008 Server</th>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
+  <td align="center" bgcolor="#DDDDFF">Rarely tested</td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
+  <td align="center" bgcolor="#DDDDFF">Rarely tested</td>
 </tr>
 </table>
 
@@ -700,10 +772,7 @@ file.</p>
 <p>After doing a build it is a good idea to run all the icu4j tests by
 typing<br>
 <tt>"ant check"</tt> or
-"java -classpath classes com.ibm.icu.dev.test.TestAll -nothrow".<br>
-<b>Note:</b> If you get a OutOfMemoryError when you are running <tt>"ant check"</tt>, you can <br>
-set the heap size of the jvm by setting the environment variable JVM_OPTIONS<br>
-to the appropriate java options.</p>
+"java -classpath classes com.ibm.icu.dev.test.TestAll -nothrow".</p>
 
 <p><b>Eclipse users:</b> See the ICU4J site for information on<a
  href="http://www.icu-project.org/docs/eclipse_howto/eclipse_howto.html">
@@ -937,7 +1006,7 @@ ICU4J data is built by ICU4C tools. Please see "icu4j-readme.txt" in <I>$icu4c_r
 </ol>
 
 <h3 class="doc"><a name="timezone"></a>About ICU4J Time Zone</h3>
-<p>ICU4J 4.4M4 includes time zone data version 2010a, which is the latest one as of
+<p>ICU4J 4.2 includes time zone data version 2009g, which is the latest one as of
 the release date.  However, time zone data is frequently updated in response
 to changes made by local governments around the world.  If you need to update
 the time zone data, please refer the ICU user guide topic
