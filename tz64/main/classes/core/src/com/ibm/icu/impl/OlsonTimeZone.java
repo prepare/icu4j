@@ -591,7 +591,7 @@ public class OlsonTimeZone extends BasicTimeZone {
             int NonExistingTimeOpt, int DuplicatedTimeOpt, int[] offsets) {
         if (transitionCount != 0) {
             long sec = Grego.floorDivide(date, Grego.MILLIS_PER_SECOND);
-            if (sec < transitionTimes[0]) {
+            if (!local && sec < transitionTimes[0]) {
                 // Before the first transition time
                 offsets[0] = initialRawOffset() * Grego.MILLIS_PER_SECOND;
                 offsets[1] = initialDstOffset() * Grego.MILLIS_PER_SECOND;
@@ -599,7 +599,7 @@ public class OlsonTimeZone extends BasicTimeZone {
                 // Linear search from the end is the fastest approach, since
                 // most lookups will happen at/near the end.
                 int transIdx;
-                for (transIdx = transitionCount - 1; transIdx > 0; transIdx--) {
+                for (transIdx = transitionCount - 1; transIdx >= 0; transIdx--) {
                     long transition = transitionTimes[transIdx];
                     if (local) {
                         int offsetBefore = zoneOffsetAt(transIdx - 1);
@@ -647,6 +647,7 @@ public class OlsonTimeZone extends BasicTimeZone {
                         break;
                     }
                 }
+                // transIdx could be -1 when local=true
                 offsets[0] = rawOffsetAt(transIdx) * Grego.MILLIS_PER_SECOND;
                 offsets[1] = dstOffsetAt(transIdx) * Grego.MILLIS_PER_SECOND;
             }
