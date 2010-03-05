@@ -9,7 +9,7 @@ package com.ibm.icu.dev.test.text;
 import com.ibm.icu.dev.test.TestFmwk.TestGroup;
 
 /**
- * Top level test used to run character property tests.
+ * Top level test used to run text tests.
  */
 public class TestAll extends TestGroup {
     public static void main(String[] args) throws Exception {
@@ -24,5 +24,5 @@ public class TestAll extends TestGroup {
               "Text Tests");
     }
 
-    public static final String CLASS_TARGET_NAME = "Spoof";
+    public static final String CLASS_TARGET_NAME = "SpoofChecker";
 }
