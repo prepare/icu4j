@@ -10,21 +10,19 @@ import com.ibm.icu.dev.test.TestFmwk;
 import com.ibm.icu.dev.test.TestUtil;
 import com.ibm.icu.impl.Utility;
 import com.ibm.icu.text.SpoofChecker;
-import com.ibm.icu.text.UTF16;
 import com.ibm.icu.text.UnicodeSet;
 import com.ibm.icu.util.ULocale;
 import java.util.Set;
 import java.util.LinkedHashSet;
 import java.io.File;
 import java.io.Reader;
-import java.io.FileReader;
 
 
 public class SpoofCheckerTest extends TestFmwk {
 
-    public static void main(String[] args) throws Exception {
-        new SpoofCheckerTest().run(args);
-    }
+  public static void main(String[] args) throws Exception {
+    new SpoofCheckerTest().run(args);
+  }
 
   void TEST_ASSERT(boolean expr) {
     if ((expr)==false) {
@@ -96,17 +94,17 @@ public class SpoofCheckerTest extends TestFmwk {
   char[] lll_SkelChars = {(char)0x31, (char)0x31, (char)0x31};
   String lll_Skel = new String(lll_SkelChars);
 
-    /*
-     *  basic ctor
-     */
+  /*
+   *  Test basic constructor.
+   */
   public void TestUSpoof() {
     setup();
     teardown();
   }
 
-    /*
-     *  Test build from source rules.
-     */
+  /*
+   *  Test build from source rules.
+   */
   public void TestOpenFromSourceRules() {
     setup();
     String fileName;
@@ -127,54 +125,12 @@ public class SpoofCheckerTest extends TestFmwk {
       errln("Create from source rules failed: data format error.");
     }
     rsc = null;
-    /*  printf("ParseError Line is %d\n", pe.line);  */
     teardown();
   }
 
-    /*
-     * openFromSerialized and serialize
-     */
-    /*
-      setup();
-      int        serializedSize = 0;
-      int        actualLength = 0;
-      char           *buf;
-      SpoofChecker  *sc2;
-      int         checkResults;
-
-
-      serializedSize = uspoof_serialize(sc, null, 0, &status);
-      TEST_ASSERT_EQ(status, U_BUFFER_OVERFLOW_ERROR);
-      TEST_ASSERT(serializedSize > 0);
-
-      // Serialize the default spoof checker
-      status = U_ZERO_ERROR;
-      buf = (char *)malloc(serializedSize + 10);
-      TEST_ASSERT(buf != null);
-      buf[serializedSize] = 42;
-      uspoof_serialize(sc, buf, serializedSize, &status);
-      TEST_ASSERT_EQ(42, buf[serializedSize]);
-
-      // Create a new spoof checker from the freshly serialized data
-      sc2 = uspoof_openFromSerialized(buf, serializedSize+10, &actualLength, &status);
-      TEST_ASSERT_NE(null, sc2);
-      TEST_ASSERT_EQ(serializedSize, actualLength);
-
-      // Verify that the new spoof checker at least wiggles
-      checkResults = sc2.check(goodLatin);
-      TEST_ASSERT_EQ(0, checkResults);
-
-      checkResults = sc2.check(scMixed);
-      TEST_ASSERT_EQ(SpoofChecker.SINGLE_SCRIPT | SpoofChecker.MIXED_SCRIPT_CONFUSABLE, checkResults);
-
-      uspoof_close(sc2);
-      teardown();
-    */ 
-
-
-    /*
-     * Set & Get Check Flags
-     */
+  /*
+   * Set & Get Check Flags
+   */
   public void TestGetSetChecks1() {
     setup();
     int t;
@@ -193,9 +149,9 @@ public class SpoofCheckerTest extends TestFmwk {
     teardown();
   }
 
-    /*
-     * get & setAllowedChars
-     */
+  /*
+   * get & setAllowedChars
+   */
   public void TestGetSetAllowedChars() {
     setup();
     UnicodeSet us;
@@ -210,36 +166,9 @@ public class SpoofCheckerTest extends TestFmwk {
     teardown();
   }
 
-    /*
-     *  clone()
-     */
-    /*
-      setup();
-      SpoofChecker clone1 = null;
-      SpoofChecker clone2 = null;
-      int        checkResults = 0;
-
-      clone1 = uspoof_clone(sc, &status);
-      TEST_ASSERT_NE(clone1, sc);
-
-      clone2 = uspoof_clone(clone1, &status);
-      TEST_ASSERT_NE(clone2, clone1);
-
-      uspoof_close(clone1);
-
-      // Verify that the cloned spoof checker is alive
-      checkResults = clone2.check(goodLatin);
-      TEST_ASSERT_EQ(0, checkResults);
-
-      checkResults = clone2.check(scMixed);
-      TEST_ASSERT_EQ(SpoofChecker.SINGLE_SCRIPT | SpoofChecker.MIXED_SCRIPT_CONFUSABLE, checkResults);
-      uspoof_close(clone2);
-      teardown();
-    */
-
-    /*
-     *  get & set Checks
-     */
+  /*
+   *  get & set Checks
+   */
   public void TestGetSetChecks() {
     setup();
     int   checks;
@@ -261,9 +190,9 @@ public class SpoofCheckerTest extends TestFmwk {
     teardown();
   }
 
-    /*
-     *  AllowedLoacles
-     */
+  /*
+   *  AllowedLoacles
+   */
   public void TestAllowedLoacles() {
     setup();
     Set<ULocale> allowedLocales = new LinkedHashSet<ULocale>();
@@ -431,14 +360,14 @@ public class SpoofCheckerTest extends TestFmwk {
     setup();
     // A long "identifier" that will overflow implementation stack buffers, forcing heap allocations.
     checkSkeleton(sc, SL,
-        " A long 'identifier' that will overflow implementation stack buffers, forcing heap allocations."
-      + " A long 'identifier' that will overflow implementation stack buffers, forcing heap allocations."
-      + " A long 'identifier' that will overflow implementation stack buffers, forcing heap allocations."
-      + " A long 'identifier' that will overflow implementation stack buffers, forcing heap allocations.",
-        " A 1ong \\u02b9identifier\\u02b9 that wi11 overf1ow imp1ementation stack buffers, forcing heap a11ocations."
-      + " A 1ong \\u02b9identifier\\u02b9 that wi11 overf1ow imp1ementation stack buffers, forcing heap a11ocations."
-      + " A 1ong \\u02b9identifier\\u02b9 that wi11 overf1ow imp1ementation stack buffers, forcing heap a11ocations."
-      + " A 1ong \\u02b9identifier\\u02b9 that wi11 overf1ow imp1ementation stack buffers, forcing heap a11ocations.");
+                  " A long 'identifier' that will overflow implementation stack buffers, forcing heap allocations."
+                  + " A long 'identifier' that will overflow implementation stack buffers, forcing heap allocations."
+                  + " A long 'identifier' that will overflow implementation stack buffers, forcing heap allocations."
+                  + " A long 'identifier' that will overflow implementation stack buffers, forcing heap allocations.",
+                  " A 1ong \\u02b9identifier\\u02b9 that wi11 overf1ow imp1ementation stack buffers, forcing heap a11ocations."
+                  + " A 1ong \\u02b9identifier\\u02b9 that wi11 overf1ow imp1ementation stack buffers, forcing heap a11ocations."
+                  + " A 1ong \\u02b9identifier\\u02b9 that wi11 overf1ow imp1ementation stack buffers, forcing heap a11ocations."
+                  + " A 1ong \\u02b9identifier\\u02b9 that wi11 overf1ow imp1ementation stack buffers, forcing heap a11ocations.");
 
     // FC5F ;	FE74 0651 ;   ML  #* ARABIC LIGATURE SHADDA WITH KASRATAN ISOLATED FORM to
     //                                ARABIC KASRATAN ISOLATED FORM, ARABIC SHADDA	
@@ -506,9 +435,9 @@ public class SpoofCheckerTest extends TestFmwk {
   public void TestAreConfusable() {
     setup();
     String s1 = "A long string that will overflow stack buffers.  A long string that will overflow stack buffers. " +
-                "A long string that will overflow stack buffers.  A long string that will overflow stack buffers. ";
+        "A long string that will overflow stack buffers.  A long string that will overflow stack buffers. ";
     String s2 = "A long string that wi11 overflow stack buffers.  A long string that will overflow stack buffers. " +
-                "A long string that wi11 overflow stack buffers.  A long string that will overflow stack buffers. ";
+        "A long string that wi11 overflow stack buffers.  A long string that will overflow stack buffers. ";
     TEST_ASSERT_EQ(SpoofChecker.SINGLE_SCRIPT_CONFUSABLE, sc.areConfusable(s1, s2));
     teardown();
   }

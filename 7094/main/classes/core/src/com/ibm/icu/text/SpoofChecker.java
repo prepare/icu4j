@@ -4,7 +4,7 @@
 * and others. All Rights Reserved.
 ***************************************************************************
 *
-*   Unicode Spoof Detection
+* Unicode Spoof Detection
 */
 package com.ibm.icu.text;
 
@@ -247,7 +247,7 @@ public class SpoofChecker {
      * Constructor: Create a Spoof Checker Builder, and set the
      * configuration from an existing SpoofChecker.
      * 
-     * @param checker The existing checker.
+     * @param src The existing checker.
      * @draft ICU 4.4
      */
     public Builder(SpoofChecker src) {
@@ -463,6 +463,865 @@ public class SpoofChecker {
       fChecks |= CHAR_LIMIT;
       return this;
     }
+
+    // Structure for the Whole Script Confusable Data
+    // See Unicode UAX-39, Unicode Security Mechanisms, for a description of the
+    // Whole Script confusable data
+    //
+    // The data provides mappings from code points to a set of scripts
+    // that contain characters that might be confused with the code point.
+    // There are two mappings, one for lower case only, and one for characters
+    // of any case.
+    //
+    // The actual data consists of a utrie2 to map from a code point to an offset,
+    // and an array of UScriptSets (essentially bit maps) that is indexed
+    // by the offsets obtained from the Trie.
+    //
+    //
+
+    /*
+     * Internal functions for compililing Whole Script confusable source data into
+     * its binary (runtime) form. The binary data format is described in
+     * uspoof_impl.h
+     */
+    private static class WSConfusableDataBuilder {
+
+      // Regular expression for parsing a line from the Unicode file
+      // confusablesWholeScript.txt
+      // Example Lines:
+      // 006F ; Latn; Deva; A # (o) LATIN SMALL LETTER O
+      // 0048..0049 ; Latn; Grek; A # [2] (H..I) LATIN CAPITAL LETTER H..LATIN
+      // CAPITAL LETTER I
+      // | | | |
+      // | | | |---- Which table, Any Case or Lower Case (A or L)
+      // | | |----------Target script. We need this.
+      // | |----------------Src script. Should match the script of the source
+      // | code points. Beyond checking that, we don't keep it.
+      // |--------------------------------Source code points or range.
+      //
+      // The expression will match _all_ lines, including erroneous lines.
+      // The result of the parse is returned via the contents of the (match)
+      // groups.
+      static String parseExp =
+
+          "(?m)" + // Multi-line mode
+          "^([ \\t]*(?:#.*?)?)$" + // A blank or comment line. Matches Group
+          // 1.
+          "|^(?:" + // OR
+          "\\s*([0-9A-F]{4,})(?:..([0-9A-F]{4,}))?\\s*;" + // Code point
+          // range. Groups
+          // 2 and 3.
+          "\\s*([A-Za-z]+)\\s*;" + // The source script. Group 4.
+          "\\s*([A-Za-z]+)\\s*;" + // The target script. Group 5.
+          "\\s*(?:(A)|(L))" + // The table A or L. Group 6 or 7
+          "[ \\t]*(?:#.*?)?" + // Trailing commment
+          ")$|" + // OR
+          "^(.*?)$"; // An error line. Group 8.
+
+      // Any line not matching the preceding
+      // parts of the expression.will match
+      // this, and thus be flagged as an error
+
+      // Extract a regular expression match group into a char * string.
+      // The group must contain only invariant characters.
+      // Used for script names
+      // 
+
+      static void readWholeFileToString(Reader reader, StringBuffer buffer)
+          throws java.io.IOException {
+        // Convert the user input data from UTF-8 to char (UTF-16)
+        LineNumberReader lnr = new LineNumberReader(reader);
+        do {
+          String line = lnr.readLine();
+          if (line == null) {
+            break;
+          }
+          buffer.append(line);
+          buffer.append('\n');
+        } while (true);
+      }
+
+      // Build the Whole Script Confusable data
+      //
+      // TODO: Reorganize. Either get rid of the WSConfusableDataBuilder class,
+      // because everything is local to this one build function anyhow,
+      // OR
+      // break this function into more reasonably sized pieces, with
+      // state in WSConfusableDataBuilder.
+      //
+      static void buildWSConfusableData(SpoofData fSpoofData,
+                                        DataOutputStream os, Reader confusablesWS)
+          throws SpoofChecker.SpoofCheckerException, java.io.IOException {
+        Pattern parseRegexp = null;
+        StringBuffer input = new StringBuffer();
+        int lineNum = 0;
+
+        Vector<BuilderScriptSet> scriptSets = null;
+        int rtScriptSetsCount = 2;
+
+        Trie2Writable anyCaseTrie = new Trie2Writable(0, 0);
+        Trie2Writable lowerCaseTrie = new Trie2Writable(0, 0);
+
+        // The scriptSets vector provides a mapping from TRIE values to the set
+        // of scripts.
+        //
+        // Reserved TRIE values:
+        // 0: Code point has no whole script confusables.
+        // 1: Code point is of script Common or Inherited.
+        // These code points do not participate in whole script confusable
+        // detection.
+        // (This is logically equivalent to saying that they contain confusables
+        // in all scripts)
+        //
+        // Because Trie values are indexes into the ScriptSets vector, pre-fill
+        // vector positions 0 and 1 to avoid conflicts with the reserved values.
+        scriptSets = new Vector<BuilderScriptSet>();
+        scriptSets.addElement(null);
+        scriptSets.addElement(null);
+
+        readWholeFileToString(confusablesWS, input);
+
+        parseRegexp = Pattern.compile(parseExp);
+
+        // Zap any Byte Order Mark at the start of input. Changing it to a space
+        // is benign
+        // given the syntax of the input.
+        if (input.charAt(0) == 0xfeff) {
+          input.setCharAt(0, (char)0x20);
+        }
+
+        // Parse the input, one line per iteration of this loop.
+        Matcher matcher = parseRegexp.matcher(input);
+        while (matcher.find()) {
+          lineNum++;
+          if (matcher.start(1) >= 0) {
+            // this was a blank or comment line.
+            continue;
+          }
+          if (matcher.start(8) >= 0) {
+            // input file syntax error.
+            // status = U_PARSE_ERROR;
+            throw new SpoofChecker.SpoofCheckerException();
+          }
+
+          // Pick up the start and optional range end code points from the
+          // parsed line.
+          int startCodePoint = SpoofChecker.ScanHex(matcher.group(2));
+          int endCodePoint = startCodePoint;
+          if (matcher.start(3) >= 0) {
+            endCodePoint = SpoofChecker.ScanHex(matcher.group(3));
+          }
+
+          // Extract the two script names from the source line. We need these
+          // in an 8 bit
+          // default encoding (will be EBCDIC on IBM mainframes) in order to
+          // pass them on
+          // to the ICU u_getPropertyValueEnum() function. Ugh.
+          String srcScriptName = matcher.group(4);
+          String targScriptName = matcher.group(5);
+          int srcScript = UCharacter.getPropertyValueEnum(UProperty.SCRIPT,
+                                                          srcScriptName);
+          int targScript = UCharacter.getPropertyValueEnum(UProperty.SCRIPT,
+                                                           targScriptName);
+          if (srcScript == UScript.INVALID_CODE
+              || targScript == UScript.INVALID_CODE) {
+            // status = U_INVALID_FORMAT_ERROR;
+            throw new SpoofChecker.SpoofCheckerException();
+          }
+
+          // select the table - (A) any case or (L) lower case only
+          Trie2Writable table = anyCaseTrie;
+          if (matcher.start(7) >= 0) {
+            table = lowerCaseTrie;
+          }
+
+          // Build the set of scripts containing confusable characters for
+          // the code point(s) specified in this input line.
+          // Sanity check that the script of the source code point is the same
+          // as the source script indicated in the input file. Failure of this
+          // check is
+          // an error in the input file.
+          // Include the source script in the set (needed for Mixed Script
+          // Confusable detection).
+          //
+          int cp;
+          for (cp = startCodePoint; cp <= endCodePoint; cp++) {
+            int setIndex = table.get(cp);
+            BuilderScriptSet bsset = null;
+            if (setIndex > 0) {
+              assert (setIndex < scriptSets.size());
+              bsset = scriptSets.elementAt(setIndex);
+            } else {
+              bsset = new BuilderScriptSet();
+              bsset.codePoint = cp;
+              bsset.trie = table;
+              bsset.sset = new ScriptSet();
+              setIndex = scriptSets.size();
+              bsset.index = setIndex;
+              bsset.rindex = 0;
+              scriptSets.addElement(bsset);
+              table.set(cp, setIndex);
+            }
+            bsset.sset.Union(targScript);
+            bsset.sset.Union(srcScript);
+
+            int cpScript = UScript.getScript(cp);
+            if (cpScript != srcScript) {
+              // status = U_INVALID_FORMAT_ERROR;
+              throw new SpoofChecker.SpoofCheckerException();
+            }
+          }
+        }
+
+        // Eliminate duplicate script sets. At this point we have a separate
+        // script set for every code point that had data in the input file.
+        //
+        // We eliminate underlying ScriptSet objects, not the BuildScriptSets
+        // that wrap them
+        //
+        // printf("Number of scriptSets: %d\n", scriptSets.size());
+        {
+          int duplicateCount = 0;
+          rtScriptSetsCount = 2;
+          for (int outeri = 2; outeri < scriptSets.size(); outeri++) {
+            BuilderScriptSet outerSet = scriptSets.elementAt(outeri);
+            if (outerSet.index != outeri) {
+              // This set was already identified as a duplicate.
+              // It will not be allocated a position in the runtime array
+              // of ScriptSets.
+              continue;
+            }
+            outerSet.rindex = rtScriptSetsCount++;
+            for (int inneri = outeri + 1; inneri < scriptSets.size(); inneri++) {
+              BuilderScriptSet innerSet = scriptSets.elementAt(inneri);
+              if (outerSet.sset.equals(innerSet.sset)
+                  && outerSet.sset != innerSet.sset) {
+                innerSet.sset = outerSet.sset;
+                innerSet.index = outeri;
+                innerSet.rindex = outerSet.rindex;
+                duplicateCount++;
+              }
+              // But this doesn't get all. We need to fix the TRIE.
+            }
+          }
+          // printf("Number of distinct script sets: %d\n",
+          // rtScriptSetsCount);
+        }
+
+        // Update the Trie values to be reflect the run time script indexes
+        // (after duplicate merging).
+        // (Trie Values 0 and 1 are reserved, and the corresponding slots in
+        // scriptSets
+        // are unused, which is why the loop index starts at 2.)
+        {
+          for (int i = 2; i < scriptSets.size(); i++) {
+            BuilderScriptSet bSet = scriptSets.elementAt(i);
+            if (bSet.rindex != i) {
+              bSet.trie.set(bSet.codePoint, bSet.rindex);
+            }
+          }
+        }
+
+        // For code points with script==Common or script==Inherited,
+        // Set the reserved value of 1 into both Tries. These characters do not
+        // participate
+        // in Whole Script Confusable detection; this reserved value is the
+        // means
+        // by which they are detected.
+        {
+          UnicodeSet ignoreSet = new UnicodeSet();
+          ignoreSet.applyIntPropertyValue(UProperty.SCRIPT, UScript.COMMON);
+          UnicodeSet inheritedSet = new UnicodeSet();
+          inheritedSet.applyIntPropertyValue(UProperty.SCRIPT,
+                                             UScript.INHERITED);
+          ignoreSet.addAll(inheritedSet);
+          for (int rn = 0; rn < ignoreSet.getRangeCount(); rn++) {
+            int rangeStart = ignoreSet.getRangeStart(rn);
+            int rangeEnd = ignoreSet.getRangeEnd(rn);
+            anyCaseTrie.setRange(rangeStart, rangeEnd, 1, true);
+            lowerCaseTrie.setRange(rangeStart, rangeEnd, 1, true);
+          }
+        }
+
+        // Serialize the data to the Spoof Detector
+        {
+          anyCaseTrie.toTrie2_16().serialize(os);
+          lowerCaseTrie.toTrie2_16().serialize(os);
+
+          fSpoofData.fRawData.fScriptSetsLength = rtScriptSetsCount;
+          int rindex = 2;
+          for (int i = 2; i < scriptSets.size(); i++) {
+            BuilderScriptSet bSet = scriptSets.elementAt(i);
+            if (bSet.rindex < rindex) {
+              // We have already copied this script set to the serialized
+              // data.
+              continue;
+            }
+            assert (rindex == bSet.rindex);
+            bSet.sset.output(os);
+            rindex++;
+          }
+        }
+      }
+
+      // class BuilderScriptSet. Represents the set of scripts (Script Codes)
+      // containing characters that are confusable with one specific
+      // code point.
+      private static class BuilderScriptSet {
+        int codePoint; // The source code point.
+        Trie2Writable trie; // Any-case or Lower-case Trie.
+        // These Trie tables are the final result of the
+        // build. This flag indicates which of the two
+        // this set of data is for.
+        ScriptSet sset; // The set of scripts itself.
+
+        // Vectors of all B
+        int index; // Index of this set in the Build Time vector
+        // of script sets.
+        int rindex; // Index of this set in the final (runtime)
+        // array of sets.
+
+        // its underlying sset.
+
+        BuilderScriptSet() {
+          codePoint = -1;
+          trie = null;
+          sset = null;
+          index = 0;
+          rindex = 0;
+        }
+      }
+
+    }
+
+    /*
+     * *****************************************************************************
+     * Internal classes for compililing confusable
+     * data into its binary (runtime) form.
+     * *****************************************************************************
+     */
+    // ---------------------------------------------------------------------
+    //
+    // buildConfusableData Compile the source confusable data, as defined by
+    // the Unicode data file confusables.txt, into the binary
+    // structures used by the confusable detector.
+    //
+    // The binary structures are described in uspoof_impl.h
+    //
+    // 1. parse the data, building 4 hash tables, one each for the SL, SA, ML and MA
+    // tables. Each maps from a int to a String.
+    //
+    // 2. Sort all of the strings encountered by length, since they will need to
+    // be stored in that order in the final string table.
+    //
+    // 3. Build a list of keys (UChar32s) from the four mapping tables. Sort the
+    // list because that will be the ordering of our runtime table.
+    //
+    // 4. Generate the run time string table. This is generated before the key &
+    // value
+    // tables because we need the string indexes when building those tables.
+    //
+    // 5. Build the run-time key and value tables. These are parallel tables, and
+    // are built
+    // at the same time
+
+    // class ConfusabledataBuilder
+    // An instance of this class exists while the confusable data is being built
+    // from source.
+    // It encapsulates the intermediate data structures that are used for building.
+    // It exports one static function, to do a confusable data build.
+    private static class ConfusabledataBuilder {
+      private SpoofData fSpoofData;
+      private ByteArrayOutputStream bos;
+      private DataOutputStream os;
+      private Hashtable<Integer, SPUString> fSLTable;
+      private Hashtable<Integer, SPUString> fSATable;
+      private Hashtable<Integer, SPUString> fMLTable;
+      private Hashtable<Integer, SPUString> fMATable;
+      private UnicodeSet fKeySet; // A set of all keys (UChar32s) that go into the
+      // four mapping tables.
+
+      // The binary data is first assembled into the following four collections,
+      // then output to the DataOutputStream os.
+      private StringBuffer fStringTable;
+      private Vector<Integer> fKeyVec;
+      private Vector<Integer> fValueVec;
+      private Vector<Integer> fStringLengthsTable;
+      private SPUStringPool stringPool;
+      private Pattern fParseLine;
+      private Pattern fParseHexNum;
+      private int fLineNum;
+
+      ConfusabledataBuilder(SpoofData spData, ByteArrayOutputStream bos) {
+        this.bos = bos;
+        this.os = new DataOutputStream(bos);
+        fSpoofData = spData;
+        fSLTable = new Hashtable<Integer, SPUString>();
+        fSATable = new Hashtable<Integer, SPUString>();
+        fMLTable = new Hashtable<Integer, SPUString>();
+        fMATable = new Hashtable<Integer, SPUString>();
+        fKeySet = new UnicodeSet();
+        fKeyVec = new Vector<Integer>();
+        fValueVec = new Vector<Integer>();
+        stringPool = new SPUStringPool();
+      }
+
+      void build(Reader confusables) throws SpoofChecker.SpoofCheckerException,
+          java.io.IOException {
+        // Convert the user input data from UTF-8 to char (UTF-16)
+        StringBuffer fInput = new StringBuffer();
+        WSConfusableDataBuilder.readWholeFileToString(confusables, fInput);
+
+        // Regular Expression to parse a line from Confusables.txt. The
+        // expression will match
+        // any line. What was matched is determined by examining which capture
+        // groups have a match.
+        // Capture Group 1: the source char
+        // Capture Group 2: the replacement chars
+        // Capture Group 3-6 the table type, SL, SA, ML, or MA
+        // Capture Group 7: A blank or comment only line.
+        // Capture Group 8: A syntactically invalid line. Anything that didn't
+        // match before.
+        // Example Line from the confusables.txt source file:
+        // "1D702 ;	006E 0329 ;	SL	# MATHEMATICAL ITALIC SMALL ETA ... "
+        fParseLine = Pattern.compile("(?m)^[ \\t]*([0-9A-Fa-f]+)[ \\t]+;" + // Match
+                                     // the
+                                     // source
+                                     // char
+                                     "[ \\t]*([0-9A-Fa-f]+" + // Match the replacement char(s)
+                                     "(?:[ \\t]+[0-9A-Fa-f]+)*)[ \\t]*;" + // (continued)
+                                     "\\s*(?:(SL)|(SA)|(ML)|(MA))" + // Match the table type
+                                     "[ \\t]*(?:#.*?)?$" + // Match any trailing #comment
+                                     "|^([ \\t]*(?:#.*?)?)$" + // OR match empty lines or lines with
+                                     // only a #comment
+                                     "|^(.*?)$"); // OR match any line, which catches illegal lines.
+
+        // Regular expression for parsing a hex number out of a space-separated
+        // list of them.
+        // Capture group 1 gets the number, with spaces removed.
+        fParseHexNum = Pattern.compile("\\s*([0-9A-F]+)");
+
+        // Zap any Byte Order Mark at the start of input. Changing it to a space
+        // is benign
+        // given the syntax of the input.
+        if (fInput.charAt(0) == 0xfeff) {
+          fInput.setCharAt(0, (char)0x20);
+        }
+
+        // Parse the input, one line per iteration of this loop.
+        Matcher matcher = fParseLine.matcher(fInput);
+        while (matcher.find()) {
+          fLineNum++;
+          if (matcher.start(7) >= 0) {
+            // this was a blank or comment line.
+            continue;
+          }
+          if (matcher.start(8) >= 0) {
+            // input file syntax error.
+            // status = U_PARSE_ERROR;
+            throw new SpoofChecker.SpoofCheckerException();
+          }
+
+          // We have a good input line. Extract the key character and mapping
+          // string, and
+          // put them into the appropriate mapping table.
+          int keyChar = SpoofChecker.ScanHex(matcher.group(1));
+          Matcher m = fParseHexNum.matcher(matcher.group(2));
+
+          StringBuffer mapString = new StringBuffer();
+          while (m.find()) {
+            int c = SpoofChecker.ScanHex(m.group(1));
+            mapString.append(c);
+          }
+          assert (mapString.length() >= 1);
+
+          // Put the map (value) string into the string pool
+          // This a little like a Java intern() - any duplicates will be
+          // eliminated.
+          SPUString smapString = stringPool.addString(mapString.toString());
+
+          // Add the char . string mapping to the appropriate table.
+          Hashtable<Integer, SPUString> table = matcher.start(3) >= 0 ? fSLTable
+              : matcher.start(4) >= 0 ? fSATable
+              : matcher.start(5) >= 0 ? fMLTable : matcher
+              .start(6) >= 0 ? fMATable : null;
+          assert (table != null);
+          table.put(keyChar, smapString);
+          fKeySet.add(keyChar);
+        }
+
+        // Input data is now all parsed and collected.
+        // Now create the run-time binary form of the data.
+        //
+        // This is done in two steps. First the data is assembled into vectors
+        // and strings,
+        // for ease of construction, then the contents of these collections are
+        // dumped
+        // into the actual raw-bytes data storage.
+
+        // Build up the string array, and record the index of each string
+        // therein
+        // in the (build time only) string pool.
+        // Strings of length one are not entered into the strings array.
+        // At the same time, build up the string lengths table, which records
+        // the
+        // position in the string table of the first string of each length >= 4.
+        // (Strings in the table are sorted by length)
+        stringPool.sort();
+        fStringTable = new StringBuffer();
+        fStringLengthsTable = new Vector<Integer>();
+        int previousStringLength = 0;
+        int previousStringIndex = 0;
+        int poolSize = stringPool.size();
+        int i;
+        for (i = 0; i < poolSize; i++) {
+          SPUString s = stringPool.getByIndex(i);
+          int strLen = s.fStr.length();
+          int strIndex = fStringTable.length();
+          assert (strLen >= previousStringLength);
+          if (strLen == 1) {
+            // strings of length one do not get an entry in the string
+            // table.
+            // Keep the single string character itself here, which is the
+            // same
+            // convention that is used in the final run-time string table
+            // index.
+            s.fStrTableIndex = s.fStr.charAt(0);
+          } else {
+            if ((strLen > previousStringLength)
+                && (previousStringLength >= 4)) {
+              fStringLengthsTable.addElement(previousStringIndex);
+              fStringLengthsTable.addElement(previousStringLength);
+            }
+            s.fStrTableIndex = strIndex;
+            fStringTable.append(s.fStr);
+          }
+          previousStringLength = strLen;
+          previousStringIndex = strIndex;
+        }
+        // Make the final entry to the string lengths table.
+        // (it holds an entry for the _last_ string of each length, so adding
+        // the
+        // final one doesn't happen in the main loop because no longer string
+        // was encountered.)
+        if (previousStringLength >= 4) {
+          fStringLengthsTable.addElement(previousStringIndex);
+          fStringLengthsTable.addElement(previousStringLength);
+        }
+
+        // Construct the compile-time Key and Value tables
+        //
+        // For each key code point, check which mapping tables it applies to,
+        // and create the final data for the key & value structures.
+        //
+        // The four logical mapping tables are conflated into one combined
+        // table.
+        // If multiple logical tables have the same mapping for some key, they
+        // share a single entry in the combined table.
+        // If more than one mapping exists for the same key code point, multiple
+        // entries will be created in the table
+
+        for (int range = 0; range < fKeySet.getRangeCount(); range++) {
+          // It is an oddity of the UnicodeSet API that simply enumerating the
+          // contained
+          // code points requires a nested loop.
+          for (int keyChar = fKeySet.getRangeStart(range); keyChar <= fKeySet
+                   .getRangeEnd(range); keyChar++) {
+            addKeyEntry(keyChar, fSLTable, SpoofChecker.SL_TABLE_FLAG);
+            addKeyEntry(keyChar, fSATable, SpoofChecker.SA_TABLE_FLAG);
+            addKeyEntry(keyChar, fMLTable, SpoofChecker.ML_TABLE_FLAG);
+            addKeyEntry(keyChar, fMATable, SpoofChecker.MA_TABLE_FLAG);
+          }
+        }
+
+        // Put the assembled data into the flat runtime array
+        outputData();
+
+        // All of the intermediate allocated data belongs to the
+        // ConfusabledataBuilder object (this), and is deleted by Java GC.
+      }
+
+      // Add an entry to the key and value tables being built
+      // input: data from SLTable, MATable, etc.
+      // outut: entry added to fKeyVec and fValueVec
+      // addKeyEntry Construction of the confusable Key and Mapping Values tables.
+      // This is an intermediate point in the building process.
+      // We already have the mappings in the hash tables fSLTable, etc.
+      // This function builds corresponding run-time style table entries into
+      // fKeyVec and fValueVec
+      void addKeyEntry(int keyChar, // The key character
+                       Hashtable<Integer, SPUString> table, // The table, one of SATable,
+                       // MATable, etc.
+                       int tableFlag) { // One of SA_TABLE_FLAG, etc.
+        SPUString targetMapping = table.get(keyChar);
+        if (targetMapping == null) {
+          // No mapping for this key character.
+          // (This function is called for all four tables for each key char
+          // that
+          // is seen anywhere, so this no entry cases are very much expected.)
+          return;
+        }
+
+        // Check whether there is already an entry with the correct mapping.
+        // If so, simply set the flag in the keyTable saying that the existing
+        // entry
+        // applies to the table that we're doing now.
+        boolean keyHasMultipleValues = false;
+        int i;
+        for (i = fKeyVec.size() - 1; i >= 0; i--) {
+          int key = fKeyVec.elementAt(i);
+          if ((key & 0x0ffffff) != keyChar) {
+            // We have now checked all existing key entries for this key
+            // char (if any)
+            // without finding one with the same mapping.
+            break;
+          }
+          String mapping = getMapping(i);
+          if (mapping.equals(targetMapping.fStr)) {
+            // The run time entry we are currently testing has the correct
+            // mapping.
+            // Set the flag in it indicating that it applies to the new
+            // table also.
+            key |= tableFlag;
+            fKeyVec.setElementAt(key, i);
+            return;
+          }
+          keyHasMultipleValues = true;
+        }
+
+        // Need to add a new entry to the binary data being built for this
+        // mapping.
+        // Includes adding entries to both the key table and the parallel values
+        // table.
+        int newKey = keyChar | tableFlag;
+        if (keyHasMultipleValues) {
+          newKey |= SpoofChecker.KEY_MULTIPLE_VALUES;
+        }
+        int adjustedMappingLength = targetMapping.fStr.length() - 1;
+        if (adjustedMappingLength > 3) {
+          adjustedMappingLength = 3;
+        }
+        newKey |= adjustedMappingLength << SpoofChecker.KEY_LENGTH_SHIFT;
+
+        int newData = targetMapping.fStrTableIndex;
+
+        fKeyVec.addElement(newKey);
+        fValueVec.addElement(newData);
+
+        // If the preceding key entry is for the same key character (but with a
+        // different mapping)
+        // set the multiple-values flag on it.
+        if (keyHasMultipleValues) {
+          int previousKeyIndex = fKeyVec.size() - 2;
+          int previousKey = fKeyVec.elementAt(previousKeyIndex);
+          previousKey |= SpoofChecker.KEY_MULTIPLE_VALUES;
+          fKeyVec.setElementAt(previousKey, previousKeyIndex);
+        }
+      }
+
+      // From an index into fKeyVec & fValueVec
+      // get a String with the corresponding mapping.
+      String getMapping(int index) {
+        int key = fKeyVec.elementAt(index);
+        int value = fValueVec.elementAt(index);
+        int length = SpoofChecker.getKeyLength(key);
+        int lastIndexWithLen;
+        switch (length) {
+          case 0:
+            char[] cs = { (char) value };
+            return new String(cs);
+          case 1:
+          case 2:
+            return fStringTable.substring(value, value + length + 1); // Note: +1 as optimization
+          case 3:
+            length = 0;
+            int i;
+            for (i = 0; i < fStringLengthsTable.size(); i += 2) {
+              lastIndexWithLen = fStringLengthsTable.elementAt(i);
+              if (value <= lastIndexWithLen) {
+                length = fStringLengthsTable.elementAt(i + 1);
+                break;
+              }
+            }
+            assert (length >= 3);
+            return fStringTable.substring(value, value + length);
+          default:
+            assert (false);
+        }
+        return new String();
+      }
+
+      // Populate the final binary output data array with the compiled data.
+      // The confusable data has been compiled and stored in intermediate
+      // collections and strings. Copy it from there to the final flat
+      // binary array.
+      void outputData() throws java.io.IOException {
+
+        SpoofDataHeader rawData = fSpoofData.fRawData;
+        // The Key Table
+        // While copying the keys to the runtime array,
+        // also sanity check that they are sorted.
+        int numKeys = fKeyVec.size();
+        int i;
+        int previousKey = 0;
+        rawData.output(os);
+        rawData.fCFUKeys = os.size();
+        assert(rawData.fCFUKeys == 128);
+        rawData.fCFUKeysSize = numKeys;
+        for (i = 0; i < numKeys; i++) {
+          int key = fKeyVec.elementAt(i);
+          assert ((key & 0x00ffffff) >= (previousKey & 0x00ffffff));
+          assert ((key & 0xff000000) != 0);
+          os.writeInt(key);
+          previousKey = key;
+        }
+
+        // The Value Table, parallels the key table
+        int numValues = fValueVec.size();
+        assert (numKeys == numValues);
+        rawData.fCFUStringIndex = os.size();
+        rawData.fCFUStringIndexSize = numValues;
+        for (i = 0; i < numValues; i++) {
+          int value = fValueVec.elementAt(i);
+          assert (value < 0xffff);
+          os.writeShort((short) value);
+        }
+
+        // The Strings Table.
+
+        int stringsLength = fStringTable.length();
+        // Reserve an extra space so the string will be nul-terminated. This is
+        // only a convenience, for when debugging; it is not needed otherwise.
+        String strings = fStringTable.toString();
+        rawData.fCFUStringTable = os.size();
+        rawData.fCFUStringTableLen = stringsLength;
+        for (i = 0; i < stringsLength; i++) {
+          os.writeChar(strings.charAt(i));
+        }
+
+        // The String Lengths Table
+        // While copying into the runtime array do some sanity checks on the
+        // values
+        // Each complete entry contains two fields, an index and an offset.
+        // Lengths should increase with each entry.
+        // Offsets should be less than the size of the string table.
+        int lengthTableLength = fStringLengthsTable.size();
+        int previousLength = 0;
+        // Note: StringLengthsSize in the raw data is the number of complete
+        // entries,
+        // each consisting of a pair of 16 bit values, hence the divide by 2.
+        rawData.fCFUStringLengthsSize = lengthTableLength / 2;
+        rawData.fCFUStringLengths = os.size();
+        for (i = 0; i < lengthTableLength; i += 2) {
+          int offset = fStringLengthsTable.elementAt(i);
+          int length = fStringLengthsTable.elementAt(i + 1);
+          assert (offset < stringsLength);
+          assert (length < 40);
+          assert (length > previousLength);
+          os.writeShort((short) offset);
+          os.writeShort((short) length);
+          previousLength = length;
+        }
+
+        os.flush();
+        DataInputStream is = new DataInputStream(new ByteArrayInputStream(bos.toByteArray()));
+        is.mark(Integer.MAX_VALUE);
+        fSpoofData.initPtrs(is);
+      }
+
+      public static void buildConfusableData(SpoofData spData, Reader confusables)
+          throws java.io.IOException, SpoofChecker.SpoofCheckerException {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        ConfusabledataBuilder builder = new ConfusabledataBuilder(spData, bos);
+        builder.build(confusables);
+      }
+
+      /*
+       * *****************************************************************************
+       * Internal classes for compiling confusable data into its binary (runtime)
+       * form.
+       * *****************************************************************************
+       */
+      // SPUString
+      // Holds a string that is the result of one of the mappings defined
+      // by the confusable mapping data (confusables.txt from Unicode.org)
+      // Instances of SPUString exist during the compilation process only.
+
+      private static class SPUString {
+        String fStr; // The actual string.
+        int fStrTableIndex; // Index into the final runtime data for this string.
+
+        // (or, for length 1, the single string char itself,
+        // there being no string table entry for it.)
+        SPUString(String s) {
+          fStr = s;
+          fStrTableIndex = 0;
+        }
+      }
+
+      // Comparison function for ordering strings in the string pool.
+      // Compare by length first, then, within a group of the same length,
+      // by code point order.
+      // Conforms to the type signature for a USortComparator in uvector.h
+      private static class SPUStringComparator implements Comparator<SPUString> {
+        public int compare(SPUString sL, SPUString sR) {
+          int lenL = sL.fStr.length();
+          int lenR = sR.fStr.length();
+          if (lenL < lenR) {
+            return -1;
+          } else if (lenL > lenR) {
+            return 1;
+          } else {
+            return sL.fStr.compareTo(sR.fStr);
+          }
+        }
+      }
+
+      // String Pool A utility class for holding the strings that are the result of
+      // the spoof mappings. These strings will utimately end up in the
+      // run-time String Table.
+      // This is sort of like a sorted set of strings, except that ICU's anemic
+      // built-in collections don't support those, so it is implemented with a
+      // combination of a uhash and a Vector.
+      private static class SPUStringPool {
+        public SPUStringPool() {
+          fVec = new Vector<SPUString>();
+          fHash = new Hashtable<String, SPUString>();
+        }
+
+        public int size() {
+          return fVec.size();
+        }
+
+        // Get the n-th string in the collection.
+        public SPUString getByIndex(int index) {
+          SPUString retString = fVec.elementAt(index);
+          return retString;
+        }
+
+        // Add a string. Return the string from the table.
+        // If the input parameter string is already in the table, delete the
+        // input parameter and return the existing string.
+        public SPUString addString(String src) {
+          SPUString hashedString = fHash.get(src);
+          if (hashedString == null) {
+            hashedString = new SPUString(src);
+            fHash.put(src, hashedString);
+            fVec.addElement(hashedString);
+          }
+          return hashedString;
+        }
+
+        // Sort the contents; affects the ordering of getByIndex().
+        public void sort() {
+          Collections.sort(fVec, new SPUStringComparator());
+        }
+
+        private Vector<SPUString> fVec; // Elements are SPUString *
+        private Hashtable<String, SPUString> fHash; // Key: Value:
+      }
+
+    }
   }
 
   /**
@@ -489,13 +1348,10 @@ public class SpoofChecker {
    * that is supplied to setAllowedLocales(); the information other than
    * languages from the originally specified locales may be omitted.
    * 
-   * @return A string containing a list of locales corresponding to the
-   *         acceptable scripts, formatted like an HTTP Accept Language value.
+   * @return A set of locales corresponding to the acceptable scripts.
    * 
    * @draft ICU 4.4
    */
-  private Set<ULocale> fAllowedLocales; // The list of allowed locales.
-
   public Set<ULocale> getAllowedLocales() {
     return fAllowedLocales;
   }
@@ -552,14 +1408,13 @@ public class SpoofChecker {
     int length = text.length();
 
     int result = 0;
-    int failPos = Integer.MAX_VALUE; // TODO: do we have a #define for max int32?
+    int failPos = Integer.MAX_VALUE;
 
     // A count of the number of non-Common or inherited scripts.
     // Needed for both the SINGLE_SCRIPT and the
     // WHOLE/MIXED_SCIRPT_CONFUSABLE tests.
     // Share the computation when possible. scriptCount == -1 means that we
-    // haven't
-    // done it yet.
+    // haven't done it yet.
     int scriptCount = -1;
 
     if (0 != ((this.fChecks) & SINGLE_SCRIPT)) {
@@ -880,39 +1735,21 @@ public class SpoofChecker {
     return result;
   }
 
-  /*
-   * **************************************************************************
-   * Copyright (C) 2008-2009, International Business Machines Corporation and
-   * others. All Rights Reserved.
-   * **********************************************
-   * ****************************
-   * 
-   * uspoof_impl.h
-   * 
-   * Implemenation header for spoof detection
-   */
-
-  /*
-   * TODO(zhou) remove?
-   * 
-   * /** Copy constructor, used by the user level uspoof_clone() function.
-   * public SpoofChecker(SpoofChecker src);
-   */
-
   /**
    * Get the confusable skeleton transform for a single code point. The result
    * is a string with a length between 1 and 18.
    * 
+   * This is the heart of the confusable skeleton generation
+   * implementation.
+   *
+   * Given a source character, produce the corresponding
+   * replacement character(s)
+   *
    * @param tableMask
    *            bit flag specifying which confusable table to use. One of
    *            SL_TABLE_FLAG, MA_TABLE_FLAG, etc.
    * @return The length in UTF-16 code units of the substition string.
    */
-  // This is the heart of the confusable skeleton generation
-  // implementation.
-  //
-  // Given a source character, produce the corresponding
-  // replacement character(s)
   private char[] confusableLookup(int inChar, int tableMask) {
     char[] destBuf;
     // Binary search the spoof data key table for the inChar
@@ -1126,10 +1963,12 @@ public class SpoofChecker {
   }
 
   // Data Members
-  int fMagic; // Internal sanity check.
-  int fChecks; // Bit vector of checks to perform.
-  SpoofData fSpoofData;
-  UnicodeSet fAllowedCharsSet; // The UnicodeSet of allowed characters.
+  private int fMagic; // Internal sanity check.
+  private int fChecks; // Bit vector of checks to perform.
+  private SpoofData fSpoofData;
+  private Set<ULocale> fAllowedLocales;  // The Set of allowed locales.
+  private UnicodeSet   fAllowedCharsSet; // The UnicodeSet of allowed characters.
+
   // for this Spoof Checker. Defaults to all chars.
   //
   // Confusable Mappings Data Structures
@@ -1180,7 +2019,6 @@ public class SpoofChecker {
   // Each entry consists of
   // short index of the _last_ string with this length
   // short the length
-  //
 
   // Flag bits in the Key entries
   static final int SL_TABLE_FLAG = (1 << 24);
@@ -1193,1345 +2031,394 @@ public class SpoofChecker {
   static final int getKeyLength(int x) {
     return (((x) >> 29) & 3);
   }
-}
 
-class SpoofStringLengthsElement {
-  short fLastString; // index in string table of last string with this length
-  short fStrLength; // Length of strings
-}
+  // ---------------------------------------------------------------------------------------
+  //
+  // Raw Binary Data Formats, as loaded from the ICU data file,
+  // or as built by the builder.
+  //
+  // ---------------------------------------------------------------------------------------
+  private static class SpoofDataHeader {
+    int fMagic; // (0x8345fdef)
+    byte[] fFormatVersion = new byte[4]; // Data Format. Same as the value in
+    // class UDataInfo
+    // if there is one associated with this data.
+    int fLength; // Total lenght in bytes of this spoof data,
+    // including all sections, not just the header.
 
-// -------------------------------------------------------------------------------
-//
-// ScriptSet - Wrapper class for the Script code bit sets that are part of the
-// whole script confusable data.
-//
-// This class is used both at data build and at run time.
-// The constructor is only used at build time.
-// At run time, just point at the prebuilt data and go.
-//  
-// -------------------------------------------------------------------------------
-class ScriptSet {
-  public ScriptSet() {
-  }
+    // The following four sections refer to data representing the confusable
+    // data
+    // from the Unicode.org data from "confusables.txt"
 
-  public ScriptSet(DataInputStream dis) throws java.io.IOException {
-    for (int j = 0; j < bits.length; j++) {
-      bits[j] = dis.readInt();
+    int fCFUKeys; // byte offset to Keys table (from SpoofDataHeader *)
+    int fCFUKeysSize; // number of entries in keys table (32 bits each)
+
+    // TODO: change name to fCFUValues, for consistency.
+    int fCFUStringIndex;     // byte offset to String Indexes table
+    int fCFUStringIndexSize; // number of entries in String Indexes table (16 bits each)
+                             // (number of entries must be same as in Keys table
+
+    int fCFUStringTable; // byte offset of String table
+    int fCFUStringTableLen; // length of string table (in 16 bit UChars)
+
+    int fCFUStringLengths; // byte offset to String Lengths table
+    int fCFUStringLengthsSize; // number of entries in lengths table. (2 x 16 bits each)
+
+    // The following sections are for data from confusablesWholeScript.txt
+    int fAnyCaseTrie; // byte offset to the serialized Any Case Trie
+    int fAnyCaseTrieLength; // Length (bytes) of the serialized Any Case Trie
+
+    int fLowerCaseTrie; // byte offset to the serialized Lower Case Trie
+    int fLowerCaseTrieLength; // Length (bytes) of the serialized Lower Case Trie
+
+    int fScriptSets; // byte offset to array of ScriptSets
+    int fScriptSetsLength; // Number of ScriptSets (24 bytes each)
+
+    // The following sections are for data from xidmodifications.txt
+    int[] unused = new int[15]; // Padding, Room for Expansion
+
+    public SpoofDataHeader() {
+    }
+
+    public SpoofDataHeader(DataInputStream dis) throws IOException {
+      int i;
+      fMagic = dis.readInt();
+      for (i = 0; i < fFormatVersion.length; i++) {
+        fFormatVersion[i] = dis.readByte();
+      }
+      fLength               = dis.readInt();
+      fCFUKeys              = dis.readInt();
+      fCFUKeysSize          = dis.readInt();
+      fCFUStringIndex       = dis.readInt();
+      fCFUStringIndexSize   = dis.readInt();
+      fCFUStringTable       = dis.readInt();
+      fCFUStringTableLen    = dis.readInt();
+      fCFUStringLengths     = dis.readInt();
+      fCFUStringLengthsSize = dis.readInt();
+      fAnyCaseTrie          = dis.readInt();
+      fAnyCaseTrieLength    = dis.readInt();
+      fLowerCaseTrie        = dis.readInt();
+      fLowerCaseTrieLength  = dis.readInt();
+      fScriptSets           = dis.readInt();
+      fScriptSetsLength     = dis.readInt();
+      for (i = 0; i < unused.length; i++) {
+        unused[i] = dis.readInt();
+      }
+    }
+
+    public void output(DataOutputStream os) throws java.io.IOException {
+      int i;
+      os.writeInt(fMagic);
+      for (i = 0; i < fFormatVersion.length; i++) {
+        os.writeByte(fFormatVersion[i]);
+      }
+      os.writeInt(fLength              );
+      os.writeInt(fCFUKeys             );
+      os.writeInt(fCFUKeysSize         );
+      os.writeInt(fCFUStringIndex      );
+      os.writeInt(fCFUStringIndexSize  );
+      os.writeInt(fCFUStringTable      );
+      os.writeInt(fCFUStringTableLen   );
+      os.writeInt(fCFUStringLengths    );
+      os.writeInt(fCFUStringLengthsSize);
+      os.writeInt(fAnyCaseTrie         );
+      os.writeInt(fAnyCaseTrieLength   );
+      os.writeInt(fLowerCaseTrie       );
+      os.writeInt(fLowerCaseTrieLength );
+      os.writeInt(fScriptSets          );
+      os.writeInt(fScriptSetsLength    );
+      for (i = 0; i < unused.length; i++) {
+        os.writeInt(unused[i]);
+      }
     }
   }
 
-  public void output(DataOutputStream os) throws java.io.IOException {
-    for (int i = 0; i < bits.length; i++) {
-      os.writeInt(bits[i]);
+  // -------------------------------------------------------------------------------------
+  // SpoofData
+  //
+  // A small class that wraps the raw (usually memory mapped from C world) spoof data.
+  // Serves two primary functions:
+  // 1. Convenience. Contains real pointers to the data, to avoid dealing with
+  // the offsets in the raw data.
+  // Nothing in this class includes state that is specific to any particular
+  // USpoofDetector object.
+  // ---------------------------------------------------------------------------------------
+  private static class SpoofData {
+    // getDefault() - return a wrapper around the spoof data that is
+    // baked into the default ICU data.
+    // Load standard ICU spoof data.
+    public static SpoofData getDefault() throws java.io.IOException {
+      // TODO: Cache it. Lazy create, keep until cleanup.
+      InputStream is = com.ibm.icu.impl.ICUData.getRequiredStream(
+          com.ibm.icu.impl.ICUResourceBundle.ICU_BUNDLE + "/confusables.cfu");
+      SpoofData This = new SpoofData(is);
+      return This;
     }
-  }
 
-  public boolean equals(ScriptSet other) {
-    for (int i = 0; i < bits.length; i++) {
-      if (bits[i] != other.bits[i]) {
+    // Create new spoof data wrapper.
+    // Only used when building new data from rules.
+    // SpoofChecker Data constructor for use from data builder.
+    // Initializes a new, empty data area that will be populated later.
+    public SpoofData() {
+      // The spoof header should already be sized to be a multiple of 16
+      // bytes.
+      // Just in case it's not, round it up.
+
+      fRawData = new SpoofDataHeader();
+
+      fRawData.fMagic = SpoofChecker.MAGIC;
+      fRawData.fFormatVersion[0] = 1;
+      fRawData.fFormatVersion[1] = 0;
+      fRawData.fFormatVersion[2] = 0;
+      fRawData.fFormatVersion[3] = 0;
+    }
+
+    // Constructor for use when creating from prebuilt default data.
+    // A InputStream is what the ICU internal data loading functions provide.
+    public SpoofData(InputStream is) throws java.io.IOException {
+      // Seek past the ICU data header.
+      // TODO: verify that the header looks good.
+      DataInputStream dis = new DataInputStream(new BufferedInputStream(is));
+      dis.skip(0x80);
+      assert(dis.markSupported());
+      dis.mark(Integer.MAX_VALUE);
+
+      fRawData = new SpoofDataHeader(dis);
+      initPtrs(dis);
+    }
+
+    // Check raw SpoofChecker Data Version compatibility.
+    // Return true it looks good.
+    static boolean validateDataVersion(SpoofDataHeader rawData) {
+      if (rawData == null || rawData.fMagic != SpoofChecker.MAGIC
+          || rawData.fFormatVersion[0] > 1
+          || rawData.fFormatVersion[1] > 0) {
         return false;
       }
-    }
-    return true;
-  }
-
-  public void Union(int script) {
-    int index = script / 32;
-    int bit = 1 << (script & 31);
-    assert (index < bits.length * 4 * 4);
-    bits[index] |= bit;
-  }
-
-  public void Union(ScriptSet other) {
-    for (int i = 0; i < bits.length; i++) {
-      bits[i] |= other.bits[i];
-    }
-  }
-
-  public void intersect(ScriptSet other) {
-    for (int i = 0; i < bits.length; i++) {
-      bits[i] &= other.bits[i];
-    }
-  }
-
-  public void intersect(int script) {
-    int index = script / 32;
-    int bit = 1 << (script & 31);
-    assert (index < bits.length * 4 * 4);
-    int i;
-    for (i = 0; i < index; i++) {
-      bits[i] = 0;
-    }
-    bits[index] &= bit;
-    for (i = index + 1; i < bits.length; i++) {
-      bits[i] = 0;
-    }
-  }
-
-  public void setAll() {
-    for (int i = 0; i < bits.length; i++) {
-      bits[i] = 0xffffffff;
-    }
-  }
-
-  public void resetAll() {
-    for (int i = 0; i < bits.length; i++) {
-      bits[i] = 0;
-    }
-  }
-
-  public int countMembers() {
-    // This bit counter is good for sparse numbers of '1's, which is
-    // very much the case that we will usually have.
-    int count = 0;
-    for (int i = 0; i < bits.length; i++) {
-      int x = bits[i];
-      while (x > 0) {
-        count++;
-        x &= (x - 1); // and off the least significant one bit.
-      }
-    }
-    return count;
-  }
-
-  private int[] bits = new int[6];
-}
-
-// -------------------------------------------------------------------------------
-//
-// NFKDBuffer A little class to handle the NFKD normalization that is
-// needed on incoming identifiers to be checked.
-// Takes care of buffer handling and normalization
-//
-// TODO: how to map position offsets back to user values?
-//
-// --------------------------------------------------------------------------------
-class NFKDBuffer {
-  private String fOriginalText;
-  private String fNormalizedText;
-
-  public NFKDBuffer(String text) {
-    fOriginalText = text;
-    fNormalizedText = Normalizer.normalize(text, Normalizer.NFKD, 0);
-  }
-
-  public String getBuffer() {
-    return fNormalizedText;
-  }
-
-  public int getLength() {
-    return fNormalizedText.length();
-  }
-}
-
-// -------------------------------------------------------------------------------------
-// SpoofData
-//
-// A small class that wraps the raw (usually memory mapped) spoof data.
-// Serves two primary functions:
-// 1. Convenience. Contains real pointers to the data, to avoid dealing with
-// the offsets in the raw data.
-// Nothing in this class includes state that is specific to any particular
-// USpoofDetector object.
-// ---------------------------------------------------------------------------------------
-class SpoofData {
-  // getDefault() - return a wrapper around the spoof data that is
-  // baked into the default ICU data.
-  // Load standard ICU spoof data.
-  public static SpoofData getDefault() throws java.io.IOException {
-    // TODO: Cache it. Lazy create, keep until cleanup.
-    InputStream is = com.ibm.icu.impl.ICUData.getRequiredStream(
-        com.ibm.icu.impl.ICUResourceBundle.ICU_BUNDLE + "/confusables.cfu");
-    SpoofData This = new SpoofData(is);
-    return This;
-  }
-
-  // Create new spoof data wrapper.
-  // Only used when building new data from rules.
-  // SpoofChecker Data constructor for use from data builder.
-  // Initializes a new, empty data area that will be populated later.
-  public SpoofData() {
-    // The spoof header should already be sized to be a multiple of 16
-    // bytes.
-    // Just in case it's not, round it up.
-    // int initialSize = (sizeof(SpoofDataHeader) + 15) & ~15;
-    // assert(initialSize == sizeof(SpoofDataHeader));
-
-    fRawData = new SpoofDataHeader();
-    // fMemLimit = initialSize;
-
-    fRawData.fMagic = SpoofChecker.MAGIC;
-    fRawData.fFormatVersion[0] = 1;
-    fRawData.fFormatVersion[1] = 0;
-    fRawData.fFormatVersion[2] = 0;
-    fRawData.fFormatVersion[3] = 0;
-    // Andy: this call is uncessary? initPtrs();
-  }
-
-  // Constructor for use when creating from prebuilt default data.
-  // A InputStream is what the ICU internal data loading functions provide.
-  public SpoofData(InputStream is) throws java.io.IOException {
-    // Seek past the ICU data header.
-    // TODO: verify that the header looks good.
-    DataInputStream dis = new DataInputStream(new BufferedInputStream(is));
-    dis.skip(0x80);
-    assert(dis.markSupported());
-    dis.mark(Integer.MAX_VALUE);
-
-    fRawData = new SpoofDataHeader(dis);
-    validateDataVersion(fRawData);
-    initPtrs(dis);
-  }
-
-  /*
-   * to remove? // Constructor for use when creating from serialized data. //
-   * public SpoofData(void *serializedData, int length, UErrorCode &status);
-   * SpoofData::SpoofData(void *data, int length, UErrorCode &status) { if
-   * ((size_t)length < sizeof(SpoofDataHeader)) { status =
-   * U_INVALID_FORMAT_ERROR; return; } void *ncData = const_cast<void
-   * *>(data); fRawData = static_cast<SpoofDataHeader *>(ncData); if (length <
-   * fRawData.fLength) { status = U_INVALID_FORMAT_ERROR; return; }
-   * validateDataVersion(fRawData, status); initPtrs(); }
-   */
-
-  // Check raw SpoofChecker Data Version compatibility.
-  // Return true it looks good.
-  static boolean validateDataVersion(SpoofDataHeader rawData) {
-    if (rawData == null || rawData.fMagic != SpoofChecker.MAGIC
-        || rawData.fFormatVersion[0] > 1
-        || rawData.fFormatVersion[1] > 0) {
-      return false;
-    }
-    return true;
-  }
-
-  // Reserve space in the raw data. For use by builder when putting together a
-  // new set of data. Init the new storage to zero, to prevent inconsistent
-  // results if it is not all otherwise set by the requester.
-  // Return:
-  // pointer to the new space that was added by this function.
-  /*
-   * TODO(zhou) delete in Java? void *reserveSpace(int numBytes, UErrorCode
-   * &status) { if (!fDataOwned) { assert(false); status =
-   * U_INTERNAL_PROGRAM_ERROR; return null; }
-   * 
-   * numBytes = (numBytes + 15) & ~15; // Round up to a multiple of 16 int
-   * returnOffset = fMemLimit; fMemLimit += numBytes; fRawData =
-   * static_cast<SpoofDataHeader *>(uprv_realloc(fRawData, fMemLimit));
-   * fRawData.fLength = fMemLimit; uprv_memset((char *)fRawData +
-   * returnOffset, 0, numBytes); // Andy: this call is uncessary? initPtrs();
-   * return (char *)fRawData + returnOffset; }
-   */
-
-  // build SpoofChecker from DataInputStream
-  // read from binay data input stream
-  // initialize the pointers from this object to the raw data.
-  // Initialize the pointers to the various sections of the raw data.
-  //
-  // This function is used both during the Trie building process (multiple
-  // times, as the individual data sections are added), and
-  // during the opening of a SpoofChecker Checker from prebuilt data.
-  //
-  // The pointers for non-existent data sections (identified by an offset of
-  // 0)
-  // are set to null.
-  //
-  // Note: During building the data, adding each new data section
-  // reallocs the raw data area, which likely relocates it, which
-  // in turn requires reinitializing all of the pointers into it, hence
-  // multiple calls to this function during building.
-  void initPtrs(DataInputStream dis) throws java.io.IOException {
-    int i, offset, gap;
-    fCFUKeys = null;
-    fCFUValues = null;
-    fCFUStringLengths = null;
-    fCFUStrings = null;
-
-    dis.reset();
-    dis.skip(fRawData.fCFUKeys);
-    if (fRawData.fCFUKeys != 0) {
-      fCFUKeys = new int[fRawData.fCFUKeysSize];
-      for (i = 0; i < fRawData.fCFUKeysSize; i++) {
-        fCFUKeys[i] = dis.readInt();
-      }
+      return true;
     }
 
-    dis.reset();
-    dis.skip(fRawData.fCFUStringIndex);
-    if (fRawData.fCFUStringIndex != 0) {
-      fCFUValues = new short[fRawData.fCFUStringIndexSize];
-      for (i = 0; i < fRawData.fCFUStringIndexSize; i++) {
-        fCFUValues[i] = dis.readShort();
-      }
-    }
-
-    dis.reset();
-    dis.skip(fRawData.fCFUStringTable);
-    if (fRawData.fCFUStringTable != 0) {
-      fCFUStrings = new char[fRawData.fCFUStringTableLen];
-      for (i = 0; i < fRawData.fCFUStringTableLen; i++) {
-        fCFUStrings[i] = dis.readChar();
-      }
-    }
-
-    dis.reset();
-    dis.skip(fRawData.fCFUStringLengths);
-    if (fRawData.fCFUStringLengths != 0) {
-      fCFUStringLengths = new SpoofStringLengthsElement[fRawData.fCFUStringLengthsSize];
-      for (i = 0; i < fRawData.fCFUStringLengthsSize; i++) {
-        fCFUStringLengths[i] = new SpoofStringLengthsElement();
-        fCFUStringLengths[i].fLastString = dis.readShort();
-        fCFUStringLengths[i].fStrLength = dis.readShort();
-      }
-    }
-
-    dis.reset();
-    dis.skip(fRawData.fAnyCaseTrie);
-    if (fAnyCaseTrie == null && fRawData.fAnyCaseTrie != 0) {
-      fAnyCaseTrie = Trie2.createFromSerialized(dis);
-    }
-    dis.reset();
-    dis.skip(fRawData.fLowerCaseTrie);
-    if (fLowerCaseTrie == null && fRawData.fLowerCaseTrie != 0) {
-      fLowerCaseTrie = Trie2.createFromSerialized(dis);
-    }
-
-    dis.reset();
-    dis.skip(fRawData.fScriptSets);
-    if (fRawData.fScriptSets != 0) {
-      fScriptSets = new ScriptSet[fRawData.fScriptSetsLength];
-      for (i = 0; i < fRawData.fScriptSetsLength; i++) {
-        fScriptSets[i] = new ScriptSet(dis);
-      }
-    }
-  }
-
-  SpoofDataHeader fRawData; // Ptr to the raw memory-mapped data
-  int fMemLimit; // Limit of available raw data space
-
-  // Confusable data
-  int[] fCFUKeys;
-  short[] fCFUValues;
-  SpoofStringLengthsElement[] fCFUStringLengths;
-  char[] fCFUStrings;
-
-  // Whole Script Confusable Data
-  Trie2 fAnyCaseTrie;
-  Trie2 fLowerCaseTrie;
-  ScriptSet[] fScriptSets;
-}
-
-// ---------------------------------------------------------------------------------------
-//
-// Raw Binary Data Formats, as loaded from the ICU data file,
-// or as built by the builder.
-//
-// ---------------------------------------------------------------------------------------
-class SpoofDataHeader {
-  int fMagic; // (0x8345fdef)
-  byte[] fFormatVersion = new byte[4]; // Data Format. Same as the value in
-  // class UDataInfo
-  // if there is one associated with this data.
-  int fLength; // Total lenght in bytes of this spoof data,
-  // including all sections, not just the header.
-
-  // The following four sections refer to data representing the confusable
-  // data
-  // from the Unicode.org data from "confusables.txt"
-
-  int fCFUKeys; // byte offset to Keys table (from SpoofDataHeader *)
-  int fCFUKeysSize; // number of entries in keys table (32 bits each)
-
-  // TODO: change name to fCFUValues, for consistency.
-  int fCFUStringIndex; // byte offset to String Indexes table
-  int fCFUStringIndexSize; // number of entries in String Indexes table (16
-  // bits each)
-  // (number of entries must be same as in Keys table
-
-  int fCFUStringTable; // byte offset of String table
-  int fCFUStringTableLen; // length of string table (in 16 bit UChars)
-
-  int fCFUStringLengths; // byte offset to String Lengths table
-  int fCFUStringLengthsSize; // number of entries in lengths table. (2 x 16
-  // bits each)
-
-  // The following sections are for data from confusablesWholeScript.txt
-  int fAnyCaseTrie; // byte offset to the serialized Any Case Trie
-  int fAnyCaseTrieLength; // Length (bytes) of the serialized Any Case Trie
-
-  int fLowerCaseTrie; // byte offset to the serialized Lower Case Trie
-  int fLowerCaseTrieLength; // Length (bytes) of the serialized Lower Case
-  // Trie
-
-  int fScriptSets; // byte offset to array of ScriptSets
-  int fScriptSetsLength; // Number of ScriptSets (24 bytes each)
-
-  // The following sections are for data from xidmodifications.txt
-  int[] unused = new int[15]; // Padding, Room for Expansion
-
-  public SpoofDataHeader() {
-  }
-
-  public SpoofDataHeader(DataInputStream dis) throws IOException {
-    int i;
-    fMagic = dis.readInt();
-    for (i = 0; i < fFormatVersion.length; i++) {
-      fFormatVersion[i] = dis.readByte();
-    }
-    fLength               = dis.readInt();
-    fCFUKeys              = dis.readInt();
-    fCFUKeysSize          = dis.readInt();
-    fCFUStringIndex       = dis.readInt();
-    fCFUStringIndexSize   = dis.readInt();
-    fCFUStringTable       = dis.readInt();
-    fCFUStringTableLen    = dis.readInt();
-    fCFUStringLengths     = dis.readInt();
-    fCFUStringLengthsSize = dis.readInt();
-    fAnyCaseTrie          = dis.readInt();
-    fAnyCaseTrieLength    = dis.readInt();
-    fLowerCaseTrie        = dis.readInt();
-    fLowerCaseTrieLength  = dis.readInt();
-    fScriptSets           = dis.readInt();
-    fScriptSetsLength     = dis.readInt();
-    for (i = 0; i < unused.length; i++) {
-      unused[i] = dis.readInt();
-    }
-  }
-
-  public void output(DataOutputStream os) throws java.io.IOException {
-    int i;
-    os.writeInt(fMagic);
-    for (i = 0; i < fFormatVersion.length; i++) {
-      os.writeByte(fFormatVersion[i]);
-    }
-    os.writeInt(fLength              );
-    os.writeInt(fCFUKeys             );
-    os.writeInt(fCFUKeysSize         );
-    os.writeInt(fCFUStringIndex      );
-    os.writeInt(fCFUStringIndexSize  );
-    os.writeInt(fCFUStringTable      );
-    os.writeInt(fCFUStringTableLen   );
-    os.writeInt(fCFUStringLengths    );
-    os.writeInt(fCFUStringLengthsSize);
-    os.writeInt(fAnyCaseTrie         );
-    os.writeInt(fAnyCaseTrieLength   );
-    os.writeInt(fLowerCaseTrie       );
-    os.writeInt(fLowerCaseTrieLength );
-    os.writeInt(fScriptSets          );
-    os.writeInt(fScriptSetsLength    );
-    for (i = 0; i < unused.length; i++) {
-      os.writeInt(unused[i]);
-    }
-  }
-}
-
-//
-// Structure for the Whole Script Confusable Data
-// See Unicode UAX-39, Unicode Security Mechanisms, for a description of the
-// Whole Script confusable data
-//
-// The data provides mappings from code points to a set of scripts
-// that contain characters that might be confused with the code point.
-// There are two mappings, one for lower case only, and one for characters
-// of any case.
-//
-// The actual data consists of a utrie2 to map from a code point to an offset,
-// and an array of UScriptSets (essentially bit maps) that is indexed
-// by the offsets obtained from the Trie.
-//
-//
-
-// -----------------------------------------------------------------------------
-// Add check to big/small endian:
-// * Endianness swap function for binary spoof data.
-// uspoof_swap - byte swap and char encoding swap of spoof data
-// -----------------------------------------------------------------------------
-/*
- * *****************************************************************************
- * 
- * Copyright (C) 2008-2009, International Business Machines Corporation and
- * others. All Rights Reserved.
- * 
- * *****************************************************************************
- * file name: uspoof_buildwsconf.cpp encoding: US-ASCII tab size: 8 (not used)
- * indentation:4
- * 
- * Internal functions for compililing Whole Script confusable source data into
- * its binary (runtime) form. The binary data format is described in
- * uspoof_impl.h
- */
-
-class WSConfusableDataBuilder {
-
-  // Regular expression for parsing a line from the Unicode file
-  // confusablesWholeScript.txt
-  // Example Lines:
-  // 006F ; Latn; Deva; A # (o) LATIN SMALL LETTER O
-  // 0048..0049 ; Latn; Grek; A # [2] (H..I) LATIN CAPITAL LETTER H..LATIN
-  // CAPITAL LETTER I
-  // | | | |
-  // | | | |---- Which table, Any Case or Lower Case (A or L)
-  // | | |----------Target script. We need this.
-  // | |----------------Src script. Should match the script of the source
-  // | code points. Beyond checking that, we don't keep it.
-  // |--------------------------------Source code points or range.
-  //
-  // The expression will match _all_ lines, including erroneous lines.
-  // The result of the parse is returned via the contents of the (match)
-  // groups.
-  static String parseExp =
-
-      "(?m)" + // Multi-line mode
-      "^([ \\t]*(?:#.*?)?)$" + // A blank or comment line. Matches Group
-      // 1.
-      "|^(?:" + // OR
-      "\\s*([0-9A-F]{4,})(?:..([0-9A-F]{4,}))?\\s*;" + // Code point
-      // range. Groups
-      // 2 and 3.
-      "\\s*([A-Za-z]+)\\s*;" + // The source script. Group 4.
-      "\\s*([A-Za-z]+)\\s*;" + // The target script. Group 5.
-      "\\s*(?:(A)|(L))" + // The table A or L. Group 6 or 7
-      "[ \\t]*(?:#.*?)?" + // Trailing commment
-      ")$|" + // OR
-      "^(.*?)$"; // An error line. Group 8.
-
-  // Any line not matching the preceding
-  // parts of the expression.will match
-  // this, and thus be flagged as an error
-
-  // Extract a regular expression match group into a char * string.
-  // The group must contain only invariant characters.
-  // Used for script names
-  // 
-  /*
-   * Andy: this is same as Matcher.java: public String group (int group)?
-   * static void extractGroup( Pattern *e, int group, char *destBuf, int
-   * destCapacity, UErrorCode &status) {
-   * 
-   * char ubuf[50]; ubuf[0] = 0; destBuf[0] = 0; int len = uregex_group(e,
-   * group, ubuf, 50, &status); if (U_FAILURE(status) || len == -1 || len >=
-   * destCapacity) { return; } String s(false, ubuf, len); // Aliasing
-   * constructor s.extract(0, len, destBuf, destCapacity, US_INV); }
-   */
-
-  static void readWholeFileToString(Reader reader, StringBuffer buffer)
-      throws java.io.IOException {
-    // Convert the user input data from UTF-8 to char (UTF-16)
-    LineNumberReader lnr = new LineNumberReader(reader);
-    do {
-      String line = lnr.readLine();
-      if (line == null) {
-        break;
-      }
-      buffer.append(line);
-      buffer.append('\n');
-    } while (true);
-  }
-
-  // Build the Whole Script Confusable data
-  //
-  // TODO: Reorganize. Either get rid of the WSConfusableDataBuilder class,
-  // because everything is local to this one build function anyhow,
-  // OR
-  // break this function into more reasonably sized pieces, with
-  // state in WSConfusableDataBuilder.
-  //
-  static void buildWSConfusableData(SpoofData fSpoofData,
-                                    DataOutputStream os, Reader confusablesWS)
-      throws SpoofChecker.SpoofCheckerException, java.io.IOException {
-    Pattern parseRegexp = null;
-    StringBuffer input = new StringBuffer();
-    int lineNum = 0;
-
-    Vector<BuilderScriptSet> scriptSets = null;
-    int rtScriptSetsCount = 2;
-
-    Trie2Writable anyCaseTrie = new Trie2Writable(0, 0);
-    Trie2Writable lowerCaseTrie = new Trie2Writable(0, 0);
-
-    // The scriptSets vector provides a mapping from TRIE values to the set
-    // of scripts.
+    // build SpoofChecker from DataInputStream
+    // read from binay data input stream
+    // initialize the pointers from this object to the raw data.
+    // Initialize the pointers to the various sections of the raw data.
     //
-    // Reserved TRIE values:
-    // 0: Code point has no whole script confusables.
-    // 1: Code point is of script Common or Inherited.
-    // These code points do not participate in whole script confusable
-    // detection.
-    // (This is logically equivalent to saying that they contain confusables
-    // in
-    // all scripts)
+    // This function is used both during the Trie building process (multiple
+    // times, as the individual data sections are added), and
+    // during the opening of a SpoofChecker Checker from prebuilt data.
     //
-    // Because Trie values are indexes into the ScriptSets vector, pre-fill
-    // vector positions 0 and 1 to avoid conflicts with the reserved values.
-    scriptSets = new Vector<BuilderScriptSet>();
-    scriptSets.addElement(null);
-    scriptSets.addElement(null);
+    // The pointers for non-existent data sections (identified by an offset of
+    // 0) are set to null.
+    void initPtrs(DataInputStream dis) throws java.io.IOException {
+      int i;
+      fCFUKeys = null;
+      fCFUValues = null;
+      fCFUStringLengths = null;
+      fCFUStrings = null;
 
-    readWholeFileToString(confusablesWS, input);
-
-    parseRegexp = Pattern.compile(parseExp);
-
-    // Zap any Byte Order Mark at the start of input. Changing it to a space
-    // is benign
-    // given the syntax of the input.
-    if (input.charAt(0) == 0xfeff) {
-      input.setCharAt(0, (char)0x20);
-    }
-
-    // Parse the input, one line per iteration of this loop.
-    Matcher matcher = parseRegexp.matcher(input);
-    while (matcher.find()) {
-      lineNum++;
-      if (matcher.start(1) >= 0) {
-        // this was a blank or comment line.
-        continue;
-      }
-      if (matcher.start(8) >= 0) {
-        // input file syntax error.
-        // status = U_PARSE_ERROR;
-        throw new SpoofChecker.SpoofCheckerException();
-      }
-
-      // Pick up the start and optional range end code points from the
-      // parsed line.
-      int startCodePoint = SpoofChecker.ScanHex(matcher.group(2));
-      int endCodePoint = startCodePoint;
-      if (matcher.start(3) >= 0) {
-        endCodePoint = SpoofChecker.ScanHex(matcher.group(3));
-      }
-
-      // Extract the two script names from the source line. We need these
-      // in an 8 bit
-      // default encoding (will be EBCDIC on IBM mainframes) in order to
-      // pass them on
-      // to the ICU u_getPropertyValueEnum() function. Ugh.
-      String srcScriptName = matcher.group(4);
-      String targScriptName = matcher.group(5);
-      int srcScript = UCharacter.getPropertyValueEnum(UProperty.SCRIPT,
-                                                      srcScriptName);
-      int targScript = UCharacter.getPropertyValueEnum(UProperty.SCRIPT,
-                                                       targScriptName);
-      if (srcScript == UScript.INVALID_CODE
-          || targScript == UScript.INVALID_CODE) {
-        // status = U_INVALID_FORMAT_ERROR;
-        throw new SpoofChecker.SpoofCheckerException();
-      }
-
-      // select the table - (A) any case or (L) lower case only
-      Trie2Writable table = anyCaseTrie;
-      if (matcher.start(7) >= 0) {
-        table = lowerCaseTrie;
-      }
-
-      // Build the set of scripts containing confusable characters for
-      // the code point(s) specified in this input line.
-      // Sanity check that the script of the source code point is the same
-      // as the source script indicated in the input file. Failure of this
-      // check is
-      // an error in the input file.
-      // Include the source script in the set (needed for Mixed Script
-      // Confusable detection).
-      //
-      int cp;
-      for (cp = startCodePoint; cp <= endCodePoint; cp++) {
-        int setIndex = table.get(cp);
-        BuilderScriptSet bsset = null;
-        if (setIndex > 0) {
-          assert (setIndex < scriptSets.size());
-          bsset = scriptSets.elementAt(setIndex);
-        } else {
-          bsset = new BuilderScriptSet();
-          bsset.codePoint = cp;
-          bsset.trie = table;
-          bsset.sset = new ScriptSet();
-          setIndex = scriptSets.size();
-          bsset.index = setIndex;
-          bsset.rindex = 0;
-          scriptSets.addElement(bsset);
-          table.set(cp, setIndex);
+      // the binary file from C world is memory-mapped, each section of data
+      // is align-ed to 16-bytes boundary, to make the code more robust we call
+      // reset()/skip() which essensially seek() to the correct offset.
+      dis.reset();
+      dis.skip(fRawData.fCFUKeys);
+      if (fRawData.fCFUKeys != 0) {
+        fCFUKeys = new int[fRawData.fCFUKeysSize];
+        for (i = 0; i < fRawData.fCFUKeysSize; i++) {
+          fCFUKeys[i] = dis.readInt();
         }
-        bsset.sset.Union(targScript);
-        bsset.sset.Union(srcScript);
+      }
 
-        int cpScript = UScript.getScript(cp);
-        if (cpScript != srcScript) {
-          // status = U_INVALID_FORMAT_ERROR;
-          throw new SpoofChecker.SpoofCheckerException();
+      dis.reset();
+      dis.skip(fRawData.fCFUStringIndex);
+      if (fRawData.fCFUStringIndex != 0) {
+        fCFUValues = new short[fRawData.fCFUStringIndexSize];
+        for (i = 0; i < fRawData.fCFUStringIndexSize; i++) {
+          fCFUValues[i] = dis.readShort();
+        }
+      }
+
+      dis.reset();
+      dis.skip(fRawData.fCFUStringTable);
+      if (fRawData.fCFUStringTable != 0) {
+        fCFUStrings = new char[fRawData.fCFUStringTableLen];
+        for (i = 0; i < fRawData.fCFUStringTableLen; i++) {
+          fCFUStrings[i] = dis.readChar();
+        }
+      }
+
+      dis.reset();
+      dis.skip(fRawData.fCFUStringLengths);
+      if (fRawData.fCFUStringLengths != 0) {
+        fCFUStringLengths = new SpoofStringLengthsElement[fRawData.fCFUStringLengthsSize];
+        for (i = 0; i < fRawData.fCFUStringLengthsSize; i++) {
+          fCFUStringLengths[i] = new SpoofStringLengthsElement();
+          fCFUStringLengths[i].fLastString = dis.readShort();
+          fCFUStringLengths[i].fStrLength = dis.readShort();
+        }
+      }
+
+      dis.reset();
+      dis.skip(fRawData.fAnyCaseTrie);
+      if (fAnyCaseTrie == null && fRawData.fAnyCaseTrie != 0) {
+        fAnyCaseTrie = Trie2.createFromSerialized(dis);
+      }
+      dis.reset();
+      dis.skip(fRawData.fLowerCaseTrie);
+      if (fLowerCaseTrie == null && fRawData.fLowerCaseTrie != 0) {
+        fLowerCaseTrie = Trie2.createFromSerialized(dis);
+      }
+
+      dis.reset();
+      dis.skip(fRawData.fScriptSets);
+      if (fRawData.fScriptSets != 0) {
+        fScriptSets = new ScriptSet[fRawData.fScriptSetsLength];
+        for (i = 0; i < fRawData.fScriptSetsLength; i++) {
+          fScriptSets[i] = new ScriptSet(dis);
         }
       }
     }
 
-    // Eliminate duplicate script sets. At this point we have a separate
-    // script set for every code point that had data in the input file.
-    //
-    // We eliminate underlying ScriptSet objects, not the BuildScriptSets
-    // that wrap them
-    //
-    // printf("Number of scriptSets: %d\n", scriptSets.size());
-    {
-      int duplicateCount = 0;
-      rtScriptSetsCount = 2;
-      for (int outeri = 2; outeri < scriptSets.size(); outeri++) {
-        BuilderScriptSet outerSet = scriptSets.elementAt(outeri);
-        if (outerSet.index != outeri) {
-          // This set was already identified as a duplicate.
-          // It will not be allocated a position in the runtime array
-          // of ScriptSets.
-          continue;
-        }
-        outerSet.rindex = rtScriptSetsCount++;
-        for (int inneri = outeri + 1; inneri < scriptSets.size(); inneri++) {
-          BuilderScriptSet innerSet = scriptSets.elementAt(inneri);
-          if (outerSet.sset.equals(innerSet.sset)
-              && outerSet.sset != innerSet.sset) {
-            innerSet.scriptSetOwned = false;
-            innerSet.sset = outerSet.sset;
-            innerSet.index = outeri;
-            innerSet.rindex = outerSet.rindex;
-            duplicateCount++;
-          }
-          // But this doesn't get all. We need to fix the TRIE.
-        }
-      }
-      // printf("Number of distinct script sets: %d\n",
-      // rtScriptSetsCount);
+    SpoofDataHeader fRawData;
+
+    // Confusable data
+    int[] fCFUKeys;
+    short[] fCFUValues;
+    SpoofStringLengthsElement[] fCFUStringLengths;
+    char[] fCFUStrings;
+
+    // Whole Script Confusable Data
+    Trie2 fAnyCaseTrie;
+    Trie2 fLowerCaseTrie;
+    ScriptSet[] fScriptSets;
+
+    private static class SpoofStringLengthsElement {
+      short fLastString; // index in string table of last string with this length
+      short fStrLength; // Length of strings
     }
 
-    // Update the Trie values to be reflect the run time script indexes
-    // (after duplicate merging).
-    // (Trie Values 0 and 1 are reserved, and the corresponding slots in
-    // scriptSets
-    // are unused, which is why the loop index starts at 2.)
-    {
-      for (int i = 2; i < scriptSets.size(); i++) {
-        BuilderScriptSet bSet = scriptSets.elementAt(i);
-        if (bSet.rindex != i) {
-          bSet.trie.set(bSet.codePoint, bSet.rindex);
-        }
-      }
-    }
-
-    // For code points with script==Common or script==Inherited,
-    // Set the reserved value of 1 into both Tries. These characters do not
-    // participate
-    // in Whole Script Confusable detection; this reserved value is the
-    // means
-    // by which they are detected.
-    {
-      UnicodeSet ignoreSet = new UnicodeSet();
-      ignoreSet.applyIntPropertyValue(UProperty.SCRIPT, UScript.COMMON);
-      UnicodeSet inheritedSet = new UnicodeSet();
-      inheritedSet.applyIntPropertyValue(UProperty.SCRIPT,
-                                         UScript.INHERITED);
-      ignoreSet.addAll(inheritedSet);
-      for (int rn = 0; rn < ignoreSet.getRangeCount(); rn++) {
-        int rangeStart = ignoreSet.getRangeStart(rn);
-        int rangeEnd = ignoreSet.getRangeEnd(rn);
-        anyCaseTrie.setRange(rangeStart, rangeEnd, 1, true);
-        lowerCaseTrie.setRange(rangeStart, rangeEnd, 1, true);
-      }
-    }
-
-    // Serialize the data to the Spoof Detector
-    {
-      anyCaseTrie.toTrie2_16().serialize(os);
-      lowerCaseTrie.toTrie2_16().serialize(os);
-
-      fSpoofData.fRawData.fScriptSets = fSpoofData.fMemLimit;
-      fSpoofData.fRawData.fScriptSetsLength = rtScriptSetsCount;
-      int rindex = 2;
-      for (int i = 2; i < scriptSets.size(); i++) {
-        BuilderScriptSet bSet = scriptSets.elementAt(i);
-        if (bSet.rindex < rindex) {
-          // We have already copied this script set to the serialized
-          // data.
-          continue;
-        }
-        assert (rindex == bSet.rindex);
-        bSet.sset.output(os);
-        rindex++;
-      }
-    }
   }
-
-}
-
-// class BuilderScriptSet. Represents the set of scripts (Script Codes)
-// containing characters that are confusable with one specific
-// code point.
-//
-class BuilderScriptSet {
-  int codePoint; // The source code point.
-  Trie2Writable trie; // Any-case or Lower-case Trie.
-  // These Trie tables are the final result of the
-  // build. This flag indicates which of the two
-  // this set of data is for.
-  ScriptSet sset; // The set of scripts itself.
-
-  // Vectors of all B
-  int index; // Index of this set in the Build Time vector
-  // of script sets.
-  int rindex; // Index of this set in the final (runtime)
-  // array of sets.
-  boolean scriptSetOwned; // True if this BuilderScriptSet owns (should
-
-  // delete)
-
-  // its underlying sset.
-
-  BuilderScriptSet() {
-    codePoint = -1;
-    trie = null;
-    sset = null;
-    index = 0;
-    rindex = 0;
-    scriptSetOwned = true;
-  }
-}
-
-/*
- * *****************************************************************************
- * 
- * Copyright (C) 2008-2009, International Business Machines Corporation and
- * others. All Rights Reserved.
- * 
- * *****************************************************************************
- * file name: uspoof_buildconf.cpp Internal classes for compililing confusable
- * data into its binary (runtime) form.
- */
-
-// ---------------------------------------------------------------------
-//
-// buildConfusableData Compile the source confusable data, as defined by
-// the Unicode data file confusables.txt, into the binary
-// structures used by the confusable detector.
-//
-// The binary structures are described in uspoof_impl.h
-//
-// 1. parse the data, building 4 hash tables, one each for the SL, SA, ML and MA
-// tables. Each maps from a int to a String.
-//
-// 2. Sort all of the strings encountered by length, since they will need to
-// be stored in that order in the final string table.
-//
-// 3. Build a list of keys (UChar32s) from the four mapping tables. Sort the
-// list because that will be the ordering of our runtime table.
-//
-// 4. Generate the run time string table. This is generated before the key &
-// value
-// tables because we need the string indexes when building those tables.
-//
-// 5. Build the run-time key and value tables. These are parallel tables, and
-// are built
-// at the same time
-
-// class ConfusabledataBuilder
-// An instance of this class exists while the confusable data is being built
-// from source.
-// It encapsulates the intermediate data structures that are used for building.
-// It exports one static function, to do a confusable data build.
-class ConfusabledataBuilder {
-  private SpoofData fSpoofData;
-  private ByteArrayOutputStream bos;
-  private DataOutputStream os;
-  private Hashtable<Integer, SPUString> fSLTable;
-  private Hashtable<Integer, SPUString> fSATable;
-  private Hashtable<Integer, SPUString> fMLTable;
-  private Hashtable<Integer, SPUString> fMATable;
-  private UnicodeSet fKeySet; // A set of all keys (UChar32s) that go into the
-  // four mapping tables.
-
-  // The binary data is first assembled into the following four collections,
-  // then
-  // copied to its final raw-memory destination.
-  private StringBuffer fStringTable;
-  private Vector<Integer> fKeyVec;
-  private Vector<Integer> fValueVec;
-  private Vector<Integer> fStringLengthsTable;
-  private SPUStringPool stringPool;
-  private Pattern fParseLine;
-  private Pattern fParseHexNum;
-  private int fLineNum;
-
-  ConfusabledataBuilder(SpoofData spData, ByteArrayOutputStream bos) {
-    this.bos = bos;
-    this.os = new DataOutputStream(bos);
-    fSpoofData = spData;
-    fSLTable = new Hashtable<Integer, SPUString>();
-    fSATable = new Hashtable<Integer, SPUString>();
-    fMLTable = new Hashtable<Integer, SPUString>();
-    fMATable = new Hashtable<Integer, SPUString>();
-    fKeySet = new UnicodeSet();
-    fKeyVec = new Vector<Integer>();
-    fValueVec = new Vector<Integer>();
-    stringPool = new SPUStringPool();
-  }
-
-  void build(Reader confusables) throws SpoofChecker.SpoofCheckerException,
-      java.io.IOException {
-    // Convert the user input data from UTF-8 to char (UTF-16)
-    StringBuffer fInput = new StringBuffer();
-    WSConfusableDataBuilder.readWholeFileToString(confusables, fInput);
-
-    // Regular Expression to parse a line from Confusables.txt. The
-    // expression will match
-    // any line. What was matched is determined by examining which capture
-    // groups have a match.
-    // Capture Group 1: the source char
-    // Capture Group 2: the replacement chars
-    // Capture Group 3-6 the table type, SL, SA, ML, or MA
-    // Capture Group 7: A blank or comment only line.
-    // Capture Group 8: A syntactically invalid line. Anything that didn't
-    // match before.
-    // Example Line from the confusables.txt source file:
-    // "1D702 ;	006E 0329 ;	SL	# MATHEMATICAL ITALIC SMALL ETA ... "
-    fParseLine = Pattern.compile("(?m)^[ \\t]*([0-9A-Fa-f]+)[ \\t]+;" + // Match
-                                 // the
-                                 // source
-                                 // char
-                                 "[ \\t]*([0-9A-Fa-f]+" + // Match the replacement char(s)
-                                 "(?:[ \\t]+[0-9A-Fa-f]+)*)[ \\t]*;" + // (continued)
-                                 "\\s*(?:(SL)|(SA)|(ML)|(MA))" + // Match the table type
-                                 "[ \\t]*(?:#.*?)?$" + // Match any trailing #comment
-                                 "|^([ \\t]*(?:#.*?)?)$" + // OR match empty lines or lines with
-                                 // only a #comment
-                                 "|^(.*?)$"); // OR match any line, which catches illegal lines.
-
-    // Regular expression for parsing a hex number out of a space-separated
-    // list of them.
-    // Capture group 1 gets the number, with spaces removed.
-    fParseHexNum = Pattern.compile("\\s*([0-9A-F]+)");
-
-    // Zap any Byte Order Mark at the start of input. Changing it to a space
-    // is benign
-    // given the syntax of the input.
-    if (fInput.charAt(0) == 0xfeff) {
-      fInput.setCharAt(0, (char)0x20);
-    }
-
-    // Parse the input, one line per iteration of this loop.
-    Matcher matcher = fParseLine.matcher(fInput);
-    while (matcher.find()) {
-      fLineNum++;
-      if (matcher.start(7) >= 0) {
-        // this was a blank or comment line.
-        continue;
-      }
-      if (matcher.start(8) >= 0) {
-        // input file syntax error.
-        // status = U_PARSE_ERROR;
-        throw new SpoofChecker.SpoofCheckerException();
-      }
-
-      // We have a good input line. Extract the key character and mapping
-      // string, and
-      // put them into the appropriate mapping table.
-      int keyChar = SpoofChecker.ScanHex(matcher.group(1));
-      Matcher m = fParseHexNum.matcher(matcher.group(2));
-
-      StringBuffer mapString = new StringBuffer();
-      while (m.find()) {
-        int c = SpoofChecker.ScanHex(m.group(1));
-        mapString.append(c);
-      }
-      assert (mapString.length() >= 1);
-
-      // Put the map (value) string into the string pool
-      // This a little like a Java intern() - any duplicates will be
-      // eliminated.
-      SPUString smapString = stringPool.addString(mapString.toString());
-
-      // Add the char . string mapping to the appropriate table.
-      Hashtable<Integer, SPUString> table = matcher.start(3) >= 0 ? fSLTable
-          : matcher.start(4) >= 0 ? fSATable
-          : matcher.start(5) >= 0 ? fMLTable : matcher
-          .start(6) >= 0 ? fMATable : null;
-      assert (table != null);
-      table.put(keyChar, smapString);
-      fKeySet.add(keyChar);
-    }
-
-    // Input data is now all parsed and collected.
-    // Now create the run-time binary form of the data.
-    //
-    // This is done in two steps. First the data is assembled into vectors
-    // and strings,
-    // for ease of construction, then the contents of these collections are
-    // dumped
-    // into the actual raw-bytes data storage.
-
-    // Build up the string array, and record the index of each string
-    // therein
-    // in the (build time only) string pool.
-    // Strings of length one are not entered into the strings array.
-    // At the same time, build up the string lengths table, which records
-    // the
-    // position in the string table of the first string of each length >= 4.
-    // (Strings in the table are sorted by length)
-    stringPool.sort();
-    fStringTable = new StringBuffer();
-    fStringLengthsTable = new Vector<Integer>();
-    int previousStringLength = 0;
-    int previousStringIndex = 0;
-    int poolSize = stringPool.size();
-    int i;
-    for (i = 0; i < poolSize; i++) {
-      SPUString s = stringPool.getByIndex(i);
-      int strLen = s.fStr.length();
-      int strIndex = fStringTable.length();
-      assert (strLen >= previousStringLength);
-      if (strLen == 1) {
-        // strings of length one do not get an entry in the string
-        // table.
-        // Keep the single string character itself here, which is the
-        // same
-        // convention that is used in the final run-time string table
-        // index.
-        s.fStrTableIndex = s.fStr.charAt(0);
-      } else {
-        if ((strLen > previousStringLength)
-            && (previousStringLength >= 4)) {
-          fStringLengthsTable.addElement(previousStringIndex);
-          fStringLengthsTable.addElement(previousStringLength);
-        }
-        s.fStrTableIndex = strIndex;
-        fStringTable.append(s.fStr);
-      }
-      previousStringLength = strLen;
-      previousStringIndex = strIndex;
-    }
-    // Make the final entry to the string lengths table.
-    // (it holds an entry for the _last_ string of each length, so adding
-    // the
-    // final one doesn't happen in the main loop because no longer string
-    // was encountered.)
-    if (previousStringLength >= 4) {
-      fStringLengthsTable.addElement(previousStringIndex);
-      fStringLengthsTable.addElement(previousStringLength);
-    }
-
-    // Construct the compile-time Key and Value tables
-    //
-    // For each key code point, check which mapping tables it applies to,
-    // and create the final data for the key & value structures.
-    //
-    // The four logical mapping tables are conflated into one combined
-    // table.
-    // If multiple logical tables have the same mapping for some key, they
-    // share a single entry in the combined table.
-    // If more than one mapping exists for the same key code point, multiple
-    // entries will be created in the table
-
-    for (int range = 0; range < fKeySet.getRangeCount(); range++) {
-      // It is an oddity of the UnicodeSet API that simply enumerating the
-      // contained
-      // code points requires a nested loop.
-      for (int keyChar = fKeySet.getRangeStart(range); keyChar <= fKeySet
-               .getRangeEnd(range); keyChar++) {
-        addKeyEntry(keyChar, fSLTable, SpoofChecker.SL_TABLE_FLAG);
-        addKeyEntry(keyChar, fSATable, SpoofChecker.SA_TABLE_FLAG);
-        addKeyEntry(keyChar, fMLTable, SpoofChecker.ML_TABLE_FLAG);
-        addKeyEntry(keyChar, fMATable, SpoofChecker.MA_TABLE_FLAG);
-      }
-    }
-
-    // Put the assembled data into the flat runtime array
-    outputData();
-
-    // All of the intermediate allocated data belongs to the
-    // ConfusabledataBuilder object (this), and is deleted by Java GC.
-  }
-
-  // Add an entry to the key and value tables being built
-  // input: data from SLTable, MATable, etc.
-  // outut: entry added to fKeyVec and fValueVec
-  // addKeyEntry Construction of the confusable Key and Mapping Values tables.
-  // This is an intermediate point in the building process.
-  // We already have the mappings in the hash tables fSLTable, etc.
-  // This function builds corresponding run-time style table entries into
-  // fKeyVec and fValueVec
-  void addKeyEntry(int keyChar, // The key character
-                   Hashtable<Integer, SPUString> table, // The table, one of SATable,
-                   // MATable, etc.
-                   int tableFlag) { // One of SA_TABLE_FLAG, etc.
-    SPUString targetMapping = table.get(keyChar);
-    if (targetMapping == null) {
-      // No mapping for this key character.
-      // (This function is called for all four tables for each key char
-      // that
-      // is seen anywhere, so this no entry cases are very much expected.)
-      return;
-    }
-
-    // Check whether there is already an entry with the correct mapping.
-    // If so, simply set the flag in the keyTable saying that the existing
-    // entry
-    // applies to the table that we're doing now.
-    boolean keyHasMultipleValues = false;
-    int i;
-    for (i = fKeyVec.size() - 1; i >= 0; i--) {
-      int key = fKeyVec.elementAt(i);
-      if ((key & 0x0ffffff) != keyChar) {
-        // We have now checked all existing key entries for this key
-        // char (if any)
-        // without finding one with the same mapping.
-        break;
-      }
-      String mapping = getMapping(i);
-      if (mapping.equals(targetMapping.fStr)) {
-        // The run time entry we are currently testing has the correct
-        // mapping.
-        // Set the flag in it indicating that it applies to the new
-        // table also.
-        key |= tableFlag;
-        fKeyVec.setElementAt(key, i);
-        return;
-      }
-      keyHasMultipleValues = true;
-    }
-
-    // Need to add a new entry to the binary data being built for this
-    // mapping.
-    // Includes adding entries to both the key table and the parallel values
-    // table.
-    int newKey = keyChar | tableFlag;
-    if (keyHasMultipleValues) {
-      newKey |= SpoofChecker.KEY_MULTIPLE_VALUES;
-    }
-    int adjustedMappingLength = targetMapping.fStr.length() - 1;
-    if (adjustedMappingLength > 3) {
-      adjustedMappingLength = 3;
-    }
-    newKey |= adjustedMappingLength << SpoofChecker.KEY_LENGTH_SHIFT;
-
-    int newData = targetMapping.fStrTableIndex;
-
-    fKeyVec.addElement(newKey);
-    fValueVec.addElement(newData);
-
-    // If the preceding key entry is for the same key character (but with a
-    // different mapping)
-    // set the multiple-values flag on it.
-    if (keyHasMultipleValues) {
-      int previousKeyIndex = fKeyVec.size() - 2;
-      int previousKey = fKeyVec.elementAt(previousKeyIndex);
-      previousKey |= SpoofChecker.KEY_MULTIPLE_VALUES;
-      fKeyVec.setElementAt(previousKey, previousKeyIndex);
-    }
-  }
-
-  // From an index into fKeyVec & fValueVec
-  // get a String with the corresponding mapping.
-  String getMapping(int index) {
-    int key = fKeyVec.elementAt(index);
-    int value = fValueVec.elementAt(index);
-    int length = SpoofChecker.getKeyLength(key);
-    int lastIndexWithLen;
-    switch (length) {
-      case 0:
-        char[] cs = { (char) value };
-        return new String(cs);
-      case 1:
-      case 2:
-        return fStringTable.substring(value, value + length + 1); // Note: +1 as optimization
-      case 3:
-        length = 0;
-        int i;
-        for (i = 0; i < fStringLengthsTable.size(); i += 2) {
-          lastIndexWithLen = fStringLengthsTable.elementAt(i);
-          if (value <= lastIndexWithLen) {
-            length = fStringLengthsTable.elementAt(i + 1);
-            break;
-          }
-        }
-        assert (length >= 3);
-        return fStringTable.substring(value, value + length);
-      default:
-        assert (false);
-    }
-    return new String();
-  }
-
-  // Populate the final binary output data array with the compiled data.
-  // The confusable data has been compiled and stored in intermediate
-  // collections and strings. Copy it from there to the final flat
-  // binary array.
+  // -------------------------------------------------------------------------------
   //
-  // Note that as each section is added to the output data, the
-  // expand (reserveSpace() function will likely relocate it in memory.
-  // Be careful with pointers.
-  void outputData() throws java.io.IOException {
+  // NFKDBuffer A little class to handle the NFKD normalization that is
+  // needed on incoming identifiers to be checked.
+  // Takes care of buffer handling and normalization
+  //
+  // TODO: how to map position offsets back to user values?
+  //
+  // --------------------------------------------------------------------------------
+  private static class NFKDBuffer {
+    private String fOriginalText;
+    private String fNormalizedText;
 
-    SpoofDataHeader rawData = fSpoofData.fRawData;
-    // The Key Table
-    // While copying the keys to the runtime array,
-    // also sanity check that they are sorted.
-    int numKeys = fKeyVec.size();
-    int i;
-    int previousKey = 0;
-    rawData.output(os);
-    rawData.fCFUKeys = os.size();
-    assert(rawData.fCFUKeys == 128);
-    rawData.fCFUKeysSize = numKeys;
-    for (i = 0; i < numKeys; i++) {
-      int key = fKeyVec.elementAt(i);
-      assert ((key & 0x00ffffff) >= (previousKey & 0x00ffffff));
-      assert ((key & 0xff000000) != 0);
-      os.writeInt(key);
-      previousKey = key;
+    public NFKDBuffer(String text) {
+      fOriginalText = text;
+      fNormalizedText = Normalizer.normalize(text, Normalizer.NFKD, 0);
     }
 
-    // The Value Table, parallels the key table
-    int numValues = fValueVec.size();
-    assert (numKeys == numValues);
-    rawData.fCFUStringIndex = os.size();
-    rawData.fCFUStringIndexSize = numValues;
-    for (i = 0; i < numValues; i++) {
-      int value = fValueVec.elementAt(i);
-      assert (value < 0xffff);
-      os.writeShort((short) value);
+    public String getBuffer() {
+      return fNormalizedText;
     }
 
-    // The Strings Table.
-
-    int stringsLength = fStringTable.length();
-    // Reserve an extra space so the string will be nul-terminated. This is
-    // only a convenience, for when debugging; it is not needed otherwise.
-    String strings = fStringTable.toString();
-    rawData.fCFUStringTable = os.size();
-    rawData.fCFUStringTableLen = stringsLength;
-    for (i = 0; i < stringsLength; i++) {
-      os.writeChar(strings.charAt(i));
-    }
-
-    // The String Lengths Table
-    // While copying into the runtime array do some sanity checks on the
-    // values
-    // Each complete entry contains two fields, an index and an offset.
-    // Lengths should increase with each entry.
-    // Offsets should be less than the size of the string table.
-    int lengthTableLength = fStringLengthsTable.size();
-    int previousLength = 0;
-    // Note: StringLengthsSize in the raw data is the number of complete
-    // entries,
-    // each consisting of a pair of 16 bit values, hence the divide by 2.
-    rawData.fCFUStringLengthsSize = lengthTableLength / 2;
-    rawData.fCFUStringLengths = os.size();
-    for (i = 0; i < lengthTableLength; i += 2) {
-      int offset = fStringLengthsTable.elementAt(i);
-      int length = fStringLengthsTable.elementAt(i + 1);
-      assert (offset < stringsLength);
-      assert (length < 40);
-      assert (length > previousLength);
-      os.writeShort((short) offset);
-      os.writeShort((short) length);
-      previousLength = length;
-    }
-
-    os.flush();
-    DataInputStream is = new DataInputStream(new ByteArrayInputStream(bos
-                                                                      .toByteArray()));
-    is.mark(Integer.MAX_VALUE);
-    fSpoofData.initPtrs(is);  // TODO(zhou): make sure the gap is correct!
-  }
-
-  public static void buildConfusableData(SpoofData spData, Reader confusables)
-      throws java.io.IOException, SpoofChecker.SpoofCheckerException {
-    ByteArrayOutputStream bos = new ByteArrayOutputStream();
-    ConfusabledataBuilder builder = new ConfusabledataBuilder(spData, bos);
-    builder.build(confusables);
-  }
-
-}
-
-/*
- * *****************************************************************************
- * 
- * Copyright (C) 2008-2009, International Business Machines Corporation and
- * others. All Rights Reserved.
- * 
- * *****************************************************************************
- * file name: uspoof_buildconf.h
- * 
- * Internal classes for compiling confusable data into its binary (runtime)
- * form.
- */
-
-// SPUString
-// Holds a string that is the result of one of the mappings defined
-// by the confusable mapping data (confusables.txt from Unicode.org)
-// Instances of SPUString exist during the compilation process only.
-
-class SPUString {
-  String fStr; // The actual string.
-  int fStrTableIndex; // Index into the final runtime data for this string.
-
-  // (or, for length 1, the single string char itself,
-  // there being no string table entry for it.)
-  SPUString(String s) {
-    fStr = s;
-    fStrTableIndex = 0;
-  }
-}
-
-// Comparison function for ordering strings in the string pool.
-// Compare by length first, then, within a group of the same length,
-// by code point order.
-// Conforms to the type signature for a USortComparator in uvector.h
-class SPUStringComparator implements Comparator<SPUString> {
-  public int compare(SPUString sL, SPUString sR) {
-    int lenL = sL.fStr.length();
-    int lenR = sR.fStr.length();
-    if (lenL < lenR) {
-      return -1;
-    } else if (lenL > lenR) {
-      return 1;
-    } else {
-      return sL.fStr.compareTo(sR.fStr);
+    public int getLength() {
+      return fNormalizedText.length();
     }
   }
-}
 
-// String Pool A utility class for holding the strings that are the result of
-// the spoof mappings. These strings will utimately end up in the
-// run-time String Table.
-// This is sort of like a sorted set of strings, except that ICU's anemic
-// built-in collections don't support those, so it is implemented with a
-// combination of a uhash and a Vector.
-class SPUStringPool {
-  public SPUStringPool() {
-    fVec = new Vector<SPUString>();
-    fHash = new Hashtable<String, SPUString>();
-  }
-
-  public int size() {
-    return fVec.size();
-  }
-
-  // Get the n-th string in the collection.
-  public SPUString getByIndex(int index) {
-    SPUString retString = fVec.elementAt(index);
-    return retString;
-  }
-
-  // Add a string. Return the string from the table.
-  // If the input parameter string is already in the table, delete the
-  // input parameter and return the existing string.
-  public SPUString addString(String src) {
-    SPUString hashedString = fHash.get(src);
-    if (hashedString == null) {
-      hashedString = new SPUString(src);
-      fHash.put(src, hashedString);
-      fVec.addElement(hashedString);
+  // -------------------------------------------------------------------------------
+  //
+  // ScriptSet - Wrapper class for the Script code bit sets that are part of the
+  // whole script confusable data.
+  //
+  // This class is used both at data build and at run time.
+  // The constructor is only used at build time.
+  // At run time, just point at the prebuilt data and go.
+  //  
+  // -------------------------------------------------------------------------------
+  private static class ScriptSet {
+    public ScriptSet() {
     }
-    return hashedString;
+
+    public ScriptSet(DataInputStream dis) throws java.io.IOException {
+      for (int j = 0; j < bits.length; j++) {
+        bits[j] = dis.readInt();
+      }
+    }
+
+    public void output(DataOutputStream os) throws java.io.IOException {
+      for (int i = 0; i < bits.length; i++) {
+        os.writeInt(bits[i]);
+      }
+    }
+
+    public boolean equals(ScriptSet other) {
+      for (int i = 0; i < bits.length; i++) {
+        if (bits[i] != other.bits[i]) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    public void Union(int script) {
+      int index = script / 32;
+      int bit = 1 << (script & 31);
+      assert (index < bits.length * 4 * 4);
+      bits[index] |= bit;
+    }
+
+    public void Union(ScriptSet other) {
+      for (int i = 0; i < bits.length; i++) {
+        bits[i] |= other.bits[i];
+      }
+    }
+
+    public void intersect(ScriptSet other) {
+      for (int i = 0; i < bits.length; i++) {
+        bits[i] &= other.bits[i];
+      }
+    }
+
+    public void intersect(int script) {
+      int index = script / 32;
+      int bit = 1 << (script & 31);
+      assert (index < bits.length * 4 * 4);
+      int i;
+      for (i = 0; i < index; i++) {
+        bits[i] = 0;
+      }
+      bits[index] &= bit;
+      for (i = index + 1; i < bits.length; i++) {
+        bits[i] = 0;
+      }
+    }
+
+    public void setAll() {
+      for (int i = 0; i < bits.length; i++) {
+        bits[i] = 0xffffffff;
+      }
+    }
+
+    public void resetAll() {
+      for (int i = 0; i < bits.length; i++) {
+        bits[i] = 0;
+      }
+    }
+
+    public int countMembers() {
+      // This bit counter is good for sparse numbers of '1's, which is
+      // very much the case that we will usually have.
+      int count = 0;
+      for (int i = 0; i < bits.length; i++) {
+        int x = bits[i];
+        while (x > 0) {
+          count++;
+          x &= (x - 1); // and off the least significant one bit.
+        }
+      }
+      return count;
+    }
+
+    private int[] bits = new int[6];
   }
 
-  // Sort the contents; affects the ordering of getByIndex().
-  public void sort() {
-    Collections.sort(fVec, new SPUStringComparator());
-  }
-
-  private Vector<SPUString> fVec; // Elements are SPUString *
-  private Hashtable<String, SPUString> fHash; // Key: Value:
 }
