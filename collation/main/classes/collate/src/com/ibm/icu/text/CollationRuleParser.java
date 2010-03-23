@@ -36,18 +36,26 @@ final class CollationRuleParser
      */
     CollationRuleParser(String rules) throws ParseException
     {
+        // Prepares m_copySet_ and m_removeSet_.
         extractSetsFromRules(rules);
+        
+        // Save the rules as a long string.  The StringBuilder object is
+        // used to store the result of token parsing as well.
         m_source_ = new StringBuilder(Normalizer.decompose(rules, false).trim());
         m_rules_ = m_source_.toString();
+        
+        // Index of the next unparsed character.
         m_current_ = 0;
+        
+        // Index of the next unwritten character in the parsed result.
         m_extraCurrent_ = m_source_.length();
+        
         m_variableTop_ = null;
         m_parsedToken_ = new ParsedToken();
         m_hashTable_ = new Hashtable<Token, Token>();
         m_options_ = new OptionSet(RuleBasedCollator.UCA_);
         m_listHeader_ = new TokenListHeader[512];
         m_resultLength_ = 0;
-        m_prevStrength_ = TOKEN_UNSET_;
         // call assembleTokenList() manually, so that we can
         // init a parser and manually parse tokens
         //assembleTokenList();
@@ -287,7 +295,7 @@ final class CollationRuleParser
      * This is a token that has been parsed but not yet processed. Used to
      * reduce the number of arguments in the parser
      */
-    private static class ParsedToken
+    private static class ParsedToken implements Cloneable
     {
         // private constructor ----------------------------------------------
 
@@ -305,7 +313,11 @@ final class CollationRuleParser
             m_flags_ = 0;
             m_strength_ = TOKEN_UNSET_;
         }
-
+        
+        public Object clone() throws CloneNotSupportedException {
+            return super.clone();
+        }
+        
         // private data members ---------------------------------------------
 
         int m_strength_;
@@ -410,11 +422,6 @@ final class CollationRuleParser
      * the UCA.
      */
     UnicodeSet m_removeSet_;
-    /**
-     * Stores the previous token's strength when making a list of same level
-     * differences.
-     */
-    private int m_prevStrength_;
 
     /*
      * This is space for the extra strings that need to be unquoted during the
@@ -674,6 +681,30 @@ final class CollationRuleParser
                       = RuleBasedCollator.UCA_.getCollationElementIterator("");
     private int m_utilCEBuffer_[] = new int[2];
 
+    private boolean m_isStarred;
+
+    private String m_starredOperator;
+
+    private int m_starredStringStart;
+
+    private int m_starredStringEnd;
+
+    private int m_currentStarredCharIndex_;
+
+    private String m_starredString_;
+
+    private String m_starredOperator_;
+
+    private int m_lastStarredCharIndex_;
+
+    private int m_unstarredPrefixOffset_;
+
+    private int m_unstarredPrefixLen_;
+
+    private ParsedToken m_starredToken_;
+
+    private int m_starStrength;
+
     // private methods -------------------------------------------------------
 
     /**
@@ -686,6 +717,8 @@ final class CollationRuleParser
         m_parsedToken_.m_strength_ = TOKEN_UNSET_;
         int sourcelimit = m_source_.length();
         int expandNext = 0;
+
+        m_isStarred = false;
 
         while (m_current_ < sourcelimit) {
             m_parsedToken_.m_prefixOffset_ = 0;
@@ -733,6 +766,8 @@ final class CollationRuleParser
                     if (sourceToken.m_strength_ != TOKEN_RESET_
                         && lastToken != sourceToken) {
                         // otherwise remove sourceToken from where it was.
+
+                        // Take care of the next node
                         if (sourceToken.m_next_ != null) {
                             if (sourceToken.m_next_.m_strength_
                                                    > sourceToken.m_strength_) {
@@ -743,14 +778,20 @@ final class CollationRuleParser
                                                     = sourceToken.m_previous_;
                         }
                         else {
+                            // sourcetoken is the last token.
+                            // Redefine the tail token.
                             sourceToken.m_listHeader_.m_last_
                                                     = sourceToken.m_previous_;
                         }
+
+                        // Take care of the previous node.
                         if (sourceToken.m_previous_ != null) {
                             sourceToken.m_previous_.m_next_
                                                         = sourceToken.m_next_;
                         }
                         else {
+                            // sourcetoken is the first token.
+                            // Redefine the head node.
                             sourceToken.m_listHeader_.m_first_
                                                         = sourceToken.m_next_;
                         }
@@ -1147,18 +1188,110 @@ final class CollationRuleParser
     }
 
     /**
-     * Getting the next token
+     * Parses the next token.
      *
+     * It updates/accesses the following member variables:
+     * m_current_: Index to the next unparsed character (not code point)
+     *    in the character array (a StringBuilder object) m_source_.
+     * m_parsedToken_:  The parsed token.  The following of the token are updated.
+     *    .m_strength: The strength of the token.
+     *    .m_charsOffset, m_charsLen_: Index to the first character (after operators),
+     *         and number of characters in the token.
+     *         This may be in the main string, or in the appended string.
+     *    .m_extensionOffset_,  .m_extensionLen_:
+     *    .m_flags:
+     *    .m_prefixOffset, .m_prefixLen:  Used when "|" is used to specify "context before".
+     *    .m_indirectIndex:
      * @param startofrules
      *            flag indicating if we are at the start of rules
-     * @return the offset of the rules
+     * @return the offset of the next unparsed char
      * @exception ParseException
      *                thrown when rule parsing fails
      */
-    @SuppressWarnings("fallthrough")
     private int parseNextToken(boolean startofrules) throws ParseException
     {
-        // parsing part
+        if (m_isStarred) {
+            // We are not done processing a starred token.  Continue it.
+            return processNextTokenInTheStarredList();
+        }
+
+        // Get the next token.
+        int nextOffset = parseNextTokenInternal(startofrules);
+
+        // If the next token is starred, we need to handle it here.
+        if (m_isStarred) {
+            // We define to indices m_currentStarredCharIndex_ and m_lastStarredCharIndex_ so that
+            // [m_currentStarredCharIndex_ .. m_lastStarredCharIndex_], both inclusive, need to be
+            // separated into several tokens and returned.
+            m_currentStarredCharIndex_ = this.m_parsedToken_.m_charsOffset_ + 1;
+            m_lastStarredCharIndex_ =  this.m_parsedToken_.m_charsOffset_ + this.m_parsedToken_.m_charsLen_ - 1;
+            m_current_ -= (this.m_parsedToken_.m_charsLen_ - 1);
+
+            try {
+                m_starredToken_ = (ParsedToken) m_parsedToken_.clone();
+                m_starredToken_.m_strength_ = m_starStrength;
+            } catch (CloneNotSupportedException e) {
+                throw new ParseException("Cloning a token failed.", 0);
+            }
+            return processNextTokenInTheStarredList();
+        }
+        return nextOffset;
+    }
+
+
+    /**
+     * Extracts the next token from the starred token from
+     *   m_currentStarredCharIndex_ and returns it.
+     * @return the offset of the next unparsed char
+     * @throws ParseException
+     */
+    private int processNextTokenInTheStarredList() throws ParseException {
+        // Clone the saved token, so that other fields are preserved.
+        try {
+            m_parsedToken_ = (ParsedToken) m_starredToken_.clone();
+        } catch (CloneNotSupportedException e) {
+            throw new ParseException("Cloning a token failed.", 0);
+        }
+
+        // Extract the characters corresponding to the next code point.
+        int cp = m_source_.codePointAt(m_currentStarredCharIndex_);
+        int nChars = Character.charCount(cp);
+
+        m_parsedToken_.m_charsLen_ = nChars;
+        m_parsedToken_.m_charsOffset_ = m_currentStarredCharIndex_;
+        m_currentStarredCharIndex_ += nChars;
+
+        // When we are done parsing the starred string, turn the flag off so that
+        // the normal processing is restored.
+        if (m_currentStarredCharIndex_ > m_lastStarredCharIndex_) {
+            m_isStarred = false;
+        }
+
+        ++m_current_;
+        return m_current_;
+    }
+
+    private int resetToTop(boolean top, boolean variableTop,
+                           int extensionOffset, int newExtensionLen,
+                           byte byteBefore) throws ParseException {
+        m_parsedToken_.m_indirectIndex_ = 5;
+        top = doSetTop();
+        return doEndParseNextToken(TOKEN_RESET_,
+                                   top,
+                                   extensionOffset,
+                                   newExtensionLen,
+                                   variableTop, byteBefore);
+    }
+
+    /**
+     * Gets the next token and sets the necessary internal variables.
+     * This function parses a starred string as a single token, which will be separated
+     * in the calling function.
+     * @param startofrules Boolean value indicating whether this is the first rule
+     * @return the offset of the next unparsed char
+     * @throws ParseException
+     */
+    private int parseNextTokenInternal(boolean startofrules) throws ParseException {
         boolean variabletop = false;
         boolean top = false;
         boolean inchars = true;
@@ -1170,11 +1303,7 @@ final class CollationRuleParser
         int /*charsoffset = 0,*/ extensionoffset = 0;
         int newstrength = TOKEN_UNSET_;
 
-        m_parsedToken_.m_charsLen_ = 0;
-        m_parsedToken_.m_charsOffset_ = 0;
-        m_parsedToken_.m_prefixOffset_ = 0;
-        m_parsedToken_.m_prefixLen_ = 0;
-        m_parsedToken_.m_indirectIndex_ = 0;
+        initializeParsedToken();
 
         int limit = m_rules_.length();
         while (m_current_ < limit) {
@@ -1185,10 +1314,10 @@ final class CollationRuleParser
                 }
                 else {
                     if ((m_parsedToken_.m_charsLen_ == 0) || inchars) {
-                         if (m_parsedToken_.m_charsLen_ == 0) {
-                             m_parsedToken_.m_charsOffset_ = m_extraCurrent_;
-                         }
-                         m_parsedToken_.m_charsLen_ ++;
+                        if (m_parsedToken_.m_charsLen_ == 0) {
+                            m_parsedToken_.m_charsOffset_ = m_extraCurrent_;
+                        }
+                        m_parsedToken_.m_charsLen_ ++;
                     }
                     else {
                         if (newextensionlen == 0) {
@@ -1232,21 +1361,10 @@ final class CollationRuleParser
                         }
                         // if we start with strength, we'll reset to top
                         if (startofrules == true) {
-                            m_parsedToken_.m_indirectIndex_ = 5;
-                            top = doSetTop();
-                            return doEndParseNextToken(TOKEN_RESET_,
-                                                       top,
-                                                       extensionoffset,
-                                                       newextensionlen,
-                                                       variabletop, before);
+                            return resetToTop(top, variabletop, extensionoffset,
+                                              newextensionlen, before);
                         }
                         newstrength = Collator.IDENTICAL;
-                        if(m_source_.charAt(m_current_ + 1) == 0x002A) { // '*'
-                            m_current_++;
-                            m_prevStrength_ = newstrength;
-                        }else{
-                            m_prevStrength_ = TOKEN_UNSET_;
-                        }
                         break;
                     case 0x002C : // ','
                         if (newstrength != TOKEN_UNSET_) {
@@ -1258,16 +1376,10 @@ final class CollationRuleParser
                         }
                         // if we start with strength, we'll reset to top
                         if (startofrules == true) {
-                            m_parsedToken_.m_indirectIndex_ = 5;
-                            top = doSetTop();
-                            return doEndParseNextToken(TOKEN_RESET_,
-                                                       top,
-                                                       extensionoffset,
-                                                       newextensionlen,
-                                                       variabletop, before);
+                            return resetToTop(top, variabletop, extensionoffset,
+                                              newextensionlen, before);
                         }
                         newstrength = Collator.TERTIARY;
-                        m_prevStrength_ = TOKEN_UNSET_;
                         break;
                     case 0x003B : // ';'
                         if (newstrength != TOKEN_UNSET_) {
@@ -1277,18 +1389,12 @@ final class CollationRuleParser
                                                        newextensionlen,
                                                        variabletop, before);
                         }
-                        // if we start with strength, we'll reset to top
-                        if (startofrules == true) {
-                            m_parsedToken_.m_indirectIndex_ = 5;
-                            top = doSetTop();
-                            return doEndParseNextToken(TOKEN_RESET_,
-                                                       top,
-                                                       extensionoffset,
-                                                       newextensionlen,
-                                                       variabletop, before);
+                        //if we start with strength, we'll reset to top
+                        if(startofrules == true) {
+                            return resetToTop(top, variabletop, extensionoffset,
+                                              newextensionlen, before);
                         }
                         newstrength = Collator.SECONDARY;
-                        m_prevStrength_ = TOKEN_UNSET_;
                         break;
                     case 0x003C : // '<'
                         if (newstrength != TOKEN_UNSET_) {
@@ -1298,15 +1404,10 @@ final class CollationRuleParser
                                                        newextensionlen,
                                                        variabletop, before);
                         }
-                        // if we start with strength, we'll reset to top
-                        if (startofrules == true) {
-                            m_parsedToken_.m_indirectIndex_ = 5;
-                            top = doSetTop();
-                            return doEndParseNextToken(TOKEN_RESET_,
-                                                       top,
-                                                       extensionoffset,
-                                                       newextensionlen,
-                                                       variabletop, before);
+                       // if we start with strength, we'll reset to top
+                       if (startofrules == true) {
+                            return resetToTop(top, variabletop, extensionoffset,
+                                              newextensionlen, before);
                         }
                         // before this, do a scan to verify whether this is
                         // another strength
@@ -1323,14 +1424,8 @@ final class CollationRuleParser
                         else { // just one
                             newstrength = Collator.PRIMARY;
                         }
-
-                        if(m_source_.charAt(m_current_ + 1) == 0x002A) { // '*'
-                            m_current_++;
-                            m_prevStrength_ = newstrength;
-                        }else{
-                            m_prevStrength_ = TOKEN_UNSET_;
-                        }
                         break;
+
                     case 0x0026 : // '&'
                         if (newstrength != TOKEN_UNSET_) {
                             return doEndParseNextToken(newstrength,
@@ -1340,7 +1435,6 @@ final class CollationRuleParser
                                                        variabletop, before);
                         }
                         newstrength = TOKEN_RESET_; // PatternEntry::RESET = 0
-                        m_prevStrength_ = TOKEN_UNSET_;
                         break;
                     case 0x005b : // '['
                         // options - read an option, analyze it
@@ -1412,12 +1506,7 @@ final class CollationRuleParser
                     // found a quote, we're gonna start copying
                     case 0x0027 : //'\''
                         if (newstrength == TOKEN_UNSET_) {
-                            if (m_prevStrength_ == TOKEN_UNSET_) {
-                                // quote is illegal until we have a strength
-                                throwParseException(m_rules_, m_current_);
-                            }else{
-                                newstrength = m_prevStrength_;
-                            }
+                            throwParseException(m_rules_, m_current_);
                         }
                         inquote = true;
                         if (inchars) { // we're doing characters
@@ -1504,14 +1593,16 @@ final class CollationRuleParser
                         break;
                     default :
                         if (newstrength == TOKEN_UNSET_) {
-                            if(m_prevStrength_ == TOKEN_UNSET_){
-                                throwParseException(m_rules_, m_current_);
-                            }else{
-                                newstrength = m_prevStrength_;
-                            }
+                            throwParseException(m_rules_, m_current_);
                         }
                         if (isSpecialChar(ch) && (inquote == false)) {
-                            throwParseException(m_rules_, m_current_);
+                            // We are using * for lists.
+                            if (ch == 0x002A) { // *
+                                m_isStarred = true;
+                                m_starStrength = newstrength;
+                            } else {
+                                throwParseException(m_rules_, m_current_);
+                            }
                         }
                         if (ch == 0x0000 && m_current_ + 1 == limit) {
                             break;
@@ -1521,16 +1612,6 @@ final class CollationRuleParser
                                 m_parsedToken_.m_charsOffset_ = m_current_;
                             }
                             m_parsedToken_.m_charsLen_++;
-                            if(m_prevStrength_ != TOKEN_UNSET_){
-                                char[] fullchar = Character.toChars(Character.codePointAt(m_source_, m_current_));
-                                m_current_ += fullchar.length;
-                                m_parsedToken_.m_charsLen_ += fullchar.length - 1;
-                                return doEndParseNextToken(newstrength,
-                                                           top,
-                                                           extensionoffset,
-                                                           newextensionlen,
-                                                           variabletop, before);
-                            }
                         }
                         else {
                             if (newextensionlen == 0) {
@@ -1553,6 +1634,18 @@ final class CollationRuleParser
         return doEndParseNextToken(newstrength, top,
                                    extensionoffset, newextensionlen,
                                    variabletop, before);
+    }
+
+
+    /**
+     * 
+     */
+    private void initializeParsedToken() {
+        m_parsedToken_.m_charsLen_ = 0;
+        m_parsedToken_.m_charsOffset_ = 0;
+        m_parsedToken_.m_prefixOffset_ = 0;
+        m_parsedToken_.m_prefixLen_ = 0;
+        m_parsedToken_.m_indirectIndex_ = 0;
     }
 
     /**
@@ -1940,7 +2033,7 @@ final class CollationRuleParser
         else if (i == 7) { // variable top
             return TOKEN_SUCCESS_MASK_ | TOKEN_VARIABLE_TOP_MASK_;
         }
-        else if (i == 8) { // rearange
+        else if (i == 8) { // rearrange
             return TOKEN_SUCCESS_MASK_;
         }
         else if (i == 9) { // before
@@ -2085,7 +2178,7 @@ final class CollationRuleParser
       int setStart = 0;
       int i = 0;
       while(i < rules.length()) {
-        if(rules.charAt(i) == 0x005B) {
+        if(rules.charAt(i) == 0x005B) { // [
           optionNumber = readOption(rules, i+1, rules.length());
           setStart = m_optionarg_;
           if(optionNumber == 13) { /* copy - parts of UCA to tailoring */
