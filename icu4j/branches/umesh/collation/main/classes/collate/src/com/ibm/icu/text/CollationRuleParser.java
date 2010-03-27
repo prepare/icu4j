@@ -681,7 +681,7 @@ final class CollationRuleParser
                       = RuleBasedCollator.UCA_.getCollationElementIterator("");
     private int m_utilCEBuffer_[] = new int[2];
 
-    private boolean m_isStarred;
+    private boolean m_isStarred_;
 
     private String m_starredOperator;
 
@@ -705,6 +705,14 @@ final class CollationRuleParser
 
     private int m_starStrength;
 
+    private int m_currentRangeCp_;
+
+    private int m_lastRangeCp_;
+
+    private boolean m_inRange_;
+
+    private int m_prevRangeCp_;
+
     // private methods -------------------------------------------------------
 
     /**
@@ -718,7 +726,8 @@ final class CollationRuleParser
         int sourcelimit = m_source_.length();
         int expandNext = 0;
 
-        m_isStarred = false;
+        m_isStarred_ = false;
+        m_inRange_ = false;
 
         while (m_current_ < sourcelimit) {
             m_parsedToken_.m_prefixOffset_ = 0;
@@ -1188,6 +1197,18 @@ final class CollationRuleParser
     }
 
     /**
+     * Clones the saved token and assigns that to m_parsedToken
+     * @throws ParseException if cloning fails.
+     */
+    private void getNewStarredToken() throws ParseException {
+        try {
+            m_parsedToken_ = (ParsedToken) m_starredToken_.clone();
+        } catch (CloneNotSupportedException e) {
+            throw new ParseException("Cloning a token failed.", 0);
+        }
+    }
+
+    /**
      * Parses the next token.
      *
      * It updates/accesses the following member variables:
@@ -1210,7 +1231,7 @@ final class CollationRuleParser
      */
     private int parseNextToken(boolean startofrules) throws ParseException
     {
-        if (m_isStarred) {
+        if (m_isStarred_) {
             // We are not done processing a starred token.  Continue it.
             return processNextTokenInTheStarredList();
         }
@@ -1219,7 +1240,7 @@ final class CollationRuleParser
         int nextOffset = parseNextTokenInternal(startofrules);
 
         // If the next token is starred, we need to handle it here.
-        if (m_isStarred) {
+        if (m_isStarred_) {
             // We define to indices m_currentStarredCharIndex_ and m_lastStarredCharIndex_ so that
             // [m_currentStarredCharIndex_ .. m_lastStarredCharIndex_], both inclusive, need to be
             // separated into several tokens and returned.
@@ -1227,15 +1248,35 @@ final class CollationRuleParser
             m_lastStarredCharIndex_ =  this.m_parsedToken_.m_charsOffset_ + this.m_parsedToken_.m_charsLen_ - 1;
             m_current_ -= (this.m_parsedToken_.m_charsLen_ - 1);
 
+            // Clone the m_parsedToken_ to be cloned later to create tokens.
             try {
                 m_starredToken_ = (ParsedToken) m_parsedToken_.clone();
-                m_starredToken_.m_strength_ = m_starStrength;
             } catch (CloneNotSupportedException e) {
                 throw new ParseException("Cloning a token failed.", 0);
             }
+            m_starredToken_.m_strength_ = m_starStrength;
             return processNextTokenInTheStarredList();
         }
         return nextOffset;
+    }
+
+    private int processNextCodePointInRange() throws ParseException {
+        getNewStarredToken();
+
+        int nChars = Character.charCount(m_currentRangeCp_);
+        m_source_.appendCodePoint(m_currentRangeCp_);
+
+        m_parsedToken_.m_charsOffset_ = m_extraCurrent_;
+        m_parsedToken_.m_charsLen_ = nChars;
+
+        m_extraCurrent_ += nChars;
+        ++m_currentRangeCp_;
+        if (m_currentRangeCp_ >= m_lastRangeCp_) {
+            m_inRange_ = false;
+            ++m_currentStarredCharIndex_;
+            m_current_ = m_currentStarredCharIndex_;
+        }
+        return m_current_;
     }
 
 
@@ -1246,27 +1287,35 @@ final class CollationRuleParser
      * @throws ParseException
      */
     private int processNextTokenInTheStarredList() throws ParseException {
-        // Clone the saved token, so that other fields are preserved.
-        try {
-            m_parsedToken_ = (ParsedToken) m_starredToken_.clone();
-        } catch (CloneNotSupportedException e) {
-            throw new ParseException("Cloning a token failed.", 0);
+        if (m_inRange_) {
+            return processNextCodePointInRange();
         }
+        getNewStarredToken();
 
         // Extract the characters corresponding to the next code point.
         int cp = m_source_.codePointAt(m_currentStarredCharIndex_);
         int nChars = Character.charCount(cp);
 
-        m_parsedToken_.m_charsLen_ = nChars;
-        m_parsedToken_.m_charsOffset_ = m_currentStarredCharIndex_;
-        m_currentStarredCharIndex_ += nChars;
-
+        if (cp == 0x002D) { // '-'
+            m_lastRangeCp_ = m_source_.codePointAt(m_currentStarredCharIndex_ + 1);
+            if (m_lastRangeCp_ < m_prevRangeCp_ ) {
+                throw new ParseException("Invalid range at ", m_currentStarredCharIndex_);
+            }
+            m_inRange_ = true;
+            m_currentRangeCp_ = m_prevRangeCp_ + 1;
+            return processNextCodePointInRange();
+        } else {
+            m_parsedToken_.m_charsLen_ = nChars;
+            m_parsedToken_.m_charsOffset_ = m_currentStarredCharIndex_;
+            m_currentStarredCharIndex_ += nChars;
+        }
         // When we are done parsing the starred string, turn the flag off so that
         // the normal processing is restored.
         if (m_currentStarredCharIndex_ > m_lastStarredCharIndex_) {
-            m_isStarred = false;
+            m_isStarred_ = false;
         }
 
+        m_prevRangeCp_ = cp;
         ++m_current_;
         return m_current_;
     }
@@ -1514,6 +1563,9 @@ final class CollationRuleParser
                                 m_parsedToken_.m_charsOffset_ = m_extraCurrent_;
                             }
                             if (m_parsedToken_.m_charsLen_ != 0) {
+                                // We are processing characters in quote together.
+                                // Copy whatever is in the current token, so that
+                                // the unquoted string can be appended to that.
                                 m_source_.append(m_source_.substring(
                                        m_current_ - m_parsedToken_.m_charsLen_,
                                        m_current_));
@@ -1598,8 +1650,12 @@ final class CollationRuleParser
                         if (isSpecialChar(ch) && (inquote == false)) {
                             // We are using * for lists.
                             if (ch == 0x002A) { // *
-                                m_isStarred = true;
+                                m_isStarred_ = true;
                                 m_starStrength = newstrength;
+                            } else if (ch == 0x002D) { // '-'
+                                if (!m_isStarred_) {
+                                    throwParseException(m_rules_, m_current_);
+                                }
                             } else {
                                 throwParseException(m_rules_, m_current_);
                             }
