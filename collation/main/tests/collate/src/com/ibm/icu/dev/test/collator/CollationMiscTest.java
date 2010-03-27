@@ -2553,14 +2553,33 @@ public class CollationMiscTest extends TestFmwk {
             -1   // "b" < "z", because b<<k and k<<<z
         };
 
+        String[] rules = new String[] {
+               "&a<b<c<d &b<<k<<l<<m &k<<<x<<<y<<<z &a=1=2=3",   // Normal
+               "&a<*bcd &b<<*klm &k<<<*xyz &a=*123",             // Lists
+               "&'\u0061'<*b'\u0063'd &b<<*klm &k<<<*xyz &a=*'\u0031\u0032\u0033'",
+                                                                 // Lists with quoted chars
+//              "&'\u0061'<*'\u0062'c'\u0064' &b<<*klm &k<<<*xyz &a=*'\u0031\u0032\u0033'",
+                                                                // Lists with quoted chars
+               "&a<*b-d &b<<*k-m &k<<<*x-z &a=*1-3",             // Ranges
+               "&'\u0061'<*bcd &b<<*klm &k<<<*xyz &a=*123",
+//               "&'\u0061'<*'\u0062'-'\u0064' &b<<*klm &k<<<*xyz &a=*123",
+//               "&'\u0061'<*'\u0062'-'\u0064' &b<<*'\u006B'-m &k<<<*x-'\u007a' &a=*'\u0031\u0032\u0033'",
+                                                                  // Ranges with quoted characters
+        };
+
+        doTestCollation(testSourceCases, testTargetCases, results, rules);
+    }
+
+    /**
+     * @param testSourceCases
+     * @param testTargetCases
+     * @param results
+     * @param rules
+     */
+    private void doTestCollation(String[] testSourceCases, String[] testTargetCases, int[] results, String[] rules) {
         assertTrue("source and target cases are of different lengths", testSourceCases.length == testTargetCases.length);
         assertTrue("source cases and results are of different lengths", testSourceCases.length == results.length);
         Collator  myCollation;
-        String[] rules = new String[] {
-                "&a<*bcd &b<<*klm &k<<<*xyz &a=*123",
-                "&'\u0061'<*b'\u0063'd &b<<*klm &k<<<*xyz &a=*'\u0031\u0032\u0033'"
-        };
-
         for (String rule : rules) {
             try {
                 myCollation = new RuleBasedCollator(rule);
