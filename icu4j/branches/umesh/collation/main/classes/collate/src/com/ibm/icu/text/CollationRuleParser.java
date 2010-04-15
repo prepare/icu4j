@@ -703,8 +703,6 @@ final class CollationRuleParser
 
     private ParsedToken m_starredToken_;
 
-    private int m_starStrength;
-
     private int m_currentRangeCp_;
 
     private int m_lastRangeCp_;
@@ -712,6 +710,7 @@ final class CollationRuleParser
     private boolean m_inRange_;
 
     private int m_prevRangeCp_;
+
 
     // private methods -------------------------------------------------------
 
@@ -729,7 +728,7 @@ final class CollationRuleParser
         m_isStarred_ = false;
         m_inRange_ = false;
 
-        while (m_current_ < sourcelimit) {
+        while (m_current_ < sourcelimit || m_isStarred_) {
             m_parsedToken_.m_prefixOffset_ = 0;
             if (parseNextToken(lastToken == null) < 0) {
                 // we have reached the end
@@ -1244,17 +1243,15 @@ final class CollationRuleParser
             // We define to indices m_currentStarredCharIndex_ and m_lastStarredCharIndex_ so that
             // [m_currentStarredCharIndex_ .. m_lastStarredCharIndex_], both inclusive, need to be
             // separated into several tokens and returned.
-            m_currentStarredCharIndex_ = this.m_parsedToken_.m_charsOffset_ + 1;
+            m_currentStarredCharIndex_ = this.m_parsedToken_.m_charsOffset_;
             m_lastStarredCharIndex_ =  this.m_parsedToken_.m_charsOffset_ + this.m_parsedToken_.m_charsLen_ - 1;
-            m_current_ -= (this.m_parsedToken_.m_charsLen_ - 1);
-
+ 
             // Clone the m_parsedToken_ to be cloned later to create tokens.
             try {
                 m_starredToken_ = (ParsedToken) m_parsedToken_.clone();
             } catch (CloneNotSupportedException e) {
                 throw new ParseException("Cloning a token failed.", 0);
             }
-            m_starredToken_.m_strength_ = m_starStrength;
             return processNextTokenInTheStarredList();
         }
         return nextOffset;
@@ -1296,7 +1293,8 @@ final class CollationRuleParser
         int cp = m_source_.codePointAt(m_currentStarredCharIndex_);
         int nChars = Character.charCount(cp);
 
-        if (cp == 0x002D) { // '-'
+        // if (cp == 0x002D) { // '-'
+        if (false) { // '-'
             m_lastRangeCp_ = m_source_.codePointAt(m_currentStarredCharIndex_ + 1);
             if (m_lastRangeCp_ < m_prevRangeCp_ ) {
                 throw new ParseException("Invalid range at ", m_currentStarredCharIndex_);
@@ -1316,7 +1314,6 @@ final class CollationRuleParser
         }
 
         m_prevRangeCp_ = cp;
-        ++m_current_;
         return m_current_;
     }
 
@@ -1414,6 +1411,10 @@ final class CollationRuleParser
                                               newextensionlen, before);
                         }
                         newstrength = Collator.IDENTICAL;
+                        if (m_source_.charAt(m_current_ + 1) == 0x002A) { // '*'
+                            m_current_++;
+                            m_isStarred_ = true;
+                        }
                         break;
                     case 0x002C : // ','
                         if (newstrength != TOKEN_UNSET_) {
@@ -1472,6 +1473,10 @@ final class CollationRuleParser
                         }
                         else { // just one
                             newstrength = Collator.PRIMARY;
+                        }
+                        if (m_source_.charAt(m_current_ + 1) == 0x002A) { // '*'
+                            m_current_++;
+                            m_isStarred_ = true;
                         }
                         break;
 
@@ -1648,17 +1653,7 @@ final class CollationRuleParser
                             throwParseException(m_rules_, m_current_);
                         }
                         if (isSpecialChar(ch) && (inquote == false)) {
-                            // We are using * for lists.
-                            if (ch == 0x002A) { // *
-                                m_isStarred_ = true;
-                                m_starStrength = newstrength;
-                            } else if (ch == 0x002D) { // '-'
-                                if (!m_isStarred_) {
-                                    throwParseException(m_rules_, m_current_);
-                                }
-                            } else {
                                 throwParseException(m_rules_, m_current_);
-                            }
                         }
                         if (ch == 0x0000 && m_current_ + 1 == limit) {
                             break;
