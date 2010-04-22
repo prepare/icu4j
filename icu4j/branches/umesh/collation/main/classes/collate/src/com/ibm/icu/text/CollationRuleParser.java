@@ -683,23 +683,10 @@ final class CollationRuleParser
 
     private boolean m_isStarred_;
 
-    private String m_starredOperator;
-
-    private int m_starredStringStart;
-
-    private int m_starredStringEnd;
-
     private int m_currentStarredCharIndex_;
 
-    private String m_starredString_;
-
-    private String m_starredOperator_;
 
     private int m_lastStarredCharIndex_;
-
-    private int m_unstarredPrefixOffset_;
-
-    private int m_unstarredPrefixLen_;
 
     private ParsedToken m_starredToken_;
 
@@ -707,9 +694,13 @@ final class CollationRuleParser
 
     private int m_lastRangeCp_;
 
+    private boolean m_startOfRange_;
+
     private boolean m_inRange_;
 
-    private int m_prevRangeCp_;
+    private int m_previousCp_;
+
+    private boolean m_savedIsStarred_;
 
 
     // private methods -------------------------------------------------------
@@ -726,7 +717,7 @@ final class CollationRuleParser
         int expandNext = 0;
 
         m_isStarred_ = false;
-        m_inRange_ = false;
+        m_startOfRange_ = false;
 
         while (m_current_ < sourcelimit || m_isStarred_) {
             m_parsedToken_.m_prefixOffset_ = 0;
@@ -1230,7 +1221,11 @@ final class CollationRuleParser
      */
     private int parseNextToken(boolean startofrules) throws ParseException
     {
-        if (m_isStarred_) {
+
+        if (m_inRange_) {
+            // We are not done processing a range.  Continue it.
+            return processNextCodePointInRange();
+        } else if (m_isStarred_) {
             // We are not done processing a starred token.  Continue it.
             return processNextTokenInTheStarredList();
         }
@@ -1238,13 +1233,32 @@ final class CollationRuleParser
         // Get the next token.
         int nextOffset = parseNextTokenInternal(startofrules);
 
-        // If the next token is starred, we need to handle it here.
-        if (m_isStarred_) {
+        // If the next token is starred and/or in range, we need to handle it here.
+        if (m_inRange_) {
+            // A new range has started.
+            // The current token is the first character of the second code point of the range.
+            // Process just that, and then proceed with the star.
+            m_lastRangeCp_ = m_source_.codePointAt(this.m_parsedToken_.m_charsOffset_);
+            if (m_lastRangeCp_ <= m_previousCp_) {
+                throw new ParseException("Invalid range", m_current_);
+            }
+            
+            // Set current range code point to process the range loop
+            m_currentRangeCp_ = m_previousCp_ + 1; 
+            
+            // Set current starred char index to continue processing the starred
+            // expression after the range is done.
+            m_currentStarredCharIndex_ = m_parsedToken_.m_charsOffset_ 
+                + Character.charCount(m_lastRangeCp_);
+            m_lastStarredCharIndex_ = m_parsedToken_.m_charsOffset_ + m_parsedToken_.m_charsLen_ - 1;
+
+            return processNextCodePointInRange();
+        } else if (m_isStarred_) {
             // We define to indices m_currentStarredCharIndex_ and m_lastStarredCharIndex_ so that
             // [m_currentStarredCharIndex_ .. m_lastStarredCharIndex_], both inclusive, need to be
             // separated into several tokens and returned.
-            m_currentStarredCharIndex_ = this.m_parsedToken_.m_charsOffset_;
-            m_lastStarredCharIndex_ =  this.m_parsedToken_.m_charsOffset_ + this.m_parsedToken_.m_charsLen_ - 1;
+            m_currentStarredCharIndex_ = m_parsedToken_.m_charsOffset_;
+            m_lastStarredCharIndex_ =  m_parsedToken_.m_charsOffset_ + m_parsedToken_.m_charsLen_ - 1;
  
             // Clone the m_parsedToken_ to be cloned later to create tokens.
             try {
@@ -1268,12 +1282,20 @@ final class CollationRuleParser
 
         m_extraCurrent_ += nChars;
         ++m_currentRangeCp_;
-        if (m_currentRangeCp_ >= m_lastRangeCp_) {
+        if (m_currentRangeCp_ > m_lastRangeCp_) {
+            // All the code points in the range are processed.
+            // Turn the range flag off.
             m_inRange_ = false;
-            ++m_currentStarredCharIndex_;
-            m_current_ = m_currentStarredCharIndex_;
+            
+            // If there is a starred portion remaining in the current
+            // parsed token, resume the starred operation.
+            if (m_currentStarredCharIndex_ <= m_lastStarredCharIndex_) {
+              m_isStarred_ = true;
+            } else {
+                m_isStarred_ = false;
+            }
         }
-        return m_current_;
+       return m_current_;
     }
 
 
@@ -1284,36 +1306,25 @@ final class CollationRuleParser
      * @throws ParseException
      */
     private int processNextTokenInTheStarredList() throws ParseException {
-        if (m_inRange_) {
-            return processNextCodePointInRange();
-        }
         getNewStarredToken();
 
         // Extract the characters corresponding to the next code point.
         int cp = m_source_.codePointAt(m_currentStarredCharIndex_);
         int nChars = Character.charCount(cp);
 
-        // if (cp == 0x002D) { // '-'
-        if (false) { // '-'
-            m_lastRangeCp_ = m_source_.codePointAt(m_currentStarredCharIndex_ + 1);
-            if (m_lastRangeCp_ < m_prevRangeCp_ ) {
-                throw new ParseException("Invalid range at ", m_currentStarredCharIndex_);
-            }
-            m_inRange_ = true;
-            m_currentRangeCp_ = m_prevRangeCp_ + 1;
-            return processNextCodePointInRange();
-        } else {
-            m_parsedToken_.m_charsLen_ = nChars;
-            m_parsedToken_.m_charsOffset_ = m_currentStarredCharIndex_;
-            m_currentStarredCharIndex_ += nChars;
-        }
+        m_parsedToken_.m_charsLen_ = nChars;
+        m_parsedToken_.m_charsOffset_ = m_currentStarredCharIndex_;
+        m_currentStarredCharIndex_ += nChars;
+
         // When we are done parsing the starred string, turn the flag off so that
         // the normal processing is restored.
         if (m_currentStarredCharIndex_ > m_lastStarredCharIndex_) {
             m_isStarred_ = false;
+            m_previousCp_ = cp;
         }
 
-        m_prevRangeCp_ = cp;
+        // Cache the current code point so that range processing will be possible.
+
         return m_current_;
     }
 
@@ -1640,6 +1651,31 @@ final class CollationRuleParser
                             // skip whitespace between '|' and the character
                         } while (UCharacterProperty.isRuleWhiteSpace(ch));
                         break;
+                   case 0x002D : // '-', indicates a range.
+                       if (newstrength != TOKEN_UNSET_) {
+                           m_savedIsStarred_ = m_isStarred_;
+                           // m_isStarred_ = false;
+                           return doEndParseNextToken(newstrength,
+                                                       top,
+                                                       extensionoffset,
+                                                       newextensionlen,
+                                                       variabletop, before);
+                       }
+
+                       newstrength = m_parsedToken_.m_strength_;
+                       // Processing of the previous token would have set m_isStarred to
+                       // false.  Reset it.
+                      m_isStarred_ = m_savedIsStarred_;
+
+                      // Ranges are valid only in starred tokens.
+                      if (!m_isStarred_) {
+                           throwParseException(m_rules_, m_current_);
+                       }
+ 
+                       // Set the range flag
+                       m_inRange_ = true;
+                       break;
+
                     case 0x0023: // '#' // this is a comment, skip everything through the end of line
                         do {
                             m_current_ ++;
@@ -1681,6 +1717,12 @@ final class CollationRuleParser
                 }
             }
             m_current_ ++;
+//            if (m_inRange_) {
+//                // Last character of a range.  This need to be processed immediately.
+//                return doEndParseNextToken(newstrength, top,
+//                        extensionoffset, newextensionlen,
+//                        variabletop, before, true);
+//            }
         }
         return doEndParseNextToken(newstrength, top,
                                    extensionoffset, newextensionlen,
@@ -1705,9 +1747,19 @@ final class CollationRuleParser
      * @return offset in rules, -1 for end of rules
      */
     private int doEndParseNextToken(int newstrength, /*int newcharslen,*/
+            boolean top, /*int charsoffset,*/
+            int extensionoffset, int newextensionlen,
+            boolean variabletop, int before)
+            throws ParseException {
+        return doEndParseNextToken(newstrength, top, extensionoffset,
+            newextensionlen, variabletop, before, false);
+    }
+    
+    private int doEndParseNextToken(int newstrength, /*int newcharslen,*/
                                     boolean top, /*int charsoffset,*/
                                     int extensionoffset, int newextensionlen,
-                                    boolean variabletop, int before)
+                                    boolean variabletop, int before,
+                                    boolean resetStarredAndRangeVariables)
                                     throws ParseException
     {
         if (newstrength == TOKEN_UNSET_) {
@@ -1725,6 +1777,10 @@ final class CollationRuleParser
         m_parsedToken_.m_flags_ = (char)
                                   ((variabletop ? TOKEN_VARIABLE_TOP_MASK_ : 0)
                                   | (top ? TOKEN_TOP_MASK_ : 0) | before);
+        if (resetStarredAndRangeVariables) {
+          m_inRange_ = false;
+          m_isStarred_ = false;
+        }
         return m_current_;
     }
 
