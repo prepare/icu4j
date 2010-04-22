@@ -2644,20 +2644,20 @@ public class CollationMiscTest extends TestFmwk {
                          
              // ** Rule with collapse **
              // \ufffe <* \uffff\U00010000  \U00010001                      
-             "&'\ufffe'<*'\uffff\ud800\udc00\ud800\udc01' " +
+             "&'\ufffe'<*'\uffff\ud800\udc00\ud800\udc01\ud800\udc02' " +
              // \U00010000   <<* \U00020001  \U00020002
-             "&'\ud800\udc00'<<*'\ud840\udc01\ud840\udc02'  " +
-             // \U00020001   =* \U0003001   \U0004001
-             "&'\ud840\udc01'=*'\ud880\udc01\ud8c0\udc01' " +
-             // \U00040008   <* \U00030008  \U00020008
-             "&'\ud8c0\udc08'<*'\ud880\udc08\ud840\udc08'",
+             "&'\ud800\udc00'<<*'\ud840\udc01\ud840\udc02\ud840\udc03'  " +
+             // \U00020001   =* \U0003001   \U0003002   \U0003003   \U0004001
+             "&'\ud840\udc01'=*'\ud880\udc01\ud880\udc02\ud880\udc03\ud8c0\udc01' " +
+             // \U00040008   <* \U00030008  \U00030009  \U0003000a  \U00020008
+             "&'\ud8c0\udc08'<*'\ud880\udc08\ud880\udc09\ud880\udc0a\ud840\udc08'",
              
          };
          doTestCollationWithConsolidatedTestCase(m_rangeTestCasesSupplemental_, rules);
      }
 
 
-     public void TestSameStrengthListWithRanges() {
+     public void TestSameStrengthListRanges() {
          OneTestCase[] testcases = {
              //               Left                  Right             Result
              new OneTestCase( "\u0061",             "\u0062",             -1 ),  // "a" < "b"
@@ -2669,6 +2669,11 @@ public class CollationMiscTest extends TestFmwk {
              new OneTestCase( "\u0062",             "\u006c",             -1 ),  // "b" << "l"            
              new OneTestCase( "\u0061",             "\u006c",             -1 ),  // "a" << "l"
              
+             new OneTestCase( "\u0079",             "\u0066",             -1 ),  // "y" < "f"
+             new OneTestCase( "\u0079",             "\u0067",             -1 ),  // "y" < "g"
+             new OneTestCase( "\u0079",             "\u0068",             -1 ),  // "y" < "h"
+             new OneTestCase( "\u0067",             "\u0065",             -1 ),    // "g" < "e"
+
              new OneTestCase( "\u0061",             "\u0031",              0 ),   // "a" == "1"
              new OneTestCase( "\u0061",             "\u0032",              0 ),   // "a" == "2"
              new OneTestCase( "\u0061",             "\u0033",              0 ),   // "a" == "3"
@@ -2680,15 +2685,29 @@ public class CollationMiscTest extends TestFmwk {
             
 
          String[] rules = new String[] {
-                "&a<*b-d &b<<*k-m &k<<<*x-z &a=*1-3",             // Ranges
-                "&'\u0061'<*'\u0062'-'\u0064' &b<<*klm &k<<<*xyz &a=*123",
-                "&'\u0061'<*'\u0062'-'\u0064' &b<<*'\u006B'-m &k<<<*x-'\u007a' &a=*'\u0031\u0032\u0033'",
+                "&a<*b-d &b<<*k-m &k<<<*x-z &y<*f-he &a=*1-3",             // Ranges
+                "&'\u0061'<*'\u0062'-'\u0064' &b<<*klm &k<<<*xyz &'\u0079'<*'\u0066'-'\u0068e' &a=*123",
+                "&'\u0061'<*'\u0062'-'\u0064' &b<<*'\u006B'-m &k<<<*x-'\u007a' &'\u0079'<*'\u0066'-h'\u0065' &a=*'\u0031\u0032\u0033'",
                                                                     // Ranges with quoted characters
          };
 
          doTestCollationWithConsolidatedTestCase(testcases, rules);
      }
 
+     public void TestSameStrengthListRangesWithSupplementalCharacters() {
+         String[] rules = new String[] {                         
+             // \ufffe <* \uffff\U00010000  \U00010001                      
+             "&'\ufffe'<*'\uffff'-'\ud800\udc02' " +
+             // \U00010000   <<* \U00020001   - \U00020003
+             "&'\ud800\udc00'<<*'\ud840\udc01'-'\ud840\udc03'  " +
+             // \U00020001   =* \U0003001   \U0004001
+             "&'\ud840\udc01'=*'\ud880\udc01'-'\ud880\udc03\ud8c0\udc01' " +
+             // \U00040008   <* \U00030008  \U00020008
+             "&'\ud8c0\udc08'<*'\ud880\udc08'-'\ud880\udc0a\ud840\udc08'",
+             
+         };
+         doTestCollationWithConsolidatedTestCase(m_rangeTestCasesSupplemental_, rules);
+     }
 
     /*
      * Tests the method public boolean equals(Object target) in CollationKey
