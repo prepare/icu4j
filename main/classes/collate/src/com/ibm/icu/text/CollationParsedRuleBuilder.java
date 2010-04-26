@@ -8,13 +8,10 @@ package com.ibm.icu.text;
 
 import java.io.IOException;
 import java.text.ParseException;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.Hashtable;
+import java.util.Vector;
 
 import com.ibm.icu.impl.IntTrieBuilder;
 import com.ibm.icu.impl.Norm2AllModes;
@@ -786,9 +783,9 @@ final class CollationParsedRuleBuilder {
     private static class MaxJamoExpansionTable {
         // package private data members --------------------------------------
 
-        List<Integer> m_endExpansionCE_;
+        Vector<Integer> m_endExpansionCE_;
         // vector of booleans
-        List<Boolean> m_isV_;
+        Vector<Boolean> m_isV_;
         byte m_maxLSize_;
         byte m_maxVSize_;
         byte m_maxTSize_;
@@ -796,8 +793,8 @@ final class CollationParsedRuleBuilder {
         // package private constructor ---------------------------------------
 
         MaxJamoExpansionTable() {
-            m_endExpansionCE_ = new ArrayList<Integer>();
-            m_isV_ = new ArrayList<Boolean>();
+            m_endExpansionCE_ = new Vector<Integer>();
+            m_isV_ = new Vector<Boolean>();
             m_endExpansionCE_.add(new Integer(0));
             m_isV_.add(Boolean.FALSE);
             m_maxLSize_ = 1;
@@ -806,8 +803,8 @@ final class CollationParsedRuleBuilder {
         }
 
         MaxJamoExpansionTable(MaxJamoExpansionTable table) {
-            m_endExpansionCE_ = new ArrayList<Integer>(table.m_endExpansionCE_);
-            m_isV_ = new ArrayList<Boolean>(table.m_isV_);
+            m_endExpansionCE_ = new Vector<Integer>(table.m_endExpansionCE_);
+            m_isV_ = new Vector<Boolean>(table.m_isV_);
             m_maxLSize_ = table.m_maxLSize_;
             m_maxVSize_ = table.m_maxVSize_;
             m_maxTSize_ = table.m_maxTSize_;
@@ -818,35 +815,35 @@ final class CollationParsedRuleBuilder {
         // package private constructor --------------------------------------
 
         MaxExpansionTable() {
-            m_endExpansionCE_ = new ArrayList<Integer>();
-            m_expansionCESize_ = new ArrayList<Byte>();
+            m_endExpansionCE_ = new Vector<Integer>();
+            m_expansionCESize_ = new Vector<Byte>();
             m_endExpansionCE_.add(new Integer(0));
             m_expansionCESize_.add(new Byte((byte) 0));
         }
 
         MaxExpansionTable(MaxExpansionTable table) {
-            m_endExpansionCE_ = new ArrayList<Integer>(table.m_endExpansionCE_);
-            m_expansionCESize_ = new ArrayList<Byte>(table.m_expansionCESize_);
+            m_endExpansionCE_ = new Vector<Integer>(table.m_endExpansionCE_);
+            m_expansionCESize_ = new Vector<Byte>(table.m_expansionCESize_);
         }
 
         // package private data member --------------------------------------
 
-        List<Integer> m_endExpansionCE_;
-        List<Byte> m_expansionCESize_;
+        Vector<Integer> m_endExpansionCE_;
+        Vector<Byte> m_expansionCESize_;
     }
 
     private static class BasicContractionTable {
         // package private constructors -------------------------------------
 
         BasicContractionTable() {
-            m_CEs_ = new ArrayList<Integer>();
+            m_CEs_ = new Vector<Integer>();
             m_codePoints_ = new StringBuilder();
         }
 
         // package private data members -------------------------------------
 
         StringBuilder m_codePoints_;
-        List<Integer> m_CEs_;
+        Vector<Integer> m_CEs_;
     }
 
     private static class ContractionTable {
@@ -859,10 +856,10 @@ final class CollationParsedRuleBuilder {
          */
         ContractionTable(IntTrieBuilder mapping) {
             m_mapping_ = mapping;
-            m_elements_ = new ArrayList<BasicContractionTable>();
-            m_CEs_ = new ArrayList<Integer>();
+            m_elements_ = new Vector<BasicContractionTable>();
+            m_CEs_ = new Vector<Integer>();
             m_codePoints_ = new StringBuilder();
-            m_offsets_ = new ArrayList<Integer>();
+            m_offsets_ = new Vector<Integer>();
             m_currentTag_ = CE_NOT_FOUND_TAG_;
         }
 
@@ -874,10 +871,10 @@ final class CollationParsedRuleBuilder {
          */
         ContractionTable(ContractionTable table) {
             m_mapping_ = table.m_mapping_;
-            m_elements_ = new ArrayList<BasicContractionTable>(table.m_elements_);
+            m_elements_ = new Vector<BasicContractionTable>(table.m_elements_);
             m_codePoints_ = new StringBuilder(table.m_codePoints_);
-            m_CEs_ = new ArrayList<Integer>(table.m_CEs_);
-            m_offsets_ = new ArrayList<Integer>(table.m_offsets_);
+            m_CEs_ = new Vector<Integer>(table.m_CEs_);
+            m_offsets_ = new Vector<Integer>(table.m_offsets_);
             m_currentTag_ = table.m_currentTag_;
         }
 
@@ -886,11 +883,11 @@ final class CollationParsedRuleBuilder {
         /**
          * Vector of BasicContractionTable
          */
-        List<BasicContractionTable> m_elements_;
+        Vector<BasicContractionTable> m_elements_;
         IntTrieBuilder m_mapping_;
         StringBuilder m_codePoints_;
-        List<Integer> m_CEs_;
-        List<Integer> m_offsets_;
+        Vector<Integer> m_CEs_;
+        Vector<Integer> m_offsets_;
         int m_currentTag_;
     }
 
@@ -1024,7 +1021,7 @@ final class CollationParsedRuleBuilder {
             MaxExpansionTable maxet = new MaxExpansionTable();
             MaxJamoExpansionTable maxjet = new MaxJamoExpansionTable();
             m_options_ = parser.m_options_;
-            m_expansions_ = new ArrayList<Integer>();
+            m_expansions_ = new Vector<Integer>();
             // Do your own mallocs for the structure, array and have linear
             // Latin 1
             int trieinitialvalue = RuleBasedCollator.CE_SPECIAL_FLAG_
@@ -1032,7 +1029,7 @@ final class CollationParsedRuleBuilder {
             // temporary fix for jb3822, 0x100000 -> 30000
             m_mapping_ = new IntTrieBuilder(null, 0x30000, trieinitialvalue,
                     trieinitialvalue, true);
-            m_prefixLookup_ = new HashMap<Elements, Elements>();
+            m_prefixLookup_ = new Hashtable<Elements, Elements>();
             // uhash_open(prefixLookupHash, prefixLookupComp);
             m_contractions_ = new ContractionTable(m_mapping_);
             // copy UCA's maxexpansion and merge as we go along
@@ -1062,7 +1059,7 @@ final class CollationParsedRuleBuilder {
         BuildTable(BuildTable table) {
             m_collator_ = table.m_collator_;
             m_mapping_ = new IntTrieBuilder(table.m_mapping_);
-            m_expansions_ = new ArrayList<Integer>(table.m_expansions_);
+            m_expansions_ = new Vector<Integer>(table.m_expansions_);
             m_contractions_ = new ContractionTable(table.m_contractions_);
             m_contractions_.m_mapping_ = m_mapping_;
             m_options_ = table.m_options_;
@@ -1081,7 +1078,7 @@ final class CollationParsedRuleBuilder {
 
         RuleBasedCollator m_collator_;
         IntTrieBuilder m_mapping_;
-        List<Integer> m_expansions_;
+        Vector<Integer> m_expansions_;
         ContractionTable m_contractions_;
         // UCATableHeader image;
         CollationRuleParser.OptionSet m_options_;
@@ -1089,7 +1086,7 @@ final class CollationParsedRuleBuilder {
         MaxJamoExpansionTable m_maxJamoExpansions_;
         byte m_unsafeCP_[];
         byte m_contrEndCP_[];
-        Map<Elements, Elements> m_prefixLookup_;
+        Hashtable<Elements, Elements> m_prefixLookup_;
         CombinClassTable cmLookup = null;
     }
 
@@ -1991,7 +1988,7 @@ final class CollationParsedRuleBuilder {
      * @return ce
      */
     private int addAnElement(BuildTable t, Elements element) {
-        List<Integer> expansions = t.m_expansions_;
+        Vector<Integer> expansions = t.m_expansions_;
         element.m_mapCE_ = 0;
 
         if (element.m_CELength_ == 1) {
@@ -2173,7 +2170,7 @@ final class CollationParsedRuleBuilder {
      *            of the expansion
      * @return the current position of the new element
      */
-    private static final int addExpansion(List<Integer> expansions, int value) {
+    private static final int addExpansion(Vector<Integer> expansions, int value) {
         expansions.add(new Integer(value));
         return expansions.size() - 1;
     }
@@ -2230,8 +2227,10 @@ final class CollationParsedRuleBuilder {
         } else {
             // we'll need to squeeze the value into the array. initial
             // implementation. shifting the subarray down by 1
-            maxexpansion.m_endExpansionCE_.add(start + 1, new Integer(endexpansion));
-            maxexpansion.m_expansionCESize_.add(start + 1, new Byte(expansionsize));
+            maxexpansion.m_endExpansionCE_.insertElementAt(new Integer(
+                    endexpansion), start + 1);
+            maxexpansion.m_expansionCESize_.insertElementAt(new Byte(
+                    expansionsize), start + 1);
         }
         return maxexpansion.m_endExpansionCE_.size();
     }
@@ -2784,7 +2783,7 @@ final class CollationParsedRuleBuilder {
             offset++;
         }
 
-        tbl.m_CEs_.add(offset, new Integer(value));
+        tbl.m_CEs_.insertElementAt(new Integer(value), offset);
         tbl.m_codePoints_.insert(offset, codePoint);
 
         return constructSpecialCE(table.m_currentTag_, element);
@@ -3541,7 +3540,7 @@ final class CollationParsedRuleBuilder {
      */
     private void assembleTable(BuildTable t, RuleBasedCollator collator) {
         IntTrieBuilder mapping = t.m_mapping_;
-        List<Integer> expansions = t.m_expansions_;
+        Vector<Integer> expansions = t.m_expansions_;
         ContractionTable contractions = t.m_contractions_;
         MaxExpansionTable maxexpansion = t.m_maxExpansions_;
 
@@ -3663,7 +3662,7 @@ final class CollationParsedRuleBuilder {
         table.m_codePoints_.delete(0, table.m_codePoints_.length());
         // Now stuff the things in
         StringBuilder cpPointer = table.m_codePoints_;
-        List<Integer> CEPointer = table.m_CEs_;
+        Vector<Integer> CEPointer = table.m_CEs_;
         for (int i = 0; i < tsize; i++) {
             BasicContractionTable bct = table.m_elements_.get(i);
             int size = bct.m_CEs_.size();
@@ -3813,7 +3812,7 @@ final class CollationParsedRuleBuilder {
         }
 
         if (t.m_prefixLookup_ != null) {
-            Enumeration<Elements> els = Collections.enumeration(t.m_prefixLookup_.values());
+            Enumeration<Elements> els = t.m_prefixLookup_.elements();
             while (els.hasMoreElements()) {
                 Elements e = els.nextElement();
                 // codepoints here are in the NFD form. We need to add the
@@ -4071,7 +4070,7 @@ final class CollationParsedRuleBuilder {
     }
 
     private void setMapCE(BuildTable t, Elements element) {
-        List<Integer> expansions = t.m_expansions_;
+        Vector<Integer> expansions = t.m_expansions_;
         element.m_mapCE_ = 0;
 
         if (element.m_CELength_ == 2 // a two CE expansion

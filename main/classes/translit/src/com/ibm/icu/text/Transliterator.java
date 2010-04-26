@@ -7,14 +7,11 @@
 package com.ibm.icu.text;
 
 import java.text.MessageFormat;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.List;
+import java.util.Hashtable;
 import java.util.Locale;
-import java.util.Map;
 import java.util.MissingResourceException;
+import java.util.Vector;
 
 import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.impl.Utility;
@@ -450,7 +447,7 @@ public abstract class Transliterator implements StringTransform  {
      */
     private static TransliteratorRegistry registry;
 
-    private static Map<CaseInsensitiveString, String> displayNameCache;
+    private static Hashtable<CaseInsensitiveString, String> displayNameCache;
 
     /**
      * Prefix for resource bundle key for the display name for a
@@ -1345,13 +1342,13 @@ public abstract class Transliterator implements StringTransform  {
     public static Transliterator getInstance(String ID,
                                              int dir) {
         StringBuffer canonID = new StringBuffer();
-        List<SingleID> list = new ArrayList<SingleID>();
+        Vector<SingleID> list = new Vector<SingleID>();
         UnicodeSet[] globalFilter = new UnicodeSet[1];
         if (!TransliteratorIDParser.parseCompoundID(ID, dir, canonID, list, globalFilter)) {
             throw new IllegalArgumentException("Invalid ID " + ID);
         }
 
-        List<Transliterator> translits = TransliteratorIDParser.instantiateList(list);
+        Vector<Transliterator> translits = TransliteratorIDParser.instantiateList(list);
 
         // assert(list.size() > 0);
         Transliterator t = null;
@@ -1364,7 +1361,7 @@ public abstract class Transliterator implements StringTransform  {
             t = new CompoundTransliterator(translits);
         }
         else {
-            t = translits.get(0);
+            t = translits.elementAt(0);
         }
 
         t.setID(canonID.toString());
@@ -1437,7 +1434,7 @@ public abstract class Transliterator implements StringTransform  {
             }
         }
         else {
-            List<Transliterator> transliterators = new ArrayList<Transliterator>();
+            Vector<Transliterator> transliterators = new Vector<Transliterator>();
             int passNumber = 1;
 
             int limit = Math.max(parser.idBlockVector.size(), parser.dataVector.size());
@@ -1785,7 +1782,7 @@ public abstract class Transliterator implements StringTransform  {
         registry = new TransliteratorRegistry();
 
         // The display name cache starts out empty
-        displayNameCache = Collections.synchronizedMap(new HashMap<CaseInsensitiveString, String>());
+        displayNameCache = new Hashtable<CaseInsensitiveString, String>();
         /* The following code parses the index table located in
          * icu/data/translit/root.txt.  The index is an n x 4 table
          * that follows this format:

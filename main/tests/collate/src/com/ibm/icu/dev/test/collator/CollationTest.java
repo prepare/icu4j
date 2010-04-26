@@ -1,16 +1,15 @@
 /**
  *******************************************************************************
- * Copyright (C) 2001-2010, International Business Machines Corporation and    *
+ * Copyright (C) 2001-2006, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
 package com.ibm.icu.dev.test.collator;
 
-import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Locale;
 import java.util.MissingResourceException;
+import java.util.Vector;
 
 import com.ibm.icu.dev.test.ModuleTest;
 import com.ibm.icu.dev.test.TestFmwk;
@@ -291,7 +290,7 @@ public class CollationTest extends ModuleTest{
         m_sequenceIndex_ = 0;
         m_nextRelation_ = -1;
         m_target_.delete(0, m_target_.length());
-        List vector = new ArrayList();
+        Vector vector = new Vector();
         int lastsmallerthanindex = -1;
         getNextInSequence();
         while (getNextInSequence()) {
@@ -299,7 +298,7 @@ public class CollationTest extends ModuleTest{
             doTest(this, col, m_source_, target, m_relation_);
             int vsize = vector.size();
             for (int i = vsize - 1; i >= 0; i --) {
-                String source = (String)vector.get(i);
+                String source = (String)vector.elementAt(i);
                 if (i > lastsmallerthanindex) {
                     doTest(this, col, source, target, m_relation_);
                 }
@@ -307,7 +306,7 @@ public class CollationTest extends ModuleTest{
                     doTest(this, col, source, target, -1);
                 }
             }
-            vector.add(target);
+            vector.addElement(target);
             if (m_relation_ < 0) {
                 lastsmallerthanindex = vsize - 1;
             }

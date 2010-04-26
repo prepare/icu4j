@@ -1,6 +1,6 @@
 /**
  *******************************************************************************
- * Copyright (C) 2000-2010, International Business Machines Corporation and    *
+ * Copyright (C) 2000-2009, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -34,9 +34,6 @@ import com.ibm.icu.util.ULocale;
  * @summary Round trip test of Transliterator
  */
 public class RoundTripTest extends TestFmwk {
-
-    //TODO - revisit test cases referencing FIX_ME
-    static final boolean FIX_ME = false;
 
     static final boolean EXTRA_TESTS = true;
     static final boolean PRINT_RULES = true;
@@ -327,15 +324,16 @@ public class RoundTripTest extends TestFmwk {
     }
 
     String getGreekSet() {
-        if (FIX_ME) {
-            errln("TestGreek needs to be updated to remove delete the [:Age=4.0:] filter ");
-        } else {
+        // Time bomb
+        if (skipIfBeforeICU(4,5,0)) {
             // We temporarily filter against Unicode 4.1, but we only do this
             // before version 3.5.
             logln("TestGreek needs to be updated to remove delete the section marked [:Age=4.0:] filter");
+        } else {
+            errln("TestGreek needs to be updated to remove delete the [:Age=4.0:] filter ");
         }
-
         return 
+        // isICU28() ? "[[\u003B\u00B7[:Greek:]-[\u03D7-\u03EF]]&[:Age=3.2:]]" :
         "[\u003B\u00B7[[:Greek:]&[:Letter:]]-[" +
         "\u1D26-\u1D2A" + // L&   [5] GREEK LETTER SMALL CAPITAL GAMMA..GREEK LETTER SMALL CAPITAL PSI
         "\u1D5D-\u1D61" + // Lm   [5] MODIFIER LETTER SMALL BETA..MODIFIER LETTER SMALL CHI
@@ -388,12 +386,13 @@ public class RoundTripTest extends TestFmwk {
     }
 
     public void TestHebrew() throws IOException {
-        if (FIX_ME) {
-            errln("TestHebrew needs to be updated to remove delete the [:Age=4.0:] filter ");
-        } else {
+        //      Time bomb
+        if (skipIfBeforeICU(4,5,0)) {
             // We temporarily filter against Unicode 4.1, but we only do this
             // before version 3.5.
             logln("TestHebrew needs to be updated to remove delete the section marked [:Age=4.0:] filter");
+        } else {
+            errln("TestHebrew needs to be updated to remove delete the [:Age=4.0:] filter ");
         }
         long start = System.currentTimeMillis();
         new Test("Latin-Hebrew")
@@ -403,18 +402,18 @@ public class RoundTripTest extends TestFmwk {
 
     public void TestThai() throws IOException {
         long start = System.currentTimeMillis();
-        if (FIX_ME) {
-            new Test("Latin-Thai")
-            .test("[a-zA-Z\u0142\u1ECD\u00E6\u0131\u0268\u02CC]",
-                    "[\u0E01-\u0E3A\u0E40-\u0E5B]", 
-                    "[a-zA-Z\u0142\u1ECD\u00E6\u0131\u0268\u02B9\u02CC]",
-                    null, this, new LegalThai());
-        } else {
+        if(skipIfBeforeICU(4,5,0)){
             new Test("Latin-Thai")
             .test("[a-zA-Z\u0142\u1ECD\u00E6\u0131\u0268\u02CC]",
                     "[\u0E01-\u0E3A\u0E40-\u0E5B]", 
                     "[a-zA-Z\u0142\u1ECD\u00E6\u0131\u0268\u02B9\u02CC]",
                     "[\u0E4F]", this, new LegalThai());   
+        }else{
+            new Test("Latin-Thai")
+            .test("[a-zA-Z\u0142\u1ECD\u00E6\u0131\u0268\u02CC]",
+                    "[\u0E01-\u0E3A\u0E40-\u0E5B]", 
+                    "[a-zA-Z\u0142\u1ECD\u00E6\u0131\u0268\u02B9\u02CC]",
+                    null, this, new LegalThai());
         }
 
         showElapsed(start, "TestThai");
@@ -485,14 +484,14 @@ public class RoundTripTest extends TestFmwk {
 
     public void TestDevanagariLatin() throws IOException {
         long start = System.currentTimeMillis();
-        if (FIX_ME) {
-            // We temporarily filter against Unicode 4.1, but we only do this
+        if (skipIfBeforeICU(4,5,0)) {
+            logln("Warning: TestDevanagariLatin needs to be updated to remove delete the section marked [:Age=4.1:] filter");
+        } else {
+            //              We temporarily filter against Unicode 4.1, but we only do this
             // before version 3.4.
             errln("FAIL: TestDevanagariLatin needs to be updated to remove delete the [:Age=4.1:] filter ");
             return;
         }
-        logln("Warning: TestDevanagariLatin needs to be updated to remove delete the section marked [:Age=4.1:] filter");
-
         new Test("Latin-DEVANAGARI", 50)
         .test(latinForIndic, "[[[:Devanagari:][\u094d][\u0964\u0965]]&[:Age=4.1:]]", "[\u0965\u0904]", this, new LegalIndic());
         showElapsed(start, "TestDevanagariLatin");
@@ -858,14 +857,14 @@ public class RoundTripTest extends TestFmwk {
             logln("Testing only 5 of "+ interIndicArray.length+" Skipping rest (use -e for exhaustive)");
             num = 5;
         }
-        if (FIX_ME) {
-            // We temporarily filter against Unicode 4.1, but we only do this
+        if (skipIfBeforeICU(4,5,0)) {
+            logln("Warning: TestInterIndic needs to be updated to remove delete the section marked [:Age=4.1:] filter");
+        } else {
+            //          We temporarily filter against Unicode 4.1, but we only do this
             // before version 3.4.
             errln("FAIL: TestInterIndic needs to be updated to remove delete the [:Age=4.1:] filter ");
             return;
         }
-        logln("Warning: TestInterIndic needs to be updated to remove delete the section marked [:Age=4.1:] filter");
-
         for(int i=0; i<num;i++){
             logln("Testing " + interIndicArray[i][0] + " at index " + i   );
             /*TODO: uncomment the line below when the transliterator is fixed

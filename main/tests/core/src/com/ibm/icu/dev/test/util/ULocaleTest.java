@@ -12,10 +12,9 @@ package com.ibm.icu.dev.test.util;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Locale;
-import java.util.Map;
 import java.util.TreeMap;
 
 import com.ibm.icu.dev.test.TestFmwk;
@@ -1208,8 +1207,8 @@ public class ULocaleTest extends TestFmwk {
         }
     }
     private void initHashtable() {
-        h[0] = new HashMap<String, String>();
-        h[1] = new HashMap<String, String>();
+        h[0] = new Hashtable();
+        h[1] = new Hashtable();
 
         //display in English
         h[0].put("collation", "collation");
@@ -1247,7 +1246,7 @@ public class ULocaleTest extends TestFmwk {
     }
 
     //Hashtables for storing expected display of keys/types of locale in English and Chinese
-    private static Map[] h = new Map[2];
+    private static Hashtable[] h = new Hashtable[2];
     
     private static final String ACCEPT_LANGUAGE_TESTS[][]  =  {
     /*#      result  fallback? */
