@@ -1537,6 +1537,7 @@ final class CollationRuleParser
                     // found a quote, we're gonna start copying
                     case 0x0027 : //'\''
                         if (newstrength == TOKEN_UNSET_) {
+                            // quote is illegal until we have a strength
                             throwParseException(m_rules_, m_current_);
                         }
                         inquote = true;
@@ -1678,12 +1679,6 @@ final class CollationRuleParser
                 }
             }
             m_current_ ++;
-//            if (m_inRange_) {
-//                // Last character of a range.  This need to be processed immediately.
-//                return doEndParseNextToken(newstrength, top,
-//                        extensionoffset, newextensionlen,
-//                        variabletop, before, true);
-//            }
         }
         return doEndParseNextToken(newstrength, top,
                                    extensionoffset, newextensionlen,
@@ -1708,19 +1703,9 @@ final class CollationRuleParser
      * @return offset in rules, -1 for end of rules
      */
     private int doEndParseNextToken(int newstrength, /*int newcharslen,*/
-            boolean top, /*int charsoffset,*/
-            int extensionoffset, int newextensionlen,
-            boolean variabletop, int before)
-            throws ParseException {
-        return doEndParseNextToken(newstrength, top, extensionoffset,
-            newextensionlen, variabletop, before, false);
-    }
-    
-    private int doEndParseNextToken(int newstrength, /*int newcharslen,*/
                                     boolean top, /*int charsoffset,*/
                                     int extensionoffset, int newextensionlen,
-                                    boolean variabletop, int before,
-                                    boolean resetStarredAndRangeVariables)
+                                    boolean variabletop, int before)
                                     throws ParseException
     {
         if (newstrength == TOKEN_UNSET_) {
@@ -1738,10 +1723,6 @@ final class CollationRuleParser
         m_parsedToken_.m_flags_ = (char)
                                   ((variabletop ? TOKEN_VARIABLE_TOP_MASK_ : 0)
                                   | (top ? TOKEN_TOP_MASK_ : 0) | before);
-        if (resetStarredAndRangeVariables) {
-          m_inRange_ = false;
-          m_isStarred_ = false;
-        }
         return m_current_;
     }
 
