@@ -38,18 +38,18 @@ final class CollationRuleParser
     {
         // Prepares m_copySet_ and m_removeSet_.
         extractSetsFromRules(rules);
-        
+
         // Save the rules as a long string.  The StringBuilder object is
         // used to store the result of token parsing as well.
         m_source_ = new StringBuilder(Normalizer.decompose(rules, false).trim());
         m_rules_ = m_source_.toString();
-        
+
         // Index of the next unparsed character.
         m_current_ = 0;
-        
+
         // Index of the next unwritten character in the parsed result.
         m_extraCurrent_ = m_source_.length();
-        
+
         m_variableTop_ = null;
         m_parsedToken_ = new ParsedToken();
         m_hashTable_ = new Hashtable<Token, Token>();
@@ -295,7 +295,7 @@ final class CollationRuleParser
      * This is a token that has been parsed but not yet processed. Used to
      * reduce the number of arguments in the parser
      */
-    private static class ParsedToken implements Cloneable
+    private static class ParsedToken
     {
         // private constructor ----------------------------------------------
 
@@ -313,11 +313,7 @@ final class CollationRuleParser
             m_flags_ = 0;
             m_strength_ = TOKEN_UNSET_;
         }
-        
-        public Object clone() throws CloneNotSupportedException {
-            return super.clone();
-        }
-        
+
         // private data members ---------------------------------------------
 
         int m_strength_;
@@ -688,13 +684,9 @@ final class CollationRuleParser
 
     private int m_lastStarredCharIndex_;
 
-    private ParsedToken m_starredToken_;
-
     private int m_currentRangeCp_;
 
     private int m_lastRangeCp_;
-
-    private boolean m_startOfRange_;
 
     private boolean m_inRange_;
 
@@ -717,7 +709,6 @@ final class CollationRuleParser
         int expandNext = 0;
 
         m_isStarred_ = false;
-        m_startOfRange_ = false;
 
         while (m_current_ < sourcelimit || m_isStarred_) {
             m_parsedToken_.m_prefixOffset_ = 0;
@@ -1187,18 +1178,6 @@ final class CollationRuleParser
     }
 
     /**
-     * Clones the saved token and assigns that to m_parsedToken
-     * @throws ParseException if cloning fails.
-     */
-    private void getNewStarredToken() throws ParseException {
-        try {
-            m_parsedToken_ = (ParsedToken) m_starredToken_.clone();
-        } catch (CloneNotSupportedException e) {
-            throw new ParseException("Cloning a token failed.", 0);
-        }
-    }
-
-    /**
      * Parses the next token.
      *
      * It updates/accesses the following member variables:
@@ -1242,38 +1221,30 @@ final class CollationRuleParser
             if (m_lastRangeCp_ <= m_previousCp_) {
                 throw new ParseException("Invalid range", m_current_);
             }
-            
+
             // Set current range code point to process the range loop
-            m_currentRangeCp_ = m_previousCp_ + 1; 
-            
+            m_currentRangeCp_ = m_previousCp_ + 1;
+
             // Set current starred char index to continue processing the starred
             // expression after the range is done.
-            m_currentStarredCharIndex_ = m_parsedToken_.m_charsOffset_ 
+            m_currentStarredCharIndex_ = m_parsedToken_.m_charsOffset_
                 + Character.charCount(m_lastRangeCp_);
             m_lastStarredCharIndex_ = m_parsedToken_.m_charsOffset_ + m_parsedToken_.m_charsLen_ - 1;
 
             return processNextCodePointInRange();
         } else if (m_isStarred_) {
-            // We define to indices m_currentStarredCharIndex_ and m_lastStarredCharIndex_ so that
+            // We define two indices m_currentStarredCharIndex_ and m_lastStarredCharIndex_ so that
             // [m_currentStarredCharIndex_ .. m_lastStarredCharIndex_], both inclusive, need to be
             // separated into several tokens and returned.
             m_currentStarredCharIndex_ = m_parsedToken_.m_charsOffset_;
             m_lastStarredCharIndex_ =  m_parsedToken_.m_charsOffset_ + m_parsedToken_.m_charsLen_ - 1;
- 
-            // Clone the m_parsedToken_ to be cloned later to create tokens.
-            try {
-                m_starredToken_ = (ParsedToken) m_parsedToken_.clone();
-            } catch (CloneNotSupportedException e) {
-                throw new ParseException("Cloning a token failed.", 0);
-            }
+
             return processNextTokenInTheStarredList();
         }
         return nextOffset;
     }
 
     private int processNextCodePointInRange() throws ParseException {
-        getNewStarredToken();
-
         int nChars = Character.charCount(m_currentRangeCp_);
         m_source_.appendCodePoint(m_currentRangeCp_);
 
@@ -1286,11 +1257,11 @@ final class CollationRuleParser
             // All the code points in the range are processed.
             // Turn the range flag off.
             m_inRange_ = false;
-            
+
             // If there is a starred portion remaining in the current
             // parsed token, resume the starred operation.
             if (m_currentStarredCharIndex_ <= m_lastStarredCharIndex_) {
-              m_isStarred_ = true;
+                m_isStarred_ = true;
             } else {
                 m_isStarred_ = false;
             }
@@ -1306,8 +1277,6 @@ final class CollationRuleParser
      * @throws ParseException
      */
     private int processNextTokenInTheStarredList() throws ParseException {
-        getNewStarredToken();
-
         // Extract the characters corresponding to the next code point.
         int cp = m_source_.codePointAt(m_currentStarredCharIndex_);
         int nChars = Character.charCount(cp);
@@ -1322,9 +1291,6 @@ final class CollationRuleParser
             m_isStarred_ = false;
             m_previousCp_ = cp;
         }
-
-        // Cache the current code point so that range processing will be possible.
-
         return m_current_;
     }
 
@@ -1654,25 +1620,20 @@ final class CollationRuleParser
                    case 0x002D : // '-', indicates a range.
                        if (newstrength != TOKEN_UNSET_) {
                            m_savedIsStarred_ = m_isStarred_;
-                           // m_isStarred_ = false;
                            return doEndParseNextToken(newstrength,
-                                                       top,
-                                                       extensionoffset,
-                                                       newextensionlen,
-                                                       variabletop, before);
+                                                      top,
+                                                      extensionoffset,
+                                                      newextensionlen,
+                                                      variabletop, before);
+                       }
+
+                       m_isStarred_ = m_savedIsStarred_;
+                       // Ranges are valid only in starred tokens.
+                       if (!m_isStarred_) {
+                           throwParseException(m_rules_, m_current_);
                        }
 
                        newstrength = m_parsedToken_.m_strength_;
-                       // Processing of the previous token would have set m_isStarred to
-                       // false.  Reset it.
-                      m_isStarred_ = m_savedIsStarred_;
-
-                      // Ranges are valid only in starred tokens.
-                      if (!m_isStarred_) {
-                           throwParseException(m_rules_, m_current_);
-                       }
- 
-                       // Set the range flag
                        m_inRange_ = true;
                        break;
 

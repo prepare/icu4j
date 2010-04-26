@@ -1,3 +1,4 @@
+
  /*
  *******************************************************************************
  * Copyright (C) 2002-2010, International Business Machines Corporation and    *
@@ -2495,40 +2496,39 @@ public class CollationMiscTest extends TestFmwk {
     }
 
 
+    /**
+     * Stores a test case for collation testing.
+     */
     private class OneTestCase {
-         public String m_source_;
-         public String m_target_;
-         public int m_result_;
-         public OneTestCase(String source, String target, int result) {
-              m_source_ = source;
-              m_target_ = target;
-              m_result_ = result;
-         }
+        /** The first value to compare.  **/
+        public String m_source_;
+
+        /** The second value to compare. **/
+        public String m_target_;
+
+        /**
+         *  0 if the two values sort equal,
+         * -1 if the first value sorts before the second
+         *  1 if the first value sorts before the first
+         */
+        public int m_result_;
+
+        public OneTestCase(String source, String target, int result) {
+            m_source_ = source;
+            m_target_ = target;
+            m_result_ = result;
+        }
     }
 
-     private void doTestCollationWithConsolidatedTestCase(OneTestCase[] testCases, String[] rules) {
-         int nTestCases = testCases.length;
-         String[] sources = new String[nTestCases];
-         String[] targets = new String[nTestCases];
-         int[] results = new int[nTestCases];
-
-         for (int i=0; i < nTestCases; ++i) {
-             sources[i] = testCases[i].m_source_;
-             targets[i] = testCases[i].m_target_;
-             results[i] = testCases[i].m_result_;
-         }
-         doTestCollation(sources, targets, results, rules);
-     }
-
     /**
-     * @param testSourceCases
-     * @param testTargetCases
-     * @param results
-     * @param rules
+     * Convenient function to test collation rules.
+     * @param testCases
+     * @param rules Collation rules in ICU format.  All the strings in this
+     *     array represent the same rule, expressed in different forms.
      */
-    private void doTestCollation(String[] testSourceCases, String[] testTargetCases, int[] results, String[] rules) {
-        assertTrue("source and target cases are of different lengths", testSourceCases.length == testTargetCases.length);
-        assertTrue("source cases and results are of different lengths", testSourceCases.length == results.length);
+    private void doTestCollation(
+        OneTestCase[] testCases, String[] rules) {
+
         Collator  myCollation;
         for (String rule : rules) {
             try {
@@ -2537,30 +2537,36 @@ public class CollationMiscTest extends TestFmwk {
                 warnln("ERROR: in creation of rule based collator");
                 return;
             }
-            // logln("Testing some A letters, for some reason");
+
             myCollation.setDecomposition(Collator.CANONICAL_DECOMPOSITION);
             myCollation.setStrength(Collator.TERTIARY);
-            for (int i = 0; i < results.length ; i++)
-            {
+            for (OneTestCase testCase : testCases) {
                 CollationTest.doTest(this, (RuleBasedCollator)myCollation,
-                        testSourceCases[i], testTargetCases[i],
-                        results[i]);
+                                     testCase.m_source_,
+                                     testCase.m_target_,
+                                     testCase.m_result_);
             }
         }
     }
 
-    // Rule: "&a<b<c<d &b<<k<<l<<m &k<<<x<<<y<<<z &a=1=2=3"
+     // Test cases to check whether the rules equivalent to
+     // "&a<b<c<d &b<<k<<l<<m &k<<<x<<<y<<<z &a=1=2=3" are working fine.
     private OneTestCase[] m_rangeTestCases_ = {
         //               Left                  Right             Result
-        new OneTestCase( "\u0061",             "\u0062",              -1 ),  // "a" < "b"
+        new OneTestCase( "\u0061",             "\u0062",             -1 ),  // "a" < "b"
         new OneTestCase( "\u0062",             "\u0063",             -1 ),  // "b" < "c"
         new OneTestCase( "\u0061",             "\u0063",             -1 ),  // "a" < "c"
-        
+
         new OneTestCase( "\u0062",             "\u006b",             -1 ),  // "b" << "k"
         new OneTestCase( "\u006b",             "\u006c",             -1 ),  // "k" << "l"
-        new OneTestCase( "\u0062",             "\u006c",             -1 ),  // "b" << "l"            
+        new OneTestCase( "\u0062",             "\u006c",             -1 ),  // "b" << "l"
         new OneTestCase( "\u0061",             "\u006c",             -1 ),  // "a" << "l"
-        
+
+        new OneTestCase( "\u0079",             "\u0066",             -1 ),  // "y" < "f"
+        new OneTestCase( "\u0079",             "\u0067",             -1 ),  // "y" < "g"
+        new OneTestCase( "\u0079",             "\u0068",             -1 ),  // "y" < "h"
+        new OneTestCase( "\u0067",             "\u0065",             -1 ),  // "g" < "e"
+
         new OneTestCase( "\u0061",             "\u0031",              0 ),   // "a" == "1"
         new OneTestCase( "\u0061",             "\u0032",              0 ),   // "a" == "2"
         new OneTestCase( "\u0061",             "\u0033",              0 ),   // "a" == "3"
@@ -2568,146 +2574,202 @@ public class CollationMiscTest extends TestFmwk {
         new OneTestCase( "\u006c\u0061",       "\u006b\u0062",       -1 ),  // "la" < "kb"
         new OneTestCase( "\u0061\u0061\u0061", "\u0031\u0032\u0033",  0 ),  // "aaa" == "123"
         new OneTestCase( "\u0062",             "\u007a",             -1 ),  // "b" < "z"
+        new OneTestCase( "\u0061\u007a\u0062", "\u0032\u0079\u006d", -1 ),  // "azm" < "2yc"
     };
 
-    // Rule: &\ufffe<\uffff<\U00010000<\U00010001<\U00010002
-    //       &\U00010000<<\U00020001<<\U00020002<<\U00020002
-    //       &\U00020001=\U0003001=\U0004001=\U0004002
-    //       &\U00040008<\U00030008<\UU00020008
+     // Test cases to check whether the rules equivalent to
+     // "&\ufffe<\uffff<\U00010000<\U00010001<\U00010002
+     //  &\U00010000<<\U00020001<<\U00020002<<\U00020002
+     //  &\U00020001=\U0003001=\U0004001=\U0004002
+     //  &\U00040008<\U00030008<\UU00020008"
+     // are working fine.
     private OneTestCase[] m_rangeTestCasesSupplemental_ = {
-            //               Left                Right               Result
-            new OneTestCase( "\ufffe",           "\uffff",               -1 ),
-            new OneTestCase( "\uffff",           "\ud800\udc00",        -1 ),  // U+FFFF < U+10000
-            new OneTestCase( "\ud800\udc00",    "\ud800\udc01",        -1 ),  // U+10000 < U+10001
-            
-            new OneTestCase( "\ufffe",           "\ud800\udc01",        -1 ),  // U+FFFF < U+10001 
-            new OneTestCase( "\ud800\udc01",    "\ud800\udc02",        -1 ),  // U+10001 < U+10002
-            new OneTestCase( "\ud800\udc00",    "\ud840\udc02",        -1 ),  // U+10000 < U+10002
-            new OneTestCase( "\ufffe",           "\u0d840\udc02",      -1 ),  // U+FFFF < U+10002 
-            
-        };
+        //               Left                Right               Result
+        new OneTestCase( "\ufffe",           "\uffff",             -1 ),
+        new OneTestCase( "\uffff",           "\ud800\udc00",       -1 ),  // U+FFFF < U+10000
+        new OneTestCase( "\ud800\udc00",    "\ud800\udc01",        -1 ),  // U+10000 < U+10001
+
+        new OneTestCase( "\ufffe",           "\ud800\udc01",       -1 ),  // U+FFFF < U+10001
+        new OneTestCase( "\ud800\udc01",    "\ud800\udc02",        -1 ),  // U+10001 < U+10002
+        new OneTestCase( "\ud800\udc00",    "\ud840\udc02",        -1 ),  // U+10000 < U+10002
+        new OneTestCase( "\ufffe",           "\u0d840\udc02",      -1 ),  // U+FFFF < U+10002
+
+    };
 
     // Test cases in disjoint random code points.  To test only the collapsed syntax.
     // Rule:  &q<w<e<r &w<<t<<y<<u &t<<<i<<<o<<<p &o=a=s=d
     private OneTestCase[] m_qwertCollationTestCases_ = {
-            new OneTestCase("q", "w" , -1),
-            new OneTestCase("w", "e" , -1),
-            
-            new OneTestCase("y", "u" , -1),
-            new OneTestCase("q", "u" , -1),
-            
-            new OneTestCase("t", "i" , -1),
-            new OneTestCase("o", "p" , -1),
-            
-            new OneTestCase("y", "e" , -1),
-            new OneTestCase("i", "u" , -1),
-            
-            new OneTestCase("quest", "were" , -1),
-            new OneTestCase("quack", "quest", -1)
+        new OneTestCase("q", "w" , -1),
+        new OneTestCase("w", "e" , -1),
+
+        new OneTestCase("y", "u" , -1),
+        new OneTestCase("q", "u" , -1),
+
+        new OneTestCase("t", "i" , -1),
+        new OneTestCase("o", "p" , -1),
+
+        new OneTestCase("y", "e" , -1),
+        new OneTestCase("i", "u" , -1),
+
+        new OneTestCase("quest", "were" , -1),
+        new OneTestCase("quack", "quest", -1)
     };
-    
+
+    // Tests the collapsed list with ASCII codepoints.
     public void TestSameStrengthList() {
-         String[] rules = new String[] {
-                "&a<b<c<d &b<<k<<l<<m &k<<<x<<<y<<<z &a=1=2=3",   // Normal
-                "&a<*bcd &b<<*klm &k<<<*xyz &a=*123",             // Lists
-                "&'\u0061'<*bcd &b<<*klm &k<<<*xyz &a=*123",
-                "&'\u0061'<*b'\u0063'd &b<<*klm &k<<<*xyz &a=*'\u0031\u0032\u0033'",
-                                                                  // Lists with quoted chars
-                "&'\u0061'<*'\u0062'c'\u0064' &b<<*klm &k<<<*xyz &a=*'\u0031\u0032\u0033'",
-                                                                 // Lists with quoted chars
-         };
-
-         doTestCollationWithConsolidatedTestCase(m_rangeTestCases_, rules);
-     }
-
-    public void TestSameStrengthListQwerty() {
         String[] rules = new String[] {
-               "&q<w<e<r &w<<t<<y<<u &t<<<i<<<o<<<p &o=a=s=d",   // Normal
-               "&q<*wer &w<<*tyu &t<<<*iop &o=*asd",             // Lists
-        };
+            // Normal
+            "&a<b<c<d &b<<k<<l<<m &k<<<x<<<y<<<z &y<f<g<h<e &a=1=2=3",
 
-        doTestCollationWithConsolidatedTestCase(m_qwertCollationTestCases_, rules);
+            // Lists
+            "&a<*bcd &b<<*klm &k<<<*xyz &y<*fghe &a=*123",
+
+            // Lists with quoted characters
+            "&'\u0061'<*bcd &b<<*klm &k<<<*xyz &y<*f'\u0067\u0068'e &a=*123",
+
+            "&'\u0061'<*b'\u0063'd &b<<*klm &k<<<*xyz &'\u0079'<*fgh'\u0065' " +
+            "&a=*'\u0031\u0032\u0033'",
+
+            "&'\u0061'<*'\u0062'c'\u0064' &b<<*klm &k<<<*xyz  &y<*fghe " +
+            "&a=*'\u0031\u0032\u0033'",
+        };
+        doTestCollation(m_rangeTestCases_, rules);
     }
 
+    // Tests the collapsed list with ASCII codepoints in non-codepoint order.
+    public void TestSameStrengthListQwerty() {
+        String[] rules = new String[] {
+            "&q<w<e<r &w<<t<<y<<u &t<<<i<<<o<<<p &o=a=s=d",   // Normal
+            "&q<*wer &w<<*tyu &t<<<*iop &o=*asd",             // Lists
+        };
+
+        doTestCollation(m_qwertCollationTestCases_, rules);
+    }
+
+    // Tests the collapsed list with supplemental codepoints.
     public void TestSameStrengthListWithSupplementalCharacters() {
-         String[] rules = new String[] {
-             // ** Rule without collapse **
-             // \ufffe < \uffff < \U00010000    < \U00010001  < \U00010002                   
-             "&'\ufffe'<'\uffff'<'\ud800\udc00'<'\ud800\udc01'<'\ud800\udc02' " +
-             // \U00010000    << \U00020001   << \U00020002       \U00020002
-             "&'\ud800\udc00'<<'\ud840\udc01'<<'\ud840\udc02'<<'\ud840\udc02'  " +
-             // \U00020001   = \U0003001    = \U0004001    = \U0004002
-             "&'\ud840\udc01'='\ud880\udc01'='\ud8c0\udc01'='\ud8c0\udc02'" +
-             // \U00040008   < \U00030008   < \U00020008
-             "&'\ud8c0\udc08'<'\ud880\udc08'<'\ud840\udc08'",
-
-                         
-             // ** Rule with collapse **
-             // \ufffe <* \uffff\U00010000  \U00010001                      
-             "&'\ufffe'<*'\uffff\ud800\udc00\ud800\udc01\ud800\udc02' " +
-             // \U00010000   <<* \U00020001  \U00020002
-             "&'\ud800\udc00'<<*'\ud840\udc01\ud840\udc02\ud840\udc03'  " +
-             // \U00020001   =* \U0003001   \U0003002   \U0003003   \U0004001
-             "&'\ud840\udc01'=*'\ud880\udc01\ud880\udc02\ud880\udc03\ud8c0\udc01' " +
-             // \U00040008   <* \U00030008  \U00030009  \U0003000a  \U00020008
-             "&'\ud8c0\udc08'<*'\ud880\udc08\ud880\udc09\ud880\udc0a\ud840\udc08'",
-             
-         };
-         doTestCollationWithConsolidatedTestCase(m_rangeTestCasesSupplemental_, rules);
-     }
+        String[] rules = new String[] {
+            // ** Rule without collapse **
+            // \ufffe < \uffff < \U00010000    < \U00010001  < \U00010002
+            "&'\ufffe'<'\uffff'<'\ud800\udc00'<'\ud800\udc01'<'\ud800\udc02' " +
+            // \U00010000    << \U00020001   << \U00020002       \U00020002
+            "&'\ud800\udc00'<<'\ud840\udc01'<<'\ud840\udc02'<<'\ud840\udc02'  " +
+            // \U00020001   = \U0003001    = \U0004001    = \U0004002
+            "&'\ud840\udc01'='\ud880\udc01'='\ud8c0\udc01'='\ud8c0\udc02'" +
+            // \U00040008   < \U00030008   < \U00020008
+            "&'\ud8c0\udc08'<'\ud880\udc08'<'\ud840\udc08'",
 
 
-     public void TestSameStrengthListRanges() {
-         OneTestCase[] testcases = {
-             //               Left                  Right             Result
-             new OneTestCase( "\u0061",             "\u0062",             -1 ),  // "a" < "b"
-             new OneTestCase( "\u0062",             "\u0063",             -1 ),  // "b" < "c"
-             new OneTestCase( "\u0061",             "\u0063",             -1 ),  // "a" < "c"
-             
-             new OneTestCase( "\u0062",             "\u006b",             -1 ),  // "b" << "k"
-             new OneTestCase( "\u006b",             "\u006c",             -1 ),  // "k" << "l"
-             new OneTestCase( "\u0062",             "\u006c",             -1 ),  // "b" << "l"            
-             new OneTestCase( "\u0061",             "\u006c",             -1 ),  // "a" << "l"
-             
-             new OneTestCase( "\u0079",             "\u0066",             -1 ),  // "y" < "f"
-             new OneTestCase( "\u0079",             "\u0067",             -1 ),  // "y" < "g"
-             new OneTestCase( "\u0079",             "\u0068",             -1 ),  // "y" < "h"
-             new OneTestCase( "\u0067",             "\u0065",             -1 ),    // "g" < "e"
+            // ** Rule with collapse **
+            // \ufffe <* \uffff\U00010000  \U00010001
+            "&'\ufffe'<*'\uffff\ud800\udc00\ud800\udc01\ud800\udc02' " +
+            // \U00010000   <<* \U00020001  \U00020002
+            "&'\ud800\udc00'<<*'\ud840\udc01\ud840\udc02\ud840\udc03'  " +
+            // \U00020001   =* \U0003001   \U0003002   \U0003003   \U0004001
+            "&'\ud840\udc01'=*'\ud880\udc01\ud880\udc02\ud880\udc03\ud8c0\udc01' " +
+            // \U00040008   <* \U00030008  \U00030009  \U0003000a  \U00020008
+            "&'\ud8c0\udc08'<*'\ud880\udc08\ud880\udc09\ud880\udc0a\ud840\udc08'",
 
-             new OneTestCase( "\u0061",             "\u0031",              0 ),   // "a" == "1"
-             new OneTestCase( "\u0061",             "\u0032",              0 ),   // "a" == "2"
-             new OneTestCase( "\u0061",             "\u0033",              0 ),   // "a" == "3"
-             new OneTestCase( "\u0061",             "\u0066",             -1 ),   // "a" < "f",
-             new OneTestCase( "\u006c\u0061",       "\u006b\u0062",       -1 ),  // "la" < "kb"
-             new OneTestCase( "\u0061\u0061\u0061", "\u0031\u0032\u0033",  0 ),  // "aaa" == "123"
-             new OneTestCase( "\u0062",             "\u007a",             -1 ),  // "b" < "z"
-         };
-            
+        };
+        doTestCollation(m_rangeTestCasesSupplemental_, rules);
+    }
 
-         String[] rules = new String[] {
-                "&a<*b-d &b<<*k-m &k<<<*x-z &y<*f-he &a=*1-3",             // Ranges
-                "&'\u0061'<*'\u0062'-'\u0064' &b<<*klm &k<<<*xyz &'\u0079'<*'\u0066'-'\u0068e' &a=*123",
-                "&'\u0061'<*'\u0062'-'\u0064' &b<<*'\u006B'-m &k<<<*x-'\u007a' &'\u0079'<*'\u0066'-h'\u0065' &a=*'\u0031\u0032\u0033'",
-                                                                    // Ranges with quoted characters
-         };
 
-         doTestCollationWithConsolidatedTestCase(testcases, rules);
-     }
+    // Tests the collapsed range with ASCII codepoints.
+    public void TestSameStrengthListRanges() {
+        String[] rules = new String[] {
+            // Ranges
+            "&a<*b-d &b<<*k-m &k<<<*x-z &y<*f-he &a=*1-3",
 
-     public void TestSameStrengthListRangesWithSupplementalCharacters() {
-         String[] rules = new String[] {                         
-             // \ufffe <* \uffff\U00010000  \U00010001                      
-             "&'\ufffe'<*'\uffff'-'\ud800\udc02' " +
-             // \U00010000   <<* \U00020001   - \U00020003
-             "&'\ud800\udc00'<<*'\ud840\udc01'-'\ud840\udc03'  " +
-             // \U00020001   =* \U0003001   \U0004001
-             "&'\ud840\udc01'=*'\ud880\udc01'-'\ud880\udc03\ud8c0\udc01' " +
-             // \U00040008   <* \U00030008  \U00020008
-             "&'\ud8c0\udc08'<*'\ud880\udc08'-'\ud880\udc0a\ud840\udc08'",
-             
-         };
-         doTestCollationWithConsolidatedTestCase(m_rangeTestCasesSupplemental_, rules);
-     }
+            // Ranges with quoted characters
+            "&'\u0061'<*'\u0062'-'\u0064' &b<<*klm &k<<<*xyz " +
+            "&'\u0079'<*'\u0066'-'\u0068e' &a=*123",
+            "&'\u0061'<*'\u0062'-'\u0064' " +
+            "&b<<*'\u006B'-m &k<<<*x-'\u007a' " +
+            "&'\u0079'<*'\u0066'-h'\u0065' &a=*'\u0031\u0032\u0033'",
+        };
+
+        doTestCollation(m_rangeTestCases_, rules);
+    }
+
+    // Tests the collapsed range with supplemental codepoints.
+    public void TestSameStrengthListRangesWithSupplementalCharacters() {
+        String[] rules = new String[] {
+            // \ufffe <* \uffff\U00010000  \U00010001
+            "&'\ufffe'<*'\uffff'-'\ud800\udc02' " +
+            // \U00010000   <<* \U00020001   - \U00020003
+            "&'\ud800\udc00'<<*'\ud840\udc01'-'\ud840\udc03'  " +
+            // \U00020001   =* \U0003001   \U0004001
+            "&'\ud840\udc01'=*'\ud880\udc01'-'\ud880\udc03\ud8c0\udc01' " +
+            // \U00040008   <* \U00030008  \U00020008
+            "&'\ud8c0\udc08'<*'\ud880\udc08'-'\ud880\udc0a\ud840\udc08'",
+        };
+        doTestCollation(m_rangeTestCasesSupplemental_, rules);
+    }
+
+    // Tests the collapsed range with special characters used as syntax characters in rules.
+    public void TestSpecialCharacters() {
+        String rules[] = new String[] {
+                // Normal
+                "&';'<'+'<','<'-'<'&'<'*'",
+
+                // List
+                "&';'<*'+,-&*'",
+
+                // Range
+                "&';'<*'+'-'-&*'",
+
+                "&'\u003b'<'\u002b'<'\u002c'<'\u002d'<'\u0026'<'\u002a'",
+
+                "&'\u003b'<*'\u002b\u002c\u002d\u0026\u002a'",
+                "&'\u003b'<*'\u002b\u002c\u002d\u0026\u002a'",
+                "&'\u003b'<*'\u002b'-'\u002d\u0026\u002a'",
+                "&'\u003b'<*'\u002b'-'\u002d\u0026\u002a'",
+        };
+        OneTestCase[] testCases = new OneTestCase[] {
+            new OneTestCase("\u003b", "\u002b", -1), // ; < +
+            new OneTestCase("\u002b", "\u002c", -1), // + < ,
+            new OneTestCase("\u002c", "\u002d", -1), // , < -
+            new OneTestCase("\u002d", "\u0026", -1), // - < &
+        };
+        doTestCollation(testCases, rules);
+    }
+
+    // This is the same example above with ' and space added.
+    // They work a little different than expected.  Desired rules are commented out.
+    public void TestQuoteAndSpace() {
+        String rules[] = new String[] {
+                // These are working as expected.
+                "&';'<'+'<','<'-'<'&'<''<'*'<' '",
+
+                // List.  Desired rule is 
+                // "&';'<*'+,-&''* '",
+                // but it doesn't work.  Instead, '' should be outside quotes as below.
+                "&';'<*'+,-&''''* '",
+
+                // Range.  Similar issues here as well.  The following are working.
+                //"&';'<*'+'-'-&''* '",
+                //"&';'<*'+'-'-&'\\u0027'* '",
+                "&';'<*'+'-'-&''''* '",
+                //"&';'<*'+'-'-&'\\u0027'* '",
+
+                // The following rules are not working.
+                // "&';'<'+'<','<'-'<'&'<\\u0027<'*'<' '", 
+                //"&'\u003b'<'\u002b'<'\u002c'<'\u002d'<'\u0026'<'\u0027'<\u002a'<'\u0020'",
+                //"&'\u003b'<'\u002b'<'\u002c'<'\u002d'<'\u0026'<\\u0027<\u002a'<'\u0020'",
+        };
+
+        OneTestCase[] testCases = new OneTestCase[] {
+            new OneTestCase("\u003b", "\u002b", -1), // ; < ,
+            new OneTestCase("\u002b", "\u002c", -1), // ; < ,
+            new OneTestCase("\u002c", "\u002d", -1), // , < -
+            new OneTestCase("\u002d", "\u0026", -1), // - < &
+            new OneTestCase("\u0026", "\u0027", -1), // & < '
+            new OneTestCase("\u0027", "\u002a", -1), // ' < *
+            // new OneTestCase("\u002a", "\u0020", -1), // * < <space>
+        };
+        doTestCollation(testCases, rules);
+    }
 
     /*
      * Tests the method public boolean equals(Object target) in CollationKey
