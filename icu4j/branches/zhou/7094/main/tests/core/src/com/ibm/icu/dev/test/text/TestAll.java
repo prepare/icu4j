@@ -17,8 +17,7 @@ public class TestAll extends TestGroup {
     }
 
     public TestAll() {
-        super(
-              new String[] {
+        super(new String[] {
                   "SpoofCheckerTest"
               },
               "Text Tests");
