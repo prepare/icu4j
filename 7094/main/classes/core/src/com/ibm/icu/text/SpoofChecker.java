@@ -145,7 +145,7 @@ public class SpoofChecker {
    * values are used both to select the set of checks that will be performed,
    * and to report results from the check function.
    * 
-   * @draft ICU 4.2
+   * @draft ICU 4.6
    */
   /**
    * Single script confusable test. When testing whether two identifiers are
@@ -232,7 +232,7 @@ public class SpoofChecker {
      * checks may be added in the future, resulting in the changes to the
      * default checking behavior.
      * 
-     * @draft ICU 4.4
+     * @draft ICU 4.6
      */
     public Builder() {
       fMagic = MAGIC;
@@ -248,7 +248,7 @@ public class SpoofChecker {
      * configuration from an existing SpoofChecker.
      * 
      * @param src The existing checker.
-     * @draft ICU 4.4
+     * @draft ICU 4.6
      */
     public Builder(SpoofChecker src) {
       fMagic = src.fMagic;
@@ -263,7 +263,7 @@ public class SpoofChecker {
      * Create a SpoofChecker with current configuration.
      * 
      * @return SpoofChecker
-     * @draft ICU 4.4
+     * @draft ICU 4.6
      */
     public SpoofChecker build() {
       if (fSpoofData == null) {  // read binary file
@@ -307,7 +307,7 @@ public class SpoofChecker {
      *             SINGLE_SCRIPT_CONFUSABLE or WHOLE_SCRIPT_CONFUSABLE --
      *             the position in the input text (line, offset) of the
      *             error.
-     * @draft ICU 4.4
+     * @draft ICU 4.6
      */
     public Builder setData(Reader confusables, Reader confusablesWholeScript)
         throws SpoofCheckerException, java.io.IOException {
@@ -330,7 +330,7 @@ public class SpoofChecker {
      *            The set of checks that this spoof checker will perform.
      *            The value is a EnumSet of enum SpoofCheck.
      * @return self
-     * @draft ICU 4.4
+     * @draft ICU 4.6
      * 
      */
     public Builder setChecks(int checks) {
@@ -379,7 +379,7 @@ public class SpoofChecker {
      *            characters.
      * 
      * @return self
-     * @draft ICU 4.4
+     * @draft ICU 4.6
      */
     public Builder setAllowedLocales(Set<ULocale> locales) {
       UnicodeSet allowedChars = new UnicodeSet();
@@ -455,7 +455,7 @@ public class SpoofChecker {
      *            UnicodeSet after calling this function. Note that this
      *            clears the allowedLocales set.
      * @return self
-     * @draft ICU 4.4
+     * @draft ICU 4.6
      */
     public Builder setAllowedChars(UnicodeSet chars) {
       fAllowedCharsSet = (UnicodeSet) chars.clone();
@@ -1330,7 +1330,7 @@ public class SpoofChecker {
    * 
    * @return The set of checks that this spoof checker will perform. The value
    *         is a EnumSet of SpoofCheck.
-   * @draft ICU 4.4
+   * @draft ICU 4.6
    * 
    */
   public int getChecks() {
@@ -1350,7 +1350,7 @@ public class SpoofChecker {
    * 
    * @return A set of locales corresponding to the acceptable scripts.
    * 
-   * @draft ICU 4.4
+   * @draft ICU 4.6
    */
   public Set<ULocale> getAllowedLocales() {
     return fAllowedLocales;
@@ -1370,14 +1370,14 @@ public class SpoofChecker {
    * 
    * @return A UnicodeSet containing the characters that are permitted by the
    *         CHAR_LIMIT test.
-   * @draft ICU 4.4
+   * @draft ICU 4.6
    */
   public UnicodeSet getAllowedChars() {
     return fAllowedCharsSet;
   }
 
   /**
-   * @draft ICU 4.4
+   * @draft ICU 4.6
    */
   public static class CheckResult {
     /*
@@ -1577,7 +1577,7 @@ public class SpoofChecker {
    * @return If s1 and s1 are confusable. If not 0, it will be filled with the
    *         set of types of confusability found, as defined by enum
    *         SpoofCheck.
-   * @draft ICU 4.4
+   * @draft ICU 4.6
    */
   public int areConfusable(String s1, String s2) {
     // 
@@ -1674,7 +1674,7 @@ public class SpoofChecker {
    *            The input string whose skeleton will be computed.
    * @return The output skeleton string.
    * 
-   * @draft ICU 4.4
+   * @draft ICU 4.6
    */
   public String getSkeleton(int type, String s) {
     // TODO: this function could be sped up a bit
@@ -2420,5 +2420,4 @@ public class SpoofChecker {
 
     private int[] bits = new int[6];
   }
-
 }

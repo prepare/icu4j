@@ -465,5 +465,4 @@ public class SpoofCheckerTest extends TestFmwk {
     TEST_ASSERT_EQ(7, result.position);
     teardown();
   }
-
 }
