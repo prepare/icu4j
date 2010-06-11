@@ -2509,7 +2509,7 @@ public class CollationMiscTest extends TestFmwk {
         /**
          *  0 if the two values sort equal,
          * -1 if the first value sorts before the second
-         *  1 if the first value sorts before the first
+         *  1 if the first value sorts after the first
          */
         public int m_result_;
 
@@ -2561,11 +2561,12 @@ public class CollationMiscTest extends TestFmwk {
         new OneTestCase( "\u006b",             "\u006c",             -1 ),  // "k" << "l"
         new OneTestCase( "\u0062",             "\u006c",             -1 ),  // "b" << "l"
         new OneTestCase( "\u0061",             "\u006c",             -1 ),  // "a" << "l"
+        new OneTestCase( "\u0061",             "\u006d",             -1 ),  // "a" << "m"
 
-        new OneTestCase( "\u0079",             "\u0066",             -1 ),  // "y" < "f"
+        new OneTestCase( "\u0079",             "\u006d",             -1 ),  // "y" < "f"
         new OneTestCase( "\u0079",             "\u0067",             -1 ),  // "y" < "g"
-        new OneTestCase( "\u0079",             "\u0068",             -1 ),  // "y" < "h"
-        new OneTestCase( "\u0067",             "\u0065",             -1 ),  // "g" < "e"
+        new OneTestCase( "\u0061",             "\u0068",             -1 ),  // "y" < "h"
+        new OneTestCase( "\u0061",             "\u0065",             -1 ),  // "g" < "e"
 
         new OneTestCase( "\u0061",             "\u0031",              0 ),   // "a" == "1"
         new OneTestCase( "\u0061",             "\u0032",              0 ),   // "a" == "2"
@@ -2589,14 +2590,14 @@ public class CollationMiscTest extends TestFmwk {
         new OneTestCase( "\uffff",           "\ud800\udc00",       -1 ),  // U+FFFF < U+10000
         new OneTestCase( "\ud800\udc00",    "\ud800\udc01",        -1 ),  // U+10000 < U+10001
 
-        new OneTestCase( "\ufffe",           "\ud800\udc01",       -1 ),  // U+FFFF < U+10001
+        new OneTestCase( "\ufffe",           "\ud800\udc01",       -1 ),  // U+FFFE < U+10001
         new OneTestCase( "\ud800\udc01",    "\ud800\udc02",        -1 ),  // U+10001 < U+10002
         new OneTestCase( "\ud800\udc00",    "\ud840\udc02",        -1 ),  // U+10000 < U+10002
         new OneTestCase( "\ufffe",           "\u0d840\udc02",      -1 ),  // U+FFFF < U+10002
 
     };
 
-    // Test cases in disjoint random code points.  To test only the collapsed syntax.
+    // Test cases in disjoint random code points.  To test only the compact syntax.
     // Rule:  &q<w<e<r &w<<t<<y<<u &t<<<i<<<o<<<p &o=a=s=d
     private OneTestCase[] m_qwertCollationTestCases_ = {
         new OneTestCase("q", "w" , -1),
@@ -2615,7 +2616,7 @@ public class CollationMiscTest extends TestFmwk {
         new OneTestCase("quack", "quest", -1)
     };
 
-    // Tests the collapsed list with ASCII codepoints.
+    // Tests the compact list with ASCII codepoints.
     public void TestSameStrengthList() {
         String[] rules = new String[] {
             // Normal
@@ -2626,7 +2627,13 @@ public class CollationMiscTest extends TestFmwk {
 
             // Lists with quoted characters
             "&'\u0061'<*bcd &b<<*klm &k<<<*xyz &y<*f'\u0067\u0068'e &a=*123",
-
+        };
+        doTestCollation(m_rangeTestCases_, rules);
+    }
+    
+    public void TestSameStrengthListQuoted() {
+        String[] rules = new String[] {
+            "&'\u0061'<*bcd &b<<*klm &k<<<*xyz &y<*f'\u0067\u0068'e &a=1=2=3",
             "&'\u0061'<*b'\u0063'd &b<<*klm &k<<<*xyz &'\u0079'<*fgh'\u0065' " +
             "&a=*'\u0031\u0032\u0033'",
 
@@ -2636,7 +2643,7 @@ public class CollationMiscTest extends TestFmwk {
         doTestCollation(m_rangeTestCases_, rules);
     }
 
-    // Tests the collapsed list with ASCII codepoints in non-codepoint order.
+    // Tests the compact list with ASCII codepoints in non-codepoint order.
     public void TestSameStrengthListQwerty() {
         String[] rules = new String[] {
             "&q<w<e<r &w<<t<<y<<u &t<<<i<<<o<<<p &o=a=s=d",   // Normal
@@ -2646,10 +2653,10 @@ public class CollationMiscTest extends TestFmwk {
         doTestCollation(m_qwertCollationTestCases_, rules);
     }
 
-    // Tests the collapsed list with supplemental codepoints.
+    // Tests the compact list with supplemental codepoints.
     public void TestSameStrengthListWithSupplementalCharacters() {
         String[] rules = new String[] {
-            // ** Rule without collapse **
+            // ** Rule without compact list syntax **
             // \ufffe < \uffff < \U00010000    < \U00010001  < \U00010002
             "&'\ufffe'<'\uffff'<'\ud800\udc00'<'\ud800\udc01'<'\ud800\udc02' " +
             // \U00010000    << \U00020001   << \U00020002       \U00020002
@@ -2659,8 +2666,7 @@ public class CollationMiscTest extends TestFmwk {
             // \U00040008   < \U00030008   < \U00020008
             "&'\ud8c0\udc08'<'\ud880\udc08'<'\ud840\udc08'",
 
-
-            // ** Rule with collapse **
+            // ** Rule with compact list syntax **
             // \ufffe <* \uffff\U00010000  \U00010001
             "&'\ufffe'<*'\uffff\ud800\udc00\ud800\udc01\ud800\udc02' " +
             // \U00010000   <<* \U00020001  \U00020002
@@ -2675,7 +2681,7 @@ public class CollationMiscTest extends TestFmwk {
     }
 
 
-    // Tests the collapsed range with ASCII codepoints.
+    // Tests the compact range syntax with ASCII codepoints.
     public void TestSameStrengthListRanges() {
         String[] rules = new String[] {
             // Ranges
@@ -2692,7 +2698,7 @@ public class CollationMiscTest extends TestFmwk {
         doTestCollation(m_rangeTestCases_, rules);
     }
 
-    // Tests the collapsed range with supplemental codepoints.
+    // Tests the compact range syntax with supplemental codepoints.
     public void TestSameStrengthListRangesWithSupplementalCharacters() {
         String[] rules = new String[] {
             // \ufffe <* \uffff\U00010000  \U00010001
@@ -2707,7 +2713,7 @@ public class CollationMiscTest extends TestFmwk {
         doTestCollation(m_rangeTestCasesSupplemental_, rules);
     }
 
-    // Tests the collapsed range with special characters used as syntax characters in rules.
+    // Tests the compact range syntax with special characters used as syntax characters in rules.
     public void TestSpecialCharacters() {
         String rules[] = new String[] {
                 // Normal
@@ -2733,6 +2739,33 @@ public class CollationMiscTest extends TestFmwk {
             new OneTestCase("\u002d", "\u0026", -1), // - < &
         };
         doTestCollation(testCases, rules);
+    }
+    
+    public void TestInvalidListsAndRanges() {
+        String[] invalidRules = new String[] {
+            // Range not in starred expression
+            "&'\ufffe'<'\uffff'-'\ud800\udc02'",
+            
+            // Range without start
+            "&a<*-c",
+            
+            // Range without end
+            "&a<*b-",
+            
+            // More than one hyphen
+            "&a<+b-g-l",
+            
+            // Range in the wrong order
+            "&a<*k-b",
+        };
+        for (String rule : invalidRules) {
+            try {
+                Collator myCollation = new RuleBasedCollator(rule);
+                warnln("ERROR: Creation of collator didn't fail when it should.");
+            } catch (Exception e) {
+                return;
+            }
+        }
     }
 
     // This is the same example above with ' and space added.
