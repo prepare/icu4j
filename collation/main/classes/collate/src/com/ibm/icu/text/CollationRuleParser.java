@@ -1215,6 +1215,11 @@ final class CollationRuleParser
         // If the next token is starred and/or in range, we need to handle it here.
         if (m_inRange_) {
             // A new range has started.
+            // Check whether it is a chain of ranges with more than one hyphen.
+            if (m_lastRangeCp_ > 0 && m_lastRangeCp_ == m_previousCp_) {
+                throw new ParseException("Chained range syntax", m_current_);
+            }
+            
             // The current token is the first character of the second code point of the range.
             // Process just that, and then proceed with the star.
             m_lastRangeCp_ = m_source_.codePointAt(this.m_parsedToken_.m_charsOffset_);
@@ -1265,6 +1270,8 @@ final class CollationRuleParser
             } else {
                 m_isStarred_ = false;
             }
+        } else {
+            m_previousCp_ = m_currentRangeCp_;
         }
        return m_current_;
     }
@@ -1289,8 +1296,8 @@ final class CollationRuleParser
         // the normal processing is restored.
         if (m_currentStarredCharIndex_ > m_lastStarredCharIndex_) {
             m_isStarred_ = false;
-            m_previousCp_ = cp;
         }
+        m_previousCp_ = cp;
         return m_current_;
     }
 

@@ -2751,9 +2751,9 @@ public class CollationMiscTest extends TestFmwk {
             
             // Range without end
             "&a<*b-",
-            
+                       
             // More than one hyphen
-            "&a<+b-g-l",
+            "&a<*b-g-l",
             
             // Range in the wrong order
             "&a<*k-b",
@@ -2761,10 +2761,16 @@ public class CollationMiscTest extends TestFmwk {
         for (String rule : invalidRules) {
             try {
                 Collator myCollation = new RuleBasedCollator(rule);
-                warnln("ERROR: Creation of collator didn't fail when it should.");
-            } catch (Exception e) {
-                return;
+                warnln("ERROR: Creation of collator didn't fail for " + rule + " when it should.");
+                CollationTest.doTest(this, (RuleBasedCollator)myCollation,
+                        "x",
+                        "y",
+                        -1);
+               
+           } catch (Exception e) {
+                continue;
             }
+           throw new IllegalArgumentException("ERROR: Invalid collator with rule " + rule + " worked fine.");
         }
     }
 
