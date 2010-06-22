@@ -8,9 +8,9 @@ package com.ibm.icu.text;
 
 import java.text.ParsePosition;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.List;
-import java.util.Map;
+import java.util.Vector;
 
 import com.ibm.icu.impl.IllegalIcuArgumentException;
 import com.ibm.icu.impl.UCharacterProperty;
@@ -29,13 +29,13 @@ class TransliteratorParser {
      * A Vector of RuleBasedTransliterator.Data objects, one for each discrete group
      * of rules in the rule set
      */
-    public List<Data> dataVector;
+    public Vector<Data> dataVector;
 
     /**
      * PUBLIC data member.
      * A Vector of Strings containing all of the ID blocks in the rule set
      */
-    public List<String> idBlockVector;
+    public Vector<String> idBlockVector;
 
     /**
      * The current data object for which we are parsing rules
@@ -60,13 +60,13 @@ class TransliteratorParser {
      * is copied into the array data.variables.  As with data.variables,
      * element 0 corresponds to character data.variablesBase.
      */
-    private List<Object> variablesVector;
+    private Vector<Object> variablesVector;
 
     /**
      * Temporary table of variable names.  When parsing is complete, this is
      * copied into data.variableNames.
      */
-    private Map<String, char[]> variableNames;
+    private Hashtable<String, char[]> variableNames;
 
     /**
      * String of standins for segments.  Used during the parsing of a single
@@ -81,7 +81,7 @@ class TransliteratorParser {
      * segmentStandins.charAt(0) is the standin for "$1" and corresponds
      * to StringMatcher object segmentObjects.elementAt(0), etc.
      */
-    private List<StringMatcher> segmentObjects;
+    private Vector<StringMatcher> segmentObjects;
 
     /**
      * The next available stand-in for variables.  This starts at some point in
@@ -214,7 +214,7 @@ class TransliteratorParser {
             // set array has not been constructed yet.
             int i = ch - curData.variablesBase;
             if (i >= 0 && i < variablesVector.size()) {
-                return (UnicodeMatcher) variablesVector.get(i);
+                return (UnicodeMatcher) variablesVector.elementAt(i);
             }
             return null;
         }
@@ -250,7 +250,7 @@ class TransliteratorParser {
             // set array has not been constructed yet.
             int i = ch - curData.variablesBase;
             if (i >= 0 && i < variablesVector.size()) {
-                return variablesVector.get(i) instanceof UnicodeMatcher;
+                return variablesVector.elementAt(i) instanceof UnicodeMatcher;
             }
             return true;
         }
@@ -264,7 +264,7 @@ class TransliteratorParser {
             // set array has not been constructed yet.
             int i = ch - curData.variablesBase;
             if (i >= 0 && i < variablesVector.size()) {
-                return variablesVector.get(i) instanceof UnicodeReplacer;
+                return variablesVector.elementAt(i) instanceof UnicodeReplacer;
             }
             return true;
         }
@@ -896,13 +896,13 @@ class TransliteratorParser {
         boolean parsingIDs = true;
         int ruleCount = 0;
 
-        dataVector = new ArrayList<Data>();
-        idBlockVector = new ArrayList<String>();
+        dataVector = new Vector<Data>();
+        idBlockVector = new Vector<String>();
         curData = null;
         direction = dir;
         compoundFilter = null;
-        variablesVector = new ArrayList<Object>();
-        variableNames = new HashMap<String, char[]>();
+        variablesVector = new Vector<Object>();
+        variableNames = new Hashtable<String, char[]>();
         parseData = new ParseData();
 
         List<RuntimeException> errors = new ArrayList<RuntimeException>();
@@ -973,7 +973,7 @@ class TransliteratorParser {
                                 if (direction == Transliterator.FORWARD)
                                     dataVector.add(curData);
                                 else
-                                    dataVector.add(0, curData);
+                                    dataVector.insertElementAt(curData, 0);
                                 curData = null;
                             }
                             parsingIDs = true;
@@ -1018,7 +1018,7 @@ class TransliteratorParser {
                             if (direction == Transliterator.FORWARD)
                                 idBlockVector.add(idBlockResult.toString());
                             else
-                                idBlockVector.add(0, idBlockResult.toString());
+                                idBlockVector.insertElementAt(idBlockResult.toString(), 0);
                             idBlockResult.delete(0, idBlockResult.length());
                             parsingIDs = false;
                             curData = new RuleBasedTransliterator.Data();
@@ -1059,21 +1059,21 @@ class TransliteratorParser {
             if (direction == Transliterator.FORWARD)
                 idBlockVector.add(idBlockResult.toString());
             else
-                idBlockVector.add(0, idBlockResult.toString());
+                idBlockVector.insertElementAt(idBlockResult.toString(), 0);
         }
         else if (!parsingIDs && curData != null) {
             if (direction == Transliterator.FORWARD)
                 dataVector.add(curData);
             else
-                dataVector.add(0, curData);
+                dataVector.insertElementAt(curData, 0);
         }
 
         // Convert the set vector to an array
         for (int i = 0; i < dataVector.size(); i++) {
             Data data = dataVector.get(i);
             data.variables = new Object[variablesVector.size()];
-            variablesVector.toArray(data.variables);
-            data.variableNames = new HashMap<String, char[]>();
+            variablesVector.copyInto(data.variables);
+            data.variableNames = new Hashtable<String, char[]>();
             data.variableNames.putAll(variableNames);
         }
         variablesVector = null;
@@ -1137,7 +1137,7 @@ class TransliteratorParser {
 
         // Set up segments data
         segmentStandins = new StringBuffer();
-        segmentObjects = new ArrayList<StringMatcher>();
+        segmentObjects = new Vector<StringMatcher>();
 
         RuleHalf left  = new RuleHalf();
         RuleHalf right = new RuleHalf();
@@ -1227,7 +1227,7 @@ class TransliteratorParser {
             }
         }
         for (int i=0; i<segmentObjects.size(); ++i) {
-            if (segmentObjects.get(i) == null) {
+            if (segmentObjects.elementAt(i) == null) {
                 syntaxError("Internal error", rule, start); // will never happen
             }
         }
@@ -1462,7 +1462,7 @@ class TransliteratorParser {
         // Look up previous stand-in, if any.  This is a short list
         // (typical n is 0, 1, or 2); linear search is optimal.
         for (int i=0; i<variablesVector.size(); ++i) {
-            if (variablesVector.get(i) == obj) { // [sic] pointer comparison
+            if (variablesVector.elementAt(i) == obj) { // [sic] pointer comparison
                 return (char) (curData.variablesBase + i);
             }
         }
@@ -1470,7 +1470,7 @@ class TransliteratorParser {
         if (variableNext >= variableLimit) {
             throw new RuntimeException("Variable range exhausted");
         }
-        variablesVector.add(obj);
+        variablesVector.addElement(obj);
         return variableNext++;
     }
 
@@ -1490,7 +1490,7 @@ class TransliteratorParser {
             // Set a placeholder in the master variables vector that will be
             // filled in later by setSegmentObject().  We know that we will get
             // called first because setSegmentObject() will call us.
-            variablesVector.add(null);
+            variablesVector.addElement(null);
             segmentStandins.setCharAt(seg-1, c);
         }
         return c;
@@ -1504,16 +1504,16 @@ class TransliteratorParser {
         // segments will result in segment i+1 getting parsed
         // and stored before segment i; be careful with the
         // vector handling here.
-        while (segmentObjects.size() < seg) {
-            segmentObjects.add(null);
+        if (segmentObjects.size() < seg) {
+            segmentObjects.setSize(seg);
         }
         int index = getSegmentStandin(seg) - curData.variablesBase;
-        if (segmentObjects.get(seg-1) != null ||
-            variablesVector.get(index) != null) {
+        if (segmentObjects.elementAt(seg-1) != null ||
+            variablesVector.elementAt(index) != null) {
             throw new RuntimeException(); // should never happen
         }
-        segmentObjects.set(seg-1, obj);
-        variablesVector.set(index, obj);
+        segmentObjects.setElementAt(obj, seg-1);
+        variablesVector.setElementAt(obj, index);
     }
 
     /**

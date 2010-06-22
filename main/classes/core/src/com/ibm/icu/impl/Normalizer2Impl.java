@@ -1673,7 +1673,7 @@ public final class Normalizer2Impl {
         } else {
             // trail character is 3400..10FFFF
             // result entry has 3 units
-            key1=COMP_1_TRAIL_LIMIT+(((trail>>COMP_1_TRAIL_SHIFT))&~COMP_1_TRIPLE);
+            key1=COMP_1_TRAIL_LIMIT+((trail>>COMP_1_TRAIL_SHIFT))&~COMP_1_TRIPLE;
             int key2=(trail<<COMP_2_TRAIL_SHIFT)&0xffff;
             int secondUnit;
             for(;;) {
@@ -1699,8 +1699,8 @@ public final class Normalizer2Impl {
         return -1;
     }
     /**
-     * @param list some character's compositions list
-     * @param set recursively receives the composites from these compositions
+     * @param c Character which has compositions
+     * @param set recursively receives the composites from c's compositions
      */
     private void addComposites(int list, UnicodeSet set) {
         int firstUnit, compositeAndFwd;

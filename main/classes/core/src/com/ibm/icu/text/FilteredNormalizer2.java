@@ -51,7 +51,7 @@ public class FilteredNormalizer2 extends Normalizer2 {
         return dest;
     }
     /** {@inheritDoc}
-     * @draft ICU 4.6
+     * @internal ICU 4.4 TODO: propose for 4.6
      * @provisional This API might change or be removed in a future release.
      */
     public Appendable normalize(CharSequence src, Appendable dest) {
@@ -77,14 +77,6 @@ public class FilteredNormalizer2 extends Normalizer2 {
     @Override
     public StringBuilder append(StringBuilder first, CharSequence second) {
         return normalizeSecondAndAppend(first, second, false);
-    }
-    /** {@inheritDoc}
-     * @draft ICU 4.6
-     * @provisional This API might change or be removed in a future release.
-     */
-    @Override
-    public String getDecomposition(int c) {
-        return set.contains(c) ? norm2.getDecomposition(c) : null;
     }
 
     /** {@inheritDoc}

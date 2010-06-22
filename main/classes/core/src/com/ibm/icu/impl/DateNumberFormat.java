@@ -1,6 +1,6 @@
 /*
 *******************************************************************************
-*   Copyright (C) 2007-2010, International Business Machines
+*   Copyright (C) 2007-2009, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 *******************************************************************************
 */
@@ -11,7 +11,6 @@ import java.io.ObjectInputStream;
 import java.math.BigInteger;
 import java.text.FieldPosition;
 import java.text.ParsePosition;
-import java.util.MissingResourceException;
 
 import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.math.BigDecimal;
@@ -37,9 +36,9 @@ public final class DateNumberFormat extends NumberFormat {
 
     private int maxIntDigits;
     private int minIntDigits;
-
-    public DateNumberFormat(ULocale loc, char zeroDigitIn, String nsName) {
-        initialize(loc,zeroDigitIn,nsName);
+ 
+    public DateNumberFormat(ULocale loc, char zeroDigitIn) {
+        initialize(loc,zeroDigitIn);
     }
 
 /*    public DateNumberFormat(char zeroDigit, char minusSign) {
@@ -48,28 +47,15 @@ public final class DateNumberFormat extends NumberFormat {
     }
 */
 
-    private void initialize(ULocale loc,char zeroDigitIn,String nsName) {
+    private void initialize(ULocale loc,char zeroDigitIn) {
         char[] elems = CACHE.get(loc);
         if (elems == null) {
             // Missed cache
-            String minusString;
             ICUResourceBundle rb = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, loc);
-            try {
-                minusString = rb.getStringWithFallback("NumberElements/"+nsName+"/symbols/minusSign");
-            } catch (MissingResourceException ex) {
-                if ( !nsName.equals("latn") ) {
-                    try {
-                       minusString = rb.getStringWithFallback("NumberElements/latn/symbols/minusSign");                 
-                    } catch (MissingResourceException ex1) {
-                        minusString = "-";
-                    }
-                } else {
-                    minusString = "-";
-                }
-            }
+            String[] numberElements = rb.getStringArray("NumberElements");
             elems = new char[2];
             elems[0] = zeroDigitIn;
-            elems[1] = minusString.charAt(0);
+            elems[1] = numberElements[6].charAt(0);
             CACHE.put(loc, elems);
         }
         zeroDigit = elems[0];
@@ -166,8 +152,6 @@ public final class DateNumberFormat extends NumberFormat {
     /*
      * Note: This method only parse integer numbers which can be represented by long
      */
-    private static final long PARSE_THRESHOLD = 922337203685477579L; // (Long.MAX_VALUE / 10) - 1
-
     public Number parse(String text, ParsePosition parsePosition) {
         long num = 0;
         boolean sawNumber = false;
@@ -186,7 +170,7 @@ public final class DateNumberFormat extends NumberFormat {
                 if (digit < 0 || 9 < digit) {
                     digit = UCharacter.digit(ch);
                 }
-                if (0 <= digit && digit <= 9 && num < PARSE_THRESHOLD) {
+                if (0 <= digit && digit <= 9) {
                     sawNumber = true;
                     num = num * 10 + digit;
                 } else {

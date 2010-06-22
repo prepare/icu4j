@@ -1,6 +1,6 @@
 <!--
 *******************************************************************************
-* Copyright (C) 2009-2010, International Business Machines Corporation and    *
+* Copyright (C) 2009, International Business Machines Corporation and         *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 -->
@@ -12,10 +12,9 @@
     <path id="javac.classpathref">
         <path refid="javac.classpathref.${ant.project.name}"/>
     </path>
-    <property name="jar.name" value="icu4j-${ant.project.name}.jar"/>
-    <property name="src.jar.name" value="icu4j-${ant.project.name}-src.jar"/>
+    <property name="jar.file" value="${icu4j.translit-tests.jar}"/>
 
-    <target name="build" depends="compile, copy, jar, src-jar" description="Build the project"/>
+    <target name="build" depends="compile, copy, jar" description="Build the project"/>
 
     <target name="build-all" depends="@build-all" description="Build the project including all dependencies"/>
 
@@ -26,8 +25,6 @@
     <target name="copy" depends="@copy, copy-translit-test-data" description="Copy non-java runtime files to the project's binary directory"/>
 
     <target name="jar" depends="compile, copy, @jar" description="Create the project's jar file"/>
-
-    <target name="src-jar" depends="@src-jar" description="Create the proeject's source jar file"/>
 
     <target name="copy-translit-test-data" description="Extract pre-built ICU collation test data files and copy them to the project's binary directory">
         <copy todir="${bin.dir}">

@@ -497,8 +497,8 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
 
             // Milliseconds are left-justified, since they format as fractions of a second
             // Both format and parse should round HALF_UP
-            "y/M/d H:mm:ss.S", "fp", "2004 03 10 16:36:31.567", "2004/3/10 16:36:31.5", "2004 03 10 16:36:31.500",
-            "y/M/d H:mm:ss.SS", "fp", "2004 03 10 16:36:31.567", "2004/3/10 16:36:31.56", "2004 03 10 16:36:31.560",
+            "y/M/d H:mm:ss.S", "fp", "2004 03 10 16:36:31.567", "2004/3/10 16:36:31.6", "2004 03 10 16:36:31.600",
+            "y/M/d H:mm:ss.SS", "fp", "2004 03 10 16:36:31.567", "2004/3/10 16:36:31.57", "2004 03 10 16:36:31.570",
             "y/M/d H:mm:ss.SSS", "F", "2004 03 10 16:36:31.567", "2004/3/10 16:36:31.567",
             "y/M/d H:mm:ss.SSSS", "pf", "2004/3/10 16:36:31.5679", "2004 03 10 16:36:31.568", "2004/3/10 16:36:31.5680",
         };
@@ -3701,75 +3701,4 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         };
         expect(DATA, new Locale("en", "", ""));
     }
-
-    /*
-     * Test case for very long contiguous numeric patterns (ticket#7480)
-     */
-    public void TestLongContiguousNumericPattern() {
-        String DATA[] = {
-                "yyyy-MM-dd HH:mm:ss.SSS",
-
-                "yyyyMMddHHmmssSSSSSS", "fp", "2010-04-16 12:23:34.456",
-                "20100416122334456000", "2010-04-16 12:23:34.456",
-
-                "yyyyyyMMddHHHHmmmmssssSSSSSS", "fp", "2010-04-16 12:23:34.456",
-                "0020100416001200230034456000", "2010-04-16 12:23:34.456",
-        };
-            expect(DATA, new Locale("en", "", ""));
-    }
-
-    /*
- * Test case for ISO Era processing (ticket#7357)
- */
-    public void TestISOEra()
-    {
-
-        String data[] = { 
-        // input, output 
-        "BC 4004-10-23T07:00:00Z", "BC 4004-10-23T07:00:00Z", 
-        "AD 4004-10-23T07:00:00Z", "AD 4004-10-23T07:00:00Z", 
-        "-4004-10-23T07:00:00Z"  , "BC 4005-10-23T07:00:00Z", 
-        "4004-10-23T07:00:00Z"   , "AD 4004-10-23T07:00:00Z", 
-        };
-
-        int numData = 8;
-
-        // create formatter 
-        SimpleDateFormat fmt1 = new SimpleDateFormat("GGG yyyy-MM-dd'T'HH:mm:ss'Z");
-
-        for (int i = 0; i < numData; i += 2)
-        {
-
-            // create input string 
-            String in = data[i];
-
-            // parse string to date 
-            Date dt1;
-            try
-            {
-                dt1 = fmt1.parse(in);
-            }
-            catch (Exception e)
-            {
-                errln("DateFormat.parse is not suppose to return an exception.");
-                break;
-            }
-            // format date back to string 
-            String out;
-            out = fmt1.format(dt1);
-
-            // check that roundtrip worked as expected 
-            String expected = data[i + 1];
-            if (!out.equals(expected))
-            {
-                errln((String)"FAIL: " + in + " -> " + out + " expected -> " + expected);
-            }
-
-        }
-
-    }
-
 }
-
-
-

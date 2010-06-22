@@ -41,7 +41,6 @@ class NumberingSystem {
         radix = 10;
         algorithmic = false;
         desc = "0123456789";
-        name = "latn";
     }
 
     /**
@@ -59,26 +58,6 @@ class NumberingSystem {
      * @stable ICU 4.2
      */
     public static NumberingSystem getInstance(int radix_in, boolean isAlgorithmic_in, String desc_in ) {
-        return getInstance(null,radix_in,isAlgorithmic_in,desc_in);
-    }
-    
-    /**
-     * Factory method for creating a numbering system.
-     * @param name_in The string representing the name of the numbering system.
-     * @param radix_in The radix for this numbering system.  ICU currently 
-     * supports only numbering systems whose radix is 10.
-     * @param isAlgorithmic_in Specifies whether the numbering system is algorithmic
-     * (true) or numeric (false).
-     * @param desc_in String used to describe the characteristics of the numbering
-     * system.  For numeric systems, this string contains the digits used by the
-     * numbering system, in order, starting from zero.  For algorithmic numbering
-     * systems, the string contains the name of the RBNF ruleset in the locale's
-     * NumberingSystemRules section that will be used to format numbers using
-     * this numbering system.
-     * @draft ICU 4.6
-     */
-   
-    private static NumberingSystem getInstance(String name_in, int radix_in, boolean isAlgorithmic_in, String desc_in ) {
         if ( radix_in < 2 ) {
             throw new IllegalArgumentException("Invalid radix for numbering system");
         }
@@ -92,7 +71,6 @@ class NumberingSystem {
         ns.radix = radix_in;
         ns.algorithmic = isAlgorithmic_in;
         ns.desc = desc_in;
-        ns.name = name_in;
         return ns;
     }
 
@@ -132,8 +110,7 @@ class NumberingSystem {
         // Cache miss, create new instance
         try {
             ICUResourceBundle rb = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME,locale);
-            rb = rb.getWithFallback("NumberElements");
-            defaultNumberingSystem = rb.getStringWithFallback("default");
+            defaultNumberingSystem = rb.getString("defaultNumberingSystem");
         } catch (MissingResourceException ex) {
             ns = new NumberingSystem();
             cachedLocaleData.put(baseName, ns);
@@ -198,7 +175,7 @@ class NumberingSystem {
             return null;
         }
 
-        ns = getInstance(name,radix,isAlgorithmic,description);
+        ns = getInstance(radix,isAlgorithmic,description);
         cachedStringData.put(name, ns);                       
         return ns;     
     }
@@ -281,13 +258,6 @@ class NumberingSystem {
     }
 
     /**
-     * Returns the string representing the name of the numbering system.
-     * @draft ICU 4.6
-     */
-    public String getName() {
-        return name;
-    }
-    /**
      * Returns the numbering system's algorithmic status.  If true,
      * the numbering system is algorithmic and uses an RBNF formatter to
      * format numerals.  If false, the numbering system is numeric and
@@ -301,7 +271,6 @@ class NumberingSystem {
     private String desc;
     private int radix;
     private boolean algorithmic;
-    private String name;
 
     /**
      * Cache to hold the NumberingSystems by Locale.

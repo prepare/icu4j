@@ -349,10 +349,6 @@ public class SimpleDateFormat extends DateFormat {
     private static final int millisPerMinute = 60 * 1000;
     private static final int millisPerSecond = 1000;
 
-    // When possessing ISO format, the ERA may be ommitted is the
-    // year specifier is a negative number.
-    private static final int ISOSpecialEra = -32000;
-    
     // This prefix is designed to NEVER MATCH real text, in order to
     // suppress the parsing of negative numbers.  Adjust as needed (if
     // this becomes valid Unicode).
@@ -513,9 +509,8 @@ public class SimpleDateFormat extends DateFormat {
                 numberFormat = NumberFormat.getInstance(locale);
             } else {
                 char digit0 = ns.getDescription().charAt(0);
-                String nsName = ns.getName();
                 // Use a NumberFormat optimized for date formatting
-                numberFormat = new DateNumberFormat(locale, digit0, nsName);
+                numberFormat = new DateNumberFormat(locale, digit0);
             }
         }
         // Note: deferring calendar calculation until when we really need it.
@@ -913,9 +908,9 @@ public class SimpleDateFormat extends DateFormat {
                 numberFormat.setMinimumIntegerDigits(Math.min(3, count));
                 numberFormat.setMaximumIntegerDigits(maxIntCount);
                 if (count == 1) {
-                    value /= 100;
+                    value = (value + 50) / 100;
                 } else if (count == 2) {
-                    value /= 10;
+                    value = (value + 5) / 10;
                 }
                 FieldPosition p = new FieldPosition(-1);
                 numberFormat.format((long) value, buf, p);
@@ -1746,46 +1741,14 @@ public class SimpleDateFormat extends DateFormat {
                     int s = pos;
                     pos = subParse(text, pos, field.type, field.length,
                             false, true, ambiguousYear, cal);
-                    
                     if (pos < 0) {
-                        if (pos == ISOSpecialEra) {
-                            // era not present, in special cases allow this to continue
-                            pos = s;
-
-                            if (i+1 < items.length) { 
-                                
-                                // get next item in pattern
-                                String patl = (String)items[i+1];
-                                int plen = patl.length();
-                                int idx=0;
-                                
-                                // White space characters found in patten.
-                                // Skip contiguous white spaces.
-                                while (idx < plen) {
-
-                                    char pch = patl.charAt(idx);
-                                    if (UCharacterProperty.isRuleWhiteSpace(pch))
-                                        idx++;
-                                    else
-                                        break;
-                                }
-                                
-                                // if next item in pattern is all whitespace, skip it
-                                if (idx == plen) {
-                                    i++;
-                                }
-
-                            }
-                        } else {
-                            parsePos.setIndex(start);
-                            parsePos.setErrorIndex(s);
-                            if (backupTZ != null) {
-                                calendar.setTimeZone(backupTZ);
-                            }
-                            return;
-                        }                              
+                        parsePos.setIndex(start);
+                        parsePos.setErrorIndex(s);
+                        if (backupTZ != null) {
+                            calendar.setTimeZone(backupTZ);
+                        }
+                        return;
                     }
-                    
                 }
             } else {
                 // Handle literal pattern text literal
@@ -2182,23 +2145,12 @@ public class SimpleDateFormat extends DateFormat {
 
         switch (patternCharIndex)
             {
-            case 0: // 'G' - ERA              
-                int ps = 0;
+            case 0: // 'G' - ERA
                 if (count == 4) {
-                    ps = matchString(text, start, Calendar.ERA, formatData.eraNames, cal);
+                    return matchString(text, start, Calendar.ERA, formatData.eraNames, cal);
+                } else {
+                    return matchString(text, start, Calendar.ERA, formatData.eras, cal);
                 }
-                else {
-                    ps = matchString(text, start, Calendar.ERA, formatData.eras, cal);
-                }
-
-                // check return position, if it equals -start, then matchString error
-                // special case the return code so we don't necessarily fail out until we 
-                // verify no year information also
-                if (ps == -start)
-                    ps = ISOSpecialEra;
-
-                return ps;  
-                
             case 1: // 'y' - YEAR
                 // If there are 3 or more YEAR pattern characters, this indicates
                 // that the year value is to be treated literally, without any

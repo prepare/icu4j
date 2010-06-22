@@ -12,10 +12,9 @@ package com.ibm.icu.dev.test.util;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Locale;
-import java.util.Map;
 import java.util.TreeMap;
 
 import com.ibm.icu.dev.test.TestFmwk;
@@ -1208,12 +1207,12 @@ public class ULocaleTest extends TestFmwk {
         }
     }
     private void initHashtable() {
-        h[0] = new HashMap<String, String>();
-        h[1] = new HashMap<String, String>();
+        h[0] = new Hashtable();
+        h[1] = new Hashtable();
 
         //display in English
-        h[0].put("collation", "Collation");
-        h[0].put("calendar", "Calendar");
+        h[0].put("collation", "collation");
+        h[0].put("calendar", "calendar");
         h[0].put("currency", "Currency");
         h[0].put("phonebook", "Phonebook Order");
         h[0].put("pinyin", "Simplified Chinese Pinyin Sort Order");
@@ -1247,7 +1246,7 @@ public class ULocaleTest extends TestFmwk {
     }
 
     //Hashtables for storing expected display of keys/types of locale in English and Chinese
-    private static Map[] h = new Map[2];
+    private static Hashtable[] h = new Hashtable[2];
     
     private static final String ACCEPT_LANGUAGE_TESTS[][]  =  {
     /*#      result  fallback? */
@@ -3717,8 +3716,7 @@ public class ULocaleTest extends TestFmwk {
             {"en_US",       "en-US"},
             {"iw_IL",       "he-IL"},
             {"sr_Latn_SR",  "sr-Latn-SR"},
-            {"en_US_POSIX@ca=japanese", "en-US-u-ca-japanese-va-posix"},
-            {"en__POSIX",   "en-u-va-posix"},
+            {"en__POSIX",   "en-posix"},
             // {"en_POSIX",    "en"}, /* ICU4J locale parser successfully parse en_POSIX as language:en/variant:POSIX */
             {"und_555",     "und-555"},
             {"123",         "und"},
@@ -3745,8 +3743,6 @@ public class ULocaleTest extends TestFmwk {
             {"en@timezone=US/Eastern",    "en-u-tz-usnyc"},
             {"en@x=x-y-z;a=a-b-c",  "en-x-x-y-z"},
             {"it@collation=badcollationtype;colStrength=identical;cu=usd-eur", "it-u-ks-identic"},
-            {"en_US_POSIX", "en-US-u-va-posix"},
-            {"en_US_POSIX@calendar=japanese;currency=EUR","en-US-u-ca-japanese-cu-eur-va-posix"},
         };
 
         for (int i = 0; i < locale_to_langtag.length; i++) {
@@ -3788,7 +3784,6 @@ public class ULocaleTest extends TestFmwk {
             {"und-varzero-var1-vartwo", "__VARZERO",        Integer.valueOf(12)},
             {"en-u-ca-gregory",     "en@calendar=gregorian",    NOERROR},
             {"en-U-cu-USD",         "en@currency=usd",      NOERROR},
-            {"en-us-u-va-posix",    "en_US_POSIX",          NOERROR},
             {"ar-x-1-2-3",          "ar@x=1-2-3",           NOERROR},
             {"fr-u-nu-latn-cu-eur", "fr@currency=eur;numbers=latn", NOERROR},
             {"de-k-kext-u-co-phonebk-nu-latn",  "de@collation=phonebook;k=kext;numbers=latn",   NOERROR},
