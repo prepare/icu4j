@@ -10,6 +10,7 @@ package com.ibm.icu.util;
 import java.io.Serializable;
 import java.text.ParseException;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.MissingResourceException;
@@ -30,6 +31,7 @@ import com.ibm.icu.impl.locale.InternalLocaleBuilder;
 import com.ibm.icu.impl.locale.LanguageTag;
 import com.ibm.icu.impl.locale.LocaleExtensions;
 import com.ibm.icu.impl.locale.LocaleSyntaxException;
+import com.ibm.icu.impl.locale.ParseStatus;
 import com.ibm.icu.impl.locale.UnicodeLocaleExtension;
 import com.ibm.icu.text.LocaleDisplayNames;
 import com.ibm.icu.text.LocaleDisplayNames.DialectHandling;
@@ -2572,9 +2574,8 @@ public final class ULocale implements Serializable {
      * @provisional This API might change or be removed in a future release.
      */
     public String getExtension(char key) {
-        String strKey = String.valueOf(key);
-        if (!LocaleExtensions.isValidKey(strKey)) {
-            throw new IllegalArgumentException("Invalid extension key: " + strKey);
+        if (!LocaleExtensions.isValidKey(key)) {
+            throw new IllegalArgumentException("Invalid extension key: " + key);
         }
         return extensions().getExtensionValue(key);
     }
@@ -2608,7 +2609,7 @@ public final class ULocale implements Serializable {
      * @provisional This API might change or be removed in a future release.
      */
     public String getUnicodeLocaleType(String key) {
-        if (!LocaleExtensions.isValidKey(key)) {
+        if (!LocaleExtensions.isValidUnicodeLocaleKey(key)) {
             throw new IllegalArgumentException("Invalid Unicode locale key: " + key);
         }
         return extensions().getUnicodeLocaleType(key);
@@ -2686,7 +2687,42 @@ public final class ULocale implements Serializable {
      */
     public String toLanguageTag() {
         LanguageTag tag = LanguageTag.parseLocale(base(), extensions());
-        return tag.getID();
+
+        StringBuilder buf = new StringBuilder();
+        String subtag = tag.getLanguage();
+        buf.append(LanguageTag.canonicalizeLanguage(subtag));
+ 
+        subtag = tag.getScript();
+        if (subtag.length() > 0) {
+            buf.append(LanguageTag.SEP);
+            buf.append(LanguageTag.canonicalizeScript(subtag));
+        }
+
+        subtag = tag.getRegion();
+        if (subtag.length() > 0) {
+            buf.append(LanguageTag.SEP);
+            buf.append(LanguageTag.canonicalizeRegion(subtag));
+        }
+
+        List<String>subtags = tag.getVariants();
+        for (String s : subtags) {
+            buf.append(LanguageTag.SEP);
+            buf.append(LanguageTag.canonicalizeVariant(s));
+        }
+
+        subtags = tag.getExtensions();
+        for (String s : subtags) {
+            buf.append(LanguageTag.SEP);
+            buf.append(LanguageTag.canonicalizeExtension(s));
+        }
+
+        subtag = tag.getPrivateuse();
+        if (subtag.length() > 0) {
+            buf.append(LanguageTag.SEP).append(LanguageTag.PRIVATEUSE).append(LanguageTag.SEP);
+            buf.append(LanguageTag.canonicalizePrivateuse(subtag));
+        }
+
+        return buf.toString();
     }
 
     /**
@@ -2723,8 +2759,10 @@ public final class ULocale implements Serializable {
      * @provisional This API might change or be removed in a future release.
      */
     public static ULocale forLanguageTag(String languageTag) {
-        LanguageTag tag = LanguageTag.parse(languageTag, true);
-        return getInstance(tag.getBaseLocale(), tag.getLocaleExtensions());
+        LanguageTag tag = LanguageTag.parse(languageTag, null);
+        InternalLocaleBuilder bldr = new InternalLocaleBuilder();
+        bldr.setLanguageTag(tag);
+        return getInstance(bldr.getBaseLocale(), bldr.getLocaleExtensions());
     }
 
 
@@ -2780,39 +2818,8 @@ public final class ULocale implements Serializable {
          * @provisional This API might change or be removed in a future release.
          */
         public Builder() {
-            this(false);
+            _locbld = new InternalLocaleBuilder();
         }
-
-        /**
-         * Constructs an empty Builder with an option whether to allow
-         * <code>setVariant</code> to accept a value that does not
-         * conform to the IETF BCP 47 variant subtag's syntax requirements.
-         *
-         * @param isLenientVariant When true, this <code>Builder</code>
-         * will accept an ill-formed variant.
-         * @see #setVariant(String)
-         *
-         * @draft ICU 4.4
-         * @provisional This API might change or be removed in a future release.
-         */
-        public Builder(boolean isLenientVariant) {
-            _locbld = new InternalLocaleBuilder(isLenientVariant);
-        }
-
-        /**
-         * Returns true if this <code>Builder</code> accepts a value that does
-         * not conform to the IETF BCP 47 variant subtag's syntax requirements
-         * in <code>setVariant</code>
-         *
-         * @return true if this <code>Build</code> accepts an ill-formed variant.
-         *
-         * @draft ICU 4.4
-         * @provisional This API might change or be removed in a future release.
-         */
-        public boolean isLenientVariant() {
-            return _locbld.isLenientVariant();
-        }
-
 
         /**
          * Resets the <code>Builder</code> to match the provided <code>locale</code>.
@@ -2851,18 +2858,12 @@ public final class ULocale implements Serializable {
          * @provisional This API might change or be removed in a future release.
          */
         public Builder setLanguageTag(String languageTag) {
-            LanguageTag tag = null;
-            try {
-                tag = LanguageTag.parseStrict(languageTag, _locbld.isLenientVariant());
-            } catch (LocaleSyntaxException e) {
-                throw new IllformedLocaleException(e.getMessage(), e.getErrorIndex());
+            ParseStatus sts = new ParseStatus();
+            LanguageTag tag = LanguageTag.parse(languageTag, sts);
+            if (sts.isError()) {
+                throw new IllformedLocaleException(sts.getErrorMessage(), sts.getErrorIndex());
             }
-
-            try {
-                _locbld.setLocale(tag.getBaseLocale(),tag.getLocaleExtensions());
-            } catch (LocaleSyntaxException e) {
-                throw new IllformedLocaleException(e.getMessage(), e.getErrorIndex());
-            }
+            _locbld.setLanguageTag(tag);
 
             return this;
         }
@@ -3036,7 +3037,25 @@ public final class ULocale implements Serializable {
          */
         public Builder setUnicodeLocaleKeyword(String key, String type) {
             try {
-                _locbld.setUnicodeLocaleExtension(key, type);
+                _locbld.setUnicodeLocaleKeyword(key, type);
+            } catch (LocaleSyntaxException e) {
+                throw new IllformedLocaleException(e.getMessage(), e.getErrorIndex());
+            }
+            return this;
+        }
+
+        public Builder addUnicodeLocaleAttribute(String attribute) {
+            try {
+                _locbld.addUnicodeLocaleAttribute(attribute);
+            } catch (LocaleSyntaxException e) {
+                throw new IllformedLocaleException(e.getMessage(), e.getErrorIndex());
+            }
+            return this;
+        }
+
+        public Builder removeUnicodeLocaleAttribute(String attribute) {
+            try {
+                _locbld.removeUnicodeLocaleAttribute(attribute);
             } catch (LocaleSyntaxException e) {
                 throw new IllformedLocaleException(e.getMessage(), e.getErrorIndex());
             }
@@ -3067,7 +3086,7 @@ public final class ULocale implements Serializable {
          * @provisional This API might change or be removed in a future release.
          */
         public Builder clearExtensions() {
-            _locbld.removeLocaleExtensions();
+            _locbld.clearExtensions();
             return this;
         }
 
@@ -3100,9 +3119,9 @@ public final class ULocale implements Serializable {
                 Extension ext = exts.getExtension(key);
                 if (ext instanceof UnicodeLocaleExtension) {
                     UnicodeLocaleExtension uext = (UnicodeLocaleExtension)ext;
-                    Set<String> ukeys = uext.getKeys();
+                    Set<String> ukeys = uext.getUnicodeLocaleKeys();
                     for (String bcpKey : ukeys) {
-                        String bcpType = uext.getType(bcpKey);
+                        String bcpType = uext.getUnicodeLocaleType(bcpKey);
                         // convert to legacy key/type
                         String lkey = bcp47ToLDMLKey(bcpKey);
                         String ltype = bcp47ToLDMLType(lkey, bcpType);
@@ -3165,7 +3184,7 @@ public final class ULocale implements Serializable {
                         String bcpType = ldmlTypeToBCP47(key, getKeywordValue(key));
                         if (bcpKey != null && bcpType != null) {
                             try {
-                                intbld.setUnicodeLocaleExtension(bcpKey, bcpType);
+                                intbld.setUnicodeLocaleKeyword(bcpKey, bcpType);
                             } catch (LocaleSyntaxException e) {
                                 // ignore and fall through
                             }
