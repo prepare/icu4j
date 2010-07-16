@@ -22,7 +22,7 @@ public class LanguageTag {
     public static final String SEP = "-";
     public static final String PRIVATEUSE = "x";
     public static String UNDETERMINED = "und";
-    public static final String PRIVUSE_VARIANT_PREFIX = "jvariant";
+    public static final String PRIVUSE_VARIANT_PREFIX = "lvariant";
 
     //
     // Language subtag fields
@@ -400,7 +400,9 @@ public class LanguageTag {
 
         String privuseVar = null;   // store ill-formed variant subtags
 
-        if (language.length() > 0 && isLanguage(language)) {
+        if (language.length() == 0 || !isLanguage(language)) {
+            tag._language = UNDETERMINED;
+        } else {
             // Convert a deprecated language code used by Java to
             // a new code
             if (language.equals("iw")) {
@@ -419,6 +421,14 @@ public class LanguageTag {
 
         if (region.length() > 0 && isRegion(region)) {
             tag._region = canonicalizeRegion(region);
+        }
+
+        if (JDKIMPL) {
+            // Special handling for no_NO_NY - use nn_NO for language tag
+            if (tag._language.equals("no") && tag._region.equals("NO") && variant.equals("NY")) {
+                tag._language = "nn";
+                variant = "";
+            }
         }
 
         if (variant.length() > 0) {

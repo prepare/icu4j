@@ -68,18 +68,18 @@ public class LocaleExtensions {
         _map = new TreeMap<Character, Extension>();
         if (hasExtension) {
             for (Entry<CaseInsensitiveChar, String> ext : extensions.entrySet()) {
-                char key = ext.getKey().value();
+                char key = AsciiUtil.toLower(ext.getKey().value());
                 String value = ext.getValue();
 
                 if (LanguageTag.isPrivateusePrefixChar(key)) {
-                    // we need to exclude special variant in privuateuse, e.g. "x-abc-jvariant-DEF"
+                    // we need to exclude special variant in privuateuse, e.g. "x-abc-lvariant-DEF"
                     value = InternalLocaleBuilder.removePrivateuseVariant(value);
                     if (value == null) {
                         continue;
                     }
                 }
 
-                Extension e = new Extension(AsciiUtil.toLower(key), AsciiUtil.toLowerString(value));
+                Extension e = new Extension(key, AsciiUtil.toLowerString(value));
                 _map.put(Character.valueOf(key), e);
             }
         }
@@ -122,11 +122,11 @@ public class LocaleExtensions {
     }
 
     public Extension getExtension(Character key) {
-        return _map.get(key);
+        return _map.get(Character.valueOf(AsciiUtil.toLower(key.charValue())));
     }
 
     public String getExtensionValue(Character key) {
-        Extension ext = _map.get(key);
+        Extension ext = _map.get(Character.valueOf(AsciiUtil.toLower(key.charValue())));
         if (ext == null) {
             return "";
         }
@@ -157,7 +157,11 @@ public class LocaleExtensions {
             return null;
         }
         assert (ext instanceof UnicodeLocaleExtension);
-        return ((UnicodeLocaleExtension)ext).getUnicodeLocaleType(unicodeLocaleKey);
+        return ((UnicodeLocaleExtension)ext).getUnicodeLocaleType(AsciiUtil.toLowerString(unicodeLocaleKey));
+    }
+
+    public boolean isEmpty() {
+    	return _map.isEmpty();
     }
 
     public static boolean isValidKey(char c) {
