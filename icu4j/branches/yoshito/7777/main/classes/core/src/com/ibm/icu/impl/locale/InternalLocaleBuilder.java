@@ -22,7 +22,6 @@ public final class InternalLocaleBuilder {
     private String _variant = "";
 
     private static final String LOCALESEP = "_";
-    private static final String PRIVUSE_VARIANT_PREFIX = "jvariant";
     private static final CaseInsensitiveChar PRIVUSE_KEY = new CaseInsensitiveChar(LanguageTag.PRIVATEUSE.charAt(0));
 
     private HashMap<CaseInsensitiveChar, String> _extensions;
@@ -79,6 +78,7 @@ public final class InternalLocaleBuilder {
             if (errIdx != -1) {
                 throw new LocaleSyntaxException("Ill-formed variant: " + variant, errIdx);
             }
+            _variant = var;
         }
         return this;
     }
@@ -106,7 +106,7 @@ public final class InternalLocaleBuilder {
     }
 
     public InternalLocaleBuilder setUnicodeLocaleKeyword(String key, String type) throws LocaleSyntaxException {
-        if (key == null || !UnicodeLocaleExtension.isKey(key)) {
+        if (!UnicodeLocaleExtension.isKey(key)) {
             throw new LocaleSyntaxException("Ill-formed Unicode locale keyword key: " + key);
         }
 
@@ -122,11 +122,12 @@ public final class InternalLocaleBuilder {
                 String tp = type.replaceAll(LOCALESEP, LanguageTag.SEP);
                 // validate
                 StringTokenIterator itr = new StringTokenIterator(tp, LanguageTag.SEP);
-                while (itr.hasNext()) {
-                    String s = itr.next();
+                while (!itr.isDone()) {
+                    String s = itr.current();
                     if (!UnicodeLocaleExtension.isTypeSubtag(s)) {
                         throw new LocaleSyntaxException("Ill-formed Unicode locale keyword type: " + type, itr.currentStart());
                     }
+                    itr.next();
                 }
             }
             if (_ukeywords == null) {
@@ -165,8 +166,8 @@ public final class InternalLocaleBuilder {
             // validate value
             String val = value.replaceAll(LOCALESEP, LanguageTag.SEP);
             StringTokenIterator itr = new StringTokenIterator(val, LanguageTag.SEP);
-            while (itr.hasNext()) {
-                String s = itr.next();
+            while (!itr.isDone()) {
+                String s = itr.current();
                 boolean validSubtag;
                 if (isBcpPrivateuse) {
                     validSubtag = LanguageTag.isPrivateuseSubtag(s);
@@ -176,6 +177,7 @@ public final class InternalLocaleBuilder {
                 if (!validSubtag) {
                     throw new LocaleSyntaxException("Ill-formed extension value: " + s, itr.currentStart());
                 }
+                itr.next();
             }
 
             if (UnicodeLocaleExtension.isSingletonChar(key.value())) {
@@ -458,7 +460,7 @@ public final class InternalLocaleBuilder {
         String region = _region;
         String variant = _variant;
 
-        // Special private use subtag sequence identified by "jvariant" will be
+        // Special private use subtag sequence identified by "lvariant" will be
         // interpreted as Java variant.
         if (_extensions != null) {
             String privuse = _extensions.get(PRIVUSE_KEY);
@@ -471,7 +473,7 @@ public final class InternalLocaleBuilder {
                         privVarStart = itr.currentStart();
                         break;
                     }
-                    if (AsciiUtil.caseIgnoreMatch(itr.current(), PRIVUSE_VARIANT_PREFIX)) {
+                    if (AsciiUtil.caseIgnoreMatch(itr.current(), LanguageTag.PRIVUSE_VARIANT_PREFIX)) {
                         sawPrefix = true;
                     }
                     itr.next();
@@ -540,25 +542,25 @@ public final class InternalLocaleBuilder {
     }
 
     /*
-     * Remove special private use subtag sequence identified by "jvariant"
+     * Remove special private use subtag sequence identified by "lvariant"
      * and return the rest. Only used by LocaleExtensions
      */
     static String removePrivateuseVariant(String privuseVal) {
         StringTokenIterator itr = new StringTokenIterator(privuseVal, LanguageTag.SEP);
 
-        // Note: privateuse value "abc-jvariant" is unchanged
-        // because no subtags after "jvariant".
+        // Note: privateuse value "abc-lvariant" is unchanged
+        // because no subtags after "lvariant".
 
         int prefixStart = -1;
         boolean sawPrivuseVar = false;;
         while (!itr.isDone()) {
             if (prefixStart != -1) {
-                // Note: privateuse value "abc-jvariant" is unchanged
-                // because no subtags after "jvariant".
+                // Note: privateuse value "abc-lvariant" is unchanged
+                // because no subtags after "lvariant".
                 sawPrivuseVar = true;
                 break;
             }
-            if (AsciiUtil.caseIgnoreMatch(itr.current(), PRIVUSE_VARIANT_PREFIX)) {
+            if (AsciiUtil.caseIgnoreMatch(itr.current(), LanguageTag.PRIVUSE_VARIANT_PREFIX)) {
                 prefixStart = itr.currentStart();
             }
             itr.next();
@@ -577,11 +579,12 @@ public final class InternalLocaleBuilder {
      */
     private int checkVariants(String variants, String sep) {
         StringTokenIterator itr = new StringTokenIterator(variants, sep);
-        while (itr.hasNext()) {
-            String s = itr.next();
+        while (!itr.isDone()) {
+            String s = itr.current();
             if (!LanguageTag.isVariant(s)) {
                 return itr.currentStart();
             }
+            itr.next();
         }
         return -1;
     }
@@ -592,6 +595,14 @@ public final class InternalLocaleBuilder {
      * The input must be a valid extension subtags (excluding singleton).
      */
     private void setUnicodeLocaleExtension(String subtags) {
+        // wipe out existing attributes/keywords
+        if (_uattributes != null) {
+            _uattributes.clear();
+        }
+        if (_ukeywords != null) {
+            _ukeywords.clear();
+        }
+
         StringTokenIterator itr = new StringTokenIterator(subtags, LanguageTag.SEP);
 
         // parse attributes
@@ -623,8 +634,8 @@ public final class InternalLocaleBuilder {
                     _ukeywords.put(key, type);
 
                     // reset keyword info
-                    String tmpKey = itr.current();
-                    key = _ukeywords.containsKey(tmpKey) ? null : new CaseInsensitiveString(tmpKey);
+                    CaseInsensitiveString tmpKey = new CaseInsensitiveString(itr.current());
+                    key = _ukeywords.containsKey(tmpKey) ? null : tmpKey;
                     typeStart = typeEnd = -1;
                 } else {
                     if (typeStart == -1) {

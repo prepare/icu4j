@@ -1,3 +1,9 @@
+/*
+ *******************************************************************************
+ * Copyright (C) 2010, International Business Machines Corporation and         *
+ * others. All Rights Reserved.                                                *
+ *******************************************************************************
+ */
 package com.ibm.icu.impl.locale;
 
 public class ParseStatus {
