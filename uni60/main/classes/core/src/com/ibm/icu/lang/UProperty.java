@@ -840,6 +840,26 @@ public interface UProperty
     public static final int STRING_LIMIT = 0x400D;
 
     /**
+     * Provisional property Script_Extensions.
+     * As a provisional property, it may be modified or removed
+     * in future versions of the Unicode Standard, and thus in ICU.
+     * Some characters are commonly used in multiple scripts.
+     * Corresponds to TODO(markus).
+     * @draft ICU 4.6
+     */
+    public static final int SCRIPT_EXTENSIONS=0x7000;
+    /**
+     * First constant for Unicode properties with unusual value types.
+     * @draft ICU 4.6
+     */
+    public static final int OTHER_PROPERTY_START=SCRIPT_EXTENSIONS;
+    /**
+     * One more than the last constant for Unicode properties with unusual value types.
+     * @draft ICU 4.6
+     */
+    public static final int OTHER_PROPERTY_LIMIT=0x7001;
+
+    /**
      * Selector constants for UCharacter.getPropertyName() and
      * UCharacter.getPropertyValueName().  These selectors are used to
      * choose which name is returned for a given property or value.
