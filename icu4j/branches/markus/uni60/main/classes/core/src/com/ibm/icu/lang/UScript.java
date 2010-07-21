@@ -474,9 +474,14 @@ public final class UScript {
     public static final int LINEAR_A                      = 83; /* Lina */
     /**
      * ISO 15924 script code
+     * @draft ICU 4.6
+     */
+    public static final int MANDAIC                       = 84; /* Mand */
+    /**
+     * ISO 15924 script code
      * @stable ICU 3.6
      */
-    public static final int MANDAEAN                      = 84; /* Mand */
+    public static final int MANDAEAN                      = MANDAIC; /* Mand */
     /**
      * ISO 15924 script code
      * @stable ICU 3.6
@@ -484,9 +489,14 @@ public final class UScript {
     public static final int MAYAN_HIEROGLYPHS             = 85; /* Maya */
     /**
      * ISO 15924 script code
+     * @draft ICU 4.6
+     */
+    public static final int MEROITIC_HIEROGLYPHS          = 86; /* Mero */
+    /**
+     * ISO 15924 script code
      * @stable ICU 3.6
      */
-    public static final int MEROITIC                      = 86; /* Mero */
+    public static final int MEROITIC                      = MEROITIC_HIEROGLYPHS; /* Mero */
     /**
      * ISO 15924 script code
      * @stable ICU 3.6
@@ -741,10 +751,76 @@ public final class UScript {
     public static final int OLD_SOUTH_ARABIAN             = 133;/* Sarb */
 
     /**
+     * ISO 15924 script code
+     * @draft ICU 4.6
+     */
+    public static final int BASSA_VAH                     = 134;/* Bass */
+    /**
+     * ISO 15924 script code
+     * @draft ICU 4.6
+     */
+    public static final int DUPLOYAN_SHORTAND             = 135;/* Dupl */
+    /**
+     * ISO 15924 script code
+     * @draft ICU 4.6
+     */
+    public static final int ELBASAN                       = 136;/* Elba */
+    /**
+     * ISO 15924 script code
+     * @draft ICU 4.6
+     */
+    public static final int GRANTHA                       = 137;/* Gran */
+    /**
+     * ISO 15924 script code
+     * @draft ICU 4.6
+     */
+    public static final int KPELLE                        = 138;/* Kpel */
+    /**
+     * ISO 15924 script code
+     * @draft ICU 4.6
+     */
+    public static final int LOMA                          = 139;/* Loma */
+    /**
+     * ISO 15924 script code
+     * @draft ICU 4.6
+     */
+    public static final int MENDE                         = 140;/* Mend */
+    /**
+     * ISO 15924 script code
+     * @draft ICU 4.6
+     */
+    public static final int MEROITIC_CURSIVE              = 141;/* Merc */
+    /**
+     * ISO 15924 script code
+     * @draft ICU 4.6
+     */
+    public static final int OLD_NORTH_ARABIAN             = 142;/* Narb */
+    /**
+     * ISO 15924 script code
+     * @draft ICU 4.6
+     */
+    public static final int NABATAEAN                     = 143;/* Nbat */
+    /**
+     * ISO 15924 script code
+     * @draft ICU 4.6
+     */
+    public static final int PALMYRENE                     = 144;/* Palm */
+    /**
+     * ISO 15924 script code
+     * @draft ICU 4.6
+     */
+    public static final int SINDHI                        = 145;/* Sind */
+    /**
+     * ISO 15924 script code
+     * @draft ICU 4.6
+     */
+    public static final int WARANG_CITI                   = 146;/* Wara */
+
+    /**
      * Limit
      * @stable ICU 2.4
      */
-    public static final int CODE_LIMIT   = 134;
+    public static final int CODE_LIMIT   = 147;
 
     private static final String kLocaleScript = "LocaleScript";
     
