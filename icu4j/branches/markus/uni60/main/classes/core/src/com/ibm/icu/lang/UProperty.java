@@ -844,18 +844,22 @@ public interface UProperty
      * As a provisional property, it may be modified or removed
      * in future versions of the Unicode Standard, and thus in ICU.
      * Some characters are commonly used in multiple scripts.
+     * For more information, see UAX #24: http://www.unicode.org/reports/tr24/.
      * Corresponds to TODO(markus).
      * @draft ICU 4.6
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int SCRIPT_EXTENSIONS=0x7000;
     /**
      * First constant for Unicode properties with unusual value types.
      * @draft ICU 4.6
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int OTHER_PROPERTY_START=SCRIPT_EXTENSIONS;
     /**
      * One more than the last constant for Unicode properties with unusual value types.
      * @draft ICU 4.6
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int OTHER_PROPERTY_LIMIT=0x7001;
 

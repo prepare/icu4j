@@ -998,29 +998,29 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
 
         /* New blocks in Unicode 6.0 */
 
-        /** @draft ICU 4.6 */
+        /** @stable ICU 4.6 */
         public static final int MANDAIC_ID = 198; /*[0840]*/
-        /** @draft ICU 4.6 */
+        /** @stable ICU 4.6 */
         public static final int BATAK_ID = 199; /*[1BC0]*/
-        /** @draft ICU 4.6 */
+        /** @stable ICU 4.6 */
         public static final int ETHIOPIC_EXTENDED_A_ID = 200; /*[AB00]*/
-        /** @draft ICU 4.6 */
+        /** @stable ICU 4.6 */
         public static final int BRAHMI_ID = 201; /*[11000]*/
-        /** @draft ICU 4.6 */
+        /** @stable ICU 4.6 */
         public static final int BAMUM_SUPPLEMENT_ID = 202; /*[16800]*/
-        /** @draft ICU 4.6 */
+        /** @stable ICU 4.6 */
         public static final int KANA_SUPPLEMENT_ID = 203; /*[1B000]*/
-        /** @draft ICU 4.6 */
+        /** @stable ICU 4.6 */
         public static final int PLAYING_CARDS_ID = 204; /*[1F0A0]*/
-        /** @draft ICU 4.6 */
+        /** @stable ICU 4.6 */
         public static final int MISCELLANEOUS_SYMBOLS_AND_PICTOGRAPHS_ID = 205; /*[1F300]*/
-        /** @draft ICU 4.6 */
+        /** @stable ICU 4.6 */
         public static final int EMOTICONS_ID = 206; /*[1F600]*/
-        /** @draft ICU 4.6 */
+        /** @stable ICU 4.6 */
         public static final int TRANSPORT_AND_MAP_SYMBOLS_ID = 207; /*[1F680]*/
-        /** @draft ICU 4.6 */
+        /** @stable ICU 4.6 */
         public static final int ALCHEMICAL_SYMBOLS_ID = 208; /*[1F700]*/
-        /** @draft ICU 4.6 */
+        /** @stable ICU 4.6 */
         public static final int CJK_UNIFIED_IDEOGRAPHS_EXTENSION_D_ID = 209; /*[2B740]*/
 
         /**
@@ -2071,41 +2071,41 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
 
         /* New blocks in Unicode 6.0 */
 
-        /** @draft ICU 4.6 */
+        /** @stable ICU 4.6 */
         public static final UnicodeBlock MANDAIC =
             new UnicodeBlock("MANDAIC", MANDAIC_ID); /*[0840]*/
-        /** @draft ICU 4.6 */
+        /** @stable ICU 4.6 */
         public static final UnicodeBlock BATAK =
             new UnicodeBlock("BATAK", BATAK_ID); /*[1BC0]*/
-        /** @draft ICU 4.6 */
+        /** @stable ICU 4.6 */
         public static final UnicodeBlock ETHIOPIC_EXTENDED_A =
             new UnicodeBlock("ETHIOPIC_EXTENDED_A", ETHIOPIC_EXTENDED_A_ID); /*[AB00]*/
-        /** @draft ICU 4.6 */
+        /** @stable ICU 4.6 */
         public static final UnicodeBlock BRAHMI =
             new UnicodeBlock("BRAHMI", BRAHMI_ID); /*[11000]*/
-        /** @draft ICU 4.6 */
+        /** @stable ICU 4.6 */
         public static final UnicodeBlock BAMUM_SUPPLEMENT =
             new UnicodeBlock("BAMUM_SUPPLEMENT", BAMUM_SUPPLEMENT_ID); /*[16800]*/
-        /** @draft ICU 4.6 */
+        /** @stable ICU 4.6 */
         public static final UnicodeBlock KANA_SUPPLEMENT =
             new UnicodeBlock("KANA_SUPPLEMENT", KANA_SUPPLEMENT_ID); /*[1B000]*/
-        /** @draft ICU 4.6 */
+        /** @stable ICU 4.6 */
         public static final UnicodeBlock PLAYING_CARDS =
             new UnicodeBlock("PLAYING_CARDS", PLAYING_CARDS_ID); /*[1F0A0]*/
-        /** @draft ICU 4.6 */
+        /** @stable ICU 4.6 */
         public static final UnicodeBlock MISCELLANEOUS_SYMBOLS_AND_PICTOGRAPHS =
             new UnicodeBlock("MISCELLANEOUS_SYMBOLS_AND_PICTOGRAPHS",
                              MISCELLANEOUS_SYMBOLS_AND_PICTOGRAPHS_ID); /*[1F300]*/
-        /** @draft ICU 4.6 */
+        /** @stable ICU 4.6 */
         public static final UnicodeBlock EMOTICONS =
             new UnicodeBlock("EMOTICONS", EMOTICONS_ID); /*[1F600]*/
-        /** @draft ICU 4.6 */
+        /** @stable ICU 4.6 */
         public static final UnicodeBlock TRANSPORT_AND_MAP_SYMBOLS =
             new UnicodeBlock("TRANSPORT_AND_MAP_SYMBOLS", TRANSPORT_AND_MAP_SYMBOLS_ID); /*[1F680]*/
-        /** @draft ICU 4.6 */
+        /** @stable ICU 4.6 */
         public static final UnicodeBlock ALCHEMICAL_SYMBOLS =
             new UnicodeBlock("ALCHEMICAL_SYMBOLS", ALCHEMICAL_SYMBOLS_ID); /*[1F700]*/
-        /** @draft ICU 4.6 */
+        /** @stable ICU 4.6 */
         public static final UnicodeBlock CJK_UNIFIED_IDEOGRAPHS_EXTENSION_D =
             new UnicodeBlock("CJK_UNIFIED_IDEOGRAPHS_EXTENSION_D",
                              CJK_UNIFIED_IDEOGRAPHS_EXTENSION_D_ID); /*[2B740]*/
@@ -2647,7 +2647,7 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
         public static final int FARSI_YEH = 55;
         /** @stable ICU 4.4 */
         public static final int NYA = 56;
-        /** @draft ICU 4.6 */
+        /** @stable ICU 4.6 */
         public static final int TEH_MARBUTA_GOAL = 57;
         /**
          * @stable ICU 2.4
