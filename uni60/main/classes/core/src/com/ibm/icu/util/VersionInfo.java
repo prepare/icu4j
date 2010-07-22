@@ -127,8 +127,7 @@ public final class VersionInfo implements Comparable<VersionInfo>
 
     /**
      * Unicode 6.0 version
-     * @draft ICU 4.6
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 4.6
      */
     public static final VersionInfo UNICODE_6_0;
 

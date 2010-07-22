@@ -360,9 +360,9 @@ public class TestUScript extends TestFmwk {
          * Whenever this happens, the long script names here need to be updated.
          */
         String[] expectedLong = new String[]{
-            "Balinese", "Batk", "Blis", "Brah", "Cham", "Cirt", "Cyrs", "Egyd", "Egyh", "Egyptian_Hieroglyphs", 
+            "Balinese", "Batak", "Blis", "Brahmi", "Cham", "Cirt", "Cyrs", "Egyd", "Egyh", "Egyptian_Hieroglyphs", 
             "Geok", "Hans", "Hant", "Hmng", "Hung", "Inds", "Javanese", "Kayah_Li", "Latf", "Latg", 
-            "Lepcha", "Lina", "Mand", "Maya", "Mero", "Nko", "Old_Turkic", "Perm", "Phags_Pa", "Phoenician", 
+            "Lepcha", "Lina", "Mandaic", "Maya", "Mero", "Nko", "Old_Turkic", "Perm", "Phags_Pa", "Phoenician", 
             "Plrd", "Roro", "Sara", "Syre", "Syrj", "Syrn", "Teng", "Vai", "Visp", "Cuneiform", 
             "Zxxx", "Unknown",
             "Carian", "Jpan", "Tai_Tham", "Lycian", "Lydian", "Ol_Chiki", "Rejang", "Saurashtra", "Sgnw", "Sundanese",
@@ -374,6 +374,9 @@ public class TestUScript extends TestFmwk {
             "Zmth", "Zsym",
             /* new in ICU 4.4 */
             "Bamum", "Lisu", "Nkgb", "Old_South_Arabian",
+            /* new in ICU 4.6 */
+            "Bass", "Dupl", "Elba", "Gran", "Kpel", "Loma", "Mend", "Merc",
+            "Narb", "Nbat", "Palm", "Sind", "Wara",
         };
         String[] expectedShort = new String[]{
             "Bali", "Batk", "Blis", "Brah", "Cham", "Cirt", "Cyrs", "Egyd", "Egyh", "Egyp", 
@@ -389,6 +392,9 @@ public class TestUScript extends TestFmwk {
             "Samr", "Tavt", "Zmth", "Zsym",
             /* new in ICU 4.4 */
             "Bamu", "Lisu", "Nkgb", "Sarb", 
+            /* new in ICU 4.6 */
+            "Bass", "Dupl", "Elba", "Gran", "Kpel", "Loma", "Mend", "Merc",
+            "Narb", "Nbat", "Palm", "Sind", "Wara",
         };
         if(expectedLong.length!=(UScript.CODE_LIMIT-UScript.BALINESE)) {
             errln("need to add new script codes in lang.TestUScript.java!");
