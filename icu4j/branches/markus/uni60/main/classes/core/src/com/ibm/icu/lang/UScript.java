@@ -7,6 +7,7 @@
 
 package com.ibm.icu.lang;
 
+import java.util.BitSet;
 import java.util.Locale;
 import java.util.MissingResourceException;
 
@@ -481,7 +482,7 @@ public final class UScript {
      * ISO 15924 script code
      * @stable ICU 3.6
      */
-    public static final int MANDAEAN                      = MANDAIC; /* Mand */
+    public static final int MANDAEAN                      = MANDAIC;
     /**
      * ISO 15924 script code
      * @stable ICU 3.6
@@ -496,7 +497,7 @@ public final class UScript {
      * ISO 15924 script code
      * @stable ICU 3.6
      */
-    public static final int MEROITIC                      = MEROITIC_HIEROGLYPHS; /* Mero */
+    public static final int MEROITIC                      = MEROITIC_HIEROGLYPHS;
     /**
      * ISO 15924 script code
      * @stable ICU 3.6
@@ -951,6 +952,39 @@ public final class UScript {
             throw new IllegalArgumentException(Integer.toString(codepoint));
         }
     }
+
+    /**
+     * Do code point c's Script_Extensions include script code sc?
+     *
+     * Some characters are commonly used in multiple scripts.
+     * For more information, see UAX #24: http://www.unicode.org/reports/tr24/.
+     *
+     * The Script_Extensions property is provisional. It may be modified or removed
+     * in future versions of the Unicode Standard, and thus in ICU.
+     * @param c code point
+     * @param sc script code
+     * @return true if sc is in c's Script_Extensions
+     * @draft ICU 4.6
+     * @provisional This API might change or be removed in a future release.
+     */
+    public static final boolean hasExtendedScript(int c, int sc) { return false; /* TODO */ }
+
+    /**
+     * Sets code point c's Script_Extensions as script code integers into the output BitSet.
+     *
+     * Some characters are commonly used in multiple scripts.
+     * For more information, see UAX #24: http://www.unicode.org/reports/tr24/.
+     *
+     * The Script_Extensions property is provisional. It may be modified or removed
+     * in future versions of the Unicode Standard, and thus in ICU.
+     * @param c code point
+     * @param set set of script code integers; will be cleared, then bits are set
+     *            corresponding to c's Script_Extensions
+     * @return set
+     * @draft ICU 4.6
+     * @provisional This API might change or be removed in a future release.
+     */
+    public static final BitSet getScriptExtensions(int c, BitSet set) { return set; /* TODO */ }
 
     /**
      * Gets a script name associated with the given script code.
