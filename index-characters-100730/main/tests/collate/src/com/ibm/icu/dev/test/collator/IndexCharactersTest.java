@@ -5,6 +5,7 @@
  *******************************************************************************
  */
 package com.ibm.icu.dev.test.collator;
+import com.ibm.icu.text.IndexCharacters;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -26,6 +27,35 @@ public class IndexCharactersTest extends TestFmwk {
         new IndexCharactersTest().run(args);
     }
 
+    public void TestIndexCharactersList() {
+        String[][] localeAndIndexCharactersList = new String[][] {
+               {"pl", "A:\u0104:B:C:\u0106:D:E:\u0118:F:G:H:I:J:K:L:\u0141:M:N:\u0143:O:\u00D3:P:Q:R:S:\u015A:T:U:V:W:X:Y:Z:\u0179:\u017B"},
+               {"de", "A:B:C:D:E:F:G:H:I:J:K:L:M:N:O:P:Q:R:S:T:U:V:W:X:Y:Z"},
+        };
+        for (String[] localeAndIndexCharacters : localeAndIndexCharactersList) {
+            ULocale locale = new ULocale(localeAndIndexCharacters[0]);
+            String expectedIndexCharacters = localeAndIndexCharacters[1];
+            Collection<String> indexCharacters = new IndexCharacters(locale).getIndexCharacters();
+            
+            // Join the elements of the list to a string with delimiter ":"
+            // Can't believe Java doesn't have a method for this!
+            StringBuilder sb = new StringBuilder();
+            Iterator iter = indexCharacters.iterator();
+            while (iter.hasNext()) {
+                sb.append(iter.next());
+                if (!iter.hasNext()) {
+                    break;
+                }
+                sb.append(":");
+            }
+            String actual = sb.toString();
+            if (!expectedIndexCharacters.equals(actual)) {
+                errln("Test failed for locale " + localeAndIndexCharacters[0] + 
+                        "\n  Expected = |" + expectedIndexCharacters + "|\n  actual   = |" + actual + "|");
+             }
+        }
+    }
+    
     public void TestBasics() {
         ULocale[] list = ULocale.getAvailableLocales();
         // get keywords combinations
