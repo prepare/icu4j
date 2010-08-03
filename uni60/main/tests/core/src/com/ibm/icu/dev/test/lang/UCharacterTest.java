@@ -15,8 +15,6 @@ import com.ibm.icu.dev.test.TestFmwk;
 import com.ibm.icu.dev.test.TestUtil;
 import com.ibm.icu.impl.Norm2AllModes;
 import com.ibm.icu.impl.Normalizer2Impl;
-import com.ibm.icu.impl.UBiDiProps;
-import com.ibm.icu.impl.UCaseProps;
 import com.ibm.icu.impl.UCharacterName;
 import com.ibm.icu.impl.UCharacterProperty;
 import com.ibm.icu.impl.Utility;
@@ -48,7 +46,7 @@ public final class UCharacterTest extends TestFmwk
     /**
     * ICU4J data version number
     */
-    private final VersionInfo VERSION_ = VersionInfo.getInstance("5.2.0.0");
+    private final VersionInfo VERSION_ = VersionInfo.getInstance("6.0.0.0");
 
     // constructor ===================================================
 
@@ -399,7 +397,7 @@ public final class UCharacterTest extends TestFmwk
     public void TestVersion()
     {
         if (!UCharacter.getUnicodeVersion().equals(VERSION_))
-            errln("FAIL expected: " + VERSION_ + "got: " + UCharacter.getUnicodeVersion());
+            errln("FAIL expected: " + VERSION_ + " got: " + UCharacter.getUnicodeVersion());
     }
 
     /**
@@ -1815,7 +1813,6 @@ public final class UCharacterTest extends TestFmwk
             { 0x072A, UProperty.JOINING_GROUP, UCharacter.JoiningGroup.DALATH_RISH },
             { 0x0647, UProperty.JOINING_GROUP, UCharacter.JoiningGroup.HEH },
             { 0x06C1, UProperty.JOINING_GROUP, UCharacter.JoiningGroup.HEH_GOAL },
-            { 0x06C3, UProperty.JOINING_GROUP, UCharacter.JoiningGroup.HAMZA_ON_HEH_GOAL },
 
             { 0x200C, UProperty.JOINING_TYPE, UCharacter.JoiningType.NON_JOINING },
             { 0x200D, UProperty.JOINING_TYPE, UCharacter.JoiningType.JOIN_CAUSING },
@@ -1947,6 +1944,11 @@ public final class UCharacterTest extends TestFmwk
             { 0xa6e6,  UProperty.SCRIPT, UScript.BAMUM },
             { 0xa4d0,  UProperty.SCRIPT, UScript.LISU },
             { 0x10a7f,  UProperty.SCRIPT, UScript.OLD_SOUTH_ARABIAN },
+
+            { -1, 0x600, 0 }, /* version break for Unicode 6.0 */
+
+            /* value changed in Unicode 6.0 */
+            { 0x06C3, UProperty.JOINING_GROUP, UCharacter.JoiningGroup.TEH_MARBUTA_GOAL },
 
             /* undefined UProperty values */
             { 0x61, 0x4a7, 0 },
@@ -2253,19 +2255,11 @@ public final class UCharacterTest extends TestFmwk
                                         String a_name, String b_name,
                                         boolean expect,
                                         boolean diffIsError){
-        int i, start, end, length;
-        boolean equal;
-        equal=true;
-        i=0;
-        for(;;) {
+        int i, start, end;
+        boolean equal=true;
+        for(i=0; i < a.getRangeCount(); ++i) {
             start  = a.getRangeStart(i);
-            length = (i < a.getRangeCount()) ? 0 : a.getRangeCount();
             end    = a.getRangeEnd(i);
-
-            if(length!=0) {
-                return equal; /* done with code points, got a string or -1 */
-            }
-
             if(expect!=b.contains(start, end)) {
                 equal=false;
                 while(start<=end) {
@@ -2287,9 +2281,8 @@ public final class UCharacterTest extends TestFmwk
                     ++start;
                 }
             }
-
-            ++i;
         }
+        return equal;
     }
     private boolean showAMinusB(UnicodeSet a, UnicodeSet b,
                                         String a_name, String b_name,
@@ -2442,20 +2435,6 @@ public final class UCharacterTest extends TestFmwk
         }
     }
 
-    public void TestCasePropsDummy() {
-        // code coverage for UCaseProps.getDummy() 
-        if(UCaseProps.getDummy().tolower(0x41)!=0x41) {
-            errln("UCaseProps.getDummy().tolower(0x41)!=0x41");
-        }
-    }
-
-    public void TestBiDiPropsDummy() {
-        // code coverage for UBiDiProps.getDummy() 
-        if(UBiDiProps.getDummy().getClass(0x20)!=0) {
-            errln("UBiDiProps.getDummy().getClass(0x20)!=0");
-        }
-    }
-    
     public void TestBlockData()
     {
         Class ubc = UCharacter.UnicodeBlock.class;

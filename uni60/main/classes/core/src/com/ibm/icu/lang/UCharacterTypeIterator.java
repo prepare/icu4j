@@ -1,19 +1,23 @@
 /*
 ******************************************************************************
-* Copyright (C) 1996-2008, International Business Machines Corporation and   *
+* Copyright (C) 1996-2010, International Business Machines Corporation and   *
 * others. All Rights Reserved.                                               *
 ******************************************************************************
 */
 
 package com.ibm.icu.lang;
 
-import com.ibm.icu.impl.TrieIterator;
+import java.util.Iterator;
+
+import com.ibm.icu.impl.Trie2;
 import com.ibm.icu.impl.UCharacterProperty;
+import com.ibm.icu.util.RangeValueIterator;
 
 /**
  * Class enabling iteration of the codepoints according to their types.
  * Result of each iteration contains the interval of codepoints that have
- * the same type.
+ * the same type.<br>
+ * Not intended for public subclassing.
  * Example of use:<br>
  * <pre>
  * RangeValueIterator iterator = UCharacter.getTypeIterator();
@@ -28,35 +32,40 @@ import com.ibm.icu.impl.UCharacterProperty;
  * }
  * </pre>
  * @author synwee
- * @see com.ibm.icu.util.TrieIterator
+ * @see com.ibm.icu.util.RangeValueIterator
  * @since release 2.1, Jan 24 2002
  */
-class UCharacterTypeIterator extends TrieIterator
-{
-    // protected constructor ---------------------------------------------
-    
-    /**
-    * TrieEnumeration constructor
-    * @param property the unicode character properties to be used
-    */
-    protected UCharacterTypeIterator(UCharacterProperty property)
-    {
-       super(property.m_trie_);
+class UCharacterTypeIterator implements RangeValueIterator {
+    // Only constructed by UCharacter.getTypeIterator().
+    UCharacterTypeIterator() {
+        reset();
     }
-    
-    // protected methods ----------------------------------------------
-    
-    /**
-    * Called by nextElement() to extracts a 32 bit value from a trie value
-    * used for comparison.
-    * This method is to be overwritten if special manipulation is to be done
-    * to retrieve a relevant comparison.
-    * The default function is to return the value as it is.
-    * @param value a value from the trie
-    * @return extracted value
-    */
-    protected int extract(int value)
-    {
-        return value & UCharacterProperty.TYPE_MASK;
+
+    // implements RangeValueIterator
+    public boolean next(Element element) {
+        if(trieIterator.hasNext() && !(range=trieIterator.next()).leadSurrogate) {
+            element.start=range.startCodePoint;
+            element.limit=range.endCodePoint+1;
+            element.value=range.value;
+            return true;
+        } else {
+            return false;
+        }
     }
+
+    // implements RangeValueIterator
+    public void reset() {
+        trieIterator=UCharacterProperty.INSTANCE.m_trie_.iterator(MASK_TYPE);
+    }
+
+    private Iterator<Trie2.Range> trieIterator;
+    private Trie2.Range range;
+
+    private static final class MaskType implements Trie2.ValueMapper {
+        // Extracts the general category ("character type") from the trie value.
+        public int map(int value) {
+            return value & UCharacterProperty.TYPE_MASK;
+        }
+    }
+    private static final MaskType MASK_TYPE=new MaskType();
 }

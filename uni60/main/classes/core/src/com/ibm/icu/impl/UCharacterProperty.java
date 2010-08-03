@@ -8,8 +8,10 @@
 package com.ibm.icu.impl;
 
 import java.io.BufferedInputStream;
+import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Iterator;
 import java.util.MissingResourceException;
 
 import com.ibm.icu.lang.UCharacter;
@@ -17,7 +19,6 @@ import com.ibm.icu.lang.UCharacterCategory;
 import com.ibm.icu.lang.UProperty;
 import com.ibm.icu.text.UTF16;
 import com.ibm.icu.text.UnicodeSet;
-import com.ibm.icu.util.RangeValueIterator;
 import com.ibm.icu.util.VersionInfo;
 
 /**
@@ -44,19 +45,10 @@ public final class UCharacterProperty
      */
     public static final UCharacterProperty INSTANCE;
 
-    static {
-        try {
-            INSTANCE = new UCharacterProperty();
-        }
-        catch (IOException e) {
-            throw new MissingResourceException(e.getMessage(),"","");
-        }
-    }
-
     /**
     * Trie data
     */
-    public CharTrie m_trie_;
+    public Trie2_16 m_trie_;
     /**
      * Optimization
      * CharTrie index array
@@ -135,53 +127,13 @@ public final class UCharacterProperty
     }
 
     /**
-    * Gets the property value at the index.
-    * This is optimized.
-    * Note this is a little different from CharTrie the index m_trieData_
-    * is never negative.
+    * Gets the main property value for code point ch.
     * @param ch code point whose property value is to be retrieved
     * @return property value of code point
     */
     public final int getProperty(int ch)
     {
-        if (ch < UTF16.LEAD_SURROGATE_MIN_VALUE
-            || (ch > UTF16.LEAD_SURROGATE_MAX_VALUE
-                && ch < UTF16.SUPPLEMENTARY_MIN_VALUE)) {
-            // BMP codepoint 0000..D7FF or DC00..FFFF
-            // optimized
-            try { // using try for ch < 0 is faster than using an if statement
-                return m_trieData_[
-                    (m_trieIndex_[ch >> Trie.INDEX_STAGE_1_SHIFT_]
-                          << Trie.INDEX_STAGE_2_SHIFT_)
-                    + (ch & Trie.INDEX_STAGE_3_MASK_)];
-            } catch (ArrayIndexOutOfBoundsException e) {
-                return m_trieInitialValue_;
-            }
-        }
-        if (ch <= UTF16.LEAD_SURROGATE_MAX_VALUE) {
-            // lead surrogate D800..DBFF
-            return m_trieData_[
-                    (m_trieIndex_[Trie.LEAD_INDEX_OFFSET_
-                                  + (ch >> Trie.INDEX_STAGE_1_SHIFT_)]
-                          << Trie.INDEX_STAGE_2_SHIFT_)
-                    + (ch & Trie.INDEX_STAGE_3_MASK_)];
-        }
-        if (ch <= UTF16.CODEPOINT_MAX_VALUE) {
-            // supplementary code point 10000..10FFFF
-            // look at the construction of supplementary characters
-            // trail forms the ends of it.
-            return m_trie_.getSurrogateValue(
-                                          UTF16.getLeadSurrogate(ch),
-                                          (char)(ch & Trie.SURROGATE_MASK_));
-        }
-        // ch is out of bounds
-        // return m_dataOffset_ if there is an error, in this case we return
-        // the default value: m_initialValue_
-        // we cannot assume that m_initialValue_ is at offset 0
-        // this is for optimization.
-        return m_trieInitialValue_;
-
-        // this all is an inlined form of return m_trie_.getCodePointValue(ch);
+        return m_trie_.get(ch);
     }
 
     /**
@@ -199,8 +151,7 @@ public final class UCharacterProperty
            if (column < 0 || column >= m_additionalColumnsCount_) {
            return 0;
        }
-       return m_additionalVectors_[
-                     m_additionalTrie_.getCodePointValue(codepoint) + column];
+       return m_additionalVectors_[m_additionalTrie_.get(codepoint) + column];
        }
 
     static final int MY_MASK = UCharacterProperty.TYPE_MASK
@@ -367,11 +318,7 @@ public final class UCharacterProperty
             } else {
                 if(column==SRC_CASE) {
                     /* case mapping properties */
-                    try {
-                        return UCaseProps.getSingleton().hasBinaryProperty(c, which);
-                    } catch (IOException e) {
-                        return false;
-                    }
+                    return UCaseProps.INSTANCE.hasBinaryProperty(c, which);
                 } else if(column==SRC_NFC) {
                     /* normalization properties from nfc.nrm */
                     switch(which) {
@@ -404,12 +351,7 @@ public final class UCharacterProperty
                         ensureCanonIterData().isCanonSegmentStarter(c);
                 } else if(column==SRC_BIDI) {
                     /* bidi/shaping properties */
-                    UBiDiProps bdp;
-                    try {
-                        bdp = UBiDiProps.getSingleton();
-                    } catch (IOException e) {
-                        return false;
-                    }
+                    UBiDiProps bdp = UBiDiProps.INSTANCE;
                     switch(which) {
                     case UProperty.BIDI_MIRRORED:
                         return bdp.isMirrored(c);
@@ -477,14 +419,10 @@ public final class UCharacterProperty
                         }
                         if(c>=0) {
                             /* single code point */
-                            try {
-                                UCaseProps csp=UCaseProps.getSingleton();
-                                UCaseProps.dummyStringBuffer.setLength(0);
-                                return csp.toFullFolding(c, UCaseProps.dummyStringBuffer,
-                                                         UCharacter.FOLD_CASE_DEFAULT)>=0;
-                            } catch (IOException e) {
-                                return false;
-                            }
+                            UCaseProps csp=UCaseProps.INSTANCE;
+                            UCaseProps.dummyStringBuffer.setLength(0);
+                            return csp.toFullFolding(c, UCaseProps.dummyStringBuffer,
+                                                     UCharacter.FOLD_CASE_DEFAULT)>=0;
                         } else {
                             String folded=UCharacter.foldCase(nfd, true);
                             return !folded.equals(nfd);
@@ -714,7 +652,7 @@ public final class UCharacterProperty
     /**
      * Extra property trie
      */
-    CharTrie m_additionalTrie_;
+    Trie2_16 m_additionalTrie_;
     /**
      * Extra property vectors, 1st column for age and second for binary
      * properties.
@@ -734,6 +672,12 @@ public final class UCharacterProperty
      * 0
      */
      int m_maxJTGValue_;
+
+    /**
+     * Script_Extensions data
+     */
+    char[] m_scriptExtensions_;
+
     // private variables -------------------------------------------------
 
     /**
@@ -825,20 +769,81 @@ public final class UCharacterProperty
     // private constructors --------------------------------------------------
 
     /**
-    * Constructor
-    * @exception IOException thrown when data reading fails or data corrupted
-    */
+     * Constructor
+     * @exception IOException thrown when data reading fails or data corrupted
+     */
     private UCharacterProperty() throws IOException
     {
         // jar access
         InputStream is = ICUData.getRequiredStream(DATA_FILE_NAME_);
-        BufferedInputStream b = new BufferedInputStream(is, DATA_BUFFER_SIZE_);
-        UCharacterPropertyReader reader = new UCharacterPropertyReader(b);
-        reader.read(this);
-        b.close();
+        BufferedInputStream bis = new BufferedInputStream(is, DATA_BUFFER_SIZE_);
+        m_unicodeVersion_ = ICUBinary.readHeaderAndDataVersion(bis, DATA_FORMAT, new IsAcceptable());
+        DataInputStream ds = new DataInputStream(bis);
+        // Read or skip the 16 indexes.
+        int propertyOffset = ds.readInt();
+        /* exceptionOffset = */ ds.readInt();
+        /* caseOffset = */ ds.readInt();
+        int additionalOffset = ds.readInt();
+        int additionalVectorsOffset = ds.readInt();
+        m_additionalColumnsCount_ = ds.readInt();
+        int scriptExtensionsOffset = ds.readInt();
+        int reservedOffset7 = ds.readInt();
+        /* reservedOffset8 = */ ds.readInt();
+        /* dataTopOffset = */ ds.readInt();
+        m_maxBlockScriptValue_ = ds.readInt();
+        m_maxJTGValue_ = ds.readInt();
+        ds.skipBytes((16 - 12) << 2);
 
-        m_trie_.putIndexData(this);
+        // read the main properties trie
+        m_trie_ = Trie2_16.createFromSerialized(ds);
+        int expectedTrieLength = (propertyOffset - 16) * 4;
+        int trieLength = m_trie_.getSerializedLength();
+        if(trieLength > expectedTrieLength) {
+            throw new IOException("uprops.icu: not enough bytes for main trie");
+        }
+        // skip padding after trie bytes
+        ds.skipBytes(expectedTrieLength - trieLength);
+
+        // skip unused intervening data structures
+        ds.skipBytes((additionalOffset - propertyOffset) * 4);
+
+        if(m_additionalColumnsCount_ > 0) {
+            // reads the additional property block
+            m_additionalTrie_ = Trie2_16.createFromSerialized(ds);
+            expectedTrieLength = (additionalVectorsOffset-additionalOffset)*4;
+            trieLength = m_additionalTrie_.getSerializedLength();
+            if(trieLength > expectedTrieLength) {
+                throw new IOException("uprops.icu: not enough bytes for additional-properties trie");
+            }
+            // skip padding after trie bytes
+            ds.skipBytes(expectedTrieLength - trieLength);
+
+            // additional properties
+            int size = scriptExtensionsOffset - additionalVectorsOffset;
+            m_additionalVectors_ = new int[size];
+            for (int i = 0; i < size; i ++) {
+                m_additionalVectors_[i] = ds.readInt();
+            }
+        }
+
+        // Script_Extensions
+        int numChars = (reservedOffset7 - scriptExtensionsOffset) * 2;
+        if(numChars > 0) {
+            m_scriptExtensions_ = new char[numChars];
+            for(int i = 0; i < numChars; ++i) {
+                m_scriptExtensions_[i] = ds.readChar();
+            }
+        }
+        is.close();
     }
+
+    private static final class IsAcceptable implements ICUBinary.Authenticate {
+        // @Override when we switch to Java 6
+        public boolean isDataVersionAcceptable(byte version[]) {
+            return version[0] == 7;
+        }
+    }
+    private static final byte DATA_FORMAT[] = { 0x55, 0x50, 0x72, 0x6F };  // "UPro"
 
     // private methods -------------------------------------------------------
 
@@ -888,10 +893,10 @@ public final class UCharacterProperty
 
     public UnicodeSet addPropertyStarts(UnicodeSet set) {
         /* add the start code point of each same-value range of the main trie */
-        TrieIterator propsIter = new TrieIterator(m_trie_);
-        RangeValueIterator.Element propsResult = new RangeValueIterator.Element();
-          while(propsIter.next(propsResult)){
-            set.add(propsResult.start);
+        Iterator<Trie2.Range> trieIterator = m_trie_.iterator();
+        Trie2.Range range;
+        while(trieIterator.hasNext() && !(range=trieIterator.next()).leadSurrogate) {
+            set.add(range.startCodePoint);
         }
 
         /* add code points with hardcoded properties, plus the ones following them */
@@ -982,11 +987,22 @@ public final class UCharacterProperty
         /* add the start code point of each same-value range of the properties vectors trie */
         if(m_additionalColumnsCount_>0) {
             /* if m_additionalColumnsCount_==0 then the properties vectors trie may not be there at all */
-            TrieIterator propsVectorsIter = new TrieIterator(m_additionalTrie_);
-            RangeValueIterator.Element propsVectorsResult = new RangeValueIterator.Element();
-            while(propsVectorsIter.next(propsVectorsResult)){
-                set.add(propsVectorsResult.start);
+            Iterator<Trie2.Range> trieIterator = m_additionalTrie_.iterator();
+            Trie2.Range range;
+            while(trieIterator.hasNext() && !(range=trieIterator.next()).leadSurrogate) {
+                set.add(range.startCodePoint);
             }
+        }
+    }
+
+    // This static initializer block must be placed after
+    // other static member initialization
+    static {
+        try {
+            INSTANCE = new UCharacterProperty();
+        }
+        catch (IOException e) {
+            throw new MissingResourceException(e.getMessage(),"","");
         }
     }
 
