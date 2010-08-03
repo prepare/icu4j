@@ -143,16 +143,6 @@ public class CharTrie extends Trie
     // public methods --------------------------------------------------
     
     /**
-     * Java friend implementation
-     * To store the index and data array into the argument.
-     * @param friend java friend UCharacterProperty object to store the array
-     */
-    public void putIndexData(UCharacterProperty friend) 
-    {
-        friend.setIndexData(m_friendAgent_);
-    }
-
-    /**
     * Gets the value associated with the codepoint.
     * If no value is associated with the codepoint, a default value will be
     * returned.

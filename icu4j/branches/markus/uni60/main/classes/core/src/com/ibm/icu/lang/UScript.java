@@ -954,7 +954,9 @@ public final class UScript {
     }
 
     /**
-     * Do code point c's Script_Extensions include script code sc?
+     * Is code point c used in script sc?
+     * That is, does code point c have the Script property value sc,
+     * or do code point c's Script_Extensions include script code sc?
      *
      * Some characters are commonly used in multiple scripts.
      * For more information, see UAX #24: http://www.unicode.org/reports/tr24/.
@@ -963,11 +965,11 @@ public final class UScript {
      * in future versions of the Unicode Standard, and thus in ICU.
      * @param c code point
      * @param sc script code
-     * @return true if sc is in c's Script_Extensions
+     * @return true if Script(c)==sc or sc is in Script_Extensions(c)
      * @draft ICU 4.6
      * @provisional This API might change or be removed in a future release.
      */
-    public static final boolean hasExtendedScript(int c, int sc) { return false; /* TODO */ }
+    public static final boolean hasScript(int c, int sc) { return false; /* TODO */ }
 
     /**
      * Sets code point c's Script_Extensions as script code integers into the output BitSet.

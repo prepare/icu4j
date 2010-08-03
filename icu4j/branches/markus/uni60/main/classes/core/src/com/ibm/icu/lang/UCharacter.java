@@ -3233,7 +3233,7 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
      */
     public static int digit(int ch)
     {
-        int props = getProperty(ch);
+        int props = UCharacterProperty.INSTANCE.getProperty(ch);
         int value = getNumericTypeValue(props) - NTV_DECIMAL_START_;
         if(value<=9) {
             return value;
@@ -3398,7 +3398,7 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
      */
     public static int getType(int ch)
     {
-        return getProperty(ch) & UCharacterProperty.TYPE_MASK;
+        return UCharacterProperty.INSTANCE.getProperty(ch) & UCharacterProperty.TYPE_MASK;
     }
 
     /**
@@ -5168,7 +5168,7 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
      */
     public static RangeValueIterator getTypeIterator()
     {
-        return new UCharacterTypeIterator(UCharacterProperty.INSTANCE);
+        return new UCharacterTypeIterator();
     }
 
     /**
@@ -6416,59 +6416,5 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
         }
         // ch >= 0xff41 && ch <= 0xff5a
         return ch + 10 - 0xff41;
-    }
-
-    /**
-     * Returns the property value at the index.
-     * This is optimized.
-     * Note this is alittle different from CharTrie the index m_trieData_
-     * is never negative.
-     * This is a duplicate of UCharacterProperty.getProperty. For optimization
-     * purposes, this method calls the trie data directly instead of through
-     * UCharacterProperty.getProperty.
-     * @param ch code point whose property value is to be retrieved
-     * @return property value of code point
-     * @stable ICU 2.6
-     */
-    private static final int getProperty(int ch)
-    {
-        if (ch < UTF16.LEAD_SURROGATE_MIN_VALUE
-            || (ch > UTF16.LEAD_SURROGATE_MAX_VALUE
-                && ch < UTF16.SUPPLEMENTARY_MIN_VALUE)) {
-            // BMP codepoint 0000..D7FF or DC00..FFFF
-            try { // using try for ch < 0 is faster than using an if statement
-                return UCharacterProperty.INSTANCE.m_trieData_[
-                              (UCharacterProperty.INSTANCE.m_trieIndex_[ch >> 5] << 2)
-                              + (ch & 0x1f)];
-            } catch (ArrayIndexOutOfBoundsException e) {
-                // TODO: Tested all the values from 0 ... UTF16.LEAD_SURROGATE_MIN_VALUE
-                // and UTF16.LEAD_SURROGATE_MAX_VALUE ... UTF16.SUPPLEMENTARY_MIN_VALUE
-                // but it never results into the catch section of the try-catch
-                ///CLOVER:OFF
-                return UCharacterProperty.INSTANCE.m_trieInitialValue_;
-                ///CLOVER:ON
-            }
-        }
-        if (ch <= UTF16.LEAD_SURROGATE_MAX_VALUE) {
-            // lead surrogate D800..DBFF
-            return UCharacterProperty.INSTANCE.m_trieData_[
-                              (UCharacterProperty.INSTANCE.m_trieIndex_[(0x2800 >> 5) +
-                                                                        (ch >> 5)] << 2)
-                              + (ch & 0x1f)];
-        }
-        // for optimization
-        if (ch <= UTF16.CODEPOINT_MAX_VALUE) {
-            // supplementary code point 10000..10FFFF
-            // look at the construction of supplementary characters
-            // trail forms the ends of it.
-            return UCharacterProperty.INSTANCE.m_trie_.getSurrogateValue(
-                                      UTF16.getLeadSurrogate(ch),
-                                      (char)(ch & 0x3ff));
-        }
-        // return m_dataOffset_ if there is an error, in this case we return
-        // the default value: m_initialValue_
-        // we cannot assume that m_initialValue_ is at offset 0
-        // this is for optimization.
-        return UCharacterProperty.INSTANCE.m_trieInitialValue_;
     }
 }

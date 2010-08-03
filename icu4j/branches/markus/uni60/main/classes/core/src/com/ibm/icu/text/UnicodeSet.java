@@ -6,13 +6,11 @@
  */
 package com.ibm.icu.text;
 
-import java.io.IOException;
 import java.text.ParsePosition;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.MissingResourceException;
 import java.util.TreeSet;
 
 import com.ibm.icu.impl.BMPSet;
@@ -3079,45 +3077,41 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
         }
         if(INCLUSIONS[src] == null) {
             UnicodeSet incl = new UnicodeSet();
-            try {
-                switch(src) {
-                case UCharacterProperty.SRC_CHAR:
-                    UCharacterProperty.INSTANCE.addPropertyStarts(incl);
-                    break;
-                case UCharacterProperty.SRC_PROPSVEC:
-                    UCharacterProperty.INSTANCE.upropsvec_addPropertyStarts(incl);
-                    break;
-                case UCharacterProperty.SRC_CHAR_AND_PROPSVEC:
-                    UCharacterProperty.INSTANCE.addPropertyStarts(incl);
-                    UCharacterProperty.INSTANCE.upropsvec_addPropertyStarts(incl);
-                    break;
-                case UCharacterProperty.SRC_CASE_AND_NORM:
-                    Norm2AllModes.getNFCInstance().impl.addPropertyStarts(incl);
-                    UCaseProps.getSingleton().addPropertyStarts(incl);
-                    break;
-                case UCharacterProperty.SRC_NFC:
-                    Norm2AllModes.getNFCInstance().impl.addPropertyStarts(incl);
-                    break;
-                case UCharacterProperty.SRC_NFKC:
-                    Norm2AllModes.getNFKCInstance().impl.addPropertyStarts(incl);
-                    break;
-                case UCharacterProperty.SRC_NFKC_CF:
-                    Norm2AllModes.getNFKC_CFInstance().impl.addPropertyStarts(incl);
-                    break;
-                case UCharacterProperty.SRC_NFC_CANON_ITER:
-                    Norm2AllModes.getNFCInstance().impl.addCanonIterPropertyStarts(incl);
-                    break;
-                case UCharacterProperty.SRC_CASE:
-                    UCaseProps.getSingleton().addPropertyStarts(incl);
-                    break;
-                case UCharacterProperty.SRC_BIDI:
-                    UBiDiProps.getSingleton().addPropertyStarts(incl);
-                    break;
-                default:
-                    throw new IllegalStateException("UnicodeSet.getInclusions(unknown src "+src+")");
-                }
-            } catch(IOException e) {
-                throw new MissingResourceException(e.getMessage(),"","");
+            switch(src) {
+            case UCharacterProperty.SRC_CHAR:
+                UCharacterProperty.INSTANCE.addPropertyStarts(incl);
+                break;
+            case UCharacterProperty.SRC_PROPSVEC:
+                UCharacterProperty.INSTANCE.upropsvec_addPropertyStarts(incl);
+                break;
+            case UCharacterProperty.SRC_CHAR_AND_PROPSVEC:
+                UCharacterProperty.INSTANCE.addPropertyStarts(incl);
+                UCharacterProperty.INSTANCE.upropsvec_addPropertyStarts(incl);
+                break;
+            case UCharacterProperty.SRC_CASE_AND_NORM:
+                Norm2AllModes.getNFCInstance().impl.addPropertyStarts(incl);
+                UCaseProps.INSTANCE.addPropertyStarts(incl);
+                break;
+            case UCharacterProperty.SRC_NFC:
+                Norm2AllModes.getNFCInstance().impl.addPropertyStarts(incl);
+                break;
+            case UCharacterProperty.SRC_NFKC:
+                Norm2AllModes.getNFKCInstance().impl.addPropertyStarts(incl);
+                break;
+            case UCharacterProperty.SRC_NFKC_CF:
+                Norm2AllModes.getNFKC_CFInstance().impl.addPropertyStarts(incl);
+                break;
+            case UCharacterProperty.SRC_NFC_CANON_ITER:
+                Norm2AllModes.getNFCInstance().impl.addCanonIterPropertyStarts(incl);
+                break;
+            case UCharacterProperty.SRC_CASE:
+                UCaseProps.INSTANCE.addPropertyStarts(incl);
+                break;
+            case UCharacterProperty.SRC_BIDI:
+                UBiDiProps.INSTANCE.addPropertyStarts(incl);
+                break;
+            default:
+                throw new IllegalStateException("UnicodeSet.getInclusions(unknown src "+src+")");
             }
             INCLUSIONS[src] = incl;
         }
@@ -3690,12 +3684,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
     public UnicodeSet closeOver(int attribute) {
         checkFrozen();
         if ((attribute & (CASE | ADD_CASE_MAPPINGS)) != 0) {
-            UCaseProps csp;
-            try {
-                csp = UCaseProps.getSingleton();
-            } catch(IOException e) {
-                return this;
-            }
+            UCaseProps csp = UCaseProps.INSTANCE;
             UnicodeSet foldSet = new UnicodeSet(this);
             ULocale root = ULocale.ROOT;
 
