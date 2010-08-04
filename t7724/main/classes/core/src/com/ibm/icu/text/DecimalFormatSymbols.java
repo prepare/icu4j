@@ -167,8 +167,8 @@ public class DecimalFormatSymbols implements Cloneable, Serializable {
         }
     }
     /**
-     * Returns the character used for zero. Different for Arabic, etc.
-     * @return the character
+     * Returns the array of characters used as digits, in order from 0 through 9
+     * @return The array
      * @draft ICU 4.6
      */
     public char[] getDigits() {
