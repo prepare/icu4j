@@ -5,7 +5,6 @@
  *******************************************************************************
  */
 package com.ibm.icu.text;
-import java.io.IOException;
 import java.nio.CharBuffer;
 import java.text.CharacterIterator;
 

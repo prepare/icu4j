@@ -7,6 +7,7 @@
 
 package com.ibm.icu.dev.test.lang;
 
+import java.util.BitSet;
 import java.util.Locale;
 
 import com.ibm.icu.dev.test.TestFmwk;
@@ -318,6 +319,70 @@ public class TestUScript extends TestFmwk {
            errln("UScript.getScript failed.");
         }
     }
+
+    public void TestHasScript() {
+        if(!(
+            !UScript.hasScript(0x063f, UScript.COMMON) &&
+            UScript.hasScript(0x063f, UScript.ARABIC) &&  /* main Script value */
+            !UScript.hasScript(0x063f, UScript.SYRIAC) &&
+            !UScript.hasScript(0x063f, UScript.THAANA))
+        ) {
+            errln("UScript.hasScript(U+063F, ...) is wrong\n");
+        }
+        if(!(
+            UScript.hasScript(0x0640, UScript.COMMON) &&  /* main Script value */
+            UScript.hasScript(0x0640, UScript.ARABIC) &&
+            UScript.hasScript(0x0640, UScript.SYRIAC) &&
+            !UScript.hasScript(0x0640, UScript.THAANA))
+        ) {
+            errln("UScript.hasScript(U+0640, ...) is wrong\n");
+        }
+        if(!(
+            UScript.hasScript(0x0650, UScript.INHERITED) &&  /* main Script value */
+            UScript.hasScript(0x0650, UScript.ARABIC) &&
+            UScript.hasScript(0x0650, UScript.SYRIAC) &&
+            !UScript.hasScript(0x0650, UScript.THAANA))
+        ) {
+            errln("UScript.hasScript(U+0650, ...) is wrong\n");
+        }
+        if(!(
+            UScript.hasScript(0x0660, UScript.COMMON) &&  /* main Script value */
+            UScript.hasScript(0x0660, UScript.ARABIC) &&
+            !UScript.hasScript(0x0660, UScript.SYRIAC) &&
+            UScript.hasScript(0x0660, UScript.THAANA))
+        ) {
+            errln("UScript.hasScript(U+0660, ...) is wrong\n");
+        }
+        if(!(
+            !UScript.hasScript(0xfdf2, UScript.COMMON) &&
+            UScript.hasScript(0xfdf2, UScript.ARABIC) &&  /* main Script value */
+            !UScript.hasScript(0xfdf2, UScript.SYRIAC) &&
+            UScript.hasScript(0xfdf2, UScript.THAANA))
+        ) {
+            errln("UScript.hasScript(U+FDF2, ...) is wrong\n");
+        }
+    }
+
+    public void TestGetScriptExtensions() {
+        BitSet scripts=new BitSet(UScript.CODE_LIMIT);
+
+        /* normal usage */
+        if(!UScript.getScriptExtensions(0x063f, scripts).isEmpty()) {
+            errln("UScript.getScriptExtensions(U+063F) is not empty");
+        }
+        if(UScript.getScriptExtensions(0x0640, scripts).cardinality()!=2 || !scripts.get(UScript.ARABIC) || !scripts.get(UScript.SYRIAC)) {
+            errln("UScript.getScriptExtensions(U+0640) failed");
+        }
+        UScript.getScriptExtensions(0xfdf2, scripts);
+        if(scripts.cardinality()!=2 || !scripts.get(UScript.ARABIC) || !scripts.get(UScript.THAANA)) {
+            errln("UScript.getScriptExtensions(U+FDF2) failed");
+        }
+        UScript.getScriptExtensions(0xff65, scripts);
+        if(scripts.cardinality()!=8 || !scripts.get(UScript.BOPOMOFO) || !scripts.get(UScript.PHAGS_PA)) {
+            errln("UScript.getScriptExtensions(U+FF65) failed");
+        }
+    }
+
     public void TestScriptNames(){
         for(int i=0; i<UScript.CODE_LIMIT;i++){
             String name = UScript.getName(i);

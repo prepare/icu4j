@@ -50,21 +50,6 @@ public final class UCharacterProperty
     */
     public Trie2_16 m_trie_;
     /**
-     * Optimization
-     * CharTrie index array
-     */
-    public char[] m_trieIndex_;
-    /**
-     * Optimization
-     * CharTrie data array
-     */
-    public char[] m_trieData_;
-    /**
-     * Optimization
-     * CharTrie data offset
-     */
-    public int m_trieInitialValue_;
-    /**
     * Unicode version
     */
     public VersionInfo m_unicodeVersion_;
@@ -115,16 +100,6 @@ public final class UCharacterProperty
     public static final int SRC_COUNT=12;
 
     // public methods ----------------------------------------------------
-
-    /**
-     * Java friends implementation
-     */
-    public void setIndexData(CharTrie.FriendAgent friendagent)
-    {
-        m_trieIndex_ = friendagent.getPrivateIndex();
-        m_trieData_ = friendagent.getPrivateData();
-        m_trieInitialValue_ = friendagent.getPrivateInitialValue();
-    }
 
     /**
     * Gets the main property value for code point ch.
@@ -676,7 +651,7 @@ public final class UCharacterProperty
     /**
      * Script_Extensions data
      */
-    char[] m_scriptExtensions_;
+    public char[] m_scriptExtensions_;
 
     // private variables -------------------------------------------------
 

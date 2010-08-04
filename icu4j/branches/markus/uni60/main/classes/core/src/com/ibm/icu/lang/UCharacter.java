@@ -9,12 +9,14 @@ package com.ibm.icu.lang;
 
 import java.lang.ref.SoftReference;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
 
 import com.ibm.icu.impl.IllegalIcuArgumentException;
 import com.ibm.icu.impl.Norm2AllModes;
 import com.ibm.icu.impl.Normalizer2Impl;
+import com.ibm.icu.impl.Trie2;
 import com.ibm.icu.impl.UBiDiProps;
 import com.ibm.icu.impl.UCaseProps;
 import com.ibm.icu.impl.UCharacterName;
@@ -5171,6 +5173,40 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
         return new UCharacterTypeIterator();
     }
 
+    private static final class UCharacterTypeIterator implements RangeValueIterator {
+        UCharacterTypeIterator() {
+            reset();
+        }
+
+        // implements RangeValueIterator
+        public boolean next(Element element) {
+            if(trieIterator.hasNext() && !(range=trieIterator.next()).leadSurrogate) {
+                element.start=range.startCodePoint;
+                element.limit=range.endCodePoint+1;
+                element.value=range.value;
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+        // implements RangeValueIterator
+        public void reset() {
+            trieIterator=UCharacterProperty.INSTANCE.m_trie_.iterator(MASK_TYPE);
+        }
+
+        private Iterator<Trie2.Range> trieIterator;
+        private Trie2.Range range;
+
+        private static final class MaskType implements Trie2.ValueMapper {
+            // Extracts the general category ("character type") from the trie value.
+            public int map(int value) {
+                return value & UCharacterProperty.TYPE_MASK;
+            }
+        }
+        private static final MaskType MASK_TYPE=new MaskType();
+    }
+
     /**
      * {@icu} <p>Returns an iterator for character names, iterating over codepoints.</p>
      * <p>This API only gets the iterator for the modern, most up-to-date
@@ -6349,12 +6385,22 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
      * Properties in vector word 0
      * Bits
      * 31..24   DerivedAge version major/minor one nibble each
-     * 23..20   reserved
+     * 23..22   3..1: Bits 7..0 = Script_Extensions index
+     *             3: Script value from Script_Extensions
+     *             2: Script=Inherited
+     *             1: Script=Common
+     *             0: Script=bits 7..0
+     * 21..20   reserved
      * 19..17   East Asian Width
      * 16.. 8   UBlockCode
      *  7.. 0   UScriptCode
      */
 
+    /**
+     * Script_Extensions: mask includes Script
+     */
+    static final int SCRIPT_X_MASK = 0x00c000ff;
+    //private static final int SCRIPT_X_SHIFT = 22;
     /**
      * Integer properties mask and shift values for East Asian cell width.
      * Equivalent to icu4c UPROPS_EA_MASK
@@ -6380,6 +6426,11 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
      * Equivalent to icu4c UPROPS_SHIFT_MASK
      */
     static final int SCRIPT_MASK_ = 0x000000ff;
+
+    /* SCRIPT_X_WITH_COMMON must be the lowest value that involves Script_Extensions. */
+    static final int SCRIPT_X_WITH_COMMON = 0x400000;
+    static final int SCRIPT_X_WITH_INHERITED = 0x800000;
+    static final int SCRIPT_X_WITH_OTHER = 0xc00000;
 
     // private constructor -----------------------------------------------
     ///CLOVER:OFF
