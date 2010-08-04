@@ -45,7 +45,6 @@ public class CharTrie extends Trie
             throw new IllegalArgumentException(
                                "Data given does not belong to a char trie.");
         }
-        m_friendAgent_ = new FriendAgent();
     }
 
     /**
@@ -105,41 +104,8 @@ public class CharTrie extends Trie
                 m_data_[i]=(char)leadUnitValue;
             }
         }
-
-        m_friendAgent_ = new FriendAgent();
     }
 
-    /**
-     * Java friend implementation
-     */
-    public class FriendAgent
-    {
-        /**
-         * Gives out the index array of the trie
-         * @return index array of trie
-         */ 
-        public char[] getPrivateIndex() 
-        {
-            return m_index_;
-        }
-        /**
-         * Gives out the data array of the trie
-         * @return data array of trie
-         */ 
-        public char[] getPrivateData() 
-        {
-            return m_data_;
-        }
-        /**
-         * Gives out the data offset in the trie
-         * @return data offset in the trie
-         */ 
-        public int getPrivateInitialValue() 
-        {
-            return m_initialValue_;
-        }
-    }
-    
     // public methods --------------------------------------------------
     
     /**
@@ -340,8 +306,4 @@ public class CharTrie extends Trie
     * Array of char data
     */
     private char m_data_[];
-    /**
-     * Agent for friends
-     */
-    private FriendAgent m_friendAgent_;
 }

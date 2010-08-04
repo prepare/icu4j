@@ -818,7 +818,9 @@ public final class UScript {
     public static final int WARANG_CITI                   = 146;/* Wara */
 
     /**
-     * Limit
+     * One higher than the last ISO 15924 script code integer.
+     * This value will increase as ISO 15924 adds script codes
+     * for which integer constants are added above.
      * @stable ICU 2.4
      */
     public static final int CODE_LIMIT   = 147;
@@ -947,7 +949,16 @@ public final class UScript {
      */
     public static final int getScript(int codepoint){
         if (codepoint >= UCharacter.MIN_VALUE & codepoint <= UCharacter.MAX_VALUE) {
-            return (UCharacterProperty.INSTANCE.getAdditional(codepoint,0) & UCharacter.SCRIPT_MASK_);
+            int scriptX=UCharacterProperty.INSTANCE.getAdditional(codepoint, 0)&UCharacter.SCRIPT_X_MASK;
+            if(scriptX<UCharacter.SCRIPT_X_WITH_COMMON) {
+                return scriptX;
+            } else if(scriptX<UCharacter.SCRIPT_X_WITH_INHERITED) {
+                return UScript.COMMON;
+            } else if(scriptX<UCharacter.SCRIPT_X_WITH_OTHER) {
+                return UScript.INHERITED;
+            } else {
+                return UCharacterProperty.INSTANCE.m_scriptExtensions_[scriptX&UCharacter.SCRIPT_MASK_];
+            }
         }else{
             throw new IllegalArgumentException(Integer.toString(codepoint));
         }
@@ -969,7 +980,31 @@ public final class UScript {
      * @draft ICU 4.6
      * @provisional This API might change or be removed in a future release.
      */
-    public static final boolean hasScript(int c, int sc) { return false; /* TODO */ }
+    public static final boolean hasScript(int c, int sc) {
+        int scriptX=UCharacterProperty.INSTANCE.getAdditional(c, 0)&UCharacter.SCRIPT_X_MASK;
+        if(scriptX<UCharacter.SCRIPT_X_WITH_COMMON) {
+            return sc==scriptX;
+        }
+
+        char[] scriptExtensions=UCharacterProperty.INSTANCE.m_scriptExtensions_;
+        int scx=scriptX&UCharacter.SCRIPT_MASK_;  // index into scriptExtensions
+        int script;
+        if(scriptX<UCharacter.SCRIPT_X_WITH_INHERITED) {
+            script=UScript.COMMON;
+        } else if(scriptX<UCharacter.SCRIPT_X_WITH_OTHER) {
+            script=UScript.INHERITED;
+        } else {
+            script=scriptExtensions[scx];
+            scx=scriptExtensions[scx+1];
+        }
+        if(sc==script) {
+            return true;
+        }
+        while(sc>scriptExtensions[scx]) {
+            ++scx;
+        }
+        return sc==(scriptExtensions[scx]&0x7fff);
+    }
 
     /**
      * Sets code point c's Script_Extensions as script code integers into the output BitSet.
@@ -986,7 +1021,25 @@ public final class UScript {
      * @draft ICU 4.6
      * @provisional This API might change or be removed in a future release.
      */
-    public static final BitSet getScriptExtensions(int c, BitSet set) { return set; /* TODO */ }
+    public static final BitSet getScriptExtensions(int c, BitSet set) {
+        set.clear();
+        int scriptX=UCharacterProperty.INSTANCE.getAdditional(c, 0)&UCharacter.SCRIPT_X_MASK;
+        if(scriptX<UCharacter.SCRIPT_X_WITH_COMMON) {
+            return set;
+        }
+
+        char[] scriptExtensions=UCharacterProperty.INSTANCE.m_scriptExtensions_;
+        int scx=scriptX&UCharacter.SCRIPT_MASK_;  // index into scriptExtensions
+        if(scriptX>=UCharacter.SCRIPT_X_WITH_OTHER) {
+            scx=scriptExtensions[scx+1];
+        }
+        int sx;
+        do {
+            sx=scriptExtensions[scx++];
+            set.set(sx&0x7fff);
+        } while(sx<0x8000);
+        return set;
+    }
 
     /**
      * Gets a script name associated with the given script code.
