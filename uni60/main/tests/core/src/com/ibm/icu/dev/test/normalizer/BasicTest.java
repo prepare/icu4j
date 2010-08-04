@@ -2295,8 +2295,7 @@ public class BasicTest extends TestFmwk {
         // one of the back-combining characters.
         Normalizer2 norm2=Normalizer2.getInstance(null, "nfc", Normalizer2.Mode.COMPOSE);
         StringBuilder s=new StringBuilder();
-        iter=new UnicodeSetIterator(unsure);
-outerLoop:
+        iter.reset(unsure);
         while(iter.next()) {
             int c=iter.codepoint;
             s.delete(0, 0x7fffffff).appendCodePoint(c);
@@ -2313,7 +2312,7 @@ outerLoop:
                         // System.out.format("remove U+%04x (tccc=%d) + U+%04x (cc=%d)\n", c, tccc, c2, cc2);
                         skipSets[C].remove(c);
                         skipSets[KC].remove(c);
-                        continue outerLoop;
+                        break;
                     }
                     s.delete(cLength, 0x7fffffff);
                 }
