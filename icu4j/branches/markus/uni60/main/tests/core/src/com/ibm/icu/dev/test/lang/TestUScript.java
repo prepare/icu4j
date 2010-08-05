@@ -320,6 +320,17 @@ public class TestUScript extends TestFmwk {
         }
     }
 
+    public void TestGetScriptOfCharsWithScriptExtensions() {
+        /* test characters which have Script_Extensions */
+        if(!(
+            UScript.COMMON==UScript.getScript(0x0640) &&
+            UScript.INHERITED==UScript.getScript(0x0650) &&
+            UScript.ARABIC==UScript.getScript(0xfdf2))
+        ) {
+            errln("UScript.getScript(character with Script_Extensions) failed");
+        }
+    }
+
     public void TestHasScript() {
         if(!(
             !UScript.hasScript(0x063f, UScript.COMMON) &&

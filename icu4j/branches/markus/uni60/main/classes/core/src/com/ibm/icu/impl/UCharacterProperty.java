@@ -482,7 +482,12 @@ public final class UCharacterProperty
                 return SRC_NONE;
             }
         } else {
-            return SRC_NONE; /* undefined */
+            switch(which) {
+            case UProperty.SCRIPT_EXTENSIONS:
+                return SRC_PROPSVEC;
+            default:
+                return SRC_NONE; /* undefined */
+            }
         }
     }
 
