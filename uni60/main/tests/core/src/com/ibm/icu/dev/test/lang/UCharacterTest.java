@@ -2325,7 +2325,7 @@ public final class UCharacterTest extends TestFmwk
         *
         * Unicode 4 changed 00AD Soft Hyphen to Cf and removed it from Dash
         * but not from Hyphen.
-        * UTC 94 (2003mar) decided to leave it that way and to changed UCD.html.
+        * UTC 94 (2003mar) decided to leave it that way and to change UCD.html.
         * Therefore, do not show errors when testing the Hyphen property.
         */
        logln("Starting with Unicode 4, inconsistencies with [:Hyphen:] are\n"
