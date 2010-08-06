@@ -2491,30 +2491,6 @@ public final class UCharacterTest extends TestFmwk
 
     /*
      * The following method tests
-     *      static int idOf(int ch)
-     */
-    public void TestIDOf(){
-        int[] invalid_test = {-2, -1, UTF16.CODEPOINT_MAX_VALUE+1, UTF16.CODEPOINT_MAX_VALUE+2};
-        
-        for(int i=0; i < invalid_test.length; i++){
-            int result = UCharacter.getIntPropertyValue(invalid_test[i], UProperty.BLOCK);
-            if(result != -1){
-                errln("UCharacter.UnicodeBlock.idOf() was suppose to return -1. Got " + result);
-            }
-        }
-        
-        int[] valid_test = {0, 1, UTF16.CODEPOINT_MAX_VALUE, UTF16.CODEPOINT_MAX_VALUE-1};
-        
-        for(int i=0; i < valid_test.length; i++){
-            int result = UCharacter.getIntPropertyValue(valid_test[i], UProperty.BLOCK);
-            if(result == -1){
-                errln("UCharacter.UnicodeBlock.idOf() was not suppose to return -1. Got " + result);
-            }
-        }
-    }
-    
-    /*
-     * The following method tests
      *      public static final UnicodeBlock forName(String blockName)
      */
     public void TestForName(){

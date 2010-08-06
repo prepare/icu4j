@@ -949,15 +949,15 @@ public final class UScript {
      */
     public static final int getScript(int codepoint){
         if (codepoint >= UCharacter.MIN_VALUE & codepoint <= UCharacter.MAX_VALUE) {
-            int scriptX=UCharacterProperty.INSTANCE.getAdditional(codepoint, 0)&UCharacter.SCRIPT_X_MASK;
-            if(scriptX<UCharacter.SCRIPT_X_WITH_COMMON) {
+            int scriptX=UCharacterProperty.INSTANCE.getAdditional(codepoint, 0)&UCharacterProperty.SCRIPT_X_MASK;
+            if(scriptX<UCharacterProperty.SCRIPT_X_WITH_COMMON) {
                 return scriptX;
-            } else if(scriptX<UCharacter.SCRIPT_X_WITH_INHERITED) {
+            } else if(scriptX<UCharacterProperty.SCRIPT_X_WITH_INHERITED) {
                 return UScript.COMMON;
-            } else if(scriptX<UCharacter.SCRIPT_X_WITH_OTHER) {
+            } else if(scriptX<UCharacterProperty.SCRIPT_X_WITH_OTHER) {
                 return UScript.INHERITED;
             } else {
-                return UCharacterProperty.INSTANCE.m_scriptExtensions_[scriptX&UCharacter.SCRIPT_MASK_];
+                return UCharacterProperty.INSTANCE.m_scriptExtensions_[scriptX&UCharacterProperty.SCRIPT_MASK_];
             }
         }else{
             throw new IllegalArgumentException(Integer.toString(codepoint));
@@ -981,17 +981,17 @@ public final class UScript {
      * @provisional This API might change or be removed in a future release.
      */
     public static final boolean hasScript(int c, int sc) {
-        int scriptX=UCharacterProperty.INSTANCE.getAdditional(c, 0)&UCharacter.SCRIPT_X_MASK;
-        if(scriptX<UCharacter.SCRIPT_X_WITH_COMMON) {
+        int scriptX=UCharacterProperty.INSTANCE.getAdditional(c, 0)&UCharacterProperty.SCRIPT_X_MASK;
+        if(scriptX<UCharacterProperty.SCRIPT_X_WITH_COMMON) {
             return sc==scriptX;
         }
 
         char[] scriptExtensions=UCharacterProperty.INSTANCE.m_scriptExtensions_;
-        int scx=scriptX&UCharacter.SCRIPT_MASK_;  // index into scriptExtensions
+        int scx=scriptX&UCharacterProperty.SCRIPT_MASK_;  // index into scriptExtensions
         int script;
-        if(scriptX<UCharacter.SCRIPT_X_WITH_INHERITED) {
+        if(scriptX<UCharacterProperty.SCRIPT_X_WITH_INHERITED) {
             script=UScript.COMMON;
-        } else if(scriptX<UCharacter.SCRIPT_X_WITH_OTHER) {
+        } else if(scriptX<UCharacterProperty.SCRIPT_X_WITH_OTHER) {
             script=UScript.INHERITED;
         } else {
             script=scriptExtensions[scx];
@@ -1023,14 +1023,14 @@ public final class UScript {
      */
     public static final BitSet getScriptExtensions(int c, BitSet set) {
         set.clear();
-        int scriptX=UCharacterProperty.INSTANCE.getAdditional(c, 0)&UCharacter.SCRIPT_X_MASK;
-        if(scriptX<UCharacter.SCRIPT_X_WITH_COMMON) {
+        int scriptX=UCharacterProperty.INSTANCE.getAdditional(c, 0)&UCharacterProperty.SCRIPT_X_MASK;
+        if(scriptX<UCharacterProperty.SCRIPT_X_WITH_COMMON) {
             return set;
         }
 
         char[] scriptExtensions=UCharacterProperty.INSTANCE.m_scriptExtensions_;
-        int scx=scriptX&UCharacter.SCRIPT_MASK_;  // index into scriptExtensions
-        if(scriptX>=UCharacter.SCRIPT_X_WITH_OTHER) {
+        int scx=scriptX&UCharacterProperty.SCRIPT_MASK_;  // index into scriptExtensions
+        if(scriptX>=UCharacterProperty.SCRIPT_X_WITH_OTHER) {
             scx=scriptExtensions[scx+1];
         }
         int sx;
