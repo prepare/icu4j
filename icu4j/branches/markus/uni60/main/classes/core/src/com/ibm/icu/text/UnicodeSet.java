@@ -3131,19 +3131,15 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
      * Generic filter-based scanning code for UCD property UnicodeSets.
      */
     private UnicodeSet applyFilter(Filter filter, int src) {
-        // Walk through all Unicode characters, noting the start
+        // Logically, walk through all Unicode characters, noting the start
         // and end of each range for which filter.contain(c) is
         // true.  Add each range to a set.
         //
-        // To improve performance, use the INCLUSIONS set, which
+        // To improve performance, use an inclusions set which
         // encodes information about character ranges that are known
-        // to have identical properties, such as the CJK Ideographs
-        // from U+4E00 to U+9FA5.  INCLUSIONS contains all characters
-        // except the first characters of such ranges.
-        //
-        // TODO Where possible, instead of scanning over code points,
-        // use internal property data to initialize UnicodeSets for
-        // those properties.  Scanning code points is slow.
+        // to have identical properties.
+        // getInclusions(src) contains exactly the first characters of
+        // same-value ranges for the given properties "source".
 
         clear();
 
