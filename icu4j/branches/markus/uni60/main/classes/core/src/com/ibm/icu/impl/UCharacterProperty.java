@@ -516,7 +516,7 @@ public final class UCharacterProperty
                 return UBiDiProps.INSTANCE.getJoiningType(c);
             }
         },
-        new IntProperty(LB_VWORD, LB_MASK, LB_SHIFT),  // LINE_BREAK
+        new IntProperty(2, LB_MASK, LB_SHIFT),  // LINE_BREAK
         new IntProperty(SRC_CHAR) {  // NUMERIC_TYPE
             int getValue(int c) {
                 return ntvGetType(getNumericTypeValue(getProperty(c)));
@@ -1098,7 +1098,6 @@ public final class UCharacterProperty
      */
     private static final int LB_MASK          = 0x03f00000;
     private static final int LB_SHIFT         = 20;
-    private static final int LB_VWORD         = 2;
 
     private static final int SB_MASK          = 0x000f8000;
     private static final int SB_SHIFT         = 15;
