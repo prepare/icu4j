@@ -351,7 +351,7 @@ abstract public class TimeZone implements Serializable, Cloneable {
      * @stable ICU 2.0
      */
     public final String getDisplayName() {
-        return _getDisplayName(false, LONG_GENERIC, ULocale.getDefault());
+        return _getDisplayName(false, false, LONG_GENERIC, ULocale.getDefault());
     }
 
     /**
@@ -366,7 +366,7 @@ abstract public class TimeZone implements Serializable, Cloneable {
      * @stable ICU 2.0
      */
     public final String getDisplayName(Locale locale) {
-        return _getDisplayName(false, LONG_GENERIC, ULocale.forLocale(locale));
+        return _getDisplayName(false, false, LONG_GENERIC, ULocale.forLocale(locale));
     }
 
     /**
@@ -381,7 +381,7 @@ abstract public class TimeZone implements Serializable, Cloneable {
      * @stable ICU 3.2
      */
     public final String getDisplayName(ULocale locale) {
-        return _getDisplayName(false, LONG_GENERIC, locale);
+        return _getDisplayName(false, false, LONG_GENERIC, locale);
     }
 
     /**
@@ -445,7 +445,7 @@ abstract public class TimeZone implements Serializable, Cloneable {
             throw new IllegalArgumentException("Illegal style: " + style);
         }
         
-        return _getDisplayName(daylight, style, locale);
+        return _getDisplayName(daylight, true, style, locale);
     }
 
     /**
@@ -453,21 +453,39 @@ abstract public class TimeZone implements Serializable, Cloneable {
      * SHORT, LONG, SHORT_GENERIC, LONG_GENERIC, SHORT_GMT, LONG_GMT,
      * SHORT_COMMONLY_USED and GENERIC_LOCATION.
      */
-    private synchronized String _getDisplayName(boolean daylight, int style, ULocale locale) {
+    private synchronized String _getDisplayName(boolean daylight, boolean daylightRequested, int style, ULocale locale) {
         if (locale == null) {
             throw new NullPointerException("locale is null");
         }
 
-         // We keep a cache, indexed by locale.  The cache contains a
-        // SimpleDateFormat object, which we create on demand.
+         // We keep a cache, indexed by locale.  
         TimeZoneFormat tzf = null;
         tzf = cachedLocaleData.get(locale);
         if (tzf == null) {
             tzf = TimeZoneFormat.createInstance(locale);
             cachedLocaleData.put(locale, tzf);
         }
+
         
-        return tzf.format(this, style, daylight);
+        String result;
+        if ( daylightRequested ) {
+            result = tzf.format(this, style, daylight);
+            if ( result == null) {
+                result = tzf.format( this, LONG_GMT, daylight);
+            }
+        } else {
+            long now = System.currentTimeMillis();
+            result = tzf.format(this, now, style);
+            if ( result == null) {
+                result = tzf.format( this, now, LONG_GMT);
+            }
+            
+        }
+            
+        if ( result == null )
+            result = tzf.format(this, LONG_GMT, daylight);
+        
+        return result;
     }
 
     /**

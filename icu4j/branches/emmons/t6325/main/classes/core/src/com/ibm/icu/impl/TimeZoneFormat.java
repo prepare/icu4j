@@ -43,13 +43,16 @@ public class TimeZoneFormat {
         case TimeZone.SHORT_GMT :
             result = zsf.getShortGMTString(tz,date);
             break;
+        case TimeZone.LONG_GMT :
+            result = zsf.getLongGMTString(tz, date);
+            break;
         case TimeZone.GENERIC_LOCATION :
             result = zsf.getGenericLocationString(tz, date);
         }
         
-        if ( result == null ) {
-            result = zsf.getLongGMTString(tz,date);
-        }
+//        if ( result == null ) {
+//            result = zsf.getLongGMTString(tz,date);
+//        }
 
         return result;
     }
@@ -67,9 +70,9 @@ public class TimeZoneFormat {
             } else {
                 result = zsf.getLongStandard(tz.getID(),date);
             }
-            if ( result == null ) {
-                result = zsf.getLongGMTString(tz,date,daylight);
-            }
+//            if ( result == null ) {
+//                result = zsf.getLongGMTString(tz,date,daylight);
+//            }
             break;
         
         case TimeZone.SHORT :
@@ -79,9 +82,9 @@ public class TimeZoneFormat {
             } else {
                 result = zsf.getShortStandard(tz.getID(), date, style == TimeZone.SHORT_COMMONLY_USED);
             }
-            if ( result == null ) {
-                result = zsf.getLongGMTString(tz,date,daylight);
-            }
+//            if ( result == null ) {
+//                result = zsf.getLongGMTString(tz,date,daylight);
+//            }
             break;
         
         case TimeZone.SHORT_GMT :
