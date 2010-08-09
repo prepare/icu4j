@@ -836,6 +836,7 @@ public class SimpleDateFormat extends DateFormat {
         final int bufstart = buf.length();
         TimeZone tz = cal.getTimeZone();
         long date = cal.getTimeInMillis();
+        String result = null;
         
         // final int patternCharIndex = DateFormatSymbols.patternChars.indexOf(ch);
         int patternCharIndex = -1;
@@ -957,10 +958,13 @@ public class SimpleDateFormat extends DateFormat {
         case 17: // 'z' - ZONE_OFFSET
             if (count < 4) {
                 // "z", "zz", "zzz"
-                buf.append(formatData.getTimeZoneFormat().format(tz, date, TimeZone.SHORT_COMMONLY_USED));
+                result = formatData.getTimeZoneFormat().format(tz, date, TimeZone.SHORT_COMMONLY_USED);
             } else {
-                buf.append(formatData.getTimeZoneFormat().format(tz, date, TimeZone.LONG));
+                result = formatData.getTimeZoneFormat().format(tz, date, TimeZone.LONG);
             }
+            if ( result == null )
+                result = formatData.getTimeZoneFormat().format(tz, date, TimeZone.LONG_GMT);
+            buf.append(result);
             break;
         case 23: // 'Z' - TIMEZONE_RFC
             if (count < 4) {
@@ -1000,20 +1004,23 @@ public class SimpleDateFormat extends DateFormat {
                 appendGMT(currentNumberFormat,buf, cal);
             }
             break;
+
         case 24: // 'v' - TIMEZONE_GENERIC
             if (count == 1) {
                 // "v"
-               buf.append(formatData.getTimeZoneFormat().format(tz, date, TimeZone.SHORT_GENERIC));
+               result = formatData.getTimeZoneFormat().format(tz, date, TimeZone.SHORT_GENERIC);
             } else if (count == 4) {
                 // "vvvv"
-               buf.append(formatData.getTimeZoneFormat().format(tz, date, TimeZone.LONG_GENERIC));
-            } else {
-                // This is really somewhat of a hack.  The behavior for things like 'vv' or 'vvv'
-                // isn't really defined by TR35.  Just putting this here to mimic the historical
-                // behavior.
-                buf.append(formatData.getTimeZoneFormat().format(tz, date, TimeZone.LONG_GMT));            
+               result = formatData.getTimeZoneFormat().format(tz, date, TimeZone.LONG_GENERIC);
             }
+            
+            if ( result == null ) {
+                result = formatData.getTimeZoneFormat().format(tz, date, TimeZone.LONG_GMT);
+            }
+            
+            buf.append(result);
             break;
+
         case 25: // 'c' - STANDALONE DAY (use DOW_LOCAL for numeric, DAY_OF_WEEK for standalone)
             if (count < 3) {
                 zeroPaddingNumber(currentNumberFormat,buf, value, 1, maxIntCount);
@@ -1062,11 +1069,15 @@ public class SimpleDateFormat extends DateFormat {
         case 29: // 'V' - TIMEZONE_SPECIAL
             if (count == 1) {
                 // "V"
-                buf.append(formatData.getTimeZoneFormat().format(tz, date, TimeZone.SHORT));
+                result = formatData.getTimeZoneFormat().format(tz, date, TimeZone.SHORT);
             } else if (count == 4) {
                 // "VVVV"
-                buf.append(formatData.getTimeZoneFormat().format(tz, date, TimeZone.GENERIC_LOCATION));
+                result = formatData.getTimeZoneFormat().format(tz, date, TimeZone.GENERIC_LOCATION);
             }
+            if ( result == null ) {
+                result = formatData.getTimeZoneFormat().format(tz, date, TimeZone.LONG_GMT);               
+            }
+            buf.append(result);
             break;
         default:
             // case 3: // 'd' - DATE
