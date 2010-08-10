@@ -196,6 +196,10 @@ public final class InternalLocaleBuilder {
      * Set extension/private subtags in a single string representation
      */
     public InternalLocaleBuilder setExtensions(String subtags) throws LocaleSyntaxException {
+        if (subtags == null || subtags.length() == 0) {
+            clearExtensions();
+            return this;
+        }
         subtags = subtags.replaceAll(LOCALESEP, LanguageTag.SEP);
         StringTokenIterator itr = new StringTokenIterator(subtags, LanguageTag.SEP);
 
@@ -275,7 +279,7 @@ public final class InternalLocaleBuilder {
      */
     private InternalLocaleBuilder setExtensions(List<String> bcpExtensions, String privateuse) {
         try {
-            if (bcpExtensions.size() > 0) {
+            if (bcpExtensions != null && bcpExtensions.size() > 0) {
                 HashSet<CaseInsensitiveChar> processedExntensions = new HashSet<CaseInsensitiveChar>(bcpExtensions.size());
                 for (String bcpExt : bcpExtensions) {
                     CaseInsensitiveChar key = new CaseInsensitiveChar(bcpExt.charAt(0));
@@ -333,44 +337,29 @@ public final class InternalLocaleBuilder {
         String region = base.getRegion();
         String variant = base.getVariant();
 
-        boolean skipVariantCheck = false;
-
         if (JDKIMPL) {
             // Special backward compatibility support
 
             // Exception 1 - ja_JP_JP
-            if (language.equals("ja") && region.equals("JP") && (variant.equals("JP") || variant.startsWith("JP_"))) {
-                // When locale ja_JP_JP[_*] is created, ca-japanese is always there.
-                // In builder, ignore variant "JP". It will be added when an instance of BaseLocale
-                // is created by getBaseLocale().
+            if (language.equals("ja") && region.equals("JP") && variant.equals("JP")) {
+                // When locale ja_JP_JP is created, ca-japanese is always there.
+                // The builder ignores the variant "JP"
                 assert("japanese".equals(extensions.getUnicodeLocaleType("ca")));
-                if (variant.startsWith("JP_")) {
-                    variant = variant.substring(3);
-                } else {
-                    variant = "";
-                }
+                variant = "";
             }
             // Exception 2 - th_TH_TH
-            else if (language.equals("th") && region.equals("TH") && (variant.equals("TH") || variant.startsWith("TH_"))) {
-                // When locale th_TH_TH[_*] is created, nu-thai is always there.
-                // In builder, ignore variant "TH". It will be added when an instance of BaseLocale
-                // is created by getBaseLocale().
+            else if (language.equals("th") && region.equals("TH") && variant.equals("TH")) {
+                // When locale th_TH_TH is created, nu-thai is always there.
+                // The builder ignores the variant "TH"
                 assert("thai".equals(extensions.getUnicodeLocaleType("nu")));
-                if (variant.startsWith("TH_")) {
-                    variant = variant.substring(3);
-                } else {
-                    variant = "";
-                }
-                
+                variant = "";
             }
             // Exception 3 - no_NO_NY
             else if (language.equals("no") && region.equals("NO") && variant.equals("NY")) {
                 // no_NO_NY is a valid locale and used by Java 6 or older versions.
-                // In builder, we preserve Illformed variant "NY", but change language to "nn".
-                // If user does not change base locale field, getBaseLocale() maps back "nn"
-                // to "no".
+                // The build ignores the variant "NY" and change the language to "nn".
                 language = "nn";
-                skipVariantCheck = true;
+                variant = "";
             }
         }
 
@@ -389,7 +378,7 @@ public final class InternalLocaleBuilder {
             throw new LocaleSyntaxException("Ill-formed region: " + region);
         }
 
-        if (!skipVariantCheck && variant.length() > 0) {
+        if (variant.length() > 0) {
             int errIdx = checkVariants(variant, LOCALESEP);
             if (errIdx != -1) {
                 throw new LocaleSyntaxException("Ill-formed variant: " + variant, errIdx);
@@ -493,38 +482,18 @@ public final class InternalLocaleBuilder {
             // Special backward compatibility support
 
             // Exception 1 - ja_JP_JP
-            if (language.equals("ja") && region.equals("JP") && isUnicodeLocaleType("ca", "japanese")) {
+            if (language.equals("ja") && region.equals("JP") 
+                    && variant.equals("") && isUnicodeLocaleType("ca", "japanese")) {
                 // When Unicode keyword "ca-japanese" is set and language is "ja" and
                 // region is "JP", insert ill-formed variant "JP" at the beginning of variant.
-                if (variant.length() == 0) {
-                    variant = "JP";
-                } else if (!variant.equals("JP") && !variant.startsWith("JP_")) {
-                    variant = "JP_" + variant;
-                }
+                variant = "JP";
             }
             // Exception 2 - th_TH_TH
-            else if (language.equals("th") && region.equals("TH") && isUnicodeLocaleType("th", "thai")) {
+            else if (language.equals("th") && region.equals("TH") 
+                    && variant.equals("") && isUnicodeLocaleType("th", "thai")) {
                 // When Unicode keyword "nu-thai" is set and language is "th" and
                 // region is "TH", insert ill-formed variant "TH" at the beginning of variant.
-                if (variant.length() == 0) {
-                    variant = "TH";
-                } else if (!variant.equals("TH") && !variant.startsWith("TH_")) {
-                    variant = "TH_" + variant;
-                }
-            }
-            // Exception 3 - no_NO_NY
-            else if (variant.equals("NY")) {
-                // Variant "NY" is only there when this builder is initialized by setLocale with no_NO_NY.
-                // setLocale changes language "no" to "nn" for the case. If no base locale field had change,
-                // this implementation map the language back to "no", so
-                //   new InternalLocaleBuilder().setLocale(new Locale("no","NO","NY").getBaseLocale()
-                // can restore the original locale.
-                if (language.equals("nn") && script.equals("") && region.equals("NO")) {
-                    language = "no";
-                } else {
-                    // all other cases, drop the variant "NY"
-                    variant = "";
-                }
+                variant = "TH";
             }
         }
 

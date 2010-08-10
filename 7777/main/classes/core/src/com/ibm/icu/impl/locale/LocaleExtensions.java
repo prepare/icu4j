@@ -36,12 +36,12 @@ public class LocaleExtensions {
         EMPTY_EXTENSIONS._map = EMPTY_MAP;
 
         CALENDAR_JAPANESE = new LocaleExtensions();
-        CALENDAR_JAPANESE._id = "ca-japanese";
+        CALENDAR_JAPANESE._id = "u-ca-japanese";
         CALENDAR_JAPANESE._map = new TreeMap<Character, Extension>();
         CALENDAR_JAPANESE._map.put(Character.valueOf(UnicodeLocaleExtension.SINGLETON), UnicodeLocaleExtension.CA_JAPANESE);
 
         NUMBER_THAI = new LocaleExtensions();
-        NUMBER_THAI._id = "nu-thai";
+        NUMBER_THAI._id = "u-nu-thai";
         NUMBER_THAI._map = new TreeMap<Character, Extension>();
         NUMBER_THAI._map.put(Character.valueOf(UnicodeLocaleExtension.SINGLETON), UnicodeLocaleExtension.NU_THAI);
     }
@@ -161,7 +161,7 @@ public class LocaleExtensions {
     }
 
     public boolean isEmpty() {
-    	return _map.isEmpty();
+        return _map.isEmpty();
     }
 
     public static boolean isValidKey(char c) {
