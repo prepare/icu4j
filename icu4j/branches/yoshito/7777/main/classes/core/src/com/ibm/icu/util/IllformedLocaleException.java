@@ -16,7 +16,7 @@ package com.ibm.icu.util;
  */
 public class IllformedLocaleException extends RuntimeException {
 
-    private static final long serialVersionUID = -5245986824925681401L;
+    private static final long serialVersionUID = 1L;
 
     private int _errIdx = -1;
 

@@ -2686,7 +2686,27 @@ public final class ULocale implements Serializable {
      * @provisional This API might change or be removed in a future release.
      */
     public String toLanguageTag() {
-        LanguageTag tag = LanguageTag.parseLocale(base(), extensions());
+        BaseLocale base = base();
+        LocaleExtensions exts = extensions();
+
+        if (base.getVariant().equalsIgnoreCase("POSIX")) {
+            // special handling for variant POSIX
+            base = BaseLocale.getInstance(base.getLanguage(), base.getScript(), base.getRegion(), "");
+            if (exts.getUnicodeLocaleType("va") == null) {
+                // add va-posix
+                InternalLocaleBuilder ilocbld = new InternalLocaleBuilder();
+                try {
+                    ilocbld.setLocale(BaseLocale.ROOT, exts);
+                    ilocbld.setUnicodeLocaleKeyword("va", "posix");
+                    exts = ilocbld.getLocaleExtensions();
+                } catch (LocaleSyntaxException e) {
+                    // this should not happen
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+
+        LanguageTag tag = LanguageTag.parseLocale(base, exts);
 
         StringBuilder buf = new StringBuilder();
         String subtag = tag.getLanguage();
@@ -3126,7 +3146,7 @@ public final class ULocale implements Serializable {
                         String lkey = bcp47ToLDMLKey(bcpKey);
                         String ltype = bcp47ToLDMLType(lkey, bcpType);
                         // special handling for u-va-posix, since this is a variant, not a keyword
-                        if (lkey.equals("va") && ltype.equals("posix")) {
+                        if (lkey.equals("va") && ltype.equals("posix") && base.getVariant().length() == 0) {
                             id = id + "_POSIX";
                         } else {
                             kwds.put(lkey, ltype);
