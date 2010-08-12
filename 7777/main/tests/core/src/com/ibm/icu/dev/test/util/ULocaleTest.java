@@ -3719,7 +3719,9 @@ public class ULocaleTest extends TestFmwk {
             {"sr_Latn_SR",  "sr-Latn-SR"},
             {"en_US_POSIX@ca=japanese", "en-US-u-ca-japanese-va-posix"},
             {"en__POSIX",   "en-u-va-posix"},
-            // {"en_POSIX",    "en"}, /* ICU4J locale parser successfully parse en_POSIX as language:en/variant:POSIX */
+            {"en_US_POSIX_VAR", "en-US-posix-x-lvariant-var"},  // variant POSIX_VAR is processed as regular variant
+            {"en_US_VAR_POSIX", "en-US-x-lvariant-var-posix"},  // variant VAR_POSIX is processed as regular variant
+            {"en_US_POSIX@va=posix2",   "en-US-u-va-posix2"},   // if keyword va=xxx already exists, variant POSIX is simply dropped
             {"und_555",     "und-555"},
             {"123",         "und"},
             {"%$#&",        "und"},
@@ -3729,7 +3731,6 @@ public class ULocaleTest extends TestFmwk {
             {"th_TH_TH",    "th-TH-x-lvariant-th"},
             {"bogus",       "bogus"},
             {"foooobarrr",  "und"},
-            //{"az_AZ_CYRL",  "az-cyrl-az"}, /* ICU4J does not have this specia locale mapping */
             {"aa_BB_CYRL",  "aa-BB-x-lvariant-cyrl"},
             {"en_US_1234",  "en-US-1234"},
             {"en_US_VARIANTA_VARIANTB", "en-US-varianta-variantb"},
@@ -3789,6 +3790,10 @@ public class ULocaleTest extends TestFmwk {
             {"en-u-ca-gregory",     "en@calendar=gregorian",    NOERROR},
             {"en-U-cu-USD",         "en@currency=usd",      NOERROR},
             {"en-us-u-va-posix",    "en_US_POSIX",          NOERROR},
+            {"en-us-u-ca-gregory-va-posix", "en_US_POSIX@calendar=gregorian",   NOERROR},
+            {"en-us-posix-u-va-posix",  "en_US_POSIX@va=posix", NOERROR},
+            {"en-us-u-va-posix2",   "en_US@va=posix2",      NOERROR},
+            {"en-us-vari1-u-va-posix",   "en_US_VARI1@va=posix",  NOERROR},
             {"ar-x-1-2-3",          "ar@x=1-2-3",           NOERROR},
             {"fr-u-nu-latn-cu-eur", "fr@currency=eur;numbers=latn", NOERROR},
             {"de-k-kext-u-co-phonebk-nu-latn",  "de@collation=phonebook;k=kext;numbers=latn",   NOERROR},

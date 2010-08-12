@@ -385,11 +385,13 @@ public final class InternalLocaleBuilder {
             }
         }
 
-        // update builder's internal fields
+        // The input locale is validated at this point.
+        // Now, updating builder's internal fields.
         _language = language;
         _script = script;
         _region = region;
         _variant = variant;
+        clearExtensions();
 
         Set<Character> extKeys = (extensions == null) ? null : extensions.getKeys();
         if (extKeys != null) {
@@ -475,25 +477,6 @@ public final class InternalLocaleBuilder {
                     sb.append(privuse.substring(privVarStart).replaceAll(LanguageTag.SEP, LOCALESEP));
                     variant = sb.toString();
                 }
-            }
-        }
-
-        if (JDKIMPL) {
-            // Special backward compatibility support
-
-            // Exception 1 - ja_JP_JP
-            if (language.equals("ja") && region.equals("JP") 
-                    && variant.equals("") && isUnicodeLocaleType("ca", "japanese")) {
-                // When Unicode keyword "ca-japanese" is set and language is "ja" and
-                // region is "JP", insert ill-formed variant "JP" at the beginning of variant.
-                variant = "JP";
-            }
-            // Exception 2 - th_TH_TH
-            else if (language.equals("th") && region.equals("TH") 
-                    && variant.equals("") && isUnicodeLocaleType("th", "thai")) {
-                // When Unicode keyword "nu-thai" is set and language is "th" and
-                // region is "TH", insert ill-formed variant "TH" at the beginning of variant.
-                variant = "TH";
             }
         }
 
