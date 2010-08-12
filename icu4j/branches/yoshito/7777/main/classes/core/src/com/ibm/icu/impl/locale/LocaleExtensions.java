@@ -128,7 +128,7 @@ public class LocaleExtensions {
     public String getExtensionValue(Character key) {
         Extension ext = _map.get(Character.valueOf(AsciiUtil.toLower(key.charValue())));
         if (ext == null) {
-            return "";
+            return null;
         }
         return ext.getValue();
     }
