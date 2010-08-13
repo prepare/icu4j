@@ -36,6 +36,7 @@ import java.util.MissingResourceException;
 import com.ibm.icu.impl.UBiDiProps;
 import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.lang.UCharacterDirection;
+import com.ibm.icu.lang.UCharacterEnums;
 
 /**
  *
@@ -80,6 +81,7 @@ import com.ibm.icu.lang.UCharacterDirection;
  * <li>{@link #LTR}
  * <li>{@link #RTL}
  * <li>{@link #MIXED}
+ * <li>{@link #NEUTRAL} 
  * </ul>
  *
  * <h3>Basic concept: levels</h3>
@@ -542,6 +544,12 @@ public class Bidi {
      * @stable ICU 3.8
      */
     public static final byte MIXED = 2;
+
+    /**
+     * No strongly directional text.
+     * @draft ICU 4.6
+     */
+    public static final byte NEUTRAL = 3;
 
     /**
      * option bit for writeReordered():
@@ -4848,4 +4856,44 @@ public class Bidi {
         }
     }
 
+    /**
+     * Get the base direction of the text provided according to the Unicode
+     * Bidirectional Algorithm. The base direction is derived from the first
+     * character in the string with bidirectional character type L, R, or AL. 
+     * If the first such character has type L, LTR is returned. If the first 
+     * such character has type R or AL, RTL is returned. If the string does 
+     * not contain any character of these types, then NEUTRAL is returned.
+     * This is a lightweight function for use when only the base direction is
+     * needed and no further bidi processing of the text is needed.
+     * @param paragraph the text whose paragraph level direction is needed.
+     * @return LTR, RTL, NEUTRAL
+     * @see LTR
+     * @see RTL
+     * @see NEUTRAL
+     * @draft ICU 4.6
+     */
+    public static byte getBaseDirection(CharSequence paragraph) {
+        if (paragraph == null || paragraph.length() == 0) {
+            return NEUTRAL;
+        }
+
+        int length = paragraph.length();
+        int c;// codepoint
+        byte direction;
+
+        for (int i = 0; i < length; ) {
+            // U16_NEXT(paragraph, i, length, c) for C++
+            c = UCharacter.codePointAt(paragraph, i);
+            direction = UCharacter.getDirectionality(c);
+            if (direction == UCharacterEnums.ECharacterDirection.DIRECTIONALITY_LEFT_TO_RIGHT) {
+                return LTR;
+            } else if (direction == UCharacterEnums.ECharacterDirection.DIRECTIONALITY_RIGHT_TO_LEFT
+                || direction == UCharacterEnums.ECharacterDirection.DIRECTIONALITY_RIGHT_TO_LEFT_ARABIC) {
+                return RTL;
+            }
+
+            i = UCharacter.offsetByCodePoints(paragraph, i, 1);// set i to the head index of next codepoint
+        }
+        return NEUTRAL;
+    }
 }
