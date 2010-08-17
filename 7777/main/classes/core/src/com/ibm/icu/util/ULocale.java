@@ -241,6 +241,9 @@ public final class ULocale implements Serializable {
     // default empty locale
     private static final Locale EMPTY_LOCALE = new Locale("", "");
 
+    // specia keyword key for Unicode locale attributes
+    private static final String LOCALE_ATTRIBUTE_KEY = "attribute";
+
     /**
      * The root ULocale.
      * @stable ICU 2.8
@@ -3262,13 +3265,25 @@ public final class ULocale implements Serializable {
                         String bcpType = uext.getUnicodeLocaleType(bcpKey);
                         // convert to legacy key/type
                         String lkey = bcp47ToLDMLKey(bcpKey);
-                        String ltype = bcp47ToLDMLType(lkey, bcpType);
+                        String ltype = bcp47ToLDMLType(lkey, ((bcpType.length() == 0) ? "true" : bcpType)); // use "true" as the value of typeless keywords
                         // special handling for u-va-posix, since this is a variant, not a keyword
                         if (lkey.equals("va") && ltype.equals("posix") && base.getVariant().length() == 0) {
                             id = id + "_POSIX";
                         } else {
                             kwds.put(lkey, ltype);
                         }
+                    }
+                    // Mapping Unicode locale attribute to the special keyword, attribute=xxx-yyy
+                    Set<String> uattributes = uext.getUnicodeLocaleAttributes();
+                    if (uattributes.size() > 0) {
+                        StringBuilder attrbuf = new StringBuilder();
+                        for (String attr : uattributes) {
+                            if (attrbuf.length() > 0) {
+                                attrbuf.append('-');
+                            }
+                            attrbuf.append(attr);
+                        }
+                        kwds.put(LOCALE_ATTRIBUTE_KEY, attrbuf.toString());
                     }
                 } else {
                     kwds.put(String.valueOf(key), ext.getValue());
@@ -3317,7 +3332,17 @@ public final class ULocale implements Serializable {
                 InternalLocaleBuilder intbld = new InternalLocaleBuilder();
                 while (kwitr.hasNext()) {
                     String key = kwitr.next();
-                    if (key.length() >= 2) {
+                    if (key.equals(LOCALE_ATTRIBUTE_KEY)) {
+                        // special keyword used for representing Unicode locale attributes
+                        String[] uattributes = getKeywordValue(key).split("[-_]");
+                        for (String uattr : uattributes) {
+                            try {
+                                intbld.addUnicodeLocaleAttribute(uattr);
+                            } catch (LocaleSyntaxException e) {
+                                // ignore and fall through
+                            }
+                        }
+                    } else if (key.length() >= 2) {
                         String bcpKey = ldmlKeyToBCP47(key);
                         String bcpType = ldmlTypeToBCP47(key, getKeywordValue(key));
                         if (bcpKey != null && bcpType != null) {
