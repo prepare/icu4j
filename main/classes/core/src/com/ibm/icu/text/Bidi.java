@@ -528,13 +528,13 @@ public class Bidi {
     public static final int MAP_NOWHERE = -1;
 
     /**
-     * All left-to-right text.
+     * Left-to-right text.
      * @stable ICU 3.8
      */
     public static final byte LTR = 0;
 
     /**
-     * All right-to-left text.
+     * Right-to-left text.
      * @stable ICU 3.8
      */
     public static final byte RTL = 1;
