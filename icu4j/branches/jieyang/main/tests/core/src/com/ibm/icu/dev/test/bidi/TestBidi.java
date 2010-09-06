@@ -560,6 +560,12 @@ public class TestBidi extends BidiTest {
         /* null string */
         String nullString = null;
         assertEquals("\nWrong direction through fast detection #13", Bidi.NEUTRAL, Bidi.getBaseDirection(nullString));   
+        /* first L (English) others are R (Hebrew etc.) */
+        String startEnglishOthersHebrew = "\u0071\u0590\u05D5\u05EA\u05F1";
+        assertEquals("\nWrong direction through fast detection #14", Bidi.LTR, Bidi.getBaseDirection(startEnglishOthersHebrew));
+        /* last R (Hebrew etc.) others are weak L (English Digits) */
+        String lastHebrewOthersEnglishDigit = "\u0031\u0032\u0033\u05F1";
+        assertEquals("\nWrong direction through fast detection #15", Bidi.RTL, Bidi.getBaseDirection(lastHebrewOthersEnglishDigit));
     }
 
 
