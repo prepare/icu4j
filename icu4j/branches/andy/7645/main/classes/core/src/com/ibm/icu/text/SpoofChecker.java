@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Hashtable;
 import java.util.LinkedHashSet;
+import java.util.Locale;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 import java.util.Set;
@@ -204,6 +205,7 @@ public class SpoofChecker {
    * such as multiple occurrences of the same non-spacing mark. This check does
    * not test the input string as a whole for conformance to any particular
    * syntax for identifiers.
+   * TODO: Maybe make multiple combining marks into a separate check.  Mark's call.
    * @draft ICU 4.6
    */
   public static final int INVISIBLE = 32;
@@ -215,6 +217,18 @@ public class SpoofChecker {
    * @draft ICU 4.6
    */
   public static final int CHAR_LIMIT = 64;
+  
+  /**
+   * Check that all decimal digits in an identifier are from the same
+   * set of ten contiguous decimal digit characters.  This means that 
+   * all digits must be from the same script, and, for common digits,
+   * different sets (ASCII or full width or math symbols, for example)
+   * cannot be intermixed.
+   * 
+   * Only decimal digits are checked.  All other characters are ignored by this
+   * test.
+   */
+  public static final int DIGIT_GROUP = 128;
 
   /**
    * Enable all spoof checks.
@@ -242,9 +256,35 @@ public class SpoofChecker {
     int fChecks; // Bit vector of checks to perform.
     SpoofData fSpoofData;
     UnicodeSet fAllowedCharsSet; // The UnicodeSet of allowed characters.
-                                 // for this Spoof Checker. Defaults to all chars.
-    Set<ULocale> fAllowedLocales; // The list of allowed locales.
+                                 // for this Spoof Checker. Defaults to permitting all chars.
 
+    /**
+     * Types of restrictions that may be placed on the set of allowed characters.
+     * Use these enum values with the restrictTo() function.
+     * @draft ICU 4.6
+     */
+    enum Restrictions {
+        /**
+         * Restrict allowed characters to ID_Continue characters as defined in UAX 31,
+         * Unicode Identifier and Pattern Syntax. http://www.unicode.org/reports/tr31/
+         * @draft ICU 4.6
+         */
+        UNICODE_ID,
+        
+        /**
+         * Restrict allowed characters to those that are valid under IDNA 2008.
+         * @draft ICU 4.6
+         */
+        IDNA_2008,
+        /**
+         * Restrict allowed characters to the modified XID_Continue characters as described
+         * in Unicode UAX 39, Unicode Security Mechanisms, http://www.unicode.org/reports/tr39/
+         * This restricts to a set of characters that are recommended for identifiers in
+         * environments where security is an issue.
+         * @draft ICU 4.6
+         */
+        UNICODE_ID_MOD
+    }
     /**
      * Constructor: Create a default Unicode Spoof Checker Builder, configured to perform all
      * checks except for LOCALE_LIMIT and CHAR_LIMIT. Note that additional
@@ -258,7 +298,6 @@ public class SpoofChecker {
         fChecks = ALL_CHECKS;
         fSpoofData = null;
         fAllowedCharsSet = new UnicodeSet(0, 0x10ffff);
-        fAllowedLocales = new LinkedHashSet<ULocale>();
     }
 
     /**
@@ -273,8 +312,6 @@ public class SpoofChecker {
       fChecks = src.fChecks;
       fSpoofData = null;
       fAllowedCharsSet = src.fAllowedCharsSet.cloneAsThawed();
-      fAllowedLocales = new LinkedHashSet<ULocale>();
-      fAllowedLocales.addAll(src.fAllowedLocales);
     }
 
     /**
@@ -300,7 +337,6 @@ public class SpoofChecker {
       result.fSpoofData       = this.fSpoofData;
       result.fAllowedCharsSet = (UnicodeSet) (this.fAllowedCharsSet.clone());
       result.fAllowedCharsSet.freeze();
-      result.fAllowedLocales  = this.fAllowedLocales;
       return result;
     }
 
@@ -357,6 +393,71 @@ public class SpoofChecker {
     }
 
     /**
+     * Specify a set of restrictions to the characters that will be allowed
+     * in identifiers.
+     * @param r One of the character restrictions from enum Builder.restrictions.
+     * @return self
+     * @draft ICU 4.6
+     */
+    public Builder restrictTo(Builder.Restrictions r) {
+        return this;
+    }
+    
+    /**
+     * Restrict the characters that are acceptable to those associated 
+     * with a specified set of locales. 
+     * 
+     * A spoof checker maintains a set of allowed characters.  This function
+     * will retain in that set only those characters normally used with the 
+     * languages associated with the specified locales. 
+     * 
+     * From the languages a set of acceptable Unicode scripts is determined. 
+     * All characters from this set of scripts, along with characters from 
+     * the "common" and "inherited" Unicode Script categories are retained
+     * in the set of allowed characters.
+     * 
+     * The set of allowed characters is accessible via the getAllowedChars()
+     * function. 
+     * 
+     * @param locales A Set of Locales, from which the language(s) and associated
+     *                script(s) are extracted.
+     * 
+     * @return self
+     * @draft ICU 4.6
+     */
+    public Builder restrictTo(Locale[] locales) {
+        return this;
+    }
+    
+    
+    /**
+     * Restrict the characters that are acceptable to those associated 
+     * with a specified set of locales. 
+     * 
+     * A spoof checker maintains a set of allowed characters.  This function
+     * will retain in that set only those characters normally used with the 
+     * languages associated with the specified locales. 
+     * 
+     * From the languages a set of acceptable Unicode scripts is determined. 
+     * All characters from this set of scripts, along with characters from 
+     * the "common" and "inherited" Unicode Script categories are retained
+     * in the set of allowed characters.
+     * 
+     * The set of allowed characters is accessible via the getAllowedChars()
+     * function. 
+     * 
+     * @param locales A Set of ULocales, from which the language(s) and associated
+     *                script(s) are extracted.
+     * 
+     * @return self
+     * @draft ICU 4.6
+     */
+    public Builder restrictTo(ULocale[] locales) {
+        return this;
+    }
+    
+    
+    /**
      * Limit characters that are acceptable in identifiers being checked to
      * those normally used with the languages associated with the specified
      * locales. Any previously specified list of locales is replaced by the
@@ -390,6 +491,7 @@ public class SpoofChecker {
      * 
      * @return self
      * @draft ICU 4.6
+     * TODO:  remove this function in favor of restrictTo()
      */
     public Builder setAllowedLocales(Set<ULocale> locales) {
       fAllowedCharsSet.clear();
@@ -402,7 +504,6 @@ public class SpoofChecker {
 
       // If our caller provided an empty list of locales, we disable the
       // allowed characters checking
-      fAllowedLocales = new LinkedHashSet<ULocale>();
       if (locales.size() == 0) {
         fAllowedCharsSet.add(0, 0x10ffff);
         fChecks &= ~CHAR_LIMIT;
@@ -418,11 +519,11 @@ public class SpoofChecker {
       fAllowedCharsSet.addAll(tempSet);
 
       // Store the updated spoof checker state.
-      fAllowedLocales.addAll(locales);
       fChecks |= CHAR_LIMIT;
       return this;
     }
 
+    
     // Add (union) to the UnicodeSet all of the characters for the scripts
     // used for the specified locale. Part of the implementation of
     // setAllowedLocales.  
@@ -437,28 +538,36 @@ public class SpoofChecker {
     }
 
     /**
-     * Limit the acceptable characters to those specified by a Unicode Set.
-     * Any previously specified character limit is is replaced by the new
-     * settings. This includes limits on characters that were set with the
-     * setAllowedLocales() function.
+     * Set the set of acceptable characters for this spoof checker.
+     * Any previously set character restrictions are discarded.
      * 
-     * The CHAR_LIMIT test is automatically enabled for this SpoofChecker by
-     * this function.
+     * The CHAR_LIMIT test is automatically enabled by this function.
      * 
-     * @param chars
-     *            A Unicode Set containing the list of characters that are
-     *            permitted. The incoming set is cloned by this function, so
-     *            there are no restrictions on modifying or deleting the
-     *            UnicodeSet after calling this function. Note that this
-     *            clears the allowedLocales set.
+     * @param chars   A Unicode Set containing the list of characters that are
+     *                permitted. The incoming set is cloned, so
+     *                there are no restrictions on modifying the set
+     *                after calling this function. 
      * @return self
      * @draft ICU 4.6
      */
     public Builder setAllowedChars(UnicodeSet chars) {
-      fAllowedCharsSet = (UnicodeSet) chars.cloneAsThawed();
-      fAllowedLocales = new LinkedHashSet<ULocale>();
-      fChecks |= CHAR_LIMIT;
-      return this;
+        fAllowedCharsSet = (UnicodeSet) chars.cloneAsThawed();
+        fChecks |= CHAR_LIMIT;
+        return this;
+    }
+
+    /**
+     * Restrict the set of characters that are acceptable in identifiers being
+     * tested by this spoof detector.  
+     * 
+     * A spoof checker maintains a set of allowed characters.  This function
+     * will retain in that set only the specified characters.   
+
+     * @param chars  The characters to be allowed.
+     * @return       self
+     */
+    public Builder restrictTo(UnicodeSet chars) {
+        return this;
     }
 
     // Structure for the Whole Script Confusable Data
