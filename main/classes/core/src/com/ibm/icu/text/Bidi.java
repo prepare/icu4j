@@ -529,24 +529,46 @@ public class Bidi {
 
     /**
      * Left-to-right text.
+     * <ul> 
+     * <li>As return value for <code>getDirection()</code>, it means 
+     *     that the source string contains no right-to-left characters, or 
+     *     that the source string is empty and the paragraph level is even. 
+     * <li>As return value for <code>getBaseDirection()</code>, it 
+     *     means that the first strong character of the source string has 
+     *     a left-to-right direction. 
+     * </ul> 
      * @stable ICU 3.8
      */
     public static final byte LTR = 0;
 
     /**
      * Right-to-left text.
+     * <ul> 
+     * <li>As return value for <code>getDirection()</code>, it means 
+     *     that the source string contains no left-to-right characters, or 
+     *     that the source string is empty and the paragraph level is odd. 
+     * <li>As return value for <code>getBaseDirection()</code>, it 
+     *     means that the first strong character of the source string has 
+     *     a right-to-left direction. 
+     * </ul> 
      * @stable ICU 3.8
      */
     public static final byte RTL = 1;
 
     /**
      * Mixed-directional text.
+     * <p>As return value for <code>getDirection()</code>, it means 
+     *    that the source string contains both left-to-right and 
+     *    right-to-left characters. 
      * @stable ICU 3.8
      */
     public static final byte MIXED = 2;
 
     /**
      * No strongly directional text.
+     * <p>As return value for <code>getBaseDirection()</code>, it means 
+     *    that the source string is missing or empty, or contains neither 
+     *    left-to-right nor right-to-left characters. 
      * @draft ICU 4.6
      */
     public static final byte NEUTRAL = 3;
