@@ -818,7 +818,7 @@ class TransliteratorRegistry {
      * The entry object is assumed to reside in the dynamic store.  It may be
      * modified.
      */
-    @SuppressWarnings("rawtypes")
+    @SuppressWarnings("unchecked")
     private Transliterator instantiateEntry(String ID,
                                             Object[] entryWrapper,
                                             StringBuffer aliasReturn) {

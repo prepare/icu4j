@@ -19,17 +19,18 @@ import java.util.TreeSet;
 import com.ibm.icu.dev.test.TestFmwk;
 import com.ibm.icu.dev.test.util.CollectionUtilities;
 import com.ibm.icu.impl.Row;
+import com.ibm.icu.impl.Row.R3;
 import com.ibm.icu.impl.Row.R4;
 import com.ibm.icu.lang.UProperty;
 import com.ibm.icu.lang.UScript;
 import com.ibm.icu.text.AlphabeticIndex;
-import com.ibm.icu.text.AlphabeticIndex.Bucket;
-import com.ibm.icu.text.AlphabeticIndex.Bucket.LabelType;
-import com.ibm.icu.text.AlphabeticIndex.Record;
 import com.ibm.icu.text.Collator;
 import com.ibm.icu.text.RawCollationKey;
 import com.ibm.icu.text.RuleBasedCollator;
 import com.ibm.icu.text.UnicodeSet;
+import com.ibm.icu.text.AlphabeticIndex.Bucket;
+import com.ibm.icu.text.AlphabeticIndex.Record;
+import com.ibm.icu.text.AlphabeticIndex.Bucket.LabelType;
 import com.ibm.icu.util.ULocale;
 
 /**
@@ -80,7 +81,7 @@ public class AlphabeticIndexTest extends TestFmwk {
             /* Romanian*/   {"ro", "A:\u0102:\u00C2:B:C:D:E:F:G:H:I:\u00CE:J:K:L:M:N:O:P:Q:R:S:\u0218:T:\u021A:U:V:W:X:Y:Z"},
             /* Russian*/    {"ru", "\u0410:\u0411:\u0412:\u0413:\u0414:\u0415:\u0416:\u0417:\u0418:\u0419:\u041A:\u041B:\u041C:\u041D:\u041E:\u041F:\u0420:\u0421:\u0422:\u0423:\u0424:\u0425:\u0426:\u0427:\u0428:\u0429:\u042B:\u042D:\u042E:\u042F"},
             /* Slovak*/ {"sk", "A:\u00C4:B:C:\u010C:D:E:F:G:H:CH:I:J:K:L:M:N:O:\u00D4:P:Q:R:S:\u0160:T:U:V:W:X:Y:Z:\u017D"},
-            /* Slovenian*/  {"sl", "A:B:C:\u010C:\u0106:D:\u0110:E:F:G:H:I:J:K:L:M:N:O:P:Q:R:S:\u0160:T:U:V:W:X:Y:Z:\u017D"},
+            /* Slovenian*/  {"sl", "A:B:C:\u010C:\u0106:D:E:F:G:H:I:J:K:L:M:N:O:P:Q:R:S:\u0160:T:U:V:W:X:Y:Z:\u017D"},
             /* Serbian*/    {"sr", "\u0410:\u0411:\u0412:\u0413:\u0414:\u0402:\u0415:\u0416:\u0417:\u0418:\u0408:\u041A:\u041B:\u0409:\u041C:\u041D:\u040A:\u041E:\u041F:\u0420:\u0421:\u0422:\u040B:\u0423:\u0424:\u0425:\u0426:\u0427:\u040F:\u0428"},
             /* Swedish*/    {"sv", "A:B:C:D:E:F:G:H:I:J:K:L:M:N:O:P:Q:R:S:T:U:V:W:X:Y:Z:\u00C5:\u00C4:\u00D6"},
             /* Turkish*/    {"tr", "A:B:C:\u00C7:D:E:F:G:\u011E:H:I:\u0130:J:K:L:M:N:O:\u00D6:P:Q:R:S:\u015E:T:U:\u00DC:V:W:X:Y:Z"},
@@ -432,15 +433,15 @@ public class AlphabeticIndexTest extends TestFmwk {
     //        displayPairs(false);
     //    }
 
-//    private void displayPairs(boolean in) {
-//        for (String[] pair : localeAndIndexCharactersLists) {
-//            if (KEY_LOCALES.contains(pair[0]) == in) {
-//                logln("\t"
-//                        + "/* " + ULocale.getDisplayName(pair[0], "en") + "*/\t"
-//                        + "{\"" + pair[0] + "\", \"" + pair[1] + "\"},");
-//            }
-//        }
-//    }
+    private void displayPairs(boolean in) {
+        for (String[] pair : localeAndIndexCharactersLists) {
+            if (KEY_LOCALES.contains(pair[0]) == in) {
+                logln("\t"
+                        + "/* " + ULocale.getDisplayName(pair[0], "en") + "*/\t"
+                        + "{\"" + pair[0] + "\", \"" + pair[1] + "\"},");
+            }
+        }
+    }
 
     public void TestClientSupport() {
         for (String localeString : KEY_LOCALES) { // KEY_LOCALES, new String[] {"zh"}
