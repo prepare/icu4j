@@ -2467,10 +2467,12 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
          * @stable ICU 2.4
          */
         public static final int HAH = 13;
+        /** @stable ICU 4.6 */
+        public static final int TEH_MARBUTA_GOAL = 14;
         /**
          * @stable ICU 2.4
          */
-        public static final int HAMZA_ON_HEH_GOAL = 14;
+        public static final int HAMZA_ON_HEH_GOAL = TEH_MARBUTA_GOAL;
         /**
          * @stable ICU 2.4
          */
@@ -2635,12 +2637,10 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
         public static final int FARSI_YEH = 55;
         /** @stable ICU 4.4 */
         public static final int NYA = 56;
-        /** @stable ICU 4.6 */
-        public static final int TEH_MARBUTA_GOAL = 57;
         /**
          * @stable ICU 2.4
          */
-        public static final int COUNT = 58;
+        public static final int COUNT = 57;
     }
 
     /**
