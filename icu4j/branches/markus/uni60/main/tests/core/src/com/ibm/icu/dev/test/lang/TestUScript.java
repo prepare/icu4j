@@ -389,7 +389,7 @@ public class TestUScript extends TestFmwk {
             errln("UScript.getScriptExtensions(U+FDF2) failed");
         }
         UScript.getScriptExtensions(0xff65, scripts);
-        if(scripts.cardinality()!=8 || !scripts.get(UScript.BOPOMOFO) || !scripts.get(UScript.PHAGS_PA)) {
+        if(scripts.cardinality()!=6 || !scripts.get(UScript.BOPOMOFO) || !scripts.get(UScript.YI)) {
             errln("UScript.getScriptExtensions(U+FF65) failed");
         }
     }
