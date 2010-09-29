@@ -24,11 +24,11 @@ import com.ibm.icu.impl.PatternTokenizer;
 import com.ibm.icu.impl.Utility;
 import com.ibm.icu.text.DateFormat;
 import com.ibm.icu.text.DateTimePatternGenerator;
-import com.ibm.icu.text.DateTimePatternGenerator.FormatParser;
-import com.ibm.icu.text.DateTimePatternGenerator.VariableField;
 import com.ibm.icu.text.SimpleDateFormat;
 import com.ibm.icu.text.UTF16;
 import com.ibm.icu.text.UnicodeSet;
+import com.ibm.icu.text.DateTimePatternGenerator.FormatParser;
+import com.ibm.icu.text.DateTimePatternGenerator.VariableField;
 import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.GregorianCalendar;
 import com.ibm.icu.util.SimpleTimeZone;
@@ -282,18 +282,18 @@ public class DateTimeGeneratorTest extends TestFmwk {
         new String[] {"mmss", "58:59"},
         new String[] {"yyyyMMMM", "January 1999"}, // (new item for testing 6872<-5702)
         new ULocale("en_US@calendar=japanese"), // (new locale for testing ticket 6872<-5702)
-        new String[] {"yM", "1/11 Heisei"},
-        new String[] {"yMMM", "Jan 11 Heisei"},
+        new String[] {"yM", "H 11-01"},
+        new String[] {"yMMM", "H 11 Jan"},
         new String[] {"yMd", "H 11-01-13"},
         new String[] {"yMMMd", "H 11 Jan 13"},
-        new String[] {"Md", "1/13"},
+        new String[] {"Md", "1-13"},
         new String[] {"MMMd", "Jan 13"},
-        new String[] {"yQQQ", "Q1 11 Heisei"},
+        new String[] {"yQQQ", "H 11 Q1"},
         new String[] {"hhmm", "11:58 PM"},
         new String[] {"HHmm", "23:58"},
-        new String[] {"jjmm", "11:58 PM"},
+        new String[] {"jjmm", "23:58"},
         new String[] {"mmss", "58:59"},
-        new String[] {"yyyyMMMM", "January 11 Heisei"},
+        new String[] {"yyyyMMMM", "H 11 January"},
         new ULocale("zh_Hans_CN"),
         new String[] {"yM", "1999-1"},
         new String[] {"yMMM", "1999\u5E741\u6708"}, // (fixed expected result per ticket 6872<-6626)
@@ -485,7 +485,7 @@ public class DateTimeGeneratorTest extends TestFmwk {
         DateOrder order2 = getOrdering(style2, uLocale);
         if (!order1.hasSameOrderAs(order2)) {
             if (order1.monthLength == order2.monthLength) { // error if have same month length, different ordering
-                if (skipIfBeforeICU(4,5,2)) { // ticket#6806
+                if (skipIfBeforeICU(4,5,1)) { // ticket#6806
                     logln(showOrderComparison(uLocale, style1, style2, order1, order2));
                 } else {
                     errln(showOrderComparison(uLocale, style1, style2, order1, order2));

@@ -6,7 +6,7 @@
  */
 package com.ibm.icu.text;
 
-import java.util.List;
+import java.util.Vector;
 
 import com.ibm.icu.impl.Utility;
 import com.ibm.icu.impl.UtilityExtensions;
@@ -100,11 +100,11 @@ class CompoundTransliterator extends Transliterator {
      * transliterators.  The caller is responsible for fixing up the
      * ID.
      */
-    CompoundTransliterator(List<Transliterator> list) {
+    CompoundTransliterator(Vector<Transliterator> list) {
         this(list, 0);
     }
 
-    CompoundTransliterator(List<Transliterator> list, int numAnonymousRBTs) {
+    CompoundTransliterator(Vector<Transliterator> list, int numAnonymousRBTs) {
         super("", null);
         trans = null;
         init(list, FORWARD, false);
@@ -175,7 +175,7 @@ class CompoundTransliterator extends Transliterator {
      * entries by calling getID() of component entries.  Some constructors
      * do not require this because they apply a facade ID anyway.
      */
-    private void init(List<Transliterator> list,
+    private void init(Vector<Transliterator> list,
                       int direction,
                       boolean fixReverseID) {
         // assert(trans == 0);
@@ -189,7 +189,7 @@ class CompoundTransliterator extends Transliterator {
         int i;
         for (i=0; i<count; ++i) {
             int j = (direction == FORWARD) ? i : count - 1 - i;
-            trans[i] = list.get(j);
+            trans[i] = list.elementAt(j);
         }
 
         // If the direction is UTRANS_REVERSE then we may need to fix the

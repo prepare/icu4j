@@ -6,8 +6,7 @@
  */
 package com.ibm.icu.text;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Vector;
 
 import com.ibm.icu.impl.UtilityExtensions;
 
@@ -29,7 +28,7 @@ class TransliterationRuleSet {
     /**
      * Vector of rules, in the order added.
      */
-    private List<TransliterationRule> ruleVector;
+    private Vector<TransliterationRule> ruleVector;
 
     /**
      * Length of the longest preceding context
@@ -55,7 +54,7 @@ class TransliterationRuleSet {
      * Construct a new empty rule set.
      */
     public TransliterationRuleSet() {
-        ruleVector = new ArrayList<TransliterationRule>();
+        ruleVector = new Vector<TransliterationRule>();
         maxContextLength = 0;
     }
 
@@ -73,7 +72,7 @@ class TransliterationRuleSet {
      * @param rule the rule to add
      */
     public void addRule(TransliterationRule rule) {
-        ruleVector.add(rule);
+        ruleVector.addElement(rule);
         int len;
         if ((len = rule.getAnteContextLength()) > maxContextLength) {
             maxContextLength = len;
@@ -106,13 +105,13 @@ class TransliterationRuleSet {
          */
         int n = ruleVector.size();
         index = new int[257]; // [sic]
-        List<TransliterationRule> v = new ArrayList<TransliterationRule>(2*n); // heuristic; adjust as needed
+        Vector<TransliterationRule> v = new Vector<TransliterationRule>(2*n); // heuristic; adjust as needed
 
         /* Precompute the index values.  This saves a LOT of time.
          */
         int[] indexValue = new int[n];
         for (int j=0; j<n; ++j) {
-            TransliterationRule r = ruleVector.get(j);
+            TransliterationRule r = ruleVector.elementAt(j);
             indexValue[j] = r.getIndexValue();
         }
         for (int x=0; x<256; ++x) {
@@ -120,16 +119,16 @@ class TransliterationRuleSet {
             for (int j=0; j<n; ++j) {
                 if (indexValue[j] >= 0) {
                     if (indexValue[j] == x) {
-                        v.add(ruleVector.get(j));
+                        v.addElement(ruleVector.elementAt(j));
                     }
                 } else {
                     // If the indexValue is < 0, then the first key character is
                     // a set, and we must use the more time-consuming
                     // matchesIndexValue check.  In practice this happens
                     // rarely, so we seldom tread this code path.
-                    TransliterationRule r = ruleVector.get(j);
+                    TransliterationRule r = ruleVector.elementAt(j);
                     if (r.matchesIndexValue(x)) {
-                        v.add(r);
+                        v.addElement(r);
                     }
                 }
             }
@@ -139,7 +138,7 @@ class TransliterationRuleSet {
         /* Freeze things into an array.
          */
         rules = new TransliterationRule[v.size()];
-        v.toArray(rules);
+        v.copyInto(rules);
 
         StringBuilder errors = null;
 
@@ -232,7 +231,7 @@ class TransliterationRuleSet {
             if (i != 0) {
                 ruleSource.append('\n');
             }
-            TransliterationRule r = ruleVector.get(i);
+            TransliterationRule r = ruleVector.elementAt(i);
             ruleSource.append(r.toRule(escapeUnprintable));
         }
         return ruleSource.toString();
@@ -246,7 +245,7 @@ class TransliterationRuleSet {
         UnicodeSet set = new UnicodeSet();
         int count = ruleVector.size();
         for (int i=0; i<count; ++i) {
-            TransliterationRule r = ruleVector.get(i);
+            TransliterationRule r = ruleVector.elementAt(i);
             if (getTarget) {
                 r.addTargetSetTo(set);
             } else {

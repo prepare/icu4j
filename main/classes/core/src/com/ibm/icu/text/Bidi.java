@@ -1,6 +1,6 @@
 /*
 *******************************************************************************
-*   Copyright (C) 2001-2010, International Business Machines
+*   Copyright (C) 2001-2009, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 *******************************************************************************
 */
@@ -27,9 +27,11 @@ package com.ibm.icu.text;
 
 import java.awt.font.NumericShaper;
 import java.awt.font.TextAttribute;
+import java.io.IOException;
 import java.lang.reflect.Array;
 import java.text.AttributedCharacterIterator;
 import java.util.Arrays;
+import java.util.MissingResourceException;
 
 import com.ibm.icu.impl.UBiDiProps;
 import com.ibm.icu.lang.UCharacter;
@@ -78,7 +80,6 @@ import com.ibm.icu.lang.UCharacterDirection;
  * <li>{@link #LTR}
  * <li>{@link #RTL}
  * <li>{@link #MIXED}
- * <li>{@link #NEUTRAL} 
  * </ul>
  *
  * <h3>Basic concept: levels</h3>
@@ -525,51 +526,22 @@ public class Bidi {
     public static final int MAP_NOWHERE = -1;
 
     /**
-     * Left-to-right text.
-     * <ul> 
-     * <li>As return value for <code>getDirection()</code>, it means 
-     *     that the source string contains no right-to-left characters, or 
-     *     that the source string is empty and the paragraph level is even. 
-     * <li>As return value for <code>getBaseDirection()</code>, it 
-     *     means that the first strong character of the source string has 
-     *     a left-to-right direction. 
-     * </ul> 
+     * All left-to-right text.
      * @stable ICU 3.8
      */
     public static final byte LTR = 0;
 
     /**
-     * Right-to-left text.
-     * <ul> 
-     * <li>As return value for <code>getDirection()</code>, it means 
-     *     that the source string contains no left-to-right characters, or 
-     *     that the source string is empty and the paragraph level is odd. 
-     * <li>As return value for <code>getBaseDirection()</code>, it 
-     *     means that the first strong character of the source string has 
-     *     a right-to-left direction. 
-     * </ul> 
+     * All right-to-left text.
      * @stable ICU 3.8
      */
     public static final byte RTL = 1;
 
     /**
      * Mixed-directional text.
-     * <p>As return value for <code>getDirection()</code>, it means 
-     *    that the source string contains both left-to-right and 
-     *    right-to-left characters. 
      * @stable ICU 3.8
      */
     public static final byte MIXED = 2;
-
-    /**
-     * No strongly directional text.
-     * <p>As return value for <code>getBaseDirection()</code>, it means 
-     *    that the source string is missing or empty, or contains neither 
-     *    left-to-right nor right-to-left characters. 
-     * @draft ICU 4.6
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final byte NEUTRAL = 3;
 
     /**
      * option bit for writeReordered():
@@ -1185,7 +1157,14 @@ public class Bidi {
         direction = 0;
         */
         /* get Bidi properties */
-        bdp = UBiDiProps.INSTANCE;
+        try {
+            bdp = UBiDiProps.getSingleton();
+        }
+        catch (IOException e) {
+            ///CLOVER:OFF
+            throw new MissingResourceException(e.getMessage(), "(BidiProps)", "");
+            ///CLOVER:ON
+        }
 
         /* allocate memory for arrays as requested */
         if (maxLength > 0) {
@@ -2605,7 +2584,7 @@ public class Bidi {
         levState.impAct = impTabPair.impact[levState.runLevel & 1];
         processPropertySeq(levState, sor, start, start);
         /* initialize for property state table */
-        if (NoContextRTL(dirProps[start]) == NSM) {
+        if (dirProps[start] == NSM) {
             stateImp = (short)(1 + sor);
         } else {
             stateImp = 0;
@@ -4869,45 +4848,4 @@ public class Bidi {
         }
     }
 
-    /**
-     * Get the base direction of the text provided according to the Unicode
-     * Bidirectional Algorithm. The base direction is derived from the first
-     * character in the string with bidirectional character type L, R, or AL. 
-     * If the first such character has type L, LTR is returned. If the first 
-     * such character has type R or AL, RTL is returned. If the string does 
-     * not contain any character of these types, then NEUTRAL is returned.
-     * This is a lightweight function for use when only the base direction is
-     * needed and no further bidi processing of the text is needed.
-     * @param paragraph the text whose paragraph level direction is needed.
-     * @return LTR, RTL, NEUTRAL
-     * @see #LTR
-     * @see #RTL
-     * @see #NEUTRAL
-     * @draft ICU 4.6
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static byte getBaseDirection(CharSequence paragraph) {
-        if (paragraph == null || paragraph.length() == 0) {
-            return NEUTRAL;
-        }
-
-        int length = paragraph.length();
-        int c;// codepoint
-        byte direction;
-
-        for (int i = 0; i < length; ) {
-            // U16_NEXT(paragraph, i, length, c) for C++
-            c = UCharacter.codePointAt(paragraph, i);
-            direction = UCharacter.getDirectionality(c);
-            if (direction == UCharacterDirection.LEFT_TO_RIGHT) {
-                return LTR;
-            } else if (direction == UCharacterDirection.RIGHT_TO_LEFT
-                || direction == UCharacterDirection.RIGHT_TO_LEFT_ARABIC) {
-                return RTL;
-            }
-
-            i = UCharacter.offsetByCodePoints(paragraph, i, 1);// set i to the head index of next codepoint
-        }
-        return NEUTRAL;
-    }
 }

@@ -1,19 +1,20 @@
 /*
 ******************************************************************************
-* Copyright (C) 2007-2010, International Business Machines Corporation and   *
+* Copyright (C) 2007-2008, International Business Machines Corporation and   *
 * others. All Rights Reserved.                                               *
 ******************************************************************************
 */
 
 package com.ibm.icu.impl.duration;
 
-import java.util.Locale;
-
-import com.ibm.icu.impl.duration.impl.DataRecord.ECountVariant;
-import com.ibm.icu.impl.duration.impl.DataRecord.ESeparatorVariant;
-import com.ibm.icu.impl.duration.impl.DataRecord.EUnitVariant;
 import com.ibm.icu.impl.duration.impl.PeriodFormatterData;
 import com.ibm.icu.impl.duration.impl.PeriodFormatterDataService;
+
+import com.ibm.icu.impl.duration.impl.DataRecord.EUnitVariant;
+import com.ibm.icu.impl.duration.impl.DataRecord.ECountVariant;
+import com.ibm.icu.impl.duration.impl.DataRecord.ESeparatorVariant;
+
+import java.util.Locale;
 
 /**
  * An implementation of PeriodFormatterFactory that provides customization of

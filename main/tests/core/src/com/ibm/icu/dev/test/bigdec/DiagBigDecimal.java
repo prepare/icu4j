@@ -94,7 +94,7 @@ public class DiagBigDecimal extends TestFmwk {
     //private static final java.lang.String $0 = "DiagBigDecimal.nrx";
 
     /* properties shared */
-    java.util.List Tests = new java.util.ArrayList(100); // scaffolding
+    java.util.Vector Tests = new java.util.Vector(100); // scaffolding
 
     /* properties private */
     private int totalcount = 0; // counts tests run
@@ -918,16 +918,14 @@ public class DiagBigDecimal extends TestFmwk {
         (new Test("cuc002")).ok = (com.ibm.icu.math.BigDecimal.ONE.toString()).equals("1");
         (new Test("cuc003")).ok = (com.ibm.icu.math.BigDecimal.TEN.toString()).equals("10");
 
-        @SuppressWarnings("unused")
-        int constantVal; // workaround for "Comparing identical expressions" warnings
-        (new Test("cuc010")).ok = com.ibm.icu.math.BigDecimal.ROUND_CEILING == (constantVal = com.ibm.icu.math.MathContext.ROUND_CEILING);
-        (new Test("cuc011")).ok = com.ibm.icu.math.BigDecimal.ROUND_DOWN == (constantVal = com.ibm.icu.math.MathContext.ROUND_DOWN);
-        (new Test("cuc012")).ok = com.ibm.icu.math.BigDecimal.ROUND_FLOOR == (constantVal = com.ibm.icu.math.MathContext.ROUND_FLOOR);
-        (new Test("cuc013")).ok = com.ibm.icu.math.BigDecimal.ROUND_HALF_DOWN == (constantVal = com.ibm.icu.math.MathContext.ROUND_HALF_DOWN);
-        (new Test("cuc014")).ok = com.ibm.icu.math.BigDecimal.ROUND_HALF_EVEN == (constantVal = com.ibm.icu.math.MathContext.ROUND_HALF_EVEN);
-        (new Test("cuc015")).ok = com.ibm.icu.math.BigDecimal.ROUND_HALF_UP == (constantVal = com.ibm.icu.math.MathContext.ROUND_HALF_UP);
-        (new Test("cuc016")).ok = com.ibm.icu.math.BigDecimal.ROUND_UNNECESSARY == (constantVal = com.ibm.icu.math.MathContext.ROUND_UNNECESSARY);
-        (new Test("cuc017")).ok = com.ibm.icu.math.BigDecimal.ROUND_UP == (constantVal = com.ibm.icu.math.MathContext.ROUND_UP);
+        (new Test("cuc010")).ok = com.ibm.icu.math.BigDecimal.ROUND_CEILING == com.ibm.icu.math.MathContext.ROUND_CEILING;
+        (new Test("cuc011")).ok = com.ibm.icu.math.BigDecimal.ROUND_DOWN == com.ibm.icu.math.MathContext.ROUND_DOWN;
+        (new Test("cuc012")).ok = com.ibm.icu.math.BigDecimal.ROUND_FLOOR == com.ibm.icu.math.MathContext.ROUND_FLOOR;
+        (new Test("cuc013")).ok = com.ibm.icu.math.BigDecimal.ROUND_HALF_DOWN == com.ibm.icu.math.MathContext.ROUND_HALF_DOWN;
+        (new Test("cuc014")).ok = com.ibm.icu.math.BigDecimal.ROUND_HALF_EVEN == com.ibm.icu.math.MathContext.ROUND_HALF_EVEN;
+        (new Test("cuc015")).ok = com.ibm.icu.math.BigDecimal.ROUND_HALF_UP == com.ibm.icu.math.MathContext.ROUND_HALF_UP;
+        (new Test("cuc016")).ok = com.ibm.icu.math.BigDecimal.ROUND_UNNECESSARY == com.ibm.icu.math.MathContext.ROUND_UNNECESSARY;
+        (new Test("cuc017")).ok = com.ibm.icu.math.BigDecimal.ROUND_UP == com.ibm.icu.math.MathContext.ROUND_UP;
 
         (new Test("cuc020")).ok = (com.ibm.icu.math.MathContext.DEFAULT.getDigits()) == 9;
         (new Test("cuc021")).ok = (com.ibm.icu.math.MathContext.DEFAULT.getForm()) == com.ibm.icu.math.MathContext.SCIENTIFIC;
@@ -5427,7 +5425,7 @@ public class DiagBigDecimal extends TestFmwk {
             int $144 = count;
             i = 0;
             for (; $144 > 0; $144--, i++) {
-                item = (Test) (Tests.get(i));
+                item = (Test) (Tests.elementAt(i));
                 if ((!item.ok))
                 {
                     bad++;
@@ -5436,7 +5434,7 @@ public class DiagBigDecimal extends TestFmwk {
             }
         }/*i*/
         totalcount = totalcount + count;
-        Tests = new java.util.ArrayList(100); // reinitialize
+        Tests = new java.util.Vector(100); // reinitialize
         if (bad == 0)
             say("OK" + " " + left(section, 14) + " "
                     + right("[" + count + " " + "tests]", 12));
@@ -5568,7 +5566,7 @@ public class DiagBigDecimal extends TestFmwk {
         public Test(java.lang.String testname) {
             super();
             name = testname; // save the name
-            DiagBigDecimal.this.Tests.add((java.lang.Object) this); // and add to parent's list
+            DiagBigDecimal.this.Tests.addElement((java.lang.Object) this); // and add to parent's list
         }
     }
 

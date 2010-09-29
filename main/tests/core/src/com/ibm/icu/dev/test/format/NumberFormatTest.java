@@ -26,7 +26,6 @@ import com.ibm.icu.impl.Utility;
 import com.ibm.icu.impl.data.ResourceReader;
 import com.ibm.icu.impl.data.TokenIterator;
 import com.ibm.icu.math.BigDecimal;
-import com.ibm.icu.math.MathContext;
 import com.ibm.icu.text.DecimalFormat;
 import com.ibm.icu.text.DecimalFormatSymbols;
 import com.ibm.icu.text.MeasureFormat;
@@ -1254,41 +1253,19 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         ULocale loc2 = new ULocale("en_US@numbers=hebr");
         ULocale loc3 = new ULocale("en_US@numbers=arabext");
         ULocale loc4 = new ULocale("hi_IN@numbers=foobar");
-        ULocale loc5 = new ULocale("ar_EG"); // ar_EG uses arab numbering system
-        ULocale loc6 = new ULocale("ar_MA"); // ar_MA users latn numbering system
-        ULocale loc7 = new ULocale("en_US@numbers=hanidec"); // hanidec is a non-contiguous ns
         
         NumberFormat fmt1 = NumberFormat.getInstance(loc1);
         NumberFormat fmt2 = NumberFormat.getInstance(loc2);
         NumberFormat fmt3 = NumberFormat.getInstance(loc3);
         NumberFormat fmt4 = NumberFormat.getInstance(loc4);
-        NumberFormat fmt5 = NumberFormat.getInstance(loc5);
-        NumberFormat fmt6 = NumberFormat.getInstance(loc6);
-        NumberFormat fmt7 = NumberFormat.getInstance(loc7);
         
         expect2(fmt1,1234.567,"\u0e51,\u0e52\u0e53\u0e54.\u0e55\u0e56\u0e57");
         expect3(fmt2,5678.0,"\u05d4\u05f3\u05ea\u05e8\u05e2\u05f4\u05d7");
         expect2(fmt3,1234.567,"\u06f1,\u06f2\u06f3\u06f4.\u06f5\u06f6\u06f7");
         expect2(fmt4,1234.567,"\u0967,\u0968\u0969\u096a.\u096b\u096c\u096d");
-        expect2(fmt5,1234.567,"\u0661\u066c\u0662\u0663\u0664\u066b\u0665\u0666\u0667");
-        expect2(fmt6,1234.567,"1.234,567");
-        expect2(fmt7,1234.567, "\u4e00,\u4e8c\u4e09\u56db.\u4e94\u516d\u4e03");
 
     }
 
-    public void Test6816() {
-		Currency cur1 = Currency.getInstance(new Locale("und", "PH"));
-
-		NumberFormat nfmt = NumberFormat.getCurrencyInstance(new Locale("und", "PH"));
-		DecimalFormatSymbols decsym = ((DecimalFormat)nfmt).getDecimalFormatSymbols();
-		Currency cur2 = decsym.getCurrency();
-        
-		if ( !cur1.getCurrencyCode().equals("PHP") || !cur2.getCurrencyCode().equals("PHP")) {
-		    errln("FAIL: Currencies should match PHP: cur1 = "+cur1.getCurrencyCode()+"; cur2 = "+cur2.getCurrencyCode());
-        }
-
-    }
-    
     public void TestThreadedFormat() {
 
         class FormatTask implements Runnable {
@@ -1654,13 +1631,11 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         String formatedBigDecimal = nf.format(iValue);
         String formattedDouble = nf.format(iValue.doubleValue());
         if (!equalButForTrailingZeros(formatedBigDecimal, formattedDouble)) {
-
             errln("Failure at: " + iValue + " (" + iValue.doubleValue() + ")"
                   + ",\tRounding-mode: " + roundingModeNames[nf.getRoundingMode()]
                   + ",\tRounding-increment: " + nf.getRoundingIncrement()
                   + ",\tdouble: " + formattedDouble
                   + ",\tBigDecimal: " + formatedBigDecimal);
-                  
         } else {
             logln("Value: " + iValue
                   + ",\tRounding-mode: " + roundingModeNames[nf.getRoundingMode()]
@@ -1705,7 +1680,6 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         int len1 = formatted.length();
         char ch;
         while (len1 > 0 && ((ch = formatted.charAt(len1-1)) == '0' || ch == '.')) --len1;
-        if (len1==1 && ((ch = formatted.charAt(len1-1)) == '-')) --len1;
         return formatted.substring(0,len1);
     }
 
@@ -2633,50 +2607,5 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
 
         // Set the configuration back to the default
         System.setProperty("com.ibm.icu.text.DecimalFormat.SkipExtendedSeparatorParsing", "false");
-    }
-
-    /*
-     * Testing currency driven max/min fraction digits problem
-     * reported by ticket#7282
-     */
-    public void TestCurrencyFractionDigits() {
-        double value = 99.12345;
-
-        // Create currency instance
-        NumberFormat cfmt  = NumberFormat.getCurrencyInstance(new ULocale("ja_JP"));
-        String text1 = cfmt.format(value);
-
-        // Reset the same currency and format the test value again
-        cfmt.setCurrency(cfmt.getCurrency());
-        String text2 = cfmt.format(value);
-
-        // output1 and output2 must be identical
-        if (!text1.equals(text2)) {
-            errln("NumberFormat.format() should return the same result - text1="
-                    + text1 + " text2=" + text2);
-        }
-    }
-    
-    /*
-     * Testing rounding to negative zero problem
-     * reported by ticket#7609
-     */
-    public void TestNegZeroRounding() {    
-  
-        DecimalFormat df = (DecimalFormat) NumberFormat.getInstance(); 
-        df.setRoundingMode(MathContext.ROUND_HALF_UP); 
-        df.setMinimumFractionDigits(1); 
-        df.setMaximumFractionDigits(1); 
-        String text1 = df.format(-0.01);
-        
-        df.setRoundingIncrement(0.1);         
-        String text2 = df.format(-0.01);
-        
-        // output1 and output2 must be identical
-        if (!text1.equals(text2)) {
-            errln("NumberFormat.format() should return the same result - text1="
-                    + text1 + " text2=" + text2);
-        }
-  
     }
 }

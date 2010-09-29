@@ -12,6 +12,7 @@ import java.io.Serializable;
 import java.text.StringCharacterIterator;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Hashtable;
 import java.util.Locale;
 import java.util.MissingResourceException;
 import java.util.Set;
@@ -1376,7 +1377,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      * Cache to hold the firstDayOfWeek and minimalDaysInFirstWeek
      * of a Locale.
      */
-    private static ICUCache<ULocale, WeekData> cachedLocaleData = new SimpleCache<ULocale, WeekData>();
+    private static Hashtable<ULocale, WeekData> cachedLocaleData = new Hashtable<ULocale, WeekData>(3);
 
     /**
      * Value of the time stamp <code>stamp[]</code> indicating that
@@ -4241,38 +4242,10 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
         WeekData data = cachedLocaleData.get(locale);
 
         if (data == null) {  /* cache miss */
-            // Since week and weekend data is territory based instead of language based,
-            // we may need to tweak the locale that we are using to try to get the appropriate
-            // values, using the following logic:
-            // 1). If the locale has a language but no territory, use the territory as defined by 
-            //     the likely subtags.
-            // 2). If the locale has an unnecessary script designation then we ignore it,
-            //     ( i.e. "en_Latn_US" becomes "en_US" )
- 
-            ULocale useLocale;
-            ULocale min = ULocale.minimizeSubtags(locale);
-            if ( min.getCountry().length() > 0 ) {
-                useLocale = min;
-            } else {
-                ULocale max = ULocale.addLikelySubtags(min);
-                StringBuilder buf = new StringBuilder();
-                buf.append(min.getLanguage());
-                if ( min.getScript().length() > 0) {
-                    buf.append("_"+min.getScript());
-                }
-                if ( max.getCountry().length() > 0) {
-                    buf.append("_"+max.getCountry());
-                }
-                if ( min.getVariant().length() > 0) {
-                    buf.append("_"+min.getVariant());
-                }
-                useLocale = new ULocale(buf.toString());                
-            }
- 
+
             CalendarData calData = new CalendarData(locale, getType());
-            CalendarData wkData = new CalendarData(useLocale, getType());
-            int[] dateTimeElements = wkData.get("DateTimeElements").getIntVector();
-            int[] weekend = wkData.get("weekend").getIntVector();
+            int[] dateTimeElements = calData.get("DateTimeElements").getIntVector();
+            int[] weekend = calData.get("weekend").getIntVector();
             data = new WeekData(dateTimeElements[0],dateTimeElements[1],
                                 weekend[0],
                                 weekend[1],

@@ -6,11 +6,13 @@
  */
 package com.ibm.icu.text;
 
+import java.io.IOException;
 import java.text.ParsePosition;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.MissingResourceException;
 import java.util.TreeSet;
 
 import com.ibm.icu.impl.BMPSet;
@@ -25,7 +27,6 @@ import com.ibm.icu.impl.UnicodeSetStringSpan;
 import com.ibm.icu.impl.Utility;
 import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.lang.UProperty;
-import com.ibm.icu.lang.UScript;
 import com.ibm.icu.util.Freezable;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.VersionInfo;
@@ -3057,16 +3058,8 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
         }
     }
 
-    private static class ScriptExtensionsFilter implements Filter {
-        int script;
-        ScriptExtensionsFilter(int script) { this.script = script; }
-        public boolean contains(int c) {
-            return UScript.hasScript(c, script);
-        }
-    }
-
     // VersionInfo for unassigned characters
-    private static final VersionInfo NO_VERSION = VersionInfo.getInstance(0, 0, 0, 0);
+    static final VersionInfo NO_VERSION = VersionInfo.getInstance(0, 0, 0, 0);
 
     private static class VersionFilter implements Filter {
         VersionInfo version;
@@ -3086,41 +3079,45 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
         }
         if(INCLUSIONS[src] == null) {
             UnicodeSet incl = new UnicodeSet();
-            switch(src) {
-            case UCharacterProperty.SRC_CHAR:
-                UCharacterProperty.INSTANCE.addPropertyStarts(incl);
-                break;
-            case UCharacterProperty.SRC_PROPSVEC:
-                UCharacterProperty.INSTANCE.upropsvec_addPropertyStarts(incl);
-                break;
-            case UCharacterProperty.SRC_CHAR_AND_PROPSVEC:
-                UCharacterProperty.INSTANCE.addPropertyStarts(incl);
-                UCharacterProperty.INSTANCE.upropsvec_addPropertyStarts(incl);
-                break;
-            case UCharacterProperty.SRC_CASE_AND_NORM:
-                Norm2AllModes.getNFCInstance().impl.addPropertyStarts(incl);
-                UCaseProps.INSTANCE.addPropertyStarts(incl);
-                break;
-            case UCharacterProperty.SRC_NFC:
-                Norm2AllModes.getNFCInstance().impl.addPropertyStarts(incl);
-                break;
-            case UCharacterProperty.SRC_NFKC:
-                Norm2AllModes.getNFKCInstance().impl.addPropertyStarts(incl);
-                break;
-            case UCharacterProperty.SRC_NFKC_CF:
-                Norm2AllModes.getNFKC_CFInstance().impl.addPropertyStarts(incl);
-                break;
-            case UCharacterProperty.SRC_NFC_CANON_ITER:
-                Norm2AllModes.getNFCInstance().impl.addCanonIterPropertyStarts(incl);
-                break;
-            case UCharacterProperty.SRC_CASE:
-                UCaseProps.INSTANCE.addPropertyStarts(incl);
-                break;
-            case UCharacterProperty.SRC_BIDI:
-                UBiDiProps.INSTANCE.addPropertyStarts(incl);
-                break;
-            default:
-                throw new IllegalStateException("UnicodeSet.getInclusions(unknown src "+src+")");
+            try {
+                switch(src) {
+                case UCharacterProperty.SRC_CHAR:
+                    UCharacterProperty.INSTANCE.addPropertyStarts(incl);
+                    break;
+                case UCharacterProperty.SRC_PROPSVEC:
+                    UCharacterProperty.INSTANCE.upropsvec_addPropertyStarts(incl);
+                    break;
+                case UCharacterProperty.SRC_CHAR_AND_PROPSVEC:
+                    UCharacterProperty.INSTANCE.addPropertyStarts(incl);
+                    UCharacterProperty.INSTANCE.upropsvec_addPropertyStarts(incl);
+                    break;
+                case UCharacterProperty.SRC_CASE_AND_NORM:
+                    Norm2AllModes.getNFCInstance().impl.addPropertyStarts(incl);
+                    UCaseProps.getSingleton().addPropertyStarts(incl);
+                    break;
+                case UCharacterProperty.SRC_NFC:
+                    Norm2AllModes.getNFCInstance().impl.addPropertyStarts(incl);
+                    break;
+                case UCharacterProperty.SRC_NFKC:
+                    Norm2AllModes.getNFKCInstance().impl.addPropertyStarts(incl);
+                    break;
+                case UCharacterProperty.SRC_NFKC_CF:
+                    Norm2AllModes.getNFKC_CFInstance().impl.addPropertyStarts(incl);
+                    break;
+                case UCharacterProperty.SRC_NFC_CANON_ITER:
+                    Norm2AllModes.getNFCInstance().impl.addCanonIterPropertyStarts(incl);
+                    break;
+                case UCharacterProperty.SRC_CASE:
+                    UCaseProps.getSingleton().addPropertyStarts(incl);
+                    break;
+                case UCharacterProperty.SRC_BIDI:
+                    UBiDiProps.getSingleton().addPropertyStarts(incl);
+                    break;
+                default:
+                    throw new IllegalStateException("UnicodeSet.getInclusions(unknown src "+src+")");
+                }
+            } catch(IOException e) {
+                throw new MissingResourceException(e.getMessage(),"","");
             }
             INCLUSIONS[src] = incl;
         }
@@ -3131,15 +3128,19 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
      * Generic filter-based scanning code for UCD property UnicodeSets.
      */
     private UnicodeSet applyFilter(Filter filter, int src) {
-        // Logically, walk through all Unicode characters, noting the start
+        // Walk through all Unicode characters, noting the start
         // and end of each range for which filter.contain(c) is
         // true.  Add each range to a set.
         //
-        // To improve performance, use an inclusions set which
+        // To improve performance, use the INCLUSIONS set, which
         // encodes information about character ranges that are known
-        // to have identical properties.
-        // getInclusions(src) contains exactly the first characters of
-        // same-value ranges for the given properties "source".
+        // to have identical properties, such as the CJK Ideographs
+        // from U+4E00 to U+9FA5.  INCLUSIONS contains all characters
+        // except the first characters of such ranges.
+        //
+        // TODO Where possible, instead of scanning over code points,
+        // use internal property data to initialize UnicodeSets for
+        // those properties.  Scanning code points is slow.
 
         clear();
 
@@ -3232,8 +3233,6 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
         checkFrozen();
         if (prop == UProperty.GENERAL_CATEGORY_MASK) {
             applyFilter(new GeneralCategoryMaskFilter(value), UCharacterProperty.SRC_CHAR);
-        } else if (prop == UProperty.SCRIPT_EXTENSIONS) {
-            applyFilter(new ScriptExtensionsFilter(value), UCharacterProperty.SRC_PROPSVEC);
         } else {
             applyFilter(new IntPropertyFilter(prop, value), UCharacterProperty.INSTANCE.getSource(prop));
         }
@@ -3328,6 +3327,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
             }
 
             else {
+
                 switch (p) {
                 case UProperty.NUMERIC_VALUE:
                 {
@@ -3344,14 +3344,14 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
                     String buf = mungeCharName(valueAlias);
                     int ch =
                         (p == UProperty.NAME) ?
-                            UCharacter.getCharFromExtendedName(buf) :
-                            UCharacter.getCharFromName1_0(buf);
-                    if (ch == -1) {
-                        throw new IllegalArgumentException("Invalid character name");
-                    }
-                    clear();
-                    add_unchecked(ch);
-                    return this;
+                                UCharacter.getCharFromExtendedName(buf) :
+                                    UCharacter.getCharFromName1_0(buf);
+                                if (ch == -1) {
+                                    throw new IllegalArgumentException("Invalid character name");
+                                }
+                                clear();
+                                add_unchecked(ch);
+                                return this;
                 }
                 case UProperty.AGE:
                 {
@@ -3362,15 +3362,11 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
                     applyFilter(new VersionFilter(version), UCharacterProperty.SRC_PROPSVEC);
                     return this;
                 }
-                case UProperty.SCRIPT_EXTENSIONS:
-                    v = UCharacter.getPropertyValueEnum(UProperty.SCRIPT, valueAlias);
-                    // fall through to calling applyIntPropertyValue()
-                    break;
-                default:
-                    // p is a non-binary, non-enumerated property that we
-                    // don't support (yet).
-                    throw new IllegalArgumentException("Unsupported property");
                 }
+
+                // p is a non-binary, non-enumerated property that we
+                // don't support (yet).
+                throw new IllegalArgumentException("Unsupported property");
             }
         }
 
@@ -3694,7 +3690,12 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
     public UnicodeSet closeOver(int attribute) {
         checkFrozen();
         if ((attribute & (CASE | ADD_CASE_MAPPINGS)) != 0) {
-            UCaseProps csp = UCaseProps.INSTANCE;
+            UCaseProps csp;
+            try {
+                csp = UCaseProps.getSingleton();
+            } catch(IOException e) {
+                return this;
+            }
             UnicodeSet foldSet = new UnicodeSet(this);
             ULocale root = ULocale.ROOT;
 

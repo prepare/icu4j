@@ -13,17 +13,15 @@ h4.doc { text-decoration: underline }
 <body style="background-color: rgb(255, 255, 255);" lang="EN-US"
  link="#0000ff" vlink="#800080">
 <h2>International Components for Unicode for Java (ICU4J)</h2>
-<h3>Read Me for ICU4J 4.6M1</h3>
+<h3>Read Me for ICU4J 4.4.2</h3>
 <hr size="2" width="100%">
 <p><b>Release Date</b><br>
-June 23, 2010<br>
+October 1, 2010<br>
 </p>
 
-<p><b>Note:</b>This is a development milestone release of ICU4J 4.6.
-The contents of this document may not reflect the recent changes done
-for ICU 4.6 development. This milestone is inteneded for those wishing
-to get an early look at ICU 4.6 new features and API changes. It is not
-recommended for production use. 
+<p><b>Note:</b> This is an update release of ICU4J 4.4.  This release contains
+several bug fixes and updated data, but does not introduce any new APIs or
+functionalities.
 </p>
 <p>For the most recent release, see the <a
  href="http://www.icu-project.org/download/"> ICU4J
@@ -131,13 +129,92 @@ current and complete version is always found in ICU4J.</p>
 </blockquote>
 
 <h3 class="doc"><a name="changes"></a>Changes In This Release</h3>
+<h4>Minimum Java runtime environment requirement</h4>
+<p>
+Starting with version 4.4, you need at least JRE 5.0 to use ICU4J 4.4.
+ICU4J adopted Java 5 language features and no longer compiles with JDK 1.4 or
+older versions.  This migration also includes some updates in public API signatures,
+such as generics and return/parameter types.  In general, most of these changes
+do not require any changes in existing ICU4J user code.
+</p>
+
+<h4>TimeZone serialization compatibility</h4>
+<p>
+The new system time zone data format supporting 64bit transition time data
+implemented in ICU4J 4.4 introduced a serialization incompatibility issue
+in the internal TimeZone implementation class (e.g. An instance of TimeZone
+created by <code>TimeZone.getTimeZone(String)</code> with an Olson tzid, such as
+<code>"America/Los_Angeles"</code>).
+
+The new implementation reads only the system time zone identifier string
+when object data was serialized by ICU4J 4.2 or older versions.  Also, ICU4J
+4.2 or older versions cannot read object data created by ICU4J 4.4.
+
+The system time zone implementation class may be used by other ICU4J
+public API classes, such as <code>Calendar</code> and <code>DateFormat</code>,
+therefore, these classes are also affected.
+</p>
+<p>
+For the ICU4J serialization compatibility policy, please refer the user guide section
+<a href="http://userguide.icu-project.org/design#TOC-ICU4J-Serialization-Compatibility">ICU4J
+Serialization Compatibility</a>.
+</p>
+
 <h4>New features and other changes</h4>
 <p>
-See the <a href="http://sites.google.com/site/icusite/download/45">ICU 4.6 milestone download page</a> about
+See the <a href="http://icu-project.org/download/4.4.html">ICU 4.4 download page</a> about
 new features in this release.  The list of API changes since the previous ICU4J release
 is available
-<a href="http://source.icu-project.org/repos/icu/icu4j/tags/milestone-4-5-1/APIChangeReport.html">here</a>.
+<a href="http://source.icu-project.org/repos/icu/icu4j/tags/release-4-4/APIChangeReport.html">here</a>.
 </p>
+
+<h4 class="doc">Summary of updates in 4.4.2 (October 1, 2010)</h4>
+<p><b>Tme zone data update</b></p>
+<p>ICU4J 4.4.2 updates the time zone data to version
+<a href="http://source.icu-project.org/repos/icu/data/trunk/tzdata/icunew/2010m/44/">2010m</a>
+from the Olson tz database.</p>
+
+<p><b>Bug fix</b></p>
+<p>This release contains following bug fix
+<ul>
+<li><a href="http://bugs.icu-project.org/trac/ticket/7922">#7922</a> ICU4J charset converter aliases do not work on z/OS</li>
+<li><a href="http://bugs.icu-project.org/trac/ticket/7927">#7927</a> Updated LMBCS mapping table</li>
+<li><a href="http://bugs.icu-project.org/trac/ticket/7941">#7941</a> CopticTest/Test6379 failure</li>
+</ul>
+</p>
+
+<h4 class="doc">Summary of updates in 4.4.1.1 (June 21, 2010)</h4>
+<p><b>Tme zone data update</b></p>
+<p>ICU4J 4.4.1.1 updates the time zone data to version
+<a href="http://source.icu-project.org/repos/icu/data/trunk/tzdata/icunew/2010j/44/">2010j</a>
+from the Olson tz database.</p>
+
+<p><b>Bug fix</b></p>
+<p>This release contains following bug fix
+<ul>
+<li><a href="http://bugs.icu-project.org/trac/ticket/7765">#7765</a> ICU4J 4.4 fails to load available locales on WebSphere</li>
+</ul>
+</p>
+
+<h4 class="doc">Summary of updates in 4.4.1 (April 28, 2010)</h4>
+<p><b>CLDR 1.8.1 updates</b></p>
+<p>ICU4J 4.4.1 imported locale data updates from <a href="http://cldr.unicode.org/index/downloads/cldr-1-8-1">CLDR
+1.8.1</a> release.
+
+<p><b>Time zone data update</b></p>
+<p>ICU4J 4.4.1 updates the time zone data to version
+<a href="http://source.icu-project.org/repos/icu/data/trunk/tzdata/icunew/2010i/44/">2010i</a>
+from the Olson tz database.</p>
+
+<p><b>Bug fixes</b></p>
+<p>This release contains following bug fixes
+<ul>
+<li><a href="http://bugs.icu-project.org/trac/ticket/7395">#7395</a> gatherapi tool doesn't handle 'synthetic' methods</li>
+<li><a href="http://bugs.icu-project.org/trac/ticket/7594">#7594</a> Serialization CoverageTest is broken in ICU 4.4</li>
+<li><a href="http://bugs.icu-project.org/trac/ticket/7595">#7595</a> SimpleDateFormat fails to handle very long field patterns</li>
+<li><a href="http://bugs.icu-project.org/trac/ticket/7644">#7644</a> Enable non-Gregorian calendars for DateIntervalFormat</li>
+</ul>
+
 <h3 class="doc"><a name="license"></a>License Information</h3>
 <p>
 The ICU projects (ICU4C and ICU4J) use the X license. The X
@@ -165,7 +242,7 @@ package.
 </p>
 <h3 class="doc"><a name="PlatformDependencies"></a>Platform Dependencies</h3>
 <p>
-ICU4J 4.6 depends on J2SE 5.0 functionality.  Therefore, ICU4J only runs on
+ICU4J 4.4 depends on J2SE 5.0 functionality.  Therefore, ICU4J only runs on
 JRE version 5.0 or later.
 The table below shows the operating systems and JRE/VM versions currently
 used by the ICU development team to test ICU4J.
@@ -868,52 +945,52 @@ from release to release, so clients should not depend on the exact
 organization
 of the data in ICU4J.</p>
 <ul>
-  <li>The primary <b>locale data</b> is under the directory <tt>icudt45b</tt>,
+  <li>The primary <b>locale data</b> is under the directory <tt>icudt44b</tt>,
   as a set of <tt>".res"</tt> files whose names are the locale identifiers. 
   Locale naming is documented the <code>com.ibm.icu.util.ULocale</code>
   class, and the use of these names in searching for resources is documented 
   in <code>com.ibm.icu.util.UResourceBundle</code>.</li>
 
-  <li>The <b>collation data</b> is under the directory <tt>icudt45b/coll</tt>,
+  <li>The <b>collation data</b> is under the directory <tt>icudt44b/coll</tt>,
   as a set of <tt>".res"</tt> files.</li>
 
-  <li>The <b>currency display name data</b> is under the directory <tt>icudt45b/curr</tt>,
+  <li>The <b>currency display name data</b> is under the directory <tt>icudt44b/curr</tt>,
   as a set of <tt>".res"</tt> files.</li>
 
-  <li>The <b>language display name data</b> is under the directory <tt>icudt45b/lang</tt>,
+  <li>The <b>language display name data</b> is under the directory <tt>icudt44b/lang</tt>,
   as a set of <tt>".res"</tt> files.</li>
 
-  <li>The <b>region display name data</b> is under the directory <tt>icudt45b/region</tt>,
+  <li>The <b>region display name data</b> is under the directory <tt>icudt44b/region</tt>,
   as a set of <tt>".res"</tt> files.</li>
 
   <li>The <b>rule-based transliterator data</b> is under the directory
-  <tt>icudt45b/translit</tt>, as a set of <tt>".res"</tt> files.</li>
+  <tt>icudt44b/translit</tt>, as a set of <tt>".res"</tt> files.</li>
 
   <li>The <b>rule-based number format data</b> is under the directory
-  <tt>icudt45b/rbnf</tt>, as a set of <tt>".res"</tt> files.
+  <tt>icudt44b/rbnf</tt>, as a set of <tt>".res"</tt> files.
 
   <li>The <b>break iterator data</b> is directly under the
-  directory <tt>icudt45b</tt>, as a set of <tt>".brk"</tt> files, named according to the
+  directory <tt>icudt44b</tt>, as a set of <tt>".brk"</tt> files, named according to the
   type of break and the locale where there are locale-specific versions.</li>
 
-  <li>The <b>holiday data</b> is under the directory <tt>icudt45b</tt>,
+  <li>The <b>holiday data</b> is under the directory <tt>icudt44b</tt>,
   as a set of <tt>".class"</tt> files, named <tt>"HolidayBundle_"</tt>
   followed by the locale ID.</li>
 
   <li>The <b>character property data</b> as well as assorted <b>normalization
   data</b> and default <b>unicode collation algorithm (UCA) data</b>
-  is found under the directory <tt>icudt45b</tt>, as a set of <tt>".icu"</tt>
+  is found under the directory <tt>icudt44b</tt>, as a set of <tt>".icu"</tt>
   files. </li>
 
   <li>The <b>character set converter data</b> is under the directory
-  <tt>icudt45b</tt>, as a set of <tt>".cnv"</tt> files.  These files are
+  <tt>icudt44b</tt>, as a set of <tt>".cnv"</tt> files.  These files are
   currently included only in icu-charset.jar.</li>
 
   <li>The <b>time zone rule data</b> is under the directory 
-  <tt>icudt45b</tt>, as <tt>zoneinfo64.res</tt>.</li>
+  <tt>icudt44b</tt>, as <tt>zoneinfo64.res</tt>.</li>
 
   <li>The <b>time zone display name data</b> is under the directory
-  <tt>icudt45b/zone</tt>, as a set of <tt>".res"</tt> files.</li>
+  <tt>icudt44b/zone</tt>, as a set of <tt>".res"</tt> files.</li>
 </ul>
 <p>
 Some of the data files alias or otherwise reference data from other
@@ -1014,10 +1091,10 @@ ICU4J data is built by ICU4C tools. Please see "icu4j-readme.txt" in <I>$icu4c_r
 <ol>
     <li>Checkout CLDR.  $cldr_root in the following steps is the root directory where
     the CLDR source files checked out.</li>
-    <li>Update <I>$cldr_root</I>/common to 'release-1-8-0' tag</li>
-    <li>Update <I>$cldr_root</I>/tools to 'release-1-8-0' tag</li>
-    <li>Checkout ICU4C with tag 'release-4-4'</li>
-    <li>Checkout ICU4J with tag 'release-4-4'</li>
+    <li>Update <I>$cldr_root</I>/common to 'release-1-8-1' tag</li>
+    <li>Update <I>$cldr_root</I>/tools to 'release-1-8-1' tag</li>
+    <li>Checkout ICU4C with tag 'release-4-4-1'</li>
+    <li>Checkout ICU4J with tag 'release-4-4-1'</li>
     <li>Build ICU4J</li>
     <li>Build ICU4C</li>
     <li>Change to <I>$cldr_root</I>/tools/java directory</li>
@@ -1031,7 +1108,7 @@ ICU4J data is built by ICU4C tools. Please see "icu4j-readme.txt" in <I>$icu4c_r
 </ol>
 
 <h3 class="doc"><a name="timezone"></a>About ICU4J Time Zone</h3>
-<p>ICU4J 4.6M1 includes time zone data version 2010j, which is the latest one as of
+<p>ICU4J 4.4.2 includes time zone data version 2010m, which is the latest one as of
 the release date.  However, time zone data is frequently updated in response
 to changes made by local governments around the world.  If you need to update
 the time zone data, please refer the ICU user guide topic

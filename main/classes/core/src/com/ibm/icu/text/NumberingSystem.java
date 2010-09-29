@@ -30,7 +30,7 @@ import com.ibm.icu.util.UResourceBundleIterator;
  * @author       John Emmons
  * @stable ICU 4.2
  */
-public class NumberingSystem {
+class NumberingSystem {
 
     /**
      * Default constructor.  Returns a numbering system that uses the Western decimal
@@ -41,7 +41,6 @@ public class NumberingSystem {
         radix = 10;
         algorithmic = false;
         desc = "0123456789";
-        name = "latn";
     }
 
     /**
@@ -59,26 +58,6 @@ public class NumberingSystem {
      * @stable ICU 4.2
      */
     public static NumberingSystem getInstance(int radix_in, boolean isAlgorithmic_in, String desc_in ) {
-        return getInstance(null,radix_in,isAlgorithmic_in,desc_in);
-    }
-    
-    /**
-     * Factory method for creating a numbering system.
-     * @param name_in The string representing the name of the numbering system.
-     * @param radix_in The radix for this numbering system.  ICU currently 
-     * supports only numbering systems whose radix is 10.
-     * @param isAlgorithmic_in Specifies whether the numbering system is algorithmic
-     * (true) or numeric (false).
-     * @param desc_in String used to describe the characteristics of the numbering
-     * system.  For numeric systems, this string contains the digits used by the
-     * numbering system, in order, starting from zero.  For algorithmic numbering
-     * systems, the string contains the name of the RBNF ruleset in the locale's
-     * NumberingSystemRules section that will be used to format numbers using
-     * this numbering system.
-     * @draft ICU 4.6
-     */
-   
-    private static NumberingSystem getInstance(String name_in, int radix_in, boolean isAlgorithmic_in, String desc_in ) {
         if ( radix_in < 2 ) {
             throw new IllegalArgumentException("Invalid radix for numbering system");
         }
@@ -92,7 +71,6 @@ public class NumberingSystem {
         ns.radix = radix_in;
         ns.algorithmic = isAlgorithmic_in;
         ns.desc = desc_in;
-        ns.name = name_in;
         return ns;
     }
 
@@ -132,8 +110,7 @@ public class NumberingSystem {
         // Cache miss, create new instance
         try {
             ICUResourceBundle rb = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME,locale);
-            rb = rb.getWithFallback("NumberElements");
-            defaultNumberingSystem = rb.getStringWithFallback("default");
+            defaultNumberingSystem = rb.getString("defaultNumberingSystem");
         } catch (MissingResourceException ex) {
             ns = new NumberingSystem();
             cachedLocaleData.put(baseName, ns);
@@ -198,7 +175,7 @@ public class NumberingSystem {
             return null;
         }
 
-        ns = getInstance(name,radix,isAlgorithmic,description);
+        ns = getInstance(radix,isAlgorithmic,description);
         cachedStringData.put(name, ns);                       
         return ns;     
     }
@@ -229,24 +206,31 @@ public class NumberingSystem {
      * Convenience method to determine if a given digit string is valid for use as a 
      * descriptor of a numeric ( non-algorithmic ) numbering system.  In order for
      * a digit string to be valid, it must meet the following criteria:
-     * 1. Digits must be in Unicode's basic multilingual plane.
+     * 1. It must only contain characters that are decimal digits as defined by Unicode.
+     * 2. It must contain characters that are contiguous code points.
+     * 3. Digits must be in Unicode's basic multilingual plane.
      * @stable ICU 4.2
      */
     public static boolean isValidDigitString(String str) {
 
         int c;
+        int prev = 0;
         int i = 0;
         UCharacterIterator it = UCharacterIterator.getInstance(str);
 
         it.setToStart();
         while ( (c = it.nextCodePoint()) != UCharacterIterator.DONE) {
+            if ( UCharacter.digit(c) != i ) { // Digits outside the Unicode decimal digit class are not currently supported
+                return false;
+            }
+            if ( prev != 0 && c != prev + 1 ) { // Non-contiguous digits are not currently supported
+                return false;
+            }
             if ( UCharacter.isSupplementary(c)) { // Digits outside the BMP are not currently supported
                 return false;
             }
             i++;
-        }
-        if ( i != 10 ) {
-            return false;
+            prev = c;
         }
         return true;
     }
@@ -274,13 +258,6 @@ public class NumberingSystem {
     }
 
     /**
-     * Returns the string representing the name of the numbering system.
-     * @draft ICU 4.6
-     */
-    public String getName() {
-        return name;
-    }
-    /**
      * Returns the numbering system's algorithmic status.  If true,
      * the numbering system is algorithmic and uses an RBNF formatter to
      * format numerals.  If false, the numbering system is numeric and
@@ -294,7 +271,6 @@ public class NumberingSystem {
     private String desc;
     private int radix;
     private boolean algorithmic;
-    private String name;
 
     /**
      * Cache to hold the NumberingSystems by Locale.

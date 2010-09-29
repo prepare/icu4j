@@ -127,40 +127,47 @@ public final class ICUResourceBundleTest extends TestFmwk {
             errln("could not create the resource bundle");
         }
 
-        UResourceBundle obj =  bundle.get("NumberElements").get("latn").get("patterns");
+        UResourceBundle obj =  bundle.get("NumberPatterns");
 
         int size = obj.getSize();
         int type = obj.getType();
-        if(type == UResourceBundle.TABLE){
-            UResourceBundle sub;
-            for(int i=0; i<size; i++) {
-                sub = obj.get(i);
-                String temp =sub.getString();
-                if(temp.length()==0){
-                    errln("Failed to get the items from number patterns table in bundle: "+
-                            bundle.getULocale().getBaseName());
-                }
-                //System.out.println("\""+prettify(temp)+"\"");
-            }
-        }
-        
-        obj =  bundle.get("NumberElements").get("latn").get("symbols");
-
-        size = obj.getSize();
-        type = obj.getType();
-        if(type == UResourceBundle.TABLE){
+        if(type == UResourceBundle.ARRAY){
             UResourceBundle sub;
             for(int i=0; i<size; i++){
                 sub = obj.get(i);
                 String temp =sub.getString();
                 if(temp.length()==0){
-                    errln("Failed to get the items from number symbols table in bundle: "+
+                    errln("Failed to get the items from NumberPatterns array in bundle: "+
                             bundle.getULocale().getBaseName());
                 }
+                //System.out.println("\""+prettify(temp)+"\"");
+            }
+
+        }
+        String[] strings = bundle.getStringArray("NumberPatterns");
+        if(size!=strings.length){
+            errln("Failed to get the items from NumberPatterns array in bundle: "+
+                    bundle.getULocale().getBaseName());
+        }
+        {
+            obj =  bundle.get("NumberElements");
+
+            size = obj.getSize();
+            type = obj.getType();
+            if(type == UResourceBundle.ARRAY){
+                UResourceBundle sub;
+                for(int i=0; i<size; i++){
+                    sub = obj.get(i);
+                    String temp =sub.getString();
+                    if(temp.length()==0){
+                        errln("Failed to get the items from NumberPatterns array in bundle: "+
+                                bundle.getULocale().getBaseName());
+                    }
                    // System.out.println("\""+prettify(temp)+"\"");
+                }
+
             }
         }
-        
         if(bundle==null){
             errln("could not create the resource bundle");
         }
@@ -581,12 +588,12 @@ public final class ICUResourceBundleTest extends TestFmwk {
     public void TestAlias(){
         logln("Testing %%ALIAS");
         UResourceBundle rb = (UResourceBundle) UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME,"iw_IL");
-        UResourceBundle b = rb.get("NumberElements");
+        UResourceBundle b = rb.get("NumberPatterns");
         if(b != null){
             if(b.getSize()>0){
                 logln("%%ALIAS mechanism works");
             }else{
-                errln("%%ALIAS mechanism failed for iw_IL NumberElements");
+                errln("%%ALIAS mechanism failed for iw_IL NumberPatterns");
             }
         }else{
             errln("%%ALIAS mechanism failed for iw_IL");

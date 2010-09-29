@@ -1,6 +1,6 @@
 <!--
 *******************************************************************************
-* Copyright (C) 2009-2010, International Business Machines Corporation and    *
+* Copyright (C) 2009, International Business Machines Corporation and         *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 -->
@@ -12,10 +12,9 @@
     <path id="javac.classpathref">
         <path refid="javac.classpathref.${ant.project.name}"/>
     </path>
-    <property name="jar.name" value="icu4j-${ant.project.name}.jar"/>
-    <property name="src.jar.name" value="icu4j-${ant.project.name}-src.jar"/>
+    <property name="jar.file" value="${icu4j.core.jar}"/>
 
-    <target name="build" depends="compile, copy, jar, src-jar" description="Build the project"/>
+    <target name="build" depends="compile, copy, jar" description="Build the project"/>
 
     <target name="build-all" depends="@build-all" description="Build the project including all dependencies"/>
 
@@ -27,15 +26,13 @@
 
     <target name="jar" depends="compile, copy, @jar" description="Create the project's jar file"/>
 
-    <target name="src-jar" depends="@src-jar" description="Create the proeject's source jar file"/>
-
     <target name="copy-data" description="Extract pre-built ICU core data files and copy them to the project's binary directory">
         <unjar src="${icu4j.data.jar}" dest="${bin.dir}">
             <patternset>
                 <exclude name="**/coll/*"/>
                 <exclude name="**/curr/*"/>
                 <exclude name="**/*.cnv"/>
-                <exclude name="**/cnvalias.icu"/>
+                <exclude name="**/convalias.icu"/>
                 <exclude name="**/lang/*"/>
                 <exclude name="**/region/*"/>
                 <exclude name="**/translit/*"/>

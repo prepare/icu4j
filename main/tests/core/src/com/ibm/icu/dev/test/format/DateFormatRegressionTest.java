@@ -901,17 +901,17 @@ public class DateFormatRegressionTest extends com.ibm.icu.dev.test.TestFmwk {
         final PatternAndResult[] tests = {
             new PatternAndResult( "dd MMM yyyy GGG",   "02 Jul 2008 AD" ),
             new PatternAndResult( "dd MMM yyyy GGGGG", "02 Jul 2008 A" ),
-            new PatternAndResult( "e dd MMM yyyy",     "4 02 Jul 2008" ),
-            new PatternAndResult( "ee dd MMM yyyy",    "04 02 Jul 2008" ),
-            new PatternAndResult( "c dd MMM yyyy",     "4 02 Jul 2008" ),
-            new PatternAndResult( "cc dd MMM yyyy",    "4 02 Jul 2008" ),
+            new PatternAndResult( "e dd MMM yyyy",     "3 02 Jul 2008" ),
+            new PatternAndResult( "ee dd MMM yyyy",    "03 02 Jul 2008" ),
+            new PatternAndResult( "c dd MMM yyyy",     "3 02 Jul 2008" ),
+            new PatternAndResult( "cc dd MMM yyyy",    "3 02 Jul 2008" ),
             new PatternAndResult( "eee dd MMM yyyy",   "Wed 02 Jul 2008" ),
             new PatternAndResult( "EEE dd MMM yyyy",   "Wed 02 Jul 2008" ),
             new PatternAndResult( "EE dd MMM yyyy",    "Wed 02 Jul 2008" ),
             new PatternAndResult( "eeee dd MMM yyyy",  "Wednesday 02 Jul 2008" ),
             new PatternAndResult( "eeeee dd MMM yyyy", "W 02 Jul 2008" ),
-            new PatternAndResult( "e ww YYYY",         "4 27 2008" ),
-            new PatternAndResult( "c ww YYYY",         "4 27 2008" ),
+            new PatternAndResult( "e ww YYYY",         "3 27 2008" ),
+            new PatternAndResult( "c ww YYYY",         "3 27 2008" ),
         };
         ULocale loc = ULocale.ENGLISH;
         TimeZone tz = TimeZone.getTimeZone("America/Los_Angeles");
@@ -1019,9 +1019,10 @@ public class DateFormatRegressionTest extends com.ibm.icu.dev.test.TestFmwk {
             s = df.format(new Date(0)); /* 31/12/1969 */
             what = "ar_IQ, Japanese Calendar, getInstance";
             logln(what+ ": " + s);
-            first = s.charAt(0);
-            if(first<kArabicZero || first>(kArabicZero+9)) {
-                errln(what + " wrong  digit but got " + s + " (integer digit value " + new Integer((int)first).toString());
+            // Note: The default date pattern for Japanese calendar starts with era in CLDR 1.7
+            char last = s.charAt(s.length() - 1);
+            if(last<kArabicZero || last>(kArabicZero+9)) {
+                errln(what + " wrong  digit but got " + s + " (integer digit value " + new Integer((int)last).toString());
             }
         }
     }

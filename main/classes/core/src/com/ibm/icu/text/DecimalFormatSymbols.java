@@ -10,17 +10,14 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.text.ChoiceFormat;
-import java.util.Arrays;
+import java.util.Hashtable;
 import java.util.Locale;
-import java.util.MissingResourceException;
 
 import com.ibm.icu.impl.CurrencyData;
+import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.impl.CurrencyData.CurrencyDisplayInfo;
 import com.ibm.icu.impl.CurrencyData.CurrencyFormatInfo;
 import com.ibm.icu.impl.CurrencyData.CurrencySpacingInfo;
-import com.ibm.icu.impl.ICUCache;
-import com.ibm.icu.impl.ICUResourceBundle;
-import com.ibm.icu.impl.SimpleCache;
 import com.ibm.icu.util.Currency;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.UResourceBundle;
@@ -161,28 +158,7 @@ public class DecimalFormatSymbols implements Cloneable, Serializable {
      * @stable ICU 2.0
      */
     public char getZeroDigit() {
-        if ( digits != null ) {
-            return digits[0];
-        } else {
-            return zeroDigit;
-        }
-    }
-    /**
-     * Returns the array of characters used as digits, in order from 0 through 9
-     * @return The array
-     * @draft ICU 4.6
-     * @provisional This API might change or be removed in a future release.
-     */
-    public char[] getDigits() {
-        if ( digits != null ) {
-            return (char[])digits.clone();
-        } else {
-            char [] digitArray = new char[10];
-            for ( int i = 0 ; i < 10 ; i++ ) {
-                digitArray[i] = (char) (zeroDigit + i);
-            }
-            return digitArray;
-        }
+        return zeroDigit;
     }
 
     /**
@@ -191,16 +167,7 @@ public class DecimalFormatSymbols implements Cloneable, Serializable {
      * @stable ICU 2.0
      */
     public void setZeroDigit(char zeroDigit) {
-        if ( digits != null ) {
-            this.digits[0] = zeroDigit;
-            if (Character.digit(zeroDigit,10) == 0) {
-                for ( int i = 1 ; i < 10 ; i++ ) {
-                    this.digits[i] = (char)(zeroDigit+i);
-                }
-            }
-        } else {
-            this.zeroDigit = zeroDigit;
-        }
+        this.zeroDigit = zeroDigit;
     }
 
     /**
@@ -723,18 +690,8 @@ public class DecimalFormatSymbols implements Cloneable, Serializable {
                 return false;
             }
         }
-        
-        if ( other.digits == null ) {
-            for (int i = 0 ; i < 10 ; i++) {
-                if (digits[i] != other.zeroDigit + i) {
-                    return false;
-                }
-            }
-        } else if (!Arrays.equals(digits,other.digits)) {
-                    return false;
-        }
 
-        return (
+        return (zeroDigit == other.zeroDigit &&
         groupingSeparator == other.groupingSeparator &&
         decimalSeparator == other.decimalSeparator &&
         percent == other.percent &&
@@ -749,8 +706,7 @@ public class DecimalFormatSymbols implements Cloneable, Serializable {
         padEscape == other.padEscape &&
         plusSign == other.plusSign &&
         exponentSeparator.equals(other.exponentSeparator) &&
-        monetarySeparator == other.monetarySeparator &&
-        monetaryGroupingSeparator == other.monetaryGroupingSeparator);
+        monetarySeparator == other.monetarySeparator);
     }
 
     /**
@@ -758,7 +714,7 @@ public class DecimalFormatSymbols implements Cloneable, Serializable {
      * @stable ICU 2.0
      */
     public int hashCode() {
-            int result = digits[0];
+            int result = zeroDigit;
             result = result * 37 + groupingSeparator;
             result = result * 37 + decimalSeparator;
             return result;
@@ -773,38 +729,6 @@ public class DecimalFormatSymbols implements Cloneable, Serializable {
         this.requestedLocale = locale.toLocale();
         this.ulocale = locale;
 
-        String nsName;
-        // Attempt to set the zero digit based on the numbering system for the locale requested
-        NumberingSystem ns = NumberingSystem.getInstance(locale);
-        digits = new char[10];
-        if ( ns != null && ns.getRadix() == 10 && !ns.isAlgorithmic() &&
-             NumberingSystem.isValidDigitString(ns.getDescription())) {
-            String digitString = ns.getDescription();
-            digits[0] = digitString.charAt(0);
-            digits[1] = digitString.charAt(1);
-            digits[2] = digitString.charAt(2);
-            digits[3] = digitString.charAt(3);
-            digits[4] = digitString.charAt(4);
-            digits[5] = digitString.charAt(5);
-            digits[6] = digitString.charAt(6);
-            digits[7] = digitString.charAt(7);
-            digits[8] = digitString.charAt(8);
-            digits[9] = digitString.charAt(9);
-            nsName = ns.getName();
-        } else {
-            digits[0] = DecimalFormat.PATTERN_ZERO_DIGIT;
-            digits[1] = DecimalFormat.PATTERN_ONE_DIGIT;
-            digits[2] = DecimalFormat.PATTERN_TWO_DIGIT;
-            digits[3] = DecimalFormat.PATTERN_THREE_DIGIT;
-            digits[4] = DecimalFormat.PATTERN_FOUR_DIGIT;
-            digits[5] = DecimalFormat.PATTERN_FIVE_DIGIT;
-            digits[6] = DecimalFormat.PATTERN_SIX_DIGIT;
-            digits[7] = DecimalFormat.PATTERN_SEVEN_DIGIT;
-            digits[8] = DecimalFormat.PATTERN_EIGHT_DIGIT;
-            digits[9] = DecimalFormat.PATTERN_NINE_DIGIT;
-            nsName = "latn"; // Default numbering system
-        }
-
         /* try the cache first */
         String[][] data = cachedLocaleData.get(locale);
         String[] numberElements;
@@ -812,29 +736,7 @@ public class DecimalFormatSymbols implements Cloneable, Serializable {
             data = new String[1][];
             ICUResourceBundle rb = (ICUResourceBundle)UResourceBundle.
                 getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, locale);
-            boolean isLatn = nsName.equals("latn");
-            String baseKey = "NumberElements/" + nsName + "/symbols/";
-            String latnKey = "NumberElements/latn/symbols/";
-            String[] symbolKeys = { "decimal", "group", "list", "percentSign", "minusSign", "plusSign", "exponential", "perMille", "infinity", "nan", "currencyDecimal", "currencyGroup" };
-            String[] fallbackElements = { ".", ",", ";", "%", "-", "+", "E", "\u2030", "\u221e", "NaN", null, null };
-            String[] symbolsArray = new String[symbolKeys.length];
-            for ( int i = 0 ; i < symbolKeys.length; i++ ) {
-                try {
-                    symbolsArray[i] = rb.getStringWithFallback(baseKey+symbolKeys[i]);
-                } catch (MissingResourceException ex) {
-                    if (!isLatn) { // Fall back to latn numbering system for symbols if desired symbol isn't found.
-                        try {
-                            symbolsArray[i] = rb.getStringWithFallback(latnKey+symbolKeys[i]);
-                        } catch (MissingResourceException ex1) {
-                            symbolsArray[i] = fallbackElements[i];
-                        }
-                    } else {
-                        symbolsArray[i] = fallbackElements[i];
-                    }
-                }
-            }
-
-            data[0] = symbolsArray;
+            data[0] = rb.getStringArray("NumberElements");
             /* update cache */
             cachedLocaleData.put(locale, data);
         }
@@ -847,34 +749,28 @@ public class DecimalFormatSymbols implements Cloneable, Serializable {
         ULocale uloc = r.getULocale();
         setLocale(uloc, uloc);
 
-
         decimalSeparator = numberElements[0].charAt(0);
         groupingSeparator = numberElements[1].charAt(0);
         patternSeparator = numberElements[2].charAt(0);
         percent = numberElements[3].charAt(0);
-        minusSign = numberElements[4].charAt(0);
-        plusSign  =numberElements[5].charAt(0);
-        exponentSeparator = numberElements[6];
-        perMill = numberElements[7].charAt(0);
-        infinity = numberElements[8];
-        NaN = numberElements[9];
+        zeroDigit = numberElements[4].charAt(0); //different for Arabic,etc.
+        digit = numberElements[5].charAt(0);
+        minusSign = numberElements[6].charAt(0);
 
-        if ( numberElements[10] != null) {
-            monetarySeparator = numberElements[10].charAt(0);
-        } else {
-            monetarySeparator = decimalSeparator;
-        }
-        
-        if ( numberElements[11] != null) {
-            monetaryGroupingSeparator = numberElements[11].charAt(0);
-        } else {
-            monetaryGroupingSeparator = groupingSeparator;
-        }
-        
-        digit = DecimalFormat.PATTERN_DIGIT;  // Localized pattern character no longer in CLDR
+        exponentSeparator = numberElements[7];
+        perMill = numberElements[8].charAt(0);
+        infinity = numberElements[9];
+        NaN = numberElements[10];
+
+        plusSign  =numberElements[11].charAt(0);
         padEscape = DecimalFormat.PATTERN_PAD_ESCAPE;
         sigDigit  = DecimalFormat.PATTERN_SIGNIFICANT_DIGIT;
 
+        // Attempt to set the zero digit based on the numbering system for the locale requested
+        NumberingSystem ns = NumberingSystem.getInstance(locale);
+        if ( ns != null && ns.getRadix() == 10 && !ns.isAlgorithmic()) {
+            zeroDigit = ns.getDescription().charAt(0);
+        }
 
         CurrencyDisplayInfo info = CurrencyData.provider.getInstance(locale, true);
 
@@ -899,6 +795,8 @@ public class DecimalFormatSymbols implements Cloneable, Serializable {
 
 
         // Get currency pattern/separator overrides if they exist.
+        monetarySeparator = decimalSeparator;
+        monetaryGroupingSeparator = groupingSeparator;
         Currency curr = Currency.getInstance(locale);
         if (curr != null){
             CurrencyFormatInfo fmtInfo = info.getFormatInfo(curr.getCurrencyCode());
@@ -990,19 +888,12 @@ public class DecimalFormatSymbols implements Cloneable, Serializable {
     }
 
     /**
-     * Character used for zero.  This remains only for backward compatibility
-     * purposes.  The digits array below is now used to actively store the digits.
+     * Character used for zero.
      *
      * @serial
      * @see #getZeroDigit
      */
     private  char    zeroDigit;
-    
-    /**
-     * Array of characters used for the digits 0-9 in order.
-     *
-     */   
-    private  char    digits[];
 
     /**
      * Character used for thousands separator.
@@ -1201,8 +1092,8 @@ public class DecimalFormatSymbols implements Cloneable, Serializable {
     /**
      * cache to hold the NumberElements of a Locale.
      */
-    private static final ICUCache<ULocale, String[][]> cachedLocaleData =
-        new SimpleCache<ULocale, String[][]>();
+    private static final Hashtable<ULocale, String[][]> cachedLocaleData =
+        new Hashtable<ULocale, String[][]>(3);
 
     /**
      *

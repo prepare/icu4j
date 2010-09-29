@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2003-2010, International Business Machines Corporation and    *
+ * Copyright (C) 2003-2009, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -132,7 +132,7 @@ public final class Punycode {
      * @param caseFlags The boolean array of case flags.
      * @return An array of ASCII code points.
      */
-    public static StringBuilder encode(CharSequence src, boolean[] caseFlags) throws StringPrepParseException{
+    public static StringBuffer encode(StringBuffer src, boolean[] caseFlags) throws StringPrepParseException{
         
         int[] cpBuffer = new int[MAX_CP_COUNT];
         int n, delta, handledCPCount, basicLength, destLength, bias, j, m, q, k, t, srcCPCount;
@@ -140,7 +140,7 @@ public final class Punycode {
         int srcLength = src.length();
         int destCapacity = MAX_CP_COUNT;
         char[] dest = new char[destCapacity];
-        StringBuilder result = new StringBuilder();
+        StringBuffer result = new StringBuffer();
         /*
          * Handle the basic code points and
          * convert extended ones to UTF-32 in cpBuffer (caseFlag in sign bit):
@@ -290,12 +290,12 @@ public final class Punycode {
      * 
      * @param src The source of the string buffer being passed.
      * @param caseFlags The array of boolean case flags.
-     * @return StringBuilder string.
+     * @return StringBuffer string.
      */
-    public static StringBuilder decode(CharSequence src, boolean[] caseFlags) 
+    public static StringBuffer decode(StringBuffer src, boolean[] caseFlags) 
                                throws StringPrepParseException{
         int srcLength = src.length();
-        StringBuilder result = new StringBuilder();
+        StringBuffer result = new StringBuffer();
         int n, destLength, i, bias, basicLength, j, in, oldi, w, k, digit, t,
                 destCPCount, firstSupplementaryIndex, cpLength;
         char b;

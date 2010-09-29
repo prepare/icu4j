@@ -16,7 +16,6 @@ import java.util.Set;
 
 import com.ibm.icu.impl.ICUDebug;
 import com.ibm.icu.impl.ICUResourceBundle;
-import com.ibm.icu.impl.Norm2AllModes;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.UResourceBundle;
 import com.ibm.icu.util.VersionInfo;
@@ -308,10 +307,6 @@ public abstract class Collator implements Comparator<Object>, Cloneable
             throw new IllegalArgumentException("Wrong decomposition mode.");
         }
         m_decomposition_ = decomposition;
-        if (decomposition != NO_DECOMPOSITION) {
-            // ensure the FCD data is initialized
-            Norm2AllModes.getFCDNormalizer2();
-        }
     }
 
     // public getters --------------------------------------------------------

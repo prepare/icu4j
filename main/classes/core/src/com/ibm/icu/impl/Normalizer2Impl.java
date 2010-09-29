@@ -340,9 +340,6 @@ public final class Normalizer2Impl {
          * @draft ICU 4.6
          */
         public static boolean equal(CharSequence s1,  CharSequence s2) {
-            if(s1==s2) {
-                return true;
-            }
             int length=s1.length();
             if(length!=s2.length()) {
                 return false;
@@ -371,9 +368,6 @@ public final class Normalizer2Impl {
             if((limit1-start1)!=(limit2-start2)) {
                 return false;
             }
-            if(s1==s2 && start1==start2) {
-                return true;
-            }
             while(start1<limit1) {
                 if(s1.charAt(start1++)!=s2.charAt(start2++)) {
                     return false;
@@ -385,19 +379,23 @@ public final class Normalizer2Impl {
 
     public Normalizer2Impl() {}
 
-    private static final class IsAcceptable implements ICUBinary.Authenticate {
+    private static final class Reader implements ICUBinary.Authenticate {
         // @Override when we switch to Java 6
         public boolean isDataVersionAcceptable(byte version[]) {
             return version[0]==1;
         }
+        public VersionInfo readHeader(InputStream data) throws IOException {
+            byte[] dataVersion=ICUBinary.readHeader(data, DATA_FORMAT, this);
+            return VersionInfo.getInstance(dataVersion[0], dataVersion[1],
+                                           dataVersion[2], dataVersion[3]);
+        }
+        private static final byte DATA_FORMAT[] = { 0x4e, 0x72, 0x6d, 0x32  };  // "Nrm2"
     }
-    private static final IsAcceptable IS_ACCEPTABLE = new IsAcceptable();
-    private static final byte DATA_FORMAT[] = { 0x4e, 0x72, 0x6d, 0x32  };  // "Nrm2"
-
+    private static final Reader READER=new Reader();
     public Normalizer2Impl load(InputStream data) {
         try {
             BufferedInputStream bis=new BufferedInputStream(data);
-            dataVersion=ICUBinary.readHeaderAndDataVersion(bis, DATA_FORMAT, IS_ACCEPTABLE);
+            dataVersion=READER.readHeader(bis);
             DataInputStream ds=new DataInputStream(bis);
             int indexesLength=ds.readInt()/4;  // inIndexes[IX_NORM_TRIE_OFFSET]/4
             if(indexesLength<=IX_MIN_MAYBE_YES) {
@@ -1675,7 +1673,7 @@ public final class Normalizer2Impl {
         } else {
             // trail character is 3400..10FFFF
             // result entry has 3 units
-            key1=COMP_1_TRAIL_LIMIT+(((trail>>COMP_1_TRAIL_SHIFT))&~COMP_1_TRIPLE);
+            key1=COMP_1_TRAIL_LIMIT+((trail>>COMP_1_TRAIL_SHIFT))&~COMP_1_TRIPLE;
             int key2=(trail<<COMP_2_TRAIL_SHIFT)&0xffff;
             int secondUnit;
             for(;;) {
@@ -1701,8 +1699,8 @@ public final class Normalizer2Impl {
         return -1;
     }
     /**
-     * @param list some character's compositions list
-     * @param set recursively receives the composites from these compositions
+     * @param c Character which has compositions
+     * @param set recursively receives the composites from c's compositions
      */
     private void addComposites(int list, UnicodeSet set) {
         int firstUnit, compositeAndFwd;

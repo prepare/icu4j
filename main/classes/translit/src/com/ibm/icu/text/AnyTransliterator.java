@@ -8,15 +8,13 @@
 *****************************************************************
 */
 package com.ibm.icu.text;
-
-import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.MissingResourceException;
 import java.util.Set;
+import java.util.Vector;
 
 import com.ibm.icu.lang.UScript;
 /**
@@ -197,7 +195,7 @@ class AnyTransliterator extends Transliterator {
 
             if (t != null) {
                 if (!isWide(targetScript)) {
-                    List<Transliterator> v = new ArrayList<Transliterator>();
+                    Vector<Transliterator> v = new Vector<Transliterator>();
                     v.add(widthFix);
                     v.add(t);
                     t = new CompoundTransliterator(v);
