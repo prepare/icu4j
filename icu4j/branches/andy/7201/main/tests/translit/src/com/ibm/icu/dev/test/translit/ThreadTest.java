@@ -7,51 +7,59 @@
 package com.ibm.icu.dev.test.translit;
 
 import java.util.ArrayList;
-
 import com.ibm.icu.dev.test.TestFmwk;
 import com.ibm.icu.text.Transliterator;
 
-
+// Test for ICU Ticket #7201.  With threading bugs in RuleBasedTransliterator, this
+//   test would reliably crash.
 
 public class ThreadTest extends TestFmwk {
     public static void main(String[] args) throws Exception {
         new ThreadTest().run(args);
     }
     
-    private ArrayList<X> threads = new ArrayList<X>();
+    private ArrayList<Worker> threads = new ArrayList<Worker>();
+    private int iterationCount = 100000;
     
     public void TestThreads()  {
-        for (int i = 0; i < 1; i++) {
-            X thread = new X();
+        if (getInclusion() >= 9) {
+            // Exhaustive test.  Run longer.
+            iterationCount = 1000000;
+        }
+        
+        for (int i = 0; i < 8; i++) {
+            Worker thread = new Worker();
             threads.add(thread);
             thread.start();
-          }
-        for (X thread: threads) {
+        }
+        long expectedCount = 0;
+        for (Worker thread: threads) {
             try {
                 thread.join();
+                if (expectedCount == 0) {
+                    expectedCount = thread.count;
+                } else {
+                    if (expectedCount != thread.count) {
+                        errln("Threads gave differing results.");
+                    }
+                }
             } catch (InterruptedException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
+                errln(e.toString());
             }
         }
-
     }
     
     private static final String [] WORDS = {"edgar", "allen", "poe"};
    
-    
-    private static class X extends Thread {          
+    private class Worker extends Thread {   
+        public long count = 0;
         public void run() {
-            int charCount = 0;
-            System.out.println("charCount = " + charCount);
-            Transliterator tx = Transliterator.getInstance("Latin-Thai");
-        
-            for (int loop = 0; loop < 100000; loop++) {
+            Transliterator tx = Transliterator.getInstance("Latin-Thai");        
+            for (int loop = 0; loop < iterationCount; loop++) {
                 for (String s : WORDS) {
-                    charCount += tx.transliterate(s).length();
+                    count += tx.transliterate(s).length();
                 }                
             }
-            System.out.println("charCount = " + charCount);
         }
     }
 
