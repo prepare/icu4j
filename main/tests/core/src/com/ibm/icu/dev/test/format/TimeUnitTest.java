@@ -90,6 +90,92 @@ public class TimeUnitTest extends TestFmwk {
         formatParsing(format);
     }
 
+    public void TestGreek() {
+        String[] locales = {"el_GR", "el"};
+        final TimeUnit[] units = TimeUnit.values();
+        int[] styles = new int[] {TimeUnitFormat.FULL_NAME, TimeUnitFormat.ABBREVIATED_NAME};
+        int[] numbers = new int[] {1, 7};
+
+        String[] expected = {"1 \u03B4\u03B5\u03C5\u03C4\u03B5\u03C1\u03CC\u03BB\u03B5\u03C0\u03C4\u03BF",
+                             "1 \u03BB\u03B5\u03C0\u03C4\u03CC",
+                             "1 \u03CE\u03C1\u03B1",
+                             "1 \u03B7\u03BC\u03AD\u03C1\u03B1",
+                             "1 \u03B5\u03B2\u03B4\u03BF\u03BC\u03AC\u03B4\u03B1",
+                             "1 \u03BC\u03AE\u03BD\u03B1\u03C2",
+                             "1 \u03AD\u03C4\u03BF\u03C2",
+                             "1 \u03B4\u03B5\u03C5\u03C4\u03B5\u03C1\u03CC\u03BB\u03B5\u03C0\u03C4\u03BF",
+                             "1 \u03BB\u03B5\u03C0\u03C4\u03CC",
+                             "1 \u03CE\u03C1\u03B1",
+                             "1 \u03B7\u03BC\u03AD\u03C1\u03B1",
+                             "1 \u03B5\u03B2\u03B4\u03BF\u03BC\u03AC\u03B4\u03B1",
+                             "1 \u03BC\u03AE\u03BD\u03B1\u03C2",
+                             "1 \u03AD\u03C4\u03BF\u03C2",
+                             "7 \u03B4\u03B5\u03C5\u03C4\u03B5\u03C1\u03CC\u03BB\u03B5\u03C0\u03C4\u03B1",
+                             "7 \u03BB\u03B5\u03C0\u03C4\u03AC",
+                             "7 \u03CE\u03C1\u03B5\u03C2",
+                             "7 \u03B7\u03BC\u03AD\u03C1\u03B5\u03C2",
+                             "7 \u03B5\u03B2\u03B4\u03BF\u03BC\u03AC\u03B4\u03B5\u03C2",
+                             "7 \u03BC\u03AE\u03BD\u03B5\u03C2",
+                             "7 \u03AD\u03C4\u03B7",
+                             "7 \u03B4\u03B5\u03C5\u03C4\u03B5\u03C1\u03CC\u03BB\u03B5\u03C0\u03C4\u03B1",
+                             "7 \u03BB\u03B5\u03C0\u03C4\u03AC",
+                             "7 \u03CE\u03C1\u03B5\u03C2",
+                             "7 \u03B7\u03BC\u03AD\u03C1\u03B5\u03C2",
+                             "7 \u03B5\u03B2\u03B4\u03BF\u03BC\u03AC\u03B4\u03B5\u03C2",
+                             "7 \u03BC\u03AE\u03BD\u03B5\u03C2",
+                             "7 \u03AD\u03C4\u03B7",
+                             "1 \u03B4\u03B5\u03C5\u03C4\u03B5\u03C1\u03CC\u03BB\u03B5\u03C0\u03C4\u03BF",
+                             "1 \u03BB\u03B5\u03C0\u03C4\u03CC",
+                             "1 \u03CE\u03C1\u03B1",
+                             "1 \u03B7\u03BC\u03AD\u03C1\u03B1",
+                             "1 \u03B5\u03B2\u03B4\u03BF\u03BC\u03AC\u03B4\u03B1",
+                             "1 \u03BC\u03AE\u03BD\u03B1\u03C2",
+                             "1 \u03AD\u03C4\u03BF\u03C2",
+                             "1 \u03B4\u03B5\u03C5\u03C4\u03B5\u03C1\u03CC\u03BB\u03B5\u03C0\u03C4\u03BF",
+                             "1 \u03BB\u03B5\u03C0\u03C4\u03CC",
+                             "1 \u03CE\u03C1\u03B1",
+                             "1 \u03B7\u03BC\u03AD\u03C1\u03B1",
+                             "1 \u03B5\u03B2\u03B4\u03BF\u03BC\u03AC\u03B4\u03B1",
+                             "1 \u03BC\u03AE\u03BD\u03B1\u03C2",
+                             "1 \u03AD\u03C4\u03BF\u03C2",
+                             "7 \u03B4\u03B5\u03C5\u03C4\u03B5\u03C1\u03CC\u03BB\u03B5\u03C0\u03C4\u03B1",
+                             "7 \u03BB\u03B5\u03C0\u03C4\u03AC",
+                             "7 \u03CE\u03C1\u03B5\u03C2",
+                             "7 \u03B7\u03BC\u03AD\u03C1\u03B5\u03C2",
+                             "7 \u03B5\u03B2\u03B4\u03BF\u03BC\u03AC\u03B4\u03B5\u03C2",
+                             "7 \u03BC\u03AE\u03BD\u03B5\u03C2",
+                             "7 \u03AD\u03C4\u03B7",
+                             "7 \u03B4\u03B5\u03C5\u03C4\u03B5\u03C1\u03CC\u03BB\u03B5\u03C0\u03C4\u03B1",
+                             "7 \u03BB\u03B5\u03C0\u03C4\u03AC",
+                             "7 \u03CE\u03C1\u03B5\u03C2",
+                             "7 \u03B7\u03BC\u03AD\u03C1\u03B5\u03C2",
+                             "7 \u03B5\u03B2\u03B4\u03BF\u03BC\u03AC\u03B4\u03B5\u03C2",
+                             "7 \u03BC\u03AE\u03BD\u03B5\u03C2",
+                             "7 \u03AD\u03C4\u03B7"};
+
+        int counter = 0;
+        TimeUnitFormat timeUnitFormat;
+        TimeUnitAmount timeUnitAmount;
+        String formatted;
+
+        for ( int locIndex = 0; locIndex < locales.length; ++locIndex ) {
+            for( int numIndex = 0; numIndex < numbers.length; ++numIndex ) {
+                for ( int styleIndex = 0; styleIndex < styles.length; ++styleIndex ) {
+                    for ( int unitIndex = 0; unitIndex < units.length; ++unitIndex ) {
+
+                        timeUnitAmount = new TimeUnitAmount(numbers[numIndex], units[unitIndex]);
+                        timeUnitFormat = new TimeUnitFormat(new ULocale(locales[locIndex]), styles[styleIndex]);
+                        formatted = timeUnitFormat.format(timeUnitAmount);
+
+                        assertEquals("formatted time string is not expected, locale: " + locales[locIndex] +
+                                " style: " + styles[styleIndex] + " units: " + units[unitIndex], expected[counter], formatted);
+                        ++counter;
+                    }
+                }
+            }
+        }
+    }
+
     private void formatParsing(TimeUnitFormat format) {
         final TimeUnit[] values = TimeUnit.values();
         for (int j = 0; j < values.length; ++j) {
