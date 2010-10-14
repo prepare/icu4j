@@ -13,7 +13,7 @@ import com.ibm.icu.text.Transliterator;
 // Test for ICU Ticket #7201.  With threading bugs in RuleBasedTransliterator, this
 //   test would reliably crash.
 
-public class ThreadTest extends TestFmwk {
+public class ThreadTest extends TransliteratorTest {
     public static void main(String[] args) throws Exception {
         new ThreadTest().run(args);
     }

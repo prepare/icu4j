@@ -28,6 +28,7 @@ public class TestAll extends TestGroup {
                 "TransliteratorTest",
                 "RegexUtilitiesTest",
                 "UnicodeMapTest",
+                "ThreadTest"
         });
     }
 
