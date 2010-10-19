@@ -90,6 +90,12 @@ public class TimeUnitTest extends TestFmwk {
         formatParsing(format);
     }
 
+    /*
+     * @bug 7902
+     * This tests that requests for short unit names correctly fall back 
+     * to long unit names for a locale where the locale data does not 
+     * provide short unit names. As of CLDR 1.9, Greek is one such language.
+     */
     public void TestGreek() {
         String[] locales = {"el_GR", "el"};
         final TimeUnit[] units = TimeUnit.values();
