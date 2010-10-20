@@ -283,7 +283,9 @@ public final class ArabicShaping {
      */
     public static final int TASHKEEL_REPLACE_BY_TATWEEL = 0xC0000;
 
-    /** Bit mask for Tashkeel replacement with Space or Tatweel memory options. */
+    /** Bit mask for Tashkeel replacement with Space or Tatweel memory options. 
+     *  @stable ICU 4.2
+     */
     public static final int TASHKEEL_MASK  = 0xE0000;
     
     /* Space location Control options */ 
