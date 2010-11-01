@@ -21,7 +21,7 @@ public class ICUSResArray extends ResourceArray {
         }
         Object res = _resources[idx];
         if (res instanceof AuxiliaryResource) {
-            // TODO
+            res = ((AuxiliaryResource) res).getResource();
         }
         return res;
     }

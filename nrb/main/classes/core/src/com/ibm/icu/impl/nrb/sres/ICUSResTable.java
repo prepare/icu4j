@@ -24,7 +24,7 @@ public class ICUSResTable extends ResourceTable {
     protected Object handleGetObject(String key) {
         Object res = getKeyMap().get(key);
         if (res != null && res instanceof AuxiliaryResource) {
-            // TODO
+            res = ((AuxiliaryResource) res).getResource();
         }
         return res;
     }
@@ -41,7 +41,7 @@ public class ICUSResTable extends ResourceTable {
         }
         Object res = _resources[idx][1];
         if (res instanceof AuxiliaryResource) {
-            // TODO
+            res = ((AuxiliaryResource) res).getResource();
         }
         return res;
     }
