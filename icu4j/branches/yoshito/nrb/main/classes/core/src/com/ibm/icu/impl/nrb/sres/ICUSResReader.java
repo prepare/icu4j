@@ -3,8 +3,6 @@ package com.ibm.icu.impl.nrb.sres;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.Charset;
-import java.nio.charset.UnsupportedCharsetException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -19,8 +17,8 @@ public class ICUSResReader {
 
     private static ICUCache<String, List<String>> KEY_POOL_CACHE = new SimpleCache<String, List<String>>();
 
-    public static ResourceTable loadRootTable(String base, String name, ClassLoader loader) throws IOException {
-        String fullName = getFullName(base, name);
+    public static Object loadResource(String base, String name, Integer serial, ClassLoader loader) {
+        String fullName = getFullName(base, name, serial);
         InputStream is = ICUData.getStream(loader, fullName);
         if (is == null) {
             return null;
@@ -30,18 +28,16 @@ public class ICUSResReader {
         sharedKeys = localKeys = stringPool1 = stringPool2 = Collections.emptyList();
 
         BufferedInputStream resStream = new BufferedInputStream(is);
-
-        // TODO
-        int flag = readHeader(resStream);
-
-        // Check if this resource uses shared keys
-        if ((flag & ICUSResConstants.USE_SHARED_KEY_RESOURCE) != 0) {
-            sharedKeys = loadSharedKeys(base, loader);
-        }
-
-        ResourceTable rootTable = null;
-
+        Object res = null;
         try {
+            // TODO
+            int flag = readHeader(resStream);
+
+            // Check if this resource uses shared keys
+            if ((flag & ICUSResConstants.USE_SHARED_KEY_RESOURCE) != 0) {
+                sharedKeys = loadSharedKeys(base, loader);
+            }
+
             byte signature = (byte) resStream.read();
             if (signature == ICUSResConstants.KEY_POOL) {
                 localKeys = readStringsUTF8(resStream);
@@ -57,11 +53,8 @@ public class ICUSResReader {
             }
 
             if (signature == ICUSResConstants.RESOURCE_DATA) {
-                Object res = readResource(resStream, localKeys, sharedKeys, stringPool1, stringPool2);
-                if (!(res instanceof ResourceTable)) {
-                    throw new RuntimeException("Root resource is not a table");
-                }
-                rootTable = (ResourceTable)res;
+                BundleInfo bundleInfo = new BundleInfo(base, name, loader);
+                res = readResource(resStream, localKeys, sharedKeys, stringPool1, stringPool2, bundleInfo);
             }
 
             resStream.close();
@@ -70,12 +63,20 @@ public class ICUSResReader {
             e.printStackTrace();
         }
 
-        return rootTable;
+        return res;
+    }
+
+    public static ResourceTable loadTopTable(String base, String name, ClassLoader loader) {
+        Object res = loadResource(base, name, null, loader);
+        if (!(res instanceof ResourceTable)) {
+            throw new RuntimeException("Top resource is not a table");
+        }
+        return (ResourceTable) res;
     }
 
     private static List<String> loadSharedKeys(String base, ClassLoader loader) {
         List<String> sharedKeys = null;
-        String fullName = getFullName(base, "pool");
+        String fullName = getFullName(base, "pool", null);
 
         sharedKeys = KEY_POOL_CACHE.get(fullName);
         if (sharedKeys != null) {
@@ -120,79 +121,14 @@ public class ICUSResReader {
     }
 
     private static List<String> readStringsUTF8 (InputStream resStream) throws IOException {
-        // number of strings
-        int n = readVarWidthInt(resStream);
-        ArrayList<String> strings = new ArrayList<String>(n);
-
-        // read each string
-        byte[] buf = new byte[256];
-        char[] cbuf = new char[256];
-        for (int i = 0; i < n; i++) {
-            // length of a string
-            int len = readVarWidthInt(resStream);
-
-            if (len > buf.length) {
-                buf = new byte[len];
-            }
-
-            int readLen = 0;
-            while (readLen != len) {
-                int tmpLen = resStream.read(buf, readLen, len - readLen);
-                if (tmpLen == -1) {
-                    throw new RuntimeException("Premature bytes");
-                }
-                readLen += tmpLen;
-            }
-
-            // TODO
-            for (int j = 0; j < len; j++) {
-                cbuf[j] = (char) buf[j];
-            }
-            String str = new String(cbuf, 0, len);
-            strings.add(str);
-        }
-
-        return strings;
+        return readStrings(resStream, true);
     }
 
     private static List<String> readStringsUTF16BE (InputStream resStream) throws IOException {
-        // number of strings
-        int n = readVarWidthInt(resStream);
-        ArrayList<String> strings = new ArrayList<String>(n);
-
-        // read each string
-        byte[] buf = new byte[256];
-        char[] cbuf = new char[128];
-        for (int i = 0; i < n; i++) {
-            // length of a string
-            int len = readVarWidthInt(resStream);
-
-            if (len > buf.length) {
-                buf = new byte[len];
-                cbuf = new char[len / 2];
-            }
-
-            int readLen = 0;
-            while (readLen != len) {
-                int tmpLen = resStream.read(buf, readLen, len - readLen);
-                if (tmpLen == -1) {
-                    throw new RuntimeException("Premature bytes");
-                }
-                readLen += tmpLen;
-            }
-
-            for (int j = 0; j < len / 2 ; j++) {
-                cbuf[j] = (char) (buf[j * 2] << 8 | buf[j * 2 + 1]);
-            }
-
-            String str = new String(cbuf, 0, len / 2);
-            strings.add(str);
-        }
-
-        return strings;
+        return readStrings(resStream, false);
     }
 
-    private static List<String> readStrings (InputStream resStream, String encoding) throws IOException {
+    private static List<String> readStrings (InputStream resStream, boolean isUTF8) throws IOException {
         // number of strings
         int n = readVarWidthInt(resStream);
         ArrayList<String> strings = new ArrayList<String>(n);
@@ -216,7 +152,12 @@ public class ICUSResReader {
                 readLen += tmpLen;
             }
 
-            String str = new String(buf, 0, len, encoding);
+            String str;
+            if (isUTF8) {
+                str = UTF8ToString(buf, 0, len);
+            } else {
+                str = UTF16BEToString(buf, 0, len);
+            }
             strings.add(str);
         }
 
@@ -224,7 +165,7 @@ public class ICUSResReader {
     }
 
     private static Object readResource(InputStream resStream, List<String> localKeys, List<String> sharedKeys,
-            List<String> strings1, List<String> strings2) throws IOException {
+            List<String> strings1, List<String> strings2, BundleInfo bundleInfo) throws IOException {
         Object resObj = null;
 
         byte signature = (byte) resStream.read();
@@ -303,7 +244,7 @@ public class ICUSResReader {
             // resource array
             Object[] objs = new Object[n];
             for (int i = 0; i < n; i++) {
-                objs[i] = readResource(resStream, localKeys, sharedKeys, strings1, strings2);
+                objs[i] = readResource(resStream, localKeys, sharedKeys, strings1, strings2, bundleInfo);
             }
             resObj = new ICUSResArray(objs);
             break;
@@ -319,7 +260,7 @@ public class ICUSResReader {
                 // key
                 objs[i][0] = readString(resStream, localKeys, sharedKeys);
                 // resource
-                objs[i][1] = readResource(resStream, localKeys, sharedKeys, strings1, strings2);
+                objs[i][1] = readResource(resStream, localKeys, sharedKeys, strings1, strings2, bundleInfo);
             }
 
             resObj = new ICUSResTable(objs);
@@ -335,7 +276,7 @@ public class ICUSResReader {
         {
             // serial# of auxiliary resource
             int idx = readVarWidthInt(resStream);
-            resObj = new AuxiliaryResource(idx);
+            resObj = new AuxiliaryResource(bundleInfo, idx);
             break;
         }
         default:
@@ -345,29 +286,45 @@ public class ICUSResReader {
         return resObj;
     }
 
-    private static String getFullName(String base, String name) {
+    private static String getFullName(String base, String name, Integer serial) {
+        StringBuilder buf = new StringBuilder();
+
         if (base == null || base.length() == 0) {
             if (name.length() == 0) {
-                return "root.sres";
+                buf.append("root");
             } else {
-                return name + ".sres";
+                buf.append(name);
             }
         } else {
             if (base.indexOf('.') == -1) {
                 if (base.charAt(base.length() - 1) != '/') {
-                    return base + "/" + name + ".sres";
+                    buf.append(base);
+                    buf.append("/");
+                    buf.append(name);
                 } else {
-                    return base + name + ".sres";
+                    buf.append(base);
+                    buf.append(name);
                 }
             } else {
                 base = base.replace('.', '/');
                 if (name.length() == 0) {
-                    return base + ".sres";
+                    buf.append(base);
                 } else {
-                    return base + "_" + name + ".sres";
+                    buf.append(base);
+                    buf.append("_");
+                    buf.append(name);
                 }
             }
         }
+
+        if (serial != null) {
+            buf.append("$");
+            buf.append(serial);
+        }
+
+        buf.append(".sres");
+
+        return buf.toString();
     }
 
     private static int readVarWidthInt(InputStream resStream) throws IOException {
@@ -432,5 +389,181 @@ public class ICUSResReader {
             throw new RuntimeException("String index out of range - " + idx);
         }
         return str;
+    }
+
+    // Local UTF converters
+    // 4 to 5 times faster than the String constructor
+    private static final int ER = -1;
+    private static final int B1 = 0;
+    private static final int D2 = 1;
+    private static final int T2 = 2;
+    private static final int T3 = 3;
+    private static final int Q2 = 4;
+    private static final int Q3 = 5;
+    private static final int Q4 = 6;
+
+    public static String UTF8ToString(byte[] bytes, int start, int len) {
+        StringBuilder longBuf = null;
+        char[] cbuf = new char[32];
+        int charIdx = 0;
+        int state = B1;
+        int scalar;
+
+        for (int i = 0; i < len ; i++) {
+            byte b = bytes[start + i];
+            switch (state) {
+            case B1:
+                if ((b & 0x80) == 0) {
+                    cbuf[charIdx++] = (char) b;
+                } else if ((b & 0x20) == 0) {
+                    state = D2;
+                } else if ((b & 0x10) == 0) {
+                    state = T2;
+                } else if ((b & 0x08) == 0) {
+                    state = Q2;
+                } else {
+                    state = ER;
+                }
+                break;
+
+            case D2:
+                if ((b & 0x80) == 0) {
+                    state = ER;
+                } else {
+                    scalar = (bytes[start + i -1] & 0x1f) << 6
+                           | (bytes[start + i] & 0x3f);
+                    if (scalar >= 0x80) {
+                        cbuf[charIdx++] = (char) scalar;
+                        state = B1;
+                    } else {
+                        state = ER;
+                    }
+                }
+                break;
+
+            case T2:
+                if ((b & 0x80) == 0) {
+                    state = ER;
+                } else {
+                    state = T3;
+                }
+                break;
+
+            case T3:
+                if ((b & 0x80) == 0) {
+                    state = ER;
+                } else {
+                    scalar = (bytes[start + i - 2] & 0x0f) << 12
+                           | (bytes[start + i - 1] & 0x3f) << 6
+                           | (bytes[start + i] & 0x3f);
+                    if (scalar >= 0x0400) {
+                        cbuf[charIdx++] = (char) scalar;
+                        state = B1;
+                    } else {
+                        state = ER;
+                    }
+                }
+                break;
+
+            case Q2:
+                if ((b & 0x80) == 0) {
+                    state = ER;
+                } else {
+                    state = Q3;
+                }
+                break;
+
+            case Q3:
+                if ((b & 0x80) == 0) {
+                    state = ER;
+                } else {
+                    state = Q4;
+                }
+                break;
+
+            case Q4:
+                if ((b & 0x80) == 0) {
+                    state = ER;
+                } else {
+                    scalar = (bytes[start + i - 3] & 0x07) << 18
+                           | (bytes[start + i - 2] & 0x3f) << 12
+                           | (bytes[start + i - 1] & 0x3f) << 6
+                           | (bytes[start + i] & 0x3f);
+                    if (scalar >= 0x10000) {
+                        int utf16h = ((scalar >> 16) - 1) << 6 | (scalar & 0xffff) >> 10 | 0xd800;
+                        int utf16l = (scalar & 0x3ff) | 0xdc00;
+                        cbuf[charIdx++] = (char) utf16h;
+                        cbuf[charIdx++] = (char) utf16l;
+                        state = B1;
+                    } else {
+                        state = ER;
+                    }
+                }
+                break;
+
+            default:
+                state = ER;
+                break;
+            }
+
+            if (state == ER) {
+                break;
+            }
+
+            if (charIdx >= cbuf.length - 1) {
+                // write out characters
+                if (longBuf == null) {
+                    longBuf = new StringBuilder(charIdx + 10);
+                }
+                longBuf.append(cbuf, 0, charIdx);
+                charIdx = 0;
+            }
+        }
+
+        if (state != B1) {
+            return null;
+        }
+
+        if (longBuf == null) {
+            return new String(cbuf, 0, charIdx);
+        }
+
+        if (charIdx != 0) {
+            longBuf.append(cbuf, 0, charIdx);
+        }
+        return longBuf.toString();
+    }
+
+    private static String UTF16BEToString(byte[] bytes, int start, int len) {
+        StringBuilder buf = new StringBuilder(len / 2);
+        for (int i = 0; i < len / 2; i++) {
+            char c = (char) (bytes[start + i * 2] << 8 | bytes[start + i * 2 + 1]);
+            buf.append(c);
+        }
+        return buf.toString();
+    }
+
+    static class BundleInfo {
+        private String _base;
+        private String _name;
+        private ClassLoader _loader;
+
+        BundleInfo(String base, String name, ClassLoader loader) {
+            _base = base;
+            _name = name;
+            _loader = loader;
+        }
+
+        String getBase() {
+            return _base;
+        }
+
+        String getName() {
+            return _name;
+        }
+
+        ClassLoader getLoader() {
+            return _loader;
+        }
     }
 }
