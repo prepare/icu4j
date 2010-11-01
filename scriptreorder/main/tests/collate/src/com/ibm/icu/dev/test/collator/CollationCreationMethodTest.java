@@ -50,15 +50,22 @@ public class CollationCreationMethodTest extends TestFmwk
         RuleBasedCollator localeCollator;
         RuleBasedCollator ruleCollator;
 
-        for(z = 0; z < 60; z++)
+        //r.nextInt(locales.length);
+//        for(z = 0; z < 60; z++)
+        for (x = 0; x < locales.length; x++)
         {
-            x = r.nextInt(locales.length);
-
+//            x = r.nextInt(locales.length);
+//        	x = 0;
+        	
             try
             {
                 //this is making the assumption that the only type of collator that will be made is RBC
                 localeCollator = (RuleBasedCollator)Collator.getInstance(locales[x]);
                 ruleCollator = new RuleBasedCollator(localeCollator.getRules());
+                if (!localeCollator.equals(ruleCollator)) {                	
+                    warnln("ERROR: in creation of collator of " + locales[x].getDisplayName() + " locale");
+                    return;
+                }
                 logln("Rules are: " + localeCollator.getRules());
             } 
             catch (Exception e) 
@@ -66,19 +73,19 @@ public class CollationCreationMethodTest extends TestFmwk
                 warnln("ERROR: in creation of collator of " + locales[x].getDisplayName() + " locale");
                 return;
             }
-
+            
             //do it several times for each collator
-            int n = 3;
-            for(y = 0; y < n; y++)
-            {
-
-                randString1 = generateNewString(r);
-
-                key1 = localeCollator.getCollationKey(randString1);
-                key2 = ruleCollator.getCollationKey(randString1);
-               
-                report(locales[x].getDisplayName(), randString1, key1, key2);
-            }
+//            int n = 3;
+//            for(y = 0; y < n; y++)
+//            {
+//
+//                randString1 = generateNewString(r);
+//
+//                key1 = localeCollator.getCollationKey(randString1);
+//                key2 = ruleCollator.getCollationKey(randString1);
+//               
+//                report(locales[x].getDisplayName(), randString1, key1, key2);
+//            }
         }
     }
 
