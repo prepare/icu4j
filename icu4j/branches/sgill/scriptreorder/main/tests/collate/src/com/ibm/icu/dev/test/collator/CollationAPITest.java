@@ -1005,6 +1005,9 @@ public class CollationAPITest extends TestFmwk {
         set.applyPattern(inSet);
         
         if(!ref.containsAll(set)) {
+        	System.out.println();
+        	System.out.println(ref);
+        	System.out.println(inSet);
             err("Some stuff from "+inSet+" is not present in the set\n");            
         }
         

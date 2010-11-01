@@ -127,7 +127,7 @@ public final class ICUBinary
             || !Arrays.equals(dataFormatIDExpected, dataFormatID)
             || (authenticate != null 
                 && !authenticate.isDataVersionAcceptable(dataVersion))) {
-            throw new IOException(HEADER_AUTHENTICATION_FAILED_);
+            throw new IOException(HEADER_AUTHENTICATION_FAILED_ + " - Data Version = " + Integer.toHexString(dataVersion[0]) + Integer.toHexString(dataVersion[1]) + Integer.toHexString(dataVersion[2]) + Integer.toHexString(dataVersion[3]));
         }
         return unicodeVersion;
     }
