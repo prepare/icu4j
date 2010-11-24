@@ -19,14 +19,46 @@ package com.ibm.icu.impl;
 public final class ByteTrie {
     public ByteTrie(byte[] trieBytes, int offset) {
         bytes=trieBytes;
-        pos=root=offset;
-        remainingMatchLength=-1;
-        value=0;
+        pos=markedPos=root=offset;
+        remainingMatchLength=markedRemainingMatchLength=-1;
+        value=markedValue=0;
+        haveValue=markedHaveValue=false;
     }
 
+    /**
+     * Resets this trie (and its marked state) to its initial state.
+     */
     public ByteTrie reset() {
-        pos=root;
-        remainingMatchLength=-1;
+        pos=markedPos=root;
+        remainingMatchLength=markedRemainingMatchLength=-1;
+        haveValue=markedHaveValue=false;
+        return this;
+    }
+
+    /**
+     * Marks the state of this trie.
+     * @see resetToMark
+     */
+    ByteTrie mark() {
+        markedPos=pos;
+        markedRemainingMatchLength=remainingMatchLength;
+        markedValue=value;
+        markedHaveValue=haveValue;
+        return this;
+    }
+
+    /**
+     * Resets this trie to the state at the time mark() was last called.
+     * If mark() has not been called since the last reset()
+     * then this is equivalent to reset() itself.
+     * @see mark
+     * @see reset
+     */
+    ByteTrie resetToMark() {
+        pos=markedPos;
+        remainingMatchLength=markedRemainingMatchLength;
+        value=markedValue;
+        haveValue=markedHaveValue;
         return this;
     }
 
@@ -38,6 +70,7 @@ public final class ByteTrie {
         if(pos<0) {
             return false;
         }
+        haveValue=false;
         int length=remainingMatchLength;  // Actual remaining match length minus 1.
         if(length>=0) {
             // Remaining part of a linear-match node.
@@ -146,16 +179,19 @@ public final class ByteTrie {
      *         In this case, an immediately following call to getValue()
      *         returns the byte sequence's value.
      *         hasValue() is only defined if called from the initial state
-     *         or once immediately after next() returns true.
+     *         or immediately after next() returns true.
      */
     public boolean hasValue() {
         int node;
-        if(pos>=0 && remainingMatchLength<0 && (node=bytes[pos]&0xff)>=kMinValueLead) {
+        if(haveValue) {
+            return true;
+        } else if(pos>=0 && remainingMatchLength<0 && (node=bytes[pos]&0xff)>=kMinValueLead) {
             // Deliver value for the matching bytes.
             ++pos;
             if(readCompactInt(node)) {
                 stop();
             }
+            haveValue=false;
             return true;
         }
         return false;
@@ -334,4 +370,11 @@ public final class ByteTrie {
     private int remainingMatchLength;
     // Value for a match, after hasValue() returned true.
     private int value;
+    private boolean haveValue;
+
+    // mark() and resetToMark() variables
+    private int markedPos;
+    private int markedRemainingMatchLength;
+    private int markedValue;
+    private boolean markedHaveValue;
 };
