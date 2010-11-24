@@ -83,7 +83,7 @@ public final class ByteTrie {
                     assert(node>=kMinValueLead);
                     if(inByte==trieByte) {
                         if((node&kValueIsFinal)!=0) {
-                            // Leave the final value for contains() to read.
+                            // Leave the final value for hasValue() to read.
                         } else {
                             // Use the non-final value as the jump delta.
                             ++pos;
@@ -110,7 +110,7 @@ public final class ByteTrie {
                     if(length>0) {
                         node=bytes[pos]&0xff;
                         if((node&kValueIsFinal)!=0) {
-                            // Leave the final value for contains() to read.
+                            // Leave the final value for hasValue() to read.
                         } else {
                             // Use the non-final value as the jump delta.
                             ++pos;
@@ -145,8 +145,10 @@ public final class ByteTrie {
      * @return true if the trie contains the byte sequence so far.
      *         In this case, an immediately following call to getValue()
      *         returns the byte sequence's value.
+     *         hasValue() is only defined if called from the initial state
+     *         or once immediately after next() returns true.
      */
-    public boolean contains() {
+    public boolean hasValue() {
         int node;
         if(pos>=0 && remainingMatchLength<0 && (node=bytes[pos]&0xff)>=kMinValueLead) {
             // Deliver value for the matching bytes.
@@ -162,12 +164,12 @@ public final class ByteTrie {
     /**
      * Traverses the trie from the current state for this byte sequence,
      * calls next(b) for each byte b in the sequence,
-     * and calls contains() at the end.
+     * and calls hasValue() at the end.
      */
-    // public boolean containsNext(const char *s, int length);
+    // public boolean hasValue(const char *s, int length);
 
     /**
-     * Returns a byte sequence's value if called immediately after contains()
+     * Returns a byte sequence's value if called immediately after hasValue()
      * returned true. Otherwise undefined.
      */
     public int getValue() /*const*/ { return value; }
@@ -330,6 +332,6 @@ public final class ByteTrie {
     private int pos;
     // Remaining length of a linear-match node, minus 1. Negative if not in such a node.
     private int remainingMatchLength;
-    // Value for a match, after contains() returned true.
+    // Value for a match, after hasValue() returned true.
     private int value;
 };

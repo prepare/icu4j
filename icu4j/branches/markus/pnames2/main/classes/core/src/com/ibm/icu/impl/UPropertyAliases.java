@@ -215,7 +215,7 @@ public final class UPropertyAliases {
                 return false;
             }
         }
-        return trie.contains();
+        return trie.hasValue();
     }
 
     //----------------------------------------------------------------
