@@ -210,6 +210,47 @@ public final class ByteTrie {
      */
     public int getValue() /*const*/ { return value; }
 
+    /**
+     * Determines whether all byte sequences reachable from the current state
+     * map to the same value.
+     * Sets hasValue() to the return value of this function, and if there is
+     * a unique value, then a following getValue() will return that unique value.
+     *
+     * Aside from hasValue()/getValue(),
+     * after this function returns the trie will be in the same state as before.
+     *
+     * @return true if all byte sequences reachable from the current state
+     *         map to the same value.
+     */
+    boolean hasUniqueValue() {
+        if(pos<0) {
+            return false;
+        }
+        // Save state variables that will be modified, for restoring
+        // before we return.
+        // We will use pos to move through the trie,
+        // markedValue/markedHaveValue for the unique value,
+        // and value/haveValue for the latest value we find.
+        int originalPos=pos;
+        int originalMarkedValue=markedValue;
+        boolean originalMarkedHaveValue=markedHaveValue;
+        markedValue=value;
+        markedHaveValue=haveValue;
+
+        if(remainingMatchLength>=0) {
+            // Skip the rest of a pending linear-match node.
+            pos+=remainingMatchLength+1;
+        }
+        haveValue=findUniqueValue();
+        // If haveValue is true, then value is already set to the final value
+        // of the last-visited branch.
+        // Restore original state, except for value/haveValue.
+        pos=originalPos;
+        markedValue=originalMarkedValue;
+        markedHaveValue=originalMarkedHaveValue;
+        return haveValue;
+    }
+
     // TODO: For startsWith() functionality, add
     //   boolean getRemainder(ByteSink *remainingBytes, &value);
     // Returns true if exactly one byte sequence can be reached from the current iterator state.
@@ -278,6 +319,96 @@ public final class ByteTrie {
         }
         pos+=bytesPerValue+1;
         return fixedInt;
+    }
+
+    // Helper functions for hasUniqueValue().
+    // Compare the latest value with the previous one, or save the latest one.
+    boolean isUniqueValue() {
+        if(markedHaveValue) {
+            if(value!=markedValue) {
+                return false;
+            }
+        } else {
+            markedValue=value;
+            markedHaveValue=true;
+        }
+        return true;
+    }
+    // Recurse into a branch edge and return to the current position.
+    boolean findUniqueValueAt(int delta) {
+        int currentPos=pos;
+        pos+=delta;
+        if(!findUniqueValue()) {
+            return false;
+        }
+        pos=currentPos;
+        return true;
+    }
+    // Handle a branch node entry (final value or jump delta).
+    boolean findUniqueValueFromBranchEntry() {
+        int node=bytes[pos++]&0xff;
+        assert(node>=kMinValueLead);
+        if(readCompactInt(node)) {
+            // Final value directly in the branch entry.
+            if(!isUniqueValue()) {
+                return false;
+            }
+        } else {
+            // Use the non-final value as the jump delta.
+            if(!findUniqueValueAt(value)) {
+                return false;
+            }
+        }
+        return true;
+    }
+    // Recursively find a unique value (or whether there is not a unique one)
+    // starting from a position on a node lead unit.
+    boolean findUniqueValue() {
+        for(;;) {
+            int node=bytes[pos++]&0xff;
+            if(node>=kMinValueLead) {
+                boolean isFinal=readCompactInt(node);
+                if(!isUniqueValue()) {
+                    return false;
+                }
+                if(isFinal) {
+                    return true;
+                }
+                node=bytes[pos++]&0xff;
+                assert(node<kMinValueLead);
+            }
+            if(node<kMinLinearMatch) {
+                while(node<kMinListBranch) {
+                    // three-way-branch node
+                    ++pos;  // ignore the comparison byte
+                    // less-than branch
+                    int delta=readFixedInt(node);
+                    if(!findUniqueValueAt(delta)) {
+                        return false;
+                    }
+                    // equals branch
+                    if(!findUniqueValueFromBranchEntry()) {
+                        return false;
+                    }
+                    // greater-than branch
+                    node=bytes[pos++]&0xff;
+                    assert(node<kMinLinearMatch);
+                }
+                // list-branch node
+                int length=node-(kMinListBranch-1);  // Actual list length minus 1.
+                do {
+                    ++pos;  // ignore a comparison byte
+                    // handle its value
+                    if(!findUniqueValueFromBranchEntry()) {
+                        return false;
+                    }
+                } while(--length>0);
+                ++pos;  // ignore the last comparison byte
+            } else {
+                // linear-match node
+                pos+=node-kMinLinearMatch+1;  // Ignore the match bytes.
+            }
+        }
     }
 
     // ByteTrie data structure
@@ -377,4 +508,9 @@ public final class ByteTrie {
     private int markedRemainingMatchLength;
     private int markedValue;
     private boolean markedHaveValue;
+    // Note: If it turns out that constructor and reset() are too slow because
+    // of the extra mark() variables, then we could move them out into
+    // a separate state object which is passed into mark() and resetToMark().
+    // Usage of those functions would be a little more clunky,
+    // especially in Java where the state object would have to be heap-allocated.
 };
