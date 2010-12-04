@@ -37,9 +37,9 @@ public final class ByteTrie {
 
     /**
      * Marks the state of this trie.
-     * @see resetToMark
+     * @see #resetToMark
      */
-    ByteTrie mark() {
+    public ByteTrie mark() {
         markedPos=pos;
         markedRemainingMatchLength=remainingMatchLength;
         markedValue=value;
@@ -51,15 +51,28 @@ public final class ByteTrie {
      * Resets this trie to the state at the time mark() was last called.
      * If mark() has not been called since the last reset()
      * then this is equivalent to reset() itself.
-     * @see mark
-     * @see reset
+     * @see #mark
+     * @see #reset
      */
-    ByteTrie resetToMark() {
+    public ByteTrie resetToMark() {
         pos=markedPos;
         remainingMatchLength=markedRemainingMatchLength;
         value=markedValue;
         haveValue=markedHaveValue;
         return this;
+    }
+
+    /**
+     * Tests whether some input byte can continue a matching byte sequence.
+     * In other words, this is true when next(b) for some byte would return true.
+     * @return true if some byte can continue a matching byte sequence.
+     */
+    public boolean hasNext() /*const*/ {
+        int node;
+        return pos>=0 &&  // more input, and
+            (remainingMatchLength>=0 ||  // more linear-match bytes or
+                // the next node is not a final-value node
+                (node=bytes[pos]&0xff)<kMinValueLead || (node&kValueIsFinal)==0);
     }
 
     /**
@@ -222,7 +235,7 @@ public final class ByteTrie {
      * @return true if all byte sequences reachable from the current state
      *         map to the same value.
      */
-    boolean hasUniqueValue() {
+    public boolean hasUniqueValue() {
         if(pos<0) {
             return false;
         }
@@ -323,7 +336,7 @@ public final class ByteTrie {
 
     // Helper functions for hasUniqueValue().
     // Compare the latest value with the previous one, or save the latest one.
-    boolean isUniqueValue() {
+    private boolean isUniqueValue() {
         if(markedHaveValue) {
             if(value!=markedValue) {
                 return false;
@@ -335,7 +348,7 @@ public final class ByteTrie {
         return true;
     }
     // Recurse into a branch edge and return to the current position.
-    boolean findUniqueValueAt(int delta) {
+    private boolean findUniqueValueAt(int delta) {
         int currentPos=pos;
         pos+=delta;
         if(!findUniqueValue()) {
@@ -345,7 +358,7 @@ public final class ByteTrie {
         return true;
     }
     // Handle a branch node entry (final value or jump delta).
-    boolean findUniqueValueFromBranchEntry() {
+    private boolean findUniqueValueFromBranchEntry() {
         int node=bytes[pos++]&0xff;
         assert(node>=kMinValueLead);
         if(readCompactInt(node)) {
@@ -363,7 +376,7 @@ public final class ByteTrie {
     }
     // Recursively find a unique value (or whether there is not a unique one)
     // starting from a position on a node lead unit.
-    boolean findUniqueValue() {
+    private boolean findUniqueValue() {
         for(;;) {
             int node=bytes[pos++]&0xff;
             if(node>=kMinValueLead) {
