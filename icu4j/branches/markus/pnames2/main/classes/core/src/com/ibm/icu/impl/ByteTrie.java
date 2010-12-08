@@ -132,11 +132,12 @@ public final class ByteTrie {
         ++pos;
         if(node<kMinLinearMatch) {
             // Branch according to the current byte.
-            while(node<kMinListBranch) {
+            while(node>=kMinThreeWayBranch) {
                 // Branching on a byte value,
                 // with a jump delta for less-than, a compact int for equals,
                 // and continuing for greater-than.
                 // The less-than and greater-than branches must lead to branch nodes again.
+                node-=kMinThreeWayBranch;
                 int trieByte=bytes[pos++]&0xff;
                 if(inByte<trieByte) {
                     int delta=readFixedInt(node);
@@ -166,7 +167,7 @@ public final class ByteTrie {
             // values are compact integers: either final values or jump deltas.
             // If the last key byte matches, just continue after it rather
             // than jumping.
-            length=node-(kMinListBranch-1);  // Actual list length minus 1.
+            length=node+1;  // Actual list length minus 1.
             for(;;) {
                 int trieByte=bytes[pos++]&0xff;
                 assert(length==0 || (bytes[pos]&0xff)>=kMinValueLead);
@@ -439,8 +440,9 @@ public final class ByteTrie {
                 assert(node<kMinValueLead);
             }
             if(node<kMinLinearMatch) {
-                while(node<kMinListBranch) {
+                while(node>=kMinThreeWayBranch) {
                     // three-way-branch node
+                    node-=kMinThreeWayBranch;
                     ++pos;  // ignore the comparison byte
                     // less-than branch
                     int delta=readFixedInt(node);
@@ -456,7 +458,7 @@ public final class ByteTrie {
                     assert(node<kMinLinearMatch);
                 }
                 // list-branch node
-                int length=node-(kMinListBranch-1);  // Actual list length minus 1.
+                int length=node+1;  // Actual list length minus 1.
                 do {
                     ++pos;  // ignore a comparison byte
                     // handle its value
@@ -478,8 +480,9 @@ public final class ByteTrie {
         int count=0;
         int node=bytes[pos++]&0xff;
         assert(node<kMinLinearMatch);
-        while(node<kMinListBranch) {
+        while(node>=kMinThreeWayBranch) {
             // three-way-branch node
+            node-=kMinThreeWayBranch;
             int trieByte=bytes[pos++]&0xff;
             // less-than branch
             int delta=readFixedInt(node);
@@ -498,7 +501,7 @@ public final class ByteTrie {
             assert(node<kMinLinearMatch);
         }
         // list-branch node
-        int length=node-(kMinListBranch-1);  // Actual list length minus 1.
+        int length=node+1;  // Actual list length minus 1.
         count+=length+1;
         do {
             append(out, bytes[pos++]&0xff);
@@ -541,20 +544,20 @@ public final class ByteTrie {
 
     // Node lead byte values.
 
-    // 0..3: Three-way-branch node with less/equal/greater outbound edges.
-    // The 2 lower bits indicate the length of the less-than "jump" (1..4 bytes).
-    // Followed by the comparison byte, the equals value (compact int) and
-    // continue reading the next node from there for the "greater" edge.
-
-    // 04..0b: Branch node with a list of 2..9 comparison bytes.
+    // 0..07: Branch node with a list of 2..9 comparison bytes.
     // Followed by the (key, value) pairs except that the last byte's value is omitted
     // (just continue reading the next node from there).
     // Values are compact ints: Final values or jump deltas.
-    private static final int kMinListBranch=4;
     private static final int kMaxListBranchLength=9;
 
+    // 08..0b: Three-way-branch node with less/equal/greater outbound edges.
+    // The 2 lower bits indicate the length of the less-than "jump" (1..4 bytes).
+    // Followed by the comparison byte, the equals value (compact int) and
+    // continue reading the next node from there for the "greater" edge.
+    private static final int kMinThreeWayBranch=kMaxListBranchLength-1;  // 8
+
     // 0c..1f: Linear-match node, match 1..24 bytes and continue reading the next node.
-    private static final int kMinLinearMatch=kMinListBranch+kMaxListBranchLength-1;  // 0xc
+    private static final int kMinLinearMatch=kMinThreeWayBranch+4;  // 0xc
     private static final int kMaxLinearMatchLength=20;
 
     // 20..ff: Variable-length value node.
