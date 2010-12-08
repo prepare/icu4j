@@ -21,46 +21,62 @@ import java.io.IOException;
 public final class ByteTrie {
     public ByteTrie(byte[] trieBytes, int offset) {
         bytes=trieBytes;
-        pos=markedPos=root=offset;
-        remainingMatchLength=markedRemainingMatchLength=-1;
-        value=markedValue=0;
-        haveValue=markedHaveValue=false;
+        pos=root=offset;
+        remainingMatchLength=-1;
+        value=uniqueValue=0;
+        haveValue=haveUniqueValue=false;
     }
 
     /**
-     * Resets this trie (and its marked state) to its initial state.
+     * Resets this trie to its initial state.
      */
     public ByteTrie reset() {
-        pos=markedPos=root;
-        remainingMatchLength=markedRemainingMatchLength=-1;
-        haveValue=markedHaveValue=false;
+        pos=root;
+        remainingMatchLength=-1;
+        haveValue=false;
         return this;
     }
 
     /**
-     * Marks the state of this trie.
-     * @see #resetToMark
+     * ByteTrie state object, for saving a trie's current state
+     * and resetting the trie back to this state later.
      */
-    public ByteTrie mark() {
-        markedPos=pos;
-        markedRemainingMatchLength=remainingMatchLength;
-        markedValue=value;
-        markedHaveValue=haveValue;
+    public static final class State {
+        public State() {}
+        private byte[] bytes;
+        private int pos;
+        private int remainingMatchLength;
+        private int value;
+        private boolean haveValue;
+    };
+
+    /**
+     * Saves the state of this trie.
+     * @see #resetToState
+     */
+    public ByteTrie saveState(State state) /*const*/ {
+        state.bytes=bytes;
+        state.pos=pos;
+        state.remainingMatchLength=remainingMatchLength;
+        state.value=value;
+        state.haveValue=haveValue;
         return this;
     }
 
     /**
-     * Resets this trie to the state at the time mark() was last called.
-     * If mark() has not been called since the last reset()
-     * then this is equivalent to reset() itself.
-     * @see #mark
+     * Resets this trie to the saved state.
+     * If the state object contains no state, or the state of a different trie,
+     * then this trie remains unchanged.
+     * @see #saveState
      * @see #reset
      */
-    public ByteTrie resetToMark() {
-        pos=markedPos;
-        remainingMatchLength=markedRemainingMatchLength;
-        value=markedValue;
-        haveValue=markedHaveValue;
+    public ByteTrie resetToState(State state) {
+        if(bytes==state.bytes && bytes!=null) {
+            pos=state.pos;
+            remainingMatchLength=state.remainingMatchLength;
+            value=state.value;
+            haveValue=state.haveValue;
+        }
         return this;
     }
 
@@ -241,16 +257,9 @@ public final class ByteTrie {
         if(pos<0) {
             return false;
         }
-        // Save state variables that will be modified, for restoring
-        // before we return.
-        // We will use pos to move through the trie,
-        // markedValue/markedHaveValue for the unique value,
-        // and value/haveValue for the latest value we find.
         int originalPos=pos;
-        int originalMarkedValue=markedValue;
-        boolean originalMarkedHaveValue=markedHaveValue;
-        markedValue=value;
-        markedHaveValue=haveValue;
+        uniqueValue=value;
+        haveUniqueValue=haveValue;
 
         if(remainingMatchLength>=0) {
             // Skip the rest of a pending linear-match node.
@@ -261,8 +270,6 @@ public final class ByteTrie {
         // of the last-visited branch.
         // Restore original state, except for value/haveValue.
         pos=originalPos;
-        markedValue=originalMarkedValue;
-        markedHaveValue=originalMarkedHaveValue;
         return haveValue;
     }
 
@@ -378,13 +385,13 @@ public final class ByteTrie {
     // Helper functions for hasUniqueValue().
     // Compare the latest value with the previous one, or save the latest one.
     private boolean isUniqueValue() {
-        if(markedHaveValue) {
-            if(value!=markedValue) {
+        if(haveUniqueValue) {
+            if(value!=uniqueValue) {
                 return false;
             }
         } else {
-            markedValue=value;
-            markedHaveValue=true;
+            uniqueValue=value;
+            haveUniqueValue=true;
         }
         return true;
     }
@@ -599,15 +606,7 @@ public final class ByteTrie {
     // Value for a match, after hasValue() returned true.
     private int value;
     private boolean haveValue;
-
-    // mark() and resetToMark() variables
-    private int markedPos;
-    private int markedRemainingMatchLength;
-    private int markedValue;
-    private boolean markedHaveValue;
-    // Note: If it turns out that constructor and reset() are too slow because
-    // of the extra mark() variables, then we could move them out into
-    // a separate state object which is passed into mark() and resetToMark().
-    // Usage of those functions would be a little more clunky,
-    // especially in Java where the state object would have to be heap-allocated.
+    // Unique value, only used in hasUniqueValue().
+    private int uniqueValue;
+    private boolean haveUniqueValue;
 };
