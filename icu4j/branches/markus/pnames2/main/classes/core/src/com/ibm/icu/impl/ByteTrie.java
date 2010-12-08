@@ -9,6 +9,8 @@
 */
 package com.ibm.icu.impl;
 
+import java.io.IOException;
+
 /**
  * Light-weight, non-const reader class for a ByteTrie.
  * Traverses a byte-serialized data structure with minimal state,
@@ -264,6 +266,45 @@ public final class ByteTrie {
         return haveValue;
     }
 
+    /**
+     * Finds each byte which continues the byte sequence from the current state.
+     * That is, each byte b for which next(b) would be TRUE now.
+     * After this function returns the trie will be in the same state as before.
+     * @param out Each next byte is 0-extended to a char and appended to this object.
+     *            (Only uses the out.append(c) method.)
+     * @return the number of bytes which continue the byte sequence from here
+     */
+    public int getNextBytes(Appendable out) {
+        if(pos<0) {
+            return 0;
+        }
+        if(remainingMatchLength>=0) {
+            append(out, bytes[pos]&0xff);  // Next byte of a pending linear-match node.
+            return 1;
+        }
+        int originalPos=pos;
+        int node=bytes[pos]&0xff;
+        if(node>=kMinValueLead) {
+            if((node&kValueIsFinal)!=0) {
+                return 0;
+            } else {
+                pos+=bytesPerLead[node>>1];
+                node=bytes[pos]&0xff;
+                assert(node<kMinValueLead);
+            }
+        }
+        int count;
+        if(node<kMinLinearMatch) {
+            count=getNextBranchBytes(out);
+        } else {
+            // First byte of the linear-match node.
+            append(out, bytes[pos+1]&0xff);
+            count=1;
+        }
+        pos=originalPos;
+        return count;
+    }
+
     // TODO: For startsWith() functionality, add
     //   boolean getRemainder(ByteSink *remainingBytes, &value);
     // Returns true if exactly one byte sequence can be reached from the current iterator state.
@@ -421,6 +462,49 @@ public final class ByteTrie {
                 // linear-match node
                 pos+=node-kMinLinearMatch+1;  // Ignore the match bytes.
             }
+        }
+    }
+
+    // Helper functions for getNextBytes().
+    // getNextBytes() when pos is on a branch node.
+    private int getNextBranchBytes(Appendable out) {
+        int count=0;
+        int node=bytes[pos++]&0xff;
+        assert(node<kMinLinearMatch);
+        while(node<kMinListBranch) {
+            // three-way-branch node
+            int trieByte=bytes[pos++]&0xff;
+            // less-than branch
+            int delta=readFixedInt(node);
+            int currentPos=pos;
+            pos+=delta;
+            count+=getNextBranchBytes(out);
+            pos=currentPos;
+            // equals branch
+            append(out, trieByte);
+            ++count;
+            node=bytes[pos]&0xff;
+            assert(node>=kMinValueLead);
+            pos+=bytesPerLead[node>>1];
+            // greater-than branch
+            node=bytes[pos++]&0xff;
+            assert(node<kMinLinearMatch);
+        }
+        // list-branch node
+        int length=node-(kMinListBranch-1);  // Actual list length minus 1.
+        count+=length+1;
+        do {
+            append(out, bytes[pos++]&0xff);
+            pos+=bytesPerLead[(bytes[pos]&0xff)>>1];
+        } while(--length>0);
+        append(out, bytes[pos]&0xff);
+        return count;
+    }
+    private void append(Appendable out, int c) {
+        try {
+            out.append((char)c);
+        } catch(IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
