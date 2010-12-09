@@ -18,13 +18,22 @@ import java.io.IOException;
  *
  * @author Markus W. Scherer
  */
-public final class ByteTrie {
+public final class ByteTrie implements Cloneable {
     public ByteTrie(byte[] trieBytes, int offset) {
         bytes=trieBytes;
         pos=root=offset;
         remainingMatchLength=-1;
         value=uniqueValue=0;
         haveValue=haveUniqueValue=false;
+    }
+
+    /**
+     * Clones this trie and its state.
+     * @return a clone of this trie
+     */
+    @Override
+    public Object clone() throws CloneNotSupportedException {
+        return super.clone();  // A shallow copy is just what we need.
     }
 
     /**
@@ -65,8 +74,8 @@ public final class ByteTrie {
 
     /**
      * Resets this trie to the saved state.
-     * If the state object contains no state, or the state of a different trie,
-     * then this trie remains unchanged.
+     * @throws IllegalArgumentException if the state object contains no state,
+     *         or the state of a different trie
      * @see #saveState
      * @see #reset
      */
@@ -76,6 +85,8 @@ public final class ByteTrie {
             remainingMatchLength=state.remainingMatchLength;
             value=state.value;
             haveValue=state.haveValue;
+        } else {
+            throw new IllegalArgumentException("incompatible trie state");
         }
         return this;
     }
@@ -312,12 +323,6 @@ public final class ByteTrie {
         pos=originalPos;
         return count;
     }
-
-    // TODO: For startsWith() functionality, add
-    //   boolean getRemainder(ByteSink *remainingBytes, &value);
-    // Returns true if exactly one byte sequence can be reached from the current iterator state.
-    // The remainingBytes sink will receive the remaining bytes of that one sequence.
-    // It might receive some bytes even when the function returns false.
 
     private void stop() {
         pos=-1;
