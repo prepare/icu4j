@@ -126,41 +126,43 @@ public final class ByteTrie implements Cloneable {
                 return false;
             }
         }
-        int node=bytes[pos]&0xff;
-        if(node>=kMinValueLead) {
-            if((node&kValueIsFinal)!=0) {
+        for(;;) {
+            int node=bytes[pos++]&0xff;
+            if(node<kMinLinearMatch) {
+                return branchNext(node, inByte);
+            } else if(node<kMinValueLead) {
+                // Match the first of length+1 bytes.
+                length=node-kMinLinearMatch;  // Actual match length minus 1.
+                if(inByte==(bytes[pos]&0xff)) {
+                    remainingMatchLength=length-1;
+                    ++pos;
+                    return true;
+                } else {
+                    // No match.
+                    stop();
+                    return false;
+                }
+            } else if((node&kValueIsFinal)!=0) {
                 // No further matching bytes.
                 stop();
                 return false;
             } else {
                 // Skip intermediate value.
-                pos+=bytesPerLead[node>>1];
+                pos+=bytesPerLead[node>>1]-1;
                 // The next node must not also be a value node.
-                node=bytes[pos];
-                assert(0<=node && node<kMinValueLead);
-            }
-        }
-        ++pos;
-        if(node<kMinLinearMatch) {
-            return branchNext(node, inByte);
-        } else {
-            // Match the first of length+1 bytes.
-            length=node-kMinLinearMatch;  // Actual match length minus 1.
-            if(inByte==(bytes[pos]&0xff)) {
-                remainingMatchLength=length-1;
-                ++pos;
-                return true;
-            } else {
-                // No match.
-                stop();
-                return false;
+                assert((bytes[pos]&0xff)<kMinValueLead);
             }
         }
     }
 
     /**
      * Traverses the trie from the current state for this byte sequence.
-     * Equivalent to calling next(b) for each byte b in the sequence.
+     * Equivalent to
+     * <pre>
+     * for(each b in s)
+     *   if(!next(b)) return false;
+     * return true;
+     * </pre>
      * @return true if the byte sequence is empty, or if it continues a matching byte sequence.
      */
     // public boolean next(const char *s, int32_t length);
@@ -181,6 +183,9 @@ public final class ByteTrie implements Cloneable {
             ++pos;
             if(readCompactInt(node)) {
                 stop();
+            } else {
+                // The next node must not also be a value node.
+                assert((bytes[pos]&0xff)<kMinValueLead);
             }
             haveValue=false;
             return true;
@@ -304,24 +309,22 @@ public final class ByteTrie implements Cloneable {
 
     // Reads a fixed-width integer and post-increments pos.
     private int readFixedInt(int bytesPerValue) {
-        int fixedInt;
+        int fixedInt=(bytes[pos]&0xff);
         switch(bytesPerValue) {  // Actually number of bytes minus 1.
         case 0:
-            fixedInt=(bytes[pos]&0xff);
             break;
         case 1:
-            fixedInt=((bytes[pos]&0xff)<<8)|(bytes[pos+1]&0xff);
+            fixedInt=(fixedInt<<8)|(bytes[pos+1]&0xff);
             break;
         case 2:
-            fixedInt=((bytes[pos]&0xff)<<16)|((bytes[pos+1]&0xff)<<8)|(bytes[pos+2]&0xff);
+            fixedInt=(fixedInt<<16)|((bytes[pos+1]&0xff)<<8)|(bytes[pos+2]&0xff);
             break;
         case 3:
-            fixedInt=(bytes[pos]<<24)|((bytes[pos+1]&0xff)<<16)|((bytes[pos+2]&0xff)<<8)|(bytes[pos+3]&0xff);
+            fixedInt=(fixedInt<<24)|((bytes[pos+1]&0xff)<<16)|((bytes[pos+2]&0xff)<<8)|(bytes[pos+3]&0xff);
             break;
         default:
             ///CLOVER:OFF
             // unreachable
-            fixedInt=-1;
             break;
             ///CLOVER:ON
         }
@@ -438,17 +441,6 @@ public final class ByteTrie implements Cloneable {
     private boolean findUniqueValue() {
         for(;;) {
             int node=bytes[pos++]&0xff;
-            if(node>=kMinValueLead) {
-                boolean isFinal=readCompactInt(node);
-                if(!isUniqueValue()) {
-                    return false;
-                }
-                if(isFinal) {
-                    return true;
-                }
-                node=bytes[pos++]&0xff;
-                assert(node<kMinValueLead);
-            }
             if(node<kMinLinearMatch) {
                 while(node>=kMinThreeWayBranch) {
                     // three-way-branch node
@@ -477,9 +469,18 @@ public final class ByteTrie implements Cloneable {
                     }
                 } while(--length>0);
                 ++pos;  // ignore the last comparison byte
-            } else {
+            } else if(node<kMinValueLead) {
                 // linear-match node
                 pos+=node-kMinLinearMatch+1;  // Ignore the match bytes.
+            } else {
+                boolean isFinal=readCompactInt(node);
+                if(!isUniqueValue()) {
+                    return false;
+                }
+                if(isFinal) {
+                    return true;
+                }
+                assert((bytes[pos]&0xff)<kMinValueLead);
             }
         }
     }
