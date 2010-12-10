@@ -142,66 +142,7 @@ public final class ByteTrie implements Cloneable {
         }
         ++pos;
         if(node<kMinLinearMatch) {
-            // Branch according to the current byte.
-            while(node>=kMinThreeWayBranch) {
-                // Branching on a byte value,
-                // with a jump delta for less-than, a compact int for equals,
-                // and continuing for greater-than.
-                // The less-than and greater-than branches must lead to branch nodes again.
-                node-=kMinThreeWayBranch;
-                int trieByte=bytes[pos++]&0xff;
-                if(inByte<trieByte) {
-                    int delta=readFixedInt(node);
-                    pos+=delta;
-                } else {
-                    pos+=node+1;  // Skip fixed-width integer.
-                    node=bytes[pos]&0xff;
-                    assert(node>=kMinValueLead);
-                    if(inByte==trieByte) {
-                        if((node&kValueIsFinal)!=0) {
-                            // Leave the final value for hasValue() to read.
-                        } else {
-                            // Use the non-final value as the jump delta.
-                            ++pos;
-                            readCompactInt(node);
-                            pos+=value;
-                        }
-                        return true;
-                    } else {  // inByte>trieByte
-                        pos+=bytesPerLead[node>>1];
-                    }
-                }
-                node=bytes[pos++];
-                assert(0<=node && node<kMinLinearMatch);
-            }
-            // Branch node with a list of key-value pairs where
-            // values are compact integers: either final values or jump deltas.
-            // If the last key byte matches, just continue after it rather
-            // than jumping.
-            length=node+1;  // Actual list length minus 1.
-            for(;;) {
-                int trieByte=bytes[pos++]&0xff;
-                assert(length==0 || (bytes[pos]&0xff)>=kMinValueLead);
-                if(inByte==trieByte) {
-                    if(length>0) {
-                        node=bytes[pos]&0xff;
-                        if((node&kValueIsFinal)!=0) {
-                            // Leave the final value for hasValue() to read.
-                        } else {
-                            // Use the non-final value as the jump delta.
-                            ++pos;
-                            readCompactInt(node);
-                            pos+=value;
-                        }
-                    }
-                    return true;
-                }
-                if(inByte<trieByte || length--==0) {
-                    stop();
-                    return false;
-                }
-                pos+=bytesPerLead[(bytes[pos]&0xff)>>1];
-            }
+            return branchNext(node, inByte);
         } else {
             // Match the first of length+1 bytes.
             length=node-kMinLinearMatch;  // Actual match length minus 1.
@@ -216,6 +157,13 @@ public final class ByteTrie implements Cloneable {
             }
         }
     }
+
+    /**
+     * Traverses the trie from the current state for this byte sequence.
+     * Equivalent to calling next(b) for each byte b in the sequence.
+     * @return true if the byte sequence is empty, or if it continues a matching byte sequence.
+     */
+    // public boolean next(const char *s, int32_t length);
 
     /**
      * @return true if the trie contains the byte sequence so far.
@@ -239,13 +187,6 @@ public final class ByteTrie implements Cloneable {
         }
         return false;
     }
-
-    /**
-     * Traverses the trie from the current state for this byte sequence,
-     * calls next(b) for each byte b in the sequence,
-     * and calls hasValue() at the end.
-     */
-    // public boolean hasValue(const char *s, int length);
 
     /**
      * Returns a byte sequence's value if called immediately after hasValue()
@@ -386,6 +327,70 @@ public final class ByteTrie implements Cloneable {
         }
         pos+=bytesPerValue+1;
         return fixedInt;
+    }
+
+    // Handles a branch node for both next(byte) and next(string).
+    private boolean branchNext(int node, int inByte) {
+        // Branch according to the current byte.
+        while(node>=kMinThreeWayBranch) {
+            // Branching on a byte value,
+            // with a jump delta for less-than, a compact int for equals,
+            // and continuing for greater-than.
+            // The less-than and greater-than branches must lead to branch nodes again.
+            node-=kMinThreeWayBranch;
+            int trieByte=bytes[pos++]&0xff;
+            if(inByte<trieByte) {
+                int delta=readFixedInt(node);
+                pos+=delta;
+            } else {
+                pos+=node+1;  // Skip fixed-width integer.
+                node=bytes[pos]&0xff;
+                assert(node>=kMinValueLead);
+                if(inByte==trieByte) {
+                    if((node&kValueIsFinal)!=0) {
+                        // Leave the final value for hasValue() to read.
+                    } else {
+                        // Use the non-final value as the jump delta.
+                        ++pos;
+                        readCompactInt(node);
+                        pos+=value;
+                    }
+                    return true;
+                } else {  // inByte>trieByte
+                    pos+=bytesPerLead[node>>1];
+                }
+            }
+            node=bytes[pos++];
+            assert(0<=node && node<kMinLinearMatch);
+        }
+        // Branch node with a list of key-value pairs where
+        // values are compact integers: either final values or jump deltas.
+        // If the last key byte matches, just continue after it rather
+        // than jumping.
+        int length=node+1;  // Actual list length minus 1.
+        for(;;) {
+            int trieByte=bytes[pos++]&0xff;
+            assert(length==0 || (bytes[pos]&0xff)>=kMinValueLead);
+            if(inByte==trieByte) {
+                if(length>0) {
+                    node=bytes[pos]&0xff;
+                    if((node&kValueIsFinal)!=0) {
+                        // Leave the final value for hasValue() to read.
+                    } else {
+                        // Use the non-final value as the jump delta.
+                        ++pos;
+                        readCompactInt(node);
+                        pos+=value;
+                    }
+                }
+                return true;
+            }
+            if(inByte<trieByte || length--==0) {
+                stop();
+                return false;
+            }
+            pos+=bytesPerLead[(bytes[pos]&0xff)>>1];
+        }
     }
 
     // Helper functions for hasUniqueValue().
