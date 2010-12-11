@@ -335,33 +335,17 @@ public final class ByteTrie implements Cloneable {
     // Handles a branch node for both next(byte) and next(string).
     private boolean branchNext(int node, int inByte) {
         // Branch according to the current byte.
-        while(node>=kMinThreeWayBranch) {
+        while(node>=kMinSplitBranch) {
             // Branching on a byte value,
-            // with a jump delta for less-than, a compact int for equals,
-            // and continuing for greater-than.
-            // The less-than and greater-than branches must lead to branch nodes again.
-            node-=kMinThreeWayBranch;
+            // with a jump delta for less-than, and continuing for greater-or-equal.
+            // Both edges must lead to branch nodes again.
+            node-=kMinSplitBranch;
             int trieByte=bytes[pos++]&0xff;
             if(inByte<trieByte) {
                 int delta=readFixedInt(node);
                 pos+=delta;
             } else {
                 pos+=node+1;  // Skip fixed-width integer.
-                node=bytes[pos]&0xff;
-                assert(node>=kMinValueLead);
-                if(inByte==trieByte) {
-                    if((node&kValueIsFinal)!=0) {
-                        // Leave the final value for hasValue() to read.
-                    } else {
-                        // Use the non-final value as the jump delta.
-                        ++pos;
-                        readCompactInt(node);
-                        pos+=value;
-                    }
-                    return true;
-                } else {  // inByte>trieByte
-                    pos+=bytesPerLead[node>>1];
-                }
             }
             node=bytes[pos++];
             assert(0<=node && node<kMinLinearMatch);
@@ -442,20 +426,16 @@ public final class ByteTrie implements Cloneable {
         for(;;) {
             int node=bytes[pos++]&0xff;
             if(node<kMinLinearMatch) {
-                while(node>=kMinThreeWayBranch) {
-                    // three-way-branch node
-                    node-=kMinThreeWayBranch;
+                while(node>=kMinSplitBranch) {
+                    // split-branch node
+                    node-=kMinSplitBranch;
                     ++pos;  // ignore the comparison byte
                     // less-than branch
                     int delta=readFixedInt(node);
                     if(!findUniqueValueAt(delta)) {
                         return false;
                     }
-                    // equals branch
-                    if(!findUniqueValueFromBranchEntry()) {
-                        return false;
-                    }
-                    // greater-than branch
+                    // greater-or-equal branch
                     node=bytes[pos++]&0xff;
                     assert(node<kMinLinearMatch);
                 }
@@ -491,23 +471,17 @@ public final class ByteTrie implements Cloneable {
         int count=0;
         int node=bytes[pos++]&0xff;
         assert(node<kMinLinearMatch);
-        while(node>=kMinThreeWayBranch) {
-            // three-way-branch node
-            node-=kMinThreeWayBranch;
-            int trieByte=bytes[pos++]&0xff;
+        while(node>=kMinSplitBranch) {
+            // split-branch node
+            node-=kMinSplitBranch;
+            ++pos;  // ignore the comparison byte
             // less-than branch
             int delta=readFixedInt(node);
             int currentPos=pos;
             pos+=delta;
             count+=getNextBranchBytes(out);
             pos=currentPos;
-            // equals branch
-            append(out, trieByte);
-            ++count;
-            node=bytes[pos]&0xff;
-            assert(node>=kMinValueLead);
-            pos+=bytesPerLead[node>>1];
-            // greater-than branch
+            // greater-or-equal branch
             node=bytes[pos++]&0xff;
             assert(node<kMinLinearMatch);
         }
@@ -548,10 +522,9 @@ public final class ByteTrie implements Cloneable {
     //        Instead of a jump, a final value may be stored.
     //        For the last byte listed there is no "jump" or value directly in
     //        the branch node: Instead, matching continues with the next node.
-    //    - Three-way-branch node: Compares the input byte with one included byte.
+    //    - Split-branch node: Compares the input byte with one included byte.
     //        If less-than, "jumps" to another node which is a branch node.
-    //        If equals, "jumps" to another node (any type) or stores a final value.
-    //        If greater-than, matching continues with the next node which is a branch node.
+    //        Otherwise, matching continues with the next node which is a branch node.
 
     // Node lead byte values.
 
@@ -561,14 +534,14 @@ public final class ByteTrie implements Cloneable {
     // Values are compact ints: Final values or jump deltas.
     private static final int kMaxListBranchLength=9;
 
-    // 08..0b: Three-way-branch node with less/equal/greater outbound edges.
+    // 08..0b: Split-branch node with less/greater-or-equal outbound edges.
     // The 2 lower bits indicate the length of the less-than "jump" (1..4 bytes).
-    // Followed by the comparison byte, the equals value (compact int) and
-    // continue reading the next node from there for the "greater" edge.
-    private static final int kMinThreeWayBranch=kMaxListBranchLength-1;  // 8
+    // Followed by the comparison byte, and
+    // continue reading the next node from there for the "greater-or-equal" edge.
+    private static final int kMinSplitBranch=kMaxListBranchLength-1;  // 8
 
     // 0c..1f: Linear-match node, match 1..24 bytes and continue reading the next node.
-    private static final int kMinLinearMatch=kMinThreeWayBranch+4;  // 0xc
+    private static final int kMinLinearMatch=kMinSplitBranch+4;  // 0xc
     private static final int kMaxLinearMatchLength=20;
 
     // 20..ff: Variable-length value node.
