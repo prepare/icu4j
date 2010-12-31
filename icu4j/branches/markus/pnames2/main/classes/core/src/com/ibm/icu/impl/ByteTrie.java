@@ -20,16 +20,15 @@ import java.io.IOException;
  */
 public final class ByteTrie implements Cloneable {
     public ByteTrie(byte[] trieBytes, int offset) {
-        bytes=trieBytes;
-        pos=root=offset;
-        remainingMatchLength=-1;
-        value=uniqueValue=0;
-        haveValue=haveUniqueValue=false;
+        bytes_=trieBytes;
+        pos_=root_=offset;
+        remainingMatchLength_=-1;
     }
 
     /**
-     * Clones this trie and its state.
-     * @return a clone of this trie
+     * Clones this trie reader object and its state,
+     * but not the byte array which will be shared.
+     * @return A shallow clone of this trie.
      */
     @Override
     public Object clone() throws CloneNotSupportedException {
@@ -40,9 +39,8 @@ public final class ByteTrie implements Cloneable {
      * Resets this trie to its initial state.
      */
     public ByteTrie reset() {
-        pos=root;
-        remainingMatchLength=-1;
-        haveValue=false;
+        pos_=root_;
+        remainingMatchLength_=-1;
         return this;
     }
 
@@ -55,8 +53,6 @@ public final class ByteTrie implements Cloneable {
         private byte[] bytes;
         private int pos;
         private int remainingMatchLength;
-        private int value;
-        private boolean haveValue;
     };
 
     /**
@@ -64,11 +60,9 @@ public final class ByteTrie implements Cloneable {
      * @see #resetToState
      */
     public ByteTrie saveState(State state) /*const*/ {
-        state.bytes=bytes;
-        state.pos=pos;
-        state.remainingMatchLength=remainingMatchLength;
-        state.value=value;
-        state.haveValue=haveValue;
+        state.bytes=bytes_;
+        state.pos=pos_;
+        state.remainingMatchLength=remainingMatchLength_;
         return this;
     }
 
@@ -80,11 +74,9 @@ public final class ByteTrie implements Cloneable {
      * @see #reset
      */
     public ByteTrie resetToState(State state) {
-        if(bytes==state.bytes && bytes!=null) {
-            pos=state.pos;
-            remainingMatchLength=state.remainingMatchLength;
-            value=state.value;
-            haveValue=state.haveValue;
+        if(bytes_==state.bytes && bytes_!=null) {
+            pos_=state.pos;
+            remainingMatchLength_=state.remainingMatchLength;
         } else {
             throw new IllegalArgumentException("incompatible trie state");
         }
@@ -92,410 +84,461 @@ public final class ByteTrie implements Cloneable {
     }
 
     /**
-     * Tests whether some input byte can continue a matching byte sequence.
-     * In other words, this is true when next(b) for some byte would return true.
-     * @return true if some byte can continue a matching byte sequence.
+     * Return values for ByteTrie.next(), UCharTrie.next() and similar methods.
      */
-    public boolean hasNext() /*const*/ {
-        int node;
-        return pos>=0 &&  // more input, and
-            (remainingMatchLength>=0 ||  // more linear-match bytes or
-                // the next node is not a final-value node
-                (node=bytes[pos]&0xff)<kMinValueLead || (node&kValueIsFinal)==0);
+    public enum Result {
+        /**
+         * The input unit(s) did not continue a matching string.
+         */
+        NO_MATCH,
+        /**
+         * The input unit(s) continued a matching string
+         * but there is no value for the string so far.
+         * (It is a prefix of a longer string.)
+         */
+        NO_VALUE,
+        /**
+         * The input unit(s) continued a matching string
+         * and there is a value for the string so far.
+         * This value will be returned by getValue().
+         * No further input byte/unit can continue a matching string.
+         */
+        HAS_FINAL_VALUE,
+        /**
+         * The input unit(s) continued a matching string
+         * and there is a value for the string so far.
+         * This value will be returned by getValue().
+         * Another input byte/unit can continue a matching string.
+         */
+        HAS_VALUE;
+
+        /**
+         * Same as (result!=NO_MATCH).
+         * @return true if the input bytes/units so far are part of a matching string/byte sequence.
+         */
+        public boolean matches() { return ordinal()!=0; }
+
+        /**
+         * Equivalent to (result==HAS_VALUE || result==HAS_FINAL_VALUE).
+         * @return true if there is a value for the input bytes/units so far.
+         * @see #getValue
+         */
+        public boolean hasValue() { return ordinal()>=2; }
+
+        /**
+         * Equivalent to (result==NO_VALUE || result==HAS_VALUE).
+         * @return true if another input byte/unit can continue a matching string.
+         */
+        public boolean hasNext() { return (ordinal()&1)!=0; }
+    }
+
+    /**
+     * Determines whether the byte sequence so far matches, whether it has a value,
+     * and whether another input byte can continue a matching byte sequence.
+     * @return The match/value Result.
+     */
+    public Result current() /*const*/ {
+        int pos=pos_;
+        if(pos<0) {
+            return Result.NO_MATCH;
+        } else {
+            int node;
+            return (remainingMatchLength_<0 && (node=bytes_[pos]&0xff)>=kMinValueLead) ?
+                    valueResults_[node&kValueIsFinal] : Result.NO_VALUE;
+        }
+    }
+
+    /**
+     * Traverses the trie from the initial state for this input byte.
+     * Equivalent to reset().next(inByte).
+     * @return The match/value Result.
+     */
+    public Result first(int inByte) {
+        remainingMatchLength_=-1;
+        return nextImpl(root_, inByte);
     }
 
     /**
      * Traverses the trie from the current state for this input byte.
-     * @return true if the byte continues a matching byte sequence.
+     * @return The match/value Result.
      */
-    public boolean next(int inByte) {
+    public Result next(int inByte) {
+        int pos=pos_;
         if(pos<0) {
-            return false;
+            return Result.NO_MATCH;
         }
-        haveValue=false;
-        int length=remainingMatchLength;  // Actual remaining match length minus 1.
+        int length=remainingMatchLength_;  // Actual remaining match length minus 1.
         if(length>=0) {
             // Remaining part of a linear-match node.
-            if(inByte==(bytes[pos]&0xff)) {
-                remainingMatchLength=length-1;
-                ++pos;
-                return true;
+            if(inByte==(bytes_[pos++]&0xff)) {
+                remainingMatchLength_=--length;
+                pos_=pos;
+                int node;
+                return (length<0 && (node=bytes_[pos]&0xff)>=kMinValueLead) ?
+                        valueResults_[node&kValueIsFinal] : Result.NO_VALUE;
             } else {
-                // No match.
                 stop();
-                return false;
+                return Result.NO_MATCH;
             }
         }
-        for(;;) {
-            int node=bytes[pos++]&0xff;
-            if(node<kMinLinearMatch) {
-                return branchNext(node, inByte);
-            } else if(node<kMinValueLead) {
-                // Match the first of length+1 bytes.
-                length=node-kMinLinearMatch;  // Actual match length minus 1.
-                if(inByte==(bytes[pos]&0xff)) {
-                    remainingMatchLength=length-1;
-                    ++pos;
-                    return true;
-                } else {
-                    // No match.
-                    stop();
-                    return false;
-                }
-            } else if((node&kValueIsFinal)!=0) {
-                // No further matching bytes.
-                stop();
-                return false;
-            } else {
-                // Skip intermediate value.
-                pos+=bytesPerLead[node>>1]-1;
-                // The next node must not also be a value node.
-                assert((bytes[pos]&0xff)<kMinValueLead);
-            }
-        }
+        return nextImpl(pos, inByte);
     }
 
     /**
      * Traverses the trie from the current state for this byte sequence.
      * Equivalent to
      * <pre>
-     * for(each b in s)
-     *   if(!next(b)) return false;
-     * return true;
+     * Result result=current();
+     * for(each c in s)
+     *   if((result=next(c))==Result.NO_MATCH) return Result.NO_MATCH;
+     * return result;
      * </pre>
-     * @return true if the byte sequence is empty, or if it continues a matching byte sequence.
+     * @return The match/value Result.
      */
-    // public boolean next(const char *s, int32_t length);
+    // public Result next(const char *s, int length);
 
     /**
-     * @return true if the trie contains the byte sequence so far.
-     *         In this case, an immediately following call to getValue()
-     *         returns the byte sequence's value.
-     *         hasValue() is only defined if called from the initial state
-     *         or immediately after next() returns true.
+     * Returns a matching byte sequence's value if called immediately after
+     * current()/first()/next() returned Result.HAS_VALUE or Result.HAS_FINAL_VALUE.
+     * getValue() can be called multiple times.
+     *
+     * Do not call getValue() after Result.NO_MATCH or Result.NO_VALUE!
      */
-    public boolean hasValue() {
-        int node;
-        if(haveValue) {
-            return true;
-        } else if(pos>=0 && remainingMatchLength<0 && (node=bytes[pos]&0xff)>=kMinValueLead) {
-            // Deliver value for the matching bytes.
-            ++pos;
-            if(readCompactInt(node)) {
-                stop();
-            } else {
-                // The next node must not also be a value node.
-                assert((bytes[pos]&0xff)<kMinValueLead);
-            }
-            haveValue=false;
-            return true;
-        }
-        return false;
+    public int getValue() /*const*/ {
+        int pos=pos_;
+        int leadByte=bytes_[pos++]&0xff;
+        assert(leadByte>=kMinValueLead);
+        return readValue(bytes_, pos, leadByte>>1);
     }
 
     /**
-     * Returns a byte sequence's value if called immediately after hasValue()
-     * returned true. Otherwise undefined.
-     */
-    public int getValue() /*const*/ { return value; }
-
-    /**
      * Determines whether all byte sequences reachable from the current state
-     * map to the same value.
-     * Sets hasValue() to the return value of this function, and if there is
-     * a unique value, then a following getValue() will return that unique value.
-     *
-     * Aside from hasValue()/getValue(),
-     * after this function returns the trie will be in the same state as before.
-     *
-     * @return true if all byte sequences reachable from the current state
-     *         map to the same value.
+     * map to the same value, and if so, returns that value.
+     * @return the unique value in bits 32..1 with bit 0 set,
+     *         if all byte sequences reachable from the current state
+     *         map to the same value; otherwise returns 0.
      */
-    public boolean hasUniqueValue() {
+    public long getUniqueValue() /*const*/ {
+        int pos=pos_;
         if(pos<0) {
-            return false;
+            return 0;
         }
-        int originalPos=pos;
-        uniqueValue=value;
-        haveUniqueValue=haveValue;
-
-        if(remainingMatchLength>=0) {
-            // Skip the rest of a pending linear-match node.
-            pos+=remainingMatchLength+1;
-        }
-        haveValue=findUniqueValue();
-        // If haveValue is true, then value is already set to the final value
-        // of the last-visited branch.
-        // Restore original state, except for value/haveValue.
-        pos=originalPos;
-        return haveValue;
+        // Skip the rest of a pending linear-match node.
+        long uniqueValue=findUniqueValue(bytes_, pos+remainingMatchLength_+1, 0);
+        // Ignore internally used bits 63..33; extend the actual value's sign bit from bit 32.
+        return (uniqueValue<<31)>>31;
     }
 
     /**
      * Finds each byte which continues the byte sequence from the current state.
-     * That is, each byte b for which next(b) would be TRUE now.
-     * After this function returns the trie will be in the same state as before.
+     * That is, each byte b for which it would be next(b)!=Result.NO_MATCH now.
      * @param out Each next byte is 0-extended to a char and appended to this object.
      *            (Only uses the out.append(c) method.)
      * @return the number of bytes which continue the byte sequence from here
      */
-    public int getNextBytes(Appendable out) {
+    public int getNextBytes(Appendable out) /*const*/ {
+        int pos=pos_;
         if(pos<0) {
             return 0;
         }
-        if(remainingMatchLength>=0) {
-            append(out, bytes[pos]&0xff);  // Next byte of a pending linear-match node.
+        if(remainingMatchLength_>=0) {
+            append(out, bytes_[pos]&0xff);  // Next byte of a pending linear-match node.
             return 1;
         }
-        int originalPos=pos;
-        int node=bytes[pos]&0xff;
+        int node=bytes_[pos++]&0xff;
         if(node>=kMinValueLead) {
             if((node&kValueIsFinal)!=0) {
                 return 0;
             } else {
-                pos+=bytesPerLead[node>>1];
-                node=bytes[pos]&0xff;
+                pos=skipValue(pos, node);
+                node=bytes_[pos++]&0xff;
                 assert(node<kMinValueLead);
             }
         }
-        int count;
         if(node<kMinLinearMatch) {
-            count=getNextBranchBytes(out);
+            if(node==0) {
+                node=bytes_[pos++]&0xff;
+            }
+            getNextBranchBytes(bytes_, pos, ++node, out);
+            return node;
         } else {
             // First byte of the linear-match node.
-            append(out, bytes[pos+1]&0xff);
-            count=1;
+            append(out, bytes_[pos]&0xff);
+            return 1;
         }
-        pos=originalPos;
-        return count;
     }
 
     private void stop() {
-        pos=-1;
+        pos_=-1;
     }
 
-    // Reads a compact 32-bit integer and post-increments pos.
-    // pos is already after the leadByte.
-    // Returns true if the integer is a final value.
-    private boolean readCompactInt(int leadByte) {
-        boolean isFinal= (leadByte&kValueIsFinal)!=0;
-        leadByte>>=1;
-        int numBytes=bytesPerLead[leadByte]-1;  // -1: lead byte was already consumed.
-        switch(numBytes) {
-        case 0:
-            value=leadByte-kMinOneByteLead;
-            break;
-        case 1:
-            value=((leadByte-kMinTwoByteLead)<<8)|(bytes[pos]&0xff);
-            break;
-        case 2:
-            value=((leadByte-kMinThreeByteLead)<<16)|((bytes[pos]&0xff)<<8)|(bytes[pos+1]&0xff);
-            break;
-        case 3:
+    // Reads a compact 32-bit integer.
+    // pos is already after the leadByte, and the lead byte is already shifted right by 1.
+    private static int readValue(byte[] bytes, int pos, int leadByte) {
+        int value;
+        if(leadByte<kMinTwoByteValueLead) {
+            value=leadByte-kMinOneByteValueLead;
+        } else if(leadByte<kMinThreeByteValueLead) {
+            value=((leadByte-kMinTwoByteValueLead)<<8)|(bytes[pos]&0xff);
+        } else if(leadByte<kFourByteValueLead) {
+            value=((leadByte-kMinThreeByteValueLead)<<16)|((bytes[pos]&0xff)<<8)|(bytes[pos+1]&0xff);
+        } else if(leadByte==kFourByteValueLead) {
             value=((bytes[pos]&0xff)<<16)|((bytes[pos+1]&0xff)<<8)|(bytes[pos+2]&0xff);
-            break;
-        case 4:
+        } else {
             value=(bytes[pos]<<24)|((bytes[pos+1]&0xff)<<16)|((bytes[pos+2]&0xff)<<8)|(bytes[pos+3]&0xff);
-            break;
         }
-        pos+=numBytes;
-        return isFinal;
+        return value;
     }
-    // pos is on the leadByte.
-    // private boolean readCompactInt() {
-    //     int leadByte=bytes[pos++]&0xff;
-    //     return readCompactInt(leadByte);
-    // }
+    private static int skipValue(int pos, int leadByte) {
+        assert(leadByte>=kMinValueLead);
+        if(leadByte>=(kMinTwoByteValueLead<<1)) {
+            if(leadByte<(kMinThreeByteValueLead<<1)) {
+                ++pos;
+            } else if(leadByte<(kFourByteValueLead<<1)) {
+                pos+=2;
+            } else {
+                pos+=3+((leadByte>>1)&1);
+            }
+        }
+        return pos;
+    }
+    private static int skipValue(byte[] bytes, int pos) {
+        int leadByte=bytes[pos++]&0xff;
+        return skipValue(pos, leadByte);
+    }
 
-    // Reads a fixed-width integer and post-increments pos.
-    private int readFixedInt(int bytesPerValue) {
-        int fixedInt=(bytes[pos]&0xff);
-        switch(bytesPerValue) {  // Actually number of bytes minus 1.
-        case 0:
-            break;
-        case 1:
-            fixedInt=(fixedInt<<8)|(bytes[pos+1]&0xff);
-            break;
-        case 2:
-            fixedInt=(fixedInt<<16)|((bytes[pos+1]&0xff)<<8)|(bytes[pos+2]&0xff);
-            break;
-        case 3:
-            fixedInt=(fixedInt<<24)|((bytes[pos+1]&0xff)<<16)|((bytes[pos+2]&0xff)<<8)|(bytes[pos+3]&0xff);
-            break;
-        default:
-            ///CLOVER:OFF
-            // unreachable
-            break;
-            ///CLOVER:ON
+    // Reads a jump delta and jumps.
+    private static int jumpByDelta(byte[] bytes, int pos) {
+        int delta=bytes[pos++]&0xff;
+        if(delta<kMinTwoByteDeltaLead) {
+            // nothing to do
+        } else if(delta<kMinThreeByteDeltaLead) {
+            delta=((delta-kMinTwoByteDeltaLead)<<8)|(bytes[pos++]&0xff);
+        } else if(delta<kFourByteDeltaLead) {
+            delta=((delta-kMinThreeByteDeltaLead)<<16)|((bytes[pos]&0xff)<<8)|(bytes[pos+1]&0xff);
+            pos+=2;
+        } else if(delta==kFourByteDeltaLead) {
+            delta=((bytes[pos]&0xff)<<16)|((bytes[pos+1]&0xff)<<8)|(bytes[pos+2]&0xff);
+            pos+=3;
+        } else {
+            delta=(bytes[pos]<<24)|((bytes[pos+1]&0xff)<<16)|((bytes[pos+2]&0xff)<<8)|(bytes[pos+3]&0xff);
+            pos+=4;
         }
-        pos+=bytesPerValue+1;
-        return fixedInt;
+        return pos+delta;
     }
+
+    private static int skipDelta(byte[] bytes, int pos) {
+        int delta=bytes[pos++]&0xff;
+        if(delta>=kMinTwoByteDeltaLead) {
+            if(delta<kMinThreeByteDeltaLead) {
+                ++pos;
+            } else if(delta<kFourByteDeltaLead) {
+                pos+=2;
+            } else {
+                pos+=3+(delta&1);
+            }
+        }
+        return pos;
+    }
+
+    private static Result[] valueResults_={ Result.HAS_VALUE, Result.HAS_FINAL_VALUE };
 
     // Handles a branch node for both next(byte) and next(string).
-    private boolean branchNext(int node, int inByte) {
+    private Result branchNext(int pos, int length, int inByte) {
         // Branch according to the current byte.
-        while(node>=kMinSplitBranch) {
-            // Branching on a byte value,
-            // with a jump delta for less-than, and continuing for greater-or-equal.
-            // Both edges must lead to branch nodes again.
-            node-=kMinSplitBranch;
-            int trieByte=bytes[pos++]&0xff;
-            if(inByte<trieByte) {
-                int delta=readFixedInt(node);
-                pos+=delta;
+        if(length==0) {
+            length=bytes_[pos++]&0xff;
+        }
+        ++length;
+        // The length of the branch is the number of bytes to select from.
+        // The data structure encodes a binary search.
+        while(length>kMaxBranchLinearSubNodeLength) {
+            if(inByte<(bytes_[pos++]&0xff)) {
+                length>>=1;
+                pos=jumpByDelta(bytes_, pos);
             } else {
-                pos+=node+1;  // Skip fixed-width integer.
+                length=length-(length>>1);
+                pos=skipDelta(bytes_, pos);
             }
-            node=bytes[pos++];
-            assert(0<=node && node<kMinLinearMatch);
         }
-        // Branch node with a list of key-value pairs where
-        // values are compact integers: either final values or jump deltas.
-        // If the last key byte matches, just continue after it rather
-        // than jumping.
-        int length=node+1;  // Actual list length minus 1.
-        for(;;) {
-            int trieByte=bytes[pos++]&0xff;
-            assert(length==0 || (bytes[pos]&0xff)>=kMinValueLead);
-            if(inByte==trieByte) {
-                if(length>0) {
-                    node=bytes[pos]&0xff;
-                    if((node&kValueIsFinal)!=0) {
-                        // Leave the final value for hasValue() to read.
+        // Drop down to linear search for the last few bytes.
+        // length>=2 because the loop body above sees length>kMaxBranchLinearSubNodeLength>=3
+        // and divides length by 2.
+        do {
+            if(inByte==(bytes_[pos++]&0xff)) {
+                Result result;
+                int node=bytes_[pos]&0xff;
+                assert(node>=kMinValueLead);
+                if((node&kValueIsFinal)!=0) {
+                    // Leave the final value for getValue() to read.
+                    result=Result.HAS_FINAL_VALUE;
+                } else {
+                    // Use the non-final value as the jump delta.
+                    ++pos;
+                    // int delta=readValue(pos, node>>1);
+                    node>>=1;
+                    int delta;
+                    if(node<kMinTwoByteValueLead) {
+                        delta=node-kMinOneByteValueLead;
+                    } else if(node<kMinThreeByteValueLead) {
+                        delta=((node-kMinTwoByteValueLead)<<8)|(bytes_[pos++]&0xff);
+                    } else if(node<kFourByteValueLead) {
+                        delta=((node-kMinThreeByteValueLead)<<16)|((bytes_[pos]&0xff)<<8)|(bytes_[pos+1]&0xff);
+                        pos+=2;
+                    } else if(node==kFourByteValueLead) {
+                        delta=((bytes_[pos]&0xff)<<16)|((bytes_[pos+1]&0xff)<<8)|(bytes_[pos+2]&0xff);
+                        pos+=3;
                     } else {
-                        // Use the non-final value as the jump delta.
-                        ++pos;
-                        readCompactInt(node);
-                        pos+=value;
+                        delta=(bytes_[pos]<<24)|((bytes_[pos+1]&0xff)<<16)|((bytes_[pos+2]&0xff)<<8)|(bytes_[pos+3]&0xff);
+                        pos+=4;
                     }
+                    // end readValue()
+                    pos+=delta;
+                    node=bytes_[pos]&0xff;
+                    result= node>=kMinValueLead ? valueResults_[node&kValueIsFinal] : Result.NO_VALUE;
                 }
-                return true;
+                pos_=pos;
+                return result;
             }
-            if(inByte<trieByte || length--==0) {
-                stop();
-                return false;
-            }
-            pos+=bytesPerLead[(bytes[pos]&0xff)>>1];
+            --length;
+            pos=skipValue(bytes_, pos);
+        } while(length>1);
+        if(inByte==(bytes_[pos++]&0xff)) {
+            pos_=pos;
+            int node=bytes_[pos]&0xff;
+            return node>=kMinValueLead ? valueResults_[node&kValueIsFinal] : Result.NO_VALUE;
+        } else {
+            stop();
+            return Result.NO_MATCH;
         }
+    }
+
+    // Requires remainingLength_<0.
+    private Result nextImpl(int pos, int inByte) {
+        for(;;) {
+            int node=bytes_[pos++]&0xff;
+            if(node<kMinLinearMatch) {
+                return branchNext(pos, node, inByte);
+            } else if(node<kMinValueLead) {
+                // Match the first of length+1 bytes.
+                int length=node-kMinLinearMatch;  // Actual match length minus 1.
+                if(inByte==(bytes_[pos++]&0xff)) {
+                    remainingMatchLength_=--length;
+                    pos_=pos;
+                    return (length<0 && (node=bytes_[pos]&0xff)>=kMinValueLead) ?
+                            valueResults_[node&kValueIsFinal] : Result.NO_VALUE;
+                } else {
+                    // No match.
+                    break;
+                }
+            } else if((node&kValueIsFinal)!=0) {
+                // No further matching bytes.
+                break;
+            } else {
+                // Skip intermediate value.
+                pos=skipValue(pos, node);
+                // The next node must not also be a value node.
+                assert((bytes_[pos]&0xff)<kMinValueLead);
+            }
+        }
+        stop();
+        return Result.NO_MATCH;
     }
 
     // Helper functions for hasUniqueValue().
-    // Compare the latest value with the previous one, or save the latest one.
-    private boolean isUniqueValue() {
-        if(haveUniqueValue) {
-            if(value!=uniqueValue) {
-                return false;
+    // Recursively finds a unique value (or whether there is not a unique one)
+    // from a branch.
+    // uniqueValue: On input, same as for getUniqueValue()/findUniqueValue().
+    // On return, if not 0, then bits 63..33 contain the updated non-negative pos.
+    private static long findUniqueValueFromBranch(byte[] bytes, int pos, int length,
+                                                  long uniqueValue) {
+        while(length>kMaxBranchLinearSubNodeLength) {
+            ++pos;  // ignore the comparison byte
+            uniqueValue=findUniqueValueFromBranch(bytes, jumpByDelta(bytes, pos), length>>1, uniqueValue);
+            if(uniqueValue==0) {
+                return 0;
             }
-        } else {
-            uniqueValue=value;
-            haveUniqueValue=true;
+            length=length-(length>>1);
+            pos=skipDelta(bytes, pos);
         }
-        return true;
-    }
-    // Recurse into a branch edge and return to the current position.
-    private boolean findUniqueValueAt(int delta) {
-        int currentPos=pos;
-        pos+=delta;
-        if(!findUniqueValue()) {
-            return false;
-        }
-        pos=currentPos;
-        return true;
-    }
-    // Handle a branch node entry (final value or jump delta).
-    private boolean findUniqueValueFromBranchEntry() {
-        int node=bytes[pos++]&0xff;
-        assert(node>=kMinValueLead);
-        if(readCompactInt(node)) {
-            // Final value directly in the branch entry.
-            if(!isUniqueValue()) {
-                return false;
+        do {
+            ++pos;  // ignore a comparison byte
+            // handle its value
+            int node=bytes[pos++]&0xff;
+            boolean isFinal=(node&kValueIsFinal)!=0;
+            int value=readValue(bytes, pos, node>>1);
+            pos=skipValue(pos, node);
+            if(isFinal) {
+                if(uniqueValue!=0) {
+                    if(value!=(int)(uniqueValue>>1)) {
+                        return 0;
+                    }
+                } else {
+                    uniqueValue=((long)value<<1)|1;
+                }
+            } else {
+                uniqueValue=findUniqueValue(bytes, pos+value, uniqueValue);
+                if(uniqueValue==0) {
+                    return 0;
+                }
             }
-        } else {
-            // Use the non-final value as the jump delta.
-            if(!findUniqueValueAt(value)) {
-                return false;
-            }
-        }
-        return true;
+        } while(--length>1);
+        // ignore the last comparison byte
+        return ((long)(pos+1)<<33)|(uniqueValue&0x1ffffffffL);
     }
-    // Recursively find a unique value (or whether there is not a unique one)
-    // starting from a position on a node lead unit.
-    private boolean findUniqueValue() {
+    // Recursively finds a unique value (or whether there is not a unique one)
+    // starting from a position on a node lead byte.
+    // uniqueValue: If there is one, then bits 32..1 contain the value and bit 0 is set.
+    // Otherwise, uniqueValue is 0. Bits 63..33 are ignored.
+    private static long findUniqueValue(byte[] bytes, int pos, long uniqueValue) {
         for(;;) {
             int node=bytes[pos++]&0xff;
             if(node<kMinLinearMatch) {
-                while(node>=kMinSplitBranch) {
-                    // split-branch node
-                    node-=kMinSplitBranch;
-                    ++pos;  // ignore the comparison byte
-                    // less-than branch
-                    int delta=readFixedInt(node);
-                    if(!findUniqueValueAt(delta)) {
-                        return false;
-                    }
-                    // greater-or-equal branch
+                if(node==0) {
                     node=bytes[pos++]&0xff;
-                    assert(node<kMinLinearMatch);
                 }
-                // list-branch node
-                int length=node+1;  // Actual list length minus 1.
-                do {
-                    ++pos;  // ignore a comparison byte
-                    // handle its value
-                    if(!findUniqueValueFromBranchEntry()) {
-                        return false;
-                    }
-                } while(--length>0);
-                ++pos;  // ignore the last comparison byte
+                uniqueValue=findUniqueValueFromBranch(bytes, pos, node+1, uniqueValue);
+                if(uniqueValue==0) {
+                    return 0;
+                }
+                pos=(int)(uniqueValue>>>33);
             } else if(node<kMinValueLead) {
                 // linear-match node
                 pos+=node-kMinLinearMatch+1;  // Ignore the match bytes.
             } else {
-                boolean isFinal=readCompactInt(node);
-                if(!isUniqueValue()) {
-                    return false;
+                boolean isFinal=(node&kValueIsFinal)!=0;
+                int value=readValue(bytes, pos, node>>1);
+                if(uniqueValue!=0) {
+                    if(value!=(int)(uniqueValue>>1)) {
+                        return 0;
+                    }
+                } else {
+                    uniqueValue=((long)value<<1)|1;
                 }
                 if(isFinal) {
-                    return true;
+                    return uniqueValue;
                 }
-                assert((bytes[pos]&0xff)<kMinValueLead);
+                pos=skipValue(pos, node);
             }
         }
     }
 
     // Helper functions for getNextBytes().
     // getNextBytes() when pos is on a branch node.
-    private int getNextBranchBytes(Appendable out) {
-        int count=0;
-        int node=bytes[pos++]&0xff;
-        assert(node<kMinLinearMatch);
-        while(node>=kMinSplitBranch) {
-            // split-branch node
-            node-=kMinSplitBranch;
+    private static void getNextBranchBytes(byte[] bytes, int pos, int length, Appendable out) {
+        while(length>kMaxBranchLinearSubNodeLength) {
             ++pos;  // ignore the comparison byte
-            // less-than branch
-            int delta=readFixedInt(node);
-            int currentPos=pos;
-            pos+=delta;
-            count+=getNextBranchBytes(out);
-            pos=currentPos;
-            // greater-or-equal branch
-            node=bytes[pos++]&0xff;
-            assert(node<kMinLinearMatch);
+            getNextBranchBytes(bytes, jumpByDelta(bytes, pos), length>>1, out);
+            length=length-(length>>1);
+            pos=skipDelta(bytes, pos);
         }
-        // list-branch node
-        int length=node+1;  // Actual list length minus 1.
-        count+=length+1;
         do {
             append(out, bytes[pos++]&0xff);
-            pos+=bytesPerLead[(bytes[pos]&0xff)>>1];
-        } while(--length>0);
+            pos=skipValue(bytes, pos);
+        } while(--length>1);
         append(out, bytes[pos]&0xff);
-        return count;
     }
-    private void append(Appendable out, int c) {
+    private static void append(Appendable out, int c) {
         try {
             out.append((char)c);
         } catch(IOException e) {
@@ -515,34 +558,38 @@ public final class ByteTrie implements Cloneable {
     // Node types:
     //  - Value node: Stores a 32-bit integer in a compact, variable-length format.
     //    The value is for the string/byte sequence so far.
+    //    One node bit indicates whether the value is final or whether
+    //    matching continues with the next node.
     //  - Linear-match node: Matches a number of bytes.
     //  - Branch node: Branches to other nodes according to the current input byte.
-    //    - List-branch node: If the input byte is in the list, a "jump"
-    //        leads to another node for further matching.
-    //        Instead of a jump, a final value may be stored.
-    //        For the last byte listed there is no "jump" or value directly in
-    //        the branch node: Instead, matching continues with the next node.
-    //    - Split-branch node: Compares the input byte with one included byte.
-    //        If less-than, "jumps" to another node which is a branch node.
-    //        Otherwise, matching continues with the next node which is a branch node.
+    //    The node byte is the length of the branch (number of bytes to select from)
+    //    minus 1. It is followed by a sub-node:
+    //    - If the length is at most kMaxBranchLinearSubNodeLength, then
+    //      there are length-1 (key, value) pairs and then one more comparison byte.
+    //      If one of the key bytes matches, then the value is either a final value for
+    //      the string/byte sequence so far, or a "jump" delta to the next node.
+    //      If the last byte matches, then matching continues with the next node.
+    //      (Values have the same encoding as value nodes.)
+    //    - If the length is greater than kMaxBranchLinearSubNodeLength, then
+    //      there is one byte and one "jump" delta.
+    //      If the input byte is less than the sub-node byte, then "jump" by delta to
+    //      the next sub-node which will have a length of length/2.
+    //      (The delta has its own compact encoding.)
+    //      Otherwise, skip the "jump" delta to the next sub-node
+    //      which will have a length of length-length/2.
 
     // Node lead byte values.
 
-    // 0..07: Branch node with a list of 2..9 comparison bytes.
-    // Followed by the (key, value) pairs except that the last byte's value is omitted
-    // (just continue reading the next node from there).
-    // Values are compact ints: Final values or jump deltas.
-    private static final int kMaxListBranchLength=9;
+    // 00..0f: Branch node. If node!=0 then the length is node+1, otherwise
+    // the length is one more than the next byte.
 
-    // 08..0b: Split-branch node with less/greater-or-equal outbound edges.
-    // The 2 lower bits indicate the length of the less-than "jump" (1..4 bytes).
-    // Followed by the comparison byte, and
-    // continue reading the next node from there for the "greater-or-equal" edge.
-    private static final int kMinSplitBranch=kMaxListBranchLength-1;  // 8
+    // For a branch sub-node with at most this many entries, we drop down
+    // to a linear search.
+    private static final int kMaxBranchLinearSubNodeLength=5;
 
-    // 0c..1f: Linear-match node, match 1..24 bytes and continue reading the next node.
-    private static final int kMinLinearMatch=kMinSplitBranch+4;  // 0xc
-    private static final int kMaxLinearMatchLength=20;
+    // 10..1f: Linear-match node, match 1..16 bytes and continue reading the next node.
+    private static final int kMinLinearMatch=0x10;
+    private static final int kMaxLinearMatchLength=0x10;
 
     // 20..ff: Variable-length value node.
     // If odd, the value is final. (Otherwise, intermediate value or jump delta.)
@@ -553,47 +600,39 @@ public final class ByteTrie implements Cloneable {
     // It is a final value if bit 0 is set.
     private static final int kValueIsFinal=1;
 
-    // Compact int: After testing bit 0, shift right by 1 and then use the following thresholds.
-    private static final int kMinOneByteLead=kMinValueLead/2;  // 0x10
+    // Compact value: After testing bit 0, shift right by 1 and then use the following thresholds.
+    private static final int kMinOneByteValueLead=kMinValueLead/2;  // 0x10
     private static final int kMaxOneByteValue=0x40;  // At least 6 bits in the first byte.
 
-    private static final int kMinTwoByteLead=kMinOneByteLead+kMaxOneByteValue+1;  // 0x51
+    private static final int kMinTwoByteValueLead=kMinOneByteValueLead+kMaxOneByteValue+1;  // 0x51
     private static final int kMaxTwoByteValue=0x1aff;
 
-    private static final int kMinThreeByteLead=kMinTwoByteLead+(kMaxTwoByteValue>>8)+1;  // 0x6c
-    // private static final int kFourByteLead=0x7e;
+    private static final int kMinThreeByteValueLead=kMinTwoByteValueLead+(kMaxTwoByteValue>>8)+1;  // 0x6c
+    private static final int kFourByteValueLead=0x7e;
 
-    // A little more than Unicode code points.
-    // private static final int kMaxThreeByteValue=((kFourByteLead-kMinThreeByteLead)<<16)-1;  // 0x11ffff;
+    // A little more than Unicode code points. (0x11ffff)
+    /*package*/ static final int kMaxThreeByteValue=((kFourByteValueLead-kMinThreeByteValueLead)<<16)-1;
 
-    // private static final int kFiveByteLead=0x7f;
+    /*package*/ static final int kFiveByteValueLead=0x7f;
 
-    // Map a shifted-right compact-int lead byte to its number of bytes.
-    private static final byte bytesPerLead[/*kFiveByteLead+1*/]={
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-        1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
-        2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3,
-        3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 5
-    };
+    // Compact delta integers.
+    private static final int kMaxOneByteDelta=0xbf;
+    private static final int kMinTwoByteDeltaLead=kMaxOneByteDelta+1;  // 0xc0
+    private static final int kMinThreeByteDeltaLead=0xf0;
+    private static final int kFourByteDeltaLead=0xfe;
+    /*package*/ static final int kFiveByteDeltaLead=0xff;
+
+    /*package*/ static final int kMaxTwoByteDelta=((kMinThreeByteDeltaLead-kMinTwoByteDeltaLead)<<8)-1;  // 0x2fff
+    /*package*/ static final int kMaxThreeByteDelta=((kFourByteDeltaLead-kMinThreeByteDeltaLead)<<16)-1;  // 0xdffff
 
     // Fixed value referencing the ByteTrie bytes.
-    private byte[] bytes;
-    private int root;
+    private byte[] bytes_;
+    private int root_;
 
     // Iterator variables.
 
-    // Pointer to next trie byte to read. NULL if no more matches.
-    private int pos;
+    // Index of next trie byte to read. Negative if no more matches.
+    private int pos_;
     // Remaining length of a linear-match node, minus 1. Negative if not in such a node.
-    private int remainingMatchLength;
-    // Value for a match, after hasValue() returned true.
-    private int value;
-    private boolean haveValue;
-    // Unique value, only used in hasUniqueValue().
-    private int uniqueValue;
-    private boolean haveUniqueValue;
+    private int remainingMatchLength_;
 };

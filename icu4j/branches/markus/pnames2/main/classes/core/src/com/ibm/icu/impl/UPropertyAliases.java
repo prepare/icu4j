@@ -204,18 +204,20 @@ public final class UPropertyAliases {
     }
 
     private boolean containsName(ByteTrie trie, CharSequence name) {
+        ByteTrie.Result result=ByteTrie.Result.NO_VALUE;
         for(int i=0; i<name.length(); ++i) {
+            if(!result.hasNext()) {
+                return false;
+            }
             int c=name.charAt(i);
             // Ignore delimiters '-', '_', and ASCII White_Space.
             if(c=='-' || c=='_' || c==' ' || (0x09<=c && c<=0x0d)) {
                 continue;
             }
             c=asciiToLowercase(c);
-            if(!trie.next(c)) {
-                return false;
-            }
+            result=trie.next(c);
         }
-        return trie.hasValue();
+        return result.hasValue();
     }
 
     //----------------------------------------------------------------
