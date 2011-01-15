@@ -7,15 +7,14 @@
 package com.ibm.icu.util;
 
 import java.io.Serializable;
-import java.lang.ref.SoftReference;
 import java.text.ParsePosition;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Vector;
 
 import com.ibm.icu.impl.ICUCache;
 import com.ibm.icu.impl.ICUDebug;
@@ -53,8 +52,8 @@ public class Currency extends MeasureUnit implements Serializable {
     private static final boolean DEBUG = ICUDebug.enabled("currency");
 
     // Cache to save currency name trie
-    private static ICUCache<ULocale, List<TextTrieMap<CurrencyStringInfo>>> CURRENCY_NAME_CACHE =
-        new SimpleCache<ULocale, List<TextTrieMap<CurrencyStringInfo>>>();
+    private static ICUCache<ULocale, Vector<TextTrieMap<CurrencyStringInfo>>> CURRENCY_NAME_CACHE =
+        new SimpleCache<ULocale, Vector<TextTrieMap<CurrencyStringInfo>>>();
 
     /**
      * ISO 4217 3-letter code.
@@ -208,25 +207,23 @@ public class Currency extends MeasureUnit implements Serializable {
         if (theISOCode == null) {
             throw new NullPointerException("The input currency code is null.");
         }
-        if (!isAlpha3Code(theISOCode)) {
+        boolean is3alpha = true;
+        if (theISOCode.length() != 3) {
+            is3alpha = false;
+        } else {
+            for (int i = 0; i < 3; i++) {
+                char ch = theISOCode.charAt(i);
+                if (ch < 'A' || (ch > 'Z' && ch < 'a') || ch > 'z') {
+                    is3alpha = false;
+                    break;
+                }
+            }
+        }
+        if (!is3alpha) {
             throw new IllegalArgumentException(
                     "The input currency code is not 3-letter alphabetic code.");
         }
         return new Currency(theISOCode.toUpperCase(Locale.US));
-    }
-
-    private static boolean isAlpha3Code(String code) {
-        if (code.length() != 3) {
-            return false;
-        } else {
-            for (int i = 0; i < 3; i++) {
-                char ch = code.charAt(i);
-                if (ch < 'A' || (ch > 'Z' && ch < 'a') || ch > 'z') {
-                    return false;
-                }
-            }
-        }
-        return true;
     }
 
     /**
@@ -328,7 +325,8 @@ public class Currency extends MeasureUnit implements Serializable {
         CurrencyMetaInfo info = CurrencyMetaInfo.getInstance();
         if (!commonlyUsed) {
             // Behavior change from 4.3.3, no longer sort the currencies
-            return getAvailableCurrencyCodes().toArray(new String[0]);
+            List<String> result = info.currencies(null);
+            return result.toArray(new String[result.size()]);
         }
         
         // Don't resolve region if the requested locale is 'und', it will resolve to US
@@ -546,15 +544,15 @@ public class Currency extends MeasureUnit implements Serializable {
      * @deprecated This API is ICU internal only.
      */
     public static String parse(ULocale locale, String text, int type, ParsePosition pos) {
-        List<TextTrieMap<CurrencyStringInfo>> currencyTrieVec = CURRENCY_NAME_CACHE.get(locale);
+        Vector<TextTrieMap<CurrencyStringInfo>> currencyTrieVec = CURRENCY_NAME_CACHE.get(locale);
         if (currencyTrieVec == null) {
             TextTrieMap<CurrencyStringInfo> currencyNameTrie = 
                 new TextTrieMap<CurrencyStringInfo>(true);
             TextTrieMap<CurrencyStringInfo> currencySymbolTrie = 
                 new TextTrieMap<CurrencyStringInfo>(false);
-            currencyTrieVec = new ArrayList<TextTrieMap<CurrencyStringInfo>>();
-            currencyTrieVec.add(currencySymbolTrie);
-            currencyTrieVec.add(currencyNameTrie);
+            currencyTrieVec = new Vector<TextTrieMap<CurrencyStringInfo>>();
+            currencyTrieVec.addElement(currencySymbolTrie);
+            currencyTrieVec.addElement(currencyNameTrie);
             setupCurrencyTrieVec(locale, currencyTrieVec);
             CURRENCY_NAME_CACHE.put(locale, currencyTrieVec);
         }
@@ -563,7 +561,7 @@ public class Currency extends MeasureUnit implements Serializable {
         String isoResult = null;
 
           // look for the names
-        TextTrieMap<CurrencyStringInfo> currencyNameTrie = currencyTrieVec.get(1);
+        TextTrieMap<CurrencyStringInfo> currencyNameTrie = currencyTrieVec.elementAt(1);
         CurrencyNameResultHandler handler = new CurrencyNameResultHandler();
         currencyNameTrie.find(text, pos.getIndex(), handler);
         List<CurrencyStringInfo> list = handler.getMatchedCurrencyNames();
@@ -579,7 +577,7 @@ public class Currency extends MeasureUnit implements Serializable {
         }
 
         if (type != Currency.LONG_NAME) {  // not long name only
-            TextTrieMap<CurrencyStringInfo> currencySymbolTrie = currencyTrieVec.get(0);
+            TextTrieMap<CurrencyStringInfo> currencySymbolTrie = currencyTrieVec.elementAt(0);
             handler = new CurrencyNameResultHandler();
             currencySymbolTrie.find(text, pos.getIndex(), handler);
             list = handler.getMatchedCurrencyNames();
@@ -601,10 +599,10 @@ public class Currency extends MeasureUnit implements Serializable {
     }
 
     private static void setupCurrencyTrieVec(ULocale locale, 
-            List<TextTrieMap<CurrencyStringInfo>> trieVec) {
+            Vector<TextTrieMap<CurrencyStringInfo>> trieVec) {
 
-        TextTrieMap<CurrencyStringInfo> symTrie = trieVec.get(0);
-        TextTrieMap<CurrencyStringInfo> trie = trieVec.get(1);
+        TextTrieMap<CurrencyStringInfo> symTrie = trieVec.elementAt(0);
+        TextTrieMap<CurrencyStringInfo> trie = trieVec.elementAt(1);
 
         CurrencyDisplayNames names = CurrencyDisplayNames.getInstance(locale);
         for (Map.Entry<String, String> e : names.symbolMap().entrySet()) {
@@ -742,66 +740,6 @@ public class Currency extends MeasureUnit implements Serializable {
     private static final int[] POW10 = { 
         1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000 
     };
-
-
-    private static SoftReference<List<String>> ALL_CODES;
-    /*
-     * Returns an unmodifiable String list including all known currency codes
-     */
-    private static synchronized List<String> getAvailableCurrencyCodes() {
-        List<String> all = (ALL_CODES == null) ? null : ALL_CODES.get();
-        if (all == null) {
-            CurrencyMetaInfo info = CurrencyMetaInfo.getInstance();
-            all = Collections.unmodifiableList(info.currencies(null));
-            ALL_CODES = new SoftReference<List<String>>(all);
-        }
-        return all;
-    }
-
-    /**
-     * Queries if the given ISO 4217 3-letter code is available on the specified date range.
-     * <p>
-     * Note: For checking availability of a currency on a specific date, specify the date on both <code>from</code> and
-     * <code>to</code>. When both <code>from</code> and <code>to</code> are null, this method checks if the specified
-     * currency is available all time.
-     * 
-     * @param code
-     *            The ISO 4217 3-letter code.
-     * @param from
-     *            The lower bound of the date range, inclusive. When <code>from</code> is null, check the availability
-     *            of the currency any date before <code>to</code>
-     * @param to
-     *            The upper bound of the date range, inclusive. When <code>to</code> is null, check the availability of
-     *            the currency any date after <code>from</code>
-     * @return true if the given ISO 4217 3-letter code is supported on the specified date range.
-     * @throws IllegalArgumentException when <code>to</code> is before <code>from</code>.
-     * 
-     * @draft ICU 4.6
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static boolean isAvailable(String code, Date from, Date to) {
-        if (!isAlpha3Code(code)) {
-            return false;
-        }
-
-        if (from != null && to != null && from.after(to)) {
-            throw new IllegalArgumentException("To is before from");
-        }
-
-        code = code.toUpperCase(Locale.ENGLISH);
-        boolean isKnown = getAvailableCurrencyCodes().contains(code);
-        if (isKnown == false) {
-            return false;
-        } else if (from == null && to == null) {
-            return true;
-        }
-
-        // When asActiveOnly is true, check if the currency is currently
-        // active or not.
-        CurrencyMetaInfo info = CurrencyMetaInfo.getInstance();
-        List<String> allActive = info.currencies(CurrencyFilter.onRange(from, to));
-        return allActive.contains(code);
-    }
 
     // -------- BEGIN ULocale boilerplate --------
 

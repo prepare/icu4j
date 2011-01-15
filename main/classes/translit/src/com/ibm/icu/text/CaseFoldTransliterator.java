@@ -1,13 +1,14 @@
 /*
  *******************************************************************************
- * Copyright (C) 2009-2010, Google, International Business Machines Corporation
- * and others. All Rights Reserved.
+ * Copyright (C) 2009, Google, International Business Machines Corporation     *
+ * and others. All Rights Reserved.                                            *
  *******************************************************************************
  */
 package com.ibm.icu.text;
 
+import java.io.IOException;
+
 import com.ibm.icu.impl.UCaseProps;
-import com.ibm.icu.lang.UCharacter;
 
 /**
  * A transliterator that performs locale-sensitive toLower()
@@ -45,7 +46,11 @@ class CaseFoldTransliterator extends Transliterator{
 
     public CaseFoldTransliterator() {
         super(_ID, null);
-        csp=UCaseProps.INSTANCE;
+        try {
+            csp=UCaseProps.getSingleton();
+        } catch (IOException e) {
+            csp=null;
+        }
         iter=new ReplaceableContextIterator();
         result = new StringBuffer();
     }
@@ -53,7 +58,7 @@ class CaseFoldTransliterator extends Transliterator{
     /**
      * Implements {@link Transliterator#handleTransliterate}.
      */
-    protected synchronized void handleTransliterate(Replaceable text,
+    protected void handleTransliterate(Replaceable text,
                                        Position offsets, boolean isIncremental) {
         if(csp==null) {
             return;
@@ -102,24 +107,5 @@ class CaseFoldTransliterator extends Transliterator{
             }
         }
         offsets.start = offsets.limit;
-    }
-    
-    static SourceTargetUtility sourceTargetUtility = null;
-    
-    /* (non-Javadoc)
-     * @see com.ibm.icu.text.Transliterator#addSourceTargetSet(com.ibm.icu.text.UnicodeSet, com.ibm.icu.text.UnicodeSet, com.ibm.icu.text.UnicodeSet)
-     */
-    @Override
-    public void addSourceTargetSet(UnicodeSet inputFilter, UnicodeSet sourceSet, UnicodeSet targetSet) {
-        synchronized (UppercaseTransliterator.class) {
-            if (sourceTargetUtility == null) {
-                sourceTargetUtility = new SourceTargetUtility(new Transform<String,String>() {
-                    public String transform(String source) {
-                        return UCharacter.foldCase(source, true);
-                    }
-                });
-            }
-        }
-        sourceTargetUtility.addSourceTargetSet(this, inputFilter, sourceSet, targetSet);
     }
 }

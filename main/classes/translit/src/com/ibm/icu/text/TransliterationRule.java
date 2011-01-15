@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2010, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2007, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -545,48 +545,28 @@ class TransliterationRule {
     }
 
     /**
-     * Find the source and target sets, subject to the input filter. 
-     * There is a known issue with filters containing multiple characters.
+     * Union the set of all characters that may be modified by this rule
+     * into the given set.
      */
-    // TODO: Problem: the rule is [{ab}]c > x
-    // The filter is [a{bc}].
-    // If the input is abc, then the rule will work.
-    // However, following code applying the filter won't catch that case.
-
-    void addSourceTargetSet(UnicodeSet filter, UnicodeSet sourceSet, UnicodeSet targetSet, UnicodeSet revisiting) {
+    void addSourceSetTo(UnicodeSet toUnionTo) {
         int limit = anteContextLength + keyLength;
-        UnicodeSet tempSource = new UnicodeSet();
-        UnicodeSet temp = new UnicodeSet();
-
-        // We need to walk through the pattern.
-        // Iff some of the characters at ALL of the the positions are matched by the filter, then we add temp to toUnionTo
         for (int i=anteContextLength; i<limit; ) {
             int ch = UTF16.charAt(pattern, i);
             i += UTF16.getCharCount(ch);
             UnicodeMatcher matcher = data.lookupMatcher(ch);
             if (matcher == null) {
-                if (!filter.contains(ch)) {
-                    return;
-                }
-                tempSource.add(ch);
+                toUnionTo.add(ch);
             } else {
-                try {
-                    if (!filter.containsSome((UnicodeSet) matcher)) {
-                        return;
-                    }
-                    matcher.addMatchSetTo(tempSource);
-                } catch (ClassCastException e) { // if the matcher is not a UnicodeSet
-                    temp.clear();
-                    matcher.addMatchSetTo(temp);
-                    if (!filter.containsSome(temp)) {
-                        return;
-                    }
-                    tempSource.addAll(temp);
-                }
+                matcher.addMatchSetTo(toUnionTo);
             }
         }
-        // if we made our way through the gauntlet, add to source/target
-        sourceSet.addAll(tempSource);
-        output.addReplacementSetTo(targetSet);
+    }
+
+    /**
+     * Union the set of all characters that may be emitted by this rule
+     * into the given set.
+     */
+    void addTargetSetTo(UnicodeSet toUnionTo) {
+        output.addReplacementSetTo(toUnionTo);
     }
 }

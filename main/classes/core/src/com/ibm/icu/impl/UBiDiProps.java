@@ -23,11 +23,11 @@ import java.io.BufferedInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Iterator;
 
 import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.lang.UProperty;
 import com.ibm.icu.text.UnicodeSet;
+import com.ibm.icu.util.RangeValueIterator;
 
 public final class UBiDiProps {
     // constructors etc. --------------------------------------------------- ***
@@ -41,6 +41,13 @@ public final class UBiDiProps {
         is.close();
     }
 
+    private UBiDiProps(boolean makeDummy) { // ignore makeDummy, only creates a unique signature
+        indexes=new int[IX_TOP];
+        indexes[0]=IX_TOP;
+        trie=new CharTrie(0, 0, null); // dummy trie, always returns 0
+    }
+
+
     private void readData(InputStream is) throws IOException {
         DataInputStream inputStream=new DataInputStream(is);
 
@@ -50,7 +57,7 @@ public final class UBiDiProps {
         // read indexes[]
         int i, count;
         count=inputStream.readInt();
-        if(count<IX_TOP) {
+        if(count<IX_INDEX_TOP) {
             throw new IOException("indexes[0] too small in "+DATA_FILE_NAME);
         }
         indexes=new int[count];
@@ -61,14 +68,7 @@ public final class UBiDiProps {
         }
 
         // read the trie
-        trie=Trie2_16.createFromSerialized(inputStream);
-        int expectedTrieLength=indexes[IX_TRIE_SIZE];
-        int trieLength=trie.getSerializedLength();
-        if(trieLength>expectedTrieLength) {
-            throw new IOException(DATA_FILE_NAME+": not enough bytes for the trie");
-        }
-        // skip padding after trie bytes
-        inputStream.skipBytes(expectedTrieLength-trieLength);
+        trie=new CharTrie(inputStream, null);
 
         // read mirrors[]
         count=indexes[IX_MIRROR_LENGTH];
@@ -90,8 +90,41 @@ public final class UBiDiProps {
     // implement ICUBinary.Authenticate
     private final class IsAcceptable implements ICUBinary.Authenticate {
         public boolean isDataVersionAcceptable(byte version[]) {
-            return version[0]==2;
+            return version[0]==1 &&
+                   version[2]==Trie.INDEX_STAGE_1_SHIFT_ && version[3]==Trie.INDEX_STAGE_2_SHIFT_;
         }
+    }
+
+    // port of ubidi_getSingleton()
+    //
+    // Note: Do we really need this API?
+    public static UBiDiProps getSingleton() throws IOException {
+        if (FULL_INSTANCE == null) {
+            synchronized (UBiDiProps.class) {
+                if (FULL_INSTANCE == null) {
+                    FULL_INSTANCE = new UBiDiProps();
+                }
+            }
+        }
+        return FULL_INSTANCE;
+    }
+
+    /**
+     * Get a singleton dummy object, one that works with no real data.
+     * This can be used when the real data is not available.
+     * Using the dummy can reduce checks for available data after an initial failure.
+     * Port of ucase_getDummy().
+     */
+    // Note: do we really need this API?
+    public static UBiDiProps getDummy() {
+        if (DUMMY_INSTANCE == null) {
+            synchronized (UBiDiProps.class) {
+                if (DUMMY_INSTANCE == null) {
+                    DUMMY_INSTANCE = new UBiDiProps(true);
+                }
+            }
+        }
+        return DUMMY_INSTANCE;
     }
 
     // set of property starts for UnicodeSet ------------------------------- ***
@@ -103,10 +136,11 @@ public final class UBiDiProps {
         byte prev, jg;
 
         /* add the start code point of each same-value range of the trie */
-        Iterator<Trie2.Range> trieIterator=trie.iterator();
-        Trie2.Range range;
-        while(trieIterator.hasNext() && !(range=trieIterator.next()).leadSurrogate) {
-            set.add(range.startCodePoint);
+        TrieIterator iter=new TrieIterator(trie);
+        RangeValueIterator.Element element=new RangeValueIterator.Element();
+
+        while(iter.next(element)){
+            set.add(element.start);
         }
 
         /* add the code points from the bidi mirroring table */
@@ -158,18 +192,18 @@ public final class UBiDiProps {
     }
 
     public final int getClass(int c) {
-        return getClassFromProps(trie.get(c));
+        return getClassFromProps(trie.getCodePointValue(c));
     }
 
     public final boolean isMirrored(int c) {
-        return getFlagFromProps(trie.get(c), IS_MIRRORED_SHIFT);
+        return getFlagFromProps(trie.getCodePointValue(c), IS_MIRRORED_SHIFT);
     }
 
     public final int getMirror(int c) {
         int props;
         int delta;
 
-        props=trie.get(c);
+        props=trie.getCodePointValue(c);
         delta=((short)props)>>MIRROR_DELTA_SHIFT;
         if(delta!=ESC_MIRROR_DELTA) {
             return c+delta;
@@ -199,15 +233,15 @@ public final class UBiDiProps {
     }
 
     public final boolean isBidiControl(int c) {
-        return getFlagFromProps(trie.get(c), BIDI_CONTROL_SHIFT);
+        return getFlagFromProps(trie.getCodePointValue(c), BIDI_CONTROL_SHIFT);
     }
 
     public final boolean isJoinControl(int c) {
-        return getFlagFromProps(trie.get(c), JOIN_CONTROL_SHIFT);
+        return getFlagFromProps(trie.getCodePointValue(c), JOIN_CONTROL_SHIFT);
     }
 
     public final int getJoiningType(int c) {
-        return (trie.get(c)&JT_MASK)>>JT_SHIFT;
+        return (trie.getCodePointValue(c)&JT_MASK)>>JT_SHIFT;
     }
 
     public final int getJoiningGroup(int c) {
@@ -227,7 +261,7 @@ public final class UBiDiProps {
     private int mirrors[];
     private byte jgArray[];
 
-    private Trie2_16 trie;
+    private CharTrie trie;
 
     // data format constants ----------------------------------------------- ***
     private static final String DATA_NAME="ubidi";
@@ -238,9 +272,9 @@ public final class UBiDiProps {
     private static final byte FMT[]={ 0x42, 0x69, 0x44, 0x69 };
 
     /* indexes into indexes[] */
-    //private static final int IX_INDEX_TOP=0;
+    private static final int IX_INDEX_TOP=0;
     //private static final int IX_LENGTH=1;
-    private static final int IX_TRIE_SIZE=2;
+    //private static final int IX_TRIE_SIZE=2;
     private static final int IX_MIRROR_LENGTH=3;
 
     private static final int IX_JG_START=4;
@@ -299,13 +333,21 @@ public final class UBiDiProps {
      */
     public static final UBiDiProps INSTANCE;
 
+    private static volatile UBiDiProps FULL_INSTANCE;
+    private static volatile UBiDiProps DUMMY_INSTANCE;
+
     // This static initializer block must be placed after
     // other static member initialization
     static {
+        UBiDiProps bp;
         try {
-            INSTANCE = new UBiDiProps();
+            bp = new UBiDiProps();
+            FULL_INSTANCE = bp;
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            // creating dummy
+            bp = new UBiDiProps(true);
+            DUMMY_INSTANCE = bp;
         }
+        INSTANCE = bp;
     }
 }

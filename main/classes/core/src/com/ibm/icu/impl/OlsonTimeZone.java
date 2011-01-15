@@ -477,30 +477,26 @@ public class OlsonTimeZone extends BasicTimeZone {
             // Post-32bit transition data is optional
         }
 
-        if (transitionCount > 0) {
-            transitionTimes64 = new long[transitionCount];
-            int idx = 0;
-            if (transPre32 != null) {
-                for (int i = 0; i < transPre32.length / 2; i++, idx++) {
-                    transitionTimes64[idx] = 
-                        (((long)transPre32[i * 2]) & 0x00000000FFFFFFFFL) << 32
-                        | (((long)transPre32[i * 2 + 1]) & 0x00000000FFFFFFFFL);
-                }
+        transitionTimes64 = new long[transitionCount];
+        int idx = 0;
+        if (transPre32 != null) {
+            for (int i = 0; i < transPre32.length / 2; i++, idx++) {
+                transitionTimes64[idx] = 
+                    (((long)transPre32[i * 2]) & 0x00000000FFFFFFFFL) << 32
+                    | (((long)transPre32[i * 2 + 1]) & 0x00000000FFFFFFFFL);
             }
-            if (trans32 != null) {
-                for (int i = 0; i < trans32.length; i++, idx++) {
-                    transitionTimes64[idx] = (long)trans32[i];
-                }
+        }
+        if (trans32 != null) {
+            for (int i = 0; i < trans32.length; i++, idx++) {
+                transitionTimes64[idx] = (long)trans32[i];
             }
-            if (transPost32 != null) {
-                for (int i = 0; i < transPost32.length / 2; i++, idx++) {
-                    transitionTimes64[idx] = 
-                        (((long)transPost32[i * 2]) & 0x00000000FFFFFFFFL) << 32
-                        | (((long)transPost32[i * 2 + 1]) & 0x00000000FFFFFFFFL);
-                }
+        }
+        if (transPost32 != null) {
+            for (int i = 0; i < transPost32.length / 2; i++, idx++) {
+                transitionTimes64[idx] = 
+                    (((long)transPost32[i * 2]) & 0x00000000FFFFFFFFL) << 32
+                    | (((long)transPost32[i * 2 + 1]) & 0x00000000FFFFFFFFL);
             }
-        } else {
-            transitionTimes64 = null;
         }
 
         // Type offsets list must be of even size, with size >= 2
@@ -512,14 +508,13 @@ public class OlsonTimeZone extends BasicTimeZone {
         typeCount = typeOffsets.length / 2;
 
         // Type map data must be of the same size as the transition count
+        typeMapData = null;
         if (transitionCount > 0) {
             r = res.get("typeMap");
             typeMapData = r.getBinary(null);
             if (typeMapData.length != transitionCount) {
                 throw new IllegalArgumentException("Invalid Format");
             }
-        } else {
-            typeMapData = null;
         }
 
         // Process final rule and data, if any
@@ -732,18 +727,6 @@ public class OlsonTimeZone extends BasicTimeZone {
         } else {
             buf.append("null");
         }
-        buf.append(",typeMapData=");
-        if (typeMapData != null) {
-            buf.append('[');
-            for (int i = 0; i < typeMapData.length; ++i) {
-                if (i > 0) {
-                    buf.append(',');
-                }
-                buf.append(Byte.toString(typeMapData[i]));
-            }
-        } else {
-            buf.append("null");
-        }
         buf.append(",finalStartYear=" + finalStartYear);
         buf.append(",finalStartMillis=" + finalStartMillis);
         buf.append(",finalZone=" + finalZone);
@@ -771,14 +754,14 @@ public class OlsonTimeZone extends BasicTimeZone {
      * Offset from GMT in seconds for each type.
      * Length is equal to typeCount
      */
-    private int[] typeOffsets;
+    private int[] typeOffsets; // alias into res; do not delete
 
     /**
      * Type description data, consisting of transitionCount uint8_t
      * type indices (from 0..typeCount-1).
      * Length is equal to transitionCount
      */
-    private byte[] typeMapData;
+    private byte[] typeMapData; // alias into res; do not delete
 
     /**
      * For year >= finalStartYear, the finalZone will be used.
@@ -836,19 +819,15 @@ public class OlsonTimeZone extends BasicTimeZone {
                    Double.doubleToLongBits(finalStartMillis)+
                    (finalZone == null ? 0 : finalZone.hashCode()) + 
                    super.hashCode());
-        if (transitionTimes64 != null) {
-            for(int i=0; i<transitionTimes64.length; i++){
-                ret+=transitionTimes64[i]^(transitionTimes64[i]>>>8);
-            }
+        for(int i=0; i<transitionTimes64.length; i++){
+            ret+=transitionTimes64[i]^(transitionTimes64[i]>>>8);
         }
         for(int i=0; i<typeOffsets.length; i++){
             ret+=typeOffsets[i]^(typeOffsets[i]>>>8);
         }
-        if (typeMapData != null) {
-            for(int i=0; i<typeMapData.length; i++){
-                ret+=typeMapData[i] & 0xFF;
-            } 
-        }
+        for(int i=0; i<typeMapData.length; i++){
+            ret+=typeMapData[i] & 0xFF;
+        } 
         return ret;
     }
 

@@ -5,6 +5,7 @@
  *******************************************************************************
  */
 package com.ibm.icu.text;
+import java.io.IOException;
 import java.nio.CharBuffer;
 import java.text.CharacterIterator;
 
@@ -1372,7 +1373,12 @@ public final class Normalizer implements Cloneable {
         // case folding and NFKC.)
         // For the derivation, see Unicode's DerivedNormalizationProps.txt.
         Normalizer2 nfkc=NFKCModeImpl.INSTANCE.normalizer2;
-        UCaseProps csp=UCaseProps.INSTANCE;
+        UCaseProps csp;
+        try {
+            csp=UCaseProps.getSingleton();
+        } catch(IOException e) {
+            throw new RuntimeException(e);
+        }
         // first: b = NFKC(Fold(a))
         StringBuffer folded=new StringBuffer();
         int folded1Length=csp.toFullFolding(c, folded, 0);
@@ -2048,7 +2054,11 @@ public final class Normalizer implements Cloneable {
             nfcImpl=null;
         }
         if((options&COMPARE_IGNORE_CASE)!=0) {
-            csp=UCaseProps.INSTANCE;
+            try {
+                csp=UCaseProps.getSingleton();
+            } catch(IOException e) {
+                throw new RuntimeException(e);
+            }
             fold1=new StringBuffer();
             fold2=new StringBuffer();
         } else {

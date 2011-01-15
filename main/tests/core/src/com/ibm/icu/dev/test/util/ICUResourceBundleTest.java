@@ -14,9 +14,7 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.nio.ByteBuffer;
 import java.util.Enumeration;
-import java.util.Locale;
 import java.util.MissingResourceException;
-import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.jar.JarEntry;
@@ -30,8 +28,8 @@ import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.Holiday;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.UResourceBundle;
-import com.ibm.icu.util.UResourceBundleIterator;
 import com.ibm.icu.util.UResourceTypeMismatchException;
+
 
 public final class ICUResourceBundleTest extends TestFmwk {
     private static final ClassLoader testLoader = ICUResourceBundleTest.class.getClassLoader();
@@ -129,40 +127,47 @@ public final class ICUResourceBundleTest extends TestFmwk {
             errln("could not create the resource bundle");
         }
 
-        UResourceBundle obj =  bundle.get("NumberElements").get("latn").get("patterns");
+        UResourceBundle obj =  bundle.get("NumberPatterns");
 
         int size = obj.getSize();
         int type = obj.getType();
-        if(type == UResourceBundle.TABLE){
-            UResourceBundle sub;
-            for(int i=0; i<size; i++) {
-                sub = obj.get(i);
-                String temp =sub.getString();
-                if(temp.length()==0){
-                    errln("Failed to get the items from number patterns table in bundle: "+
-                            bundle.getULocale().getBaseName());
-                }
-                //System.out.println("\""+prettify(temp)+"\"");
-            }
-        }
-        
-        obj =  bundle.get("NumberElements").get("latn").get("symbols");
-
-        size = obj.getSize();
-        type = obj.getType();
-        if(type == UResourceBundle.TABLE){
+        if(type == UResourceBundle.ARRAY){
             UResourceBundle sub;
             for(int i=0; i<size; i++){
                 sub = obj.get(i);
                 String temp =sub.getString();
                 if(temp.length()==0){
-                    errln("Failed to get the items from number symbols table in bundle: "+
+                    errln("Failed to get the items from NumberPatterns array in bundle: "+
                             bundle.getULocale().getBaseName());
                 }
+                //System.out.println("\""+prettify(temp)+"\"");
+            }
+
+        }
+        String[] strings = bundle.getStringArray("NumberPatterns");
+        if(size!=strings.length){
+            errln("Failed to get the items from NumberPatterns array in bundle: "+
+                    bundle.getULocale().getBaseName());
+        }
+        {
+            obj =  bundle.get("NumberElements");
+
+            size = obj.getSize();
+            type = obj.getType();
+            if(type == UResourceBundle.ARRAY){
+                UResourceBundle sub;
+                for(int i=0; i<size; i++){
+                    sub = obj.get(i);
+                    String temp =sub.getString();
+                    if(temp.length()==0){
+                        errln("Failed to get the items from NumberPatterns array in bundle: "+
+                                bundle.getULocale().getBaseName());
+                    }
                    // System.out.println("\""+prettify(temp)+"\"");
+                }
+
             }
         }
-        
         if(bundle==null){
             errln("could not create the resource bundle");
         }
@@ -441,6 +446,7 @@ public final class ICUResourceBundleTest extends TestFmwk {
     }
 
     public void TestAliases(){
+/*
        String simpleAlias   = "Open";
 
        UResourceBundle rb = (UResourceBundle)UResourceBundle.getBundleInstance("com/ibm/icu/dev/data/testdata","testaliases", testLoader);
@@ -550,58 +556,44 @@ public final class ICUResourceBundleTest extends TestFmwk {
                 errln("Did not get the expected output for testGetStringByIndexAliasing/3. Got: "+s1);
             }
         }
-
-// Note: Following test cases are no longer working because collation data is now in the collation module
-//        {
-//            sub = rb.get("testAliasToTree" );
-//            
-//            ByteBuffer buf = sub.get("standard").get("%%CollationBin").getBinary();
-//            if(buf==null){
-//                errln("Did not get the expected output for %%CollationBin");
-//            }
-//        }
-//
-//        rb = (UResourceBundle) UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_COLLATION_BASE_NAME,"zh_TW");
-//        UResourceBundle b = (UResourceBundle) rb.getObject("collations");
-//        if(b != null){
-//            if(b.get(0).getKey().equals( "default")){
-//                logln("Alias mechanism works");
-//            }else{
-//                errln("Alias mechanism failed for zh_TW collations");
-//            }
-//        }else{
-//            errln("Did not get the expected object for collations");
-//        }
-
-        // Test case for #7996
         {
-            UResourceBundle bundle = UResourceBundle.getBundleInstance("com/ibm/icu/dev/data/testdata", "te");
-            UResourceBundle table = bundle.get("tableT7996");
-            try {
-                String s = table.getString("a7996");
-                logln("Alias in nested table referring one in sh worked - " + s);
-            } catch (MissingResourceException e) {
-                errln("Alias in nested table referring one in sh failed");
-            }
-
-            try {
-                String s = ((ICUResourceBundle)table).getStringWithFallback("b7996");
-                logln("Alias with /LOCALE/ in nested table in root referring back to another key in the current locale bundle worked - " + s);
-            } catch (MissingResourceException e) {
-                errln("Alias with /LOCALE/ in nested table in root referring back to another key in the current locale bundle failed");
+            sub = rb.get("testAliasToTree" );
+            
+            ByteBuffer buf = sub.get("standard").get("%%CollationBin").getBinary();
+            if(buf==null){
+                errln("Did not get the expected output for %%CollationBin");
             }
         }
-
+        // should not get an exception
+        rb = (UResourceBundle) UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_RBNF_BASE_NAME,"fr_BE");
+        String str = rb.getString("SpelloutRules");
+        if(str !=null && str.length()>0){
+            logln("Alias mechanism works");
+        }else{
+            errln("Alias mechanism failed for fr_BE SpelloutRules");
+        }
+        rb = (UResourceBundle) UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_COLLATION_BASE_NAME,"zh_TW");
+        UResourceBundle b = (UResourceBundle) rb.getObject("collations");
+        if(b != null){
+            if(b.get(0).getKey().equals( "default")){
+                logln("Alias mechanism works");
+            }else{
+                errln("Alias mechanism failed for zh_TW collations");
+            }
+        }else{
+            errln("Did not get the expected object for collations");
+        }
+*/
     }
     public void TestAlias(){
         logln("Testing %%ALIAS");
         UResourceBundle rb = (UResourceBundle) UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME,"iw_IL");
-        UResourceBundle b = rb.get("NumberElements");
+        UResourceBundle b = rb.get("NumberPatterns");
         if(b != null){
             if(b.getSize()>0){
                 logln("%%ALIAS mechanism works");
             }else{
-                errln("%%ALIAS mechanism failed for iw_IL NumberElements");
+                errln("%%ALIAS mechanism failed for iw_IL NumberPatterns");
             }
         }else{
             errln("%%ALIAS mechanism failed for iw_IL");
@@ -628,19 +620,20 @@ public final class ICUResourceBundleTest extends TestFmwk {
         }
     }
     public void TestCircularAliases(){
-        try{
-            UResourceBundle rb = (UResourceBundle)UResourceBundle.getBundleInstance("com/ibm/icu/dev/data/testdata","testaliases",testLoader);
-            UResourceBundle sub = rb.get("aaa");
-            String s1 = sub.getString();
-            if(s1!=null){
-                errln("Did not get the expected exception");
-            }
-        }catch(IllegalArgumentException ex){
-            logln("got expected exception for circular references");
-        }
-        catch (MissingResourceException ex) {
-            warnln("could not load resource data: " + ex.getMessage());
-        }
+// Aliases no longer supported
+//        try{
+//            UResourceBundle rb = (UResourceBundle)UResourceBundle.getBundleInstance("com/ibm/icu/dev/data/testdata","testaliases",testLoader);
+//            UResourceBundle sub = rb.get("aaa");
+//            String s1 = sub.getString();
+//            if(s1!=null){
+//                errln("Did not get the expected exception");
+//            }
+//        }catch(IllegalArgumentException ex){
+//            logln("got expected exception for circular references");
+//        }
+//        catch (MissingResourceException ex) {
+//            warnln("could not load resource data: " + ex.getMessage());
+//        }
     }
 
     public void TestGetWithFallback(){
@@ -680,13 +673,13 @@ public final class ICUResourceBundleTest extends TestFmwk {
     public void TestLocaleDisplayNames() {
         ULocale[] locales = ULocale.getAvailableLocales();
         for (int i = 0; i < locales.length; ++i) {
-            if (!hasLocalizedCountryFor(ULocale.ENGLISH, locales[i]) && (locales[i].getLanguage().compareTo("ti") != 0)){ // TODO: restore test for ti_* when cldrbug 3058 is fixed
+            if (!hasLocalizedCountryFor(ULocale.ENGLISH, locales[i])){
                  errln("Could not get localized country for "+ locales[i]);
             }
             if(!hasLocalizedLanguageFor(ULocale.ENGLISH, locales[i])){
                 errln("Could not get localized language for "+ locales[i]);
             }
-            if(!hasLocalizedCountryFor(locales[i], locales[i]) && (locales[i].getLanguage().compareTo("ti") != 0)){ // TODO: restore test for ti_* when cldrbug 3058 is fixed
+            if(!hasLocalizedCountryFor(locales[i], locales[i])){
                 errln("Could not get localized country for "+ locales[i]);
                 hasLocalizedCountryFor(locales[i], locales[i]);
             }
@@ -1069,97 +1062,6 @@ public final class ICUResourceBundleTest extends TestFmwk {
             assertEquals("bundleContainer in testmessages", "testmessages.properties", rb2.getString("bundleContainer"));
         } catch (Throwable t) {
             errln(t.getMessage());
-        }
-    }
-    
-    public void TestUResourceBundleCoverage() {
-        Locale locale = null;
-        ULocale ulocale = null;
-        String baseName = null;
-        UResourceBundle rb1, rb2, rb3, rb4, rb5, rb6, rb7;
-        
-        rb1 = UResourceBundle.getBundleInstance(ulocale);
-        rb2 = UResourceBundle.getBundleInstance(baseName);
-        rb3 = UResourceBundle.getBundleInstance(baseName, ulocale);
-        rb4 = UResourceBundle.getBundleInstance(baseName, locale);
-        
-        rb5 = UResourceBundle.getBundleInstance(baseName, ulocale, this.getClass().getClassLoader());
-        rb6 = UResourceBundle.getBundleInstance(baseName, locale, this.getClass().getClassLoader());
-        try {
-            rb7 = UResourceBundle.getBundleInstance("bogus", Locale.getDefault(), this.getClass().getClassLoader());
-            errln("Should have thrown exception with bogus baseName.");
-        } catch (java.util.MissingResourceException ex) {
-        }
-        if (rb1 == null || rb2 == null || rb3 == null || rb4 == null || rb5 == null || rb6 == null) {
-            errln("Error getting resource bundle.");
-        }
-        
-        rb7 = UResourceBundle.getBundleInstance("com.ibm.icu.dev.data.resources.TestDataElements");
-        
-        UResourceBundle.resetBundleCache();
-        
-        try {
-            rb1.getBinary();
-            errln("getBinary() call should have thrown UResourceTypeMismatchException.");
-        } catch (UResourceTypeMismatchException ex) {
-        }
-        try {
-            rb1.getStringArray();
-            errln("getStringArray() call should have thrown UResourceTypeMismatchException.");
-        } catch (UResourceTypeMismatchException ex) {
-        }
-        try {
-            byte [] ba = { 0x00 };
-            rb1.getBinary(ba);
-            errln("getBinary(byte[]) call should have thrown UResourceTypeMismatchException.");
-        } catch (UResourceTypeMismatchException ex) {
-        }
-        try {
-            rb1.getInt();
-            errln("getInt() call should have thrown UResourceTypeMismatchException.");
-        } catch (UResourceTypeMismatchException ex) {
-        }
-        try {
-            rb1.getIntVector();
-            errln("getIntVector() call should have thrown UResourceTypeMismatchException.");
-        } catch (UResourceTypeMismatchException ex) {
-        }
-        try {
-            rb1.getUInt();
-            errln("getUInt() call should have thrown UResourceTypeMismatchException.");
-        } catch (UResourceTypeMismatchException ex) {
-        }
-        if (rb1.getVersion() != null) {
-            errln("getVersion() call should have returned null.");
-        }
-        if (rb7.getType() != UResourceBundle.NONE) {
-            errln("getType() call should have returned NONE.");
-        }
-        if (rb7.getKey() != null) {
-            errln("getKey() call should have returned null.");
-        }
-        if (((ICUResourceBundle)rb1).getResPath() == null) {
-            errln("Error calling getResPath().");
-        }
-        if (((ICUResourceBundle)rb1).findTopLevel(0) == null) {
-            errln("Error calling findTopLevel().");
-        }
-        if (ICUResourceBundle.getFullLocaleNameSet() == null) {
-            errln("Error calling getFullLocaleNameSet().");
-        }
-        UResourceBundleIterator itr = rb1.getIterator();
-        while (itr.hasNext()) {
-            itr.next();
-        }
-        try {
-            itr.next();
-            errln("NoSuchElementException exception should have been thrown.");
-        } catch (NoSuchElementException ex) {
-        }
-        try {
-            itr.nextString();
-            errln("NoSuchElementException exception should have been thrown.");
-        } catch (NoSuchElementException ex) {
         }
     }
 }

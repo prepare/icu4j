@@ -1,6 +1,6 @@
 /**
  *******************************************************************************
- * Copyright (C) 2000-2010, International Business Machines Corporation and    *
+ * Copyright (C) 2000-2009, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -2088,14 +2088,6 @@ public class CalendarRegression extends com.ibm.icu.dev.test.TestFmwk {
             logln("Year remained " + year2 + " - PASS.");
         }
     }
-    public void TestCalendarType6816() {
-        Locale loc = new Locale("en", "TH");
-        Calendar cal = Calendar.getInstance(loc);
-        String calType = cal.getType();
-        if ( !calType.equals("buddhist")) {
-            errln("FAIL: Calendar type for en_TH should still be buddhist");
-        }
-    }
 
     public void TestGetKeywordValuesForLocale(){
 
@@ -2157,28 +2149,6 @@ public class CalendarRegression extends com.ibm.icu.dev.test.TestFmwk {
             if (!matchAll) {
                 errln("FAIL: All values for locale " + loc
                         + " got:" + Arrays.toString(all)); 
-            }
-        }
-    }
-    
-    public void TestTimeStamp() {
-        long start = 0, time;
-
-        // Create a new Gregorian Calendar.
-        Calendar cal = Calendar.getInstance(Locale.US);
-        
-        for (int i = 0; i < 20000; i++) {
-            cal.set(2009, Calendar.JULY, 3, 0, 49, 46);
-            
-            time = cal.getTime().getTime();
-            
-            if (i == 0) {
-                start = time;
-            } else {
-                if (start != time) {
-                    errln("start and time not equal");
-                    return;
-                }
             }
         }
     }

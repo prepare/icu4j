@@ -16,7 +16,6 @@ import java.util.Set;
 
 import com.ibm.icu.impl.ICUDebug;
 import com.ibm.icu.impl.ICUResourceBundle;
-import com.ibm.icu.impl.Norm2AllModes;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.UResourceBundle;
 import com.ibm.icu.util.VersionInfo;
@@ -225,59 +224,6 @@ public abstract class Collator implements Comparator<Object>, Cloneable
      */
     public final static int CANONICAL_DECOMPOSITION = 17;
 
-    /**
-     * Reordering codes for non-script groups that can be reordered under collation.
-     * 
-     * @see #getReorderCodes
-     * @see #setReorderCodes
-     * @internal
-     * @deprecated This API is ICU internal only.
-     */
-    public static interface ReorderCodes {
-        /**
-         * Characters with the space property.
-         * @internal
-         * @deprecated This API is ICU internal only.
-         */
-        public final static int SPACE          = 0x1000;
-        /**
-         * The first entry in the enumeration.
-         * @internal
-         * @deprecated This API is ICU internal only.
-         */
-        public final static int FIRST          = SPACE;
-        /**
-         * Characters with the punctuation property.
-         * @internal
-         * @deprecated This API is ICU internal only.
-         */
-        public final static int PUNCTUATION    = 0x1001;
-        /**
-         * Characters with the symbol property.
-         * @internal
-         * @deprecated This API is ICU internal only.
-         */
-        public final static int SYMBOL         = 0x1002;
-        /**
-         * Characters with the currency property.
-         * @internal
-         * @deprecated This API is ICU internal only.
-         */
-        public final static int CURRENCY       = 0x1003;
-        /**
-         * Characters with the digit property.
-         * @internal
-         * @deprecated This API is ICU internal only.
-         */
-        public final static int DIGIT          = 0x1004;
-        /**
-         * The limit of the reorder codes..
-         * @internal
-         * @deprecated This API is ICU internal only.
-         */
-        public final static int LIMIT          = 0x1005;        
-    }
-    
     // public methods --------------------------------------------------------
 
     // public setters --------------------------------------------------------
@@ -361,25 +307,7 @@ public abstract class Collator implements Comparator<Object>, Cloneable
             throw new IllegalArgumentException("Wrong decomposition mode.");
         }
         m_decomposition_ = decomposition;
-        if (decomposition != NO_DECOMPOSITION) {
-            // ensure the FCD data is initialized
-            Norm2AllModes.getFCDNormalizer2();
-        }
     }
-
-    /** 
-     * Set the reordering codes for this collator.
-     * The reordering codes are a combination of UScript and ReorderingCodes. These
-     * allow the order of these groups to be changed as a group.  
-     * @param order the reordering codes to apply to this collator, if null then clears the reordering
-     * @see #getReorderCodes
-     * @internal
-     * @deprecated This API is ICU internal only.
-     */ 
-    public void setReorderCodes(int... order) 
-    { 
-        throw new UnsupportedOperationException(); 
-    } 
 
     // public getters --------------------------------------------------------
 
@@ -634,8 +562,9 @@ public abstract class Collator implements Comparator<Object>, Cloneable
     public static Locale[] getAvailableLocales() {
         // TODO make this wrap getAvailableULocales later
         if (shim == null) {
+            ClassLoader cl = Collator.class.getClassLoader();
             return ICUResourceBundle.getAvailableLocales(
-                ICUResourceBundle.ICU_COLLATION_BASE_NAME, ICUResourceBundle.ICU_DATA_CLASS_LOADER);
+                ICUResourceBundle.ICU_COLLATION_BASE_NAME, cl);
         }
         return shim.getAvailableLocales();
     }
@@ -650,8 +579,9 @@ public abstract class Collator implements Comparator<Object>, Cloneable
      */
     public static final ULocale[] getAvailableULocales() {
         if (shim == null) {
+            ClassLoader cl = Collator.class.getClassLoader();
             return ICUResourceBundle.getAvailableULocales(
-                ICUResourceBundle.ICU_COLLATION_BASE_NAME, ICUResourceBundle.ICU_DATA_CLASS_LOADER);
+                ICUResourceBundle.ICU_COLLATION_BASE_NAME, cl);
         }
         return shim.getAvailableULocales();
     }
@@ -789,7 +719,8 @@ public abstract class Collator implements Comparator<Object>, Cloneable
     public static final ULocale getFunctionalEquivalent(String keyword,
                                                         ULocale locID,
                                                         boolean isAvailable[]) {
-        return ICUResourceBundle.getFunctionalEquivalent(BASE, ICUResourceBundle.ICU_DATA_CLASS_LOADER, RESOURCE,
+        ClassLoader cl = Collator.class.getClassLoader();
+        return ICUResourceBundle.getFunctionalEquivalent(BASE, cl, RESOURCE,
                                                          keyword, locID, isAvailable, true);
     }
 
@@ -1055,19 +986,6 @@ public abstract class Collator implements Comparator<Object>, Cloneable
      * @stable ICU 2.8
      */
     public abstract VersionInfo getUCAVersion();
-    
-    /**  
-     * Retrieve the reordering codes for this collator.
-     * These reordering codes are a combination of UScript and ReorderCodes.
-     * @see #setReorderCodes
-     * @return the reordering codes for this collator if they have been set, null otherwise. 
-     * @internal
-     * @deprecated This API is ICU internal only.
-     */ 
-    public int[] getReorderCodes() 
-    { 
-        throw new UnsupportedOperationException(); 
-    }   
 
     // protected constructor -------------------------------------------------
 

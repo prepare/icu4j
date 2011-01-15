@@ -1,6 +1,6 @@
 /*****************************************************************************************
  *
- * Copyright (C) 1996-2010, International Business Machines
+ * Copyright (C) 1996-2009, International Business Machines
  * Corporation and others.  All Rights Reserved.
  **/
 
@@ -44,6 +44,7 @@ import com.ibm.icu.text.DecimalFormatSymbols;
 import com.ibm.icu.text.NumberFormat;
 import com.ibm.icu.util.GregorianCalendar;
 import com.ibm.icu.util.ULocale;
+import com.ibm.icu.util.UResourceBundle;
 import com.ibm.icu.util.VersionInfo;
 
 public class NumberRegression extends com.ibm.icu.dev.test.TestFmwk {
@@ -961,14 +962,16 @@ public class NumberRegression extends com.ibm.icu.dev.test.TestFmwk {
         Locale[] locales = NumberFormat.getAvailableLocales();
         
         for (int i = 0; i < locales.length; i++) {
-            ICUResourceBundle rb = (ICUResourceBundle)ICUResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME,locales[i]);
+            UResourceBundle rb = UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME,locales[i]);
 
             //
             // Get the currency pattern for this locale.  We have to fish it
             // out of the ResourceBundle directly, since DecimalFormat.toPattern
             // will return the localized symbol, not \00a4
             //
-            String pattern = rb.getStringWithFallback("NumberElements/latn/patterns/currencyFormat");
+            UResourceBundle numPatterns = rb.get("NumberPatterns");
+            String pattern = numPatterns.getString(1);
+            
             if (pattern.indexOf('\u00A4') == -1 ) { // 'x' not "x" -- workaround bug in IBM JDK 1.4.1
                 errln("Currency format for " + locales[i] +
                         " does not contain generic currency symbol:" +
@@ -997,16 +1000,7 @@ public class NumberRegression extends com.ibm.icu.dev.test.TestFmwk {
             }
             symbols.setDecimalSeparator(monSep);
             DecimalFormat fmt2 = new DecimalFormat(buf.toString(), symbols);
-
-            // Actual width of decimal fractions and rounding option are inherited
-            // from the currency, not the pattern itself.  So we need to force 
-            // maximum/minimumFractionDigits and rounding option for the second
-            // DecimalForamt instance.  The fix for ticket#7282 requires this test
-            // code change to make it work properly.
-            fmt2.setMaximumFractionDigits(fmt1.getMaximumFractionDigits());
-            fmt2.setMinimumFractionDigits(fmt1.getMinimumFractionDigits());
-            fmt2.setRoundingIncrement(fmt1.getRoundingIncrement());
-
+            
             String result2 = fmt2.format(1.111);
             
             // NOTE: en_IN is a special case (ChoiceFormat currency display name)
