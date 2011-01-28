@@ -13,9 +13,8 @@
 package com.ibm.icu.dev.test.collator;
 
 import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Locale;
+import java.util.Vector;
 
 import com.ibm.icu.dev.test.TestFmwk;
 import com.ibm.icu.text.CollationElementIterator;
@@ -401,9 +400,9 @@ public class CollationRegressionTest extends TestFmwk {
     public void Test4062418(/* char* par */) {
         RuleBasedCollator c = null;
         try {
-            c = (RuleBasedCollator) Collator.getInstance(Locale.CANADA_FRENCH);
+            c = (RuleBasedCollator) Collator.getInstance(Locale.FRANCE);
         } catch (Exception e) {
-            errln("Failed to create collator for Locale.CANADA_FRENCH");
+            errln("Failed to create collator for Locale::FRANCE()");
             return;
         }
         c.setStrength(Collator.SECONDARY);
@@ -457,9 +456,9 @@ public class CollationRegressionTest extends TestFmwk {
     public void Test4066696(/* char* par */) {
         RuleBasedCollator c = null;
         try {
-            c = (RuleBasedCollator)Collator.getInstance(Locale.CANADA_FRENCH);
+            c = (RuleBasedCollator)Collator.getInstance(Locale.FRANCE);
         } catch(Exception e) {
-            errln("Failure creating collator for Locale.CANADA_FRENCH");
+            errln("Failure creating collator for Locale::getFrance()");
             return;
         }
         c.setStrength(Collator.SECONDARY);
@@ -752,10 +751,10 @@ public class CollationRegressionTest extends TestFmwk {
     public void Test4132736(/* char* par */) {
         Collator c = null;
         try {
-            c = Collator.getInstance(Locale.CANADA_FRENCH);
+            c = Collator.getInstance(Locale.FRANCE);
             c.setStrength(Collator.TERTIARY);
         } catch (Exception e) {
-            errln("Failed to create a collator for Locale.CANADA_FRENCH");
+            errln("Failed to create a collator for Locale::getFrance()");
         }
     
         String test1[] = {
@@ -1056,18 +1055,18 @@ public class CollationRegressionTest extends TestFmwk {
         String text = "T\u00f6ne"; // o-umlaut
 
         CollationElementIterator iter = coll.getCollationElementIterator(text);
-        List elements = new ArrayList();
+        Vector elements = new Vector();
         int elem;
 
         // Iterate forward and collect all of the elements into a Vector
         while ((elem = iter.next()) != CollationElementIterator.NULLORDER) {
-            elements.add(new Integer(elem));
+            elements.addElement(new Integer(elem));
         }
 
         // Now iterate backward and make sure they're the same
         int index = elements.size() - 1;
         while ((elem = iter.previous()) != CollationElementIterator.NULLORDER) {
-            int expect = ((Integer)elements.get(index)).intValue();
+            int expect = ((Integer)elements.elementAt(index)).intValue();
 
             if (elem != expect) {
                 errln("Mismatch at index " + index

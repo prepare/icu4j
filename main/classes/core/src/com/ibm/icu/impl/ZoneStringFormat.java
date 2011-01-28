@@ -6,7 +6,6 @@
  */
 package com.ibm.icu.impl;
 
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -17,8 +16,8 @@ import java.util.Set;
 
 import com.ibm.icu.impl.ZoneMeta.OlsonToMetaMappingEntry;
 import com.ibm.icu.text.MessageFormat;
-import com.ibm.icu.text.NumberingSystem;
 import com.ibm.icu.util.BasicTimeZone;
+import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.TimeZone;
 import com.ibm.icu.util.TimeZoneTransition;
 import com.ibm.icu.util.ULocale;
@@ -29,14 +28,6 @@ import com.ibm.icu.util.UResourceBundle;
  *
  */
 public class ZoneStringFormat {
-
-    private static final int millisPerHour = 60 * 60 * 1000;
-    private static final int millisPerMinute = 60 * 1000;
-    private static final int millisPerSecond = 1000;
-    private static final String DEFAULT_DIGIT_STRING = "0123456789";
-    private static final String DEFAULT_GMT_FORMAT = "GMT{0}";
-    private static final String DEFAULT_HOUR_FORMAT = "+HH:mm;-HH:mm";
-    
     /**
      * Constructs a ZoneStringFormat by zone strings array.
      * The internal structure of zoneStrings is compatible with
@@ -76,174 +67,45 @@ public class ZoneStringFormat {
      * @return An instance of ZoneStringFormat for the locale
      */
     public static ZoneStringFormat getInstance(ULocale locale) {
-        ZoneStringFormat zzf = ZSFORMAT_CACHE.get(locale);
-        if (zzf == null) {
-            zzf = new ZoneStringFormat(locale);
-            ZSFORMAT_CACHE.put(locale, zzf);
+        ZoneStringFormat tzf = TZFORMAT_CACHE.get(locale);
+        if (tzf == null) {
+            tzf = new ZoneStringFormat(locale);
+            TZFORMAT_CACHE.put(locale, tzf);
         }
-        return zzf;
+        return tzf;
     }
 
     public String[][] getZoneStrings() {
         return getZoneStrings(System.currentTimeMillis());
     }
 
-    private boolean inDaylightTime(TimeZone tz, long date) {
-        int[] offsets = {0,0};
-        tz.getOffset(date, false, offsets);
-        return (offsets[1] != 0);
-    }
     // APIs used by SimpleDateFormat to get a zone string
-    public String getSpecificLongString(TimeZone tz, long date) {
-        
-        return getString(tz.getID(), inDaylightTime(tz,date) ? ZSIDX_LONG_DAYLIGHT : ZSIDX_LONG_STANDARD, date, false /* not used */);
+    public String getSpecificLongString(Calendar cal) {
+        if (cal.get(Calendar.DST_OFFSET) == 0) {
+            return getString(cal.getTimeZone().getID(), ZSIDX_LONG_STANDARD, cal.getTimeInMillis(), false /* not used */);
+        }
+        return getString(cal.getTimeZone().getID(), ZSIDX_LONG_DAYLIGHT, cal.getTimeInMillis(), false /* not used */);
     }
 
-    public String getSpecificShortString(TimeZone tz, long date, boolean commonlyUsedOnly) {
-        return getString(tz.getID(), inDaylightTime(tz,date) ? ZSIDX_SHORT_DAYLIGHT : ZSIDX_SHORT_STANDARD, date, commonlyUsedOnly);
+    public String getSpecificShortString(Calendar cal, boolean commonlyUsedOnly) {
+        if (cal.get(Calendar.DST_OFFSET) == 0) {
+            return getString(cal.getTimeZone().getID(), ZSIDX_SHORT_STANDARD, cal.getTimeInMillis(), commonlyUsedOnly);
+        }
+        return getString(cal.getTimeZone().getID(), ZSIDX_SHORT_DAYLIGHT, cal.getTimeInMillis(), commonlyUsedOnly);
     }
 
-    public String getGenericLongString(TimeZone tz, long date) {
-        return getGenericString(tz, date, false /* long */, false /* not used */);
+    public String getGenericLongString(Calendar cal) {
+        return getGenericString(cal, false /* long */, false /* not used */);
     }
 
-    public String getGenericShortString(TimeZone tz, long date, boolean commonlyUsedOnly) {
-        return getGenericString(tz, date, true /* long */, commonlyUsedOnly);
+    public String getGenericShortString(Calendar cal, boolean commonlyUsedOnly) {
+        return getGenericString(cal, true /* long */, commonlyUsedOnly);
     }
 
-    public String getGenericLocationString(TimeZone tz, long date) {
-        return getString(tz.getID(), ZSIDX_LOCATION, date, false /* not used */);
+    public String getGenericLocationString(Calendar cal) {
+        return getString(cal.getTimeZone().getID(), ZSIDX_LOCATION, cal.getTimeInMillis(), false /* not used */);
     }
-    public String getLongGMTString( TimeZone tz, long date, boolean daylight ) {
-        int offset;
-        if (daylight && tz.useDaylightTime()) {
-            offset = tz.getRawOffset() + tz.getDSTSavings();
-        } else {
-            offset = tz.getRawOffset();
-        }
-        return getLongGMTString(tz,date,offset);
-    }
-    
-    public String getLongGMTString( TimeZone tz, long date ) {
-        return getLongGMTString(tz,date,tz.getOffset(date));
-    }
-    
-    public String getLongGMTString( TimeZone tz, long date, int offsetIn) {
-        // Note: This code is optimized for performance, but as a result, it makes assumptions
-        // about the content and structure of the underlying CLDR data.
-        // Specifically, it assumes that the H or HH in the pattern occurs before the mm,
-        // and that there are no quoted literals in the pattern that contain H or m.
-        // As of CLDR 1.8.1, all of the data conforms to these rules, so we should probably be OK.
-        
-        StringBuffer buf = new StringBuffer();
-        int offset = offsetIn;
-        int hfPosition = 0;
-        if (offset < 0) {
-            offset = -offset;
-            hfPosition = 1;
-        }
-            
-        int offsetH = offset / millisPerHour;
-        offset = offset % millisPerHour;
-        int offsetM = offset / millisPerMinute;
-        offset = offset % millisPerMinute;
-        int offsetS = offset / millisPerSecond;
 
-        int subPosition = gmtFormat.indexOf("{0}");
-        for ( int i = 0 ; i < gmtFormat.length(); i++ ) {
-            if ( i == subPosition ) {
-                String hmString = hourFormats[hfPosition];
-                for ( int j = 0 ; j < hmString.length() ; j++) {
-                    switch (hmString.charAt(j)) {
-                    case 'H':
-                        if ( j+1 < hmString.length() && hmString.charAt(j+1) == 'H' ) {
-                            j++;
-                            if (offsetH < 10) {
-                                buf.append(digitString.charAt(0));
-                            }
-                        }
-                        if ( offsetH >= 10 ) {
-                            buf.append(digitString.charAt(offsetH/10));
-                        }
-                        buf.append(digitString.charAt(offsetH%10));
-                        break;
-                    case 'm':
-                        if ( j+1 < hmString.length() && hmString.charAt(j+1) == 'm' ) {
-                            j++;
-                        }
-                        buf.append(digitString.charAt(offsetM/10));
-                        buf.append(digitString.charAt(offsetM%10));
-                        if ( offsetS > 0 ) {
-                            int lastH = hmString.lastIndexOf('H');
-                            int firstm = hmString.indexOf('m');
-                            if ( lastH + 1 < firstm ) {
-                                buf.append(hmString.substring(lastH+1,firstm));
-                            }
-                            buf.append(digitString.charAt(offsetS/10));
-                            buf.append(digitString.charAt(offsetS%10));
-                        }
-                        break;
-                    default:
-                        buf.append(hmString.charAt(j));
-                        break;
-                    }
-                }
-                i += 3;
-            } else {
-                buf.append(gmtFormat.charAt(i));
-            }
-        }
-        return buf.toString();
-    }
-    public String getShortGMTString( TimeZone tz, long date, boolean daylight ) {
-        int offset;
-        if (daylight && tz.useDaylightTime()) {
-            offset = tz.getRawOffset() + tz.getDSTSavings();
-        } else {
-            offset = tz.getRawOffset();
-        }
-        return getShortGMTString(tz,date,offset);
-    }
-    
-    public String getShortGMTString( TimeZone tz, long date ) {
-        return getShortGMTString(tz,date,tz.getOffset(date));
-    }
-  
-    public String getShortGMTString( TimeZone tz, long date, int offset ) {
-        StringBuffer buf = new StringBuffer();
-        // RFC822 format, must use ASCII digits
-        int val = offset;
-        char sign = '+';
-        if (val < 0) {
-            val = -val;
-            sign = '-';
-        }
-        buf.append(sign);
-
-        int offsetH = val / millisPerHour;
-        val = val % millisPerHour;
-        int offsetM = val / millisPerMinute;
-        val = val % millisPerMinute;
-        int offsetS = val / millisPerSecond;
-
-        int num = 0, denom = 0;
-        if (offsetS == 0) {
-            val = offsetH*100 + offsetM; // HHmm
-            num = val % 10000;
-            denom = 1000;
-        } else {
-            val = offsetH*10000 + offsetM*100 + offsetS; // HHmmss
-            num = val % 1000000;
-            denom = 100000;
-        }
-        while (denom >= 1) {
-            char digit = (char)((num / denom) + '0');
-            buf.append(digit);
-            num = num % denom;
-            denom /= 10;
-        }
-        return buf.toString();
-    }
     // APIs used by SimpleDateFormat to lookup a zone string
     public static class ZoneStringInfo {
         private String id;
@@ -356,30 +218,6 @@ public class ZoneStringFormat {
         tzidToStrings = new HashMap<String, ZoneStrings>();
         mzidToStrings = new HashMap<String, ZoneStrings>();
         zoneStringsTrie = new TextTrieMap<ZoneStringInfo>(true);
-        NumberingSystem ns = NumberingSystem.getInstance(locale);
-        if (ns.isAlgorithmic()) {
-            digitString = DEFAULT_DIGIT_STRING; // Using complex ns for GMT formatting doesn't make sense
-        } else {
-            digitString = ns.getDescription();
-        }
-
-        gmtFormat = null;
-        String hourFormatString = null;
-        try {
-            ICUResourceBundle bundle = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_ZONE_BASE_NAME, locale);
-            gmtFormat = bundle.getStringWithFallback("zoneStrings/gmtFormat");
-            hourFormatString = bundle.getStringWithFallback("zoneStrings/hourFormat");
-        } catch (MissingResourceException e) {
-        }
-
-        if ( gmtFormat == null) {
-            gmtFormat = DEFAULT_GMT_FORMAT;
-        }
-        if ( hourFormatString == null) {
-            hourFormatString = DEFAULT_HOUR_FORMAT;
-        }
-        
-        hourFormats = hourFormatString.split(";", 2);
     }
 
     // Load only a single zone
@@ -646,7 +484,7 @@ public class ZoneStringFormat {
     private static final int ZSIDX_MAX = ZSIDX_SHORT_GENERIC + 1;
 
     // ZoneStringFormat cache
-    private static ICUCache<ULocale, ZoneStringFormat> ZSFORMAT_CACHE = new SimpleCache<ULocale, ZoneStringFormat>();
+    private static ICUCache<ULocale, ZoneStringFormat> TZFORMAT_CACHE = new SimpleCache<ULocale, ZoneStringFormat>();
 
     /*
      * The translation type of the translated zone strings
@@ -682,13 +520,6 @@ public class ZoneStringFormat {
     // Loading status
     private boolean isFullyLoaded = false;
 
-    // Digit string - used for fast GMT formatting
-    private String digitString;
-    
-    private String gmtFormat;
-    
-    private String[] hourFormats;
-    
     /*
      * Private method to get a zone string except generic partial location types.
      */
@@ -771,8 +602,9 @@ public class ZoneStringFormat {
      * 4. If a generic non-location string is not available, use generic location
      *    string.
      */
-    private String getGenericString(TimeZone tz, long date, boolean isShort, boolean commonlyUsedOnly) {
+    private String getGenericString(Calendar cal, boolean isShort, boolean commonlyUsedOnly) {
         String result = null;
+        TimeZone tz = cal.getTimeZone();
         String tzid = tz.getID();
 
         if (!isFullyLoaded) {
@@ -802,23 +634,24 @@ public class ZoneStringFormat {
         }
         if (result == null && mzidToStrings != null) {
             // try metazone
-            String mzid = ZoneMeta.getMetazoneID(tzid, date);
+            long time = cal.getTimeInMillis();
+            String mzid = ZoneMeta.getMetazoneID(tzid, time);
             if (mzid != null) {
                 boolean useStandard = false;
-                if (!inDaylightTime(tz,date)) {
+                if (cal.get(Calendar.DST_OFFSET) == 0) {
                     useStandard = true;
                     // Check if the zone actually uses daylight saving time around the time
                     if (tz instanceof BasicTimeZone) {
                         BasicTimeZone btz = (BasicTimeZone)tz;
-                        TimeZoneTransition before = btz.getPreviousTransition(date, true);
+                        TimeZoneTransition before = btz.getPreviousTransition(time, true);
                         if (before != null
-                                && (date - before.getTime() < DST_CHECK_RANGE)
+                                && (time - before.getTime() < DST_CHECK_RANGE)
                                 && before.getFrom().getDSTSavings() != 0) {
                             useStandard = false;
                         } else {
-                            TimeZoneTransition after = btz.getNextTransition(date, false);
+                            TimeZoneTransition after = btz.getNextTransition(time, false);
                             if (after != null
-                                    && (after.getTime() - date < DST_CHECK_RANGE)
+                                    && (after.getTime() - time < DST_CHECK_RANGE)
                                     && after.getTo().getDSTSavings() != 0) {
                                 useStandard = false;
                             }
@@ -827,11 +660,11 @@ public class ZoneStringFormat {
                         // If not BasicTimeZone... only if the instance is not an ICU's implementation.
                         // We may get a wrong answer in edge case, but it should practically work OK.
                         int[] offsets = new int[2];
-                        tz.getOffset(date - DST_CHECK_RANGE, false, offsets);
+                        tz.getOffset(time - DST_CHECK_RANGE, false, offsets);
                         if (offsets[1] != 0) {
                             useStandard = false;
                         } else {
-                            tz.getOffset(date + DST_CHECK_RANGE, false, offsets);
+                            tz.getOffset(time + DST_CHECK_RANGE, false, offsets);
                             if (offsets[1] != 0){
                                 useStandard = false;
                             }
@@ -840,7 +673,7 @@ public class ZoneStringFormat {
                 }
                 if (useStandard) {
                     result = getString(tzid, (isShort ? ZSIDX_SHORT_STANDARD : ZSIDX_LONG_STANDARD),
-                            date, commonlyUsedOnly);
+                            time, commonlyUsedOnly);
 
                     // Note:
                     // In CLDR 1.5.1, a same localization is used for both generic and standard
@@ -849,7 +682,7 @@ public class ZoneStringFormat {
                     // name is different from its generic name below.
                     if (result != null) {
                         String genericNonLocation = getString(tzid, (isShort ? ZSIDX_SHORT_GENERIC : ZSIDX_LONG_GENERIC),
-                                date, commonlyUsedOnly);
+                                time, commonlyUsedOnly);
                         if (genericNonLocation != null && result.equalsIgnoreCase(genericNonLocation)) {
                             result = null;
                         }
@@ -871,17 +704,15 @@ public class ZoneStringFormat {
                         String preferredId = ZoneMeta.getZoneIdByMetazone(mzid, getRegion());
                         if (!tzid.equals(preferredId)) {
                             // Check if the offsets at the given time are identical with the preferred zone
-                            int[] offsets = {0,0};
-                            tz.getOffset(date,false,offsets);
-                            int raw = offsets[0];
-                            int sav = offsets[1];
+                            int raw = cal.get(Calendar.ZONE_OFFSET);
+                            int sav = cal.get(Calendar.DST_OFFSET);
                             TimeZone preferredZone = TimeZone.getTimeZone(preferredId);
                             int[] preferredOffsets = new int[2];
                             // Check offset in preferred time zone with wall time.
                             // With getOffset(time, false, preferredOffsets),
                             // you may get incorrect results because of time overlap at DST->STD
                             // transition.
-                            preferredZone.getOffset(date + raw + sav, true, preferredOffsets);
+                            preferredZone.getOffset(time + raw + sav, true, preferredOffsets);
                             if (raw != preferredOffsets[0] || sav != preferredOffsets[1]) {
                                 // Use generic partial location string as fallback
                                 result = zstrings.getGenericPartialLocationString(mzid, isShort, commonlyUsedOnly);
@@ -893,7 +724,7 @@ public class ZoneStringFormat {
         }
         if (result == null) {
             // Use location format as the final fallback
-            result = getString(tzid, ZSIDX_LOCATION, date, false /* not used */);
+            result = getString(tzid, ZSIDX_LOCATION, cal.getTimeInMillis(), false /* not used */);
         }
         return result;
     }

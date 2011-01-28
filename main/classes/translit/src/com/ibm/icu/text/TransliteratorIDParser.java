@@ -11,11 +11,8 @@
 package com.ibm.icu.text;
 
 import java.text.ParsePosition;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.Hashtable;
+import java.util.Vector;
 
 import com.ibm.icu.impl.Utility;
 import com.ibm.icu.util.CaseInsensitiveString;
@@ -60,8 +57,8 @@ class TransliteratorIDParser {
 
     private static final int REVERSE = Transliterator.REVERSE;
 
-    private static final Map<CaseInsensitiveString, String> SPECIAL_INVERSES =
-        Collections.synchronizedMap(new HashMap<CaseInsensitiveString, String>());
+    private static final Hashtable<CaseInsensitiveString, String> SPECIAL_INVERSES =
+        new Hashtable<CaseInsensitiveString, String>();
 
     /**
      * A structure containing the parsed data of a filtered ID, that
@@ -340,11 +337,11 @@ class TransliteratorIDParser {
      */
     public static boolean parseCompoundID(String id, int dir,
                                           StringBuffer canonID,
-                                          List<SingleID> list,
+                                          Vector<SingleID> list,
                                           UnicodeSet[] globalFilter) {
         int[] pos = new int[] { 0 };
         int[] withParens = new int[1];
-        list.clear();
+        list.removeAllElements();
         UnicodeSet filter;
         globalFilter[0] = null;
         canonID.setLength(0);
@@ -370,9 +367,9 @@ class TransliteratorIDParser {
                 break;
             }
             if (dir == FORWARD) {
-                list.add(single);
+                list.addElement(single);
             } else {
-                list.add(0, single);
+                list.insertElementAt(single, 0);
             }
             if (!Utility.parseChar(id, pos, ID_DELIM)) {
                 sawDelimiter = false;
@@ -386,7 +383,7 @@ class TransliteratorIDParser {
 
         // Construct canonical ID
         for (int i=0; i<list.size(); ++i) {
-            SingleID single = list.get(i);
+            SingleID single = list.elementAt(i);
             canonID.append(single.canonID);
             if (i != (list.size()-1)) {
                 canonID.append(ID_DELIM);
@@ -424,9 +421,9 @@ class TransliteratorIDParser {
      * @param ids list vector of SingleID objects.
      * @return Actual transliterators for the list of SingleIDs
      */
-    static List<Transliterator> instantiateList(List<SingleID> ids) {
+    static Vector<Transliterator> instantiateList(Vector<SingleID> ids) {
         Transliterator t;
-        List<Transliterator> translits = new ArrayList<Transliterator>();
+        Vector<Transliterator> translits = new Vector<Transliterator>();
         for (SingleID single : ids) {
             if (single.basicID.length() == 0) {
                 continue;

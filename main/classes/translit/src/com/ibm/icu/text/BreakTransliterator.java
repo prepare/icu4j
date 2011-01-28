@@ -70,7 +70,7 @@ final class BreakTransliterator extends Transliterator {
         | (1<<Character.NON_SPACING_MARK)
         | (1<<Character.ENCLOSING_MARK)
         ;
-    protected synchronized void handleTransliterate(Replaceable text, Position pos, boolean incremental) {
+    protected void handleTransliterate(Replaceable text, Position pos, boolean incremental) {
         boundaryCount = 0;
         int boundary = 0;
         getBreakIterator(); // Lazy-create it if necessary
@@ -386,18 +386,6 @@ final class BreakTransliterator extends Transliterator {
             }
         }
 
-    }
-    /* (non-Javadoc)
-     * @see com.ibm.icu.text.Transliterator#addSourceTargetSet(com.ibm.icu.text.UnicodeSet, com.ibm.icu.text.UnicodeSet, com.ibm.icu.text.UnicodeSet)
-     */
-    @Override
-    public void addSourceTargetSet(UnicodeSet inputFilter, UnicodeSet sourceSet, UnicodeSet targetSet) {
-        UnicodeSet myFilter = getFilterAsUnicodeSet(inputFilter);
-        // Doesn't actually modify the source characters, so leave them alone.
-        // add the characters inserted
-        if (myFilter.size() != 0) {
-            targetSet.addAll(insertion);
-        }
     }
 
 }

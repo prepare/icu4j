@@ -10,9 +10,8 @@ package com.ibm.icu.text;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.CharacterIterator;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Stack;
+import java.util.Vector;
 
 import com.ibm.icu.impl.Assert;
 
@@ -404,7 +403,7 @@ public class DictionaryBasedBreakIterator extends RuleBasedBreakIterator {
         // positions.)
         Stack<Integer> currentBreakPositions = new Stack<Integer>();
         Stack<Integer> possibleBreakPositions = new Stack<Integer>();
-        List<Integer> wrongBreakPositions = new ArrayList<Integer>();
+        Vector<Integer> wrongBreakPositions = new Vector<Integer>();
 
         // the dictionary is implemented as a trie, which is treated as a state
         // machine.  -1 represents the end of a legal word.  Every word in the
@@ -516,7 +515,7 @@ public class DictionaryBasedBreakIterator extends RuleBasedBreakIterator {
                     while (!currentBreakPositions.isEmpty() && temp.intValue() <
                            currentBreakPositions.peek().intValue()) {
                         temp2 = currentBreakPositions.pop();
-                        wrongBreakPositions.add(temp2);
+                        wrongBreakPositions.addElement(temp2);
                     }
                     currentBreakPositions.push(temp);
                     text.setIndex(currentBreakPositions.peek().intValue());

@@ -1,6 +1,6 @@
 /*
 *******************************************************************************
-*   Copyright (C) 2007-2010, International Business Machines
+*   Copyright (C) 2007-2009, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 *******************************************************************************
 */
@@ -11,7 +11,6 @@ import java.io.ObjectInputStream;
 import java.math.BigInteger;
 import java.text.FieldPosition;
 import java.text.ParsePosition;
-import java.util.MissingResourceException;
 
 import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.math.BigDecimal;
@@ -27,8 +26,7 @@ public final class DateNumberFormat extends NumberFormat {
 
     private static final long serialVersionUID = -6315692826916346953L;
 
-    private char[] digits;
-    private char zeroDigit; // For backwards compatibility
+    private char zeroDigit;
     private char minusSign;
     private boolean positiveOnly = false;
 
@@ -38,49 +36,30 @@ public final class DateNumberFormat extends NumberFormat {
 
     private int maxIntDigits;
     private int minIntDigits;
-
-    public DateNumberFormat(ULocale loc, String digitString, String nsName) {
-        initialize(loc,digitString,nsName);
+ 
+    public DateNumberFormat(ULocale loc, char zeroDigitIn) {
+        initialize(loc,zeroDigitIn);
     }
 
-    public DateNumberFormat(ULocale loc, char zeroDigit, String nsName) {
-        StringBuffer buf = new StringBuffer();
-        for ( int i = 0 ; i < 10 ; i++ ) {
-            buf.append((char)(zeroDigit+i));
-        }
-        initialize(loc,buf.toString(),nsName);
+/*    public DateNumberFormat(char zeroDigit, char minusSign) {
+        this.zeroDigit = zeroDigit;
+        this.minusSign = minusSign;
     }
+*/
 
-    private void initialize(ULocale loc,String digitString,String nsName) {
+    private void initialize(ULocale loc,char zeroDigitIn) {
         char[] elems = CACHE.get(loc);
         if (elems == null) {
             // Missed cache
-            String minusString;
             ICUResourceBundle rb = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, loc);
-            try {
-                minusString = rb.getStringWithFallback("NumberElements/"+nsName+"/symbols/minusSign");
-            } catch (MissingResourceException ex) {
-                if ( !nsName.equals("latn") ) {
-                    try {
-                       minusString = rb.getStringWithFallback("NumberElements/latn/symbols/minusSign");                 
-                    } catch (MissingResourceException ex1) {
-                        minusString = "-";
-                    }
-                } else {
-                    minusString = "-";
-                }
-            }
-            elems = new char[11];
-            for ( int i = 0 ; i < 10 ; i++ ) {
-                 elems[i] = digitString.charAt(i);
-            }
-            elems[10] = minusString.charAt(0);
+            String[] numberElements = rb.getStringArray("NumberElements");
+            elems = new char[2];
+            elems[0] = zeroDigitIn;
+            elems[1] = numberElements[6].charAt(0);
             CACHE.put(loc, elems);
         }
-        
-        digits = new char[10];
-        System.arraycopy(elems, 0, digits, 0, 10);
-        minusSign = elems[10];
+        zeroDigit = elems[0];
+        minusSign = elems[1];
     }
 
     public void setMaximumIntegerDigits(int newValue) {
@@ -105,24 +84,11 @@ public final class DateNumberFormat extends NumberFormat {
     }
 
     public char getZeroDigit() {
-        if ( digits != null ) {
-            return digits[0];
-        } else {
-            return zeroDigit;
-        }
+        return zeroDigit;
     }
 
     public void setZeroDigit(char zero) {
-        if ( digits == null ) {
-            digits = new char[10];
-        }
-        digits[0] = zero;
-        if (Character.digit(zero,10) == 0) {
-            for ( int i = 1 ; i < 10 ; i++ ) {
-                digits[i] = (char)(zero+i);
-            }
-        }
- 
+        zeroDigit = zero;
     }
 
     public StringBuffer format(double number, StringBuffer toAppendTo,
@@ -146,7 +112,7 @@ public final class DateNumberFormat extends NumberFormat {
         int limit = decimalBuf.length < maxIntDigits ? decimalBuf.length : maxIntDigits;
         int index = limit - 1;
         while (true) {
-            decimalBuf[index] = digits[(number % 10)];
+            decimalBuf[index] = (char)((number % 10) + zeroDigit);
             number /= 10;
             if (index == 0 || number == 0) {
                 break;
@@ -155,7 +121,7 @@ public final class DateNumberFormat extends NumberFormat {
         }
         int padding = minIntDigits - (limit - index);
         for (; padding > 0; padding--) {
-            decimalBuf[--index] = digits[0];
+            decimalBuf[--index] = zeroDigit;
         }
         int length = limit - index;
         toAppendTo.append(decimalBuf, index, length);
@@ -186,8 +152,6 @@ public final class DateNumberFormat extends NumberFormat {
     /*
      * Note: This method only parse integer numbers which can be represented by long
      */
-    private static final long PARSE_THRESHOLD = 922337203685477579L; // (Long.MAX_VALUE / 10) - 1
-
     public Number parse(String text, ParsePosition parsePosition) {
         long num = 0;
         boolean sawNumber = false;
@@ -202,18 +166,11 @@ public final class DateNumberFormat extends NumberFormat {
                 }
                 negative = true;
             } else {
-                int digit = ch - digits[0];
+                int digit = ch - zeroDigit;
                 if (digit < 0 || 9 < digit) {
                     digit = UCharacter.digit(ch);
                 }
-                if (digit < 0 || 9 < digit) {
-                    for ( digit = 0 ; digit < 10 ; digit++ ) {
-                        if ( ch == digits[digit]) {
-                            break;
-                        }
-                    }
-                }
-                if (0 <= digit && digit <= 9 && num < PARSE_THRESHOLD) {
+                if (0 <= digit && digit <= 9) {
                     sawNumber = true;
                     num = num * 10 + digit;
                 } else {
@@ -235,27 +192,9 @@ public final class DateNumberFormat extends NumberFormat {
             return false;
         }
         DateNumberFormat other = (DateNumberFormat)obj;
-
-        for (int i = 0 ; i < 10 ; i++) {
-            char check1, check2;
-            if ( digits != null ) {
-                check1 = digits[i];
-            } else {
-                check1 = (char)(zeroDigit+i);
-            }
-            if ( other.digits != null ) {
-                check2 = other.digits[i];
-            } else {
-                check2 = (char)(other.zeroDigit+i);
-            }
-            
-            if (check1 != check2) {
-                return false;
-            }
-        }
-
         return (this.maxIntDigits == other.maxIntDigits
                 && this.minIntDigits == other.minIntDigits
+                && this.zeroDigit == other.zeroDigit
                 && this.minusSign == other.minusSign
                 && this.positiveOnly == other.positiveOnly);
     }

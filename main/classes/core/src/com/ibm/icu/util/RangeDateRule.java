@@ -7,9 +7,8 @@
 
 package com.ibm.icu.util;
 
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
+import java.util.Vector;
 
 /**
  * <b>Note:</b> The Holiday framework is a technology preview.
@@ -50,7 +49,7 @@ public class RangeDateRule implements DateRule {
     public void add(Date start, DateRule rule) {
         // TODO: Insert in the right place
         // System.out.println("Add: " + start.toString());
-        ranges.add(new Range(start, rule));
+        ranges.addElement(new Range(start, rule));
     }
 
     //-----------------------------------------------------------------------
@@ -137,7 +136,7 @@ public class RangeDateRule implements DateRule {
         int lastIndex = ranges.size();
 
         for (int i = 0; i < ranges.size(); i++) {
-            Range r = ranges.get(i);
+            Range r = ranges.elementAt(i);
             if (start.before(r.start)) {
                 break;
             }
@@ -147,11 +146,11 @@ public class RangeDateRule implements DateRule {
     }
 
     private Range rangeAt(int index) {
-       return (index < ranges.size()) ? ranges.get(index)
+       return (index < ranges.size()) ? ranges.elementAt(index)
                                       : null;
     }
 
-    List<Range> ranges = new ArrayList<Range>(2);
+    Vector<Range> ranges = new Vector<Range>(2,2);
 }
 
 //-----------------------------------------------------------------------
