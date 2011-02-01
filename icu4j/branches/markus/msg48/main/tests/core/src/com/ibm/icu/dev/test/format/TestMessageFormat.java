@@ -1240,7 +1240,7 @@ public class TestMessageFormat extends com.ibm.icu.dev.test.TestFmwk {
     public void testNestedFormatsInPluralFormat() {
         try {
             MessageFormat msgFmt = new MessageFormat(
-                    "{0, plural, one {{0, number,C''''est #,##0.0# fichier}} " +
+                    "{0, plural, one {{0, number,C''est #,##0.0# fichier}} " +
                     "other {Ce sont # fichiers}} dans la liste.",
                     new ULocale("fr"));
             Object objArray[] = {new Long(0)};
@@ -1301,6 +1301,19 @@ public class TestMessageFormat extends com.ibm.icu.dev.test.TestFmwk {
             if (!result.equals("There are 4,0 zavoda in the directory.")) {
                 errln("PluralFormat produced wrong message string.");
             }
+        }
+    }
+
+    public void testApostropheInPluralAndSelect() {
+        MessageFormat fmt = new MessageFormat(
+                "abc_{0,plural,other{#'#'#'{'#''}}_def_{1,select,other{sel'}'ect''}}_xyz",
+                Locale.ENGLISH);
+        String expected = "abc_3#3{3'_def_sel}ect'_xyz";
+        String result = fmt.format(new Object[] { 3, "x" });
+        if (!result.equals(expected)) {
+            errln("MessageFormat with apostrophes in plural/select arguments failed:\n" +
+                  "Expected "+expected+"\n" +
+                  "Got      "+result);
         }
     }
 

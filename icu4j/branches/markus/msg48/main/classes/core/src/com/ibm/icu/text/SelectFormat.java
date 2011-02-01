@@ -180,7 +180,7 @@ public class SelectFormat extends Format{
      */
     private enum CharacterClass {
         T_START_KEYWORD, T_CONTINUE_KEYWORD, T_LEFT_BRACE,
-        T_RIGHT_BRACE, T_SPACE, T_OTHER
+        T_RIGHT_BRACE, T_SPACE, T_APOSTROPHE, T_OTHER
     };
 
     /*
@@ -258,6 +258,8 @@ public class SelectFormat extends Format{
             case '-':
             case '_':
                 return CharacterClass.T_CONTINUE_KEYWORD;
+            case '\'':
+                return CharacterClass.T_APOSTROPHE;
             default :
                 return CharacterClass.T_OTHER;
         }
@@ -342,6 +344,18 @@ public class SelectFormat extends Format{
                //Handle the phrase state
                case PHRASE_STATE:
                     switch (type) {
+                        case T_APOSTROPHE: {
+                            // Apostrophe starts and ends quoting of literal text.
+                            // Skip the quoted text and preserve the apostrophes for
+                            // subsequent use in MessageFormat.
+                            int endAposIndex = pattern.indexOf('\'', i + 1);
+                            if (endAposIndex < 0) {
+                                parsingFailure("Pattern syntax error. Unterminated quote.");
+                            }
+                            phrase.append(pattern, i, endAposIndex + 1);
+                            i = endAposIndex;
+                            break;
+                        }
                         case T_LEFT_BRACE:
                             braceCount++;
                             phrase.append(ch);
