@@ -124,7 +124,7 @@ import com.ibm.icu.util.ULocale;
  *         [:ID_START:][:ID_CONTINUE:]*
  *
  * <i>FormatType: one of </i>
- *         number date time choice spellout ordinal duration plural
+ *         number date time choice spellout ordinal duration plural select
  *
  * <i>FormatStyle:</i>
  *         short
@@ -631,15 +631,9 @@ public class MessageFormat extends UFormat {
                 result.append(",choice,"
                         + ((ChoiceFormat) formats[i]).toPattern());
             } else if (formats[i] instanceof PluralFormat ){
-                  String pat = ((PluralFormat)formats[i]).toPattern();
-                  // TODO: PluralFormat does not do the single quote thing, just reapply
-                  pat = duplicateSingleQuotes(pat);
-                  result.append(",plural," + pat);
+                  result.append(",plural," + ((PluralFormat)formats[i]).toPattern());
             } else if (formats[i] instanceof SelectFormat) {
-                  String pat = ((SelectFormat)formats[i]).toPattern();
-                  //TODO: SelectFormat does not do the single quote thing, just reapply
-                  pat = duplicateSingleQuotes(pat);
-                  result.append(",select," + pat);
+                  result.append(",select," + ((SelectFormat)formats[i]).toPattern());
             } else {
                 //result.append(", unknown");
             }
@@ -647,25 +641,6 @@ public class MessageFormat extends UFormat {
         }
         copyAndFixQuotes(pattern, lastOffset, pattern.length(), result);
         return result.toString();
-    }
-
-    /**
-      * Double every single quote
-      */
-    private String duplicateSingleQuotes(String pat) {
-        String result = pat;
-        if (pat.indexOf('\'') != 0) {
-            StringBuilder buf = new StringBuilder();
-            for (int j = 0; j < pat.length(); ++j) {
-                char ch = pat.charAt(j);
-                if (ch == '\'') {
-                    buf.append(ch); // double it
-                }
-                buf.append(ch);
-            }
-            result = buf.toString();
-        }
-        return result;
     }
 
     /**
@@ -1685,13 +1660,12 @@ public class MessageFormat extends UFormat {
                     arg = "null";
                 } else if (formats[i] != null) {
                     subFormatter = formats[i];
-                    if (subFormatter instanceof ChoiceFormat
+                    boolean isChoice = subFormatter instanceof ChoiceFormat;
+                    if (isChoice
                         || subFormatter instanceof PluralFormat
                         || subFormatter instanceof SelectFormat) {
                         arg = formats[i].format(obj);
-                        // TODO: This should be made more robust.
-                        //       Does this work with '{' in quotes?
-                        if (arg.indexOf('{') >= 0) {
+                        if (arg.indexOf('{') >= 0 || (!isChoice && arg.indexOf('\'') >= 0)) {
                             subFormatter = new MessageFormat(arg, ulocale);
                             obj = arguments;
                             arg = null;
@@ -1957,7 +1931,7 @@ public class MessageFormat extends UFormat {
                 newFormat = new ChoiceFormat(segments[3].toString());
             } catch (Exception e) {
                 maxOffset = oldMaxOffset;
-                throw new IllegalArgumentException("Choice Pattern incorrect");
+                throw new IllegalArgumentException("Choice Pattern incorrect", e);
             }
             break;
         case TYPE_SPELLOUT:
@@ -2009,36 +1983,19 @@ public class MessageFormat extends UFormat {
             }
             break;
         case TYPE_PLURAL:
+            try {
+                newFormat = new PluralFormat(ulocale, segments[3].toString());
+            } catch (Exception e) {
+                maxOffset = oldMaxOffset;
+                throw new IllegalArgumentException("Plural Pattern incorrect", e);
+                }
+            break;
         case TYPE_SELECT:
-            {
-                // PluralFormat and SelectFormat does not handle quotes.
-                // Remove quotes.
-                // TODO: Should PluralFormat and SelectFormat handle quotes?
-                StringBuilder unquotedPattern = new StringBuilder();
-                String quotedPattern = segments[3].toString();
-                boolean inQuote = false;
-                for (int i = 0; i < quotedPattern.length(); ++i) {
-                    char ch = quotedPattern.charAt(i);
-                    if (ch == '\'') {
-                        if (i+1 < quotedPattern.length() &&
-                            quotedPattern.charAt(i+1) == '\'') {
-                                unquotedPattern.append(ch);
-                                ++i;
-                            } else {
-                                inQuote = !inQuote;
-                            }
-                    } else {
-                        unquotedPattern.append(ch);
-                    }
-                }
-
-                if( subformatType == TYPE_PLURAL){
-                    PluralFormat pls = new PluralFormat(ulocale,
-                                                    unquotedPattern.toString());
-                    newFormat = pls;
-                }else{
-                    newFormat = new SelectFormat( unquotedPattern.toString());
-                }
+            try {
+                newFormat = new SelectFormat(segments[3].toString());
+            } catch (Exception e) {
+                maxOffset = oldMaxOffset;
+                throw new IllegalArgumentException("Select Pattern incorrect", e);
             }
             break;
         default:

@@ -450,13 +450,19 @@ public class PluralFormat extends UFormat {
                 break;
 
             case 1: // Reading value.
-                if (ch == '}') {
-                    --braceCount;
-                    if (braceCount < 0) {
-                        parsingFailure("Malformed formatting expression. "
-                                + "Braces do not match.");
+                if (ch == '\'') {
+                    // Apostrophe starts and ends quoting of literal text.
+                    // Skip the quoted text and preserve the apostrophes for
+                    // subsequent use in MessageFormat.
+                    int endAposIndex = pttrn.indexOf('\'', i + 1);
+                    if (endAposIndex < 0) {
+                        parsingFailure("Malformed formatting expression. Braces do not match.");
                     }
-                    if (braceCount == 0) { // End of value reached.
+                    token.append(pttrn, i, endAposIndex + 1);
+                    i = endAposIndex;
+                    break;
+                } else if (ch == '}') {
+                    if (--braceCount == 0) { // End of value reached.
                         if (useExplicit) {
                             if (explicitValuesList == null) {
                                 explicitValuesList = new ArrayList<ExplicitPair>();
@@ -708,6 +714,11 @@ public class PluralFormat extends UFormat {
         int startIndex = 0;
         for (int i = 0; i < message.length(); ++i) {
             switch (message.charAt(i)) {
+            case '\'':
+                // Skip/copy quoted literal text.
+                i = message.indexOf('\'', i + 1);
+                assert i >= 0 : "unterminated quote should have failed applyPattern()";
+                break;
             case '{':
                 ++braceCount;
                 break;
@@ -716,7 +727,7 @@ public class PluralFormat extends UFormat {
                 break;
             case '#':
                 if (braceCount == 0) {
-                    result.append(message.substring(startIndex,i));
+                    result.append(message, startIndex, i);
                     startIndex = i + 1;
                     result.append(formattedNumber);
                 }
@@ -724,7 +735,7 @@ public class PluralFormat extends UFormat {
             }
         }
         if (startIndex < message.length()) {
-            result.append(message.substring(startIndex, message.length()));
+            result.append(message, startIndex, message.length());
         }
         return result.toString();
     }
