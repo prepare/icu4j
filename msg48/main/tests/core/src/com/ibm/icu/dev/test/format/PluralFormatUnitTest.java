@@ -281,4 +281,46 @@ public class PluralFormatUnitTest extends TestFmwk {
         MessageFormat pfmt2 = new MessageFormat(pfmt.toPattern());
         assertEquals("message formats are equal", pfmt, pfmt2);
     }
+
+    public void TestExtendedPluralFormat() {
+        String[] targets = {
+            "There are no widgets.",
+            "There is one widget.",
+            "There is a bling widget and one other widget.",
+            "There is a bling widget and 2 other widgets.",
+            "There is a bling widget and 3 other widgets.",
+            "Widgets, five there be.",
+            "There is a bling widget and 5 other widgets.",
+            "There is a bling widget and 6 other widgets.",
+        };
+        PluralFormat pf = new PluralFormat(
+                "offset:1.0 "
+                + "=0 {There are no widgets.} "
+                + "=1.0 {There is one widget.} "
+                + "=5 {Widgets, five there be.} "
+                + "one {There is a bling widget and one other widget.} "
+                + "other {There is a bling widget and # other widgets.}");
+        for (int i = 0; i < 7; ++i) {
+            String result = pf.format(i);
+            assertEquals("value = " + i, targets[i], result);
+        }
+    }
+
+    public void TestExtendedPluralFormatParsing() {
+        String[] failures = {
+            "offset:1..0 =0 {Foo}",
+            "offset:1.0 {Foo}",
+            "=0= {Foo}",
+            "=0 {Foo} =0.0 {Bar}",
+            " = {Foo}",
+        };
+        for (String fmt : failures) {
+            try {
+                PluralFormat pf = new PluralFormat(fmt);
+                fail("expected exception when parsing '" + fmt + "'");
+            } catch (IllegalArgumentException e) {
+                // ok
+            }
+        }
+    }
 }

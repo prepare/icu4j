@@ -9,7 +9,9 @@ package com.ibm.icu.text;
 
 import java.text.FieldPosition;
 import java.text.ParsePosition;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -153,6 +155,15 @@ import com.ibm.icu.util.ULocale;
 public class PluralFormat extends UFormat {
     private static final long serialVersionUID = 1L;
 
+    private static final class ExplicitPair {
+        final double key;
+        final String value;
+        ExplicitPair(double key, String value) {
+            this.key = key;
+            this.value = value;
+        }
+    }
+
     /*
      * The locale used for standard number formatting and getting the predefined
      * plural rules (if they were not defined explicitely).
@@ -181,6 +192,16 @@ public class PluralFormat extends UFormat {
      * the number inserted into the message.
      */
     private NumberFormat numberFormat = null;
+
+    /*
+     * The list of explicit values to process before plural rules are invoked.
+     */
+    private ExplicitPair[] explicitValues = null;
+
+    /*
+     * The offset to subtract before invoking plural rules.
+     */
+    private double offset = 0;
 
     /**
      * Creates a new <code>PluralFormat</code> for the default locale.
@@ -309,6 +330,8 @@ public class PluralFormat extends UFormat {
         parsedValues = null;
         pattern = null;
         numberFormat = NumberFormat.getInstance(ulocale);
+        explicitValues = null;
+        offset = 0;
     }
 
     /**
@@ -325,47 +348,96 @@ public class PluralFormat extends UFormat {
         pttrn = pttrn.trim();
 
         this.pattern = pttrn;
-        int braceStack = 0;
         Set<String> ruleNames = pluralRules.getKeywords();
         parsedValues = new HashMap<String, String>();
+
+        List<ExplicitPair> explicitValuesList = null;
 
         // Format string has to include keywords.
         // states:
         // 0: Reading keyword.
         // 1: Reading value for preceding keyword.
+        // 2: Reading value of offset.
         int state = 0;
+        int braceCount = 0;
         StringBuilder token = new StringBuilder();
         String currentKeyword = null;
+        double explicitValue = 0;
+        boolean useExplicit = false;
         boolean readSpaceAfterKeyword = false;
+
         for (int i = 0; i < pttrn.length(); ++i) {
             char ch = pttrn.charAt(i);
             switch (state) {
-            case 0: // Reading value.
-                if (token.length() == 0) {
-                    readSpaceAfterKeyword = false;
-                }
+            case 0: // Reading keyword.
                 if (UCharacterProperty.isRuleWhiteSpace(ch)) {
+                    // Skip leading and trailing whitespace.
                     if (token.length() > 0) {
                         readSpaceAfterKeyword = true;
                     }
-                    // Skip leading and trailing whitespaces.
+                    break;
+                }
+                if (ch == '=') {
+                    if (useExplicit) {
+                        parsingFailure("Malformed formatting expression. "
+                                + "Unexpected '=' in keyword \""
+                                + currentKeyword
+                                + "\" at position " + i + ".");
+                    }
+                    useExplicit = true;
+                    break;
+                }
+                if (!readSpaceAfterKeyword && ch == ':') { // Check for offset.
+                    if (!"offset".equals(token.toString().toLowerCase(Locale.ENGLISH))) {
+                        parsingFailure("Malformed formatting expression. "
+                                + "Unexpected ':' in keyword \""
+                                + currentKeyword
+                                + "\" at position " + i + ".");
+                    }
+                    token.setLength(0);
+                    state = 2;
                     break;
                 }
                 if (ch == '{') { // End of keyword definition reached.
-                    currentKeyword = token.toString().toLowerCase(
-                            Locale.ENGLISH);
+                    if (token.length() == 0) {
+                        parsingFailure("Malformed formatting expression. "
+                                + "Missing keyword at position " + i + ".");
+                    }
+
+                    currentKeyword = token.toString().toLowerCase(Locale.ENGLISH);
+                    if (useExplicit) {
+                        try {
+                            explicitValue = Double.parseDouble(currentKeyword);
+                        } catch (Throwable t) {
+                            parsingFailure("Malformed formatting expression. "
+                                    + "Unparsable double in explicit value \""
+                                    + currentKeyword
+                                    + "\" at position " + i + ".");
+                        }
+                        if (explicitValuesList != null) {
+                            for (ExplicitPair p : explicitValuesList) {
+                                if (p.key == explicitValue) {
+                                    parsingFailure("Malformed formatting expression. "
+                                            + "Text for explicit value \"" + explicitValue
+                                            + "\" at position " + i + " already defined!");
+                                }
+                            }
+                        }
+                    } else {
                     if (!ruleNames.contains(currentKeyword)) {
                         parsingFailure("Malformed formatting expression. "
                                 + "Unknown keyword \"" + currentKeyword
                                 + "\" at position " + i + ".");
                     }
+
                     if (parsedValues.get(currentKeyword) != null) {
                         parsingFailure("Malformed formatting expression. "
                                 + "Text for case \"" + currentKeyword
                                 + "\" at position " + i + " already defined!");
                     }
-                    token.delete(0, token.length());
-                    braceStack++;
+                    }
+                    token.setLength(0);
+                    braceCount++;
                     state = 1;
                     break;
                 }
@@ -376,36 +448,76 @@ public class PluralFormat extends UFormat {
                 }
                 token.append(ch);
                 break;
+
             case 1: // Reading value.
-                switch (ch) {
-                case '{':
-                    braceStack++;
-                    token.append(ch);
-                    break;
-                case '}':
-                    braceStack--;
-                    if (braceStack == 0) { // End of value reached.
-                        parsedValues.put(currentKeyword, token.toString());
-                        token.delete(0, token.length());
-                        state = 0;
-                    } else if (braceStack < 0) {
+                if (ch == '}') {
+                    --braceCount;
+                    if (braceCount < 0) {
                         parsingFailure("Malformed formatting expression. "
                                 + "Braces do not match.");
-                    } else { // braceStack > 0
-                        token.append(ch);
                     }
+                    if (braceCount == 0) { // End of value reached.
+                        if (useExplicit) {
+                            if (explicitValuesList == null) {
+                                explicitValuesList = new ArrayList<ExplicitPair>();
+                            }
+                            explicitValuesList.add(
+                                new ExplicitPair(explicitValue, token.toString()));
+                            useExplicit = false;
+                        } else {
+                            parsedValues.put(currentKeyword, token.toString());
+                        }
+                        token.setLength(0);
+                        readSpaceAfterKeyword = false;
+                        state = 0;
                     break;
-                default:
-                    token.append(ch);
+                    }
+
+                    // else braceCount > 0, we'll append the brace
+                } else if (ch == '{') {
+                    braceCount++;
                 }
+                    token.append(ch);
+                break;
+
+            case 2: // Reading value of offset
+                if (UCharacterProperty.isRuleWhiteSpace(ch)) {
+                    if (token.length() == 0) {
+                        break; // ignore leading spaces
+                    }
+                    // trigger parse on first whitespace after non-whitespace
+                    try {
+                        offset = Double.parseDouble(token.toString());
+                    } catch (Throwable t) {
+                        parsingFailure("Malformed formatting expression. "
+                                + "Unparsable double in offset \""
+                                + token
+                                + "\"at position " + i + ".");
+                }
+                    token.setLength(0);
+                    readSpaceAfterKeyword = false;
+                    state = 0; // back to looking for keywords
+                    break;
+                }
+                // Not whitespace, assume it's part of the offset value.
+                // If it's '=', too bad, you have to explicitly
+                // delimit offset:xxx by a space.  This also means it
+                // can't be '{', but this is an error already since there's no
+                // keyword.
+                token.append(ch);
                 break;
             } // switch state
         } // for loop.
-        if (braceStack != 0) {
+
+        if (braceCount != 0) {
             parsingFailure(
                     "Malformed formatting expression. Braces do not match.");
         }
         checkSufficientDefinition();
+        if (explicitValuesList != null) {
+            explicitValues = explicitValuesList.toArray(
+                new ExplicitPair[explicitValuesList.size()]);
+        }
     }
 
     /**
@@ -433,13 +545,28 @@ public class PluralFormat extends UFormat {
         if (parsedValues == null) {
             return numberFormat.format(number);
         }
+        String selectedPattern = null;
+        if (explicitValues != null) {
+            for (ExplicitPair ep : explicitValues) {
+                if (ep.key == number) {
+                    selectedPattern = ep.value;
+                    break;
+                }
+            }
+        }
 
+        // Apply offset only after explicit test.
+        number -= offset;
+
+        if (selectedPattern == null) {
         // Get appropriate format pattern.
         String selectedRule = pluralRules.select(number);
-        String selectedPattern = parsedValues.get(selectedRule);
+            selectedPattern = parsedValues.get(selectedRule);
         if (selectedPattern == null) { // Fallback to others.
             selectedPattern = parsedValues.get(PluralRules.KEYWORD_OTHER);
         }
+        }
+
         // Get formatted number and insert it into String.
         // Will replace all '#' which are not inside curly braces by the
         // formatted number.
@@ -577,18 +704,18 @@ public class PluralFormat extends UFormat {
         }
         String formattedNumber = numberFormat.format(number);
         StringBuilder result = new StringBuilder();
-        int braceStack = 0;
+        int braceCount = 0;
         int startIndex = 0;
         for (int i = 0; i < message.length(); ++i) {
             switch (message.charAt(i)) {
             case '{':
-                ++braceStack;
+                ++braceCount;
                 break;
             case '}':
-                --braceStack;
+                --braceCount;
                 break;
             case '#':
-                if (braceStack == 0) {
+                if (braceCount == 0) {
                     result.append(message.substring(startIndex,i));
                     startIndex = i + 1;
                     result.append(formattedNumber);
@@ -619,6 +746,7 @@ public class PluralFormat extends UFormat {
     public boolean equals(PluralFormat rhs) {
       return pluralRules.equals(rhs.pluralRules) &&
           parsedValues.equals(rhs.parsedValues) &&
+          offset == rhs.offset &&
           numberFormat.equals(rhs.numberFormat);
     }
 
@@ -642,6 +770,8 @@ public class PluralFormat extends UFormat {
         buf.append(", pattern='" + pattern + "'");
         buf.append(", parsedValues='" + parsedValues + "'");
         buf.append(", format='" + numberFormat + "'");
+        buf.append(", explicitValues='" + explicitValues + "'");
+        buf.append(", offset='" + offset + "'");
         return buf.toString();
     }
 }
