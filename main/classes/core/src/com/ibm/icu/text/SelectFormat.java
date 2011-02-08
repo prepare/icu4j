@@ -148,7 +148,8 @@ import java.util.Map;
  * <code>Kirti est all&#u00E9;e &#u00E0; Paris.</code>
  * </p>
  *
- * @stable ICU 4.4
+ * @draft ICU 4.4
+ * @provisional This API might change or be removed in a future release.
  */
 
 public class SelectFormat extends Format{
@@ -171,7 +172,8 @@ public class SelectFormat extends Format{
      * Common name for the default select form.  This name is returned
      * for values to which no other form in the rule applies.  It 
      * can additionally be assigned rules of its own.
-     * @stable ICU 4.4
+     * @draft ICU 4.4
+     * @provisional This API might change or be removed in a future release.
      */
     private static final String KEYWORD_OTHER = "other";
 
@@ -195,7 +197,8 @@ public class SelectFormat extends Format{
     /**
      * Creates a new <code>SelectFormat</code> for a given pattern string.
      * @param  pattern the pattern for this <code>SelectFormat</code>.
-     * @stable ICU 4.4
+     * @draft ICU 4.4
+     * @provisional This API might change or be removed in a future release.
      */
     public SelectFormat(String pattern) {
         init();
@@ -269,7 +272,8 @@ public class SelectFormat extends Format{
      *
      * @param pattern the pattern for this select format.
      * @throws IllegalArgumentException when the pattern is not a valid select format pattern.
-     * @stable ICU 4.4
+     * @draft ICU 4.4
+     * @provisional This API might change or be removed in a future release.
      */
     public void applyPattern(String pattern) {
         parsedValues = null;
@@ -401,7 +405,8 @@ public class SelectFormat extends Format{
      * Returns the pattern for this <code>SelectFormat</code>
      *
      * @return the pattern string
-     * @stable ICU 4.4
+     * @draft ICU 4.4
+     * @provisional This API might change or be removed in a future release.
      */
     public String toPattern() {
         return pattern;
@@ -413,7 +418,8 @@ public class SelectFormat extends Format{
      * @param keyword a keyword for which the select message should be formatted.
      * @return the string containing the formatted select message.
      * @throws IllegalArgumentException when the given keyword is not available in the select format pattern
-     * @stable ICU 4.4
+     * @draft ICU 4.4
+     * @provisional This API might change or be removed in a future release.
      */
     public final String format(String keyword) {
         //Check for the validity of the keyword
@@ -444,7 +450,8 @@ public class SelectFormat extends Format{
      * @throws IllegalArgumentException when the given keyword is not available in the select format pattern
      * @return the string buffer passed in as toAppendTo, with formatted text
      *         appended.
-     * @stable ICU 4.4
+     * @draft ICU 4.4
+     * @provisional This API might change or be removed in a future release.
      */
     public StringBuffer format(Object keyword, StringBuffer toAppendTo,
             FieldPosition pos) {
@@ -464,7 +471,8 @@ public class SelectFormat extends Format{
      * has not changed upon return, then parsing failed.
      * @return nothing because this method is not supported.
      * @throws UnsupportedOperationException thrown always.
-     * @stable ICU 4.4
+     * @draft ICU 4.4
+     * @provisional This API might change or be removed in a future release.
      */
     public Object parseObject(String source, ParsePosition pos) {
         throw new UnsupportedOperationException();
@@ -495,7 +503,8 @@ public class SelectFormat extends Format{
 
     /**
      * {@inheritDoc}
-     * @stable ICU 4.4
+     * @draft ICU 4.4
+     * @provisional This API might change or be removed in a future release.
      */
     public boolean equals(Object obj) {
         if (!(obj instanceof SelectFormat)) {
@@ -507,7 +516,8 @@ public class SelectFormat extends Format{
 
     /**
      * {@inheritDoc}
-     * @stable ICU 4.4
+     * @draft ICU 4.4
+     * @provisional This API might change or be removed in a future release.
      */
     public int hashCode() {
         if (pattern != null) {
@@ -521,7 +531,8 @@ public class SelectFormat extends Format{
      * @return a text representation of the format object.
      * The result string includes the class name and
      * the pattern string returned by <code>toPattern()</code>.
-     * @stable ICU 4.4
+     * @draft ICU 4.4
+     * @provisional This API might change or be removed in a future release.
      */
     public String toString() {
         StringBuilder buf = new StringBuilder();

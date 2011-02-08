@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1996-2010, International Business Machines Corporation and
+ * Copyright (C) 1996-2011, International Business Machines Corporation and
  * others. All Rights Reserved.
  */
 package com.ibm.icu.text;
@@ -164,32 +164,5 @@ class NameUnicodeTransliterator extends Transliterator {
         // In incremental mode, only advance the cursor up to the last
         // open delimiter candidate.
         offsets.start = (isIncremental && openPos >= 0) ? openPos : cursor;
-    }
-
-    /* (non-Javadoc)
-     * @see com.ibm.icu.text.Transliterator#addSourceTargetSet(com.ibm.icu.text.UnicodeSet, com.ibm.icu.text.UnicodeSet, com.ibm.icu.text.UnicodeSet)
-     */
-    @Override
-    public void addSourceTargetSet(UnicodeSet inputFilter, UnicodeSet sourceSet, UnicodeSet targetSet) {
-        UnicodeSet myFilter = getFilterAsUnicodeSet(inputFilter);
-        if (!myFilter.containsAll(UnicodeNameTransliterator.OPEN_DELIM) || !myFilter.contains(CLOSE_DELIM)) {
-            return; // we have to contain both prefix and suffix 
-        }
-        UnicodeSet items = new UnicodeSet()
-        .addAll('0', '9')
-        .addAll('A', 'F')
-        .addAll('a', 'z') // for controls
-        .add('<').add('>') // for controls
-        .add('(').add(')') // for controls
-        .add('-')
-        .add(' ')
-        .addAll(UnicodeNameTransliterator.OPEN_DELIM)
-        .add(CLOSE_DELIM);
-        items.retainAll(myFilter);
-        if (items.size() > 0) {
-            sourceSet.addAll(items);
-            // could produce any character
-            targetSet.addAll(0, 0x10FFFF);
-        }
     }
 }

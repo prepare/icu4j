@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2001-2010, International Business Machines Corporation and    *
+ * Copyright (C) 2001-2011, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -26,12 +26,12 @@ import java.util.Set;
 
 import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.text.ChineseDateFormat;
-import com.ibm.icu.text.ChineseDateFormat.Field;
 import com.ibm.icu.text.ChineseDateFormatSymbols;
 import com.ibm.icu.text.DateFormat;
 import com.ibm.icu.text.DateFormatSymbols;
 import com.ibm.icu.text.NumberFormat;
 import com.ibm.icu.text.SimpleDateFormat;
+import com.ibm.icu.text.ChineseDateFormat.Field;
 import com.ibm.icu.util.BuddhistCalendar;
 import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.ChineseCalendar;
@@ -69,12 +69,12 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                 {DateFormat.ABBR_MONTH_DAY, "MMMd","en","MMM d"},
                 {DateFormat.NUM_MONTH_DAY, "Md","en","M/d"},
                 {DateFormat.MONTH_WEEKDAY_DAY, "MMMMEEEEd","en","EEEE, MMMM d"},
-                {DateFormat.ABBR_MONTH_WEEKDAY_DAY, "MMMEd","en","EEE, MMM d"},
-                {DateFormat.NUM_MONTH_WEEKDAY_DAY, "MEd","en","EEE, M/d"},
+                {DateFormat.ABBR_MONTH_WEEKDAY_DAY, "MMMEd","en","E, MMM d"},
+                {DateFormat.NUM_MONTH_WEEKDAY_DAY, "MEd","en","E, M/d"},
                 {DateFormat.YEAR_MONTH, "yMMMM","en","MMMM y"},
                 {DateFormat.YEAR_ABBR_MONTH, "yMMM","en","MMM y"},
                 {DateFormat.YEAR_NUM_MONTH, "yM","en","M/y"}, 
-                {DateFormat.YEAR_ABBR_MONTH_WEEKDAY_DAY, "yMMMEd", "en", "EEE, MMM d, y"},
+                {DateFormat.YEAR_ABBR_MONTH_WEEKDAY_DAY, "yMMMEd", "en", "E, MMM d, y"},
                 {DateFormat.YEAR_NUM_MONTH_WEEKDAY_DAY, "yMEd", "en", "EEE, M/d/y"}, 
                 {DateFormat.YEAR_QUARTER, "yQQQ", "en", "QQQ y"}, 
                 {DateFormat.YEAR_ABBR_QUARTER, "yQ", "en", "Q y"} 
@@ -497,8 +497,8 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
 
             // Milliseconds are left-justified, since they format as fractions of a second
             // Both format and parse should round HALF_UP
-            "y/M/d H:mm:ss.S", "fp", "2004 03 10 16:36:31.567", "2004/3/10 16:36:31.5", "2004 03 10 16:36:31.500",
-            "y/M/d H:mm:ss.SS", "fp", "2004 03 10 16:36:31.567", "2004/3/10 16:36:31.56", "2004 03 10 16:36:31.560",
+            "y/M/d H:mm:ss.S", "fp", "2004 03 10 16:36:31.567", "2004/3/10 16:36:31.6", "2004 03 10 16:36:31.600",
+            "y/M/d H:mm:ss.SS", "fp", "2004 03 10 16:36:31.567", "2004/3/10 16:36:31.57", "2004 03 10 16:36:31.570",
             "y/M/d H:mm:ss.SSS", "F", "2004 03 10 16:36:31.567", "2004/3/10 16:36:31.567",
             "y/M/d H:mm:ss.SSSS", "pf", "2004/3/10 16:36:31.5679", "2004 03 10 16:36:31.568", "2004/3/10 16:36:31.5680",
         };
@@ -3717,86 +3717,4 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         };
             expect(DATA, new Locale("en", "", ""));
     }
-
-    /*
- * Test case for ISO Era processing (ticket#7357)
- */
-    public void TestISOEra()
-    {
-
-        String data[] = { 
-        // input, output 
-        "BC 4004-10-23T07:00:00Z", "BC 4004-10-23T07:00:00Z", 
-        "AD 4004-10-23T07:00:00Z", "AD 4004-10-23T07:00:00Z", 
-        "-4004-10-23T07:00:00Z"  , "BC 4005-10-23T07:00:00Z", 
-        "4004-10-23T07:00:00Z"   , "AD 4004-10-23T07:00:00Z", 
-        };
-
-        int numData = 8;
-
-        // create formatter 
-        SimpleDateFormat fmt1 = new SimpleDateFormat("GGG yyyy-MM-dd'T'HH:mm:ss'Z");
-
-        for (int i = 0; i < numData; i += 2)
-        {
-
-            // create input string 
-            String in = data[i];
-
-            // parse string to date 
-            Date dt1;
-            try
-            {
-                dt1 = fmt1.parse(in);
-            }
-            catch (Exception e)
-            {
-                errln("DateFormat.parse is not suppose to return an exception.");
-                break;
-            }
-            // format date back to string 
-            String out;
-            out = fmt1.format(dt1);
-
-            // check that roundtrip worked as expected 
-            String expected = data[i + 1];
-            if (!out.equals(expected))
-            {
-                errln((String)"FAIL: " + in + " -> " + out + " expected -> " + expected);
-            }
-
-        }
-
-    }
-    public void TestFormalChineseDate() { 
-        
-        String pattern = "y\u5e74M\u6708d\u65e5";
-        String override = "y=hanidec;M=hans;d=hans";
-        
-        // create formatter 
-        SimpleDateFormat sdf = new SimpleDateFormat(pattern,override,ULocale.CHINA);
-
-        Calendar cal = Calendar.getInstance(ULocale.ENGLISH);
-        cal.clear(Calendar.MILLISECOND);
-        cal.set(2009, 6, 28, 0,0,0);
-        FieldPosition pos = new FieldPosition(0);
-        StringBuffer result = new StringBuffer();
-        sdf.format(cal,result,pos);
-        String res1 = result.toString();
-        String expected = "\u4e8c\u3007\u3007\u4e5d\u5e74\u4e03\u6708\u4e8c\u5341\u516b\u65e5"; 
-        if (! res1.equals(expected)) { 
-            errln((String)"FAIL: -> " + result.toString() + " expected -> " + expected); 
-        } 
-        ParsePosition pp = new ParsePosition(0);
-        Date parsedate = sdf.parse(expected, pp);
-        long time1 = parsedate.getTime();
-        long time2 = cal.getTimeInMillis();
-        if ( time1 != time2 ) {            
-            errln("FAIL: parsed -> " + parsedate.toString() + " expected -> " + cal.toString()); 
-        }
-    } 
-
 }
-
-
-

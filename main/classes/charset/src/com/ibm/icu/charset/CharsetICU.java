@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 2006-2010, International Business Machines Corporation and    *
+* Copyright (C) 2006-2009, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 *
@@ -125,9 +125,7 @@ public abstract class CharsetICU extends Charset{
         algorithmicCharsets.put("ISO-8859-1",            "com.ibm.icu.charset.Charset88591" );
         algorithmicCharsets.put("UTF-16",                "com.ibm.icu.charset.CharsetUTF16" );
         algorithmicCharsets.put("UTF-16BE",              "com.ibm.icu.charset.CharsetUTF16BE" );
-        algorithmicCharsets.put("UTF-16BE,version=1",    "com.ibm.icu.charset.CharsetUTF16BE" );
         algorithmicCharsets.put("UTF-16LE",              "com.ibm.icu.charset.CharsetUTF16LE" );
-        algorithmicCharsets.put("UTF-16LE,version=1",    "com.ibm.icu.charset.CharsetUTF16LE" );
         algorithmicCharsets.put("UTF16_OppositeEndian",  "com.ibm.icu.charset.CharsetUTF16LE" );
         algorithmicCharsets.put("UTF16_PlatformEndian",  "com.ibm.icu.charset.CharsetUTF16" );
         algorithmicCharsets.put("UTF-32",                "com.ibm.icu.charset.CharsetUTF32" );
@@ -156,10 +154,8 @@ public abstract class CharsetICU extends Charset{
         algorithmicCharsets.put("ISO_2022,locale=ja,version=4",               "com.ibm.icu.charset.CharsetISO2022" );
         algorithmicCharsets.put("ISO_2022,locale=zh,version=0",               "com.ibm.icu.charset.CharsetISO2022" );
         algorithmicCharsets.put("ISO_2022,locale=zh,version=1",               "com.ibm.icu.charset.CharsetISO2022" );
-        algorithmicCharsets.put("ISO_2022,locale=zh,version=2",               "com.ibm.icu.charset.CharsetISO2022" );
         algorithmicCharsets.put("ISO_2022,locale=ko,version=0",               "com.ibm.icu.charset.CharsetISO2022" );
         algorithmicCharsets.put("ISO_2022,locale=ko,version=1",               "com.ibm.icu.charset.CharsetISO2022" );
-        algorithmicCharsets.put("x11-compound-text",                          "com.ibm.icu.charset.CharsetCompoundText" );
         }
 
     /*public*/ static final Charset getCharset(String icuCanonicalName, String javaCanonicalName, String[] aliases){

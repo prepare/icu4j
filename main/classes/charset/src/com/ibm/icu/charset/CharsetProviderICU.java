@@ -120,7 +120,7 @@ public final class CharsetProviderICU extends CharsetProvider{
                     ret = canonicalName;
                 }/*else if((canonicalName = UConverterAlias.getCanonicalName(enc, ""))!=null){
                     ret = canonicalName;
-                }*/else if(enc.indexOf("x-")==0 || enc.indexOf("X-")==0){
+                }*/else if(enc.indexOf("x-")==0){
                     /* TODO: Match with getJavaCanonicalName method */
                     /*
                     char temp[ UCNV_MAX_CONVERTER_NAME_LENGTH] = {0};
@@ -224,13 +224,7 @@ public final class CharsetProviderICU extends CharsetProvider{
                 if (!gettingJavaCanonicalName) {
                     gettingJavaCanonicalName = true;
                     if (Charset.isSupported(cName)) {
-                        String testName = Charset.forName(cName).name();
-                        /* Ensure that the java canonical name works in ICU */
-                        if (!testName.equals(cName)) {
-                            if (getICUCanonicalName(testName).length() > 0) {
-                                cName = testName;
-                            }
-                        }
+                        cName = Charset.forName(cName).name();
                     }
                     gettingJavaCanonicalName = false;
                 }

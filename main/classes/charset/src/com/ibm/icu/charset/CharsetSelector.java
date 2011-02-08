@@ -20,8 +20,8 @@ package com.ibm.icu.charset;
 import java.nio.charset.Charset;
 import java.nio.charset.IllegalCharsetNameException;
 import java.nio.charset.UnsupportedCharsetException;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Vector;
 
 import com.ibm.icu.impl.IntTrie;
 import com.ibm.icu.impl.PropsVectors;
@@ -102,7 +102,7 @@ public final class CharsetSelector {
         // this is the context we will use. Store a table of indices to which
         // encodings are legit
 
-        List<String> result = new ArrayList<String>();
+        Vector<String> result = new Vector<String>();
         int columns = (encodings.length + 31) / 32;
         int numOnes = countOnes(mask, columns);
 
@@ -113,7 +113,7 @@ public final class CharsetSelector {
                 int v = mask[j];
                 for (int i = 0; i < 32 && k < encodings.length; i++, k++) {
                     if ((v & 1) != 0) {
-                        result.add(encodings[k]);
+                        result.addElement(encodings[k]);
                     }
                     v >>= 1;
                 }

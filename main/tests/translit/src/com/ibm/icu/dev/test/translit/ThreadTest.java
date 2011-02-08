@@ -1,13 +1,13 @@
 /*
  *******************************************************************************
- * Copyright (C) 2010, International Business Machines Corporation and         *
+ * Copyright (C) 2010-2011, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
 package com.ibm.icu.dev.test.translit;
 
 import java.util.ArrayList;
-
+import com.ibm.icu.dev.test.TestFmwk;
 import com.ibm.icu.text.Transliterator;
 
 // Test for ICU Ticket #7201.  With threading bugs in RuleBasedTransliterator, this

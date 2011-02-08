@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2011, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2010, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -19,7 +19,6 @@ import com.ibm.icu.impl.CalendarUtil;
 import com.ibm.icu.impl.ICUCache;
 import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.impl.SimpleCache;
-import com.ibm.icu.impl.TimeZoneFormat;
 import com.ibm.icu.impl.Utility;
 import com.ibm.icu.impl.ZoneMeta;
 import com.ibm.icu.impl.ZoneStringFormat;
@@ -467,7 +466,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
       * called.
       */
     private transient ZoneStringFormat zsformat = null;
-    private transient TimeZoneFormat tzformat = null;
 
      /**
      * Unlocalized date-time pattern characters. For example: 'y', 'd', etc.
@@ -882,10 +880,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      */
     public void setZoneStrings(String[][] newZoneStrings) {
         zoneStrings = duplicate(newZoneStrings);
-        if ( tzformat == null ) {
-            tzformat = TimeZoneFormat.createInstance(requestedLocale);
-        }
-        tzformat.zsf = new ZoneStringFormat(zoneStrings);
+        zsformat = new ZoneStringFormat(zoneStrings);
     }
 
     /**
@@ -1059,17 +1054,63 @@ public class DateFormatSymbols implements Serializable, Cloneable {
         // is cached.
         eras = calData.getEras("abbreviated");
 
-        eraNames = calData.getEras("wide");
+        try {
+           eraNames = calData.getEras("wide");
+        }
+        catch (MissingResourceException e) {
+           eraNames = calData.getEras("abbreviated");
+        }
 
-        narrowEras = calData.getEras("narrow");
+        // NOTE: since the above code assumes that abbreviated
+        // era names exist, we make the same assumption here too.
+        try {
+            narrowEras = calData.getEras("narrow");
+        } catch (MissingResourceException e) {
+            narrowEras = calData.getEras("abbreviated");
+        }
 
         months = calData.getStringArray("monthNames", "wide");
         shortMonths = calData.getStringArray("monthNames", "abbreviated");
-        narrowMonths = calData.getStringArray("monthNames", "narrow");
-        
-        standaloneMonths = calData.getStringArray("monthNames", "stand-alone", "wide");
-        standaloneShortMonths = calData.getStringArray("monthNames", "stand-alone", "abbreviated");
-        standaloneNarrowMonths = calData.getStringArray("monthNames", "stand-alone", "narrow");
+
+        try {
+           narrowMonths = calData.getStringArray("monthNames", "narrow");
+        }
+        catch (MissingResourceException e) {
+            try {
+                narrowMonths = calData.getStringArray("monthNames", "stand-alone", "narrow");
+            }
+            catch (MissingResourceException e1) {
+               narrowMonths = calData.getStringArray("monthNames", "abbreviated");
+            }
+        }
+
+        try {
+           standaloneMonths = calData.getStringArray("monthNames", "stand-alone", "wide");
+        }
+        catch (MissingResourceException e) {
+           standaloneMonths = calData.getStringArray("monthNames", "format", "wide");
+        }
+
+        try {
+           standaloneShortMonths =
+               calData.getStringArray("monthNames", "stand-alone", "abbreviated");
+        }
+        catch (MissingResourceException e) {
+           standaloneShortMonths = calData.getStringArray("monthNames", "format", "abbreviated");
+        }
+
+        try {
+           standaloneNarrowMonths = calData.getStringArray("monthNames", "stand-alone", "narrow");
+        }
+        catch (MissingResourceException e) {
+           try {
+              standaloneNarrowMonths = calData.getStringArray("monthNames", "format", "narrow");
+           }
+           catch (MissingResourceException e1) {
+              standaloneNarrowMonths =
+                  calData.getStringArray("monthNames", "format", "abbreviated");
+           }
+        }
 
         String[] lWeekdays = calData.getStringArray("dayNames", "wide");
         weekdays = new String[8];
@@ -1098,19 +1139,39 @@ public class DateFormatSymbols implements Serializable, Cloneable {
         System.arraycopy(nWeekdays, 0, narrowWeekdays, 1, nWeekdays.length);
 
         String [] saWeekdays = null;
-        saWeekdays = calData.getStringArray("dayNames", "stand-alone", "wide");
+        try {
+           saWeekdays = calData.getStringArray("dayNames", "stand-alone", "wide");
+        }
+        catch (MissingResourceException e) {
+           saWeekdays = calData.getStringArray("dayNames", "format", "wide");
+        }
         standaloneWeekdays = new String[8];
         standaloneWeekdays[0] = "";  // 1-based
         System.arraycopy(saWeekdays, 0, standaloneWeekdays, 1, saWeekdays.length);
 
         String [] ssWeekdays = null;
-        ssWeekdays = calData.getStringArray("dayNames", "stand-alone", "abbreviated");
+        try {
+           ssWeekdays = calData.getStringArray("dayNames", "stand-alone", "abbreviated");
+        }
+        catch (MissingResourceException e) {
+           ssWeekdays = calData.getStringArray("dayNames", "format", "abbreviated");
+        }
         standaloneShortWeekdays = new String[8];
         standaloneShortWeekdays[0] = "";  // 1-based
         System.arraycopy(ssWeekdays, 0, standaloneShortWeekdays, 1, ssWeekdays.length);
 
         String [] snWeekdays = null;
-        snWeekdays = calData.getStringArray("dayNames", "stand-alone", "narrow");
+        try {
+           snWeekdays = calData.getStringArray("dayNames", "stand-alone", "narrow");
+        }
+        catch (MissingResourceException e) {
+           try {
+              snWeekdays = calData.getStringArray("dayNames", "format", "narrow");
+           }
+           catch (MissingResourceException e1) {
+              snWeekdays = calData.getStringArray("dayNames", "format", "abbreviated");
+           }
+        }
         standaloneNarrowWeekdays = new String[8];
         standaloneNarrowWeekdays[0] = "";  // 1-based
         System.arraycopy(snWeekdays, 0, standaloneNarrowWeekdays, 1, snWeekdays.length);
@@ -1120,8 +1181,19 @@ public class DateFormatSymbols implements Serializable, Cloneable {
         quarters = calData.getStringArray("quarters", "wide");
         shortQuarters = calData.getStringArray("quarters", "abbreviated");
 
-        standaloneQuarters = calData.getStringArray("quarters", "stand-alone", "wide");
-        standaloneShortQuarters = calData.getStringArray("quarters", "stand-alone", "abbreviated");
+        try {
+           standaloneQuarters = calData.getStringArray("quarters", "stand-alone", "wide");
+        }
+        catch (MissingResourceException e) {
+           standaloneQuarters = calData.getStringArray("quarters", "format", "wide");
+        }
+
+        try {
+           standaloneShortQuarters = calData.getStringArray("quarters", "stand-alone", "abbreviated");
+        }
+        catch (MissingResourceException e) {
+            standaloneShortQuarters = calData.getStringArray("quarters", "format", "abbreviated");
+        }
 
         // Initialize localized GMT format patterns
         initializeGMTFormat(desiredLocale);
@@ -1256,19 +1328,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
         // itself.
         return ZoneStringFormat.getInstance(requestedLocale);
     }
-    TimeZoneFormat getTimeZoneFormat() {
-        if (tzformat != null) {
-            return tzformat;
-        }
-        
-        tzformat = TimeZoneFormat.createInstance(requestedLocale);
-        
-        if (zoneStrings != null) {
-            tzformat.zsf = new ZoneStringFormat(zoneStrings);
-        }
-        
-        return tzformat;
-    }
+
     /*
      * save the input locale
      */

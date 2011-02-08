@@ -1,6 +1,6 @@
 /**
  *******************************************************************************
- * Copyright (C) 2006-2010, International Business Machines Corporation and    *
+ * Copyright (C) 2006-2009, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -35,20 +35,10 @@ class CharsetUTF16 extends CharsetICU {
     private int endianXOR;
     private byte[] bom;
     private byte[] fromUSubstitution;
-    
-    private int version;
 
     public CharsetUTF16(String icuCanonicalName, String javaCanonicalName, String[] aliases) {
         super(icuCanonicalName, javaCanonicalName, aliases);
 
-        /* Get the version number (e.g. UTF-16LE,version=1) */
-        int versionIndex = icuCanonicalName.indexOf("version=");
-        if (versionIndex > 0) {
-            version = Integer.decode(icuCanonicalName.substring(versionIndex+8, versionIndex+9)).intValue();
-        } else {
-            version = 0;
-        }
-        
         this.isEndianSpecified = (this instanceof CharsetUTF16BE || this instanceof CharsetUTF16LE);
         this.isBigEndian = !(this instanceof CharsetUTF16LE);
 
@@ -62,12 +52,7 @@ class CharsetUTF16 extends CharsetICU {
             this.endianXOR = ENDIAN_XOR_LE;
         }
 
-        /* The maxBytesPerChar for UnicodeBig/UnicodeLittle should be 4. */
-        if (isEndianSpecified && version == 1) {
-            maxBytesPerChar = 4;
-        } else {
-            maxBytesPerChar = 2;
-        }
+        maxBytesPerChar = 2;
         minBytesPerChar = 2;
         maxCharsPerByte = 1;
     }
@@ -113,23 +98,11 @@ class CharsetUTF16 extends CharsetICU {
                             actualEndianXOR = ENDIAN_XOR_LE;
                         } else {
                             // we do not have a BOM (and we have toULength==1 bytes)
-                            if (isEndianSpecified && version == 1) {
-                                actualBOM = isBigEndian ? CharsetUTF16.BOM_BE : CharsetUTF16.BOM_LE;
-                                actualEndianXOR = isBigEndian ? CharsetUTF16.ENDIAN_XOR_BE : CharsetUTF16.ENDIAN_XOR_LE;
-                            } else {
-                                actualBOM = null;
-                                actualEndianXOR = endianXOR;
-                            }
+                            actualBOM = null;
+                            actualEndianXOR = endianXOR;
                             break;
                         }
-                    } else if (isEndianSpecified && version == 1 && (toUBytesArray[toULength - 1] == actualBOM[toULength - 2] && toUBytesArray[toULength - 2] == actualBOM[toULength - 1])) {
-                        return CoderResult.malformedForLength(2);
-                    } else if (isEndianSpecified && version == 1 && (toUBytesArray[toULength - 1] == actualBOM[toULength - 1] && toUBytesArray[toULength - 2] == actualBOM[toULength - 2])) {
-                        // we found a BOM! at last!
-                        // too bad we have to get ignore it now (like it was unwanted or something)
-                        toULength = 0;
-                        break;
-                    } else if (isEndianSpecified || toUBytesArray[toULength - 1] != actualBOM[toULength - 1]) {
+                    } else if (toUBytesArray[toULength - 1] != actualBOM[toULength - 1]) {
                         // we do not have a BOM (and we have toULength bytes)
                         actualBOM = null;
                         actualEndianXOR = endianXOR;
@@ -161,15 +134,6 @@ class CharsetUTF16 extends CharsetICU {
                     if (!source.hasRemaining())
                         return CoderResult.UNDERFLOW;
                     toUBytesArray[toULength++] = source.get();
-                }
-                
-                if (isEndianSpecified && version == 1 && (toUBytesArray[toULength - 1] == actualBOM[toULength - 2] && toUBytesArray[toULength - 2] == actualBOM[toULength - 1])) {
-                    return CoderResult.malformedForLength(2);
-                } else if (isEndianSpecified && version == 1 && (toUBytesArray[toULength - 1] == actualBOM[toULength - 1] && toUBytesArray[toULength - 2] == actualBOM[toULength - 2])) {
-                    // we found a BOM! at last!
-                    // too bad we have to get ignore it now (like it was unwanted or something)
-                    toULength = 0;
-                    continue;
                 }
 
                 if (!target.hasRemaining())
@@ -238,12 +202,12 @@ class CharsetUTF16 extends CharsetICU {
 
         public CharsetEncoderUTF16(CharsetICU cs) {
             super(cs, fromUSubstitution);
-            fromUnicodeStatus = (isEndianSpecified && version != 1) ? 0 : NEED_TO_WRITE_BOM;
+            fromUnicodeStatus = isEndianSpecified ? 0 : NEED_TO_WRITE_BOM;
         }
 
         protected void implReset() {
             super.implReset();
-            fromUnicodeStatus = (isEndianSpecified && version != 1) ? 0 : NEED_TO_WRITE_BOM;
+            fromUnicodeStatus = isEndianSpecified ? 0 : NEED_TO_WRITE_BOM;
         }
 
         protected CoderResult encodeLoop(CharBuffer source, ByteBuffer target, IntBuffer offsets, boolean flush) {
