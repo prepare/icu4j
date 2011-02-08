@@ -17,58 +17,122 @@ import com.ibm.icu.util.Freezable;
 
 /**
  * Parses and represents ICU MessageFormat patterns.
+ * Also handles patterns for ChoiceFormat, PluralFormat and SelectFormat.
+ * <p>
+ * The parser handles all syntax relevant for identifying message arguments.
+ * This includes "complex" arguments whose style strings contain
+ * nested MessageFormat pattern substrings.
+ * For "simple" arguments (with no nested MessageFormat pattern substrings),
+ * the argument style is not parsed any further.
+ * <p>
+ * Once a pattern has been parsed successfully, iterate through the parsed data
+ * with countParts(), getPart() and related methods.
+ * <p>
+ * The data logically represents a parse tree, but is stored and accessed
+ * as a list of "parts" for fast and simple parsing. Arguments and nested messages
+ * are best handled via recursion.
+ * <p>
+ * The parser handles named and numbered message arguments and does not check for consistent style.
+ * <p>
+ * This class is not intended for public subclassing.
+ *
  * @author Markus Scherer
  */
 public final class MessagePattern implements Cloneable, Freezable<MessagePattern> {
+    /**
+     * Constructs an empty MessagePattern.
+     */
     public MessagePattern() {}
 
-    public MessagePattern(String msg) {
-        parse(msg);
+    /**
+     * Constructs a MessagePattern and parses the MessageFormat pattern string.
+     * @param pattern a MessageFormat pattern string
+     */
+    public MessagePattern(String pattern) {
+        parse(pattern);
     }
 
-    public MessagePattern parse(String msg) {
-        if(isFrozen()) {
-            throw new UnsupportedOperationException(
-                "Attempt to parse(\""+prefix(msg)+"\") on frozen MessagePattern instance.");
-        }
-        if(msg.length()>=Part.INDEX_MASK) {
-            throw new IndexOutOfBoundsException("Message string \""+prefix(msg)+"\" too long.");
-        }
-        this.msg=msg;
-        hasArgNames=hasArgNumbers=false;
-        needsAutoQuoting=false;
-        if(partsList==null) {
-            partsList=new ArrayList<Integer>(msg.length()/4+2);
-        } else {
-            partsList.clear();
-        }
+    /**
+     * Parses a MessageFormat pattern string.
+     * @param pattern a MessageFormat pattern string
+     * @return this
+     */
+    public MessagePattern parse(String pattern) {
+        preParse(pattern);
         addPart(0, Part.Type.MSG_START, 0);
         parseMessage(0, 0, ArgType.NONE);
-        // Unbox all parts only once.
-        // TODO: Should we just use partsList and unbox each item?
-        int length=partsList.size();
-        if(parts==null || parts.length<length) {
-            parts=new int[2*length+10];
-        }
-        for(int i=0; i<length; ++i) {
-            parts[i]=partsList.get(i);
-        }
-        // TODO: Release memory? Remember int partsLength=partsList.size() and set partsList=null?
+        postParse();
         return this;
     }
 
+    /**
+     * Parses a ChoiceFormat pattern string.
+     * @param pattern a ChoiceFormat pattern string
+     * @return this
+     */
+    public MessagePattern parseChoiceStyle(String pattern) {
+        preParse(pattern);
+        parseChoiceStyle(0, 0);
+        postParse();
+        return this;
+    }
+
+    /**
+     * Parses a PluralFormat pattern string.
+     * @param pattern a PluralFormat pattern string
+     * @return this
+     */
+    public MessagePattern parsePluralStyle(String pattern) {
+        preParse(pattern);
+        parsePluralOrSelectStyle(ArgType.PLURAL, 0, 0);
+        postParse();
+        return this;
+    }
+
+    /**
+     * Parses a SelectFormat pattern string.
+     * @param pattern a SelectFormat pattern string
+     * @return this
+     */
+    public MessagePattern parseSelectStyle(String pattern) {
+        preParse(pattern);
+        parsePluralOrSelectStyle(ArgType.SELECT, 0, 0);
+        postParse();
+        return this;
+    }
+
+    /**
+     * @return the parsed pattern string.
+     */
     public String getString() {
         return msg;
     }
 
+    /**
+     * Does the parsed pattern have named arguments like {first_name}?
+     * @return true if the parsed pattern has at least one named argument.
+     */
     public boolean hasNamedArguments() {
         return hasArgNames;
     }
 
+    /**
+     * Does the parsed pattern have numbered arguments like {2}?
+     * @return true if the parsed pattern has at least one numbered argument.
+     */
     public boolean hasNumberedArguments() {
         return hasArgNumbers;
     }
 
+    /**
+     * Returns a version of the parsed pattern string where each ASCII apostrophe
+     * is doubled (escaped) if it is not already, and if it is not interpreted as quoting syntax.
+     * <p>
+     * For example, this turns "I don't '{know}' {gender,select,female{h''er}other{h'im}}."
+     * into "I don''t '{know}' {gender,select,female{h''er}other{h''im}}."
+     * @return the deep-auto-quoted version of the parsed pattern string.
+     * @see MessageFormat#autoQuoteApostrophe(String)
+     */
     public String autoQuoteApostropheDeep() {
         if(!needsAutoQuoting) {
             return msg;
@@ -92,10 +156,20 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
         }
     }
 
+    /**
+     * Returns the number of "parts" created by parsing the pattern string.
+     * @return the number of pattern parts.
+     */
     public int countParts() {
         return partsList.size();
     }
 
+    /**
+     * Sets the "part" parameter to the data for the i-th pattern "part".
+     * @param i The index of the Part data.
+     * @param part The Part object to be modified.
+     * @return part
+     */
     public Part getPart(int i, Part part) {
         // Check for overflow: It might be parts.length>countParts().
         if(i>=countParts()) {
@@ -105,6 +179,12 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
         return part;
     }
 
+    /**
+     * Returns the Part.Type of the i-th pattern "part".
+     * Equivalent to getPart(i, part).getType() but without the Part object.
+     * @param i The index of the Part data.
+     * @return The Part.Type of the i-th Part.
+     */
     public Part.Type getPartType(int i) {
         if(i>=countParts()) {
             throw new IndexOutOfBoundsException();
@@ -114,8 +194,9 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
 
     /**
      * Finds the index of the MSG_LIMIT part corresponding to the MSG_START at msgStart.
-     * @return the first i>msgStart where getPart(i).getType()==MSG_LIMIT at the same nesting level,
-     *         or msgStart itself if getPart(msgStart).getType()!=MSG_START
+     * @param msgStart The index of some Part data; this Part should be of Type MSG_START.
+     * @return The first i>msgStart where getPart(i).getType()==MSG_LIMIT at the same nesting level,
+     *         or msgStart itself if getPartType(msgStart)!=MSG_START.
      */
     public int findMsgLimit(int msgStart) {
         int msgStartPartInt=parts[msgStart];
@@ -124,25 +205,49 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
         }
         int msgLimitPartInt=(msgStartPartInt&~Part.INDEX_MASK)+(1<<Part.TYPE_SHIFT);
         int i=msgStart+1;
+        // Look for the next MSG_LIMIT with the same nesting level, ignoring the string index.
         while((parts[i]&~Part.INDEX_MASK)!=msgLimitPartInt) { ++i; }
         return i;
     }
 
+    /**
+     * A message pattern "part", representing a pattern parsing event.
+     * There is a part for the start and end of a message or argument,
+     * for quoting and escaping of and with ASCII apostrophes,
+     * and for syntax elements of "complex" arguments.
+     */
     public static final class Part {
+        /**
+         * Returns the pattern string index associated with this Part.
+         * Typically the index where the part begins, except for "limit" parts
+         * where the limit (exclusive-end) index is returned.
+         * @return the part index in the pattern string.
+         */
         public int getIndex() {
             return part&INDEX_MASK;
         }
 
+        /**
+         * Returns type of this part.
+         * @return the part type.
+         */
         public Type getType() {
             return getType(part);
         }
 
+        /**
+         * Returns a value associated with this part.
+         * See the documentation of each part type for details.
+         * @return the part value.
+         */
         public int getValue() {
             return getValue(part);
         }
 
         /**
-         * @return ArgType for an ARG_START or ARG_LIMIT part; otherwise NONE
+         * Returns the argument type if this part is of type ARG_START or ARG_LIMIT,
+         * otherwise ArgType.NONE.
+         * @return the argument type for this part.
          */
         public ArgType getArgType() {
             Type type=getType();
@@ -153,22 +258,97 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
             }
         }
 
+        /**
+         * Part type constants.
+         */
         public enum Type {
+            /**
+             * Start of a message pattern (main or nested).
+             * The value indicates the nesting level, starting with 0 for the main message.
+             * <p>
+             * There is always a later MSG_LIMIT part.
+             */
             MSG_START,
+            /**
+             * End of a message pattern (main or nested).
+             * The value indicates the nesting level, starting with 0 for the main message.
+             */
             MSG_LIMIT,
+            /**
+             * Indicates a substring of the pattern string which is to be skipped when formatting.
+             * For example, an apostrophe that begins or ends quoted text
+             * would be indicated with such a part.
+             * The value provides the length of the substring to be skipped.
+             */
             SKIP_SYNTAX(true),
+            /**
+             * Indicates that a syntax character needs to be inserted for auto-quoting.
+             * The value is the character code of the insertion character. (U+0027=APOSTROPHE)
+             */
             INSERT_CHAR,
+            /**
+             * Indicates a syntactic (non-escaped) # symbol in a plural variant.
+             * When formatting, replace this with the (value-offset) for the plural argument value.
+             * The value provides the length of the substring to be replaced.
+             */
             REPLACE_NUMBER(true),
+            /**
+             * Start of an argument.
+             * The value is the ordinal value of the ArgType. Use getArgType().
+             */
             ARG_START,
+            /**
+             * End of an argument.
+             * The value is the ordinal value of the ArgType. Use getArgType().
+             * <p>
+             * This part is followed by either an ARG_NUMBER or ARG_NAME,
+             * followed by optional argument sub-parts (see ArgType constants)
+             * and finally an ARG_LIMIT part.
+             */
             ARG_LIMIT,
+            /**
+             * The argument number, provided by the value.
+             */
             ARG_NUMBER,
+            /**
+             * The argument name.
+             * The value provides the length of the argument name's substring.
+             */
             ARG_NAME(true),
+            /**
+             * The argument type.
+             * The value provides the length of the argument type's substring.
+             */
             ARG_TYPE(true),
+            /**
+             * The start of the argument style.
+             * The value is undefined and currently always 0.
+             */
             ARG_STYLE_START,
+            /**
+             * A selector substring in a "complex" argument style.
+             * The value provides the length of the selector's substring.
+             */
             ARG_SELECTOR(true),
+            /**
+             * An integer value, for example the offset or an explicit selector value
+             * in a PluralFormat style.
+             * The part value is the integer value.
+             */
             ARG_INT,
+            /**
+             * A numeric value, for example the offset or an explicit selector value
+             * in a PluralFormat style.
+             * The value provides the length of the number's substring.
+             * TODO: Should we store the double values and use the value as an index?
+             */
             ARG_DOUBLE(true);
 
+            /**
+             * Indicates whether this part refers to a pattern substring.
+             * If so, then that substring can be retrieved via {@link MessagePattern#getSubstring(Part)}.
+             * @return true if this part refers to a pattern substring.
+             */
             public boolean refersToSubstring() {
                 return rts;
             }
@@ -184,6 +364,9 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
             private final boolean rts;
         }
 
+        /**
+         * @return a string representation of this part.
+         */
         @Override
         public String toString() {
             Type type=getType();
@@ -215,15 +398,48 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
         private static final Type[] types=Type.values();
     }
 
+    /**
+     * Argument type constants.
+     * Returned by Part.getArgType() for ARG_START and ARG_LIMIT parts.
+     *
+     * Messages nested inside an argument are each delimited by MSG_START and MSG_LIMIT,
+     * with a nesting level one greater than the surrounding message.
+     */
     public enum ArgType {
-        NONE, SIMPLE, CHOICE, PLURAL, SELECT
+        /**
+         * The argument has no specified type.
+         */
+        NONE,
+        /**
+         * The argument has a "simple" type which is provided by the ARG_TYPE part.
+         * An ARG_STYLE part might follow that.
+         */
+        SIMPLE,
+        /**
+         * The argument is a ChoiceFormat with one or more (ARG_SELECTOR, message) pairs.
+         */
+        CHOICE,
+        /**
+         * The argument is a PluralFormat with an optional ARG_INT or ARG_DOUBLE offset
+         * (e.g., offset:1)
+         * and one or more (ARG_SELECTOR [explicit-value] message) tuples.
+         * If the selector has an explicit value (e.g., =2), then
+         * that value is provided by the ARG_INT or ARG_DOUBLE part preceding the message.
+         * Otherwise the message immediately follows the ARG_SELECTOR.
+         */
+        PLURAL,
+        /**
+         * The argument is a SelectFormat with one or more (ARG_SELECTOR, message) pairs.
+         */
+        SELECT
     }
 
     /**
-     * Returns the getString() substring indicated by the Part,
+     * Returns the getString() substring of the pattern string indicated by the Part,
      * or null if the Part does not refer to a substring.
      * @param part Part of this message
      * @return substring associated with part
+     * @see Part.Type#refersToSubstring()
      */
     public String getSubstring(Part part) {
         if(part.getType().refersToSubstring()) {
@@ -235,12 +451,22 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
         }
     }
 
+    /**
+     * Compares the part's substring with the input string s.
+     * @param part a part of this MessagePattern.
+     * @param s a string.
+     * @return true if getSubstring(part).equals(s).
+     */
     public boolean partSubstringMatches(Part part, String s) {
         return
             part.getType().refersToSubstring() &&
             s.regionMatches(0, msg, part.getIndex(), part.getValue());
     }
 
+    /**
+     * Creates and returns a copy of this object.
+     * @return a copy of this object (or itself if frozen).
+     */
     @Override
     public Object clone() {
         if(isFrozen()) {
@@ -250,6 +476,10 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
         }
     }
 
+    /**
+     * Creates and returns an unfrozen copy of this object.
+     * @return a copy of this object.
+     */
     @SuppressWarnings("unchecked")
     public MessagePattern cloneAsThawed() {
         MessagePattern newMsg;
@@ -270,13 +500,52 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
         return newMsg;
     }
 
+    /**
+     * Freezes this object, making it immutable and thread-safe.
+     * @return this 
+     */
     public MessagePattern freeze() {
         frozen=true;
         return this;
     }
 
+    /**
+     * Determines whether this object is frozen (immutable) or not.
+     * @return true if this object is frozen.
+     */
     public boolean isFrozen() {
         return frozen;
+    }
+
+    private void preParse(String pattern) {
+        if(isFrozen()) {
+            throw new UnsupportedOperationException(
+                "Attempt to parse(\""+prefix(pattern)+"\") on frozen MessagePattern instance.");
+        }
+        if(pattern.length()>=Part.INDEX_MASK) {
+            throw new IndexOutOfBoundsException("Message string \""+prefix(pattern)+"\" too long.");
+        }
+        msg=pattern;
+        hasArgNames=hasArgNumbers=false;
+        needsAutoQuoting=false;
+        if(partsList==null) {
+            partsList=new ArrayList<Integer>(pattern.length()/4+2);
+        } else {
+            partsList.clear();
+        }
+    }
+
+    private void postParse() {
+        // Unbox all parts only once.
+        // TODO: Should we just use partsList and unbox each item?
+        int length=partsList.size();
+        if(parts==null || parts.length<length) {
+            parts=new int[2*length+10];
+        }
+        for(int i=0; i<length; ++i) {
+            parts[i]=partsList.get(i);
+        }
+        // TODO: Release memory? Remember int partsLength=partsList.size() and set partsList=null?
     }
 
     private int parseMessage(int index, int nestingLevel, ArgType parentType) {
@@ -518,7 +787,7 @@ mainLoop:
             addPart(nestingLevel+1, Part.Type.MSG_START, index);
             index=parseMessage(index, nestingLevel+1, ArgType.CHOICE);
             // parseMessage(..., CHOICE) returns the index of the terminator.
-            if(msg.charAt(index++)=='}') {
+            if(index==msg.length() || msg.charAt(index++)=='}') {
                 return index;
             }  // else the terminator is '|'
             index=skipWhiteSpace(index);
@@ -537,20 +806,20 @@ mainLoop:
             // It would be a little faster to consider the syntax of each possible
             // token right here, but that makes the code too complicated.
             index=skipWhiteSpace(index);
-            if(index==msg.length()) {
-                throw new IllegalArgumentException(
-                    "Bad "+
-                    (argType==ArgType.PLURAL ? "plural" : "select")+
-                    " pattern syntax: "+prefix(start));
-            }
-            if(msg.charAt(index)=='}') {
+            if(index==msg.length() || msg.charAt(index)=='}') {
+                if(nestingLevel>0 && index==msg.length()) {
+                    throw new IllegalArgumentException(
+                        "Bad "+
+                        (argType==ArgType.PLURAL ? "plural" : "select")+
+                        " pattern syntax: "+prefix(start));
+                }
                 if(!hasOther) {
                     throw new IllegalArgumentException(
                         "Missing 'other' keyword in "+
                         (argType==ArgType.PLURAL ? "plural" : "select")+
                         " pattern in \""+prefix()+"\"");
                 }
-                return index+1;
+                return index==msg.length() ? index: index+1;
             }
             int selectorIndex=index;
             index=findTokenLimit(index);
