@@ -339,10 +339,10 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
             /**
              * A numeric value, for example the offset or an explicit selector value
              * in a PluralFormat style.
-             * The value provides the length of the number's substring.
-             * TODO: Should we store the double values and use the value as an index?
+             * The part value is an index into an internal array of numeric values;
+             * use getNumericValue().
              */
-            ARG_DOUBLE(true);
+            ARG_DOUBLE;
 
             /**
              * Indicates whether this part refers to a pattern substring.
@@ -437,8 +437,8 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
     /**
      * Returns the getString() substring of the pattern string indicated by the Part,
      * or null if the Part does not refer to a substring.
-     * @param part Part of this message
-     * @return substring associated with part
+     * @param part a part of this MessagePattern.
+     * @return the substring associated with part.
      * @see Part.Type#refersToSubstring()
      */
     public String getSubstring(Part part) {
@@ -462,6 +462,29 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
             part.getType().refersToSubstring() &&
             s.regionMatches(0, msg, part.getIndex(), part.getValue());
     }
+
+    /**
+     * Returns the numeric value associated with an ARG_INT or ARG_DOUBLE.
+     * @param part a part of this MessagePattern.
+     * @return the part's numeric value, or NO_NUMERIC_VALUE if this is not a numeric part.
+     */
+    public double getNumericValue(Part part) {
+        Part.Type type=part.getType();
+        if(type==Part.Type.ARG_INT) {
+            return part.getValue();
+        } else if(type==Part.Type.ARG_DOUBLE) {
+            return numericValues.get(part.getValue());
+        } else {
+            return NO_NUMERIC_VALUE;
+        }
+    }
+
+    /**
+     * Special value that is returned by getNumericValue(Part) when no
+     * numeric value is defined for a part.
+     * @see #getNumericValue
+     */
+    public static final double NO_NUMERIC_VALUE=-123456789;
 
     /**
      * Creates and returns a copy of this object.
@@ -532,6 +555,9 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
             partsList=new ArrayList<Integer>(pattern.length()/4+2);
         } else {
             partsList.clear();
+        }
+        if(numericValues!=null) {
+            numericValues.clear();
         }
     }
 
@@ -939,13 +965,16 @@ mainLoop:
                 c=msg.charAt(index++);
             }
             // Let Double.parseDouble() throw a NumberFormatException.
-            Double.parseDouble(msg.substring(start, limit));
-            // TODO: Store the double values? Mapped from Part.getValue()?
-            if(length>Part.MAX_VALUE) {
-                throw new IndexOutOfBoundsException(
-                    "Number too long: "+msg.substring(start, limit));
+            double numericValue=Double.parseDouble(msg.substring(start, limit));
+            int numericIndex= numericValues==null ? 0 : numericValues.size();
+            if(numericIndex>Part.MAX_VALUE) {
+                throw new IndexOutOfBoundsException("Too many numeric values");
             }
-            addPart(length, Part.Type.ARG_DOUBLE, start);
+            if(numericValues==null) {
+                numericValues=new ArrayList<Double>();
+            }
+            numericValues.add(numericValue);
+            addPart(numericIndex, Part.Type.ARG_DOUBLE, start);
             return;
         }
         throw new NumberFormatException(
@@ -1065,6 +1094,7 @@ mainLoop:
 
     private String msg;
     private ArrayList<Integer> partsList;  // used while parsing
+    private ArrayList<Double> numericValues;
     private int[] parts;  // built at end of parsing
     private boolean hasArgNames;
     private boolean hasArgNumbers;
