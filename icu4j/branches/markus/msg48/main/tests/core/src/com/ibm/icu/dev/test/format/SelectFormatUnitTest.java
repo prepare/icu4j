@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (c) 2004-2010, International Business Machines
+ * Copyright (c) 2004-2011, International Business Machines
  * Corporation and others.  All Rights Reserved.
  * Copyright (C) 2010 , Yahoo! Inc.                                            
  *******************************************************************************
@@ -39,19 +39,6 @@ public class SelectFormatUnitTest extends TestFmwk {
             "odd{fo{o1}other{foo2}}"
         };
 
-        String expectedErrorMsgs[] = {
-            "Duplicate keyword error.",
-            "Duplicate keyword error.",
-            "Pattern syntax error. Value for case \"other\" was not defined. ",
-            "Pattern syntax error.",
-            "Pattern syntax error.",
-            "Pattern syntax error.",
-            "Pattern syntax error.",
-            "Pattern syntax error.",
-            "Pattern syntax error.",
-            "Pattern syntax error. Value for case \"other\" was not defined. ",
-        };
-
         //Test SelectFormat pattern syntax
         SelectFormat selFmt = new SelectFormat(SIMPLE_PATTERN);
         for (int i=0; i<checkSyntaxData.length; ++i) {
@@ -60,9 +47,7 @@ public class SelectFormatUnitTest extends TestFmwk {
                 errln("\nERROR: Unexpected result - SelectFormat Unit Test failed "
                       + "to detect syntax error with pattern: "+checkSyntaxData[i]);
             } catch (IllegalArgumentException e){
-                assertEquals("Error:TestPatternSyntax failed with unexpected"
-                             + " error message for pattern: " + checkSyntaxData[i] ,
-                             expectedErrorMsgs[i], e.getMessage() );
+                // ok
                 continue;
             }
         }

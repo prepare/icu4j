@@ -102,7 +102,58 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
     }
 
     /**
-     * @return the parsed pattern string.
+     * Clears this MessagePattern, returning it to the state after the default constructor.
+     */
+    public void clear() {
+        // Mostly the same as preParse().
+        if(isFrozen()) {
+            throw new UnsupportedOperationException(
+                "Attempt to clear() a frozen MessagePattern instance.");
+        }
+        msg=null;
+        hasArgNames=hasArgNumbers=false;
+        needsAutoQuoting=false;
+        if(partsList!=null) {
+            partsList.clear();
+        }
+        if(numericValues!=null) {
+            numericValues.clear();
+        }
+    }
+
+    /**
+     * @param other another object to compare with.
+     * @return true if this object is equivalent to the other one.
+     */
+    @Override
+    public boolean equals(Object other) {
+        if(this==other) {
+            return true;
+        }
+        if(other==null || getClass()!=other.getClass()) {
+            return false;
+        }
+        MessagePattern o=(MessagePattern)other;
+        if(msg==null) {
+            return o.msg==null;
+        }
+        if(!msg.equals(o.msg)) {
+            return false;
+        }
+        int count=countParts();
+        if(count!=o.countParts()) {
+            return false;
+        }
+        for(int i=0; i<count; ++i) {
+            if(parts[i]!=o.parts[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * @return the parsed pattern string (null if none was parsed).
      */
     public String getString() {
         return msg;
@@ -158,10 +209,11 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
 
     /**
      * Returns the number of "parts" created by parsing the pattern string.
+     * Returns 0 if no pattern has been parsed or clear() was called.
      * @return the number of pattern parts.
      */
     public int countParts() {
-        return partsList.size();
+        return partsList==null ? 0 : partsList.size();
     }
 
     /**
@@ -193,6 +245,58 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
     }
 
     /**
+     * Returns the getString() substring of the pattern string indicated by the Part,
+     * or null if the Part does not refer to a substring.
+     * @param part a part of this MessagePattern.
+     * @return the substring associated with part.
+     * @see Part.Type#refersToSubstring()
+     */
+    public String getSubstring(Part part) {
+        if(part.getType().refersToSubstring()) {
+            int index=part.getIndex();
+            int length=part.getValue();
+            return msg.substring(index, index+length);
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * Compares the part's substring with the input string s.
+     * @param part a part of this MessagePattern.
+     * @param s a string.
+     * @return true if getSubstring(part).equals(s).
+     */
+    public boolean partSubstringMatches(Part part, String s) {
+        return
+            part.getType().refersToSubstring() &&
+            s.regionMatches(0, msg, part.getIndex(), part.getValue());
+    }
+
+    /**
+     * Returns the numeric value associated with an ARG_INT or ARG_DOUBLE.
+     * @param part a part of this MessagePattern.
+     * @return the part's numeric value, or NO_NUMERIC_VALUE if this is not a numeric part.
+     */
+    public double getNumericValue(Part part) {
+        Part.Type type=part.getType();
+        if(type==Part.Type.ARG_INT) {
+            return part.getValue();
+        } else if(type==Part.Type.ARG_DOUBLE) {
+            return numericValues.get(part.getValue());
+        } else {
+            return NO_NUMERIC_VALUE;
+        }
+    }
+
+    /**
+     * Special value that is returned by getNumericValue(Part) when no
+     * numeric value is defined for a part.
+     * @see #getNumericValue
+     */
+    public static final double NO_NUMERIC_VALUE=-123456789;
+
+    /**
      * Finds the index of the MSG_LIMIT part corresponding to the MSG_START at msgStart.
      * @param msgStart The index of some Part data; this Part should be of Type MSG_START.
      * @return The first i>msgStart where getPart(i).getType()==MSG_LIMIT at the same nesting level,
@@ -208,6 +312,21 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
         // Look for the next MSG_LIMIT with the same nesting level, ignoring the string index.
         while((parts[i]&~Part.INDEX_MASK)!=msgLimitPartInt) { ++i; }
         return i;
+    }
+
+    /**
+     * Fills the MessageBounds with the boundaries for the specified message.
+     * @param msgStart The index of some Part data; this Part should be of Type MSG_START.
+     * @param msgBounds The boundaries container.
+     * @return the part index of the matching MSG_LIMIT (same as msgBounds.msgLimit).
+     */
+    public int getMessageBounds(int msgStart, MessageBounds msgBounds) {
+        int msgLimit=findMsgLimit(msgStart);
+        msgBounds.msgStart=msgStart;
+        msgBounds.msgLimit=msgLimit;
+        msgBounds.msgStartPatternIndex=parts[msgStart]&Part.INDEX_MASK;
+        msgBounds.msgLimitPatternIndex=parts[msgLimit]&Part.INDEX_MASK;
+        return msgLimit;
     }
 
     /**
@@ -435,56 +554,28 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
     }
 
     /**
-     * Returns the getString() substring of the pattern string indicated by the Part,
-     * or null if the Part does not refer to a substring.
-     * @param part a part of this MessagePattern.
-     * @return the substring associated with part.
-     * @see Part.Type#refersToSubstring()
+     * Boundaries of a message or sub-message.
+     * This is used in formatting code, for selecting a message
+     * in a ChoiceFormat/PluralFormat/SelectFormat pattern.
      */
-    public String getSubstring(Part part) {
-        if(part.getType().refersToSubstring()) {
-            int index=part.getIndex();
-            int length=part.getValue();
-            return msg.substring(index, index+length);
-        } else {
-            return null;
-        }
+    public static final class MessageBounds {
+        /**
+         * Part index of the MSG_START part.
+         */
+        public int msgStart;
+        /**
+         * Part index of the matching MSG_LIMIT part.
+         */
+        public int msgLimit;
+        /**
+         * Pattern string index corresponding to msgStart.
+         */
+        public int msgStartPatternIndex;
+        /**
+         * Pattern string index corresponding to msgLimit.
+         */
+        public int msgLimitPatternIndex;
     }
-
-    /**
-     * Compares the part's substring with the input string s.
-     * @param part a part of this MessagePattern.
-     * @param s a string.
-     * @return true if getSubstring(part).equals(s).
-     */
-    public boolean partSubstringMatches(Part part, String s) {
-        return
-            part.getType().refersToSubstring() &&
-            s.regionMatches(0, msg, part.getIndex(), part.getValue());
-    }
-
-    /**
-     * Returns the numeric value associated with an ARG_INT or ARG_DOUBLE.
-     * @param part a part of this MessagePattern.
-     * @return the part's numeric value, or NO_NUMERIC_VALUE if this is not a numeric part.
-     */
-    public double getNumericValue(Part part) {
-        Part.Type type=part.getType();
-        if(type==Part.Type.ARG_INT) {
-            return part.getValue();
-        } else if(type==Part.Type.ARG_DOUBLE) {
-            return numericValues.get(part.getValue());
-        } else {
-            return NO_NUMERIC_VALUE;
-        }
-    }
-
-    /**
-     * Special value that is returned by getNumericValue(Part) when no
-     * numeric value is defined for a part.
-     * @see #getNumericValue
-     */
-    public static final double NO_NUMERIC_VALUE=-123456789;
 
     /**
      * Creates and returns a copy of this object.
@@ -545,7 +636,7 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
             throw new UnsupportedOperationException(
                 "Attempt to parse(\""+prefix(pattern)+"\") on frozen MessagePattern instance.");
         }
-        if(pattern.length()>=Part.INDEX_MASK) {
+        if(pattern.length()>Part.INDEX_MASK) {
             throw new IndexOutOfBoundsException("Message string \""+prefix(pattern)+"\" too long.");
         }
         msg=pattern;
@@ -565,7 +656,11 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
         // Unbox all parts only once.
         // TODO: Should we just use partsList and unbox each item?
         int length=partsList.size();
-        if(parts==null || parts.length<length) {
+        if(parts==null) {
+            // Normally, allocate tightly. 
+            parts=new int[length];
+        } else if(parts.length<length) {
+            // On the rare occasion when this object is reused, reallocate with more room.
             parts=new int[2*length+10];
         }
         for(int i=0; i<length; ++i) {
@@ -813,7 +908,11 @@ mainLoop:
             addPart(nestingLevel+1, Part.Type.MSG_START, index);
             index=parseMessage(index, nestingLevel+1, ArgType.CHOICE);
             // parseMessage(..., CHOICE) returns the index of the terminator.
-            if(index==msg.length() || msg.charAt(index++)=='}') {
+            if(msg.charAt(index++)=='}') {
+                if(!inMessageFormatPattern(nestingLevel)) {
+                    throw new IllegalArgumentException(
+                        "Bad choice pattern syntax: "+prefix(start));
+                }
                 return index;
             }  // else the terminator is '|'
             index=skipWhiteSpace(index);
@@ -832,8 +931,9 @@ mainLoop:
             // It would be a little faster to consider the syntax of each possible
             // token right here, but that makes the code too complicated.
             index=skipWhiteSpace(index);
-            if(index==msg.length() || msg.charAt(index)=='}') {
-                if(nestingLevel>0 && index==msg.length()) {
+            boolean eos=index==msg.length();
+            if(eos || msg.charAt(index)=='}') {
+                if(eos==inMessageFormatPattern(nestingLevel)) {
                     throw new IllegalArgumentException(
                         "Bad "+
                         (argType==ArgType.PLURAL ? "plural" : "select")+
@@ -845,7 +945,7 @@ mainLoop:
                         (argType==ArgType.PLURAL ? "plural" : "select")+
                         " pattern in \""+prefix()+"\"");
                 }
-                return index==msg.length() ? index: index+1;
+                return eos ? index: index+1;
             }
             int selectorIndex=index;
             index=findTokenLimit(index);
@@ -1047,6 +1147,14 @@ mainLoop:
             ((c=msg.charAt(index++))=='e' || c=='E') &&
             ((c=msg.charAt(index++))=='c' || c=='C') &&
             ((c=msg.charAt(index))=='t' || c=='T');
+    }
+
+    /**
+     * @return true if we are inside a MessageFormat (sub-)pattern,
+     *         as opposed to inside a top-level choice/plural/select pattern.
+     */
+    private boolean inMessageFormatPattern(int nestingLevel) {
+        return nestingLevel>0 || Part.getType(partsList.get(0))==Part.Type.MSG_START;
     }
 
     private int makePartInt(int value, Part.Type type, int index) {
