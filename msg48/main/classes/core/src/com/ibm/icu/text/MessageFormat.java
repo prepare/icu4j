@@ -1693,7 +1693,7 @@ public class MessageFormat extends UFormat {
                     if(msgBounds==null) {
                         msgBounds=new MessagePattern.MessageBounds();
                     }
-                    i=SelectFormat.selectMessage(msgPattern, i, part, arg.toString(), true, msgBounds);
+                    i=msgPattern.findSelectSubMessage(i, part, arg.toString(), true, msgBounds);
                     prevIndex=part.getIndex();  // The ARG_LIMIT ends here.
                     format(msgBounds.msgStart, part, dest, args, argsMap);
                 } else {

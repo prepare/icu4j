@@ -279,11 +279,15 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
      * @return the part's numeric value, or NO_NUMERIC_VALUE if this is not a numeric part.
      */
     public double getNumericValue(Part part) {
-        Part.Type type=part.getType();
+        return getNumericValueFromPartInt(part.part);
+    }
+
+    private double getNumericValueFromPartInt(int partInt) {
+        Part.Type type=Part.getType(partInt);
         if(type==Part.Type.ARG_INT) {
-            return part.getValue();
+            return Part.getValue(partInt);
         } else if(type==Part.Type.ARG_DOUBLE) {
-            return numericValues.get(part.getValue());
+            return numericValues.get(Part.getValue(partInt));
         } else {
             return NO_NUMERIC_VALUE;
         }
@@ -327,6 +331,133 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
         msgBounds.msgStartPatternIndex=parts[msgStart]&Part.INDEX_MASK;
         msgBounds.msgLimitPatternIndex=parts[msgLimit]&Part.INDEX_MASK;
         return msgLimit;
+    }
+
+    /**
+     * Finds the PluralFormat sub-message for the given keyword.
+     * @param partIndex the index of the first PluralFormat argument style part.
+     * @param part a Part object to be used; on return,
+     *        if findArgLimit is true and the PluralFormat is inside a MessageFormat pattern,
+     *        then the part will be set to the ARG_LIMIT data.
+     * @param rules the PluralRules for mapping the value (minus offset) to a keyword.
+     * @param value a value to be matched to one of the PluralFormat argument's explicit values,
+     *        or mapped via the PluralRules.
+     * @param findArgLimit if true, find the ARG_LIMIT;
+     *        otherwise terminate as soon as there is a match.
+     * @param msgBounds the message boundaries container to be filled.
+     * @return if findArgLimit: the ARG_LIMIT part index or msgPattern.countParts();
+     *         otherwise the part index after the selected sub-message.
+     */
+    public int findPluralSubMessage(int partIndex, Part part,
+                                    PluralRules rules,
+                                    double value, boolean findArgLimit,
+                                    MessageBounds msgBounds) {
+        double offset;
+        if(getPart(partIndex, part).getType().hasNumericValue()) {
+            offset=getNumericValue(part);
+            ++partIndex;
+        } else {
+            offset=0;
+        }
+        boolean found=false;
+        int count=countParts();
+        String keyword=null;
+        // Iterate over (ARG_SELECTOR [ARG_INT|ARG_DOUBLE] message) tuples
+        // until ARG_LIMIT or end of plural-only pattern.
+        do {
+            Part.Type type=getPart(partIndex++, part).getType();
+            if(type==Part.Type.ARG_LIMIT) {
+                break;
+            }
+            assert type==Part.Type.ARG_SELECTOR;
+            // part is an ARG_SELECTOR followed by an optional explicit value, and then a message
+            int nextPartInt=parts[partIndex];
+            if(Part.getType(nextPartInt).hasNumericValue()) {
+                // explicit value like "=2"
+                ++partIndex;
+                if(!found && value==getNumericValueFromPartInt(nextPartInt)) {
+                    // matches explicit value
+                    partIndex=getMessageBounds(partIndex, msgBounds);
+                    if(!findArgLimit) {
+                        return partIndex+1;
+                    }
+                    found=true;
+                } else {
+                    partIndex=findMsgLimit(partIndex);
+                }
+                continue;
+            } else {
+                // plural keyword like "few" or "other"
+                if(found) {
+                    // just skip each further tuple
+                    partIndex=findMsgLimit(partIndex);
+                } else if(partSubstringMatches(part, "other")) {
+                    partIndex=getMessageBounds(partIndex, msgBounds);
+                } else {
+                    if(keyword==null) {
+                        keyword=rules.select(value-offset);
+                    }
+                    if(partSubstringMatches(part, keyword)) {
+                        // keyword matches
+                        partIndex=getMessageBounds(partIndex, msgBounds);
+                        if(!findArgLimit) {
+                            return partIndex+1;
+                        }
+                        found=true;
+                    } else {
+                        // no match, no "other"
+                        partIndex=findMsgLimit(partIndex);
+                    }
+                }
+            }
+        } while(++partIndex<count);
+        return partIndex;
+    }
+
+    /**
+     * Finds the SelectFormat sub-message for the given keyword.
+     * @param partIndex the index of the first SelectFormat argument style part.
+     * @param part a Part object to be used; on return,
+     *        if findArgLimit is true and the SelectFormat is inside a MessageFormat pattern,
+     *        then the part will be set to the ARG_LIMIT data.
+     * @param keyword a keyword to be matched to one of the SelectFormat argument's keywords.
+     * @param findArgLimit if true, find the ARG_LIMIT;
+     *        otherwise terminate as soon as there is a match.
+     * @param msgBounds the message boundaries container to be filled.
+     * @return if findArgLimit: the ARG_LIMIT part index or msgPattern.countParts();
+     *         otherwise the part index after the selected sub-message.
+     */
+    public int findSelectSubMessage(int partIndex, Part part,
+                                    String keyword, boolean findArgLimit,
+                                    MessageBounds msgBounds) {
+        boolean found=false;
+        int count=countParts();
+        // Iterate over (ARG_SELECTOR, message) pairs until ARG_LIMIT or end of select-only pattern.
+        do {
+            Part.Type type=getPart(partIndex++, part).getType();
+            if(type==Part.Type.ARG_LIMIT) {
+                break;
+            }
+            assert type==Part.Type.ARG_SELECTOR;
+            // part is an ARG_SELECTOR followed by a message
+            if(found) {
+                // just skip each further pair
+                partIndex=findMsgLimit(partIndex);
+            } else if(partSubstringMatches(part, keyword)) {
+                // keyword matches
+                partIndex=getMessageBounds(partIndex, msgBounds);
+                if(!findArgLimit) {
+                    return partIndex+1;
+                }
+                found=true;
+            } else if(partSubstringMatches(part, "other")) {
+                partIndex=getMessageBounds(partIndex, msgBounds);
+            } else {
+                // no match, no "other"
+                partIndex=findMsgLimit(partIndex);
+            }
+        } while(++partIndex<count);
+        return partIndex;
     }
 
     /**
@@ -470,6 +601,15 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
              */
             public boolean refersToSubstring() {
                 return rts;
+            }
+
+            /**
+             * Indicates whether this part has a numeric value.
+             * If so, then that numeric value can be retrieved via {@link MessagePattern#getNumericValue(Part)}.
+             * @return true if this part has a numeric value.
+             */
+            public boolean hasNumericValue() {
+                return this==ARG_INT || this==ARG_DOUBLE;
             }
 
             private Type() {
