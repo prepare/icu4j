@@ -1646,8 +1646,10 @@ public class MessageFormat extends UFormat {
     private int format(int msgStart, Part part, Appendable dest,
             Object[] args, Map<String, Object> argsMap) {
         try {
+            MessagePattern.MessageBounds msgBounds=null;
             String msgString=msgPattern.getString();
             int prevIndex=msgPattern.getPart(msgStart, part).getIndex();
+            assert part.getType()==MessagePattern.Part.Type.MSG_START;
             for(int i=msgStart+1;; ++i) {
                 Part.Type type=msgPattern.getPart(i, part).getType();
                 int index=part.getIndex();
@@ -1681,38 +1683,19 @@ public class MessageFormat extends UFormat {
                                 "No argument for name "+msgPattern.getSubstring(part));
                     }
                 }
-                String argValue=arg.toString();
                 ++i;
                 if(argType==ArgType.NONE) {
-                    dest.append(argValue);
+                    // TODO: Rather than arg.toString() we need to copy the old default-style formatting code.
+                    dest.append(arg.toString());
                     prevIndex=msgPattern.getPart(i, part).getIndex();  // ARG_LIMIT
                     continue;
                 } else if(argType==ArgType.SELECT) {
-                    int otherMsgStart=0;
-                    boolean found=false;
-                    for(;; ++i) {  // (ARG_SELECTOR, message) pairs until ARG_LIMIT
-                        if(msgPattern.getPart(i, part).getType()==Part.Type.ARG_LIMIT) {
-                            prevIndex=part.getIndex();
-                            if(found) {
-                                break;
-                            } else {
-                                assert otherMsgStart!=0;
-                                format(otherMsgStart, part, dest, args, argsMap);
-                                break;
-                            }
-                            // else: part is an ARG_SELECTOR followed by a message
-                        } else if(found) {
-                            // just skip each further pair
-                        } else if(msgPattern.partSubstringMatches(part, argValue)) {
-                            // keyword matches, format immediately
-                            found=true;
-                            i=format(i+1, part, dest, args, argsMap);
-                            continue;  // i is already on this message's MSG_LIMIT
-                        } else if(otherMsgStart==0 && msgPattern.partSubstringMatches(part, "other")) {
-                            otherMsgStart=i+1;
-                        }
-                        i=msgPattern.findMsgLimit(i+1);
+                    if(msgBounds==null) {
+                        msgBounds=new MessagePattern.MessageBounds();
                     }
+                    i=SelectFormat.selectMessage(msgPattern, i, part, arg.toString(), true, msgBounds);
+                    prevIndex=part.getIndex();  // The ARG_LIMIT ends here.
+                    format(msgBounds.msgStart, part, dest, args, argsMap);
                 } else {
                     throw new UnsupportedOperationException("Unsupported argument type "+argType);
                 }

@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2004-2010, International Business Machines Corporation and    *
+ * Copyright (C) 2004-2011, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  * Copyright (C) 2009 , Yahoo! Inc.                                            *
  *******************************************************************************
@@ -160,6 +160,11 @@ public class SelectFormat extends Format{
      */
     private String pattern = null;
 
+    /**
+     * The MessagePattern which contains the parsed structure of the pattern string.
+     */
+    transient private MessagePattern msgPattern;
+    
     /*
      * The format messages for each select case. It is a mapping:
      *  <code>String</code>(select case keyword) --&gt; <code>String</code>
@@ -211,6 +216,9 @@ public class SelectFormat extends Format{
     private void init() {
         parsedValues = null;
         pattern = null;
+        if(msgPattern != null) {
+            msgPattern.clear();
+        }
     }
 
     /**
@@ -274,6 +282,15 @@ public class SelectFormat extends Format{
      * @stable ICU 4.4
      */
     public void applyPattern(String pattern) {
+        if (msgPattern == null) {
+            msgPattern = new MessagePattern();
+        }
+        try {
+            msgPattern.parseSelectStyle(pattern);
+        } catch(RuntimeException e) {
+            init();
+            throw e;
+        }
         parsedValues = null;
         this.pattern = pattern;
 
@@ -436,16 +453,15 @@ public class SelectFormat extends Format{
         }
 
         // If no pattern was applied, throw an exception
-        if (parsedValues == null) {
+        if (msgPattern == null || msgPattern.countParts() == 0) {
             throw new IllegalStateException("Invalid format error.");
         }
 
-        // Get appropriate format pattern.
-        String selectedPattern = parsedValues.get(keyword);
-        if (selectedPattern == null) { // Fallback to others.
-            selectedPattern = parsedValues.get(KEYWORD_OTHER);
-        }
-        return selectedPattern;
+        // Get the appropriate sub-message.
+        MessagePattern.Part part = new MessagePattern.Part();
+        MessagePattern.MessageBounds msgBounds = new MessagePattern.MessageBounds();
+        selectMessage(msgPattern, 0, part, keyword, false, msgBounds);
+        return msgPattern.getString().substring(msgBounds.msgStartPatternIndex, msgBounds.msgLimitPatternIndex);
     }
 
     /**
@@ -468,6 +484,55 @@ public class SelectFormat extends Format{
             throw new IllegalArgumentException("'" + keyword + "' is not a String");
         }
         return toAppendTo;
+    }
+
+    /**
+     * Selects the sub-message for the given keyword.
+     * @param msgPattern a MessagePattern.
+     * @param partIndex the index of the first argument style part.
+     * @param part a Part object to be used; on return,
+     *        if findArgLimit is true and the SelectFormat is inside a MessageFormat pattern,
+     *        then the part will be set to the ARG_LIMIT data.
+     * @param keyword a keyword to be matched to one of the SelectFormat argument's keywords.
+     * @param findArgLimit if true, find the ARG_LIMIT
+     * @param msgBounds the message boundaries container to be filled
+     * @return if findArgLimit: the ARG_LIMIT part index or msgPattern.countParts();
+     *         otherwise the part index after the selected sub-message.
+     */
+    static final int selectMessage(MessagePattern msgPattern, int partIndex,
+                                   MessagePattern.Part part,
+                                   String keyword,
+                                   boolean findArgLimit,
+                                   MessagePattern.MessageBounds msgBounds) {
+        boolean found=false;
+        int count=msgPattern.countParts();
+        // (ARG_SELECTOR, message) pairs until ARG_LIMIT or end of select-only pattern
+        do {
+            msgPattern.getPart(partIndex++, part);
+            MessagePattern.Part.Type type=part.getType();
+            if(type==MessagePattern.Part.Type.ARG_LIMIT) {
+                break;
+            }
+            assert type==MessagePattern.Part.Type.ARG_SELECTOR;
+            // part is an ARG_SELECTOR followed by a message
+            if(found) {
+                // just skip each further pair
+                partIndex=msgPattern.findMsgLimit(partIndex);
+            } else if(msgPattern.partSubstringMatches(part, keyword)) {
+                // keyword matches
+                partIndex=msgPattern.getMessageBounds(partIndex, msgBounds);
+                if(!findArgLimit) {
+                    return partIndex+1;
+                }
+                found=true;
+            } else if(msgPattern.partSubstringMatches(part, "other")) {
+                partIndex=msgPattern.getMessageBounds(partIndex, msgBounds);
+            } else {
+                // no match, no "other"
+                partIndex=msgPattern.findMsgLimit(partIndex);
+            }
+        } while(++partIndex<count);
+        return partIndex;
     }
 
     /**
@@ -512,11 +577,14 @@ public class SelectFormat extends Format{
      * @stable ICU 4.4
      */
     public boolean equals(Object obj) {
-        if (!(obj instanceof SelectFormat)) {
+        if(this == obj) {
+            return true;
+        }
+        if(obj == null || getClass() != obj.getClass()) {
             return false;
         }
         SelectFormat sf = (SelectFormat) obj;
-        return pattern == null ? sf.pattern == null : pattern.equals(sf.pattern);
+        return msgPattern == null ? sf.msgPattern == null : msgPattern.equals(sf.msgPattern);
     }
 
     /**
