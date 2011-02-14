@@ -458,10 +458,10 @@ public class SelectFormat extends Format{
         }
 
         // Get the appropriate sub-message.
-        MessagePattern.Part part = new MessagePattern.Part();
-        MessagePattern.MessageBounds msgBounds = new MessagePattern.MessageBounds();
-        msgPattern.findSelectSubMessage(0, part, keyword, false, msgBounds);
-        return msgPattern.getString().substring(msgBounds.msgStartPatternIndex, msgBounds.msgLimitPatternIndex);
+        int msgStart=msgPattern.findSelectSubMessage(0, keyword);
+        int msgLimit=msgPattern.getPartLimit(msgStart);
+        return msgPattern.getString().substring(msgPattern.getPatternIndex(msgStart),
+                                                msgPattern.getPatternIndex(msgLimit));
     }
 
     /**

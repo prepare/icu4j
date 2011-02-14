@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2007-2010, International Business Machines Corporation and    *
+ * Copyright (C) 2007-2011, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -74,7 +74,7 @@ import com.ibm.icu.util.ULocale;
  * integers in the specified range, while 'within' includes all values.</p>
  * @stable ICU 3.8
  */
-public class PluralRules implements Serializable {
+public class PluralRules implements MessagePattern.PluralSelector, Serializable {
     private static final long serialVersionUID = 1;
 
     private final RuleList rules;
