@@ -1685,10 +1685,22 @@ public class MessageFormat extends UFormat {
                 }
                 ++i;
                 if(argType==ArgType.NONE) {
-                    // TODO: Rather than arg.toString() we need to copy the old default-style formatting code.
-                    dest.append(arg.toString());
-                    prevIndex=msgPattern.getPart(i, part).getIndex();  // ARG_LIMIT
-                    continue;
+                    Format formatter = null;
+                    if (arg == null) {
+                        dest.append("null");
+                    } else if (arg instanceof Number) {
+                        // format number if can
+                        formatter = NumberFormat.getInstance(ulocale);
+                        dest.append(formatter.format(arg));
+                    } else if (arg instanceof Date) {
+                        // format a Date if can
+                        formatter = DateFormat.getDateTimeInstance(
+                                DateFormat.SHORT, DateFormat.SHORT, ulocale);//fix
+                        dest.append(formatter.format(arg));
+                    } else {
+                        dest.append(arg.toString());
+                    }
+                    prevIndex=part.getIndex();  // ARG_LIMIT
                 } else if(argType==ArgType.SELECT) {
                     if(msgBounds==null) {
                         msgBounds=new MessagePattern.MessageBounds();
@@ -1696,8 +1708,23 @@ public class MessageFormat extends UFormat {
                     i=msgPattern.findSelectSubMessage(i, part, arg.toString(), true, msgBounds);
                     prevIndex=part.getIndex();  // The ARG_LIMIT ends here.
                     format(msgBounds.msgStart, part, dest, args, argsMap);
-                } else {
-                    throw new UnsupportedOperationException("Unsupported argument type "+argType);
+                } else if(argType==ArgType.SIMPLE) {
+                    // This is not very well optimized! We do not really need to create all those formatters
+                    // from scratch and throw them away every time! TODO: optimize!
+                    String explicitType = msgPattern.getString().substring(msgPattern.getPart(i, part).getIndex(),
+                            msgPattern.getPart(i+1, part).getIndex()-1);
+                    String style = "";
+                    ++i;
+                    if (msgPattern.getPart(i, part).getType() == MessagePattern.Part.Type.ARG_STYLE_START) {
+                       style = msgPattern.getString().substring(msgPattern.getPart(i, part).getIndex(),
+                               msgPattern.getPart(i+1, part).getIndex()-1);
+                       ++i;
+                    }
+                    prevIndex=part.getIndex();  // The ARG_LIMIT ends here.
+                    Format formatter = createAppropriateFormat(explicitType, style);
+                    if (formatter != null) {
+                        dest.append(formatter.format(arg));
+                    }
                 }
             }
         } catch(IOException e) {  // Appendable throws IOException
@@ -2151,6 +2178,153 @@ public class MessageFormat extends UFormat {
         segments[3].setLength(0);
     }
 
+    // Creates an appropriate Format object for the type and style passed.
+    // Both arguments cannot be null.
+    private Format createAppropriateFormat(String type, String style) {
+        Format newFormat = null;
+        int subformatType  = findKeyword(type, typeList);
+        switch (subformatType){
+        case TYPE_EMPTY:
+            break;
+        case TYPE_NUMBER:
+            switch (findKeyword(style, modifierList)) {
+            case MODIFIER_EMPTY:
+                newFormat = NumberFormat.getInstance(ulocale);
+                break;
+            case MODIFIER_CURRENCY:
+                newFormat = NumberFormat.getCurrencyInstance(ulocale);
+                break;
+            case MODIFIER_PERCENT:
+                newFormat = NumberFormat.getPercentInstance(ulocale);
+                break;
+            case MODIFIER_INTEGER:
+                newFormat = NumberFormat.getIntegerInstance(ulocale);
+                break;
+            default: // pattern
+                newFormat = new DecimalFormat(style,
+                        new DecimalFormatSymbols(ulocale));
+                break;
+            }
+            break;
+        case TYPE_DATE:
+            switch (findKeyword(style, dateModifierList)) {
+            case DATE_MODIFIER_EMPTY:
+                newFormat = DateFormat.getDateInstance(DateFormat.DEFAULT, ulocale);
+                break;
+            case DATE_MODIFIER_SHORT:
+                newFormat = DateFormat.getDateInstance(DateFormat.SHORT, ulocale);
+                break;
+            case DATE_MODIFIER_MEDIUM:
+                newFormat = DateFormat.getDateInstance(DateFormat.DEFAULT, ulocale);
+                break;
+            case DATE_MODIFIER_LONG:
+                newFormat = DateFormat.getDateInstance(DateFormat.LONG, ulocale);
+                break;
+            case DATE_MODIFIER_FULL:
+                newFormat = DateFormat.getDateInstance(DateFormat.FULL, ulocale);
+                break;
+            default:
+                newFormat = new SimpleDateFormat(style, ulocale);
+                break;
+            }
+            break;
+        case TYPE_TIME:
+            switch (findKeyword(style, dateModifierList)) {
+            case DATE_MODIFIER_EMPTY:
+                newFormat = DateFormat.getTimeInstance(DateFormat.DEFAULT, ulocale);
+                break;
+            case DATE_MODIFIER_SHORT:
+                newFormat = DateFormat.getTimeInstance(DateFormat.SHORT, ulocale);
+                break;
+            case DATE_MODIFIER_MEDIUM:
+                newFormat = DateFormat.getTimeInstance(DateFormat.DEFAULT, ulocale);
+                break;
+            case DATE_MODIFIER_LONG:
+                newFormat = DateFormat.getTimeInstance(DateFormat.LONG, ulocale);
+                break;
+            case DATE_MODIFIER_FULL:
+                newFormat = DateFormat.getTimeInstance(DateFormat.FULL, ulocale);
+                break;
+            default:
+                newFormat = new SimpleDateFormat(style, ulocale);
+                break;
+            }
+            break;
+        case TYPE_CHOICE:
+            try {
+                newFormat = new ChoiceFormat(style);
+            } catch (Exception e) {
+                return null;
+            }
+            break;
+        case TYPE_SPELLOUT:
+            {
+                RuleBasedNumberFormat rbnf = new RuleBasedNumberFormat(ulocale,
+                        RuleBasedNumberFormat.SPELLOUT);
+                String ruleset = style.trim();
+                if (ruleset.length() != 0) {
+                    try {
+                        rbnf.setDefaultRuleSet(ruleset);
+                    }
+                    catch (Exception e) {
+                        // warn invalid ruleset
+                    }
+                }
+                newFormat = rbnf;
+            }
+            break;
+        case TYPE_ORDINAL:
+            {
+                RuleBasedNumberFormat rbnf = new RuleBasedNumberFormat(ulocale,
+                        RuleBasedNumberFormat.ORDINAL);
+                String ruleset = style.trim();
+                if (ruleset.length() != 0) {
+                    try {
+                        rbnf.setDefaultRuleSet(ruleset);
+                    }
+                    catch (Exception e) {
+                        // warn invalid ruleset
+                    }
+                }
+                newFormat = rbnf;
+            }
+            break;
+        case TYPE_DURATION:
+            {
+                RuleBasedNumberFormat rbnf = new RuleBasedNumberFormat(ulocale,
+                        RuleBasedNumberFormat.DURATION);
+                String ruleset = style.trim();
+                if (ruleset.length() != 0) {
+                    try {
+                        rbnf.setDefaultRuleSet(ruleset);
+                    }
+                    catch (Exception e) {
+                        // warn invalid ruleset
+                    }
+                }
+                newFormat = rbnf;
+            }
+            break;
+        case TYPE_PLURAL:
+            try {
+                newFormat = new PluralFormat(ulocale, style);
+            } catch (Exception e) {
+                return null;
+            }
+            break;
+        case TYPE_SELECT:
+            try {
+                newFormat = new SelectFormat(style);
+            } catch (Exception e) {
+                return null;
+            }
+            break;
+        default:
+            return null;
+        }
+        return newFormat;
+    }
+    
     private static final int findKeyword(String s, String[] list) {
         s = s.trim().toLowerCase();
         for (int i = 0; i < list.length; ++i) {
@@ -2416,4 +2590,5 @@ public class MessageFormat extends UFormat {
         as.addAttribute(key, value);
         return as.getIterator();
     }
+    
 }
