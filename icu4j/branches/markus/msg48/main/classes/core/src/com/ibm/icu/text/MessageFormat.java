@@ -464,6 +464,9 @@ public class MessageFormat extends UFormat {
         /* elements */
         String existingPattern = toPattern();                       /*ibm.3550*/
         this.ulocale = locale;
+        // Invalidate all stock formatters. They are no longer valid since
+        // the locale has changed.
+        stockFormatters.clear();
         applyPattern(existingPattern);                              /*ibm.3550*/
     }
 
@@ -508,6 +511,11 @@ public class MessageFormat extends UFormat {
         } else {
             msgPattern.parse(pttrn);
         }
+        // Cache the formats that are explicitly mentioned in the message pattern.
+        cacheExplicitFormats();
+        
+        
+        
         StringBuilder[] segments = new StringBuilder[4];
         for (int i = 0; i < segments.length; ++i) {
             segments[i] = new StringBuilder();
@@ -1623,6 +1631,18 @@ public class MessageFormat extends UFormat {
      * The MessagePattern which contains the parsed structure of the pattern string.
      */
     transient private MessagePattern msgPattern;
+    /**
+     * Cached formatters so we can just use them whenever needed instead of creating
+     * them from scratch every time.
+     */
+    private Map<Integer, Format> cachedFormatters = new HashMap<Integer, Format>();
+    
+    /**
+     * Stock formatters. Those are used when a format is not explicitly mentioned in
+     * the message. The format is inferred from the argument.
+     */
+    private Map<Integer, Format> stockFormatters = new HashMap<Integer, Format>();
+    
     
     // format without FieldPosition or characterIterators
     private Appendable format(Appendable dest, Object... args) {
@@ -1685,32 +1705,34 @@ public class MessageFormat extends UFormat {
                 }
                 ++i;
                 if(argType==ArgType.NONE) {
-                    Format formatter = null;
                     if (arg == null) {
                         dest.append("null");
-                    } else if (arg instanceof Number) {
-                        // format number if can
-                        formatter = NumberFormat.getInstance(ulocale);
-                        dest.append(formatter.format(arg));
-                    } else if (arg instanceof Date) {
-                        // format a Date if can
-                        formatter = DateFormat.getDateTimeInstance(
-                                DateFormat.SHORT, DateFormat.SHORT, ulocale);//fix
-                        dest.append(formatter.format(arg));
                     } else {
-                        dest.append(arg.toString());
+                        Integer classHash = new Integer(arg.getClass().hashCode());
+                        Format formatter = stockFormatters.get(classHash);
+                        
+                        if (formatter == null) {
+                            if (arg instanceof Number) {
+                                // format number if can
+                                formatter = NumberFormat.getInstance(ulocale);
+                                stockFormatters.put(classHash, formatter);
+                            } else if (arg instanceof Date) {
+                                // format a Date if can
+                                formatter = DateFormat.getDateTimeInstance(
+                                        DateFormat.SHORT, DateFormat.SHORT, ulocale);//fix
+                                stockFormatters.put(classHash, formatter);
+                            } else {
+                                // Dunno what to do with this type (for now). Just
+                                // append its string representation.
+                                dest.append(arg.toString());
+                            }
+                        }
+                        if (formatter != null) {
+                            dest.append(formatter.format(arg));
+                        }
                     }
                 } else if(argType==ArgType.SIMPLE) {
-                    // This is not very well optimized! We do not really need to create all those formatters
-                    // from scratch and throw them away every time! TODO: optimize!
-                    String explicitType = msgPattern.getSubstring(msgPattern.getPart(i++, part));
-                    String style = "";
-                    if (msgPattern.getPart(i, part).getType() == MessagePattern.Part.Type.ARG_STYLE_START) {
-                       style = msgPattern.getString().substring(part.getIndex(),
-                                                                msgPattern.getPatternIndex(i+1)-1);
-                       ++i;
-                    }
-                    Format formatter = createAppropriateFormat(explicitType, style);
+                    Format formatter = cachedFormatters.get(new Integer(index));
                     if (formatter != null) {
                         dest.append(formatter.format(arg));
                     }
@@ -1770,6 +1792,7 @@ public class MessageFormat extends UFormat {
         // Track the portion we have just added to the string, so we can use it
         // for the CharacterIterators below. This is only needed for when character iterators
         // are used.
+           
         StringBuilder portionJustAdded = null;
         if (characterIterators != null) {
             portionJustAdded = new StringBuilder();
@@ -2248,7 +2271,7 @@ public class MessageFormat extends UFormat {
             try {
                 newFormat = new ChoiceFormat(style);
             } catch (Exception e) {
-                return null;
+                throw new IllegalArgumentException("Choice Pattern incorrect", e);
             }
             break;
         case TYPE_SPELLOUT:
@@ -2303,18 +2326,18 @@ public class MessageFormat extends UFormat {
             try {
                 newFormat = new PluralFormat(ulocale, style);
             } catch (Exception e) {
-                return null;
+                throw new IllegalArgumentException("Plural Pattern incorrect", e);
             }
             break;
         case TYPE_SELECT:
             try {
                 newFormat = new SelectFormat(style);
             } catch (Exception e) {
-                return null;
+                throw new IllegalArgumentException("Select Pattern incorrect", e);
             }
             break;
         default:
-            return null;
+            throw new IllegalArgumentException("Unknown format type at ");
         }
         return newFormat;
     }
@@ -2387,6 +2410,40 @@ public class MessageFormat extends UFormat {
         }
         if (ulocale == null) {
             ulocale = ULocale.forLocale(locale);
+        }
+    }
+    
+    private void cacheExplicitFormats() {
+        cachedFormatters.clear();
+        Part part = new Part();
+        for(int i=1; ; ++i) {
+            Part.Type type=msgPattern.getPart(i, part).getType();
+            int index=part.getIndex();
+            if(type==Part.Type.MSG_LIMIT) {
+                return;
+            }
+            if(type==Part.Type.SKIP_SYNTAX) {
+                continue;
+            }
+            if(type==Part.Type.INSERT_CHAR) {
+                continue;
+            }
+            assert type==Part.Type.ARG_START : "Unexpected Part "+part+" in parsed message.";
+            ArgType argType=part.getArgType();
+            i += 2;
+            if(argType==ArgType.SIMPLE) {
+                String explicitType = msgPattern.getSubstring(msgPattern.getPart(i++, part));
+                String style = "";
+                if (msgPattern.getPart(i, part).getType() == MessagePattern.Part.Type.ARG_STYLE_START) {
+                  style = msgPattern.getString().substring(part.getIndex(),
+                                                           msgPattern.getPatternIndex(i+1)-1);
+                                                           ++i;
+                }
+                Format formatter = createAppropriateFormat(explicitType, style);
+                if (formatter != null) {
+                    cachedFormatters.put(new Integer(index), formatter);
+                }
+            }
         }
     }
 
