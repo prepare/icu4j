@@ -1646,7 +1646,6 @@ public class MessageFormat extends UFormat {
     private int format(int msgStart, Part part, Appendable dest,
             Object[] args, Map<String, Object> argsMap) {
         try {
-            MessagePattern.MessageBounds msgBounds=null;
             String msgString=msgPattern.getString();
             int prevIndex=msgPattern.getPart(msgStart, part).getIndex();
             assert part.getType()==MessagePattern.Part.Type.MSG_START;
@@ -1666,6 +1665,7 @@ public class MessageFormat extends UFormat {
                     continue;
                 }
                 assert type==Part.Type.ARG_START : "Unexpected Part "+part+" in parsed message.";
+                int argLimit=msgPattern.getPartLimit(i);
                 ArgType argType=part.getArgType();
                 msgPattern.getPart(++i, part);
                 Object arg;
@@ -1700,32 +1700,26 @@ public class MessageFormat extends UFormat {
                     } else {
                         dest.append(arg.toString());
                     }
-                    prevIndex=part.getIndex();  // ARG_LIMIT
-                } else if(argType==ArgType.SELECT) {
-                    if(msgBounds==null) {
-                        msgBounds=new MessagePattern.MessageBounds();
-                    }
-                    i=msgPattern.findSelectSubMessage(i, part, arg.toString(), true, msgBounds);
-                    prevIndex=part.getIndex();  // The ARG_LIMIT ends here.
-                    format(msgBounds.msgStart, part, dest, args, argsMap);
                 } else if(argType==ArgType.SIMPLE) {
                     // This is not very well optimized! We do not really need to create all those formatters
                     // from scratch and throw them away every time! TODO: optimize!
-                    String explicitType = msgPattern.getString().substring(msgPattern.getPart(i, part).getIndex(),
-                            msgPattern.getPart(i+1, part).getIndex()-1);
+                    String explicitType = msgPattern.getSubstring(msgPattern.getPart(i++, part));
                     String style = "";
-                    ++i;
                     if (msgPattern.getPart(i, part).getType() == MessagePattern.Part.Type.ARG_STYLE_START) {
-                       style = msgPattern.getString().substring(msgPattern.getPart(i, part).getIndex(),
-                               msgPattern.getPart(i+1, part).getIndex()-1);
+                       style = msgPattern.getString().substring(part.getIndex(),
+                                                                msgPattern.getPatternIndex(i+1)-1);
                        ++i;
                     }
-                    prevIndex=part.getIndex();  // The ARG_LIMIT ends here.
                     Format formatter = createAppropriateFormat(explicitType, style);
                     if (formatter != null) {
                         dest.append(formatter.format(arg));
                     }
+                } else if(argType==ArgType.SELECT) {
+                    int subMsgStart=msgPattern.findSelectSubMessage(i, arg.toString());
+                    format(subMsgStart, part, dest, args, argsMap);
                 }
+                prevIndex=msgPattern.getPatternIndex(argLimit);
+                i=argLimit;
             }
         } catch(IOException e) {  // Appendable throws IOException
             throw new RuntimeException(e);  // We do not want a throws clause.
@@ -2326,7 +2320,7 @@ public class MessageFormat extends UFormat {
     }
     
     private static final int findKeyword(String s, String[] list) {
-        s = s.trim().toLowerCase();
+        s = s.trim().toLowerCase(Locale.ROOT);
         for (int i = 0; i < list.length; ++i) {
             if (s.equals(list[i]))
                 return i;

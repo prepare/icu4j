@@ -59,7 +59,6 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
      */
     public MessagePattern parse(String pattern) {
         preParse(pattern);
-        addPart(0, Part.Type.MSG_START, 0);
         parseMessage(0, 0, ArgType.NONE);
         postParse();
         return this;
@@ -216,6 +215,17 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
         return partsList==null ? 0 : partsList.size();
     }
 
+    private void checkPartIndex(int i, int count) {
+        // Check for overflow: It might be parts.length>countParts().
+        if(i>=count) {
+            throw new IndexOutOfBoundsException();
+        }
+    }
+
+    private void checkPartIndex(int i) {
+        checkPartIndex(i, countParts());
+    }
+
     /**
      * Sets the "part" parameter to the data for the i-th pattern "part".
      * @param i The index of the Part data.
@@ -223,11 +233,8 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
      * @return part
      */
     public Part getPart(int i, Part part) {
-        // Check for overflow: It might be parts.length>countParts().
-        if(i>=countParts()) {
-            throw new IndexOutOfBoundsException();
-        }
-        part.part=parts[i];
+        checkPartIndex(i);
+        part.part=(int)parts[i];
         return part;
     }
 
@@ -238,10 +245,18 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
      * @return The Part.Type of the i-th Part.
      */
     public Part.Type getPartType(int i) {
-        if(i>=countParts()) {
-            throw new IndexOutOfBoundsException();
-        }
-        return Part.getType(parts[i]);
+        checkPartIndex(i);
+        return Part.getType((int)parts[i]);
+    }
+
+    /**
+     * Returns the pattern index of the specified pattern "part".
+     * @param partIndex The index of the Part data.
+     * @return The pattern index of this Part.
+     */
+    public int getPatternIndex(int partIndex) {
+        checkPartIndex(partIndex);
+        return ((int)parts[partIndex])&Part.INDEX_MASK;
     }
 
     /**
@@ -268,9 +283,13 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
      * @return true if getSubstring(part).equals(s).
      */
     public boolean partSubstringMatches(Part part, String s) {
+        return partSubstringMatches(part.part, s);
+    }
+
+    private boolean partSubstringMatches(int part, String s) {
         return
-            part.getType().refersToSubstring() &&
-            s.regionMatches(0, msg, part.getIndex(), part.getValue());
+            Part.getType(part).refersToSubstring() &&
+            s.regionMatches(0, msg, part&Part.INDEX_MASK, Part.getValue(part));
     }
 
     /**
@@ -279,15 +298,15 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
      * @return the part's numeric value, or NO_NUMERIC_VALUE if this is not a numeric part.
      */
     public double getNumericValue(Part part) {
-        return getNumericValueFromPartInt(part.part);
+        return getNumericValue(part.part);
     }
 
-    private double getNumericValueFromPartInt(int partInt) {
-        Part.Type type=Part.getType(partInt);
+    private double getNumericValue(int part) {
+        Part.Type type=Part.getType(part);
         if(type==Part.Type.ARG_INT) {
-            return Part.getValue(partInt);
+            return Part.getValue(part);
         } else if(type==Part.Type.ARG_DOUBLE) {
-            return numericValues.get(Part.getValue(partInt));
+            return numericValues.get(Part.getValue(part));
         } else {
             return NO_NUMERIC_VALUE;
         }
@@ -301,163 +320,121 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
     public static final double NO_NUMERIC_VALUE=-123456789;
 
     /**
-     * Finds the index of the MSG_LIMIT part corresponding to the MSG_START at msgStart.
-     * @param msgStart The index of some Part data; this Part should be of Type MSG_START.
-     * @return The first i>msgStart where getPart(i).getType()==MSG_LIMIT at the same nesting level,
-     *         or msgStart itself if getPartType(msgStart)!=MSG_START.
+     * Returns the "offset:" value of a PluralFormat argument, or 0 if none is specified.
+     * @param pluralStart the index of the first PluralFormat argument style part.
+     * @return the "offset:" value.
      */
-    public int findMsgLimit(int msgStart) {
-        int msgStartPartInt=parts[msgStart];
-        if(Part.getType(msgStartPartInt)!=Part.Type.MSG_START) {
-            return msgStart;
+    public double getPluralOffset(int pluralStart) {
+        checkPartIndex(pluralStart);
+        int part=(int)parts[pluralStart];
+        if(Part.getType(part).hasNumericValue()) {
+            return getNumericValue(part);
+        } else {
+            return 0;
         }
-        int msgLimitPartInt=(msgStartPartInt&~Part.INDEX_MASK)+(1<<Part.TYPE_SHIFT);
-        int i=msgStart+1;
-        // Look for the next MSG_LIMIT with the same nesting level, ignoring the string index.
-        while((parts[i]&~Part.INDEX_MASK)!=msgLimitPartInt) { ++i; }
-        return i;
     }
 
     /**
-     * Fills the MessageBounds with the boundaries for the specified message.
-     * @param msgStart The index of some Part data; this Part should be of Type MSG_START.
-     * @param msgBounds The boundaries container.
-     * @return the part index of the matching MSG_LIMIT (same as msgBounds.msgLimit).
+     * Returns the index of the ARG|MSG_LIMIT part corresponding to the ARG|MSG_START at start.
+     * @param start The index of some Part data; this Part should be of Type ARG_START or MSG_START.
+     * @return The first i>start where getPart(i).getType()==ARG|MSG_LIMIT at the same nesting level,
+     *         or start itself if getPartType(msgStart)!=ARG|MSG_START.
      */
-    public int getMessageBounds(int msgStart, MessageBounds msgBounds) {
-        int msgLimit=findMsgLimit(msgStart);
-        msgBounds.msgStart=msgStart;
-        msgBounds.msgLimit=msgLimit;
-        msgBounds.msgStartPatternIndex=parts[msgStart]&Part.INDEX_MASK;
-        msgBounds.msgLimitPatternIndex=parts[msgLimit]&Part.INDEX_MASK;
-        return msgLimit;
+    public int getPartLimit(int start) {
+        long msgStartPartLong=parts[start];
+        int limit=(int)(msgStartPartLong>>32);
+        if(limit<start) {
+            return start;
+        }
+        return limit;
     }
 
     /**
-     * Finds the PluralFormat sub-message for the given keyword.
+     * Finds the PluralFormat sub-message for the given number, or the "other" sub-message.
      * @param partIndex the index of the first PluralFormat argument style part.
-     * @param part a Part object to be used; on return,
-     *        if findArgLimit is true and the PluralFormat is inside a MessageFormat pattern,
-     *        then the part will be set to the ARG_LIMIT data.
-     * @param rules the PluralRules for mapping the value (minus offset) to a keyword.
-     * @param value a value to be matched to one of the PluralFormat argument's explicit values,
-     *        or mapped via the PluralRules.
-     * @param findArgLimit if true, find the ARG_LIMIT;
-     *        otherwise terminate as soon as there is a match.
-     * @param msgBounds the message boundaries container to be filled.
-     * @return if findArgLimit: the ARG_LIMIT part index or msgPattern.countParts();
-     *         otherwise the part index after the selected sub-message.
+     * @param selector the PluralSelector for mapping the number (minus offset) to a keyword.
+     * @param number a number to be matched to one of the PluralFormat argument's explicit values,
+     *        or mapped via the PluralSelector.
+     * @return the sub-message start part index.
      */
-    public int findPluralSubMessage(int partIndex, Part part,
-                                    PluralRules rules,
-                                    double value, boolean findArgLimit,
-                                    MessageBounds msgBounds) {
+    public int findPluralSubMessage(int partIndex, PluralSelector selector, double number) {
+        int count=countParts();
+        checkPartIndex(partIndex, count);
+        int part=(int)parts[partIndex];
         double offset;
-        if(getPart(partIndex, part).getType().hasNumericValue()) {
+        if(Part.getType(part).hasNumericValue()) {
             offset=getNumericValue(part);
             ++partIndex;
         } else {
             offset=0;
         }
-        boolean found=false;
-        int count=countParts();
         String keyword=null;
+        int msgStart=0;
         // Iterate over (ARG_SELECTOR [ARG_INT|ARG_DOUBLE] message) tuples
         // until ARG_LIMIT or end of plural-only pattern.
         do {
-            Part.Type type=getPart(partIndex++, part).getType();
+            part=(int)parts[partIndex++];
+            Part.Type type=Part.getType(part);
             if(type==Part.Type.ARG_LIMIT) {
                 break;
             }
             assert type==Part.Type.ARG_SELECTOR;
             // part is an ARG_SELECTOR followed by an optional explicit value, and then a message
-            int nextPartInt=parts[partIndex];
-            if(Part.getType(nextPartInt).hasNumericValue()) {
+            int nextPart=(int)parts[partIndex];
+            if(Part.getType(nextPart).hasNumericValue()) {
                 // explicit value like "=2"
                 ++partIndex;
-                if(!found && value==getNumericValueFromPartInt(nextPartInt)) {
+                if(number==getNumericValue(nextPart)) {
                     // matches explicit value
-                    partIndex=getMessageBounds(partIndex, msgBounds);
-                    if(!findArgLimit) {
-                        return partIndex+1;
-                    }
-                    found=true;
-                } else {
-                    partIndex=findMsgLimit(partIndex);
+                    return partIndex;
                 }
-                continue;
             } else {
                 // plural keyword like "few" or "other"
-                if(found) {
-                    // just skip each further tuple
-                    partIndex=findMsgLimit(partIndex);
-                } else if(partSubstringMatches(part, "other")) {
-                    partIndex=getMessageBounds(partIndex, msgBounds);
+                if(partSubstringMatches(part, "other")) {
+                    msgStart=partIndex;
                 } else {
                     if(keyword==null) {
-                        keyword=rules.select(value-offset);
+                        keyword=selector.select(number-offset);
                     }
                     if(partSubstringMatches(part, keyword)) {
                         // keyword matches
-                        partIndex=getMessageBounds(partIndex, msgBounds);
-                        if(!findArgLimit) {
-                            return partIndex+1;
-                        }
-                        found=true;
-                    } else {
-                        // no match, no "other"
-                        partIndex=findMsgLimit(partIndex);
+                        return partIndex;
                     }
                 }
             }
+            partIndex=getPartLimit(partIndex);
         } while(++partIndex<count);
-        return partIndex;
+        return msgStart;
     }
 
     /**
-     * Finds the SelectFormat sub-message for the given keyword.
+     * Finds the SelectFormat sub-message for the given keyword, or the "other" sub-message.
      * @param partIndex the index of the first SelectFormat argument style part.
-     * @param part a Part object to be used; on return,
-     *        if findArgLimit is true and the SelectFormat is inside a MessageFormat pattern,
-     *        then the part will be set to the ARG_LIMIT data.
      * @param keyword a keyword to be matched to one of the SelectFormat argument's keywords.
-     * @param findArgLimit if true, find the ARG_LIMIT;
-     *        otherwise terminate as soon as there is a match.
-     * @param msgBounds the message boundaries container to be filled.
-     * @return if findArgLimit: the ARG_LIMIT part index or msgPattern.countParts();
-     *         otherwise the part index after the selected sub-message.
+     * @return the sub-message start part index.
      */
-    public int findSelectSubMessage(int partIndex, Part part,
-                                    String keyword, boolean findArgLimit,
-                                    MessageBounds msgBounds) {
-        boolean found=false;
+    public int findSelectSubMessage(int partIndex, String keyword) {
         int count=countParts();
+        checkPartIndex(partIndex, count);
+        int msgStart=0;
         // Iterate over (ARG_SELECTOR, message) pairs until ARG_LIMIT or end of select-only pattern.
         do {
-            Part.Type type=getPart(partIndex++, part).getType();
+            int part=(int)parts[partIndex++];
+            Part.Type type=Part.getType(part);
             if(type==Part.Type.ARG_LIMIT) {
                 break;
             }
             assert type==Part.Type.ARG_SELECTOR;
             // part is an ARG_SELECTOR followed by a message
-            if(found) {
-                // just skip each further pair
-                partIndex=findMsgLimit(partIndex);
-            } else if(partSubstringMatches(part, keyword)) {
+            if(partSubstringMatches(part, keyword)) {
                 // keyword matches
-                partIndex=getMessageBounds(partIndex, msgBounds);
-                if(!findArgLimit) {
-                    return partIndex+1;
-                }
-                found=true;
+                return partIndex;
             } else if(partSubstringMatches(part, "other")) {
-                partIndex=getMessageBounds(partIndex, msgBounds);
-            } else {
-                // no match, no "other"
-                partIndex=findMsgLimit(partIndex);
+                msgStart=partIndex;
             }
+            partIndex=getPartLimit(partIndex);
         } while(++partIndex<count);
-        return partIndex;
+        return msgStart;
     }
 
     /**
@@ -694,27 +671,16 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
     }
 
     /**
-     * Boundaries of a message or sub-message.
-     * This is used in formatting code, for selecting a message
-     * in a ChoiceFormat/PluralFormat/SelectFormat pattern.
+     * Interface for classes like PluralRules which select PluralFormat keywords for numbers.
      */
-    public static final class MessageBounds {
+    public interface PluralSelector {
         /**
-         * Part index of the MSG_START part.
+         * Given a number, returns the appropriate PluralFormat keyword.
+         *
+         * @param number The number to be plural-formatted.
+         * @return The selected PluralFormat keyword.
          */
-        public int msgStart;
-        /**
-         * Part index of the matching MSG_LIMIT part.
-         */
-        public int msgLimit;
-        /**
-         * Pattern string index corresponding to msgStart.
-         */
-        public int msgStartPatternIndex;
-        /**
-         * Pattern string index corresponding to msgLimit.
-         */
-        public int msgLimitPatternIndex;
+        public String select(double number);
     }
 
     /**
@@ -743,9 +709,9 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
             throw new RuntimeException(e);
         }
         newMsg.msg=msg;
-        newMsg.partsList=(ArrayList<Integer>)partsList.clone();
+        newMsg.partsList=(ArrayList<Long>)partsList.clone();
         if(!partsList.isEmpty()) {
-            newMsg.parts=new int[partsList.size()];
+            newMsg.parts=new long[partsList.size()];
             System.arraycopy(parts, 0, newMsg.parts, 0, newMsg.parts.length);
         }
         newMsg.hasArgNames=hasArgNames;
@@ -783,7 +749,7 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
         hasArgNames=hasArgNumbers=false;
         needsAutoQuoting=false;
         if(partsList==null) {
-            partsList=new ArrayList<Integer>(pattern.length()/4+2);
+            partsList=new ArrayList<Long>(pattern.length()/4+2);
         } else {
             partsList.clear();
         }
@@ -798,10 +764,10 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
         int length=partsList.size();
         if(parts==null) {
             // Normally, allocate tightly. 
-            parts=new int[length];
+            parts=new long[length];
         } else if(parts.length<length) {
             // On the rare occasion when this object is reused, reallocate with more room.
-            parts=new int[2*length+10];
+            parts=new long[2*length+10];
         }
         for(int i=0; i<length; ++i) {
             parts[i]=partsList.get(i);
@@ -813,6 +779,8 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
         if(nestingLevel>Part.MAX_VALUE) {
             throw new IndexOutOfBoundsException();
         }
+        int msgStart=partsList.size();
+        addPart(nestingLevel, Part.Type.MSG_START, index);
 mainLoop:
         while(index<msg.length()) {
             char c=msg.charAt(index++);
@@ -859,11 +827,10 @@ mainLoop:
                 // with the (number-offset).
                 addPart(1, Part.Type.REPLACE_NUMBER, index-1);
             } else if(c=='{') {
-                addPart(ArgType.NONE.ordinal(), Part.Type.ARG_START, index-1);
                 index=parseArg(index, nestingLevel);
             } else if((nestingLevel>0 && c=='}') || (parentType==ArgType.CHOICE && c=='|')) {
                 // Finish the message before the terminator.
-                addPart(nestingLevel, Part.Type.MSG_LIMIT, index-1);
+                addLimitPart(msgStart, nestingLevel, Part.Type.MSG_LIMIT, index-1);
                 if(parentType==ArgType.CHOICE) {
                     // Let the choice style parser see the '}' or '|'.
                     return index-1;
@@ -877,12 +844,14 @@ mainLoop:
             throw new IllegalArgumentException(
                 "Unmatched '{' braces in message \""+prefix()+"\"");
         }
-        addPart(nestingLevel, Part.Type.MSG_LIMIT, index);
+        addLimitPart(msgStart, nestingLevel, Part.Type.MSG_LIMIT, index);
         return index;
     }
 
     private int parseArg(int index, int nestingLevel) {
+        int argStart=partsList.size();
         ArgType argType=ArgType.NONE;
+        addPart(argType.ordinal(), Part.Type.ARG_START, index-1);
         int nameIndex=index=skipWhiteSpace(index);
         if(index==msg.length()) {
             throw new IllegalArgumentException(
@@ -937,7 +906,7 @@ mainLoop:
                 throw new IllegalArgumentException(
                     "Unmatched '{' braces in message \""+prefix()+"\"");
             }
-            if(length==0 || ((c=msg.charAt(index))!=',') && c!='}') {
+            if(length==0 || ((c=msg.charAt(index))!=',' && c!='}')) {
                 throw new IllegalArgumentException("Bad argument syntax: "+prefix(nameIndex));
             }
             if(length>Part.MAX_VALUE) {
@@ -955,11 +924,9 @@ mainLoop:
                     argType=ArgType.SELECT;
                 }
             }
-            // change the ARG_START (second-to-last-added part) type
-            // from NONE to argType
-            int argStartPos=partsList.size()-2;
-            int argStartPart=partsList.get(argStartPos);
-            partsList.set(argStartPos, argStartPart+(argType.ordinal()<<Part.VALUE_SHIFT));
+            // change the ARG_START type from NONE to argType
+            long argStartPart=partsList.get(argStart);
+            partsList.set(argStart, argStartPart+(argType.ordinal()<<Part.VALUE_SHIFT));
             if(argType==ArgType.SIMPLE) {
                 addPart(length, Part.Type.ARG_TYPE, typeIndex);
             }
@@ -980,7 +947,7 @@ mainLoop:
                 }
             }
         }
-        addPart(argType.ordinal(), Part.Type.ARG_LIMIT, index);
+        addLimitPart(argStart, argType.ordinal(), Part.Type.ARG_LIMIT, index);
         return index;
     }
 
@@ -1045,7 +1012,6 @@ mainLoop:
             }
             addPart(1, Part.Type.ARG_SELECTOR, index-1);
             // Parse the message fragment.
-            addPart(nestingLevel+1, Part.Type.MSG_START, index);
             index=parseMessage(index, nestingLevel+1, ArgType.CHOICE);
             // parseMessage(..., CHOICE) returns the index of the terminator.
             if(msg.charAt(index++)=='}') {
@@ -1150,7 +1116,6 @@ mainLoop:
                     (argType==ArgType.PLURAL ? "plural" : "select")+
                     " selector: "+prefix(selectorIndex));
             }
-            addPart(nestingLevel+1, Part.Type.MSG_START, index);
             index=parseMessage(index, nestingLevel+1, argType);
             isEmpty=false;
         }
@@ -1166,7 +1131,6 @@ mainLoop:
         assert start<limit;
         // fake loop for easy exit and single throw statement
         for(;;) {
-            int length=limit-start;
             // fast path for small integers and infinity
             int value=0;
             int isNegative=0;  // not boolean so that we can easily add it to value
@@ -1174,7 +1138,7 @@ mainLoop:
             char c=msg.charAt(index++);
             if(c=='-') {
                 isNegative=1;
-                if(index==msg.length()) {
+                if(index==limit) {
                     break;  // no number
                 }
                 c=msg.charAt(index++);
@@ -1186,7 +1150,9 @@ mainLoop:
             }
             if(c==0x221e) {  // infinity
                 if(allowInfinity && index==limit) {
-                    addPart(length, Part.Type.ARG_DOUBLE, start);
+                    addArgDoublePart(
+                        isNegative!=0 ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY,
+                        start);
                     return;
                 } else {
                     break;
@@ -1206,15 +1172,7 @@ mainLoop:
             }
             // Let Double.parseDouble() throw a NumberFormatException.
             double numericValue=Double.parseDouble(msg.substring(start, limit));
-            int numericIndex= numericValues==null ? 0 : numericValues.size();
-            if(numericIndex>Part.MAX_VALUE) {
-                throw new IndexOutOfBoundsException("Too many numeric values");
-            }
-            if(numericValues==null) {
-                numericValues=new ArrayList<Double>();
-            }
-            numericValues.add(numericValue);
-            addPart(numericIndex, Part.Type.ARG_DOUBLE, start);
+            addArgDoublePart(numericValue, start);
             return;
         }
         throw new NumberFormatException(
@@ -1294,7 +1252,7 @@ mainLoop:
      *         as opposed to inside a top-level choice/plural/select pattern.
      */
     private boolean inMessageFormatPattern(int nestingLevel) {
-        return nestingLevel>0 || Part.getType(partsList.get(0))==Part.Type.MSG_START;
+        return nestingLevel>0 || Part.getType((int)(long)partsList.get(0))==Part.Type.MSG_START;
     }
 
     private int makePartInt(int value, Part.Type type, int index) {
@@ -1302,7 +1260,32 @@ mainLoop:
     }
 
     private void addPart(int value, Part.Type type, int index) {
-        partsList.add(makePartInt(value, type, index));
+        partsList.add(makePartInt(value, type, index)&0xffffffffL);
+    }
+
+    private void addLimitPart(int start, int value, Part.Type type, int index) {
+        setPartLimit(start, partsList.size());
+        addPart(value, type, index);
+    }
+
+    private void setPartLimit(int start, int limit) {
+        long partLong=partsList.get(start);
+        partsList.set(start, (partLong&0xffffffffL)|((long)limit<<32));
+    }
+
+    private void addArgDoublePart(double numericValue, int start) {
+        int numericIndex;
+        if(numericValues==null) {
+            numericValues=new ArrayList<Double>();
+            numericIndex=0;
+        } else {
+            numericIndex=numericValues.size();
+            if(numericIndex>Part.MAX_VALUE) {
+                throw new IndexOutOfBoundsException("Too many numeric values");
+            }
+        }
+        numericValues.add(numericValue);
+        addPart(numericIndex, Part.Type.ARG_DOUBLE, start);
     }
 
     private static final int MAX_PREFIX_LENGTH=24;
@@ -1341,9 +1324,9 @@ mainLoop:
     }
 
     private String msg;
-    private ArrayList<Integer> partsList;  // used while parsing
+    private ArrayList<Long> partsList;  // used while parsing
     private ArrayList<Double> numericValues;
-    private int[] parts;  // built at end of parsing
+    private long[] parts;  // built at end of parsing
     private boolean hasArgNames;
     private boolean hasArgNumbers;
     private boolean needsAutoQuoting;
