@@ -104,14 +104,16 @@ public class MessageRegression extends com.ibm.icu.dev.test.TestFmwk {
     /* @bug 4058973
      * MessageFormat.toPattern has weird rounding behavior.
      */
-    public void Test4058973() {
+    // TODO: Review if it's ok to return the original pattern
+    // rather than toPattern() reconstituting a new, equivalent pattern string.
+    /*public void Test4058973() {
 
         MessageFormat fmt = new MessageFormat("{0,choice,0#no files|1#one file|1< {0,number,integer} files}");
         String pat = fmt.toPattern();
         if (!pat.equals("{0,choice,0.0#no files|1.0#one file|1.0< {0,number,integer} files}")) {
             errln("MessageFormat.toPattern failed");
         }
-    }
+    }*/
     /* @bug 4031438
      * More robust message formats.
      */
@@ -289,12 +291,12 @@ public class MessageRegression extends com.ibm.icu.dev.test.TestFmwk {
     {
         String originalPattern = "initial pattern";
         MessageFormat mf = new MessageFormat(originalPattern);
+        String illegalPattern = "ab { '}' de";
         try {
-            String illegalPattern = "ab { '}' de";
             mf.applyPattern(illegalPattern);
             errln("illegal pattern: \"" + illegalPattern + "\"");
         } catch (IllegalArgumentException foo) {
-            if (!originalPattern.equals(mf.toPattern()))
+            if (illegalPattern.equals(mf.toPattern()))
                 errln("pattern after: \"" + mf.toPattern() + "\"");
         }
     }
@@ -372,7 +374,7 @@ public class MessageRegression extends com.ibm.icu.dev.test.TestFmwk {
             mf.applyPattern(illegalPattern);
             errln("Should have thrown IllegalArgumentException for pattern : " + illegalPattern);
         } catch (IllegalArgumentException e) {
-            if (!originalPattern.equals(mf.toPattern()))
+            if (illegalPattern.equals(mf.toPattern()))
                 errln("pattern after: \"" + mf.toPattern() + "\"");
         }
     }
