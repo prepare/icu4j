@@ -507,14 +507,18 @@ public class MessageFormat extends UFormat {
      */
     @SuppressWarnings("fallthrough")
     public void applyPattern(String pttrn) {
-        if (msgPattern == null) {
-            msgPattern = new MessagePattern(pttrn);
-        } else {
-            msgPattern.parse(pttrn);
+        try {
+            if (msgPattern == null) {
+                msgPattern = new MessagePattern(pttrn);
+            } else {
+                msgPattern.parse(pttrn);
+            }
+            // Cache the formats that are explicitly mentioned in the message pattern.
+            cacheExplicitFormats();
+        } catch(RuntimeException e) {
+            resetPattern();
+            throw e;
         }
-        // Cache the formats that are explicitly mentioned in the message pattern.
-        cacheExplicitFormats();
-        
         
         
         StringBuilder[] segments = new StringBuilder[4];
@@ -594,69 +598,17 @@ public class MessageFormat extends UFormat {
      * @stable ICU 3.0
      */
     public String toPattern() {
-        // later, make this more extensible
-        int lastOffset = 0;
-        StringBuilder result = new StringBuilder();
-        for (int i = 0; i <= maxOffset; ++i) {
-            copyAndFixQuotes(pattern, lastOffset, offsets[i],result);
-            lastOffset = offsets[i];
-            result.append('{');
-            result.append(argumentNames[i]);
-            if (formats[i] == null) {
-                // do nothing, string format
-            } else if (formats[i] instanceof DecimalFormat) {
-                if (formats[i].equals(NumberFormat.getInstance(ulocale))) {
-                    result.append(",number");
-                } else if (formats[i].equals(NumberFormat.getCurrencyInstance(ulocale))) {
-                    result.append(",number,currency");
-                } else if (formats[i].equals(NumberFormat.getPercentInstance(ulocale))) {
-                    result.append(",number,percent");
-                } else if (formats[i].equals(NumberFormat.getIntegerInstance(ulocale))) {
-                    result.append(",number,integer");
-                } else {
-                    result.append(",number," +
-                                  ((DecimalFormat)formats[i]).toPattern());
-                }
-            } else if (formats[i] instanceof SimpleDateFormat) {
-                if (formats[i].equals(DateFormat.getDateInstance(DateFormat.DEFAULT,ulocale))) {
-                    result.append(",date");
-                } else if (formats[i].equals(DateFormat.getDateInstance(DateFormat.SHORT,ulocale))) {
-                    result.append(",date,short");
-// This code will never be executed [alan]
-//                } else if (formats[i].equals(DateFormat.getDateInstance(DateFormat.DEFAULT,ulocale))) {
-//                    result.append(",date,medium");
-                } else if (formats[i].equals(DateFormat.getDateInstance(DateFormat.LONG,ulocale))) {
-                    result.append(",date,long");
-                } else if (formats[i].equals(DateFormat.getDateInstance(DateFormat.FULL,ulocale))) {
-                    result.append(",date,full");
-                } else if (formats[i].equals(DateFormat.getTimeInstance(DateFormat.DEFAULT,ulocale))) {
-                    result.append(",time");
-                } else if (formats[i].equals(DateFormat.getTimeInstance(DateFormat.SHORT,ulocale))) {
-                    result.append(",time,short");
-// This code will never be executed [alan]
-//                } else if (formats[i].equals(DateFormat.getTimeInstance(DateFormat.DEFAULT,ulocale))) {
-//                    result.append(",time,medium");
-                } else if (formats[i].equals(DateFormat.getTimeInstance(DateFormat.LONG,ulocale))) {
-                    result.append(",time,long");
-                } else if (formats[i].equals(DateFormat.getTimeInstance(DateFormat.FULL,ulocale))) {
-                    result.append(",time,full");
-                } else {
-                    result.append(",date," + ((SimpleDateFormat)formats[i]).toPattern());
-                }
-            } else if (formats[i] instanceof ChoiceFormat) {
-                result.append(",choice,"
-                        + ((ChoiceFormat) formats[i]).toPattern());
-            } else if (formats[i] instanceof PluralFormat ){
-                  result.append(",plural," + ((PluralFormat)formats[i]).toPattern());
-            } else if (formats[i] instanceof SelectFormat) {
-                  result.append(",select," + ((SelectFormat)formats[i]).toPattern());
-            } else {
-                //result.append(", unknown");
-            }
-            result.append('}');
+        // Return the original, applied pattern string, or else "".
+        // Note: This does not take into account
+        // - changes from setFormat() and similar methods, or
+        // - normalization of apostrophes and arguments, for example,
+        //   whether some date/time/number formatter was created via a pattern
+        //   but is equivalent to the "medium" default format.
+        if (msgPattern == null) {
+            return "";
         }
-        copyAndFixQuotes(pattern, lastOffset, pattern.length(), result);
-        return result.toString();
+        String originalPattern = msgPattern.getString();
+        return originalPattern == null ? "" : originalPattern;
     }
 
     /**
@@ -845,6 +797,22 @@ public class MessageFormat extends UFormat {
      */
     public void setFormat(int formatElementIndex, Format newFormat) {
         formats[formatElementIndex] = newFormat;
+        // TODO: Refactor for common code among setFormat/getFormat variants.
+        // Maybe  int nextTopLevelArgStart(int partIndex)  ?
+        int formatNumber = 0;
+        Part part = new Part();
+        int limit = msgPattern.countParts() - 1;
+        for (int i = 1; i < limit; ++i) {
+            if (msgPattern.getPart(i, part).getType() == MessagePattern.Part.Type.ARG_START) {
+                if (formatNumber == formatElementIndex) {
+                    setArgStartFormat(i, newFormat);
+                    return;
+                }
+                ++formatNumber;
+                i = msgPattern.getPartLimit(i);
+            }
+        }
+        throw new ArrayIndexOutOfBoundsException(formatElementIndex);
     }
 
     /**
@@ -1708,10 +1676,34 @@ public class MessageFormat extends UFormat {
                     }
                 }
                 ++i;
-                if(argType==ArgType.NONE) {
-                    if (arg == null) {
-                        dest.append("null");
-                    } else if (arg instanceof Number) {
+                Format formatter = null;
+                if (arg == null) {
+                    dest.append("null");
+                } else if(cachedFormatters!=null && (formatter=cachedFormatters.get(i - 2))!=null) {
+                    // Handles all ArgType.SIMPLE, and formatters from setFormat() and its siblings.
+                    String argString = formatter.format(arg);
+                    boolean isChoice = formatter instanceof ChoiceFormat;
+                    if (isChoice
+                            || formatter instanceof PluralFormat
+                            || formatter instanceof SelectFormat) {
+                        // We only handle nested formats here if they were provided via setFormat() or its siblings.
+                        // Otherwise they are not cached and instead handled below according to argType.
+                        if (argString.indexOf('{') >= 0 || (!isChoice && argString.indexOf('\'') >= 0)) {
+                            MessageFormat subMsgFormat = new MessageFormat(argString, ulocale);
+                            subMsgFormat.format(0, part, dest, args, argsMap);
+                            argString = null;
+                        }
+                    }
+                    if(argString!=null) {
+                        dest.append(argString);
+                    }
+                } else if(argType==ArgType.SELECT) {
+                    int subMsgStart=msgPattern.findSelectSubMessage(i, arg.toString());
+                    format(subMsgStart, part, dest, args, argsMap);
+                } else {
+                    // ArgType.NONE, or
+                    // ArgType.SIMPLE which got reset to null via setFormat() or its siblings.
+                    if (arg instanceof Number) {
                         // format number if can
                         if (stockNumberFormatter == null) {
                             stockNumberFormatter = NumberFormat.getInstance(ulocale);
@@ -1727,12 +1719,6 @@ public class MessageFormat extends UFormat {
                     } else {
                         dest.append(arg.toString());
                     }
-                } else if(argType==ArgType.SIMPLE) {
-                    Format formatter = cachedFormatters.get(i - 2);
-                    dest.append(formatter.format(arg));
-                } else if(argType==ArgType.SELECT) {
-                    int subMsgStart=msgPattern.findSelectSubMessage(i, arg.toString());
-                    format(subMsgStart, part, dest, args, argsMap);
                 }
                 prevIndex=msgPattern.getPatternIndex(argLimit);
                 i=argLimit;
@@ -1930,7 +1916,7 @@ public class MessageFormat extends UFormat {
     
     /**
      * Convenience method to append all the characters in
-     * <code>iterator</code> to the StringBuffer <code>result</code>.
+     * <code>iterator</code> to the Appendable <code>result</code>.
      * @throws IOException 
      */
     private void append(Appendable result, CharacterIterator iterator) throws IOException {
@@ -1942,6 +1928,17 @@ public class MessageFormat extends UFormat {
                 result.append(aChar);
             }
         }
+    }
+
+    private void resetPattern() {
+        if (msgPattern != null) {
+            msgPattern.clear();
+        }
+        if (cachedFormatters != null) {
+            cachedFormatters.clear();
+        }
+        pattern = "";
+        maxOffset = -1;
     }
 
     private static final String[] typeList =
@@ -2335,38 +2332,16 @@ public class MessageFormat extends UFormat {
         }
         return newFormat;
     }
-    
+
+    private static final Locale rootLocale = new Locale("");  // Locale.ROOT only @since 1.6
+
     private static final int findKeyword(String s, String[] list) {
-        s = s.trim().toLowerCase(Locale.ROOT);
+        s = s.trim().toLowerCase(rootLocale);
         for (int i = 0; i < list.length; ++i) {
             if (s.equals(list[i]))
                 return i;
         }
         return -1;
-    }
-
-    private static final void copyAndFixQuotes(String source, int start, int end,
-            StringBuilder target) {
-        // added 'gotLB' logic from ICU4C - questionable [alan]
-        boolean gotLB = false;
-        for (int i = start; i < end; ++i) {
-            char ch = source.charAt(i);
-            if (ch == '{') {
-                target.append("'{'");
-                gotLB = true;
-            } else if (ch == '}') {
-                if (gotLB) {
-                    target.append(ch);
-                    gotLB = false;
-                } else {
-                    target.append("'}'");
-                }
-            } else if (ch == '\'') {
-                target.append("''");
-            } else {
-                target.append(ch);
-            }
-        }
     }
 
     private void writeObject(java.io.ObjectOutputStream out) throws IOException {
@@ -2407,11 +2382,18 @@ public class MessageFormat extends UFormat {
                 ++i;
             }
             Format formatter = createAppropriateFormat(explicitType, style);
-            if (cachedFormatters == null) {
-                cachedFormatters = new HashMap<Integer, Format>();
-            }
-            cachedFormatters.put(index, formatter);
+            setArgStartFormat(index, formatter);
         }
+    }
+
+    /**
+     * Sets a formatter for a MessagePattern ARG_START part index.
+     */
+    private void setArgStartFormat(int argStart, Format formatter) {
+        if (cachedFormatters == null) {
+            cachedFormatters = new HashMap<Integer, Format>();
+        }
+        cachedFormatters.put(argStart, formatter);
     }
 
     /**
