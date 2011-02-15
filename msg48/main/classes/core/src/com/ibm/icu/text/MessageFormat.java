@@ -12,6 +12,7 @@ package com.ibm.icu.text;
 
 import java.io.IOException;
 import java.io.InvalidObjectException;
+import java.io.NotSerializableException;
 import java.io.ObjectInputStream;
 import java.text.AttributedCharacterIterator;
 import java.text.AttributedCharacterIterator.Attribute;
@@ -1561,7 +1562,7 @@ public class MessageFormat extends UFormat {
      * This is no longer used, and here only for serialization compatibility.
      * @serial
      */
-    private Locale locale;
+    // TODO: private Locale locale;
 
     /**
      * The locale to use for formatting numbers and dates.
@@ -1600,7 +1601,7 @@ public class MessageFormat extends UFormat {
      * @serial
      */
     // retained for backwards compatibility
-    private int[] argumentNumbers = new int[INITIAL_FORMATS];
+    // TODO: private int[] argumentNumbers = new int[INITIAL_FORMATS];
 
     /**
      * The argument names corresponding to each formatter. (The formatters are
@@ -2366,42 +2367,17 @@ public class MessageFormat extends UFormat {
         }
     }
 
+    private void writeObject(java.io.ObjectOutputStream out) throws IOException {
+        throw new NotSerializableException("com.ibm.icu.text.MessageFormat");
+    }
+
     /**
      * After reading an object from the input stream, do a simple verification
      * to maintain class invariants.
      * @throws InvalidObjectException if the objects read from the stream is invalid.
      */
     private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
-        in.defaultReadObject();
-        if (argumentNames == null) { // name mod, rev
-          argumentNamesAreNumeric = true;
-          argumentNames = new String[argumentNumbers.length];
-          for (int i = 0; i < argumentNumbers.length; ++i) {
-            argumentNames[i] = String.valueOf(argumentNumbers[i]);
-          }
-        }
-        boolean isValid = maxOffset >= -1
-                && formats.length > maxOffset
-                && offsets.length > maxOffset
-                && argumentNames.length > maxOffset;
-        if (isValid) {
-            int lastOffset = pattern.length() + 1;
-            for (int i = maxOffset; i >= 0; --i) {
-                if ((offsets[i] < 0) || (offsets[i] > lastOffset)) {
-                    isValid = false;
-                    break;
-                } else {
-                    lastOffset = offsets[i];
-                }
-            }
-        }
-        if (!isValid) {
-            throw new InvalidObjectException(
-                "Could not reconstruct MessageFormat from corrupt stream.");
-        }
-        if (ulocale == null) {
-            ulocale = ULocale.forLocale(locale);
-        }
+        throw new NotSerializableException("com.ibm.icu.text.MessageFormat");
     }
     
     private void cacheExplicitFormats() {
