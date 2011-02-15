@@ -27,8 +27,8 @@ public class SelectFormatUnitTest extends TestFmwk {
      */
     public void TestPatternSyntax() {
         String checkSyntaxData[] = {
-            "odd{foo} odd{bar} other{foobar}",
-            "odd{foo} other{bar} other{foobar}",
+            // TODO: verify ok not to check for duplicates "odd{foo} odd{bar} other{foobar}",
+            // TODO: verify ok not to check for duplicates "odd{foo} other{bar} other{foobar}",
             "odd{foo}",
             "1odd{foo} other{bar}",
             "odd{foo},other{bar}",
@@ -56,6 +56,7 @@ public class SelectFormatUnitTest extends TestFmwk {
     /**
      * Unit tests for invalid keywords 
      */
+    /* TODO: verify ok to just map "invalid keywords" to "other"
     public void TestInvalidKeyword() {
         //Test formatting with invalid keyword
         String keywords[] = {
@@ -83,6 +84,7 @@ public class SelectFormatUnitTest extends TestFmwk {
         }
 
     }
+    */
 
     /**
      * API tests for  applyPattern and format
