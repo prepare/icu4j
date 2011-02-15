@@ -2405,9 +2405,12 @@ public class MessageFormat extends UFormat {
     }
     
     private void cacheExplicitFormats() {
-        cachedFormatters = null;
+        if (cachedFormatters != null) {
+            cachedFormatters.clear();
+        }
         Part part = new Part();
-        for(int i=1; i < msgPattern.countParts() - 1; ++i) {
+        int limit = msgPattern.countParts() - 1;
+        for(int i=1; i < limit; ++i) {
             Part.Type type=msgPattern.getPart(i, part).getType();
             if(type!=Part.Type.ARG_START) {
                 continue;
