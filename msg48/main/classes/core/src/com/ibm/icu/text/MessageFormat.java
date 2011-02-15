@@ -466,7 +466,7 @@ public class MessageFormat extends UFormat {
         this.ulocale = locale;
         // Invalidate all stock formatters. They are no longer valid since
         // the locale has changed.
-        stockFormatters.clear();
+        stockNumberFormatter = stockDateFormatter = null;
         applyPattern(existingPattern);                              /*ibm.3550*/
     }
 
@@ -1635,13 +1635,14 @@ public class MessageFormat extends UFormat {
      * Cached formatters so we can just use them whenever needed instead of creating
      * them from scratch every time.
      */
-    private Map<Integer, Format> cachedFormatters = new HashMap<Integer, Format>();
-    
+    private Map<Integer, Format> cachedFormatters;
+
     /**
      * Stock formatters. Those are used when a format is not explicitly mentioned in
      * the message. The format is inferred from the argument.
      */
-    private Map<Integer, Format> stockFormatters = new HashMap<Integer, Format>();
+    private Format stockDateFormatter;
+    private Format stockNumberFormatter;
     
     
     // format without FieldPosition or characterIterators
@@ -1707,35 +1708,25 @@ public class MessageFormat extends UFormat {
                 if(argType==ArgType.NONE) {
                     if (arg == null) {
                         dest.append("null");
+                    } else if (arg instanceof Number) {
+                        // format number if can
+                        if (stockNumberFormatter == null) {
+                            stockNumberFormatter = NumberFormat.getInstance(ulocale);
+                        }
+                        dest.append(stockNumberFormatter.format(arg));
+                    } else if (arg instanceof Date) {
+                        // format a Date if can
+                        if (stockDateFormatter == null) {
+                            stockDateFormatter = DateFormat.getDateTimeInstance(
+                                    DateFormat.SHORT, DateFormat.SHORT, ulocale);//fix
+                        }
+                        dest.append(stockDateFormatter.format(arg));
                     } else {
-                        Integer classHash = new Integer(arg.getClass().hashCode());
-                        Format formatter = stockFormatters.get(classHash);
-                        
-                        if (formatter == null) {
-                            if (arg instanceof Number) {
-                                // format number if can
-                                formatter = NumberFormat.getInstance(ulocale);
-                                stockFormatters.put(classHash, formatter);
-                            } else if (arg instanceof Date) {
-                                // format a Date if can
-                                formatter = DateFormat.getDateTimeInstance(
-                                        DateFormat.SHORT, DateFormat.SHORT, ulocale);//fix
-                                stockFormatters.put(classHash, formatter);
-                            } else {
-                                // Dunno what to do with this type (for now). Just
-                                // append its string representation.
-                                dest.append(arg.toString());
-                            }
-                        }
-                        if (formatter != null) {
-                            dest.append(formatter.format(arg));
-                        }
+                        dest.append(arg.toString());
                     }
                 } else if(argType==ArgType.SIMPLE) {
-                    Format formatter = cachedFormatters.get(new Integer(index));
-                    if (formatter != null) {
-                        dest.append(formatter.format(arg));
-                    }
+                    Format formatter = cachedFormatters.get(i - 2);
+                    dest.append(formatter.format(arg));
                 } else if(argType==ArgType.SELECT) {
                     int subMsgStart=msgPattern.findSelectSubMessage(i, arg.toString());
                     format(subMsgStart, part, dest, args, argsMap);
@@ -2414,36 +2405,31 @@ public class MessageFormat extends UFormat {
     }
     
     private void cacheExplicitFormats() {
-        cachedFormatters.clear();
+        cachedFormatters = null;
         Part part = new Part();
-        for(int i=1; ; ++i) {
+        for(int i=1; i < msgPattern.countParts() - 1; ++i) {
             Part.Type type=msgPattern.getPart(i, part).getType();
-            int index=part.getIndex();
-            if(type==Part.Type.MSG_LIMIT) {
-                return;
-            }
-            if(type==Part.Type.SKIP_SYNTAX) {
+            if(type!=Part.Type.ARG_START) {
                 continue;
             }
-            if(type==Part.Type.INSERT_CHAR) {
-                continue;
-            }
-            assert type==Part.Type.ARG_START : "Unexpected Part "+part+" in parsed message.";
             ArgType argType=part.getArgType();
-            i += 2;
-            if(argType==ArgType.SIMPLE) {
-                String explicitType = msgPattern.getSubstring(msgPattern.getPart(i++, part));
-                String style = "";
-                if (msgPattern.getPart(i, part).getType() == MessagePattern.Part.Type.ARG_STYLE_START) {
-                  style = msgPattern.getString().substring(part.getIndex(),
-                                                           msgPattern.getPatternIndex(i+1)-1);
-                                                           ++i;
-                }
-                Format formatter = createAppropriateFormat(explicitType, style);
-                if (formatter != null) {
-                    cachedFormatters.put(new Integer(index), formatter);
-                }
+            if(argType != ArgType.SIMPLE) {
+                continue;
             }
+            int index = i;
+            i += 2;
+            String explicitType = msgPattern.getSubstring(msgPattern.getPart(i++, part));
+            String style = "";
+            if (msgPattern.getPart(i, part).getType() == MessagePattern.Part.Type.ARG_STYLE_START) {
+                style = msgPattern.getString().substring(part.getIndex(),
+                        msgPattern.getPatternIndex(i+1)-1);
+                ++i;
+            }
+            Format formatter = createAppropriateFormat(explicitType, style);
+            if (cachedFormatters == null) {
+                cachedFormatters = new HashMap<Integer, Format>();
+            }
+            cachedFormatters.put(index, formatter);
         }
     }
 
