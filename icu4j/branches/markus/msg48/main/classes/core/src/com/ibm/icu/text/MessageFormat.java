@@ -1657,10 +1657,6 @@ public class MessageFormat extends UFormat {
     }
 
     private Appendable format(Appendable dest, Map<String, Object> argsMap) {
-        if(msgPattern.hasNumberedArguments()) {
-            throw new IllegalArgumentException(
-                "Formatting message with numbered arguments using named argument values.");
-        }
         format(0, new Part(), dest, null, argsMap);
         return dest;
     }
@@ -1699,10 +1695,16 @@ public class MessageFormat extends UFormat {
                                 "No argument at index "+part.getValue());
                     }
                 } else {
-                    arg=argsMap.get(msgPattern.getSubstring(part));  // args[ARG_NAME]
-                    if(arg==null) {
+                    String key;
+                    if(part.getType()==MessagePattern.Part.Type.ARG_NAME) {
+                        key=msgPattern.getSubstring(part);
+                    } else /* ARG_NUMBER */ {
+                        key=Integer.toString(part.getValue());
+                    }
+                    arg=argsMap.get(key);  // args[ARG_NAME]
+                    if (arg == null) {
                         throw new IndexOutOfBoundsException(
-                                "No argument for name "+msgPattern.getSubstring(part));
+                                "No argument for argument "+key);
                     }
                 }
                 ++i;
