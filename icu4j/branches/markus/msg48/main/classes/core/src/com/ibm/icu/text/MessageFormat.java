@@ -1689,23 +1689,24 @@ public class MessageFormat extends UFormat {
     
     
     // format without FieldPosition or characterIterators
-    private Appendable format(Appendable dest, Object... args) {
+    private Appendable format(Appendable dest, FieldPosition fp, int[] last, Object... args) {
         if(msgPattern.hasNamedArguments()) {
             throw new IllegalArgumentException(
                 "Formatting message with named arguments using positional argument values.");
         }
-        format(0, new Part(), dest, args, null);
+        format(0, new Part(), dest, fp, last, args, null);
         return dest;
     }
 
-    private Appendable format(Appendable dest, Map<String, Object> argsMap) {
-        format(0, new Part(), dest, null, argsMap);
+    private Appendable format(Appendable dest, FieldPosition fp, int[] last, Map<String, Object> argsMap) {
+        format(0, new Part(), dest, fp, last, null, argsMap);
         return dest;
     }
 
-    private int format(int msgStart, Part part, Appendable dest,
+    private int format(int msgStart, Part part, Appendable dest, FieldPosition fp, int[] last,
             Object[] args, Map<String, Object> argsMap) {
         try {
+            boolean firstArgMet = false;
             String msgString=msgPattern.getString();
             int prevIndex=msgPattern.getPart(msgStart, part).getIndex();
             assert part.getType()==MessagePattern.Part.Type.MSG_START;
@@ -1713,6 +1714,7 @@ public class MessageFormat extends UFormat {
                 Part.Type type=msgPattern.getPart(i, part).getType();
                 int index=part.getIndex();
                 dest.append(msgString, prevIndex, index);
+                last[0] += index - prevIndex;
                 if(type==Part.Type.MSG_LIMIT) {
                     return i;
                 }
@@ -1755,9 +1757,9 @@ public class MessageFormat extends UFormat {
                 ++i;
                 Format formatter = null;
                 if (noArg != null) {
-                    dest.append(noArg);
+                    firstArgMet = appendToResult(dest, index, noArg, firstArgMet, fp, last);
                 } else if (arg == null) {
-                    dest.append("null");
+                    firstArgMet = appendToResult(dest, index, "null", firstArgMet, fp, last);
                 } else if(cachedFormatters!=null && (formatter=cachedFormatters.get(i - 2))!=null) {
                     // Handles all ArgType.SIMPLE, and formatters from setFormat() and its siblings.
                     String argString = formatter.format(arg);
@@ -1769,12 +1771,12 @@ public class MessageFormat extends UFormat {
                         // Otherwise they are not cached and instead handled below according to argType.
                         if (argString.indexOf('{') >= 0 || (!isChoice && argString.indexOf('\'') >= 0)) {
                             MessageFormat subMsgFormat = new MessageFormat(argString, ulocale);
-                            subMsgFormat.format(0, part, dest, args, argsMap);
+                            subMsgFormat.format(0, part, dest, null, last, args, argsMap);
                             argString = null;
                         }
                     }
                     if(argString!=null) {
-                        dest.append(argString);
+                        firstArgMet = appendToResult(dest, index, argString, firstArgMet, fp, last);
                     }
                 } else if(
                         argType==ArgType.NONE ||
@@ -1786,20 +1788,22 @@ public class MessageFormat extends UFormat {
                         if (stockNumberFormatter == null) {
                             stockNumberFormatter = NumberFormat.getInstance(ulocale);
                         }
-                        dest.append(stockNumberFormatter.format(arg));
-                    } else if (arg instanceof Date) {
+                        firstArgMet = appendToResult(dest, index, stockNumberFormatter.format(arg), firstArgMet, fp, last);
+                     } else if (arg instanceof Date) {
                         // format a Date if can
                         if (stockDateFormatter == null) {
                             stockDateFormatter = DateFormat.getDateTimeInstance(
                                     DateFormat.SHORT, DateFormat.SHORT, ulocale);//fix
                         }
-                        dest.append(stockDateFormatter.format(arg));
+                        firstArgMet = appendToResult(dest, index, stockDateFormatter.format(arg), firstArgMet, fp, last);
                     } else {
-                        dest.append(arg.toString());
+                        firstArgMet = appendToResult(dest, index, arg.toString(), firstArgMet, fp, last);
                     }
                 } else if(argType==ArgType.SELECT) {
                     int subMsgStart=msgPattern.findSelectSubMessage(i, arg.toString());
-                    format(subMsgStart, part, dest, args, argsMap);
+                    int lastBackup = last[0];
+                    format(subMsgStart, part, dest, null, last, args, argsMap);
+                    firstArgMet = updateFieldPosition(fp, lastBackup, last[0], firstArgMet);
                 }
                 prevIndex=msgPattern.getPatternIndex(argLimit);
                 i=argLimit;
@@ -1809,6 +1813,23 @@ public class MessageFormat extends UFormat {
         }
     }
 
+    private boolean appendToResult(Appendable dest, int index, String formattedArg,
+            boolean firstArgMet, FieldPosition fp, int[] last) throws IOException {
+        dest.append(formattedArg);
+        int appendedLength = formattedArg.length();
+        last[0] += appendedLength;
+        return updateFieldPosition(fp, index, index + appendedLength, firstArgMet);
+    }
+    
+    private boolean updateFieldPosition(FieldPosition fp, int from, int to, boolean firstArgMet) {
+        if (!firstArgMet && fp != null && Field.ARGUMENT.equals(
+                fp.getFieldAttribute())) {
+            fp.setBeginIndex(from);
+            fp.setEndIndex(to);
+        }
+        return true;
+    }
+    
     /**
      * Internal routine used by format. If <code>characterIterators</code> is
      * non-null, AttributedCharacterIterator will be created from the
@@ -1836,13 +1857,14 @@ public class MessageFormat extends UFormat {
     private Appendable subformat(Object[] argNames, Map<String, Object> arguments,
             Appendable result, int last, FieldPosition fp, List<AttributedCharacterIterator> characterIterators) {
         
-        // If there is no FieldPosition or CharacterIterators, use the MessagePattern
-        // implementation.
-        if (fp == null && characterIterators == null) {
+        // If there is no CharacterIterators, use the MessagePattern implementation.
+        if (characterIterators == null) {
+            int[] lastArr= new int[1];
+            lastArr[0] = last;
             if (argNames == null) {
-                format(result, arguments);
+                format(result, fp, lastArr, arguments);
             } else {
-                format(result, argNames);
+                format(result, fp, lastArr, argNames);
             }
             return result;
         }
@@ -2664,5 +2686,5 @@ public class MessageFormat extends UFormat {
         as.addAttribute(key, value);
         return as.getIterator();
     }
-    
+
 }
