@@ -1729,12 +1729,14 @@ public class MessageFormat extends UFormat {
                 ArgType argType=part.getArgType();
                 msgPattern.getPart(++i, part);
                 Object arg;
+                String noArg=null;
                 if(args!=null) {
-                    try {
-                        arg=args[part.getValue()];  // args[ARG_NUMBER]
-                    } catch(IndexOutOfBoundsException e) {
-                        throw new IndexOutOfBoundsException(
-                                "No argument at index "+part.getValue());
+                    int argNumber=part.getValue();  // ARG_NUMBER
+                    if(0<=argNumber && argNumber<args.length) {
+                        arg=args[argNumber];
+                    } else {
+                        arg=null;
+                        noArg="{"+argNumber+"}";
                     }
                 } else {
                     String key;
@@ -1743,15 +1745,18 @@ public class MessageFormat extends UFormat {
                     } else /* ARG_NUMBER */ {
                         key=Integer.toString(part.getValue());
                     }
-                    arg=argsMap.get(key);  // args[ARG_NAME]
-                    if (arg == null) {
-                        throw new IndexOutOfBoundsException(
-                                "No argument for argument "+key);
+                    if(argsMap!=null && argsMap.containsKey(key)) {
+                        arg=argsMap.get(key);
+                    } else {
+                        arg=null;
+                        noArg="{"+key+"}";
                     }
                 }
                 ++i;
                 Format formatter = null;
-                if (arg == null) {
+                if (noArg != null) {
+                    dest.append(noArg);
+                } else if (arg == null) {
                     dest.append("null");
                 } else if(cachedFormatters!=null && (formatter=cachedFormatters.get(i - 2))!=null) {
                     // Handles all ArgType.SIMPLE, and formatters from setFormat() and its siblings.
