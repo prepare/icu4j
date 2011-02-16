@@ -1771,12 +1771,11 @@ public class MessageFormat extends UFormat {
                     if(argString!=null) {
                         dest.append(argString);
                     }
-                } else if(argType==ArgType.SELECT) {
-                    int subMsgStart=msgPattern.findSelectSubMessage(i, arg.toString());
-                    format(subMsgStart, part, dest, args, argsMap);
-                } else {
+                } else if(
+                        argType==ArgType.NONE ||
+                        (cachedFormatters!=null && cachedFormatters.containsKey(i - 2))) {
                     // ArgType.NONE, or
-                    // ArgType.SIMPLE which got reset to null via setFormat() or its siblings.
+                    // any argument which got reset to null via setFormat() or its siblings.
                     if (arg instanceof Number) {
                         // format number if can
                         if (stockNumberFormatter == null) {
@@ -1793,6 +1792,9 @@ public class MessageFormat extends UFormat {
                     } else {
                         dest.append(arg.toString());
                     }
+                } else if(argType==ArgType.SELECT) {
+                    int subMsgStart=msgPattern.findSelectSubMessage(i, arg.toString());
+                    format(subMsgStart, part, dest, args, argsMap);
                 }
                 prevIndex=msgPattern.getPatternIndex(argLimit);
                 i=argLimit;
