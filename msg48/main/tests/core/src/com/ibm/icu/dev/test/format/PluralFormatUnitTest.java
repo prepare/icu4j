@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2007-2010, International Business Machines Corporation and    *
+ * Copyright (C) 2007-2011, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -275,8 +275,10 @@ public class PluralFormatUnitTest extends TestFmwk {
             args[1] = new Integer(i);
             logln(pfmt.format(args));
         }
+        /* TODO: Review if it's ok to return null instead of choice/plural/select Format object
         PluralFormat pf = (PluralFormat)pfmt.getFormatsByArgumentIndex()[1];
         logln(pf.toPattern());
+        */
         logln(pfmt.toPattern());
         MessageFormat pfmt2 = new MessageFormat(pfmt.toPattern());
         assertEquals("message formats are equal", pfmt, pfmt2);
