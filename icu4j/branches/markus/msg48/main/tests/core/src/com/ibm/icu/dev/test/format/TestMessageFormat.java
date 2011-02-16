@@ -1,6 +1,6 @@
 /*
 **********************************************************************
-* Copyright (c) 2004-2010, International Business Machines
+* Copyright (c) 2004-2011, International Business Machines
 * Corporation and others.  All Rights Reserved.
 **********************************************************************
 * Author: Alan Liu
@@ -1137,6 +1137,8 @@ public class TestMessageFormat extends com.ibm.icu.dev.test.TestFmwk {
     public void testNamedArguments() {
         // Ensure that mixed argument types are not allowed.
         // Either all arguments have to be numeric or valid identifiers.
+        // TODO: Why?
+        /*
         try {
             new MessageFormat("Number of files in folder {0}: {numfiles}");
             errln("Creating a MessageFormat with mixed argument types " + 
@@ -1150,7 +1152,14 @@ public class TestMessageFormat extends com.ibm.icu.dev.test.TestFmwk {
                     "(named and numeric) should throw an " + 
                     "IllegalArgumentException but did not!");
         } catch (IllegalArgumentException e) {}
-        
+        */
+        assertTrue(
+                "has some named arguments",
+                new MessageFormat("Number of files in folder {0}: {numfiles}").usesNamedArguments());
+        assertTrue(
+                "has some named arguments",
+                new MessageFormat("Number of files in folder {folder}: {1}").usesNamedArguments());
+
         // Test named arguments.
         MessageFormat mf = new MessageFormat("Number of files in folder {folder}: {numfiles}");
         if (!mf.usesNamedArguments()) {

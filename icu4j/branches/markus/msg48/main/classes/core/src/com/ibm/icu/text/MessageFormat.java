@@ -612,6 +612,47 @@ public class MessageFormat extends UFormat {
     }
 
     /**
+     * Returns the part index of the next ARG_START after partIndex, or -1 if there is none more.
+     * @param partIndex Part index of the previous ARG_START (initially 0).
+     * @return
+     */
+    private int nextTopLevelArgStart(int partIndex, Part part) {
+        if (partIndex != 0) {
+            partIndex = msgPattern.getPartLimit(partIndex);
+        }
+        for (;;) {
+            MessagePattern.Part.Type type = msgPattern.getPart(++partIndex, part).getType();
+            if (type == MessagePattern.Part.Type.ARG_START) {
+                return partIndex;
+            }
+            if (type == MessagePattern.Part.Type.MSG_LIMIT) {
+                return -1;
+            }
+        }
+    }
+
+    private boolean argNameMatches(int partIndex, Part part, String argName) {
+        MessagePattern.Part.Type type = msgPattern.getPart(partIndex, part).getType();
+        if (type == MessagePattern.Part.Type.ARG_NAME) {
+            return msgPattern.partSubstringMatches(part, argName);
+        }  // else ARG_NUMBER
+        try {
+            return part.getValue() == Integer.parseInt(argName);
+        } catch(NumberFormatException e) {
+            return false;
+        }
+    }
+
+    private String getArgName(int partIndex, Part part) {
+        MessagePattern.Part.Type type = msgPattern.getPart(partIndex, part).getType();
+        if (type == MessagePattern.Part.Type.ARG_NAME) {
+            return msgPattern.getSubstring(part);
+        } else {
+            return Integer.toString(part.getValue());
+        }
+    }
+
+    /**
      * Sets the formats to use for the values passed into
      * <code>format</code> methods or returned from <code>parse</code>
      * methods. The indices of elements in <code>newFormats</code>
@@ -639,7 +680,7 @@ public class MessageFormat extends UFormat {
      * @stable ICU 3.0
      */
     public void setFormatsByArgumentIndex(Format[] newFormats) {
-        if (!argumentNamesAreNumeric) {
+        if (msgPattern.hasNamedArguments()) {
             throw new IllegalArgumentException(
                     "This method is not available in MessageFormat objects " +
                     "that use alphanumeric argument names.");
@@ -648,6 +689,13 @@ public class MessageFormat extends UFormat {
             int j = Integer.parseInt(argumentNames[i]);
             if (j < newFormats.length) {
                 formats[i] = newFormats[j];
+            }
+        }
+        Part part = new Part();
+        for (int partIndex = 0; (partIndex = nextTopLevelArgStart(partIndex, part)) >= 0;) {
+            int j = msgPattern.getPart(partIndex + 1, part).getValue();
+            if (j < newFormats.length) {
+                setArgStartFormat(partIndex, newFormats[j]);
             }
         }
     }
@@ -678,6 +726,13 @@ public class MessageFormat extends UFormat {
             if (newFormats.containsKey(argumentNames[i])) {
                 Format f = newFormats.get(argumentNames[i]);
                 formats[i] = f;
+            }
+        }
+        Part part = new Part();
+        for (int partIndex = 0; (partIndex = nextTopLevelArgStart(partIndex, part)) >= 0;) {
+            String key = getArgName(partIndex + 1, part);
+            if (newFormats.containsKey(key)) {
+                setArgStartFormat(partIndex, newFormats.get(key));
             }
         }
     }
@@ -713,6 +768,14 @@ public class MessageFormat extends UFormat {
         for (int i = 0; i < runsToCopy; i++) {
             formats[i] = newFormats[i];
         }
+        int formatNumber = 0;
+        Part part = new Part();
+        for (int partIndex = 0;
+                formatNumber < newFormats.length &&
+                (partIndex = nextTopLevelArgStart(partIndex, part)) >= 0;) {
+            setArgStartFormat(partIndex, newFormats[formatNumber]);
+            ++formatNumber;
+        }
     }
 
     /**
@@ -738,7 +801,7 @@ public class MessageFormat extends UFormat {
      * @stable ICU 3.0
      */
     public void setFormatByArgumentIndex(int argumentIndex, Format newFormat) {
-        if (!argumentNamesAreNumeric) {
+        if (msgPattern.hasNamedArguments()) {
             throw new IllegalArgumentException(
                     "This method is not available in MessageFormat objects " +
                     "that use alphanumeric argument names.");
@@ -746,6 +809,12 @@ public class MessageFormat extends UFormat {
         for (int j = 0; j <= maxOffset; j++) {
             if (Integer.parseInt(argumentNames[j]) == argumentIndex) {
                 formats[j] = newFormat;
+            }
+        }
+        Part part = new Part();
+        for (int partIndex = 0; (partIndex = nextTopLevelArgStart(partIndex, part)) >= 0;) {
+            if (msgPattern.getPart(partIndex + 1, part).getValue() == argumentIndex) {
+                setArgStartFormat(partIndex, newFormat);
             }
         }
     }
@@ -775,6 +844,12 @@ public class MessageFormat extends UFormat {
                 formats[i] = newFormat;
             }
         }
+        Part part = new Part();
+        for (int partIndex = 0; (partIndex = nextTopLevelArgStart(partIndex, part)) >= 0;) {
+            if (argNameMatches(partIndex + 1, part, argumentName)) {
+                setArgStartFormat(partIndex, newFormat);
+            }
+        }
     }
 
     /**
@@ -797,20 +872,14 @@ public class MessageFormat extends UFormat {
      */
     public void setFormat(int formatElementIndex, Format newFormat) {
         formats[formatElementIndex] = newFormat;
-        // TODO: Refactor for common code among setFormat/getFormat variants.
-        // Maybe  int nextTopLevelArgStart(int partIndex)  ?
         int formatNumber = 0;
         Part part = new Part();
-        int limit = msgPattern.countParts() - 1;
-        for (int i = 1; i < limit; ++i) {
-            if (msgPattern.getPart(i, part).getType() == MessagePattern.Part.Type.ARG_START) {
-                if (formatNumber == formatElementIndex) {
-                    setArgStartFormat(i, newFormat);
-                    return;
-                }
-                ++formatNumber;
-                i = msgPattern.getPartLimit(i);
+        for (int partIndex = 0; (partIndex = nextTopLevelArgStart(partIndex, part)) >= 0;) {
+            if (formatNumber == formatElementIndex) {
+                setArgStartFormat(partIndex, newFormat);
+                return;
             }
+            ++formatNumber;
         }
         throw new ArrayIndexOutOfBoundsException(formatElementIndex);
     }
@@ -840,23 +909,21 @@ public class MessageFormat extends UFormat {
      * @stable ICU 3.0
      */
     public Format[] getFormatsByArgumentIndex() {
-        if (!argumentNamesAreNumeric) {
+        if (msgPattern.hasNamedArguments()) {
             throw new IllegalArgumentException(
                     "This method is not available in MessageFormat objects " +
                     "that use alphanumeric argument names.");
         }
-        int maximumArgumentNumber = -1;
-        for (int i = 0; i <= maxOffset; i++) {
-            int argumentNumber = Integer.parseInt(argumentNames[i]);
-            if (argumentNumber > maximumArgumentNumber) {
-                maximumArgumentNumber = argumentNumber;
+        ArrayList<Format> list = new ArrayList<Format>();
+        Part part = new Part();
+        for (int partIndex = 0; (partIndex = nextTopLevelArgStart(partIndex, part)) >= 0;) {
+            int argNumber = msgPattern.getPart(partIndex + 1, part).getValue();
+            while (argNumber >= list.size()) {
+                list.add(null);
             }
+            list.set(argNumber, cachedFormatters == null ? null : cachedFormatters.get(partIndex));
         }
-        Format[] resultArray = new Format[maximumArgumentNumber + 1];
-        for (int i = 0; i <= maxOffset; i++) {
-            resultArray[Integer.parseInt(argumentNames[i])] = formats[i];
-        }
-        return resultArray;
+        return list.toArray(new Format[list.size()]);
     }
     // TODO: provide method public Map getFormatsByArgumentName().
     // Where Map is: String argumentName --> Format format.
@@ -883,9 +950,12 @@ public class MessageFormat extends UFormat {
      * @stable ICU 3.0
      */
     public Format[] getFormats() {
-        Format[] resultArray = new Format[maxOffset + 1];
-        System.arraycopy(formats, 0, resultArray, 0, maxOffset + 1);
-        return resultArray;
+        ArrayList<Format> list = new ArrayList<Format>();
+        Part part = new Part();
+        for (int partIndex = 0; (partIndex = nextTopLevelArgStart(partIndex, part)) >= 0;) {
+            list.add(cachedFormatters == null ? null : cachedFormatters.get(partIndex));
+        }
+        return list.toArray(new Format[list.size()]);
     }
 
     /**
@@ -897,8 +967,9 @@ public class MessageFormat extends UFormat {
      */
     public Set<String> getFormatArgumentNames() {
         Set<String> result = new HashSet<String>();
-        for (int i = 0; i <= maxOffset; ++i) {
-            result.add(argumentNames[i]);
+        Part part = new Part();
+        for (int partIndex = 0; (partIndex = nextTopLevelArgStart(partIndex, part)) >= 0;) {
+            result.add(getArgName(partIndex + 1, part));
         }
         return result;
     }
@@ -911,9 +982,13 @@ public class MessageFormat extends UFormat {
      * @deprecated This API is ICU internal only.
      */
     public Format getFormatByArgumentName(String argumentName) {
-        for (int i = 0; i <= maxOffset; ++i) {
-            if (argumentName.equals(argumentNames[i])) {
-                return formats[i];
+        if (cachedFormatters == null) {
+            return null;
+        }
+        Part part = new Part();
+        for (int partIndex = 0; (partIndex = nextTopLevelArgStart(partIndex, part)) >= 0;) {
+            if (argNameMatches(partIndex + 1, part, argumentName)) {
+                return cachedFormatters.get(partIndex);
             }
         }
         return null;
@@ -994,7 +1069,7 @@ public class MessageFormat extends UFormat {
     public final StringBuffer format(Object[] arguments, StringBuffer result,
                                      FieldPosition pos)
     {
-        if (!argumentNamesAreNumeric) {
+        if (msgPattern.hasNamedArguments()) {
             throw new IllegalArgumentException(
                   "This method is not available in MessageFormat objects " +
                   "that use alphanumeric argument names.");
@@ -1085,7 +1160,7 @@ public class MessageFormat extends UFormat {
      * @stable ICU 3.8
      */
     public boolean usesNamedArguments() {
-        return !argumentNamesAreNumeric;
+        return msgPattern.hasNamedArguments();
     }
 
     // Overrides
@@ -1121,7 +1196,7 @@ public class MessageFormat extends UFormat {
             subformat(null, (Map<String, Object>)arguments, result, result.length(), pos, null);
             return result;
         } else {
-            if (!argumentNamesAreNumeric) {
+            if (msgPattern.hasNamedArguments()) {
                 throw new IllegalArgumentException(
                         "This method is not available in MessageFormat objects " +
                         "that use alphanumeric argument names.");
@@ -1224,7 +1299,7 @@ public class MessageFormat extends UFormat {
      * @stable ICU 3.0
      */
     public Object[] parse(String source, ParsePosition pos) {
-        if (!argumentNamesAreNumeric) {
+        if (msgPattern.hasNamedArguments()) {
             throw new IllegalArgumentException(
                     "This method is not available in MessageFormat objects " +
                     "that use named argument.");
@@ -1411,7 +1486,7 @@ public class MessageFormat extends UFormat {
      * @stable ICU 3.0
      */
     public Object parseObject(String source, ParsePosition pos) {
-        if (argumentNamesAreNumeric) {
+        if (!msgPattern.hasNamedArguments()) {
             return parse(source, pos);
         } else {
             return parseToMap(source, pos);
@@ -1436,7 +1511,6 @@ public class MessageFormat extends UFormat {
         // for primitives or immutables, shallow clone is enough
         other.offsets = offsets.clone();
         other.argumentNames = argumentNames.clone();
-        other.argumentNamesAreNumeric = argumentNamesAreNumeric;
 
         return other;
     }
@@ -1453,11 +1527,11 @@ public class MessageFormat extends UFormat {
         MessageFormat other = (MessageFormat) obj;
         return (maxOffset == other.maxOffset
                 && pattern.equals(other.pattern)
+                && Utility.objectEquals(msgPattern, other.msgPattern)
                 && Utility.objectEquals(ulocale, other.ulocale) // does null check
                 && Utility.arrayEquals(offsets, other.offsets)
                 && Utility.arrayEquals(argumentNames, other.argumentNames)
-                && Utility.arrayEquals(formats, other.formats)
-                && (argumentNamesAreNumeric == other.argumentNamesAreNumeric));
+                && Utility.arrayEquals(formats, other.formats));
     }
 
     /**
@@ -1585,7 +1659,7 @@ public class MessageFormat extends UFormat {
      *
      * @serial
      */
-    private boolean argumentNamesAreNumeric = true;
+    // TODO: private boolean argumentNamesAreNumeric = true;
 
     /**
      * One less than the number of entries in <code>offsets</code>.  Can also be thought of
@@ -1866,7 +1940,7 @@ public class MessageFormat extends UFormat {
                             characterIterators.add(
                                     _createAttributedCharacterIterator(
                                             subIterator, Field.ARGUMENT,
-                                            argumentNamesAreNumeric ?
+                                            !msgPattern.hasNamedArguments() ?
                                                     (Object)new Integer(argumentName) :
                                                         (Object)argumentName));
                             portionJustAdded.setLength(0);
@@ -1879,7 +1953,7 @@ public class MessageFormat extends UFormat {
                         characterIterators.add(
                                 _createAttributedCharacterIterator(
                                         arg, Field.ARGUMENT,
-                                        argumentNamesAreNumeric ?
+                                        !msgPattern.hasNamedArguments() ?
                                                 (Object)new Integer(argumentName) :
                                                     (Object)argumentName));
                         portionJustAdded.setLength(0);
@@ -2017,15 +2091,8 @@ public class MessageFormat extends UFormat {
          } catch (NumberFormatException e) {
              argumentNumber = -1;
          }
-         if (offsetNumber == 0) {
-             // First argument determines whether all argument identifiers have
-             // to be numbers or (IDStartChars IDContChars*) strings.
-             argumentNamesAreNumeric = argumentNumber >= 0;
-         }
 
-         if (argumentNamesAreNumeric && argumentNumber < 0 ||
-             !argumentNamesAreNumeric &&
-             !isAlphaIdentifier(argumentNames[offsetNumber])) {
+         if (argumentNumber < 0 && !isAlphaIdentifier(argumentNames[offsetNumber])) {
              throw new IllegalArgumentException(
                      "All argument identifiers have to be either non-negative " +
                      "numbers or strings following the pattern " +
