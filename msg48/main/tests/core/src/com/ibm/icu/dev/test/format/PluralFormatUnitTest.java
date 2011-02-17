@@ -92,19 +92,15 @@ public class PluralFormatUnitTest extends TestFmwk {
                                 plfOddAndEven.format(i));
             }
 
-            // Check that double definition results in an exception.
-            try {
-                PluralFormat plFmt = new PluralFormat(oddAndEven);
-                plFmt.applyPattern("odd{foo} odd{bar} other{foobar}");
-                errln("Double definition of a plural case message should " +
-                "provoke an exception but did not.");
-            }catch (IllegalArgumentException e){}
-            try {
-                PluralFormat plFmt = new PluralFormat(oddAndEven);
-                plFmt.applyPattern("odd{foo} other{bar} other{foobar}");
-                errln("Double definition of a plural case message should " +
-                "provoke an exception but did not.");
-            }catch (IllegalArgumentException e){}
+            // ICU 4.8 does not check for duplicate keywords any more.
+            PluralFormat pf = new PluralFormat(ULocale.ENGLISH, oddAndEven,
+                                               "odd{foo} odd{bar} other{foobar}");
+            assertEquals("should use first occurrence of the 'odd' keyword", "foo", pf.format(1));
+            pf.applyPattern("odd{foo} other{bar} other{foobar}");
+            assertEquals("should use first occurrence of the 'other' keyword", "bar", pf.format(2));
+            // This sees the first "other" before calling the PluralSelector which then selects "other".
+            pf.applyPattern("other{foo} odd{bar} other{foobar}");
+            assertEquals("should use first occurrence of the 'other' keyword", "foo", pf.format(2));
         }
         // omit other keyword.
         try {
@@ -114,13 +110,11 @@ public class PluralFormatUnitTest extends TestFmwk {
             "exception but did not.");
         }catch (IllegalArgumentException e){}
 
-        // Test unknown keyword.
-        try {
-            PluralFormat plFmt = new PluralFormat(oddAndEven);
-            plFmt.applyPattern("otto{foo} other{bar}");
-            errln("Defining a message for an unknown keyword should result in" +
-            "an exception but did not.");
-        }catch (IllegalArgumentException e){}
+        // ICU 4.8 does not check for unknown keywords any more.
+        {
+            PluralFormat pf = new PluralFormat(ULocale.ENGLISH, oddAndEven, "otto{foo} other{bar}");
+            assertEquals("should ignore unknown keywords", "bar", pf.format(1));
+        }
 
         // Test invalid keyword.
         try {
@@ -170,12 +164,12 @@ public class PluralFormatUnitTest extends TestFmwk {
         // Check that a pound sign in curly braces is preserved.
         {
             PluralFormat plFmt = new PluralFormat(oddAndEven);
-            plFmt.applyPattern("odd{The number {#} is odd.}" +
-            "other{The number {#} is even.}");
+            plFmt.applyPattern("odd{The number {1,number,#} is odd.}" +
+            "other{The number {2,number,#} is even.}");
             for (int i = 1; i < 3; ++i) {
                 assertEquals("format did not preserve # inside curly braces.",
-                        ((i % 2 == 1) ? "The number {#} is odd."
-                                : "The number {#} is even."),
+                        ((i % 2 == 1) ? "The number {1,number,#} is odd."
+                                : "The number {2,number,#} is even."),
                                 plFmt.format(i));
             }
 
@@ -223,14 +217,9 @@ public class PluralFormatUnitTest extends TestFmwk {
                 plFmt.format(5));
 
         // Check that rules got updated.
-        try {
-            plFmt.applyPattern("odd__{odd} other{even}");
-            errln("SetLocale should reset rules but did not.");
-        } catch (IllegalArgumentException e) {
-            if (e.getMessage().indexOf("Unknown keyword") < 0){
-                errln("Wrong exception thrown");
-            }
-        }
+        plFmt.applyPattern("odd__{odd} other{even}");
+        assertEquals("SetLocale should reset rules but did not.", "even", plFmt.format(1));
+
         plFmt.applyPattern("one{one} other{not one}");
         for (int i = 0; i < 20; ++i) {
             assertEquals("Wrong ruleset loaded by setLocale()",
@@ -261,12 +250,11 @@ public class PluralFormatUnitTest extends TestFmwk {
         Object[] args = { "acme", null };
 
         {
-            PluralFormat pf = new PluralFormat("  one {one ''widget} other {# widgets}  ");
-            String pat = pf.toPattern();
-            logln("pf pattern: '" + pat + "'");
-
-            assertEquals("no leading spaces", "o", pat.substring(0, 1));
-            assertEquals("no trailing spaces", "}", pat.substring(pat.length() - 1));
+            // ICU 4.8 PluralFormat does not trim() its pattern any more.
+            // None of the other *Format classes do.
+            String pat = "  one {one ''widget} other {# widgets}  ";
+            PluralFormat pf = new PluralFormat(pat);
+            assertEquals("should not trim() the pattern", pat, pf.toPattern());
         }
 
         MessageFormat pfmt = new MessageFormat("The disk ''{0}'' contains {1, plural,  one {one ''''{1, number, #.0}'''' widget} other {# widgets}}.");
@@ -296,6 +284,7 @@ public class PluralFormatUnitTest extends TestFmwk {
             "There is a bling widget and 6 other widgets.",
         };
         PluralFormat pf = new PluralFormat(
+                ULocale.ENGLISH,
                 "offset:1.0 "
                 + "=0 {There are no widgets.} "
                 + "=1.0 {There is one widget.} "
@@ -306,6 +295,10 @@ public class PluralFormatUnitTest extends TestFmwk {
             String result = pf.format(i);
             assertEquals("value = " + i, targets[i], result);
         }
+
+        // Try explicit values after keywords.
+        pf.applyPattern("other{zz}other{yy}one{xx}one{ww}=1{vv}=1{uu}");
+        assertEquals("should find first matching *explicit* value", "vv", pf.format(1));
     }
 
     public void TestExtendedPluralFormatParsing() {

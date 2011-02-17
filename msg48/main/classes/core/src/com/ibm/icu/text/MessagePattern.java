@@ -413,7 +413,25 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
         } else {
             offset=0;
         }
+        // The keyword is null until we need to match against non-explicit, not-"other" value.
+        // Then we get the keyword from the selector.
+        // (In other words, we never call the selector if we match against an explicit value,
+        // or if the only non-explicit keyword is "other".)
         String keyword=null;
+        // When we find a match, we set msgStart>0 and also set this boolean to true
+        // to avoid matching the keyword again (duplicates are allowed)
+        // while we continue to look for an explicit-value match.
+        boolean haveKeywordMatch=false;
+        // msgStart is 0 until we find any appropriate sub-message.
+        // We remember the first "other" sub-message if we have not seen any
+        // appropriate sub-message before.
+        // We remember the first matching-keyword sub-message if we have not seen
+        // one of those before.
+        // (The parser allows [does not check for] duplicate keywords.
+        // We just have to make sure to take the first one.)
+        // We avoid matching the keyword twice by also setting haveKeywordMatch=true
+        // at the first keyword match.
+        // We keep going until we find an explicit-value match or reach the end of the plural style.
         int msgStart=0;
         // Iterate over (ARG_SELECTOR [ARG_INT|ARG_DOUBLE] message) tuples
         // until ARG_LIMIT or end of plural-only pattern.
@@ -433,17 +451,34 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
                     // matches explicit value
                     return partIndex;
                 }
-            } else {
+            } else if(!haveKeywordMatch) {
                 // plural keyword like "few" or "other"
+                // Compare "other" first and call the selector if this is not "other".
                 if(partSubstringMatches(part, "other")) {
-                    msgStart=partIndex;
+                    if(msgStart==0) {
+                        msgStart=partIndex;
+                        if(keyword!=null && keyword.equals("other")) {
+                            // This is the first "other" sub-message,
+                            // and the selected keyword is also "other".
+                            // Do not match "other" again.
+                            haveKeywordMatch=true;
+                        }
+                    }
                 } else {
                     if(keyword==null) {
                         keyword=selector.select(number-offset);
+                        if(msgStart!=0 && keyword.equals("other")) {
+                            // We have already seen an "other" sub-message.
+                            // Do not match "other" again.
+                            haveKeywordMatch=true;
+                            continue;
+                        }
                     }
                     if(partSubstringMatches(part, keyword)) {
                         // keyword matches
-                        return partIndex;
+                        msgStart=partIndex;
+                        // Do not match this keyword again.
+                        haveKeywordMatch=true;
                     }
                 }
             }
@@ -474,7 +509,7 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
             if(partSubstringMatches(part, keyword)) {
                 // keyword matches
                 return partIndex;
-            } else if(partSubstringMatches(part, "other")) {
+            } else if(msgStart==0 && partSubstringMatches(part, "other")) {
                 msgStart=partIndex;
             }
             partIndex=getPartLimit(partIndex);
