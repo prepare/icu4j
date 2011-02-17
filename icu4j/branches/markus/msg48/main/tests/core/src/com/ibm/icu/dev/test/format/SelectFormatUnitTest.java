@@ -27,8 +27,6 @@ public class SelectFormatUnitTest extends TestFmwk {
      */
     public void TestPatternSyntax() {
         String checkSyntaxData[] = {
-            // TODO: verify ok not to check for duplicates "odd{foo} odd{bar} other{foobar}",
-            // TODO: verify ok not to check for duplicates "odd{foo} other{bar} other{foobar}",
             "odd{foo}",
             "1odd{foo} other{bar}",
             "odd{foo},other{bar}",
@@ -51,12 +49,18 @@ public class SelectFormatUnitTest extends TestFmwk {
                 continue;
             }
         }
+
+        // ICU 4.8 does not check for duplicate keywords any more.
+        selFmt.applyPattern("odd{foo} odd{bar} other{foobar}");
+        assertEquals("should use first occurrence of the 'odd' keyword", "foo", selFmt.format("odd"));
+        selFmt.applyPattern("odd{foo} other{bar} other{foobar}");
+        assertEquals("should use first occurrence of the 'other' keyword", "bar", selFmt.format("other"));
     }
 
     /**
      * Unit tests for invalid keywords 
      */
-    /* TODO: verify ok to just map "invalid keywords" to "other"
+    /* TODO: change the definition of "invalid" as discussed (check for "pattern identifiers")
     public void TestInvalidKeyword() {
         //Test formatting with invalid keyword
         String keywords[] = {
