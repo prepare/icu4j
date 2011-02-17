@@ -652,8 +652,14 @@ public class TestMessageFormat extends com.ibm.icu.dev.test.TestFmwk {
         }
 
         assertEquals("msgCmp.toPattern()", formatStr, msgCmp.toPattern());
-        // TODO: review if ok that toPattern() does not change with setFormat() etc.
+        // ICU 4.8 does not support toPattern() when there are custom formats (from setFormat() etc.).
         // assertEquals("msg.toPattern()", formatStr, msg.toPattern());
+        try {
+            msg.toPattern();
+            errln("msg.setFormat().toPattern() does not throw an IllegalStateException");
+        } catch(IllegalStateException e) {
+            // ok
+        }
 
         for (i = 0; i < formatsAct.length; i++) {
             a = formatsAct[i];
@@ -694,7 +700,7 @@ public class TestMessageFormat extends com.ibm.icu.dev.test.TestFmwk {
         msg.setFormats( formatsToAdopt ); // function to test
 
         assertEquals("msgCmp.toPattern()", formatStr, msgCmp.toPattern());
-        // TODO: review if ok that toPattern() does not change with setFormat() etc.
+        // ICU 4.8 does not support toPattern() when there are custom formats (from setFormat() etc.).
         // assertEquals("msg.toPattern()", formatStr, msg.toPattern());
 
         formatsAct = msg.getFormats();
@@ -745,7 +751,7 @@ public class TestMessageFormat extends com.ibm.icu.dev.test.TestFmwk {
         }
 
         assertEquals("msgCmp.toPattern()", formatStr, msgCmp.toPattern());
-        // TODO: review if ok that toPattern() does not change with setFormat() etc.
+        // ICU 4.8 does not support toPattern() when there are custom formats (from setFormat() etc.).
         // assertEquals("msg.toPattern()", formatStr, msg.toPattern());
 
         formatsAct = msg.getFormats();
