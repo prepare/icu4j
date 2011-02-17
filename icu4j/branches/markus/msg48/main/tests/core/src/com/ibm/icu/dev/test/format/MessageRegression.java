@@ -147,11 +147,11 @@ public class MessageRegression extends com.ibm.icu.dev.test.TestFmwk {
             logln("Apply with pattern : " + pattern2);
             messageFormatter.applyPattern(pattern2);
             tempBuffer = messageFormatter.format(paramArray);
-            if (!tempBuffer.equals("Double ' Quotes 7 test and quoted {1} test plus other {2} stuff."))
+            if (!tempBuffer.equals("Double ' Quotes 7 test and quoted {1} test plus 'other {2} stuff'."))
                 errln("quote format test (w/ params) failed.");
             logln("Formatted with params : " + tempBuffer);
             tempBuffer = messageFormatter.format(null);
-            if (!tempBuffer.equals("Double ' Quotes {0} test and quoted {1} test plus other {2} stuff."))
+            if (!tempBuffer.equals("Double ' Quotes {0} test and quoted {1} test plus 'other {2} stuff'."))
                 errln("quote format test (w/ null) failed.");
             logln("Formatted with null : " + tempBuffer);
             logln("toPattern : " + messageFormatter.toPattern());
@@ -678,11 +678,11 @@ public class MessageRegression extends com.ibm.icu.dev.test.TestFmwk {
             paramsMap.clear();
             paramsMap.put("ARG_ZERO", new Integer(7));
             tempBuffer = messageFormatter.format(paramsMap);
-            if (!tempBuffer.equals("Double ' Quotes 7 test and quoted {ARG_ONE} test plus other {ARG_TWO} stuff."))
+            if (!tempBuffer.equals("Double ' Quotes 7 test and quoted {ARG_ONE} test plus 'other {ARG_TWO} stuff'."))
                 errln("quote format test (w/ params) failed.");
             logln("Formatted with params : " + tempBuffer);
             tempBuffer = messageFormatter.format(null);
-            if (!tempBuffer.equals("Double ' Quotes {ARG_ZERO} test and quoted {ARG_ONE} test plus other {ARG_TWO} stuff."))
+            if (!tempBuffer.equals("Double ' Quotes {ARG_ZERO} test and quoted {ARG_ONE} test plus 'other {ARG_TWO} stuff'."))
                 errln("quote format test (w/ null) failed.");
             logln("Formatted with null : " + tempBuffer);
             logln("toPattern : " + messageFormatter.toPattern());
