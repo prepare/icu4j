@@ -173,9 +173,9 @@ public class TestMessageFormat extends com.ibm.icu.dev.test.TestFmwk {
         };*/
 
         String testResultStrings[] = {
-            "Quotes ', {, a 1 {0}",
-            "Quotes ', {, a 1 {0}",
-            "{1,number,#,##} #34,56",
+            "Quotes ', {, 'a' 1 {0}",
+            "Quotes ', {, 'a' 1 {0}",
+            "{1,number,'#',##} #34,56",
             "There are 3,456 files on Disk at 1/12/70 5:46 AM.",
             "On Disk, there are 3,456 files, with $1.00.",
             "{1,number,percent}, 345,600%,",

@@ -468,6 +468,7 @@ public class MessageFormat extends UFormat {
         // Invalidate all stock formatters. They are no longer valid since
         // the locale has changed.
         stockNumberFormatter = stockDateFormatter = null;
+        pluralProvider = null;
         applyPattern(existingPattern);                              /*ibm.3550*/
     }
 
@@ -1678,33 +1679,36 @@ public class MessageFormat extends UFormat {
      * Cached formatters so we can just use them whenever needed instead of creating
      * them from scratch every time.
      */
-    private Map<Integer, Format> cachedFormatters;
+    transient private Map<Integer, Format> cachedFormatters;
 
     /**
      * Stock formatters. Those are used when a format is not explicitly mentioned in
      * the message. The format is inferred from the argument.
      */
-    private Format stockDateFormatter;
-    private Format stockNumberFormatter;
-    
-    
+    transient private Format stockDateFormatter;
+    transient private Format stockNumberFormatter;
+
+    transient private PluralSelectorProvider pluralProvider;
+
     // format without FieldPosition or characterIterators
     private Appendable format(Appendable dest, FieldPosition fp, int[] last, Object... args) {
         if(msgPattern.hasNamedArguments()) {
             throw new IllegalArgumentException(
                 "Formatting message with named arguments using positional argument values.");
         }
-        format(0, new Part(), dest, fp, last, args, null);
+        format(0, new Part(), dest, fp, last, 0, args, null);
         return dest;
     }
 
     private Appendable format(Appendable dest, FieldPosition fp, int[] last, Map<String, Object> argsMap) {
-        format(0, new Part(), dest, fp, last, null, argsMap);
+        format(0, new Part(), dest, fp, last, 0, null, argsMap);
         return dest;
     }
 
+    // TODO: Can we turn last and firstArgMet into transient instance members?
+    // (MessageFormat.format() is not thread-safe anyway.)
     private int format(int msgStart, Part part, Appendable dest, FieldPosition fp, int[] last,
-            Object[] args, Map<String, Object> argsMap) {
+            double pluralNumber, Object[] args, Map<String, Object> argsMap) {
         try {
             boolean firstArgMet = false;
             String msgString=msgPattern.getString();
@@ -1720,6 +1724,15 @@ public class MessageFormat extends UFormat {
                 }
                 if(type==Part.Type.SKIP_SYNTAX) {
                     prevIndex=index+part.getValue();
+                    continue;
+                }
+                if(type==Part.Type.REPLACE_NUMBER) {
+                    prevIndex=index+part.getValue();
+                    if (stockNumberFormatter == null) {
+                        stockNumberFormatter = NumberFormat.getInstance(ulocale);
+                    }
+                    String s = stockNumberFormatter.format(pluralNumber);
+                    firstArgMet = appendToResult(dest, index, s, firstArgMet, fp, last);
                     continue;
                 }
                 if(type==Part.Type.INSERT_CHAR) {
@@ -1771,7 +1784,7 @@ public class MessageFormat extends UFormat {
                         // Otherwise they are not cached and instead handled below according to argType.
                         if (argString.indexOf('{') >= 0 || (!isChoice && argString.indexOf('\'') >= 0)) {
                             MessageFormat subMsgFormat = new MessageFormat(argString, ulocale);
-                            subMsgFormat.format(0, part, dest, null, last, args, argsMap);
+                            subMsgFormat.format(0, part, dest, null, last, 0, args, argsMap);
                             argString = null;
                         }
                     }
@@ -1799,10 +1812,23 @@ public class MessageFormat extends UFormat {
                     } else {
                         firstArgMet = appendToResult(dest, index, arg.toString(), firstArgMet, fp, last);
                     }
+                } else if(argType==ArgType.PLURAL) {
+                    if (!(arg instanceof Number)) {
+                        throw new IllegalArgumentException("'" + arg + "' is not a Number");
+                    }
+                    double number = ((Number)arg).doubleValue();
+                    if (pluralProvider == null) {
+                        pluralProvider = new PluralSelectorProvider(ulocale);
+                    }
+                    int subMsgStart=msgPattern.findPluralSubMessage(i, pluralProvider, number);
+                    double offset=msgPattern.getPluralOffset(subMsgStart);
+                    int lastBackup = last[0];
+                    format(subMsgStart, part, dest, null, last, number-offset, args, argsMap);
+                    firstArgMet = updateFieldPosition(fp, lastBackup, last[0], firstArgMet);
                 } else if(argType==ArgType.SELECT) {
                     int subMsgStart=msgPattern.findSelectSubMessage(i, arg.toString());
                     int lastBackup = last[0];
-                    format(subMsgStart, part, dest, null, last, args, argsMap);
+                    format(subMsgStart, part, dest, null, last, 0, args, argsMap);
                     firstArgMet = updateFieldPosition(fp, lastBackup, last[0], firstArgMet);
                 }
                 prevIndex=msgPattern.getPatternIndex(argLimit);
@@ -1829,7 +1855,27 @@ public class MessageFormat extends UFormat {
         }
         return true;
     }
-    
+
+    /**
+     * This provider helps defer instantiation of a PluralRules object
+     * until we actually need to select a keyword.
+     * For example, if the number matches an explicit-value selector like "=1"
+     * we do not need any PluralRules.
+     */
+    private static final class PluralSelectorProvider implements MessagePattern.PluralSelector {
+        public PluralSelectorProvider(ULocale loc) {
+            locale=loc;
+        }
+        public String select(double number) {
+            if(rules == null) {
+                rules = PluralRules.forLocale(locale);
+            }
+            return rules.select(number);
+        }
+        private ULocale locale;
+        private PluralRules rules;
+    }
+
     /**
      * Internal routine used by format. If <code>characterIterators</code> is
      * non-null, AttributedCharacterIterator will be created from the
