@@ -1812,6 +1812,15 @@ public class MessageFormat extends UFormat {
                     } else {
                         firstArgMet = appendToResult(dest, index, arg.toString(), firstArgMet, fp, last);
                     }
+                } else if(argType==ArgType.CHOICE) {
+                    if (!(arg instanceof Number)) {
+                        throw new IllegalArgumentException("'" + arg + "' is not a Number");
+                    }
+                    double number = ((Number)arg).doubleValue();
+                    int subMsgStart=msgPattern.findChoiceSubMessage(i, number);
+                    int lastBackup = last[0];
+                    format(subMsgStart, part, dest, null, last, 0, args, argsMap);
+                    firstArgMet = updateFieldPosition(fp, lastBackup, last[0], firstArgMet);
                 } else if(argType==ArgType.PLURAL) {
                     if (!(arg instanceof Number)) {
                         throw new IllegalArgumentException("'" + arg + "' is not a Number");
@@ -1830,6 +1839,9 @@ public class MessageFormat extends UFormat {
                     int lastBackup = last[0];
                     format(subMsgStart, part, dest, null, last, 0, args, argsMap);
                     firstArgMet = updateFieldPosition(fp, lastBackup, last[0], firstArgMet);
+                } else {
+                    // This should never happen.
+                    throw new IllegalStateException("unexpected argType "+argType);
                 }
                 prevIndex=msgPattern.getPatternIndex(argLimit);
                 i=argLimit;
