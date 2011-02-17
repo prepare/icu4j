@@ -605,6 +605,11 @@ public class MessageFormat extends UFormat {
         // - normalization of apostrophes and arguments, for example,
         //   whether some date/time/number formatter was created via a pattern
         //   but is equivalent to the "medium" default format.
+        if (haveCustomFormats) {
+            throw new IllegalStateException(
+                    "toPattern() is not supported after custom Format objects "+
+                    "have been set via setFormat() or similar APIs");
+        }
         if (msgPattern == null) {
             return "";
         }
@@ -696,7 +701,7 @@ public class MessageFormat extends UFormat {
         for (int partIndex = 0; (partIndex = nextTopLevelArgStart(partIndex, part)) >= 0;) {
             int j = msgPattern.getPart(partIndex + 1, part).getValue();
             if (j < newFormats.length) {
-                setArgStartFormat(partIndex, newFormats[j]);
+                setCustomArgStartFormat(partIndex, newFormats[j]);
             }
         }
     }
@@ -733,7 +738,7 @@ public class MessageFormat extends UFormat {
         for (int partIndex = 0; (partIndex = nextTopLevelArgStart(partIndex, part)) >= 0;) {
             String key = getArgName(partIndex + 1, part);
             if (newFormats.containsKey(key)) {
-                setArgStartFormat(partIndex, newFormats.get(key));
+                setCustomArgStartFormat(partIndex, newFormats.get(key));
             }
         }
     }
@@ -774,7 +779,7 @@ public class MessageFormat extends UFormat {
         for (int partIndex = 0;
                 formatNumber < newFormats.length &&
                 (partIndex = nextTopLevelArgStart(partIndex, part)) >= 0;) {
-            setArgStartFormat(partIndex, newFormats[formatNumber]);
+            setCustomArgStartFormat(partIndex, newFormats[formatNumber]);
             ++formatNumber;
         }
     }
@@ -815,7 +820,7 @@ public class MessageFormat extends UFormat {
         Part part = new Part();
         for (int partIndex = 0; (partIndex = nextTopLevelArgStart(partIndex, part)) >= 0;) {
             if (msgPattern.getPart(partIndex + 1, part).getValue() == argumentIndex) {
-                setArgStartFormat(partIndex, newFormat);
+                setCustomArgStartFormat(partIndex, newFormat);
             }
         }
     }
@@ -848,7 +853,7 @@ public class MessageFormat extends UFormat {
         Part part = new Part();
         for (int partIndex = 0; (partIndex = nextTopLevelArgStart(partIndex, part)) >= 0;) {
             if (argNameMatches(partIndex + 1, part, argumentName)) {
-                setArgStartFormat(partIndex, newFormat);
+                setCustomArgStartFormat(partIndex, newFormat);
             }
         }
     }
@@ -877,7 +882,7 @@ public class MessageFormat extends UFormat {
         Part part = new Part();
         for (int partIndex = 0; (partIndex = nextTopLevelArgStart(partIndex, part)) >= 0;) {
             if (formatNumber == formatElementIndex) {
-                setArgStartFormat(partIndex, newFormat);
+                setCustomArgStartFormat(partIndex, newFormat);
                 return;
             }
             ++formatNumber;
@@ -1630,6 +1635,11 @@ public class MessageFormat extends UFormat {
     private Format[] formats = new Format[INITIAL_FORMATS];
 
     /**
+     * True if a custom, user-provided Format object was set via setFormat() or similar API.
+     */
+    transient private boolean haveCustomFormats = false;
+
+    /**
      * The positions where the results of formatting each argument are to be
      * inserted into the pattern.
      *
@@ -2092,13 +2102,14 @@ public class MessageFormat extends UFormat {
     }
 
     private void resetPattern() {
+        pattern = "";
         if (msgPattern != null) {
             msgPattern.clear();
         }
         if (cachedFormatters != null) {
             cachedFormatters.clear();
         }
-        pattern = "";
+        haveCustomFormats = false;
         maxOffset = -1;
     }
 
@@ -2515,6 +2526,7 @@ public class MessageFormat extends UFormat {
         if (cachedFormatters != null) {
             cachedFormatters.clear();
         }
+        haveCustomFormats = false;
         Part part = new Part();
         int limit = msgPattern.countParts() - 1;
         for(int i=1; i < limit; ++i) {
@@ -2548,6 +2560,15 @@ public class MessageFormat extends UFormat {
             cachedFormatters = new HashMap<Integer, Format>();
         }
         cachedFormatters.put(argStart, formatter);
+    }
+
+    /**
+     * Sets a custom formatter for a MessagePattern ARG_START part index.
+     * "Custom" formatters are provided by the user via setFormat() or similar APIs.
+     */
+    private void setCustomArgStartFormat(int argStart, Format formatter) {
+        setArgStartFormat(argStart, formatter);
+        haveCustomFormats = true;
     }
 
     /**
