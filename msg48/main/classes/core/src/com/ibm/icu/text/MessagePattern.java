@@ -350,6 +350,51 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
     }
 
     /**
+     * Finds the ChoiceFormat sub-message for the given number.
+     * @param partIndex the index of the first ChoiceFormat argument style part.
+     * @param number a number to be mapped to one of the ChoiceFormat argument's intervals
+     * @return the sub-message start part index.
+     */
+    public int findChoiceSubMessage(int partIndex, double number) {
+        int count=countParts();
+        checkPartIndex(partIndex, count);
+        int msgStart;
+        // Iterate over (ARG_INT|DOUBLE, ARG_SELECTOR, message) tuples
+        // until ARG_LIMIT or end of choice-only pattern.
+        // Ignore the first number and selector and start the loop on the first message.
+        partIndex+=2;
+        for(;;) {
+            // Skip but remember the current sub-message.
+            msgStart=partIndex;
+            partIndex=getPartLimit(partIndex);
+            if(++partIndex>=count) {
+                // Reached the end of the choice-only pattern.
+                // Return with the last sub-message.
+                break;
+            }
+            int part=(int)parts[partIndex++];
+            Part.Type type=Part.getType(part);
+            if(type==Part.Type.ARG_LIMIT) {
+                // Reached the end of the ChoiceFormat style.
+                // Return with the last sub-message.
+                break;
+            }
+            // part is an ARG_INT or ARG_DOUBLE
+            assert type.hasNumericValue();
+            double boundary=getNumericValue(part);
+            // Fetch the ARG_SELECTOR character.
+            part=(int)parts[partIndex++];
+            char boundaryChar=msg.charAt(part&Part.INDEX_MASK);
+            if(boundaryChar=='#' ? number<boundary : number<=boundary) {
+                // The number is in the interval between the previous boundary and the current one.
+                // Return with the sub-message between them.
+                break;
+            }
+        }
+        return msgStart;
+    }
+
+    /**
      * Finds the PluralFormat sub-message for the given number, or the "other" sub-message.
      * @param partIndex the index of the first PluralFormat argument style part.
      * @param selector the PluralSelector for mapping the number (minus offset) to a keyword.
