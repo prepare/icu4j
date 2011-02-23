@@ -646,8 +646,8 @@ public class SimpleDateFormat extends DateFormat {
             // We use the time and time zone from the input calendar, but
             // do not use the input calendar for field calculation.
             calendar.setTimeInMillis(cal.getTimeInMillis());
-            backupTZ = calendar.getTimeZone();
-            calendar.setTimeZone(cal.getTimeZone());
+            backupTZ = calendar.getTimeZoneDirect();
+            calendar.setTimeZone(cal.getTimeZoneDirect());
             cal = calendar;
         }
         StringBuffer result = format(cal, toAppendTo, pos, null);
@@ -834,7 +834,7 @@ public class SimpleDateFormat extends DateFormat {
 
         final int maxIntCount = Integer.MAX_VALUE;
         final int bufstart = buf.length();
-        TimeZone tz = cal.getTimeZone();
+        TimeZone tz = cal.getTimeZoneDirect();
         long date = cal.getTimeInMillis();
         String result = null;
         
@@ -1616,8 +1616,8 @@ public class SimpleDateFormat extends DateFormat {
             // We use the time/zone from the input calendar, but
             // do not use the input calendar for field calculation.
             calendar.setTimeInMillis(cal.getTimeInMillis());
-            backupTZ = calendar.getTimeZone();
-            calendar.setTimeZone(cal.getTimeZone());
+            backupTZ = calendar.getTimeZoneDirect();
+            calendar.setTimeZone(cal.getTimeZoneDirect());
             resultCal = cal;
             cal = calendar;
         }
@@ -1827,7 +1827,7 @@ public class SimpleDateFormat extends DateFormat {
                 }
                 if (tztype != TZTYPE_UNK) {
                     copy = (Calendar)cal.clone();
-                    TimeZone tz = copy.getTimeZone();
+                    TimeZone tz = copy.getTimeZoneDirect();
                     BasicTimeZone btz = null;
                     if (tz instanceof BasicTimeZone) {
                         btz = (BasicTimeZone)tz;
@@ -1948,7 +1948,7 @@ public class SimpleDateFormat extends DateFormat {
         // Set the parsed result if local calendar is used
         // instead of the input calendar
         if (resultCal != null) {
-            resultCal.setTimeZone(cal.getTimeZone());
+            resultCal.setTimeZone(cal.getTimeZoneDirect());
             resultCal.setTimeInMillis(cal.getTimeInMillis());
         }
         // Restore the original time zone if required

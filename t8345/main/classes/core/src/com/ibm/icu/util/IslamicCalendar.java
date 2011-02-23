@@ -168,7 +168,7 @@ public class IslamicCalendar extends Calendar {
      */
     public IslamicCalendar()
     {
-        this(TimeZone.getDefault(), ULocale.getDefault());
+        this(TimeZone.getDefaultInternal(), ULocale.getDefault());
     }
 
     /**
@@ -191,7 +191,7 @@ public class IslamicCalendar extends Calendar {
      */
     public IslamicCalendar(Locale aLocale)
     {
-        this(TimeZone.getDefault(), aLocale);
+        this(TimeZone.getDefaultInternal(), aLocale);
     }
 
     /**
@@ -203,7 +203,7 @@ public class IslamicCalendar extends Calendar {
      */
     public IslamicCalendar(ULocale locale)
     {
-        this(TimeZone.getDefault(), locale);
+        this(TimeZone.getDefaultInternal(), locale);
     }
 
     /**
@@ -242,7 +242,7 @@ public class IslamicCalendar extends Calendar {
      * @stable ICU 2.8
      */
     public IslamicCalendar(Date date) {
-        super(TimeZone.getDefault(), ULocale.getDefault());
+        super(TimeZone.getDefaultInternal(), ULocale.getDefault());
         this.setTime(date);
     }
 
@@ -258,7 +258,7 @@ public class IslamicCalendar extends Calendar {
      */
     public IslamicCalendar(int year, int month, int date)
     {
-        super(TimeZone.getDefault(), ULocale.getDefault());
+        super(TimeZone.getDefaultInternal(), ULocale.getDefault());
         this.set(Calendar.YEAR, year);
         this.set(Calendar.MONTH, month);
         this.set(Calendar.DATE, date);
@@ -283,7 +283,7 @@ public class IslamicCalendar extends Calendar {
     public IslamicCalendar(int year, int month, int date, int hour,
                              int minute, int second)
     {
-        super(TimeZone.getDefault(), ULocale.getDefault());
+        super(TimeZone.getDefaultInternal(), ULocale.getDefault());
         this.set(Calendar.YEAR, year);
         this.set(Calendar.MONTH, month);
         this.set(Calendar.DATE, date);

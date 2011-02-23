@@ -13,7 +13,6 @@ import java.util.Locale;
 import com.ibm.icu.impl.Utility;
 import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.ChineseCalendar;
-import com.ibm.icu.util.TimeZone;
 import com.ibm.icu.util.ULocale;
 
 /**
@@ -85,7 +84,7 @@ public class ChineseDateFormat extends SimpleDateFormat {
      */
    public ChineseDateFormat(String pattern, String override, ULocale locale) {
        super(pattern, new ChineseDateFormatSymbols(locale), 
-               new ChineseCalendar(TimeZone.getDefault(), locale), locale, true, override);
+               new ChineseCalendar(locale), locale, true, override);
     }
 
 // NOTE: This API still exists; we just inherit it from SimpleDateFormat

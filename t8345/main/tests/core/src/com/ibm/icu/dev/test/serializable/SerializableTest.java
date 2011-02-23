@@ -13,9 +13,12 @@ import java.util.HashMap;
 import java.util.Locale;
 
 import com.ibm.icu.dev.test.TestFmwk;
+import com.ibm.icu.impl.ICUTimeZone;
+import com.ibm.icu.impl.ImmutableTimeZone;
 import com.ibm.icu.impl.JavaTimeZone;
 import com.ibm.icu.impl.OlsonTimeZone;
 import com.ibm.icu.impl.TimeZoneAdapter;
+import com.ibm.icu.impl.ZoneMeta;
 import com.ibm.icu.math.BigDecimal;
 import com.ibm.icu.math.MathContext;
 import com.ibm.icu.util.AnnualTimeZoneRule;
@@ -564,6 +567,31 @@ public class SerializableTest extends TestFmwk.TestGroup
         }
     }
 
+    private static class ICUTimeZoneHandler extends TimeZoneHandler {
+        String[] ZONES = { "PST", "Etc/UTC", "Europe/Paris" };
+
+        public Object[] getTestObjects() {
+            ICUTimeZone zones[] = new ICUTimeZone[ZONES.length];
+            for (int i = 0; i < ZONES.length; i++) {
+                ImmutableTimeZone imtz = ZoneMeta.getImmutableTimeZone(ZONES[i]);
+                zones[i] = new ICUTimeZone(imtz);
+            }
+            return zones;
+        }
+    }
+
+    private static class ImmutableTimeZoneHandler extends TimeZoneHandler {
+        String[] ZONES = { "PST", "Etc/UTC", "Europe/Paris" };
+
+        public Object[] getTestObjects() {
+            ImmutableTimeZone zones[] = new ImmutableTimeZone[ZONES.length];
+            for (int i = 0; i < ZONES.length; i++) {
+                zones[i] = ZoneMeta.getImmutableTimeZone(ZONES[i]);
+            }
+            return zones;
+        }
+    }
+
     private static class BigDecimalHandler implements Handler
     {
         String values[] = {
@@ -646,6 +674,8 @@ public class SerializableTest extends TestFmwk.TestGroup
         map.put("com.ibm.icu.util.TimeArrayTimeZoneRule", new TimeArrayTimeZoneRuleHandler());
         map.put("com.ibm.icu.util.ULocale", new ULocaleHandler());
         map.put("com.ibm.icu.util.Currency", new CurrencyHandler());
+        map.put("com.ibm.icu.impl.ICUTimeZone", new ICUTimeZoneHandler());
+        map.put("com.ibm.icu.impl.ImmutableTimeZone", new ImmutableTimeZoneHandler());
         map.put("com.ibm.icu.impl.JavaTimeZone", new JavaTimeZoneHandler());
         map.put("com.ibm.icu.impl.OlsonTimeZone", new OlsonTimeZoneHandler());
         map.put("com.ibm.icu.impl.TimeZoneAdapter", new TimeZoneAdapterHandler());

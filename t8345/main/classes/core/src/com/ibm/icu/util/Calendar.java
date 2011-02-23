@@ -20,6 +20,8 @@ import com.ibm.icu.impl.CalendarData;
 import com.ibm.icu.impl.CalendarUtil;
 import com.ibm.icu.impl.ICUCache;
 import com.ibm.icu.impl.ICUResourceBundle;
+import com.ibm.icu.impl.ICUTimeZone;
+import com.ibm.icu.impl.ImmutableTimeZone;
 import com.ibm.icu.impl.SimpleCache;
 import com.ibm.icu.text.DateFormat;
 import com.ibm.icu.text.DateFormatSymbols;
@@ -1488,9 +1490,8 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      * @see     TimeZone#getDefault
      * @stable ICU 2.0
      */
-    protected Calendar()
-    {
-        this(TimeZone.getDefault(), ULocale.getDefault());
+    protected Calendar() {
+        this(TimeZone.getDefaultInternal(), ULocale.getDefault());
     }
 
     /**
@@ -1499,8 +1500,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      * @param aLocale the locale for the week data
      * @stable ICU 2.0
      */
-    protected Calendar(TimeZone zone, Locale aLocale)
-    {
+    protected Calendar(TimeZone zone, Locale aLocale) {
         this(zone, ULocale.forLocale(aLocale));
     }
 
@@ -1510,13 +1510,12 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      * @param locale the ulocale for the week data
      * @stable ICU 3.2
      */
-    protected Calendar(TimeZone zone, ULocale locale)
-    {
-        this.zone = zone;
+    protected Calendar(TimeZone tz, ULocale locale) {
+        zone = (TimeZone)tz.clone();
         setWeekData(locale);
         initInternal();
     }
-    
+
     private void recalculateStamp() {
         int index;
         int currentValue;
@@ -1646,7 +1645,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
             locale = ULocale.getDefault();
         }
         if (tz == null) {
-            tz = TimeZone.getDefault();
+            tz = TimeZone.getDefaultInternal();
         }
         Calendar cal = getShim().createInstance(locale);
         cal.setTimeZone(tz);
@@ -1779,7 +1778,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
 
     static Calendar createInstance(ULocale locale) {
         Calendar cal = null;
-        TimeZone zone = TimeZone.getDefault();
+        TimeZone zone = TimeZone.getDefaultInternal();
         int calType = getCalendarTypeForLocale(locale);
         if (calType == CALTYPE_UNKNOWN) {
             // fallback to Gregorian
@@ -2238,7 +2237,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
             isLenient() == other.isLenient() &&
             getFirstDayOfWeek() == other.getFirstDayOfWeek() &&
             getMinimalDaysInFirstWeek() == other.getMinimalDaysInFirstWeek() &&
-            getTimeZone().equals(other.getTimeZone());
+            zone.equals(other.zone);
     }
 
     /**
@@ -3752,7 +3751,10 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      */
     public void setTimeZone(TimeZone value)
     {
-        zone = value;
+        if (value == null) {
+            throw new NullPointerException();
+        }
+        zone = (TimeZone)value.clone();
         /* Recompute the fields from the time using the new zone.  This also
          * works if isTimeSet is false (after a call to set()).  In that case
          * the time will be computed from the fields using the new zone, then
@@ -3770,8 +3772,20 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      * @return the time zone object associated with this calendar.
      * @stable ICU 2.0
      */
-    public TimeZone getTimeZone()
-    {
+    public TimeZone getTimeZone() {
+        if (zone instanceof ImmutableTimeZone) {
+            return new ICUTimeZone((ImmutableTimeZone)zone);
+        }
+        return (TimeZone)zone.clone();
+    }
+
+    /**
+     * Returns the time zone.
+     * @return the time zone object associated with this calendar.
+     * @internal
+     * @deprecated This API is ICU internal only.
+     */
+    public TimeZone getTimeZoneDirect() {
         return zone;
     }
 
@@ -4402,7 +4416,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      */
     protected void computeFields() {
         int offsets[] = new int[2];
-        getTimeZone().getOffset(time, false, offsets);
+        zone.getOffset(time, false, offsets);
         long localMillis = time + offsets[0] + offsets[1];
 
         // Mark fields as set.  Do this before calling handleComputeFields().
