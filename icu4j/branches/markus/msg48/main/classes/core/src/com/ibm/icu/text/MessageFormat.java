@@ -1701,24 +1701,24 @@ public class MessageFormat extends UFormat {
     transient private PluralSelectorProvider pluralProvider;
 
     // format without FieldPosition or characterIterators
-    private Appendable format(Appendable dest, FieldPosition fp, int[] last, Object... args) {
+    private Appendable format(Appendable dest,  List<AttributedCharacterIterator> characterIterators, FieldPosition fp, int[] last, Object... args) {
         if(msgPattern.hasNamedArguments()) {
             throw new IllegalArgumentException(
                 "Formatting message with named arguments using positional argument values.");
         }
-        format(0, new Part(), dest, fp, last, 0, args, null);
+        format(0, new Part(), dest, characterIterators, fp, last, 0, args, null, msgPattern.getString());
         return dest;
     }
 
-    private Appendable format(Appendable dest, FieldPosition fp, int[] last, Map<String, Object> argsMap) {
-        format(0, new Part(), dest, fp, last, 0, null, argsMap);
+    private Appendable format(Appendable dest,  List<AttributedCharacterIterator> characterIterators, FieldPosition fp, int[] last, Map<String, Object> argsMap) {
+        format(0, new Part(), dest, characterIterators, fp, last, 0, null, argsMap, msgPattern.getString());
         return dest;
     }
 
     // TODO: Can we turn last and firstArgMet into transient instance members?
     // (MessageFormat.format() is not thread-safe anyway.)
-    private int format(int msgStart, Part part, Appendable dest, FieldPosition fp, int[] last,
-            double pluralNumber, Object[] args, Map<String, Object> argsMap) {
+    private int format(int msgStart, Part part, Appendable dest,  List<AttributedCharacterIterator> characterIterators,
+            FieldPosition fp, int[] last, double pluralNumber, Object[] args, Map<String, Object> argsMap, String originalMessage) {
         try {
             boolean firstArgMet = false;
             String msgString=msgPattern.getString();
@@ -1728,6 +1728,10 @@ public class MessageFormat extends UFormat {
                 Part.Type type=msgPattern.getPart(i, part).getType();
                 int index=part.getIndex();
                 dest.append(msgString, prevIndex, index);
+                if (characterIterators != null && prevIndex != index) {
+                    characterIterators.add(
+                        _createAttributedCharacterIterator(msgString.substring(prevIndex, index)));
+                }
                 last[0] += index - prevIndex;
                 if(type==Part.Type.MSG_LIMIT) {
                     return i;
@@ -1741,8 +1745,13 @@ public class MessageFormat extends UFormat {
                     if (stockNumberFormatter == null) {
                         stockNumberFormatter = NumberFormat.getInstance(ulocale);
                     }
-                    String s = stockNumberFormatter.format(pluralNumber);
-                    firstArgMet = appendToResult(dest, index, s, firstArgMet, fp, last);
+                    if (characterIterators == null) {
+                        String s = stockNumberFormatter.format(pluralNumber);
+                        firstArgMet = appendToResult(dest, index, s, firstArgMet, fp, last, characterIterators, null);
+                    } else {
+                        AttributedCharacterIterator formattedIterator =  stockNumberFormatter.formatToCharacterIterator(pluralNumber);
+                        firstArgMet = appendToResult(dest, index, formattedIterator, firstArgMet, fp, last, characterIterators, null);
+                    }
                     continue;
                 }
                 if(type==Part.Type.INSERT_CHAR) {
@@ -1755,8 +1764,10 @@ public class MessageFormat extends UFormat {
                 msgPattern.getPart(++i, part);
                 Object arg;
                 String noArg=null;
+                Object argId=null;
                 if(args!=null) {
                     int argNumber=part.getValue();  // ARG_NUMBER
+                    argId = new Integer(argNumber);
                     if(0<=argNumber && argNumber<args.length) {
                         arg=args[argNumber];
                     } else {
@@ -1770,6 +1781,7 @@ public class MessageFormat extends UFormat {
                     } else /* ARG_NUMBER */ {
                         key=Integer.toString(part.getValue());
                     }
+                    argId = new String(key);
                     if(argsMap!=null && argsMap.containsKey(key)) {
                         arg=argsMap.get(key);
                     } else {
@@ -1780,12 +1792,21 @@ public class MessageFormat extends UFormat {
                 ++i;
                 Format formatter = null;
                 if (noArg != null) {
-                    firstArgMet = appendToResult(dest, index, noArg, firstArgMet, fp, last);
+                    firstArgMet = appendToResult(dest, index, noArg, firstArgMet, fp, last, characterIterators, argId);
                 } else if (arg == null) {
-                    firstArgMet = appendToResult(dest, index, "null", firstArgMet, fp, last);
+                    firstArgMet = appendToResult(dest, index, "null", firstArgMet, fp, last, characterIterators, argId);
                 } else if(cachedFormatters!=null && (formatter=cachedFormatters.get(i - 2))!=null) {
                     // Handles all ArgType.SIMPLE, and formatters from setFormat() and its siblings.
-                    String argString = formatter.format(arg);
+                    String argString = null;
+                    AttributedCharacterIterator formattedIterator = null;
+                    if (characterIterators == null) {
+                        argString = formatter.format(arg);
+                    } else {
+                        formattedIterator =  formatter.formatToCharacterIterator(arg);
+                        StringBuilder toAppend = new StringBuilder();
+                        append(toAppend, formattedIterator);
+                        argString = toAppend.toString();
+                    }
                     boolean isChoice = formatter instanceof ChoiceFormat;
                     if (isChoice
                             || formatter instanceof PluralFormat
@@ -1794,12 +1815,17 @@ public class MessageFormat extends UFormat {
                         // Otherwise they are not cached and instead handled below according to argType.
                         if (argString.indexOf('{') >= 0 || (!isChoice && argString.indexOf('\'') >= 0)) {
                             MessageFormat subMsgFormat = new MessageFormat(argString, ulocale);
-                            subMsgFormat.format(0, part, dest, null, last, 0, args, argsMap);
+                            subMsgFormat.format(0, part, dest, characterIterators, null, last, 0, args, argsMap, originalMessage);
+                            
                             argString = null;
                         }
                     }
                     if(argString!=null) {
-                        firstArgMet = appendToResult(dest, index, argString, firstArgMet, fp, last);
+                        if (characterIterators == null) {
+                            firstArgMet = appendToResult(dest, index, argString, firstArgMet, fp, last, characterIterators, argId);
+                        } else {
+                            firstArgMet = appendToResult(dest, index, formattedIterator, firstArgMet, fp, last, characterIterators, argId);
+                        }
                     }
                 } else if(
                         argType==ArgType.NONE ||
@@ -1811,16 +1837,27 @@ public class MessageFormat extends UFormat {
                         if (stockNumberFormatter == null) {
                             stockNumberFormatter = NumberFormat.getInstance(ulocale);
                         }
-                        firstArgMet = appendToResult(dest, index, stockNumberFormatter.format(arg), firstArgMet, fp, last);
+                        if (characterIterators == null) {
+                            firstArgMet = appendToResult(dest, index, stockNumberFormatter.format(arg), firstArgMet, fp, last, characterIterators, argId);
+                        } else {
+                            AttributedCharacterIterator formattedIterator =  stockNumberFormatter.formatToCharacterIterator(arg);
+                            firstArgMet = appendToResult(dest, index, formattedIterator, firstArgMet, fp, last, characterIterators, argId);
+                        }
                      } else if (arg instanceof Date) {
                         // format a Date if can
                         if (stockDateFormatter == null) {
                             stockDateFormatter = DateFormat.getDateTimeInstance(
                                     DateFormat.SHORT, DateFormat.SHORT, ulocale);//fix
                         }
-                        firstArgMet = appendToResult(dest, index, stockDateFormatter.format(arg), firstArgMet, fp, last);
+                        
+                        if (characterIterators == null) {
+                            firstArgMet = appendToResult(dest, index, stockDateFormatter.format(arg), firstArgMet, fp, last, characterIterators, argId);
+                        } else {
+                            AttributedCharacterIterator formattedIterator =  stockDateFormatter.formatToCharacterIterator(arg);
+                            firstArgMet = appendToResult(dest, index, formattedIterator, firstArgMet, fp, last, characterIterators, argId);
+                        }
                     } else {
-                        firstArgMet = appendToResult(dest, index, arg.toString(), firstArgMet, fp, last);
+                        firstArgMet = appendToResult(dest, index, arg.toString(), firstArgMet, fp, last, characterIterators, argId);
                     }
                 } else if(argType==ArgType.CHOICE) {
                     if (!(arg instanceof Number)) {
@@ -1829,7 +1866,7 @@ public class MessageFormat extends UFormat {
                     double number = ((Number)arg).doubleValue();
                     int subMsgStart=msgPattern.findChoiceSubMessage(i, number);
                     int lastBackup = last[0];
-                    format(subMsgStart, part, dest, null, last, 0, args, argsMap);
+                    format(subMsgStart, part, dest, characterIterators, null, last, 0, args, argsMap, originalMessage);
                     firstArgMet = updateFieldPosition(fp, lastBackup, last[0], firstArgMet);
                 } else if(argType==ArgType.PLURAL) {
                     if (!(arg instanceof Number)) {
@@ -1842,12 +1879,12 @@ public class MessageFormat extends UFormat {
                     int subMsgStart=msgPattern.findPluralSubMessage(i, pluralProvider, number);
                     double offset=msgPattern.getPluralOffset(subMsgStart);
                     int lastBackup = last[0];
-                    format(subMsgStart, part, dest, null, last, number-offset, args, argsMap);
+                    format(subMsgStart, part, dest, characterIterators, null, last, number-offset, args, argsMap, originalMessage);
                     firstArgMet = updateFieldPosition(fp, lastBackup, last[0], firstArgMet);
                 } else if(argType==ArgType.SELECT) {
                     int subMsgStart=msgPattern.findSelectSubMessage(i, arg.toString());
                     int lastBackup = last[0];
-                    format(subMsgStart, part, dest, null, last, 0, args, argsMap);
+                    format(subMsgStart, part, dest, characterIterators, null, last, 0, args, argsMap, originalMessage);
                     firstArgMet = updateFieldPosition(fp, lastBackup, last[0], firstArgMet);
                 } else {
                     // This should never happen.
@@ -1862,9 +1899,31 @@ public class MessageFormat extends UFormat {
     }
 
     private boolean appendToResult(Appendable dest, int index, String formattedArg,
-            boolean firstArgMet, FieldPosition fp, int[] last) throws IOException {
+            boolean firstArgMet, FieldPosition fp, int[] last, List<AttributedCharacterIterator> characterIterators, Object argId) throws IOException {
         dest.append(formattedArg);
+        if (characterIterators != null) {
+            characterIterators.add(
+                    _createAttributedCharacterIterator(formattedArg, Field.ARGUMENT, argId));
+        }
         int appendedLength = formattedArg.length();
+        last[0] += appendedLength;
+        return updateFieldPosition(fp, index, index + appendedLength, firstArgMet);
+    }
+    
+    
+    private boolean appendToResult(Appendable dest, int index, AttributedCharacterIterator formattedArg,
+            boolean firstArgMet, FieldPosition fp, int[] last, List<AttributedCharacterIterator> characterIterators, Object argId) throws IOException {
+        StringBuilder toAppend = new StringBuilder();
+        append(toAppend, formattedArg);
+        dest.append(toAppend);
+
+        if (toAppend.length() != 0) {
+            characterIterators.add(
+                    _createAttributedCharacterIterator(
+                            formattedArg, Field.ARGUMENT, argId));
+        }
+        
+        int appendedLength = toAppend.length();
         last[0] += appendedLength;
         return updateFieldPosition(fp, index, index + appendedLength, firstArgMet);
     }
@@ -1926,16 +1985,14 @@ public class MessageFormat extends UFormat {
             Appendable result, int last, FieldPosition fp, List<AttributedCharacterIterator> characterIterators) {
         
         // If there is no CharacterIterators, use the MessagePattern implementation.
-        if (characterIterators == null) {
-            int[] lastArr= new int[1];
-            lastArr[0] = last;
-            if (argNames == null) {
-                format(result, fp, lastArr, arguments);
-            } else {
-                format(result, fp, lastArr, argNames);
-            }
-            return result;
+        int[] lastArr= new int[1];
+        lastArr[0] = last;
+        if (argNames == null) {
+            format(result, characterIterators, fp, lastArr, arguments);
+        } else {
+            format(result, characterIterators, fp, lastArr, argNames);
         }
+        return result;
         
         // note: this implementation assumes a fast substring & index.
         // if this is not true, would be better to append chars one by one.
@@ -1944,145 +2001,145 @@ public class MessageFormat extends UFormat {
         // for the CharacterIterators below. This is only needed for when character iterators
         // are used.
            
-        StringBuilder portionJustAdded = null;
-        if (characterIterators != null) {
-            portionJustAdded = new StringBuilder();
-        }
-
-        try {
-            int lastOffset = 0;
-
-            for (int i = 0; i <= maxOffset; ++i) {
-                // toAdd is a temporary reference to the String we are about to
-                // append to result.
-                String toAdd;
-                toAdd = pattern.substring(lastOffset, offsets[i]);
-                result.append(toAdd);
-                last += toAdd.length();
-                if (portionJustAdded != null) {
-                    portionJustAdded.append(toAdd);
-                }
-                lastOffset = offsets[i];
-                String argumentName = argumentNames[i];
-                if (arguments == null || !arguments.containsKey(argumentName)) {
-                    toAdd = "{" + argumentName + "}";
-                    result.append(toAdd);
-                    last += toAdd.length();
-                    if (portionJustAdded != null) {
-                        portionJustAdded.append(toAdd);
-                    }
-                    continue;
-                }
-                // int argRecursion = ((recursionProtection >> (argumentNumber*2)) & 0x3);
-                //Eclipse stated the following is "dead code"
-                /*if (false) { // if (argRecursion == 3){
-                // prevent loop!!!
-                result.append('\uFFFD');
-            } else*/ {
-                Object obj = arguments.get(argumentName);
-                String arg = null;
-                Format subFormatter = null;
-                if (obj == null) {
-                    arg = "null";
-                } else if (formats[i] != null) {
-                    subFormatter = formats[i];
-                    boolean isChoice = subFormatter instanceof ChoiceFormat;
-                    if (isChoice
-                            || subFormatter instanceof PluralFormat
-                            || subFormatter instanceof SelectFormat) {
-                        arg = formats[i].format(obj);
-                        if (arg.indexOf('{') >= 0 || (!isChoice && arg.indexOf('\'') >= 0)) {
-                            subFormatter = new MessageFormat(arg, ulocale);
-                            obj = arguments;
-                            arg = null;
-                        }
-                    }
-                } else if (obj instanceof Number) {
-                    // format number if can
-                    subFormatter = NumberFormat.getInstance(ulocale);
-                } else if (obj instanceof Date) {
-                    // format a Date if can
-                    subFormatter = DateFormat.getDateTimeInstance(
-                            DateFormat.SHORT, DateFormat.SHORT, ulocale);//fix
-                } else if (obj instanceof String) {
-                    arg = (String) obj;
-
-                } else {
-                    arg = obj.toString();
-                    if (arg == null) arg = "null";
-                }
-
-                // At this point we are in two states, either subFormatter
-                // is non-null indicating we should format obj using it,
-                // or arg is non-null and we should use it as the value.
-
-                if (characterIterators != null) {
-                    // If characterIterators is non-null, it indicates we need
-                    // to get the CharacterIterator from the child formatter.
-                    if (portionJustAdded.length() != 0) {
-                        characterIterators.add(
-                                _createAttributedCharacterIterator(portionJustAdded.toString()));
-                        portionJustAdded.setLength(0);
-                    }
-                    if (subFormatter != null) {
-                        AttributedCharacterIterator subIterator =
-                            subFormatter.formatToCharacterIterator(obj);
-
-                        StringBuilder toAppend = new StringBuilder();
-                        append(toAppend, subIterator);
-                        result.append(toAppend);
-                        portionJustAdded.append(toAppend);
-
-                        if (portionJustAdded.length() != 0) {
-                            characterIterators.add(
-                                    _createAttributedCharacterIterator(
-                                            subIterator, Field.ARGUMENT,
-                                            !msgPattern.hasNamedArguments() ?
-                                                    (Object)new Integer(argumentName) :
-                                                        (Object)argumentName));
-                            portionJustAdded.setLength(0);
-                        }
-                        arg = null;
-                    }
-                    if (arg != null && arg.length() > 0) {
-                        result.append(arg);
-                        portionJustAdded.append(arg);
-                        characterIterators.add(
-                                _createAttributedCharacterIterator(
-                                        arg, Field.ARGUMENT,
-                                        !msgPattern.hasNamedArguments() ?
-                                                (Object)new Integer(argumentName) :
-                                                    (Object)argumentName));
-                        portionJustAdded.setLength(0);
-                    }
-                } else {
-                    if (subFormatter != null) {
-                        arg = subFormatter.format(obj);
-                    }
-                    result.append(arg);
-                    if (i == 0 && fp != null && Field.ARGUMENT.equals(
-                            fp.getFieldAttribute())) {
-                        fp.setBeginIndex(last);
-                        fp.setEndIndex(last + arg.length());
-                    }
-                    last += arg.length();
-                }
-            }
-            }
-            String toAppend = pattern.substring(lastOffset, pattern.length());
-            result.append(toAppend);
-            if (portionJustAdded != null) {
-                portionJustAdded.append(toAppend);
-            }
-            
-            if (characterIterators != null && portionJustAdded.length() != 0) {
-                characterIterators.add(_createAttributedCharacterIterator(
-                        portionJustAdded.toString()));
-            }
-            return result;
-        } catch(IOException e) {  // Appendable throws IOException
-            throw new RuntimeException(e);  // We do not want a throws clause.
-        }
+//        StringBuilder portionJustAdded = null;
+//        if (characterIterators != null) {
+//            portionJustAdded = new StringBuilder();
+//        }
+//
+//        try {
+//            int lastOffset = 0;
+//
+//            for (int i = 0; i <= maxOffset; ++i) {
+//                // toAdd is a temporary reference to the String we are about to
+//                // append to result.
+//                String toAdd;
+//                toAdd = pattern.substring(lastOffset, offsets[i]);
+//                result.append(toAdd);
+//                last += toAdd.length();
+//                if (portionJustAdded != null) {
+//                    portionJustAdded.append(toAdd);
+//                }
+//                lastOffset = offsets[i];
+//                String argumentName = argumentNames[i];
+//                if (arguments == null || !arguments.containsKey(argumentName)) {
+//                    toAdd = "{" + argumentName + "}";
+//                    result.append(toAdd);
+//                    last += toAdd.length();
+//                    if (portionJustAdded != null) {
+//                        portionJustAdded.append(toAdd);
+//                    }
+//                    continue;
+//                }
+//                // int argRecursion = ((recursionProtection >> (argumentNumber*2)) & 0x3);
+//                //Eclipse stated the following is "dead code"
+//                /*if (false) { // if (argRecursion == 3){
+//                // prevent loop!!!
+//                result.append('\uFFFD');
+//            } else*/ {
+//                Object obj = arguments.get(argumentName);
+//                String arg = null;
+//                Format subFormatter = null;
+//                if (obj == null) {
+//                    arg = "null";
+//                } else if (formats[i] != null) {
+//                    subFormatter = formats[i];
+//                    boolean isChoice = subFormatter instanceof ChoiceFormat;
+//                    if (isChoice
+//                            || subFormatter instanceof PluralFormat
+//                            || subFormatter instanceof SelectFormat) {
+//                        arg = formats[i].format(obj);
+//                        if (arg.indexOf('{') >= 0 || (!isChoice && arg.indexOf('\'') >= 0)) {
+//                            subFormatter = new MessageFormat(arg, ulocale);
+//                            obj = arguments;
+//                            arg = null;
+//                        }
+//                    }
+//                } else if (obj instanceof Number) {
+//                    // format number if can
+//                    subFormatter = NumberFormat.getInstance(ulocale);
+//                } else if (obj instanceof Date) {
+//                    // format a Date if can
+//                    subFormatter = DateFormat.getDateTimeInstance(
+//                            DateFormat.SHORT, DateFormat.SHORT, ulocale);//fix
+//                } else if (obj instanceof String) {
+//                    arg = (String) obj;
+//
+//                } else {
+//                    arg = obj.toString();
+//                    if (arg == null) arg = "null";
+//                }
+//
+//                // At this point we are in two states, either subFormatter
+//                // is non-null indicating we should format obj using it,
+//                // or arg is non-null and we should use it as the value.
+//
+//                if (characterIterators != null) {
+//                    // If characterIterators is non-null, it indicates we need
+//                    // to get the CharacterIterator from the child formatter.
+//                    if (portionJustAdded.length() != 0) {
+//                        characterIterators.add(
+//                                _createAttributedCharacterIterator(portionJustAdded.toString()));
+//                        portionJustAdded.setLength(0);
+//                    }
+//                    if (subFormatter != null) {
+//                        AttributedCharacterIterator subIterator =
+//                            subFormatter.formatToCharacterIterator(obj);
+//
+//                        StringBuilder toAppend = new StringBuilder();
+//                        append(toAppend, subIterator);
+//                        result.append(toAppend);
+//                        portionJustAdded.append(toAppend);
+//
+//                        if (portionJustAdded.length() != 0) {
+//                            characterIterators.add(
+//                                    _createAttributedCharacterIterator(
+//                                            subIterator, Field.ARGUMENT,
+//                                            !msgPattern.hasNamedArguments() ?
+//                                                    (Object)new Integer(argumentName) :
+//                                                        (Object)argumentName));
+//                            portionJustAdded.setLength(0);
+//                        }
+//                        arg = null;
+//                    }
+//                    if (arg != null && arg.length() > 0) {
+//                        result.append(arg);
+//                        portionJustAdded.append(arg);
+//                        characterIterators.add(
+//                                _createAttributedCharacterIterator(
+//                                        arg, Field.ARGUMENT,
+//                                        !msgPattern.hasNamedArguments() ?
+//                                                (Object)new Integer(argumentName) :
+//                                                    (Object)argumentName));
+//                        portionJustAdded.setLength(0);
+//                    }
+//                } else {
+//                    if (subFormatter != null) {
+//                        arg = subFormatter.format(obj);
+//                    }
+//                    result.append(arg);
+//                    if (i == 0 && fp != null && Field.ARGUMENT.equals(
+//                            fp.getFieldAttribute())) {
+//                        fp.setBeginIndex(last);
+//                        fp.setEndIndex(last + arg.length());
+//                    }
+//                    last += arg.length();
+//                }
+//            }
+//            }
+//            String toAppend = pattern.substring(lastOffset, pattern.length());
+//            result.append(toAppend);
+//            if (portionJustAdded != null) {
+//                portionJustAdded.append(toAppend);
+//            }
+//            
+//            if (characterIterators != null && portionJustAdded.length() != 0) {
+//                characterIterators.add(_createAttributedCharacterIterator(
+//                        portionJustAdded.toString()));
+//            }
+//            return result;
+//        } catch(IOException e) {  // Appendable throws IOException
+//            throw new RuntimeException(e);  // We do not want a throws clause.
+//        }
     }
     
     /**
