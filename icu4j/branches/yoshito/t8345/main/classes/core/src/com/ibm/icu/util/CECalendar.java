@@ -52,7 +52,7 @@ abstract class CECalendar extends Calendar {
      * in the default time zone with the default locale.
      */
     protected CECalendar() {
-        this(TimeZone.getDefault(), ULocale.getDefault());
+        this(TimeZone.getDefaultInternal(), ULocale.getDefault());
     }
 
     /**
@@ -72,7 +72,7 @@ abstract class CECalendar extends Calendar {
      * @param aLocale The locale for the new calendar.
      */
     protected CECalendar(Locale aLocale) {
-        this(TimeZone.getDefault(), aLocale);
+        this(TimeZone.getDefaultInternal(), aLocale);
     }
 
     /**
@@ -82,7 +82,7 @@ abstract class CECalendar extends Calendar {
      * @param locale The locale for the new calendar.
      */
     protected CECalendar(ULocale locale) {
-        this(TimeZone.getDefault(), locale);
+        this(TimeZone.getDefaultInternal(), locale);
     }
 
     /**
@@ -123,7 +123,7 @@ abstract class CECalendar extends Calendar {
      * @param date      The value used to set the calendar's {@link #DATE DATE} time field.
      */
     protected CECalendar(int year, int month, int date) {
-        super(TimeZone.getDefault(), ULocale.getDefault());
+        super(TimeZone.getDefaultInternal(), ULocale.getDefault());
         this.set(year, month, date);
     }
 
@@ -134,7 +134,7 @@ abstract class CECalendar extends Calendar {
      * @param date      The date to which the new calendar is set.
      */
     protected CECalendar(Date date) {
-        super(TimeZone.getDefault(), ULocale.getDefault());
+        super(TimeZone.getDefaultInternal(), ULocale.getDefault());
         this.setTime(date);
     }
 
@@ -153,7 +153,7 @@ abstract class CECalendar extends Calendar {
     protected CECalendar(int year, int month, int date, int hour,
                          int minute, int second)
     {
-        super(TimeZone.getDefault(), ULocale.getDefault());
+        super(TimeZone.getDefaultInternal(), ULocale.getDefault());
         this.set(year, month, date, hour, minute, second);
     }
 

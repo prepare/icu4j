@@ -164,7 +164,7 @@ public class ChineseCalendar extends Calendar {
      * @stable ICU 4.0
      */
     public ChineseCalendar(int year, int month, int isLeapMonth, int date) {
-        super(TimeZone.getDefault(), ULocale.getDefault());
+        super(TimeZone.getDefaultInternal(), ULocale.getDefault());
 
         // We need to set the current time once to initialize the ChineseCalendar's
         // ERA field to be the current era.
@@ -200,7 +200,7 @@ public class ChineseCalendar extends Calendar {
     public ChineseCalendar(int year, int month, int isLeapMonth, int date, int hour,
                              int minute, int second)
     {
-        super(TimeZone.getDefault(), ULocale.getDefault());
+        super(TimeZone.getDefaultInternal(), ULocale.getDefault());
 
         // We need to set the current time once to initialize the ChineseCalendar's
         // ERA field to be the current era.
@@ -234,7 +234,7 @@ public class ChineseCalendar extends Calendar {
      */ 
     public ChineseCalendar(int era, int year, int month, int isLeapMonth, int date) 
     { 
-        super(TimeZone.getDefault(), ULocale.getDefault()); 
+        super(TimeZone.getDefaultInternal(), ULocale.getDefault()); 
 
         // We need to set the current time once to initialize the ChineseCalendar's 
         // ERA field to be the current era. 
@@ -274,7 +274,7 @@ public class ChineseCalendar extends Calendar {
     public ChineseCalendar(int era, int year, int month, int isLeapMonth, int date, int hour, 
                            int minute, int second) 
     { 
-        super(TimeZone.getDefault(), ULocale.getDefault()); 
+        super(TimeZone.getDefaultInternal(), ULocale.getDefault()); 
 
         // We need to set the current time once to initialize the ChineseCalendar's 
         // ERA field to be the current era. 
@@ -301,7 +301,7 @@ public class ChineseCalendar extends Calendar {
      * @stable ICU 4.0
      */
     public ChineseCalendar(Locale aLocale) {
-        this(TimeZone.getDefault(), aLocale);
+        this(TimeZone.getDefaultInternal(), aLocale);
         setTimeInMillis(System.currentTimeMillis());
     }
 
@@ -336,7 +336,7 @@ public class ChineseCalendar extends Calendar {
      * @stable ICU 4.0
      */
     public ChineseCalendar(ULocale locale) {
-        this(TimeZone.getDefault(), locale);
+        this(TimeZone.getDefaultInternal(), locale);
         setTimeInMillis(System.currentTimeMillis());
     }
 

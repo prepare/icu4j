@@ -51,6 +51,9 @@ public final class ZoneMeta {
     private static final String kGMT_ID   = "GMT";
     private static final String kCUSTOM_TZ_PREFIX = "GMT";
 
+    private static ICUCache<String, ImmutableTimeZone> TIME_ZONE_CACHE = new SimpleCache<String, ImmutableTimeZone>();
+    private static volatile ImmutableTimeZone UNKNOWN_ZONE = null;
+
     /**
      * Returns a String array containing all system TimeZone IDs
      * associated with the given country.  These IDs may be passed to
@@ -503,29 +506,67 @@ public final class ZoneMeta {
         return res;
     }
 
+    private static ImmutableTimeZone getUnknownZone() {
+        if (UNKNOWN_ZONE == null) {
+            synchronized(ZoneMeta.class) {
+                if (UNKNOWN_ZONE == null) {
+                    UNKNOWN_ZONE = new ImmutableTimeZone(new SimpleTimeZone(0, TimeZone.UNKNOWN_ZONE_ID));
+                }
+            }
+        }
+        return UNKNOWN_ZONE;
+    }
 
-    private static ICUCache<String, TimeZone> SYSTEM_ZONE_CACHE = new SimpleCache<String, TimeZone>();
+    public static ImmutableTimeZone getImmutableTimeZone(String id) {
+        if (id == null) {
+            throw new NullPointerException();
+        }
+        /* We first try to lookup the zone ID in our system list.  If this
+         * fails, we try to parse it as a custom string GMT[+-]hh:mm.  If
+         * all else fails, we return Etc/Unknown, which is probably not what the
+         * user wants, but at least is a functioning TimeZone object.
+         *
+         * We cannot return NULL, because that would break compatibility
+         * with the JDK.
+         */
+        ImmutableTimeZone imtz = null;
+        if (!id.equals(TimeZone.UNKNOWN_ZONE_ID)) {
+            imtz = getSystemTimeZone(id);
+            if (imtz == null) {
+                imtz = getCustomTimeZone(id);
+            }
+        }
+        if (imtz == null) {
+            imtz = getCustomTimeZone(id);
+            if (imtz == null) {
+                // final fallback
+                imtz = getUnknownZone();
+            }
+        }
+        return imtz;
+    }
 
     /**
      * Lookup the given name in our system zone table.  If found,
      * instantiate a new zone of that name and return it.  If not
      * found, return 0.
      */
-    public static TimeZone getSystemTimeZone(String id) {
-        TimeZone z = SYSTEM_ZONE_CACHE.get(id);
-        if (z == null) {
-            try{
+    public static ImmutableTimeZone getSystemTimeZone(String id) {
+        ImmutableTimeZone itz = TIME_ZONE_CACHE.get(id);
+        if (itz == null) {
+            try {
                 UResourceBundle top = UResourceBundle.getBundleInstance(
                         ICUResourceBundle.ICU_BASE_NAME, ZONEINFORESNAME, ICUResourceBundle.ICU_DATA_CLASS_LOADER);
                 UResourceBundle res = openOlsonResource(top, id);
-                z = new OlsonTimeZone(top, res);
-                z.setID(id);
-                SYSTEM_ZONE_CACHE.put(id, z);
-            }catch(Exception ex){
+                OlsonTimeZone otz = new OlsonTimeZone(top, res);
+                otz.setID(id);
+                itz = new ImmutableTimeZone(otz); 
+                TIME_ZONE_CACHE.put(id, itz);
+            } catch (Exception ex){
                 return null;
             }
         }
-        return (TimeZone)z.clone();
+        return itz;
     }
 
     // Maximum value of valid custom time zone hour/min
@@ -540,14 +581,16 @@ public final class ZoneMeta {
      * @return a newly created SimpleTimeZone with the given offset and
      * no Daylight Savings Time, or null if the id cannot be parsed.
     */
-    public static TimeZone getCustomTimeZone(String id){
+    public static ImmutableTimeZone getCustomTimeZone(String id){
+        ImmutableTimeZone itz = null;
         int[] fields = new int[4];
         if (parseCustomID(id, fields)) {
             String zid = formatCustomID(fields[1], fields[2], fields[3], fields[0] < 0);
             int offset = fields[0] * ((fields[1] * 60 + fields[2]) * 60 + fields[3]) * 1000;
-            return new SimpleTimeZone(offset, zid);
+            itz = new ImmutableTimeZone(new SimpleTimeZone(offset, zid));
+            TIME_ZONE_CACHE.put(zid, itz);
         }
-        return null;
+        return itz;
     }
 
     /**

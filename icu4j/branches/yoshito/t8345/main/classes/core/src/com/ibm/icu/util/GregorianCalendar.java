@@ -331,7 +331,7 @@ public class GregorianCalendar extends Calendar {
      * @stable ICU 2.0
      */
     public GregorianCalendar() {
-        this(TimeZone.getDefault(), ULocale.getDefault());
+        this(TimeZone.getDefaultInternal(), ULocale.getDefault());
     }
 
     /**
@@ -351,7 +351,7 @@ public class GregorianCalendar extends Calendar {
      * @stable ICU 2.0
      */
     public GregorianCalendar(Locale aLocale) {
-        this(TimeZone.getDefault(), aLocale);
+        this(TimeZone.getDefaultInternal(), aLocale);
     }
 
     /**
@@ -361,7 +361,7 @@ public class GregorianCalendar extends Calendar {
      * @stable ICU 3.2
      */
     public GregorianCalendar(ULocale locale) {
-        this(TimeZone.getDefault(), locale);
+        this(TimeZone.getDefaultInternal(), locale);
     }
 
     /**
@@ -398,7 +398,7 @@ public class GregorianCalendar extends Calendar {
      * @stable ICU 2.0
      */
     public GregorianCalendar(int year, int month, int date) {
-        super(TimeZone.getDefault(), ULocale.getDefault());
+        super(TimeZone.getDefaultInternal(), ULocale.getDefault());
         set(ERA, AD);
         set(YEAR, year);
         set(MONTH, month);
@@ -420,7 +420,7 @@ public class GregorianCalendar extends Calendar {
      */
     public GregorianCalendar(int year, int month, int date, int hour,
                              int minute) {
-        super(TimeZone.getDefault(), ULocale.getDefault());
+        super(TimeZone.getDefaultInternal(), ULocale.getDefault());
         set(ERA, AD);
         set(YEAR, year);
         set(MONTH, month);
@@ -446,7 +446,7 @@ public class GregorianCalendar extends Calendar {
      */
     public GregorianCalendar(int year, int month, int date, int hour,
                              int minute, int second) {
-        super(TimeZone.getDefault(), ULocale.getDefault());
+        super(TimeZone.getDefaultInternal(), ULocale.getDefault());
         set(ERA, AD);
         set(YEAR, year);
         set(MONTH, month);
@@ -489,7 +489,7 @@ public class GregorianCalendar extends Calendar {
             cutoverJulianDay = (int) floorDivide(gregorianCutover, ONE_DAY);
             
             // Convert cutover millis to extended year
-            GregorianCalendar cal = new GregorianCalendar(getTimeZone());
+            GregorianCalendar cal = new GregorianCalendar(getTimeZoneDirect());
             cal.setTime(date);
             gregorianCutoverYear = cal.get(EXTENDED_YEAR);
         }
@@ -697,7 +697,7 @@ public class GregorianCalendar extends Calendar {
      * Savings Time.
      */
     boolean inDaylightTime() {
-        if (!getTimeZone().useDaylightTime()) return false;
+        if (!getTimeZoneDirect().useDaylightTime()) return false;
         complete(); // Force update of DST_OFFSET field
         return internalGet(DST_OFFSET) != 0;
     }

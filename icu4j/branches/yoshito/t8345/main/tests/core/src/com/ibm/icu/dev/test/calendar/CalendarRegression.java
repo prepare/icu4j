@@ -1002,6 +1002,7 @@ public class CalendarRegression extends com.ibm.icu.dev.test.TestFmwk {
         if(atz.hashCode()== btz.hashCode()){
             errln(atz.hashCode()+"=="+btz.hashCode());
         }
+        b.setTimeZone(btz);
         if (a.getTimeZone()!= b.getTimeZone() && a.hashCode() == b.hashCode()) {
             errln("Calendar hash code ignores zone");
         }

@@ -569,7 +569,7 @@ public abstract class DateFormat extends UFormat {
     public Date parse(String text, ParsePosition pos) {
         Date result = null;
         int start = pos.getIndex();
-        TimeZone tzsav = calendar.getTimeZone();
+        TimeZone tzsav = calendar.getTimeZoneDirect();
         calendar.clear();
         parse(text, calendar, pos);
         if (pos.getIndex() != start) {

@@ -16,6 +16,8 @@ import com.ibm.icu.impl.Grego;
 import com.ibm.icu.impl.ICUCache;
 import com.ibm.icu.impl.ICUConfig;
 import com.ibm.icu.impl.ICULogger;
+import com.ibm.icu.impl.ICUTimeZone;
+import com.ibm.icu.impl.ImmutableTimeZone;
 import com.ibm.icu.impl.JavaTimeZone;
 import com.ibm.icu.impl.SimpleCache;
 import com.ibm.icu.impl.TimeZoneAdapter;
@@ -568,34 +570,16 @@ abstract public class TimeZone implements Serializable, Cloneable {
      * @stable ICU 4.0
      */
     public static synchronized TimeZone getTimeZone(String ID, int type) {
+        if(ID == null){
+            throw new NullPointerException();
+        }
         TimeZone result;
         if (type == TIMEZONE_JDK) {
             result = new JavaTimeZone(ID);
         } else {
-            /* We first try to lookup the zone ID in our system list.  If this
-             * fails, we try to parse it as a custom string GMT[+-]hh:mm.  If
-             * all else fails, we return GMT, which is probably not what the
-             * user wants, but at least is a functioning TimeZone object.
-             *
-             * We cannot return NULL, because that would break compatibility
-             * with the JDK.
-             */
-            if(ID==null){
-                throw new NullPointerException();
-            }
-            result = ZoneMeta.getSystemTimeZone(ID);
-
-            if (result == null) {
-                result = ZoneMeta.getCustomTimeZone(ID);
-            }
-            if (result == null) {
-                /* Log that timezone is using GMT if logging is on. */
-                if (TimeZoneLogger != null && TimeZoneLogger.isLoggingOn()) {
-                    TimeZoneLogger.warning(
-                        "\"" +ID + "\" is a bogus id so timezone is falling back to Etc/Unknown(GMT).");
-                }
-                result = new SimpleTimeZone(0, UNKNOWN_ZONE_ID);
-            }
+            ImmutableTimeZone imtz = ZoneMeta.getImmutableTimeZone(ID);
+            // ImmutableTimeZone is not modifiable. Wrap it by ICUTimeZone.
+            result = new ICUTimeZone(imtz);
         }
         return result;
     }
@@ -637,7 +621,6 @@ abstract public class TimeZone implements Serializable, Cloneable {
         return ZoneMeta.getAvailableIDs(rawOffset);
 
     }
-
 
     /**
      * Return a new String array containing all system TimeZone IDs
@@ -715,15 +698,32 @@ abstract public class TimeZone implements Serializable, Cloneable {
      * @stable ICU 2.0
      */
     public static synchronized TimeZone getDefault() {
+        TimeZone deftz = getDefaultInternal();
+        if (deftz instanceof ImmutableTimeZone) {
+            return new ICUTimeZone((ImmutableTimeZone)deftz);
+        }
+        return deftz;
+    }
+
+    /**
+     * Unlike {@link #getDefault()}, this method may return
+     * an instance of {@link com.ibm.icu.impl.ImmutableTimeZone}
+     * without wrapping it by {@link com.ibm.icu.impl.ICUTimeZone}.
+     * @internal
+     */
+    static synchronized TimeZone getDefaultInternal() {
         if (defaultZone == null) {
             if (TZ_IMPL == TIMEZONE_JDK) {
                 defaultZone = new JavaTimeZone();
             } else {
                 java.util.TimeZone temp = java.util.TimeZone.getDefault();
-                defaultZone = getTimeZone(temp.getID());
+                defaultZone = ZoneMeta.getImmutableTimeZone(temp.getID());
             }
         }
-        return (TimeZone) defaultZone.clone();
+        if (!(defaultZone instanceof ImmutableTimeZone)) {
+            return (TimeZone) defaultZone.clone();
+        }
+        return defaultZone;
     }
 
     /**
@@ -735,34 +735,38 @@ abstract public class TimeZone implements Serializable, Cloneable {
      * @stable ICU 2.0
      */
     public static synchronized void setDefault(TimeZone tz) {
-        defaultZone = tz;
+        if (tz == null) {
+            defaultZone = null;
+            java.util.TimeZone.setDefault(null);
+            return;
+        }
         java.util.TimeZone jdkZone = null;
-        if (defaultZone instanceof JavaTimeZone) {
+        if (tz instanceof JavaTimeZone) {
+            defaultZone = (TimeZone)tz.clone();
             jdkZone = ((JavaTimeZone)defaultZone).unwrap();
         } else {
+            if (tz instanceof com.ibm.icu.impl.ICUTimeZone) {
+                // unwrap
+                defaultZone = ((ICUTimeZone)tz).getBasicTimeZone();
+            } else {
+                defaultZone = (TimeZone)tz.clone();
+            }
             // Keep java.util.TimeZone default in sync so java.util.Date
             // can interoperate with com.ibm.icu.util classes.
 
-            if (tz != null) {
-                if (tz instanceof com.ibm.icu.impl.OlsonTimeZone) {
-                    // Because of the lack of APIs supporting historic
-                    // zone offset/dst saving in JDK TimeZone,
-                    // wrapping ICU TimeZone with JDK TimeZone will
-                    // cause historic offset calculation in Calendar/Date.
-                    // JDK calendar implementation calls getRawOffset() and
-                    // getDSTSavings() when the instance of JDK TimeZone
-                    // is not an instance of JDK internal TimeZone subclass
-                    // (sun.util.calendar.ZoneInfo).  Ticket#6459
-                    String icuID = tz.getID();
-                    jdkZone = java.util.TimeZone.getTimeZone(icuID);
-                    if (!icuID.equals(jdkZone.getID())) {
-                        // JDK does not know the ID..
-                        jdkZone = null;
-                    }
-                }
-                if (jdkZone == null) {
-                    jdkZone = TimeZoneAdapter.wrap(tz);
-                }
+            // Because of the lack of APIs supporting historic
+            // zone offset/dst saving in JDK TimeZone,
+            // wrapping ICU TimeZone with JDK TimeZone will
+            // cause historic offset calculation in Calendar/Date.
+            // JDK calendar implementation calls getRawOffset() and
+            // getDSTSavings() when the instance of JDK TimeZone
+            // is not an instance of JDK internal TimeZone subclass
+            // (sun.util.calendar.ZoneInfo).  Ticket#6459
+            String icuID = tz.getID();
+            jdkZone = java.util.TimeZone.getTimeZone(icuID);
+            if (!icuID.equals(jdkZone.getID())) {
+                // JDK does not know the ID..
+                jdkZone = TimeZoneAdapter.wrap(tz);
             }
         }
         java.util.TimeZone.setDefault(jdkZone);
