@@ -11,7 +11,7 @@ package com.ibm.icu.text;
 
 import java.util.ArrayList;
 
-import com.ibm.icu.impl.UCharacterProperty;
+import com.ibm.icu.impl.PatternProps;
 import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.util.Freezable;
 
@@ -1263,31 +1263,19 @@ mainLoop:
         char c;
         while(index<msg.length() &&
               !(" ,{}#<\u2264".indexOf(c=msg.charAt(index))>=0 ||  // U+2264 is <=
-                UCharacterProperty.isRuleWhiteSpace(c))) {
+                PatternProps.isWhiteSpace(c))) {
             ++index;
         }
         return index;
     }
 
     private int skipWhiteSpace(int index) {
-        while(index<msg.length() && UCharacterProperty.isRuleWhiteSpace(msg.charAt(index))) {
-            ++index;
-        }
-        return index;
+        return PatternProps.skipWhiteSpace(msg, index);
     }
 
     private boolean isIdentifier(int start, int limit) {
         assert start<limit;
-        int c=msg.codePointAt(start);
-        if(!UCharacter.isUnicodeIdentifierStart(c)) {
-            return false;
-        }
-        while((start+=Character.charCount(c))<limit) {
-            if(!UCharacter.isUnicodeIdentifierPart(c=msg.codePointAt(start))) {
-                return false;
-            }
-        }
-        return true;
+        return PatternProps.isIdentifier(msg, start, limit);
     }
 
     private static boolean isArgTypeChar(int c) {
