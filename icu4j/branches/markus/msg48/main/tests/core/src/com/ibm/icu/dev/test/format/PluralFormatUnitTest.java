@@ -119,9 +119,9 @@ public class PluralFormatUnitTest extends TestFmwk {
         // Test invalid keyword.
         try {
             PluralFormat plFmt = new PluralFormat(oddAndEven);
-            plFmt.applyPattern("1odd{foo} other{bar}");
-            errln("Defining a message for an invalid keyword should result in" +
-            "an exception but did not.");
+            plFmt.applyPattern("*odd{foo} other{bar}");
+            errln("Defining a message for an invalid keyword should result in " +
+                  "an exception but did not.");
         }catch (IllegalArgumentException e){}
 
         // Test invalid syntax
