@@ -28,7 +28,7 @@ public class SelectFormatUnitTest extends TestFmwk {
     public void TestPatternSyntax() {
         String checkSyntaxData[] = {
             "odd{foo}",
-            "1odd{foo} other{bar}",
+            "*odd{foo} other{bar}",
             "odd{foo},other{bar}",
             "od d{foo} other{bar}",
             "odd{foo}{foobar}other{foo}",
@@ -60,16 +60,19 @@ public class SelectFormatUnitTest extends TestFmwk {
     /**
      * Unit tests for invalid keywords 
      */
-    /* TODO: change the definition of "invalid" as discussed (check for "pattern identifiers")
     public void TestInvalidKeyword() {
-        //Test formatting with invalid keyword
+        // Test formatting with invalid keyword:
+        // one which contains Pattern_Syntax or Pattern_White_Space.
         String keywords[] = {
-            "9Keyword-_",       //Starts with a digit
-            "-Keyword-_",       //Starts with a hyphen
-            "_Keyword-_",       //Starts with an underscore
-            "\\u00E9Keyword-_", //Starts with non-ASCII character
-            "Key*word-_",        //Contains a sepial character not allowed
-            "*Keyword-_"       //Starts with a sepial character not allowed
+            "9Keyword-_",
+            "-Keyword-_",
+            "_Keyword-_",
+            "\\u00E9Keyword-_",
+            "Key word",
+            " Keyword",
+            "Keyword ",
+            "Key*word-_",
+            "*Keyword-_"
         };
 
         String expected = "Invalid formatting argument.";
@@ -88,7 +91,6 @@ public class SelectFormatUnitTest extends TestFmwk {
         }
 
     }
-    */
 
     /**
      * API tests for  applyPattern and format

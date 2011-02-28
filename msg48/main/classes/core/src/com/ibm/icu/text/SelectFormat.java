@@ -13,6 +13,8 @@ import java.text.FieldPosition;
 import java.text.Format;
 import java.text.ParsePosition;
 
+import com.ibm.icu.impl.PatternProps;
+
 /**
  * <p><code>SelectFormat</code> supports the creation of  internationalized
  * messages by selecting phrases based on keywords. The pattern  specifies
@@ -222,6 +224,10 @@ public class SelectFormat extends Format{
      * @stable ICU 4.4
      */
     public final String format(String keyword) {
+        //Check for the validity of the keyword
+        if (!PatternProps.isIdentifier(keyword)) {
+            throw new IllegalArgumentException("Invalid formatting argument.");
+        }
         // If no pattern was applied, throw an exception
         if (msgPattern == null || msgPattern.countParts() == 0) {
             throw new IllegalStateException("Invalid format error.");

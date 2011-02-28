@@ -12,7 +12,6 @@ package com.ibm.icu.text;
 import java.util.ArrayList;
 
 import com.ibm.icu.impl.PatternProps;
-import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.util.Freezable;
 
 /**
@@ -172,6 +171,23 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
      */
     public boolean hasNumberedArguments() {
         return hasArgNumbers;
+    }
+
+    /**
+     * Validates and parses an argument name or argument number string.
+     * An argument name must be a "pattern identifier", that is, it must contain
+     * no Unicode Pattern_Syntax or Pattern_White_Space characters.
+     * If it only contains ASCII digits, then it must be a small integer with no leading zero.
+     * @param name Input string.
+     * @return &gt;=0 if the name is a valid number,
+     *         -1 if it is a "pattern identifier" but not all ASCII digits,
+     *         -2 if it is neither.
+     */
+    public static int validateArgumentName(String name) {
+        if(!PatternProps.isIdentifier(name)) {
+            return -2;
+        }
+        return parseArgNumber(name, 0, name.length());
     }
 
     /**
@@ -920,7 +936,7 @@ mainLoop:
                 }
             }  // c is part of literal text
         }
-        if(nestingLevel>0) {
+        if(nestingLevel>0 && !inTopLevelChoiceMessage(nestingLevel, parentType)) {
             throw new IllegalArgumentException(
                 "Unmatched '{' braces in message \""+prefix()+"\"");
         }
@@ -938,22 +954,16 @@ mainLoop:
                 "Unmatched '{' braces in message \""+prefix()+"\"");
         }
         // parse argument name or number
-        int c=msg.codePointAt(index);
-        if('0'<=c && c<='9') {
-            // argument number
-            int number=c-'0';
-            while(++index<msg.length() && '0'<=(c=msg.charAt(index)) && c<='9') {
-                number=(number*10)+(c-'0');
-                if(number>Part.MAX_VALUE) {
-                    throw new IndexOutOfBoundsException(
-                        "Argument number too large: "+prefix(nameIndex));
-                }
+        index=skipIdentifier(index);
+        int number=parseArgNumber(nameIndex, index);
+        if(number>=0) {
+            if(number>Part.MAX_VALUE) {
+                throw new IndexOutOfBoundsException(
+                    "Argument number too large: "+prefix(nameIndex));
             }
             hasArgNumbers=true;
             addPart(number, Part.Type.ARG_NUMBER, nameIndex);
-        } else if(UCharacter.isUnicodeIdentifierStart(c)) {
-            while((index+=Character.charCount(c))<msg.length() &&
-                  UCharacter.isUnicodeIdentifierPart(c=msg.codePointAt(index))) {}
+        } else if(number==-1) {
             int length=index-nameIndex;
             if(length>Part.MAX_VALUE) {
                 throw new IndexOutOfBoundsException(
@@ -961,7 +971,7 @@ mainLoop:
             }
             hasArgNames=true;
             addPart(length, Part.Type.ARG_NAME, nameIndex);
-        } else {
+        } else {  // number<-1
             throw new IllegalArgumentException("Bad argument syntax: "+prefix(nameIndex));
         }
         index=skipWhiteSpace(index);
@@ -969,7 +979,7 @@ mainLoop:
             throw new IllegalArgumentException(
                 "Unmatched '{' braces in message \""+prefix()+"\"");
         }
-        c=msg.charAt(index++);
+        char c=msg.charAt(index++);
         if(c=='}') {
             // all done
         } else if(c!=',') {
@@ -1073,7 +1083,7 @@ mainLoop:
             // The choice argument style contains |-separated (number, separator, message) triples.
             // Parse the number.
             int numberIndex=index;
-            index=findTokenLimit(index);
+            index=skipDouble(index);
             int length=index-numberIndex;
             if(length==0) {
                 throw new IllegalArgumentException("Bad choice pattern syntax: "+prefix(start));
@@ -1093,7 +1103,10 @@ mainLoop:
             addPart(1, Part.Type.ARG_SELECTOR, index-1);
             // Parse the message fragment.
             index=parseMessage(index, nestingLevel+1, ArgType.CHOICE);
-            // parseMessage(..., CHOICE) returns the index of the terminator.
+            // parseMessage(..., CHOICE) returns the index of the terminator, or msg.length().
+            if(index==msg.length()) {
+                return index;
+            }
             if(msg.charAt(index++)=='}') {
                 if(!inMessageFormatPattern(nestingLevel)) {
                     throw new IllegalArgumentException(
@@ -1110,9 +1123,6 @@ mainLoop:
         boolean isEmpty=true;
         boolean hasOther=false;
         for(;;) {
-            // TODO: verify/align plural & select format selector syntaxes
-            // TODO: when porting extended plural syntax to public ICU,
-            //       make "offset" case-sensitive and require it to be before all key-message pairs
             // First, collect the selector looking for a small set of terminators.
             // It would be a little faster to consider the syntax of each possible
             // token right here, but that makes the code too complicated.
@@ -1134,58 +1144,61 @@ mainLoop:
                 return eos ? index: index+1;
             }
             int selectorIndex=index;
-            index=findTokenLimit(index);
-            int length=index-selectorIndex;
-            if(length==0) {
-                throw new IllegalArgumentException(
-                    "Bad "+
-                    (argType==ArgType.PLURAL ? "plural" : "select")+
-                    " pattern syntax: "+prefix(start));
-            }
             if(argType==ArgType.PLURAL && msg.charAt(selectorIndex)=='=') {
                 // explicit-value plural selector: =double
+                index=skipDouble(index+1);
+                int length=index-selectorIndex;
+                if(length==1) {
+                    throw new IllegalArgumentException(
+                        "Bad "+
+                        (argType==ArgType.PLURAL ? "plural" : "select")+
+                        " pattern syntax: "+prefix(start));
+                }
                 if(length>Part.MAX_VALUE) {
                     throw new IndexOutOfBoundsException(
                         "Argument selector too long: "+msg.substring(selectorIndex, index));
                 }
                 addPart(length, Part.Type.ARG_SELECTOR, selectorIndex);
                 parseDouble(selectorIndex+1, index, false);  // adds ARG_INT or ARG_DOUBLE
-            } else if(argType==ArgType.PLURAL && length>=7 &&
-                      msg.regionMatches(selectorIndex, "offset:", 0, 7)) {
-                // plural offset, not a selector
-                if(!isEmpty) {
+            } else {
+                index=skipIdentifier(index);
+                int length=index-selectorIndex;
+                if(length==0) {
                     throw new IllegalArgumentException(
-                        "Plural argument 'offset:' (if present) must precede key-message pairs: "+
-                        prefix(start));
+                        "Bad "+
+                        (argType==ArgType.PLURAL ? "plural" : "select")+
+                        " pattern syntax: "+prefix(start));
                 }
-                int valueIndex=selectorIndex+7;
-                if(index==valueIndex) {
+                if( argType==ArgType.PLURAL && length==6 && index<msg.length() &&
+                    msg.regionMatches(selectorIndex, "offset:", 0, 7)
+                ) {
+                    // plural offset, not a selector
+                    if(!isEmpty) {
+                        throw new IllegalArgumentException(
+                            "Plural argument 'offset:' (if present) must precede key-message pairs: "+
+                            prefix(start));
+                    }
                     // allow whitespace between offset: and its value
-                    valueIndex=skipWhiteSpace(index);
-                    index=findTokenLimit(valueIndex);
+                    int valueIndex=skipWhiteSpace(index+1);  // The ':' is at index.
+                    index=skipDouble(valueIndex);
                     if(index==valueIndex) {
                         throw new IllegalArgumentException(
                             "Missing value for plural 'offset:' at "+prefix(start));
                     }
+                    parseDouble(valueIndex, index, false);  // adds ARG_INT or ARG_DOUBLE
+                    isEmpty=false;
+                    continue;  // no message fragment after the offset
+                } else {
+                    // normal selector word
+                    if(length>Part.MAX_VALUE) {
+                        throw new IndexOutOfBoundsException(
+                            "Argument selector too long: "+msg.substring(selectorIndex, index));
+                    }
+                    addPart(length, Part.Type.ARG_SELECTOR, selectorIndex);
+                    if(msg.regionMatches(selectorIndex, "other", 0, length)) {
+                        hasOther=true;
+                    }
                 }
-                parseDouble(valueIndex, index, false);  // adds ARG_INT or ARG_DOUBLE
-                isEmpty=false;
-                continue;  // no message fragment after the offset
-            } else if(isIdentifier(selectorIndex, index)) {
-                // normal selector word
-                if(length>Part.MAX_VALUE) {
-                    throw new IndexOutOfBoundsException(
-                        "Argument selector too long: "+msg.substring(selectorIndex, index));
-                }
-                addPart(length, Part.Type.ARG_SELECTOR, selectorIndex);
-                if(msg.regionMatches(selectorIndex, "other", 0, length)) {
-                    hasOther=true;
-                }
-            } else {
-                throw new IllegalArgumentException(
-                    "Expected "+
-                    (argType==ArgType.PLURAL ? "plural" : "select")+
-                    " selector word at "+prefix(selectorIndex));
             }
 
             // parse the message fragment following the selector
@@ -1199,6 +1212,64 @@ mainLoop:
             index=parseMessage(index, nestingLevel+1, argType);
             isEmpty=false;
         }
+    }
+
+    /**
+     * Validates and parses an argument name or argument number string.
+     * This internal method assumes that the input substring is a "pattern identifier".
+     * @param s
+     * @param start
+     * @param limit
+     * @return &gt;=0 if the name is a valid number,
+     *         -1 if it is a "pattern identifier" but not all ASCII digits,
+     *         -2 if it is neither.
+     * @see #validateArgumentName(String)
+     */
+    private static int parseArgNumber(CharSequence s, int start, int limit) {
+        // If the identifier contains only ASCII digits, then it is an argument _number_
+        // and must not have leading zeros (except "0" itself).
+        // Otherwise it is an argument _name_.
+        if(start>=limit) {
+            return -2;
+        }
+        int number;
+        // Defer numeric errors until we know there are only digits.
+        boolean badNumber;
+        char c=s.charAt(start++);
+        if(c=='0') {
+            if(start==limit) {
+                return 0;
+            } else {
+                number=0;
+                badNumber=true;  // leading zero
+            }
+        } else if('1'<=c && c<='9') {
+            number=c-'0';
+            badNumber=false;
+        } else {
+            return -1;
+        }
+        while(start<limit) {
+            c=s.charAt(start++);
+            if('0'<=c && c<='9') {
+                if(number>=Integer.MAX_VALUE/10) {
+                    badNumber=true;  // overflow
+                }
+                number=number*10+(c-'0');
+            } else {
+                return -1;
+            }
+        }
+        // There are only ASCII digits.
+        if(badNumber) {
+            return -2;
+        } else {
+            return number;
+        }
+    }
+
+    private int parseArgNumber(int start, int limit) {
+        return parseArgNumber(msg, start, limit);
     }
 
     /**
@@ -1259,23 +1330,28 @@ mainLoop:
             "Bad syntax for numeric value: "+msg.substring(start, limit));
     }
 
-    private int findTokenLimit(int index) {
-        char c;
-        while(index<msg.length() &&
-              !(" ,{}#<\u2264".indexOf(c=msg.charAt(index))>=0 ||  // U+2264 is <=
-                PatternProps.isWhiteSpace(c))) {
-            ++index;
-        }
-        return index;
-    }
-
     private int skipWhiteSpace(int index) {
         return PatternProps.skipWhiteSpace(msg, index);
     }
 
-    private boolean isIdentifier(int start, int limit) {
-        assert start<limit;
-        return PatternProps.isIdentifier(msg, start, limit);
+    private int skipIdentifier(int index) {
+        return PatternProps.skipIdentifier(msg, index);
+    }
+
+    /**
+     * Skips a sequence of characters that could occur in a double value.
+     * Does not fully parse or validate the value.
+     */
+    private int skipDouble(int index) {
+        while(index<msg.length()) {
+            char c=msg.charAt(index);
+            // U+221E: Allow the infinity symbol, for ChoiceFormat patterns.
+            if((c<'0' && "+-.".indexOf(c)<0) || (c>'9' && c!='e' && c!='E' && c!=0x221e)) {
+                break;
+            }
+            ++index;
+        }
+        return index;
     }
 
     private static boolean isArgTypeChar(int c) {
@@ -1321,6 +1397,17 @@ mainLoop:
      */
     private boolean inMessageFormatPattern(int nestingLevel) {
         return nestingLevel>0 || Part.getType((int)(long)partsList.get(0))==Part.Type.MSG_START;
+    }
+
+    /**
+     * @return true if we are in a MessageFormat sub-pattern
+     *         of a top-level ChoiceFormat pattern.
+     */
+    private boolean inTopLevelChoiceMessage(int nestingLevel, ArgType parentType) {
+        return
+            nestingLevel==1 &&
+            parentType==ArgType.CHOICE &&
+            Part.getType((int)(long)partsList.get(0))!=Part.Type.MSG_START;
     }
 
     private int makePartInt(int value, Part.Type type, int index) {

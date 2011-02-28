@@ -637,16 +637,11 @@ public class MessageFormat extends UFormat {
         }
     }
 
-    private boolean argNameMatches(int partIndex, Part part, String argName) {
+    private boolean argNameMatches(int partIndex, Part part, String argName, int argNumber) {
         MessagePattern.Part.Type type = msgPattern.getPart(partIndex, part).getType();
-        if (type == MessagePattern.Part.Type.ARG_NAME) {
-            return msgPattern.partSubstringMatches(part, argName);
-        }  // else ARG_NUMBER
-        try {
-            return part.getValue() == Integer.parseInt(argName);
-        } catch(NumberFormatException e) {
-            return false;
-        }
+        return type == MessagePattern.Part.Type.ARG_NAME ?
+            msgPattern.partSubstringMatches(part, argName) :
+            part.getValue() == argNumber;  // ARG_NUMBER
     }
 
     private String getArgName(int partIndex, Part part) {
@@ -850,9 +845,13 @@ public class MessageFormat extends UFormat {
                 formats[i] = newFormat;
             }
         }
+        int argNumber = MessagePattern.validateArgumentName(argumentName);
+        if (argNumber < -1) {
+            return;
+        }
         Part part = new Part();
         for (int partIndex = 0; (partIndex = nextTopLevelArgStart(partIndex, part)) >= 0;) {
-            if (argNameMatches(partIndex + 1, part, argumentName)) {
+            if (argNameMatches(partIndex + 1, part, argumentName, argNumber)) {
                 setCustomArgStartFormat(partIndex, newFormat);
             }
         }
@@ -991,9 +990,13 @@ public class MessageFormat extends UFormat {
         if (cachedFormatters == null) {
             return null;
         }
+        int argNumber = MessagePattern.validateArgumentName(argumentName);
+        if (argNumber < -1) {
+            return null;
+        }
         Part part = new Part();
         for (int partIndex = 0; (partIndex = nextTopLevelArgStart(partIndex, part)) >= 0;) {
-            if (argNameMatches(partIndex + 1, part, argumentName)) {
+            if (argNameMatches(partIndex + 1, part, argumentName, argNumber)) {
                 return cachedFormatters.get(partIndex);
             }
         }
