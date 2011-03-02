@@ -158,7 +158,7 @@ public class TestMessageFormat extends com.ibm.icu.dev.test.TestFmwk {
            "'{1,number,#,##}' {1,number,#,##}",
         };
 
-        // TODO: Review if it's ok to return the original pattern (testCases)
+        // ICU 4.8 returns the original pattern (testCases)
         // rather than toPattern() reconstituting a new, equivalent pattern string (testResultPatterns).
         /*String testResultPatterns[] = {
             "Quotes '', '{', a {0} '{'0}",
@@ -195,13 +195,14 @@ public class TestMessageFormat extends com.ibm.icu.dev.test.TestFmwk {
                 errln("MessageFormat for " + testCases[i] + " creation failed.");
                 continue;
             }
-            // TODO: Review if it's ok to return the original pattern (testCases)
+            // ICU 4.8 returns the original pattern (testCases)
             // rather than toPattern() reconstituting a new, equivalent pattern string (testResultPatterns).
             // assertEquals("\"" + testCases[i] + "\".toPattern()", testResultPatterns[i], form.toPattern());
             assertEquals("\"" + testCases[i] + "\".toPattern()", testCases[i], form.toPattern());
-            // TODO: An alternative test would be to build MessagePattern objects for
+            // Note: An alternative test would be to build MessagePattern objects for
             // both the input and output patterns and compare them, taking SKIP_SYNTAX etc.
             // into account.
+            // (Too much trouble...)
 
             //it_out << "Pat out: " << form.toPattern(buffer));
             StringBuffer result = new StringBuffer();

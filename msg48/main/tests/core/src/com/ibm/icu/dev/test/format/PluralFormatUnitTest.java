@@ -263,7 +263,8 @@ public class PluralFormatUnitTest extends TestFmwk {
             args[1] = new Integer(i);
             logln(pfmt.format(args));
         }
-        /* TODO: Review if it's ok to return null instead of choice/plural/select Format object
+        /* ICU 4.8 returns null instead of a choice/plural/select Format object
+         * (because it does not create an object for any "complex" argument).
         PluralFormat pf = (PluralFormat)pfmt.getFormatsByArgumentIndex()[1];
         logln(pf.toPattern());
         */
@@ -311,7 +312,7 @@ public class PluralFormatUnitTest extends TestFmwk {
         };
         for (String fmt : failures) {
             try {
-                PluralFormat pf = new PluralFormat(fmt);
+                new PluralFormat(fmt);
                 fail("expected exception when parsing '" + fmt + "'");
             } catch (IllegalArgumentException e) {
                 // ok
