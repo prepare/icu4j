@@ -1689,201 +1689,179 @@ public class MessageFormat extends UFormat {
 
     private int format(int msgStart, Part part, double pluralNumber,  Object[] args,
             Map<String, Object> argsMap, AppendableWrapper dest, FieldPosition fp, List<AttributeAndPosition> attributes) {
-        try {
-            String msgString=msgPattern.getString();
-            int prevIndex=msgPattern.getPart(msgStart, part).getIndex();
-            assert part.getType()==MessagePattern.Part.Type.MSG_START;
-            for(int i=msgStart+1;; ++i) {
-                Part.Type type=msgPattern.getPart(i, part).getType();
-                int index=part.getIndex();
-                dest.append(msgString, prevIndex, index);
-                if(type==Part.Type.MSG_LIMIT) {
-                    return i;
+        String msgString=msgPattern.getString();
+        int prevIndex=msgPattern.getPart(msgStart, part).getIndex();
+        assert part.getType()==MessagePattern.Part.Type.MSG_START;
+        for(int i=msgStart+1;; ++i) {
+            Part.Type type=msgPattern.getPart(i, part).getType();
+            int index=part.getIndex();
+            dest.append(msgString, prevIndex, index);
+            if(type==Part.Type.MSG_LIMIT) {
+                return i;
+            }
+            if(type==Part.Type.SKIP_SYNTAX) {
+                prevIndex=index+part.getValue();
+                continue;
+            }
+            if(type==Part.Type.REPLACE_NUMBER) {
+                prevIndex=index+part.getValue();
+                if (stockNumberFormatter == null) {
+                    stockNumberFormatter = NumberFormat.getInstance(ulocale);
                 }
-                if(type==Part.Type.SKIP_SYNTAX) {
-                    prevIndex=index+part.getValue();
-                    continue;
+                int prevDestLength = dest.length;
+                if (attributes == null) {
+                    dest.append(stockNumberFormatter.format(pluralNumber));
+                } else {
+                    formatAndAppend(stockNumberFormatter, pluralNumber, dest, attributes);
                 }
-                if(type==Part.Type.REPLACE_NUMBER) {
-                    prevIndex=index+part.getValue();
+                // TODO: Do we need and want Field.PLURAL_NUMBER?
+                fp = updateMetaData(prevDestLength, dest.length, fp, attributes, null);
+                continue;
+            }
+            if(type==Part.Type.INSERT_CHAR) {
+                prevIndex=index;
+                continue;
+            }
+            assert type==Part.Type.ARG_START : "Unexpected Part "+part+" in parsed message.";
+            int argLimit=msgPattern.getPartLimit(i);
+            ArgType argType=part.getArgType();
+            msgPattern.getPart(++i, part);
+            Object arg;
+            String noArg=null;
+            Object argId=null;
+            if(args!=null) {
+                int argNumber=part.getValue();  // ARG_NUMBER
+                if (attributes != null) {
+                    // We only need argId if we add it into the attributes.
+                    argId = new Integer(argNumber);
+                }
+                if(0<=argNumber && argNumber<args.length) {
+                    arg=args[argNumber];
+                } else {
+                    arg=null;
+                    noArg="{"+argNumber+"}";
+                }
+            } else {
+                String key;
+                if(part.getType()==MessagePattern.Part.Type.ARG_NAME) {
+                    key=msgPattern.getSubstring(part);
+                } else /* ARG_NUMBER */ {
+                    key=Integer.toString(part.getValue());
+                }
+                argId = key;
+                if(argsMap!=null && argsMap.containsKey(key)) {
+                    arg=argsMap.get(key);
+                } else {
+                    arg=null;
+                    noArg="{"+key+"}";
+                }
+            }
+            ++i;
+            int prevDestLength=dest.length;
+            Format formatter = null;
+            if (noArg != null) {
+                dest.append(noArg);
+            } else if (arg == null) {
+                dest.append("null");
+            } else if(cachedFormatters!=null && (formatter=cachedFormatters.get(i - 2))!=null) {
+                // Handles all ArgType.SIMPLE, and formatters from setFormat() and its siblings.
+                if (    formatter instanceof ChoiceFormat ||
+                        formatter instanceof PluralFormat ||
+                        formatter instanceof SelectFormat) {
+                    // We only handle nested formats here if they were provided via setFormat() or its siblings.
+                    // Otherwise they are not cached and instead handled below according to argType.
+                    String subMsgString = formatter.format(arg);
+                    if (subMsgString.indexOf('{') >= 0 || subMsgString.indexOf('\'') >= 0) {
+                        MessageFormat subMsgFormat = new MessageFormat(subMsgString, ulocale);
+                        subMsgFormat.format(0, part, 0, args, argsMap, dest, null, attributes);
+                    } else if (attributes == null) {
+                        dest.append(subMsgString);
+                    } else {
+                        // This formats the argument twice, once above to get the subMsgString
+                        // and then once more here.
+                        // It only happens in formatToCharacterIterator()
+                        // on a complex Format set via setFormat(),
+                        // and only when the selected subMsgString does not need further formatting.
+                        // This imitates ICU 4.6 behavior.
+                        formatAndAppend(formatter, arg, dest, attributes);
+                    }
+                } else {
+                    if (attributes == null) {
+                        dest.append(formatter.format(arg));
+                    } else {
+                        formatAndAppend(formatter, arg, dest, attributes);
+                    }
+                }
+            } else if(
+                    argType==ArgType.NONE ||
+                    (cachedFormatters!=null && cachedFormatters.containsKey(i - 2))) {
+                // ArgType.NONE, or
+                // any argument which got reset to null via setFormat() or its siblings.
+                if (arg instanceof Number) {
+                    // format number if can
                     if (stockNumberFormatter == null) {
                         stockNumberFormatter = NumberFormat.getInstance(ulocale);
                     }
                     if (attributes == null) {
-                        String s = stockNumberFormatter.format(pluralNumber);
-                        fp = appendToResult(dest, index, s, fp, attributes, null);
+                        dest.append(stockNumberFormatter.format(arg));
                     } else {
-                        AttributedCharacterIterator formattedIterator =  stockNumberFormatter.formatToCharacterIterator(pluralNumber);
-                        fp = appendToResult(dest, index, formattedIterator, fp, attributes, null);
+                        formatAndAppend(stockNumberFormatter, arg, dest, attributes);
                     }
-                    continue;
-                }
-                if(type==Part.Type.INSERT_CHAR) {
-                    prevIndex=index;
-                    continue;
-                }
-                assert type==Part.Type.ARG_START : "Unexpected Part "+part+" in parsed message.";
-                int argLimit=msgPattern.getPartLimit(i);
-                ArgType argType=part.getArgType();
-                msgPattern.getPart(++i, part);
-                Object arg;
-                String noArg=null;
-                Object argId=null;
-                if(args!=null) {
-                    int argNumber=part.getValue();  // ARG_NUMBER
-                    if (attributes != null) {
-                        // We only need argId if we add it into the attributes.
-                        argId = new Integer(argNumber);
+                 } else if (arg instanceof Date) {
+                    // format a Date if can
+                    if (stockDateFormatter == null) {
+                        stockDateFormatter = DateFormat.getDateTimeInstance(
+                                DateFormat.SHORT, DateFormat.SHORT, ulocale);//fix
                     }
-                    if(0<=argNumber && argNumber<args.length) {
-                        arg=args[argNumber];
-                    } else {
-                        arg=null;
-                        noArg="{"+argNumber+"}";
-                    }
-                } else {
-                    String key;
-                    if(part.getType()==MessagePattern.Part.Type.ARG_NAME) {
-                        key=msgPattern.getSubstring(part);
-                    } else /* ARG_NUMBER */ {
-                        key=Integer.toString(part.getValue());
-                    }
-                    argId = key;
-                    if(argsMap!=null && argsMap.containsKey(key)) {
-                        arg=argsMap.get(key);
-                    } else {
-                        arg=null;
-                        noArg="{"+key+"}";
-                    }
-                }
-                ++i;
-                Format formatter = null;
-                if (noArg != null) {
-                    fp = appendToResult(dest, index, noArg, fp, attributes, argId);
-                } else if (arg == null) {
-                    fp = appendToResult(dest, index, "null", fp, attributes, argId);
-                } else if(cachedFormatters!=null && (formatter=cachedFormatters.get(i - 2))!=null) {
-                    // Handles all ArgType.SIMPLE, and formatters from setFormat() and its siblings.
-                    String argString = null;
-                    AttributedCharacterIterator formattedIterator = null;
+                    
                     if (attributes == null) {
-                        argString = formatter.format(arg);
+                        dest.append(stockDateFormatter.format(arg));
                     } else {
-                        formattedIterator = formatter.formatToCharacterIterator(arg);
-                        StringBuilder toAppend = new StringBuilder();
-                        AppendableWrapper.append(toAppend, formattedIterator);
-                        argString = toAppend.toString();
+                        formatAndAppend(stockDateFormatter, arg, dest, attributes);
                     }
-                    boolean isChoice = formatter instanceof ChoiceFormat;
-                    if (isChoice
-                            || formatter instanceof PluralFormat
-                            || formatter instanceof SelectFormat) {
-                        // We only handle nested formats here if they were provided via setFormat() or its siblings.
-                        // Otherwise they are not cached and instead handled below according to argType.
-                        if (argString.indexOf('{') >= 0 || (!isChoice && argString.indexOf('\'') >= 0)) {
-                            // Note: We do not copy attributes from formattedIterator because they
-                            // have indexes into the argString which will not be directly appended to dest.
-                            // They would make no sense as indexes into the actual dest string.
-                            MessageFormat subMsgFormat = new MessageFormat(argString, ulocale);
-                            int prevLength = dest.length;
-                            subMsgFormat.format(0, part, 0, args, argsMap, dest, null, attributes);
-                            fp = appendToResult(prevLength, dest.length, fp, attributes, argId);
-                            argString = null;
-                        }
-                    }
-                    if(argString!=null) {
-                        if (attributes == null) {
-                            fp = appendToResult(dest, index, argString, fp, attributes, argId);
-                        } else {
-                            fp = appendToResult(dest, index, formattedIterator, fp, attributes, argId);
-                        }
-                    }
-                } else if(
-                        argType==ArgType.NONE ||
-                        (cachedFormatters!=null && cachedFormatters.containsKey(i - 2))) {
-                    // ArgType.NONE, or
-                    // any argument which got reset to null via setFormat() or its siblings.
-                    if (arg instanceof Number) {
-                        // format number if can
-                        if (stockNumberFormatter == null) {
-                            stockNumberFormatter = NumberFormat.getInstance(ulocale);
-                        }
-                        if (attributes == null) {
-                            fp = appendToResult(dest, index, stockNumberFormatter.format(arg), fp, attributes, argId);
-                        } else {
-                            AttributedCharacterIterator formattedIterator =  stockNumberFormatter.formatToCharacterIterator(arg);
-                            fp = appendToResult(dest, index, formattedIterator, fp, attributes, argId);
-                        }
-                     } else if (arg instanceof Date) {
-                        // format a Date if can
-                        if (stockDateFormatter == null) {
-                            stockDateFormatter = DateFormat.getDateTimeInstance(
-                                    DateFormat.SHORT, DateFormat.SHORT, ulocale);//fix
-                        }
-                        
-                        if (attributes == null) {
-                            fp = appendToResult(dest, index, stockDateFormatter.format(arg), fp, attributes, argId);
-                        } else {
-                            AttributedCharacterIterator formattedIterator =  stockDateFormatter.formatToCharacterIterator(arg);
-                            fp = appendToResult(dest, index, formattedIterator, fp, attributes, argId);
-                        }
-                    } else {
-                        fp = appendToResult(dest, index, arg.toString(), fp, attributes, argId);
-                    }
-                } else if(argType==ArgType.CHOICE) {
-                    if (!(arg instanceof Number)) {
-                        throw new IllegalArgumentException("'" + arg + "' is not a Number");
-                    }
-                    double number = ((Number)arg).doubleValue();
-                    int subMsgStart=msgPattern.findChoiceSubMessage(i, number);
-                    int prevLength = dest.length;
-                    format(subMsgStart, part, 0, args, argsMap, dest, null, attributes);
-                    fp = appendToResult(prevLength, dest.length, fp, attributes, argId);
-                } else if(argType==ArgType.PLURAL) {
-                    if (!(arg instanceof Number)) {
-                        throw new IllegalArgumentException("'" + arg + "' is not a Number");
-                    }
-                    double number = ((Number)arg).doubleValue();
-                    if (pluralProvider == null) {
-                        pluralProvider = new PluralSelectorProvider(ulocale);
-                    }
-                    int subMsgStart=msgPattern.findPluralSubMessage(i, pluralProvider, number);
-                    double offset=msgPattern.getPluralOffset(subMsgStart);
-                    int prevLength = dest.length;
-                    format(subMsgStart, part, number-offset, args, argsMap, dest, null, attributes);
-                    fp = appendToResult(prevLength, dest.length, fp, attributes, argId);
-                } else if(argType==ArgType.SELECT) {
-                    int subMsgStart=msgPattern.findSelectSubMessage(i, arg.toString());
-                    int prevLength = dest.length;
-                    format(subMsgStart, part, 0, args, argsMap, dest, null, attributes);
-                    fp = appendToResult(prevLength, dest.length, fp, attributes, argId);
                 } else {
-                    // This should never happen.
-                    throw new IllegalStateException("unexpected argType "+argType);
+                    dest.append(arg.toString());
                 }
-                prevIndex=msgPattern.getPatternIndex(argLimit);
-                i=argLimit;
+            } else if(argType==ArgType.CHOICE) {
+                if (!(arg instanceof Number)) {
+                    throw new IllegalArgumentException("'" + arg + "' is not a Number");
+                }
+                double number = ((Number)arg).doubleValue();
+                int subMsgStart=msgPattern.findChoiceSubMessage(i, number);
+                format(subMsgStart, part, 0, args, argsMap, dest, null, attributes);
+            } else if(argType==ArgType.PLURAL) {
+                if (!(arg instanceof Number)) {
+                    throw new IllegalArgumentException("'" + arg + "' is not a Number");
+                }
+                double number = ((Number)arg).doubleValue();
+                if (pluralProvider == null) {
+                    pluralProvider = new PluralSelectorProvider(ulocale);
+                }
+                int subMsgStart=msgPattern.findPluralSubMessage(i, pluralProvider, number);
+                double offset=msgPattern.getPluralOffset(subMsgStart);
+                format(subMsgStart, part, number-offset, args, argsMap, dest, null, attributes);
+            } else if(argType==ArgType.SELECT) {
+                int subMsgStart=msgPattern.findSelectSubMessage(i, arg.toString());
+                format(subMsgStart, part, 0, args, argsMap, dest, null, attributes);
+            } else {
+                // This should never happen.
+                throw new IllegalStateException("unexpected argType "+argType);
             }
-        } catch(IOException e) {  // Appendable throws IOException
-            throw new RuntimeException(e);  // We do not want a throws clause.
+            fp = updateMetaData(prevDestLength, dest.length, fp, attributes, argId);
+            prevIndex=msgPattern.getPatternIndex(argLimit);
+            i=argLimit;
         }
     }
 
-    private FieldPosition appendToResult(AppendableWrapper dest, int index, String formattedArg,
-            FieldPosition fp, List<AttributeAndPosition> attributes, Object argId) throws IOException {
-        int prevLength = dest.length;
-        dest.append(formattedArg);
-        return appendToResult(prevLength, dest.length, fp, attributes, argId);
-    }
-
-    private FieldPosition appendToResult(AppendableWrapper dest, int index, AttributedCharacterIterator formattedArg,
-            FieldPosition fp, List<AttributeAndPosition> attributes, Object argId) throws IOException {
+    private void formatAndAppend(Format formatter, Object arg, AppendableWrapper dest,
+                                 List<AttributeAndPosition> attributes) {
+        AttributedCharacterIterator formattedArg = formatter.formatToCharacterIterator(arg);
         int prevLength = dest.length;
         dest.append(formattedArg);
         // Copy all of the attributes from formattedArg to our attributes list.
         formattedArg.first();
         int start = formattedArg.getIndex();  // Should be 0 but might not be.
-        int limit = formattedArg.getEndIndex();  // == start + appendedLength
+        int limit = formattedArg.getEndIndex();  // == start + dest.length - prevLength
         int offset = prevLength - start;  // Adjust attribute indexes for the result string.
         while (start < limit) {
             Map<Attribute, Object> map = formattedArg.getAttributes();
@@ -1899,29 +1877,17 @@ public class MessageFormat extends UFormat {
             start = runLimit;
             formattedArg.setIndex(start);
         }
-        // The following appendToResult() adds another attribute
-        // for the plural number or message argument as a whole.
-        return appendToResult(prevLength, dest.length, fp, attributes, argId);
     }
 
-    /**
-     * This method is called after we recursively called MessageFormat.format()
-     * on a nested sub-message. The recursive call already added all of the nested attributes.
-     * Here we do the book-keeping for the argument as a whole.
-     */
-    private FieldPosition appendToResult(int prevLength, int newLength,
-            FieldPosition fp, List<AttributeAndPosition> attributes, Object argId) throws IOException {
+    private FieldPosition updateMetaData(int prevLength, int newLength,
+            FieldPosition fp, List<AttributeAndPosition> attributes, Object argId) {
         if (attributes != null && prevLength < newLength) {
             attributes.add(new AttributeAndPosition(argId, prevLength, newLength));
         }
-        return updateFieldPosition(fp, prevLength, newLength, argId);
-    }
-
-    private FieldPosition updateFieldPosition(FieldPosition fp, int from, int to, Object argId) {
         Format.Field field = argId == null ? Field.PLURAL_NUMBER : Field.ARGUMENT;
         if (fp != null && field.equals(fp.getFieldAttribute())) {
-            fp.setBeginIndex(from);
-            fp.setEndIndex(to);
+            fp.setBeginIndex(prevLength);
+            fp.setEndIndex(newLength);
             return null;
         }
         return fp;
