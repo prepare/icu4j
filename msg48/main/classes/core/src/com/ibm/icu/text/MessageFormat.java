@@ -1566,8 +1566,6 @@ public class MessageFormat extends UFormat {
             }
             if (this.getName().equals(ARGUMENT.getName())) {
                 return ARGUMENT;
-            } else if (this.getName().equals(PLURAL_NUMBER.getName())) {
-                return PLURAL_NUMBER;
             } else {
                 throw new InvalidObjectException("Unknown attribute name.");
             }
@@ -1583,12 +1581,6 @@ public class MessageFormat extends UFormat {
          * @stable ICU 3.8
          */
         public static final Field ARGUMENT = new Field("message argument field");
-
-        /**
-         * TODO: Should this live here or in PluralFormat? Name?
-         * @draft ICU 4.8
-         */
-        public static final Field PLURAL_NUMBER = new Field("plural number field");
     }
 
     // ===========================privates============================
@@ -1710,10 +1702,7 @@ public class MessageFormat extends UFormat {
                 if (stockNumberFormatter == null) {
                     stockNumberFormatter = NumberFormat.getInstance(ulocale);
                 }
-                int prevDestLength = dest.length;
                 dest.formatAndAppend(stockNumberFormatter, pluralNumber);
-                // TODO: Do we need and want Field.PLURAL_NUMBER?
-                fp = updateMetaData(dest, prevDestLength, fp, null);
                 continue;
             }
             if(type==Part.Type.INSERT_CHAR) {
@@ -1843,8 +1832,7 @@ public class MessageFormat extends UFormat {
         if (dest.attributes != null && prevLength < dest.length) {
             dest.attributes.add(new AttributeAndPosition(argId, prevLength, dest.length));
         }
-        Format.Field field = argId == null ? Field.PLURAL_NUMBER : Field.ARGUMENT;
-        if (fp != null && field.equals(fp.getFieldAttribute())) {
+        if (fp != null && Field.ARGUMENT.equals(fp.getFieldAttribute())) {
             fp.setBeginIndex(prevLength);
             fp.setEndIndex(dest.length);
             return null;
@@ -2569,17 +2557,11 @@ public class MessageFormat extends UFormat {
     }
 
     private static final class AttributeAndPosition {
+        /**
+         * Defaults the field to Field.ARGUMENT.
+         */
         public AttributeAndPosition(Object fieldValue, int startIndex, int limitIndex) {
-            // The code above (appendToResult() methods etc.)
-            // passes a non-null argId for a Field.ARGUMENT,
-            // and null for a Field.PLURAL_NUMBER (the # in a plural sub-message).
-            // If we needed to handle more Field types in MessageFormat,
-            // we should then probably start passing around the Field key explicitly.
-            if (fieldValue == null) {
-                init(Field.PLURAL_NUMBER, Field.PLURAL_NUMBER, startIndex, limitIndex);
-            } else {
-                init(Field.ARGUMENT, fieldValue, startIndex, limitIndex);
-            }
+            init(Field.ARGUMENT, fieldValue, startIndex, limitIndex);
         }
 
         public AttributeAndPosition(Attribute field, Object fieldValue, int startIndex, int limitIndex) {
