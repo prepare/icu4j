@@ -103,9 +103,11 @@ public class MessageRegression extends com.ibm.icu.dev.test.TestFmwk {
 
     /* @bug 4058973
      * MessageFormat.toPattern has weird rounding behavior.
+     *
+     * ICU 4.8: This test is commented out because toPattern() has been changed to return
+     * the original pattern string, rather than reconstituting a new (equivalent) one.
+     * This trivially eliminates issues with rounding or any other pattern string differences.
      */
-    // TODO: Review if it's ok to return the original pattern
-    // rather than toPattern() reconstituting a new, equivalent pattern string.
     /*public void Test4058973() {
 
         MessageFormat fmt = new MessageFormat("{0,choice,0#no files|1#one file|1< {0,number,integer} files}");
@@ -603,7 +605,7 @@ public class MessageRegression extends com.ibm.icu.dev.test.TestFmwk {
     public void Test4169959() {
         // This works
         logln(MessageFormat.format( "This will {0}",
-                                    new String[]{"work"} ) );
+                                    new Object[]{"work"} ) );
         
         // This fails
         logln(MessageFormat.format( "This will {0}",
