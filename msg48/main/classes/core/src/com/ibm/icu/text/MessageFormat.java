@@ -1078,7 +1078,7 @@ public class MessageFormat extends UFormat {
     public final StringBuffer format(Object[] arguments, StringBuffer result,
                                      FieldPosition pos)
     {
-        format(arguments, null, new AppendableWrapper(result), pos, null);
+        format(arguments, null, new AppendableWrapper(result), pos);
         return result;
     }
 
@@ -1113,7 +1113,7 @@ public class MessageFormat extends UFormat {
      */
     public final StringBuffer format(Map<String, Object> arguments, StringBuffer result,
                                      FieldPosition pos) {
-        format(null, arguments, new AppendableWrapper(result), pos, null);
+        format(null, arguments, new AppendableWrapper(result), pos);
         return result;
     }
 
@@ -1195,7 +1195,7 @@ public class MessageFormat extends UFormat {
     public final StringBuffer format(Object arguments, StringBuffer result,
                                      FieldPosition pos)
     {
-        format(arguments, new AppendableWrapper(result), pos, null);
+        format(arguments, new AppendableWrapper(result), pos);
         return result;
     }
 
@@ -1241,10 +1241,11 @@ public class MessageFormat extends UFormat {
                    "formatToCharacterIterator must be passed non-null object");
         }
         StringBuilder result = new StringBuilder();
-        ArrayList<AttributeAndPosition> attributes = new ArrayList<AttributeAndPosition>();
-        format(arguments, new AppendableWrapper(result), null, attributes);
+        AppendableWrapper wrapper = new AppendableWrapper(result);
+        wrapper.useAttributes();
+        format(arguments, wrapper, null);
         AttributedString as = new AttributedString(result.toString());
-        for (AttributeAndPosition a : attributes) {
+        for (AttributeAndPosition a : wrapper.attributes) {
             as.addAttribute(a.key, a.value, a.start, a.limit);
         }
         return as.getIterator();
@@ -1687,8 +1688,9 @@ public class MessageFormat extends UFormat {
 
     transient private PluralSelectorProvider pluralProvider;
 
-    private int format(int msgStart, Part part, double pluralNumber,  Object[] args,
-            Map<String, Object> argsMap, AppendableWrapper dest, FieldPosition fp, List<AttributeAndPosition> attributes) {
+    private int format(int msgStart, Part part, double pluralNumber,
+                       Object[] args, Map<String, Object> argsMap,
+                       AppendableWrapper dest, FieldPosition fp) {
         String msgString=msgPattern.getString();
         int prevIndex=msgPattern.getPart(msgStart, part).getIndex();
         assert part.getType()==MessagePattern.Part.Type.MSG_START;
@@ -1709,13 +1711,9 @@ public class MessageFormat extends UFormat {
                     stockNumberFormatter = NumberFormat.getInstance(ulocale);
                 }
                 int prevDestLength = dest.length;
-                if (attributes == null) {
-                    dest.append(stockNumberFormatter.format(pluralNumber));
-                } else {
-                    formatAndAppend(stockNumberFormatter, pluralNumber, dest, attributes);
-                }
+                dest.formatAndAppend(stockNumberFormatter, pluralNumber);
                 // TODO: Do we need and want Field.PLURAL_NUMBER?
-                fp = updateMetaData(prevDestLength, dest.length, fp, attributes, null);
+                fp = updateMetaData(dest, prevDestLength, fp, null);
                 continue;
             }
             if(type==Part.Type.INSERT_CHAR) {
@@ -1731,7 +1729,7 @@ public class MessageFormat extends UFormat {
             Object argId=null;
             if(args!=null) {
                 int argNumber=part.getValue();  // ARG_NUMBER
-                if (attributes != null) {
+                if (dest.attributes != null) {
                     // We only need argId if we add it into the attributes.
                     argId = new Integer(argNumber);
                 }
@@ -1773,8 +1771,8 @@ public class MessageFormat extends UFormat {
                     String subMsgString = formatter.format(arg);
                     if (subMsgString.indexOf('{') >= 0 || subMsgString.indexOf('\'') >= 0) {
                         MessageFormat subMsgFormat = new MessageFormat(subMsgString, ulocale);
-                        subMsgFormat.format(0, part, 0, args, argsMap, dest, null, attributes);
-                    } else if (attributes == null) {
+                        subMsgFormat.format(0, part, 0, args, argsMap, dest, null);
+                    } else if (dest.attributes == null) {
                         dest.append(subMsgString);
                     } else {
                         // This formats the argument twice, once above to get the subMsgString
@@ -1783,14 +1781,10 @@ public class MessageFormat extends UFormat {
                         // on a complex Format set via setFormat(),
                         // and only when the selected subMsgString does not need further formatting.
                         // This imitates ICU 4.6 behavior.
-                        formatAndAppend(formatter, arg, dest, attributes);
+                        dest.formatAndAppend(formatter, arg);
                     }
                 } else {
-                    if (attributes == null) {
-                        dest.append(formatter.format(arg));
-                    } else {
-                        formatAndAppend(formatter, arg, dest, attributes);
-                    }
+                    dest.formatAndAppend(formatter, arg);
                 }
             } else if(
                     argType==ArgType.NONE ||
@@ -1802,23 +1796,14 @@ public class MessageFormat extends UFormat {
                     if (stockNumberFormatter == null) {
                         stockNumberFormatter = NumberFormat.getInstance(ulocale);
                     }
-                    if (attributes == null) {
-                        dest.append(stockNumberFormatter.format(arg));
-                    } else {
-                        formatAndAppend(stockNumberFormatter, arg, dest, attributes);
-                    }
+                    dest.formatAndAppend(stockNumberFormatter, arg);
                  } else if (arg instanceof Date) {
                     // format a Date if can
                     if (stockDateFormatter == null) {
                         stockDateFormatter = DateFormat.getDateTimeInstance(
                                 DateFormat.SHORT, DateFormat.SHORT, ulocale);//fix
                     }
-                    
-                    if (attributes == null) {
-                        dest.append(stockDateFormatter.format(arg));
-                    } else {
-                        formatAndAppend(stockDateFormatter, arg, dest, attributes);
-                    }
+                    dest.formatAndAppend(stockDateFormatter, arg);
                 } else {
                     dest.append(arg.toString());
                 }
@@ -1828,7 +1813,7 @@ public class MessageFormat extends UFormat {
                 }
                 double number = ((Number)arg).doubleValue();
                 int subMsgStart=msgPattern.findChoiceSubMessage(i, number);
-                format(subMsgStart, part, 0, args, argsMap, dest, null, attributes);
+                format(subMsgStart, part, 0, args, argsMap, dest, null);
             } else if(argType==ArgType.PLURAL) {
                 if (!(arg instanceof Number)) {
                     throw new IllegalArgumentException("'" + arg + "' is not a Number");
@@ -1839,55 +1824,29 @@ public class MessageFormat extends UFormat {
                 }
                 int subMsgStart=msgPattern.findPluralSubMessage(i, pluralProvider, number);
                 double offset=msgPattern.getPluralOffset(subMsgStart);
-                format(subMsgStart, part, number-offset, args, argsMap, dest, null, attributes);
+                format(subMsgStart, part, number-offset, args, argsMap, dest, null);
             } else if(argType==ArgType.SELECT) {
                 int subMsgStart=msgPattern.findSelectSubMessage(i, arg.toString());
-                format(subMsgStart, part, 0, args, argsMap, dest, null, attributes);
+                format(subMsgStart, part, 0, args, argsMap, dest, null);
             } else {
                 // This should never happen.
                 throw new IllegalStateException("unexpected argType "+argType);
             }
-            fp = updateMetaData(prevDestLength, dest.length, fp, attributes, argId);
+            fp = updateMetaData(dest, prevDestLength, fp, argId);
             prevIndex=msgPattern.getPatternIndex(argLimit);
             i=argLimit;
         }
     }
 
-    private void formatAndAppend(Format formatter, Object arg, AppendableWrapper dest,
-                                 List<AttributeAndPosition> attributes) {
-        AttributedCharacterIterator formattedArg = formatter.formatToCharacterIterator(arg);
-        int prevLength = dest.length;
-        dest.append(formattedArg);
-        // Copy all of the attributes from formattedArg to our attributes list.
-        formattedArg.first();
-        int start = formattedArg.getIndex();  // Should be 0 but might not be.
-        int limit = formattedArg.getEndIndex();  // == start + dest.length - prevLength
-        int offset = prevLength - start;  // Adjust attribute indexes for the result string.
-        while (start < limit) {
-            Map<Attribute, Object> map = formattedArg.getAttributes();
-            int runLimit = formattedArg.getRunLimit();
-            if (map.size() != 0) {
-                for (Map.Entry<Attribute, Object> entry : map.entrySet()) {
-                    attributes.add(
-                        new AttributeAndPosition(
-                            entry.getKey(), entry.getValue(),
-                            offset + start, offset + runLimit));
-                }
-            }
-            start = runLimit;
-            formattedArg.setIndex(start);
-        }
-    }
-
-    private FieldPosition updateMetaData(int prevLength, int newLength,
-            FieldPosition fp, List<AttributeAndPosition> attributes, Object argId) {
-        if (attributes != null && prevLength < newLength) {
-            attributes.add(new AttributeAndPosition(argId, prevLength, newLength));
+    private FieldPosition updateMetaData(AppendableWrapper dest, int prevLength,
+                                         FieldPosition fp, Object argId) {
+        if (dest.attributes != null && prevLength < dest.length) {
+            dest.attributes.add(new AttributeAndPosition(argId, prevLength, dest.length));
         }
         Format.Field field = argId == null ? Field.PLURAL_NUMBER : Field.ARGUMENT;
         if (fp != null && field.equals(fp.getFieldAttribute())) {
             fp.setBeginIndex(prevLength);
-            fp.setEndIndex(newLength);
+            fp.setEndIndex(dest.length);
             return null;
         }
         return fp;
@@ -1914,11 +1873,11 @@ public class MessageFormat extends UFormat {
     }
 
     @SuppressWarnings("unchecked")
-    private void format(Object arguments, AppendableWrapper result, FieldPosition fp, List<AttributeAndPosition> attributes) {
+    private void format(Object arguments, AppendableWrapper result, FieldPosition fp) {
         if ((arguments == null || arguments instanceof Map)) {
-            format(null, (Map<String, Object>)arguments, result, fp, attributes);
+            format(null, (Map<String, Object>)arguments, result, fp);
         } else {
-            format((Object[])arguments, null, result, fp, attributes);
+            format((Object[])arguments, null, result, fp);
         }
     }
 
@@ -1930,13 +1889,13 @@ public class MessageFormat extends UFormat {
      *         expected by the format element(s) that use it.
      */
     private void format(Object[] arguments, Map<String, Object> argsMap,
-            AppendableWrapper dest, FieldPosition fp, List<AttributeAndPosition> attributes) {
+                        AppendableWrapper dest, FieldPosition fp) {
         if (arguments != null && msgPattern.hasNamedArguments()) {
             throw new IllegalArgumentException(
                 "This method is not available in MessageFormat objects " +
                 "that use alphanumeric argument names.");
         }
-        format(0, new Part(), 0, arguments, argsMap, dest, fp, attributes);
+        format(0, new Part(), 0, arguments, argsMap, dest, fp);
     }
 
     private void resetPattern() {
@@ -2523,11 +2482,17 @@ public class MessageFormat extends UFormat {
         public AppendableWrapper(StringBuilder sb) {
             app = sb;
             length = sb.length();
+            attributes = null;
         }
 
         public AppendableWrapper(StringBuffer sb) {
             app = sb;
             length = sb.length();
+            attributes = null;
+        }
+
+        public void useAttributes() {
+            attributes = new ArrayList<AttributeAndPosition>();
         }
 
         public void append(CharSequence s) {
@@ -2569,8 +2534,38 @@ public class MessageFormat extends UFormat {
             }
         }
 
+        public void formatAndAppend(Format formatter, Object arg) {
+            if (attributes == null) {
+                append(formatter.format(arg));
+            } else {
+                AttributedCharacterIterator formattedArg = formatter.formatToCharacterIterator(arg);
+                int prevLength = length;
+                append(formattedArg);
+                // Copy all of the attributes from formattedArg to our attributes list.
+                formattedArg.first();
+                int start = formattedArg.getIndex();  // Should be 0 but might not be.
+                int limit = formattedArg.getEndIndex();  // == start + length - prevLength
+                int offset = prevLength - start;  // Adjust attribute indexes for the result string.
+                while (start < limit) {
+                    Map<Attribute, Object> map = formattedArg.getAttributes();
+                    int runLimit = formattedArg.getRunLimit();
+                    if (map.size() != 0) {
+                        for (Map.Entry<Attribute, Object> entry : map.entrySet()) {
+                           attributes.add(
+                               new AttributeAndPosition(
+                                   entry.getKey(), entry.getValue(),
+                                   offset + start, offset + runLimit));
+                        }
+                    }
+                    start = runLimit;
+                    formattedArg.setIndex(start);
+                }
+            }
+        }
+
         private Appendable app;
         private int length;
+        private List<AttributeAndPosition> attributes;
     }
 
     private static final class AttributeAndPosition {
