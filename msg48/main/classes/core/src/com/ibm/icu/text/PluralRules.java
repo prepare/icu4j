@@ -78,7 +78,7 @@ import com.ibm.icu.util.ULocale;
  * integers in the specified range, while 'within' includes all values.</p>
  * @stable ICU 3.8
  */
-public class PluralRules implements MessagePattern.PluralSelector, Serializable {
+public class PluralRules implements PluralFormat.PluralSelector, Serializable {
     private static final long serialVersionUID = 1;
 
     private final RuleList rules;

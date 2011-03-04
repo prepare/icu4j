@@ -1801,7 +1801,7 @@ public class MessageFormat extends UFormat {
                     throw new IllegalArgumentException("'" + arg + "' is not a Number");
                 }
                 double number = ((Number)arg).doubleValue();
-                int subMsgStart=msgPattern.findChoiceSubMessage(i, number);
+                int subMsgStart=findChoiceSubMessage(msgPattern, i, part, number);
                 format(subMsgStart, part, 0, args, argsMap, dest, null);
             } else if(argType==ArgType.PLURAL) {
                 if (!(arg instanceof Number)) {
@@ -1811,11 +1811,11 @@ public class MessageFormat extends UFormat {
                 if (pluralProvider == null) {
                     pluralProvider = new PluralSelectorProvider(ulocale);
                 }
-                int subMsgStart=msgPattern.findPluralSubMessage(i, pluralProvider, number);
+                int subMsgStart=PluralFormat.findSubMessage(msgPattern, i, part, pluralProvider, number);
                 double offset=msgPattern.getPluralOffset(subMsgStart);
                 format(subMsgStart, part, number-offset, args, argsMap, dest, null);
             } else if(argType==ArgType.SELECT) {
-                int subMsgStart=msgPattern.findSelectSubMessage(i, arg.toString());
+                int subMsgStart=SelectFormat.findSubMessage(msgPattern, i, part, arg.toString());
                 format(subMsgStart, part, 0, args, argsMap, dest, null);
             } else {
                 // This should never happen.
@@ -1840,13 +1840,62 @@ public class MessageFormat extends UFormat {
         return fp;
     }
 
+    // This lives here because ICU4J does not have its own ChoiceFormat class.
+    /**
+     * Finds the ChoiceFormat sub-message for the given number.
+     * @param pattern A MessagePattern.
+     * @param partIndex the index of the first ChoiceFormat argument style part.
+     * @param part A MessagePattern.Part to be reused. (Just to avoid allocation.)
+     * @param number a number to be mapped to one of the ChoiceFormat argument's intervals
+     * @return the sub-message start part index.
+     */
+    /*package*/ static int findChoiceSubMessage(
+            MessagePattern pattern,
+            int partIndex, MessagePattern.Part part,
+            double number) {
+        int count=pattern.countParts();
+        int msgStart;
+        // Iterate over (ARG_INT|DOUBLE, ARG_SELECTOR, message) tuples
+        // until ARG_LIMIT or end of choice-only pattern.
+        // Ignore the first number and selector and start the loop on the first message.
+        partIndex+=2;
+        for(;;) {
+            // Skip but remember the current sub-message.
+            msgStart=partIndex;
+            partIndex=pattern.getPartLimit(partIndex);
+            if(++partIndex>=count) {
+                // Reached the end of the choice-only pattern.
+                // Return with the last sub-message.
+                break;
+            }
+            Part.Type type=pattern.getPart(partIndex++, part).getType();
+            if(type==Part.Type.ARG_LIMIT) {
+                // Reached the end of the ChoiceFormat style.
+                // Return with the last sub-message.
+                break;
+            }
+            // part is an ARG_INT or ARG_DOUBLE
+            assert type.hasNumericValue();
+            double boundary=pattern.getNumericValue(part);
+            // Fetch the ARG_SELECTOR character.
+            pattern.getPart(partIndex++, part);
+            char boundaryChar=pattern.getString().charAt(part.getIndex());
+            if(boundaryChar=='#' ? number<boundary : number<=boundary) {
+                // The number is in the interval between the previous boundary and the current one.
+                // Return with the sub-message between them.
+                break;
+            }
+        }
+        return msgStart;
+    }
+
     /**
      * This provider helps defer instantiation of a PluralRules object
      * until we actually need to select a keyword.
      * For example, if the number matches an explicit-value selector like "=1"
      * we do not need any PluralRules.
      */
-    private static final class PluralSelectorProvider implements MessagePattern.PluralSelector {
+    private static final class PluralSelectorProvider implements PluralFormat.PluralSelector {
         public PluralSelectorProvider(ULocale loc) {
             locale=loc;
         }
