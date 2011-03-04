@@ -28,6 +28,7 @@ import com.ibm.icu.text.DateFormat;
 import com.ibm.icu.text.DecimalFormat;
 import com.ibm.icu.text.DecimalFormatSymbols;
 import com.ibm.icu.text.MessageFormat;
+import com.ibm.icu.text.MessagePattern;
 import com.ibm.icu.text.NumberFormat;
 import com.ibm.icu.text.SimpleDateFormat;
 import com.ibm.icu.text.UFormat;
@@ -1702,6 +1703,46 @@ public class TestMessageFormat extends com.ibm.icu.dev.test.TestFmwk {
         if (mf.getFormatByArgumentName("") != null) {
             errln("MessageFormat.getFormatByArgumentName(String) was suppose "
                     + "to return an null if argumentName was not found.");
+        }
+    }
+
+    public String getPatternAndSkipSyntax(MessagePattern pattern) {
+        StringBuilder sb = new StringBuilder(pattern.getString());
+        MessagePattern.Part part = new MessagePattern.Part();
+        int count = pattern.countParts();
+        for (int i = count; i > 0;) {
+            if (pattern.getPart(--i, part).getType() == MessagePattern.Part.Type.SKIP_SYNTAX) {
+                int skip_start = part.getIndex();
+                sb.delete(skip_start, skip_start + part.getValue());
+            }
+        }
+        return sb.toString();
+    }
+
+    public void TestApostropheMode() {
+        MessagePattern ado_mp = new MessagePattern(MessagePattern.ApostropheMode.DOUBLE_OPTIONAL);
+        MessagePattern adr_mp = new MessagePattern(MessagePattern.ApostropheMode.DOUBLE_REQUIRED);
+        String[] tuples = new String[] {
+            // Desired output
+            // DOUBLE_OPTIONAL pattern
+            // DOUBLE_REQUIRED pattern (null=same as DOUBLE_OPTIONAL)
+            "I see {many}", "I see '{many}'", null,
+            "I said {'Wow!'}", "I said '{''Wow!''}'", null,
+            "I dont know", "I dont know", "I don't know",
+            "I don't know", "I don't know", "I don''t know",
+            "I don't know", "I don''t know", "I don''t know",
+        };
+        for (int i = 0; i < tuples.length; i += 3) {
+            String desired = tuples[i];
+            String ado_pattern = tuples[i + 1];
+            assertEquals("DOUBLE_OPTIONAL failure", desired,
+                    getPatternAndSkipSyntax(ado_mp.parse(ado_pattern)));
+            String adr_pattern = tuples[i + 2];
+            if (adr_pattern == null) {
+                adr_pattern = ado_pattern;
+            }
+            assertEquals("DOUBLE_REQUIRED failure", desired,
+                    getPatternAndSkipSyntax(adr_mp.parse(adr_pattern)));
         }
     }
 }

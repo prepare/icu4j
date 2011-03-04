@@ -2387,11 +2387,11 @@ public class MessageFormat extends UFormat {
      * a brace is a true quote.  Other unpaired apostrophes are paired,
      * and the resulting standard pattern string is returned.
      *
-     * <p><b>Note</b> it is not guaranteed that the returned pattern
+     * <p><b>Note</b>: It is not guaranteed that the returned pattern
      * is indeed a valid pattern.  The only effect is to convert
      * between patterns having different quoting semantics.
      *
-     * @param pattern the 'apostrophe-friendly' patttern to convert
+     * @param pattern the 'apostrophe-friendly' pattern to convert
      * @return the standard equivalent of the original pattern
      * @stable ICU 3.4
      */

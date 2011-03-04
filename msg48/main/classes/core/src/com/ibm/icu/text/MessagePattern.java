@@ -11,6 +11,7 @@ package com.ibm.icu.text;
 
 import java.util.ArrayList;
 
+import com.ibm.icu.impl.ICUConfig;
 import com.ibm.icu.impl.PatternProps;
 import com.ibm.icu.util.Freezable;
 
@@ -39,15 +40,83 @@ import com.ibm.icu.util.Freezable;
  */
 public final class MessagePattern implements Cloneable, Freezable<MessagePattern> {
     /**
-     * Constructs an empty MessagePattern.
+     * Mode for when an apostrophe starts quoted literal text for MessageFormat output.
+     * The default is DOUBLE_OPTIONAL unless overridden via ICUConfig
+     * (/com/ibm/icu/ICUConfig.properties).
+     * <p>
+     * A pair of adjacent apostrophes always results in a single apostrophe in the output,
+     * even when the pair is between two single, text-quoting apostrophes.
+     * <p>
+     * The following table shows examples of desired MessageFormat.format() output
+     * with the pattern strings that yield that output.
+     * <p>
+     * <table>
+     *   <tr>
+     *     <th>Desired output</th>
+     *     <th>DOUBLE_OPTIONAL</th>
+     *     <th>DOUBLE_REQUIRED</th>
+     *   </tr>
+     *   <tr>
+     *     <td>I see {many}</td>
+     *     <td>I see '{many}'</td>
+     *     <td>(same)</td>
+     *   </tr>
+     *   <tr>
+     *     <td>I said {'Wow!'}</td>
+     *     <td>I said '{''Wow!''}'</td>
+     *     <td>(same)</td>
+     *   </tr>
+     *   <tr>
+     *     <td>I don't know</td>
+     *     <td>I don't know OR<br> I don''t know</td>
+     *     <td>I don''t know</td>
+     *   </tr>
+     * </table>
      */
-    public MessagePattern() {}
+    public enum ApostropheMode {
+        /**
+         * A literal apostrophe is represented by
+         * either a single or a double apostrophe pattern character.
+         * Within a MessageFormat pattern, a single apostrophe only starts quoted literal text
+         * if it immediately precedes a curly brace {},
+         * or a pipe symbol | if inside a choice format,
+         * or a pound symbol # if inside a plural format.
+         * <p>
+         * This is the default behavior starting with ICU 4.8.
+         */
+        DOUBLE_OPTIONAL,
+        /**
+         * A literal apostrophe must be represented by
+         * a double apostrophe pattern character.
+         * A single apostrophe always starts quoted literal text.
+         * <p>
+         * This is the behavior of ICU 4.6 and earlier, and of the JDK.
+         */
+        DOUBLE_REQUIRED
+    }
 
     /**
-     * Constructs a MessagePattern and parses the MessageFormat pattern string.
+     * Constructs an empty MessagePattern with default ApostropheMode.
+     */
+    public MessagePattern() {
+        aposMode=defaultAposMode;
+    }
+
+    /**
+     * Constructs an empty MessagePattern.
+     * @param mode Explicit ApostropheMode.
+     */
+    public MessagePattern(ApostropheMode mode) {
+        aposMode=mode;
+    }
+
+    /**
+     * Constructs a MessagePattern with default ApostropheMode and
+     * parses the MessageFormat pattern string.
      * @param pattern a MessageFormat pattern string
      */
     public MessagePattern(String pattern) {
+        aposMode=defaultAposMode;
         parse(pattern);
     }
 
@@ -542,7 +611,7 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
     public static final class Part {
         /**
          * Returns the pattern string index associated with this Part.
-         * Typically the index where the part begins, except for "limit" parts
+         * Typically the index where the part begins, except for MSG_START and ARG_LIMIT parts
          * where the limit (exclusive-end) index is returned.
          * @return the part index in the pattern string.
          */
@@ -877,17 +946,21 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
         }
         int msgStart=partsList.size();
         addPart(nestingLevel, Part.Type.MSG_START, index);
-mainLoop:
         while(index<msg.length()) {
             char c=msg.charAt(index++);
             if(c=='\'') {
-                if(index<msg.length()) {
+                if(index==msg.length()) {
+                    // The apostrophe is the last character in the pattern. 
+                    // Add a Part for auto-quoting.
+                    addPart('\'', Part.Type.INSERT_CHAR, index);  // value=char to be inserted
+                    needsAutoQuoting=true;
+                } else {
                     c=msg.charAt(index);
                     if(c=='\'') {
                         // double apostrophe, skip the second one
                         addPart(1, Part.Type.SKIP_SYNTAX, index++);
-                        continue;
                     } else if(
+                        aposMode==ApostropheMode.DOUBLE_REQUIRED ||
                         c=='{' || c=='}' ||
                         (parentType==ArgType.CHOICE && c=='|') ||
                         (parentType==ArgType.PLURAL && c=='#')
@@ -905,19 +978,24 @@ mainLoop:
                                 } else {
                                     // skip the quote-ending apostrophe
                                     addPart(1, Part.Type.SKIP_SYNTAX, index++);
-                                    continue mainLoop;
+                                    break;
                                 }
                             } else {
-                                // quoted text reaches to the end of the of the message
+                                // The quoted text reaches to the end of the of the message.
                                 index=msg.length();
+                                // Add a Part for auto-quoting.
+                                addPart('\'', Part.Type.INSERT_CHAR, index);  // value=char to be inserted
+                                needsAutoQuoting=true;
                                 break;
                             }
                         }
-                    }  // else interpret the apostrophe as literal text
+                    } else {
+                        // Interpret the apostrophe as literal text.
+                        // Add a Part for auto-quoting.
+                        addPart('\'', Part.Type.INSERT_CHAR, index);  // value=char to be inserted
+                        needsAutoQuoting=true;
+                    }
                 }
-                // Add a Part for auto-quoting.
-                addPart('\'', Part.Type.INSERT_CHAR, index);  // value=char to be inserted
-                needsAutoQuoting=true;
             } else if(parentType==ArgType.PLURAL && c=='#') {
                 // The unquoted # in a plural message fragment will be replaced
                 // with the (number-offset).
@@ -934,7 +1012,7 @@ mainLoop:
                     // continue parsing after the '}'
                     return index;
                 }
-            }  // c is part of literal text
+            }  // else: c is part of literal text
         }
         if(nestingLevel>0 && !inTopLevelChoiceMessage(nestingLevel, parentType)) {
             throw new IllegalArgumentException(
@@ -1478,6 +1556,7 @@ mainLoop:
         return prefix(msg, 0);
     }
 
+    private ApostropheMode aposMode;
     private String msg;
     private ArrayList<Long> partsList;  // used while parsing
     private ArrayList<Double> numericValues;
@@ -1486,6 +1565,10 @@ mainLoop:
     private boolean hasArgNumbers;
     private boolean needsAutoQuoting;
     private boolean frozen;
+
+    private ApostropheMode defaultAposMode=
+        ApostropheMode.valueOf(
+            ICUConfig.get("com.ibm.icu.text.MessagePattern.ApostropheMode", "DOUBLE_OPTIONAL"));
 
     private static final ArgType[] argTypes=ArgType.values();
 }
