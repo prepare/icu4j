@@ -198,6 +198,20 @@ public class PluralFormat extends UFormat {
     transient private double offset = 0;
 
     /**
+     * Interface for classes like PluralRules which select PluralFormat keywords for numbers.
+     * @internal
+     */
+    /*package*/ interface PluralSelector {
+        /**
+         * Given a number, returns the appropriate PluralFormat keyword.
+         *
+         * @param number The number to be plural-formatted.
+         * @return The selected PluralFormat keyword.
+         */
+        public String select(double number);
+    }
+
+    /**
      * Creates a new <code>PluralFormat</code> for the default locale.
      * This locale will be used to get the set of plural rules and for standard
      * number formatting.
@@ -368,6 +382,100 @@ public class PluralFormat extends UFormat {
     }
 
     /**
+     * Finds the PluralFormat sub-message for the given number, or the "other" sub-message.
+     * @param pattern A MessagePattern.
+     * @param partIndex the index of the first PluralFormat argument style part.
+     * @param part A MessagePattern.Part to be reused. (Just to avoid allocation.)
+     * @param selector the PluralSelector for mapping the number (minus offset) to a keyword.
+     * @param number a number to be matched to one of the PluralFormat argument's explicit values,
+     *        or mapped via the PluralSelector.
+     * @return the sub-message start part index.
+     */
+    /*package*/ static int findSubMessage(
+            MessagePattern pattern,
+            int partIndex, MessagePattern.Part part,
+            PluralSelector selector, double number) {
+        int count=pattern.countParts();
+        double offset;
+        if(pattern.getPart(partIndex, part).getType().hasNumericValue()) {
+            offset=pattern.getNumericValue(part);
+            ++partIndex;
+        } else {
+            offset=0;
+        }
+        // The keyword is null until we need to match against non-explicit, not-"other" value.
+        // Then we get the keyword from the selector.
+        // (In other words, we never call the selector if we match against an explicit value,
+        // or if the only non-explicit keyword is "other".)
+        String keyword=null;
+        // When we find a match, we set msgStart>0 and also set this boolean to true
+        // to avoid matching the keyword again (duplicates are allowed)
+        // while we continue to look for an explicit-value match.
+        boolean haveKeywordMatch=false;
+        // msgStart is 0 until we find any appropriate sub-message.
+        // We remember the first "other" sub-message if we have not seen any
+        // appropriate sub-message before.
+        // We remember the first matching-keyword sub-message if we have not seen
+        // one of those before.
+        // (The parser allows [does not check for] duplicate keywords.
+        // We just have to make sure to take the first one.)
+        // We avoid matching the keyword twice by also setting haveKeywordMatch=true
+        // at the first keyword match.
+        // We keep going until we find an explicit-value match or reach the end of the plural style.
+        int msgStart=0;
+        // Iterate over (ARG_SELECTOR [ARG_INT|ARG_DOUBLE] message) tuples
+        // until ARG_LIMIT or end of plural-only pattern.
+        do {
+            MessagePattern.Part.Type type=pattern.getPart(partIndex++, part).getType();
+            if(type==MessagePattern.Part.Type.ARG_LIMIT) {
+                break;
+            }
+            assert type==MessagePattern.Part.Type.ARG_SELECTOR;
+            // part is an ARG_SELECTOR followed by an optional explicit value, and then a message
+            if(pattern.getPartType(partIndex).hasNumericValue()) {
+                // explicit value like "=2"
+                pattern.getPart(partIndex++, part);
+                if(number==pattern.getNumericValue(part)) {
+                    // matches explicit value
+                    return partIndex;
+                }
+            } else if(!haveKeywordMatch) {
+                // plural keyword like "few" or "other"
+                // Compare "other" first and call the selector if this is not "other".
+                if(pattern.partSubstringMatches(part, "other")) {
+                    if(msgStart==0) {
+                        msgStart=partIndex;
+                        if(keyword!=null && keyword.equals("other")) {
+                            // This is the first "other" sub-message,
+                            // and the selected keyword is also "other".
+                            // Do not match "other" again.
+                            haveKeywordMatch=true;
+                        }
+                    }
+                } else {
+                    if(keyword==null) {
+                        keyword=selector.select(number-offset);
+                        if(msgStart!=0 && keyword.equals("other")) {
+                            // We have already seen an "other" sub-message.
+                            // Do not match "other" again.
+                            haveKeywordMatch=true;
+                            continue;
+                        }
+                    }
+                    if(pattern.partSubstringMatches(part, keyword)) {
+                        // keyword matches
+                        msgStart=partIndex;
+                        // Do not match this keyword again.
+                        haveKeywordMatch=true;
+                    }
+                }
+            }
+            partIndex=pattern.getPartLimit(partIndex);
+        } while(++partIndex<count);
+        return msgStart;
+    }
+
+    /**
      * Formats a plural message for a given number.
      *
      * @param number a number for which the plural message should be formatted.
@@ -384,11 +492,11 @@ public class PluralFormat extends UFormat {
         }
 
         // Get the appropriate sub-message.
-        int partIndex = msgPattern.findPluralSubMessage(0, pluralRules, number);
+        MessagePattern.Part part = new MessagePattern.Part();
+        int partIndex = findSubMessage(msgPattern, 0, part, pluralRules, number);
         // Replace syntactic # signs in the top level of this sub-message
         // (not in nested arguments) with the formatted number-offset.
         number -= offset;
-        MessagePattern.Part part = new MessagePattern.Part();
         StringBuilder result = null;
         int prevIndex = msgPattern.getPatternIndex(partIndex);
         for (;;) {

@@ -216,6 +216,39 @@ public class SelectFormat extends Format{
     }
 
     /**
+     * Finds the SelectFormat sub-message for the given keyword, or the "other" sub-message.
+     * @param pattern A MessagePattern.
+     * @param partIndex the index of the first SelectFormat argument style part.
+     * @param part A MessagePattern.Part to be reused. (Just to avoid allocation.)
+     * @param keyword a keyword to be matched to one of the SelectFormat argument's keywords.
+     * @return the sub-message start part index.
+     */
+    /*package*/ static int findSubMessage(
+            MessagePattern pattern,
+            int partIndex, MessagePattern.Part part,
+            String keyword) {
+        int count=pattern.countParts();
+        int msgStart=0;
+        // Iterate over (ARG_SELECTOR, message) pairs until ARG_LIMIT or end of select-only pattern.
+        do {
+            MessagePattern.Part.Type type=pattern.getPart(partIndex++, part).getType();
+            if(type==MessagePattern.Part.Type.ARG_LIMIT) {
+                break;
+            }
+            assert type==MessagePattern.Part.Type.ARG_SELECTOR;
+            // part is an ARG_SELECTOR followed by a message
+            if(pattern.partSubstringMatches(part, keyword)) {
+                // keyword matches
+                return partIndex;
+            } else if(msgStart==0 && pattern.partSubstringMatches(part, "other")) {
+                msgStart=partIndex;
+            }
+            partIndex=pattern.getPartLimit(partIndex);
+        } while(++partIndex<count);
+        return msgStart;
+    }
+
+    /**
      * Selects the phrase for the given keyword.
      *
      * @param keyword a keyword for which the select message should be formatted.
@@ -234,7 +267,8 @@ public class SelectFormat extends Format{
         }
 
         // Get the appropriate sub-message.
-        int msgStart=msgPattern.findSelectSubMessage(0, keyword);
+        MessagePattern.Part part = new MessagePattern.Part();
+        int msgStart=findSubMessage(msgPattern, 0, part, keyword);
         int msgLimit=msgPattern.getPartLimit(msgStart);
         return msgPattern.getString().substring(msgPattern.getPatternIndex(msgStart),
                                                 msgPattern.getPatternIndex(msgLimit));
