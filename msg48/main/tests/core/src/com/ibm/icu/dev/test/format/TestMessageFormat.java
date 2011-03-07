@@ -1722,6 +1722,13 @@ public class TestMessageFormat extends com.ibm.icu.dev.test.TestFmwk {
     public void TestApostropheMode() {
         MessagePattern ado_mp = new MessagePattern(MessagePattern.ApostropheMode.DOUBLE_OPTIONAL);
         MessagePattern adr_mp = new MessagePattern(MessagePattern.ApostropheMode.DOUBLE_REQUIRED);
+        assertEquals("wrong value",
+                MessagePattern.ApostropheMode.DOUBLE_OPTIONAL,
+                ado_mp.getApostropheMode());
+        assertEquals("wrong value",
+                MessagePattern.ApostropheMode.DOUBLE_REQUIRED,
+                adr_mp.getApostropheMode());
+
         String[] tuples = new String[] {
             // Desired output
             // DOUBLE_OPTIONAL pattern
