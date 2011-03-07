@@ -246,6 +246,15 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
     }
 
     /**
+     * @return this instance's ApostropheMode.
+     * @draft ICU 4.8
+     * @provisional This API might change or be removed in a future release.
+     */
+    public ApostropheMode getApostropheMode() {
+        return aposMode;
+    }
+
+    /**
      * @return the parsed pattern string (null if none was parsed).
      * @draft ICU 4.8
      * @provisional This API might change or be removed in a future release.
