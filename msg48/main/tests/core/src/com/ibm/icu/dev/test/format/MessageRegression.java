@@ -30,13 +30,11 @@ attribution to Taligent may not be removed.
 */
 package com.ibm.icu.dev.test.format;
 
-/* TODO: verify ok not to support serialization
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-*/
 import java.text.ChoiceFormat;
 import java.text.ParsePosition;
 import java.util.Date;
@@ -247,7 +245,6 @@ public class MessageRegression extends com.ibm.icu.dev.test.TestFmwk {
     /* @bug 4111739
      * MessageFormat is incorrectly serialized/deserialized.
      */
-    /* TODO: verify ok not to support serialization
     public void Test4111739()
     {
         MessageFormat format1 = null;
@@ -285,7 +282,6 @@ public class MessageRegression extends com.ibm.icu.dev.test.TestFmwk {
             logln("Serialization for MessageFormat is OK.");
         }
     }
-    */
     /* @bug 4114743
      * MessageFormat.applyPattern allows illegal patterns.
      */
@@ -707,9 +703,7 @@ public class MessageRegression extends com.ibm.icu.dev.test.TestFmwk {
             errln("setErrorIndex failed, got " + pos.getErrorIndex() + " instead of 4");
         if (objs != null)
             errln("unparsable string, should return null");
-    }
-    /* TODO: verify ok not to support serialization
-    { // Taken from Test4111739().
+    }{ // Taken from Test4111739().
         MessageFormat format1 = null;
         MessageFormat format2 = null;
         ObjectOutputStream ostream = null;
@@ -744,9 +738,7 @@ public class MessageRegression extends com.ibm.icu.dev.test.TestFmwk {
         } else {
             logln("Serialization for MessageFormat is OK.");
         }
-    }
-    */
-    { // Taken from Test4116444().
+    }{ // Taken from Test4116444().
         String[] patterns = {"", "one", "{namedArgument,date,short}"};
         MessageFormat mf = new MessageFormat("");
 
