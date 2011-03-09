@@ -12,7 +12,6 @@ package com.ibm.icu.text;
 
 import java.io.IOException;
 import java.io.InvalidObjectException;
-import java.io.NotSerializableException;
 import java.io.ObjectInputStream;
 import java.text.AttributedCharacterIterator;
 import java.text.AttributedCharacterIterator.Attribute;
@@ -605,7 +604,7 @@ public class MessageFormat extends UFormat {
         // - normalization of apostrophes and arguments, for example,
         //   whether some date/time/number formatter was created via a pattern
         //   but is equivalent to the "medium" default format.
-        if (haveCustomFormats) {
+        if (customFormatArgStarts != null) {
             throw new IllegalStateException(
                     "toPattern() is not supported after custom Format objects "+
                     "have been set via setFormat() or similar APIs");
@@ -1512,13 +1511,12 @@ public class MessageFormat extends UFormat {
         if (obj == null || getClass() != obj.getClass())
             return false;
         MessageFormat other = (MessageFormat) obj;
-        return (maxOffset == other.maxOffset
-                && pattern.equals(other.pattern)
+        return Utility.objectEquals(ulocale, other.ulocale)
                 && Utility.objectEquals(msgPattern, other.msgPattern)
-                && Utility.objectEquals(ulocale, other.ulocale) // does null check
-                && Utility.arrayEquals(offsets, other.offsets)
-                && Utility.arrayEquals(argumentNames, other.argumentNames)
-                && Utility.arrayEquals(formats, other.formats));
+                && Utility.objectEquals(cachedFormatters, other.cachedFormatters)
+                && Utility.objectEquals(customFormatArgStarts, other.customFormatArgStarts);
+        // Note: It might suffice to only compare custom formatters
+        // rather than all formatters.
     }
 
     /**
@@ -1609,11 +1607,6 @@ public class MessageFormat extends UFormat {
     private transient Format[] formats = new Format[INITIAL_FORMATS];
 
     /**
-     * True if a custom, user-provided Format object was set via setFormat() or similar API.
-     */
-    private transient boolean haveCustomFormats = false;
-
-    /**
      * The positions where the results of formatting each argument are to be
      * inserted into the pattern.
      */
@@ -1643,6 +1636,11 @@ public class MessageFormat extends UFormat {
      * them from scratch every time.
      */
     private transient Map<Integer, Format> cachedFormatters;
+    /**
+     * Set of ARG_START part indexes where custom, user-provided Format objects
+     * have been set via setFormat() or similar API.
+     */
+    private transient Set<Integer> customFormatArgStarts;
 
     /**
      * Stock formatters. Those are used when a format is not explicitly mentioned in
@@ -1919,7 +1917,7 @@ public class MessageFormat extends UFormat {
         if (cachedFormatters != null) {
             cachedFormatters.clear();
         }
-        haveCustomFormats = false;
+        customFormatArgStarts = null;
         maxOffset = -1;
     }
 
@@ -2327,13 +2325,13 @@ public class MessageFormat extends UFormat {
      * @param out The output stream.
      * @serialData Writes the locale as a BCP 47 language tag string,
      * the MessagePattern.ApostropheMode as an object,
-     * and the pattern string ("{no message}" if none was applied).
-     * @throws NotSerializableException if custom formats have been set via setFormat() or similar.
+     * and the pattern string (null if none was applied).
+     * Followed by an int with the number of (int formatIndex, Object formatter) pairs,
+     * and that many such pairs, corresponding to previous setFormat() calls for custom formats.
+     * Followed by an int with the number of (int, Object) pairs,
+     * and that many such pairs, for future (post-ICU 4.8) extension of the serialization format.
      */
     private void writeObject(java.io.ObjectOutputStream out) throws IOException {
-        if (haveCustomFormats) {
-            throw new NotSerializableException("com.ibm.icu.text.MessageFormat with custom formats");
-        }
         out.defaultWriteObject();
         // ICU 4.8 custom serialization.
         // locale as a BCP 47 language tag
@@ -2344,9 +2342,24 @@ public class MessageFormat extends UFormat {
         }
         out.writeObject(msgPattern.getApostropheMode());
         // message pattern string
-        String msg = msgPattern.getString();
-        out.writeUTF(msg != null ? msg : "{no message}");
-        // If after ICU 4.8 we need to write more data we need to do it here.
+        out.writeUTF(msgPattern.getString());
+        // custom formatters
+        if (customFormatArgStarts == null || customFormatArgStarts.isEmpty()) {
+            out.writeInt(0);
+        } else {
+            out.writeInt(customFormatArgStarts.size());
+            int formatIndex = 0;
+            Part part = new Part();
+            for (int partIndex = 0; (partIndex = nextTopLevelArgStart(partIndex, part)) >= 0;) {
+                if (customFormatArgStarts.contains(partIndex)) {
+                    out.writeInt(formatIndex);
+                    out.writeObject(cachedFormatters.get(partIndex));
+                }
+                ++formatIndex;
+            }
+        }
+        // number of future (int, Object) pairs
+        out.writeInt(0);
     }
 
     /**
@@ -2370,18 +2383,27 @@ public class MessageFormat extends UFormat {
             msgPattern = new MessagePattern(aposMode);
         }
         String msg = in.readUTF();
-        if (!msg.equals("{no message}")) {
+        if (msg != null) {
             applyPattern(msg);
         }
-        // If after ICU 4.8 we need to read more data, we should check if there is more,
-        // and cope with shorter data from an earlier version.
+        // custom formatters
+        for (int numFormatters = in.readInt(); numFormatters > 0; --numFormatters) {
+            int formatIndex = in.readInt();
+            Format formatter = (Format)in.readObject();
+            setFormat(formatIndex, formatter);
+        }
+        // skip future (int, Object) pairs
+        for (int numPairs = in.readInt(); numPairs > 0; --numPairs) {
+            in.readInt();
+            in.readObject();
+        }
     }
 
     private void cacheExplicitFormats() {
         if (cachedFormatters != null) {
             cachedFormatters.clear();
         }
-        haveCustomFormats = false;
+        customFormatArgStarts = null;
         Part part = new Part();
         int limit = msgPattern.countParts() - 1;
         for(int i=1; i < limit; ++i) {
@@ -2423,7 +2445,10 @@ public class MessageFormat extends UFormat {
      */
     private void setCustomArgStartFormat(int argStart, Format formatter) {
         setArgStartFormat(argStart, formatter);
-        haveCustomFormats = true;
+        if (customFormatArgStarts == null) {
+            customFormatArgStarts = new HashSet<Integer>();
+        }
+        customFormatArgStarts.add(argStart);
     }
 
     private boolean isAlphaIdentifier(String argument) {
