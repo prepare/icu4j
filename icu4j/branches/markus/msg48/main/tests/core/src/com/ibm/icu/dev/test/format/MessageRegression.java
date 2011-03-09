@@ -44,6 +44,8 @@ import java.util.Locale;
 import java.util.Map;
 
 import com.ibm.icu.text.MessageFormat;
+import com.ibm.icu.text.NumberFormat;
+import com.ibm.icu.util.ULocale;
 
 public class MessageRegression extends com.ibm.icu.dev.test.TestFmwk {
 
@@ -839,5 +841,42 @@ public class MessageRegression extends com.ibm.icu.dev.test.TestFmwk {
         }
     }
   }
-}
 
+    private MessageFormat serializeAndDeserialize(MessageFormat original) {
+        try {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ObjectOutputStream ostream = new ObjectOutputStream(baos);
+            ostream.writeObject(original);
+            ostream.flush();
+            byte bytes[] = baos.toByteArray();
+    
+            ObjectInputStream istream = new ObjectInputStream(new ByteArrayInputStream(bytes));
+            MessageFormat reconstituted = (MessageFormat)istream.readObject();
+            return reconstituted;
+        } catch(IOException e) {
+            throw new RuntimeException(e);
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void TestSerialization() {
+        MessageFormat format1 = null;
+        MessageFormat format2 = null;
+
+        format1 = new MessageFormat("", ULocale.GERMAN);
+        format2 = serializeAndDeserialize(format1);
+        assertEquals("MessageFormats (empty pattern) before and after serialization are not equal", format1, format2);
+
+        format1.applyPattern("ab{1}cd{0,number}ef{3,date}gh");
+        format1.setFormat(2, null);
+        format1.setFormatByArgumentIndex(1, NumberFormat.getInstance(ULocale.ENGLISH));
+        format2 = serializeAndDeserialize(format1);
+        assertEquals("MessageFormats (with custom formats) before and after serialization are not equal", format1, format2);
+        assertEquals(
+                "MessageFormat (with custom formats) does not "+
+                "format correctly after serialization",
+                "ab3.3cd4,4ef***gh",
+                format2.format(new Object[] { 4.4, 3.3, "+++", "***" }));
+    }
+}
