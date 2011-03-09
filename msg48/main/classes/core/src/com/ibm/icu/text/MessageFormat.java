@@ -612,7 +612,7 @@ public class MessageFormat extends UFormat {
         if (msgPattern == null) {
             return "";
         }
-        String originalPattern = msgPattern.getString();
+        String originalPattern = msgPattern.getPatternString();
         return originalPattern == null ? "" : originalPattern;
     }
 
@@ -1657,7 +1657,7 @@ public class MessageFormat extends UFormat {
     private int format(int msgStart, Part part, double pluralNumber,
                        Object[] args, Map<String, Object> argsMap,
                        AppendableWrapper dest, FieldPosition fp) {
-        String msgString=msgPattern.getString();
+        String msgString=msgPattern.getPatternString();
         int prevIndex=msgPattern.getPart(msgStart, part).getIndex();
         assert part.getType()==MessagePattern.Part.Type.MSG_START;
         for(int i=msgStart+1;; ++i) {
@@ -1853,7 +1853,7 @@ public class MessageFormat extends UFormat {
             double boundary=pattern.getNumericValue(part);
             // Fetch the ARG_SELECTOR character.
             pattern.getPart(partIndex++, part);
-            char boundaryChar=pattern.getString().charAt(part.getIndex());
+            char boundaryChar=pattern.getPatternString().charAt(part.getIndex());
             if(boundaryChar=='#' ? number<boundary : number<=boundary) {
                 // The number is in the interval between the previous boundary and the current one.
                 // Return with the sub-message between them.
@@ -2342,7 +2342,7 @@ public class MessageFormat extends UFormat {
         }
         out.writeObject(msgPattern.getApostropheMode());
         // message pattern string
-        out.writeObject(msgPattern.getString());
+        out.writeObject(msgPattern.getPatternString());
         // custom formatters
         if (customFormatArgStarts == null || customFormatArgStarts.isEmpty()) {
             out.writeInt(0);
@@ -2420,7 +2420,7 @@ public class MessageFormat extends UFormat {
             String explicitType = msgPattern.getSubstring(msgPattern.getPart(i++, part));
             String style = "";
             if (msgPattern.getPart(i, part).getType() == MessagePattern.Part.Type.ARG_STYLE_START) {
-                style = msgPattern.getString().substring(part.getIndex(),
+                style = msgPattern.getPatternString().substring(part.getIndex(),
                         msgPattern.getPatternIndex(i+1)-1);
                 ++i;
             }

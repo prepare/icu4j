@@ -126,6 +126,10 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
      * Constructs a MessagePattern with default ApostropheMode and
      * parses the MessageFormat pattern string.
      * @param pattern a MessageFormat pattern string
+     * @throws IllegalArgumentException for syntax errors in the pattern string
+     * @throws IndexOutOfBoundsException if certain limits are exceeded
+     *         (e.g., argument number too high, argument name too long, etc.)
+     * @throws NumberFormatException if a number could not be parsed
      * @draft ICU 4.8
      * @provisional This API might change or be removed in a future release.
      */
@@ -138,6 +142,10 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
      * Parses a MessageFormat pattern string.
      * @param pattern a MessageFormat pattern string
      * @return this
+     * @throws IllegalArgumentException for syntax errors in the pattern string
+     * @throws IndexOutOfBoundsException if certain limits are exceeded
+     *         (e.g., argument number too high, argument name too long, etc.)
+     * @throws NumberFormatException if a number could not be parsed
      * @draft ICU 4.8
      * @provisional This API might change or be removed in a future release.
      */
@@ -152,6 +160,10 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
      * Parses a ChoiceFormat pattern string.
      * @param pattern a ChoiceFormat pattern string
      * @return this
+     * @throws IllegalArgumentException for syntax errors in the pattern string
+     * @throws IndexOutOfBoundsException if certain limits are exceeded
+     *         (e.g., argument number too high, argument name too long, etc.)
+     * @throws NumberFormatException if a number could not be parsed
      * @draft ICU 4.8
      * @provisional This API might change or be removed in a future release.
      */
@@ -166,6 +178,10 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
      * Parses a PluralFormat pattern string.
      * @param pattern a PluralFormat pattern string
      * @return this
+     * @throws IllegalArgumentException for syntax errors in the pattern string
+     * @throws IndexOutOfBoundsException if certain limits are exceeded
+     *         (e.g., argument number too high, argument name too long, etc.)
+     * @throws NumberFormatException if a number could not be parsed
      * @draft ICU 4.8
      * @provisional This API might change or be removed in a future release.
      */
@@ -180,6 +196,10 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
      * Parses a SelectFormat pattern string.
      * @param pattern a SelectFormat pattern string
      * @return this
+     * @throws IllegalArgumentException for syntax errors in the pattern string
+     * @throws IndexOutOfBoundsException if certain limits are exceeded
+     *         (e.g., argument number too high, argument name too long, etc.)
+     * @throws NumberFormatException if a number could not be parsed
      * @draft ICU 4.8
      * @provisional This API might change or be removed in a future release.
      */
@@ -259,7 +279,7 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
      * @draft ICU 4.8
      * @provisional This API might change or be removed in a future release.
      */
-    public String getString() {
+    public String getPatternString() {
         return msg;
     }
 
@@ -281,6 +301,16 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
      */
     public boolean hasNumberedArguments() {
         return hasArgNumbers;
+    }
+
+    /**
+     * {@inheritDoc}
+     * @draft ICU 4.8
+     * @provisional This API might change or be removed in a future release.
+     */
+    @Override
+    public String toString() {
+        return msg;
     }
 
     /**
@@ -359,10 +389,13 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
     }
 
     /**
-     * Sets the "part" parameter to the data for the i-th pattern "part".
-     * @param i The index of the Part data.
+     * Gets the data for the i-th pattern "part".
+     * Fills in and returns the Part parameter (rather than returning a new Part each time)
+     * to minimize object allocation.
+     * @param i The index of the Part data. (0..countParts()-1)
      * @param part The Part object to be modified.
      * @return part
+     * @throws IndexOutOfBoundsException if i is outside the (0..countParts()-1) range
      * @draft ICU 4.8
      * @provisional This API might change or be removed in a future release.
      */
@@ -375,8 +408,9 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
     /**
      * Returns the Part.Type of the i-th pattern "part".
      * Equivalent to getPart(i, part).getType() but without the Part object.
-     * @param i The index of the Part data.
+     * @param i The index of the Part data. (0..countParts()-1)
      * @return The Part.Type of the i-th Part.
+     * @throws IndexOutOfBoundsException if i is outside the (0..countParts()-1) range
      * @draft ICU 4.8
      * @provisional This API might change or be removed in a future release.
      */
@@ -387,8 +421,9 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
 
     /**
      * Returns the pattern index of the specified pattern "part".
-     * @param partIndex The index of the Part data.
+     * @param partIndex The index of the Part data. (0..countParts()-1)
      * @return The pattern index of this Part.
+     * @throws IndexOutOfBoundsException if partIndex is outside the (0..countParts()-1) range
      * @draft ICU 4.8
      * @provisional This API might change or be removed in a future release.
      */
@@ -467,8 +502,9 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
 
     /**
      * Returns the "offset:" value of a PluralFormat argument, or 0 if none is specified.
-     * @param pluralStart the index of the first PluralFormat argument style part.
+     * @param pluralStart the index of the first PluralFormat argument style part. (0..countParts()-1)
      * @return the "offset:" value.
+     * @throws IndexOutOfBoundsException if pluralStart is outside the (0..countParts()-1) range
      * @draft ICU 4.8
      * @provisional This API might change or be removed in a future release.
      */
@@ -484,9 +520,11 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
 
     /**
      * Returns the index of the ARG|MSG_LIMIT part corresponding to the ARG|MSG_START at start.
-     * @param start The index of some Part data; this Part should be of Type ARG_START or MSG_START.
+     * @param start The index of some Part data (0..countParts()-1);
+     *        this Part should be of Type ARG_START or MSG_START.
      * @return The first i>start where getPart(i).getType()==ARG|MSG_LIMIT at the same nesting level,
      *         or start itself if getPartType(msgStart)!=ARG|MSG_START.
+     * @throws IndexOutOfBoundsException if start is outside the (0..countParts()-1) range
      * @draft ICU 4.8
      * @provisional This API might change or be removed in a future release.
      */

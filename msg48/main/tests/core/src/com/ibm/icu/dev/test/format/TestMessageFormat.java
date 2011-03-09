@@ -1707,7 +1707,7 @@ public class TestMessageFormat extends com.ibm.icu.dev.test.TestFmwk {
     }
 
     public String getPatternAndSkipSyntax(MessagePattern pattern) {
-        StringBuilder sb = new StringBuilder(pattern.getString());
+        StringBuilder sb = new StringBuilder(pattern.getPatternString());
         MessagePattern.Part part = new MessagePattern.Part();
         int count = pattern.countParts();
         for (int i = count; i > 0;) {
