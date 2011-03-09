@@ -2335,14 +2335,14 @@ public class MessageFormat extends UFormat {
         out.defaultWriteObject();
         // ICU 4.8 custom serialization.
         // locale as a BCP 47 language tag
-        out.writeUTF(ulocale.toLanguageTag());
+        out.writeObject(ulocale.toLanguageTag());
         // ApostropheMode
         if (msgPattern == null) {
             msgPattern = new MessagePattern();
         }
         out.writeObject(msgPattern.getApostropheMode());
         // message pattern string
-        out.writeUTF(msgPattern.getString());
+        out.writeObject(msgPattern.getString());
         // custom formatters
         if (customFormatArgStarts == null || customFormatArgStarts.isEmpty()) {
             out.writeInt(0);
@@ -2376,13 +2376,13 @@ public class MessageFormat extends UFormat {
         argumentNames = new String[INITIAL_FORMATS];
         maxOffset = -1;
         // ICU 4.8 custom deserialization.
-        String languageTag = in.readUTF();
+        String languageTag = (String)in.readObject();
         ulocale = ULocale.forLanguageTag(languageTag);
         MessagePattern.ApostropheMode aposMode = (MessagePattern.ApostropheMode)in.readObject();
         if (msgPattern == null || aposMode != msgPattern.getApostropheMode()) {
             msgPattern = new MessagePattern(aposMode);
         }
-        String msg = in.readUTF();
+        String msg = (String)in.readObject();
         if (msg != null) {
             applyPattern(msg);
         }
