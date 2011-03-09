@@ -270,8 +270,8 @@ public class SelectFormat extends Format{
         MessagePattern.Part part = new MessagePattern.Part();
         int msgStart=findSubMessage(msgPattern, 0, part, keyword);
         int msgLimit=msgPattern.getPartLimit(msgStart);
-        return msgPattern.getString().substring(msgPattern.getPatternIndex(msgStart),
-                                                msgPattern.getPatternIndex(msgLimit));
+        return msgPattern.getPatternString().substring(msgPattern.getPatternIndex(msgStart),
+                                                       msgPattern.getPatternIndex(msgLimit));
     }
 
     /**
