@@ -224,9 +224,7 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
         msg=null;
         hasArgNames=hasArgNumbers=false;
         needsAutoQuoting=false;
-        if(partsList!=null) {
-            partsList.clear();
-        }
+        parts.clear();
         if(numericValues!=null) {
             numericValues.clear();
         }
@@ -250,17 +248,8 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
         if(msg==null) {
             return o.msg==null;
         }
-        if(!msg.equals(o.msg)) {
+        if(!msg.equals(o.msg) || !parts.equals(o.parts)) {
             return false;
-        }
-        int count=countParts();
-        if(count!=o.countParts()) {
-            return false;
-        }
-        for(int i=0; i<count; ++i) {
-            if(parts[i]!=o.parts[i]) {
-                return false;
-            }
         }
         return true;
     }
@@ -392,18 +381,7 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
      * @provisional This API might change or be removed in a future release.
      */
     public int countParts() {
-        return partsList==null ? 0 : partsList.size();
-    }
-
-    private void checkPartIndex(int i, int count) {
-        // Check for overflow: It might be parts.length>countParts().
-        if(i>=count) {
-            throw new IndexOutOfBoundsException();
-        }
-    }
-
-    private void checkPartIndex(int i) {
-        checkPartIndex(i, countParts());
+        return parts.size();
     }
 
     /**
@@ -418,8 +396,7 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
      * @provisional This API might change or be removed in a future release.
      */
     public Part getPart(int i, Part part) {
-        checkPartIndex(i);
-        part.part=(int)parts[i];
+        part.part=parts.get(i).intValue();
         return part;
     }
 
@@ -433,8 +410,7 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
      * @provisional This API might change or be removed in a future release.
      */
     public Part.Type getPartType(int i) {
-        checkPartIndex(i);
-        return Part.getType((int)parts[i]);
+        return Part.getType(parts.get(i).intValue());
     }
 
     /**
@@ -446,8 +422,7 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
      * @provisional This API might change or be removed in a future release.
      */
     public int getPatternIndex(int partIndex) {
-        checkPartIndex(partIndex);
-        return ((int)parts[partIndex])&Part.INDEX_MASK;
+        return (parts.get(partIndex).intValue())&Part.INDEX_MASK;
     }
 
     /**
@@ -527,8 +502,7 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
      * @provisional This API might change or be removed in a future release.
      */
     public double getPluralOffset(int pluralStart) {
-        checkPartIndex(pluralStart);
-        int part=(int)parts[pluralStart];
+        int part=parts.get(pluralStart).intValue();
         if(Part.getType(part).hasNumericValue()) {
             return getNumericValue(part);
         } else {
@@ -547,7 +521,7 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
      * @provisional This API might change or be removed in a future release.
      */
     public int getPartLimit(int start) {
-        long msgStartPartLong=parts[start];
+        long msgStartPartLong=parts.get(start);
         int limit=(int)(msgStartPartLong>>32);
         if(limit<start) {
             return start;
@@ -876,11 +850,7 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
             throw new RuntimeException(e);
         }
         newMsg.msg=msg;
-        newMsg.partsList=(ArrayList<Long>)partsList.clone();
-        if(!partsList.isEmpty()) {
-            newMsg.parts=new long[partsList.size()];
-            System.arraycopy(parts, 0, newMsg.parts, 0, newMsg.parts.length);
-        }
+        newMsg.parts=(ArrayList<Long>)parts.clone();
         newMsg.hasArgNames=hasArgNames;
         newMsg.hasArgNumbers=hasArgNumbers;
         newMsg.needsAutoQuoting=needsAutoQuoting;
@@ -919,38 +889,21 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
         msg=pattern;
         hasArgNames=hasArgNumbers=false;
         needsAutoQuoting=false;
-        if(partsList==null) {
-            partsList=new ArrayList<Long>(pattern.length()/4+2);
-        } else {
-            partsList.clear();
-        }
+        parts.clear();
         if(numericValues!=null) {
             numericValues.clear();
         }
     }
 
     private void postParse() {
-        // Unbox all parts only once.
-        // TODO: Should we just use partsList and unbox each item?
-        int length=partsList.size();
-        if(parts==null) {
-            // Normally, allocate tightly. 
-            parts=new long[length];
-        } else if(parts.length<length) {
-            // On the rare occasion when this object is reused, reallocate with more room.
-            parts=new long[2*length+10];
-        }
-        for(int i=0; i<length; ++i) {
-            parts[i]=partsList.get(i);
-        }
-        // TODO: Release memory? Remember int partsLength=partsList.size() and set partsList=null?
+        // Nothing to be done currently.
     }
 
     private int parseMessage(int index, int nestingLevel, ArgType parentType) {
         if(nestingLevel>Part.MAX_VALUE) {
             throw new IndexOutOfBoundsException();
         }
-        int msgStart=partsList.size();
+        int msgStart=parts.size();
         addPart(nestingLevel, Part.Type.MSG_START, index);
         while(index<msg.length()) {
             char c=msg.charAt(index++);
@@ -1029,7 +982,7 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
     }
 
     private int parseArg(int index, int nestingLevel) {
-        int argStart=partsList.size();
+        int argStart=parts.size();
         ArgType argType=ArgType.NONE;
         addPart(argType.ordinal(), Part.Type.ARG_START, index-1);
         int nameIndex=index=skipWhiteSpace(index);
@@ -1099,8 +1052,8 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
                 }
             }
             // change the ARG_START type from NONE to argType
-            long argStartPart=partsList.get(argStart);
-            partsList.set(argStart, argStartPart+(argType.ordinal()<<Part.VALUE_SHIFT));
+            long argStartPart=parts.get(argStart);
+            parts.set(argStart, argStartPart+(argType.ordinal()<<Part.VALUE_SHIFT));
             if(argType==ArgType.SIMPLE) {
                 addPart(length, Part.Type.ARG_TYPE, typeIndex);
             }
@@ -1480,7 +1433,7 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
      *         as opposed to inside a top-level choice/plural/select pattern.
      */
     private boolean inMessageFormatPattern(int nestingLevel) {
-        return nestingLevel>0 || Part.getType((int)(long)partsList.get(0))==Part.Type.MSG_START;
+        return nestingLevel>0 || Part.getType(parts.get(0).intValue())==Part.Type.MSG_START;
     }
 
     /**
@@ -1491,7 +1444,7 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
         return
             nestingLevel==1 &&
             parentType==ArgType.CHOICE &&
-            Part.getType((int)(long)partsList.get(0))!=Part.Type.MSG_START;
+            Part.getType(parts.get(0).intValue())!=Part.Type.MSG_START;
     }
 
     private int makePartInt(int value, Part.Type type, int index) {
@@ -1499,17 +1452,17 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
     }
 
     private void addPart(int value, Part.Type type, int index) {
-        partsList.add(makePartInt(value, type, index)&0xffffffffL);
+        parts.add(makePartInt(value, type, index)&0xffffffffL);
     }
 
     private void addLimitPart(int start, int value, Part.Type type, int index) {
-        setPartLimit(start, partsList.size());
+        setPartLimit(start, parts.size());
         addPart(value, type, index);
     }
 
     private void setPartLimit(int start, int limit) {
-        long partLong=partsList.get(start);
-        partsList.set(start, (partLong&0xffffffffL)|((long)limit<<32));
+        long partLong=parts.get(start);
+        parts.set(start, (partLong&0xffffffffL)|((long)limit<<32));
     }
 
     private void addArgDoublePart(double numericValue, int start) {
@@ -1564,9 +1517,8 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
 
     private ApostropheMode aposMode;
     private String msg;
-    private ArrayList<Long> partsList;  // used while parsing
+    private ArrayList<Long> parts=new ArrayList<Long>();
     private ArrayList<Double> numericValues;
-    private long[] parts;  // built at end of parsing
     private boolean hasArgNames;
     private boolean hasArgNumbers;
     private boolean needsAutoQuoting;
