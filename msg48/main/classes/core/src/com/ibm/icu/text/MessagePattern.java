@@ -270,13 +270,20 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
             return false;
         }
         MessagePattern o=(MessagePattern)other;
-        if(msg==null) {
-            return o.msg==null;
-        }
-        if(!msg.equals(o.msg) || !parts.equals(o.parts)) {
-            return false;
-        }
-        return true;
+        return
+            aposMode.equals(o.aposMode) &&
+            (msg==null ? o.msg==null : msg.equals(o.msg)) &&
+            parts.equals(o.parts);
+    }
+
+    /**
+     * {@inheritDoc}
+     * @draft ICU 4.8
+     * @provisional This API might change or be removed in a future release.
+     */
+    @Override
+    public int hashCode() {
+        return (aposMode.hashCode()*37+(msg!=null ? msg.hashCode() : 0))*37+parts.hashCode();
     }
 
     /**
