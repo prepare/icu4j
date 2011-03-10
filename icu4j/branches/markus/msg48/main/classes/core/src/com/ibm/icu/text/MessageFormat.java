@@ -40,179 +40,113 @@ import com.ibm.icu.util.ULocale;
 /**
  * {@icuenhanced java.text.MessageFormat}.{@icu _usage_}
  *
- * <p>MessageFormat produces concatenated messages in a language-neutral
- * way. Use this whenever concatenating strings that are displayed to
- * end users.
+ * <p>MessageFormat prepares strings for display to users,
+ * with optional arguments (variables/placeholders).
+ * The arguments can occur in any order, which is necessary for translation
+ * into languages with different grammars.
  *
- * <p>A MessageFormat contains an array of <em>subformats</em> arranged
- * within a <em>template string</em>.  Together, the subformats and
- * template string determine how the MessageFormat will operate during
- * formatting and parsing.
+ * <p>A MessageFormat is constructed from a <em>pattern</em> string
+ * with arguments in {curly braces} which will be replaced by formatted values.
  *
- * <p>Typically, both the subformats and the template string are
- * specified at once in a <em>pattern</em>.  By using different
- * patterns for different locales, messages may be localized.
- *
- * <p>When formatting, MessageFormat takes a collection of arguments
- * and produces a user-readable string.  The arguments may be passed
- * as an array or as a Map.  Each argument is matched up with its
- * corresponding subformat, which then formats it into a string.  The
- * resulting strings are then assembled within the string template of
- * the MessageFormat to produce the final output string.
- *
- * <p><strong>Note:</strong>
- * <code>MessageFormat</code> differs from the other <code>Format</code>
+ * <p><code>MessageFormat</code> differs from the other <code>Format</code>
  * classes in that you create a <code>MessageFormat</code> object with one
  * of its constructors (not with a <code>getInstance</code> style factory
- * method). The factory methods aren't necessary because <code>MessageFormat</code>
+ * method). Factory methods aren't necessary because <code>MessageFormat</code>
  * itself doesn't implement locale-specific behavior. Any locale-specific
  * behavior is defined by the pattern that you provide and the
  * subformats used for inserted arguments.
  *
- * <p><strong>Note:</strong>
- * In ICU 3.8 MessageFormat supports named arguments.  If a named argument
- * is used, all arguments must be named.  Names start with a character in
- * <code>:ID_START:</code> and continue with characters in <code>:ID_CONTINUE:</code>,
- * in particular they do not start with a digit.  If named arguments
- * are used, {@link #usesNamedArguments()} will return true.
+ * <p>Arguments can be named (using identifiers) or numbered (using small ASCII-digit integers).
+ * Some of the API methods work only with argument numbers and throw an exception
+ * if the pattern has named arguments (see {@link #usesNamedArguments()}).
  *
- * <p>The other new methods supporting named arguments are
- * {@link #setFormatsByArgumentName(Map)},
- * {@link #setFormatByArgumentName(String, Format)},
- * {@link #format(Map, StringBuffer, FieldPosition)},
- * {@link #format(String, Map)}, {@link #parseToMap(String, ParsePosition)},
- * and {@link #parseToMap(String)}.  These methods are all compatible
- * with patterns that do not used named arguments-- in these cases
- * the keys in the input or output <code>Map</code>s use
- * <code>String</code>s that name the argument indices, e.g. "0",
- * "1", "2"... etc.
+ * <p>An argument might not specify any format type. In this case,
+ * a Number value is formatted with a default (for the locale) NumberFormat,
+ * a Date value is formatted with a default (for the locale) DateFormat,
+ * and for any other value its toString() value is used.
  *
- * <p>When named arguments are used, certain methods on MessageFormat that take or
- * return arrays will throw an exception, since it is not possible to
- * identify positions in an array using a name.  These methods are
- * {@link #setFormatsByArgumentIndex(Format[])},
- * {@link #setFormatByArgumentIndex(int, Format)},
- * {@link #getFormatsByArgumentIndex()},
- * {@link #getFormats()},
- * {@link #format(Object[], StringBuffer, FieldPosition)},
- * {@link #format(String, Object[])},
- * {@link #parse(String, ParsePosition)}, and
- * {@link #parse(String)}.
- * These APIs all have corresponding new versions as listed above.
+ * <p>An argument might specify a "simple" type for which the specified
+ * Format object is created, cached and used.
  *
- * <p>The API {@link #format(Object, StringBuffer, FieldPosition)} has
- * been modified so that the <code>Object</code> argument can be
- * either an <code>Object</code> array or a <code>Map</code>.  If this
- * format uses named arguments, this argument must not be an
- * <code>Object</code> array otherwise an exception will be thrown.
- * If the argument is a <code>Map</code> it can be used with Strings that
- * represent indices as described above.
+ * <p>An argument might have a "complex" type with nested MessageFormat sub-patterns.
+ * During formatting, one of these sub-messages is selected according to the argument value
+ * and recursively formatted.
+ *
+ * <p>After construction, a custom Format object can be set for
+ * a top-level argument, overriding the default formatting and parsing behavior
+ * for that argument.
+ * However, custom formatting can be achieved more simply by writing
+ * a typeless argument in the pattern string
+ * and supplying it with a preformatted string value.
+ *
+ * <p>When formatting, MessageFormat takes a collection of argument values
+ * and writes an output string.
+ * The argument values may be passed as an array
+ * (when the pattern contains only numbered arguments)
+ * or as a Map (which works for both named and numbered arguments).
+ *
+ * <p>Each argument is matched with one of the input values by array index or map key
+ * and formatted according to its pattern specification
+ * (or using a custom Format object if one was set).
+ * A numbered pattern argument is matched with a map key that contains that number
+ * as an ASCII-decimal-digit string (without leading zero).
  *
  * <h4><a name="patterns">Patterns and Their Interpretation</a></h4>
  *
  * <code>MessageFormat</code> uses patterns of the following form:
  * <blockquote><pre>
- * <i>MessageFormatPattern:</i>
- *         <i>String</i>
- *         <i>MessageFormatPattern</i> <i>FormatElement</i> <i>String</i>
+ * message = messageText (argument messageText)*
+ * argument = noneArg | simpleArg | complexArg
+ * complexArg = choiceArg | pluralArg | selectArg
  *
- * <i>FormatElement:</i>
- *         { <i>ArgumentIndexOrName</i> }
- *         { <i>ArgumentIndexOrName</i> , <i>FormatType</i> }
- *         { <i>ArgumentIndexOrName</i> , <i>FormatType</i> , <i>FormatStyle</i> }
+ * noneArg = '{' argNameOrNumber '}'
+ * simpleArg = '{' argNameOrNumber ',' argType [',' argStyle] '}'
+ * choiceArg = '{' argNameOrNumber ',' "choice" ',' choiceStyle '}'
+ * pluralArg = '{' argNameOrNumber ',' "plural" ',' pluralStyle '}'
+ * selectArg = '{' argNameOrNumber ',' "select" ',' selectStyle '}'
  *
- * <i>ArgumentIndexOrName: one of </i>
- *         ['0'-'9']+
- *         [:ID_START:][:ID_CONTINUE:]*
+ * choiceStyle: see {@link ChoiceFormat}
+ * pluralStyle: see {@link PluralFormat}
+ * selectStyle: see {@link SelectFormat}
  *
- * <i>FormatType: one of </i>
- *         number date time choice spellout ordinal duration plural select
+ * argNameOrNumber = argName | argNumber
+ * argName = [^[[:Pattern_Syntax:][:Pattern_White_Space:]]]+
+ * argNumber = '0' | ('1'..'9' ('0'..'9')*)
  *
- * <i>FormatStyle:</i>
- *         short
- *         medium
- *         long
- *         full
- *         integer
- *         currency
- *         percent
- *         <i>SubformatPattern</i>
- *         <i>RulesetName</i>
- *
- * <i>String:</i>
- *         <i>StringPart<sub>opt</sub></i>
- *         <i>String</i> <i>StringPart</i>
- *
- * <i>StringPart:</i>
- *         ''
- *         ' <i>QuotedString</i> '
- *         <i>UnquotedString</i>
- *
- * <i>SubformatPattern:</i>
- *         <i>SubformatPatternPart<sub>opt</sub></i>
- *         <i>SubformatPattern</i> <i>SubformatPatternPart</i>
- *
- * <i>SubFormatPatternPart:</i>
- *         ' <i>QuotedPattern</i> '
- *         <i>UnquotedPattern</i>
+ * argType = "number" | "date" | "time" | "spellout" | "ordinal" | "duration"
+ * argStyle = "short" | "medium" | "long" | "full" | "integer" | "currency" | "percent" | argStyleText
  * </pre></blockquote>
  *
- * <i>RulesetName:</i>
- *         <i>UnquotedString</i>
+ * <ul>
+ *   <li>messageText can contain quoted literal strings including syntax characters.
+ *       A quoted literal string begins with an ASCII apostrophe and a syntax character
+ *       (usually a {curly brace}) and continues until the next single apostrophe.
+ *       A double ASCII apostrohpe inside or outside of a quoted string represents
+ *       one literal apostrophe.
+ *   <li>Quotable syntax characters are the {curly braces} in all messageText parts,
+ *       plus the '#' sign in a messageText immediately inside a pluralStyle,
+ *       and the '|' symbol in a messageText immediately inside a choiceStyle.
+ *   <li>See also {@link MessagePattern.ApostropheMode}
+ *   <li>In argStyleText, every single ASCII apostrophe begins and ends quoted literal text,
+ *       and unquoted {curly braces} must occur in matched pairs.
+ * </ul>
  *
- * <p>Within a <i>String</i>, <code>"''"</code> represents a single
- * quote. A <i>QuotedString</i> can contain arbitrary characters
- * except single quotes; the surrounding single quotes are removed.
- * An <i>UnquotedString</i> can contain arbitrary characters
- * except single quotes and left curly brackets. Thus, a string that
- * should result in the formatted message "'{0}'" can be written as
- * <code>"'''{'0}''"</code> or <code>"'''{0}'''"</code>.
- *
- * <p>Within a <i>SubformatPattern</i>, different rules apply.
- * A <i>QuotedPattern</i> can contain arbitrary characters
- * except single quotes; but the surrounding single quotes are
- * <strong>not</strong> removed, so they may be interpreted by the
- * subformat. For example, <code>"{1,number,$'#',##}"</code> will
- * produce a number format with the pound-sign quoted, with a result
- * such as: "$#31,45".
- * An <i>UnquotedPattern</i> can contain arbitrary characters
- * except single quotes, but curly braces within it must be balanced.
- * For example, <code>"ab {0} de"</code> and <code>"ab '}' de"</code>
- * are valid subformat patterns, but <code>"ab {0'}' de"</code> and
- * <code>"ab } de"</code> are not.
- *
- * <p><dl><dt><b>Warning:</b><dd>The rules for using quotes within message
- * format patterns unfortunately have shown to be somewhat confusing.
- * In particular, it isn't always obvious to localizers whether single
- * quotes need to be doubled or not. Make sure to inform localizers about
- * the rules, and tell them (for example, by using comments in resource
- * bundle source files) which strings will be processed by MessageFormat.
- * Note that localizers may need to use single quotes in translated
- * strings where the original version doesn't have them.
- *
- * <br>Note also that the simplest way to avoid the problem is to
- * use the real apostrophe (single quote) character \u2019 (') for
- * human-readable text, and to use the ASCII apostrophe (\u0027 ' )
+ * <p>Recommendation: Use the real apostrophe (single quote) character \u2019 for
+ * human-readable text, and use the ASCII apostrophe (\u0027 ' )
  * only in program syntax, like quoting in MessageFormat.
- * See the annotations for U+0027 Apostrophe in The Unicode Standard.</p>
- * </dl>
+ * See the annotations for U+0027 Apostrophe in The Unicode Standard.
  *
- * <p>The <i>ArgumentIndex</i> value is a non-negative integer written
- * using the digits '0' through '9', and represents an index into the
- * <code>arguments</code> array passed to the <code>format</code> methods
- * or the result array returned by the <code>parse</code> methods.
- *
- * <p>The <i>FormatType</i> and <i>FormatStyle</i> values are used to create
+ * <p>The <code>argType</code> and <code>argStyle</code> values are used to create
  * a <code>Format</code> instance for the format element. The following
  * table shows how the values map to Format instances. Combinations not
- * shown in the table are illegal. A <i>SubformatPattern</i> must
+ * shown in the table are illegal. Any <code>argStyleText</code> must
  * be a valid pattern string for the Format subclass used.
  *
  * <p><table border=1>
  *    <tr>
- *       <th>Format Type
- *       <th>Format Style
- *       <th>Subformat Created
+ *       <th>argType
+ *       <th>argStyle
+ *       <th>resulting Format object
  *    <tr>
  *       <td colspan=2><i>(none)</i>
  *       <td><code>null</code>
@@ -230,8 +164,8 @@ import com.ibm.icu.util.ULocale;
  *       <td><code>percent</code>
  *       <td><code>NumberFormat.getPercentInstance(getLocale())</code>
  *    <tr>
- *       <td><i>SubformatPattern</i>
- *       <td><code>new DecimalFormat(subformatPattern, new DecimalFormatSymbols(getLocale()))</code>
+ *       <td><i>argStyleText</i>
+ *       <td><code>new DecimalFormat(argStyleText, new DecimalFormatSymbols(getLocale()))</code>
  *    <tr>
  *       <td rowspan=6><code>date</code>
  *       <td><i>(none)</i>
@@ -249,8 +183,8 @@ import com.ibm.icu.util.ULocale;
  *       <td><code>full</code>
  *       <td><code>DateFormat.getDateInstance(DateFormat.FULL, getLocale())</code>
  *    <tr>
- *       <td><i>SubformatPattern</i>
- *       <td><code>new SimpleDateFormat(subformatPattern, getLocale())
+ *       <td><i>argStyleText</i>
+ *       <td><code>new SimpleDateFormat(argStyleText, getLocale())
  *    <tr>
  *       <td rowspan=6><code>time</code>
  *       <td><i>(none)</i>
@@ -268,37 +202,45 @@ import com.ibm.icu.util.ULocale;
  *       <td><code>full</code>
  *       <td><code>DateFormat.getTimeInstance(DateFormat.FULL, getLocale())</code>
  *    <tr>
- *       <td><i>SubformatPattern</i>
- *       <td><code>new SimpleDateFormat(subformatPattern, getLocale())
- *    <tr>
- *       <td><code>choice</code>
- *       <td><i>SubformatPattern</i>
- *       <td><code>new ChoiceFormat(subformatPattern)</code>
+ *       <td><i>argStyleText</i>
+ *       <td><code>new SimpleDateFormat(argStyleText, getLocale())
  *    <tr>
  *       <td><code>spellout</code>
- *       <td><i>RulesetName (optional)</i>
+ *       <td><i>argStyleText (optional)</i>
  *       <td><code>new RuleBasedNumberFormat(getLocale(), RuleBasedNumberFormat.SPELLOUT)
- *           <br/>&nbsp;&nbsp;&nbsp;&nbsp;.setDefaultRuleset(ruleset);</code>
+ *           <br/>&nbsp;&nbsp;&nbsp;&nbsp;.setDefaultRuleset(argStyleText);</code>
  *    <tr>
  *       <td><code>ordinal</code>
- *       <td><i>RulesetName (optional)</i>
+ *       <td><i>argStyleText (optional)</i>
  *       <td><code>new RuleBasedNumberFormat(getLocale(), RuleBasedNumberFormat.ORDINAL)
- *           <br/>&nbsp;&nbsp;&nbsp;&nbsp;.setDefaultRuleset(ruleset);</code>
+ *           <br/>&nbsp;&nbsp;&nbsp;&nbsp;.setDefaultRuleset(argStyleText);</code>
  *    <tr>
  *       <td><code>duration</code>
- *       <td><i>RulesetName (optional)</i>
+ *       <td><i>argStyleText (optional)</i>
  *       <td><code>new RuleBasedNumberFormat(getLocale(), RuleBasedNumberFormat.DURATION)
- *           <br/>&nbsp;&nbsp;&nbsp;&nbsp;.setDefaultRuleset(ruleset);</code>
- *    <tr>
- *       <td><code>plural</code>
- *       <td><i>SubformatPattern</i>
- *       <td><code>new PluralFormat(subformatPattern)</code>
- *    <tr>
- *       <td><code>select</code>
- *       <td><i>SubformatPattern</i>
- *       <td><code>new SelectFormat(subformatPattern)</code>
+ *           <br/>&nbsp;&nbsp;&nbsp;&nbsp;.setDefaultRuleset(argStyleText);</code>
  * </table>
  * <p>
+ *
+ * <h4><a name="diffsjdk">Differences from java.text.MessageFormat</a></h4>
+ *
+ * <p>The ICU MessageFormat supports both named and numbered arguments,
+ * while the JDK MessageFormat only supports numbered arguments.
+ * Named arguments make patterns more readable.
+ *
+ * <p>ICU implements a more user-friendly apostrophe quoting syntax.
+ * In message text, an apostrophe only begins quoting literal text
+ * if it immediately precedes a syntax character (mostly {curly braces}).<br>
+ * In the JDK MessageFormat, an apostrophe always begins quoting,
+ * which requires common text like "don't" and "aujourd'hui"
+ * to be written with doubled apostrophes like "don''t" and "aujourd''hui".
+ * For more details see {@link MessagePattern.ApostropheMode}.
+ *
+ * <p>ICU does not create a ChoiceFormat object for a choiceArg, pluralArg or selectArg
+ * but rather handles such arguments itself.
+ * The JDK MessageFormat does create and use a ChoiceFormat object
+ * (<code>new ChoiceFormat(argStyleText)</code>).
+ * The JDK does not support plural and select arguments at all.
  *
  * <h4>Usage Information</h4>
  *
@@ -306,7 +248,7 @@ import com.ibm.icu.util.ULocale;
  * <blockquote>
  * <pre>
  * Object[] arguments = {
- *     new Integer(7),
+ *     7,
  *     new Date(System.currentTimeMillis()),
  *     "a disturbance in the Force"
  * };
@@ -326,7 +268,7 @@ import com.ibm.icu.util.ULocale;
  * <p>Example 2:
  * <blockquote>
  * <pre>
- * Object[] testArgs = {new Long(3), "MyDisk"};
+ * Object[] testArgs = { 3, "MyDisk" };
  *
  * MessageFormat form = new MessageFormat(
  *     "The disk \"{1}\" contains {0} file(s).");
@@ -340,29 +282,30 @@ import com.ibm.icu.util.ULocale;
  * </pre>
  * </blockquote>
  *
- * <p>
- * <strong>Creating internationalized messages that include plural forms, you
- * can use a PluralFormat:</strong>
+ * <p>For messages that include plural forms, you can use a plural argument:
  * <pre>
- * MessageFormat msgFmt = new MessageFormat("{0, plural, " +
- *     "one{{0, number, C''''est #,##0.0#  fichier}} " +
- *     "other {Ce sont # fichiers}} dans la liste.",
- *     new ULocale("fr"));
- * Object args[] = {new Long(0)};
+ * MessageFormat msgFmt = new MessageFormat(
+ *     "{num_files, plural, " +
+ *     "=0{There are no files on disk \"{disk_name}\".}" +
+ *     "=1{There is one file on disk \"{disk_name}\".}" +
+ *     "other{There are # files on disk \"{disk_name}\".}}",
+ *     ULocale.ENGLISH);
+ * Map args = new HashMap();
+ * args.put("num_files", 0);
+ * args.put("disk_name", "MyDisk");
  * System.out.println(msgFmt.format(args));
- * args = {new Long(3)};
+ * args.put("num_files", 3);
  * System.out.println(msgFmt.format(args));
  * 
- * Produces the output:<br />
- * <code>C'est 0,0 fichier dans la liste.</code><br />
- * <code>Ce sont 3 fichiers dans la liste."</code>
+ * <em>output</em>:
+ * There are no files on disk "MyDisk".
+ * There are 3 files on "MyDisk".
  * </pre>
- * Please check {@link PluralFormat} and {@link PluralRules} for details.
- * </p>
+ * See {@link PluralFormat} and {@link PluralRules} for details.
  *
  * <h4><a name="synchronization">Synchronization</a></h4>
  *
- * <p>Message formats are not synchronized.
+ * <p>MessageFormats are not synchronized.
  * It is recommended to create separate format instances for each thread.
  * If multiple threads access a format concurrently, it must be synchronized
  * externally.
@@ -375,6 +318,7 @@ import com.ibm.icu.util.ULocale;
  * @see          PluralFormat
  * @see          SelectFormat
  * @author       Mark Davis
+ * @author       Markus Scherer
  * @stable ICU 3.0
  */
 public class MessageFormat extends UFormat {
@@ -385,10 +329,7 @@ public class MessageFormat extends UFormat {
     /**
      * Constructs a MessageFormat for the default locale and the
      * specified pattern.
-     * The constructor first sets the locale, then parses the pattern and
-     * creates a list of subformats for the format elements contained in it.
-     * Patterns and their interpretation are specified in the
-     * <a href="#patterns">class description</a>.
+     * Sets the locale and calls applyPattern(pattern).
      *
      * @param pattern the pattern for this message format
      * @exception IllegalArgumentException if the pattern is invalid
@@ -402,10 +343,7 @@ public class MessageFormat extends UFormat {
     /**
      * Constructs a MessageFormat for the specified locale and
      * pattern.
-     * The constructor first sets the locale, then parses the pattern and
-     * creates a list of subformats for the format elements contained in it.
-     * Patterns and their interpretation are specified in the
-     * <a href="#patterns">class description</a>.
+     * Sets the locale and calls applyPattern(pattern).
      *
      * @param pattern the pattern for this message format
      * @param locale the locale for this message format
@@ -419,10 +357,7 @@ public class MessageFormat extends UFormat {
     /**
      * Constructs a MessageFormat for the specified locale and
      * pattern.
-     * The constructor first sets the locale, then parses the pattern and
-     * creates a list of subformats for the format elements contained in it.
-     * Patterns and their interpretation are specified in the
-     * <a href="#patterns">class description</a>.
+     * Sets the locale and calls applyPattern(pattern).
      *
      * @param pattern the pattern for this message format
      * @param locale the locale for this message format
@@ -435,10 +370,9 @@ public class MessageFormat extends UFormat {
     }
 
     /**
-     * Sets the locale to be used when creating or comparing subformats.
+     * Sets the locale to be used for creating argument Format objects.
      * This affects subsequent calls to the {@link #applyPattern applyPattern}
-     * and {@link #toPattern toPattern} methods as well as to the
-     * <code>format</code> and
+     * method as well as to the <code>format</code> and
      * {@link #formatToCharacterIterator formatToCharacterIterator} methods.
      *
      * @param locale the locale to be used when creating or comparing subformats
@@ -449,10 +383,9 @@ public class MessageFormat extends UFormat {
     }
 
     /**
-     * Sets the locale to be used when creating or comparing subformats.
+     * Sets the locale to be used for creating argument Format objects.
      * This affects subsequent calls to the {@link #applyPattern applyPattern}
-     * and {@link #toPattern toPattern} methods as well as to the
-     * <code>format</code> and
+     * method as well as to the <code>format</code> and
      * {@link #formatToCharacterIterator formatToCharacterIterator} methods.
      *
      * @param locale the locale to be used when creating or comparing subformats
@@ -482,7 +415,7 @@ public class MessageFormat extends UFormat {
     }
 
     /**
-     * {@icu} Returns the locale that's used when creating or comparing subformats.
+     * {@icu} Returns the locale that's used when creating argument Format objects.
      *
      * @return the locale used when creating or comparing subformats
      * @stable ICU 3.2
@@ -493,13 +426,9 @@ public class MessageFormat extends UFormat {
 
     /**
      * Sets the pattern used by this message format.
-     * The method parses the pattern and creates a list of subformats
-     * for the format elements contained in it.
+     * Parses the pattern and caches Format objects for simple argument types.
      * Patterns and their interpretation are specified in the
      * <a href="#patterns">class description</a>.
-     * <p>
-     * The pattern must contain only named or only numeric arguments,
-     * mixing them is not allowed.
      *
      * @param pttrn the pattern for this message format
      * @throws IllegalArgumentException if the pattern is invalid
@@ -590,11 +519,10 @@ public class MessageFormat extends UFormat {
     }
 
     /**
-     * Returns a pattern representing the current state of the message format.
-     * The string is constructed from internal information and therefore
-     * does not necessarily equal the previously applied pattern.
-     *
-     * @return a pattern representing the current state of the message format
+     * Returns the applied pattern string.
+     * @return the pattern string
+     * @throws IllegalStateException after custom Format objects have been set
+     *         via setFormat() or similar APIs
      * @stable ICU 3.0
      */
     public String toPattern() {
@@ -653,7 +581,7 @@ public class MessageFormat extends UFormat {
     }
 
     /**
-     * Sets the formats to use for the values passed into
+     * Sets the Format objects to use for the values passed into
      * <code>format</code> methods or returned from <code>parse</code>
      * methods. The indices of elements in <code>newFormats</code>
      * correspond to the argument indices used in the previously set
@@ -701,7 +629,7 @@ public class MessageFormat extends UFormat {
     }
 
     /**
-     * {@icu} Sets the formats to use for the values passed into
+     * {@icu} Sets the Format objects to use for the values passed into
      * <code>format</code> methods or returned from <code>parse</code>
      * methods. The keys in <code>newFormats</code> are the argument
      * names in the previously set pattern string, and the values
@@ -738,7 +666,7 @@ public class MessageFormat extends UFormat {
     }
 
     /**
-     * Sets the formats to use for the format elements in the
+     * Sets the Format objects to use for the format elements in the
      * previously set pattern string.
      * The order of formats in <code>newFormats</code> corresponds to
      * the order of format elements in the pattern string.
@@ -779,7 +707,7 @@ public class MessageFormat extends UFormat {
     }
 
     /**
-     * Sets the format to use for the format elements within the
+     * Sets the Format object to use for the format elements within the
      * previously set pattern string that use the given argument
      * index.
      * The argument index is part of the format element definition and
@@ -820,7 +748,7 @@ public class MessageFormat extends UFormat {
     }
 
     /**
-     * {@icu} Sets the format to use for the format elements within the
+     * {@icu} Sets the Format object to use for the format elements within the
      * previously set pattern string that use the given argument
      * name.
      * <p>
@@ -857,7 +785,7 @@ public class MessageFormat extends UFormat {
     }
 
     /**
-     * Sets the format to use for the format element with the given
+     * Sets the Format object to use for the format element with the given
      * format element index within the previously set pattern string.
      * The format element index is the zero-based number of the format
      * element counting from the start of the pattern string.
@@ -889,7 +817,7 @@ public class MessageFormat extends UFormat {
     }
 
     /**
-     * Returns the formats used for the values passed into
+     * Returns the Format objects used for the values passed into
      * <code>format</code> methods or returned from <code>parse</code>
      * methods. The indices of elements in the returned array
      * correspond to the argument indices used in the previously set
@@ -933,7 +861,7 @@ public class MessageFormat extends UFormat {
     // Where Map is: String argumentName --> Format format.
 
     /**
-     * Returns the formats used for the format elements in the
+     * Returns the Format objects used for the format elements in the
      * previously set pattern string.
      * The order of formats in the returned array corresponds to
      * the order of format elements in the pattern string.
@@ -963,7 +891,7 @@ public class MessageFormat extends UFormat {
     }
 
     /**
-     * {@icu} Returns the format argument names. For more details, see
+     * {@icu} Returns the top-level argument names. For more details, see
      * {@link #setFormatByArgumentName(String, Format)}.
      * @return List of names
      * @internal
@@ -1004,7 +932,7 @@ public class MessageFormat extends UFormat {
 
     /**
      * Formats an array of objects and appends the <code>MessageFormat</code>'s
-     * pattern, with format elements replaced by the formatted objects, to the
+     * pattern, with arguments replaced by the formatted objects, to the
      * provided <code>StringBuffer</code>.
      * <p>
      * The text substituted for the individual format elements is derived from
@@ -1017,44 +945,42 @@ public class MessageFormat extends UFormat {
      * <p>
      * <table border=1>
      *    <tr>
-     *       <th>Subformat
-     *       <th>Argument
+     *       <th>argType or Format
+     *       <th>value object
      *       <th>Formatted Text
      *    <tr>
      *       <td><i>any</i>
      *       <td><i>unavailable</i>
-     *       <td><code>"{" + argumentIndex + "}"</code>
+     *       <td><code>"{" + argNameOrNumber + "}"</code>
      *    <tr>
      *       <td><i>any</i>
      *       <td><code>null</code>
      *       <td><code>"null"</code>
      *    <tr>
-     *       <td><code>instanceof ChoiceFormat</code>
+     *       <td>custom Format <code>!= null</code>
      *       <td><i>any</i>
-     *       <td><code>subformat.format(argument).indexOf('{') >= 0 ?<br>
-     *           (new MessageFormat(subformat.format(argument), getLocale())).format(argument) :
-     *           subformat.format(argument)</code>
+     *       <td><code>customFormat.format(argument)</code>
      *    <tr>
-     *       <td><code>!= null</code>
-     *       <td><i>any</i>
-     *       <td><code>subformat.format(argument)</code>
-     *    <tr>
-     *       <td><code>null</code>
+     *       <td>noneArg, or custom Format <code>== null</code>
      *       <td><code>instanceof Number</code>
      *       <td><code>NumberFormat.getInstance(getLocale()).format(argument)</code>
      *    <tr>
-     *       <td><code>null</code>
+     *       <td>noneArg, or custom Format <code>== null</code>
      *       <td><code>instanceof Date</code>
      *       <td><code>DateFormat.getDateTimeInstance(DateFormat.SHORT,
      *           DateFormat.SHORT, getLocale()).format(argument)</code>
      *    <tr>
-     *       <td><code>null</code>
+     *       <td>noneArg, or custom Format <code>== null</code>
      *       <td><code>instanceof String</code>
      *       <td><code>argument</code>
      *    <tr>
-     *       <td><code>null</code>
+     *       <td>noneArg, or custom Format <code>== null</code>
      *       <td><i>any</i>
      *       <td><code>argument.toString()</code>
+     *    <tr>
+     *       <td>complexArg
+     *       <td><i>any</i>
+     *       <td>result of recursive formatting of a selected sub-message
      * </table>
      * <p>
      * If <code>pos</code> is non-null, and refers to
@@ -1068,9 +994,9 @@ public class MessageFormat extends UFormat {
      * @param result where text is appended.
      * @param pos On input: an alignment field, if desired.
      *            On output: the offsets of the alignment field.
-     * @throws IllegalArgumentException if an argument in the
-     *            <code>arguments</code> array is not of the type
-     *            expected by the format element(s) that use it.
+     * @throws IllegalArgumentException if a value in the
+     *         <code>arguments</code> array is not of the type
+     *         expected by the corresponding argument or custom Format object.
      * @throws IllegalArgumentException if this format uses named arguments
      * @stable ICU 3.0
      */
@@ -1083,7 +1009,7 @@ public class MessageFormat extends UFormat {
 
     /**
      * Formats a map of objects and appends the <code>MessageFormat</code>'s
-     * pattern, with format elements replaced by the formatted objects, to the
+     * pattern, with arguments replaced by the formatted objects, to the
      * provided <code>StringBuffer</code>.
      * <p>
      * The text substituted for the individual format elements is derived from
@@ -1091,9 +1017,8 @@ public class MessageFormat extends UFormat {
      * <code>arguments</code> value corresopnding to the format element's
      * argument name.
      * <p>
-     * This API may be called on formats that do not use named arguments.
-     * In this case the the keys in <code>arguments</code> must be numeric
-     * strings (e.g. "0", "1", "2"...).
+     * A numbered pattern argument is matched with a map key that contains that number
+     * as an ASCII-decimal-digit string (without leading zero).
      * <p>
      * An argument is <i>unavailable</i> if <code>arguments</code> is
      * <code>null</code> or does not have a value corresponding to an argument
@@ -1104,9 +1029,9 @@ public class MessageFormat extends UFormat {
      * @param result where text is appended.
      * @param pos On input: an alignment field, if desired.
      *            On output: the offsets of the alignment field.
-     * @throws IllegalArgumentException if an argument in the
+     * @throws IllegalArgumentException if a value in the
      *         <code>arguments</code> array is not of the type
-     *         expected by the format element(s) that use it.
+     *         expected by the corresponding argument or custom Format object.
      * @return the passed-in StringBuffer
      * @stable ICU 3.8
      */
@@ -1125,10 +1050,10 @@ public class MessageFormat extends UFormat {
      *     format}(arguments, new StringBuffer(), null).toString()</code>
      * </blockquote>
      *
-     * @throws IllegalArgumentException if the pattern is invalid,
-     *            or if an argument in the <code>arguments</code> array
-     *            is not of the type expected by the format element(s)
-     *            that use it.
+     * @throws IllegalArgumentException if the pattern is invalid
+     * @throws IllegalArgumentException if a value in the
+     *         <code>arguments</code> array is not of the type
+     *         expected by the corresponding argument or custom Format object.
      * @throws IllegalArgumentException if this format uses named arguments
      * @stable ICU 3.0
      */
@@ -1142,10 +1067,10 @@ public class MessageFormat extends UFormat {
      * format the given arguments.  The pattern must identifyarguments
      * by name instead of by number.
      * <p>
-     * @throws IllegalArgumentException if the pattern is invalid,
-     *         or if an argument in the <code>arguments</code> map
-     *         is not of the type expected by the format element(s)
-     *         that use it.
+     * @throws IllegalArgumentException if the pattern is invalid
+     * @throws IllegalArgumentException if a value in the
+     *         <code>arguments</code> array is not of the type
+     *         expected by the corresponding argument or custom Format object.
      * @see #format(Map, StringBuffer, FieldPosition)
      * @see #format(String, Object[])
      * @stable ICU 3.8
@@ -1229,9 +1154,9 @@ public class MessageFormat extends UFormat {
      * @param arguments an array of objects to be formatted and substituted.
      * @return AttributedCharacterIterator describing the formatted value.
      * @exception NullPointerException if <code>arguments</code> is null.
-     * @exception IllegalArgumentException if an argument in the
-     *            <code>arguments</code> array is not of the type
-     *            expected by the format element(s) that use it.
+     * @throws IllegalArgumentException if a value in the
+     *         <code>arguments</code> array is not of the type
+     *         expected by the corresponding argument or custom Format object.
      * @stable ICU 3.8
      */
     public AttributedCharacterIterator formatToCharacterIterator(Object arguments) {
@@ -1276,10 +1201,6 @@ public class MessageFormat extends UFormat {
      * is comparing against the pattern "AAD {0} BBB", the error index is
      * 0. When an error occurs, the call to this method will return null.
      * If the source is null, return an empty array.
-     * <p>
-     * This method is only supported with numbered arguments.  If
-     * the format pattern used named argument an
-     * IllegalArgumentException is thrown.
      *
      * @throws IllegalArgumentException if this format uses named arguments
      * @stable ICU 3.0
@@ -1316,7 +1237,7 @@ public class MessageFormat extends UFormat {
      * This is similar to the version that returns an array
      * of Object.  This supports both named and numbered
      * arguments-- if numbered, the keys in the map are the
-     * corresponding Strings (e.g. "0", "1", "2"...).
+     * corresponding ASCII-decimal-digit strings (e.g. "0", "1", "2"...).
      *
      * @param source the text to parse
      * @param pos the position at which to start parsing.  on return,
@@ -1480,11 +1401,10 @@ public class MessageFormat extends UFormat {
     }
 
     /**
-     * Overrides clone.
-     *
-     * @return a clone of this instance.
+     * {@inheritDoc}
      * @stable ICU 3.0
      */
+    @Override
     public Object clone() {
         MessageFormat other = (MessageFormat) super.clone();
 
@@ -1502,9 +1422,10 @@ public class MessageFormat extends UFormat {
     }
 
     /**
-     * Overrides equals.
+     * {@inheritDoc}
      * @stable ICU 3.0
      */
+    @Override
     public boolean equals(Object obj) {
         if (this == obj)                      // quick check
             return true;
@@ -1520,9 +1441,10 @@ public class MessageFormat extends UFormat {
     }
 
     /**
-     * Overrides hashCode.
+     * {@inheritDoc}
      * @stable ICU 3.0
      */
+    @Override
     public int hashCode() {
         return pattern.hashCode(); // enough for reasonable distribution
     }
@@ -2475,7 +2397,15 @@ public class MessageFormat extends UFormat {
 
     /**
      * {@icu} Converts an 'apostrophe-friendly' pattern into a standard
-     * pattern.  Standard patterns treat all apostrophes as
+     * pattern.
+     * <em>This is obsolete for ICU 4.8 and higher MessageFormat pattern strings.</em>
+     * It can still be useful together with the JDK MessageFormat.
+     *
+     * <p>See the class description for more about apostrophes and quoting,
+     * and differences between ICU and the JDK.
+     *
+     * <p>The JDK MessageFormat and ICU 4.6 and earlier MessageFormat
+     * treat all ASCII apostrophes as
      * quotes, which is problematic in some languages, e.g.
      * French, where apostrophe is commonly used.  This utility
      * assumes that only an unpaired apostrophe immediately before
@@ -2485,6 +2415,9 @@ public class MessageFormat extends UFormat {
      * <p><b>Note</b>: It is not guaranteed that the returned pattern
      * is indeed a valid pattern.  The only effect is to convert
      * between patterns having different quoting semantics.
+     *
+     * <p><b>Note</b>: This method only works on top-level messageText,
+     * not messageText nested inside a complexArg.
      *
      * @param pattern the 'apostrophe-friendly' pattern to convert
      * @return the standard equivalent of the original pattern
