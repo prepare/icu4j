@@ -845,7 +845,7 @@ public class MessageFormat extends UFormat {
             }
         }
         int argNumber = MessagePattern.validateArgumentName(argumentName);
-        if (argNumber < -1) {
+        if (argNumber < MessagePattern.ARG_NAME_NOT_NUMBER) {
             return;
         }
         Part part = new Part();
@@ -990,7 +990,7 @@ public class MessageFormat extends UFormat {
             return null;
         }
         int argNumber = MessagePattern.validateArgumentName(argumentName);
-        if (argNumber < -1) {
+        if (argNumber < MessagePattern.ARG_NAME_NOT_NUMBER) {
             return null;
         }
         Part part = new Part();

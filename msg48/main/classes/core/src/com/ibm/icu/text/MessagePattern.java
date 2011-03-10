@@ -320,17 +320,35 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
      * If it only contains ASCII digits, then it must be a small integer with no leading zero.
      * @param name Input string.
      * @return &gt;=0 if the name is a valid number,
-     *         -1 if it is a "pattern identifier" but not all ASCII digits,
-     *         -2 if it is neither.
+     *         ARG_NAME_NOT_NUMBER (-1) if it is a "pattern identifier" but not all ASCII digits,
+     *         ARG_NAME_NOT_VALID (-2) if it is neither.
      * @draft ICU 4.8
      * @provisional This API might change or be removed in a future release.
      */
     public static int validateArgumentName(String name) {
         if(!PatternProps.isIdentifier(name)) {
-            return -2;
+            return ARG_NAME_NOT_VALID;
         }
         return parseArgNumber(name, 0, name.length());
     }
+
+    /**
+     * Return value from {@link #validateArgumentName(String)} for when
+     * the string is a valid "pattern identifier" but not a number.
+     * @draft ICU 4.8
+     * @provisional This API might change or be removed in a future release.
+     */
+    public static final int ARG_NAME_NOT_NUMBER=-1;
+
+    /**
+     * Return value from {@link #validateArgumentName(String)} for when
+     * the string is invalid.
+     * It might not be a valid "pattern identifier",
+     * or it have only ASCII digits but there is a leading zero or the number is too large.
+     * @draft ICU 4.8
+     * @provisional This API might change or be removed in a future release.
+     */
+    public static final int ARG_NAME_NOT_VALID=-2;
 
     /**
      * Returns a version of the parsed pattern string where each ASCII apostrophe
@@ -1029,7 +1047,7 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
             }
             hasArgNumbers=true;
             addPart(number, Part.Type.ARG_NUMBER, nameIndex);
-        } else if(number==-1) {
+        } else if(number==ARG_NAME_NOT_NUMBER) {
             int length=index-nameIndex;
             if(length>Part.MAX_VALUE) {
                 throw new IndexOutOfBoundsException(
@@ -1037,7 +1055,7 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
             }
             hasArgNames=true;
             addPart(length, Part.Type.ARG_NAME, nameIndex);
-        } else {  // number<-1
+        } else {  // number<-1 (ARG_NAME_NOT_VALID)
             throw new IllegalArgumentException("Bad argument syntax: "+prefix(nameIndex));
         }
         index=skipWhiteSpace(index);
@@ -1287,8 +1305,8 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
      * @param start
      * @param limit
      * @return &gt;=0 if the name is a valid number,
-     *         -1 if it is a "pattern identifier" but not all ASCII digits,
-     *         -2 if it is neither.
+     *         ARG_NAME_NOT_NUMBER (-1) if it is a "pattern identifier" but not all ASCII digits,
+     *         ARG_NAME_NOT_VALID (-2) if it is neither.
      * @see #validateArgumentName(String)
      */
     private static int parseArgNumber(CharSequence s, int start, int limit) {
@@ -1296,7 +1314,7 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
         // and must not have leading zeros (except "0" itself).
         // Otherwise it is an argument _name_.
         if(start>=limit) {
-            return -2;
+            return ARG_NAME_NOT_VALID;
         }
         int number;
         // Defer numeric errors until we know there are only digits.
@@ -1313,7 +1331,7 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
             number=c-'0';
             badNumber=false;
         } else {
-            return -1;
+            return ARG_NAME_NOT_NUMBER;
         }
         while(start<limit) {
             c=s.charAt(start++);
@@ -1323,12 +1341,12 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
                 }
                 number=number*10+(c-'0');
             } else {
-                return -1;
+                return ARG_NAME_NOT_NUMBER;
             }
         }
         // There are only ASCII digits.
         if(badNumber) {
-            return -2;
+            return ARG_NAME_NOT_VALID;
         } else {
             return number;
         }
