@@ -25,6 +25,8 @@ import com.ibm.icu.util.Freezable;
  * For "simple" arguments (with no nested MessageFormat pattern substrings),
  * the argument style is not parsed any further.
  * <p>
+ * The parser handles named and numbered message arguments and does not check for consistent style.
+ * <p>
  * Once a pattern has been parsed successfully, iterate through the parsed data
  * with countParts(), getPart() and related methods.
  * <p>
@@ -32,7 +34,30 @@ import com.ibm.icu.util.Freezable;
  * as a list of "parts" for fast and simple parsing. Arguments and nested messages
  * are best handled via recursion.
  * <p>
- * The parser handles named and numbered message arguments and does not check for consistent style.
+ * List of "parts":
+ * <pre>
+ * message = MSG_START (SKIP_SYNTAX | INSERT_CHAR | REPLACE_NUMBER | argument)* MSG_LIMIT
+ * argument = noneArg | simpleArg | complexArg
+ * complexArg = choiceArg | pluralArg | selectArg
+ *
+ * noneArg = ARG_START.NONE (ARG_NAME | ARG_NUMBER) ARG_LIMIT.NONE
+ * simpleArg = ARG_START.SIMPLE (ARG_NAME | ARG_NUMBER) ARG_TYPE [ARG_STYLE_START] ARG_LIMIT.SIMPLE
+ * choiceArg = ARG_START.CHOICE (ARG_NAME | ARG_NUMBER) choiceStyle ARG_LIMIT.CHOICE
+ * pluralArg = ARG_START.PLURAL (ARG_NAME | ARG_NUMBER) pluralStyle ARG_LIMIT.PLURAL
+ * selectArg = ARG_START.SELECT (ARG_NAME | ARG_NUMBER) selectStyle ARG_LIMIT.SELECT
+ *
+ * choiceStyle = ((ARG_INT | ARG_DOUBLE) ARG_SELECTOR message)+
+ * pluralStyle = [ARG_INT | ARG_DOUBLE] (ARG_SELECTOR [ARG_INT | ARG_DOUBLE] message)+
+ * selectStyle = (ARG_SELECTOR message)+
+ * </pre>
+ * <ul>
+ *   <li><code>ARG_START.CHOICE</code> stands for an ARG_START Part with ArgType CHOICE.
+ *   <li>In the choiceStyle, the ARG_SELECTOR has the '#' or the less-than sign (U+2264).
+ *   <li>In the pluralStyle, the first, optional numeric Part has the "offset:" value.
+ *       The optional numeric Part between each (ARG_SELECTOR, message) pair
+ *       is the value of an explicit-number selector like "=2",
+ *       otherwise the selector is a non-numeric identifier.
+ *   <li>The REPLACE_NUMBER Part can occur only in an immediate sub-message of the pluralStyle.
  * <p>
  * This class is not intended for public subclassing.
  *
@@ -672,7 +697,8 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
              */
             ARG_TYPE(true),
             /**
-             * The start of the argument style.
+             * The start of the argument style which is the substring between this part's index
+             * and one before the index of the following ARG_LIMIT (getPatternIndex(i+1)-1).
              * The value is undefined and currently always 0.
              * @draft ICU 4.8
              * @provisional This API might change or be removed in a future release.
