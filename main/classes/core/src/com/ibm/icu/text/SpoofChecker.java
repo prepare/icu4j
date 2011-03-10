@@ -37,107 +37,96 @@ import com.ibm.icu.util.ULocale;
 
 /**
  *
- * <b>Unicode Security and Spoofing Detection.</b>
+ * \brief for Unicode Security and Spoofing Detection.
  *
- * <p>This class is intended to check strings, typically
+ * These functions are intended to check strings, typically
  * identifiers of some type, such as URLs, for the presence of
  * characters that are likely to be visually confusing - 
  * for cases where the displayed form of an identifier may
  * not be what it appears to be.
  *
- * <p>Unicode Technical Report #36, 
- * <a href="http://unicode.org/reports/tr36">http://unicode.org/reports/tr36</a> and
- * Unicode Technical Standard #39, 
- * <a href="http://unicode.org/reports/tr39">http://unicode.org/reports/tr39</a>
+ * Unicode Technical Report #36, http://unicode.org/reports/tr36, and
+ * Unicode Technical Standard #39, http://unicode.org/reports/tr39
  * "Unicode security considerations", give more background on 
  * security and spoofing issues with Unicode identifiers.
  * The tests and checks provided by this module implement the recommendations
  * from these Unicode documents.
  *
- * <p>The tests available on identifiers fall into two general categories:
- *   <ul>
- *     <li>  Single identifier tests.  Check whether an identifier is
+ * The tests available on identifiers fall into two general categories:
+ *   -#  Single identifier tests.  Check whether an identifier is
  *       potentially confusable with any other string, or is suspicious
- *       for other reasons. </li>
- *     <li> Two identifier tests.  Check whether two specific identifiers are confusable.
+ *       for other reasons.
+ *   -#  Two identifier tests.  Check whether two specific identifiers are confusable.
  *       This does not consider whether either of strings is potentially
- *       confusable with any string other than the exact one specified. </li>
- *   </ul>
+ *       confusable with any string other than the exact one specified.
  *
- * <p>The steps to perform confusability testing are
- *   <ul>
- *     <li>  Create a <code>SpoofChecker.Builder</code> </li>
- *     <li>  Configure the Builder for the desired set of tests.  The tests that will
- *           be performed are specified by a set of SpoofCheck flags. </li>
- *     <li>  Build a <code>SpoofChecker</code> from the Builder. </li>
- *     <li>  Perform the checks using the pre-configured <code>SpoofChecker</code>.  The results indicate
- *           which (if any) of the selected tests have identified possible problems with the identifier.
- *           Results are reported as a set of SpoofCheck flags;  this mirrors the form in which
- *           the set of tests to perform was originally specified to the SpoofChecker. </li>
- *    </ul>
+ * The steps to perform confusability testing are
+ *   -#  Create a SpoofChecker.Builder
+ *   -#  Configure the Builder for the desired set of tests.  The tests that will
+ *       be performed are specified by a set of SpoofCheck flags.
+ *   -#  Build a SpoofChecker from the Builder.
+ *   -#  Perform the checks using the pre-configured SpoofChecker.  The results indicate
+ *       which (if any) of the selected tests have identified possible problems with the identifier.
+ *       Results are reported as a set of SpoofCheck flags;  this mirrors the form in which
+ *       the set of tests to perform was originally specified to the SpoofChecker.
  *
- * <p>A <code>SpoofChecker</code> instance may be used repeatedly to perform checks on any number 
- *    of identifiers.
+ * A SpoofChecker may be used repeatedly to perform checks on any number of identifiers.
  *
- * <p>Thread Safety: The methods on SpoofChecker objects are thread safe.  
+ * Thread Safety: The methods on SpoofChecker objects are thread safe.  
  * The test functions for checking a single identifier, or for testing 
  * whether two identifiers are potentially confusable,  may called concurrently 
  * from multiple threads using the same SpoofChecker instance.
  *
  *
- * <p>Descriptions of the available checks.
+ * Descriptions of the available checks.
  *
- * <p>When testing whether pairs of identifiers are confusable, with <code>areConfusable()</code>
- * the relevant tests are
+ * When testing whether pairs of identifiers are confusable, with the areConfusable()
+ * family of functions, the relevant tests are
  *
- *  <ul>
- *   <li> <code>SINGLE_SCRIPT_CONFUSABLE</code>:  All of the characters from the two identifiers are
- *      from a single script, and the two identifiers are visually confusable.</li>
- *   <li> <code>MIXED_SCRIPT_CONFUSABLE</code>:  At least one of the identifiers contains characters
- *      from more than one script, and the two identifiers are visually confusable.</li>
- *   <li> <code>WHOLE_SCRIPT_CONFUSABLE</code>: Each of the two identifiers is of a single script, but
- *      the the two identifiers are from different scripts, and they are visually confusable.</li>
- *  </ul>
+ *   -# SINGLE_SCRIPT_CONFUSABLE:  All of the characters from the two identifiers are
+ *      from a single script, and the two identifiers are visually confusable.
+ *   -# MIXED_SCRIPT_CONFUSABLE:  At least one of the identifiers contains characters
+ *      from more than one script, and the two identifiers are visually confusable.
+ *   -# WHOLE_SCRIPT_CONFUSABLE: Each of the two identifiers is of a single script, but
+ *      the the two identifiers are from different scripts, and they are visually confusable.
  *
- * <p>The safest approach is to enable all three of these checks as a group.
+ * The safest approach is to enable all three of these checks as a group.
  *
- * <p><code>ANY_CASE</code> is a modifier for the above tests.  If the identifiers being checked can
+ * ANY_CASE is a modifier for the above tests.  If the identifiers being checked can
  * be of mixed case and are used in a case-sensitive manner, this option should be specified.
  *
- * <p>If the identifiers being checked are used in a case-insensitive manner, and if they are
- * displayed to users in lower-case form only, the <code>ANY_CASE</code> option should not be
+ * If the identifiers being checked are used in a case-insensitive manner, and if they are
+ * displayed to users in lower-case form only, the ANY_CASE option should not be
  * specified.  Confusabality issues involving upper case letters will not be reported.
  *
- * <p>When performing tests on a single identifier, with the check() family of functions,
+ * When performing tests on a single identifier, with the check() family of functions,
  * the relevant tests are:
  *
- *  <ul>
- *    <li><code>MIXED_SCRIPT_CONFUSABLE</code>: the identifier contains characters from multiple
- *       scripts, and there exists an identifier of a single script that is visually confusable.</li>
- *    <li><code>WHOLE_SCRIPT_CONFUSABLE</code>: the identifier consists of characters from a single
+ *    -# MIXED_SCRIPT_CONFUSABLE: the identifier contains characters from multiple
+ *       scripts, and there exists an identifier of a single script that is visually confusable.
+ *    -# WHOLE_SCRIPT_CONFUSABLE: the identifier consists of characters from a single
  *       script, and there exists a visually confusable identifier.
  *       The visually confusable identifier also consists of characters from a single script.
- *       but not the same script as the identifier being checked.</li>
- *    <li><code>ANY_CASE</code>: modifies the mixed script and whole script confusables tests.  If
+ *       but not the same script as the identifier being checked.
+ *    -# ANY_CASE: modifies the mixed script and whole script confusables tests.  If
  *       specified, the checks will find confusable characters of any case.  
- *       If this flag is not set, the test is performed assuming case folded identifiers.</li>
- *    <li><code>SINGLE_SCRIPT</code>: check that the identifier contains only characters from a
- *       single script.  (Characters from the <em>common</em> and <em>inherited</em> scripts are ignored.)
- *       This is not a test for confusable identifiers</li>
- *    <li><code>INVISIBLE</code>: check an identifier for the presence of invisible characters,
+ *       If this flag is not set, the test is performed assuming case folded identifiers.
+ *    -# SINGLE_SCRIPT: check that the identifier contains only characters from a
+ *       single script.  (Characters from the 'common' and 'inherited' scripts are ignored.)
+ *       This is not a test for confusable identifiers
+ *    -# INVISIBLE: check an identifier for the presence of invisible characters,
  *       such as zero-width spaces, or character sequences that are
  *       likely not to display, such as multiple occurrences of the same
  *       non-spacing mark.  This check does not test the input string as a whole
- *       for conformance to any particular syntax for identifiers.</li>
- *    <li><code>CHAR_LIMIT</code>: check that an identifier contains only characters from a specified set
- *       of acceptable characters.  See <code>Builder.setAllowedChars()</code> and
- *       <code>Builder.setAllowedLocales()</code>.</li>
- *  </ul>
+ *       for conformance to any particular syntax for identifiers.
+ *    -# CHAR_LIMIT: check that an identifier contains only characters from a specified set
+ *       of acceptable characters.  See Builder.setAllowedChars() and
+ *       Builder.setAllowedLocales().
  *
- *  <p>Note on Scripts:
- *     <blockquote>Characters from the Unicode Scripts "Common" and "Inherited" are ignored when considering
+ *  Note on Scripts:
+ *     Characters from the Unicode Scripts "Common" and "Inherited" are ignored when considering
  *     the script of an identifier. Common characters include digits and symbols that
- *     are normally used with text from many different scripts. </blockquote>
+ *     are normally used with text from many different scripts.
  *
  * @draft ICU 4.6
  * @provisional This API might change or be removed in a future release.
@@ -354,7 +343,7 @@ public class SpoofChecker {
          * 
          * @param checks
          *            The set of checks that this spoof checker will perform. The value is an 'or' of the desired
-         *            checks.
+         *            checks..
          * @return self
          * @draft ICU 4.6
          * @provisional This API might change or be removed in a future release.
@@ -1892,14 +1881,6 @@ public class SpoofChecker {
             sc = UScript.getScript(c);
             if (sc == UScript.COMMON || sc == UScript.INHERITED || sc == UScript.UNKNOWN) {
                 continue;
-            }
-            
-            // Temporary fix: fold Japanese and Korean into Han.
-            //   Names are allowed to mix these scripts.
-            //   A more general solution will follow later for characters that are
-            //   used with multiple scripts.            
-            if (sc == UScript.KATAKANA || sc == UScript.HIRAGANA || sc == UScript.HANGUL) {
-                sc = UScript.HAN;
             }
             if (sc != lastScript) {
                 scriptCount++;

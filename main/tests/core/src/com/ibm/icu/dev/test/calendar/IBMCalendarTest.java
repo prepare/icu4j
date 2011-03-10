@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2000-2011, International Business Machines Corporation and
+ * Copyright (C) 2000-2010, International Business Machines Corporation and
  * others. All Rights Reserved.
  *******************************************************************************
  */
@@ -9,7 +9,6 @@ package com.ibm.icu.dev.test.calendar;
 import java.text.ParseException;
 import java.util.Date;
 import java.util.Locale;
-import java.util.Set;
 
 import com.ibm.icu.impl.CalendarAstronomer;
 import com.ibm.icu.impl.LocaleUtility;
@@ -23,7 +22,6 @@ import com.ibm.icu.util.GregorianCalendar;
 import com.ibm.icu.util.JapaneseCalendar;
 import com.ibm.icu.util.TaiwanCalendar;
 import com.ibm.icu.util.TimeZone;
-import com.ibm.icu.util.TimeZone.SystemTimeZoneType;
 import com.ibm.icu.util.ULocale;
 
 /**
@@ -791,22 +789,18 @@ public class IBMCalendarTest extends CalendarTest {
                                {"US", "America/Los_Angeles", "PST"} };
         StringBuffer buf = new StringBuffer();
         for (int i=0; i<COUNTRY.length; ++i) {
-            Set<String> a = ZoneMeta.getAvailableIDs(SystemTimeZoneType.ANY, COUNTRY[i][0], null);
+            String[] a = ZoneMeta.getAvailableIDs(COUNTRY[i][0]);
             buf.setLength(0);
             buf.append("Country \"" + COUNTRY[i][0] + "\": [");
             // Use bitmask to track which of the expected zones we see
             int mask = 0;
-            boolean first = true;
-            for (String z : a) {
-                if (first) {
-                    first = false;
-                } else {
-                    buf.append(", ");
-                }
-                buf.append(z);
-                for (int k = 1; k < COUNTRY[i].length; ++k) {
-                    if ((mask & (1 << k)) == 0 && z.equals(COUNTRY[i][k])) {
-                        mask |= (1 << k);
+            for (int j=0; j<a.length; ++j) {
+                if (j!=0) buf.append(", ");
+                buf.append(a[j]);
+                for (int k=1; k<COUNTRY[i].length; ++k) {
+                    if ((mask & (1<<k)) == 0 &&
+                        a[j].equals(COUNTRY[i][k])) {
+                        mask |= (1<<k);
                     }
                 }
             }

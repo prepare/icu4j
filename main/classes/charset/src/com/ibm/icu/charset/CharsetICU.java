@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 2006-2011, International Business Machines Corporation and    *
+* Copyright (C) 2006-2010, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 *
@@ -369,17 +369,6 @@ public abstract class CharsetICU extends Charset{
            setFillIn.clear();
            getUnicodeSetImpl(setFillIn, which);
        }
-       
-       /**
-        * Returns whether or not the converter has a fixed number of bytes
-        * per character (e.g. converters that are SBCS or DBCS).
-        * @return true if the converter is fixed-width
-        * @draft ICU 4.8
-        * @provisional This API might change or be removed in a future release.
-        */
-       public boolean isFixedWidth() {
-           return (maxBytesPerChar == minBytesPerChar);
-       }
       
        static void getNonSurrogateUnicodeSet(UnicodeSet setFillIn){
            setFillIn.add(0, 0xd7ff);
@@ -389,4 +378,5 @@ public abstract class CharsetICU extends Charset{
        static void getCompleteUnicodeSet(UnicodeSet setFillIn){
            setFillIn.add(0, 0x10ffff);
        }
+
 }

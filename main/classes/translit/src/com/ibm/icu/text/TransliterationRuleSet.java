@@ -238,17 +238,21 @@ class TransliterationRuleSet {
         return ruleSource.toString();
     }
 
-    // TODO Handle the case where we have :: [a] ; a > |b ; b > c ;
-    // TODO Merge into r.addSourceTargetSet, to avoid duplicate testing
-    void addSourceTargetSet(UnicodeSet filter, UnicodeSet sourceSet, UnicodeSet targetSet) {
-        UnicodeSet currentFilter = new UnicodeSet(filter);
-        UnicodeSet revisiting = new UnicodeSet();
+    /**
+     * Return the set of all characters that may be modified (getTarget=false)
+     * or emitted (getTarget=true) by this set.
+     */
+    UnicodeSet getSourceTargetSet(boolean getTarget) {
+        UnicodeSet set = new UnicodeSet();
         int count = ruleVector.size();
         for (int i=0; i<count; ++i) {
             TransliterationRule r = ruleVector.get(i);
-            r.addSourceTargetSet(currentFilter, sourceSet, targetSet, revisiting.clear());
-            currentFilter.addAll(revisiting);
+            if (getTarget) {
+                r.addTargetSetTo(set);
+            } else {
+                r.addSourceSetTo(set);
+            }
         }
+        return set;
     }
-
 }
