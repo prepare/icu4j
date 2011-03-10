@@ -1728,6 +1728,9 @@ public class TestMessageFormat extends com.ibm.icu.dev.test.TestFmwk {
         assertEquals("wrong value",
                 MessagePattern.ApostropheMode.DOUBLE_REQUIRED,
                 adr_mp.getApostropheMode());
+        assertNotEquals("MessagePatterns with different ApostropheMode (no pattern)", ado_mp, adr_mp);
+        assertNotEquals("MessagePatterns with different ApostropheMode (a)",
+                ado_mp.parse("a"), adr_mp.parse("a"));
 
         String[] tuples = new String[] {
             // Desired output
