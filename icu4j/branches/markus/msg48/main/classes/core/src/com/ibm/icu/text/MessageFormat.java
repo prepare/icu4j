@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -1240,7 +1241,7 @@ public class MessageFormat extends UFormat {
                 continue;
             }
             assert type==Part.Type.ARG_START : "Unexpected Part "+part+" in parsed message.";
-            int argLimit=msgPattern.getPartLimit(i);
+            int argLimit=msgPattern.getLimitPartIndex(i);
             
             ArgType argType=part.getArgType();
             msgPattern.getPart(++i, part);
@@ -1388,17 +1389,29 @@ public class MessageFormat extends UFormat {
     public Object clone() {
         MessageFormat other = (MessageFormat) super.clone();
 
-        for (Integer key: customFormatArgStarts) {
-            other.customFormatArgStarts.add(key);
+        if (customFormatArgStarts != null) {
+            other.customFormatArgStarts = new HashSet<Integer>();
+            for (Integer key : customFormatArgStarts) {
+                other.customFormatArgStarts.add(key);
+            }
+        } else {
+            other.customFormatArgStarts = null;
         }
-        other.msgPattern = (MessagePattern)msgPattern.clone();
-
-        for (Map.Entry<Integer, Format> entry: cachedFormatters){
-            other.cachedFormatters.put(entry.getKey(), entry.getValue());
+        
+        if (cachedFormatters != null) {
+            other.cachedFormatters = new HashMap<Integer, Format>();
+            Iterator<Map.Entry<Integer, Format>> it = cachedFormatters.entrySet().iterator();
+            while (it.hasNext()){
+                Map.Entry<Integer, Format> entry = (Map.Entry<Integer, Format>)it.next();
+                other.cachedFormatters.put(entry.getKey(), entry.getValue());
+            }
+        } else {
+            other.cachedFormatters = null;
         }
-
-        other.stockDateFormatter = (Format) stockDateFormatter.clone();
-        other.stockNumberFormatter = (Format) stockNumberFormatter.clone();
+        
+        other.msgPattern = msgPattern == null ? null : (MessagePattern)msgPattern.clone();
+        other.stockDateFormatter = stockDateFormatter == null ? null : (Format) stockDateFormatter.clone();
+        other.stockNumberFormatter = stockNumberFormatter == null ? null : (Format) stockNumberFormatter.clone();
 
         other.pluralProvider = null;
         return other;
