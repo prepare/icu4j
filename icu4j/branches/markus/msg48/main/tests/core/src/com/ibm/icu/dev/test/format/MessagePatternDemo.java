@@ -36,24 +36,21 @@ public final class MessagePatternDemo {
             MessagePattern.Part.Type type=part.getType();
             if(type==MessagePattern.Part.Type.MSG_START) {
                 indent=manySpaces.substring(0, part.getValue()*2);
+            } else if(type==MessagePattern.Part.Type.ARG_STYLE_START) {
+                // the next part is the ARG_LIMIT, and the style ends before its '}'
+                // which is 1 before the ARG_LIMIT's index
+                explanation.
+                    append("=\"").
+                    append(msg.getPatternString().substring(part.getIndex(),
+                                                            msg.getPatternIndex(i+1)-1)).
+                    append('"');
             } else {
-                MessagePattern.Part.Type partType=part.getType();
-                if(partType==MessagePattern.Part.Type.ARG_STYLE_START) {
-                    // the next part is the ARG_LIMIT, and the style ends before its '}'
-                    // which is 1 before the ARG_LIMIT's index
-                    explanation.
-                        append("=\"").
-                        append(msg.getPatternString().substring(part.getIndex(),
-                                                                msg.getPatternIndex(i+1)-1)).
-                        append('"');
-                } else {
-                    String substring=msg.getSubstring(part);
-                    if(substring!=null) {
-                        explanation.append("=\"").append(substring).append('"');
-                    }
-                    if(partType.hasNumericValue()) {
-                        explanation.append('=').append(msg.getNumericValue(part));
-                    }
+                String substring=msg.getSubstring(part);
+                if(substring!=null) {
+                    explanation.append("=\"").append(substring).append('"');
+                }
+                if(type.hasNumericValue()) {
+                    explanation.append('=').append(msg.getNumericValue(part));
                 }
             }
             System.out.format("%2d: %s%s%s\n", i, indent, partString, explanation);
