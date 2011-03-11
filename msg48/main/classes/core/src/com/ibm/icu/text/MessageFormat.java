@@ -1263,17 +1263,17 @@ public class MessageFormat extends UFormat {
 
             ++i;
             Format formatter = null;
-            boolean addedAnArgument = false;
-            Object argumentAdded = null;
+            boolean haveArgResult = false;
+            Object argResult = null;
             if(cachedFormatters!=null && (formatter=cachedFormatters.get(i - 2))!=null) {
                 // Just parse using the formatter.
                 tempStatus.setIndex(sourceOffset);
-                argumentAdded = formatter.parseObject(source, tempStatus);
+                argResult = formatter.parseObject(source, tempStatus);
                 if (tempStatus.getIndex() == sourceOffset) {
                     pos.setErrorIndex(sourceOffset);
                     return; // leave index as is to signal error
                 }
-                addedAnArgument = true;
+                haveArgResult = true;
                 sourceOffset = tempStatus.getIndex();
             } else if(
                     argType==ArgType.NONE ||
@@ -1295,25 +1295,36 @@ public class MessageFormat extends UFormat {
                 } else {
                     String strValue = source.substring(sourceOffset, next);
                     if (!strValue.equals("{" + argId.toString() + "}")) {
-                        addedAnArgument = true;
-                        argumentAdded = strValue;
+                        haveArgResult = true;
+                        argResult = strValue;
                     }
                     sourceOffset = next;
                 }
-            } else if(argType==ArgType.CHOICE || argType==ArgType.PLURAL || argType==ArgType.SELECT) {
+            } else if(argType==ArgType.CHOICE) {
+                tempStatus.setIndex(sourceOffset);
+                double choiceResult = parseChoiceArgument(msgPattern, i, part, source, tempStatus);
+                if (tempStatus.getIndex() == sourceOffset) {
+                    pos.setErrorIndex(sourceOffset);
+                    return; // leave index as is to signal error
+                }
+                argResult = choiceResult;
+                haveArgResult = true;
+                sourceOffset = tempStatus.getIndex();
+            } else if(argType==ArgType.PLURAL || argType==ArgType.SELECT) {
                 // No can do!
-                throw new UnsupportedOperationException("Parsing of PluralFormat, ChoiceFormat and SelectFormat " +
-                "is not supported.");
+                throw new UnsupportedOperationException(argType==ArgType.PLURAL ?
+                        "Parsing of PluralFormat is not supported." :
+                        "Parsing of SelectFormat is not supported.");
             } else {
                 // This should never happen.
                 throw new IllegalStateException("unexpected argType "+argType);
             }
-            if (addedAnArgument) {
-              if (argsMap != null) {
-                  argsMap.put(key, argumentAdded);
-              } else if (args != null) {
-                  args[argNumber] = argumentAdded;
-              }
+            if (haveArgResult) {
+                if (args != null) {
+                    args[argNumber] = argResult;
+                } else if (argsMap != null) {
+                    argsMap.put(key, argResult);
+                }
             }
             prevIndex=msgPattern.getPatternIndex(argLimit);
             i=argLimit;
@@ -1738,7 +1749,7 @@ public class MessageFormat extends UFormat {
      * @param number a number to be mapped to one of the ChoiceFormat argument's intervals
      * @return the sub-message start part index.
      */
-    /*package*/ static int findChoiceSubMessage(
+    private static int findChoiceSubMessage(
             MessagePattern pattern,
             int partIndex, MessagePattern.Part part,
             double number) {
@@ -1776,6 +1787,72 @@ public class MessageFormat extends UFormat {
             }
         }
         return msgStart;
+    }
+
+    // Ported from C++ ChoiceFormat::parse().
+    private static double parseChoiceArgument(
+            MessagePattern pattern,
+            int partIndex, Part part,
+            String source, ParsePosition pos) {
+        // find the best number (defined as the one with the longest parse)
+        int start = pos.getIndex();
+        int furthest = start;
+        double bestNumber = Double.NaN;
+        double tempNumber = 0.0;
+        while (pattern.getPart(partIndex, part).getType() != Part.Type.ARG_LIMIT) {
+            tempNumber = pattern.getNumericValue(pattern.getPart(partIndex, part));
+            partIndex += 2;  // skip the numeric part and ignore the ARG_SELECTOR
+            int msgLimit = pattern.getLimitPartIndex(partIndex);
+            int len = matchStringUntilLimitPart(pattern, partIndex, msgLimit, part, source, start);
+            if (len >= 0) {
+                int newIndex = start + len;
+                if (newIndex > furthest) {
+                    furthest = newIndex;
+                    bestNumber = tempNumber;
+                    if (furthest == source.length()) {
+                        break;
+                    }
+                }
+            }
+        }
+        if (furthest == start) {
+            pos.setErrorIndex(start);
+        } else {
+            pos.setIndex(furthest);
+        }
+        return bestNumber;
+    }
+
+    /**
+     * Matches the pattern string from the end of the partIndex to
+     * the beginning of the limitPartIndex,
+     * including all syntax except SKIP_SYNTAX,
+     * against the source string starting at sourceOffset.
+     * If they match, returns the length of the source string match.
+     * Otherwise returns -1.
+     */
+    private static int matchStringUntilLimitPart(
+            MessagePattern pattern, int partIndex, int limitPartIndex, Part part,
+            String source, int sourceOffset) {
+        int matchingSourceLength = 0;
+        String msgString = pattern.getPatternString();
+        int prevIndex = pattern.getPart(partIndex, part).getIndex();
+        for (;;) {
+            pattern.getPart(++partIndex, part);
+            Part.Type type = part.getType();
+            if (partIndex == limitPartIndex || type == Part.Type.SKIP_SYNTAX) {
+                int index = part.getIndex();
+                int length = index - prevIndex;
+                if (length != 0 && !source.regionMatches(sourceOffset, msgString, prevIndex, length)) {
+                    return -1;  // mismatch
+                }
+                matchingSourceLength += length;
+                if (partIndex == limitPartIndex) {
+                    return matchingSourceLength;
+                }
+                prevIndex = index + part.getValue();  // SKIP_SYNTAX
+            }
+        }
     }
 
     /**
