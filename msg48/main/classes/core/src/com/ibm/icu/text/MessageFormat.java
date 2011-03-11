@@ -32,7 +32,6 @@ import java.util.Map;
 import java.util.Set;
 
 import com.ibm.icu.impl.Utility;
-import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.text.MessagePattern.ArgType;
 import com.ibm.icu.text.MessagePattern.Part;
 import com.ibm.icu.util.ULocale;
@@ -423,7 +422,7 @@ public class MessageFormat extends UFormat {
     public ULocale getULocale() {
         return ulocale;
     }
-
+    
     /**
      * Sets the pattern used by this message format.
      * Parses the pattern and caches Format objects for simple argument types.
@@ -434,7 +433,6 @@ public class MessageFormat extends UFormat {
      * @throws IllegalArgumentException if the pattern is invalid
      * @stable ICU 3.0
      */
-    @SuppressWarnings("fallthrough")
     public void applyPattern(String pttrn) {
         try {
             if (msgPattern == null) {
@@ -448,74 +446,6 @@ public class MessageFormat extends UFormat {
             resetPattern();
             throw e;
         }
-        
-        
-        StringBuilder[] segments = new StringBuilder[4];
-        for (int i = 0; i < segments.length; ++i) {
-            segments[i] = new StringBuilder();
-        }
-        int part = 0;
-        int formatNumber = 0;
-        boolean inQuote = false;
-        int braceStack = 0;
-        maxOffset = -1;
-        for (int i = 0; i < pttrn.length(); ++i) {
-            char ch = pttrn.charAt(i);
-            if (part == 0) {
-                if (ch == '\'') {
-                    if (i + 1 < pttrn.length()
-                        && pttrn.charAt(i+1) == '\'') {
-                        segments[part].append(ch);  // handle doubles
-                        ++i;
-                    } else {
-                        inQuote = !inQuote;
-                    }
-                } else if (ch == '{' && !inQuote) {
-                    part = 1;
-                } else {
-                    segments[part].append(ch);
-                }
-            } else  if (inQuote) {  // just copy quotes in parts
-                segments[part].append(ch);
-                if (ch == '\'') {
-                    inQuote = false;
-                }
-            } else {
-                switch (ch) {
-                case ',':
-                    if (part < 3)
-                        part += 1;
-                    else
-                        segments[part].append(ch);
-                    break;
-                case '{':
-                    ++braceStack;
-                    segments[part].append(ch);
-                    break;
-                case '}':
-                    if (braceStack == 0) {
-                        part = 0;
-                        makeFormat(i, formatNumber, segments);
-                        formatNumber++;
-                    } else {
-                        --braceStack;
-                        segments[part].append(ch);
-                    }
-                    break;
-                case '\'':
-                    inQuote = true;
-                    // fall through, so we keep quotes in other parts
-                default:
-                    segments[part].append(ch);
-                    break;
-                }
-            }
-        }
-        if (braceStack == 0 && part != 0) {
-            maxOffset = -1;
-            throw new IllegalArgumentException("Unmatched braces in the pattern.");
-        }
-        this.pattern = segments[0].toString();
     }
 
     /**
@@ -613,12 +543,6 @@ public class MessageFormat extends UFormat {
                     "This method is not available in MessageFormat objects " +
                     "that use alphanumeric argument names.");
         }
-        for (int i = 0; i <= maxOffset; i++) {
-            int j = Integer.parseInt(argumentNames[i]);
-            if (j < newFormats.length) {
-                formats[i] = newFormats[j];
-            }
-        }
         Part part = new Part();
         for (int partIndex = 0; (partIndex = nextTopLevelArgStart(partIndex, part)) >= 0;) {
             int j = msgPattern.getPart(partIndex + 1, part).getValue();
@@ -650,12 +574,6 @@ public class MessageFormat extends UFormat {
      * @stable ICU 3.8
      */
     public void setFormatsByArgumentName(Map<String, Format> newFormats) {
-        for (int i = 0; i <= maxOffset; i++) {
-            if (newFormats.containsKey(argumentNames[i])) {
-                Format f = newFormats.get(argumentNames[i]);
-                formats[i] = f;
-            }
-        }
         Part part = new Part();
         for (int partIndex = 0; (partIndex = nextTopLevelArgStart(partIndex, part)) >= 0;) {
             String key = getArgName(partIndex + 1, part);
@@ -689,13 +607,6 @@ public class MessageFormat extends UFormat {
      * @stable ICU 3.0
      */
     public void setFormats(Format[] newFormats) {
-        int runsToCopy = newFormats.length;
-        if (runsToCopy > maxOffset + 1) {
-            runsToCopy = maxOffset + 1;
-        }
-        for (int i = 0; i < runsToCopy; i++) {
-            formats[i] = newFormats[i];
-        }
         int formatNumber = 0;
         Part part = new Part();
         for (int partIndex = 0;
@@ -734,11 +645,6 @@ public class MessageFormat extends UFormat {
                     "This method is not available in MessageFormat objects " +
                     "that use alphanumeric argument names.");
         }
-        for (int j = 0; j <= maxOffset; j++) {
-            if (Integer.parseInt(argumentNames[j]) == argumentIndex) {
-                formats[j] = newFormat;
-            }
-        }
         Part part = new Part();
         for (int partIndex = 0; (partIndex = nextTopLevelArgStart(partIndex, part)) >= 0;) {
             if (msgPattern.getPart(partIndex + 1, part).getValue() == argumentIndex) {
@@ -767,11 +673,6 @@ public class MessageFormat extends UFormat {
      * @stable ICU 3.8
      */
     public void setFormatByArgumentName(String argumentName, Format newFormat) {
-        for (int i = 0; i <= maxOffset; ++i) {
-            if (argumentName.equals(argumentNames[i])) {
-                formats[i] = newFormat;
-            }
-        }
         int argNumber = MessagePattern.validateArgumentName(argumentName);
         if (argNumber < MessagePattern.ARG_NAME_NOT_NUMBER) {
             return;
@@ -803,7 +704,6 @@ public class MessageFormat extends UFormat {
      * @stable ICU 3.0
      */
     public void setFormat(int formatElementIndex, Format newFormat) {
-        formats[formatElementIndex] = newFormat;
         int formatNumber = 0;
         Part part = new Part();
         for (int partIndex = 0; (partIndex = nextTopLevelArgStart(partIndex, part)) >= 0;) {
@@ -1211,27 +1111,28 @@ public class MessageFormat extends UFormat {
                     "This method is not available in MessageFormat objects " +
                     "that use named argument.");
         }
-        Map<String, Object> objectMap = parseToMap(source, pos);
-        int maximumArgumentNumber = -1;
-        for (int i = 0; i <= maxOffset; i++) {
-            int argumentNumber = Integer.parseInt(argumentNames[i]);
-            if (argumentNumber > maximumArgumentNumber) {
-                maximumArgumentNumber = argumentNumber;
+        
+        // Count how many slots we need in the array.
+        Part part = new Part();
+        int maxArgId = -1;
+        for (int partIndex = 0; (partIndex = nextTopLevelArgStart(partIndex, part)) >= 0;) {
+            msgPattern.getPart(partIndex + 1, part);
+            int argNumber=part.getValue();
+            if (argNumber > maxArgId) {
+                maxArgId = argNumber;
             }
         }
+        Object[] resultArray = new Object[maxArgId + 1];
 
-        if (objectMap == null) {
+        int backupStartPos = pos.getIndex();
+        parse(0, part, source, pos, resultArray, null);
+        if (pos.getIndex() == backupStartPos) { // unchanged, returned object is null
             return null;
-        }
-
-        Object[] resultArray = new Object[maximumArgumentNumber + 1];
-        for (String key : objectMap.keySet()) {
-            resultArray[Integer.parseInt(key)] = objectMap.get(key);
         }
 
         return resultArray;
     }
-
+    
     /**
      * {@icu} Parses the string, returning the results in a Map.
      * This is similar to the version that returns an array
@@ -1245,77 +1146,18 @@ public class MessageFormat extends UFormat {
      * @return a Map containing key/value pairs for each parsed argument.
      * @stable ICU 3.8
      */
-    public Map<String, Object> parseToMap(String source, ParsePosition pos) {
-        if (source == null) {
-            Map<String, Object> empty = new HashMap<String, Object>();
-            return empty;
+    public Map<String, Object> parseToMap(String source, ParsePosition pos)  {
+        Map<String, Object> result = new HashMap<String, Object>();
+        Part part = new Part();
+
+        int backupStartPos = pos.getIndex();
+        parse(0, part, source, pos, null, result);
+        if (pos.getIndex() == backupStartPos) {
+            return null;
         }
-
-        Map<String, Object> resultMap = new HashMap<String, Object>();
-
-        int patternOffset = 0;
-        int sourceOffset = pos.getIndex();
-        ParsePosition tempStatus = new ParsePosition(0);
-        for (int i = 0; i <= maxOffset; ++i) {
-            // match up to format
-            int len = offsets[i] - patternOffset;
-            if (len == 0 || pattern.regionMatches(patternOffset,
-                                                  source, sourceOffset, len)) {
-                sourceOffset += len;
-                patternOffset += len;
-            } else {
-                pos.setErrorIndex(sourceOffset);
-                return null; // leave index as is to signal error
-            }
-
-            // now use format
-            if (formats[i] == null) {   // string format
-                // if at end, use longest possible match
-                // otherwise uses first match to intervening string
-                // does NOT recursively try all possibilities
-                int tempLength = (i != maxOffset) ? offsets[i+1] : pattern.length();
-
-                int next;
-                if (patternOffset >= tempLength) {
-                    next = source.length();
-                }else{
-                    next = source.indexOf( pattern.substring(patternOffset,tempLength), sourceOffset);
-                }
-
-                if (next < 0) {
-                    pos.setErrorIndex(sourceOffset);
-                    return null; // leave index as is to signal error
-                } else {
-                    String strValue = source.substring(sourceOffset, next);
-                    if (!strValue.equals("{" + argumentNames[i] + "}"))
-                        resultMap.put(argumentNames[i], source.substring(sourceOffset, next));
-//                        resultArray[Integer.parseInt(argumentNames[i])] =
-//                            source.substring(sourceOffset, next);
-                    sourceOffset = next;
-                }
-            } else {
-                tempStatus.setIndex(sourceOffset);
-                resultMap.put(argumentNames[i], formats[i].parseObject(source, tempStatus));
-//                resultArray[Integer.parseInt(argumentNames[i])] =
-//                    formats[i].parseObject(source, tempStatus);
-                if (tempStatus.getIndex() == sourceOffset) {
-                    pos.setErrorIndex(sourceOffset);
-                    return null; // leave index as is to signal error
-                }
-                sourceOffset = tempStatus.getIndex(); // update
-            }
-        }
-        int len = pattern.length() - patternOffset;
-        if (len == 0 || pattern.regionMatches(patternOffset,
-                                              source, sourceOffset, len)) {
-            pos.setIndex(sourceOffset + len);
-        } else {
-            pos.setErrorIndex(sourceOffset);
-            return null; // leave index as is to signal error
-        }
-        return resultMap;
+        return result;        
     }
-
+    
     /**
      * Parses text from the beginning of the given string to produce an object
      * array.
@@ -1341,6 +1183,143 @@ public class MessageFormat extends UFormat {
     }
 
     /**
+     * Parses the string, filling either the Map or the Array.
+     * This is a private method that all the public parsing methods call.
+     * This supports both named and numbered
+     * arguments-- if numbered, the keys in the map are the
+     * corresponding ASCII-decimal-digit strings (e.g. "0", "1", "2"...).
+     *
+     * @param msgStart index in the message pattern to start from.
+     * @param part a Part object to use
+     * @param source the text to parse
+     * @param pos the position at which to start parsing.  on return,
+     *        contains the result of the parse.
+     * @param args if not null, the parse results will be filled here (The pattern
+     *        has to have numbered arguments in order for this to not be null).
+     * @param argsMap if not null, the parse results will be filled here.
+     */
+    private void parse(int msgStart, Part part, String source,
+                       ParsePosition pos, Object[] args,
+                       Map<String, Object> argsMap) {
+        if (source == null) {
+            return;
+        }
+        String msgString=msgPattern.getPatternString();
+        int prevIndex=msgPattern.getPart(msgStart, part).getIndex();
+        assert part.getType()==MessagePattern.Part.Type.MSG_START;
+        int sourceOffset = pos.getIndex();
+        ParsePosition tempStatus = new ParsePosition(0);
+
+        for(int i=msgStart+1; ; ++i) {
+            Part.Type type=msgPattern.getPart(i, part).getType();
+            int index=part.getIndex();
+            // Make sure the literal string matches.
+            int len = index - prevIndex;
+            if (len == 0 || msgString.regionMatches(prevIndex,
+                    source, sourceOffset, len)) {
+                sourceOffset += len;
+                prevIndex += len;
+            } else {
+                pos.setErrorIndex(sourceOffset);
+                return; // leave index as is to signal error
+            }
+            if(type==Part.Type.MSG_LIMIT) {
+                // Things went well! Done.
+                pos.setIndex(sourceOffset);
+                return;
+            }
+            if(type==Part.Type.SKIP_SYNTAX) {
+                prevIndex=index+part.getValue();
+                continue;
+            }
+            // We do not support parsing Plural formats.
+            assert type != Part.Type.REPLACE_NUMBER;
+
+            if(type==Part.Type.INSERT_CHAR) {
+                prevIndex=index;
+                continue;
+            }
+            assert type==Part.Type.ARG_START : "Unexpected Part "+part+" in parsed message.";
+            int argLimit=msgPattern.getPartLimit(i);
+            
+            ArgType argType=part.getArgType();
+            msgPattern.getPart(++i, part);
+            // Compute the argId, so we can use it as a key.
+            Object argId=null;
+            int argNumber = 0;
+            String key = null;
+            if(args!=null) {
+                argNumber=part.getValue();  // ARG_NUMBER
+                argId = new Integer(argNumber);
+            } else {
+                if(part.getType()==MessagePattern.Part.Type.ARG_NAME) {
+                    key=msgPattern.getSubstring(part);
+                } else /* ARG_NUMBER */ {
+                    key=Integer.toString(part.getValue());
+                }
+                argId = key;
+            }
+
+            ++i;
+            Format formatter = null;
+            boolean addedAnArgument = false;
+            Object argumentAdded = null;
+            if(cachedFormatters!=null && (formatter=cachedFormatters.get(i - 2))!=null) {
+                // Just parse using the formatter.
+                tempStatus.setIndex(sourceOffset);
+                argumentAdded = formatter.parseObject(source, tempStatus);
+                if (tempStatus.getIndex() == sourceOffset) {
+                    pos.setErrorIndex(sourceOffset);
+                    return; // leave index as is to signal error
+                }
+                addedAnArgument = true;
+                sourceOffset = tempStatus.getIndex();
+            } else if(
+                    argType==ArgType.NONE ||
+                    (cachedFormatters!=null && cachedFormatters.containsKey(i - 2))) {
+                // Match as a string.
+                // if at end, use longest possible match
+                // otherwise uses first match to intervening string
+                // does NOT recursively try all possibilities
+                String stringAfterArgument = getLiteralStringUntilNextArgument(argLimit);
+                int next;
+                if (stringAfterArgument.length() != 0) {
+                    next = source.indexOf(stringAfterArgument, sourceOffset);
+                } else {
+                    next = source.length();
+                }
+                if (next < 0) {
+                    pos.setErrorIndex(sourceOffset);
+                    return; // leave index as is to signal error
+                } else {
+                    String strValue = source.substring(sourceOffset, next);
+                    if (!strValue.equals("{" + argId.toString() + "}")) {
+                        addedAnArgument = true;
+                        argumentAdded = strValue;
+                    }
+                    sourceOffset = next;
+                }
+            } else if(argType==ArgType.CHOICE || argType==ArgType.PLURAL || argType==ArgType.SELECT) {
+                // No can do!
+                throw new UnsupportedOperationException("Parsing of PluralFormat, ChoiceFormat and SelectFormat " +
+                "is not supported.");
+            } else {
+                // This should never happen.
+                throw new IllegalStateException("unexpected argType "+argType);
+            }
+            if (addedAnArgument) {
+              if (argsMap != null) {
+                  argsMap.put(key, argumentAdded);
+              } else if (args != null) {
+                  args[argNumber] = argumentAdded;
+              }
+            }
+            prevIndex=msgPattern.getPatternIndex(argLimit);
+            i=argLimit;
+        }
+    }
+
+    /**
      * {@icu} Parses text from the beginning of the given string to produce a map from
      * argument to values. The method may not use the entire text of the given string.
      *
@@ -1355,9 +1334,10 @@ public class MessageFormat extends UFormat {
      * @stable ICU 3.8
      */
     public Map<String, Object> parseToMap(String source) throws ParseException {
-
         ParsePosition pos = new ParsePosition(0);
-        Map<String, Object> result = parseToMap(source, pos);
+        Map<String, Object> result = new HashMap<String, Object>();
+        Part part = new Part();
+        parse(0, part, source, pos, null, result);
         if (pos.getIndex() == 0) // unchanged, returned object is null
             throw new ParseException("MessageFormat parse error!",
                                      pos.getErrorIndex());
@@ -1408,16 +1388,19 @@ public class MessageFormat extends UFormat {
     public Object clone() {
         MessageFormat other = (MessageFormat) super.clone();
 
-        // clone arrays. Can't do with utility because of bug in Cloneable
-        other.formats = formats.clone(); // shallow clone
-        for (int i = 0; i < formats.length; ++i) {
-            if (formats[i] != null)
-                other.formats[i] = (Format) formats[i].clone();
+        for (Integer key: customFormatArgStarts) {
+            other.customFormatArgStarts.add(key);
         }
-        // for primitives or immutables, shallow clone is enough
-        other.offsets = offsets.clone();
-        other.argumentNames = argumentNames.clone();
+        other.msgPattern = (MessagePattern)msgPattern.clone();
 
+        for (Map.Entry<Integer, Format> entry: cachedFormatters){
+            other.cachedFormatters.put(entry.getKey(), entry.getValue());
+        }
+
+        other.stockDateFormatter = (Format) stockDateFormatter.clone();
+        other.stockNumberFormatter = (Format) stockNumberFormatter.clone();
+
+        other.pluralProvider = null;
         return other;
     }
 
@@ -1446,7 +1429,7 @@ public class MessageFormat extends UFormat {
      */
     @Override
     public int hashCode() {
-        return pattern.hashCode(); // enough for reasonable distribution
+        return msgPattern.getPatternString().hashCode(); // enough for reasonable distribution
     }
 
     /**
@@ -1513,41 +1496,6 @@ public class MessageFormat extends UFormat {
      * The locale to use for formatting numbers and dates.
      */
     private transient ULocale ulocale;
-
-    /**
-     * The string that the formatted values are to be plugged into.  In other words, this
-     * is the pattern supplied on construction with all of the {} expressions taken out.
-     */
-    private transient String pattern = "";
-
-    /** The initially expected number of subformats in the format */
-    private transient static final int INITIAL_FORMATS = 10;
-
-    /**
-     * An array of formatters, which are used to format the arguments.
-     */
-    private transient Format[] formats = new Format[INITIAL_FORMATS];
-
-    /**
-     * The positions where the results of formatting each argument are to be
-     * inserted into the pattern.
-     */
-    private transient int[] offsets = new int[INITIAL_FORMATS];
-
-    /**
-     * The argument names corresponding to each formatter. (The formatters are
-     * stored in the order they occur in the pattern, not in the order in which
-     * the arguments are specified.)
-     */
-    private transient String[] argumentNames = new String[INITIAL_FORMATS];
-
-    /**
-     * One less than the number of entries in <code>offsets</code>.  Can also be thought of
-     * as the index of the highest-numbered element in <code>offsets</code> that is being used.
-     * All of these arrays should have the same number of elements being used as <code>offsets</code>
-     * does, and so this variable suffices to tell us how many entries are in all of them.
-     */
-    private transient int maxOffset = -1;
 
     /**
      * The MessagePattern which contains the parsed structure of the pattern string.
@@ -1723,6 +1671,38 @@ public class MessageFormat extends UFormat {
         }
     }
 
+    /**
+     * Read as much literal string from the pattern string as possible. This stops
+     * as soon as it finds an argument, or it reaches the end of the string.
+     * @param from Index in the pattern string to start from.
+     * @return A substring from the pattern string representing the longest possible
+     *         substring with no arguments. 
+     */
+    private String getLiteralStringUntilNextArgument(int from) {
+        Part part = new Part();
+        StringBuilder b = new StringBuilder();
+        String msgString=msgPattern.getPatternString();
+        int prevIndex=msgPattern.getPart(from, part).getIndex();
+        for(int i=from+1;; ++i) {
+            Part.Type type=msgPattern.getPart(i, part).getType();
+            int index=part.getIndex();
+            b.append(msgString, prevIndex, index);
+            if(type==Part.Type.MSG_LIMIT) {
+                return b.toString();
+            }
+            if(type==Part.Type.SKIP_SYNTAX) {
+                prevIndex=index+part.getValue();
+                continue;
+            }
+            if(type==Part.Type.INSERT_CHAR) {
+                prevIndex=index;
+                continue;
+            }
+            assert type==Part.Type.ARG_START : "Unexpected Part "+part+" in parsed message.";
+            return b.toString();
+        }
+    }
+
     private FieldPosition updateMetaData(AppendableWrapper dest, int prevLength,
                                          FieldPosition fp, Object argId) {
         if (dest.attributes != null && prevLength < dest.length) {
@@ -1832,7 +1812,6 @@ public class MessageFormat extends UFormat {
     }
 
     private void resetPattern() {
-        pattern = "";
         if (msgPattern != null) {
             msgPattern.clear();
         }
@@ -1840,7 +1819,6 @@ public class MessageFormat extends UFormat {
             cachedFormatters.clear();
         }
         customFormatArgStarts = null;
-        maxOffset = -1;
     }
 
     private static final String[] typeList =
@@ -1876,210 +1854,6 @@ public class MessageFormat extends UFormat {
         DATE_MODIFIER_MEDIUM = 2,
         DATE_MODIFIER_LONG = 3,
         DATE_MODIFIER_FULL = 4;
-
-    private void makeFormat(int position, int offsetNumber,
-                            StringBuilder[] segments)
-    {
-        // get the argument number
-        // int argumentNumber;
-        // try {
-        //     argumentNumber = Integer.parseInt(segments[1].toString()); // always unlocalized!
-        // } catch (NumberFormatException e) {
-        //    throw new IllegalArgumentException("can't parse argument number "
-        //            + segments[1]);
-        //}
-        // if (argumentNumber < 0) {
-        //    throw new IllegalArgumentException("negative argument number "
-        //            + argumentNumber);
-        //}
-
-        // resize format information arrays if necessary
-        if (offsetNumber >= formats.length) {
-            int newLength = formats.length * 2;
-            Format[] newFormats = new Format[newLength];
-            int[] newOffsets = new int[newLength];
-            String[] newArgumentNames = new String[newLength];
-            System.arraycopy(formats, 0, newFormats, 0, maxOffset + 1);
-            System.arraycopy(offsets, 0, newOffsets, 0, maxOffset + 1);
-            System.arraycopy(argumentNames, 0, newArgumentNames, 0,
-                    maxOffset + 1);
-            formats = newFormats;
-            offsets = newOffsets;
-            argumentNames = newArgumentNames;
-        }
-        int oldMaxOffset = maxOffset;
-        maxOffset = offsetNumber;
-        offsets[offsetNumber] = segments[0].length();
-        argumentNames[offsetNumber] = segments[1].toString();
-        // All argument names numeric ?
-        int argumentNumber;
-        try {
-            // always unlocalized!
-             argumentNumber = Integer.parseInt(segments[1].toString());
-         } catch (NumberFormatException e) {
-             argumentNumber = -1;
-         }
-
-         if (argumentNumber < 0 && !isAlphaIdentifier(argumentNames[offsetNumber])) {
-             throw new IllegalArgumentException(
-                     "All argument identifiers have to be either non-negative " +
-                     "numbers or strings following the pattern " +
-                     "([:ID_Start:] [:ID_Continue:]*).\n" +
-                     "For more details on these unicode sets, visit " +
-                     "http://demo.icu-project.org/icu-bin/ubrowse");
-         }
-
-        // now get the format
-        Format newFormat = null;
-        int subformatType  = findKeyword(segments[2].toString(), typeList);
-        switch (subformatType){
-        case TYPE_EMPTY:
-            break;
-        case TYPE_NUMBER:
-            switch (findKeyword(segments[3].toString(), modifierList)) {
-            case MODIFIER_EMPTY:
-                newFormat = NumberFormat.getInstance(ulocale);
-                break;
-            case MODIFIER_CURRENCY:
-                newFormat = NumberFormat.getCurrencyInstance(ulocale);
-                break;
-            case MODIFIER_PERCENT:
-                newFormat = NumberFormat.getPercentInstance(ulocale);
-                break;
-            case MODIFIER_INTEGER:
-                newFormat = NumberFormat.getIntegerInstance(ulocale);
-                break;
-            default: // pattern
-                newFormat = new DecimalFormat(segments[3].toString(),
-                        new DecimalFormatSymbols(ulocale));
-                break;
-            }
-            break;
-        case TYPE_DATE:
-            switch (findKeyword(segments[3].toString(), dateModifierList)) {
-            case DATE_MODIFIER_EMPTY:
-                newFormat = DateFormat.getDateInstance(DateFormat.DEFAULT, ulocale);
-                break;
-            case DATE_MODIFIER_SHORT:
-                newFormat = DateFormat.getDateInstance(DateFormat.SHORT, ulocale);
-                break;
-            case DATE_MODIFIER_MEDIUM:
-                newFormat = DateFormat.getDateInstance(DateFormat.DEFAULT, ulocale);
-                break;
-            case DATE_MODIFIER_LONG:
-                newFormat = DateFormat.getDateInstance(DateFormat.LONG, ulocale);
-                break;
-            case DATE_MODIFIER_FULL:
-                newFormat = DateFormat.getDateInstance(DateFormat.FULL, ulocale);
-                break;
-            default:
-                newFormat = new SimpleDateFormat(segments[3].toString(), ulocale);
-                break;
-            }
-            break;
-        case TYPE_TIME:
-            switch (findKeyword(segments[3].toString(), dateModifierList)) {
-            case DATE_MODIFIER_EMPTY:
-                newFormat = DateFormat.getTimeInstance(DateFormat.DEFAULT, ulocale);
-                break;
-            case DATE_MODIFIER_SHORT:
-                newFormat = DateFormat.getTimeInstance(DateFormat.SHORT, ulocale);
-                break;
-            case DATE_MODIFIER_MEDIUM:
-                newFormat = DateFormat.getTimeInstance(DateFormat.DEFAULT, ulocale);
-                break;
-            case DATE_MODIFIER_LONG:
-                newFormat = DateFormat.getTimeInstance(DateFormat.LONG, ulocale);
-                break;
-            case DATE_MODIFIER_FULL:
-                newFormat = DateFormat.getTimeInstance(DateFormat.FULL, ulocale);
-                break;
-            default:
-                newFormat = new SimpleDateFormat(segments[3].toString(), ulocale);
-                break;
-            }
-            break;
-        case TYPE_CHOICE:
-            try {
-                newFormat = new ChoiceFormat(segments[3].toString());
-            } catch (Exception e) {
-                maxOffset = oldMaxOffset;
-                throw new IllegalArgumentException("Choice Pattern incorrect", e);
-            }
-            break;
-        case TYPE_SPELLOUT:
-            {
-                RuleBasedNumberFormat rbnf = new RuleBasedNumberFormat(ulocale,
-                        RuleBasedNumberFormat.SPELLOUT);
-                String ruleset = segments[3].toString().trim();
-                if (ruleset.length() != 0) {
-                    try {
-                        rbnf.setDefaultRuleSet(ruleset);
-                    }
-                    catch (Exception e) {
-                        // warn invalid ruleset
-                    }
-                }
-                newFormat = rbnf;
-            }
-            break;
-        case TYPE_ORDINAL:
-            {
-                RuleBasedNumberFormat rbnf = new RuleBasedNumberFormat(ulocale,
-                        RuleBasedNumberFormat.ORDINAL);
-                String ruleset = segments[3].toString().trim();
-                if (ruleset.length() != 0) {
-                    try {
-                        rbnf.setDefaultRuleSet(ruleset);
-                    }
-                    catch (Exception e) {
-                        // warn invalid ruleset
-                    }
-                }
-                newFormat = rbnf;
-            }
-            break;
-        case TYPE_DURATION:
-            {
-                RuleBasedNumberFormat rbnf = new RuleBasedNumberFormat(ulocale,
-                        RuleBasedNumberFormat.DURATION);
-                String ruleset = segments[3].toString().trim();
-                if (ruleset.length() != 0) {
-                    try {
-                        rbnf.setDefaultRuleSet(ruleset);
-                    }
-                    catch (Exception e) {
-                        // warn invalid ruleset
-                    }
-                }
-                newFormat = rbnf;
-            }
-            break;
-        case TYPE_PLURAL:
-            try {
-                newFormat = new PluralFormat(ulocale, segments[3].toString());
-            } catch (Exception e) {
-                maxOffset = oldMaxOffset;
-                throw new IllegalArgumentException("Plural Pattern incorrect", e);
-                }
-            break;
-        case TYPE_SELECT:
-            try {
-                newFormat = new SelectFormat(segments[3].toString());
-            } catch (Exception e) {
-                maxOffset = oldMaxOffset;
-                throw new IllegalArgumentException("Select Pattern incorrect", e);
-            }
-            break;
-        default:
-            maxOffset = oldMaxOffset;
-            throw new IllegalArgumentException("unknown format type at ");
-        }
-        formats[offsetNumber] = newFormat;
-        segments[1].setLength(0);   // throw away other segments
-        segments[2].setLength(0);
-        segments[3].setLength(0);
-    }
 
     // Creates an appropriate Format object for the type and style passed.
     // Both arguments cannot be null.
@@ -2290,13 +2064,6 @@ public class MessageFormat extends UFormat {
      */
     private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
         in.defaultReadObject();
-        // Set non-default values for fields that are otherwise
-        // initialized on their declaration lines.
-        pattern = "";
-        formats = new Format[INITIAL_FORMATS];
-        offsets = new int[INITIAL_FORMATS];
-        argumentNames = new String[INITIAL_FORMATS];
-        maxOffset = -1;
         // ICU 4.8 custom deserialization.
         String languageTag = (String)in.readObject();
         ulocale = ULocale.forLanguageTag(languageTag);
@@ -2371,19 +2138,6 @@ public class MessageFormat extends UFormat {
             customFormatArgStarts = new HashSet<Integer>();
         }
         customFormatArgStarts.add(argStart);
-    }
-
-    private boolean isAlphaIdentifier(String argument) {
-        if (argument.length() == 0) {
-            return false;
-        }
-        for (int i = 0; i < argument.length(); ++i ) {
-            if (i == 0 && !UCharacter.isUnicodeIdentifierStart(argument.charAt(i)) ||
-                    i > 0 &&  !UCharacter.isUnicodeIdentifierPart(argument.charAt(i))){
-                    return false;
-                }
-        }
-        return true;
     }
 
     private static final char SINGLE_QUOTE = '\'';

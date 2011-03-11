@@ -1162,19 +1162,21 @@ public class TestMessageFormat extends com.ibm.icu.dev.test.TestFmwk {
         }
         
         // Test argument names with invalid start characters.
+        // Modified: ICU 4.8 allows all characters except for Pattern_White_Space and Pattern_Syntax.
         try {
-            new MessageFormat("Wavelength:  {_\u028EValue\uFF14}");
+            new MessageFormat("Wavelength:  {^\u028EValue\uFF14}");
             errln("Creating a MessageFormat with invalid argument names " + 
             "should throw an IllegalArgumentException but did not!");
         } catch (IllegalArgumentException e) {}
         
         try {
-            new MessageFormat("Wavelength:  {\uFF14\u028EValue}");
+            new MessageFormat("Wavelength:  {\uFE45\u028EValue}");
             errln("Creating a MessageFormat with invalid argument names " + 
             "should throw an IllegalArgumentException but did not!");
         } catch (IllegalArgumentException e) {}
         
         // Test argument names with invalid continue characters.
+        // Modified: ICU 4.8 allows all characters except for Pattern_White_Space and Pattern_Syntax.
         try {
             new MessageFormat("Wavelength:  {Value@\uFF14}");
             errln("Creating a MessageFormat with invalid argument names " + 
