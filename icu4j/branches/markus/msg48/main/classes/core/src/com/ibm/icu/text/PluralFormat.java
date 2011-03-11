@@ -447,7 +447,7 @@ public class PluralFormat extends UFormat {
                     }
                 }
             }
-            partIndex=pattern.getPartLimit(partIndex);
+            partIndex=pattern.getLimitPartIndex(partIndex);
         } while(++partIndex<count);
         return msgStart;
     }
@@ -496,7 +496,7 @@ public class PluralFormat extends UFormat {
                 prevIndex = index + part.getValue();
             } else if (type == MessagePattern.Part.Type.ARG_START) {
                 // Skip arguments so that we do not look at MSG_LIMIT or REPLACE_NUMBER inside them.
-                partIndex = msgPattern.getPartLimit(partIndex);
+                partIndex = msgPattern.getLimitPartIndex(partIndex);
             }
         }
     }
