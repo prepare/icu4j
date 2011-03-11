@@ -1,5 +1,5 @@
 /*
-*   Copyright (C) 1996-2011, International Business Machines
+*   Copyright (C) 1996-2010, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 */
 
@@ -1516,34 +1516,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
         setWeekData(locale);
         initInternal();
     }
-    
-    private void recalculateStamp() {
-        int index;
-        int currentValue;
-        int j, i;
-        
-        nextStamp = 1;
-        
-        for (j = 0; j < stamp.length; j++) {
-            currentValue = STAMP_MAX;
-            index = -1;
-            
-            for (i = 0; i < stamp.length; i++) {
-                if (stamp[i] > nextStamp && stamp[i] < currentValue) {
-                    currentValue = stamp[i];
-                    index = i;
-                }
-            }
-            
-            if (index >= 0) {
-                stamp[index] = ++nextStamp;
-            } else {
-                break;
-            }
-        }
-        nextStamp++;
-    }
-    
+
     private void initInternal()
     {
         // Allocate fields through the framework method.  Subclasses
@@ -1653,8 +1626,6 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
         cal.setTimeInMillis(System.currentTimeMillis());
         return cal;
     }
-    /* Max value for stamp allowable before recalcution */
-    private static int STAMP_MAX = 10000;
 
     private static final String[] calTypes = {
         "gregorian",
@@ -2078,10 +2049,6 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
             computeFields();
         }
         fields[field] = value;
-        /* Ensure that the fNextStamp value doesn't go pass max value for 32 bit integer */
-        if (nextStamp == STAMP_MAX) {
-            recalculateStamp();
-        }
         stamp[field] = nextStamp++;
         isTimeSet = areFieldsSet = areFieldsVirtuallySet = false;
     }
@@ -2329,7 +2296,6 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
         case DAY_OF_MONTH:
             {
                 Calendar cal = (Calendar) clone();
-                cal.setLenient(true);
                 cal.prepareGetActual(field, false);
                 result = handleGetMonthLength(cal.get(EXTENDED_YEAR), cal.get(MONTH));
             }
@@ -2338,7 +2304,6 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
         case DAY_OF_YEAR:
             {
                 Calendar cal = (Calendar) clone();
-                cal.setLenient(true);
                 cal.prepareGetActual(field, false);
                 result = handleGetYearLength(cal.get(EXTENDED_YEAR));
             }
@@ -4284,8 +4249,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
             //     ( i.e. "en_Latn_US" becomes "en_US" )
  
             ULocale useLocale;
-            CalendarData calData = new CalendarData(locale, getType());
-            ULocale min = ULocale.minimizeSubtags(calData.getULocale());
+            ULocale min = ULocale.minimizeSubtags(locale);
             if ( min.getCountry().length() > 0 ) {
                 useLocale = min;
             } else {
@@ -4304,26 +4268,19 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
                 useLocale = new ULocale(buf.toString());                
             }
  
-            UResourceBundle rb = UResourceBundle.getBundleInstance(
-                    ICUResourceBundle.ICU_BASE_NAME,
-                    "supplementalData",
-                    ICUResourceBundle.ICU_DATA_CLASS_LOADER);
-            UResourceBundle weekDataInfo = rb.get("weekData");
-            UResourceBundle weekDataBundle = null;
-            try {
-                weekDataBundle = weekDataInfo.get(useLocale.getCountry());
-            } catch (MissingResourceException mre) {
-                // use "001" as fallback
-                weekDataBundle = weekDataInfo.get("001");
-            }
-
-            int[] wdi = weekDataBundle.getIntVector();
-            data = new WeekData(wdi[0],wdi[1],wdi[2],wdi[3],wdi[4],wdi[5],
+            CalendarData calData = new CalendarData(locale, getType());
+            CalendarData wkData = new CalendarData(useLocale, getType());
+            int[] dateTimeElements = wkData.get("DateTimeElements").getIntVector();
+            int[] weekend = wkData.get("weekend").getIntVector();
+            data = new WeekData(dateTimeElements[0],dateTimeElements[1],
+                                weekend[0],
+                                weekend[1],
+                                weekend[2],
+                                weekend[3],
                                 calData.getULocale());
             /* cache update */
             cachedLocaleData.put(locale, data);
         }
-        
         setFirstDayOfWeek(data.firstDayOfWeek);
         setMinimalDaysInFirstWeek(data.minimalDaysInFirstWeek);
         weekendOnset       = data.weekendOnset;
@@ -4751,7 +4708,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      */
     protected void validateFields() {
         for (int field = 0; field < fields.length; field++) {
-            if (stamp[field] >= MINIMUM_USER_STAMP) {
+            if (isSet(field)) {
                 validateField(field);
             }
         }

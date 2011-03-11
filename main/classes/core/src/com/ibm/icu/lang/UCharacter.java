@@ -4207,7 +4207,7 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
      * @see UProperty
      * @stable ICU 2.4
      */
-    public static int getPropertyEnum(CharSequence propertyAlias) {
+    public static int getPropertyEnum(String propertyAlias) {
         int propEnum = UPropertyAliases.INSTANCE.getPropertyEnum(propertyAlias);
         if (propEnum == UProperty.UNDEFINED) {
             throw new IllegalIcuArgumentException("Invalid name: " + propertyAlias);
@@ -4319,7 +4319,7 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
      *         selector or valueAlias is not a value of this property
      * @stable ICU 2.4
      */
-    public static int getPropertyValueEnum(int property, CharSequence valueAlias) {
+    public static int getPropertyValueEnum(int property, String valueAlias) {
         int propEnum = UPropertyAliases.INSTANCE.getPropertyValueEnum(property, valueAlias);
         if (propEnum == UProperty.UNDEFINED) {
             throw new IllegalIcuArgumentException("Invalid name: " + valueAlias);

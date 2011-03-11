@@ -689,7 +689,7 @@ public class DecimalFormat extends NumberFormat {
         setCurrencyForSymbols();
         applyPatternWithoutExpandAffix(pattern, false);
         if (currencySignCount == CURRENCY_SIGN_COUNT_IN_PLURAL_FORMAT) {
-            currencyPluralInfo = new CurrencyPluralInfo(symbols.getULocale());
+            currencyPluralInfo = new CurrencyPluralInfo(symbols.getLocale());
         } else {
             expandAffixAdjustWidth(null);
         }
@@ -758,7 +758,7 @@ public class DecimalFormat extends NumberFormat {
     DecimalFormat(String pattern, DecimalFormatSymbols inputSymbols, int style) {
         CurrencyPluralInfo info = null;
         if (style == NumberFormat.PLURALCURRENCYSTYLE) {
-            info = new CurrencyPluralInfo(inputSymbols.getULocale());
+            info = new CurrencyPluralInfo(inputSymbols.getLocale());
         }
         create(pattern, inputSymbols, info, style);
     }
@@ -1882,7 +1882,7 @@ public class DecimalFormat extends NumberFormat {
     // currency plural pattern (CurrencyUnitPatterns).
     private void setupCurrencyAffixForAllPatterns() {
         if (currencyPluralInfo == null) {
-            currencyPluralInfo = new CurrencyPluralInfo(symbols.getULocale());
+            currencyPluralInfo = new CurrencyPluralInfo(symbols.getLocale());
         }
         affixPatternsForCurrency = new HashSet<AffixForCurrency>();
 
@@ -1893,7 +1893,7 @@ public class DecimalFormat extends NumberFormat {
         // CURRENCYSTYLE and ISOCURRENCYSTYLE should have the same prefix and suffix, so,
         // only need to save one of them.  Here, chose onlyApplyPatternWithoutExpandAffix
         // without saving the actualy pattern in 'pattern' data member.  TODO: is it uloc?
-        applyPatternWithoutExpandAffix(getPattern(symbols.getULocale(), NumberFormat.CURRENCYSTYLE),
+        applyPatternWithoutExpandAffix(getPattern(symbols.getLocale(), NumberFormat.CURRENCYSTYLE),
                                        false);
         AffixForCurrency affixes = new AffixForCurrency(
             negPrefixPattern, negSuffixPattern, posPrefixPattern, posSuffixPattern,
@@ -2040,6 +2040,8 @@ public class DecimalFormat extends NumberFormat {
                 0xFF0E, 0xFF0E,
                 0xFF61, 0xFF61).freeze();
 
+    private static final UnicodeSet EMPTY_SET = new UnicodeSet().freeze();
+
     // When parsing a number with big exponential value, it requires to transform the
     // value into a string representation to construct BigInteger instance.  We want to
     // set the maximum size because it can easily trigger OutOfMemoryException.
@@ -2147,9 +2149,9 @@ public class DecimalFormat extends NumberFormat {
                 "com.ibm.icu.text.DecimalFormat.SkipExtendedSeparatorParsing", "false")
                 .equals("true");
 
-            UnicodeSet decimalEquiv = skipExtendedSeparatorParsing ? UnicodeSet.EMPTY :
+            UnicodeSet decimalEquiv = skipExtendedSeparatorParsing ? EMPTY_SET :
                 getEquivalentDecimals(decimal, strictParse);
-            UnicodeSet groupEquiv = skipExtendedSeparatorParsing ? UnicodeSet.EMPTY :
+            UnicodeSet groupEquiv = skipExtendedSeparatorParsing ? EMPTY_SET :
                 (strictParse ? strictDefaultGroupingSeparators : defaultGroupingSeparators);
 
             // We have to track digitCount ourselves, because digits.count will pin when
@@ -2476,7 +2478,7 @@ public class DecimalFormat extends NumberFormat {
      * parsing number.  This method may return an empty set.
      */
     private UnicodeSet getEquivalentDecimals(char decimal, boolean strictParse) {
-        UnicodeSet equivSet = UnicodeSet.EMPTY;
+        UnicodeSet equivSet = EMPTY_SET;
         if (strictParse) {
             if (strictDotEquivalents.contains(decimal)) {
                 equivSet = strictDotEquivalents;
@@ -2809,12 +2811,12 @@ public class DecimalFormat extends NumberFormat {
         // object. If it is a default symbols object for its locale, we change the
         // currency object to one for that locale. If it is custom, we set the currency to
         // null.
-        DecimalFormatSymbols def = new DecimalFormatSymbols(symbols.getULocale());
+        DecimalFormatSymbols def = new DecimalFormatSymbols(symbols.getLocale());
 
         if (symbols.getCurrencySymbol().equals(def.getCurrencySymbol())
                 && symbols.getInternationalCurrencySymbol()
                        .equals(def.getInternationalCurrencySymbol())) {
-            setCurrency(Currency.getInstance(symbols.getULocale()));
+            setCurrency(Currency.getInstance(symbols.getLocale()));
         } else {
             setCurrency(null);
         }
@@ -4701,7 +4703,7 @@ public class DecimalFormat extends NumberFormat {
             // initialize currencyPluralInfo if needed
             if (currencySignCount == CURRENCY_SIGN_COUNT_IN_PLURAL_FORMAT
                 && currencyPluralInfo == null) {
-                currencyPluralInfo = new CurrencyPluralInfo(symbols.getULocale());
+                currencyPluralInfo = new CurrencyPluralInfo(symbols.getLocale());
             }
         }
     }

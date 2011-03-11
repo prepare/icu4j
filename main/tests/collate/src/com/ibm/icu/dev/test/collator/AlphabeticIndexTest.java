@@ -28,9 +28,9 @@ import com.ibm.icu.text.AlphabeticIndex;
 import com.ibm.icu.text.AlphabeticIndex.Bucket;
 import com.ibm.icu.text.AlphabeticIndex.Bucket.LabelType;
 import com.ibm.icu.text.AlphabeticIndex.Record;
-import com.ibm.icu.text.Normalizer2.Mode;
 import com.ibm.icu.text.Collator;
 import com.ibm.icu.text.Normalizer2;
+import com.ibm.icu.text.Normalizer2.Mode;
 import com.ibm.icu.text.RawCollationKey;
 import com.ibm.icu.text.RuleBasedCollator;
 import com.ibm.icu.text.UnicodeSet;
@@ -46,7 +46,7 @@ public class AlphabeticIndexTest extends TestFmwk {
      */
     private static final String ARROW = "\u2192";
     private static final boolean DEBUG = ICUDebug.enabled("alphabeticindex");
-
+    
     public static Set<String> KEY_LOCALES = new LinkedHashSet(Arrays.asList(
             "en", "es", "de", "fr", "ja", "it", "tr", "pt", "zh", "nl", 
             "pl", "ar", "ru", "zh_Hant", "ko", "th", "sv", "fi", "da", 
@@ -92,7 +92,7 @@ public class AlphabeticIndexTest extends TestFmwk {
             /* Ukrainian*/  {"uk", "\u0410:\u0411:\u0412:\u0413:\u0490:\u0414:\u0415:\u0404:\u0416:\u0417:\u0418:\u0406:\u0407:\u0419:\u041A:\u041B:\u041C:\u041D:\u041E:\u041F:\u0420:\u0421:\u0422:\u0423:\u0424:\u0425:\u0426:\u0427:\u0428:\u0429:\u042E:\u042F"},
             /* Vietnamese*/ {"vi", "A:\u0102:\u00C2:B:C:D:\u0110:E:\u00CA:F:G:H:I:J:K:L:M:N:O:\u00D4:\u01A0:P:Q:R:S:T:U:\u01AF:V:W:X:Y:Z"},
             /* Chinese*/    {"zh", "A:B:C:D:E:F:G:H:I:J:K:L:M:N:O:P:Q:R:S:T:U:V:W:X:Y:Z"},
-            /* Chinese (Traditional Han)*/  {"zh_Hant", "\u4E00:\u4E01:\u4E09:\u4E11:\u4E19:\u4E1E:\u4E32:\u4E26:\u4E9F:\u4E58:\u4E7E:\u50A2:\u4E82:\u50E7:\u5104:\u5112:\u512A:\u53E2:\u52F8:\u56A5:\u5137:\u513C:\u56CC:\u56D1:\u5EF3"},
+            /* Chinese (Traditional Han)*/  {"zh_Hant", "\u4E00:\u4E01:\u4E08:\u4E0D:\u4E14:\u4E1E:\u4E32:\u4E26:\u4EAD:\u4E58:\u4E7E:\u5080:\u4E82:\u50CE:\u50F5:\u5110:\u511F:\u53E2:\u5133:\u56B4:\u5137:\u513B:\u56CC:\u56D1:\u5EF3"},
 
             // Comment these out to make the test run faster. Later, make these run under extended
 
@@ -198,25 +198,6 @@ public class AlphabeticIndexTest extends TestFmwk {
 
         for (String[] pair : localeAndIndexCharactersLists) {
             checkBuckets(pair[0], SimpleTests, additionalLocale, "E", "edgar", "Effron", "Effron");
-        }
-    }
-
-    public void TestEmpty() {
-        // just verify that it doesn't blow up.
-        Set<ULocale> locales = new LinkedHashSet<ULocale>();
-        locales.add(ULocale.ROOT);
-        locales.addAll(Arrays.asList(ULocale.getAvailableLocales()));
-        for (ULocale locale : locales) {
-            try {
-                AlphabeticIndex<String> alphabeticIndex = new AlphabeticIndex(locale);
-                alphabeticIndex.addRecord("hi", "HI");
-                for (Bucket<String> bucket : alphabeticIndex) {
-                    @SuppressWarnings("unused")
-                    LabelType labelType = bucket.getLabelType();
-                }
-            } catch (Exception e) {
-                errln("Exception when creating AlphabeticIndex for:\t" + locale.toLanguageTag());
-            }
         }
     }
 

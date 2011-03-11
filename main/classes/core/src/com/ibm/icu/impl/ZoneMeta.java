@@ -1,6 +1,6 @@
 /*
 **********************************************************************
-* Copyright (c) 2003-2011 International Business Machines
+* Copyright (c) 2003-2010 International Business Machines
 * Corporation and others.  All Rights Reserved.
 **********************************************************************
 * Author: Alan Liu
@@ -10,22 +10,19 @@
 */
 package com.ibm.icu.impl;
 
-import java.lang.ref.SoftReference;
 import java.text.ParsePosition;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.MissingResourceException;
 import java.util.Set;
-import java.util.TreeSet;
 
 import com.ibm.icu.text.MessageFormat;
 import com.ibm.icu.text.NumberFormat;
 import com.ibm.icu.util.SimpleTimeZone;
 import com.ibm.icu.util.TimeZone;
-import com.ibm.icu.util.TimeZone.SystemTimeZoneType;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.UResourceBundle;
 
@@ -54,154 +51,76 @@ public final class ZoneMeta {
     private static final String kGMT_ID   = "GMT";
     private static final String kCUSTOM_TZ_PREFIX = "GMT";
 
-    private static final String kWorld = "001";
-
-    private static SoftReference<Set<String>> REF_SYSTEM_ZONES;
-    private static SoftReference<Set<String>> REF_CANONICAL_SYSTEM_ZONES;
-    private static SoftReference<Set<String>> REF_CANONICAL_SYSTEM_LOCATION_ZONES;
-
     /**
-     * Returns an immutable set of system time zone IDs.
-     * Etc/Unknown is excluded.
-     * @return An immutable set of system time zone IDs.
+     * Returns a String array containing all system TimeZone IDs
+     * associated with the given country.  These IDs may be passed to
+     * <code>TimeZone.getTimeZone()</code> to construct the
+     * corresponding TimeZone object.
+     * @param country a two-letter ISO 3166 country code, or <code>null</code>
+     * to return zones not associated with any country
+     * @return an array of IDs for system TimeZones in the given
+     * country.  If there are none, return a zero-length array.
      */
-    private static synchronized Set<String> getSystemZIDs() {
-        Set<String> systemZones = null;
-        if (REF_SYSTEM_ZONES != null) {
-            systemZones = REF_SYSTEM_ZONES.get();
-        }
-        if (systemZones == null) {
-            Set<String> systemIDs = new TreeSet<String>();
-            String[] allIDs = getZoneIDs();
-            for (String id : allIDs) {
-                // exclude Etc/Unknown
-                if (id.equals(TimeZone.UNKNOWN_ZONE_ID)) {
-                    continue;
+    public static synchronized String[] getAvailableIDs(String country) {
+        String[] ids = null;
+
+        try{
+            UResourceBundle top = (ICUResourceBundle)ICUResourceBundle.getBundleInstance(
+                    ICUResourceBundle.ICU_BASE_NAME, ZONEINFORESNAME, ICUResourceBundle.ICU_DATA_CLASS_LOADER);
+            UResourceBundle regions = top.get(kREGIONS);
+
+            // Create a list of zones associated with the country
+            List<String> countryZones = new ArrayList<String>();
+
+            for (int i = 0; i < regions.getSize(); i++) {
+                if (country.equals(regions.getString(i))) {
+                    String zoneName = getZoneID(i);
+                    countryZones.add(zoneName);
                 }
-                systemIDs.add(id);
             }
-            systemZones = Collections.unmodifiableSet(systemIDs);
-            REF_SYSTEM_ZONES = new SoftReference<Set<String>>(systemZones);
+            if (countryZones.size() > 0) {
+                ids = countryZones.toArray(new String[countryZones.size()]);
+            }
+        } catch (MissingResourceException ex){
+            //throw away the exception
         }
-        return systemZones;
+
+        if (ids == null) {
+            ids = new String[0];
+        }
+        return ids;
     }
 
-    /**
-     * Returns an immutable set of canonical system time zone IDs.
-     * The result set is a subset of {@link #getSystemZIDs()}, but not
-     * including aliases, such as "US/Eastern".
-     * @return An immutable set of canonical system time zone IDs.
-     */
-    private static synchronized Set<String> getCanonicalSystemZIDs() {
-        Set<String> canonicalSystemZones = null;
-        if (REF_CANONICAL_SYSTEM_ZONES != null) {
-            canonicalSystemZones = REF_CANONICAL_SYSTEM_ZONES.get();
+    public static synchronized String[] getAvailableIDs() {
+        String[] ids = getZoneIDs();
+        if (ids == null) {
+            return new String[0];
         }
-        if (canonicalSystemZones == null) {
-            Set<String> canonicalSystemIDs = new TreeSet<String>();
-            String[] allIDs = getZoneIDs();
-            for (String id : allIDs) {
-                // exclude Etc/Unknown
-                if (id.equals(TimeZone.UNKNOWN_ZONE_ID)) {
-                    continue;
-                }
-                String canonicalID = getCanonicalCLDRID(id);
-                if (id.equals(canonicalID)) {
-                    canonicalSystemIDs.add(id);
-                }
-            }
-            canonicalSystemZones = Collections.unmodifiableSet(canonicalSystemIDs);
-            REF_CANONICAL_SYSTEM_ZONES = new SoftReference<Set<String>>(canonicalSystemZones);
-        }
-        return canonicalSystemZones;
+        return ids.clone();
     }
 
-    /**
-     * Returns an immutable set of canonical system time zone IDs that
-     * are associated with actual locations.
-     * The result set is a subset of {@link #getCanonicalSystemZIDs()}, but not
-     * including IDs, such as "Etc/GTM+5".
-     * @return An immutable set of canonical system time zone IDs that
-     * are associated with actual locations.
-     */
-    private static synchronized Set<String> getCanonicalSystemLocationZIDs() {
-        Set<String> canonicalSystemLocationZones = null;
-        if (REF_CANONICAL_SYSTEM_LOCATION_ZONES != null) {
-            canonicalSystemLocationZones = REF_CANONICAL_SYSTEM_LOCATION_ZONES.get();
-        }
-        if (canonicalSystemLocationZones == null) {
-            Set<String> canonicalSystemLocationIDs = new TreeSet<String>();
-            String[] allIDs = getZoneIDs();
-            for (String id : allIDs) {
-                // exclude Etc/Unknown
-                if (id.equals(TimeZone.UNKNOWN_ZONE_ID)) {
-                    continue;
-                }
-                String canonicalID = getCanonicalCLDRID(id);
-                if (id.equals(canonicalID)) {
-                    String region = getRegion(id);
-                    if (region != null && !region.equals(kWorld)) {
-                        canonicalSystemLocationIDs.add(id);
-                    }
-                }
-            }
-            canonicalSystemLocationZones = Collections.unmodifiableSet(canonicalSystemLocationIDs);
-            REF_CANONICAL_SYSTEM_LOCATION_ZONES = new SoftReference<Set<String>>(canonicalSystemLocationZones);
-        }
-        return canonicalSystemLocationZones;
-    }
-
-    /**
-     * Returns an immutable set of system IDs for the given conditions.
-     * @param type      a system time zone type.
-     * @param region    a region, or null.
-     * @param rawOffset a zone raw offset or null.
-     * @return An immutable set of system IDs for the given conditions.
-     */
-    public static Set<String> getAvailableIDs(SystemTimeZoneType type, String region, Integer rawOffset) {
-        Set<String> baseSet = null;
-        switch (type) {
-        case ANY:
-            baseSet = getSystemZIDs();
-            break;
-        case CANONICAL:
-            baseSet = getCanonicalSystemZIDs();
-            break;
-        case CANONICAL_LOCATION:
-            baseSet = getCanonicalSystemLocationZIDs();
-            break;
-        default:
-            // never occur
-            throw new IllegalArgumentException("Unknown SystemTimeZoneType");
-        }
-
-        if (region == null && rawOffset == null) {
-            return baseSet;
-        }
-
-        // Filter by region/rawOffset
-        Set<String> result = new TreeSet<String>();
-        for (String id : baseSet) {
-            if (region != null) {
-                String r = getRegion(id);
-                if (!region.equalsIgnoreCase(r)) {
-                    continue;
-                }
-            }
-            if (rawOffset != null) {
+    public static synchronized String[] getAvailableIDs(int offset){
+        String[] ids = null;
+        String[] all = getZoneIDs();
+        if (all != null) {
+            ArrayList<String> zones = new ArrayList<String>();
+            for (String zid : all) {
                 // This is VERY inefficient.
-                TimeZone z = getSystemTimeZone(id);
-                if (z == null || !rawOffset.equals(z.getRawOffset())) {
-                    continue;
+                TimeZone z = TimeZone.getTimeZone(zid);
+                // Make sure we get back the ID we wanted (if the ID is
+                // invalid we get back GMT).
+                if (z != null && z.getID().equals(zid) && z.getRawOffset() == offset) {
+                    zones.add(zid);
                 }
             }
-            result.add(id);
+            if (zones.size() > 0) {
+                ids = zones.toArray(new String[zones.size()]);
+            }
         }
-        if (result.isEmpty()) {
-            return Collections.emptySet();
+        if (ids == null) {
+            ids = new String[0];
         }
-
-        return Collections.unmodifiableSet(result);
+        return ids;
     }
 
     /**
@@ -342,13 +261,10 @@ public final class ZoneMeta {
     private static ICUCache<String, Boolean> SINGLE_COUNTRY_CACHE = new SimpleCache<String, Boolean>();
 
     /**
-     * Return the canonical id for this tzid defined by CLDR, which might be
-     * the id itself. If the given tzid is not known, return null.
-     * 
-     * Note: This internal API supports all known system IDs and "Etc/Unknown" (which is
-     * NOT a sysmte ID).
+     * Return the canonical id for this system tzid, which might be the id itself.
+     * If the given system tzid is not know, return null.
      */
-    public static String getCanonicalCLDRID(String tzid) {
+    public static String getCanonicalSystemID(String tzid) {
         String canonical = CANONICAL_ID_CACHE.get(tzid);
         if (canonical == null) {
             int zoneIdx = getZoneIndex(tzid);
@@ -388,10 +304,10 @@ public final class ZoneMeta {
     }
 
     /**
-     * Return the region code for this tzid.
-     * If tzid is not a system zone ID, this method returns null.
+     * Return the canonical country code for this tzid.  If we have none, or if the time zone
+     * is not associated with a country, return null.
      */
-    public static String getRegion(String tzid) {
+    public static String getCanonicalCountry(String tzid) {
         String region = REGION_CACHE.get(tzid);
         if (region == null) {
             int zoneIdx = getZoneIndex(tzid);
@@ -411,19 +327,10 @@ public final class ZoneMeta {
                 }
             }
         }
-        return region;
-    }
-
-    /**
-     * Return the canonical country code for this tzid.  If we have none, or if the time zone
-     * is not associated with a country or unknown, return null.
-     */
-    public static String getCanonicalCountry(String tzid) {
-        String country = getRegion(tzid);
-        if (country != null && country.equals(kWorld)) {
-            country = null;
+        if (region.equals("001")) {
+            return null;
         }
-        return country;
+        return region;
     }
 
     /**
@@ -437,9 +344,20 @@ public final class ZoneMeta {
         if (country != null) {
             Boolean isSingle = SINGLE_COUNTRY_CACHE.get(tzid);
             if (isSingle == null) {
-                Set<String> ids = TimeZone.getAvailableIDs(SystemTimeZoneType.CANONICAL_LOCATION, country, null);
-                assert(ids.size() >= 1);
-                isSingle = Boolean.valueOf(ids.size() <= 1);
+                // This is not so efficient
+                boolean isSingleCountryZone = true;
+                String[] ids = TimeZone.getAvailableIDs(country);
+                if (ids.length > 1) {
+                    // Check if there are multiple canonical zones included
+                    String canonical = getCanonicalSystemID(ids[0]);
+                    for (int i = 1; i < ids.length; i++) {
+                        if (!canonical.equals(getCanonicalSystemID(ids[i]))) {
+                            isSingleCountryZone = false;
+                            break;
+                        }
+                    }
+                }
+                isSingle = Boolean.valueOf(isSingleCountryZone);
                 SINGLE_COUNTRY_CACHE.put(tzid, isSingle);
             }
             if (!isSingle) {
@@ -599,6 +517,12 @@ public final class ZoneMeta {
             }
         }
         return (TimeZone)z.clone();
+    }
+
+    public static TimeZone getGMT(){
+        TimeZone z = new SimpleTimeZone(0, kGMT_ID);
+        z.setID(kGMT_ID);
+        return z;
     }
 
     // Maximum value of valid custom time zone hour/min
@@ -862,7 +786,7 @@ public final class ZoneMeta {
                 UResourceBundle bundle = UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, "metaZones");
                 UResourceBundle metazoneInfoBundle = bundle.get("metazoneInfo");
 
-                String canonicalID = getCanonicalCLDRID(tzid);
+                String canonicalID = TimeZone.getCanonicalID(tzid);
                 if (canonicalID == null) {
                     return null;
                 }
@@ -999,7 +923,7 @@ public final class ZoneMeta {
          if (zoneMap != null) {
              tzid = zoneMap.get(region);
              if (tzid == null) {
-                 tzid = zoneMap.get(kWorld); // use the mapping for world as fallback
+                 tzid = zoneMap.get("001"); // use the mapping for world as fallback
              }
          }
 

@@ -594,7 +594,7 @@ public final class StringTokenizer implements Enumeration<Object>
     /**
      * A empty delimiter UnicodeSet, used when user specified null delimiters
      */
-    private static final UnicodeSet EMPTY_DELIMITER_ = UnicodeSet.EMPTY;
+    private static final UnicodeSet EMPTY_DELIMITER_ = new UnicodeSet();
     
     // private methods ------------------------------------------------------
     

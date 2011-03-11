@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2004-2011, International Business Machines Corporation and    *
+ * Copyright (C) 2004-2010, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
 */
@@ -18,6 +18,7 @@ import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 
 import com.ibm.icu.impl.Utility;
+import com.ibm.icu.impl.ZoneMeta;
 import com.ibm.icu.text.BreakIterator;
 import com.ibm.icu.text.Collator;
 import com.ibm.icu.text.DateFormat;
@@ -1130,7 +1131,7 @@ public class GlobalizationPreferences implements Freezable<GlobalizationPreferen
         // fr+CA should go to America/Montreal
         String timezoneString = territory_tzid_hack_map.get(getTerritory());
         if (timezoneString == null) {
-            String[] attempt = TimeZone.getAvailableIDs(getTerritory());
+            String[] attempt = ZoneMeta.getAvailableIDs(getTerritory());
             if (attempt.length == 0) {
                 timezoneString = "Etc/GMT"; // gotta do something
             } else {

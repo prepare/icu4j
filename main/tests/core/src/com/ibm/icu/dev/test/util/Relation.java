@@ -1,6 +1,6 @@
 /*
  **********************************************************************
- * Copyright (c) 2002-2011, International Business Machines
+ * Copyright (c) 2002-2010, International Business Machines
  * Corporation and others.  All Rights Reserved.
  **********************************************************************
  * Author: Mark Davis
@@ -9,7 +9,6 @@
 package com.ibm.icu.dev.test.util;
 
 import java.lang.reflect.Constructor;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -28,19 +27,11 @@ import com.ibm.icu.util.Freezable;
  * @author medavis
 
  */
-public class Relation<K, V> implements Freezable { // TODO: add , Map<K, Collection<V>>, but requires API changes
+public class Relation<K, V> implements Freezable {
     private Map<K, Set<V>> data;
 
     Constructor<Set<V>> setCreator;
     Object[] setComparatorParam;
-
-    public static <K,V> Relation<K, V> of(Map<K, Set<V>> map, Class<?> setCreator) {
-        return new Relation(map, setCreator);
-    }
-
-    public static <K,V> Relation<K, V> of(Map<K, Set<V>> map, Class setCreator, Comparator<V> setComparator) {
-        return new Relation(map, setCreator, setComparator);
-    }
 
     public Relation(Map<K, Set<V>> map, Class<Set<V>> setCreator) {
         this(map, setCreator, null);
@@ -60,6 +51,7 @@ public class Relation<K, V> implements Freezable { // TODO: add , Map<K, Collect
         } catch (Exception e) {
             throw (RuntimeException) new IllegalArgumentException("Can't create new set").initCause(e);
         }
+
     }
 
     public void clear() {
@@ -72,22 +64,13 @@ public class Relation<K, V> implements Freezable { // TODO: add , Map<K, Collect
 
     public boolean containsValue(Object value) {
         for (Set<V> values : data.values()) {
-            if (values.contains(value)) {
+            if (values.contains(value))
                 return true;
-            }
         }
         return false;
     }
 
-    public final Set<Entry<K, V>> entrySet() {
-        return keyValueSet();
-    }
-    
-    public Set<Entry<K, Set<V>>> keyValuesSet() {
-        return data.entrySet();
-    }
-    
-    public Set<Entry<K, V>> keyValueSet() {
+    public Set<Entry<K, V>> entrySet() {
         Set<Entry<K, V>> result = new LinkedHashSet();
         for (K key : data.keySet()) {
             for (V value : data.get(key)) {
@@ -116,10 +99,6 @@ public class Relation<K, V> implements Freezable { // TODO: add , Map<K, Collect
         return data.get(key);
     }
 
-    public Set<V> get(Object key) {
-        return data.get(key);
-    }
-
     public int hashCode() {
         return data.hashCode();
     }
@@ -141,13 +120,13 @@ public class Relation<K, V> implements Freezable { // TODO: add , Map<K, Collect
         return value;
     }
 
-    public V putAll(K key, Collection<? extends V> values) {
+    public V putAll(K key, Collection<V> value) {
         Set<V> set = data.get(key);
         if (set == null) {
             data.put(key, set = newSet());
         }
-        set.addAll(values);
-        return values.size() == 0 ? null : values.iterator().next();
+        set.addAll(value);
+        return value.size() == 0 ? null : value.iterator().next();
     }
 
     public V putAll(Collection<K> keys, V value) {
@@ -198,7 +177,7 @@ public class Relation<K, V> implements Freezable { // TODO: add , Map<K, Collect
         return data.size();
     }
 
-    public Set<V> values() {
+    public Collection<V> values() {
         Set<V> result = newSet();
         for (K key : data.keySet()) {
             result.addAll(data.get(key));
@@ -291,13 +270,9 @@ public class Relation<K, V> implements Freezable { // TODO: add , Map<K, Collect
         return result;
     }
 
-    public Set<V> removeAll(K... keys) {
-        return data.remove(Arrays.asList(keys));
-    }
-
-    public boolean removeAll(K key, Iterable<V> toBeRemoved) {
+    public boolean removeAll(K key, Iterable<V> all) {
         boolean result = false;
-        for (V value : toBeRemoved) {
+        for (V value : all) {
             result |= remove(key, value);
         }
         return result;
