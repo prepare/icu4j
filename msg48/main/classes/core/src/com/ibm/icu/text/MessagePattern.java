@@ -552,7 +552,7 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
      * @draft ICU 4.8
      * @provisional This API might change or be removed in a future release.
      */
-    public int getPartLimit(int start) {
+    public int getLimitPartIndex(int start) {
         long msgStartPartLong=parts.get(start);
         int limit=(int)(msgStartPartLong>>32);
         if(limit<start) {

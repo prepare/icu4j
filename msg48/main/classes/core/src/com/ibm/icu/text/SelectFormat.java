@@ -240,7 +240,7 @@ public class SelectFormat extends Format{
             } else if(msgStart==0 && pattern.partSubstringMatches(part, "other")) {
                 msgStart=partIndex;
             }
-            partIndex=pattern.getPartLimit(partIndex);
+            partIndex=pattern.getLimitPartIndex(partIndex);
         } while(++partIndex<count);
         return msgStart;
     }
@@ -266,7 +266,7 @@ public class SelectFormat extends Format{
         // Get the appropriate sub-message.
         MessagePattern.Part part = new MessagePattern.Part();
         int msgStart=findSubMessage(msgPattern, 0, part, keyword);
-        int msgLimit=msgPattern.getPartLimit(msgStart);
+        int msgLimit=msgPattern.getLimitPartIndex(msgStart);
         return msgPattern.getPatternString().substring(msgPattern.getPatternIndex(msgStart),
                                                        msgPattern.getPatternIndex(msgLimit));
     }

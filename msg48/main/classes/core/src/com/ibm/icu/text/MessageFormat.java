@@ -551,7 +551,7 @@ public class MessageFormat extends UFormat {
      */
     private int nextTopLevelArgStart(int partIndex, Part part) {
         if (partIndex != 0) {
-            partIndex = msgPattern.getPartLimit(partIndex);
+            partIndex = msgPattern.getLimitPartIndex(partIndex);
         }
         for (;;) {
             MessagePattern.Part.Type type = msgPattern.getPart(++partIndex, part).getType();
@@ -1606,7 +1606,7 @@ public class MessageFormat extends UFormat {
                 continue;
             }
             assert type==Part.Type.ARG_START : "Unexpected Part "+part+" in parsed message.";
-            int argLimit=msgPattern.getPartLimit(i);
+            int argLimit=msgPattern.getLimitPartIndex(i);
             ArgType argType=part.getArgType();
             msgPattern.getPart(++i, part);
             Object arg;
@@ -1758,7 +1758,7 @@ public class MessageFormat extends UFormat {
         for(;;) {
             // Skip but remember the current sub-message.
             msgStart=partIndex;
-            partIndex=pattern.getPartLimit(partIndex);
+            partIndex=pattern.getLimitPartIndex(partIndex);
             if(++partIndex>=count) {
                 // Reached the end of the choice-only pattern.
                 // Return with the last sub-message.

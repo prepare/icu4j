@@ -157,7 +157,7 @@ public final class MiniMessageFormatter implements Freezable<MiniMessageFormatte
                         } else if(otherMsgStart==0 && msg.partSubstringMatches(part, "other")) {
                             otherMsgStart=i+1;
                         }
-                        i=msg.getPartLimit(i+1);
+                        i=msg.getLimitPartIndex(i+1);
                     }
                 } else {
                     throw new UnsupportedOperationException("Unsupported argument type "+argType);
