@@ -25,6 +25,10 @@ import com.ibm.icu.impl.PatternProps;
  *
  * <h4>Using <code>SelectFormat</code> for Gender Agreement</h4>
  *
+ * <p>Note: Typically, select formatting is done via <code>MessageFormat</code>
+ * with a <code>select</code> argument type,
+ * rather than using a stand-alone <code>SelectFormat</code>.</p>
+ *
  * <p>The main use case for the select format is gender based  inflection.
  * When names or nouns are inserted into sentences, their gender can  affect pronouns,
  * verb forms, articles, and adjectives. Special care needs to be
@@ -58,6 +62,9 @@ import com.ibm.icu.impl.PatternProps;
  * but similar in grammatical use.
  * Some African languages have around 20 noun classes.</p>
  *
+ * <p><b>Note:</b>For the gender of a <i>person</i> in a given sentence,
+ * we usually need to distinguish only between female, male and other/unknown.</p>
+ *
  * <p>To enable localizers to create sentence patterns that take their
  * language's gender dependencies into consideration, software has to  provide
  * information about the gender associated with a noun or name to
@@ -66,8 +73,8 @@ import com.ibm.icu.impl.PatternProps;
  *
  * <ul>
  * <li>For people, natural gender information should be maintained  for each person.
- * The keywords "male", "female", "mixed" (for groups of people)
- * and "unknown" are used.
+ * Keywords like "male", "female", "mixed" (for groups of people)
+ * and "unknown" could be used.
  *
  * <li>For nouns, grammatical gender information should be maintained  for
  * each noun and per language, e.g., in resource bundles.
@@ -85,6 +92,11 @@ import com.ibm.icu.impl.PatternProps;
  *
  * <pre>{0} went to {2}.</pre>
  *
+ * <p><b>Note:</b> The entire sentence should be included (and partially repeated)
+ * inside each phrase. Otherwise translators would have to be trained on how to
+ * move bits of the sentence in and out of the select argument of a message.
+ * (The examples below do not follow this recommendation!)</p>
+ * 
  * <p>The sentence pattern for French, where the gender of the person affects
  * the form of the participle, uses a select format based on argument 1:</p>
  *
@@ -104,39 +116,24 @@ import com.ibm.icu.impl.PatternProps;
  *
  * <h4>Patterns and Their Interpretation</h4>
  *
- * <p>The <code>SelectFormat</code> pattern text defines the phrase  output
+ * <p>The <code>SelectFormat</code> pattern string defines the phrase  output
  * for each user-defined keyword.
- * The pattern is a sequence of <code><i>keyword</i>{<i>phrase</i>}</code>
- * clauses, separated by white space characters.
- * Each clause assigns the phrase <code><i>phrase</i></code>
- * to the user-defined <code><i>keyword</i></code>.</p>
+ * The pattern is a sequence of (keyword, message) pairs.
+ * A keyword is a "pattern identifier": [^[[:Pattern_Syntax:][:Pattern_White_Space:]]]+</p>
  *
- * <p>Keywords must match the pattern [a-zA-Z][a-zA-Z0-9_-]*; keywords
- * that don't match this pattern result in the error code
- * <code>U_ILLEGAL_CHARACTER</code>.
- * You always have to define a phrase for the default keyword
+ * <p>Each message is a MessageFormat pattern string enclosed in {curly braces}.</p>
+ *
+ * <p>You always have to define a phrase for the default keyword
  * <code>other</code>; this phrase is returned when the keyword  
  * provided to
  * the <code>format</code> method matches no other keyword.
  * If a pattern does not provide a phrase for <code>other</code>, the  method
  * it's provided to returns the error  <code>U_DEFAULT_KEYWORD_MISSING</code>.
- * If a pattern provides more than one phrase for the same keyword, the
- * error <code>U_DUPLICATE_KEYWORD</code> is returned.
  * <br/>
- * Spaces between <code><i>keyword</i></code> and
- * <code>{<i>phrase</i>}</code>  will be ignored; spaces within
- * <code>{<i>phrase</i>}</code> will be preserved.</p>
+ * Pattern_White_Space between keywords and messages is ignored.
+ * Pattern_White_Space within a message is preserved and output.</p>
  *
- * <p>The phrase for a particular select case may contain other message
- * format patterns. <code>SelectFormat</code> preserves these so that  you
- * can use the strings produced by <code>SelectFormat</code> with other
- * formatters. If you are using <code>SelectFormat</code> inside a
- * <code>MessageFormat</code> pattern, <code>MessageFormat</code> will
- * automatically evaluate the resulting format pattern.
- * Thus, curly braces (<code>{</code>, <code>}</code>) are <i>only</i> allowed
- * in phrases to define a nested format pattern.</p>
- *
- * <pre>Example:
+ * <p><pre>Example:
  * MessageFormat msgFmt = new MessageFormat("{0} est " +
  *     "{1, select, female {all&#u00E9;e} other {all&#u00E9;}} &#u00E0; Paris.",
  *     new ULocale("fr"));
@@ -251,9 +248,9 @@ public class SelectFormat extends Format{
     /**
      * Selects the phrase for the given keyword.
      *
-     * @param keyword a keyword for which the select message should be formatted.
+     * @param keyword a phrase selection keyword.
      * @return the string containing the formatted select message.
-     * @throws IllegalArgumentException when the given keyword is not available in the select format pattern
+     * @throws IllegalArgumentException when the given keyword is not a "pattern identifier"
      * @stable ICU 4.4
      */
     public final String format(String keyword) {
@@ -277,11 +274,12 @@ public class SelectFormat extends Format{
     /**
      * Selects the phrase for the given keyword.
      * and appends the formatted message to the given <code>StringBuffer</code>.
-     * @param keyword a keyword for which the select message should be formatted.
-     * @param toAppendTo the formatted message will be appended to this
+     * @param keyword a phrase selection keyword.
+     * @param toAppendTo the selected phrase will be appended to this
      *        <code>StringBuffer</code>.
      * @param pos will be ignored by this method.
-     * @throws IllegalArgumentException when the given keyword is not available in the select format pattern
+     * @throws IllegalArgumentException when the given keyword is not a String
+     *         or not a "pattern identifier"
      * @return the string buffer passed in as toAppendTo, with formatted text
      *         appended.
      * @stable ICU 4.4
@@ -314,6 +312,7 @@ public class SelectFormat extends Format{
      * {@inheritDoc}
      * @stable ICU 4.4
      */
+    @Override
     public boolean equals(Object obj) {
         if(this == obj) {
             return true;
@@ -329,6 +328,7 @@ public class SelectFormat extends Format{
      * {@inheritDoc}
      * @stable ICU 4.4
      */
+    @Override
     public int hashCode() {
         if (pattern != null) {
             return pattern.hashCode();
@@ -337,16 +337,12 @@ public class SelectFormat extends Format{
     }
 
     /**
-     * Returns a string representation of the object
-     * @return a text representation of the format object.
-     * The result string includes the class name and
-     * the pattern string returned by <code>toPattern()</code>.
+     * {@inheritDoc}
      * @stable ICU 4.4
      */
+    @Override
     public String toString() {
-        StringBuilder buf = new StringBuilder();
-        buf.append("pattern='" + pattern + "'");
-        return buf.toString();
+        return "pattern='" + pattern + "'";
     }
 
     private void readObject(ObjectInputStream in)
