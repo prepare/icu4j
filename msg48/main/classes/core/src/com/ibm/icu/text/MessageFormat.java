@@ -32,6 +32,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import com.ibm.icu.impl.PatternProps;
 import com.ibm.icu.impl.Utility;
 import com.ibm.icu.text.MessagePattern.ArgType;
 import com.ibm.icu.text.MessagePattern.Part;
@@ -480,12 +481,12 @@ public class MessageFormat extends UFormat {
      * @param partIndex Part index of the previous ARG_START (initially 0).
      * @return
      */
-    private int nextTopLevelArgStart(int partIndex, Part part) {
+    private int nextTopLevelArgStart(int partIndex) {
         if (partIndex != 0) {
             partIndex = msgPattern.getLimitPartIndex(partIndex);
         }
         for (;;) {
-            MessagePattern.Part.Type type = msgPattern.getPart(++partIndex, part).getType();
+            MessagePattern.Part.Type type = msgPattern.getPartType(++partIndex);
             if (type == MessagePattern.Part.Type.ARG_START) {
                 return partIndex;
             }
@@ -495,16 +496,16 @@ public class MessageFormat extends UFormat {
         }
     }
 
-    private boolean argNameMatches(int partIndex, Part part, String argName, int argNumber) {
-        MessagePattern.Part.Type type = msgPattern.getPart(partIndex, part).getType();
-        return type == MessagePattern.Part.Type.ARG_NAME ?
+    private boolean argNameMatches(int partIndex, String argName, int argNumber) {
+        Part part = msgPattern.getPart(partIndex);
+        return part.getType() == MessagePattern.Part.Type.ARG_NAME ?
             msgPattern.partSubstringMatches(part, argName) :
             part.getValue() == argNumber;  // ARG_NUMBER
     }
 
-    private String getArgName(int partIndex, Part part) {
-        MessagePattern.Part.Type type = msgPattern.getPart(partIndex, part).getType();
-        if (type == MessagePattern.Part.Type.ARG_NAME) {
+    private String getArgName(int partIndex) {
+        Part part = msgPattern.getPart(partIndex);
+        if (part.getType() == MessagePattern.Part.Type.ARG_NAME) {
             return msgPattern.getSubstring(part);
         } else {
             return Integer.toString(part.getValue());
@@ -544,11 +545,10 @@ public class MessageFormat extends UFormat {
                     "This method is not available in MessageFormat objects " +
                     "that use alphanumeric argument names.");
         }
-        Part part = new Part();
-        for (int partIndex = 0; (partIndex = nextTopLevelArgStart(partIndex, part)) >= 0;) {
-            int j = msgPattern.getPart(partIndex + 1, part).getValue();
-            if (j < newFormats.length) {
-                setCustomArgStartFormat(partIndex, newFormats[j]);
+        for (int partIndex = 0; (partIndex = nextTopLevelArgStart(partIndex)) >= 0;) {
+            int argNumber = msgPattern.getPart(partIndex + 1).getValue();
+            if (argNumber < newFormats.length) {
+                setCustomArgStartFormat(partIndex, newFormats[argNumber]);
             }
         }
     }
@@ -575,9 +575,8 @@ public class MessageFormat extends UFormat {
      * @stable ICU 3.8
      */
     public void setFormatsByArgumentName(Map<String, Format> newFormats) {
-        Part part = new Part();
-        for (int partIndex = 0; (partIndex = nextTopLevelArgStart(partIndex, part)) >= 0;) {
-            String key = getArgName(partIndex + 1, part);
+        for (int partIndex = 0; (partIndex = nextTopLevelArgStart(partIndex)) >= 0;) {
+            String key = getArgName(partIndex + 1);
             if (newFormats.containsKey(key)) {
                 setCustomArgStartFormat(partIndex, newFormats.get(key));
             }
@@ -609,10 +608,9 @@ public class MessageFormat extends UFormat {
      */
     public void setFormats(Format[] newFormats) {
         int formatNumber = 0;
-        Part part = new Part();
         for (int partIndex = 0;
                 formatNumber < newFormats.length &&
-                (partIndex = nextTopLevelArgStart(partIndex, part)) >= 0;) {
+                (partIndex = nextTopLevelArgStart(partIndex)) >= 0;) {
             setCustomArgStartFormat(partIndex, newFormats[formatNumber]);
             ++formatNumber;
         }
@@ -646,9 +644,8 @@ public class MessageFormat extends UFormat {
                     "This method is not available in MessageFormat objects " +
                     "that use alphanumeric argument names.");
         }
-        Part part = new Part();
-        for (int partIndex = 0; (partIndex = nextTopLevelArgStart(partIndex, part)) >= 0;) {
-            if (msgPattern.getPart(partIndex + 1, part).getValue() == argumentIndex) {
+        for (int partIndex = 0; (partIndex = nextTopLevelArgStart(partIndex)) >= 0;) {
+            if (msgPattern.getPart(partIndex + 1).getValue() == argumentIndex) {
                 setCustomArgStartFormat(partIndex, newFormat);
             }
         }
@@ -678,9 +675,8 @@ public class MessageFormat extends UFormat {
         if (argNumber < MessagePattern.ARG_NAME_NOT_NUMBER) {
             return;
         }
-        Part part = new Part();
-        for (int partIndex = 0; (partIndex = nextTopLevelArgStart(partIndex, part)) >= 0;) {
-            if (argNameMatches(partIndex + 1, part, argumentName, argNumber)) {
+        for (int partIndex = 0; (partIndex = nextTopLevelArgStart(partIndex)) >= 0;) {
+            if (argNameMatches(partIndex + 1, argumentName, argNumber)) {
                 setCustomArgStartFormat(partIndex, newFormat);
             }
         }
@@ -706,8 +702,7 @@ public class MessageFormat extends UFormat {
      */
     public void setFormat(int formatElementIndex, Format newFormat) {
         int formatNumber = 0;
-        Part part = new Part();
-        for (int partIndex = 0; (partIndex = nextTopLevelArgStart(partIndex, part)) >= 0;) {
+        for (int partIndex = 0; (partIndex = nextTopLevelArgStart(partIndex)) >= 0;) {
             if (formatNumber == formatElementIndex) {
                 setCustomArgStartFormat(partIndex, newFormat);
                 return;
@@ -748,9 +743,8 @@ public class MessageFormat extends UFormat {
                     "that use alphanumeric argument names.");
         }
         ArrayList<Format> list = new ArrayList<Format>();
-        Part part = new Part();
-        for (int partIndex = 0; (partIndex = nextTopLevelArgStart(partIndex, part)) >= 0;) {
-            int argNumber = msgPattern.getPart(partIndex + 1, part).getValue();
+        for (int partIndex = 0; (partIndex = nextTopLevelArgStart(partIndex)) >= 0;) {
+            int argNumber = msgPattern.getPart(partIndex + 1).getValue();
             while (argNumber >= list.size()) {
                 list.add(null);
             }
@@ -784,8 +778,7 @@ public class MessageFormat extends UFormat {
      */
     public Format[] getFormats() {
         ArrayList<Format> list = new ArrayList<Format>();
-        Part part = new Part();
-        for (int partIndex = 0; (partIndex = nextTopLevelArgStart(partIndex, part)) >= 0;) {
+        for (int partIndex = 0; (partIndex = nextTopLevelArgStart(partIndex)) >= 0;) {
             list.add(cachedFormatters == null ? null : cachedFormatters.get(partIndex));
         }
         return list.toArray(new Format[list.size()]);
@@ -800,9 +793,8 @@ public class MessageFormat extends UFormat {
      */
     public Set<String> getFormatArgumentNames() {
         Set<String> result = new HashSet<String>();
-        Part part = new Part();
-        for (int partIndex = 0; (partIndex = nextTopLevelArgStart(partIndex, part)) >= 0;) {
-            result.add(getArgName(partIndex + 1, part));
+        for (int partIndex = 0; (partIndex = nextTopLevelArgStart(partIndex)) >= 0;) {
+            result.add(getArgName(partIndex + 1));
         }
         return result;
     }
@@ -822,9 +814,8 @@ public class MessageFormat extends UFormat {
         if (argNumber < MessagePattern.ARG_NAME_NOT_NUMBER) {
             return null;
         }
-        Part part = new Part();
-        for (int partIndex = 0; (partIndex = nextTopLevelArgStart(partIndex, part)) >= 0;) {
-            if (argNameMatches(partIndex + 1, part, argumentName, argNumber)) {
+        for (int partIndex = 0; (partIndex = nextTopLevelArgStart(partIndex)) >= 0;) {
+            if (argNameMatches(partIndex + 1, argumentName, argNumber)) {
                 return cachedFormatters.get(partIndex);
             }
         }
@@ -1114,11 +1105,9 @@ public class MessageFormat extends UFormat {
         }
         
         // Count how many slots we need in the array.
-        Part part = new Part();
         int maxArgId = -1;
-        for (int partIndex = 0; (partIndex = nextTopLevelArgStart(partIndex, part)) >= 0;) {
-            msgPattern.getPart(partIndex + 1, part);
-            int argNumber=part.getValue();
+        for (int partIndex = 0; (partIndex = nextTopLevelArgStart(partIndex)) >= 0;) {
+            int argNumber=msgPattern.getPart(partIndex + 1).getValue();
             if (argNumber > maxArgId) {
                 maxArgId = argNumber;
             }
@@ -1126,7 +1115,7 @@ public class MessageFormat extends UFormat {
         Object[] resultArray = new Object[maxArgId + 1];
 
         int backupStartPos = pos.getIndex();
-        parse(0, part, source, pos, resultArray, null);
+        parse(0, source, pos, resultArray, null);
         if (pos.getIndex() == backupStartPos) { // unchanged, returned object is null
             return null;
         }
@@ -1149,10 +1138,8 @@ public class MessageFormat extends UFormat {
      */
     public Map<String, Object> parseToMap(String source, ParsePosition pos)  {
         Map<String, Object> result = new HashMap<String, Object>();
-        Part part = new Part();
-
         int backupStartPos = pos.getIndex();
-        parse(0, part, source, pos, null, result);
+        parse(0, source, pos, null, result);
         if (pos.getIndex() == backupStartPos) {
             return null;
         }
@@ -1191,7 +1178,6 @@ public class MessageFormat extends UFormat {
      * corresponding ASCII-decimal-digit strings (e.g. "0", "1", "2"...).
      *
      * @param msgStart index in the message pattern to start from.
-     * @param part a Part object to use
      * @param source the text to parse
      * @param pos the position at which to start parsing.  on return,
      *        contains the result of the parse.
@@ -1199,25 +1185,23 @@ public class MessageFormat extends UFormat {
      *        has to have numbered arguments in order for this to not be null).
      * @param argsMap if not null, the parse results will be filled here.
      */
-    private void parse(int msgStart, Part part, String source,
-                       ParsePosition pos, Object[] args,
-                       Map<String, Object> argsMap) {
+    private void parse(int msgStart, String source, ParsePosition pos,
+                       Object[] args, Map<String, Object> argsMap) {
         if (source == null) {
             return;
         }
         String msgString=msgPattern.getPatternString();
-        int prevIndex=msgPattern.getPart(msgStart, part).getIndex();
-        assert part.getType()==MessagePattern.Part.Type.MSG_START;
+        int prevIndex=msgPattern.getPart(msgStart).getLimit();
         int sourceOffset = pos.getIndex();
         ParsePosition tempStatus = new ParsePosition(0);
 
         for(int i=msgStart+1; ; ++i) {
-            Part.Type type=msgPattern.getPart(i, part).getType();
+            Part part=msgPattern.getPart(i);
+            Part.Type type=part.getType();
             int index=part.getIndex();
             // Make sure the literal string matches.
             int len = index - prevIndex;
-            if (len == 0 || msgString.regionMatches(prevIndex,
-                    source, sourceOffset, len)) {
+            if (len == 0 || msgString.regionMatches(prevIndex, source, sourceOffset, len)) {
                 sourceOffset += len;
                 prevIndex += len;
             } else {
@@ -1229,22 +1213,16 @@ public class MessageFormat extends UFormat {
                 pos.setIndex(sourceOffset);
                 return;
             }
-            if(type==Part.Type.SKIP_SYNTAX) {
-                prevIndex=index+part.getValue();
+            if(type==Part.Type.SKIP_SYNTAX || type==Part.Type.INSERT_CHAR) {
+                prevIndex=part.getLimit();
                 continue;
             }
-            // We do not support parsing Plural formats.
-            assert type != Part.Type.REPLACE_NUMBER;
-
-            if(type==Part.Type.INSERT_CHAR) {
-                prevIndex=index;
-                continue;
-            }
+            // We do not support parsing Plural formats. (No REPLACE_NUMBER here.)
             assert type==Part.Type.ARG_START : "Unexpected Part "+part+" in parsed message.";
             int argLimit=msgPattern.getLimitPartIndex(i);
             
             ArgType argType=part.getArgType();
-            msgPattern.getPart(++i, part);
+            part=msgPattern.getPart(++i);
             // Compute the argId, so we can use it as a key.
             Object argId=null;
             int argNumber = 0;
@@ -1302,7 +1280,7 @@ public class MessageFormat extends UFormat {
                 }
             } else if(argType==ArgType.CHOICE) {
                 tempStatus.setIndex(sourceOffset);
-                double choiceResult = parseChoiceArgument(msgPattern, i, part, source, tempStatus);
+                double choiceResult = parseChoiceArgument(msgPattern, i, source, tempStatus);
                 if (tempStatus.getIndex() == sourceOffset) {
                     pos.setErrorIndex(sourceOffset);
                     return; // leave index as is to signal error
@@ -1326,7 +1304,7 @@ public class MessageFormat extends UFormat {
                     argsMap.put(key, argResult);
                 }
             }
-            prevIndex=msgPattern.getPatternIndex(argLimit);
+            prevIndex=msgPattern.getPart(argLimit).getLimit();
             i=argLimit;
         }
     }
@@ -1348,8 +1326,7 @@ public class MessageFormat extends UFormat {
     public Map<String, Object> parseToMap(String source) throws ParseException {
         ParsePosition pos = new ParsePosition(0);
         Map<String, Object> result = new HashMap<String, Object>();
-        Part part = new Part();
-        parse(0, part, source, pos, null, result);
+        parse(0, source, pos, null, result);
         if (pos.getIndex() == 0) // unchanged, returned object is null
             throw new ParseException("MessageFormat parse error!",
                                      pos.getErrorIndex());
@@ -1548,39 +1525,35 @@ public class MessageFormat extends UFormat {
     // *Important*: All fields must be declared *transient*.
     // See the longer comment above ulocale.
 
-    private int format(int msgStart, Part part, double pluralNumber,
+    private int format(int msgStart, double pluralNumber,
                        Object[] args, Map<String, Object> argsMap,
                        AppendableWrapper dest, FieldPosition fp) {
         String msgString=msgPattern.getPatternString();
-        int prevIndex=msgPattern.getPart(msgStart, part).getIndex();
-        assert part.getType()==MessagePattern.Part.Type.MSG_START;
+        int prevIndex=msgPattern.getPart(msgStart).getLimit();
         for(int i=msgStart+1;; ++i) {
-            Part.Type type=msgPattern.getPart(i, part).getType();
+            Part part=msgPattern.getPart(i);
+            Part.Type type=part.getType();
             int index=part.getIndex();
             dest.append(msgString, prevIndex, index);
             if(type==Part.Type.MSG_LIMIT) {
                 return i;
             }
-            if(type==Part.Type.SKIP_SYNTAX) {
-                prevIndex=index+part.getValue();
+            if(type==Part.Type.SKIP_SYNTAX || type==Part.Type.INSERT_CHAR) {
+                prevIndex=part.getLimit();
                 continue;
             }
             if(type==Part.Type.REPLACE_NUMBER) {
-                prevIndex=index+part.getValue();
+                prevIndex=part.getLimit();
                 if (stockNumberFormatter == null) {
                     stockNumberFormatter = NumberFormat.getInstance(ulocale);
                 }
                 dest.formatAndAppend(stockNumberFormatter, pluralNumber);
                 continue;
             }
-            if(type==Part.Type.INSERT_CHAR) {
-                prevIndex=index;
-                continue;
-            }
             assert type==Part.Type.ARG_START : "Unexpected Part "+part+" in parsed message.";
             int argLimit=msgPattern.getLimitPartIndex(i);
             ArgType argType=part.getArgType();
-            msgPattern.getPart(++i, part);
+            part=msgPattern.getPart(++i);
             Object arg;
             String noArg=null;
             Object argId=null;
@@ -1628,7 +1601,7 @@ public class MessageFormat extends UFormat {
                     String subMsgString = formatter.format(arg);
                     if (subMsgString.indexOf('{') >= 0 || subMsgString.indexOf('\'') >= 0) {
                         MessageFormat subMsgFormat = new MessageFormat(subMsgString, ulocale);
-                        subMsgFormat.format(0, part, 0, args, argsMap, dest, null);
+                        subMsgFormat.format(0, 0, args, argsMap, dest, null);
                     } else if (dest.attributes == null) {
                         dest.append(subMsgString);
                     } else {
@@ -1669,8 +1642,8 @@ public class MessageFormat extends UFormat {
                     throw new IllegalArgumentException("'" + arg + "' is not a Number");
                 }
                 double number = ((Number)arg).doubleValue();
-                int subMsgStart=findChoiceSubMessage(msgPattern, i, part, number);
-                format(subMsgStart, part, 0, args, argsMap, dest, null);
+                int subMsgStart=findChoiceSubMessage(msgPattern, i, number);
+                format(subMsgStart, 0, args, argsMap, dest, null);
             } else if(argType==ArgType.PLURAL) {
                 if (!(arg instanceof Number)) {
                     throw new IllegalArgumentException("'" + arg + "' is not a Number");
@@ -1679,18 +1652,18 @@ public class MessageFormat extends UFormat {
                 if (pluralProvider == null) {
                     pluralProvider = new PluralSelectorProvider(ulocale);
                 }
-                int subMsgStart=PluralFormat.findSubMessage(msgPattern, i, part, pluralProvider, number);
+                int subMsgStart=PluralFormat.findSubMessage(msgPattern, i, pluralProvider, number);
                 double offset=msgPattern.getPluralOffset(subMsgStart);
-                format(subMsgStart, part, number-offset, args, argsMap, dest, null);
+                format(subMsgStart, number-offset, args, argsMap, dest, null);
             } else if(argType==ArgType.SELECT) {
-                int subMsgStart=SelectFormat.findSubMessage(msgPattern, i, part, arg.toString());
-                format(subMsgStart, part, 0, args, argsMap, dest, null);
+                int subMsgStart=SelectFormat.findSubMessage(msgPattern, i, arg.toString());
+                format(subMsgStart, 0, args, argsMap, dest, null);
             } else {
                 // This should never happen.
                 throw new IllegalStateException("unexpected argType "+argType);
             }
             fp = updateMetaData(dest, prevDestLength, fp, argId);
-            prevIndex=msgPattern.getPatternIndex(argLimit);
+            prevIndex=msgPattern.getPart(argLimit).getLimit();
             i=argLimit;
         }
     }
@@ -1703,27 +1676,20 @@ public class MessageFormat extends UFormat {
      *         substring with no arguments. 
      */
     private String getLiteralStringUntilNextArgument(int from) {
-        Part part = new Part();
         StringBuilder b = new StringBuilder();
         String msgString=msgPattern.getPatternString();
-        int prevIndex=msgPattern.getPart(from, part).getIndex();
+        int prevIndex=msgPattern.getPart(from).getLimit();
         for(int i=from+1;; ++i) {
-            Part.Type type=msgPattern.getPart(i, part).getType();
+            Part part=msgPattern.getPart(i);
+            Part.Type type=part.getType();
             int index=part.getIndex();
             b.append(msgString, prevIndex, index);
-            if(type==Part.Type.MSG_LIMIT) {
+            if(type==Part.Type.ARG_START || type==Part.Type.MSG_LIMIT) {
                 return b.toString();
             }
-            if(type==Part.Type.SKIP_SYNTAX) {
-                prevIndex=index+part.getValue();
-                continue;
-            }
-            if(type==Part.Type.INSERT_CHAR) {
-                prevIndex=index;
-                continue;
-            }
-            assert type==Part.Type.ARG_START : "Unexpected Part "+part+" in parsed message.";
-            return b.toString();
+            assert type==Part.Type.SKIP_SYNTAX || type==Part.Type.INSERT_CHAR :
+                    "Unexpected Part "+part+" in parsed message.";
+            prevIndex=part.getLimit();
         }
     }
 
@@ -1745,14 +1711,10 @@ public class MessageFormat extends UFormat {
      * Finds the ChoiceFormat sub-message for the given number.
      * @param pattern A MessagePattern.
      * @param partIndex the index of the first ChoiceFormat argument style part.
-     * @param part A MessagePattern.Part to be reused. (Just to avoid allocation.)
      * @param number a number to be mapped to one of the ChoiceFormat argument's intervals
      * @return the sub-message start part index.
      */
-    private static int findChoiceSubMessage(
-            MessagePattern pattern,
-            int partIndex, MessagePattern.Part part,
-            double number) {
+    private static int findChoiceSubMessage(MessagePattern pattern, int partIndex, double number) {
         int count=pattern.countParts();
         int msgStart;
         // Iterate over (ARG_INT|DOUBLE, ARG_SELECTOR, message) tuples
@@ -1768,7 +1730,8 @@ public class MessageFormat extends UFormat {
                 // Return with the last sub-message.
                 break;
             }
-            Part.Type type=pattern.getPart(partIndex++, part).getType();
+            Part part=pattern.getPart(partIndex++);
+            Part.Type type=part.getType();
             if(type==Part.Type.ARG_LIMIT) {
                 // Reached the end of the ChoiceFormat style.
                 // Return with the last sub-message.
@@ -1778,7 +1741,7 @@ public class MessageFormat extends UFormat {
             assert type.hasNumericValue();
             double boundary=pattern.getNumericValue(part);
             // Fetch the ARG_SELECTOR character.
-            pattern.getPart(partIndex++, part);
+            part=pattern.getPart(partIndex++);
             char boundaryChar=pattern.getPatternString().charAt(part.getIndex());
             if(boundaryChar=='#' ? number<boundary : number<=boundary) {
                 // The number is in the interval between the previous boundary and the current one.
@@ -1791,19 +1754,18 @@ public class MessageFormat extends UFormat {
 
     // Ported from C++ ChoiceFormat::parse().
     private static double parseChoiceArgument(
-            MessagePattern pattern,
-            int partIndex, Part part,
+            MessagePattern pattern, int partIndex,
             String source, ParsePosition pos) {
         // find the best number (defined as the one with the longest parse)
         int start = pos.getIndex();
         int furthest = start;
         double bestNumber = Double.NaN;
         double tempNumber = 0.0;
-        while (pattern.getPart(partIndex, part).getType() != Part.Type.ARG_LIMIT) {
-            tempNumber = pattern.getNumericValue(pattern.getPart(partIndex, part));
+        while (pattern.getPartType(partIndex) != Part.Type.ARG_LIMIT) {
+            tempNumber = pattern.getNumericValue(pattern.getPart(partIndex));
             partIndex += 2;  // skip the numeric part and ignore the ARG_SELECTOR
             int msgLimit = pattern.getLimitPartIndex(partIndex);
-            int len = matchStringUntilLimitPart(pattern, partIndex, msgLimit, part, source, start);
+            int len = matchStringUntilLimitPart(pattern, partIndex, msgLimit, source, start);
             if (len >= 0) {
                 int newIndex = start + len;
                 if (newIndex > furthest) {
@@ -1814,6 +1776,7 @@ public class MessageFormat extends UFormat {
                     }
                 }
             }
+            partIndex = msgLimit + 1;
         }
         if (furthest == start) {
             pos.setErrorIndex(start);
@@ -1832,15 +1795,14 @@ public class MessageFormat extends UFormat {
      * Otherwise returns -1.
      */
     private static int matchStringUntilLimitPart(
-            MessagePattern pattern, int partIndex, int limitPartIndex, Part part,
+            MessagePattern pattern, int partIndex, int limitPartIndex,
             String source, int sourceOffset) {
         int matchingSourceLength = 0;
         String msgString = pattern.getPatternString();
-        int prevIndex = pattern.getPart(partIndex, part).getIndex();
+        int prevIndex = pattern.getPart(partIndex).getLimit();
         for (;;) {
-            pattern.getPart(++partIndex, part);
-            Part.Type type = part.getType();
-            if (partIndex == limitPartIndex || type == Part.Type.SKIP_SYNTAX) {
+            Part part = pattern.getPart(++partIndex);
+            if (partIndex == limitPartIndex || part.getType() == Part.Type.SKIP_SYNTAX) {
                 int index = part.getIndex();
                 int length = index - prevIndex;
                 if (length != 0 && !source.regionMatches(sourceOffset, msgString, prevIndex, length)) {
@@ -1850,7 +1812,7 @@ public class MessageFormat extends UFormat {
                 if (partIndex == limitPartIndex) {
                     return matchingSourceLength;
                 }
-                prevIndex = index + part.getValue();  // SKIP_SYNTAX
+                prevIndex = part.getLimit();  // SKIP_SYNTAX
             }
         }
     }
@@ -1898,7 +1860,7 @@ public class MessageFormat extends UFormat {
                 "This method is not available in MessageFormat objects " +
                 "that use alphanumeric argument names.");
         }
-        format(0, new Part(), 0, arguments, argsMap, dest, fp);
+        format(0, 0, arguments, argsMap, dest, fp);
     }
 
     private void resetPattern() {
@@ -2095,7 +2057,7 @@ public class MessageFormat extends UFormat {
     private static final Locale rootLocale = new Locale("");  // Locale.ROOT only @since 1.6
 
     private static final int findKeyword(String s, String[] list) {
-        s = s.trim().toLowerCase(rootLocale);
+        s = PatternProps.trimWhiteSpace(s).toLowerCase(rootLocale);
         for (int i = 0; i < list.length; ++i) {
             if (s.equals(list[i]))
                 return i;
@@ -2135,8 +2097,7 @@ public class MessageFormat extends UFormat {
         } else {
             out.writeInt(customFormatArgStarts.size());
             int formatIndex = 0;
-            Part part = new Part();
-            for (int partIndex = 0; (partIndex = nextTopLevelArgStart(partIndex, part)) >= 0;) {
+            for (int partIndex = 0; (partIndex = nextTopLevelArgStart(partIndex)) >= 0;) {
                 if (customFormatArgStarts.contains(partIndex)) {
                     out.writeInt(formatIndex);
                     out.writeObject(cachedFormatters.get(partIndex));
@@ -2183,11 +2144,10 @@ public class MessageFormat extends UFormat {
             cachedFormatters.clear();
         }
         customFormatArgStarts = null;
-        Part part = new Part();
         int limit = msgPattern.countParts() - 1;
         for(int i=1; i < limit; ++i) {
-            Part.Type type=msgPattern.getPart(i, part).getType();
-            if(type!=Part.Type.ARG_START) {
+            Part part = msgPattern.getPart(i);
+            if(part.getType()!=Part.Type.ARG_START) {
                 continue;
             }
             ArgType argType=part.getArgType();
@@ -2196,11 +2156,10 @@ public class MessageFormat extends UFormat {
             }
             int index = i;
             i += 2;
-            String explicitType = msgPattern.getSubstring(msgPattern.getPart(i++, part));
+            String explicitType = msgPattern.getSubstring(msgPattern.getPart(i++));
             String style = "";
-            if (msgPattern.getPart(i, part).getType() == MessagePattern.Part.Type.ARG_STYLE_START) {
-                style = msgPattern.getPatternString().substring(part.getIndex(),
-                        msgPattern.getPatternIndex(i+1)-1);
+            if ((part = msgPattern.getPart(i)).getType() == MessagePattern.Part.Type.ARG_STYLE) {
+                style = msgPattern.getSubstring(part);
                 ++i;
             }
             Format formatter = createAppropriateFormat(explicitType, style);

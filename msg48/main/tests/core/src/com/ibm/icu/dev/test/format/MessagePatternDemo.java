@@ -26,32 +26,24 @@ public final class MessagePatternDemo {
         if(!autoQA.equals(msg.getPatternString())) {
             System.out.println("autoQA:   "+autoQA);
         }
-        MessagePattern.Part part=new MessagePattern.Part();
         String indent="";
         StringBuilder explanation=new StringBuilder();
+        MessagePattern.Part prevPart=null;
         int count=msg.countParts();
         for(int i=0; i<count; ++i) {
             explanation.delete(0, 0x7fffffff);
-            String partString=msg.getPart(i, part).toString();
+            MessagePattern.Part part=msg.getPart(i);
+            assert prevPart==null || prevPart.getLimit()<=part.getIndex();
+            String partString=part.toString();
             MessagePattern.Part.Type type=part.getType();
             if(type==MessagePattern.Part.Type.MSG_START) {
                 indent=manySpaces.substring(0, part.getValue()*2);
-            } else if(type==MessagePattern.Part.Type.ARG_STYLE_START) {
-                // the next part is the ARG_LIMIT, and the style ends before its '}'
-                // which is 1 before the ARG_LIMIT's index
-                explanation.
-                    append("=\"").
-                    append(msg.getPatternString().substring(part.getIndex(),
-                                                            msg.getPatternIndex(i+1)-1)).
-                    append('"');
-            } else {
-                String substring=msg.getSubstring(part);
-                if(substring!=null) {
-                    explanation.append("=\"").append(substring).append('"');
-                }
-                if(type.hasNumericValue()) {
-                    explanation.append('=').append(msg.getNumericValue(part));
-                }
+            }
+            if(part.getLength()>0) {
+                explanation.append("=\"").append(msg.getSubstring(part)).append('"');
+            }
+            if(type.hasNumericValue()) {
+                explanation.append('=').append(msg.getNumericValue(part));
             }
             System.out.format("%2d: %s%s%s\n", i, indent, partString, explanation);
             if(type==MessagePattern.Part.Type.MSG_LIMIT) {
@@ -62,6 +54,7 @@ public final class MessagePatternDemo {
                     indent="";
                 }
             }
+            prevPart=part;
         }
     }
 

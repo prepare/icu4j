@@ -66,7 +66,7 @@ public final class MiniMessageFormatter implements Freezable<MiniMessageFormatte
             throw new IllegalArgumentException(
                 "Formatting message with named arguments using positional argument values.");
         }
-        format(0, new Part(), dest, args, null);
+        format(0, dest, args, null);
         return dest;
     }
 
@@ -79,7 +79,7 @@ public final class MiniMessageFormatter implements Freezable<MiniMessageFormatte
             throw new IllegalArgumentException(
                 "Formatting message with numbered arguments using named argument values.");
         }
-        format(0, new Part(), dest, null, argsMap);
+        format(0, dest, null, argsMap);
         return dest;
     }
 
@@ -87,29 +87,26 @@ public final class MiniMessageFormatter implements Freezable<MiniMessageFormatte
         return new MiniMessageFormatter(msg).format(new StringBuilder(2*msg.length()), argsMap).toString();
     }
 
-    private int format(int msgStart, Part part, Appendable dest,
-                       Object[] args, Map<String, Object> argsMap) {
+    private int format(int msgStart, Appendable dest, Object[] args, Map<String, Object> argsMap) {
         try {
             String msgString=msg.getPatternString();
-            int prevIndex=msg.getPart(msgStart, part).getIndex();
+            int prevIndex=msg.getPart(msgStart).getLimit();
             for(int i=msgStart+1;; ++i) {
-                Part.Type type=msg.getPart(i, part).getType();
+                Part part=msg.getPart(i);
+                Part.Type type=part.getType();
                 int index=part.getIndex();
                 dest.append(msgString, prevIndex, index);
                 if(type==Part.Type.MSG_LIMIT) {
                     return i;
                 }
-                if(type==Part.Type.SKIP_SYNTAX) {
-                    prevIndex=index+part.getValue();
-                    continue;
-                }
-                if(type==Part.Type.INSERT_CHAR) {
-                    prevIndex=index;
+                if(type==Part.Type.SKIP_SYNTAX || type==Part.Type.INSERT_CHAR) {
+                    prevIndex=part.getLimit();
                     continue;
                 }
                 assert type==Part.Type.ARG_START : "Unexpected Part "+part+" in parsed message.";
+                int argLimit=msg.getLimitPartIndex(i);
                 ArgType argType=part.getArgType();
-                msg.getPart(++i, part);
+                part=msg.getPart(++i);
                 Object arg;
                 if(args!=null) {
                     try {
@@ -129,31 +126,21 @@ public final class MiniMessageFormatter implements Freezable<MiniMessageFormatte
                 ++i;
                 if(argType==ArgType.NONE) {
                     dest.append(argValue);
-                    prevIndex=msg.getPart(i, part).getIndex();  // ARG_LIMIT
-                    continue;
                 } else if(argType==ArgType.SELECT) {
                     // The real implementation is in SelectFormat.findSubMessage().
                     // This is earlier demo code.
                     int otherMsgStart=0;
-                    boolean found=false;
                     for(;; ++i) {  // (ARG_SELECTOR, message) pairs until ARG_LIMIT
-                        if(msg.getPart(i, part).getType()==Part.Type.ARG_LIMIT) {
-                            prevIndex=part.getIndex();
-                            if(found) {
-                                break;
-                            } else {
-                                assert otherMsgStart!=0;
-                                format(otherMsgStart, part, dest, args, argsMap);
-                                break;
-                            }
+                        part=msg.getPart(i);
+                        if(part.getType()==Part.Type.ARG_LIMIT) {
+                            assert otherMsgStart!=0;  // The parser made sure this is the case.
+                            format(otherMsgStart, dest, args, argsMap);
+                            break;
                         // else: part is an ARG_SELECTOR followed by a message
-                        } else if(found) {
-                            // just skip each further pair
                         } else if(msg.partSubstringMatches(part, argValue)) {
-                            // keyword matches, format immediately
-                            found=true;
-                            i=format(i+1, part, dest, args, argsMap);
-                            continue;  // i is already on this message's MSG_LIMIT
+                            // keyword matches
+                            format(i+1, dest, args, argsMap);
+                            break;
                         } else if(otherMsgStart==0 && msg.partSubstringMatches(part, "other")) {
                             otherMsgStart=i+1;
                         }
@@ -162,6 +149,8 @@ public final class MiniMessageFormatter implements Freezable<MiniMessageFormatte
                 } else {
                     throw new UnsupportedOperationException("Unsupported argument type "+argType);
                 }
+                prevIndex=msg.getPart(argLimit).getLimit();
+                i=argLimit;
             }
         } catch(IOException e) {  // Appendable throws IOException
             throw new RuntimeException(e);  // We do not want a throws clause.
