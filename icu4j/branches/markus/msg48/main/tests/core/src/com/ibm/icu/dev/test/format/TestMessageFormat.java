@@ -1710,12 +1710,11 @@ public class TestMessageFormat extends com.ibm.icu.dev.test.TestFmwk {
 
     public String getPatternAndSkipSyntax(MessagePattern pattern) {
         StringBuilder sb = new StringBuilder(pattern.getPatternString());
-        MessagePattern.Part part = new MessagePattern.Part();
         int count = pattern.countParts();
         for (int i = count; i > 0;) {
-            if (pattern.getPart(--i, part).getType() == MessagePattern.Part.Type.SKIP_SYNTAX) {
-                int skip_start = part.getIndex();
-                sb.delete(skip_start, skip_start + part.getValue());
+            MessagePattern.Part part = pattern.getPart(--i);
+            if (part.getType() == MessagePattern.Part.Type.SKIP_SYNTAX) {
+                sb.delete(part.getIndex(), part.getLimit());
             }
         }
         return sb.toString();

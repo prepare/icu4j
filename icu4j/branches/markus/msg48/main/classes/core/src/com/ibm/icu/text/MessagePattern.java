@@ -41,7 +41,7 @@ import com.ibm.icu.util.Freezable;
  * complexArg = choiceArg | pluralArg | selectArg
  *
  * noneArg = ARG_START.NONE (ARG_NAME | ARG_NUMBER) ARG_LIMIT.NONE
- * simpleArg = ARG_START.SIMPLE (ARG_NAME | ARG_NUMBER) ARG_TYPE [ARG_STYLE_START] ARG_LIMIT.SIMPLE
+ * simpleArg = ARG_START.SIMPLE (ARG_NAME | ARG_NUMBER) ARG_TYPE [ARG_STYLE] ARG_LIMIT.SIMPLE
  * choiceArg = ARG_START.CHOICE (ARG_NAME | ARG_NUMBER) choiceStyle ARG_LIMIT.CHOICE
  * pluralArg = ARG_START.PLURAL (ARG_NAME | ARG_NUMBER) pluralStyle ARG_LIMIT.PLURAL
  * selectArg = ARG_START.SELECT (ARG_NAME | ARG_NUMBER) selectStyle ARG_LIMIT.SELECT
@@ -176,7 +176,7 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
      */
     public MessagePattern parse(String pattern) {
         preParse(pattern);
-        parseMessage(0, 0, ArgType.NONE);
+        parseMessage(0, 0, 0, ArgType.NONE);
         postParse();
         return this;
     }
@@ -387,15 +387,15 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
             return msg;
         }
         StringBuilder modified=null;
-        Part part=new Part();
         // Iterate backward so that the insertion indexes do not change.
         int count=countParts();
         for(int i=count; i>0;) {
-            if(getPart(--i, part).getType()==Part.Type.INSERT_CHAR) {
+            Part part;
+            if((part=getPart(--i)).getType()==Part.Type.INSERT_CHAR) {
                 if(modified==null) {
                     modified=new StringBuilder(msg.length()+10).append(msg);
                 }
-                modified.insert(part.getIndex(), (char)part.getValue());
+                modified.insert(part.index, (char)part.value);
             }
         }
         if(modified==null) {
@@ -417,24 +417,20 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
     }
 
     /**
-     * Gets the data for the i-th pattern "part".
-     * Fills in and returns the Part parameter (rather than returning a new Part each time)
-     * to minimize object allocation.
+     * Gets the i-th pattern "part".
      * @param i The index of the Part data. (0..countParts()-1)
-     * @param part The Part object to be modified.
-     * @return part
+     * @return the i-th pattern "part".
      * @throws IndexOutOfBoundsException if i is outside the (0..countParts()-1) range
      * @draft ICU 4.8
      * @provisional This API might change or be removed in a future release.
      */
-    public Part getPart(int i, Part part) {
-        part.part=parts.get(i).intValue();
-        return part;
+    public Part getPart(int i) {
+        return parts.get(i);
     }
 
     /**
      * Returns the Part.Type of the i-th pattern "part".
-     * Equivalent to getPart(i, part).getType() but without the Part object.
+     * Convenience method for getPart(i).getType().
      * @param i The index of the Part data. (0..countParts()-1)
      * @return The Part.Type of the i-th Part.
      * @throws IndexOutOfBoundsException if i is outside the (0..countParts()-1) range
@@ -442,11 +438,12 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
      * @provisional This API might change or be removed in a future release.
      */
     public Part.Type getPartType(int i) {
-        return Part.getType(parts.get(i).intValue());
+        return parts.get(i).type;
     }
 
     /**
      * Returns the pattern index of the specified pattern "part".
+     * Convenience method for getPart(partIndex).getIndex().
      * @param partIndex The index of the Part data. (0..countParts()-1)
      * @return The pattern index of this Part.
      * @throws IndexOutOfBoundsException if partIndex is outside the (0..countParts()-1) range
@@ -454,26 +451,20 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
      * @provisional This API might change or be removed in a future release.
      */
     public int getPatternIndex(int partIndex) {
-        return (parts.get(partIndex).intValue())&Part.INDEX_MASK;
+        return parts.get(partIndex).index;
     }
 
     /**
-     * Returns the getString() substring of the pattern string indicated by the Part,
-     * or null if the Part does not refer to a substring.
+     * Returns the substring of the pattern string indicated by the Part.
+     * Convenience method for getPatternString().substring(part.getIndex(), part.getLimit()).
      * @param part a part of this MessagePattern.
      * @return the substring associated with part.
-     * @see Part.Type#refersToSubstring()
      * @draft ICU 4.8
      * @provisional This API might change or be removed in a future release.
      */
     public String getSubstring(Part part) {
-        if(part.getType().refersToSubstring()) {
-            int index=part.getIndex();
-            int length=part.getValue();
-            return msg.substring(index, index+length);
-        } else {
-            return null;
-        }
+        int index=part.index;
+        return msg.substring(index, index+part.length);
     }
 
     /**
@@ -485,13 +476,7 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
      * @provisional This API might change or be removed in a future release.
      */
     public boolean partSubstringMatches(Part part, String s) {
-        return partSubstringMatches(part.part, s);
-    }
-
-    private boolean partSubstringMatches(int part, String s) {
-        return
-            Part.getType(part).refersToSubstring() &&
-            s.regionMatches(0, msg, part&Part.INDEX_MASK, Part.getValue(part));
+        return msg.regionMatches(part.index, s, 0, part.length);
     }
 
     /**
@@ -502,15 +487,11 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
      * @provisional This API might change or be removed in a future release.
      */
     public double getNumericValue(Part part) {
-        return getNumericValue(part.part);
-    }
-
-    private double getNumericValue(int part) {
-        Part.Type type=Part.getType(part);
+        Part.Type type=part.type;
         if(type==Part.Type.ARG_INT) {
-            return Part.getValue(part);
+            return part.value;
         } else if(type==Part.Type.ARG_DOUBLE) {
-            return numericValues.get(Part.getValue(part));
+            return numericValues.get(part.value);
         } else {
             return NO_NUMERIC_VALUE;
         }
@@ -534,8 +515,8 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
      * @provisional This API might change or be removed in a future release.
      */
     public double getPluralOffset(int pluralStart) {
-        int part=parts.get(pluralStart).intValue();
-        if(Part.getType(part).hasNumericValue()) {
+        Part part=parts.get(pluralStart);
+        if(part.type.hasNumericValue()) {
             return getNumericValue(part);
         } else {
             return 0;
@@ -553,8 +534,7 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
      * @provisional This API might change or be removed in a future release.
      */
     public int getLimitPartIndex(int start) {
-        long msgStartPartLong=parts.get(start);
-        int limit=(int)(msgStartPartLong>>32);
+        int limit=parts.get(start).limitPartIndex;
         if(limit<start) {
             return start;
         }
@@ -570,26 +550,53 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
      * @provisional This API might change or be removed in a future release.
      */
     public static final class Part {
-        /**
-         * Returns the pattern string index associated with this Part.
-         * Typically the index where the part begins, except for MSG_START and ARG_LIMIT parts
-         * where the limit (exclusive-end) index is returned.
-         * @return the part index in the pattern string.
-         * @draft ICU 4.8
-         * @provisional This API might change or be removed in a future release.
-         */
-        public int getIndex() {
-            return part&INDEX_MASK;
+        private Part(Type t, int i, int l, int v) {
+            type=t;
+            index=i;
+            length=(char)l;
+            value=(short)v;
         }
 
         /**
-         * Returns type of this part.
+         * Returns the type of this part.
          * @return the part type.
          * @draft ICU 4.8
          * @provisional This API might change or be removed in a future release.
          */
         public Type getType() {
-            return getType(part);
+            return type;
+        }
+
+        /**
+         * Returns the pattern string index associated with this Part.
+         * @return this part's pattern string index.
+         * @draft ICU 4.8
+         * @provisional This API might change or be removed in a future release.
+         */
+        public int getIndex() {
+            return index;
+        }
+
+        /**
+         * Returns the length of the pattern substring associated with this Part.
+         * This is 0 for some parts.
+         * @return this part's pattern string index.
+         * @draft ICU 4.8
+         * @provisional This API might change or be removed in a future release.
+         */
+        public int getLength() {
+            return length;
+        }
+
+        /**
+         * Returns the pattern string limit (exclusive-end) index associated with this Part.
+         * Convenience method for getIndex()+getLength().
+         * @return this part's pattern string limit index, same as getIndex()+getLength().
+         * @draft ICU 4.8
+         * @provisional This API might change or be removed in a future release.
+         */
+        public int getLimit() {
+            return index+length;
         }
 
         /**
@@ -600,7 +607,7 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
          * @provisional This API might change or be removed in a future release.
          */
         public int getValue() {
-            return getValue(part);
+            return value;
         }
 
         /**
@@ -613,7 +620,7 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
         public ArgType getArgType() {
             Type type=getType();
             if(type==Type.ARG_START || type==Type.ARG_LIMIT) {
-                return argTypes[getValue()];
+                return argTypes[value];
             } else {
                 return ArgType.NONE;
             }
@@ -627,6 +634,8 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
         public enum Type {
             /**
              * Start of a message pattern (main or nested).
+             * The length is 0 for the top-level message
+             * and for a choice argument sub-message, otherwise 1 for the '{'.
              * The value indicates the nesting level, starting with 0 for the main message.
              * <p>
              * There is always a later MSG_LIMIT part.
@@ -636,6 +645,9 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
             MSG_START,
             /**
              * End of a message pattern (main or nested).
+             * The length is 0 for the top-level message and
+             * the last sub-message of a choice argument,
+             * otherwise 1 for the '}' or (in a choice argument style) the '|'.
              * The value indicates the nesting level, starting with 0 for the main message.
              * @draft ICU 4.8
              * @provisional This API might change or be removed in a future release.
@@ -645,13 +657,14 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
              * Indicates a substring of the pattern string which is to be skipped when formatting.
              * For example, an apostrophe that begins or ends quoted text
              * would be indicated with such a part.
-             * The value provides the length of the substring to be skipped.
+             * The value is undefined and currently always 0.
              * @draft ICU 4.8
              * @provisional This API might change or be removed in a future release.
              */
-            SKIP_SYNTAX(true),
+            SKIP_SYNTAX,
             /**
              * Indicates that a syntax character needs to be inserted for auto-quoting.
+             * The length is 0.
              * The value is the character code of the insertion character. (U+0027=APOSTROPHE)
              * @draft ICU 4.8
              * @provisional This API might change or be removed in a future release.
@@ -659,14 +672,16 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
             INSERT_CHAR,
             /**
              * Indicates a syntactic (non-escaped) # symbol in a plural variant.
-             * When formatting, replace this with the (value-offset) for the plural argument value.
-             * The value provides the length of the substring to be replaced.
+             * When formatting, replace this part's substring with the
+             * (value-offset) for the plural argument value.
+             * The value is undefined and currently always 0.
              * @draft ICU 4.8
              * @provisional This API might change or be removed in a future release.
              */
-            REPLACE_NUMBER(true),
+            REPLACE_NUMBER,
             /**
              * Start of an argument.
+             * The length is 1 for the '{'.
              * The value is the ordinal value of the ArgType. Use getArgType().
              * @draft ICU 4.8
              * @provisional This API might change or be removed in a future release.
@@ -674,6 +689,7 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
             ARG_START,
             /**
              * End of an argument.
+             * The length is 1 for the '}'.
              * The value is the ordinal value of the ArgType. Use getArgType().
              * <p>
              * This part is followed by either an ARG_NUMBER or ARG_NAME,
@@ -691,33 +707,32 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
             ARG_NUMBER,
             /**
              * The argument name.
-             * The value provides the length of the argument name's substring.
-             * @draft ICU 4.8
-             * @provisional This API might change or be removed in a future release.
-             */
-            ARG_NAME(true),
-            /**
-             * The argument type.
-             * The value provides the length of the argument type's substring.
-             * @draft ICU 4.8
-             * @provisional This API might change or be removed in a future release.
-             */
-            ARG_TYPE(true),
-            /**
-             * The start of the argument style which is the substring between this part's index
-             * and one before the index of the following ARG_LIMIT (getPatternIndex(i+1)-1).
              * The value is undefined and currently always 0.
              * @draft ICU 4.8
              * @provisional This API might change or be removed in a future release.
              */
-            ARG_STYLE_START,
+            ARG_NAME,
             /**
-             * A selector substring in a "complex" argument style.
-             * The value provides the length of the selector's substring.
+             * The argument type.
+             * The value is undefined and currently always 0.
              * @draft ICU 4.8
              * @provisional This API might change or be removed in a future release.
              */
-            ARG_SELECTOR(true),
+            ARG_TYPE,
+            /**
+             * The argument style text.
+             * The value is undefined and currently always 0.
+             * @draft ICU 4.8
+             * @provisional This API might change or be removed in a future release.
+             */
+            ARG_STYLE,
+            /**
+             * A selector substring in a "complex" argument style.
+             * The value is undefined and currently always 0.
+             * @draft ICU 4.8
+             * @provisional This API might change or be removed in a future release.
+             */
+            ARG_SELECTOR,
             /**
              * An integer value, for example the offset or an explicit selector value
              * in a PluralFormat style.
@@ -737,17 +752,6 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
             ARG_DOUBLE;
 
             /**
-             * Indicates whether this part refers to a pattern substring.
-             * If so, then that substring can be retrieved via {@link MessagePattern#getSubstring(Part)}.
-             * @return true if this part refers to a pattern substring.
-             * @draft ICU 4.8
-             * @provisional This API might change or be removed in a future release.
-             */
-            public boolean refersToSubstring() {
-                return rts;
-            }
-
-            /**
              * Indicates whether this part has a numeric value.
              * If so, then that numeric value can be retrieved via {@link MessagePattern#getNumericValue(Part)}.
              * @return true if this part has a numeric value.
@@ -757,16 +761,6 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
             public boolean hasNumericValue() {
                 return this==ARG_INT || this==ARG_DOUBLE;
             }
-
-            private Type() {
-                rts=false;
-            }
-
-            private Type(boolean rts) {
-                this.rts=rts;
-            }
-
-            private final boolean rts;
         }
 
         /**
@@ -776,33 +770,54 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
          */
         @Override
         public String toString() {
-            Type type=getType();
             String valueString=(type==Type.ARG_START || type==Type.ARG_LIMIT) ?
-                getArgType().name() : Integer.toString(getValue());
-            return type.name()+"("+valueString+")@"+getIndex();
+                getArgType().name() : Integer.toString(value);
+            return type.name()+"("+valueString+")@"+index;
         }
 
-        private static Type getType(int part) {
-            return types[(part>>TYPE_SHIFT)&TYPE_MASK];
+        /**
+         * @param other another object to compare with.
+         * @return true if this object is equivalent to the other one.
+         * @draft ICU 4.8
+         * @provisional This API might change or be removed in a future release.
+         */
+        @Override
+        public boolean equals(Object other) {
+            if(this==other) {
+                return true;
+            }
+            if(other==null || getClass()!=other.getClass()) {
+                return false;
+            }
+            Part o=(Part)other;
+            return
+                type.equals(o.type) &&
+                index==o.index &&
+                length==o.length &&
+                value==o.value &&
+                limitPartIndex==o.limitPartIndex;
         }
 
-        private static int getValue(int part) {
-            return part>>VALUE_SHIFT;
+        /**
+         * {@inheritDoc}
+         * @draft ICU 4.8
+         * @provisional This API might change or be removed in a future release.
+         */
+        @Override
+        public int hashCode() {
+            return ((type.hashCode()*37+index)*37+length)*37+value;
         }
 
-        private int part;  // non-negative
+        private static final int MAX_LENGTH=0xffff;
+        private static final int MAX_VALUE=Short.MAX_VALUE;
 
-        // Bit fields in the part integer:
-        // Bits 31..24: Signed value, meaning depends on type.
-        private static final int VALUE_SHIFT=24;
-        private static final int MAX_VALUE=0x7f;
-        // Bits 23..20: Type
-        private static final int TYPE_SHIFT=20;
-        private static final int TYPE_MASK=0xf;  // after shifting
-        // Bits 19..0: Index into the message string.
-        private static final int INDEX_MASK=0xfffff;
-
-        private static final Type[] types=Type.values();
+        // Some fields are not final because they are modified during pattern parsing.
+        // After pattern parsing, the parts are effectively immutable.
+        private final Type type;
+        private final int index;
+        private final char length;
+        private short value;
+        private int limitPartIndex;
     }
 
     /**
@@ -883,7 +898,7 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
             throw new RuntimeException(e);
         }
         newMsg.msg=msg;
-        newMsg.parts=(ArrayList<Long>)parts.clone();
+        newMsg.parts=(ArrayList<Part>)parts.clone();
         newMsg.hasArgNames=hasArgNames;
         newMsg.hasArgNumbers=hasArgNumbers;
         newMsg.needsAutoQuoting=needsAutoQuoting;
@@ -916,9 +931,6 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
             throw new UnsupportedOperationException(
                 "Attempt to parse(\""+prefix(pattern)+"\") on frozen MessagePattern instance.");
         }
-        if(pattern.length()>Part.INDEX_MASK) {
-            throw new IndexOutOfBoundsException("Message string \""+prefix(pattern)+"\" too long.");
-        }
         msg=pattern;
         hasArgNames=hasArgNumbers=false;
         needsAutoQuoting=false;
@@ -932,25 +944,26 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
         // Nothing to be done currently.
     }
 
-    private int parseMessage(int index, int nestingLevel, ArgType parentType) {
+    private int parseMessage(int index, int msgStartLength, int nestingLevel, ArgType parentType) {
         if(nestingLevel>Part.MAX_VALUE) {
             throw new IndexOutOfBoundsException();
         }
         int msgStart=parts.size();
-        addPart(nestingLevel, Part.Type.MSG_START, index);
+        addPart(Part.Type.MSG_START, index, msgStartLength, nestingLevel);
+        index+=msgStartLength;
         while(index<msg.length()) {
             char c=msg.charAt(index++);
             if(c=='\'') {
                 if(index==msg.length()) {
                     // The apostrophe is the last character in the pattern. 
                     // Add a Part for auto-quoting.
-                    addPart('\'', Part.Type.INSERT_CHAR, index);  // value=char to be inserted
+                    addPart(Part.Type.INSERT_CHAR, index, 0, '\'');  // value=char to be inserted
                     needsAutoQuoting=true;
                 } else {
                     c=msg.charAt(index);
                     if(c=='\'') {
                         // double apostrophe, skip the second one
-                        addPart(1, Part.Type.SKIP_SYNTAX, index++);
+                        addPart(Part.Type.SKIP_SYNTAX, index++, 1, 0);
                     } else if(
                         aposMode==ApostropheMode.DOUBLE_REQUIRED ||
                         c=='{' || c=='}' ||
@@ -958,7 +971,7 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
                         (parentType==ArgType.PLURAL && c=='#')
                     ) {
                         // skip the quote-starting apostrophe
-                        addPart(1, Part.Type.SKIP_SYNTAX, index-1);
+                        addPart(Part.Type.SKIP_SYNTAX, index-1, 1, 0);
                         // find the end of the quoted literal text
                         for(;;) {
                             index=msg.indexOf('\'', index+1);
@@ -966,17 +979,17 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
                                 if((index+1)<msg.length() && msg.charAt(index+1)=='\'') {
                                     // double apostrophe inside quoted literal text
                                     // still encodes a single apostrophe, skip the second one
-                                    addPart(1, Part.Type.SKIP_SYNTAX, ++index);
+                                    addPart(Part.Type.SKIP_SYNTAX, ++index, 1, 0);
                                 } else {
                                     // skip the quote-ending apostrophe
-                                    addPart(1, Part.Type.SKIP_SYNTAX, index++);
+                                    addPart(Part.Type.SKIP_SYNTAX, index++, 1, 0);
                                     break;
                                 }
                             } else {
                                 // The quoted text reaches to the end of the of the message.
                                 index=msg.length();
                                 // Add a Part for auto-quoting.
-                                addPart('\'', Part.Type.INSERT_CHAR, index);  // value=char to be inserted
+                                addPart(Part.Type.INSERT_CHAR, index, 0, '\'');  // value=char to be inserted
                                 needsAutoQuoting=true;
                                 break;
                             }
@@ -984,19 +997,22 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
                     } else {
                         // Interpret the apostrophe as literal text.
                         // Add a Part for auto-quoting.
-                        addPart('\'', Part.Type.INSERT_CHAR, index);  // value=char to be inserted
+                        addPart(Part.Type.INSERT_CHAR, index, 0, '\'');  // value=char to be inserted
                         needsAutoQuoting=true;
                     }
                 }
             } else if(parentType==ArgType.PLURAL && c=='#') {
                 // The unquoted # in a plural message fragment will be replaced
                 // with the (number-offset).
-                addPart(1, Part.Type.REPLACE_NUMBER, index-1);
+                addPart(Part.Type.REPLACE_NUMBER, index-1, 1, 0);
             } else if(c=='{') {
-                index=parseArg(index, nestingLevel);
+                index=parseArg(index-1, 1, nestingLevel);
             } else if((nestingLevel>0 && c=='}') || (parentType==ArgType.CHOICE && c=='|')) {
                 // Finish the message before the terminator.
-                addLimitPart(msgStart, nestingLevel, Part.Type.MSG_LIMIT, index-1);
+                // In a choice style, report the "}" substring only for the following ARG_LIMIT,
+                // not for this MSG_LIMIT.
+                int limitLength=(parentType==ArgType.CHOICE && c=='}') ? 0 : 1;
+                addLimitPart(msgStart, Part.Type.MSG_LIMIT, index-1, limitLength, nestingLevel);
                 if(parentType==ArgType.CHOICE) {
                     // Let the choice style parser see the '}' or '|'.
                     return index-1;
@@ -1010,15 +1026,15 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
             throw new IllegalArgumentException(
                 "Unmatched '{' braces in message \""+prefix()+"\"");
         }
-        addLimitPart(msgStart, nestingLevel, Part.Type.MSG_LIMIT, index);
+        addLimitPart(msgStart, Part.Type.MSG_LIMIT, index, 0, nestingLevel);
         return index;
     }
 
-    private int parseArg(int index, int nestingLevel) {
+    private int parseArg(int index, int argStartLength, int nestingLevel) {
         int argStart=parts.size();
         ArgType argType=ArgType.NONE;
-        addPart(argType.ordinal(), Part.Type.ARG_START, index-1);
-        int nameIndex=index=skipWhiteSpace(index);
+        addPart(Part.Type.ARG_START, index, argStartLength, argType.ordinal());
+        int nameIndex=index=skipWhiteSpace(index+argStartLength);
         if(index==msg.length()) {
             throw new IllegalArgumentException(
                 "Unmatched '{' braces in message \""+prefix()+"\"");
@@ -1027,20 +1043,21 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
         index=skipIdentifier(index);
         int number=parseArgNumber(nameIndex, index);
         if(number>=0) {
-            if(number>Part.MAX_VALUE) {
+            int length=index-nameIndex;
+            if(length>Part.MAX_LENGTH || number>Part.MAX_VALUE) {
                 throw new IndexOutOfBoundsException(
                     "Argument number too large: "+prefix(nameIndex));
             }
             hasArgNumbers=true;
-            addPart(number, Part.Type.ARG_NUMBER, nameIndex);
+            addPart(Part.Type.ARG_NUMBER, nameIndex, length, number);
         } else if(number==ARG_NAME_NOT_NUMBER) {
             int length=index-nameIndex;
-            if(length>Part.MAX_VALUE) {
+            if(length>Part.MAX_LENGTH) {
                 throw new IndexOutOfBoundsException(
                     "Argument name too long: "+prefix(nameIndex));
             }
             hasArgNames=true;
-            addPart(length, Part.Type.ARG_NAME, nameIndex);
+            addPart(Part.Type.ARG_NAME, nameIndex, length, 0);
         } else {  // number<-1 (ARG_NAME_NOT_VALID)
             throw new IllegalArgumentException("Bad argument syntax: "+prefix(nameIndex));
         }
@@ -1049,14 +1066,14 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
             throw new IllegalArgumentException(
                 "Unmatched '{' braces in message \""+prefix()+"\"");
         }
-        char c=msg.charAt(index++);
+        char c=msg.charAt(index);
         if(c=='}') {
             // all done
         } else if(c!=',') {
             throw new IllegalArgumentException("Bad argument syntax: "+prefix(nameIndex));
         } else /* ',' */ {
             // parse argument type: case-sensitive a-zA-Z
-            int typeIndex=index=skipWhiteSpace(index);
+            int typeIndex=index=skipWhiteSpace(index+1);
             while(index<msg.length() && isArgTypeChar(msg.charAt(index))) {
                 ++index;
             }
@@ -1069,7 +1086,7 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
             if(length==0 || ((c=msg.charAt(index))!=',' && c!='}')) {
                 throw new IllegalArgumentException("Bad argument syntax: "+prefix(nameIndex));
             }
-            if(length>Part.MAX_VALUE) {
+            if(length>Part.MAX_LENGTH) {
                 throw new IndexOutOfBoundsException(
                     "Argument type name too long: "+prefix(nameIndex));
             }
@@ -1085,19 +1102,18 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
                 }
             }
             // change the ARG_START type from NONE to argType
-            long argStartPart=parts.get(argStart);
-            parts.set(argStart, argStartPart+(argType.ordinal()<<Part.VALUE_SHIFT));
+            parts.get(argStart).value=(short)argType.ordinal();
             if(argType==ArgType.SIMPLE) {
-                addPart(length, Part.Type.ARG_TYPE, typeIndex);
+                addPart(Part.Type.ARG_TYPE, typeIndex, length, 0);
             }
             // look for an argument style (pattern)
-            ++index;
             if(c=='}') {
                 if(argType!=ArgType.SIMPLE) {
                     throw new IllegalArgumentException(
                         "No style field for complex argument: "+prefix(nameIndex));
                 }
             } else /* ',' */ {
+                ++index;
                 if(argType==ArgType.SIMPLE) {
                     index=parseSimpleStyle(index);
                 } else if(argType==ArgType.CHOICE) {
@@ -1107,13 +1123,13 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
                 }
             }
         }
-        addLimitPart(argStart, argType.ordinal(), Part.Type.ARG_LIMIT, index);
-        return index;
+        // Argument parsing stopped on the '}'.
+        addLimitPart(argStart, Part.Type.ARG_LIMIT, index, 1, argType.ordinal());
+        return index+1;
     }
 
     private int parseSimpleStyle(int index) {
         int start=index;
-        addPart(0, Part.Type.ARG_STYLE_START, index);
         int nestedBraces=0;
         while(index<msg.length()) {
             char c=msg.charAt(index++);
@@ -1134,6 +1150,12 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
                 if(nestedBraces>0) {
                     --nestedBraces;
                 } else {
+                    int length=--index-start;
+                    if(length>Part.MAX_LENGTH) {
+                        throw new IndexOutOfBoundsException(
+                            "Argument style text too long: "+prefix(start));
+                    }
+                    addPart(Part.Type.ARG_STYLE, start, length, 0);
                     return index;
                 }
             }  // c is part of literal text
@@ -1158,33 +1180,37 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
             if(length==0) {
                 throw new IllegalArgumentException("Bad choice pattern syntax: "+prefix(start));
             }
+            if(length>Part.MAX_LENGTH) {
+                throw new IndexOutOfBoundsException(
+                    "Choice number too long: "+prefix(numberIndex));
+            }
             parseDouble(numberIndex, index, true);  // adds ARG_INT or ARG_DOUBLE
             // Parse the separator.
             index=skipWhiteSpace(index);
             if(index==msg.length()) {
                 throw new IllegalArgumentException("Bad choice pattern syntax: "+prefix(start));
             }
-            char c=msg.charAt(index++);
+            char c=msg.charAt(index);
             if(!(c=='#' || c=='<' || c=='\u2264')) {  // U+2264 is <=
                 throw new IllegalArgumentException(
                     "Expected choice separator (#<\u2264) instead of '"+c+
                     "' in choice pattern "+prefix(start));
             }
-            addPart(1, Part.Type.ARG_SELECTOR, index-1);
+            addPart(Part.Type.ARG_SELECTOR, index, 1, 0);
             // Parse the message fragment.
-            index=parseMessage(index, nestingLevel+1, ArgType.CHOICE);
+            index=parseMessage(++index, 0, nestingLevel+1, ArgType.CHOICE);
             // parseMessage(..., CHOICE) returns the index of the terminator, or msg.length().
             if(index==msg.length()) {
                 return index;
             }
-            if(msg.charAt(index++)=='}') {
+            if(msg.charAt(index)=='}') {
                 if(!inMessageFormatPattern(nestingLevel)) {
                     throw new IllegalArgumentException(
                         "Bad choice pattern syntax: "+prefix(start));
                 }
                 return index;
             }  // else the terminator is '|'
-            index=skipWhiteSpace(index);
+            index=skipWhiteSpace(index+1);
         }
     }
 
@@ -1211,7 +1237,7 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
                         (argType==ArgType.PLURAL ? "plural" : "select")+
                         " pattern in \""+prefix()+"\"");
                 }
-                return eos ? index: index+1;
+                return index;
             }
             int selectorIndex=index;
             if(argType==ArgType.PLURAL && msg.charAt(selectorIndex)=='=') {
@@ -1224,11 +1250,11 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
                         (argType==ArgType.PLURAL ? "plural" : "select")+
                         " pattern syntax: "+prefix(start));
                 }
-                if(length>Part.MAX_VALUE) {
+                if(length>Part.MAX_LENGTH) {
                     throw new IndexOutOfBoundsException(
-                        "Argument selector too long: "+msg.substring(selectorIndex, index));
+                        "Argument selector too long: "+prefix(selectorIndex));
                 }
-                addPart(length, Part.Type.ARG_SELECTOR, selectorIndex);
+                addPart(Part.Type.ARG_SELECTOR, selectorIndex, length, 0);
                 parseDouble(selectorIndex+1, index, false);  // adds ARG_INT or ARG_DOUBLE
             } else {
                 index=skipIdentifier(index);
@@ -1239,6 +1265,7 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
                         (argType==ArgType.PLURAL ? "plural" : "select")+
                         " pattern syntax: "+prefix(start));
                 }
+                // Note: The ':' in "offset:" is just beyond the skipIdentifier() range.
                 if( argType==ArgType.PLURAL && length==6 && index<msg.length() &&
                     msg.regionMatches(selectorIndex, "offset:", 0, 7)
                 ) {
@@ -1255,16 +1282,20 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
                         throw new IllegalArgumentException(
                             "Missing value for plural 'offset:' at "+prefix(start));
                     }
+                    if((index-valueIndex)>Part.MAX_LENGTH) {
+                        throw new IndexOutOfBoundsException(
+                            "Plural offset value too long: "+prefix(valueIndex));
+                    }
                     parseDouble(valueIndex, index, false);  // adds ARG_INT or ARG_DOUBLE
                     isEmpty=false;
                     continue;  // no message fragment after the offset
                 } else {
                     // normal selector word
-                    if(length>Part.MAX_VALUE) {
+                    if(length>Part.MAX_LENGTH) {
                         throw new IndexOutOfBoundsException(
-                            "Argument selector too long: "+msg.substring(selectorIndex, index));
+                            "Argument selector too long: "+prefix(selectorIndex));
                     }
-                    addPart(length, Part.Type.ARG_SELECTOR, selectorIndex);
+                    addPart(Part.Type.ARG_SELECTOR, selectorIndex, length, 0);
                     if(msg.regionMatches(selectorIndex, "other", 0, length)) {
                         hasOther=true;
                     }
@@ -1273,13 +1304,13 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
 
             // parse the message fragment following the selector
             index=skipWhiteSpace(index);
-            if(index==msg.length() || msg.charAt(index++)!='{') {
+            if(index==msg.length() || msg.charAt(index)!='{') {
                 throw new IllegalArgumentException(
                     "No message fragment after "+
                     (argType==ArgType.PLURAL ? "plural" : "select")+
                     " selector: "+prefix(selectorIndex));
             }
-            index=parseMessage(index, nestingLevel+1, argType);
+            index=parseMessage(index, 1, nestingLevel+1, argType);
             isEmpty=false;
         }
     }
@@ -1373,7 +1404,7 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
                 if(allowInfinity && index==limit) {
                     addArgDoublePart(
                         isNegative!=0 ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY,
-                        start);
+                        start, limit-start);
                     return;
                 } else {
                     break;
@@ -1386,14 +1417,14 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
                     break;  // not a small-enough integer
                 }
                 if(index==limit) {
-                    addPart(isNegative!=0 ? -value : value, Part.Type.ARG_INT, start);
+                    addPart(Part.Type.ARG_INT, start, limit-start, isNegative!=0 ? -value : value);
                     return;
                 }
                 c=msg.charAt(index++);
             }
             // Let Double.parseDouble() throw a NumberFormatException.
             double numericValue=Double.parseDouble(msg.substring(start, limit));
-            addArgDoublePart(numericValue, start);
+            addArgDoublePart(numericValue, start, limit-start);
             return;
         }
         throw new NumberFormatException(
@@ -1466,7 +1497,7 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
      *         as opposed to inside a top-level choice/plural/select pattern.
      */
     private boolean inMessageFormatPattern(int nestingLevel) {
-        return nestingLevel>0 || Part.getType(parts.get(0).intValue())==Part.Type.MSG_START;
+        return nestingLevel>0 || parts.get(0).type==Part.Type.MSG_START;
     }
 
     /**
@@ -1477,28 +1508,19 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
         return
             nestingLevel==1 &&
             parentType==ArgType.CHOICE &&
-            Part.getType(parts.get(0).intValue())!=Part.Type.MSG_START;
+            parts.get(0).type!=Part.Type.MSG_START;
     }
 
-    private int makePartInt(int value, Part.Type type, int index) {
-        return (value<<Part.VALUE_SHIFT)|(type.ordinal()<<Part.TYPE_SHIFT)|index;
+    private void addPart(Part.Type type, int index, int length, int value) {
+        parts.add(new Part(type, index, length, value));
     }
 
-    private void addPart(int value, Part.Type type, int index) {
-        parts.add(makePartInt(value, type, index)&0xffffffffL);
+    private void addLimitPart(int start, Part.Type type, int index, int length, int value) {
+        parts.get(start).limitPartIndex=parts.size();
+        addPart(type, index, length, value);
     }
 
-    private void addLimitPart(int start, int value, Part.Type type, int index) {
-        setPartLimit(start, parts.size());
-        addPart(value, type, index);
-    }
-
-    private void setPartLimit(int start, int limit) {
-        long partLong=parts.get(start);
-        parts.set(start, (partLong&0xffffffffL)|((long)limit<<32));
-    }
-
-    private void addArgDoublePart(double numericValue, int start) {
+    private void addArgDoublePart(double numericValue, int start, int length) {
         int numericIndex;
         if(numericValues==null) {
             numericValues=new ArrayList<Double>();
@@ -1510,7 +1532,7 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
             }
         }
         numericValues.add(numericValue);
-        addPart(numericIndex, Part.Type.ARG_DOUBLE, start);
+        addPart(Part.Type.ARG_DOUBLE, start, length, numericIndex);
     }
 
     private static final int MAX_PREFIX_LENGTH=24;
@@ -1548,16 +1570,16 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
         return prefix(msg, 0);
     }
 
-    private ApostropheMode aposMode;
+    private final ApostropheMode aposMode;
     private String msg;
-    private ArrayList<Long> parts=new ArrayList<Long>();
+    private ArrayList<Part> parts=new ArrayList<Part>();
     private ArrayList<Double> numericValues;
     private boolean hasArgNames;
     private boolean hasArgNumbers;
     private boolean needsAutoQuoting;
     private boolean frozen;
 
-    private ApostropheMode defaultAposMode=
+    private static final ApostropheMode defaultAposMode=
         ApostropheMode.valueOf(
             ICUConfig.get("com.ibm.icu.text.MessagePattern.ApostropheMode", "DOUBLE_OPTIONAL"));
 

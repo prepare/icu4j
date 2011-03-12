@@ -216,19 +216,16 @@ public class SelectFormat extends Format{
      * Finds the SelectFormat sub-message for the given keyword, or the "other" sub-message.
      * @param pattern A MessagePattern.
      * @param partIndex the index of the first SelectFormat argument style part.
-     * @param part A MessagePattern.Part to be reused. (Just to avoid allocation.)
      * @param keyword a keyword to be matched to one of the SelectFormat argument's keywords.
      * @return the sub-message start part index.
      */
-    /*package*/ static int findSubMessage(
-            MessagePattern pattern,
-            int partIndex, MessagePattern.Part part,
-            String keyword) {
+    /*package*/ static int findSubMessage(MessagePattern pattern, int partIndex, String keyword) {
         int count=pattern.countParts();
         int msgStart=0;
         // Iterate over (ARG_SELECTOR, message) pairs until ARG_LIMIT or end of select-only pattern.
         do {
-            MessagePattern.Part.Type type=pattern.getPart(partIndex++, part).getType();
+            MessagePattern.Part part=pattern.getPart(partIndex++);
+            MessagePattern.Part.Type type=part.getType();
             if(type==MessagePattern.Part.Type.ARG_LIMIT) {
                 break;
             }
@@ -264,10 +261,9 @@ public class SelectFormat extends Format{
         }
 
         // Get the appropriate sub-message.
-        MessagePattern.Part part = new MessagePattern.Part();
-        int msgStart=findSubMessage(msgPattern, 0, part, keyword);
+        int msgStart=findSubMessage(msgPattern, 0, keyword);
         int msgLimit=msgPattern.getLimitPartIndex(msgStart);
-        return msgPattern.getPatternString().substring(msgPattern.getPatternIndex(msgStart),
+        return msgPattern.getPatternString().substring(msgPattern.getPart(msgStart).getLimit(),
                                                        msgPattern.getPatternIndex(msgLimit));
     }
 
