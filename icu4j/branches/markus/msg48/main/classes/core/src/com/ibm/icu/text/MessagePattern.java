@@ -11,6 +11,8 @@ package com.ibm.icu.text;
 
 import java.util.ArrayList;
 
+// Minimize ICU dependencies, only use a very small part of the ICU core.
+// In particular, do not depend on *Format classes.
 import com.ibm.icu.impl.ICUConfig;
 import com.ibm.icu.impl.PatternProps;
 import com.ibm.icu.util.Freezable;
@@ -18,6 +20,8 @@ import com.ibm.icu.util.Freezable;
 /**
  * Parses and represents ICU MessageFormat patterns.
  * Also handles patterns for ChoiceFormat, PluralFormat and SelectFormat.
+ * Used in the implementations of those classes as well as in tools
+ * for message validation, translation and format conversion.
  * <p>
  * The parser handles all syntax relevant for identifying message arguments.
  * This includes "complex" arguments whose style strings contain
@@ -25,14 +29,16 @@ import com.ibm.icu.util.Freezable;
  * For "simple" arguments (with no nested MessageFormat pattern substrings),
  * the argument style is not parsed any further.
  * <p>
- * The parser handles named and numbered message arguments and does not check for consistent style.
+ * The parser handles named and numbered message arguments and allows both in one message.
  * <p>
  * Once a pattern has been parsed successfully, iterate through the parsed data
  * with countParts(), getPart() and related methods.
  * <p>
  * The data logically represents a parse tree, but is stored and accessed
- * as a list of "parts" for fast and simple parsing. Arguments and nested messages
- * are best handled via recursion.
+ * as a list of "parts" for fast and simple parsing and to minimize object allocations.
+ * Arguments and nested messages are best handled via recursion.
+ * For every _START "part", {@link #getLimitPartIndex(int)} efficiently returns
+ * the index of the corresponding _LIMIT "part".
  * <p>
  * List of "parts":
  * <pre>
@@ -51,6 +57,8 @@ import com.ibm.icu.util.Freezable;
  * selectStyle = (ARG_SELECTOR message)+
  * </pre>
  * <ul>
+ *   <li>Literal output text is not represented directly by "parts" but accessed
+ *       between parts of a message, from one part's getLimit() to the next part's getIndex().
  *   <li><code>ARG_START.CHOICE</code> stands for an ARG_START Part with ArgType CHOICE.
  *   <li>In the choiceStyle, the ARG_SELECTOR has the '#' or the less-than sign (U+2264).
  *   <li>In the pluralStyle, the first, optional numeric Part has the "offset:" value.

@@ -127,25 +127,24 @@ public final class MiniMessageFormatter implements Freezable<MiniMessageFormatte
                 if(argType==ArgType.NONE) {
                     dest.append(argValue);
                 } else if(argType==ArgType.SELECT) {
-                    // The real implementation is in SelectFormat.findSubMessage().
-                    // This is earlier demo code.
-                    int otherMsgStart=0;
+                    // Similar to SelectFormat.findSubMessage().
+                    int subMsgStart=0;
                     for(;; ++i) {  // (ARG_SELECTOR, message) pairs until ARG_LIMIT
-                        part=msg.getPart(i);
+                        part=msg.getPart(i++);
                         if(part.getType()==Part.Type.ARG_LIMIT) {
-                            assert otherMsgStart!=0;  // The parser made sure this is the case.
-                            format(otherMsgStart, dest, args, argsMap);
+                            assert subMsgStart!=0;  // The parser made sure this is the case.
                             break;
                         // else: part is an ARG_SELECTOR followed by a message
                         } else if(msg.partSubstringMatches(part, argValue)) {
                             // keyword matches
-                            format(i+1, dest, args, argsMap);
+                            subMsgStart=i;
                             break;
-                        } else if(otherMsgStart==0 && msg.partSubstringMatches(part, "other")) {
-                            otherMsgStart=i+1;
+                        } else if(subMsgStart==0 && msg.partSubstringMatches(part, "other")) {
+                            subMsgStart=i;
                         }
-                        i=msg.getLimitPartIndex(i+1);
+                        i=msg.getLimitPartIndex(i);
                     }
+                    format(subMsgStart, dest, args, argsMap);
                 } else {
                     throw new UnsupportedOperationException("Unsupported argument type "+argType);
                 }
