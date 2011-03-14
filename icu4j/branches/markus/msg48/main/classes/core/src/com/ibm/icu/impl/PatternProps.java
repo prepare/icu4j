@@ -171,7 +171,7 @@ public final class PatternProps {
      * Bit 0 is set if either Pattern property is true,
      * bit 1 if Pattern_Syntax is true,
      * bit 2 if Pattern_White_Space is true.
-     * That is, Pattern_Syntax as 3 is encoded and Pattern_White_Space as 5.
+     * That is, Pattern_Syntax is encoded as 3 and Pattern_White_Space as 5.
      */
     private static final byte latin1[]=new byte[] {  // 256
         // WS: 9..D
