@@ -282,6 +282,7 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
             aposMode.equals(o.aposMode) &&
             (msg==null ? o.msg==null : msg.equals(o.msg)) &&
             parts.equals(o.parts);
+        // No need to compare numericValues if msg and parts are the same.
     }
 
     /**
@@ -852,7 +853,8 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
          */
         SIMPLE,
         /**
-         * The argument is a ChoiceFormat with one or more (ARG_SELECTOR, message) pairs.
+         * The argument is a ChoiceFormat with one or more
+         * ((ARG_INT | ARG_DOUBLE), ARG_SELECTOR, message) tuples.
          * @draft ICU 4.8
          * @provisional This API might change or be removed in a future release.
          */
@@ -905,11 +907,9 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
         } catch (CloneNotSupportedException e) {
             throw new RuntimeException(e);
         }
-        newMsg.msg=msg;
         newMsg.parts=(ArrayList<Part>)parts.clone();
-        newMsg.hasArgNames=hasArgNames;
-        newMsg.hasArgNumbers=hasArgNumbers;
-        newMsg.needsAutoQuoting=needsAutoQuoting;
+        newMsg.numericValues=(ArrayList<Double>)numericValues.clone();
+        newMsg.frozen=false;
         return newMsg;
     }
 
