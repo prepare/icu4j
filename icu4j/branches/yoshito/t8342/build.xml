@@ -84,6 +84,7 @@
         <ant dir="${icu4j.localespi.dir}" target="clean" inheritAll="false"/>
         <ant dir="${icu4j.regiondata.dir}" target="clean" inheritAll="false"/>
         <ant dir="${icu4j.translit.dir}" target="clean" inheritAll="false"/>
+        <ant dir="${icu4j.tznamedata.dir}" target="clean" inheritAll="false"/>
         <ant dir="${icu4j.test-framework.dir}" target="clean" inheritAll="false"/>
         <ant dir="${icu4j.core-tests.dir}" target="clean" inheritAll="false"/>
         <ant dir="${icu4j.collate-tests.dir}" target="clean" inheritAll="false"/>
@@ -110,7 +111,7 @@
 
     <!-- meta build targets -->
     <target name="all" depends="info, main, tests, build-tools, tools, demos, jar, docs" description="Build all primary targets"/>
-    <target name="main" depends="info, core, collate, charset, currdata, langdata, regiondata, translit, localespi" description="Build ICU4J runtime library classes"/>
+    <target name="main" depends="info, core, collate, charset, currdata, langdata, regiondata, translit, tznamedata, localespi" description="Build ICU4J runtime library classes"/>
     <target name="tests" depends="info, core-tests, charset-tests, collate-tests, packaging-tests, translit-tests, localespi-tests" description="Build ICU4J test classes"/>
     <target name="release" depends="info, releaseBinaries, releaseSrcJars, releaseDocs, releaseSourceArchiveTgz" description="Build all ICU4J release files for distribution"/>
 
@@ -162,6 +163,7 @@
                 <pathelement path="${icu4j.langdata.jar}"/>
                 <pathelement path="${icu4j.regiondata.jar}"/>
                 <pathelement path="${icu4j.translit.jar}"/>
+                <pathelement path="${icu4j.tznamedata.jar}"/>
                 <pathelement path="${icu4j.test-framework.jar}"/>
                 <pathelement path="${icu4j.core-tests.jar}"/>
                 <pathelement path="${icu4j.collate-tests.jar}"/> 
@@ -186,6 +188,7 @@
                 <pathelement path="${icu4j.langdata.jar}"/>
                 <pathelement path="${icu4j.regiondata.jar}"/>
                 <pathelement path="${icu4j.translit.jar}"/>
+                <pathelement path="${icu4j.tznamedata.jar}"/>
                 <pathelement path="${icu4j.test-framework.jar}"/>
                 <pathelement path="${icu4j.core-tests.jar}"/>
                 <pathelement path="${icu4j.collate-tests.jar}"/> 
@@ -230,7 +233,7 @@
         </java>
     </target>
 
-    <target name="coreCheck" depends="info, core, currdata, langdata, regiondata, core-tests" description="Run only the core tests">
+    <target name="coreCheck" depends="info, core, currdata, langdata, regiondata, tznamedata, core-tests" description="Run only the core tests">
         <java classname="com.ibm.icu.dev.test.TestAllCore" fork="yes" failonerror="true">
             <arg line="-n"/>
             <classpath>
@@ -238,13 +241,14 @@
                 <pathelement path="${icu4j.currdata.jar}"/>
                 <pathelement path="${icu4j.langdata.jar}"/>
                 <pathelement path="${icu4j.regiondata.jar}"/>
+                <pathelement path="${icu4j.tznamedata.jar}"/>
                 <pathelement path="${icu4j.test-framework.jar}"/>
                 <pathelement path="${icu4j.core-tests.jar}"/>
             </classpath>
         </java>
     </target>
 
-    <target name="collateCheck" depends="info, core, collate, currdata, langdata, regiondata, core-tests, collate-tests" description="Run only the collation tests">
+    <target name="collateCheck" depends="info, core, collate, currdata, langdata, regiondata, tznamedata, core-tests, collate-tests" description="Run only the collation tests">
         <java classname="com.ibm.icu.dev.test.TestAllCollate" fork="yes" failonerror="true">
             <arg line="-n"/>
             <classpath>
@@ -253,10 +257,11 @@
                 <pathelement path="${icu4j.test-framework.jar}"/>
                 <pathelement path="${icu4j.collate-tests.jar}"/>
 
-                <!-- for now, collateCheck needs currdata, langdata and regiondata, because of GlobalizationPreferencesTest" -->
+                <!-- for now, collateCheck needs currdata, langdata regiondata and tznamedata, because of GlobalizationPreferencesTest" -->
                 <pathelement path="${icu4j.currdata.jar}"/>
                 <pathelement path="${icu4j.langdata.jar}"/>
                 <pathelement path="${icu4j.regiondata.jar}"/>
+                <pathelement path="${icu4j.tznamedata.jar}"/>
                 <pathelement path="${icu4j.core-tests.jar}"/>
             </classpath>
         </java>
@@ -280,7 +285,7 @@
 
     <target name="_runLocalespiCheck" depends="localespi, localespi-tests">
         <java classname="com.ibm.icu.dev.test.localespi.TestAll" fork="yes" failonerror="true">
-            <jvmarg line="-Djava.ext.dirs=${icu4j.core.dir}/${jar.dir}${path.separator}${icu4j.localespi.dir}/${jar.dir}${path.separator}${icu4j.collate.dir}/${jar.dir}${path.separator}${icu4j.currdata.dir}/${jar.dir}${path.separator}${icu4j.langdata.dir}/${jar.dir}${path.separator}${icu4j.regiondata.dir}/${jar.dir}${path.separator}${java.ext.dirs}"/>
+            <jvmarg line="-Djava.ext.dirs=${icu4j.core.dir}/${jar.dir}${path.separator}${icu4j.localespi.dir}/${jar.dir}${path.separator}${icu4j.collate.dir}/${jar.dir}${path.separator}${icu4j.currdata.dir}/${jar.dir}${path.separator}${icu4j.langdata.dir}/${jar.dir}${path.separator}${icu4j.regiondata.dir}/${jar.dir}${path.separator}${icu4j.tznamedata.dir}/${jar.dir}${path.separator}${java.ext.dirs}"/>
             <arg value="-n"/>
             <classpath>
                 <pathelement path="${icu4j.localespi-tests.jar}"/>
@@ -314,7 +319,7 @@
         <copy file="${icu4j.localespi.jar}" tofile="${icu4j-localespi.jar.file}" failonerror="false"/>
     </target>
 
-    <target name="icu4jJar" depends="info, core, collate, currdata, langdata, regiondata, translit" description="Build ICU4J all-in-one core jar">
+    <target name="icu4jJar" depends="info, core, collate, currdata, langdata, regiondata, translit, tznamedata" description="Build ICU4J all-in-one core jar">
         <mkdir dir="${out.dir}"/>
 
         <!-- manifest -->
@@ -337,6 +342,7 @@
             <fileset dir="${icu4j.langdata.dir}/${bin.dir}" includes="**/*"/>
             <fileset dir="${icu4j.regiondata.dir}/${bin.dir}" includes="**/*"/>
             <fileset dir="${icu4j.translit.dir}/${bin.dir}" includes="**/*"/>
+            <!-- <fileset dir="${icu4j.tznamedata.dir}/${bin.dir}" includes="**/*"/> -->
             <fileset dir="${shared.dir}/licenses">
                 <include name="license.html"/>
                 <include name="unicode-license.txt"/>
@@ -379,6 +385,7 @@
             <fileset dir="${icu4j.langdata.dir}/${src.dir}" includes="**/*.java"/>
             <fileset dir="${icu4j.regiondata.dir}/${src.dir}" includes="**/*.java"/>
             <fileset dir="${icu4j.translit.dir}/${src.dir}" includes="**/*.java"/>
+            <fileset dir="${icu4j.tznamedata.dir}/${src.dir}" includes="**/*.java"/>
             <fileset dir="${shared.dir}/licenses">
                 <include name="license.html"/>
                 <include name="unicode-license.txt"/>
@@ -521,6 +528,10 @@
         <ant dir="${icu4j.translit.dir}" inheritAll="false"/>
     </target>
 
+    <target name="tznamedata" depends="core" description="Build time zone name data classes">
+        <ant dir="${icu4j.tznamedata.dir}" inheritAll="false"/>
+    </target>
+
     <target name="test-framework" depends="core" description="Build test framework classes">
         <ant dir="${icu4j.test-framework.dir}" inheritAll="false"/>
     </target>
@@ -633,6 +644,9 @@
         <ant dir="${icu4j.translit.dir}" inheritAll="false" inheritRefs="true">
             <property name="build.compiler" value="${build.compiler}"/>
         </ant>
+        <ant dir="${icu4j.tznamedata.dir}" inheritAll="false" inheritRefs="true">
+            <property name="build.compiler" value="${build.compiler}"/>
+        </ant>
         <ant dir="${icu4j.test-framework.dir}" inheritAll="false" inheritRefs="true">
             <property name="build.compiler" value="${build.compiler}"/>
         </ant>
@@ -660,6 +674,7 @@
                 <pathelement path="${icu4j.langdata.jar}"/>
                 <pathelement path="${icu4j.regiondata.jar}"/>
                 <pathelement path="${icu4j.translit.jar}"/>
+                <pathelement path="${icu4j.tznamedata.jar}"/>
                 <pathelement path="${icu4j.test-framework.jar}"/>
                 <pathelement path="${icu4j.core-tests.jar}"/>
                 <pathelement path="${icu4j.collate-tests.jar}"/>
