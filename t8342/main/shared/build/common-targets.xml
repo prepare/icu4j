@@ -180,6 +180,15 @@
         <ant dir="${icu4j.translit.dir}" inheritAll="false"/>
     </target>
 
+    <!-- tznamedata -->
+    <path id="javac.classpathref.tznamedata">
+        <pathelement location="${icu4j.core.jar}"/>
+    </path>
+
+    <target name="_all.tznamedata" depends="_all.core">
+        <ant dir="${icu4j.tznamedata.dir}" inheritAll="false"/>
+    </target>
+
     <!-- test-framework -->
     <path id="javac.classpathref.test-framework">
         <pathelement location="${icu4j.core.jar}"/>
