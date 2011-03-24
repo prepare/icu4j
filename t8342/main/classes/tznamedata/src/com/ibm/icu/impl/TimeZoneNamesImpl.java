@@ -53,10 +53,10 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
     }
 
     /* (non-Javadoc)
-     * @see com.ibm.icu.text.TimeZoneNames#getDisplayName(java.lang.String, com.ibm.icu.text.TimeZoneNames.NameType, long)
+     * @see com.ibm.icu.text.TimeZoneNames#getTimeZoneDisplayName(java.lang.String, com.ibm.icu.text.TimeZoneNames.NameType, long)
      */
     @Override
-    protected String getDisplayName(String tzID, NameType type) {
+    protected String getTimeZoneDisplayName(String tzID, NameType type) {
         // TODO Auto-generated method stub
         return null;
     }
