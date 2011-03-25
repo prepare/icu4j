@@ -1756,4 +1756,67 @@ public class TestMessageFormat extends com.ibm.icu.dev.test.TestFmwk {
                     getPatternAndSkipSyntax(adr_mp.parse(adr_pattern)));
         }
     }
+
+    // Compare behavior of JDK and ICU's DOUBLE_REQUIRED compatibility mode.
+    public void TestCompatibleApostrophe() {
+        // Message with choice argument which does not contain another argument.
+        // The JDK performs only one apostrophe-quoting pass on this pattern.
+        String pattern = "ab{0,choice,0#1'2''3'''4''''.}yz";
+        java.text.MessageFormat jdkMsg =
+            new java.text.MessageFormat(pattern, Locale.ENGLISH);
+
+        MessageFormat compMsg = new MessageFormat("", Locale.ENGLISH);
+        compMsg.applyPattern(MessagePattern.ApostropheMode.DOUBLE_REQUIRED, pattern);
+        assertEquals("wrong value",
+                MessagePattern.ApostropheMode.DOUBLE_REQUIRED,
+                compMsg.getApostropheMode());
+
+        MessageFormat icuMsg = new MessageFormat("", Locale.ENGLISH);
+        icuMsg.applyPattern(MessagePattern.ApostropheMode.DOUBLE_OPTIONAL, pattern);
+        assertEquals("wrong value",
+                MessagePattern.ApostropheMode.DOUBLE_OPTIONAL,
+                icuMsg.getApostropheMode());
+
+        Object[] zero0 = new Object[] { 0 };
+        assertEquals("unexpected JDK MessageFormat apostrophe behavior",
+                "ab12'3'4''.yz",
+                jdkMsg.format(zero0));
+        assertEquals("incompatible ICU MessageFormat compatibility-apostrophe behavior",
+                "ab12'3'4''.yz",
+                compMsg.format(zero0));
+        assertEquals("unexpected ICU MessageFormat double-apostrophe-optional behavior",
+                "ab1'2'3''4''.yz",
+                icuMsg.format(zero0));
+
+        // Message with choice argument which contains a nested simple argument.
+        // The JDK performs two apostrophe-quoting passes.
+        pattern = "ab{0,choice,0#1'2''3'''4''''.{0,number,'#x'}}yz";
+        jdkMsg.applyPattern(pattern);
+        compMsg.applyPattern(pattern);
+        icuMsg.applyPattern(pattern);
+        assertEquals("unexpected JDK MessageFormat apostrophe behavior",
+                "ab1234'.0xyz",
+                jdkMsg.format(zero0));
+        assertEquals("incompatible ICU MessageFormat compatibility-apostrophe behavior",
+                "ab1234'.0xyz",
+                compMsg.format(zero0));
+        assertEquals("unexpected ICU MessageFormat double-apostrophe-optional behavior",
+                "ab1'2'3''4''.#x0yz",
+                icuMsg.format(zero0));
+
+        // Message with choice argument which contains a nested choice argument.
+        // The JDK fails to parse this pattern.
+        // jdkMsg.applyPattern("cd{0,choice,0#ef{0,choice,0#1'2''3'''4''''.}uv}wx");
+        // For lack of comparison, we do not test ICU with this pattern.
+
+        // The JDK ChoiceFormat itself always performs one apostrophe-quoting pass.
+        ChoiceFormat choice = new ChoiceFormat("0#1'2''3'''4''''.");
+        assertEquals("unexpected JDK ChoiceFormat apostrophe behavior",
+                "12'3'4''.",
+                choice.format(0));
+        choice.applyPattern("0#1'2''3'''4''''.{0,number,'#x'}");
+        assertEquals("unexpected JDK ChoiceFormat apostrophe behavior",
+                "12'3'4''.{0,number,#x}",
+                choice.format(0));
+    }
 }
