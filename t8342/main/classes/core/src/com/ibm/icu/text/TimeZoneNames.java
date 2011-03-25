@@ -9,11 +9,17 @@ package com.ibm.icu.text;
 import java.util.regex.Pattern;
 
 import com.ibm.icu.impl.ICUConfig;
-import com.ibm.icu.impl.ZoneMeta;
+import com.ibm.icu.impl.SoftCache;
+import com.ibm.icu.util.TimeZone;
 import com.ibm.icu.util.ULocale;
 
 //TODO provide formal documentation of the class
 /**
+ * <p>
+ * The methods in this class assume that time zone IDs are already canonicalized. For example, you may not get
+ * proper result returned by a method with time zone ID "America/Indiana/Indianapolis", because it's not a
+ * canonical time zone ID (the canonical time zone ID for the time zone is "America/Indianapolis".
+ * See {@link TimeZone#getCanonicalID(String)} about ICU canonical time zone IDs.
  * 
  * <p>
  * In CLDR, most of time zone display names except location names are provided through meta zones. But a time zone may
@@ -44,44 +50,60 @@ public abstract class TimeZoneNames {
          * 
          * @draft ICU 4.8
          */
-        LONG_GENERIC,
+        LONG_GENERIC (0),
         /**
          * Long display name for standard time, such as "Eastern Standard Time".
          * 
          * @draft ICU 4.8
          */
-        LONG_STANDARD,
+        LONG_STANDARD (1),
         /**
          * Long display name for daylight saving time, such as "Eastern Daylight Time".
          * 
          * @draft ICU 4.8
          */
-        LONG_DAYLIGHT,
+        LONG_DAYLIGHT (2),
         /**
          * Short display name, such as "ET".
          * 
          * @draft ICU 4.8
          */
-        SHORT_GENERIC,
+        SHORT_GENERIC (3),
         /**
          * Short display name for standard time, such as "EST".
          * 
          * @draft ICU 4.8
          */
-        SHORT_STANDARD,
+        SHORT_STANDARD (4),
         /**
          * Short display name for daylight saving time, such as "EDT".
          * 
          * @draft ICU 4.8
          */
-        SHORT_DAYLIGHT,
+        SHORT_DAYLIGHT (5);
+
+        private int _idx;
+
+        NameType(int idx) {
+            _idx = idx;
+        }
+
+        public int getIndex() {
+            return _idx;
+        }
+
+        public static int getMaxIndex() {
+            return SHORT_DAYLIGHT._idx;
+        }
     }
 
+    private static Cache TZNAMES_CACHE = new Cache();
+
+    private static final Factory TZNAMES_FACTORY;
     private static final String FACTORY_NAME_PROP = "com.ibm.icu.text.TimeZoneNames.Factory.impl";
     private static final String DEFAULT_FACTORY_CLASS = "com.ibm.icu.impl.TimeZoneNamesFactoryImpl";
     private static final Pattern LOC_EXCLUSION_PATTERN = Pattern.compile("Etc/.*|SystemV/.*|.*/Riyadh8[7-9]");
 
-    private static final Factory TZNAMES_FACTORY;
     static {
         Factory factory = null;
         String classname = ICUConfig.get(FACTORY_NAME_PROP, DEFAULT_FACTORY_CLASS);
@@ -117,12 +139,15 @@ public abstract class TimeZoneNames {
      * @draft ICU 4.8
      */
     public static TimeZoneNames getInstance(ULocale locale) {
-        return TZNAMES_FACTORY.getTimeZoneNames(locale);
+        String canonicalID = ULocale.canonicalize(locale.toString());
+        return TZNAMES_CACHE.getInstance(canonicalID, locale);
     }
 
     /**
      * Returns the locale used to determine the time zone display names. This is not necessarily the same locale passed
      * to {@link #getInstance}.
+     * 
+     * <p><b>Notes:</b> A subclass implementation must always return a locale. The null return value is not allowed.
      * 
      * @return The locale used for the time zone display names.
      * @draft ICU 4.8
@@ -130,10 +155,10 @@ public abstract class TimeZoneNames {
     public abstract ULocale getLocale();
 
     /**
-     * Returns the meta zone ID for the given time zone ID at the given date.
+     * Returns the meta zone ID for the given canonical time zone ID at the given date.
      * 
      * @param tzID
-     *            The time zone ID.
+     *            The canonical time zone ID.
      * @param date
      *            The date.
      * @return The meta zone ID for the given time zone ID at the given date. If the time zone does not have a
@@ -164,7 +189,7 @@ public abstract class TimeZoneNames {
      * time zone, then calls {@link #getMetaZoneDisplayName(String, NameType)}.
      * 
      * @param tzID
-     *            The time zone ID.
+     *            The canonical time zone ID.
      * @param type
      *            The display name type. See {@link TimeZoneNames.NameType}.
      * @param date
@@ -186,7 +211,7 @@ public abstract class TimeZoneNames {
      * Returns the display name of the time zone.
      * 
      * @param tzID
-     *            The time zone ID.
+     *            The canonical time zone ID.
      * @param type
      *            The display name type. See {@link TimeZoneNames.NameType}.
      * @return The display name for the time zone. When this object does not have a localized display name for the given
@@ -209,20 +234,19 @@ public abstract class TimeZoneNames {
      * localized location name.
      * 
      * @param tzID
-     *            The time zone ID
+     *            The canonical time zone ID
      * @return The exemplar location name for the given time zone, or null when a localized location name is not
      *         available and the fallback logic described above cannot extract location from the ID.
      */
     public String getExemplarLocationName(String tzID) {
-        String canonicalID = ZoneMeta.getCanonicalCLDRID(tzID);
-        if (canonicalID == null || LOC_EXCLUSION_PATTERN.matcher(canonicalID).matches()) {
+        if (tzID == null || tzID.length() == 0 || LOC_EXCLUSION_PATTERN.matcher(tzID).matches()) {
             return null;
         }
 
         String location = null;
-        int sep = canonicalID.lastIndexOf('/');
-        if (sep > 0 && sep + 1 < canonicalID.length()) {
-            location = canonicalID.substring(sep + 1).replace('_', ' ');
+        int sep = tzID.lastIndexOf('/');
+        if (sep > 0 && sep + 1 < tzID.length()) {
+            location = tzID.substring(sep + 1).replace('_', ' ');
         }
 
         return location;
@@ -251,6 +275,21 @@ public abstract class TimeZoneNames {
          * @internal
          */
         public abstract TimeZoneNames getTimeZoneNames(ULocale locale);
+    }
+
+    /**
+     * TimeZoneNames cache used by {@link TimeZoneNames#getInstance(ULocale)}
+     */
+    private static class Cache extends SoftCache<String, TimeZoneNames, ULocale> {
+
+        /* (non-Javadoc)
+         * @see com.ibm.icu.impl.CacheBase#createInstance(java.lang.Object, java.lang.Object)
+         */
+        @Override
+        protected TimeZoneNames createInstance(String key, ULocale data) {
+            return TZNAMES_FACTORY.getTimeZoneNames(data);
+        }
+        
     }
 
     /**
