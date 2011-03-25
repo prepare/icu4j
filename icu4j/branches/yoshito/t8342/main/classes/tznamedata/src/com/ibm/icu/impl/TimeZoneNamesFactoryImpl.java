@@ -21,8 +21,7 @@ public class TimeZoneNamesFactoryImpl extends Factory {
      */
     @Override
     public TimeZoneNames getTimeZoneNames(ULocale locale) {
-        // TODO
-        return new TimeZoneNamesImpl();
+        return new TimeZoneNamesImpl(locale);
     }
 
 }
