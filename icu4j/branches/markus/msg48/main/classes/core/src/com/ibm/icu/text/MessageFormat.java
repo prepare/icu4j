@@ -451,6 +451,41 @@ public class MessageFormat extends UFormat {
     }
 
     /**
+     * Sets the ApostropheMode and the pattern used by this message format.
+     * Parses the pattern and caches Format objects for simple argument types.
+     * Patterns and their interpretation are specified in the
+     * <a href="#patterns">class description</a>.
+     * <p>
+     * This method is best used only once on a given object to avoid confusion about the mode,
+     * and after constructing the object with an empty pattern string to minimize overhead.
+     *
+     * @param aposMode the new ApostropheMode
+     * @param pattern the pattern for this message format
+     * @throws IllegalArgumentException if the pattern is invalid
+     * @see MessagePattern.ApostropheMode
+     * @draft ICU 4.8
+     * @provisional This API might change or be removed in a future release.
+     */
+    public void applyPattern(MessagePattern.ApostropheMode aposMode, String pattern) {
+        if (msgPattern == null || aposMode != msgPattern.getApostropheMode()) {
+            msgPattern = new MessagePattern(aposMode);
+        }
+        applyPattern(pattern);
+    }
+
+    /**
+     * @return this instance's ApostropheMode.
+     * @draft ICU 4.8
+     * @provisional This API might change or be removed in a future release.
+     */
+    public MessagePattern.ApostropheMode getApostropheMode() {
+        if (msgPattern == null) {
+            msgPattern = new MessagePattern();  // Sets the default mode.
+        }
+        return msgPattern.getApostropheMode();
+    }
+
+    /**
      * Returns the applied pattern string.
      * @return the pattern string
      * @throws IllegalStateException after custom Format objects have been set
@@ -1525,9 +1560,9 @@ public class MessageFormat extends UFormat {
     // *Important*: All fields must be declared *transient*.
     // See the longer comment above ulocale.
 
-    private int format(int msgStart, double pluralNumber,
-                       Object[] args, Map<String, Object> argsMap,
-                       AppendableWrapper dest, FieldPosition fp) {
+    private void format(int msgStart, double pluralNumber,
+                        Object[] args, Map<String, Object> argsMap,
+                        AppendableWrapper dest, FieldPosition fp) {
         String msgString=msgPattern.getPatternString();
         int prevIndex=msgPattern.getPart(msgStart).getLimit();
         for(int i=msgStart+1;; ++i) {
@@ -1536,21 +1571,19 @@ public class MessageFormat extends UFormat {
             int index=part.getIndex();
             dest.append(msgString, prevIndex, index);
             if(type==Part.Type.MSG_LIMIT) {
-                return i;
+                return;
             }
-            if(type==Part.Type.SKIP_SYNTAX || type==Part.Type.INSERT_CHAR) {
-                prevIndex=part.getLimit();
-                continue;
-            }
+            prevIndex=part.getLimit();
             if(type==Part.Type.REPLACE_NUMBER) {
-                prevIndex=part.getLimit();
                 if (stockNumberFormatter == null) {
                     stockNumberFormatter = NumberFormat.getInstance(ulocale);
                 }
                 dest.formatAndAppend(stockNumberFormatter, pluralNumber);
                 continue;
             }
-            assert type==Part.Type.ARG_START : "Unexpected Part "+part+" in parsed message.";
+            if(type!=Part.Type.ARG_START) {
+                continue;
+            }
             int argLimit=msgPattern.getLimitPartIndex(i);
             ArgType argType=part.getArgType();
             part=msgPattern.getPart(++i);
@@ -1599,7 +1632,8 @@ public class MessageFormat extends UFormat {
                     // We only handle nested formats here if they were provided via setFormat() or its siblings.
                     // Otherwise they are not cached and instead handled below according to argType.
                     String subMsgString = formatter.format(arg);
-                    if (subMsgString.indexOf('{') >= 0 || subMsgString.indexOf('\'') >= 0) {
+                    if (subMsgString.indexOf('{') >= 0 ||
+                            (subMsgString.indexOf('\'') >= 0 && !msgPattern.jdkAposMode())) {
                         MessageFormat subMsgFormat = new MessageFormat(subMsgString, ulocale);
                         subMsgFormat.format(0, 0, args, argsMap, dest, null);
                     } else if (dest.attributes == null) {
@@ -1643,7 +1677,7 @@ public class MessageFormat extends UFormat {
                 }
                 double number = ((Number)arg).doubleValue();
                 int subMsgStart=findChoiceSubMessage(msgPattern, i, number);
-                format(subMsgStart, 0, args, argsMap, dest, null);
+                formatComplexSubMessage(subMsgStart, 0, args, argsMap, dest);
             } else if(argType==ArgType.PLURAL) {
                 if (!(arg instanceof Number)) {
                     throw new IllegalArgumentException("'" + arg + "' is not a Number");
@@ -1654,10 +1688,10 @@ public class MessageFormat extends UFormat {
                 }
                 int subMsgStart=PluralFormat.findSubMessage(msgPattern, i, pluralProvider, number);
                 double offset=msgPattern.getPluralOffset(subMsgStart);
-                format(subMsgStart, number-offset, args, argsMap, dest, null);
+                formatComplexSubMessage(subMsgStart, number-offset, args, argsMap, dest);
             } else if(argType==ArgType.SELECT) {
                 int subMsgStart=SelectFormat.findSubMessage(msgPattern, i, arg.toString());
-                format(subMsgStart, 0, args, argsMap, dest, null);
+                formatComplexSubMessage(subMsgStart, 0, args, argsMap, dest);
             } else {
                 // This should never happen.
                 throw new IllegalStateException("unexpected argType "+argType);
@@ -1665,6 +1699,67 @@ public class MessageFormat extends UFormat {
             fp = updateMetaData(dest, prevDestLength, fp, argId);
             prevIndex=msgPattern.getPart(argLimit).getLimit();
             i=argLimit;
+        }
+    }
+
+    private void formatComplexSubMessage(
+            int msgStart, double pluralNumber,
+            Object[] args, Map<String, Object> argsMap,
+            AppendableWrapper dest) {
+        if (!msgPattern.jdkAposMode()) {
+            format(msgStart, pluralNumber, args, argsMap, dest, null);
+            return;
+        }
+        // JDK compatibility mode: (see JDK MessageFormat.format() API docs)
+        // - remove SKIP_SYNTAX; that is, remove half of the apostrophes
+        // - if the result string contains an open curly brace '{' then
+        //   instantiate a temporary MessageFormat object and format again;
+        //   otherwise just append the result string
+        String msgString = msgPattern.getPatternString();
+        String subMsgString;
+        StringBuilder sb = null;
+        int prevIndex = msgPattern.getPart(msgStart).getLimit();
+        for (int i = msgStart;;) {
+            Part part = msgPattern.getPart(++i);
+            Part.Type type = part.getType();
+            int index = part.getIndex();
+            if (type == Part.Type.MSG_LIMIT) {
+                if (sb == null) {
+                    subMsgString = msgString.substring(prevIndex, index);
+                } else {
+                    subMsgString = sb.append(msgString, prevIndex, index).toString();
+                }
+                break;
+            } else if (type == Part.Type.REPLACE_NUMBER || type == Part.Type.SKIP_SYNTAX) {
+                if (sb == null) {
+                    sb = new StringBuilder();
+                }
+                sb.append(msgString, prevIndex, index);
+                if (type == Part.Type.REPLACE_NUMBER) {
+                    if (stockNumberFormatter == null) {
+                        stockNumberFormatter = NumberFormat.getInstance(ulocale);
+                    }
+                    sb.append(stockNumberFormatter.format(pluralNumber));
+                }
+                prevIndex = part.getLimit();
+            } else if (type == Part.Type.ARG_START) {
+                if (sb == null) {
+                    sb = new StringBuilder();
+                }
+                sb.append(msgString, prevIndex, index);
+                prevIndex = index;
+                i = msgPattern.getLimitPartIndex(i);
+                index = msgPattern.getPart(i).getLimit();
+                MessagePattern.appendReducedApostrophes(msgString, prevIndex, index, sb);
+                prevIndex = index;
+            }
+        }
+        if (subMsgString.indexOf('{') >= 0) {
+            MessageFormat subMsgFormat = new MessageFormat("", ulocale);
+            subMsgFormat.applyPattern(MessagePattern.ApostropheMode.DOUBLE_REQUIRED, subMsgString);
+            subMsgFormat.format(0, 0, args, argsMap, dest, null);
+        } else {
+            dest.append(subMsgString);
         }
     }
 

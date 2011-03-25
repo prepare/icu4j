@@ -305,6 +305,14 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
     }
 
     /**
+     * @return true if getApostropheMode() == ApostropheMode.DOUBLE_REQUIRED
+     * @internal
+     */
+    /* package */ boolean jdkAposMode() {
+        return aposMode == ApostropheMode.DOUBLE_REQUIRED;
+    }
+
+    /**
      * @return the parsed pattern string (null if none was parsed).
      * @draft ICU 4.8
      * @provisional This API might change or be removed in a future release.
@@ -908,7 +916,9 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
             throw new RuntimeException(e);
         }
         newMsg.parts=(ArrayList<Part>)parts.clone();
-        newMsg.numericValues=(ArrayList<Double>)numericValues.clone();
+        if(numericValues!=null) {
+            newMsg.numericValues=(ArrayList<Double>)numericValues.clone();
+        }
         newMsg.frozen=false;
         return newMsg;
     }
@@ -1437,6 +1447,33 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
         }
         throw new NumberFormatException(
             "Bad syntax for numeric value: "+msg.substring(start, limit));
+    }
+
+    /**
+     * Appends the s[start, limit[ substring to sb, but with only half of the apostrophes
+     * according to JDK pattern behavior.
+     * @internal
+     */
+    /* package */ static void appendReducedApostrophes(String s, int start, int limit,
+                                                       StringBuilder sb) {
+        int doubleApos=-1;
+        for(;;) {
+            int i=s.indexOf('\'', start);
+            if(i<0 || i>=limit) {
+                sb.append(s, start, limit);
+                break;
+            }
+            if(i==doubleApos) {
+                // Double apostrophe at start-1 and start==i, append one.
+                sb.append('\'');
+                ++start;
+                doubleApos=-1;
+            } else {
+                // Append text between apostrophes and skip this one.
+                sb.append(s, start, i);
+                doubleApos=start=i+1;
+            }
+        }
     }
 
     private int skipWhiteSpace(int index) {

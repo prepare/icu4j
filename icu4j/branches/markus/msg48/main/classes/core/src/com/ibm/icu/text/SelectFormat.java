@@ -261,10 +261,43 @@ public class SelectFormat extends Format{
         }
 
         // Get the appropriate sub-message.
-        int msgStart=findSubMessage(msgPattern, 0, keyword);
-        int msgLimit=msgPattern.getLimitPartIndex(msgStart);
-        return msgPattern.getPatternString().substring(msgPattern.getPart(msgStart).getLimit(),
-                                                       msgPattern.getPatternIndex(msgLimit));
+        int msgStart = findSubMessage(msgPattern, 0, keyword);
+        if (!msgPattern.jdkAposMode()) {
+            int msgLimit = msgPattern.getLimitPartIndex(msgStart);
+            return msgPattern.getPatternString().substring(msgPattern.getPart(msgStart).getLimit(),
+                                                           msgPattern.getPatternIndex(msgLimit));
+        }
+        // JDK compatibility mode: Remove SKIP_SYNTAX.
+        StringBuilder result = null;
+        int prevIndex = msgPattern.getPart(msgStart).getLimit();
+        for (int i = msgStart;;) {
+            MessagePattern.Part part = msgPattern.getPart(++i);
+            MessagePattern.Part.Type type = part.getType();
+            int index = part.getIndex();
+            if (type == MessagePattern.Part.Type.MSG_LIMIT) {
+                if (result == null) {
+                    return pattern.substring(prevIndex, index);
+                } else {
+                    return result.append(pattern, prevIndex, index).toString();
+                }
+            } else if (type == MessagePattern.Part.Type.SKIP_SYNTAX) {
+                if (result == null) {
+                    result = new StringBuilder();
+                }
+                result.append(pattern, prevIndex, index);
+                prevIndex = part.getLimit();
+            } else if (type == MessagePattern.Part.Type.ARG_START) {
+                if (result == null) {
+                    result = new StringBuilder();
+                }
+                result.append(pattern, prevIndex, index);
+                prevIndex = index;
+                i = msgPattern.getLimitPartIndex(i);
+                index = msgPattern.getPart(i).getLimit();
+                MessagePattern.appendReducedApostrophes(pattern, prevIndex, index, result);
+                prevIndex = index;
+            }
+        }
     }
 
     /**

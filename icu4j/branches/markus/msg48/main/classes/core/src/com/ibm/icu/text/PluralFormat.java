@@ -478,24 +478,34 @@ public class PluralFormat extends UFormat {
         for (;;) {
             MessagePattern.Part part = msgPattern.getPart(++partIndex);
             MessagePattern.Part.Type type = part.getType();
+            int index = part.getIndex();
             if (type == MessagePattern.Part.Type.MSG_LIMIT) {
-                int index = part.getIndex();
                 if (result == null) {
                     return pattern.substring(prevIndex, index);
                 } else {
                     return result.append(pattern, prevIndex, index).toString();
                 }
-            } else if (type == MessagePattern.Part.Type.REPLACE_NUMBER) {
+            } else if (type == MessagePattern.Part.Type.REPLACE_NUMBER ||
+                        // JDK compatibility mode: Remove SKIP_SYNTAX.
+                        (type == MessagePattern.Part.Type.SKIP_SYNTAX && msgPattern.jdkAposMode())) {
                 if (result == null) {
                     result = new StringBuilder();
                 }
-                int index = part.getIndex();
                 result.append(pattern, prevIndex, index);
-                result.append(numberFormat.format(number));
+                if (type == MessagePattern.Part.Type.REPLACE_NUMBER) {
+                    result.append(numberFormat.format(number));
+                }
                 prevIndex = part.getLimit();
             } else if (type == MessagePattern.Part.Type.ARG_START) {
-                // Skip arguments so that we do not look at MSG_LIMIT or REPLACE_NUMBER inside them.
+                if (result == null) {
+                    result = new StringBuilder();
+                }
+                result.append(pattern, prevIndex, index);
+                prevIndex = index;
                 partIndex = msgPattern.getLimitPartIndex(partIndex);
+                index = msgPattern.getPart(partIndex).getLimit();
+                MessagePattern.appendReducedApostrophes(pattern, prevIndex, index, result);
+                prevIndex = index;
             }
         }
     }
