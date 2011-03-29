@@ -16,10 +16,10 @@ import com.ibm.icu.util.ULocale;
 //TODO provide formal documentation of the class
 /**
  * <p>
- * The methods in this class assume that time zone IDs are already canonicalized. For example, you may not get
- * proper result returned by a method with time zone ID "America/Indiana/Indianapolis", because it's not a
- * canonical time zone ID (the canonical time zone ID for the time zone is "America/Indianapolis".
- * See {@link TimeZone#getCanonicalID(String)} about ICU canonical time zone IDs.
+ * The methods in this class assume that time zone IDs are already canonicalized. For example, you may not get proper
+ * result returned by a method with time zone ID "America/Indiana/Indianapolis", because it's not a canonical time zone
+ * ID (the canonical time zone ID for the time zone is "America/Indianapolis". See
+ * {@link TimeZone#getCanonicalID(String)} about ICU canonical time zone IDs.
  * 
  * <p>
  * In CLDR, most of time zone display names except location names are provided through meta zones. But a time zone may
@@ -50,50 +50,40 @@ public abstract class TimeZoneNames {
          * 
          * @draft ICU 4.8
          */
-        LONG_GENERIC (0),
+        LONG_GENERIC,
         /**
          * Long display name for standard time, such as "Eastern Standard Time".
          * 
          * @draft ICU 4.8
          */
-        LONG_STANDARD (1),
+        LONG_STANDARD,
         /**
          * Long display name for daylight saving time, such as "Eastern Daylight Time".
          * 
          * @draft ICU 4.8
          */
-        LONG_DAYLIGHT (2),
+        LONG_DAYLIGHT,
         /**
          * Short display name, such as "ET".
          * 
          * @draft ICU 4.8
          */
-        SHORT_GENERIC (3),
+        SHORT_GENERIC,
         /**
          * Short display name for standard time, such as "EST".
          * 
          * @draft ICU 4.8
          */
-        SHORT_STANDARD (4),
+        SHORT_STANDARD,
         /**
          * Short display name for daylight saving time, such as "EDT".
          * 
          * @draft ICU 4.8
          */
-        SHORT_DAYLIGHT (5);
+        SHORT_DAYLIGHT;
 
-        private int _idx;
-
-        NameType(int idx) {
-            _idx = idx;
-        }
-
-        public int getIndex() {
-            return _idx;
-        }
-
-        public static int getMaxIndex() {
-            return SHORT_DAYLIGHT._idx;
+        public static int getMaxOrdinal() {
+            return SHORT_DAYLIGHT.ordinal();
         }
     }
 
@@ -144,17 +134,6 @@ public abstract class TimeZoneNames {
     }
 
     /**
-     * Returns the locale used to determine the time zone display names. This is not necessarily the same locale passed
-     * to {@link #getInstance}.
-     * 
-     * <p><b>Notes:</b> A subclass implementation must always return a locale. The null return value is not allowed.
-     * 
-     * @return The locale used for the time zone display names.
-     * @draft ICU 4.8
-     */
-    public abstract ULocale getLocale();
-
-    /**
      * Returns the meta zone ID for the given canonical time zone ID at the given date.
      * 
      * @param tzID
@@ -162,10 +141,23 @@ public abstract class TimeZoneNames {
      * @param date
      *            The date.
      * @return The meta zone ID for the given time zone ID at the given date. If the time zone does not have a
-     *         corresponding meta zone at the given date, null is returned.
+     *         corresponding meta zone at the given date or the implementation does not support meta zones, null is
+     *         returned.
      * @draft ICU 4.8
      */
     public abstract String getMetaZoneID(String tzID, long date);
+
+    /**
+     * Returns the reference zone ID for the given meta zone ID for the region.
+     * 
+     * @param mzID
+     *            The meta zone ID.
+     * @param region
+     *            The region.
+     * @return The reference zone ID ("golden zone" in the LDML specification) for the given time zone ID for the
+     *         region. If the meta zone is unknown or the implementation does not support meta zones, null is returned.
+     */
+    public abstract String getReferenceZoneID(String mzID, String region);
 
     /**
      * Returns the display name of the meta zone.
@@ -175,7 +167,8 @@ public abstract class TimeZoneNames {
      * @param type
      *            The display name type. See {@link TimeZoneNames.NameType}.
      * @return The display name of the meta zone. When this object does not have a localized display name for the given
-     *         meta zone with the specified type, null is returned.
+     *         meta zone with the specified type or the implementation does not provide any display names associated
+     *         with meta zones, null is returned.
      * @draft ICU 4.8
      */
     public abstract String getMetaZoneDisplayName(String mzID, NameType type);
@@ -282,14 +275,16 @@ public abstract class TimeZoneNames {
      */
     private static class Cache extends SoftCache<String, TimeZoneNames, ULocale> {
 
-        /* (non-Javadoc)
+        /*
+         * (non-Javadoc)
+         * 
          * @see com.ibm.icu.impl.CacheBase#createInstance(java.lang.Object, java.lang.Object)
          */
         @Override
         protected TimeZoneNames createInstance(String key, ULocale data) {
             return TZNAMES_FACTORY.getTimeZoneNames(data);
         }
-        
+
     }
 
     /**
@@ -302,20 +297,20 @@ public abstract class TimeZoneNames {
         /*
          * (non-Javadoc)
          * 
-         * @see com.ibm.icu.text.TimeZoneNames#getLocale()
+         * @see com.ibm.icu.text.TimeZoneNames#getMetaZoneID (java.lang.String, long)
          */
         @Override
-        public ULocale getLocale() {
-            return ULocale.ROOT;
+        public String getMetaZoneID(String tzID, long date) {
+            return null;
         }
 
         /*
          * (non-Javadoc)
          * 
-         * @see com.ibm.icu.text.TimeZoneNames#getMetaZoneID (java.lang.String, long)
+         * @see com.ibm.icu.text.TimeZoneNames#getReferenceZoneID(java.lang.String, java.lang.String)
          */
         @Override
-        public String getMetaZoneID(String tzID, long date) {
+        public String getReferenceZoneID(String mzID, String region) {
             return null;
         }
 

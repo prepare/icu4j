@@ -35,17 +35,6 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
     }
 
     /* (non-Javadoc)
-     * @see com.ibm.icu.text.TimeZoneNames#getLocale()
-     */
-    @Override
-    public ULocale getLocale() {
-        if (_zoneStrings == null) {
-            return ULocale.ROOT;
-        }
-        return _zoneStrings.getULocale();
-    }
-
-    /* (non-Javadoc)
      * @see com.ibm.icu.text.TimeZoneNames#getMetaZoneID(java.lang.String, long)
      */
     @Override
@@ -59,6 +48,15 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
             }
         }
         return mzID;
+    }
+
+    /* (non-Javadoc)
+     * @see com.ibm.icu.text.TimeZoneNames#getReferenceZoneID(java.lang.String, java.lang.String)
+     */
+    @Override
+    public String getReferenceZoneID(String mzID, String region) {
+        // TODO We probably should move metaZones.res to tznamedata package later
+        return ZoneMeta.getZoneIdByMetazone(mzID, region);
     }
 
     /* (non-Javadoc)
@@ -151,7 +149,7 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
             if (_names == null) {
                 return null;
             }
-            int idx = type.getIndex();
+            int idx = type.ordinal();
             if (idx >= 0 && idx < _names.length) {
                 return _names[idx];
             }
@@ -174,7 +172,7 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
             boolean isEmpty = true;
             String[] names = new String[KEYS.length];
             for (NameType type : NameType.values()) {
-                int idx = type.getIndex();
+                int idx = type.ordinal();
                 if (idx < 0 || idx >= names.length) {
                     continue;
                 }
