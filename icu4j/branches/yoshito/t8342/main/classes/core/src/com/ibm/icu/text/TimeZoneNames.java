@@ -6,10 +6,12 @@
  */
 package com.ibm.icu.text;
 
+import java.io.Serializable;
 import java.util.regex.Pattern;
 
 import com.ibm.icu.impl.ICUConfig;
 import com.ibm.icu.impl.SoftCache;
+import com.ibm.icu.util.Freezable;
 import com.ibm.icu.util.TimeZone;
 import com.ibm.icu.util.ULocale;
 
@@ -37,7 +39,7 @@ import com.ibm.icu.util.ULocale;
  * {@link #getMetaZoneDisplayName(String, NameType)}, or both.
  * 
  */
-public abstract class TimeZoneNames {
+public abstract class TimeZoneNames implements Serializable {
 
     /**
      * Time zone display name types
@@ -166,12 +168,14 @@ public abstract class TimeZoneNames {
      *            The meta zone ID.
      * @param type
      *            The display name type. See {@link TimeZoneNames.NameType}.
+     * @param isCommonlyUsed
+     *            The optional output boolean value indicating if the display name is commonly used.
      * @return The display name of the meta zone. When this object does not have a localized display name for the given
      *         meta zone with the specified type or the implementation does not provide any display names associated
      *         with meta zones, null is returned.
      * @draft ICU 4.8
      */
-    public abstract String getMetaZoneDisplayName(String mzID, NameType type);
+    public abstract String getMetaZoneDisplayName(String mzID, NameType type, boolean[] isCommonlyUsed);
 
     /**
      * Returns the display name of the time zone at the given date.
@@ -187,15 +191,17 @@ public abstract class TimeZoneNames {
      *            The display name type. See {@link TimeZoneNames.NameType}.
      * @param date
      *            The date
+     * @param isCommonlyUsed
+     *            The optional output boolean value indicating if the display name is commonly used.
      * @return The display name for the time zone at the given date. When this object does not have a localized display
      *         name for the time zone with the specified type and date, null is returned.
      * @draft ICU 4.8
      */
-    public final String getDisplayName(String tzID, NameType type, long date) {
-        String name = getTimeZoneDisplayName(tzID, type);
+    public final String getDisplayName(String tzID, NameType type, long date, boolean[] isCommonlyUsed) {
+        String name = getTimeZoneDisplayName(tzID, type, isCommonlyUsed);
         if (name == null) {
             String mzID = getMetaZoneID(tzID, date);
-            name = getMetaZoneDisplayName(mzID, type);
+            name = getMetaZoneDisplayName(mzID, type, isCommonlyUsed);
         }
         return name;
     }
@@ -207,11 +213,13 @@ public abstract class TimeZoneNames {
      *            The canonical time zone ID.
      * @param type
      *            The display name type. See {@link TimeZoneNames.NameType}.
+     * @param isCommonlyUsed
+     *            The optional output boolean value indicating if the display name is commonly used.
      * @return The display name for the time zone. When this object does not have a localized display name for the given
      *         meta zone with the specified type, null is returned.
      * @internal
      */
-    protected abstract String getTimeZoneDisplayName(String tzID, NameType type);
+    protected abstract String getTimeZoneDisplayName(String tzID, NameType type, boolean[] isCommonlyUsed);
 
     /**
      * Returns the exemplar location name for the given time zone. When this object does not have a localized location
@@ -292,6 +300,7 @@ public abstract class TimeZoneNames {
      * the ICU4J tznamedata component is not available.
      */
     private static class DefaultTimeZoneNames extends TimeZoneNames {
+
         public static final DefaultTimeZoneNames INSTANCE = new DefaultTimeZoneNames();
 
         /*
@@ -321,7 +330,10 @@ public abstract class TimeZoneNames {
          * com.ibm.icu.text.TimeZoneNames.NameType)
          */
         @Override
-        public String getMetaZoneDisplayName(String mzID, NameType type) {
+        public String getMetaZoneDisplayName(String mzID, NameType type, boolean[] isCommonlyUsed) {
+            if (isCommonlyUsed != null && isCommonlyUsed.length > 0) {
+                isCommonlyUsed[0] = false;
+            }
             return null;
         }
 
@@ -332,7 +344,10 @@ public abstract class TimeZoneNames {
          * com.ibm.icu.text.TimeZoneNames.NameType, long)
          */
         @Override
-        protected String getTimeZoneDisplayName(String tzID, NameType type) {
+        protected String getTimeZoneDisplayName(String tzID, NameType type, boolean[] isCommonlyUsed) {
+            if (isCommonlyUsed != null && isCommonlyUsed.length > 0) {
+                isCommonlyUsed[0] = false;
+            }
             return null;
         }
 

@@ -6,8 +6,12 @@
  */
 package com.ibm.icu.impl;
 
+import java.util.Date;
+
 import com.ibm.icu.text.TimeZoneFormat;
+import com.ibm.icu.text.TimeZoneNames.NameType;
 import com.ibm.icu.util.TimeZone;
+import com.ibm.icu.util.ULocale;
 
 /**
  * @author yumaoka
@@ -15,13 +19,22 @@ import com.ibm.icu.util.TimeZone;
  */
 public class TimeZoneFormatImpl extends TimeZoneFormat {
 
+    private ULocale _locale;
+
+    private transient boolean _frozen;
+
+    public TimeZoneFormatImpl(ULocale locale) {
+        
+    }
+
     /* (non-Javadoc)
      * @see com.ibm.icu.text.TimeZoneFormat#handleFormatLongGeneric(com.ibm.icu.util.TimeZone, long)
      */
     @Override
     protected String handleFormatLongGeneric(TimeZone tz, long date) {
-        // TODO Auto-generated method stub
-        return null;
+        // TODO location fallback and partial location name
+        String name = getTimeZoneNames().getDisplayName(tz.getID(), NameType.LONG_GENERIC, date, null);
+        return name;
     }
 
     /* (non-Javadoc)
@@ -29,8 +42,11 @@ public class TimeZoneFormatImpl extends TimeZoneFormat {
      */
     @Override
     protected String handleFormatLongSpecific(TimeZone tz, long date) {
-        // TODO Auto-generated method stub
-        return null;
+        boolean isDaylight = tz.inDaylightTime(new Date(date));
+        String name = isDaylight?
+                getTimeZoneNames().getDisplayName(tz.getID(), NameType.LONG_DAYLIGHT, date, null) :
+                getTimeZoneNames().getDisplayName(tz.getID(), NameType.LONG_STANDARD, date, null);
+        return name;
     }
 
     /* (non-Javadoc)
@@ -38,17 +54,26 @@ public class TimeZoneFormatImpl extends TimeZoneFormat {
      */
     @Override
     protected String handleFormatShortGeneric(TimeZone tz, long date) {
-        // TODO Auto-generated method stub
-        return null;
+        // TODO location fallback and partial location name
+        String name = getTimeZoneNames().getDisplayName(tz.getID(), NameType.SHORT_GENERIC, date, null);
+        return name;
     }
 
     /* (non-Javadoc)
      * @see com.ibm.icu.text.TimeZoneFormat#handleFormatShortSpecific(com.ibm.icu.util.TimeZone, long, boolean)
      */
     @Override
-    protected String handleFormatShortSpecific(TimeZone tz, long date, boolean comprehensive) {
-        // TODO Auto-generated method stub
-        return null;
+    protected String handleFormatShortSpecific(TimeZone tz, long date, boolean all) {
+        boolean isDaylight = tz.inDaylightTime(new Date(date));
+        boolean[] isCommonlyUsed = new boolean[1];
+        String name = isDaylight?
+                getTimeZoneNames().getDisplayName(tz.getID(), NameType.SHORT_DAYLIGHT, date, isCommonlyUsed) :
+                getTimeZoneNames().getDisplayName(tz.getID(), NameType.SHORT_STANDARD, date, isCommonlyUsed);
+
+        if (!all && !isCommonlyUsed[0]) {
+            name = null;
+        }
+        return name;
     }
 
     /* (non-Javadoc)
@@ -56,8 +81,9 @@ public class TimeZoneFormatImpl extends TimeZoneFormat {
      */
     @Override
     protected String handleFormatGenericLocation(TimeZone tz) {
-        // TODO Auto-generated method stub
-        return null;
+        // TODO format location
+        String name = getTimeZoneNames().getExemplarLocationName(tz.getID());
+        return name;
     }
 
     /* (non-Javadoc)
@@ -103,6 +129,30 @@ public class TimeZoneFormatImpl extends TimeZoneFormat {
     protected ParseResult handleParseGenericLocation(String text, int start) {
         // TODO Auto-generated method stub
         return null;
+    }
+
+    /* (non-Javadoc)
+     * @see com.ibm.icu.util.Freezable#isFrozen()
+     */
+    public boolean isFrozen() {
+        return _frozen;
+    }
+
+    /* (non-Javadoc)
+     * @see com.ibm.icu.util.Freezable#freeze()
+     */
+    public TimeZoneFormat freeze() {
+        _frozen = true;
+        return this;
+    }
+
+    /* (non-Javadoc)
+     * @see com.ibm.icu.util.Freezable#cloneAsThawed()
+     */
+    public TimeZoneFormat cloneAsThawed() {
+        TimeZoneFormatImpl copy = (TimeZoneFormatImpl)super.clone();
+        copy._frozen = false;
+        return copy;
     }
 
 }

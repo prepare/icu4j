@@ -29,7 +29,7 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
         GENERIC_SHORT,
         SPECIFIC_LONG,
         SPECIFIC_SHORT,
-        SPECIFIC_SHORT_COMPREHENSIVE,
+        SPECIFIC_SHORT_ALL,
         RFC822,
         LOCALIZED_GMT,
     }
@@ -46,8 +46,6 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
     private NumberingSystem _gmtOffsetNumberingSystem;
     private String _gmtZeroFormat;
 
-    private boolean _frozen;
-
     public static TimeZoneFormat getInstance(ULocale locale) {
         //TODO
         return null;
@@ -58,7 +56,7 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
     }
 
     public TimeZoneFormat setTimeZoneNames(TimeZoneNames tznames) {
-        if (_frozen) {
+        if (isFrozen()) {
             throw new UnsupportedOperationException("Attempt to modify frozen object");
         }
        _tznames = tznames;
@@ -70,7 +68,7 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
     }
 
     public TimeZoneFormat setGMTOffsetFormatPattern(GMTOffsetFormatType type, String pattern) {
-        if (_frozen) {
+        if (isFrozen()) {
             throw new UnsupportedOperationException("Attempt to modify frozen object");
         }
         _gmtOffsetPatterns[type.ordinal()] = pattern;
@@ -82,7 +80,7 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
     }
 
     public TimeZoneFormat setGMTOffsetNumberingSystem(NumberingSystem numbers) {
-        if (_frozen) {
+        if (isFrozen()) {
             throw new UnsupportedOperationException("Attempt to modify frozen object");
         }
         _gmtOffsetNumberingSystem = numbers;
@@ -94,7 +92,7 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
     }
 
     public TimeZoneFormat setGMTZeroFormat(String gmtZeroFormat) {
-        if (_frozen) {
+        if (isFrozen()) {
             throw new UnsupportedOperationException("Attempt to modify frozen object");
         }
         _gmtZeroFormat = gmtZeroFormat;
@@ -107,7 +105,7 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
 
     protected abstract String handleFormatShortGeneric(TimeZone tz, long date);
 
-    protected abstract String handleFormatShortSpecific(TimeZone tz, long date, boolean comprehensive);
+    protected abstract String handleFormatShortSpecific(TimeZone tz, long date, boolean all);
 
     protected abstract String handleFormatGenericLocation(TimeZone tz);
 
@@ -160,7 +158,7 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
                 result = formatLocalizedGMT(tz.getOffset(date));
             }
             break;
-        case SPECIFIC_SHORT_COMPREHENSIVE:
+        case SPECIFIC_SHORT_ALL:
             result = handleFormatShortSpecific(tz, date, false);
             if (result == null) {
                 result = formatLocalizedGMT(tz.getOffset(date));
@@ -235,20 +233,6 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
     @Override
     public Object parseObject(String source, ParsePosition pos) {
         return parse(source, pos);
-    }
-
-    public boolean isFrozen() {
-        return _frozen;
-    }
-
-    public TimeZoneFormat freeze() {
-        _frozen = true;
-        return this;
-    }
-
-    public TimeZoneFormat cloneAsThawed() {
-        //TODO
-        return null;
     }
 
     protected static class ParseResult {

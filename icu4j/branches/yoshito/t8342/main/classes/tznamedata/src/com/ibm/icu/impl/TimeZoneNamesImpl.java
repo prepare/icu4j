@@ -6,32 +6,30 @@
  */
 package com.ibm.icu.impl;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.MissingResourceException;
 
 import com.ibm.icu.text.TimeZoneNames;
 import com.ibm.icu.util.ULocale;
 
 /**
- * @author yumaoka
- *
+ * The standard ICU implementation of TimeZoneNames
  */
 public class TimeZoneNamesImpl extends TimeZoneNames {
 
-    private ICUResourceBundle _zoneStrings;
-    private MZNamesCache _mzCache = new MZNamesCache();
-    private TZNamesCache _tzCache = new TZNamesCache();
+    private static final long serialVersionUID = 3235597921836202026L;
 
     private static final String ZONE_STRINGS_BUNDLE = "zoneStrings";
     private static final String MZ_PREFIX = "meta:";
 
+    private transient ICUResourceBundle _zoneStrings;
+    private transient MZNamesCache _mzCache = new MZNamesCache();
+    private transient TZNamesCache _tzCache = new TZNamesCache();
+
     public TimeZoneNamesImpl(ULocale locale) {
-        try {
-            ICUResourceBundle bundle = (ICUResourceBundle)ICUResourceBundle.getBundleInstance(
-                    ICUResourceBundle.ICU_ZONE_BASE_NAME, locale);
-            _zoneStrings = (ICUResourceBundle)bundle.get(ZONE_STRINGS_BUNDLE);
-        } catch (MissingResourceException mre) {
-            _zoneStrings = null;
-        }
+        initialize(locale);
     }
 
     /* (non-Javadoc)
@@ -59,28 +57,52 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
         return ZoneMeta.getZoneIdByMetazone(mzID, region);
     }
 
-    /* (non-Javadoc)
-     * @see com.ibm.icu.text.TimeZoneNames#getMetaZoneDisplayName(java.lang.String, com.ibm.icu.text.TimeZoneNames.NameType)
+    /*
+     * (non-Javadoc)
+     * @see com.ibm.icu.text.TimeZoneNames#getMetaZoneDisplayName(java.lang.String, com.ibm.icu.text.TimeZoneNames.NameType, boolean[])
      */
     @Override
-    public String getMetaZoneDisplayName(String mzID, NameType type) {
-        if (_zoneStrings == null || mzID == null || mzID.length() == 0) {
-            return null;
+    public String getMetaZoneDisplayName(String mzID, NameType type, boolean[] isCommonlyUsed) {
+        String name = null;
+        ZNames names = null;
+        if (_zoneStrings != null && mzID != null && mzID.length() > 0) {
+            names = _mzCache.getInstance(mzID, mzID);
+            name = names.getName(type);
         }
-        ZNames names = _mzCache.getInstance(mzID, mzID);
-        return names.getName(type);
+        if (isCommonlyUsed != null && isCommonlyUsed.length > 0) {
+            if (name == null) {
+                isCommonlyUsed[0] = false;
+            } else if (type == NameType.SHORT_STANDARD || type == NameType.SHORT_DAYLIGHT) {
+                isCommonlyUsed[0] = names.isShortNamesCommonlyUsed();
+            } else {
+                isCommonlyUsed[0] = true;
+            }
+        }
+        return name;
     }
 
-    /* (non-Javadoc)
-     * @see com.ibm.icu.text.TimeZoneNames#getTimeZoneDisplayName(java.lang.String, com.ibm.icu.text.TimeZoneNames.NameType, long)
+    /*
+     * (non-Javadoc)
+     * @see com.ibm.icu.text.TimeZoneNames#getTimeZoneDisplayName(java.lang.String, com.ibm.icu.text.TimeZoneNames.NameType, boolean[])
      */
     @Override
-    protected String getTimeZoneDisplayName(String tzID, NameType type) {
-        if (_zoneStrings == null || tzID == null || tzID.length() == 0) {
-            return null;
+    protected String getTimeZoneDisplayName(String tzID, NameType type, boolean[] isCommonlyUsed) {
+        String name = null;
+        TZNames names = null;
+        if (_zoneStrings != null && tzID != null && tzID.length() > 0) {
+            names = _tzCache.getInstance(tzID, tzID);
+            name = names.getName(type);
         }
-        TZNames names = _tzCache.getInstance(tzID, tzID);
-        return names.getName(type);
+        if (isCommonlyUsed != null && isCommonlyUsed.length > 0) {
+            if (name == null) {
+                isCommonlyUsed[0] = false;
+            } else if (type == NameType.SHORT_STANDARD || type == NameType.SHORT_DAYLIGHT) {
+                isCommonlyUsed[0] = names.isShortNamesCommonlyUsed();
+            } else {
+                isCommonlyUsed[0] = true;
+            }
+        }
+        return name;
     }
 
     /* (non-Javadoc)
@@ -97,6 +119,41 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
             locName = super.getExemplarLocationName(tzID);
         }
         return locName;
+    }
+
+    /**
+     * Initialize zone string table bundle
+     * @param locale The locale
+     */
+    private void initialize(ULocale locale) {
+        if (locale == null) {
+            return;
+        }
+        try {
+            ICUResourceBundle bundle = (ICUResourceBundle)ICUResourceBundle.getBundleInstance(
+                    ICUResourceBundle.ICU_ZONE_BASE_NAME, locale);
+            _zoneStrings = (ICUResourceBundle)bundle.get(ZONE_STRINGS_BUNDLE);
+        } catch (MissingResourceException mre) {
+            _zoneStrings = null;
+        }
+    }
+
+    /*
+     * The custom serialization method.
+     * This implementation only preserve locale used for the names.
+     */
+    private void writeObject(ObjectOutputStream out) throws IOException {
+        ULocale locale = _zoneStrings == null ? null : _zoneStrings.getULocale();
+        out.writeObject(locale);
+    }
+
+    /*
+     * The custom deserialization method.
+     * This implementation only read locale used by the object.
+     */
+    private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+        ULocale locale = (ULocale)in.readObject();
+        initialize(locale);
     }
 
     private class MZNamesCache extends SoftCache<String, ZNames, String> {
