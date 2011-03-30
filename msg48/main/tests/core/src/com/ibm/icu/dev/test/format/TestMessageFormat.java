@@ -1766,13 +1766,13 @@ public class TestMessageFormat extends com.ibm.icu.dev.test.TestFmwk {
             new java.text.MessageFormat(pattern, Locale.ENGLISH);
 
         MessageFormat compMsg = new MessageFormat("", Locale.ENGLISH);
-        compMsg.applyPattern(MessagePattern.ApostropheMode.DOUBLE_REQUIRED, pattern);
+        compMsg.applyPattern(pattern, MessagePattern.ApostropheMode.DOUBLE_REQUIRED);
         assertEquals("wrong value",
                 MessagePattern.ApostropheMode.DOUBLE_REQUIRED,
                 compMsg.getApostropheMode());
 
         MessageFormat icuMsg = new MessageFormat("", Locale.ENGLISH);
-        icuMsg.applyPattern(MessagePattern.ApostropheMode.DOUBLE_OPTIONAL, pattern);
+        icuMsg.applyPattern(pattern, MessagePattern.ApostropheMode.DOUBLE_OPTIONAL);
         assertEquals("wrong value",
                 MessagePattern.ApostropheMode.DOUBLE_OPTIONAL,
                 icuMsg.getApostropheMode());

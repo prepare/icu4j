@@ -459,14 +459,14 @@ public class MessageFormat extends UFormat {
      * This method is best used only once on a given object to avoid confusion about the mode,
      * and after constructing the object with an empty pattern string to minimize overhead.
      *
-     * @param aposMode the new ApostropheMode
      * @param pattern the pattern for this message format
+     * @param aposMode the new ApostropheMode
      * @throws IllegalArgumentException if the pattern is invalid
      * @see MessagePattern.ApostropheMode
      * @draft ICU 4.8
      * @provisional This API might change or be removed in a future release.
      */
-    public void applyPattern(MessagePattern.ApostropheMode aposMode, String pattern) {
+    public void applyPattern(String pattern, MessagePattern.ApostropheMode aposMode) {
         if (msgPattern == null || aposMode != msgPattern.getApostropheMode()) {
             msgPattern = new MessagePattern(aposMode);
         }
@@ -1756,7 +1756,7 @@ public class MessageFormat extends UFormat {
         }
         if (subMsgString.indexOf('{') >= 0) {
             MessageFormat subMsgFormat = new MessageFormat("", ulocale);
-            subMsgFormat.applyPattern(MessagePattern.ApostropheMode.DOUBLE_REQUIRED, subMsgString);
+            subMsgFormat.applyPattern(subMsgString, MessagePattern.ApostropheMode.DOUBLE_REQUIRED);
             subMsgFormat.format(0, 0, args, argsMap, dest, null);
         } else {
             dest.append(subMsgString);
