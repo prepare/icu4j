@@ -12,6 +12,7 @@ import java.text.Format;
 import java.text.ParseException;
 import java.text.ParsePosition;
 
+import com.ibm.icu.impl.TimeZoneFormatImpl;
 import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.Freezable;
 import com.ibm.icu.util.TimeZone;
@@ -47,8 +48,11 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
     private String _gmtZeroFormat;
 
     public static TimeZoneFormat getInstance(ULocale locale) {
-        //TODO
-        return null;
+        // TODO
+        TimeZoneFormat fmt = new TimeZoneFormatImpl(locale);
+        fmt.setTimeZoneNames(TimeZoneNames.getInstance(locale));
+        fmt.freeze();
+        return fmt;
     }
 
     public TimeZoneNames getTimeZoneNames() {
@@ -115,8 +119,78 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
     }
 
     public final String formatLocalizedGMT(int offset) {
-        // TODO
-        return null;
+        // TODO - needs real impl
+        final int millisPerHour = 60 * 60 * 1000;
+        final int millisPerMinute = 60 * 1000;
+        final int millisPerSecond = 1000;
+        final String gmtFormat = "GMT{0}";
+        final String digitString = "0123456789";
+        final String[] hourFormats = {"+HH:mm", "-HH:mm"};
+
+        // Note: This code is optimized for performance, but as a result, it makes assumptions
+        // about the content and structure of the underlying CLDR data.
+        // Specifically, it assumes that the H or HH in the pattern occurs before the mm,
+        // and that there are no quoted literals in the pattern that contain H or m.
+        // As of CLDR 1.8.1, all of the data conforms to these rules, so we should probably be OK.
+        
+        StringBuffer buf = new StringBuffer();
+        int hfPosition = 0;
+        if (offset < 0) {
+            offset = -offset;
+            hfPosition = 1;
+        }
+            
+        int offsetH = offset / millisPerHour;
+        offset = offset % millisPerHour;
+        int offsetM = offset / millisPerMinute;
+        offset = offset % millisPerMinute;
+        int offsetS = offset / millisPerSecond;
+
+        int subPosition = gmtFormat.indexOf("{0}");
+        for ( int i = 0 ; i < gmtFormat.length(); i++ ) {
+            if ( i == subPosition ) {
+                String hmString = hourFormats[hfPosition];
+                for ( int j = 0 ; j < hmString.length() ; j++) {
+                    switch (hmString.charAt(j)) {
+                    case 'H':
+                        if ( j+1 < hmString.length() && hmString.charAt(j+1) == 'H' ) {
+                            j++;
+                            if (offsetH < 10) {
+                                buf.append(digitString.charAt(0));
+                            }
+                        }
+                        if ( offsetH >= 10 ) {
+                            buf.append(digitString.charAt(offsetH/10));
+                        }
+                        buf.append(digitString.charAt(offsetH%10));
+                        break;
+                    case 'm':
+                        if ( j+1 < hmString.length() && hmString.charAt(j+1) == 'm' ) {
+                            j++;
+                        }
+                        buf.append(digitString.charAt(offsetM/10));
+                        buf.append(digitString.charAt(offsetM%10));
+                        if ( offsetS > 0 ) {
+                            int lastH = hmString.lastIndexOf('H');
+                            int firstm = hmString.indexOf('m');
+                            if ( lastH + 1 < firstm ) {
+                                buf.append(hmString.substring(lastH+1,firstm));
+                            }
+                            buf.append(digitString.charAt(offsetS/10));
+                            buf.append(digitString.charAt(offsetS%10));
+                        }
+                        break;
+                    default:
+                        buf.append(hmString.charAt(j));
+                        break;
+                    }
+                }
+                i += 3;
+            } else {
+                buf.append(gmtFormat.charAt(i));
+            }
+        }
+        return buf.toString();
     }
 
     public String format(Style style, TimeZone tz, long date) {
