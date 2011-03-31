@@ -7,11 +7,12 @@
 package com.ibm.icu.text;
 
 import java.io.Serializable;
+import java.util.Collections;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import com.ibm.icu.impl.ICUConfig;
 import com.ibm.icu.impl.SoftCache;
-import com.ibm.icu.util.Freezable;
 import com.ibm.icu.util.TimeZone;
 import com.ibm.icu.util.ULocale;
 
@@ -134,6 +135,13 @@ public abstract class TimeZoneNames implements Serializable {
         String canonicalID = ULocale.canonicalize(locale.toString());
         return TZNAMES_CACHE.getInstance(canonicalID, locale);
     }
+
+    /**
+     * Returns an immutable set of all available meta zone IDs.
+     * @return An immutable set of all available meta zone IDs.
+     * @draft ICU 4.8
+     */
+    public abstract Set<String> getAvailableMetaZoneIDs();
 
     /**
      * Returns the meta zone ID for the given canonical time zone ID at the given date.
@@ -302,6 +310,14 @@ public abstract class TimeZoneNames implements Serializable {
     private static class DefaultTimeZoneNames extends TimeZoneNames {
 
         public static final DefaultTimeZoneNames INSTANCE = new DefaultTimeZoneNames();
+
+        /* (non-Javadoc)
+         * @see com.ibm.icu.text.TimeZoneNames#getAvailableMetaZoneIDs()
+         */
+        @Override
+        public Set<String> getAvailableMetaZoneIDs() {
+            return Collections.emptySet();
+        }
 
         /*
          * (non-Javadoc)

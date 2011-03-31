@@ -9,10 +9,17 @@ package com.ibm.icu.impl;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.MissingResourceException;
+import java.util.Set;
 
 import com.ibm.icu.text.TimeZoneNames;
 import com.ibm.icu.util.ULocale;
+import com.ibm.icu.util.UResourceBundle;
 
 /**
  * The standard ICU implementation of TimeZoneNames
@@ -24,6 +31,10 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
     private static final String ZONE_STRINGS_BUNDLE = "zoneStrings";
     private static final String MZ_PREFIX = "meta:";
 
+    private static Set<String> METAZONE_IDS;
+    private static final TZ2MZsCache TZ_TO_MZS_CACHE = new TZ2MZsCache();
+    private static final MZ2TZsCache MZ_TO_TZS_CACHE = new MZ2TZsCache();
+
     private transient ICUResourceBundle _zoneStrings;
     private transient MZNamesCache _mzCache = new MZNamesCache();
     private transient TZNamesCache _tzCache = new TZNamesCache();
@@ -33,16 +44,34 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
     }
 
     /* (non-Javadoc)
+     * @see com.ibm.icu.text.TimeZoneNames#getAvailableMetaZoneIDs()
+     */
+    @Override
+    public synchronized Set<String> getAvailableMetaZoneIDs() {
+        if (METAZONE_IDS == null) {
+            try {
+                UResourceBundle bundle = UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, "metaZones");
+                UResourceBundle mapTimezones = bundle.get("mapTimezones");
+                Set<String> keys = mapTimezones.keySet();
+                METAZONE_IDS = Collections.unmodifiableSet(keys);
+            } catch (MissingResourceException e) {
+                METAZONE_IDS = Collections.emptySet();
+            }
+        }
+        return METAZONE_IDS;
+    }
+
+    /* (non-Javadoc)
      * @see com.ibm.icu.text.TimeZoneNames#getMetaZoneID(java.lang.String, long)
      */
     @Override
-    public String getMetaZoneID(String tzID, long time) {
-        // TODO We probably should move metaZones.res to tznamedata package later
-        String mzID = ZoneMeta.getMetazoneID(tzID, time);
-        if (mzID == null) {
-            String canonicalTZID = ZoneMeta.getCanonicalCLDRID(tzID);
-            if (!tzID.equals(canonicalTZID)) {
-                mzID = ZoneMeta.getMetazoneID(canonicalTZID, time);
+    public String getMetaZoneID(String tzID, long date) {
+        String mzID = null;
+        List<MZMapEntry> maps = TZ_TO_MZS_CACHE.getInstance(tzID, tzID);
+        for (MZMapEntry map : maps) {
+            if (date >= map.from() && date < map.to()) {
+                mzID = map.mzID();
+                break;
             }
         }
         return mzID;
@@ -53,8 +82,8 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
      */
     @Override
     public String getReferenceZoneID(String mzID, String region) {
-        // TODO We probably should move metaZones.res to tznamedata package later
-        return ZoneMeta.getZoneIdByMetazone(mzID, region);
+        Map<String, String> regionTzMap = MZ_TO_TZS_CACHE.getInstance(mzID, mzID);
+        return regionTzMap.get(region);
     }
 
     /*
@@ -296,6 +325,165 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
         private TZNames(String[] names, boolean shortCommonlyUsed, String locationName) {
             super(names, shortCommonlyUsed);
             _locationName = locationName;
+        }
+    }
+
+
+    //
+    // Canonical time zone ID -> meta zone ID
+    //
+
+    private static class MZMapEntry {
+        private String _mzID;
+        private long _from;
+        private long _to;
+
+        MZMapEntry(String mzID, long from, long to) {
+            _mzID = mzID;
+            _from = from;
+            _to = to;
+        }
+
+        String mzID() {
+            return _mzID;
+        }
+
+        long from() {
+            return _from;
+        }
+
+        long to() {
+            return _to;
+        }
+    }
+
+    private static class TZ2MZsCache extends SoftCache<String, List<MZMapEntry>, String> {
+        /* (non-Javadoc)
+         * @see com.ibm.icu.impl.CacheBase#createInstance(java.lang.Object, java.lang.Object)
+         */
+        @Override
+        protected List<MZMapEntry> createInstance(String key, String data) {
+            List<MZMapEntry> mzMaps = null;
+            try {
+                UResourceBundle bundle = UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, "metaZones");
+                UResourceBundle metazoneInfoBundle = bundle.get("metazoneInfo");
+
+                String tzkey = data.replace('/', ':');
+                UResourceBundle zoneBundle = metazoneInfoBundle.get(tzkey);
+
+                mzMaps = new ArrayList<MZMapEntry>(zoneBundle.getSize());
+                for (int idx = 0; idx < zoneBundle.getSize(); idx++) {
+                    UResourceBundle mz = zoneBundle.get(idx);
+                    String mzid = mz.getString(0);
+                    String fromStr = "1970-01-01 00:00";
+                    String toStr = "9999-12-31 23:59";
+                    if (mz.getSize() == 3) {
+                        fromStr = mz.getString(1);
+                        toStr = mz.getString(2);
+                    }
+                    long from, to;
+                    from = parseDate(fromStr);
+                    to = parseDate(toStr);
+                    mzMaps.add(new MZMapEntry(mzid, from, to));
+                }
+
+            } catch (MissingResourceException mre) {
+                // fall through
+            }
+            if (mzMaps == null) {
+                mzMaps = Collections.emptyList();
+            }
+            return mzMaps;
+        }
+
+        private long parseDate (String text) {
+            int year = 0, month = 0, day = 0, hour = 0, min = 0;
+            int idx;
+            int n;
+
+            // "yyyy" (0 - 3)
+            for (idx = 0; idx <= 3; idx++) {
+                n = text.charAt(idx) - '0';
+                if (n >= 0 && n < 10) {
+                    year = 10*year + n;
+                } else {
+                    throw new IllegalArgumentException("Bad year");
+                }
+            }
+            // "MM" (5 - 6)
+            for (idx = 5; idx <= 6; idx++) {
+                n = text.charAt(idx) - '0';
+                if (n >= 0 && n < 10) {
+                    month = 10*month + n;
+                } else {
+                    throw new IllegalArgumentException("Bad month");
+                }
+            }
+            // "dd" (8 - 9)
+            for (idx = 8; idx <= 9; idx++) {
+                n = text.charAt(idx) - '0';
+                if (n >= 0 && n < 10) {
+                    day = 10*day + n;
+                } else {
+                    throw new IllegalArgumentException("Bad day");
+                }
+            }
+            // "HH" (11 - 12)
+            for (idx = 11; idx <= 12; idx++) {
+                n = text.charAt(idx) - '0';
+                if (n >= 0 && n < 10) {
+                    hour = 10*hour + n;
+                } else {
+                    throw new IllegalArgumentException("Bad hour");
+                }
+            }
+            // "mm" (14 - 15)
+            for (idx = 14; idx <= 15; idx++) {
+                n = text.charAt(idx) - '0';
+                if (n >= 0 && n < 10) {
+                    min = 10*min + n;
+                } else {
+                    throw new IllegalArgumentException("Bad minute");
+                }
+            }
+
+            long date = Grego.fieldsToDay(year, month - 1, day) * Grego.MILLIS_PER_DAY
+                        + hour * Grego.MILLIS_PER_HOUR + min * Grego.MILLIS_PER_MINUTE;
+            return date;
+         }
+    }
+
+    //
+    // Meta zone ID -> time zone ID
+    //
+
+    private static class MZ2TZsCache extends SoftCache<String, Map<String, String>, String> {
+
+        /* (non-Javadoc)
+         * @see com.ibm.icu.impl.CacheBase#createInstance(java.lang.Object, java.lang.Object)
+         */
+        @Override
+        protected Map<String, String> createInstance(String key, String data) {
+            Map<String, String> map = null;
+            try {
+                UResourceBundle bundle = UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, "metaZones");
+                UResourceBundle mapTimezones = bundle.get("mapTimezones");
+                UResourceBundle regionMap = mapTimezones.get(key);
+
+                Set<String> regions = regionMap.keySet();
+                map = new HashMap<String, String>(regions.size());
+
+                for (String region : regions) {
+                    String tzID = regionMap.getString(region);
+                    map.put(region, tzID);
+                }
+            } catch (MissingResourceException e) {
+                // fall through
+            }
+            if (map == null) {
+                map = Collections.emptyMap();
+            }
+            return map;
         }
     }
 }
