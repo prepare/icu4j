@@ -82,8 +82,15 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
      */
     @Override
     public String getReferenceZoneID(String mzID, String region) {
+        String refID = null;
         Map<String, String> regionTzMap = MZ_TO_TZS_CACHE.getInstance(mzID, mzID);
-        return regionTzMap.get(region);
+        if (!regionTzMap.isEmpty()) {
+            refID = regionTzMap.get(region);
+            if (refID == null) {
+                refID = regionTzMap.get("001");
+            }
+        }
+        return refID;
     }
 
     /*
@@ -115,7 +122,7 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
      * @see com.ibm.icu.text.TimeZoneNames#getTimeZoneDisplayName(java.lang.String, com.ibm.icu.text.TimeZoneNames.NameType, boolean[])
      */
     @Override
-    protected String getTimeZoneDisplayName(String tzID, NameType type, boolean[] isCommonlyUsed) {
+    public String getTimeZoneDisplayName(String tzID, NameType type, boolean[] isCommonlyUsed) {
         String name = null;
         TZNames names = null;
         if (_zoneStrings != null && tzID != null && tzID.length() > 0) {

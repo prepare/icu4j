@@ -16,6 +16,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.MissingResourceException;
 import java.util.Set;
@@ -179,12 +180,16 @@ public final class ZoneMeta {
             return baseSet;
         }
 
+        if (region != null) {
+            region = region.toUpperCase(Locale.US);
+        }
+
         // Filter by region/rawOffset
         Set<String> result = new TreeSet<String>();
         for (String id : baseSet) {
             if (region != null) {
                 String r = getRegion(id);
-                if (!region.equalsIgnoreCase(r)) {
+                if (!region.equals(r)) {
                     continue;
                 }
             }

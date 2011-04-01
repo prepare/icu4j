@@ -12,6 +12,7 @@ import java.util.MissingResourceException;
 
 import com.ibm.icu.text.LocaleDisplayNames;
 import com.ibm.icu.text.TimeZoneFormat;
+import com.ibm.icu.text.TimeZoneNames;
 import com.ibm.icu.text.TimeZoneNames.NameType;
 import com.ibm.icu.util.TimeZone;
 import com.ibm.icu.util.ULocale;
@@ -32,7 +33,7 @@ public class TimeZoneFormatImpl extends TimeZoneFormat {
         FALLBACK_REGION_FORMAT("fallbackRegionFormat", "{1} ({0})"),
 
         // The format pattern such as "{1} ({0})", where {1} is the metazone, and {0} is the country or city.
-        FALLBACK_FORMAT("fallbackFormat", "({0})");
+        FALLBACK_FORMAT("fallbackFormat", "{1} ({0})");
 
         String _key;
         String _defaultVal;
@@ -53,6 +54,7 @@ public class TimeZoneFormatImpl extends TimeZoneFormat {
 
     private transient MessageFormat[] _patternFormatters = new MessageFormat[Pattern.values().length];
     private transient boolean _frozen;
+    private transient String _region;
 
     public TimeZoneFormatImpl(ULocale locale) {
         // TODO
@@ -64,8 +66,24 @@ public class TimeZoneFormatImpl extends TimeZoneFormat {
      */
     @Override
     protected String handleFormatLongGeneric(TimeZone tz, long date) {
-        // TODO location fallback and partial location name
-        String name = getTimeZoneNames().getDisplayName(tz.getID(), NameType.LONG_GENERIC, date, null);
+        String tzID = tz.getID();
+        TimeZoneNames names = getTimeZoneNames();
+
+        // Try to get a name from time zone first
+        String name = names.getTimeZoneDisplayName(tzID, NameType.LONG_GENERIC, null);
+
+        if (name != null) {
+            return name;
+        }
+
+        // Try meta zone
+        String mzID = names.getMetaZoneID(tzID, date);
+        if (mzID != null) {
+            name = names.getMetaZoneDisplayName(mzID, NameType.LONG_GENERIC, null);
+            if (name != null) {
+                name = processMetaZoneGenericName(tz, date, mzID, name);
+            }
+        }
         return name;
     }
 
@@ -86,8 +104,24 @@ public class TimeZoneFormatImpl extends TimeZoneFormat {
      */
     @Override
     protected String handleFormatShortGeneric(TimeZone tz, long date) {
-        // TODO location fallback and partial location name
-        String name = getTimeZoneNames().getDisplayName(tz.getID(), NameType.SHORT_GENERIC, date, null);
+        String tzID = tz.getID();
+        TimeZoneNames names = getTimeZoneNames();
+
+        // Try to get a name from time zone first
+        String name = names.getTimeZoneDisplayName(tzID, NameType.SHORT_GENERIC, null);
+
+        if (name != null) {
+            return name;
+        }
+
+        // Try meta zone
+        String mzID = names.getMetaZoneID(tzID, date);
+        if (mzID != null) {
+            name = names.getMetaZoneDisplayName(mzID, NameType.LONG_GENERIC, null);
+            if (name != null) {
+                name = processMetaZoneGenericName(tz, date, mzID, name);
+            }
+        }
         return name;
     }
 
@@ -190,6 +224,56 @@ public class TimeZoneFormatImpl extends TimeZoneFormat {
             _patternFormatters[idx] = new MessageFormat(patText);
         }
         return _patternFormatters[idx].format(args);
+    }
+
+    private synchronized String getTargetRegion() {
+        if (_region == null) {
+            _region = _locale.getCountry();
+            if (_region.length() == 0) {
+                ULocale tmp = ULocale.addLikelySubtags(_locale);
+                _region = tmp.getCountry();
+                if (_region.length() == 0) {
+                    _region = "001";
+                }
+            }
+        }
+        return _region;
+    }
+
+    private String processMetaZoneGenericName(TimeZone tz, long date, String mzID, String mzDisplayName) {
+        String name = mzDisplayName;
+        String tzID = tz.getID();
+
+        // Check if we need to use a partial location format.
+        // This check is done by comparing offset with the meta zone's
+        // golden zone at the given date.
+        String goldenID = getTimeZoneNames().getReferenceZoneID(mzID, getTargetRegion());
+        if (goldenID != null && !goldenID.equals(tz.getID())) {
+            TimeZone goldenZone = TimeZone.getTimeZone(goldenID);
+            int[] offsets0 = new int[2];
+            int[] offsets1 = new int[2];
+
+            tz.getOffset(date, false, offsets0);
+            goldenZone.getOffset(date, false, offsets1);
+
+            if (offsets0[0] != offsets1[0] || offsets0[1] != offsets1[1]) {
+                // Now we need to use a partial location format.
+                String location = null;
+                String countryCode = ZoneMeta.getSingleCountry(tzID);
+                if (countryCode != null) {
+                    location = LocaleDisplayNames.getInstance(_locale).regionDisplayName(countryCode);
+                } else {
+                    location = getTimeZoneNames().getExemplarLocationName(tzID);
+                }
+                if (location != null) {
+                    name = formatPattern(Pattern.FALLBACK_FORMAT, location, mzDisplayName);
+                } else {
+                    // This should not happen, but just in case...
+                    name = null;
+                }
+            }
+        }
+        return name;
     }
 
     /* (non-Javadoc)
