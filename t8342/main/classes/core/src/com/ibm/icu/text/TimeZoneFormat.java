@@ -8,10 +8,10 @@ package com.ibm.icu.text;
 
 import java.io.Serializable;
 import java.text.FieldPosition;
-import java.text.Format;
 import java.text.ParseException;
 import java.text.ParsePosition;
 
+import com.ibm.icu.impl.SoftCache;
 import com.ibm.icu.impl.TimeZoneFormatImpl;
 import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.Freezable;
@@ -47,12 +47,19 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
     private NumberingSystem _gmtOffsetNumberingSystem;
     private String _gmtZeroFormat;
 
+    private static TimeZoneFormatCache _tzfCache = new TimeZoneFormatCache();
+
+    /**
+     * Sole constructor for subclassing
+     */
+    protected TimeZoneFormat() {
+    }
+
     public static TimeZoneFormat getInstance(ULocale locale) {
-        // TODO
-        TimeZoneFormat fmt = new TimeZoneFormatImpl(locale);
-        fmt.setTimeZoneNames(TimeZoneNames.getInstance(locale));
-        fmt.freeze();
-        return fmt;
+        if (locale == null) {
+            throw new NullPointerException("locale is null");
+        }
+        return _tzfCache.getInstance(locale, locale);
     }
 
     public TimeZoneNames getTimeZoneNames() {
@@ -317,6 +324,20 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
     private static class IntParseResult {
         private int offset;
         private int length;
+    }
+
+    private static class TimeZoneFormatCache extends SoftCache<ULocale, TimeZoneFormat, ULocale> {
+
+        /* (non-Javadoc)
+         * @see com.ibm.icu.impl.CacheBase#createInstance(java.lang.Object, java.lang.Object)
+         */
+        @Override
+        protected TimeZoneFormat createInstance(ULocale key, ULocale data) {
+            TimeZoneFormat fmt = new TimeZoneFormatImpl(data);
+            fmt.setTimeZoneNames(TimeZoneNames.getInstance(data));
+            fmt.freeze();
+            return fmt;
+        }
     }
 }
 

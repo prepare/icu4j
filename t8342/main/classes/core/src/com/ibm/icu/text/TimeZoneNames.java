@@ -215,7 +215,8 @@ public abstract class TimeZoneNames implements Serializable {
     }
 
     /**
-     * Returns the display name of the time zone.
+     * Returns the display name of the time zone. Unlike {@link #getDisplayName(String, NameType, long, boolean[])},
+     * this method does not get a name from a mata zone used by the time zone.
      * 
      * @param tzID
      *            The canonical time zone ID.
@@ -224,10 +225,10 @@ public abstract class TimeZoneNames implements Serializable {
      * @param isCommonlyUsed
      *            The optional output boolean value indicating if the display name is commonly used.
      * @return The display name for the time zone. When this object does not have a localized display name for the given
-     *         meta zone with the specified type, null is returned.
+     *         time zone with the specified type, null is returned.
      * @internal
      */
-    protected abstract String getTimeZoneDisplayName(String tzID, NameType type, boolean[] isCommonlyUsed);
+    public abstract String getTimeZoneDisplayName(String tzID, NameType type, boolean[] isCommonlyUsed);
 
     /**
      * Returns the exemplar location name for the given time zone. When this object does not have a localized location
@@ -360,7 +361,7 @@ public abstract class TimeZoneNames implements Serializable {
          * com.ibm.icu.text.TimeZoneNames.NameType, long)
          */
         @Override
-        protected String getTimeZoneDisplayName(String tzID, NameType type, boolean[] isCommonlyUsed) {
+        public String getTimeZoneDisplayName(String tzID, NameType type, boolean[] isCommonlyUsed) {
             if (isCommonlyUsed != null && isCommonlyUsed.length > 0) {
                 isCommonlyUsed[0] = false;
             }
