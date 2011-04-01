@@ -1336,9 +1336,6 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
     /**
      * Validates and parses an argument name or argument number string.
      * This internal method assumes that the input substring is a "pattern identifier".
-     * @param s
-     * @param start
-     * @param limit
      * @return &gt;=0 if the name is a valid number,
      *         ARG_NAME_NOT_NUMBER (-1) if it is a "pattern identifier" but not all ASCII digits,
      *         ARG_NAME_NOT_VALID (-2) if it is neither.
