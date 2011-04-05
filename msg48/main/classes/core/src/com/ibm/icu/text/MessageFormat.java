@@ -467,8 +467,10 @@ public class MessageFormat extends UFormat {
      * @provisional This API might change or be removed in a future release.
      */
     public void applyPattern(String pattern, MessagePattern.ApostropheMode aposMode) {
-        if (msgPattern == null || aposMode != msgPattern.getApostropheMode()) {
+        if (msgPattern == null) {
             msgPattern = new MessagePattern(aposMode);
+        } else if (aposMode != msgPattern.getApostropheMode()) {
+            msgPattern.clearPatternAndSetApostropheMode(aposMode);
         }
         applyPattern(pattern);
     }
