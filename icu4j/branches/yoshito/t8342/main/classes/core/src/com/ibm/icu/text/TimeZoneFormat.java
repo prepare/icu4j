@@ -53,6 +53,12 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
         }
     }
 
+    public enum TimeType {
+        UNKNOWN,
+        STANDARD,
+        DAYLIGHT,
+    }
+
     private TimeZoneNames _tznames;
     private String _gmtPattern;
     private String[] _gmtOffsetPatterns;
@@ -198,7 +204,7 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
 
     protected abstract String handleFormatShortSpecific(TimeZone tz, long date, boolean all);
 
-    protected abstract String handleFormatGenericLocation(TimeZone tz);
+    protected abstract String handleFormatGenericLocation(String tzID);
 
     public final String formatRFC822(int offset) {
         StringBuilder buf = new StringBuilder();
@@ -330,7 +336,7 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
         String result = null;
         switch (style) {
         case GENERIC_LOCATION:
-            result = handleFormatGenericLocation(tz);
+            result = handleFormatGenericLocation(tz.getID());
             if (result == null) {
                 result = formatLocalizedGMT(tz.getOffset(date));
             }
@@ -338,7 +344,7 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
         case GENERIC_LONG:
             result = handleFormatLongGeneric(tz, date);
             if (result == null) {
-                result = handleFormatGenericLocation(tz);
+                result = handleFormatGenericLocation(tz.getID());
                 if (result == null) {
                     result = formatLocalizedGMT(tz.getOffset(date));
                 }
@@ -347,7 +353,7 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
         case GENERIC_SHORT:
             result = handleFormatShortGeneric(tz, date);
             if (result == null) {
-                result = handleFormatGenericLocation(tz);
+                result = handleFormatGenericLocation(tz.getID());
                 if (result == null) {
                     result = formatLocalizedGMT(tz.getOffset(date));
                 }
@@ -478,8 +484,9 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
             return;
         }
 
-        result.length = 1 + numDigits;
-        result.offset = ((((hour * 60) + min) * 60) + sec) * 1000 * sign;
+        result._length = 1 + numDigits;
+        result._offset = ((((hour * 60) + min) * 60) + sec) * 1000 * sign;
+        result._type = TimeType.UNKNOWN;
     }
 
     private void parseLocalizedGMT(String text, int start, ParseResult result) {
@@ -489,12 +496,13 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
     private void parseGMTZeroFormat(String text, int start, ParseResult result) {
         result.reset();
         if (text.regionMatches(true, start, _gmtZeroFormat, 0, _gmtZeroFormat.length())) {
-            result.length = _gmtZeroFormat.length();
-            result.offset = 0;
+            result._length = _gmtZeroFormat.length();
+            result._offset = 0;
+            result._type = TimeType.STANDARD;
         }
     }
 
-    public final TimeZone parse(String text, Style style, ParsePosition pos) {
+    public final TimeZone parse(String text, Style style, ParsePosition pos, TimeType[] type) {
         ParseResult pres = new ParseResult();
         int idx = pos.getIndex();
         switch (style) {
@@ -552,6 +560,10 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
                 tz = ZoneMeta.getCustomTimeZone(pres.getOffset());
             }
             pos.setIndex(idx + pres.getParseLength());
+
+            if (type != null && type.length > 0) {
+                type[0] = pres.getType();
+            }
         }
 
         return tz;
@@ -598,30 +610,56 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
         return offsetHM.substring(0, idx_mm + 2) + sep + "ss" + offsetHM.substring(idx_mm + 2);
     }
 
-    public static class ParseResult {
-        protected String id;
-        protected Integer offset;
-        protected int length;
+    protected static class ParseResult {
+        private String _id;
+        private Integer _offset;
+        private int _length;
+        private TimeType _type = TimeType.UNKNOWN;
 
         public ParseResult() {
         }
 
         public void reset() {
-            id = null;
-            offset = null;
-            length = 0;
+            _id = null;
+            _offset = null;
+            _length = 0;
+            _type = TimeType.UNKNOWN;
         }
 
         public String getID() {
-            return id;
+            return _id;
+        }
+
+        public ParseResult setID(String id) {
+            _id = id;
+            return this;
         }
 
         public Integer getOffset() {
-            return offset;
+            return _offset;
+        }
+
+        public ParseResult setOffset(Integer offset) {
+            _offset = offset;
+            return this;
         }
 
         public int getParseLength() {
-            return length;
+            return _length;
+        }
+
+        public ParseResult setParseLength(int length) {
+            _length = length;
+            return this;
+        }
+
+        public TimeType getType() {
+            return _type;
+        }
+
+        public ParseResult setType(TimeType type) {
+            _type = type;
+            return this;
         }
     }
 
