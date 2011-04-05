@@ -165,48 +165,48 @@ public class TimeZoneFormatImpl extends TimeZoneFormat {
     }
 
     /* (non-Javadoc)
-     * @see com.ibm.icu.text.TimeZoneFormat#handleParseLongGeneric(java.lang.String, int)
+     * @see com.ibm.icu.text.TimeZoneFormat#handleParseLongGeneric(java.lang.String, int, com.ibm.icu.text.TimeZoneFormat.ParseResult)
      */
     @Override
-    protected ParseResult handleParseLongGeneric(String text, int start) {
+    protected void handleParseLongGeneric(String text, int start, ParseResult result) {
+        result.reset();
         // TODO Auto-generated method stub
-        return null;
     }
 
     /* (non-Javadoc)
-     * @see com.ibm.icu.text.TimeZoneFormat#handleParseLongSpecific(java.lang.String, int)
+     * @see com.ibm.icu.text.TimeZoneFormat#handleParseLongSpecific(java.lang.String, int, com.ibm.icu.text.TimeZoneFormat.ParseResult)
      */
     @Override
-    protected ParseResult handleParseLongSpecific(String text, int start) {
+    protected void handleParseLongSpecific(String text, int start, ParseResult result) {
+        result.reset();
         // TODO Auto-generated method stub
-        return null;
     }
 
     /* (non-Javadoc)
-     * @see com.ibm.icu.text.TimeZoneFormat#handleParseShortGeneric(java.lang.String, int)
+     * @see com.ibm.icu.text.TimeZoneFormat#handleParseShortGeneric(java.lang.String, int, com.ibm.icu.text.TimeZoneFormat.ParseResult)
      */
     @Override
-    protected ParseResult handleParseShortGeneric(String text, int start) {
+    protected void handleParseShortGeneric(String text, int start, ParseResult result) {
+        result.reset();
         // TODO Auto-generated method stub
-        return null;
     }
 
     /* (non-Javadoc)
-     * @see com.ibm.icu.text.TimeZoneFormat#handleParseShortSpecific(java.lang.String, int)
+     * @see com.ibm.icu.text.TimeZoneFormat#handleParseShortSpecific(java.lang.String, int, com.ibm.icu.text.TimeZoneFormat.ParseResult)
      */
     @Override
-    protected ParseResult handleParseShortSpecific(String text, int start) {
+    protected void handleParseShortSpecific(String text, int start, ParseResult result) {
+        result.reset();
         // TODO Auto-generated method stub
-        return null;
     }
 
     /* (non-Javadoc)
-     * @see com.ibm.icu.text.TimeZoneFormat#handleParseGenericLocation(java.lang.String, int)
+     * @see com.ibm.icu.text.TimeZoneFormat#handleParseGenericLocation(java.lang.String, int, com.ibm.icu.text.TimeZoneFormat.ParseResult)
      */
     @Override
-    protected ParseResult handleParseGenericLocation(String text, int start) {
+    protected void handleParseGenericLocation(String text, int start, ParseResult result) {
+        result.reset();
         // TODO Auto-generated method stub
-        return null;
     }
 
     private synchronized String formatPattern(TimeZoneFormatImpl.Pattern pat, String... args) {
