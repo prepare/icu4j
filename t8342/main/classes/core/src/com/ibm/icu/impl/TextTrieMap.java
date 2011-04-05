@@ -68,8 +68,15 @@ public class TextTrieMap<V> {
      * matching entry is found.
      */
     public Iterator<V> get(String text, int start) {
+        return get(text, start, null);
+    }
+
+    public Iterator<V> get(String text, int start, int[] matchLen) {
         LongestMatchHandler<V> handler = new LongestMatchHandler<V>();
         find(text, start, handler);
+        if (matchLen != null && matchLen.length > 0) {
+            matchLen[0] = handler.getMatchLength();
+        }
         return handler.getMatches();
     }
 
@@ -197,6 +204,10 @@ public class TextTrieMap<V> {
 
         public Iterator<V> getMatches() {
             return matches;
+        }
+
+        public int getMatchLength() {
+            return length;
         }
     }
 

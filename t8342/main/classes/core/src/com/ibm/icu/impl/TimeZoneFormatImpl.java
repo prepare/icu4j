@@ -8,13 +8,17 @@ package com.ibm.icu.impl;
 
 import java.text.MessageFormat;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.MissingResourceException;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import com.ibm.icu.text.LocaleDisplayNames;
 import com.ibm.icu.text.TimeZoneFormat;
 import com.ibm.icu.text.TimeZoneNames;
 import com.ibm.icu.text.TimeZoneNames.NameType;
 import com.ibm.icu.util.TimeZone;
+import com.ibm.icu.util.TimeZone.SystemTimeZoneType;
 import com.ibm.icu.util.ULocale;
 
 /**
@@ -55,6 +59,13 @@ public class TimeZoneFormatImpl extends TimeZoneFormat {
     private transient MessageFormat[] _patternFormatters = new MessageFormat[Pattern.values().length];
     private transient boolean _frozen;
     private transient String _region;
+    private transient volatile ConcurrentHashMap<String, String> _genericLocationNamesMap;
+
+    private transient TextTrieMap<ZoneNameInfo> _longSpecificTrie;
+    private transient TextTrieMap<ZoneNameInfo> _longGenericTrie;
+    private transient TextTrieMap<ZoneNameInfo> _shortSpecificTrie;
+    private transient TextTrieMap<ZoneNameInfo> _shortGenericTrie;
+    private transient TextTrieMap<ZoneNameInfo> _genericLocationTrie;
 
     public TimeZoneFormatImpl(ULocale locale) {
         super(locale);
@@ -146,22 +157,48 @@ public class TimeZoneFormatImpl extends TimeZoneFormat {
      * @see com.ibm.icu.text.TimeZoneFormat#handleFormatGenericLocation(com.ibm.icu.util.TimeZone)
      */
     @Override
-    protected String handleFormatGenericLocation(TimeZone tz) {
-        String tzID = tz.getID();
+    protected String handleFormatGenericLocation(String tzID) {
+        String name = null;
+        if (_genericLocationNamesMap != null) {
+            name = _genericLocationNamesMap.get(tzID);
+            if (name != null) {
+                if (name.length() == 0) {
+                    // empty string to indicate the name is not available
+                    return null;
+                }
+                return name;
+            }
+        }
         String countryCode = ZoneMeta.getCanonicalCountry(tzID);
         if (countryCode != null) {
             String country = LocaleDisplayNames.getInstance(_locale).regionDisplayName(countryCode);
             if (ZoneMeta.getSingleCountry(tzID) != null) {
                 // If the zone is only one zone in the country, do not add city
-                return formatPattern(Pattern.REGION_FORMAT, country);
+                name = formatPattern(Pattern.REGION_FORMAT, country);
             } else {
                 // getExemplarLocationName should return non-empty String
                 // if the time zone is associated with a location
                 String city = getTimeZoneNames().getExemplarLocationName(tzID);
-                return formatPattern(Pattern.FALLBACK_REGION_FORMAT, city, country);
+                name = formatPattern(Pattern.FALLBACK_REGION_FORMAT, city, country);
             }
         }
-        return null;
+
+        if (_genericLocationNamesMap == null) {
+            synchronized(this) {
+                if (_genericLocationNamesMap == null) {
+                    _genericLocationNamesMap = new ConcurrentHashMap<String, String>();
+                }
+            }
+        }
+        if (name == null) {
+            _genericLocationNamesMap.putIfAbsent(tzID, "");
+        } else {
+            String tmp = _genericLocationNamesMap.putIfAbsent(tzID, name);
+            if (tmp != null) {
+                name = tmp;
+            }
+        }
+        return name;
     }
 
     /* (non-Javadoc)
@@ -206,7 +243,64 @@ public class TimeZoneFormatImpl extends TimeZoneFormat {
     @Override
     protected void handleParseGenericLocation(String text, int start, ParseResult result) {
         result.reset();
-        // TODO Auto-generated method stub
+        int[] matchLen = new int[1];
+        Iterator<ZoneNameInfo> matches = getGenericLocationTrie().get(text, start, matchLen);
+        if (matches != null) {
+            ZoneNameInfo info = matches.next();
+            result.setID(info.tzID()).setParseLength(matchLen[0]);
+
+            // should have only one match
+            assert(!matches.hasNext());
+        }
+    }
+
+    private synchronized TextTrieMap<ZoneNameInfo> getLongSpecificTrie() {
+        if (_longSpecificTrie != null) {
+            return _longSpecificTrie;
+        }
+        //TODO
+        return _longSpecificTrie;
+    }
+
+    private synchronized TextTrieMap<ZoneNameInfo> getLongGenericTrie() {
+        if (_longGenericTrie != null) {
+            return _longGenericTrie;
+        }
+        //TODO
+        return _longGenericTrie;
+    }
+
+    private synchronized TextTrieMap<ZoneNameInfo> getShortSpecificTrie() {
+        if (_shortSpecificTrie != null) {
+            return _shortSpecificTrie;
+        }
+        //TODO
+        return _shortSpecificTrie;
+    }
+
+    private synchronized TextTrieMap<ZoneNameInfo> getShortGenericTrie() {
+        if (_shortGenericTrie != null) {
+            return _shortGenericTrie;
+        }
+        //TODO
+        return _shortGenericTrie;
+    }
+
+    private synchronized TextTrieMap<ZoneNameInfo> getGenericLocationTrie() {
+        if (_genericLocationTrie != null) {
+            return _genericLocationTrie;
+        }
+
+        _genericLocationTrie = new TextTrieMap<ZoneNameInfo>(true);
+        Set<String> ids = TimeZone.getAvailableIDs(SystemTimeZoneType.CANONICAL_LOCATION, null, null);
+        for (String id : ids) {
+            String name = handleFormatGenericLocation(id);
+            if (name != null) {
+                ZoneNameInfo info = new ZoneNameInfo(id, null, TimeType.UNKNOWN);
+                _genericLocationTrie.put(name, info);
+            }
+        }
+        return _genericLocationTrie;
     }
 
     private synchronized String formatPattern(TimeZoneFormatImpl.Pattern pat, String... args) {
@@ -300,4 +394,27 @@ public class TimeZoneFormatImpl extends TimeZoneFormat {
         return copy;
     }
 
+    private static class ZoneNameInfo {
+        String _tzID;
+        String _mzID;
+        TimeType _type;
+
+        ZoneNameInfo(String tzID, String mzID, TimeType type) {
+            _tzID = tzID;
+            _mzID = mzID;
+            _type = type;
+        }
+
+        String tzID() {
+            return _tzID;
+        }
+
+        String mzID() {
+            return _mzID;
+        }
+
+        TimeType type() {
+            return _type;
+        }
+    }
 }
