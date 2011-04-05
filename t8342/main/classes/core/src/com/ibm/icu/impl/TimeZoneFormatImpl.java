@@ -8,6 +8,7 @@ package com.ibm.icu.impl;
 
 import java.text.MessageFormat;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.MissingResourceException;
 import java.util.Set;
@@ -216,7 +217,27 @@ public class TimeZoneFormatImpl extends TimeZoneFormat {
     @Override
     protected void handleParseLongSpecific(String text, int start, ParseResult result) {
         result.reset();
-        // TODO Auto-generated method stub
+        int[] matchLen = new int[1];
+        Iterator<ZoneNameInfo> matches = getLongSpecificTrie().get(text, start, matchLen);
+        if (matches != null) {
+            ZoneNameInfo info = matches.next();
+
+            // should have only one match
+            assert(!matches.hasNext());
+
+            String tzID = info.tzID();
+            if (tzID == null) {
+                String mzID = info.mzID();
+                // either tzID or mzID must be available
+                assert(mzID != null);
+
+                tzID = getTimeZoneNames().getReferenceZoneID(mzID, getTargetRegion());
+            }
+
+            if (tzID != null) {
+                result.setID(tzID).setType(info.type()).setParseLength(matchLen[0]);
+            }
+        }
     }
 
     /* (non-Javadoc)
@@ -234,7 +255,27 @@ public class TimeZoneFormatImpl extends TimeZoneFormat {
     @Override
     protected void handleParseShortSpecific(String text, int start, ParseResult result) {
         result.reset();
-        // TODO Auto-generated method stub
+        int[] matchLen = new int[1];
+        Iterator<ZoneNameInfo> matches = getShortSpecificTrie().get(text, start, matchLen);
+        if (matches != null) {
+            ZoneNameInfo info = matches.next();
+
+            // should have only one match
+            assert(!matches.hasNext());
+
+            String tzID = info.tzID();
+            if (tzID == null) {
+                String mzID = info.mzID();
+                // either tzID or mzID must be available
+                assert(mzID != null);
+
+                tzID = getTimeZoneNames().getReferenceZoneID(mzID, getTargetRegion());
+            }
+
+            if (tzID != null) {
+                result.setID(tzID).setType(info.type()).setParseLength(matchLen[0]);
+            }
+        }
     }
 
     /* (non-Javadoc)
@@ -258,7 +299,42 @@ public class TimeZoneFormatImpl extends TimeZoneFormat {
         if (_longSpecificTrie != null) {
             return _longSpecificTrie;
         }
-        //TODO
+
+        _longSpecificTrie = new TextTrieMap<ZoneNameInfo>(true);
+        Set<String> ids = TimeZone.getAvailableIDs(SystemTimeZoneType.CANONICAL, null, null);
+        Set<String> processedMzids = new HashSet<String>(100);
+        TimeZoneNames names = getTimeZoneNames();
+        ZoneNameInfo info;
+        for (String id : ids) {
+            String longS = names.getTimeZoneDisplayName(id, NameType.LONG_STANDARD, null);
+            String longD = names.getTimeZoneDisplayName(id, NameType.LONG_DAYLIGHT, null);
+            if (longS != null) {
+                info = new ZoneNameInfo(id, null, TimeType.STANDARD);
+                _longSpecificTrie.put(longS, info);
+            }
+            if (longD != null) {
+                info = new ZoneNameInfo(id, null, TimeType.DAYLIGHT);
+                _longSpecificTrie.put(longD, info);
+            }
+            // add names for meta zones
+            Set<String> mzids = names.getAvailableMetaZoneIDs(id);
+            for (String mzid : mzids) {
+                if (processedMzids.contains(mzid)) {
+                    continue;
+                }
+                longS = names.getMetaZoneDisplayName(mzid, NameType.LONG_STANDARD, null);
+                longD = names.getMetaZoneDisplayName(mzid, NameType.LONG_DAYLIGHT, null);
+                if (longS != null) {
+                    info = new ZoneNameInfo(null, mzid, TimeType.STANDARD);
+                    _longSpecificTrie.put(longS, info);
+                }
+                if (longD != null) {
+                    info = new ZoneNameInfo(null, mzid, TimeType.DAYLIGHT);
+                    _longSpecificTrie.put(longD, info);
+                }
+                processedMzids.add(mzid);
+            }
+        }
         return _longSpecificTrie;
     }
 
@@ -274,7 +350,42 @@ public class TimeZoneFormatImpl extends TimeZoneFormat {
         if (_shortSpecificTrie != null) {
             return _shortSpecificTrie;
         }
-        //TODO
+
+        _shortSpecificTrie = new TextTrieMap<ZoneNameInfo>(true);
+        Set<String> ids = TimeZone.getAvailableIDs(SystemTimeZoneType.CANONICAL, null, null);
+        Set<String> processedMzids = new HashSet<String>(100);
+        TimeZoneNames names = getTimeZoneNames();
+        ZoneNameInfo info;
+        for (String id : ids) {
+            String shortS = names.getTimeZoneDisplayName(id, NameType.SHORT_STANDARD, null);
+            String shortD = names.getTimeZoneDisplayName(id, NameType.SHORT_DAYLIGHT, null);
+            if (shortS != null) {
+                info = new ZoneNameInfo(id, null, TimeType.STANDARD);
+                _shortSpecificTrie.put(shortS, info);
+            }
+            if (shortD != null) {
+                info = new ZoneNameInfo(id, null, TimeType.DAYLIGHT);
+                _shortSpecificTrie.put(shortD, info);
+            }
+            // add names for meta zones
+            Set<String> mzids = names.getAvailableMetaZoneIDs(id);
+            for (String mzid : mzids) {
+                if (processedMzids.contains(mzid)) {
+                    continue;
+                }
+                shortS = names.getMetaZoneDisplayName(mzid, NameType.SHORT_STANDARD, null);
+                shortD = names.getMetaZoneDisplayName(mzid, NameType.SHORT_DAYLIGHT, null);
+                if (shortS != null) {
+                    info = new ZoneNameInfo(null, mzid, TimeType.STANDARD);
+                    _shortSpecificTrie.put(shortS, info);
+                }
+                if (shortD != null) {
+                    info = new ZoneNameInfo(null, mzid, TimeType.DAYLIGHT);
+                    _shortSpecificTrie.put(shortD, info);
+                }
+                processedMzids.add(mzid);
+            }
+        }
         return _shortSpecificTrie;
     }
 

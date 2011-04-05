@@ -12,6 +12,7 @@ import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.MissingResourceException;
@@ -59,6 +60,23 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
             }
         }
         return METAZONE_IDS;
+    }
+
+    /* (non-Javadoc)
+     * @see com.ibm.icu.text.TimeZoneNames#getAvailableMetaZoneIDs(java.lang.String)
+     */
+    @Override
+    public Set<String> getAvailableMetaZoneIDs(String tzID) {
+        List<MZMapEntry> maps = TZ_TO_MZS_CACHE.getInstance(tzID, tzID);
+        if (maps.isEmpty()) {
+            return Collections.emptySet();
+        }
+        Set<String> mzIDs = new HashSet<String>(maps.size());
+        for (MZMapEntry map : maps) {
+            mzIDs.add(map.mzID());
+        }
+        // make it unmodifiable because of the API contract. We may cache the results in futre.
+        return Collections.unmodifiableSet(mzIDs);
     }
 
     /* (non-Javadoc)

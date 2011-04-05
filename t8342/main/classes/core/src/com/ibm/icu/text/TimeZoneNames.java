@@ -144,6 +144,16 @@ public abstract class TimeZoneNames implements Serializable {
     public abstract Set<String> getAvailableMetaZoneIDs();
 
     /**
+     * Returns an immutable set of all available meta zone IDs used by the given time zone.
+     * 
+     * @param tzID
+     *            The canoniacl time zone ID.
+     * @return An immutable set of all available meta zone IDs used by the given time zone.
+     * @draft ICU 4.8
+     */
+    public abstract Set<String> getAvailableMetaZoneIDs(String tzID);
+
+    /**
      * Returns the meta zone ID for the given canonical time zone ID at the given date.
      * 
      * @param tzID
@@ -317,6 +327,14 @@ public abstract class TimeZoneNames implements Serializable {
          */
         @Override
         public Set<String> getAvailableMetaZoneIDs() {
+            return Collections.emptySet();
+        }
+
+        /* (non-Javadoc)
+         * @see com.ibm.icu.text.TimeZoneNames#getAvailableMetaZoneIDs(java.lang.String)
+         */
+        @Override
+        public Set<String> getAvailableMetaZoneIDs(String tzID) {
             return Collections.emptySet();
         }
 
