@@ -244,7 +244,8 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
     }
 
     /**
-     * Clears this MessagePattern, returning it to the state after the default constructor.
+     * Clears this MessagePattern.
+     * countParts() will return 0.
      * @draft ICU 4.8
      * @provisional This API might change or be removed in a future release.
      */
@@ -261,6 +262,18 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
         if(numericValues!=null) {
             numericValues.clear();
         }
+    }
+
+    /**
+     * Clears this MessagePattern and sets the ApostropheMode.
+     * countParts() will return 0.
+     * @param mode The new ApostropheMode.
+     * @draft ICU 4.8
+     * @provisional This API might change or be removed in a future release.
+     */
+    public void clearPatternAndSetApostropheMode(ApostropheMode mode) {
+        clear();
+        aposMode=mode;
     }
 
     /**
@@ -1612,7 +1625,7 @@ public final class MessagePattern implements Cloneable, Freezable<MessagePattern
         return prefix(msg, 0);
     }
 
-    private final ApostropheMode aposMode;
+    private ApostropheMode aposMode;
     private String msg;
     private ArrayList<Part> parts=new ArrayList<Part>();
     private ArrayList<Double> numericValues;
