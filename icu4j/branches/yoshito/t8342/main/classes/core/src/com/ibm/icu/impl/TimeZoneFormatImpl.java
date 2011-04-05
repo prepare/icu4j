@@ -57,7 +57,7 @@ public class TimeZoneFormatImpl extends TimeZoneFormat {
     private transient String _region;
 
     public TimeZoneFormatImpl(ULocale locale) {
-        // TODO
+        super(locale);
         _locale = locale;
     }
 
