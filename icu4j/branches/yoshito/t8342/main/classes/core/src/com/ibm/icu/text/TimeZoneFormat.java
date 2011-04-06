@@ -26,21 +26,64 @@ import com.ibm.icu.util.ULocale;
  */
 public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>, Serializable {
 
+    /**
+     * @draft ICU 4.8
+     */
     public enum Style {
+        /**
+         * @draft ICU 4.8
+         */
         GENERIC_LOCATION,
+        /**
+         * @draft ICU 4.8
+         */
         GENERIC_LONG,
+        /**
+         * @draft ICU 4.8
+         */
         GENERIC_SHORT,
+        /**
+         * @draft ICU 4.8
+         */
         SPECIFIC_LONG,
+        /**
+         * @draft ICU 4.8
+         */
         SPECIFIC_SHORT,
-        SPECIFIC_SHORT_ALL,
+        /**
+         * @draft ICU 4.8
+         */
         RFC822,
+        /**
+         * @draft ICU 4.8
+         */
         LOCALIZED_GMT,
+        /**
+         * @draft ICU 4.8
+         */
+        SPECIFIC_SHORT_COMMONLY_USED,
     }
 
+    /**
+     * 
+     * @draft ICU 4.8
+     */
     public enum GMTOffsetPatternType {
+        /**
+         * @draft ICU 4.8
+         */
         POSITIVE_HM ("+HH:mm"),
+        /**
+         * @draft ICU 4.8
+         */
         POSITIVE_HMS ("+HH:mm:ss"),
+        /**
+         * @draft ICU 4.8
+         */
         NEGATIVE_HM ("-HH:mm"),
+        /**
+         * @draft ICU 4.8
+         */
         NEGATIVE_HMS ("-HH:mm:ss");
 
         String _defaultPattern;
@@ -53,9 +96,22 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
         }
     }
 
+    /**
+     * 
+     * @draft ICU 4.8
+     */
     public enum TimeType {
+        /**
+         * @draft ICU 4.8
+         */
         UNKNOWN,
+        /**
+         * @draft ICU 4.8
+         */
         STANDARD,
+        /**
+         * @draft ICU 4.8
+         */
         DAYLIGHT,
     }
 
@@ -76,6 +132,10 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
 
     private static TimeZoneFormatCache _tzfCache = new TimeZoneFormatCache();
 
+    /**
+     * 
+     * @param locale
+     */
     protected TimeZoneFormat(ULocale locale) {
         _tznames = TimeZoneNames.getInstance(locale);
 
@@ -126,6 +186,11 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
         }
     }
 
+    /**
+     * 
+     * @param locale
+     * @return
+     */
     public static TimeZoneFormat getInstance(ULocale locale) {
         if (locale == null) {
             throw new NullPointerException("locale is null");
@@ -133,10 +198,19 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
         return _tzfCache.getInstance(locale, locale);
     }
 
+    /**
+     * 
+     * @return
+     */
     public TimeZoneNames getTimeZoneNames() {
         return _tznames;
     }
 
+    /**
+     * 
+     * @param tznames
+     * @return
+     */
     public TimeZoneFormat setTimeZoneNames(TimeZoneNames tznames) {
         if (isFrozen()) {
             throw new UnsupportedOperationException("Attempt to modify frozen object");
@@ -145,10 +219,19 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
        return this;
     }
 
+    /**
+     * 
+     * @return
+     */
     public String getGMTPattern() {
         return _gmtPattern;
     }
 
+    /**
+     * 
+     * @param pattern
+     * @return
+     */
     public TimeZoneFormat setGMTPattern(String pattern) {
         if (isFrozen()) {
             throw new UnsupportedOperationException("Attempt to modify frozen object");
@@ -157,10 +240,21 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
         return this;
     }
 
+    /**
+     * 
+     * @param type
+     * @return
+     */
     public String getGMTOffsetPattern(GMTOffsetPatternType type) {
         return _gmtOffsetPatterns[type.ordinal()];
     }
 
+    /**
+     * 
+     * @param type
+     * @param pattern
+     * @return
+     */
     public TimeZoneFormat setGMTOffsetPattern(GMTOffsetPatternType type, String pattern) {
         if (isFrozen()) {
             throw new UnsupportedOperationException("Attempt to modify frozen object");
@@ -169,10 +263,19 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
         return this;
     }
 
+    /**
+     * 
+     * @return
+     */
     public String getGMTOffsetDigits() {
         return _gmtOffsetDigits;
     }
 
+    /**
+     * 
+     * @param digits
+     * @return
+     */
     public TimeZoneFormat setGMTOffsetDigits(String digits) {
         if (isFrozen()) {
             throw new UnsupportedOperationException("Attempt to modify frozen object");
@@ -184,10 +287,19 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
         return this;
     }
 
+    /**
+     * 
+     * @return
+     */
     public String getGMTZeroFormat() {
         return _gmtZeroFormat;
     }
 
+    /**
+     * 
+     * @param gmtZeroFormat
+     * @return
+     */
     public TimeZoneFormat setGMTZeroFormat(String gmtZeroFormat) {
         if (isFrozen()) {
             throw new UnsupportedOperationException("Attempt to modify frozen object");
@@ -196,16 +308,12 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
         return this;
     }
 
-    protected abstract String handleFormatLongGeneric(TimeZone tz, long date);
 
-    protected abstract String handleFormatLongSpecific(TimeZone tz, long date);
-
-    protected abstract String handleFormatShortGeneric(TimeZone tz, long date);
-
-    protected abstract String handleFormatShortSpecific(TimeZone tz, long date, boolean all);
-
-    protected abstract String handleFormatGenericLocation(String tzID);
-
+    /**
+     * 
+     * @param offset
+     * @return
+     */
     public final String formatRFC822(int offset) {
         StringBuilder buf = new StringBuilder();
         char sign = '+';
@@ -244,6 +352,11 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
         return buf.toString();
     }
 
+    /**
+     * 
+     * @param offset
+     * @return
+     */
     public final String formatLocalizedGMT(int offset) {
         // Note: This code is optimized for performance, but as a result, it makes assumptions
         // about the content and structure of the underlying CLDR data.
@@ -332,6 +445,13 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
         return buf.toString();
     }
 
+    /**
+     * 
+     * @param style
+     * @param tz
+     * @param date
+     * @return
+     */
     public String format(Style style, TimeZone tz, long date) {
         String result = null;
         switch (style) {
@@ -366,13 +486,7 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
             }
             break;
         case SPECIFIC_SHORT:
-            result = handleFormatShortSpecific(tz, date, true);
-            if (result == null) {
-                result = formatLocalizedGMT(tz.getOffset(date));
-            }
-            break;
-        case SPECIFIC_SHORT_ALL:
-            result = handleFormatShortSpecific(tz, date, false);
+            result = handleFormatShortSpecific(tz, date);
             if (result == null) {
                 result = formatLocalizedGMT(tz.getOffset(date));
             }
@@ -383,10 +497,25 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
         case LOCALIZED_GMT:
             result = formatLocalizedGMT(tz.getOffset(date));
             break;
+        case SPECIFIC_SHORT_COMMONLY_USED:
+            result = handleFormatShortSpecificCommonlyUsed(tz, date);
+            if (result == null) {
+                result = formatLocalizedGMT(tz.getOffset(date));
+            }
+            break;
         }
         return result;
     }
 
+    /**
+     * 
+     * @param style
+     * @param tz
+     * @param date
+     * @param toAppendTo
+     * @param pos
+     * @return
+     */
     public final StringBuffer format(Style style, TimeZone tz, long date, StringBuffer toAppendTo, FieldPosition pos) {
         String zoneStr = format(style, tz, date);
         toAppendTo.append(zoneStr);
@@ -394,15 +523,6 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
         return toAppendTo;
     }
 
-    protected abstract void handleParseLongGeneric(String text, int start, ParseResult result);
-
-    protected abstract void handleParseLongSpecific(String text, int start, ParseResult result);
-
-    protected abstract void handleParseShortGeneric(String text, int start, ParseResult result);
-
-    protected abstract void handleParseShortSpecific(String text, int start, ParseResult result);
-
-    protected abstract void handleParseGenericLocation(String text, int start, ParseResult result);
 
     private void parseRFC822(String text, int start, ParseResult result) {
         result.reset();
@@ -502,6 +622,14 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
         }
     }
 
+    /**
+     * 
+     * @param text
+     * @param style
+     * @param pos
+     * @param type
+     * @return
+     */
     public final TimeZone parse(String text, Style style, ParsePosition pos, TimeType[] type) {
         ParseResult pres = new ParseResult();
         int idx = pos.getIndex();
@@ -537,7 +665,7 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
             }
             break;
         case SPECIFIC_SHORT:
-        case SPECIFIC_SHORT_ALL:
+        case SPECIFIC_SHORT_COMMONLY_USED:
             handleParseShortSpecific(text, idx, pres);
             if (pres.getParseLength() == 0) {
                 parseLocalizedGMT(text, idx, pres);
@@ -569,6 +697,12 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
         return tz;
     }
 
+    /**
+     * 
+     * @param text
+     * @param pos
+     * @return
+     */
     public final TimeZone parse(String text, ParsePosition pos) {
         //TODO
         return null;
@@ -610,6 +744,9 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
         return offsetHM.substring(0, idx_mm + 2) + sep + "ss" + offsetHM.substring(idx_mm + 2);
     }
 
+    /**
+     * @draft ICU 4.8
+     */
     protected static class ParseResult {
         private String _id;
         private Integer _offset;
@@ -662,6 +799,95 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
             return this;
         }
     }
+
+    /**
+     * 
+     * @param tz
+     * @param date
+     * @return
+     */
+    protected abstract String handleFormatLongGeneric(TimeZone tz, long date);
+
+    /**
+     * 
+     * @param tz
+     * @param date
+     * @return
+     */
+    protected abstract String handleFormatLongSpecific(TimeZone tz, long date);
+
+    /**
+     * 
+     * @param tz
+     * @param date
+     * @return
+     */
+    protected abstract String handleFormatShortGeneric(TimeZone tz, long date);
+
+    /**
+     * 
+     * @param tz
+     * @param date
+     * @param all
+     * @return
+     */
+    protected abstract String handleFormatShortSpecific(TimeZone tz, long date);
+
+    /**
+     * 
+     * @param tz
+     * @param date
+     * @param all
+     * @return
+     */
+    protected abstract String handleFormatShortSpecificCommonlyUsed(TimeZone tz, long date);
+
+    /**
+     * 
+     * @param tzID
+     * @return
+     */
+    protected abstract String handleFormatGenericLocation(String tzID);
+
+    /**
+     * 
+     * @param text
+     * @param start
+     * @param result
+     */
+    protected abstract void handleParseLongGeneric(String text, int start, ParseResult result);
+
+    /**
+     * 
+     * @param text
+     * @param start
+     * @param result
+     */
+    protected abstract void handleParseLongSpecific(String text, int start, ParseResult result);
+
+    /**
+     * 
+     * @param text
+     * @param start
+     * @param result
+     */
+    protected abstract void handleParseShortGeneric(String text, int start, ParseResult result);
+
+    /**
+     * 
+     * @param text
+     * @param start
+     * @param result
+     */
+    protected abstract void handleParseShortSpecific(String text, int start, ParseResult result);
+
+    /**
+     * 
+     * @param text
+     * @param start
+     * @param result
+     */
+    protected abstract void handleParseGenericLocation(String text, int start, ParseResult result);
 
     private static class TimeZoneFormatCache extends SoftCache<ULocale, TimeZoneFormat, ULocale> {
 

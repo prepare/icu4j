@@ -113,48 +113,30 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
 
     /*
      * (non-Javadoc)
-     * @see com.ibm.icu.text.TimeZoneNames#getMetaZoneDisplayName(java.lang.String, com.ibm.icu.text.TimeZoneNames.NameType, boolean[])
+     * @see com.ibm.icu.text.TimeZoneNames#getMetaZoneDisplayName(java.lang.String, com.ibm.icu.text.TimeZoneNames.NameType)
      */
     @Override
-    public String getMetaZoneDisplayName(String mzID, NameType type, boolean[] isCommonlyUsed) {
+    public String getMetaZoneDisplayName(String mzID, NameType type) {
         String name = null;
         ZNames names = null;
         if (_zoneStrings != null && mzID != null && mzID.length() > 0) {
             names = _mzCache.getInstance(mzID, mzID);
             name = names.getName(type);
         }
-        if (isCommonlyUsed != null && isCommonlyUsed.length > 0) {
-            if (name == null) {
-                isCommonlyUsed[0] = false;
-            } else if (type == NameType.SHORT_STANDARD || type == NameType.SHORT_DAYLIGHT) {
-                isCommonlyUsed[0] = names.isShortNamesCommonlyUsed();
-            } else {
-                isCommonlyUsed[0] = true;
-            }
-        }
         return name;
     }
 
     /*
      * (non-Javadoc)
-     * @see com.ibm.icu.text.TimeZoneNames#getTimeZoneDisplayName(java.lang.String, com.ibm.icu.text.TimeZoneNames.NameType, boolean[])
+     * @see com.ibm.icu.text.TimeZoneNames#getTimeZoneDisplayName(java.lang.String, com.ibm.icu.text.TimeZoneNames.NameType)
      */
     @Override
-    public String getTimeZoneDisplayName(String tzID, NameType type, boolean[] isCommonlyUsed) {
+    public String getTimeZoneDisplayName(String tzID, NameType type) {
         String name = null;
         TZNames names = null;
         if (_zoneStrings != null && tzID != null && tzID.length() > 0) {
             names = _tzCache.getInstance(tzID, tzID);
             name = names.getName(type);
-        }
-        if (isCommonlyUsed != null && isCommonlyUsed.length > 0) {
-            if (name == null) {
-                isCommonlyUsed[0] = false;
-            } else if (type == NameType.SHORT_STANDARD || type == NameType.SHORT_DAYLIGHT) {
-                isCommonlyUsed[0] = names.isShortNamesCommonlyUsed();
-            } else {
-                isCommonlyUsed[0] = true;
-            }
         }
         return name;
     }
@@ -239,7 +221,6 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
 
         public static final ZNames EMPTY = new ZNames(null, false);
 
-        // KEYS must be synchronized with TimeZoneNames.NameType
         private static final String[] KEYS = {"lg", "ls", "ld", "sg", "ss", "sd"};
 
         protected ZNames(String[] names, boolean shortCommonlyUsed) {
@@ -260,15 +241,39 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
             if (_names == null) {
                 return null;
             }
-            int idx = type.ordinal();
-            if (idx >= 0 && idx < _names.length) {
-                return _names[idx];
+            String name = null;
+            switch (type) {
+            case LONG_GENERIC:
+                name = _names[0];
+                break;
+            case LONG_STANDARD:
+                name = _names[1];
+                break;
+            case LONG_DAYLIGHT:
+                name = _names[2];
+                break;
+            case SHORT_GENERIC:
+                name = _names[3];
+                break;
+            case SHORT_STANDARD:
+                name = _names[4];
+                break;
+            case SHORT_DAYLIGHT:
+                name = _names[5];
+                break;
+            case SHORT_STANDARD_COMMONLY_USED:
+                if (_shortCommonlyUsed) {
+                    name = _names[4];
+                }
+                break;
+            case SHORT_DAYLIGHT_COMMONLY_USED:
+                if (_shortCommonlyUsed) {
+                    name = _names[5];
+                }
+                break;
             }
-            return null;
-        }
 
-        public boolean isShortNamesCommonlyUsed() {
-            return _shortCommonlyUsed;
+            return name;
         }
 
         protected static String[] loadData(ICUResourceBundle zoneStrings, String key, boolean[] shortCommonlyUsed) {
@@ -282,16 +287,12 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
 
             boolean isEmpty = true;
             String[] names = new String[KEYS.length];
-            for (NameType type : NameType.values()) {
-                int idx = type.ordinal();
-                if (idx < 0 || idx >= names.length) {
-                    continue;
-                }
+            for (int i = 0; i < names.length; i++) {
                 try {
-                    names[idx] = table.getStringWithFallback(KEYS[idx]);
+                    names[i] = table.getStringWithFallback(KEYS[i]);
                     isEmpty = false;
                 } catch (MissingResourceException e) {
-                    names[idx] = null;
+                    names[i] = null;
                 }
             }
 

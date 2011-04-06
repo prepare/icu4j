@@ -83,11 +83,19 @@ public abstract class TimeZoneNames implements Serializable {
          * 
          * @draft ICU 4.8
          */
-        SHORT_DAYLIGHT;
-
-        public static int getMaxOrdinal() {
-            return SHORT_DAYLIGHT.ordinal();
-        }
+        SHORT_DAYLIGHT,
+        /**
+         * Short display name for standard time, such as "EST".
+         * 
+         * @draft ICU 4.8
+         */
+        SHORT_STANDARD_COMMONLY_USED,
+        /**
+         * Short display name for daylight saving time, such as "EDT".
+         * 
+         * @draft ICU 4.8
+         */
+        SHORT_DAYLIGHT_COMMONLY_USED
     }
 
     private static Cache TZNAMES_CACHE = new Cache();
@@ -176,6 +184,7 @@ public abstract class TimeZoneNames implements Serializable {
      *            The region.
      * @return The reference zone ID ("golden zone" in the LDML specification) for the given time zone ID for the
      *         region. If the meta zone is unknown or the implementation does not support meta zones, null is returned.
+     * @draft ICU 4.8
      */
     public abstract String getReferenceZoneID(String mzID, String region);
 
@@ -186,14 +195,12 @@ public abstract class TimeZoneNames implements Serializable {
      *            The meta zone ID.
      * @param type
      *            The display name type. See {@link TimeZoneNames.NameType}.
-     * @param isCommonlyUsed
-     *            The optional output boolean value indicating if the display name is commonly used.
      * @return The display name of the meta zone. When this object does not have a localized display name for the given
      *         meta zone with the specified type or the implementation does not provide any display names associated
      *         with meta zones, null is returned.
      * @draft ICU 4.8
      */
-    public abstract String getMetaZoneDisplayName(String mzID, NameType type, boolean[] isCommonlyUsed);
+    public abstract String getMetaZoneDisplayName(String mzID, NameType type);
 
     /**
      * Returns the display name of the time zone at the given date.
@@ -209,17 +216,15 @@ public abstract class TimeZoneNames implements Serializable {
      *            The display name type. See {@link TimeZoneNames.NameType}.
      * @param date
      *            The date
-     * @param isCommonlyUsed
-     *            The optional output boolean value indicating if the display name is commonly used.
      * @return The display name for the time zone at the given date. When this object does not have a localized display
      *         name for the time zone with the specified type and date, null is returned.
      * @draft ICU 4.8
      */
-    public final String getDisplayName(String tzID, NameType type, long date, boolean[] isCommonlyUsed) {
-        String name = getTimeZoneDisplayName(tzID, type, isCommonlyUsed);
+    public final String getDisplayName(String tzID, NameType type, long date) {
+        String name = getTimeZoneDisplayName(tzID, type);
         if (name == null) {
             String mzID = getMetaZoneID(tzID, date);
-            name = getMetaZoneDisplayName(mzID, type, isCommonlyUsed);
+            name = getMetaZoneDisplayName(mzID, type);
         }
         return name;
     }
@@ -232,13 +237,11 @@ public abstract class TimeZoneNames implements Serializable {
      *            The canonical time zone ID.
      * @param type
      *            The display name type. See {@link TimeZoneNames.NameType}.
-     * @param isCommonlyUsed
-     *            The optional output boolean value indicating if the display name is commonly used.
      * @return The display name for the time zone. When this object does not have a localized display name for the given
      *         time zone with the specified type, null is returned.
      * @internal
      */
-    public abstract String getTimeZoneDisplayName(String tzID, NameType type, boolean[] isCommonlyUsed);
+    public abstract String getTimeZoneDisplayName(String tzID, NameType type);
 
     /**
      * Returns the exemplar location name for the given time zone. When this object does not have a localized location
@@ -359,30 +362,20 @@ public abstract class TimeZoneNames implements Serializable {
         }
 
         /*
-         * (non-Javadoc)
-         * 
-         * @see com.ibm.icu.text.TimeZoneNames#getMetaZoneDisplayName (java.lang.String,
-         * com.ibm.icu.text.TimeZoneNames.NameType)
+         *  (non-Javadoc)
+         * @see com.ibm.icu.text.TimeZoneNames#getMetaZoneDisplayName(java.lang.String, com.ibm.icu.text.TimeZoneNames.NameType)
          */
         @Override
-        public String getMetaZoneDisplayName(String mzID, NameType type, boolean[] isCommonlyUsed) {
-            if (isCommonlyUsed != null && isCommonlyUsed.length > 0) {
-                isCommonlyUsed[0] = false;
-            }
+        public String getMetaZoneDisplayName(String mzID, NameType type) {
             return null;
         }
 
         /*
          * (non-Javadoc)
-         * 
-         * @see com.ibm.icu.text.TimeZoneNames#getTimeZoneDisplayName (java.lang.String,
-         * com.ibm.icu.text.TimeZoneNames.NameType, long)
+         * @see com.ibm.icu.text.TimeZoneNames#getTimeZoneDisplayName(java.lang.String, com.ibm.icu.text.TimeZoneNames.NameType)
          */
         @Override
-        public String getTimeZoneDisplayName(String tzID, NameType type, boolean[] isCommonlyUsed) {
-            if (isCommonlyUsed != null && isCommonlyUsed.length > 0) {
-                isCommonlyUsed[0] = false;
-            }
+        public String getTimeZoneDisplayName(String tzID, NameType type) {
             return null;
         }
 
