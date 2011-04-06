@@ -27,7 +27,7 @@ import com.ibm.icu.util.UResourceBundle;
  */
 public class TimeZoneNamesImpl extends TimeZoneNames {
 
-    private static final long serialVersionUID = 3235597921836202026L;
+    private static final long serialVersionUID = -2179814848495897472L;
 
     private static final String ZONE_STRINGS_BUNDLE = "zoneStrings";
     private static final String MZ_PREFIX = "meta:";
