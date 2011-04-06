@@ -16,8 +16,27 @@ import com.ibm.icu.impl.SoftCache;
 import com.ibm.icu.util.TimeZone;
 import com.ibm.icu.util.ULocale;
 
-//TODO provide formal documentation of the class
 /**
+ * <code>TimeZoneNames</code> is an abstract class representing the time zone display name data model defined
+ * by <a href="http://www.unicode.org/reports/tr35/">UTS#35 Unicode Locale Data Markup Language (LDML)</a>.
+ * The model defines meta zone, which is used for storing a set of display names. A meta zone can be shared
+ * by multiple time zones. Also a time zone may have multiple meta zone historic mappings.
+ * <p>
+ * For example, people in the United States refer the zone used by the east part of North America as "Eastern Time".
+ * The tz database contains multiple time zones "America/New_York", "America/Detroit", "America/Montreal" and some
+ * others that belong to "Eastern Time". However, assigning different display names to these time zones does not make
+ * much sense for most of people.
+ * <p>
+ * In <a href="http://cldr.unicode.org/">CLDR</a> (which uses LDML for representing locale data), the display name
+ * "Eastern Time" is stored as long generic display name of a meta zone identified by the ID "America_Eastern".
+ * Then, there is another table maintaining the historic mapping to meta zones for each time zone. The time zones in
+ * the above example ("America/New_York", "America/Detroit"...) are mapped to the meta zone "America_Eastern".
+ * <p>
+ * Sometimes, a time zone is mapped to a different time zone in the past. For example, "America/Indiana/Knox"
+ * had been moving "Eastern Time" and "Central Time" back and forth. Therefore, it is necessary that time zone
+ * to meta zones mapping data are stored by date range.
+ * 
+ * <p><b>Note:</b>
  * <p>
  * The methods in this class assume that time zone IDs are already canonicalized. For example, you may not get proper
  * result returned by a method with time zone ID "America/Indiana/Indianapolis", because it's not a canonical time zone
@@ -27,8 +46,7 @@ import com.ibm.icu.util.ULocale;
  * <p>
  * In CLDR, most of time zone display names except location names are provided through meta zones. But a time zone may
  * have a specific name that is not shared with other time zones.
- * 
- * <p>
+ *
  * For example, time zone "Europe/London" has English long name for standard time "Greenwich Mean Time", which is also
  * shared with other time zones. However, the long name for daylight saving time is "British Summer Time", which is only
  * used for "Europe/London".
@@ -39,61 +57,78 @@ import com.ibm.icu.util.ULocale;
  * may provide time zone names only through {@link #getTimeZoneDisplayName(String, NameType)}, or only through
  * {@link #getMetaZoneDisplayName(String, NameType)}, or both.
  * 
+ * @draft ICU 4.8
+ * @provisional This API might change or be removed in a future release. 
  */
 public abstract class TimeZoneNames implements Serializable {
+
+    private static final long serialVersionUID = -9180227029248969153L;
 
     /**
      * Time zone display name types
      * 
      * @draft ICU 4.8
+     * @provisional This API might change or be removed in a future release. 
      */
     public enum NameType {
         /**
          * Long display name, such as "Eastern Time".
          * 
          * @draft ICU 4.8
+         * @provisional This API might change or be removed in a future release. 
          */
         LONG_GENERIC,
         /**
          * Long display name for standard time, such as "Eastern Standard Time".
          * 
          * @draft ICU 4.8
+         * @provisional This API might change or be removed in a future release. 
          */
         LONG_STANDARD,
         /**
          * Long display name for daylight saving time, such as "Eastern Daylight Time".
          * 
          * @draft ICU 4.8
+         * @provisional This API might change or be removed in a future release. 
          */
         LONG_DAYLIGHT,
         /**
          * Short display name, such as "ET".
          * 
          * @draft ICU 4.8
+         * @provisional This API might change or be removed in a future release. 
          */
         SHORT_GENERIC,
         /**
          * Short display name for standard time, such as "EST".
          * 
          * @draft ICU 4.8
+         * @provisional This API might change or be removed in a future release. 
          */
         SHORT_STANDARD,
         /**
          * Short display name for daylight saving time, such as "EDT".
          * 
          * @draft ICU 4.8
+         * @provisional This API might change or be removed in a future release. 
          */
         SHORT_DAYLIGHT,
         /**
          * Short display name for standard time, such as "EST".
+         * <p><b>Note:</b> The short abbreviation might not be well understood by people not familiar with the zone.
+         * Unlike {@link #SHORT_STANDARD}, this type excludes short standard names not commonly used by the region.
          * 
          * @draft ICU 4.8
+         * @provisional This API might change or be removed in a future release. 
          */
         SHORT_STANDARD_COMMONLY_USED,
         /**
          * Short display name for daylight saving time, such as "EDT".
+         * <p><b>Note:</b> The short abbreviation might not be well understood by people not familiar with the zone.
+         * Unlike {@link #SHORT_DAYLIGHT}, this type excludes short daylight names not commonly used by the region.
          * 
          * @draft ICU 4.8
+         * @provisional This API might change or be removed in a future release. 
          */
         SHORT_DAYLIGHT_COMMONLY_USED
     }
@@ -138,16 +173,18 @@ public abstract class TimeZoneNames implements Serializable {
      *            The locale.
      * @return An instance of <code>TimeZoneDisplayNames</code>
      * @draft ICU 4.8
+     * @provisional This API might change or be removed in a future release. 
      */
     public static TimeZoneNames getInstance(ULocale locale) {
-        String canonicalID = ULocale.canonicalize(locale.toString());
-        return TZNAMES_CACHE.getInstance(canonicalID, locale);
+        String key = locale.getBaseName();
+        return TZNAMES_CACHE.getInstance(key, locale);
     }
 
     /**
      * Returns an immutable set of all available meta zone IDs.
      * @return An immutable set of all available meta zone IDs.
      * @draft ICU 4.8
+     * @provisional This API might change or be removed in a future release. 
      */
     public abstract Set<String> getAvailableMetaZoneIDs();
 
@@ -155,9 +192,10 @@ public abstract class TimeZoneNames implements Serializable {
      * Returns an immutable set of all available meta zone IDs used by the given time zone.
      * 
      * @param tzID
-     *            The canoniacl time zone ID.
+     *            The canonical time zone ID.
      * @return An immutable set of all available meta zone IDs used by the given time zone.
      * @draft ICU 4.8
+     * @provisional This API might change or be removed in a future release. 
      */
     public abstract Set<String> getAvailableMetaZoneIDs(String tzID);
 
@@ -172,6 +210,7 @@ public abstract class TimeZoneNames implements Serializable {
      *         corresponding meta zone at the given date or the implementation does not support meta zones, null is
      *         returned.
      * @draft ICU 4.8
+     * @provisional This API might change or be removed in a future release. 
      */
     public abstract String getMetaZoneID(String tzID, long date);
 
@@ -185,6 +224,7 @@ public abstract class TimeZoneNames implements Serializable {
      * @return The reference zone ID ("golden zone" in the LDML specification) for the given time zone ID for the
      *         region. If the meta zone is unknown or the implementation does not support meta zones, null is returned.
      * @draft ICU 4.8
+     * @provisional This API might change or be removed in a future release. 
      */
     public abstract String getReferenceZoneID(String mzID, String region);
 
@@ -199,6 +239,7 @@ public abstract class TimeZoneNames implements Serializable {
      *         meta zone with the specified type or the implementation does not provide any display names associated
      *         with meta zones, null is returned.
      * @draft ICU 4.8
+     * @provisional This API might change or be removed in a future release. 
      */
     public abstract String getMetaZoneDisplayName(String mzID, NameType type);
 
@@ -219,6 +260,7 @@ public abstract class TimeZoneNames implements Serializable {
      * @return The display name for the time zone at the given date. When this object does not have a localized display
      *         name for the time zone with the specified type and date, null is returned.
      * @draft ICU 4.8
+     * @provisional This API might change or be removed in a future release. 
      */
     public final String getDisplayName(String tzID, NameType type, long date) {
         String name = getTimeZoneDisplayName(tzID, type);
@@ -230,8 +272,8 @@ public abstract class TimeZoneNames implements Serializable {
     }
 
     /**
-     * Returns the display name of the time zone. Unlike {@link #getDisplayName(String, NameType, long, boolean[])},
-     * this method does not get a name from a mata zone used by the time zone.
+     * Returns the display name of the time zone. Unlike {@link #getDisplayName(String, NameType, long)},
+     * this method does not get a name from a meta zone used by the time zone.
      * 
      * @param tzID
      *            The canonical time zone ID.
@@ -239,7 +281,8 @@ public abstract class TimeZoneNames implements Serializable {
      *            The display name type. See {@link TimeZoneNames.NameType}.
      * @return The display name for the time zone. When this object does not have a localized display name for the given
      *         time zone with the specified type, null is returned.
-     * @internal
+     * @draft ICU 4.8
+     * @provisional This API might change or be removed in a future release. 
      */
     public abstract String getTimeZoneDisplayName(String tzID, NameType type);
 
@@ -260,6 +303,8 @@ public abstract class TimeZoneNames implements Serializable {
      *            The canonical time zone ID
      * @return The exemplar location name for the given time zone, or null when a localized location name is not
      *         available and the fallback logic described above cannot extract location from the ID.
+     * @draft ICU 4.8
+     * @provisional This API might change or be removed in a future release. 
      */
     public String getExemplarLocationName(String tzID) {
         if (tzID == null || tzID.length() == 0 || LOC_EXCLUSION_PATTERN.matcher(tzID).matches()) {
@@ -278,7 +323,8 @@ public abstract class TimeZoneNames implements Serializable {
     /**
      * Sole constructor for invocation by subclass constructors.
      * 
-     * @internal
+     * @draft ICU 4.8
+     * @provisional This API might change or be removed in a future release. 
      */
     protected TimeZoneNames() {
     }
@@ -322,6 +368,8 @@ public abstract class TimeZoneNames implements Serializable {
      * the ICU4J tznamedata component is not available.
      */
     private static class DefaultTimeZoneNames extends TimeZoneNames {
+
+        private static final long serialVersionUID = -995672072494349071L;
 
         public static final DefaultTimeZoneNames INSTANCE = new DefaultTimeZoneNames();
 
