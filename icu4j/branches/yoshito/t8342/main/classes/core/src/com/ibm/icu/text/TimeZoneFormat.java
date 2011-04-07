@@ -6,9 +6,14 @@
  */
 package com.ibm.icu.text;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.text.FieldPosition;
 import java.text.ParsePosition;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.List;
 import java.util.MissingResourceException;
 
 import com.ibm.icu.impl.ICUResourceBundle;
@@ -128,7 +133,10 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
     private String[] _gmtOffsetDigits;
     private String _gmtZeroFormat;
 
-    private static final String[] GMT_ZERO = {"GMT", "UTC", "UT"};
+    private transient String[] _gmtPatternTokens;
+    private transient Object[][] _gmtOffsetPatternItems;
+
+    private static final String[] GMT_ZERO = {"gmt", "utc", "ut"}; // lower case for matching
 
     private static final String DEFAULT_GMT_PATTERN = "GMT{0}";
     private static final String DEFAULT_GMT_ZERO = "GMT";
@@ -148,7 +156,7 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
     protected TimeZoneFormat(ULocale locale) {
         _tznames = TimeZoneNames.getInstance(locale);
 
-        _gmtPattern = DEFAULT_GMT_PATTERN;
+        String gmtPattern = null;
         String hourFormats = null;
         _gmtZeroFormat = DEFAULT_GMT_ZERO;
 
@@ -156,7 +164,7 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
             ICUResourceBundle bundle = (ICUResourceBundle) ICUResourceBundle.getBundleInstance(
                     ICUResourceBundle.ICU_ZONE_BASE_NAME, locale);
             try {
-                _gmtPattern = bundle.getStringWithFallback("zoneStrings/gmtFormat");
+                gmtPattern = bundle.getStringWithFallback("zoneStrings/gmtFormat");
             } catch (MissingResourceException e) {
                 // fall through
             }
@@ -174,18 +182,24 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
             // fall through
         }
 
-        _gmtOffsetPatterns = new String[GMTOffsetPatternType.values().length];
+        if (gmtPattern != null) {
+            gmtPattern = DEFAULT_GMT_PATTERN;
+        }
+        initGMTPattern(gmtPattern);
+
+        String[] gmtOffsetPatterns = new String[GMTOffsetPatternType.values().length];
         if (hourFormats != null) {
             String[] hourPatterns = hourFormats.split(";", 2);
-            _gmtOffsetPatterns[GMTOffsetPatternType.POSITIVE_HM.ordinal()] = hourPatterns[0];
-            _gmtOffsetPatterns[GMTOffsetPatternType.POSITIVE_HMS.ordinal()] = expandOffsetPattern(hourPatterns[0]);
-            _gmtOffsetPatterns[GMTOffsetPatternType.NEGATIVE_HM.ordinal()] = hourPatterns[1];
-            _gmtOffsetPatterns[GMTOffsetPatternType.NEGATIVE_HMS.ordinal()] = expandOffsetPattern(hourPatterns[1]);
+            gmtOffsetPatterns[GMTOffsetPatternType.POSITIVE_HM.ordinal()] = hourPatterns[0];
+            gmtOffsetPatterns[GMTOffsetPatternType.POSITIVE_HMS.ordinal()] = expandOffsetPattern(hourPatterns[0]);
+            gmtOffsetPatterns[GMTOffsetPatternType.NEGATIVE_HM.ordinal()] = hourPatterns[1];
+            gmtOffsetPatterns[GMTOffsetPatternType.NEGATIVE_HMS.ordinal()] = expandOffsetPattern(hourPatterns[1]);
         } else {
             for (GMTOffsetPatternType patType : GMTOffsetPatternType.values()) {
-                _gmtOffsetPatterns[patType.ordinal()] = patType.defaultPattern();
+                gmtOffsetPatterns[patType.ordinal()] = patType.defaultPattern();
             }
         }
+        initGMTOffsetPatterns(gmtOffsetPatterns);
 
         _gmtOffsetDigits = DEFAULT_GMT_DIGITS;
         NumberingSystem ns = NumberingSystem.getInstance(locale);
@@ -245,10 +259,7 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
         if (isFrozen()) {
             throw new UnsupportedOperationException("Attempt to modify frozen object");
         }
-        if (pattern.indexOf("{0}") < 0) {
-            throw new IllegalArgumentException("Missing {0} in the GMT pattern");
-        }
-        _gmtPattern = pattern;
+        initGMTPattern(pattern);
         return this;
     }
 
@@ -274,13 +285,12 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
         if (pattern == null) {
             throw new NullPointerException("Null GMT offset pattern");
         }
-        String requiredLetters = type.required();
-        for (int i = 0; i < requiredLetters.length(); i++) {
-            if (pattern.indexOf(requiredLetters.charAt(i)) < 0) {
-                throw new IllegalArgumentException("Missing pattern letter " + requiredLetters.charAt(i) + " in " + pattern);
-            }
-        }
+
+        Object[] parsedItems = parseOffsetPattern(pattern, type.required());
+
         _gmtOffsetPatterns[type.ordinal()] = pattern;
+        _gmtOffsetPatternItems[type.ordinal()] = parsedItems;
+
         return this;
     }
 
@@ -397,12 +407,6 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
             return _gmtZeroFormat;
         }
 
-        // TODO support more generic patterns without performance penalty - see the note below
-
-        // Note: This code is optimized for performance, but as a result, it makes assumption
-        // that there are no quoted literals in the pattern.
-        // As of CLDR 2.0, all of the data conforms to these rules, so we should probably be OK.
-
         StringBuilder buf = new StringBuilder();
         boolean positive = true;
         if (offset < 0) {
@@ -420,68 +424,41 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
         assert(offsetM >= 0 && offsetM < 60);
         assert(offsetS >= 0 && offsetS < 60);
 
-        String offsetPattern;
+        Object[] offsetPatternItems;
         if (positive) {
-            offsetPattern = (offsetS == 0) ?
-                    _gmtOffsetPatterns[GMTOffsetPatternType.POSITIVE_HM.ordinal()] :
-                    _gmtOffsetPatterns[GMTOffsetPatternType.POSITIVE_HMS.ordinal()];
+            offsetPatternItems = (offsetS == 0) ?
+                    _gmtOffsetPatternItems[GMTOffsetPatternType.POSITIVE_HM.ordinal()] :
+                    _gmtOffsetPatternItems[GMTOffsetPatternType.POSITIVE_HMS.ordinal()];
         } else {
-            offsetPattern = (offsetS == 0) ?
-                    _gmtOffsetPatterns[GMTOffsetPatternType.NEGATIVE_HM.ordinal()] :
-                    _gmtOffsetPatterns[GMTOffsetPatternType.NEGATIVE_HMS.ordinal()];
+            offsetPatternItems = (offsetS == 0) ?
+                    _gmtOffsetPatternItems[GMTOffsetPatternType.NEGATIVE_HM.ordinal()] :
+                    _gmtOffsetPatternItems[GMTOffsetPatternType.NEGATIVE_HMS.ordinal()];
         }
 
-        int subPosition = _gmtPattern.indexOf("{0}");
-        for (int i = 0; i < _gmtPattern.length(); i++) {
-            if (i == subPosition) {
-                for (int j = 0; j < offsetPattern.length(); j++) {
-                    switch(offsetPattern.charAt(j)) {
-                    case 'H':
-                        if (j + 1 < offsetPattern.length() && offsetPattern.charAt(j + 1) == 'H') {
-                            j++;
-                            if (offsetH < 10) {
-                                buf.append(_gmtOffsetDigits[0]);
-                            }
-                        }
-                        if (offsetH >= 10) {
-                            buf.append(_gmtOffsetDigits[offsetH / 10]);
-                        }
-                        buf.append(_gmtOffsetDigits[offsetH % 10]);
-                        break;
-                    case 'm':
-                        if (j + 1 < offsetPattern.length() && offsetPattern.charAt(j + 1) == 'm') {
-                            j++;
-                            if (offsetM < 10) {
-                                buf.append(_gmtOffsetDigits[0]);
-                            }
-                        }
-                        if (offsetM >= 10) {
-                            buf.append(_gmtOffsetDigits[offsetM / 10]);
-                        }
-                        buf.append(_gmtOffsetDigits[offsetM % 10]);
-                        break;
-                    case 's':
-                        if (j + 1 < offsetPattern.length() && offsetPattern.charAt(j + 1) == 's') {
-                            j++;
-                            if (offsetS < 10) {
-                                buf.append(_gmtOffsetDigits[0]);
-                            }
-                        }
-                        if (offsetS >= 10) {
-                            buf.append(_gmtOffsetDigits[offsetS / 10]);
-                        }
-                        buf.append(_gmtOffsetDigits[offsetS % 10]);
-                        break;
-                    default:
-                        buf.append(offsetPattern.charAt(j));
-                        break;
-                    }
+        // Building the GMT format string
+        buf.append(_gmtPatternTokens[0]);
+
+        for (Object item : offsetPatternItems) {
+            if (item instanceof String) {
+                // pattern literal
+                buf.append((String)item);
+            } else if (item instanceof PatternItem) {
+                // Hour/minute/second field
+                PatternItem pti = (PatternItem)item;
+                switch (pti.getType()) {
+                case 'H':
+                    appendOffsetDigits(buf, offsetH, pti.getWidth());
+                    break;
+                case 'm':
+                    appendOffsetDigits(buf, offsetM, pti.getWidth());
+                    break;
+                case 's':
+                    appendOffsetDigits(buf, offsetS, pti.getWidth());
+                    break;
                 }
-                i += 3;
-            } else {
-                buf.append(_gmtPattern.charAt(i));
             }
         }
+        buf.append(_gmtPatternTokens[1]);
         return buf.toString();
     }
 
@@ -776,6 +753,158 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
         return parse(source, pos);
     }
 
+    private void initGMTPattern(String gmtPattern) {
+        // This implementation not perfect, but sufficient practically.
+        int idx = gmtPattern.indexOf("{0}");
+        if (idx < 0) {
+            throw new IllegalArgumentException("Bad localized GMT pattern: " + gmtPattern);
+        }
+        _gmtPattern = gmtPattern;
+        _gmtPatternTokens = new String[2];
+        _gmtPatternTokens[0] = unquote(gmtPattern.substring(0, idx));
+        _gmtPatternTokens[1] = unquote(gmtPattern.substring(idx + 3));
+    }
+
+    private static String unquote(String s) {
+        if (s.indexOf('\'') < 0) {
+            return s;
+        }
+        boolean isPrevQuote = false;
+        boolean inQuote = false;
+        StringBuilder buf = new StringBuilder();
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (c == '\'') {
+                if (isPrevQuote) {
+                    buf.append(c);
+                    isPrevQuote = false;
+                } else {
+                    isPrevQuote = true;
+                }
+                inQuote = !inQuote;
+            } else {
+                isPrevQuote = false;
+                buf.append(c);
+            }
+        }
+        return buf.toString();
+    }
+
+    private void initGMTOffsetPatterns(String[] gmtOffsetPatterns) {
+        int size = GMTOffsetPatternType.values().length;
+        if (gmtOffsetPatterns.length < size) {
+            throw new IllegalArgumentException("Insufficient number of elements in gmtOffsetPatterns");
+        }
+        Object[][] gmtOffsetPatternItems = new Object[size][];
+        for (GMTOffsetPatternType t : GMTOffsetPatternType.values()) {
+            int idx = t.ordinal();
+            // Note: parseOffsetPattern will validate the given pattern and throws
+            // IllegalArgumentException when pattern is not valid
+            Object[] parsedItems = parseOffsetPattern(gmtOffsetPatterns[idx], t.required());
+            gmtOffsetPatternItems[idx] = parsedItems;
+        }
+
+        _gmtOffsetPatterns = new String[size];
+        System.arraycopy(gmtOffsetPatterns, 0, _gmtOffsetPatterns, 0, size);
+        _gmtOffsetPatternItems = gmtOffsetPatternItems;
+    }
+
+    private static class PatternItem {
+        final char _type;
+        final int _width;
+
+        PatternItem(char type, int width) {
+            _type = type;
+            _width = width;
+        }
+
+        char getType() {
+            return _type;
+        }
+
+        int getWidth() {
+            return _width;
+        }
+    }
+
+    private static Object[] parseOffsetPattern(String pattern, String letters) {
+        boolean isPrevQuote = false;
+        boolean inQuote = false;
+        StringBuilder text = new StringBuilder();
+        char itemType = 0;  // 0 for string literal, otherwise time pattern character
+        int itemLength = 1;
+
+        List<Object> items = new ArrayList<Object>();
+        BitSet checkBits = new BitSet(letters.length());
+
+        for (int i = 0; i < pattern.length(); i++) {
+            char ch = pattern.charAt(i);
+            if (ch == '\'') {
+                if (isPrevQuote) {
+                    text.append('\'');
+                    isPrevQuote = false;
+                } else {
+                    isPrevQuote = true;
+                    if (itemType != 0) {
+                        items.add(new PatternItem(itemType, itemLength));
+                        itemType = 0;
+                    }
+                }
+                inQuote = !inQuote;
+            } else {
+                isPrevQuote = false;
+                if (inQuote) {
+                    text.append(ch);
+                } else {
+                    int patFieldIdx = letters.indexOf(ch);
+                    if (patFieldIdx >= 0) {
+                        // an offset time pattern character
+                        if (ch == itemType) {
+                            itemLength++;
+                        } else {
+                            if (itemType == 0) {
+                                if (text.length() > 0) {
+                                    items.add(text.toString());
+                                    text.setLength(0);
+                                }
+                            } else {
+                                items.add(new PatternItem(itemType, itemLength));
+                            }
+                            itemType = ch;
+                            itemLength = 1;
+                        }
+                        checkBits.set(patFieldIdx);
+                    } else {
+                        // a string literal
+                        if (itemType != 0) {
+                            items.add(new PatternItem(itemType, itemLength));
+                            itemType = 0;
+                        }
+                        text.append(ch);
+                    }
+                }
+            }
+        }
+        // handle last item
+        if (itemType == 0) {
+            if (text.length() > 0) {
+                items.add(text.toString());
+                text.setLength(0);
+            }
+        } else {
+            items.add(new PatternItem(itemType, itemLength));
+        }
+
+        if (checkBits.cardinality() != letters.length()) {
+            throw new IllegalStateException("Bad localized GMT offset pattern: " + pattern);
+        }
+
+        return items.toArray(new Object[items.size()]);
+    }
+
+    /*
+     * This code will be obsoleted once we add hour-minute-second pattern data in CLDR
+     */
     private static String expandOffsetPattern(String offsetHM) {
         int idx_mm = offsetHM.indexOf("mm");
         if (idx_mm < 0) {
@@ -790,7 +919,20 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
         return offsetHM.substring(0, idx_mm + 2) + sep + "ss" + offsetHM.substring(idx_mm + 2);
     }
 
-    private int parseDigits(String text, int offset, int minDigits, int maxDigits, int[] parsedLength) {
+    private void appendOffsetDigits(StringBuilder buf, int n, int minDigits) {
+        // This code assumes that the input number is 0 - 59
+        assert(n >= 0 && n < 60);
+        int numDigits = n >= 10 ? 2 : 1;
+        for (int i = 0; i < minDigits - numDigits; i++) {
+            buf.append(_gmtOffsetDigits[0]);
+        }
+        if (numDigits == 2) {
+            buf.append(_gmtOffsetDigits[n / 10]);
+        }
+        buf.append(_gmtOffsetDigits[n % 10]);
+    }
+
+    private int parseOffsetDigits(String text, int offset, int minDigits, int maxDigits, int[] parsedLength) {
         int decVal = 0;
         int numDigits = 0;
         int idx = offset;
@@ -840,6 +982,16 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
             offset += codeLen;
         }
         return codePoints;
+    }
+
+    /*
+     * Custom readObject for initializing the necessary transient fields
+     */
+    private void readObject(ObjectInputStream ois) throws ClassNotFoundException, IOException {
+        ois.defaultReadObject();
+
+        initGMTPattern(_gmtPattern);
+        initGMTOffsetPatterns(_gmtOffsetPatterns);
     }
 
     /**
