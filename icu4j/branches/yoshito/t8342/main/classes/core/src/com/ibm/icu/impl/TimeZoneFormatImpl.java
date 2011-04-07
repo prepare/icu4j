@@ -24,10 +24,11 @@ import com.ibm.icu.util.TimeZone.SystemTimeZoneType;
 import com.ibm.icu.util.ULocale;
 
 /**
- * @author yumaoka
- *
+ * The ICU's default implementation of <code>TimeZoneFormat</code>
  */
 public class TimeZoneFormatImpl extends TimeZoneFormat {
+
+    private static final long serialVersionUID = 2686884826329821680L;
 
     private ULocale _locale;
 
