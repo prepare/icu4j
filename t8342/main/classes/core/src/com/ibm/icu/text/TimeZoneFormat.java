@@ -15,13 +15,14 @@ import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.impl.SoftCache;
 import com.ibm.icu.impl.TimeZoneFormatImpl;
 import com.ibm.icu.impl.ZoneMeta;
+import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.Freezable;
 import com.ibm.icu.util.TimeZone;
 import com.ibm.icu.util.ULocale;
 
+//TODO format documentation
 /**
- * @author yumaoka
  *
  */
 public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>, Serializable {
@@ -72,27 +73,33 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
         /**
          * @draft ICU 4.8
          */
-        POSITIVE_HM ("+HH:mm"),
+        POSITIVE_HM ("+HH:mm", "Hm"),
         /**
          * @draft ICU 4.8
          */
-        POSITIVE_HMS ("+HH:mm:ss"),
+        POSITIVE_HMS ("+HH:mm:ss", "Hms"),
         /**
          * @draft ICU 4.8
          */
-        NEGATIVE_HM ("-HH:mm"),
+        NEGATIVE_HM ("-HH:mm", "Hm"),
         /**
          * @draft ICU 4.8
          */
-        NEGATIVE_HMS ("-HH:mm:ss");
+        NEGATIVE_HMS ("-HH:mm:ss", "Hms");
 
-        String _defaultPattern;
-        private GMTOffsetPatternType(String defaultPattern) {
+        private String _defaultPattern;
+        private String _required;
+        private GMTOffsetPatternType(String defaultPattern, String required) {
             _defaultPattern = defaultPattern;
+            _required = required;
         }
 
         private String defaultPattern() {
             return _defaultPattern;
+        }
+
+        private String required() {
+            return _required;
         }
     }
 
@@ -118,12 +125,14 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
     private TimeZoneNames _tznames;
     private String _gmtPattern;
     private String[] _gmtOffsetPatterns;
-    private String _gmtOffsetDigits;
+    private String[] _gmtOffsetDigits;
     private String _gmtZeroFormat;
+
+    private static final String[] GMT_ZERO = {"GMT", "UTC", "UT"};
 
     private static final String DEFAULT_GMT_PATTERN = "GMT{0}";
     private static final String DEFAULT_GMT_ZERO = "GMT";
-    private static final String DEFAULT_GMT_DIGITS = "0123456789";
+    private static final String[] DEFAULT_GMT_DIGITS = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9"};
     private static final String RFC822_DIGITS = "0123456789";
 
     private static final int MILLIS_PER_HOUR = 60 * 60 * 1000;
@@ -182,7 +191,7 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
         NumberingSystem ns = NumberingSystem.getInstance(locale);
         if (!ns.isAlgorithmic()) {
             // we do not support algorithmic numbering system for GMT offset for now
-            _gmtOffsetDigits = ns.getDescription();
+            _gmtOffsetDigits = toCodePoints(ns.getDescription());
         }
     }
 
@@ -236,6 +245,9 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
         if (isFrozen()) {
             throw new UnsupportedOperationException("Attempt to modify frozen object");
         }
+        if (pattern.indexOf("{0}") < 0) {
+            throw new IllegalArgumentException("Missing {0} in the GMT pattern");
+        }
         _gmtPattern = pattern;
         return this;
     }
@@ -259,6 +271,15 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
         if (isFrozen()) {
             throw new UnsupportedOperationException("Attempt to modify frozen object");
         }
+        if (pattern == null) {
+            throw new NullPointerException("Null GMT offset pattern");
+        }
+        String requiredLetters = type.required();
+        for (int i = 0; i < requiredLetters.length(); i++) {
+            if (pattern.indexOf(requiredLetters.charAt(i)) < 0) {
+                throw new IllegalArgumentException("Missing pattern letter " + requiredLetters.charAt(i) + " in " + pattern);
+            }
+        }
         _gmtOffsetPatterns[type.ordinal()] = pattern;
         return this;
     }
@@ -268,7 +289,11 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
      * @return
      */
     public String getGMTOffsetDigits() {
-        return _gmtOffsetDigits;
+        StringBuilder buf = new StringBuilder(_gmtOffsetDigits.length);
+        for (String digit : _gmtOffsetDigits) {
+            buf.append(digit);
+        }
+        return buf.toString();
     }
 
     /**
@@ -280,10 +305,14 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
         if (isFrozen()) {
             throw new UnsupportedOperationException("Attempt to modify frozen object");
         }
-        if (digits.length() != 10) {
+        if (digits == null) {
+            throw new NullPointerException("Null GMT offset digits");
+        }
+        String[] digitArray = toCodePoints(digits);
+        if (digitArray.length != 10) {
             throw new IllegalArgumentException("Length of digits must be 10");
         }
-        _gmtOffsetDigits = digits;
+        _gmtOffsetDigits = digitArray;
         return this;
     }
 
@@ -303,6 +332,12 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
     public TimeZoneFormat setGMTZeroFormat(String gmtZeroFormat) {
         if (isFrozen()) {
             throw new UnsupportedOperationException("Attempt to modify frozen object");
+        }
+        if (gmtZeroFormat == null) {
+            throw new NullPointerException("Null GMT zero format");
+        }
+        if (gmtZeroFormat.length() == 0) {
+            throw new IllegalArgumentException("Empty GMT zero format");
         }
         _gmtZeroFormat = gmtZeroFormat;
         return this;
@@ -358,11 +393,16 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
      * @return
      */
     public final String formatLocalizedGMT(int offset) {
-        // Note: This code is optimized for performance, but as a result, it makes assumptions
-        // about the content and structure of the underlying CLDR data.
-        // Specifically, it assumes that the H or HH in the pattern occurs before the mm,
-        // and that there are no quoted literals in the pattern that contain H or m.
+        if (offset == 0) {
+            return _gmtZeroFormat;
+        }
+
+        // TODO support more generic patterns without performance penalty - see the note below
+
+        // Note: This code is optimized for performance, but as a result, it makes assumption
+        // that there are no quoted literals in the pattern.
         // As of CLDR 2.0, all of the data conforms to these rules, so we should probably be OK.
+
         StringBuilder buf = new StringBuilder();
         boolean positive = true;
         if (offset < 0) {
@@ -400,37 +440,37 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
                         if (j + 1 < offsetPattern.length() && offsetPattern.charAt(j + 1) == 'H') {
                             j++;
                             if (offsetH < 10) {
-                                buf.append(_gmtOffsetDigits.charAt(0));
+                                buf.append(_gmtOffsetDigits[0]);
                             }
                         }
                         if (offsetH >= 10) {
-                            buf.append(_gmtOffsetDigits.charAt(offsetH / 10));
+                            buf.append(_gmtOffsetDigits[offsetH / 10]);
                         }
-                        buf.append(_gmtOffsetDigits.charAt(offsetH % 10));
+                        buf.append(_gmtOffsetDigits[offsetH % 10]);
                         break;
                     case 'm':
                         if (j + 1 < offsetPattern.length() && offsetPattern.charAt(j + 1) == 'm') {
                             j++;
                             if (offsetM < 10) {
-                                buf.append(_gmtOffsetDigits.charAt(0));
+                                buf.append(_gmtOffsetDigits[0]);
                             }
                         }
                         if (offsetM >= 10) {
-                            buf.append(_gmtOffsetDigits.charAt(offsetM / 10));
+                            buf.append(_gmtOffsetDigits[offsetM / 10]);
                         }
-                        buf.append(_gmtOffsetDigits.charAt(offsetM % 10));
+                        buf.append(_gmtOffsetDigits[offsetM % 10]);
                         break;
                     case 's':
                         if (j + 1 < offsetPattern.length() && offsetPattern.charAt(j + 1) == 's') {
                             j++;
                             if (offsetS < 10) {
-                                buf.append(_gmtOffsetDigits.charAt(0));
+                                buf.append(_gmtOffsetDigits[0]);
                             }
                         }
                         if (offsetS >= 10) {
-                            buf.append(_gmtOffsetDigits.charAt(offsetS / 10));
+                            buf.append(_gmtOffsetDigits[offsetS / 10]);
                         }
-                        buf.append(_gmtOffsetDigits.charAt(offsetS % 10));
+                        buf.append(_gmtOffsetDigits[offsetS % 10]);
                         break;
                     default:
                         buf.append(offsetPattern.charAt(j));
@@ -611,14 +651,20 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
 
     private void parseLocalizedGMT(String text, int start, ParseResult result) {
         //TODO
-    }
 
-    private void parseGMTZeroFormat(String text, int start, ParseResult result) {
-        result.reset();
+        // Check if this is a GMT zero format
         if (text.regionMatches(true, start, _gmtZeroFormat, 0, _gmtZeroFormat.length())) {
             result._length = _gmtZeroFormat.length();
             result._offset = 0;
             result._type = TimeType.STANDARD;
+        }
+        // try "global" GMT zero formats ("GMT", "UTC" and "UT")
+        for (String gmt : GMT_ZERO) {
+            if (text.regionMatches(true, start, gmt, 0, gmt.length())) {
+                result._length = gmt.length();
+                result._offset = 0;
+                result._type = TimeType.STANDARD;
+            }
         }
     }
 
@@ -742,6 +788,58 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
             sep = offsetHM.substring(idx_H + 1, idx_mm);
         }
         return offsetHM.substring(0, idx_mm + 2) + sep + "ss" + offsetHM.substring(idx_mm + 2);
+    }
+
+    private int parseDigits(String text, int offset, int minDigits, int maxDigits, int[] parsedLength) {
+        int decVal = 0;
+        int numDigits = 0;
+        int idx = offset;
+        while (idx < text.length() && numDigits < maxDigits) {
+            int digit = -1;
+            int cp = Character.codePointAt(text, idx);
+
+            // First, try digits configured for this instance
+            for (int i = 0; i < _gmtOffsetDigits.length; i++) {
+                if (cp == _gmtOffsetDigits[i].codePointAt(0)) {
+                    digit = i;
+                    break;
+                }
+            }
+            // If failed, check if this is a Unicode digit
+            if (digit < 0) {
+                digit = UCharacter.digit(cp);
+                if (digit < 0) {
+                    break;
+                }
+            }
+            decVal = decVal * 10 + digit;
+            numDigits++;
+            idx += Character.charCount(cp);
+        }
+
+        if (numDigits < minDigits) {
+            decVal = -1;
+            numDigits = 0;
+        }
+
+        if (parsedLength != null && parsedLength.length > 0) {
+            parsedLength[0] = idx - offset; 
+        }
+
+        return decVal;
+    }
+
+    private static String[] toCodePoints(String str) {
+        int len = str.codePointCount(0, str.length());
+        String[] codePoints = new String[len];
+
+        for (int i = 0, offset = 0; i < len; i++) {
+            int code = str.codePointAt(offset);
+            int codeLen = Character.charCount(code);
+            codePoints[i] = str.substring(offset, offset + codeLen);
+            offset += codeLen;
+        }
+        return codePoints;
     }
 
     /**
