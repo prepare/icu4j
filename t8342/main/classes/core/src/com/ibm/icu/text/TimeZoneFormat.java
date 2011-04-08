@@ -438,9 +438,9 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
         offset = offset % MILLIS_PER_MINUTE;
         int offsetS = offset / MILLIS_PER_SECOND;
 
-        assert(offsetH >= 0 && offsetH < 100);
-        assert(offsetM >= 0 && offsetM < 60);
-        assert(offsetS >= 0 && offsetS < 60);
+        if (offsetH > MAX_OFFSET_HOUR || offsetM > MAX_OFFSET_MINUTE || offsetS > MAX_OFFSET_SECOND) {
+            throw new IllegalArgumentException("Offset out of range :" + offset);
+        }
 
         Object[] offsetPatternItems;
         if (positive) {
@@ -661,10 +661,10 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
             idx += len;
 
             // Offset part
-            int offsetLen = parseGMTOffset(text, idx, false, offset);
+            int offsetLen = parseGMTOffset(text, idx, false, false, offset);
             if (offsetLen == 0) {
                 // Stop at offset hour field, so we can support format like GMT-5
-                offsetLen = parseGMTOffset(text, idx, true, offset);
+                offsetLen = parseGMTOffset(text, idx, true, false, offset);
                 if (offsetLen == 0) {
                     break;
                 }
@@ -702,62 +702,6 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
                 }
             }
         }
-    }
-
-    private int parseGMTOffset(String text, int start, boolean quitAtHourField, int[] offset) {
-        int parsedLen = 0;
-        int[] tmpParsedLen = new int[1];
-        offset[0] = 0;
-
-        for (GMTOffsetPatternType gmtPatType : PARSE_GMT_OFFSET_TYPES) {
-            int offsetH = 0, offsetM = 0, offsetS = 0;
-            int idx = start;
-            boolean failed = false;
-            Object[] items = _gmtOffsetPatternItems[gmtPatType.ordinal()];
-            for (Object o : items) {
-                if (o instanceof String) {
-                    String patStr = (String)o;
-                    int len = patStr.length();
-                    if (!text.regionMatches(true, idx, patStr, 0, len)) {
-                        failed = true;
-                        break;
-                    }
-                    idx += len;
-                } else {
-                    assert(o instanceof GMTOffsetField);
-                    GMTOffsetField field = (GMTOffsetField)o;
-                    boolean sawHour = false;
-                    switch (field.getType()) {
-                    case 'H':
-                        offsetH = parseOffsetDigits(text, idx, 1, 2, 0, MAX_OFFSET_HOUR, tmpParsedLen);
-                        sawHour = true;
-                        break;
-                    case 'm':
-                        offsetM = parseOffsetDigits(text, idx, 2, 2, 0, MAX_OFFSET_MINUTE, tmpParsedLen);
-                        break;
-                    case 's':
-                        offsetS = parseOffsetDigits(text, idx, 2, 2, 0, MAX_OFFSET_SECOND, tmpParsedLen);
-                        break;
-                    }
-                    if (tmpParsedLen[0] == 0) {
-                        failed = true;
-                        break;
-                    }
-                    idx += tmpParsedLen[0];
-                    if (quitAtHourField && sawHour) {
-                        break;
-                    }
-                }
-            }
-            if (!failed) {
-                int sign = gmtPatType.isPositive() ? 1 : -1;
-                offset[0] = ((((offsetH * 60) + offsetM) * 60) + offsetS) * 1000 * sign;
-                parsedLen = idx - start;
-                break;
-            }
-        }
-
-        return parsedLen;
     }
 
     /**
@@ -1078,6 +1022,84 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
             buf.append(_gmtOffsetDigits[n / 10]);
         }
         buf.append(_gmtOffsetDigits[n % 10]);
+    }
+
+    private int parseGMTOffset(String text, int start, boolean quitAtHourField, boolean minimumHourWidth, int[] offset) {
+        int parsedLen = 0;
+        int[] tmpParsedLen = new int[1];
+        offset[0] = 0;
+        boolean sawVarHourAndAbuttingField = false;
+
+        for (GMTOffsetPatternType gmtPatType : PARSE_GMT_OFFSET_TYPES) {
+            int offsetH = 0, offsetM = 0, offsetS = 0;
+            int idx = start;
+            Object[] items = _gmtOffsetPatternItems[gmtPatType.ordinal()];
+            boolean failed = false;
+            for (int i = 0; i < items.length; i++) {
+                boolean sawHour = false;
+                if (items[i] instanceof String) {
+                    String patStr = (String)items[i];
+                    int len = patStr.length();
+                    if (!text.regionMatches(true, idx, patStr, 0, len)) {
+                        failed = true;
+                        break;
+                    }
+                    idx += len;
+                } else {
+                    assert(items[i] instanceof GMTOffsetField);
+                    GMTOffsetField field = (GMTOffsetField)items[i];
+                    char fieldType = field.getType();
+                    if (fieldType == 'H') {
+                        int minDigits = 1;
+                        int maxDigits = minimumHourWidth ? 1 : 2;
+                        if (!minimumHourWidth && !sawVarHourAndAbuttingField) {
+                            if (i + 1 < items.length && (items[i] instanceof GMTOffsetField)) {
+                                sawVarHourAndAbuttingField = true;
+                            }
+                        }
+                        sawHour = true;
+                        offsetH = parseOffsetDigits(text, idx, minDigits, maxDigits, 0, MAX_OFFSET_HOUR, tmpParsedLen);
+                    } else if (fieldType == 'm') {
+                        offsetM = parseOffsetDigits(text, idx, 2, 2, 0, MAX_OFFSET_MINUTE, tmpParsedLen);
+                    } else if (fieldType == 's') {
+                        offsetS = parseOffsetDigits(text, idx, 2, 2, 0, MAX_OFFSET_SECOND, tmpParsedLen);
+                    }
+
+                    if (tmpParsedLen[0] == 0) {
+                        failed = true;
+                        break;
+                    }
+                    idx += tmpParsedLen[0];
+                    if (quitAtHourField && sawHour) {
+                        break;
+                    }
+                }
+            }
+            if (!failed) {
+                int sign = gmtPatType.isPositive() ? 1 : -1;
+                offset[0] = ((((offsetH * 60) + offsetM) * 60) + offsetS) * 1000 * sign;
+                parsedLen = idx - start;
+                break;
+            }
+        }
+
+        if (parsedLen == 0 && sawVarHourAndAbuttingField && !quitAtHourField && !minimumHourWidth) {
+            // When hour field is variable width and another non-literal pattern
+            // field follows, the parse loop above might eat up the digit from
+            // the abutting field. For example, with pattern "-Hmm" and input "-100",
+            // the hour is parsed as -10 and fails to parse minute field.
+            //
+            // If this is the case, try parsing the text one more time with the arg
+            // minimumHourWidth = true
+            //
+            // Note: This fallback is not applicable when quitAtHourField is true, because
+            // the option is designed for supporting the case like "GMT+5". In this case,
+            // we should get better result for parsing hour digits as much as possible.
+
+            return parseGMTOffset(text, start, false, true, offset);
+        }
+
+        return parsedLen;
     }
 
     private int parseOffsetDigits(String text, int offset, int minDigits, int maxDigits,
