@@ -19,8 +19,10 @@ import com.ibm.icu.text.LocaleDisplayNames;
 import com.ibm.icu.text.TimeZoneFormat;
 import com.ibm.icu.text.TimeZoneNames;
 import com.ibm.icu.text.TimeZoneNames.NameType;
+import com.ibm.icu.util.BasicTimeZone;
 import com.ibm.icu.util.TimeZone;
 import com.ibm.icu.util.TimeZone.SystemTimeZoneType;
+import com.ibm.icu.util.TimeZoneTransition;
 import com.ibm.icu.util.ULocale;
 
 /**
@@ -74,6 +76,10 @@ public class TimeZoneFormatImpl extends TimeZoneFormat {
 
     private static final int DEF_MZIDS_HASH_SIZE = 128;
 
+    // Window size used for DST check for a zone in a metazone (about a half year)
+    private static final long DST_CHECK_RANGE = 184L*(24*60*60*1000);
+
+
     public TimeZoneFormatImpl(ULocale locale) {
         super(locale);
         _locale = locale;
@@ -104,6 +110,9 @@ public class TimeZoneFormatImpl extends TimeZoneFormat {
     }
 
     private String formatSpecific(TimeZone tz, long date, NameType stdType, NameType dstType) {
+        assert(stdType == NameType.LONG_STANDARD || stdType == NameType.SHORT_STANDARD || stdType == NameType.SHORT_STANDARD_COMMONLY_USED);
+        assert(dstType == NameType.LONG_DAYLIGHT || dstType == NameType.SHORT_DAYLIGHT || dstType == NameType.SHORT_DAYLIGHT_COMMONLY_USED);
+
         boolean isDaylight = tz.inDaylightTime(new Date(date));
         String name = isDaylight?
                 getTimeZoneNames().getDisplayName(tz.getCanonicalID(), dstType, date) :
@@ -127,7 +136,24 @@ public class TimeZoneFormatImpl extends TimeZoneFormat {
         return formatGeneric(tz, date, NameType.SHORT_GENERIC);
     }
 
+
+    /*
+     * Private method to get a generic string, with fallback logics involved,
+     * that is,
+     * 
+     * 1. If a generic non-location string is available for the zone, return it.
+     * 2. If a generic non-location string is associated with a metazone and 
+     *    the zone never use daylight time around the given date, use the standard
+     *    string (if available).
+     * 3. If a generic non-location string is associated with a metazone and
+     *    the offset at the given time is different from the preferred zone for the
+     *    current locale, then return the generic partial location string (if avaiable)
+     * 4. If a generic non-location string is not available, use generic location
+     *    string.
+     */
     private String formatGeneric(TimeZone tz, long date, NameType nameType) {
+        assert(nameType == NameType.LONG_GENERIC || nameType == NameType.SHORT_GENERIC);
+
         String tzID = tz.getCanonicalID();
         TimeZoneNames names = getTimeZoneNames();
 
@@ -141,9 +167,88 @@ public class TimeZoneFormatImpl extends TimeZoneFormat {
         // Try meta zone
         String mzID = names.getMetaZoneID(tzID, date);
         if (mzID != null) {
-            name = names.getMetaZoneDisplayName(mzID, nameType);
-            if (name != null) {
-                name = processMetaZoneGenericName(tz, date, mzID, name);
+            boolean useStandard = false;
+            int[] offsets = {0, 0};
+            tz.getOffset(date, false, offsets);
+
+            if (offsets[1] == 0) {
+                useStandard = true;
+                // Check if the zone actually uses daylight saving time around the time
+                if (tz instanceof BasicTimeZone) {
+                    BasicTimeZone btz = (BasicTimeZone)tz;
+                    TimeZoneTransition before = btz.getPreviousTransition(date, true);
+                    if (before != null
+                            && (date - before.getTime() < DST_CHECK_RANGE)
+                            && before.getFrom().getDSTSavings() != 0) {
+                        useStandard = false;
+                    } else {
+                        TimeZoneTransition after = btz.getNextTransition(date, false);
+                        if (after != null
+                                && (after.getTime() - date < DST_CHECK_RANGE)
+                                && after.getTo().getDSTSavings() != 0) {
+                            useStandard = false;
+                        }
+                    }
+                } else {
+                    // If not BasicTimeZone... only if the instance is not an ICU's implementation.
+                    // We may get a wrong answer in edge case, but it should practically work OK.
+                    int[] tmpOffsets = new int[2];
+                    tz.getOffset(date - DST_CHECK_RANGE, false, tmpOffsets);
+                    if (tmpOffsets[1] != 0) {
+                        useStandard = false;
+                    } else {
+                        tz.getOffset(date + DST_CHECK_RANGE, false, tmpOffsets);
+                        if (tmpOffsets[1] != 0){
+                            useStandard = false;
+                        }
+                    }
+                }
+            }
+            if (useStandard) {
+                NameType stdNameType = (nameType == NameType.LONG_GENERIC) ?
+                        NameType.LONG_STANDARD : NameType.SHORT_STANDARD;
+                String stdName = names.getDisplayName(tzID, stdNameType, date);
+                if (stdName != null) {
+                    name = stdName;
+
+                    // TODO: revisit this issue later
+                    // In CLDR, a same display name is used for both generic and standard
+                    // for some meta zones in some locales.  This looks like a data bugs.
+                    // For now, we check if the standard name is different from its generic
+                    // name below.
+                    String mzGenericName = names.getMetaZoneDisplayName(mzID, nameType);
+                    if (stdName.equalsIgnoreCase(mzGenericName)) {
+                        name = null;
+                    }
+                }
+            }
+
+            if (name == null) {
+                // Get a name from meta zone
+                String mzName = names.getMetaZoneDisplayName(mzID, nameType);
+                if (mzName != null) {
+                    // Check if we need to use a partial location format.
+                    // This check is done by comparing offset with the meta zone's
+                    // golden zone at the given date.
+                    String goldenID = getTimeZoneNames().getReferenceZoneID(mzID, getTargetRegion());
+                    if (goldenID != null && !goldenID.equals(tz.getCanonicalID())) {
+                        TimeZone goldenZone = TimeZone.getTimeZone(goldenID);
+                        int[] offsets1 = {0, 0};
+
+                        // Check offset in the golden zone with wall time.
+                        // With getOffset(date, false, offsets1),
+                        // you may get incorrect results because of time overlap at DST->STD
+                        // transition.
+                        goldenZone.getOffset(date + offsets[0] + offsets[1], true, offsets1);
+
+                        if (offsets[0] != offsets1[0] || offsets[1] != offsets1[1]) {
+                            // Now we need to use a partial location format.
+                            name = formatPartialLocation(tzID, mzName);
+                        }
+                    } else {
+                        name = mzName;
+                    }
+                }
             }
         }
         return name;
@@ -295,7 +400,7 @@ public class TimeZoneFormatImpl extends TimeZoneFormat {
 
     private void collectSpecificNames(TextTrieMap<ZoneNameInfo> trie, boolean isLong) {
         NameType stdType = isLong ? NameType.LONG_STANDARD : NameType.SHORT_STANDARD;
-        NameType dstType = isLong ? NameType.LONG_STANDARD : NameType.SHORT_DAYLIGHT;
+        NameType dstType = isLong ? NameType.LONG_DAYLIGHT : NameType.SHORT_DAYLIGHT;
 
         Set<String> ids = TimeZone.getAvailableIDs(SystemTimeZoneType.CANONICAL, null, null);
         Set<String> processedMzids = new HashSet<String>(DEF_MZIDS_HASH_SIZE);
@@ -440,30 +545,6 @@ public class TimeZoneFormatImpl extends TimeZoneFormat {
             }
         }
         return _region;
-    }
-
-    private String processMetaZoneGenericName(TimeZone tz, long date, String mzID, String mzDisplayName) {
-        String name = mzDisplayName;
-        String tzID = tz.getCanonicalID();
-
-        // Check if we need to use a partial location format.
-        // This check is done by comparing offset with the meta zone's
-        // golden zone at the given date.
-        String goldenID = getTimeZoneNames().getReferenceZoneID(mzID, getTargetRegion());
-        if (goldenID != null && !goldenID.equals(tz.getCanonicalID())) {
-            TimeZone goldenZone = TimeZone.getTimeZone(goldenID);
-            int[] offsets0 = new int[2];
-            int[] offsets1 = new int[2];
-
-            tz.getOffset(date, false, offsets0);
-            goldenZone.getOffset(date, false, offsets1);
-
-            if (offsets0[0] != offsets1[0] || offsets0[1] != offsets1[1]) {
-                // Now we need to use a partial location format.
-                name = formatPartialLocation(tzID, mzDisplayName);
-            }
-        }
-        return name;
     }
 
     private String formatPartialLocation(String tzID, String mzDisplayName) {
