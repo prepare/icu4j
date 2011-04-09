@@ -106,8 +106,8 @@ public class TimeZoneFormatImpl extends TimeZoneFormat {
     private String formatSpecific(TimeZone tz, long date, NameType stdType, NameType dstType) {
         boolean isDaylight = tz.inDaylightTime(new Date(date));
         String name = isDaylight?
-                getTimeZoneNames().getDisplayName(tz.getID(), dstType, date) :
-                getTimeZoneNames().getDisplayName(tz.getID(), stdType, date);
+                getTimeZoneNames().getDisplayName(tz.getCanonicalID(), dstType, date) :
+                getTimeZoneNames().getDisplayName(tz.getCanonicalID(), stdType, date);
         return name;
     }
 
@@ -128,7 +128,7 @@ public class TimeZoneFormatImpl extends TimeZoneFormat {
     }
 
     private String formatGeneric(TimeZone tz, long date, NameType nameType) {
-        String tzID = tz.getID();
+        String tzID = tz.getCanonicalID();
         TimeZoneNames names = getTimeZoneNames();
 
         // Try to get a name from time zone first
@@ -444,13 +444,13 @@ public class TimeZoneFormatImpl extends TimeZoneFormat {
 
     private String processMetaZoneGenericName(TimeZone tz, long date, String mzID, String mzDisplayName) {
         String name = mzDisplayName;
-        String tzID = tz.getID();
+        String tzID = tz.getCanonicalID();
 
         // Check if we need to use a partial location format.
         // This check is done by comparing offset with the meta zone's
         // golden zone at the given date.
         String goldenID = getTimeZoneNames().getReferenceZoneID(mzID, getTargetRegion());
-        if (goldenID != null && !goldenID.equals(tz.getID())) {
+        if (goldenID != null && !goldenID.equals(tz.getCanonicalID())) {
             TimeZone goldenZone = TimeZone.getTimeZone(goldenID);
             int[] offsets0 = new int[2];
             int[] offsets1 = new int[2];
