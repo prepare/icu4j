@@ -401,6 +401,27 @@ public class OlsonTimeZone extends BasicTimeZone {
         return true;
     }
 
+    /* (non-Javadoc)
+     * @see com.ibm.icu.util.TimeZone#getCanonicalID()
+     */
+    @Override
+    public String getCanonicalID() {
+        if (canonicalID == null) {
+            synchronized(this) {
+                if (canonicalID == null) {
+                    canonicalID = getCanonicalID(getID());
+
+                    assert(canonicalID != null);
+                    if (canonicalID == null) {
+                        // This should never happen...
+                        canonicalID = getID();
+                    }
+                }
+            }
+        }
+        return canonicalID;
+    }
+
     /**
      * Construct a GMT+0 zone with no transitions.  This is done when a
      * constructor fails so the resultant object is well-behaved.
@@ -589,7 +610,21 @@ public class OlsonTimeZone extends BasicTimeZone {
         super.setID(id);
     }
 
+    /* (non-Javadoc)
+     * @see com.ibm.icu.util.TimeZone#setID(java.lang.String)
+     */
+    @Override
     public void setID(String id){
+        // Before updating the ID, preserve the original ID's canonical ID.
+        if (canonicalID == null) {
+            canonicalID = getCanonicalID(getID());
+            assert(canonicalID != null);
+            if (canonicalID == null) {
+                // This should never happen...
+                canonicalID = getID();
+            }
+        }
+
         if (finalZone != null){
             finalZone.setID(id);
         }
@@ -796,6 +831,12 @@ public class OlsonTimeZone extends BasicTimeZone {
      */
     private SimpleTimeZone finalZone = null; // owned, may be NULL
  
+    /**
+     * The canonical ID of this zone. Initialized when {@link #getCanonicalID()}
+     * is invoked first time, or {@link #setID(String)} is called.
+     */
+    private volatile String canonicalID = null;
+
     private static final String ZONEINFORES = "zoneinfo64";
 
     private static final boolean DEBUG = ICUDebug.enabled("olson");

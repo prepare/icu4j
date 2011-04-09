@@ -206,7 +206,7 @@ abstract public class TimeZone implements Serializable, Cloneable {
      * @see #getTimeZone(String)
      * 
      * @draft ICU 4.8
-     * @provisional This API might change or be removed in a future release. 
+     * @provisional This API might change or be removed in a future release.
      */
     public static final String UNKNOWN_ZONE_ID = "Etc/Unknown";
 
@@ -215,27 +215,27 @@ abstract public class TimeZone implements Serializable, Cloneable {
      * {@link TimeZone#getAvailableIDs(SystemTimeZoneType, String, Integer)}
      *
      * @draft ICU 4.8
-     * @provisional This API might change or be removed in a future release. 
+     * @provisional This API might change or be removed in a future release.
      */
     public enum SystemTimeZoneType {
         /**
          * Any system zones.
          * @draft ICU 4.8
-         * @provisional This API might change or be removed in a future release. 
+         * @provisional This API might change or be removed in a future release.
          */
         ANY,
 
         /**
          * Canonical system zones.
          * @draft ICU 4.8
-         * @provisional This API might change or be removed in a future release. 
+         * @provisional This API might change or be removed in a future release.
          */
         CANONICAL,
 
         /**
          * Canonical system zones associated with actual locations.
          * @draft ICU 4.8
-         * @provisional This API might change or be removed in a future release. 
+         * @provisional This API might change or be removed in a future release.
          */
         CANONICAL_LOCATION,
     }
@@ -374,6 +374,27 @@ abstract public class TimeZone implements Serializable, Cloneable {
         }
         this.ID = ID;
     }
+
+    /**
+     * {@icu} Gets the canonical ID of this time zone.
+     * <p>
+     * <b>Note</b>: The default implementation returns the result of
+     * <code>TimeZone.{@link TimeZone#getCanonicalID(String) getCanonicalID(getID())}</code>,
+     * or the ID of this time zone (when {@link TimeZone#getCanonicalID(String)} returns null).
+     * A subclass may overrides the method to return a different result. For example, ICU's own
+     * implementation class for system time zones overrides this method and returns the canonical
+     * ID of the system ID which was originally used for instantiation (therefore, it won't be
+     * changed even a different ID is set by {@link TimeZone#setID(String)}.
+     * 
+     * @return The canonical ID of this time zone.
+     * @draft ICU 4.8
+     * @provisional This API might change or be removed in a future release.
+     */
+    public String getCanonicalID() {
+        String canonicalID = getCanonicalID(ID);
+        return canonicalID == null ? ID : canonicalID;
+    }
+
 
     /**
      * Returns a name of this time zone suitable for presentation to the user
@@ -667,7 +688,7 @@ abstract public class TimeZone implements Serializable, Cloneable {
      * @see SystemTimeZoneType
      * 
      * @draft ICU 4.8
-     * @provisional This API might change or be removed in a future release. 
+     * @provisional This API might change or be removed in a future release.
      */ 
     public static Set<String> getAvailableIDs(SystemTimeZoneType zoneType,
             String region, Integer rawOffset) {
@@ -954,7 +975,7 @@ abstract public class TimeZone implements Serializable, Cloneable {
      * @see #getAvailableIDs(String) 
      * 
      * @draft ICU 4.8
-     * @provisional This API might change or be removed in a future release. 
+     * @provisional This API might change or be removed in a future release.
      */ 
     public static String getRegion(String id) {
         String region = null;

@@ -913,7 +913,7 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
         String result = null;
         switch (style) {
         case GENERIC_LOCATION:
-            result = handleFormatGenericLocation(tz.getID());
+            result = handleFormatGenericLocation(tz.getCanonicalID());
             break;
         case GENERIC_LONG:
             result = handleFormatLongGeneric(tz, date);
