@@ -16,8 +16,8 @@ import java.text.FieldPosition;
 import java.text.ParseException;
 import java.text.ParsePosition;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.BitSet;
-import java.util.Collections;
 import java.util.List;
 import java.util.MissingResourceException;
 
@@ -48,11 +48,11 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
         /**
          * @draft ICU 4.8
          */
-        GENERIC_LONG ("GENERIC_LOCATION", "LOCALIZED_GMT"),
+        GENERIC_LONG ("GENERIC_LOCATION", "SPECIFIC_LONG", "LOCALIZED_GMT"),
         /**
          * @draft ICU 4.8
          */
-        GENERIC_SHORT ("GENERIC_LOCATION", "LOCALIZED_GMT"),
+        GENERIC_SHORT ("GENERIC_LOCATION", "SPECIFIC_SHORT", "LOCALIZED_GMT"),
         /**
          * @draft ICU 4.8
          */
@@ -159,7 +159,7 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
     private transient String[] _gmtPatternTokens;
     private transient Object[][] _gmtOffsetPatternItems;
 
-    private static final String[] GMT_ZERO = {"GMT", "UTC", "UT"};
+    private static final String[] ALT_GMT_STRINGS = {"GMT", "UTC", "UT"};
 
     private static final String DEFAULT_GMT_PATTERN = "GMT{0}";
     private static final String DEFAULT_GMT_ZERO = "GMT";
@@ -187,29 +187,42 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
     private static final List<Style>[] PARSE_ORDERS = (List<Style>[])Array.newInstance(ArrayList.class, Style.values().length);
     static {
         for (Style style : Style.values()) {
-            String[] fallbackStyles = style.fallbackStyles();
-            List<Style> parseOrder = new ArrayList<Style>(1 + fallbackStyles.length);
             if (style == Style.SPECIFIC_SHORT_COMMONLY_USED) {
-                parseOrder.add(Style.SPECIFIC_SHORT);
-            } else {
+                // Same with SPECIFIC_SHORT, point to the list used for SPECIFIC_SHORT later
+                continue;
+            }
+            String[] fallbackStyles = style.fallbackStyles();
+            List<Style> parseOrder = new ArrayList<Style>();
+            // Always start with RFC822, LOCALIZED_GMT
+            parseOrder.add(Style.RFC822);
+            parseOrder.add(Style.LOCALIZED_GMT);
+
+            // The style itself
+            if (!parseOrder.contains(style)) {
                 parseOrder.add(style);
             }
+
+            // Fallback styles
             for (String styleStr : fallbackStyles) {
-                parseOrder.add(Style.valueOf(styleStr));
+                Style tmp = Style.valueOf(styleStr);
+                if (!parseOrder.contains(tmp)) {
+                    parseOrder.add(tmp);
+                }
             }
             PARSE_ORDERS[style.ordinal()] = parseOrder;
         }
+        PARSE_ORDERS[Style.SPECIFIC_SHORT_COMMONLY_USED.ordinal()] = PARSE_ORDERS[Style.SPECIFIC_SHORT.ordinal()];
     }
 
     // The order of parsing styles when preferred style is not provided.
     // We want to evaluate 1) RFC822 first, 2) LOCALIZED_GMT, 3) SPECIFIC_LONG/SHORT,
     // then all the rest (no preferred order)
-    private static final Style[] PARSE_ORDER_ALL_STYLES = new Style[] {
+    private static final List<Style> PARSE_ORDER_ALL_STYLES = Arrays.asList(
         Style.RFC822,
         Style.LOCALIZED_GMT,
         Style.SPECIFIC_LONG, Style.SPECIFIC_SHORT,
-        Style.GENERIC_LOCATION, Style.GENERIC_LONG, Style.GENERIC_SHORT, 
-    };
+        Style.GENERIC_LOCATION, Style.GENERIC_LONG, Style.GENERIC_SHORT
+    );
 
     /**
      * 
@@ -1036,20 +1049,13 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
             // Prefix part
             int len = _gmtPatternTokens[0].length();
             if (len > 0 && !text.regionMatches(true, idx, _gmtPatternTokens[0], 0, len)) {
-                // no prefix match
+                // prefix match failed
                 break;
             }
             idx += len;
 
             // Offset part
-            int offsetLen = parseGMTOffset(text, idx, false, false, offset);
-            if (offsetLen == 0) {
-                // Stop at offset hour field, so we can support format like GMT-5
-                offsetLen = parseGMTOffset(text, idx, true, false, offset);
-                if (offsetLen == 0) {
-                    break;
-                }
-            }
+            int offsetLen = parseGMTOffset(text, idx, false, offset);
             idx += offsetLen;
 
             // Suffix part
@@ -1074,18 +1080,10 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
                 result._offset = 0;
                 result._type = TimeType.UNKNOWN;
             }
-            // try "global" GMT zero formats ("GMT", "UTC" and "UT")
-            for (String gmt : GMT_ZERO) {
-                if (text.regionMatches(true, start, gmt, 0, gmt.length())) {
-                    result._length = gmt.length();
-                    result._offset = 0;
-                    result._type = TimeType.UNKNOWN;
-                }
-            }
         }
     }
 
-    private int parseGMTOffset(String text, int start, boolean quitAtHourField, boolean minimumHourWidth, int[] offset) {
+    private int parseGMTOffset(String text, int start, boolean minimumHourWidth, int[] offset) {
         int parsedLen = 0;
         int[] tmpParsedLen = new int[1];
         offset[0] = 0;
@@ -1097,7 +1095,6 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
             Object[] items = _gmtOffsetPatternItems[gmtPatType.ordinal()];
             boolean failed = false;
             for (int i = 0; i < items.length; i++) {
-                boolean sawHour = false;
                 if (items[i] instanceof String) {
                     String patStr = (String)items[i];
                     int len = patStr.length();
@@ -1118,7 +1115,6 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
                                 sawVarHourAndAbuttingField = true;
                             }
                         }
-                        sawHour = true;
                         offsetH = parseOffsetDigits(text, idx, minDigits, maxDigits, 0, MAX_OFFSET_HOUR, tmpParsedLen);
                     } else if (fieldType == 'm') {
                         offsetM = parseOffsetDigits(text, idx, 2, 2, 0, MAX_OFFSET_MINUTE, tmpParsedLen);
@@ -1131,9 +1127,6 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
                         break;
                     }
                     idx += tmpParsedLen[0];
-                    if (quitAtHourField && sawHour) {
-                        break;
-                    }
                 }
             }
             if (!failed) {
@@ -1144,7 +1137,7 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
             }
         }
 
-        if (parsedLen == 0 && sawVarHourAndAbuttingField && !quitAtHourField && !minimumHourWidth) {
+        if (parsedLen == 0 && sawVarHourAndAbuttingField && !minimumHourWidth) {
             // When hour field is variable width and another non-literal pattern
             // field follows, the parse loop above might eat up the digit from
             // the abutting field. For example, with pattern "-Hmm" and input "-100",
@@ -1157,11 +1150,68 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
             // the option is designed for supporting the case like "GMT+5". In this case,
             // we should get better result for parsing hour digits as much as possible.
 
-            return parseGMTOffset(text, start, false, true, offset);
+            return parseGMTOffset(text, start, true, offset);
         }
 
         return parsedLen;
     }
+
+    private void parseDefaultGMT(String text, int start, ParseResult result) {
+        result.reset();
+
+        int idx = start;
+        int len;
+
+        // check global default GMT alternatives
+        int gmtLen = 0;
+        for (String gmt : ALT_GMT_STRINGS) {
+            len = gmt.length();
+            if (text.regionMatches(true, idx, gmt, 0, len)) {
+                gmtLen = len;
+                break;
+            }
+        }
+        if (gmtLen == 0) {
+            return;
+        }
+        idx += gmtLen;
+
+        // at least, parsed up to GMT string
+        result._length = idx - start;
+        result._offset = 0;
+        result._type = TimeType.UNKNOWN;
+
+        // offset needs a sign char and a digit at minimum  
+        if (idx + 1 >= text.length()) {
+            return;
+        }
+
+        // parse sign
+        int sign = 1;
+        char c = text.charAt(idx);
+        if (c == '+') {
+            sign = 1;
+        } else if (c == '-') {
+            sign = -1;
+        } else {
+            // no sign part
+            return;
+        }
+        idx++;
+
+        // offset
+        int[] parsedLen = new int[1];
+        int num = parseOffsetDigits(text, idx, 1, 6, 0, 
+                235959 /* MAX_OFFSET_HOUR*10000 + MAX_OFFSET_MINUTE*100 + MAX_OFFSET_SECOND */, parsedLen);
+        if (parsedLen[0] == 0) {
+            return;
+        }
+
+        // TODO
+        int offsetH = 0, offsetM = 0, offsetS = 0;
+
+    }
+
 
     private int parseOffsetDigits(String text, int offset, int minDigits, int maxDigits,
             int minVal, int maxVal, int[] parsedLength) {
@@ -1211,65 +1261,64 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
     }
 
     private TimeZone parse(String text, List<Style> styles, boolean parseAllStyles, ParsePosition pos, TimeType[] type) {
-        ParseResult pres = new ParseResult();
         int idx = pos.getIndex();
+        final int maxMatchLen = text.length() - pos.getIndex();   // possible maximum match length
+
+        ParseResult match = new ParseResult();;
+        ParseResult bestMatch = null;
+        int plen;
 
         if (styles != null) {
+            // Find the longest match from the standard style list
             for (Style style : styles) {
                 assert(style != Style.SPECIFIC_SHORT_COMMONLY_USED);
-                parseStyle(style, text, idx, pres);
-                if (pres.getParseLength() > 0) {
-                    break;
+
+                parseStyle(style, text, idx, match);
+                plen = match.getParseLength();
+                if (plen > 0) {
+                    if (bestMatch == null || bestMatch.getParseLength() < plen) {
+                        bestMatch = match.clone();
+                    }
+                    if (plen == maxMatchLen) {
+                        break;
+                    }
                 }
             }
         }
 
-        if (pres.getParseLength() == 0 && parseAllStyles) {
-            int maxMatchLen = text.length() - pos.getIndex();
-
-            // Find longest match from other styles
-            ParseResult longestPres = null;
+        if (bestMatch == null && parseAllStyles) {
+            // Find the longest match from other styles
             for (Style style : PARSE_ORDER_ALL_STYLES) {
                 assert(style != Style.SPECIFIC_SHORT_COMMONLY_USED);
                 if (styles != null && styles.contains(style)) {
                     // already tried
                     continue;
                 }
-                ParseResult tmpPres = new ParseResult();
-                parseStyle(style, text, idx, tmpPres);
-                int len = tmpPres.getParseLength();
-                if (len > 0) {
-                    if (longestPres == null || longestPres.getParseLength() < len) {
-                        longestPres = tmpPres;
-                    } else if (longestPres.getParseLength() == len) {
-                        // if same text is found, use more specific one
-                        if (longestPres.getType() == TimeType.UNKNOWN && tmpPres.getType() != TimeType.UNKNOWN) {
-                            longestPres = tmpPres;
-                        }
+                parseStyle(style, text, idx, match);
+                plen = match.getParseLength();
+                if (plen > 0) {
+                    if (bestMatch == null || bestMatch.getParseLength() < plen) {
+                        bestMatch = match.clone();
                     }
-                    if (len == maxMatchLen) {
-                        // maximum length match, no need to try other styles
+                    if (plen == maxMatchLen) {
                         break;
                     }
                 }
             }
-            if (longestPres != null) {
-                pres = longestPres;
-            }
         }
 
         TimeZone tz = null;
-        if (pres.getParseLength() > 0) {
-            if (pres.getID() != null) {
-                tz = TimeZone.getTimeZone(pres.getID());
+        if (bestMatch != null) {
+            if (bestMatch.getID() != null) {
+                tz = TimeZone.getTimeZone(bestMatch.getID());
             } else {
-                assert(pres.getOffset() != null);
-                tz = ZoneMeta.getCustomTimeZone(pres.getOffset());
+                assert(bestMatch.getOffset() != null);
+                tz = ZoneMeta.getCustomTimeZone(bestMatch.getOffset());
             }
-            pos.setIndex(idx + pres.getParseLength());
+            pos.setIndex(idx + bestMatch.getParseLength());
 
             if (type != null && type.length > 0) {
-                type[0] = pres.getType();
+                type[0] = bestMatch.getType();
             }
         } else {
             pos.setErrorIndex(idx);
@@ -1331,7 +1380,7 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
     /**
      * @draft ICU 4.8
      */
-    protected static class ParseResult {
+    protected static class ParseResult implements Cloneable {
         private String _id;
         private Integer _offset;
         private int _length;
@@ -1381,6 +1430,15 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
         public ParseResult setType(TimeType type) {
             _type = type;
             return this;
+        }
+
+        public ParseResult clone() {
+            try {
+                return (ParseResult)super.clone();
+            } catch (CloneNotSupportedException e) {
+                // will never happen
+                throw new RuntimeException(e);
+            }
         }
     }
 

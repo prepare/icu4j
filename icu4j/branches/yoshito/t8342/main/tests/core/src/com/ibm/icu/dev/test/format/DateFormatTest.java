@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2001-2010, International Business Machines Corporation and    *
+ * Copyright (C) 2001-2011, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -308,7 +308,7 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
 
             "Anno Domini", "1997", "August", "0013", "0014", "0014", "0034", "0012", "5130",
             "Wednesday", "0225", "0002", "0033", "0002", "PM", "0002", "0002", "Pacific Daylight Time", "1997",
-            "Wednesday", "1997", "2450674", "52452513", "GMT-07:00", "Pacific Time","Wednesday","August", "3rd quarter", "3rd quarter","United States (Los Angeles)",
+            "Wednesday", "1997", "2450674", "52452513", "GMT-07:00", "Pacific Time","Wednesday","August", "3rd quarter", "3rd quarter","United States Time (Los Angeles)",
         };
 
         assertTrue("data size", EXPECTED.length == COUNT * DateFormat.FIELD_COUNT);
@@ -1867,11 +1867,11 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         Date greenwichdate = greenwichcalendar.getTime();
         // format every way
         String DATA[] = {
-                "simple format:  ", "04/04/97 23:00 GMT+00:00", 
+                "simple format:  ", "04/04/97 23:00 GMT", 
                 "MM/dd/yy HH:mm zzz", "full format:    ", 
-                "Friday, April 4, 1997 11:00:00 o'clock PM GMT+00:00", 
+                "Friday, April 4, 1997 11:00:00 o'clock PM GMT", 
                 "EEEE, MMMM d, yyyy h:mm:ss 'o''clock' a zzz", 
-                "long format:    ", "April 4, 1997 11:00:00 PM GMT+00:00", 
+                "long format:    ", "April 4, 1997 11:00:00 PM GMT", 
                 "MMMM d, yyyy h:mm:ss a z", "default format: ", 
                 "04-Apr-97 11:00:00 PM", "dd-MMM-yy h:mm:ss a", 
                 "short format:   ", "4/4/97 11:00 PM", 
@@ -2510,28 +2510,6 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                 // fn with timezone improperly set, so just in case
                 TimeZone.setDefault(oldtz);
                 throw new IllegalStateException(e.getMessage());
-            }
-
-            // create DFS that recognizes our bogus time zone, sortof
-            DateFormatSymbols xsym = new DateFormatSymbols();
-            String[][] tzids = xsym.getZoneStrings();
-            if (tzids.length > 0) { // let's hope!
-                tzids[0][1] = "DBDY"; // change a local name
-                logln("replaced '" + tzids[0][0] + "' with DBDY");
-
-                xsym.setZoneStrings(tzids);
-                fmt.setDateFormatSymbols(xsym);
-
-                try {
-                    fmt.parse(text);
-                    logln("we parsed DBDY (as GMT, but still...)");
-                }
-                catch (ParseException e) {
-                    errln("hey, still didn't recognize DBDY");
-                }
-                finally {
-                    TimeZone.setDefault(oldtz);
-                }
             }
         }
 
