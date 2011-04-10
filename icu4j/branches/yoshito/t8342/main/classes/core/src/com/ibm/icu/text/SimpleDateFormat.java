@@ -510,7 +510,7 @@ public class SimpleDateFormat extends DateFormat {
         }
         if (numberFormat == null) {
             NumberingSystem ns = NumberingSystem.getInstance(locale);
-            if ( ns.isAlgorithmic() ) {
+            if (ns.isAlgorithmic()) {
                 numberFormat = NumberFormat.getInstance(locale);
             } else {
                 String digitString = ns.getDescription();
@@ -1195,7 +1195,10 @@ public class SimpleDateFormat extends DateFormat {
      */
     protected void zeroPaddingNumber(NumberFormat nf,StringBuffer buf, int value,
                                      int minDigits, int maxDigits) {
-        if (useLocalZeroPaddingNumberFormat) {
+        // Note: Indian calendar uses negative value for a calendar
+        // field. fastZeroPaddingNumber cannot handle negative numbers.
+        // BTW, it looks like a design bug in the Indian calendar...
+        if (useLocalZeroPaddingNumberFormat && value >= 0) {
             fastZeroPaddingNumber(buf, value, minDigits, maxDigits);
         } else {
             nf.setMinimumIntegerDigits(minDigits);
@@ -1213,15 +1216,24 @@ public class SimpleDateFormat extends DateFormat {
         super.setNumberFormat(newNumberFormat);
         initLocalZeroPaddingNumberFormat();
 
-        // TODO may need to update TimeZoneFormat's numbering system
+        if (newNumberFormat instanceof DecimalFormat) {
+            DecimalFormatSymbols decsym = ((DecimalFormat) newNumberFormat).getDecimalFormatSymbols();
+            String digits = new String(decsym.getDigits());
+            if (!tzFormat.getGMTOffsetDigits().equals(digits)) {
+                // different decimal digits
+                TimeZoneFormat newTzFormat = tzFormat.cloneAsThawed();
+                newTzFormat.setGMTOffsetDigits(digits);
+                tzFormat = newTzFormat;
+            }
+        }
     }
 
     private void initLocalZeroPaddingNumberFormat() {
         if (numberFormat instanceof DecimalFormat) {
-            zeroDigit = ((DecimalFormat)numberFormat).getDecimalFormatSymbols().getZeroDigit();
+            decDigits = ((DecimalFormat)numberFormat).getDecimalFormatSymbols().getDigits();
             useLocalZeroPaddingNumberFormat = true;
         } else if (numberFormat instanceof DateNumberFormat) {
-            zeroDigit = ((DateNumberFormat)numberFormat).getZeroDigit();
+            decDigits = ((DateNumberFormat)numberFormat).getDigits();
             useLocalZeroPaddingNumberFormat = true;
         } else {
             useLocalZeroPaddingNumberFormat = false;
@@ -1234,7 +1246,7 @@ public class SimpleDateFormat extends DateFormat {
 
     // If true, use local version of zero padding number format
     private transient boolean useLocalZeroPaddingNumberFormat;
-    private transient char zeroDigit;
+    private transient char[] decDigits;
     private transient char[] decimalBuf;
 
     /*
@@ -1252,7 +1264,7 @@ public class SimpleDateFormat extends DateFormat {
         int limit = decimalBuf.length < maxDigits ? decimalBuf.length : maxDigits;
         int index = limit - 1;
         while (true) {
-            decimalBuf[index] = (char)((value % 10) + zeroDigit);
+            decimalBuf[index] = decDigits[(value % 10)];
             value /= 10;
             if (index == 0 || value == 0) {
                 break;
@@ -1261,13 +1273,13 @@ public class SimpleDateFormat extends DateFormat {
         }
         int padding = minDigits - (limit - index);
         while (padding > 0 && index > 0) {
-            decimalBuf[--index] = zeroDigit;
+            decimalBuf[--index] = decDigits[0];
             padding--;
         }
         while (padding > 0) {
             // when pattern width is longer than decimalBuf, need extra
             // leading zeros - ticke#7595
-            buf.append(zeroDigit);
+            buf.append(decDigits[0]);
             padding--;
         }
         buf.append(decimalBuf, index, limit - index);
