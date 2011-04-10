@@ -849,6 +849,8 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * <li>ZoneStrings[n][3] - Long daylight saving time display name
      * <li>ZoneStrings[n][4] - Short daylight saving time display name
      * </ul>
+     * When a localized display name is not available, the corresponding
+     * array element will be <code>null</code>.
      * <p>
      * <b>Note</b>: ICU implements time zone display name formatting algorithm
      * specified by <a href="http://www.unicode.org/reports/tr35/">UTS#35 Unicode
