@@ -2392,6 +2392,12 @@ public class SimpleDateFormat extends DateFormat {
         }
         serialVersionOnStream = currentSerialVersion;
         locale = getLocale(ULocale.VALID_LOCALE);
+        if (locale == null) {
+            // ICU4J 3.6 or older versions did not have UFormat locales
+            // in the serialized data. This is just for preventing the
+            // worst case scenario...
+            locale = ULocale.getDefault();
+        }
         if (tzFormat == null) {
             tzFormat = TimeZoneFormat.getInstance(locale);
         }

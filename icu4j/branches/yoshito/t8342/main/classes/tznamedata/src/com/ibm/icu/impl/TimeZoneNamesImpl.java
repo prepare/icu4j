@@ -37,8 +37,8 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
     private static final MZ2TZsCache MZ_TO_TZS_CACHE = new MZ2TZsCache();
 
     private transient ICUResourceBundle _zoneStrings;
-    private transient MZNamesCache _mzCache = new MZNamesCache();
-    private transient TZNamesCache _tzCache = new TZNamesCache();
+    private transient MZNamesCache _mzCache;
+    private transient TZNamesCache _tzCache;
 
     public TimeZoneNamesImpl(ULocale locale) {
         initialize(locale);
@@ -158,7 +158,9 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
     }
 
     /**
-     * Initialize zone string table bundle
+     * Initialize the transient fields, called from the constructor and
+     * readObject.
+     * 
      * @param locale The locale
      */
     private void initialize(ULocale locale) {
@@ -172,6 +174,9 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
         } catch (MissingResourceException mre) {
             _zoneStrings = null;
         }
+
+        _mzCache = new MZNamesCache();
+        _tzCache = new TZNamesCache();
     }
 
     /*

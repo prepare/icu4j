@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (c) 2004-2010, International Business Machines
+ * Copyright (c) 2004-2011, International Business Machines
  * Corporation and others.  All Rights Reserved.
  *******************************************************************************
  *
@@ -31,11 +31,15 @@ import com.ibm.icu.text.RuleBasedNumberFormat;
 import com.ibm.icu.text.SelectFormat;
 import com.ibm.icu.text.SimpleDateFormat;
 import com.ibm.icu.text.TimeUnitFormat;
+import com.ibm.icu.text.TimeZoneFormat;
+import com.ibm.icu.text.TimeZoneFormat.Style;
+import com.ibm.icu.text.TimeZoneNames;
 import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.DateInterval;
 import com.ibm.icu.util.GregorianCalendar;
 import com.ibm.icu.util.TimeUnit;
 import com.ibm.icu.util.TimeUnitAmount;
+import com.ibm.icu.util.TimeZone;
 import com.ibm.icu.util.ULocale;
 
 /**
@@ -2181,6 +2185,80 @@ public class FormatTests
             String resb = tufb.format(amount);
 
             return resa.equals(resb);
+        }
+    }
+
+    public static class TimeZoneNamesHandler implements SerializableTest.Handler {
+        public Object[] getTestObjects() {
+            return new Object[] {
+                    TimeZoneNames.getInstance(ULocale.ENGLISH),
+                    TimeZoneNames.getInstance(ULocale.JAPAN)
+            };
+        }
+        public boolean hasSameBehavior(Object a, Object b) {
+            TimeZoneNames tzna = (TimeZoneNames)a;
+            TimeZoneNames tznb = (TimeZoneNames)b;
+
+            final String tzid = "America/Los_Angeles";
+
+            String eca = tzna.getExemplarLocationName(tzid);
+            String ecb = tznb.getExemplarLocationName(tzid);
+
+            if (!eca.equals(ecb)) {
+                return false;
+            }
+
+            final String mzID = "America_Pacific";
+            final String region = "US";
+
+            String refza = tzna.getReferenceZoneID(mzID, region);
+            String refzb = tznb.getReferenceZoneID(mzID, region);
+
+            if (!refza.equals(refzb)) {
+                return false;
+            }
+
+            return true;
+        }
+    }
+
+    public static class TimeZoneFormatHandler implements SerializableTest.Handler {
+        static final String CUSTOM_GMT_PATTERN = "Offset {0} from UTC";
+
+        public Object[] getTestObjects() {
+            TimeZoneFormat tzfmt = TimeZoneFormat.getInstance(ULocale.ENGLISH).cloneAsThawed();
+            tzfmt.setGMTPattern(CUSTOM_GMT_PATTERN);
+
+            return new Object[] {tzfmt};
+        }
+        public boolean hasSameBehavior(Object a, Object b) {
+            TimeZoneFormat tzfa = (TimeZoneFormat)a;
+            TimeZoneFormat tzfb = (TimeZoneFormat)b;
+
+            if (!tzfa.getGMTPattern().equals(tzfb.getGMTPattern())) {
+                return false;
+            }
+
+            final int offset = -5 * 60 * 60 * 1000;
+
+            String gmta = tzfa.formatLocalizedGMT(offset);
+            String gmtb = tzfb.formatLocalizedGMT(offset);
+
+            if (!gmta.equals(gmtb)) {
+                return false;
+            }
+
+            long now = System.currentTimeMillis();
+            TimeZone tz = TimeZone.getTimeZone("America/Los_Angeles");
+
+            String genloca = tzfa.format(Style.GENERIC_LOCATION, tz, now);
+            String genlocb = tzfb.format(Style.GENERIC_LOCATION, tz, now);
+
+            if (!genloca.equals(genlocb)) {
+                return false;
+            }
+
+            return true;
         }
     }
 
