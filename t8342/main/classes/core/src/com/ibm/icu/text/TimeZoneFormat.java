@@ -257,7 +257,7 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
             // fall through
         }
 
-        if (gmtPattern != null) {
+        if (gmtPattern == null) {
             gmtPattern = DEFAULT_GMT_PATTERN;
         }
         initGMTPattern(gmtPattern);
