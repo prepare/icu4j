@@ -253,7 +253,9 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
                 name = _names[2];
                 break;
             case SHORT_GENERIC:
-                name = _names[3];
+                if (_shortCommonlyUsed) {
+                    name = _names[3];
+                }
                 break;
             case SHORT_STANDARD:
                 name = _names[4];

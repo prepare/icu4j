@@ -206,7 +206,7 @@ public class TimeZoneFormatImpl extends TimeZoneFormat {
             }
             if (useStandard) {
                 NameType stdNameType = (nameType == NameType.LONG_GENERIC) ?
-                        NameType.LONG_STANDARD : NameType.SHORT_STANDARD;
+                        NameType.LONG_STANDARD : NameType.SHORT_STANDARD_COMMONLY_USED;
                 String stdName = names.getDisplayName(tzID, stdNameType, date);
                 if (stdName != null) {
                     name = stdName;
