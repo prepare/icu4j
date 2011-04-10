@@ -61,7 +61,7 @@ public class TimeZoneFormatImpl extends TimeZoneFormat {
         }
     }
 
-    private transient MessageFormat[] _patternFormatters = new MessageFormat[Pattern.values().length];
+    private transient MessageFormat[] _patternFormatters;
     private transient boolean _frozen;
     private transient String _region;
 
@@ -517,6 +517,10 @@ public class TimeZoneFormatImpl extends TimeZoneFormat {
     }
 
     private synchronized String formatPattern(TimeZoneFormatImpl.Pattern pat, String... args) {
+        if (_patternFormatters == null) {
+            _patternFormatters = new MessageFormat[Pattern.values().length];
+        }
+
         int idx = pat.ordinal();
         if (_patternFormatters[idx] == null) {
             String patText;

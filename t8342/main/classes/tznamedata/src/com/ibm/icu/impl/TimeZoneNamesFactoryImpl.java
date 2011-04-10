@@ -11,8 +11,7 @@ import com.ibm.icu.text.TimeZoneNames.Factory;
 import com.ibm.icu.util.ULocale;
 
 /**
- * @author yumaoka
- *
+ * The implementation class of <code>TimeZoneNames.Factory</code>
  */
 public class TimeZoneNamesFactoryImpl extends Factory {
 

@@ -37,6 +37,8 @@ import com.ibm.icu.util.ULocale;
  */
 public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>, Serializable {
 
+    private static final long serialVersionUID = 8295315632163996688L;
+
     /**
      * @draft ICU 4.8
      */
