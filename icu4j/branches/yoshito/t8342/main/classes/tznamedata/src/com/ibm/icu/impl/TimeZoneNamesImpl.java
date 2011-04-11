@@ -10,15 +10,21 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.MissingResourceException;
 import java.util.Set;
 
+import com.ibm.icu.impl.TextTrieMap.ResultHandler;
 import com.ibm.icu.text.TimeZoneNames;
+import com.ibm.icu.util.TimeZone;
+import com.ibm.icu.util.TimeZone.SystemTimeZoneType;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.UResourceBundle;
 
@@ -39,6 +45,8 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
     private transient ICUResourceBundle _zoneStrings;
     private transient MZNamesCache _mzCache;
     private transient TZNamesCache _tzCache;
+
+    private transient volatile TextTrieMap<NameInfo> _namesTrie;
 
     public TimeZoneNamesImpl(ULocale locale) {
         initialize(locale);
@@ -157,6 +165,52 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
         return locName;
     }
 
+    /* (non-Javadoc)
+     * @see com.ibm.icu.text.TimeZoneNames#find(java.lang.String, int, java.util.Set)
+     */
+    @Override
+    public Collection<MatchInfo> find(String text, int start, NameType[] nameTypes) {
+        if (_namesTrie == null) {
+            synchronized (this) {
+                if (_namesTrie == null) {
+                    // Create the names trie. This could be very heavy process.
+                    _namesTrie = new TextTrieMap<NameInfo>(true);
+
+                    // time zones
+                    Set<String> tzIDs = TimeZone.getAvailableIDs(SystemTimeZoneType.CANONICAL, null, null);
+                    for (String tzID : tzIDs) {
+                        for (NameType nameType : NameType.values()) {
+                            String name = getTimeZoneDisplayName(tzID, nameType);
+                            if (name != null) {
+                                NameInfo info = new NameInfo();
+                                info.tzID = tzID;
+                                info.type = nameType;
+                                _namesTrie.put(name, info);
+                            }
+                        }
+                    }
+
+                    // meta zones
+                    Set<String> mzIDs = getAvailableMetaZoneIDs();
+                    for (String mzID : mzIDs) {
+                        for (NameType nameType : NameType.values()) {
+                            String name = getMetaZoneDisplayName(mzID, nameType);
+                            if (name != null) {
+                                NameInfo info = new NameInfo();
+                                info.mzID = mzID;
+                                info.type = nameType;
+                                _namesTrie.put(name, info);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        NameSearchHandler handler = new NameSearchHandler(nameTypes);
+        _namesTrie.find(text, start, handler);
+        return handler.getMatches();
+    }
+
     /**
      * Initialize the transient fields, called from the constructor and
      * readObject.
@@ -214,6 +268,72 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
         @Override
         protected TZNames createInstance(String key, String data) {
             return TZNames.getInstance(_zoneStrings, data.replace('/', ':'));
+        }
+    }
+
+    /**
+     * An instance of NameInfo is stored in the zone names trie.
+     */
+    private static class NameInfo {
+        String tzID;
+        String mzID;
+        NameType type;
+    }
+
+    /**
+     * NameSearchHandler is used for collecting name matches.
+     */
+    private static class NameSearchHandler implements ResultHandler<NameInfo> {
+        private NameType[] _nameTypes;
+        private Collection<MatchInfo> _matches;
+
+        NameSearchHandler(NameType[] nameTypes) {
+            _nameTypes = nameTypes;
+        }
+
+        /* (non-Javadoc)
+         * @see com.ibm.icu.impl.TextTrieMap.ResultHandler#handlePrefixMatch(int, java.util.Iterator)
+         */
+        public boolean handlePrefixMatch(int matchLength, Iterator<NameInfo> values) {
+            while (values.hasNext()) {
+                NameInfo ninfo = values.next();
+                if (_nameTypes != null) {
+                    boolean bInclude = false;
+                    for (NameType t : _nameTypes) {
+                        if (t == ninfo.type) {
+                            // This name type was included in the requested list
+                            bInclude = true;
+                            break;
+                        }
+                    }
+                    if (!bInclude) {
+                        continue;
+                    }
+                }
+                MatchInfo minfo;
+                if (ninfo.tzID != null) {
+                    minfo = MatchInfo.createTimeZoneMatch(ninfo.tzID, ninfo.type, matchLength);
+                } else {
+                    assert(ninfo.mzID != null);
+                    minfo = MatchInfo.createMetaZoneMatch(ninfo.mzID, ninfo.type, matchLength);
+                }
+                if (_matches == null) {
+                    _matches = new LinkedList<MatchInfo>();
+                }
+                _matches.add(minfo);
+            }
+            return true;
+        }
+
+        /**
+         * Returns the match results
+         * @return the match results
+         */
+        public Collection<MatchInfo> getMatches() {
+            if (_matches == null) {
+                return Collections.emptyList();
+            }
+            return _matches;
         }
     }
 

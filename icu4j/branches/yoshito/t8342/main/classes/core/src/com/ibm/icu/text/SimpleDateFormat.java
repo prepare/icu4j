@@ -969,6 +969,7 @@ public class SimpleDateFormat extends DateFormat {
             buf.append(result);
             break;
         case 23: // 'Z' - TIMEZONE_RFC
+        {
             if (count < 4) {
                 // RFC822 format
                 result = tzFormat.format(Style.RFC822, tz, date);
@@ -978,7 +979,7 @@ public class SimpleDateFormat extends DateFormat {
             }
             buf.append(result);
             break;
-
+        }
         case 24: // 'v' - TIMEZONE_GENERIC
             if (count == 1) {
                 // "v"
@@ -2012,7 +2013,7 @@ public class SimpleDateFormat extends DateFormat {
             {
                 TimeType[] tzTimeType = new TimeType[1];
                 Style style = (count < 4) ? Style.SPECIFIC_SHORT_COMMONLY_USED : Style.SPECIFIC_LONG;
-                TimeZone tz = tzFormat.parse(text, style, pos, tzTimeType);
+                TimeZone tz = tzFormat.parse(style, text, pos, tzTimeType);
                 if (tz != null) {
                     if (tzTimeType[0] == TimeType.STANDARD) {
                         tztype = TZTYPE_STD;
@@ -2028,7 +2029,7 @@ public class SimpleDateFormat extends DateFormat {
             {
                 TimeType[] tzTimeType = new TimeType[1];
                 Style style = (count < 4) ? Style.RFC822 : Style.LOCALIZED_GMT;
-                TimeZone tz = tzFormat.parse(text, style, pos, tzTimeType);
+                TimeZone tz = tzFormat.parse(style, text, pos, tzTimeType);
                 if (tz != null) {
                     if (tzTimeType[0] == TimeType.STANDARD) {
                         tztype = TZTYPE_STD;
@@ -2045,7 +2046,7 @@ public class SimpleDateFormat extends DateFormat {
                 TimeType[] tzTimeType = new TimeType[1];
                 // Note: 'v' only supports count 1 and 4
                 Style style = (count < 4) ? Style.GENERIC_SHORT : Style.GENERIC_LONG;
-                TimeZone tz = tzFormat.parse(text, style, pos, tzTimeType);
+                TimeZone tz = tzFormat.parse(style, text, pos, tzTimeType);
                 if (tz != null) {
                     if (tzTimeType[0] == TimeType.STANDARD) {
                         tztype = TZTYPE_STD;
@@ -2062,7 +2063,7 @@ public class SimpleDateFormat extends DateFormat {
                 TimeType[] tzTimeType = new TimeType[1];
                 // Note: 'v' only supports count 1 and 4
                 Style style = (count < 4) ? Style.SPECIFIC_SHORT : Style.GENERIC_LOCATION;
-                TimeZone tz = tzFormat.parse(text, style, pos, tzTimeType);
+                TimeZone tz = tzFormat.parse(style, text, pos, tzTimeType);
                 if (tz != null) {
                     if (tzTimeType[0] == TimeType.STANDARD) {
                         tztype = TZTYPE_STD;
