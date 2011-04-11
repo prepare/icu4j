@@ -9,23 +9,27 @@ package com.ibm.icu.text;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
-import java.lang.reflect.Array;
 import java.text.AttributedCharacterIterator;
 import java.text.AttributedString;
 import java.text.FieldPosition;
 import java.text.ParseException;
 import java.text.ParsePosition;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.BitSet;
+import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 import java.util.MissingResourceException;
 
 import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.impl.SoftCache;
-import com.ibm.icu.impl.TimeZoneFormatImpl;
+import com.ibm.icu.impl.TimeZoneGenericNames;
+import com.ibm.icu.impl.TimeZoneGenericNames.GenericMatchInfo;
+import com.ibm.icu.impl.TimeZoneGenericNames.GenericNameType;
 import com.ibm.icu.impl.ZoneMeta;
 import com.ibm.icu.lang.UCharacter;
+import com.ibm.icu.text.TimeZoneNames.MatchInfo;
+import com.ibm.icu.text.TimeZoneNames.NameType;
 import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.Freezable;
 import com.ibm.icu.util.TimeZone;
@@ -35,9 +39,7 @@ import com.ibm.icu.util.ULocale;
 /**
  *
  */
-public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>, Serializable {
-
-    private static final long serialVersionUID = 8295315632163996688L;
+public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>, Serializable {
 
     /**
      * @draft ICU 4.8
@@ -46,45 +48,35 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
         /**
          * @draft ICU 4.8
          */
-        GENERIC_LOCATION ("LOCALIZED_GMT"),
+        GENERIC_LOCATION,
         /**
          * @draft ICU 4.8
          */
-        GENERIC_LONG ("GENERIC_LOCATION", "SPECIFIC_LONG", "LOCALIZED_GMT"),
+        GENERIC_LONG,
         /**
          * @draft ICU 4.8
          */
-        GENERIC_SHORT ("GENERIC_LOCATION", "SPECIFIC_SHORT", "LOCALIZED_GMT"),
+        GENERIC_SHORT,
         /**
          * @draft ICU 4.8
          */
-        SPECIFIC_LONG ("LOCALIZED_GMT"),
+        SPECIFIC_LONG,
         /**
          * @draft ICU 4.8
          */
-        SPECIFIC_SHORT ("LOCALIZED_GMT"),
+        SPECIFIC_SHORT,
         /**
          * @draft ICU 4.8
          */
-        RFC822 (),
+        RFC822,
         /**
          * @draft ICU 4.8
          */
-        LOCALIZED_GMT (),
+        LOCALIZED_GMT,
         /**
          * @draft ICU 4.8
          */
-        SPECIFIC_SHORT_COMMONLY_USED ("LOCALIZED_GMT");
-
-        private String[] _fallbackStyles;
-
-        private Style(String... fallbackStyles) {
-            _fallbackStyles = fallbackStyles;
-        }
-
-        private String[] fallbackStyles() {
-            return _fallbackStyles;
-        }
+        SPECIFIC_SHORT_COMMONLY_USED
     }
 
     /**
@@ -151,15 +143,33 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
         DAYLIGHT,
     }
 
+    /*
+     * Serialized fields
+     */
+    private ULocale _locale;
     private TimeZoneNames _tznames;
+    private TimeZoneGenericNames _gnames;
     private String _gmtPattern;
     private String[] _gmtOffsetPatterns;
     private String[] _gmtOffsetDigits;
     private String _gmtZeroFormat;
     private boolean _parseAllStyles;
 
+
+    /*
+     * Transient fields
+     */
     private transient String[] _gmtPatternTokens;
     private transient Object[][] _gmtOffsetPatternItems;
+
+    private transient String _region;
+
+    private transient boolean _frozen;
+
+
+    /*
+     * Static final fields
+     */
 
     private static final String[] ALT_GMT_STRINGS = {"GMT", "UTC", "UT"};
 
@@ -185,53 +195,20 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
 
     private static TimeZoneFormatCache _tzfCache = new TimeZoneFormatCache();
 
-    @SuppressWarnings("unchecked")
-    private static final List<Style>[] PARSE_ORDERS = (List<Style>[])Array.newInstance(ArrayList.class, Style.values().length);
-    static {
-        for (Style style : Style.values()) {
-            if (style == Style.SPECIFIC_SHORT_COMMONLY_USED) {
-                // Same with SPECIFIC_SHORT, point to the list used for SPECIFIC_SHORT later
-                continue;
-            }
-            String[] fallbackStyles = style.fallbackStyles();
-            List<Style> parseOrder = new ArrayList<Style>();
-            // Always start with RFC822, LOCALIZED_GMT
-            parseOrder.add(Style.RFC822);
-            parseOrder.add(Style.LOCALIZED_GMT);
-
-            // The style itself
-            if (!parseOrder.contains(style)) {
-                parseOrder.add(style);
-            }
-
-            // Fallback styles
-            for (String styleStr : fallbackStyles) {
-                Style tmp = Style.valueOf(styleStr);
-                if (!parseOrder.contains(tmp)) {
-                    parseOrder.add(tmp);
-                }
-            }
-            PARSE_ORDERS[style.ordinal()] = parseOrder;
-        }
-        PARSE_ORDERS[Style.SPECIFIC_SHORT_COMMONLY_USED.ordinal()] = PARSE_ORDERS[Style.SPECIFIC_SHORT.ordinal()];
-    }
-
-    // The order of parsing styles when preferred style is not provided.
-    // We want to evaluate 1) RFC822 first, 2) LOCALIZED_GMT, 3) SPECIFIC_LONG/SHORT,
-    // then all the rest (no preferred order)
-    private static final List<Style> PARSE_ORDER_ALL_STYLES = Arrays.asList(
-        Style.RFC822,
-        Style.LOCALIZED_GMT,
-        Style.SPECIFIC_LONG, Style.SPECIFIC_SHORT,
-        Style.GENERIC_LOCATION, Style.GENERIC_LONG, Style.GENERIC_SHORT
-    );
+    private static final NameType[] ALL_SPECIFIC_NAME_TYPES = {
+        NameType.LONG_STANDARD, NameType.LONG_DAYLIGHT,
+        NameType.SHORT_STANDARD, NameType.SHORT_DAYLIGHT,
+        NameType.SHORT_STANDARD_COMMONLY_USED, NameType.SHORT_DAYLIGHT_COMMONLY_USED
+    };
 
     /**
      * 
      * @param locale
      */
     protected TimeZoneFormat(ULocale locale) {
+        _locale = locale;
         _tznames = TimeZoneNames.getInstance(locale);
+        _gnames = TimeZoneGenericNames.getInstance(locale);
 
         String gmtPattern = null;
         String hourFormats = null;
@@ -490,7 +467,7 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
      * @param offset
      * @return
      */
-    public final String formatLocalizedGMT(int offset) {
+    public String formatLocalizedGMT(int offset) {
         if (offset == 0) {
             return _gmtZeroFormat;
         }
@@ -550,92 +527,191 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
         return buf.toString();
     }
 
-    /**
-     * @param style
-     * @param tz
-     * @param date
-     * @return
-     */
-    public String format(Style style, TimeZone tz, long date) {
+    public final String format(Style style, TimeZone tz, long date) {
         return format(style, tz, date, null);
     }
 
-    /**
-     * @param style
-     * @param tz
-     * @param date
-     * @param actualStyle
-     * @return
-     */
-    public String format(Style style, TimeZone tz, long date, Style[] actualStyle) {
-        Style styleUsed = style;
-        String result = formatStyle(style, tz, date);
+    public String format(Style style, TimeZone tz, long date, TimeType[] timeType) {
+        String result = null;
+
+        if (timeType != null && timeType.length > 0) {
+            timeType[0] = TimeType.UNKNOWN;
+        }
+
+        switch (style) {
+        case GENERIC_LOCATION:
+            result = _gnames.getGenericLocationName(tz.getCanonicalID());
+            break;
+        case GENERIC_LONG:
+            result = _gnames.getDisplayName(tz, GenericNameType.LONG, date);
+            break;
+        case GENERIC_SHORT:
+            result = _gnames.getDisplayName(tz, GenericNameType.SHORT, date);
+            break;
+        case SPECIFIC_LONG:
+            result = formatSpecific(tz, NameType.LONG_STANDARD, NameType.LONG_DAYLIGHT, date, timeType);
+            break;
+        case SPECIFIC_SHORT:
+            result = formatSpecific(tz, NameType.SHORT_STANDARD, NameType.SHORT_DAYLIGHT, date, timeType);
+            break;
+        case SPECIFIC_SHORT_COMMONLY_USED:
+            result = formatSpecific(tz, NameType.SHORT_STANDARD_COMMONLY_USED, NameType.SHORT_DAYLIGHT_COMMONLY_USED, date, timeType);
+            break;
+        case RFC822:
+        case LOCALIZED_GMT:
+            int offset = tz.getOffset(date);
+            result = (style == Style.RFC822) ? formatRFC822(offset) : formatLocalizedGMT(offset);
+            break;
+        }
 
         if (result == null) {
-            String[] fallbackStyles = style.fallbackStyles();
-            for (String fbStyle : fallbackStyles) {
-                styleUsed = Style.valueOf(fbStyle);
-                result = formatStyle(styleUsed, tz, date);
-                if (result != null) {
-                    break;
-                }
+            // Use localized GMT format as the final fallback
+            int[] offsets = {0, 0};
+            tz.getOffset(date, false, offsets);
+            result = formatLocalizedGMT(offsets[0] + offsets[1]);
+            // time type
+            if (timeType != null && timeType.length > 0) {
+                timeType[0] = (offsets[1] != 0) ? TimeType.DAYLIGHT : TimeType.STANDARD;
             }
         }
 
-        if (actualStyle != null && actualStyle.length > 0) {
-            actualStyle[0] = styleUsed;
-        }
+        assert(result != null);
 
         return result;
     }
 
-    /**
-     * 
-     * @param style
-     * @param tz
-     * @param date
-     * @param toAppendTo
-     * @param pos
-     * @return
-     */
-    public final StringBuffer format(Style style, TimeZone tz, long date, StringBuffer toAppendTo, FieldPosition pos) {
-        Style[] actual = new Style[1];
-        String zoneStr = format(style, tz, date, actual);
-        toAppendTo.append(zoneStr);
+    public final int parseOffsetRFC822(String text, ParsePosition pos) {
+        int start = pos.getIndex();
 
-        boolean setPos = false;
+        if (start + 2 >= text.length()) {
+            // minimum 2 characters
+            pos.setErrorIndex(start);
+            return 0;
+        }
 
-        if (pos.getFieldAttribute() == DateFormat.Field.TIME_ZONE) {
-            setPos = true;
+        int len = 0;
+
+        int sign;
+        char signChar = text.charAt(start);
+        if (signChar == '+') {
+            sign = 1;
+        } else if (signChar == '-') {
+            sign = -1;
         } else {
-            switch (actual[0]) {
-            case SPECIFIC_LONG:
-            case SPECIFIC_SHORT:
-                setPos = (pos.getField() == DateFormat.TIMEZONE_FIELD);
-                break;
-            case GENERIC_LONG:
-            case GENERIC_SHORT:
-                setPos = (pos.getField() == DateFormat.TIMEZONE_GENERIC_FIELD);
-                break;
-            case RFC822:
-            case LOCALIZED_GMT:
-                setPos = (pos.getField() == DateFormat.TIMEZONE_RFC_FIELD);
-                break;
-            case SPECIFIC_SHORT_COMMONLY_USED:
-            case GENERIC_LOCATION:
-                setPos = (pos.getField() == DateFormat.TIMEZONE_SPECIAL_FIELD);
+            // Not an RFC822 offset string
+            pos.setErrorIndex(start);
+            return 0;
+        }
+        len++;
+
+        // Parse digits
+        // Possible format (excluding sign char) are:
+        // HHmmss
+        // HmmSS
+        // HHmm
+        // Hmm
+        // HH
+        // H
+        int idx = start + 1;
+        int numDigits = 0;
+        int[] digits = new int[6];
+        while (numDigits < digits.length && idx < text.length()) {
+            int digit = RFC822_DIGITS.indexOf(text.charAt(idx));
+            if (digit < 0) {
                 break;
             }
+            digits[numDigits] = digit;
+            numDigits++;
+            idx++;
         }
 
-        if (setPos) {
-            pos.setBeginIndex(0);
-            pos.setEndIndex(zoneStr.length());
+        if (numDigits == 0) {
+            // Not an RFC822 offset string
+            pos.setErrorIndex(start);
+            return 0;
         }
 
-        return toAppendTo;
+        int hour = 0, min = 0, sec = 0;
+        switch (numDigits) {
+        case 1: //H
+            hour = digits[0];
+            break;
+        case 2: //HH
+            hour = digits[0] * 10 + digits[1];
+            break;
+        case 3: //Hmm
+            hour = digits[0];
+            min = digits[1] * 10 + digits[2];
+            break;
+        case 4: //HHmm
+            hour = digits[0] * 10 + digits[1];
+            min = digits[2] * 10 + digits[3];
+            break;
+        case 5: //Hmmss
+            hour = digits[0];
+            min = digits[1] * 10 + digits[2];
+            sec = digits[3] * 10 + digits[4];
+            break;
+        case 6: //HHmmss
+            hour = digits[0] * 10 + digits[1];
+            min = digits[2] * 10 + digits[3];
+            sec = digits[4] * 10 + digits[5];
+            break;
+        }
+
+        if (hour > MAX_OFFSET_HOUR || min > MAX_OFFSET_MINUTE || sec > MAX_OFFSET_SECOND) {
+            // Invalid value range
+            pos.setErrorIndex(start);
+            return 0;
+        }
+
+        pos.setIndex(1 + numDigits);
+        return ((((hour * 60) + min) * 60) + sec) * 1000 * sign;
     }
 
+    public int parseOffsetLocalizedGMT(String text, ParsePosition pos) {
+        int start = pos.getIndex();
+        int idx = start;
+        boolean parsed = false;
+        int[] offset = new int[1];
+
+        do {
+            // Prefix part
+            int len = _gmtPatternTokens[0].length();
+            if (len > 0 && !text.regionMatches(true, idx, _gmtPatternTokens[0], 0, len)) {
+                // prefix match failed
+                break;
+            }
+            idx += len;
+
+            // Offset part
+            int offsetLen = parseGMTOffset(text, idx, false, offset);
+            idx += offsetLen;
+
+            // Suffix part
+            len = _gmtPatternTokens[1].length();
+            if (len > 0 && !text.regionMatches(true, idx, _gmtPatternTokens[1], 0, len)) {
+                // no suffix match
+                break;
+            }
+            idx += len;
+            parsed = true;
+
+        } while (false);
+
+        if (parsed) {
+            pos.setIndex(idx);
+            return offset[0];
+        } else {
+            // Check if this is a GMT zero format
+            if (text.regionMatches(true, start, _gmtZeroFormat, 0, _gmtZeroFormat.length())) {
+                pos.setIndex(start + _gmtZeroFormat.length());
+                return 0;
+            }
+        }
+        pos.setErrorIndex(start);
+        return 0;
+    }
 
     /**
      * 
@@ -645,8 +721,8 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
      * @param type
      * @return
      */
-    public TimeZone parse(String text, Style style, ParsePosition pos, TimeType[] type) {
-        return parse(text, PARSE_ORDERS[style.ordinal()], _parseAllStyles, pos, type);
+    public TimeZone parse(Style style, String text, ParsePosition pos, TimeType[] type) {
+        return parse(style, text, pos, _parseAllStyles, type);
     }
 
     /**
@@ -656,7 +732,7 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
      * @return
      */
     public final TimeZone parse(String text, ParsePosition pos) {
-        return parse(text, null, true, pos, null);
+        return parse(Style.GENERIC_LOCATION, text, pos, true, null);
     }
 
     /**
@@ -666,8 +742,8 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
      */
     public final TimeZone parse(String text) throws ParseException {
         ParsePosition pos = new ParsePosition(0);
-        TimeZone tz = parse(text, null, true, pos, null);
-        if (pos.getIndex() == 0) {
+        TimeZone tz = parse(text, pos);
+        if (pos.getErrorIndex() < 0) {
             throw new ParseException("Unparseable time zone: \"" + text + "\"" , 0);
         }
         assert(tz != null);
@@ -679,13 +755,28 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
      */
     @Override
     public StringBuffer format(Object obj, StringBuffer toAppendTo, FieldPosition pos) {
+        TimeZone tz = null;
+        long date = System.currentTimeMillis();
+
         if (obj instanceof TimeZone) {
-            return format(Style.GENERIC_LOCATION, (TimeZone)obj, System.currentTimeMillis(), toAppendTo, pos);
+            tz = (TimeZone)obj;
         } else if (obj instanceof Calendar) {
-            return format(Style.GENERIC_LOCATION, ((Calendar)obj).getTimeZone(), ((Calendar)obj).getTimeInMillis(), toAppendTo, pos);
+            tz = ((Calendar)obj).getTimeZone();
+            date = ((Calendar)obj).getTimeInMillis();
+        } else {
+            throw new IllegalArgumentException("Cannot format given Object (" +
+                    obj.getClass().getName() + ") as a time zone");
         }
-        throw new IllegalArgumentException("Cannot format given Object (" +
-                obj.getClass().getName() + ") as a time zone");
+        assert(tz != null);
+        String result = formatLocalizedGMT(tz.getOffset(date));
+        toAppendTo.append(result);
+
+        if (pos.getFieldAttribute() == DateFormat.Field.TIME_ZONE
+                || pos.getField() == DateFormat.TIMEZONE_FIELD) {
+            pos.setBeginIndex(0);
+            pos.setEndIndex(result.length());
+        }
+        return toAppendTo;
     }
 
     /* (non-Javadoc)
@@ -710,6 +801,184 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
     @Override
     public Object parseObject(String source, ParsePosition pos) {
         return parse(source, pos);
+    }
+
+    /**
+     * Private method returning the time zone's specific format string.
+     * 
+     * @param tz the time zone
+     * @param stdType the name type used for standard time
+     * @param dstType the name type used for daylight time
+     * @param date the date
+     * @param timeType when null, actual time type is set
+     * @return the time zone's specific format name string
+     */
+    private String formatSpecific(TimeZone tz, NameType stdType, NameType dstType, long date, TimeType[] timeType) {
+        assert(stdType == NameType.LONG_STANDARD || stdType == NameType.SHORT_STANDARD || stdType == NameType.SHORT_STANDARD_COMMONLY_USED);
+        assert(dstType == NameType.LONG_DAYLIGHT || dstType == NameType.SHORT_DAYLIGHT || dstType == NameType.SHORT_DAYLIGHT_COMMONLY_USED);
+
+        boolean isDaylight = tz.inDaylightTime(new Date(date));
+        String name = isDaylight?
+                getTimeZoneNames().getDisplayName(tz.getCanonicalID(), dstType, date) :
+                getTimeZoneNames().getDisplayName(tz.getCanonicalID(), stdType, date);
+
+        if (name != null && timeType != null && timeType.length > 0) {
+            timeType[0] = isDaylight ? TimeType.DAYLIGHT : TimeType.STANDARD;
+        }
+        return name;
+    }
+
+    private TimeZone parse(Style style, String text, ParsePosition pos, boolean parseAllStyles, TimeType[] timeType) {
+        ParsePosition tmpPos = new ParsePosition(pos.getIndex());
+
+        // try RFC822
+        int offset = parseOffsetRFC822(text, tmpPos);
+        if (tmpPos.getErrorIndex() < 0) {
+            pos.setIndex(tmpPos.getIndex());
+            return ZoneMeta.getCustomTimeZone(offset);
+        }
+        // try Localized GMT
+        tmpPos.setErrorIndex(-1);
+        tmpPos.setIndex(pos.getIndex());
+        offset = parseOffsetLocalizedGMT(text, tmpPos);
+        if (tmpPos.getErrorIndex() < 0) {
+            pos.setIndex(tmpPos.getIndex());
+            return ZoneMeta.getCustomTimeZone(offset);
+        }
+
+        if (!parseAllStyles && (style == Style.RFC822 || style == Style.LOCALIZED_GMT)) {
+            pos.setErrorIndex(pos.getErrorIndex());
+            return null;
+        }
+
+        Collection<MatchInfo> namesMatches = null;
+        GenericMatchInfo genericMatch = null;
+        boolean doneGeneric = false;
+        TimeType tt = TimeType.UNKNOWN;
+
+        if (style == Style.SPECIFIC_LONG || style == Style.SPECIFIC_SHORT || style == Style.SPECIFIC_SHORT_COMMONLY_USED) {
+            namesMatches = _tznames.find(text, pos.getIndex(), ALL_SPECIFIC_NAME_TYPES);
+            MatchInfo bestMatch = null;
+            for (MatchInfo m : namesMatches) {
+                NameType nameType = m.nameType();
+                boolean bNameTypeMatch = false;
+                switch (style) {
+                case SPECIFIC_LONG:
+                    bNameTypeMatch = (nameType == NameType.LONG_STANDARD || nameType == NameType.LONG_DAYLIGHT);
+                    break;
+                case SPECIFIC_SHORT:
+                    bNameTypeMatch = (nameType == NameType.SHORT_STANDARD || nameType == NameType.SHORT_DAYLIGHT);
+                    break;
+                case SPECIFIC_SHORT_COMMONLY_USED:
+                    bNameTypeMatch = (nameType == NameType.SHORT_STANDARD_COMMONLY_USED || nameType == NameType.SHORT_DAYLIGHT_COMMONLY_USED);
+                    break;
+                }
+                if (bNameTypeMatch && (bestMatch == null || m.matchLength() > bestMatch.matchLength())) {
+                    bestMatch = m;
+                    if (nameType == NameType.LONG_STANDARD || nameType == NameType.SHORT_STANDARD || nameType == NameType.SHORT_STANDARD_COMMONLY_USED) {
+                        tt = TimeType.STANDARD;
+                    } else {
+                        tt = TimeType.DAYLIGHT;
+                    }
+                }
+            }
+            if (bestMatch != null) {
+                if (timeType != null && timeType.length > 0) {
+                    timeType[0] = tt;
+                }
+                String tzID = bestMatch.tzID();
+                if (tzID == null) {
+                    tzID = _tznames.getReferenceZoneID(bestMatch.mzID(), getTargetRegion());
+                }
+                pos.setIndex(pos.getIndex() + bestMatch.matchLength());
+                return TimeZone.getTimeZone(tzID);
+            }
+        } else {
+            assert(style == Style.GENERIC_LOCATION || style == Style.GENERIC_LONG || style == Style.GENERIC_SHORT);
+            GenericNameType preferredType = (style == Style.GENERIC_LOCATION) ? GenericNameType.LOCATION
+                    : (style == Style.GENERIC_LONG) ? GenericNameType.LONG : GenericNameType.SHORT;
+            genericMatch = _gnames.findMatch(text, pos.getIndex(), preferredType);
+
+            if (genericMatch != null && genericMatch.type() == preferredType) {
+                if (timeType != null && timeType.length > 0) {
+                    timeType[0] = TimeType.UNKNOWN;
+                }
+                pos.setIndex(pos.getIndex() + genericMatch.matchLength());
+                return TimeZone.getTimeZone(genericMatch.tzID());
+            }
+            doneGeneric = true;
+        }
+
+        if (parseAllStyles) {
+            if (namesMatches == null) {
+                namesMatches = _tznames.find(text, pos.getIndex(), ALL_SPECIFIC_NAME_TYPES);
+            }
+            if (!doneGeneric) {
+                genericMatch = _gnames.findMatch(text, pos.getIndex());
+            }
+
+            int longestLen = 0;
+            if (genericMatch != null) {
+                longestLen = genericMatch.matchLength();
+            }
+            MatchInfo longestMatch = null;
+            for (MatchInfo m : namesMatches) {
+                if (m.matchLength() > longestLen) {
+                    longestMatch = m;
+                    longestLen = m.matchLength();
+                    NameType nameType = m.nameType();
+                    if (nameType == NameType.LONG_STANDARD || nameType == NameType.SHORT_STANDARD || nameType == NameType.SHORT_STANDARD_COMMONLY_USED) {
+                        tt = TimeType.STANDARD;
+                    } else {
+                        tt = TimeType.DAYLIGHT;
+                    }
+                }
+            }
+            if (longestLen > 0) {
+                String tzID = null;
+ 
+                if (longestMatch != null) {
+                    tzID = longestMatch.tzID();
+                    if (tzID == null) {
+                        tzID = _tznames.getReferenceZoneID(longestMatch.mzID(), "001");
+                    }
+                } else if (genericMatch != null) {
+                    tzID = genericMatch.tzID();
+                }
+
+                if (tzID != null) {
+                    if (timeType != null && timeType.length > 0) {
+                        timeType[0] = tt;
+                    }
+                    pos.setIndex(pos.getIndex() + longestLen);
+                    return TimeZone.getTimeZone(tzID);
+                }
+            }
+        }
+        pos.setErrorIndex(pos.getIndex());
+        return null;
+    }
+
+    /**
+     * Private method returning the target region. The target regions is determined by
+     * the locale of this instance. When a generic name is coming from
+     * a meta zone, this region is used for checking if the time zone
+     * is a reference zone of the meta zone.
+     * 
+     * @return the target region
+     */
+    private synchronized String getTargetRegion() {
+        if (_region == null) {
+            _region = _locale.getCountry();
+            if (_region.length() == 0) {
+                ULocale tmp = ULocale.addLikelySubtags(_locale);
+                _region = tmp.getCountry();
+                if (_region.length() == 0) {
+                    _region = "001";
+                }
+            }
+        }
+        return _region;
     }
 
     private void initGMTPattern(String gmtPattern) {
@@ -924,167 +1193,6 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
         buf.append(_gmtOffsetDigits[n % 10]);
     }
 
-    private String formatStyle(Style style, TimeZone tz, long date) {
-        String result = null;
-        switch (style) {
-        case GENERIC_LOCATION:
-            result = handleFormatGenericLocation(tz.getCanonicalID());
-            break;
-        case GENERIC_LONG:
-            result = handleFormatLongGeneric(tz, date);
-            break;
-        case GENERIC_SHORT:
-            result = handleFormatShortGeneric(tz, date);
-            break;
-        case SPECIFIC_LONG:
-            result = handleFormatLongSpecific(tz, date);
-            break;
-        case SPECIFIC_SHORT:
-            result = handleFormatShortSpecific(tz, date);
-            break;
-        case RFC822:
-            result = formatRFC822(tz.getOffset(date));
-            break;
-        case LOCALIZED_GMT:
-            result = formatLocalizedGMT(tz.getOffset(date));
-            break;
-        case SPECIFIC_SHORT_COMMONLY_USED:
-            result = handleFormatShortSpecificCommonlyUsed(tz, date);
-            break;
-        }
-        return result;
-    }
-
-    private void parseRFC822(String text, int start, ParseResult result) {
-        result.reset();
-        if (start + 2 >= text.length()) {
-            // minimum 2 characters
-            return;
-        }
-
-        int len = 0;
-
-        int sign;
-        char signChar = text.charAt(start);
-        if (signChar == '+') {
-            sign = 1;
-        } else if (signChar == '-') {
-            sign = -1;
-        } else {
-            // Not an RFC822 offset string
-            return;
-        }
-        len++;
-
-        // Parse digits
-        // Possible format (excluding sign char) are:
-        // HHmmss
-        // HmmSS
-        // HHmm
-        // Hmm
-        // HH
-        // H
-        int idx = start + 1;
-        int numDigits = 0;
-        int[] digits = new int[6];
-        while (numDigits < digits.length && idx < text.length()) {
-            int digit = RFC822_DIGITS.indexOf(text.charAt(idx));
-            if (digit < 0) {
-                break;
-            }
-            digits[numDigits] = digit;
-            numDigits++;
-            idx++;
-        }
-
-        if (numDigits == 0) {
-            // Not an RFC822 offset string
-            return;
-        }
-
-        int hour = 0, min = 0, sec = 0;
-        switch (numDigits) {
-        case 1: //H
-            hour = digits[0];
-            break;
-        case 2: //HH
-            hour = digits[0] * 10 + digits[1];
-            break;
-        case 3: //Hmm
-            hour = digits[0];
-            min = digits[1] * 10 + digits[2];
-            break;
-        case 4: //HHmm
-            hour = digits[0] * 10 + digits[1];
-            min = digits[2] * 10 + digits[3];
-            break;
-        case 5: //Hmmss
-            hour = digits[0];
-            min = digits[1] * 10 + digits[2];
-            sec = digits[3] * 10 + digits[4];
-            break;
-        case 6: //HHmmss
-            hour = digits[0] * 10 + digits[1];
-            min = digits[2] * 10 + digits[3];
-            sec = digits[4] * 10 + digits[5];
-            break;
-        }
-
-        if (hour > MAX_OFFSET_HOUR || min > MAX_OFFSET_MINUTE || sec > MAX_OFFSET_SECOND) {
-            // Invalid value range
-            return;
-        }
-
-        result._length = 1 + numDigits;
-        result._offset = ((((hour * 60) + min) * 60) + sec) * 1000 * sign;
-        result._type = TimeType.UNKNOWN;
-    }
-
-    private void parseLocalizedGMT(String text, int start, ParseResult result) {
-        result.reset();
-
-        int idx = start;
-        boolean parsed = false;
-        int[] offset = new int[1];
-
-        do {
-            // Prefix part
-            int len = _gmtPatternTokens[0].length();
-            if (len > 0 && !text.regionMatches(true, idx, _gmtPatternTokens[0], 0, len)) {
-                // prefix match failed
-                break;
-            }
-            idx += len;
-
-            // Offset part
-            int offsetLen = parseGMTOffset(text, idx, false, offset);
-            idx += offsetLen;
-
-            // Suffix part
-            len = _gmtPatternTokens[1].length();
-            if (len > 0 && !text.regionMatches(true, idx, _gmtPatternTokens[1], 0, len)) {
-                // no suffix match
-                break;
-            }
-            idx += len;
-            parsed = true;
-
-        } while (false);
-
-        if (parsed) {
-            result._length = idx - start;
-            result._offset = offset[0];
-            result._type = TimeType.UNKNOWN;
-        } else {
-            // Check if this is a GMT zero format
-            if (text.regionMatches(true, start, _gmtZeroFormat, 0, _gmtZeroFormat.length())) {
-                result._length = _gmtZeroFormat.length();
-                result._offset = 0;
-                result._type = TimeType.UNKNOWN;
-            }
-        }
-    }
-
     private int parseGMTOffset(String text, int start, boolean minimumHourWidth, int[] offset) {
         int parsedLen = 0;
         int[] tmpParsedLen = new int[1];
@@ -1158,59 +1266,58 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
         return parsedLen;
     }
 
-    private void parseDefaultGMT(String text, int start, ParseResult result) {
-        result.reset();
-
-        int idx = start;
-        int len;
-
-        // check global default GMT alternatives
-        int gmtLen = 0;
-        for (String gmt : ALT_GMT_STRINGS) {
-            len = gmt.length();
-            if (text.regionMatches(true, idx, gmt, 0, len)) {
-                gmtLen = len;
-                break;
-            }
-        }
-        if (gmtLen == 0) {
-            return;
-        }
-        idx += gmtLen;
-
-        // at least, parsed up to GMT string
-        result._length = idx - start;
-        result._offset = 0;
-        result._type = TimeType.UNKNOWN;
-
-        // offset needs a sign char and a digit at minimum  
-        if (idx + 1 >= text.length()) {
-            return;
-        }
-
-        // parse sign
-        int sign = 1;
-        char c = text.charAt(idx);
-        if (c == '+') {
-            sign = 1;
-        } else if (c == '-') {
-            sign = -1;
-        } else {
-            // no sign part
-            return;
-        }
-        idx++;
-
-        // offset
-        int[] parsedLen = new int[1];
-        int num = parseOffsetDigits(text, idx, 1, 6, 0, 
-                235959 /* MAX_OFFSET_HOUR*10000 + MAX_OFFSET_MINUTE*100 + MAX_OFFSET_SECOND */, parsedLen);
-        if (parsedLen[0] == 0) {
-            return;
-        }
-
-        // TODO
-        int offsetH = 0, offsetM = 0, offsetS = 0;
+    private void parseDefaultGMT(String text, ParsePosition pos) {
+//
+//        int idx = start;
+//        int len;
+//
+//        // check global default GMT alternatives
+//        int gmtLen = 0;
+//        for (String gmt : ALT_GMT_STRINGS) {
+//            len = gmt.length();
+//            if (text.regionMatches(true, idx, gmt, 0, len)) {
+//                gmtLen = len;
+//                break;
+//            }
+//        }
+//        if (gmtLen == 0) {
+//            return;
+//        }
+//        idx += gmtLen;
+//
+//        // at least, parsed up to GMT string
+//        result._length = idx - start;
+//        result._offset = 0;
+//        result._type = TimeType.UNKNOWN;
+//
+//        // offset needs a sign char and a digit at minimum  
+//        if (idx + 1 >= text.length()) {
+//            return;
+//        }
+//
+//        // parse sign
+//        int sign = 1;
+//        char c = text.charAt(idx);
+//        if (c == '+') {
+//            sign = 1;
+//        } else if (c == '-') {
+//            sign = -1;
+//        } else {
+//            // no sign part
+//            return;
+//        }
+//        idx++;
+//
+//        // offset
+//        int[] parsedLen = new int[1];
+//        int num = parseOffsetDigits(text, idx, 1, 6, 0, 
+//                235959 /* MAX_OFFSET_HOUR*10000 + MAX_OFFSET_MINUTE*100 + MAX_OFFSET_SECOND */, parsedLen);
+//        if (parsedLen[0] == 0) {
+//            return;
+//        }
+//
+//        // TODO
+//        int offsetH = 0, offsetM = 0, offsetS = 0;
 
     }
 
@@ -1262,100 +1369,6 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
         return decVal;
     }
 
-    private TimeZone parse(String text, List<Style> styles, boolean parseAllStyles, ParsePosition pos, TimeType[] type) {
-        int idx = pos.getIndex();
-        final int maxMatchLen = text.length() - pos.getIndex();   // possible maximum match length
-
-        ParseResult match = new ParseResult();;
-        ParseResult bestMatch = null;
-        int plen;
-
-        if (styles != null) {
-            // Find the longest match from the standard style list
-            for (Style style : styles) {
-                assert(style != Style.SPECIFIC_SHORT_COMMONLY_USED);
-
-                parseStyle(style, text, idx, match);
-                plen = match.getParseLength();
-                if (plen > 0) {
-                    if (bestMatch == null || bestMatch.getParseLength() < plen) {
-                        bestMatch = match.clone();
-                    }
-                    if (plen == maxMatchLen) {
-                        break;
-                    }
-                }
-            }
-        }
-
-        if (bestMatch == null && parseAllStyles) {
-            // Find the longest match from other styles
-            for (Style style : PARSE_ORDER_ALL_STYLES) {
-                assert(style != Style.SPECIFIC_SHORT_COMMONLY_USED);
-                if (styles != null && styles.contains(style)) {
-                    // already tried
-                    continue;
-                }
-                parseStyle(style, text, idx, match);
-                plen = match.getParseLength();
-                if (plen > 0) {
-                    if (bestMatch == null || bestMatch.getParseLength() < plen) {
-                        bestMatch = match.clone();
-                    }
-                    if (plen == maxMatchLen) {
-                        break;
-                    }
-                }
-            }
-        }
-
-        TimeZone tz = null;
-        if (bestMatch != null) {
-            if (bestMatch.getID() != null) {
-                tz = TimeZone.getTimeZone(bestMatch.getID());
-            } else {
-                assert(bestMatch.getOffset() != null);
-                tz = ZoneMeta.getCustomTimeZone(bestMatch.getOffset());
-            }
-            pos.setIndex(idx + bestMatch.getParseLength());
-
-            if (type != null && type.length > 0) {
-                type[0] = bestMatch.getType();
-            }
-        } else {
-            pos.setErrorIndex(idx);
-        }
-
-        return tz;
-    }
-
-    private void parseStyle(Style style, String text, int start, ParseResult result) {
-        switch (style) {
-        case GENERIC_LOCATION:
-            handleParseGenericLocation(text, start, result);
-            break;
-        case GENERIC_LONG:
-            handleParseLongGeneric(text, start, result);
-            break;
-        case GENERIC_SHORT:
-            handleParseShortGeneric(text, start, result);
-            break;
-        case SPECIFIC_LONG:
-            handleParseLongSpecific(text, start, result);
-            break;
-        case SPECIFIC_SHORT:
-        case SPECIFIC_SHORT_COMMONLY_USED:
-            handleParseShortSpecific(text, start, result);
-            break;
-        case RFC822:
-            parseRFC822(text, start, result);
-            break;
-        case LOCALIZED_GMT:
-            parseLocalizedGMT(text, start, result);
-            break;
-        }
-    }
-
     private static String[] toCodePoints(String str) {
         int len = str.codePointCount(0, str.length());
         String[] codePoints = new String[len];
@@ -1379,161 +1392,6 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
         initGMTOffsetPatterns(_gmtOffsetPatterns);
     }
 
-    /**
-     * @draft ICU 4.8
-     */
-    protected static class ParseResult implements Cloneable {
-        private String _id;
-        private Integer _offset;
-        private int _length;
-        private TimeType _type = TimeType.UNKNOWN;
-
-        public ParseResult() {
-        }
-
-        public void reset() {
-            _id = null;
-            _offset = null;
-            _length = 0;
-            _type = TimeType.UNKNOWN;
-        }
-
-        public String getID() {
-            return _id;
-        }
-
-        public ParseResult setID(String id) {
-            _id = id;
-            return this;
-        }
-
-        public Integer getOffset() {
-            return _offset;
-        }
-
-        public ParseResult setOffset(Integer offset) {
-            _offset = offset;
-            return this;
-        }
-
-        public int getParseLength() {
-            return _length;
-        }
-
-        public ParseResult setParseLength(int length) {
-            _length = length;
-            return this;
-        }
-
-        public TimeType getType() {
-            return _type;
-        }
-
-        public ParseResult setType(TimeType type) {
-            _type = type;
-            return this;
-        }
-
-        public ParseResult clone() {
-            try {
-                return (ParseResult)super.clone();
-            } catch (CloneNotSupportedException e) {
-                // will never happen
-                throw new RuntimeException(e);
-            }
-        }
-    }
-
-    /**
-     * 
-     * @param tz
-     * @param date
-     * @return
-     */
-    protected abstract String handleFormatLongGeneric(TimeZone tz, long date);
-
-    /**
-     * 
-     * @param tz
-     * @param date
-     * @return
-     */
-    protected abstract String handleFormatLongSpecific(TimeZone tz, long date);
-
-    /**
-     * 
-     * @param tz
-     * @param date
-     * @return
-     */
-    protected abstract String handleFormatShortGeneric(TimeZone tz, long date);
-
-    /**
-     * 
-     * @param tz
-     * @param date
-     * @param all
-     * @return
-     */
-    protected abstract String handleFormatShortSpecific(TimeZone tz, long date);
-
-    /**
-     * 
-     * @param tz
-     * @param date
-     * @param all
-     * @return
-     */
-    protected abstract String handleFormatShortSpecificCommonlyUsed(TimeZone tz, long date);
-
-    /**
-     * 
-     * @param tzID
-     * @return
-     */
-    protected abstract String handleFormatGenericLocation(String tzID);
-
-    /**
-     * 
-     * @param text
-     * @param start
-     * @param result
-     */
-    protected abstract void handleParseLongGeneric(String text, int start, ParseResult result);
-
-    /**
-     * 
-     * @param text
-     * @param start
-     * @param result
-     */
-    protected abstract void handleParseLongSpecific(String text, int start, ParseResult result);
-
-    /**
-     * 
-     * @param text
-     * @param start
-     * @param result
-     */
-    protected abstract void handleParseShortGeneric(String text, int start, ParseResult result);
-
-    /**
-     * 
-     * @param text
-     * @param start
-     * @param result
-     */
-    protected abstract void handleParseShortSpecific(String text, int start, ParseResult result);
-
-    /**
-     * 
-     * @param text
-     * @param start
-     * @param result
-     */
-    protected abstract void handleParseGenericLocation(String text, int start, ParseResult result);
-
-
     private static class TimeZoneFormatCache extends SoftCache<ULocale, TimeZoneFormat, ULocale> {
 
         /* (non-Javadoc)
@@ -1541,10 +1399,34 @@ public abstract class TimeZoneFormat extends UFormat implements Freezable<TimeZo
          */
         @Override
         protected TimeZoneFormat createInstance(ULocale key, ULocale data) {
-            TimeZoneFormat fmt = new TimeZoneFormatImpl(data);
+            TimeZoneFormat fmt = new TimeZoneFormat(data);
             fmt.freeze();
             return fmt;
         }
+    }
+
+    /* (non-Javadoc)
+     * @see com.ibm.icu.util.Freezable#isFrozen()
+     */
+    public boolean isFrozen() {
+        return _frozen;
+    }
+
+    /* (non-Javadoc)
+     * @see com.ibm.icu.util.Freezable#freeze()
+     */
+    public TimeZoneFormat freeze() {
+        _frozen = true;
+        return this;
+    }
+
+    /* (non-Javadoc)
+     * @see com.ibm.icu.util.Freezable#cloneAsThawed()
+     */
+    public TimeZoneFormat cloneAsThawed() {
+        TimeZoneFormat copy = (TimeZoneFormat)super.clone();
+        copy._frozen = false;
+        return copy;
     }
 }
 

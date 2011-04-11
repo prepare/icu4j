@@ -7,6 +7,7 @@
 package com.ibm.icu.text;
 
 import java.io.Serializable;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -320,6 +321,47 @@ public abstract class TimeZoneNames implements Serializable {
         return location;
     }
 
+    // TODO official doc
+    public abstract Collection<MatchInfo> find(String text, int start, NameType[] nameTypes);
+
+    public static class MatchInfo {
+        private NameType _nameType;
+        private String _tzID;
+        private String _mzID;
+        private int _matchLength;
+
+        private MatchInfo(NameType nameType, String tzID, String mzID, int matchLength) {
+            _nameType = nameType;
+            _tzID = tzID;
+            _mzID = mzID;
+            _matchLength = matchLength;
+        }
+
+        public static MatchInfo createTimeZoneMatch(String tzID, NameType nameType, int matchLength) {
+            return new MatchInfo(nameType, tzID, null, matchLength);
+        }
+
+        public static MatchInfo createMetaZoneMatch(String mzID, NameType nameType, int matchLength) {
+            return new MatchInfo(nameType, null, mzID, matchLength);
+        }
+
+        public String tzID() {
+            return _tzID;
+        }
+
+        public String mzID() {
+            return _mzID;
+        }
+
+        public NameType nameType() {
+            return _nameType;
+        }
+
+        public int matchLength() {
+            return _matchLength;
+        }
+    }
+
     /**
      * Sole constructor for invocation by subclass constructors.
      * 
@@ -425,6 +467,14 @@ public abstract class TimeZoneNames implements Serializable {
         @Override
         public String getTimeZoneDisplayName(String tzID, NameType type) {
             return null;
+        }
+
+        /* (non-Javadoc)
+         * @see com.ibm.icu.text.TimeZoneNames#find(java.lang.String, int, com.ibm.icu.text.TimeZoneNames.NameType[])
+         */
+        @Override
+        public Collection<MatchInfo> find(String text, int start, NameType[] nameTypes) {
+            return Collections.emptyList();
         }
 
         /**

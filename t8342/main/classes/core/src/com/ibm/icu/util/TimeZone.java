@@ -514,32 +514,32 @@ abstract public class TimeZone implements Serializable, Cloneable {
             // Generic format
             TimeZoneFormat tzfmt = TimeZoneFormat.getInstance(locale);
             long date = System.currentTimeMillis();
-            Style[] actual = new Style[1];
 
             switch (style) {
             case GENERIC_LOCATION:
-                result = tzfmt.format(Style.GENERIC_LOCATION, this, date, actual);
+                result = tzfmt.format(Style.GENERIC_LOCATION, this, date);
                 break;
             case LONG_GENERIC:
-                result = tzfmt.format(Style.GENERIC_LONG, this, date, actual);
+                result = tzfmt.format(Style.GENERIC_LONG, this, date);
                 break;
             case SHORT_GENERIC:
-                result = tzfmt.format(Style.GENERIC_SHORT, this, date, actual);
+                result = tzfmt.format(Style.GENERIC_SHORT, this, date);
                 break;
             }
-            if (actual[0] == Style.LOCALIZED_GMT) {
-                // Generic format many use Localized GMT as the final fallback.
-                // When Localized GMT format is used, the result might not be
-                // appropriate for the daylightRequested value.
-                boolean isDaylightNow = inDaylightTime(new Date(date));
-                if (daylightRequested && !isDaylightNow) {
-                    // use the offset format with the daylight offset
-                    result = tzfmt.formatLocalizedGMT(getRawOffset() + getDSTSavings());
-                } else if (!daylightRequested && isDaylightNow) {
-                    // use the offset format with the standard offset
-                    result = tzfmt.formatLocalizedGMT(getRawOffset());
-                }
-            }
+            //TODO
+//            if (actual[0] == Style.LOCALIZED_GMT) {
+//                // Generic format many use Localized GMT as the final fallback.
+//                // When Localized GMT format is used, the result might not be
+//                // appropriate for the daylightRequested value.
+//                boolean isDaylightNow = inDaylightTime(new Date(date));
+//                if (daylightRequested && !isDaylightNow) {
+//                    // use the offset format with the daylight offset
+//                    result = tzfmt.formatLocalizedGMT(getRawOffset() + getDSTSavings());
+//                } else if (!daylightRequested && isDaylightNow) {
+//                    // use the offset format with the standard offset
+//                    result = tzfmt.formatLocalizedGMT(getRawOffset());
+//                }
+//            }
 
         } else if (style == LONG_GMT || style == SHORT_GMT) {
             // Offset format
