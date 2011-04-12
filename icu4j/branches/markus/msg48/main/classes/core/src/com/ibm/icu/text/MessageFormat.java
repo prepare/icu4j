@@ -1838,11 +1838,13 @@ public class MessageFormat extends UFormat {
             assert type.hasNumericValue();
             double boundary=pattern.getNumericValue(part);
             // Fetch the ARG_SELECTOR character.
-            part=pattern.getPart(partIndex++);
-            char boundaryChar=pattern.getPatternString().charAt(part.getIndex());
-            if(boundaryChar=='#' ? number<boundary : number<=boundary) {
+            int selectorIndex=pattern.getPatternIndex(partIndex++);
+            char boundaryChar=pattern.getPatternString().charAt(selectorIndex);
+            if(boundaryChar=='<' ? !(number>boundary) : !(number>=boundary)) {
                 // The number is in the interval between the previous boundary and the current one.
                 // Return with the sub-message between them.
+                // The !(a>b) and !(a>=b) comparisons are equivalent to
+                // (a<=b) and (a<b) except they "catch" NaN.
                 break;
             }
         }
