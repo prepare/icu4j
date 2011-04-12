@@ -322,42 +322,110 @@ public abstract class TimeZoneNames implements Serializable {
         return location;
     }
 
-    // TODO official doc
+    /**
+     * Finds time zone name prefix matches for the input text at the
+     * given offset and returns a collection of the matches.
+     * 
+     * @param text the text.
+     * @param start the starting offset within the text.
+     * @param types the set of name types, or <code>null</code> for all name types.
+     * @return A collection of matches.
+     * @see NameType
+     * @see MatchInfo
+     * @draft ICU 4.8
+     * @provisional This API might change or be removed in a future release.
+     */
     public abstract Collection<MatchInfo> find(String text, int start, EnumSet<NameType> types);
 
+    /**
+     * A <code>MatchInfo</code> represents a time zone name match used by
+     * {@link TimeZoneNames#find(String, int, EnumSet)}.
+     * @draft ICU 4.8
+     * @provisional This API might change or be removed in a future release.
+     */
     public static class MatchInfo {
         private NameType _nameType;
         private String _tzID;
         private String _mzID;
         private int _matchLength;
 
-        private MatchInfo(NameType nameType, String tzID, String mzID, int matchLength) {
+        /**
+         * Constructing a <code>MatchInfo</code>.
+         * 
+         * @param nameType the name type enum.
+         * @param tzID the time zone ID, or null
+         * @param mzID the meta zone ID, or null
+         * @param matchLength the match length.
+         * @throws IllegalArgumentException when 1) <code>nameType</code> is <code>null</code>,
+         * or 2) both <code>tzID</code> and <code>mzID</code> are <code>null</code>,
+         * or 3) <code>matchLength</code> is 0 or smaller.
+         * @see NameType
+         * @draft ICU 4.8
+         * @provisional This API might change or be removed in a future release.
+         */
+        public MatchInfo(NameType nameType, String tzID, String mzID, int matchLength) {
+            if (nameType == null) {
+                throw new IllegalArgumentException("nameType is null");
+            }
+            if (tzID == null && mzID == null) {
+                throw new IllegalArgumentException("Either tzID or mzID must be available");
+            }
+            if (matchLength <= 0) {
+                throw new IllegalArgumentException("matchLength must be positive value");
+            }
             _nameType = nameType;
             _tzID = tzID;
             _mzID = mzID;
             _matchLength = matchLength;
         }
 
-        public static MatchInfo createTimeZoneMatch(String tzID, NameType nameType, int matchLength) {
-            return new MatchInfo(nameType, tzID, null, matchLength);
-        }
-
-        public static MatchInfo createMetaZoneMatch(String mzID, NameType nameType, int matchLength) {
-            return new MatchInfo(nameType, null, mzID, matchLength);
-        }
-
+        /**
+         * Returns the time zone ID, or <code>null</code> if not available.
+         * 
+         * <p><b>Note</b>: A <code>MatchInfo</code> must have either a time zone ID
+         * or a meta zone ID.
+         * 
+         * @return the time zone ID, or <code>null</code>.
+         * @see #mzID()
+         * @draft ICU 4.8
+         * @provisional This API might change or be removed in a future release.
+         */
         public String tzID() {
             return _tzID;
         }
 
+        /**
+         * Returns the meta zone ID, or <code>null</code> if not available.
+         * 
+         * <p><b>Note</b>: A <code>MatchInfo</code> must have either a time zone ID
+         * or a meta zone ID.
+         * 
+         * @return the meta zone ID, or <code>null</code>.
+         * @see #tzID()
+         * @draft ICU 4.8
+         * @provisional This API might change or be removed in a future release.
+         */
         public String mzID() {
             return _mzID;
         }
 
+        /**
+         * Returns the time zone name type.
+         * @return the time zone name type enum.
+         * @see NameType
+         * @draft ICU 4.8
+         * @provisional This API might change or be removed in a future release.
+         */
         public NameType nameType() {
             return _nameType;
         }
 
+        /**
+         * Returns the match length.
+         * @return the match length.
+         * @draft ICU 4.8
+         * @provisional This API might change or be removed in a future release.
+         */
         public int matchLength() {
             return _matchLength;
         }

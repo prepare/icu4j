@@ -547,10 +547,10 @@ abstract public class TimeZone implements Serializable, Cloneable {
             int offset = daylightRequested && useDaylightTime() ? getRawOffset() + getDSTSavings() : getRawOffset();
             switch (style) {
             case LONG_GMT:
-                result = tzfmt.formatLocalizedGMT(offset);
+                result = tzfmt.formatOffsetLocalizedGMT(offset);
                 break;
             case SHORT_GMT:
-                result = tzfmt.formatRFC822(offset);
+                result = tzfmt.formatOffsetRFC822(offset);
                 break;
             }
         } else {
@@ -577,7 +577,7 @@ abstract public class TimeZone implements Serializable, Cloneable {
                 // Fallback to localized GMT
                 TimeZoneFormat tzfmt = TimeZoneFormat.getInstance(locale);
                 int offset = daylightRequested && useDaylightTime() ? getRawOffset() + getDSTSavings() : getRawOffset();
-                result = tzfmt.formatLocalizedGMT(offset);
+                result = tzfmt.formatOffsetLocalizedGMT(offset);
             }
         }
         assert(result != null);

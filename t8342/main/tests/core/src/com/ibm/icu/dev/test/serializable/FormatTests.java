@@ -2241,8 +2241,8 @@ public class FormatTests
 
             final int offset = -5 * 60 * 60 * 1000;
 
-            String gmta = tzfa.formatLocalizedGMT(offset);
-            String gmtb = tzfb.formatLocalizedGMT(offset);
+            String gmta = tzfa.formatOffsetLocalizedGMT(offset);
+            String gmtb = tzfb.formatOffsetLocalizedGMT(offset);
 
             if (!gmta.equals(gmtb)) {
                 return false;
