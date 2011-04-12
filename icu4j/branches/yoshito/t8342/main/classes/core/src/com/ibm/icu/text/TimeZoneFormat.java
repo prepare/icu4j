@@ -49,6 +49,8 @@ import com.ibm.icu.util.ULocale;
  * 
  * @see SimpleDateFormat
  * @see TimeZoneNames
+ * @draft ICU 4.8
+ * @provisional This API might change or be removed in a future release.
  */
 public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>, Serializable {
 
@@ -108,7 +110,7 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
         LOCALIZED_GMT,
         /**
          * Specific short format, such as "EST", "PDT".
-         * <p><b>Note</b>: This is a variant of {@link SPECIFIC_SHORT}, but
+         * <p><b>Note</b>: This is a variant of {@link #SPECIFIC_SHORT}, but
          * excluding short abbreviations not commonly recognized by people
          * for the locale.
          * @draft ICU 4.8
@@ -562,12 +564,16 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
     }
 
     /**
-     * @param offset
-     * @return
+     * Returns the RFC822 style time zone string for the given offset.
+     * For example, "-0800".
+     * 
+     * @param offset the offset for GMT(UTC) in milliseconds.
+     * @return the RFC822 style GMT(UTC) offset format.
+     * @see #parseOffsetRFC822(String, ParsePosition)
      * @draft ICU 4.8
      * @provisional This API might change or be removed in a future release.
      */
-    public final String formatRFC822(int offset) {
+    public final String formatOffsetRFC822(int offset) {
         StringBuilder buf = new StringBuilder();
         char sign = '+';
         if (offset < 0) {
@@ -606,13 +612,21 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
     }
 
     /**
-     * 
-     * @param offset
-     * @return
+     * Returns the localized GMT(UTC) offset format for the given offset.
+     * The localized GMT offset is defined by;
+     * <ul>
+     * <li>GMT format pattern (e.g. "GMT {0}" - see {@link #getGMTPattern()})
+     * <li>Offset time pattern (e.g. "+HH:mm" - see {@link #getGMTOffsetPattern(GMTOffsetPatternType)})
+     * <li>Offset digits (e.g. "0123456789" - see {@link #getGMTOffsetDigits()})
+     * <li>GMT zero format (e.g. "GMT" - see {@link #getGMTZeroFormat()})
+     * </ul>
+     * @param offset the offset from GMT(UTC) in milliseconds.
+     * @return the localized GMT format string
+     * @see #parseOffsetLocalizedGMT(String, ParsePosition)
      * @draft ICU 4.8
      * @provisional This API might change or be removed in a future release.
      */
-    public String formatLocalizedGMT(int offset) {
+    public String formatOffsetLocalizedGMT(int offset) {
         if (offset == 0) {
             return _gmtZeroFormat;
         }
@@ -673,10 +687,23 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
     }
 
     /**
-     * @param style
-     * @param tz
-     * @param date
-     * @return
+     * Returns the display name of the time zone at the given date for
+     * the style.
+     * 
+     * <p><b>Note</b>: A style may have fallback styles defined. For example,
+     * when <code>GENERIC_LONG</code> is requested, but there is no display name
+     * data available for <code>GENERIC_LONG</code> style, the implementation
+     * may use <code>GENERIC_LOCATION</code> or <code>LOCALIZED_GMT</code>.
+     * See UTS#35 UNICODE LOCALE DATA MARKUP LANGUAGE (LDML)
+     * <a href="http://www.unicode.org/reports/tr35/#Time_Zone_Fallback">Appendix J: Time Zone Display Name</a>
+     * for the details.
+     * 
+     * @param style the style enum (e.g. <code>GENERIC_LONG</code>, <code>LOCALIZED_GMT</code>...)
+     * @param tz the time zone.
+     * @param date the date.
+     * @return the display name of the time zone.
+     * @see Style
+     * @see #format(Style, TimeZone, long, TimeType[])
      * @draft ICU 4.8
      * @provisional This API might change or be removed in a future release.
      */
@@ -685,11 +712,20 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
     }
 
     /**
-     * @param style
-     * @param tz
-     * @param date
-     * @param timeType
-     * @return
+     * Returns the display name of the time zone at the given date for
+     * the style. This method takes an extra argument <code>TimeType[] timeType</code>
+     * in addition to the argument list of {@link #format(Style, TimeZone, long)}.
+     * The argument is used for receiving the time type (standard time
+     * or daylight saving time, or unknown) actually used for the display name.
+     * 
+     * @param style the style enum (e.g. <code>GENERIC_LONG</code>, <code>LOCALIZED_GMT</code>...)
+     * @param tz the time zone.
+     * @param date the date.
+     * @param timeType the output argument for receiving the time type (standard/daylight/unknown)
+     * used for the display name.
+     * @return the display name of the time zone.
+     * @see Style
+     * @see #format(Style, TimeZone, long)
      * @draft ICU 4.8
      * @provisional This API might change or be removed in a future release.
      */
@@ -722,7 +758,7 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
         case RFC822:
         case LOCALIZED_GMT:
             int offset = tz.getOffset(date);
-            result = (style == Style.RFC822) ? formatRFC822(offset) : formatLocalizedGMT(offset);
+            result = (style == Style.RFC822) ? formatOffsetRFC822(offset) : formatOffsetLocalizedGMT(offset);
             break;
         }
 
@@ -730,7 +766,7 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
             // Use localized GMT format as the final fallback
             int[] offsets = {0, 0};
             tz.getOffset(date, false, offsets);
-            result = formatLocalizedGMT(offsets[0] + offsets[1]);
+            result = formatOffsetLocalizedGMT(offsets[0] + offsets[1]);
             // time type
             if (timeType != null && timeType.length > 0) {
                 timeType[0] = (offsets[1] != 0) ? TimeType.DAYLIGHT : TimeType.STANDARD;
@@ -743,9 +779,17 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
     }
 
     /**
-     * @param text
-     * @param pos
-     * @return
+     * Returns offset from GMT(UTC) in milliseconds for the given RFC822
+     * style time zone string. When the given string is not an RFC822 time zone
+     * string, this method sets the current position as the error index
+     * to <code>ParsePosition pos</code> and returns 0.
+     * 
+     * @param text the text contains RFC822 style time zone string (e.g. "-0800")
+     * at the position.
+     * @param pos the position.
+     * @return the offset from GMT(UTC) in milliseconds for the given RFC822 style
+     * time zone string.
+     * @see #formatOffsetRFC822(int)
      * @draft ICU 4.8
      * @provisional This API might change or be removed in a future release.
      */
@@ -839,9 +883,16 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
     }
 
     /**
-     * @param text
-     * @param pos
-     * @return
+     * Returns offset from GMT(UTC) in milliseconds for the given localized GMT
+     * offset format string. When the given string cannot be parsed, this method
+     * sets the current position as the error index to <code>ParsePosition pos</code>
+     * and returns 0.
+     * 
+     * @param text the text contains a localized GMT offset string at the position.
+     * @param pos the position.
+     * @return the offset from GMT(UTC) in milliseconds for the given localized GMT
+     * offset format string.
+     * @see #formatOffsetLocalizedGMT(int)
      * @draft ICU 4.8
      * @provisional This API might change or be removed in a future release.
      */
@@ -890,24 +941,42 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
     }
 
     /**
+     * Returns a <code>TimeZone</code> by parsing the time zone string according to
+     * the given parse position.
      * 
-     * @param text
-     * @param style
-     * @param pos
-     * @param type
-     * @return
+     * <p><b>Note</b>: By default, this method supports 1) RFC822 style time zone format,
+     * 2) Localized GMT offset format and 3) all display names that are used for the
+     * given <code>style</code>. If you want to parse all display names including names that are
+     * only used for styles other than the specified <code>style</code>, then you should
+     * set true to {@link #setParseAllStyles(boolean)}.
+     * 
+     * @param text the text contains a time zone string at the position.
+     * @param style the format style
+     * @param pos the position.
+     * @param timeType The output argument for receiving the time type (standard/daylight/unknown).
+     * On return, the time type is set to <code>timeType[0]</code>. If not necessary, specify <code>null</code>.
+     * @return A <code>TimeZone</code>, or null if the input could not be parsed.
+     * @see Style
+     * @see #format(Style, TimeZone, long, TimeType[])
+     * @see #setParseAllStyles(boolean)
      * @draft ICU 4.8
      * @provisional This API might change or be removed in a future release.
      */
-    public TimeZone parse(Style style, String text, ParsePosition pos, TimeType[] type) {
-        return parse(style, text, pos, _parseAllStyles, type);
+    public TimeZone parse(Style style, String text, ParsePosition pos, TimeType[] timeType) {
+        return parse(style, text, pos, _parseAllStyles, timeType);
     }
 
     /**
+     * Returns a <code>TimeZone</code> by parsing the time zone string according to
+     * the given parse position.
      * 
-     * @param text
-     * @param pos
-     * @return
+     * <p><b>Note</b>: This method is equivalent to <code>parse(Style.GENERIC_LOCATION,
+     * text, pos, null)</code> with {@link #setParseAllStyles(boolean) setParseAllStyles(true)}.
+     * 
+     * @param text the text contains a time zone string at the position.
+     * @param pos the position.
+     * @return A <code>TimeZone</code>, or null if the input could not be parsed.
+     * @see #parse(Style, String, ParsePosition, TimeType[])
      * @draft ICU 4.8
      * @provisional This API might change or be removed in a future release.
      */
@@ -916,9 +985,12 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
     }
 
     /**
-     * @param text
-     * @return
-     * @throws ParseException
+     * Returns a <code>TimeZone</code> for the given text.
+     * @param text the time zone string
+     * @return A <code>TimeZone</code>.
+     * @throws ParseException when the input could not be parsed as a time zone string.
+     * @see #parse(String, ParsePosition)
+     * @see #parse(Style, String, ParsePosition, TimeType[])
      * @draft ICU 4.8
      * @provisional This API might change or be removed in a future release.
      */
@@ -953,7 +1025,7 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
                     obj.getClass().getName() + ") as a time zone");
         }
         assert(tz != null);
-        String result = formatLocalizedGMT(tz.getOffset(date));
+        String result = formatOffsetLocalizedGMT(tz.getOffset(date));
         toAppendTo.append(result);
 
         if (pos.getFieldAttribute() == DateFormat.Field.TIME_ZONE

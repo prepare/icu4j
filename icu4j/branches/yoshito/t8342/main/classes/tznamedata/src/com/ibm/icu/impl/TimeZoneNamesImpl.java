@@ -303,10 +303,10 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
                 }
                 MatchInfo minfo;
                 if (ninfo.tzID != null) {
-                    minfo = MatchInfo.createTimeZoneMatch(ninfo.tzID, ninfo.type, matchLength);
+                    minfo = new MatchInfo(ninfo.type, ninfo.tzID, null, matchLength);
                 } else {
                     assert(ninfo.mzID != null);
-                    minfo = MatchInfo.createMetaZoneMatch(ninfo.mzID, ninfo.type, matchLength);
+                    minfo = new MatchInfo(ninfo.type, null, ninfo.mzID, matchLength);
                 }
                 if (_matches == null) {
                     _matches = new LinkedList<MatchInfo>();

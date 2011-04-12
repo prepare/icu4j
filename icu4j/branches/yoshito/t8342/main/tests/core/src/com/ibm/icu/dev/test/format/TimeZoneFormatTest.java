@@ -86,7 +86,7 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         for (int locidx = 0; locidx < LOCALES.length; locidx++) {
             logln("Locale: " + LOCALES[locidx].toString());
 
-            String localGMTString = TimeZoneFormat.getInstance(LOCALES[locidx]).formatLocalizedGMT(0);
+            String localGMTString = TimeZoneFormat.getInstance(LOCALES[locidx]).formatOffsetLocalizedGMT(0);
 
             for (int patidx = 0; patidx < PATTERNS.length; patidx++) {
                 logln("    pattern: " + PATTERNS[patidx]);
