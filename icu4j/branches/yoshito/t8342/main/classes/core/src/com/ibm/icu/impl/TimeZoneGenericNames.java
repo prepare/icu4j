@@ -11,6 +11,7 @@ import java.lang.ref.WeakReference;
 import java.text.MessageFormat;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.MissingResourceException;
@@ -19,6 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import com.ibm.icu.impl.TextTrieMap.ResultHandler;
 import com.ibm.icu.text.LocaleDisplayNames;
+import com.ibm.icu.text.TimeZoneFormat.TimeType;
 import com.ibm.icu.text.TimeZoneNames;
 import com.ibm.icu.text.TimeZoneNames.MatchInfo;
 import com.ibm.icu.text.TimeZoneNames.NameType;
@@ -29,15 +31,34 @@ import com.ibm.icu.util.TimeZoneTransition;
 import com.ibm.icu.util.ULocale;
 
 /**
- * @author yumaoka
- *
+ * This class interact with TimeZoneNames and LocaleDisplayNames
+ * to format and parse time zone's generic display names.
+ * It is not recommended to use this class directly, instead
+ * use com.ibm.icu.text.TimeZoneFormat.
  */
 public class TimeZoneGenericNames implements Serializable {
 
+    private static final long serialVersionUID = 2729910342063468417L;
+
     public enum GenericNameType {
-        LOCATION,
-        LONG,
-        SHORT
+        LOCATION ("LONG", "SHORT"),
+        LONG (),
+        SHORT ();
+
+        String[] _fallbackTypeOf;
+        GenericNameType(String... fallbackTypeOf) {
+            _fallbackTypeOf = fallbackTypeOf;
+        }
+
+        public boolean isFallbackTypeOf(GenericNameType type) {
+            String typeStr = type.toString();
+            for (String t : _fallbackTypeOf) {
+                if (t.equals(typeStr)) {
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 
     private ULocale _locale;
@@ -54,9 +75,10 @@ public class TimeZoneGenericNames implements Serializable {
     // Window size used for DST check for a zone in a metazone (about a half year)
     private static final long DST_CHECK_RANGE = 184L*(24*60*60*1000);
 
-    private static final NameType[] TZNAMES_GENERIC_TYPES = {
+    private static final EnumSet<NameType> TZNAMES_GENERIC_TYPES = EnumSet.of(
         NameType.LONG_GENERIC, NameType.LONG_STANDARD,
-        NameType.SHORT_GENERIC, NameType.SHORT_STANDARD_COMMONLY_USED};
+        NameType.SHORT_GENERIC, NameType.SHORT_STANDARD_COMMONLY_USED
+    );
 
     public TimeZoneGenericNames(ULocale locale, TimeZoneNames tznames) {
         _locale = locale;
@@ -81,6 +103,9 @@ public class TimeZoneGenericNames implements Serializable {
         case LONG:
         case SHORT:
             name = formatGenericNonLocationName(tz, type, date);
+            if (name == null) {
+                name = getGenericLocationName(tz.getCanonicalID());
+            }
             break;
         }
         return name;
@@ -394,15 +419,21 @@ public class TimeZoneGenericNames implements Serializable {
     }
 
     public static class GenericMatchInfo {
-        NameInfo info;
+        GenericNameType nameType;
+        String tzID;
         int matchLength;
+        TimeType timeType = TimeType.UNKNOWN;
 
-        public GenericNameType type() {
-            return info.type;
+        public GenericNameType nameType() {
+            return nameType;
         }
 
         public String tzID() {
-            return info.tzID;
+            return tzID;
+        }
+
+        public TimeType timeType() {
+            return timeType;
         }
 
         public int matchLength() {
@@ -411,10 +442,10 @@ public class TimeZoneGenericNames implements Serializable {
     }
 
     private static class GenericNameSearchHandler implements ResultHandler<NameInfo> {
-        private GenericNameType[] _types;
+        private EnumSet<GenericNameType> _types;
         private Collection<GenericMatchInfo> _matches;
 
-        GenericNameSearchHandler(GenericNameType[] types) {
+        GenericNameSearchHandler(EnumSet<GenericNameType> types) {
             _types = types;
         }
 
@@ -424,20 +455,12 @@ public class TimeZoneGenericNames implements Serializable {
         public boolean handlePrefixMatch(int matchLength, Iterator<NameInfo> values) {
             while (values.hasNext()) {
                 NameInfo info = values.next();
-                if (_types != null) {
-                    boolean bInclude = false;
-                    for (GenericNameType t : _types) {
-                        if (t == info.type) {
-                            bInclude = true;
-                            break;
-                        }
-                    }
-                    if (!bInclude) {
-                        continue;
-                    }
+                if (_types != null && !_types.contains(info.type)) {
+                    continue;
                 }
                 GenericMatchInfo matchInfo = new GenericMatchInfo();
-                matchInfo.info = info;
+                matchInfo.tzID = info.tzID;
+                matchInfo.nameType = info.type;
                 matchInfo.matchLength = matchLength;
                 if (_matches == null) {
                     _matches = new LinkedList<GenericMatchInfo>();
@@ -459,7 +482,7 @@ public class TimeZoneGenericNames implements Serializable {
         }
     }
 
-    private Collection<GenericMatchInfo> find(String text, int start, GenericNameType[] types) {
+    private Collection<GenericMatchInfo> find(String text, int start, EnumSet<GenericNameType> types) {
         if (_namesTrie == null) {
             synchronized (this) {
                 if (_namesTrie == null) {
@@ -509,68 +532,81 @@ public class TimeZoneGenericNames implements Serializable {
     }
 
     public GenericMatchInfo findMatch(String text, int start, GenericNameType preferredType) {
-        MatchInfo TZNamesMatch = null;
-        boolean tzTypeMatch = false;
+        MatchInfo tznamesMatch = null; // the best match in _tznames
+        boolean tzTypeMatch = false; // if the best match in _tznames also matches preferredType
         Collection<MatchInfo> tzmatches = _tznames.find(text, start, TZNAMES_GENERIC_TYPES);
         for (MatchInfo m : tzmatches) {
             boolean bTypeMatch = (preferredType == null)
                         || (preferredType == GenericNameType.LONG && (m.nameType() == NameType.LONG_GENERIC || m.nameType() == NameType.LONG_STANDARD))
                         || (preferredType == GenericNameType.SHORT && (m.nameType() == NameType.SHORT_GENERIC || m.nameType() == NameType.SHORT_STANDARD_COMMONLY_USED));
+            if (tznamesMatch == null ||
+                    (!tzTypeMatch && bTypeMatch) ||
+                    (!tzTypeMatch || bTypeMatch) && m.matchLength() > tznamesMatch.matchLength()) {
+                tznamesMatch = m;
+            }
             if (!tzTypeMatch && bTypeMatch) {
                 tzTypeMatch = true;
             }
-            if (TZNamesMatch == null) {
-                TZNamesMatch = m;
-            } else if (bTypeMatch && m.matchLength() > TZNamesMatch.matchLength()) {
-                TZNamesMatch = m;
-            }
         }
 
-        GenericMatchInfo GNamesMatch = null;
-        boolean gTypeMatch = false;
-        Collection<GenericMatchInfo> gmatches = find(text, start, GenericNameType.values());
+        GenericMatchInfo gnamesMatch = null; // the best match in _gnames
+        boolean gTypeMatch = false; // if the bet match in _gnames also matches preferredType
+        Collection<GenericMatchInfo> gmatches = find(text, start, null /* all types */);
         for (GenericMatchInfo gm : gmatches) {
-            boolean bTypeMatch = (preferredType == null || preferredType == gm.type());
+            boolean bTypeMatch = (preferredType == null
+                    || gm.nameType() == preferredType || gm.nameType().isFallbackTypeOf(preferredType));
+            if (gnamesMatch == null ||
+                    (!gTypeMatch && bTypeMatch) ||
+                    (!gTypeMatch || bTypeMatch) && gm.matchLength() >gnamesMatch.matchLength()) {
+                gnamesMatch = gm;
+            }
             if (!gTypeMatch && bTypeMatch) {
                 gTypeMatch = true;
             }
-            if (GNamesMatch == null) {
-                GNamesMatch = gm;
-            } else if (bTypeMatch && gm.matchLength() > GNamesMatch.matchLength()) {
-                GNamesMatch = gm;
-            }
         }
 
-        if (TZNamesMatch != null) {
-            if (GNamesMatch != null) {
+        if (tznamesMatch != null) {
+            if (gnamesMatch != null) {
                 // found matches from both
-                if (!gTypeMatch) {
-                    if (tzTypeMatch || TZNamesMatch.matchLength() > GNamesMatch.matchLength()) {
-                        GNamesMatch = null;
-                    }
-                } else if (tzTypeMatch && TZNamesMatch.matchLength() > GNamesMatch.matchLength()) {
-                    GNamesMatch = null;
+                if ((!gTypeMatch && tzTypeMatch) ||
+                        (!gTypeMatch || tzTypeMatch) && tznamesMatch.matchLength() > gnamesMatch.matchLength()) {
+                    gnamesMatch = null;
                 }
             }
-            if (GNamesMatch == null) {
-                // transform
-                String tzID = TZNamesMatch.tzID();
+            if (gnamesMatch == null) {
+                // set the tznamesMatch to gnamesMatch
+                gnamesMatch = new GenericMatchInfo();
+                String tzID = tznamesMatch.tzID();
                 if (tzID == null) {
-                    tzID = _tznames.getReferenceZoneID(TZNamesMatch.mzID(), getTargetRegion());
+                    tzID = _tznames.getReferenceZoneID(tznamesMatch.mzID(), getTargetRegion());
+                    assert(tzID != null);
                 }
-                GenericNameType gtype = (TZNamesMatch.nameType() == NameType.LONG_GENERIC || TZNamesMatch.nameType() == NameType.LONG_STANDARD) ?
-                        GenericNameType.LONG : GenericNameType.SHORT;
+                gnamesMatch.tzID = tzID;
+                gnamesMatch.matchLength = tznamesMatch.matchLength();
 
-                GNamesMatch = new GenericMatchInfo();
-                GNamesMatch.matchLength = TZNamesMatch.matchLength();
-                NameInfo ninfo = new NameInfo();
-                ninfo.type = gtype;
-                ninfo.tzID = tzID;
-                GNamesMatch.info = ninfo;
+                NameType nameType = tznamesMatch.nameType();
+                assert(nameType == NameType.LONG_GENERIC || nameType == NameType.LONG_STANDARD
+                        || nameType == NameType.SHORT_GENERIC || nameType == NameType.SHORT_STANDARD_COMMONLY_USED);
+                switch(tznamesMatch.nameType()) {
+                case LONG_GENERIC:
+                    gnamesMatch.nameType = GenericNameType.LONG;
+                    break;
+                case LONG_STANDARD:
+                    gnamesMatch.nameType = GenericNameType.LONG;
+                    gnamesMatch.timeType = TimeType.STANDARD;
+                    break;
+                case SHORT_GENERIC:
+                    gnamesMatch.nameType = GenericNameType.SHORT;
+                    break;
+                case SHORT_STANDARD_COMMONLY_USED:
+                    gnamesMatch.nameType = GenericNameType.SHORT;
+                    gnamesMatch.timeType = TimeType.STANDARD;
+                    break;
+                }
             }
         }
 
-        return GNamesMatch;
+        return gnamesMatch;
     }
 
     public GenericMatchInfo findMatch(String text, int start) {

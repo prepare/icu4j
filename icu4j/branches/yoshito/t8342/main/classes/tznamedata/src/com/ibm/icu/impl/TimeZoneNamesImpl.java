@@ -12,6 +12,7 @@ import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -169,7 +170,7 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
      * @see com.ibm.icu.text.TimeZoneNames#find(java.lang.String, int, java.util.Set)
      */
     @Override
-    public Collection<MatchInfo> find(String text, int start, NameType[] nameTypes) {
+    public Collection<MatchInfo> find(String text, int start, EnumSet<NameType> nameTypes) {
         if (_namesTrie == null) {
             synchronized (this) {
                 if (_namesTrie == null) {
@@ -284,10 +285,10 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
      * NameSearchHandler is used for collecting name matches.
      */
     private static class NameSearchHandler implements ResultHandler<NameInfo> {
-        private NameType[] _nameTypes;
+        private EnumSet<NameType> _nameTypes;
         private Collection<MatchInfo> _matches;
 
-        NameSearchHandler(NameType[] nameTypes) {
+        NameSearchHandler(EnumSet<NameType> nameTypes) {
             _nameTypes = nameTypes;
         }
 
@@ -297,18 +298,8 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
         public boolean handlePrefixMatch(int matchLength, Iterator<NameInfo> values) {
             while (values.hasNext()) {
                 NameInfo ninfo = values.next();
-                if (_nameTypes != null) {
-                    boolean bInclude = false;
-                    for (NameType t : _nameTypes) {
-                        if (t == ninfo.type) {
-                            // This name type was included in the requested list
-                            bInclude = true;
-                            break;
-                        }
-                    }
-                    if (!bInclude) {
-                        continue;
-                    }
+                if (_nameTypes != null && !_nameTypes.contains(ninfo.type)) {
+                    continue;
                 }
                 MatchInfo minfo;
                 if (ninfo.tzID != null) {

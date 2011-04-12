@@ -673,7 +673,7 @@ public class SerializableTest extends TestFmwk.TestGroup
         map.put("com.ibm.icu.text.TimeUnitFormat", new FormatTests.TimeUnitFormatHandler());
         map.put("com.ibm.icu.text.SelectFormat", new FormatTests.SelectFormatHandler());
         map.put("com.ibm.icu.impl.TimeZoneNamesImpl", new FormatTests.TimeZoneNamesHandler());
-        map.put("com.ibm.icu.impl.TimeZoneFormatImpl", new FormatTests.TimeZoneFormatHandler());
+        map.put("com.ibm.icu.impl.TimeZoneFormat", new FormatTests.TimeZoneFormatHandler());
 
         map.put("com.ibm.icu.util.Calendar", new CalendarTests.CalendarHandler());
         map.put("com.ibm.icu.util.BuddhistCalendar", new CalendarTests.BuddhistCalendarHandler());
