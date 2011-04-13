@@ -21,6 +21,7 @@ import com.ibm.icu.impl.TimeZoneAdapter;
 import com.ibm.icu.impl.ZoneMeta;
 import com.ibm.icu.text.TimeZoneFormat;
 import com.ibm.icu.text.TimeZoneFormat.Style;
+import com.ibm.icu.text.TimeZoneFormat.TimeType;
 import com.ibm.icu.text.TimeZoneNames;
 import com.ibm.icu.text.TimeZoneNames.NameType;
 
@@ -503,7 +504,7 @@ abstract public class TimeZone implements Serializable, Cloneable {
      * SHORT, LONG, SHORT_GENERIC, LONG_GENERIC, SHORT_GMT, LONG_GMT,
      * SHORT_COMMONLY_USED and GENERIC_LOCATION.
      */
-    private String _getDisplayName(int style, boolean daylightRequested, ULocale locale) {
+    private String _getDisplayName(int style, boolean daylight, ULocale locale) {
         if (locale == null) {
             throw new NullPointerException("locale is null");
         }
@@ -514,37 +515,33 @@ abstract public class TimeZone implements Serializable, Cloneable {
             // Generic format
             TimeZoneFormat tzfmt = TimeZoneFormat.getInstance(locale);
             long date = System.currentTimeMillis();
+            TimeType[] timeType = {TimeType.UNKNOWN};
 
             switch (style) {
             case GENERIC_LOCATION:
-                result = tzfmt.format(Style.GENERIC_LOCATION, this, date);
+                result = tzfmt.format(Style.GENERIC_LOCATION, this, date, timeType);
                 break;
             case LONG_GENERIC:
-                result = tzfmt.format(Style.GENERIC_LONG, this, date);
+                result = tzfmt.format(Style.GENERIC_LONG, this, date, timeType);
                 break;
             case SHORT_GENERIC:
-                result = tzfmt.format(Style.GENERIC_SHORT, this, date);
+                result = tzfmt.format(Style.GENERIC_SHORT, this, date, timeType);
                 break;
             }
-            //TODO
-//            if (actual[0] == Style.LOCALIZED_GMT) {
-//                // Generic format many use Localized GMT as the final fallback.
-//                // When Localized GMT format is used, the result might not be
-//                // appropriate for the daylightRequested value.
-//                boolean isDaylightNow = inDaylightTime(new Date(date));
-//                if (daylightRequested && !isDaylightNow) {
-//                    // use the offset format with the daylight offset
-//                    result = tzfmt.formatLocalizedGMT(getRawOffset() + getDSTSavings());
-//                } else if (!daylightRequested && isDaylightNow) {
-//                    // use the offset format with the standard offset
-//                    result = tzfmt.formatLocalizedGMT(getRawOffset());
-//                }
-//            }
+
+            // Generic format many use Localized GMT as the final fallback.
+            // When Localized GMT format is used, the result might not be
+            // appropriate for the requested daylight value.
+            if (daylight && timeType[0] == TimeType.STANDARD ||
+                    !daylight && timeType[0] == TimeType.DAYLIGHT) {
+                int offset = daylight ? getRawOffset() + getDSTSavings() : getRawOffset();
+                result = tzfmt.formatOffsetLocalizedGMT(offset);
+            }
 
         } else if (style == LONG_GMT || style == SHORT_GMT) {
             // Offset format
             TimeZoneFormat tzfmt = TimeZoneFormat.getInstance(locale);
-            int offset = daylightRequested && useDaylightTime() ? getRawOffset() + getDSTSavings() : getRawOffset();
+            int offset = daylight && useDaylightTime() ? getRawOffset() + getDSTSavings() : getRawOffset();
             switch (style) {
             case LONG_GMT:
                 result = tzfmt.formatOffsetLocalizedGMT(offset);
@@ -563,20 +560,20 @@ abstract public class TimeZone implements Serializable, Cloneable {
             NameType nameType = null;
             switch (style) {
             case LONG:
-                nameType = daylightRequested ? NameType.LONG_DAYLIGHT : NameType.LONG_STANDARD;
+                nameType = daylight ? NameType.LONG_DAYLIGHT : NameType.LONG_STANDARD;
                 break;
             case SHORT:
-                nameType = daylightRequested ? NameType.SHORT_DAYLIGHT : NameType.SHORT_STANDARD;
+                nameType = daylight ? NameType.SHORT_DAYLIGHT : NameType.SHORT_STANDARD;
                 break;
             case SHORT_COMMONLY_USED:
-                nameType = daylightRequested ? NameType.SHORT_DAYLIGHT_COMMONLY_USED : NameType.SHORT_STANDARD_COMMONLY_USED;
+                nameType = daylight ? NameType.SHORT_DAYLIGHT_COMMONLY_USED : NameType.SHORT_STANDARD_COMMONLY_USED;
                 break;
             }
             result = tznames.getDisplayName(getCanonicalID(), nameType, date);
             if (result == null) {
                 // Fallback to localized GMT
                 TimeZoneFormat tzfmt = TimeZoneFormat.getInstance(locale);
-                int offset = daylightRequested && useDaylightTime() ? getRawOffset() + getDSTSavings() : getRawOffset();
+                int offset = daylight && useDaylightTime() ? getRawOffset() + getDSTSavings() : getRawOffset();
                 result = tzfmt.formatOffsetLocalizedGMT(offset);
             }
         }

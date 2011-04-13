@@ -757,16 +757,20 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
             break;
         case RFC822:
         case LOCALIZED_GMT:
-            int offset = tz.getOffset(date);
-            result = (style == Style.RFC822) ? formatOffsetRFC822(offset) : formatOffsetLocalizedGMT(offset);
+            // will be handled below
             break;
         }
 
         if (result == null) {
-            // Use localized GMT format as the final fallback
             int[] offsets = {0, 0};
             tz.getOffset(date, false, offsets);
-            result = formatOffsetLocalizedGMT(offsets[0] + offsets[1]);
+            if (style == Style.RFC822) {
+                // RFC822 was requeted
+                result = formatOffsetRFC822(offsets[0] + offsets[1]);
+            } else {
+                // LOCALIZED_GMT was requested, or fallback for other types
+                result = formatOffsetLocalizedGMT(offsets[0] + offsets[1]);
+            }
             // time type
             if (timeType != null && timeType.length > 0) {
                 timeType[0] = (offsets[1] != 0) ? TimeType.DAYLIGHT : TimeType.STANDARD;
