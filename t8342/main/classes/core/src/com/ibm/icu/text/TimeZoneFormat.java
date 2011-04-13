@@ -230,6 +230,7 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
     /*
      * Static final fields
      */
+    private static final String TZID_GMT = "Etc/GMT"; // canonical tzid for GMT
 
     private static final String[] ALT_GMT_STRINGS = {"GMT", "UTC", "UT"};
 
@@ -901,47 +902,7 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
      * @provisional This API might change or be removed in a future release.
      */
     public int parseOffsetLocalizedGMT(String text, ParsePosition pos) {
-        int start = pos.getIndex();
-        int idx = start;
-        boolean parsed = false;
-        int[] offset = new int[1];
-
-        do {
-            // Prefix part
-            int len = _gmtPatternTokens[0].length();
-            if (len > 0 && !text.regionMatches(true, idx, _gmtPatternTokens[0], 0, len)) {
-                // prefix match failed
-                break;
-            }
-            idx += len;
-
-            // Offset part
-            int offsetLen = parseGMTOffset(text, idx, false, offset);
-            idx += offsetLen;
-
-            // Suffix part
-            len = _gmtPatternTokens[1].length();
-            if (len > 0 && !text.regionMatches(true, idx, _gmtPatternTokens[1], 0, len)) {
-                // no suffix match
-                break;
-            }
-            idx += len;
-            parsed = true;
-
-        } while (false);
-
-        if (parsed) {
-            pos.setIndex(idx);
-            return offset[0];
-        } else {
-            // Check if this is a GMT zero format
-            if (text.regionMatches(true, start, _gmtZeroFormat, 0, _gmtZeroFormat.length())) {
-                pos.setIndex(start + _gmtZeroFormat.length());
-                return 0;
-            }
-        }
-        pos.setErrorIndex(start);
-        return 0;
+        return parseOffsetLocalizedGMT(text, pos, null);
     }
 
     /**
@@ -1108,21 +1069,41 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
      * @return the result time zone
      */
     private TimeZone parse(Style style, String text, ParsePosition pos, boolean parseAllStyles, TimeType[] timeType) {
+        if (timeType != null && timeType.length > 0) {
+            timeType[0] = TimeType.UNKNOWN;
+        }
+
         ParsePosition tmpPos = new ParsePosition(pos.getIndex());
 
         // try RFC822
         int offset = parseOffsetRFC822(text, tmpPos);
         if (tmpPos.getErrorIndex() < 0) {
             pos.setIndex(tmpPos.getIndex());
-            return ZoneMeta.getCustomTimeZone(offset);
+            return getTimeZoneForOffset(offset);
         }
         // try Localized GMT
+        int gmtZeroLen = 0;
         tmpPos.setErrorIndex(-1);
         tmpPos.setIndex(pos.getIndex());
-        offset = parseOffsetLocalizedGMT(text, tmpPos);
+        boolean[] isGMTZero = {false};
+        offset = parseOffsetLocalizedGMT(text, tmpPos, isGMTZero);
         if (tmpPos.getErrorIndex() < 0) {
-            pos.setIndex(tmpPos.getIndex());
-            return ZoneMeta.getCustomTimeZone(offset);
+            if (!isGMTZero[0] || style == Style.LOCALIZED_GMT || style == Style.RFC822 || tmpPos.getIndex() == text.length()) {
+                // When GMT zero format was detected, we won't try other styles if;
+                //   1) LOCALIZED_GMT or RFC822 was requested.
+                //   2) The input text was fully consumed.
+                //
+                // Note: Localized GMT format with offset numbers (such as "GMT+03:00") won't collide with other type of names
+                // practically. But GMT zero formats (localized one + global ones - "GMT", "UTC", "UT") could - for example,
+                // if a locale has a time zone name like "Utah Time", it should not be detected as GMT ("UT" matches the first
+                // 2 letters).
+                pos.setIndex(tmpPos.getIndex());
+                return getTimeZoneForOffset(offset);
+            } else {
+                // Preserve the length of GMT zero format.
+                // If no better matches are found later, GMT should be returned.
+                gmtZeroLen = tmpPos.getIndex() - pos.getIndex();
+            }
         }
 
         if (!parseAllStyles && (style == Style.RFC822 || style == Style.LOCALIZED_GMT)) {
@@ -1159,7 +1140,7 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
                     tt = getTimeType(nameType);
                 }
             }
-            if (bestMatch != null) {
+            if (bestMatch != null && bestMatch.matchLength() > gmtZeroLen) {
                 if (timeType != null && timeType.length > 0) {
                     timeType[0] = tt;
                 }
@@ -1176,7 +1157,7 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
             GenericNameType preferredType = (style == Style.GENERIC_LOCATION) ? GenericNameType.LOCATION
                     : (style == Style.GENERIC_LONG) ? GenericNameType.LONG : GenericNameType.SHORT;
             genericMatch = _gnames.findMatch(text, pos.getIndex(), preferredType);
-            if (genericMatch != null) {
+            if (genericMatch != null && genericMatch.matchLength() > gmtZeroLen) {
                 if (genericMatch.nameType() == preferredType || genericMatch.nameType().isFallbackTypeOf(preferredType)) {
                     if (timeType != null && timeType.length > 0) {
                         timeType[0] = genericMatch.timeType();
@@ -1186,6 +1167,16 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
                 }
             }
             doneGeneric = true; // skip searching _gnames again when parseAllStyles is true
+        }
+
+        // If GMT zero format was detected at the beginning, but there was no better match found
+        // in names available for the given style, then GMT is returned here.
+        // This should be done before evaluating other names even parseAllStyles is true, because
+        // all styles (except RFC822 and LOCALIZED_GMT itself) use LOCALIZED_GMT as the final
+        // fallback.
+        if (gmtZeroLen > 0) {
+            pos.setIndex(pos.getIndex() + gmtZeroLen);
+            return getTimeZoneForOffset(0);
         }
 
         // If no match was found above, check if parseAllStyle is enabled.
@@ -1236,6 +1227,7 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
                 }
             }
         }
+
         pos.setErrorIndex(pos.getIndex());
         return null;
     }
@@ -1537,6 +1529,84 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
             buf.append(_gmtOffsetDigits[n / 10]);
         }
         buf.append(_gmtOffsetDigits[n % 10]);
+    }
+
+    /**
+     * Creates an instance of TimeZone for the given offset
+     * @param offset the offset
+     * @return A TimeZone with the given offset
+     */
+    private TimeZone getTimeZoneForOffset(int offset) {
+        if (offset == 0) {
+            // when offset is 0, we should use "Etc/GMT"
+            return TimeZone.getTimeZone(TZID_GMT);
+        }
+        return ZoneMeta.getCustomTimeZone(offset);
+    }
+
+    /**
+     * Returns offset from GMT(UTC) in milliseconds for the given localized GMT
+     * offset format string. When the given string cannot be parsed, this method
+     * sets the current position as the error index to <code>ParsePosition pos</code>
+     * and returns 0.
+     * 
+     * @param text the text contains a localized GMT offset string at the position.
+     * @param pos the position.
+     * @param isGMTZero receiving if the GMT zero format was detected. Note that
+     * the string with offset digits is not a GMT zero format. For example, when "GMT+00:00"
+     * is found, this method won't set true to isGMTZero[0].
+     * @return the offset from GMT(UTC) in milliseconds for the given localized GMT
+     * offset format string.
+     */
+    private int parseOffsetLocalizedGMT(String text, ParsePosition pos, boolean[] isGMTZero) {
+        int start = pos.getIndex();
+        int idx = start;
+        boolean parsed = false;
+        int[] offset = new int[1];
+
+        if (isGMTZero != null && isGMTZero.length > 0) {
+            isGMTZero[0] = false;
+        }
+
+        do {
+            // Prefix part
+            int len = _gmtPatternTokens[0].length();
+            if (len > 0 && !text.regionMatches(true, idx, _gmtPatternTokens[0], 0, len)) {
+                // prefix match failed
+                break;
+            }
+            idx += len;
+
+            // Offset part
+            int offsetLen = parseGMTOffset(text, idx, false, offset);
+            idx += offsetLen;
+
+            // Suffix part
+            len = _gmtPatternTokens[1].length();
+            if (len > 0 && !text.regionMatches(true, idx, _gmtPatternTokens[1], 0, len)) {
+                // no suffix match
+                break;
+            }
+            idx += len;
+            parsed = true;
+
+        } while (false);
+
+        if (parsed) {
+            pos.setIndex(idx);
+            return offset[0];
+        } else {
+            // Check if this is a localized GMT zero format
+            if (text.regionMatches(true, start, _gmtZeroFormat, 0, _gmtZeroFormat.length())) {
+                pos.setIndex(start + _gmtZeroFormat.length());
+                if (isGMTZero != null && isGMTZero.length > 0) {
+                    isGMTZero[0] = true;
+                }
+                return 0;
+            }
+        }
+        pos.setErrorIndex(start);
+        return 0;
     }
 
     /**
