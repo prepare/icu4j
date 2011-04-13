@@ -13,6 +13,9 @@ import java.util.HashMap;
 import java.util.Locale;
 
 import com.ibm.icu.impl.DateNumberFormat;
+import com.ibm.icu.impl.TimeZoneGenericNames;
+import com.ibm.icu.impl.TimeZoneGenericNames.GenericNameType;
+import com.ibm.icu.impl.Utility;
 import com.ibm.icu.text.ChineseDateFormat;
 import com.ibm.icu.text.ChineseDateFormatSymbols;
 import com.ibm.icu.text.CurrencyPluralInfo;
@@ -2216,6 +2219,45 @@ public class FormatTests
 
             if (!refza.equals(refzb)) {
                 return false;
+            }
+
+            return true;
+        }
+    }
+
+    public static class TimeZoneGenericNamesHandler implements SerializableTest.Handler {
+        public Object[] getTestObjects() {
+            return new Object[] {
+                    TimeZoneGenericNames.getInstance(ULocale.ENGLISH),
+                    TimeZoneGenericNames.getInstance(ULocale.JAPAN)
+            };
+        }
+        public boolean hasSameBehavior(Object a, Object b) {
+            TimeZoneGenericNames tzgna = (TimeZoneGenericNames)a;
+            TimeZoneGenericNames tzgnb = (TimeZoneGenericNames)b;
+
+            final String[] TZIDS = {
+                "America/Los_Angeles",
+                "America/Argentina/Buenos_Aires",
+                "Etc/GMT"
+            };
+
+            final long[] DATES = {
+                1277942400000L, // 2010-07-01 00:00:00 GMT
+                1293840000000L, // 2011-01-01 00:00:00 GMT
+            };
+
+            for (String tzid : TZIDS) {
+                TimeZone tz = TimeZone.getTimeZone(tzid);
+                for (GenericNameType nt : GenericNameType.values()) {
+                    for (long date : DATES) {
+                        String nameA = tzgna.getDisplayName(tz, nt, date);
+                        String nameB = tzgnb.getDisplayName(tz, nt, date);
+                        if (!Utility.objectEquals(nameA, nameB)) {
+                            return false;
+                        }
+                    }
+                }
             }
 
             return true;
