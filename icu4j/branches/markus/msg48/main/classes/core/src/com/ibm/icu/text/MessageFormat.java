@@ -1973,19 +1973,14 @@ public class MessageFormat extends UFormat {
     }
 
     private static final String[] typeList =
-        {"", "number", "date", "time", "choice", "spellout", "ordinal",
-         "duration", "plural", "select" };
+        { "number", "date", "time", "spellout", "ordinal", "duration" };
     private static final int
-        TYPE_EMPTY = 0,
-        TYPE_NUMBER = 1,
-        TYPE_DATE = 2,
-        TYPE_TIME = 3,
-        TYPE_CHOICE = 4,
-        TYPE_SPELLOUT = 5,
-        TYPE_ORDINAL = 6,
-        TYPE_DURATION = 7,
-        TYPE_PLURAL = 8,
-        TYPE_SELECT = 9;
+        TYPE_NUMBER = 0,
+        TYPE_DATE = 1,
+        TYPE_TIME = 2,
+        TYPE_SPELLOUT = 3,
+        TYPE_ORDINAL = 4,
+        TYPE_DURATION = 5;
 
     private static final String[] modifierList =
         {"", "currency", "percent", "integer"};
@@ -2012,8 +2007,6 @@ public class MessageFormat extends UFormat {
         Format newFormat = null;
         int subformatType  = findKeyword(type, typeList);
         switch (subformatType){
-        case TYPE_EMPTY:
-            break;
         case TYPE_NUMBER:
             switch (findKeyword(style, modifierList)) {
             case MODIFIER_EMPTY:
@@ -2078,13 +2071,6 @@ public class MessageFormat extends UFormat {
                 break;
             }
             break;
-        case TYPE_CHOICE:
-            try {
-                newFormat = new ChoiceFormat(style);
-            } catch (Exception e) {
-                throw new IllegalArgumentException("Choice Pattern incorrect", e);
-            }
-            break;
         case TYPE_SPELLOUT:
             {
                 RuleBasedNumberFormat rbnf = new RuleBasedNumberFormat(ulocale,
@@ -2133,22 +2119,8 @@ public class MessageFormat extends UFormat {
                 newFormat = rbnf;
             }
             break;
-        case TYPE_PLURAL:
-            try {
-                newFormat = new PluralFormat(ulocale, style);
-            } catch (Exception e) {
-                throw new IllegalArgumentException("Plural Pattern incorrect", e);
-            }
-            break;
-        case TYPE_SELECT:
-            try {
-                newFormat = new SelectFormat(style);
-            } catch (Exception e) {
-                throw new IllegalArgumentException("Select Pattern incorrect", e);
-            }
-            break;
         default:
-            throw new IllegalArgumentException("Unknown format type at ");
+            throw new IllegalArgumentException("Unknown format type \"" + type + "\"");
         }
         return newFormat;
     }
