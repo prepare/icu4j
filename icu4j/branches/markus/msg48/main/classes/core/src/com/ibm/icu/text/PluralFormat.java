@@ -175,20 +175,6 @@ public class PluralFormat extends UFormat {
     transient private double offset = 0;
 
     /**
-     * Interface for classes like PluralRules which select PluralFormat keywords for numbers.
-     * @internal
-     */
-    /*package*/ interface PluralSelector {
-        /**
-         * Given a number, returns the appropriate PluralFormat keyword.
-         *
-         * @param number The number to be plural-formatted.
-         * @return The selected PluralFormat keyword.
-         */
-        public String select(double number);
-    }
-
-    /**
      * Creates a new <code>PluralFormat</code> for the default locale.
      * This locale will be used to get the set of plural rules and for standard
      * number formatting.
@@ -453,6 +439,35 @@ public class PluralFormat extends UFormat {
     }
 
     /**
+     * Interface for selecting PluralFormat keywords for numbers.
+     * The PluralRules class was intended to implement this interface,
+     * but there is no public API that uses a PluralSelector,
+     * only MessageFormat and PluralFormat have PluralSelector implementations.
+     * Therefore, PluralRules is not marked to implement this non-public interface,
+     * to avoid confusing users.
+     * @internal
+     */
+    /*package*/ interface PluralSelector {
+        /**
+         * Given a number, returns the appropriate PluralFormat keyword.
+         *
+         * @param number The number to be plural-formatted.
+         * @return The selected PluralFormat keyword.
+         */
+        public String select(double number);
+    }
+
+    // See PluralSelector:
+    // We could avoid this adapter class if we made PluralSelector public
+    // (or at least publicly visible) and had PluralRules implement PluralSelector.
+    private final class PluralSelectorAdapter implements PluralSelector {
+        public String select(double number) {
+            return pluralRules.select(number);
+        }
+    }
+    transient private PluralSelectorAdapter pluralRulesWrapper = new PluralSelectorAdapter();
+
+    /**
      * Formats a plural message for a given number.
      *
      * @param number a number for which the plural message should be formatted.
@@ -469,7 +484,7 @@ public class PluralFormat extends UFormat {
         }
 
         // Get the appropriate sub-message.
-        int partIndex = findSubMessage(msgPattern, 0, pluralRules, number);
+        int partIndex = findSubMessage(msgPattern, 0, pluralRulesWrapper, number);
         // Replace syntactic # signs in the top level of this sub-message
         // (not in nested arguments) with the formatted number-offset.
         number -= offset;
@@ -649,6 +664,7 @@ public class PluralFormat extends UFormat {
 
     private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
         in.defaultReadObject();
+        pluralRulesWrapper = new PluralSelectorAdapter();
         // Ignore the parsedValues from an earlier class version (before ICU 4.8)
         // and rebuild the msgPattern.
         parsedValues = null;
