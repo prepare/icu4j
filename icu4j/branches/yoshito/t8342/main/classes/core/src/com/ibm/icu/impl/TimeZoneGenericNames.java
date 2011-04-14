@@ -6,6 +6,8 @@
  */
 package com.ibm.icu.impl;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.lang.ref.WeakReference;
 import java.text.MessageFormat;
@@ -67,7 +69,9 @@ public class TimeZoneGenericNames implements Serializable {
     private transient String _region;
     private transient WeakReference<LocaleDisplayNames> _localeDisplayNamesRef;
     private transient MessageFormat[] _patternFormatters;
-    private transient volatile ConcurrentHashMap<String, String> _genericLocationNamesMap;
+
+    private transient ConcurrentHashMap<String, String> _genericLocationNamesMap;
+    private transient ConcurrentHashMap<String, String> _genericPartialLocationNamesMap;
     private transient volatile TextTrieMap<NameInfo> _namesTrie;
 
     private static Cache GENERIC_NAMES_CACHE = new Cache();
@@ -83,10 +87,19 @@ public class TimeZoneGenericNames implements Serializable {
     public TimeZoneGenericNames(ULocale locale, TimeZoneNames tznames) {
         _locale = locale;
         _tznames = tznames;
+        init();
+    }
+
+    private void init() {
+        if (_tznames == null) {
+            _tznames = TimeZoneNames.getInstance(_locale);
+        }
+        _genericLocationNamesMap = new ConcurrentHashMap<String, String>();
+        _genericPartialLocationNamesMap = new ConcurrentHashMap<String, String>();
     }
 
     private TimeZoneGenericNames(ULocale locale) {
-        this(locale, TimeZoneNames.getInstance(locale));
+        this(locale, null);
     }
 
     public static TimeZoneGenericNames getInstance(ULocale locale) {
@@ -118,17 +131,15 @@ public class TimeZoneGenericNames implements Serializable {
      * @return the generic location name for the given canonical time zone ID.
      */
     public String getGenericLocationName(String canonicalTzID) {
-        String name = null;
-        if (_genericLocationNamesMap != null) {
-            name = _genericLocationNamesMap.get(canonicalTzID);
-            if (name != null) {
-                if (name.length() == 0) {
-                    // empty string to indicate the name is not available
-                    return null;
-                }
-                return name;
+        String name = _genericLocationNamesMap.get(canonicalTzID);
+        if (name != null) {
+            if (name.length() == 0) {
+                // empty string to indicate the name is not available
+                return null;
             }
+            return name;
         }
+
         String countryCode = ZoneMeta.getCanonicalCountry(canonicalTzID);
         if (countryCode != null) {
             String country = getLocaleDisplayNames().regionDisplayName(countryCode);
@@ -143,13 +154,6 @@ public class TimeZoneGenericNames implements Serializable {
             }
         }
 
-        if (_genericLocationNamesMap == null) {
-            synchronized(this) {
-                if (_genericLocationNamesMap == null) {
-                    _genericLocationNamesMap = new ConcurrentHashMap<String, String>();
-                }
-            }
-        }
         if (name == null) {
             _genericLocationNamesMap.putIfAbsent(canonicalTzID, "");
         } else {
@@ -273,7 +277,7 @@ public class TimeZoneGenericNames implements Serializable {
 
                         if (offsets[0] != offsets1[0] || offsets[1] != offsets1[1]) {
                             // Now we need to use a partial location format.
-                            name = formatPartialLocation(tzID, mzName);
+                            name = getPartialLocationName(tzID, mzID, mzName);
                         }
                     } else {
                         name = mzName;
@@ -391,11 +395,16 @@ public class TimeZoneGenericNames implements Serializable {
      * time zone is not a reference zone (golden zone) of the meta zone.
      * 
      * @param tzID the time zone ID
+     * @param mzID the meta zone ID
      * @param mzDisplayName the meta zone generic display name
      * @return the partial location format string
      */
-    private String formatPartialLocation(String tzID, String mzDisplayName) {
-        String name;
+    private String getPartialLocationName(String tzID, String mzID, String mzDisplayName) {
+        String key = tzID + "&" + mzID;
+        String name = _genericPartialLocationNamesMap.get(key);
+        if (name != null) {
+            return name;
+        }
         String location = null;
         String countryCode = ZoneMeta.getSingleCountry(tzID);
         if (countryCode != null) {
@@ -410,6 +419,10 @@ public class TimeZoneGenericNames implements Serializable {
             }
         }
         name = formatPattern(Pattern.FALLBACK_FORMAT, location, mzDisplayName);
+        String tmp = _genericPartialLocationNamesMap.putIfAbsent(key, name);
+        if (tmp != null) {
+            name = tmp;
+        }
         return name;
     }
 
@@ -512,7 +525,7 @@ public class TimeZoneGenericNames implements Serializable {
                                 for (NameType genNonLocType : genNonLocTypes) {
                                     String mzGenName = _tznames.getMetaZoneDisplayName(mzID, genNonLocType);
                                     if (mzGenName != null) {
-                                        String partialLocationName = formatPartialLocation(tzID, mzGenName);
+                                        String partialLocationName = getPartialLocationName(tzID, mzID, mzGenName);
                                         NameInfo info = new NameInfo();
                                         info.tzID = tzID;
                                         info.type = genNonLocType == NameType.LONG_GENERIC ?
@@ -623,5 +636,14 @@ public class TimeZoneGenericNames implements Serializable {
             return new TimeZoneGenericNames(data);
         }
         
+    }
+
+    /*
+     * The custom deserialization method.
+     * This implementation only read locale used by the object.
+     */
+    private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+        in.defaultReadObject();
+        init();
     }
 }
