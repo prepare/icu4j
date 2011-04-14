@@ -253,10 +253,10 @@ public class TextTrieMap<V> {
             Node match = null;
             Character ch = chitr.next();
             for (Node child : _children) {
-                if (ch < child.firstChar()) {
+                if (ch < child._text[0]) {
                     break;
                 }
-                if (ch == child.firstChar()) {
+                if (ch == child._text[0]) {
                     if (child.matchFollowing(chitr)) {
                         match = child;
                     }
@@ -283,13 +283,13 @@ public class TextTrieMap<V> {
             ListIterator<Node> litr = _children.listIterator();
             while (litr.hasNext()) {
                 Node next = litr.next();
-                if (text[offset] < next.firstChar()) {
+                if (text[offset] < next._text[0]) {
                     litr.previous();
                     break;
                 }
-                if (text[offset] == next.firstChar()) {
+                if (text[offset] == next._text[0]) {
                     int matchLen = next.lenMatches(text, offset);
-                    if (matchLen == next.length()) {
+                    if (matchLen == next._text.length) {
                         // full match
                         next.add(text, offset + matchLen, value);
                     } else {
@@ -302,10 +302,6 @@ public class TextTrieMap<V> {
             }
             // add a new child to this node
             litr.add(new Node(subArray(text, offset), addValue(null, value), null));
-        }
-
-        private char firstChar() {
-            return _text[0];
         }
 
         private boolean matchFollowing(CharIterator chitr) {
@@ -337,10 +333,6 @@ public class TextTrieMap<V> {
                 len++;
             }
             return len;
-        }
-
-        private int length() {
-            return _text.length;
         }
 
         private void split(int offset) {

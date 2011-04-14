@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.MissingResourceException;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import com.ibm.icu.impl.TextTrieMap.ResultHandler;
 import com.ibm.icu.text.TimeZoneNames;
@@ -44,8 +45,12 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
     private static final MZ2TZsCache MZ_TO_TZS_CACHE = new MZ2TZsCache();
 
     private transient ICUResourceBundle _zoneStrings;
-    private transient MZNamesCache _mzCache;
-    private transient TZNamesCache _tzCache;
+
+    // These are hard cache. We create only one TimeZoneNamesImpl per locale
+    // and it's stored in SoftCache, so we do not need to worry about the
+    // footprint much.
+    private transient ConcurrentHashMap<String, ZNames> _mzNamesMap;
+    private transient ConcurrentHashMap<String, TZNames> _tzNamesMap;
 
     private transient volatile TextTrieMap<NameInfo> _namesTrie;
 
@@ -129,8 +134,10 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
         String name = null;
         ZNames names = null;
         if (_zoneStrings != null && mzID != null && mzID.length() > 0) {
-            names = _mzCache.getInstance(mzID, mzID);
-            name = names.getName(type);
+            names = getMetaZoneNames(mzID);
+            if (names != null) {
+                name = names.getName(type);
+            }
         }
         return name;
     }
@@ -144,8 +151,10 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
         String name = null;
         TZNames names = null;
         if (_zoneStrings != null && tzID != null && tzID.length() > 0) {
-            names = _tzCache.getInstance(tzID, tzID);
-            name = names.getName(type);
+            names = getTimeZoneNames(tzID);
+            if (names != null) {
+                name = names.getName(type);
+            }
         }
         return name;
     }
@@ -157,8 +166,10 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
     public String getExemplarLocationName(String tzID) {
         String locName = null;
         if (_zoneStrings != null && tzID != null && tzID.length() != 0) {
-            TZNames names = _tzCache.getInstance(tzID, tzID);
-            locName = names.getLocationName();
+            TZNames names = _tzNamesMap.get(tzID);
+            if (names != null) {
+                locName = names.getLocationName();
+            }
         }
         if (locName == null) {
             locName = super.getExemplarLocationName(tzID);
@@ -230,8 +241,8 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
             _zoneStrings = null;
         }
 
-        _mzCache = new MZNamesCache();
-        _tzCache = new TZNamesCache();
+        _tzNamesMap = new ConcurrentHashMap<String, TZNames>();
+        _mzNamesMap = new ConcurrentHashMap<String, ZNames>();
     }
 
     /*
@@ -252,24 +263,28 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
         initialize(locale);
     }
 
-    private class MZNamesCache extends SoftCache<String, ZNames, String> {
-        /* (non-Javadoc)
-         * @see com.ibm.icu.impl.CacheBase#createInstance(java.lang.Object, java.lang.Object)
-         */
-        @Override
-        protected ZNames createInstance(String key, String data) {
-            return ZNames.getInstance(_zoneStrings, MZ_PREFIX + data);
+    private ZNames getMetaZoneNames(String mzID) {
+        ZNames znames = _mzNamesMap.get(mzID);
+        if (znames == null) {
+            znames = ZNames.getInstance(_zoneStrings, MZ_PREFIX + mzID);
+            ZNames tmp = _mzNamesMap.putIfAbsent(mzID, znames);
+            if (tmp != null) {
+                znames = tmp;
+            }
         }
+        return znames;
     }
 
-    private class TZNamesCache extends SoftCache<String, TZNames, String> {
-        /* (non-Javadoc)
-         * @see com.ibm.icu.impl.CacheBase#createInstance(java.lang.Object, java.lang.Object)
-         */
-        @Override
-        protected TZNames createInstance(String key, String data) {
-            return TZNames.getInstance(_zoneStrings, data.replace('/', ':'));
+    private TZNames getTimeZoneNames(String tzID) {
+        TZNames tznames = _tzNamesMap.get(tzID);
+        if (tznames == null) {
+            tznames = TZNames.getInstance(_zoneStrings, tzID.replace('/', ':'));
+            TZNames tmp = _tzNamesMap.putIfAbsent(tzID, tznames);
+            if (tmp != null) {
+                tznames = tmp;
+            }
         }
+        return tznames;
     }
 
     /**
@@ -332,10 +347,10 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
      * This class stores name data for a meta zone
      */
     private static class ZNames {
+        private static final ZNames EMPTY_ZNAMES = new ZNames(null, false);
+
         private String[] _names;
         private boolean _shortCommonlyUsed;
-
-        public static final ZNames EMPTY = new ZNames(null, false);
 
         private static final String[] KEYS = {"lg", "ls", "ld", "sg", "ss", "sd"};
 
@@ -348,7 +363,7 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
             boolean[] cu = new boolean[1];
             String[] names = loadData(zoneStrings, key, cu);
             if (names == null) {
-                return EMPTY;
+                return EMPTY_ZNAMES;
             }
             return new ZNames(names, cu[0]);
         }
@@ -436,14 +451,14 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
     private static class TZNames extends ZNames {
         private String _locationName;
 
-        public static final TZNames EMPTY = new TZNames(null, false, null);
+        private static final TZNames EMPTY_TZNAMES = new TZNames(null, false, null);
 
         public static TZNames getInstance(ICUResourceBundle zoneStrings, String key) {
             ICUResourceBundle table = null;
             try {
                 table = zoneStrings.getWithFallback(key);
             } catch (MissingResourceException e) {
-                return EMPTY;
+                return EMPTY_TZNAMES;
             }
 
             String locationName = null;
@@ -457,7 +472,7 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
             String[] names = loadData(zoneStrings, key, cu);
 
             if (locationName == null && names == null) {
-                return EMPTY;
+                return EMPTY_TZNAMES;
             }
             return new TZNames(names, cu[0], locationName);
         }
