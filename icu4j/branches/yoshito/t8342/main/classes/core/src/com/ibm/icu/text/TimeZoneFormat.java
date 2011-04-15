@@ -33,6 +33,7 @@ import com.ibm.icu.text.TimeZoneNames.MatchInfo;
 import com.ibm.icu.text.TimeZoneNames.NameType;
 import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.Freezable;
+import com.ibm.icu.util.Output;
 import com.ibm.icu.util.TimeZone;
 import com.ibm.icu.util.ULocale;
 
@@ -60,8 +61,8 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
      * Time zone display format style enum used by format/parse APIs in <code>TimeZoneFormat</code>.
      * 
      * @see TimeZoneFormat#format(Style, TimeZone, long)
-     * @see TimeZoneFormat#format(Style, TimeZone, long, TimeType[])
-     * @see TimeZoneFormat#parse(Style, String, ParsePosition, TimeType[])
+     * @see TimeZoneFormat#format(Style, TimeZone, long, Output)
+     * @see TimeZoneFormat#parse(Style, String, ParsePosition, Output)
      * @draft ICU 4.8
      * @provisional This API might change or be removed in a future release.
      */
@@ -538,7 +539,7 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
     /**
      * Returns <code>true</code> when this <code>TimeZoneFormat</code> is configured for parsing
      * display names including names that are only used by other styles by
-     * {@link #parse(Style, String, ParsePosition, TimeType[])}.
+     * {@link #parse(Style, String, ParsePosition, Output)}.
      * <p><b>Note</b>: An instance created by {@link #getInstance(ULocale)} is configured NOT
      * parsing all styles (<code>false</code>).
      * 
@@ -552,7 +553,7 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
     }
 
     /**
-     * Sets if {@link #parse(Style, String, ParsePosition, TimeType[])} to parse display
+     * Sets if {@link #parse(Style, String, ParsePosition, Output)} to parse display
      * names including names that are only used by other styles.
      * 
      * @param parseAllStyles <code>true</code> to parse all available names.
@@ -710,7 +711,7 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
      * @param date the date.
      * @return the display name of the time zone.
      * @see Style
-     * @see #format(Style, TimeZone, long, TimeType[])
+     * @see #format(Style, TimeZone, long, Output)
      * @draft ICU 4.8
      * @provisional This API might change or be removed in a future release.
      */
@@ -720,7 +721,7 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
 
     /**
      * Returns the display name of the time zone at the given date for
-     * the style. This method takes an extra argument <code>TimeType[] timeType</code>
+     * the style. This method takes an extra argument <code>Output&lt;TimeType&gt; timeType</code>
      * in addition to the argument list of {@link #format(Style, TimeZone, long)}.
      * The argument is used for receiving the time type (standard time
      * or daylight saving time, or unknown) actually used for the display name.
@@ -729,18 +730,18 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
      * @param tz the time zone.
      * @param date the date.
      * @param timeType the output argument for receiving the time type (standard/daylight/unknown)
-     * used for the display name.
+     * used for the display name, or specify null if the information is not necessary.
      * @return the display name of the time zone.
      * @see Style
      * @see #format(Style, TimeZone, long)
      * @draft ICU 4.8
      * @provisional This API might change or be removed in a future release.
      */
-    public String format(Style style, TimeZone tz, long date, TimeType[] timeType) {
+    public String format(Style style, TimeZone tz, long date, Output<TimeType> timeType) {
         String result = null;
 
-        if (timeType != null && timeType.length > 0) {
-            timeType[0] = TimeType.UNKNOWN;
+        if (timeType != null) {
+            timeType.value = TimeType.UNKNOWN;
         }
 
         switch (style) {
@@ -772,15 +773,15 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
             int[] offsets = {0, 0};
             tz.getOffset(date, false, offsets);
             if (style == Style.RFC822) {
-                // RFC822 was requeted
+                // RFC822 was requested
                 result = formatOffsetRFC822(offsets[0] + offsets[1]);
             } else {
                 // LOCALIZED_GMT was requested, or fallback for other types
                 result = formatOffsetLocalizedGMT(offsets[0] + offsets[1]);
             }
             // time type
-            if (timeType != null && timeType.length > 0) {
-                timeType[0] = (offsets[1] != 0) ? TimeType.DAYLIGHT : TimeType.STANDARD;
+            if (timeType != null) {
+                timeType.value = (offsets[1] != 0) ? TimeType.DAYLIGHT : TimeType.STANDARD;
             }
         }
 
@@ -924,16 +925,16 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
      * @param text the text contains a time zone string at the position.
      * @param style the format style
      * @param pos the position.
-     * @param timeType The output argument for receiving the time type (standard/daylight/unknown).
-     * On return, the time type is set to <code>timeType[0]</code>. If not necessary, specify <code>null</code>.
+     * @param timeType The output argument for receiving the time type (standard/daylight/unknown),
+     * or specify null if the information is not necessary.
      * @return A <code>TimeZone</code>, or null if the input could not be parsed.
      * @see Style
-     * @see #format(Style, TimeZone, long, TimeType[])
+     * @see #format(Style, TimeZone, long, Output)
      * @see #setParseAllStyles(boolean)
      * @draft ICU 4.8
      * @provisional This API might change or be removed in a future release.
      */
-    public TimeZone parse(Style style, String text, ParsePosition pos, TimeType[] timeType) {
+    public TimeZone parse(Style style, String text, ParsePosition pos, Output<TimeType> timeType) {
         return parse(style, text, pos, _parseAllStyles, timeType);
     }
 
@@ -947,13 +948,12 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
      * @param text the text contains a time zone string at the position.
      * @param pos the position.
      * @return A <code>TimeZone</code>, or null if the input could not be parsed.
-     * @see #parse(Style, String, ParsePosition, TimeType[])
+     * @see #parse(Style, String, ParsePosition, Output)
      * @draft ICU 4.8
      * @provisional This API might change or be removed in a future release.
      */
     public final TimeZone parse(String text, ParsePosition pos) {
-        TimeType[] timeType = {TimeType.UNKNOWN};
-        return parse(Style.GENERIC_LOCATION, text, pos, true, timeType);
+        return parse(Style.GENERIC_LOCATION, text, pos, true, null);
     }
 
     /**
@@ -962,7 +962,7 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
      * @return A <code>TimeZone</code>.
      * @throws ParseException when the input could not be parsed as a time zone string.
      * @see #parse(String, ParsePosition)
-     * @see #parse(Style, String, ParsePosition, TimeType[])
+     * @see #parse(Style, String, ParsePosition, Output)
      * @draft ICU 4.8
      * @provisional This API might change or be removed in a future release.
      */
@@ -1049,7 +1049,7 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
      * @param timeType when null, actual time type is set
      * @return the time zone's specific format name string
      */
-    private String formatSpecific(TimeZone tz, NameType stdType, NameType dstType, long date, TimeType[] timeType) {
+    private String formatSpecific(TimeZone tz, NameType stdType, NameType dstType, long date, Output<TimeType> timeType) {
         assert(stdType == NameType.LONG_STANDARD || stdType == NameType.SHORT_STANDARD || stdType == NameType.SHORT_STANDARD_COMMONLY_USED);
         assert(dstType == NameType.LONG_DAYLIGHT || dstType == NameType.SHORT_DAYLIGHT || dstType == NameType.SHORT_DAYLIGHT_COMMONLY_USED);
 
@@ -1058,8 +1058,8 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
                 getTimeZoneNames().getDisplayName(tz.getCanonicalID(), dstType, date) :
                 getTimeZoneNames().getDisplayName(tz.getCanonicalID(), stdType, date);
 
-        if (name != null && timeType != null && timeType.length > 0) {
-            timeType[0] = isDaylight ? TimeType.DAYLIGHT : TimeType.STANDARD;
+        if (name != null && timeType != null) {
+            timeType.value = isDaylight ? TimeType.DAYLIGHT : TimeType.STANDARD;
         }
         return name;
     }
@@ -1075,8 +1075,10 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
      * @param timeType receiving parsed time type (unknown/standard/daylight). If not necessary, specify null.
      * @return the result time zone
      */
-    private TimeZone parse(Style style, String text, ParsePosition pos, boolean parseAllStyles, TimeType[] timeType) {
-        timeType[0] = TimeType.UNKNOWN;
+    private TimeZone parse(Style style, String text, ParsePosition pos, boolean parseAllStyles, Output<TimeType> timeType) {
+        if (timeType != null) {
+            timeType.value = TimeType.UNKNOWN;
+        }
 
         int startIdx = pos.getIndex();
         ParsePosition tmpPos = new ParsePosition(startIdx);
@@ -1143,7 +1145,9 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
                     }
                 }
                 if (bestSpecific != null) {
-                    timeType[0] = getTimeType(bestSpecific.nameType());
+                    if (timeType != null) {
+                        timeType.value = getTimeType(bestSpecific.nameType());
+                    }
                     pos.setIndex(startIdx + bestSpecific.matchLength());
                     return TimeZone.getTimeZone(getTimeZoneID(bestSpecific.tzID(), bestSpecific.mzID()));
                 }
@@ -1174,7 +1178,9 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
                     }
                 }
                 if (bestGeneric != null) {
-                    timeType[0] = bestGeneric.timeType();
+                    if (timeType != null) {
+                        timeType.value = bestGeneric.timeType();
+                    }
                     pos.setIndex(startIdx + bestGeneric.matchLength());
                     return TimeZone.getTimeZone(bestGeneric.tzID());
                 }
@@ -1213,7 +1219,9 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
                 }
                 if (bestSpecific != null && bestSpecific.matchLength() == maxMatchLength) {
                     // complete match
-                    timeType[0] = getTimeType(bestSpecific.nameType());
+                    if (timeType != null) {
+                        timeType.value = getTimeType(bestSpecific.nameType());
+                    }
                     pos.setIndex(startIdx + bestSpecific.matchLength());
                     return TimeZone.getTimeZone(getTimeZoneID(bestSpecific.tzID(), bestSpecific.mzID()));
                 }
@@ -1231,7 +1239,9 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
                     }
                 }
                 if (bestGeneric != null && bestGeneric.matchLength() == maxMatchLength) {
-                    timeType[0] = bestGeneric.timeType();
+                    if (timeType != null) {
+                        timeType.value = bestGeneric.timeType();
+                    }
                     pos.setIndex(startIdx + bestGeneric.matchLength());
                     return TimeZone.getTimeZone(bestGeneric.tzID());
                 }
@@ -1241,12 +1251,16 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
                 if (bestGeneric == null ||
                         (bestSpecific != null && bestSpecific.matchLength() > bestGeneric.matchLength())) {
                     // the best specific match
-                    timeType[0] = getTimeType(bestSpecific.nameType());
+                    if (timeType != null) {
+                        timeType.value = getTimeType(bestSpecific.nameType());
+                    }
                     pos.setIndex(startIdx + bestSpecific.matchLength());
                     return TimeZone.getTimeZone(getTimeZoneID(bestSpecific.tzID(), bestSpecific.mzID()));
                 } else if (bestGeneric != null){
                     // the best generic match
-                    timeType[0] = bestGeneric.timeType();
+                    if (timeType != null) {
+                        timeType.value = bestGeneric.timeType();
+                    }
                     pos.setIndex(startIdx + bestGeneric.matchLength());
                     return TimeZone.getTimeZone(bestGeneric.tzID());
                 }

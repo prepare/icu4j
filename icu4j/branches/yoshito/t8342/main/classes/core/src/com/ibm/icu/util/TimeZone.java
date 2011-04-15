@@ -515,7 +515,7 @@ abstract public class TimeZone implements Serializable, Cloneable {
             // Generic format
             TimeZoneFormat tzfmt = TimeZoneFormat.getInstance(locale);
             long date = System.currentTimeMillis();
-            TimeType[] timeType = {TimeType.UNKNOWN};
+            Output<TimeType> timeType = new Output<TimeType>(TimeType.UNKNOWN);
 
             switch (style) {
             case GENERIC_LOCATION:
@@ -532,8 +532,8 @@ abstract public class TimeZone implements Serializable, Cloneable {
             // Generic format many use Localized GMT as the final fallback.
             // When Localized GMT format is used, the result might not be
             // appropriate for the requested daylight value.
-            if (daylight && timeType[0] == TimeType.STANDARD ||
-                    !daylight && timeType[0] == TimeType.DAYLIGHT) {
+            if (daylight && timeType.value == TimeType.STANDARD ||
+                    !daylight && timeType.value == TimeType.DAYLIGHT) {
                 int offset = daylight ? getRawOffset() + getDSTSavings() : getRawOffset();
                 result = tzfmt.formatOffsetLocalizedGMT(offset);
             }

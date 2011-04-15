@@ -33,6 +33,7 @@ import com.ibm.icu.text.TimeZoneFormat.TimeType;
 import com.ibm.icu.util.BasicTimeZone;
 import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.HebrewCalendar;
+import com.ibm.icu.util.Output;
 import com.ibm.icu.util.TimeZone;
 import com.ibm.icu.util.TimeZoneTransition;
 import com.ibm.icu.util.ULocale;
@@ -2011,13 +2012,13 @@ public class SimpleDateFormat extends DateFormat {
                 return pos.getIndex();
             case 17: // 'z' - ZONE_OFFSET
             {
-                TimeType[] tzTimeType = new TimeType[1];
+                Output<TimeType> tzTimeType = new Output<TimeType>();
                 Style style = (count < 4) ? Style.SPECIFIC_SHORT_COMMONLY_USED : Style.SPECIFIC_LONG;
                 TimeZone tz = tzFormat.parse(style, text, pos, tzTimeType);
                 if (tz != null) {
-                    if (tzTimeType[0] == TimeType.STANDARD) {
+                    if (tzTimeType.value == TimeType.STANDARD) {
                         tztype = TZTYPE_STD;
-                    } else if (tzTimeType[0] == TimeType.DAYLIGHT) {
+                    } else if (tzTimeType.value == TimeType.DAYLIGHT) {
                         tztype = TZTYPE_DST;
                     }
                     cal.setTimeZone(tz);
@@ -2027,13 +2028,13 @@ public class SimpleDateFormat extends DateFormat {
             }
             case 23: // 'Z' - TIMEZONE_RFC
             {
-                TimeType[] tzTimeType = new TimeType[1];
+                Output<TimeType> tzTimeType = new Output<TimeType>();
                 Style style = (count < 4) ? Style.RFC822 : Style.LOCALIZED_GMT;
                 TimeZone tz = tzFormat.parse(style, text, pos, tzTimeType);
                 if (tz != null) {
-                    if (tzTimeType[0] == TimeType.STANDARD) {
+                    if (tzTimeType.value == TimeType.STANDARD) {
                         tztype = TZTYPE_STD;
-                    } else if (tzTimeType[0] == TimeType.DAYLIGHT) {
+                    } else if (tzTimeType.value == TimeType.DAYLIGHT) {
                         tztype = TZTYPE_DST;
                     }
                     cal.setTimeZone(tz);
@@ -2043,14 +2044,14 @@ public class SimpleDateFormat extends DateFormat {
             }
             case 24: // 'v' - TIMEZONE_GENERIC
             {
-                TimeType[] tzTimeType = new TimeType[1];
+                Output<TimeType> tzTimeType = new Output<TimeType>();
                 // Note: 'v' only supports count 1 and 4
                 Style style = (count < 4) ? Style.GENERIC_SHORT : Style.GENERIC_LONG;
                 TimeZone tz = tzFormat.parse(style, text, pos, tzTimeType);
                 if (tz != null) {
-                    if (tzTimeType[0] == TimeType.STANDARD) {
+                    if (tzTimeType.value == TimeType.STANDARD) {
                         tztype = TZTYPE_STD;
-                    } else if (tzTimeType[0] == TimeType.DAYLIGHT) {
+                    } else if (tzTimeType.value == TimeType.DAYLIGHT) {
                         tztype = TZTYPE_DST;
                     }
                     cal.setTimeZone(tz);
@@ -2060,14 +2061,14 @@ public class SimpleDateFormat extends DateFormat {
             }
             case 29: // 'V' - TIMEZONE_SPECIAL
             {
-                TimeType[] tzTimeType = new TimeType[1];
+                Output<TimeType> tzTimeType = new Output<TimeType>();
                 // Note: 'v' only supports count 1 and 4
                 Style style = (count < 4) ? Style.SPECIFIC_SHORT : Style.GENERIC_LOCATION;
                 TimeZone tz = tzFormat.parse(style, text, pos, tzTimeType);
                 if (tz != null) {
-                    if (tzTimeType[0] == TimeType.STANDARD) {
+                    if (tzTimeType.value == TimeType.STANDARD) {
                         tztype = TZTYPE_STD;
-                    } else if (tzTimeType[0] == TimeType.DAYLIGHT) {
+                    } else if (tzTimeType.value == TimeType.DAYLIGHT) {
                         tztype = TZTYPE_DST;
                     }
                     cal.setTimeZone(tz);
