@@ -72,17 +72,12 @@ public class TimeZoneGenericNames implements Serializable {
 
     private transient ConcurrentHashMap<String, String> _genericLocationNamesMap;
     private transient ConcurrentHashMap<String, String> _genericPartialLocationNamesMap;
-    private transient volatile TextTrieMap<NameInfo> _namesTrie;
+    private transient volatile TextTrieMap<NameInfo> _gnamesTrie;
 
     private static Cache GENERIC_NAMES_CACHE = new Cache();
 
     // Window size used for DST check for a zone in a metazone (about a half year)
     private static final long DST_CHECK_RANGE = 184L*(24*60*60*1000);
-
-    private static final EnumSet<NameType> TZNAMES_GENERIC_TYPES = EnumSet.of(
-        NameType.LONG_GENERIC, NameType.LONG_STANDARD,
-        NameType.SHORT_GENERIC, NameType.SHORT_STANDARD_COMMONLY_USED
-    );
 
     public TimeZoneGenericNames(ULocale locale, TimeZoneNames tznames) {
         _locale = locale;
@@ -475,6 +470,7 @@ public class TimeZoneGenericNames implements Serializable {
                 matchInfo.tzID = info.tzID;
                 matchInfo.nameType = info.type;
                 matchInfo.matchLength = matchLength;
+                //matchInfo.timeType = TimeType.UNKNOWN;
                 if (_matches == null) {
                     _matches = new LinkedList<GenericMatchInfo>();
                 }
@@ -488,19 +484,86 @@ public class TimeZoneGenericNames implements Serializable {
          * @return the match results
          */
         public Collection<GenericMatchInfo> getMatches() {
-            if (_matches == null) {
-                return Collections.emptyList();
-            }
             return _matches;
         }
     }
 
-    private Collection<GenericMatchInfo> find(String text, int start, EnumSet<GenericNameType> types) {
-        if (_namesTrie == null) {
+    public Collection<GenericMatchInfo> find(String text, int start, EnumSet<GenericNameType> genericTypes) {
+        // Find matches in the local trie
+        Collection<GenericMatchInfo> results = findLocal(text, start, genericTypes);
+
+        // Collect name types maintained by TimeZoneNames
+        EnumSet<NameType> nameTypes = EnumSet.noneOf(NameType.class);
+        if (genericTypes.contains(GenericNameType.LONG)) {
+            nameTypes.add(NameType.LONG_GENERIC);
+            nameTypes.add(NameType.LONG_STANDARD);
+        }
+        if (genericTypes.contains(GenericNameType.SHORT)) {
+            nameTypes.add(NameType.SHORT_GENERIC);
+            nameTypes.add(NameType.SHORT_STANDARD_COMMONLY_USED);
+        }
+
+        if (!nameTypes.isEmpty()) {
+            // Also find matches in the TimeZoneNames
+            Collection<MatchInfo> tznamesMatches = _tznames.find(text, start, nameTypes);
+            if (tznamesMatches != null) {
+                // transform matches and append them to local matches
+                for (MatchInfo match : tznamesMatches) {
+                    if (results == null) {
+                        results = new LinkedList<GenericMatchInfo>();
+                    }
+                    results.add(createGenericMatchInfo(match));
+                }
+            }
+        }
+        if (results == null) {
+            results = Collections.emptyList();
+        }
+        return results;
+    }
+
+    private GenericMatchInfo createGenericMatchInfo(MatchInfo matchInfo) {
+        GenericNameType nameType = null;
+        TimeType timeType = TimeType.UNKNOWN;
+        switch (matchInfo.nameType()) {
+        case LONG_STANDARD:
+            timeType = TimeType.STANDARD;
+            //$FALL-THROUGH$
+        case LONG_GENERIC:
+            nameType = GenericNameType.LONG;
+            break;
+        case SHORT_STANDARD_COMMONLY_USED:
+            timeType = TimeType.STANDARD;
+            //$FALL-THROUGH$
+        case SHORT_GENERIC:
+            nameType = GenericNameType.SHORT;
+            break;
+        }
+        assert(nameType != null);
+
+        String tzID = matchInfo.tzID();
+        if (tzID == null) {
+            String mzID = matchInfo.mzID();
+            assert(mzID != null);
+            tzID = _tznames.getReferenceZoneID(mzID, getTargetRegion());
+        }
+        assert(tzID != null);
+
+        GenericMatchInfo gmatch = new GenericMatchInfo();
+        gmatch.nameType = nameType;
+        gmatch.tzID = tzID;
+        gmatch.matchLength = matchInfo.matchLength();
+        gmatch.timeType = timeType;
+
+        return gmatch;
+    }
+
+    private Collection<GenericMatchInfo> findLocal(String text, int start, EnumSet<GenericNameType> types) {
+        if (_gnamesTrie == null) {
             synchronized (this) {
-                if (_namesTrie == null) {
+                if (_gnamesTrie == null) {
                     // Create the names trie. This could be very heavy process.
-                    _namesTrie = new TextTrieMap<NameInfo>(true);
+                    _gnamesTrie = new TextTrieMap<NameInfo>(true);
                     final NameType[] genNonLocTypes = {NameType.LONG_GENERIC, NameType.SHORT_GENERIC};
 
                     Set<String> tzIDs = TimeZone.getAvailableIDs(SystemTimeZoneType.CANONICAL, null, null);
@@ -511,7 +574,7 @@ public class TimeZoneGenericNames implements Serializable {
                             NameInfo info = new NameInfo();
                             info.tzID = tzID;
                             info.type = GenericNameType.LOCATION;
-                            _namesTrie.put(genericLocation, info);
+                            _gnamesTrie.put(genericLocation, info);
                         }
 
                         // Generic partial location format
@@ -530,7 +593,7 @@ public class TimeZoneGenericNames implements Serializable {
                                         info.tzID = tzID;
                                         info.type = genNonLocType == NameType.LONG_GENERIC ?
                                                 GenericNameType.LONG : GenericNameType.SHORT;
-                                        _namesTrie.put(partialLocationName, info);
+                                        _gnamesTrie.put(partialLocationName, info);
                                     }
                                 }
                             }
@@ -540,90 +603,8 @@ public class TimeZoneGenericNames implements Serializable {
             }
         }
         GenericNameSearchHandler handler = new GenericNameSearchHandler(types);
-        _namesTrie.find(text, start, handler);
+        _gnamesTrie.find(text, start, handler);
         return handler.getMatches();
-    }
-
-    public GenericMatchInfo findMatch(String text, int start, GenericNameType preferredType) {
-        MatchInfo tznamesMatch = null; // the best match in _tznames
-        boolean tzTypeMatch = false; // if the best match in _tznames also matches preferredType
-        Collection<MatchInfo> tzmatches = _tznames.find(text, start, TZNAMES_GENERIC_TYPES);
-        for (MatchInfo m : tzmatches) {
-            boolean bTypeMatch = (preferredType == null)
-                        || (preferredType == GenericNameType.LONG && (m.nameType() == NameType.LONG_GENERIC || m.nameType() == NameType.LONG_STANDARD))
-                        || (preferredType == GenericNameType.SHORT && (m.nameType() == NameType.SHORT_GENERIC || m.nameType() == NameType.SHORT_STANDARD_COMMONLY_USED));
-            if (tznamesMatch == null ||
-                    (!tzTypeMatch && bTypeMatch) ||
-                    (!tzTypeMatch || bTypeMatch) && m.matchLength() > tznamesMatch.matchLength()) {
-                tznamesMatch = m;
-            }
-            if (!tzTypeMatch && bTypeMatch) {
-                tzTypeMatch = true;
-            }
-        }
-
-        GenericMatchInfo gnamesMatch = null; // the best match in _gnames
-        boolean gTypeMatch = false; // if the bet match in _gnames also matches preferredType
-        Collection<GenericMatchInfo> gmatches = find(text, start, null /* all types */);
-        for (GenericMatchInfo gm : gmatches) {
-            boolean bTypeMatch = (preferredType == null
-                    || gm.nameType() == preferredType || gm.nameType().isFallbackTypeOf(preferredType));
-            if (gnamesMatch == null ||
-                    (!gTypeMatch && bTypeMatch) ||
-                    (!gTypeMatch || bTypeMatch) && gm.matchLength() >gnamesMatch.matchLength()) {
-                gnamesMatch = gm;
-            }
-            if (!gTypeMatch && bTypeMatch) {
-                gTypeMatch = true;
-            }
-        }
-
-        if (tznamesMatch != null) {
-            if (gnamesMatch != null) {
-                // found matches from both
-                if ((!gTypeMatch && tzTypeMatch) ||
-                        (!gTypeMatch || tzTypeMatch) && tznamesMatch.matchLength() > gnamesMatch.matchLength()) {
-                    gnamesMatch = null;
-                }
-            }
-            if (gnamesMatch == null) {
-                // set the tznamesMatch to gnamesMatch
-                gnamesMatch = new GenericMatchInfo();
-                String tzID = tznamesMatch.tzID();
-                if (tzID == null) {
-                    tzID = _tznames.getReferenceZoneID(tznamesMatch.mzID(), getTargetRegion());
-                    assert(tzID != null);
-                }
-                gnamesMatch.tzID = tzID;
-                gnamesMatch.matchLength = tznamesMatch.matchLength();
-
-                NameType nameType = tznamesMatch.nameType();
-                assert(nameType == NameType.LONG_GENERIC || nameType == NameType.LONG_STANDARD
-                        || nameType == NameType.SHORT_GENERIC || nameType == NameType.SHORT_STANDARD_COMMONLY_USED);
-                switch(tznamesMatch.nameType()) {
-                case LONG_GENERIC:
-                    gnamesMatch.nameType = GenericNameType.LONG;
-                    break;
-                case LONG_STANDARD:
-                    gnamesMatch.nameType = GenericNameType.LONG;
-                    gnamesMatch.timeType = TimeType.STANDARD;
-                    break;
-                case SHORT_GENERIC:
-                    gnamesMatch.nameType = GenericNameType.SHORT;
-                    break;
-                case SHORT_STANDARD_COMMONLY_USED:
-                    gnamesMatch.nameType = GenericNameType.SHORT;
-                    gnamesMatch.timeType = TimeType.STANDARD;
-                    break;
-                }
-            }
-        }
-
-        return gnamesMatch;
-    }
-
-    public GenericMatchInfo findMatch(String text, int start) {
-        return findMatch(text, start, null);
     }
 
     private static class Cache extends SoftCache<String, TimeZoneGenericNames, ULocale> {

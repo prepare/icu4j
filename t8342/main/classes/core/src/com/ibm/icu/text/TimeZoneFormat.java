@@ -257,10 +257,16 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
 
     private static TimeZoneFormatCache _tzfCache = new TimeZoneFormatCache();
 
+    // The filter used for searching all specific names
     private static final EnumSet<NameType> ALL_SPECIFIC_NAME_TYPES = EnumSet.of(
         NameType.LONG_STANDARD, NameType.LONG_DAYLIGHT,
         NameType.SHORT_STANDARD, NameType.SHORT_DAYLIGHT,
         NameType.SHORT_STANDARD_COMMONLY_USED, NameType.SHORT_DAYLIGHT_COMMONLY_USED
+    );
+
+    // The filter used for searching all generic names
+    private static final EnumSet<GenericNameType> ALL_GENERIC_NAME_TYPES = EnumSet.of(
+        GenericNameType.LOCATION, GenericNameType.LONG, GenericNameType.SHORT
     );
 
     /**
@@ -946,7 +952,8 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
      * @provisional This API might change or be removed in a future release.
      */
     public final TimeZone parse(String text, ParsePosition pos) {
-        return parse(Style.GENERIC_LOCATION, text, pos, true, null);
+        TimeType[] timeType = {TimeType.UNKNOWN};
+        return parse(Style.GENERIC_LOCATION, text, pos, true, timeType);
     }
 
     /**
@@ -1069,11 +1076,10 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
      * @return the result time zone
      */
     private TimeZone parse(Style style, String text, ParsePosition pos, boolean parseAllStyles, TimeType[] timeType) {
-        if (timeType != null && timeType.length > 0) {
-            timeType[0] = TimeType.UNKNOWN;
-        }
+        timeType[0] = TimeType.UNKNOWN;
 
-        ParsePosition tmpPos = new ParsePosition(pos.getIndex());
+        int startIdx = pos.getIndex();
+        ParsePosition tmpPos = new ParsePosition(startIdx);
 
         // try RFC822
         int offset = parseOffsetRFC822(text, tmpPos);
@@ -1102,7 +1108,7 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
             } else {
                 // Preserve the length of GMT zero format.
                 // If no better matches are found later, GMT should be returned.
-                gmtZeroLen = tmpPos.getIndex() - pos.getIndex();
+                gmtZeroLen = tmpPos.getIndex() - startIdx;
             }
         }
 
@@ -1111,62 +1117,68 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
             return null;
         }
 
-        Collection<MatchInfo> namesMatches = null;
-        GenericMatchInfo genericMatch = null;
-        boolean doneGeneric = false;
-        TimeType tt = TimeType.UNKNOWN;
-
         // Find the best match within names which are possibly produced by the style
         if (style == Style.SPECIFIC_LONG || style == Style.SPECIFIC_SHORT || style == Style.SPECIFIC_SHORT_COMMONLY_USED) {
-            // specific names are from _tznames
-            namesMatches = _tznames.find(text, pos.getIndex(), ALL_SPECIFIC_NAME_TYPES);
-            MatchInfo bestMatch = null;
-            for (MatchInfo m : namesMatches) {
-                NameType nameType = m.nameType();
-                boolean bNameTypeMatch = false;
-                switch (style) {
-                case SPECIFIC_LONG:
-                    bNameTypeMatch = (nameType == NameType.LONG_STANDARD || nameType == NameType.LONG_DAYLIGHT);
-                    break;
-                case SPECIFIC_SHORT:
-                    bNameTypeMatch = (nameType == NameType.SHORT_STANDARD || nameType == NameType.SHORT_DAYLIGHT);
-                    break;
-                case SPECIFIC_SHORT_COMMONLY_USED:
-                    bNameTypeMatch = (nameType == NameType.SHORT_STANDARD_COMMONLY_USED || nameType == NameType.SHORT_DAYLIGHT_COMMONLY_USED);
-                    break;
-                }
-                if (bNameTypeMatch && (bestMatch == null || m.matchLength() > bestMatch.matchLength())) {
-                    bestMatch = m;
-                    tt = getTimeType(nameType);
-                }
+            // Specific styles
+            EnumSet<NameType> nameTypes = null;
+            switch (style) {
+            case SPECIFIC_LONG:
+                nameTypes = EnumSet.of(NameType.LONG_STANDARD, NameType.LONG_DAYLIGHT);
+                break;
+            case SPECIFIC_SHORT:
+                nameTypes = EnumSet.of(NameType.SHORT_STANDARD, NameType.SHORT_DAYLIGHT);
+                break;
+            case SPECIFIC_SHORT_COMMONLY_USED:
+                nameTypes = EnumSet.of(NameType.SHORT_STANDARD_COMMONLY_USED, NameType.SHORT_DAYLIGHT_COMMONLY_USED);
+                break;
             }
-            if (bestMatch != null && bestMatch.matchLength() > gmtZeroLen) {
-                if (timeType != null && timeType.length > 0) {
-                    timeType[0] = tt;
+            Collection<MatchInfo> specificMatches = _tznames.find(text, startIdx, nameTypes);
+            if (specificMatches != null) {
+                int matchLen = 0;
+                MatchInfo bestSpecific = null;
+                for (MatchInfo match : specificMatches) {
+                    if (bestSpecific == null || match.matchLength() > matchLen) {
+                        bestSpecific = match;
+                        matchLen = match.matchLength();
+                    }
                 }
-                String tzID = bestMatch.tzID();
-                if (tzID == null) {
-                    tzID = _tznames.getReferenceZoneID(bestMatch.mzID(), getTargetRegion());
+                if (bestSpecific != null) {
+                    timeType[0] = getTimeType(bestSpecific.nameType());
+                    pos.setIndex(startIdx + bestSpecific.matchLength());
+                    return TimeZone.getTimeZone(getTimeZoneID(bestSpecific.tzID(), bestSpecific.mzID()));
                 }
-                pos.setIndex(pos.getIndex() + bestMatch.matchLength());
-                return TimeZone.getTimeZone(tzID);
             }
         } else {
-            // generic names are from _gnames
+            // Generic styles
             assert(style == Style.GENERIC_LOCATION || style == Style.GENERIC_LONG || style == Style.GENERIC_SHORT);
-            GenericNameType preferredType = (style == Style.GENERIC_LOCATION) ? GenericNameType.LOCATION
-                    : (style == Style.GENERIC_LONG) ? GenericNameType.LONG : GenericNameType.SHORT;
-            genericMatch = _gnames.findMatch(text, pos.getIndex(), preferredType);
-            if (genericMatch != null && genericMatch.matchLength() > gmtZeroLen) {
-                if (genericMatch.nameType() == preferredType || genericMatch.nameType().isFallbackTypeOf(preferredType)) {
-                    if (timeType != null && timeType.length > 0) {
-                        timeType[0] = genericMatch.timeType();
+            EnumSet<GenericNameType> genericNameTypes = null;
+            switch (style) {
+            case GENERIC_LOCATION:
+                genericNameTypes = EnumSet.of(GenericNameType.LOCATION);
+                break;
+            case GENERIC_LONG:
+                genericNameTypes = EnumSet.of(GenericNameType.LONG, GenericNameType.LOCATION);
+                break;
+            case GENERIC_SHORT:
+                genericNameTypes = EnumSet.of(GenericNameType.SHORT, GenericNameType.LOCATION);
+                break;
+            }
+            Collection<GenericMatchInfo> genericMatches = _gnames.find(text, startIdx, genericNameTypes);
+            if (genericMatches != null) {
+                int matchLen = 0;
+                GenericMatchInfo bestGeneric = null;
+                for (GenericMatchInfo match : genericMatches) {
+                    if (bestGeneric == null || match.matchLength() > matchLen) {
+                        bestGeneric = match;
+                        matchLen = match.matchLength();
                     }
-                    pos.setIndex(pos.getIndex() + genericMatch.matchLength());
-                    return TimeZone.getTimeZone(genericMatch.tzID());
+                }
+                if (bestGeneric != null) {
+                    timeType[0] = bestGeneric.timeType();
+                    pos.setIndex(startIdx + bestGeneric.matchLength());
+                    return TimeZone.getTimeZone(bestGeneric.tzID());
                 }
             }
-            doneGeneric = true; // skip searching _gnames again when parseAllStyles is true
         }
 
         // If GMT zero format was detected at the beginning, but there was no better match found
@@ -1175,61 +1187,99 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
         // all styles (except RFC822 and LOCALIZED_GMT itself) use LOCALIZED_GMT as the final
         // fallback.
         if (gmtZeroLen > 0) {
-            pos.setIndex(pos.getIndex() + gmtZeroLen);
+            pos.setIndex(startIdx + gmtZeroLen);
             return getTimeZoneForOffset(0);
         }
 
         // If no match was found above, check if parseAllStyle is enabled.
-        // If so, find the longest match within the rest of names which are not produced by
-        // the style.
-        
+        // If so, find the longest match in all possible names.
+
         // For example, when style is GENERIC_LONG, "EST" (SPECIFIC_SHORT) is never
         // used for America/New_York. With parseAllStyles true, this code parses "EST"
         // as America/New_York.
         if (parseAllStyles) {
-            if (namesMatches == null) {
-                namesMatches = _tznames.find(text, pos.getIndex(), ALL_SPECIFIC_NAME_TYPES);
-            }
-            if (!doneGeneric) {
-                genericMatch = _gnames.findMatch(text, pos.getIndex());
-            }
+            int maxMatchLength = text.length() - startIdx;
 
-            int longestLen = 0;
-            if (genericMatch != null) {
-                longestLen = genericMatch.matchLength();
-            }
-            MatchInfo longestMatch = null;
-            for (MatchInfo m : namesMatches) {
-                if (m.matchLength() > longestLen) {
-                    longestMatch = m;
-                    longestLen = m.matchLength();
+            // Try specific names first
+            Collection<MatchInfo> specificMatches = _tznames.find(text, startIdx, ALL_SPECIFIC_NAME_TYPES);
+            MatchInfo bestSpecific = null;
+            if (specificMatches != null) {
+                int matchLen = 0;
+                for (MatchInfo match : specificMatches) {
+                    if (bestSpecific == null || match.matchLength() > matchLen) {
+                        bestSpecific = match;
+                        matchLen = match.matchLength();
+                    }
+                }
+                if (bestSpecific != null && bestSpecific.matchLength() == maxMatchLength) {
+                    // complete match
+                    timeType[0] = getTimeType(bestSpecific.nameType());
+                    pos.setIndex(startIdx + bestSpecific.matchLength());
+                    return TimeZone.getTimeZone(getTimeZoneID(bestSpecific.tzID(), bestSpecific.mzID()));
                 }
             }
-            if (longestLen > 0) {
-                String tzID = null;
-                if (longestMatch != null) {
-                    tzID = longestMatch.tzID();
-                    if (tzID == null) {
-                        tzID = _tznames.getReferenceZoneID(longestMatch.mzID(), getTargetRegion());
-                    }
-                    tt = getTimeType(longestMatch.nameType());
-                } else if (genericMatch != null) {
-                    tzID = genericMatch.tzID();
-                    tt = genericMatch.timeType();
-                }
 
-                if (tzID != null) {
-                    if (timeType != null && timeType.length > 0) {
-                        timeType[0] = tt;
+            // Then generic names
+            Collection<GenericMatchInfo> genericMatches = _gnames.find(text, startIdx, ALL_GENERIC_NAME_TYPES);
+            GenericMatchInfo bestGeneric = null;
+            if (genericMatches != null) {
+                int matchLen = 0;
+                for (GenericMatchInfo match : genericMatches) {
+                    if (bestGeneric == null || match.matchLength() > matchLen) {
+                        bestGeneric = match;
+                        matchLen = match.matchLength();
                     }
-                    pos.setIndex(pos.getIndex() + longestLen);
-                    return TimeZone.getTimeZone(tzID);
+                }
+                if (bestGeneric != null && bestGeneric.matchLength() == maxMatchLength) {
+                    timeType[0] = bestGeneric.timeType();
+                    pos.setIndex(startIdx + bestGeneric.matchLength());
+                    return TimeZone.getTimeZone(bestGeneric.tzID());
+                }
+            }
+
+            if (bestSpecific != null || bestGeneric != null) {
+                if (bestGeneric == null ||
+                        (bestSpecific != null && bestSpecific.matchLength() > bestGeneric.matchLength())) {
+                    // the best specific match
+                    timeType[0] = getTimeType(bestSpecific.nameType());
+                    pos.setIndex(startIdx + bestSpecific.matchLength());
+                    return TimeZone.getTimeZone(getTimeZoneID(bestSpecific.tzID(), bestSpecific.mzID()));
+                } else if (bestGeneric != null){
+                    // the best generic match
+                    timeType[0] = bestGeneric.timeType();
+                    pos.setIndex(startIdx + bestGeneric.matchLength());
+                    return TimeZone.getTimeZone(bestGeneric.tzID());
                 }
             }
         }
 
-        pos.setErrorIndex(pos.getIndex());
+        pos.setErrorIndex(startIdx);
         return null;
+    }
+
+    /**
+     * Private method returns a time zone ID. If tzID is not null, the value of tzID is returned.
+     * If tzID is null, then this method look up a time zone ID for the current region. This is a
+     * small helper method used by the parse implementation method
+     * 
+     * @param tzID
+     *            the time zone ID or null
+     * @param mzID
+     *            the meta zone ID or null
+     * @return A time zone ID
+     * @throws IllegalArgumentException
+     *             when both tzID and mzID are null
+     */
+    private String getTimeZoneID(String tzID, String mzID) {
+        String id = tzID;
+        if (id == null) {
+            assert (mzID != null);
+            id = _tznames.getReferenceZoneID(mzID, getTargetRegion());
+            if (id == null) {
+                throw new IllegalArgumentException("Invalid mzID: " + mzID);
+            }
+        }
+        return id;
     }
 
     /**
@@ -1295,7 +1345,7 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
     }
 
     /**
-     * Unquote message format style pattern
+     * Unquotes the message format style pattern
      * 
      * @param s the pattern
      * @return the unquoted pattern string
