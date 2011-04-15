@@ -272,7 +272,7 @@ public class TimeZoneGenericNames implements Serializable {
 
                         if (offsets[0] != offsets1[0] || offsets[1] != offsets1[1]) {
                             // Now we need to use a partial location format.
-                            name = getPartialLocationName(tzID, mzID, mzName);
+                            name = getPartialLocationName(tzID, mzID, (nameType == NameType.LONG_GENERIC), mzName);
                         }
                     } else {
                         name = mzName;
@@ -391,11 +391,13 @@ public class TimeZoneGenericNames implements Serializable {
      * 
      * @param tzID the time zone ID
      * @param mzID the meta zone ID
+     * @param isLong true when long generic name
      * @param mzDisplayName the meta zone generic display name
      * @return the partial location format string
      */
-    private String getPartialLocationName(String tzID, String mzID, String mzDisplayName) {
-        String key = tzID + "&" + mzID;
+    private String getPartialLocationName(String tzID, String mzID, boolean isLong, String mzDisplayName) {
+        String letter = isLong ? "L" : "S";
+        String key = tzID + "&" + mzID + "#" + letter;
         String name = _genericPartialLocationNamesMap.get(key);
         if (name != null) {
             return name;
@@ -588,7 +590,7 @@ public class TimeZoneGenericNames implements Serializable {
                                 for (NameType genNonLocType : genNonLocTypes) {
                                     String mzGenName = _tznames.getMetaZoneDisplayName(mzID, genNonLocType);
                                     if (mzGenName != null) {
-                                        String partialLocationName = getPartialLocationName(tzID, mzID, mzGenName);
+                                        String partialLocationName = getPartialLocationName(tzID, mzID, (genNonLocType == NameType.LONG_GENERIC), mzGenName);
                                         NameInfo info = new NameInfo();
                                         info.tzID = tzID;
                                         info.type = genNonLocType == NameType.LONG_GENERIC ?
