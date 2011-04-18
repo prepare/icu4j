@@ -26,6 +26,7 @@ import com.ibm.icu.text.TimeZoneNames;
 import com.ibm.icu.text.TimeZoneNames.MatchInfo;
 import com.ibm.icu.text.TimeZoneNames.NameType;
 import com.ibm.icu.util.BasicTimeZone;
+import com.ibm.icu.util.Freezable;
 import com.ibm.icu.util.TimeZone;
 import com.ibm.icu.util.TimeZone.SystemTimeZoneType;
 import com.ibm.icu.util.TimeZoneTransition;
@@ -37,10 +38,13 @@ import com.ibm.icu.util.ULocale;
  * It is not recommended to use this class directly, instead
  * use com.ibm.icu.text.TimeZoneFormat.
  */
-public class TimeZoneGenericNames implements Serializable {
+public class TimeZoneGenericNames implements Serializable, Freezable<TimeZoneGenericNames> {
 
     private static final long serialVersionUID = 2729910342063468417L;
 
+    /**
+     * Generic name type enum
+     */
     public enum GenericNameType {
         LOCATION ("LONG", "SHORT"),
         LONG (),
@@ -62,9 +66,40 @@ public class TimeZoneGenericNames implements Serializable {
         }
     }
 
+    /**
+     * Format pattern enum used for composing location and partial location names
+     */
+    public enum Pattern {
+        // The format pattern such as "{0} Time", where {0} is the country. 
+        REGION_FORMAT("regionFormat", "({0})"),
+
+        // The format pattern such as "{1} Time ({0})", where {1} is the country and {0} is a city.
+        FALLBACK_REGION_FORMAT("fallbackRegionFormat", "{1} ({0})"),
+
+        // The format pattern such as "{1} ({0})", where {1} is the metazone, and {0} is the country or city.
+        FALLBACK_FORMAT("fallbackFormat", "{1} ({0})");
+
+        String _key;
+        String _defaultVal;
+
+        Pattern(String key, String defaultVal) {
+            _key = key;
+            _defaultVal = defaultVal;
+        }
+
+        String key() {
+            return _key;
+        }
+
+        String defaultValue() {
+            return _defaultVal;
+        }
+    }
+
     private ULocale _locale;
     private TimeZoneNames _tznames;
 
+    private transient boolean _frozen;
     private transient String _region;
     private transient WeakReference<LocaleDisplayNames> _localeDisplayNamesRef;
     private transient MessageFormat[] _patternFormatters;
@@ -78,12 +113,22 @@ public class TimeZoneGenericNames implements Serializable {
     // Window size used for DST check for a zone in a metazone (about a half year)
     private static final long DST_CHECK_RANGE = 184L*(24*60*60*1000);
 
+    /**
+     * Constructs a <code>TimeZoneGenericNames</code> with the given locale
+     * and the <code>TimeZoneNames</code>.
+     * @param locale the locale
+     * @param tznames the TimeZoneNames
+     */
     public TimeZoneGenericNames(ULocale locale, TimeZoneNames tznames) {
         _locale = locale;
         _tznames = tznames;
         init();
     }
 
+    /**
+     * Private method initializing the instance of <code>TimeZoneGenericName</code>.
+     * This method should be called from a constructor and readObject.
+     */
     private void init() {
         if (_tznames == null) {
             _tznames = TimeZoneNames.getInstance(_locale);
@@ -92,15 +137,36 @@ public class TimeZoneGenericNames implements Serializable {
         _genericPartialLocationNamesMap = new ConcurrentHashMap<String, String>();
     }
 
+    /**
+     * Constructs a <code>TimeZoneGenericNames</code> with the given locale.
+     * This constructor is private and called from {@link #getInstance(ULocale)}.
+     * @param locale the locale
+     */
     private TimeZoneGenericNames(ULocale locale) {
         this(locale, null);
     }
 
+    /**
+     * The factory method of <code>TimeZoneGenericNames</code>. This static method
+     * returns a frozen instance of cached <code>TimeZoneGenericNames</code>.
+     * @param locale the locale
+     * @return A frozen <code>TimeZoneGenericNames</code>.
+     */
     public static TimeZoneGenericNames getInstance(ULocale locale) {
         String key = locale.getBaseName();
         return GENERIC_NAMES_CACHE.getInstance(key, locale);
     }
 
+    /**
+     * Returns the display name of the time zone for the given name type
+     * at the given date, or null if the display name is not available.
+     * 
+     * @param tz the time zone
+     * @param type the generic name type - see {@link GenericNameType}
+     * @param date the date
+     * @return the display name of the time zone for the given name type
+     * at the given date, or null.
+     */
     public String getDisplayName(TimeZone tz, GenericNameType type, long date) {
         String name = null;
         switch (type) {
@@ -157,6 +223,34 @@ public class TimeZoneGenericNames implements Serializable {
             }
         }
         return name;
+    }
+
+    /**
+     * Sets the pattern string for the pattern type.
+     * Note: This method is designed for CLDR ST - not for common use.
+     * @param patType the pattern type
+     * @param patStr the pattern string
+     * @return this object.
+     */
+    public TimeZoneGenericNames setFormatPattern(Pattern patType, String patStr) {
+        if (isFrozen()) {
+            throw new UnsupportedOperationException("Attempt to modify frozen object");
+        }
+
+        // Changing pattern will invalidates cached names
+        if (!_genericLocationNamesMap.isEmpty()) {
+            _genericLocationNamesMap = new ConcurrentHashMap<String, String>();
+        }
+        if (!_genericPartialLocationNamesMap.isEmpty()) {
+            _genericPartialLocationNamesMap = new ConcurrentHashMap<String, String>();
+        }
+        _gnamesTrie = null;
+
+        if (_patternFormatters == null) {
+            _patternFormatters = new MessageFormat[Pattern.values().length];
+        }
+        _patternFormatters[patType.ordinal()] = new MessageFormat(patStr);
+        return this;
     }
 
     /**
@@ -281,35 +375,6 @@ public class TimeZoneGenericNames implements Serializable {
         }
         return name;
     }
-    /**
-     * Private enum definitions for message pattern formats
-     */
-    private enum Pattern {
-        // The format pattern such as "{0} Time", where {0} is the country. 
-        REGION_FORMAT("regionFormat", "({0})"),
-
-        // The format pattern such as "{1} Time ({0})", where {1} is the country and {0} is a city.
-        FALLBACK_REGION_FORMAT("fallbackRegionFormat", "{1} ({0})"),
-
-        // The format pattern such as "{1} ({0})", where {1} is the metazone, and {0} is the country or city.
-        FALLBACK_FORMAT("fallbackFormat", "{1} ({0})");
-
-        String _key;
-        String _defaultVal;
-
-        Pattern(String key, String defaultVal) {
-            _key = key;
-            _defaultVal = defaultVal;
-        }
-
-        String key() {
-            return _key;
-        }
-
-        String defaultValue() {
-            return _defaultVal;
-        }
-    }
 
     /**
      * Private simple pattern formatter used for formatting generic location names
@@ -422,11 +487,18 @@ public class TimeZoneGenericNames implements Serializable {
         return name;
     }
 
+    /**
+     * A private class used for storing the name information in the local trie.
+     */
     private static class NameInfo {
         String tzID;
         GenericNameType type;
     }
 
+    /**
+     * A class used for returning the name search result used by
+     * {@link TimeZoneGenericNames#find(String, int, EnumSet)}.
+     */
     public static class GenericMatchInfo {
         GenericNameType nameType;
         String tzID;
@@ -450,6 +522,10 @@ public class TimeZoneGenericNames implements Serializable {
         }
     }
 
+    /**
+     * A private class implementing the search callback interface in
+     * <code>TextTrieMap</code> for collecting match results.
+     */
     private static class GenericNameSearchHandler implements ResultHandler<NameInfo> {
         private EnumSet<GenericNameType> _types;
         private Collection<GenericMatchInfo> _matches;
@@ -489,6 +565,14 @@ public class TimeZoneGenericNames implements Serializable {
         }
     }
 
+    /**
+     * Returns the best match of time zone display name for the specified types in the
+     * given text at the given offset.
+     * @param text the text
+     * @param start the start offset in the text
+     * @param genericTypes the set of name types.
+     * @return the best matching name info.
+     */
     public GenericMatchInfo findBestMatch(String text, int start, EnumSet<GenericNameType> genericTypes) {
         GenericMatchInfo bestMatch = null;
 
@@ -534,6 +618,14 @@ public class TimeZoneGenericNames implements Serializable {
         return bestMatch;
     }
 
+    /**
+     * Returns a collection of time zone display name matches for the specified types in the
+     * given text at the given offset.
+     * @param text the text
+     * @param start the start offset in the text
+     * @param genericTypes the set of name types.
+     * @return A collection of match info.
+     */
     public Collection<GenericMatchInfo> find(String text, int start, EnumSet<GenericNameType> genericTypes) {
         // Find matches in the local trie
         Collection<GenericMatchInfo> results = findLocal(text, start, genericTypes);
@@ -552,6 +644,11 @@ public class TimeZoneGenericNames implements Serializable {
         return results;
     }
 
+    /**
+     * Returns a <code>GenericMatchInfo</code> for the given <code>MatchInfo</code>.
+     * @param matchInfo the MatchInfo
+     * @return A GenericMatchInfo
+     */
     private GenericMatchInfo createGenericMatchInfo(MatchInfo matchInfo) {
         GenericNameType nameType = null;
         TimeType timeType = TimeType.UNKNOWN;
@@ -588,6 +685,15 @@ public class TimeZoneGenericNames implements Serializable {
         return gmatch;
     }
 
+    /**
+     * Returns a collection of time zone display name matches for the specified types in the
+     * given text at the given offset. This method only finds matches from the TimeZoneNames
+     * used by this object.
+     * @param text the text
+     * @param start the start offset in the text
+     * @param types the set of name types.
+     * @return A collection of match info.
+     */
     private Collection<MatchInfo> findTimeZoneNames(String text, int start, EnumSet<GenericNameType> types) {
         Collection<MatchInfo> tznamesMatches = null;
 
@@ -609,6 +715,16 @@ public class TimeZoneGenericNames implements Serializable {
         return tznamesMatches;
     }
 
+    /**
+     * Returns a collection of time zone display name matches for the specified types in the
+     * given text at the given offset. This method only finds matches from the local trie,
+     * that contains 1) generic location names and 2) long/short generic partial location names,
+     * used by this object.
+     * @param text the text
+     * @param start the start offset in the text
+     * @param types the set of name types.
+     * @return A collection of match info.
+     */
     private Collection<GenericMatchInfo> findLocal(String text, int start, EnumSet<GenericNameType> types) {
         if (_gnamesTrie == null) {
             synchronized (this) {
@@ -658,6 +774,9 @@ public class TimeZoneGenericNames implements Serializable {
         return handler.getMatches();
     }
 
+    /**
+     * <code>TimeZoneGenericNames</code> cache implementation.
+     */
     private static class Cache extends SoftCache<String, TimeZoneGenericNames, ULocale> {
 
         /* (non-Javadoc)
@@ -665,7 +784,7 @@ public class TimeZoneGenericNames implements Serializable {
          */
         @Override
         protected TimeZoneGenericNames createInstance(String key, ULocale data) {
-            return new TimeZoneGenericNames(data);
+            return new TimeZoneGenericNames(data).freeze();
         }
         
     }
@@ -677,5 +796,34 @@ public class TimeZoneGenericNames implements Serializable {
     private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
         in.defaultReadObject();
         init();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public boolean isFrozen() {
+        return _frozen;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public TimeZoneGenericNames freeze() {
+        _frozen = true;
+        return this;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public TimeZoneGenericNames cloneAsThawed() {
+        TimeZoneGenericNames copy = null;
+        try {
+            copy = (TimeZoneGenericNames)super.clone();
+            copy._frozen = false;
+        } catch (Throwable t) {
+            // This should never happen
+        }
+        return copy;
     }
 }
