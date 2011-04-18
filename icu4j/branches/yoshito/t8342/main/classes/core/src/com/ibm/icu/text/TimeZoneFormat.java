@@ -1167,23 +1167,13 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
                 genericNameTypes = EnumSet.of(GenericNameType.SHORT, GenericNameType.LOCATION);
                 break;
             }
-            Collection<GenericMatchInfo> genericMatches = _gnames.find(text, startIdx, genericNameTypes);
-            if (genericMatches != null) {
-                int matchLen = 0;
-                GenericMatchInfo bestGeneric = null;
-                for (GenericMatchInfo match : genericMatches) {
-                    if (bestGeneric == null || match.matchLength() > matchLen) {
-                        bestGeneric = match;
-                        matchLen = match.matchLength();
-                    }
+            GenericMatchInfo bestGeneric = _gnames.findBestMatch(text, startIdx, genericNameTypes);
+            if (bestGeneric != null) {
+                if (timeType != null) {
+                    timeType.value = bestGeneric.timeType();
                 }
-                if (bestGeneric != null) {
-                    if (timeType != null) {
-                        timeType.value = bestGeneric.timeType();
-                    }
-                    pos.setIndex(startIdx + bestGeneric.matchLength());
-                    return TimeZone.getTimeZone(bestGeneric.tzID());
-                }
+                pos.setIndex(startIdx + bestGeneric.matchLength());
+                return TimeZone.getTimeZone(bestGeneric.tzID());
             }
         }
 
@@ -1228,24 +1218,7 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
             }
 
             // Then generic names
-            Collection<GenericMatchInfo> genericMatches = _gnames.find(text, startIdx, ALL_GENERIC_NAME_TYPES);
-            GenericMatchInfo bestGeneric = null;
-            if (genericMatches != null) {
-                int matchLen = 0;
-                for (GenericMatchInfo match : genericMatches) {
-                    if (bestGeneric == null || match.matchLength() > matchLen) {
-                        bestGeneric = match;
-                        matchLen = match.matchLength();
-                    }
-                }
-                if (bestGeneric != null && bestGeneric.matchLength() == maxMatchLength) {
-                    if (timeType != null) {
-                        timeType.value = bestGeneric.timeType();
-                    }
-                    pos.setIndex(startIdx + bestGeneric.matchLength());
-                    return TimeZone.getTimeZone(bestGeneric.tzID());
-                }
-            }
+            GenericMatchInfo bestGeneric = _gnames.findBestMatch(text, startIdx, ALL_GENERIC_NAME_TYPES);
 
             if (bestSpecific != null || bestGeneric != null) {
                 if (bestGeneric == null ||

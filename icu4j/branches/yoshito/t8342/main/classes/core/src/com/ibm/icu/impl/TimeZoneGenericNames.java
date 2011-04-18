@@ -12,7 +12,6 @@ import java.io.Serializable;
 import java.lang.ref.WeakReference;
 import java.text.MessageFormat;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -490,36 +489,55 @@ public class TimeZoneGenericNames implements Serializable {
         }
     }
 
+    public GenericMatchInfo findBestMatch(String text, int start, EnumSet<GenericNameType> genericTypes) {
+        GenericMatchInfo bestMatch = null;
+
+        // Find matches in the TimeZoneNames first
+        Collection<MatchInfo> tznamesMatches = findTimeZoneNames(text, start, genericTypes);
+        if (tznamesMatches != null) {
+            MatchInfo longestMatch = null;
+            for (MatchInfo match : tznamesMatches) {
+                if (longestMatch == null || match.matchLength() > longestMatch.matchLength()) {
+                    longestMatch = match;
+                    break;
+                }
+            }
+            if (longestMatch != null) {
+                bestMatch = createGenericMatchInfo(longestMatch);
+                if (bestMatch.matchLength() == (text.length() - start)) {
+                    // Full match
+                    return bestMatch;
+                }
+            }
+        }
+
+        // Find matches in the local trie
+        Collection<GenericMatchInfo> localMatches = findLocal(text, start, genericTypes);
+        if (localMatches != null) {
+            for (GenericMatchInfo match : localMatches) {
+                if (bestMatch == null || match.matchLength() > bestMatch.matchLength()) {
+                    bestMatch = match;
+                }
+            }
+        }
+
+        return bestMatch;
+    }
+
     public Collection<GenericMatchInfo> find(String text, int start, EnumSet<GenericNameType> genericTypes) {
         // Find matches in the local trie
         Collection<GenericMatchInfo> results = findLocal(text, start, genericTypes);
 
-        // Collect name types maintained by TimeZoneNames
-        EnumSet<NameType> nameTypes = EnumSet.noneOf(NameType.class);
-        if (genericTypes.contains(GenericNameType.LONG)) {
-            nameTypes.add(NameType.LONG_GENERIC);
-            nameTypes.add(NameType.LONG_STANDARD);
-        }
-        if (genericTypes.contains(GenericNameType.SHORT)) {
-            nameTypes.add(NameType.SHORT_GENERIC);
-            nameTypes.add(NameType.SHORT_STANDARD_COMMONLY_USED);
-        }
-
-        if (!nameTypes.isEmpty()) {
-            // Also find matches in the TimeZoneNames
-            Collection<MatchInfo> tznamesMatches = _tznames.find(text, start, nameTypes);
-            if (tznamesMatches != null) {
-                // transform matches and append them to local matches
-                for (MatchInfo match : tznamesMatches) {
-                    if (results == null) {
-                        results = new LinkedList<GenericMatchInfo>();
-                    }
-                    results.add(createGenericMatchInfo(match));
+        // Also find matches in the TimeZoneNames
+        Collection<MatchInfo> tznamesMatches = findTimeZoneNames(text, start, genericTypes);
+        if (tznamesMatches != null) {
+            // transform matches and append them to local matches
+            for (MatchInfo match : tznamesMatches) {
+                if (results == null) {
+                    results = new LinkedList<GenericMatchInfo>();
                 }
+                results.add(createGenericMatchInfo(match));
             }
-        }
-        if (results == null) {
-            results = Collections.emptyList();
         }
         return results;
     }
@@ -558,6 +576,27 @@ public class TimeZoneGenericNames implements Serializable {
         gmatch.timeType = timeType;
 
         return gmatch;
+    }
+
+    private Collection<MatchInfo> findTimeZoneNames(String text, int start, EnumSet<GenericNameType> types) {
+        Collection<MatchInfo> tznamesMatches = null;
+
+        // Check if the target name type is really in the TimeZoneNames
+        EnumSet<NameType> nameTypes = EnumSet.noneOf(NameType.class);
+        if (types.contains(GenericNameType.LONG)) {
+            nameTypes.add(NameType.LONG_GENERIC);
+            nameTypes.add(NameType.LONG_STANDARD);
+        }
+        if (types.contains(GenericNameType.SHORT)) {
+            nameTypes.add(NameType.SHORT_GENERIC);
+            nameTypes.add(NameType.SHORT_STANDARD_COMMONLY_USED);
+        }
+        
+        if (!nameTypes.isEmpty()) {
+            // Find matches in the TimeZoneNames
+            tznamesMatches = _tznames.find(text, start, nameTypes);
+        }
+        return tznamesMatches;
     }
 
     private Collection<GenericMatchInfo> findLocal(String text, int start, EnumSet<GenericNameType> types) {
