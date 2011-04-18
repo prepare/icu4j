@@ -499,14 +499,21 @@ public class TimeZoneGenericNames implements Serializable {
             for (MatchInfo match : tznamesMatches) {
                 if (longestMatch == null || match.matchLength() > longestMatch.matchLength()) {
                     longestMatch = match;
-                    break;
                 }
             }
             if (longestMatch != null) {
                 bestMatch = createGenericMatchInfo(longestMatch);
                 if (bestMatch.matchLength() == (text.length() - start)) {
                     // Full match
-                    return bestMatch;
+                    //return bestMatch;
+
+                    // TODO Some time zone uses a same name for the long standard name
+                    // and the location name. When the match is a long standard name,
+                    // then we need to check if the name is same with the location name.
+                    // This is probably a data error or a design bug.
+                    if (bestMatch.nameType != GenericNameType.LONG || bestMatch.timeType != TimeType.STANDARD) {
+                        return bestMatch;
+                    }
                 }
             }
         }
@@ -515,7 +522,10 @@ public class TimeZoneGenericNames implements Serializable {
         Collection<GenericMatchInfo> localMatches = findLocal(text, start, genericTypes);
         if (localMatches != null) {
             for (GenericMatchInfo match : localMatches) {
-                if (bestMatch == null || match.matchLength() > bestMatch.matchLength()) {
+                // TODO See the above TODO. We use match.matchLength() >= bestMatch.matcheLength()
+                // for the reason described above.
+                //if (bestMatch == null || match.matchLength() > bestMatch.matchLength()) {
+                if (bestMatch == null || match.matchLength() >= bestMatch.matchLength()) {
                     bestMatch = match;
                 }
             }
