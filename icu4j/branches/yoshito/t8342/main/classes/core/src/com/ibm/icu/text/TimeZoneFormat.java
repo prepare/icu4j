@@ -238,6 +238,7 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
     private static final String DEFAULT_GMT_PATTERN = "GMT{0}";
     private static final String DEFAULT_GMT_ZERO = "GMT";
     private static final String[] DEFAULT_GMT_DIGITS = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9"};
+    private static final char DEFAULT_GMT_OFFSET_SEP = ':';
     private static final String RFC822_DIGITS = "0123456789";
 
     // Order of GMT offset pattern parsing, *_HMS must be evaluated first
@@ -1599,7 +1600,7 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
         int start = pos.getIndex();
         int idx = start;
         boolean parsed = false;
-        int[] offset = new int[1];
+        int offset = 0;
 
         if (isGMTZero != null && isGMTZero.length > 0) {
             isGMTZero[0] = false;
@@ -1615,7 +1616,13 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
             idx += len;
 
             // Offset part
-            int offsetLen = parseGMTOffset(text, idx, false, offset);
+            int[] tmpOffset = new int[1];
+            int offsetLen = parseGMTOffset(text, idx, false, tmpOffset);
+            if (offsetLen == 0) {
+                // offset field match failed
+                break;
+            }
+            offset = tmpOffset[0];
             idx += offsetLen;
 
             // Suffix part
@@ -1631,17 +1638,38 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
 
         if (parsed) {
             pos.setIndex(idx);
-            return offset[0];
-        } else {
-            // Check if this is a localized GMT zero format
-            if (text.regionMatches(true, start, _gmtZeroFormat, 0, _gmtZeroFormat.length())) {
-                pos.setIndex(start + _gmtZeroFormat.length());
+            return offset;
+        }
+
+        // Try the default patterns
+        int[] parsedLength = {0};
+        offset = parseDefaultGMT(text, start, parsedLength);
+        if (parsedLength[0] > 0) {
+            pos.setIndex(start + parsedLength[0]);
+            return offset;
+        }
+
+        // Check if this is a GMT zero format
+        if (text.regionMatches(true, start, _gmtZeroFormat, 0, _gmtZeroFormat.length())) {
+            pos.setIndex(start + _gmtZeroFormat.length());
+            if (isGMTZero != null && isGMTZero.length > 0) {
+                isGMTZero[0] = true;
+            }
+            return 0;
+        }
+
+        // Check if this is a default GMT zero format
+        for (String defGMTZero : ALT_GMT_STRINGS) {
+            if (text.regionMatches(true, start, defGMTZero, 0, defGMTZero.length())) {
+                pos.setIndex(start + defGMTZero.length());
                 if (isGMTZero != null && isGMTZero.length > 0) {
                     isGMTZero[0] = true;
                 }
                 return 0;
             }
         }
+
+        // Nothing matched
         pos.setErrorIndex(start);
         return 0;
     }
@@ -1728,59 +1756,175 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
         return parsedLen;
     }
 
-    private void parseDefaultGMT(String text, ParsePosition pos) {
-//
-//        int idx = start;
-//        int len;
-//
-//        // check global default GMT alternatives
-//        int gmtLen = 0;
-//        for (String gmt : ALT_GMT_STRINGS) {
-//            len = gmt.length();
-//            if (text.regionMatches(true, idx, gmt, 0, len)) {
-//                gmtLen = len;
-//                break;
-//            }
-//        }
-//        if (gmtLen == 0) {
-//            return;
-//        }
-//        idx += gmtLen;
-//
-//        // at least, parsed up to GMT string
-//        result._length = idx - start;
-//        result._offset = 0;
-//        result._type = TimeType.UNKNOWN;
-//
-//        // offset needs a sign char and a digit at minimum  
-//        if (idx + 1 >= text.length()) {
-//            return;
-//        }
-//
-//        // parse sign
-//        int sign = 1;
-//        char c = text.charAt(idx);
-//        if (c == '+') {
-//            sign = 1;
-//        } else if (c == '-') {
-//            sign = -1;
-//        } else {
-//            // no sign part
-//            return;
-//        }
-//        idx++;
-//
-//        // offset
-//        int[] parsedLen = new int[1];
-//        int num = parseOffsetDigits(text, idx, 1, 6, 0, 
-//                235959 /* MAX_OFFSET_HOUR*10000 + MAX_OFFSET_MINUTE*100 + MAX_OFFSET_SECOND */, parsedLen);
-//        if (parsedLen[0] == 0) {
-//            return;
-//        }
-//
-//        // TODO
-//        int offsetH = 0, offsetM = 0, offsetS = 0;
+    private int parseDefaultGMT(String text, int start, int[] parsedLength) {
+        int idx = start;;
+        int offset = 0;
+        int parsed = 0;
+        do {
+            // check global default GMT alternatives
+            int gmtLen = 0;
+            for (String gmt : ALT_GMT_STRINGS) {
+                int len = gmt.length();
+                if (text.regionMatches(true, idx, gmt, 0, len)) {
+                    gmtLen = len;
+                    break;
+                }
+            }
+            if (gmtLen == 0) {
+                break;
+            }
+            idx += gmtLen;
 
+            // offset needs a sign char and a digit at minimum
+            if (idx + 1 >= text.length()) {
+                break;
+            }
+
+            // parse sign
+            int sign = 1;
+            char c = text.charAt(idx);
+            if (c == '+') {
+                sign = 1;
+            } else if (c == '-') {
+                sign = -1;
+            } else {
+                break;
+            }
+            idx++;
+
+            // offset part
+            // try the default pattern with the separator first
+            int[] lenWithSep = {0};
+            int offsetWithSep = parseDefaultOffsetFields(text, idx, DEFAULT_GMT_OFFSET_SEP, lenWithSep);
+            if (lenWithSep[0] == text.length() - idx) {
+                // maximum match
+                offset = offsetWithSep * sign;
+                idx += lenWithSep[0];
+            } else {
+                // try abutting field pattern
+                int[] lenAbut = {0};
+                int offsetAbut = parseAbuttingOffsetFields(text, idx, lenAbut);
+
+                if (lenWithSep[0] > lenAbut[0]) {
+                    offset = offsetWithSep * sign;
+                    idx += lenWithSep[0];
+                } else {
+                    offset = offsetAbut * sign;
+                    idx += lenAbut[0];
+                }
+            }
+            parsed = idx - start;
+        } while (false);
+
+        parsedLength[0] = parsed;
+        return offset;
+    }
+
+    private int parseDefaultOffsetFields(String text, int start, char separator, int[] parsedLength) {
+        int max = text.length();
+        int idx = start;
+        int[] len = {0};
+        int hour = 0, min = 0, sec = 0;
+
+        do {
+            hour = parseOffsetDigits(text, idx, 1, 2, 0, MAX_OFFSET_HOUR, len);
+            if (len[0] == 0) {
+                break;
+            }
+            idx += len[0];
+
+            if (idx + 1 < max && text.charAt(idx) == separator) {
+                min = parseOffsetDigits(text, idx + 1, 2, 2, 0, MAX_OFFSET_MINUTE, len);
+                if (len[0] == 0) {
+                    break;
+                }
+                idx += (1 + len[0]);
+
+                if (idx + 1 < max && text.charAt(idx) == separator) {
+                    sec = parseOffsetDigits(text, idx + 1, 2, 2, 0, MAX_OFFSET_SECOND, len);
+                    if (len[0] == 0) {
+                        break;
+                    }
+                    idx += (1 + len[0]);
+                }
+            }
+        } while (false);
+
+        if (idx == start) {
+            parsedLength[0] = 0;
+            return 0;
+        }
+
+        parsedLength[0] = idx - start;
+        return hour * MILLIS_PER_HOUR + min * MILLIS_PER_MINUTE + sec * MILLIS_PER_SECOND;
+    }
+
+    private int parseAbuttingOffsetFields(String text, int start, int[] parsedLength) {
+        final int MAXDIGITS = 6;
+        int[] digits = new int[MAXDIGITS];
+        int[] parsed = new int[MAXDIGITS];  // accumulative offsets
+
+        // Parse digits into int[]
+        int idx = start;
+        int[] len = {0};
+        int numDigits = 0;
+        for (int i = 0; i < MAXDIGITS; i++) {
+            digits[i] = parseSingleDigit(text, idx, len);
+            if (digits[i] < 0) {
+                break;
+            }
+            idx += len[0];
+            parsed[i] = idx - start;
+            numDigits++;
+        }
+
+        if (numDigits == 0) {
+            parsedLength[0] = 0;
+            return 0;
+        }
+
+        int offset = 0;
+        while (numDigits > 0) {
+            int hour = 0;
+            int min = 0;
+            int sec = 0;
+
+            assert(numDigits > 0 && numDigits <= 6);
+            switch (numDigits) {
+            case 1: // H
+                hour = digits[0];
+                break;
+            case 2: // HH
+                hour = digits[0] * 10 + digits[1];
+                break;
+            case 3: // Hmm
+                hour = digits[0];
+                min = digits[1] * 10 + digits[2];
+                break;
+            case 4: // HHmm
+                hour = digits[0] * 10 + digits[1];
+                min = digits[2] * 10 + digits[3];
+                break;
+            case 5: // Hmmss
+                hour = digits[0];
+                min = digits[1] * 10 + digits[2];
+                sec = digits[3] * 10 + digits[4];
+                break;
+            case 6: // HHmmss
+                hour = digits[0] * 10 + digits[1];
+                min = digits[2] * 10 + digits[3];
+                sec = digits[4] * 10 + digits[5];
+                break;
+            }
+            if (hour <= MAX_OFFSET_HOUR && min <= MAX_OFFSET_MINUTE && sec <= MAX_OFFSET_SECOND) {
+                // found a valid combination
+                offset = hour * MILLIS_PER_HOUR + min * MILLIS_PER_MINUTE + sec * MILLIS_PER_SECOND;
+                parsedLength[0] = parsed[numDigits - 1];
+                break;
+            }
+            numDigits--;
+        }
+        return offset;
     }
 
     /**
@@ -1789,7 +1933,7 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
      * 2) just before already parsed number exceeds <code>maxVal</code>
      * 
      * @param text the text
-     * @param offset the start offset
+     * @param start the start offset
      * @param minDigits the minimum number of required digits
      * @param maxDigits the maximum number of digits
      * @param minVal the minimum value
@@ -1797,17 +1941,46 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
      * @param parsedLength the actual parsed length is set to parsedLength[0], must not be null.
      * @return the integer value parsed
      */
-    private int parseOffsetDigits(String text, int offset, int minDigits, int maxDigits,
+    private int parseOffsetDigits(String text, int start, int minDigits, int maxDigits,
             int minVal, int maxVal, int[] parsedLength) {
 
         parsedLength[0] = 0;
 
         int decVal = 0;
         int numDigits = 0;
-        int idx = offset;
+        int idx = start;
+        int[] digitLen = {0};
         while (idx < text.length() && numDigits < maxDigits) {
-            int digit = -1;
-            int cp = Character.codePointAt(text, idx);
+            int digit = parseSingleDigit(text, idx, digitLen);
+            if (digit < 0) {
+                break;
+            }
+            int tmpVal = decVal * 10 + digit;
+            if (tmpVal > maxVal) {
+                break;
+            }
+            decVal = tmpVal;
+            numDigits++;
+            idx += digitLen[0];
+        }
+
+        // Note: maxVal is checked in the while loop
+        if (numDigits < minDigits || decVal < minVal) {
+            decVal = -1;
+            numDigits = 0;
+        } else {
+            parsedLength[0] = idx - start;
+        }
+
+
+        return decVal;
+    }
+
+    private int parseSingleDigit(String text, int offset, int[] len) {
+        int digit = -1;
+        len[0] = 0;
+        if (offset < text.length()) {
+            int cp = Character.codePointAt(text, offset);
 
             // First, try digits configured for this instance
             for (int i = 0; i < _gmtOffsetDigits.length; i++) {
@@ -1819,29 +1992,13 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
             // If failed, check if this is a Unicode digit
             if (digit < 0) {
                 digit = UCharacter.digit(cp);
-                if (digit < 0) {
-                    break;
-                }
             }
-            int tmpVal = decVal * 10 + digit;
-            if (tmpVal > maxVal) {
-                break;
+
+            if (digit >= 0) {
+                len[0] = Character.charCount(cp);
             }
-            decVal = tmpVal;
-            numDigits++;
-            idx += Character.charCount(cp);
         }
-
-        // Note: maxVal is checked in the while loop
-        if (numDigits < minDigits || decVal < minVal) {
-            decVal = -1;
-            numDigits = 0;
-        } else {
-            parsedLength[0] = idx - offset;
-        }
-
-
-        return decVal;
+        return digit;
     }
 
     /**
