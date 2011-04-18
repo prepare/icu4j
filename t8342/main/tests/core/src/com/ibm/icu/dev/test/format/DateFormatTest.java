@@ -2882,7 +2882,7 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             "HH:mm:ss zzzz",    "10:20:30 UTC",         "10:20:30 +0000",   // standalone "UTC"
             "ZZZZ HH:mm:ss",    "UT 10:20:30",          "10:20:30 +0000",
             "V HH:mm:ss",       "UT+0130 10:20:30",     "10:20:30 +0130",
-            "V HH:mm:ss",       "UTC+0130 10:20:30",    null,               // UTC+0130 is not a supported pattern
+            "V HH:mm:ss",       "UTC+0130 10:20:30",    "10:20:30 +0130",
             "HH mm Z ss",       "10 20 GMT-1100 30",    "10:20:30 -1100",
         };
         expectParse(DATA, new Locale("en", "", ""));
