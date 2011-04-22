@@ -1819,4 +1819,17 @@ public class TestMessageFormat extends com.ibm.icu.dev.test.TestFmwk {
                 "12'3'4''.{0,number,#x}",
                 choice.format(0));
     }
+
+    public void TestTrimArgumentName() {
+        // ICU 4.8 allows and ignores white space around argument names and numbers.
+        MessageFormat m = new MessageFormat("a { 0 , number , '#,#'#.0 } z", Locale.ENGLISH);
+        assertEquals("trim-numbered-arg format() failed", "a  #,#2.0  z", m.format(new Object[] { 2 }));
+
+        m.applyPattern("x { _oOo_ , number , integer } y");
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put("_oOo_", new Integer(3));
+        StringBuffer result = new StringBuffer();
+        assertEquals("trim-named-arg format() failed", "x 3 y",
+                     m.format(map, result, new FieldPosition(0)).toString());
+    }
 }
