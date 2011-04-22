@@ -1562,6 +1562,21 @@ public class MessageFormat extends UFormat {
     // *Important*: All fields must be declared *transient*.
     // See the longer comment above ulocale.
 
+    /**
+     * Formats the arguments and writes the result into the
+     * AppendableWrapper, updates the field position.
+     *
+     * <p>Exactly one of args and argsMap must be null, the other non-null.
+     *
+     * @param msgStart      Index to msgPattern part to start formatting from.
+     * @param pluralNumber  Zero except when formatting a plural argument sub-message
+     *                      where a '#' is replaced by the format string for this number.
+     * @param args          The formattable objects array. Non-null iff numbered values are used.
+     * @param argsMap       The key-value map of formattable objects. Non-null iff named values are used.
+     * @param dest          Output parameter to receive the result.
+     *                      The result (string & attributes) is appended to existing contents.
+     * @param fp            Field position status.
+     */
     private void format(int msgStart, double pluralNumber,
                         Object[] args, Map<String, Object> argsMap,
                         AppendableWrapper dest, FieldPosition fp) {
@@ -2215,7 +2230,11 @@ public class MessageFormat extends UFormat {
             cachedFormatters.clear();
         }
         customFormatArgStarts = null;
-        int limit = msgPattern.countParts() - 1;
+        // The last two "parts" can at most be ARG_LIMIT and MSG_LIMIT
+        // which we need not examine.
+        int limit = msgPattern.countParts() - 2;
+        // This loop starts at part index 1 because we do need to examine
+        // ARG_START parts. (But we can ignore the MSG_START.)
         for(int i=1; i < limit; ++i) {
             Part part = msgPattern.getPart(i);
             if(part.getType()!=Part.Type.ARG_START) {

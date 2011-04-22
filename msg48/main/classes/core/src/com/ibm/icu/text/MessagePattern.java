@@ -60,7 +60,8 @@ import com.ibm.icu.util.Freezable;
  *   <li>Literal output text is not represented directly by "parts" but accessed
  *       between parts of a message, from one part's getLimit() to the next part's getIndex().
  *   <li><code>ARG_START.CHOICE</code> stands for an ARG_START Part with ArgType CHOICE.
- *   <li>In the choiceStyle, the ARG_SELECTOR has the '#' or the less-than sign (U+2264).
+ *   <li>In the choiceStyle, the ARG_SELECTOR has the '<', the '#' or
+ *       the less-than-or-equal-to sign (U+2264).
  *   <li>In the pluralStyle, the first, optional numeric Part has the "offset:" value.
  *       The optional numeric Part between each (ARG_SELECTOR, message) pair
  *       is the value of an explicit-number selector like "=2",
