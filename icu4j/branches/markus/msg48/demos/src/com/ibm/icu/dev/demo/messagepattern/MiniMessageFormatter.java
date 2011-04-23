@@ -7,7 +7,7 @@
 *   created by: Markus W. Scherer
 */
 
-package com.ibm.icu.dev.test.format;
+package com.ibm.icu.dev.demo.messagepattern;
 
 import java.io.IOException;
 import java.util.HashMap;
