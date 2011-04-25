@@ -300,7 +300,6 @@ public class PluralFormat extends UFormat {
                                       : rules;
         resetPattern();
         numberFormat = NumberFormat.getInstance(ulocale);
-        offset = 0;
     }
 
     private void resetPattern() {
@@ -308,6 +307,7 @@ public class PluralFormat extends UFormat {
         if(msgPattern != null) {
             msgPattern.clear();
         }
+        offset = 0;
     }
 
     /**
