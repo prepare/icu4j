@@ -253,6 +253,7 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
         if (znames == null) {
             znames = ZNames.getInstance(_zoneStrings, MZ_PREFIX + mzID);
             // put names into the trie
+            mzID = mzID.intern();
             for (NameType t : NameType.values()) {
                 String name = znames.getName(t);
                 if (name != null) {
@@ -278,6 +279,7 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
         if (tznames == null) {
             tznames = TZNames.getInstance(_zoneStrings, tzID.replace('/', ':'));
             // put names into the trie
+            tzID = tzID.intern();
             for (NameType t : NameType.values()) {
                 String name = tznames.getName(t);
                 if (name != null) {
@@ -674,8 +676,8 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
                 map = new HashMap<String, String>(regions.size());
 
                 for (String region : regions) {
-                    String tzID = regionMap.getString(region);
-                    map.put(region, tzID);
+                    String tzID = regionMap.getString(region).intern();
+                    map.put(region.intern(), tzID);
                 }
             } catch (MissingResourceException e) {
                 // fall through
