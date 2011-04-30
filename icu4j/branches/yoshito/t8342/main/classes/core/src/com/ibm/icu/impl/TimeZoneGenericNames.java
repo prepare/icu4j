@@ -215,9 +215,9 @@ public class TimeZoneGenericNames implements Serializable, Freezable<TimeZoneGen
         }
 
         if (name == null) {
-            _genericLocationNamesMap.putIfAbsent(canonicalTzID, "");
+            _genericLocationNamesMap.putIfAbsent(canonicalTzID.intern(), "");
         } else {
-            String tmp = _genericLocationNamesMap.putIfAbsent(canonicalTzID, name);
+            String tmp = _genericLocationNamesMap.putIfAbsent(canonicalTzID.intern(), name.intern());
             if (tmp != null) {
                 name = tmp;
             }
@@ -353,7 +353,7 @@ public class TimeZoneGenericNames implements Serializable, Freezable<TimeZoneGen
                     // This check is done by comparing offset with the meta zone's
                     // golden zone at the given date.
                     String goldenID = _tznames.getReferenceZoneID(mzID, getTargetRegion());
-                    if (goldenID != null && !goldenID.equals(tz.getCanonicalID())) {
+                    if (goldenID != null && !goldenID.equals(tzID)) {
                         TimeZone goldenZone = TimeZone.getTimeZone(goldenID);
                         int[] offsets1 = {0, 0};
 
@@ -366,6 +366,8 @@ public class TimeZoneGenericNames implements Serializable, Freezable<TimeZoneGen
                         if (offsets[0] != offsets1[0] || offsets[1] != offsets1[1]) {
                             // Now we need to use a partial location format.
                             name = getPartialLocationName(tzID, mzID, (nameType == NameType.LONG_GENERIC), mzName);
+                        } else {
+                            name = mzName;
                         }
                     } else {
                         name = mzName;
@@ -480,7 +482,7 @@ public class TimeZoneGenericNames implements Serializable, Freezable<TimeZoneGen
             }
         }
         name = formatPattern(Pattern.FALLBACK_FORMAT, location, mzDisplayName);
-        String tmp = _genericPartialLocationNamesMap.putIfAbsent(key, name);
+        String tmp = _genericPartialLocationNamesMap.putIfAbsent(key.intern(), name.intern());
         if (tmp != null) {
             name = tmp;
         }
