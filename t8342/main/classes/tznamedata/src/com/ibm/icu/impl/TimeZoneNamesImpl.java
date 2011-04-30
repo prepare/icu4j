@@ -194,7 +194,7 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
         _namesTrieFullyLoaded = true;
 
         // now, try it again
-        handler.reset();
+        handler.resetResults();
         _namesTrie.find(text, start, handler);
         return handler.getMatches();
     }
@@ -364,7 +364,7 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
         /**
          * Resets the match results
          */
-        public void reset() {
+        public void resetResults() {
             _matches = null;
             _maxMatchLen = 0;
         }
