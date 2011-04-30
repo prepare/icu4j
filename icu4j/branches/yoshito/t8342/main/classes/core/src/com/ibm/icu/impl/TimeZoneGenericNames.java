@@ -106,7 +106,8 @@ public class TimeZoneGenericNames implements Serializable, Freezable<TimeZoneGen
 
     private transient ConcurrentHashMap<String, String> _genericLocationNamesMap;
     private transient ConcurrentHashMap<String, String> _genericPartialLocationNamesMap;
-    private transient volatile TextTrieMap<NameInfo> _gnamesTrie;
+    private transient TextTrieMap<NameInfo> _gnamesTrie;
+    private transient boolean _gnamesTrieFullyLoaded;
 
     private static Cache GENERIC_NAMES_CACHE = new Cache();
 
@@ -135,6 +136,9 @@ public class TimeZoneGenericNames implements Serializable, Freezable<TimeZoneGen
         }
         _genericLocationNamesMap = new ConcurrentHashMap<String, String>();
         _genericPartialLocationNamesMap = new ConcurrentHashMap<String, String>();
+
+        _gnamesTrie = new TextTrieMap<NameInfo>(true);
+        _gnamesTrieFullyLoaded = false;
     }
 
     /**
@@ -217,9 +221,18 @@ public class TimeZoneGenericNames implements Serializable, Freezable<TimeZoneGen
         if (name == null) {
             _genericLocationNamesMap.putIfAbsent(canonicalTzID.intern(), "");
         } else {
-            String tmp = _genericLocationNamesMap.putIfAbsent(canonicalTzID.intern(), name.intern());
-            if (tmp != null) {
-                name = tmp;
+            synchronized (this) {   // we have to sync the name map and the trie
+                canonicalTzID = canonicalTzID.intern();
+                String tmp = _genericLocationNamesMap.putIfAbsent(canonicalTzID, name.intern());
+                if (tmp == null) {
+                    // Also put the name info the to trie
+                    NameInfo info = new NameInfo();
+                    info.tzID = canonicalTzID;
+                    info.type = GenericNameType.LOCATION;
+                    _gnamesTrie.put(name, info);
+                } else {
+                    name = tmp;
+                }
             }
         }
         return name;
@@ -245,6 +258,7 @@ public class TimeZoneGenericNames implements Serializable, Freezable<TimeZoneGen
             _genericPartialLocationNamesMap = new ConcurrentHashMap<String, String>();
         }
         _gnamesTrie = null;
+        _gnamesTrieFullyLoaded = false;
 
         if (_patternFormatters == null) {
             _patternFormatters = new MessageFormat[Pattern.values().length];
@@ -455,7 +469,7 @@ public class TimeZoneGenericNames implements Serializable, Freezable<TimeZoneGen
      * is used when a generic name of a meta zone is available, but the given
      * time zone is not a reference zone (golden zone) of the meta zone.
      * 
-     * @param tzID the time zone ID
+     * @param tzID the canonical time zone ID
      * @param mzID the meta zone ID
      * @param isLong true when long generic name
      * @param mzDisplayName the meta zone generic display name
@@ -482,9 +496,16 @@ public class TimeZoneGenericNames implements Serializable, Freezable<TimeZoneGen
             }
         }
         name = formatPattern(Pattern.FALLBACK_FORMAT, location, mzDisplayName);
-        String tmp = _genericPartialLocationNamesMap.putIfAbsent(key.intern(), name.intern());
-        if (tmp != null) {
-            name = tmp;
+        synchronized (this) {   // we have to sync the name map and the trie
+            String tmp = _genericPartialLocationNamesMap.putIfAbsent(key.intern(), name.intern());
+            if (tmp == null) {
+                NameInfo info = new NameInfo();
+                info.tzID = tzID.intern();
+                info.type = isLong ? GenericNameType.LONG : GenericNameType.SHORT;
+                _gnamesTrie.put(name, info);
+            } else {
+                name = tmp;
+            }
         }
         return name;
     }
@@ -531,6 +552,7 @@ public class TimeZoneGenericNames implements Serializable, Freezable<TimeZoneGen
     private static class GenericNameSearchHandler implements ResultHandler<NameInfo> {
         private EnumSet<GenericNameType> _types;
         private Collection<GenericMatchInfo> _matches;
+        private int _maxMatchLen;
 
         GenericNameSearchHandler(EnumSet<GenericNameType> types) {
             _types = types;
@@ -554,6 +576,9 @@ public class TimeZoneGenericNames implements Serializable, Freezable<TimeZoneGen
                     _matches = new LinkedList<GenericMatchInfo>();
                 }
                 _matches.add(matchInfo);
+                if (matchLength > _maxMatchLen) {
+                    _maxMatchLen = matchLength;
+                }
             }
             return true;
         }
@@ -564,6 +589,22 @@ public class TimeZoneGenericNames implements Serializable, Freezable<TimeZoneGen
          */
         public Collection<GenericMatchInfo> getMatches() {
             return _matches;
+        }
+
+        /**
+         * Returns the maximum match length, or 0 if no match was found
+         * @return the maximum match length
+         */
+        public int getMaxMatchLen() {
+            return _maxMatchLen;
+        }
+
+        /**
+         * Resets the match results
+         */
+        public void resetResults() {
+            _matches = null;
+            _maxMatchLen = 0;
         }
     }
 
@@ -727,51 +768,46 @@ public class TimeZoneGenericNames implements Serializable, Freezable<TimeZoneGen
      * @param types the set of name types.
      * @return A collection of match info.
      */
-    private Collection<GenericMatchInfo> findLocal(String text, int start, EnumSet<GenericNameType> types) {
-        if (_gnamesTrie == null) {
-            synchronized (this) {
-                if (_gnamesTrie == null) {
-                    // Create the names trie. This could be very heavy process.
-                    _gnamesTrie = new TextTrieMap<NameInfo>(true);
-                    final NameType[] genNonLocTypes = {NameType.LONG_GENERIC, NameType.SHORT_GENERIC};
+    private synchronized Collection<GenericMatchInfo> findLocal(String text, int start, EnumSet<GenericNameType> types) {
+        GenericNameSearchHandler handler = new GenericNameSearchHandler(types);
+        _gnamesTrie.find(text, start, handler);
+        if (handler.getMaxMatchLen() == (text.length() - start) || _gnamesTrieFullyLoaded) {
+            // perfect match
+            return handler.getMatches();
+        }
 
-                    Set<String> tzIDs = TimeZone.getAvailableIDs(SystemTimeZoneType.CANONICAL, null, null);
-                    for (String tzID : tzIDs) {
-                        // Generic location name
-                        String genericLocation = getGenericLocationName(tzID);
-                        if (genericLocation != null) {
-                            NameInfo info = new NameInfo();
-                            info.tzID = tzID;
-                            info.type = GenericNameType.LOCATION;
-                            _gnamesTrie.put(genericLocation, info);
-                        }
+        // All names are not yet loaded into the local trie.
+        // Load all available names into the trie. This could be very heavy.
 
-                        // Generic partial location format
-                        Set<String> mzIDs = _tznames.getAvailableMetaZoneIDs(tzID);
-                        for (String mzID : mzIDs) {
-                            // if this time zone is not the golden zone of the meta zone,
-                            // partial location name (such as "PT (Los Angeles)") might be
-                            // available.
-                            String goldenID = _tznames.getReferenceZoneID(mzID, getTargetRegion());
-                            if (!tzID.equals(goldenID)) {
-                                for (NameType genNonLocType : genNonLocTypes) {
-                                    String mzGenName = _tznames.getMetaZoneDisplayName(mzID, genNonLocType);
-                                    if (mzGenName != null) {
-                                        String partialLocationName = getPartialLocationName(tzID, mzID, (genNonLocType == NameType.LONG_GENERIC), mzGenName);
-                                        NameInfo info = new NameInfo();
-                                        info.tzID = tzID;
-                                        info.type = genNonLocType == NameType.LONG_GENERIC ?
-                                                GenericNameType.LONG : GenericNameType.SHORT;
-                                        _gnamesTrie.put(partialLocationName, info);
-                                    }
-                                }
-                            }
+        final NameType[] genNonLocTypes = {NameType.LONG_GENERIC, NameType.SHORT_GENERIC};
+
+        Set<String> tzIDs = TimeZone.getAvailableIDs(SystemTimeZoneType.CANONICAL, null, null);
+        for (String tzID : tzIDs) {
+            // getGenericLocationName() formats a name and put it into the trie
+            getGenericLocationName(tzID); 
+
+            // Generic partial location format
+            Set<String> mzIDs = _tznames.getAvailableMetaZoneIDs(tzID);
+            for (String mzID : mzIDs) {
+                // if this time zone is not the golden zone of the meta zone,
+                // partial location name (such as "PT (Los Angeles)") might be
+                // available.
+                String goldenID = _tznames.getReferenceZoneID(mzID, getTargetRegion());
+                if (!tzID.equals(goldenID)) {
+                    for (NameType genNonLocType : genNonLocTypes) {
+                        String mzGenName = _tznames.getMetaZoneDisplayName(mzID, genNonLocType);
+                        if (mzGenName != null) {
+                            // getPartialLocationName() formats a name and put it into the trie
+                            getPartialLocationName(tzID, mzID, (genNonLocType == NameType.LONG_GENERIC), mzGenName);
                         }
                     }
                 }
             }
         }
-        GenericNameSearchHandler handler = new GenericNameSearchHandler(types);
+        _gnamesTrieFullyLoaded = true;
+
+        // now, try it again
+        handler.resetResults();
         _gnamesTrie.find(text, start, handler);
         return handler.getMatches();
     }
