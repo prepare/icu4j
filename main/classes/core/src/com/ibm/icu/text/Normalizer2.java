@@ -1,6 +1,6 @@
 /*
 *******************************************************************************
-*   Copyright (C) 2009-2011, International Business Machines
+*   Copyright (C) 2009-2010, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 *******************************************************************************
 */
@@ -14,7 +14,6 @@ import com.ibm.icu.impl.Norm2AllModes;
  * Unicode normalization functionality for standard Unicode normalization or
  * for using custom mapping tables.
  * All instances of this class are unmodifiable/immutable.
- * The Normalizer2 class is not intended for public subclassing.
  * <p>
  * The primary functions are to produce a normalized string and to detect whether
  * a string is already normalized.
@@ -50,7 +49,8 @@ import com.ibm.icu.impl.Norm2AllModes;
  * The set of normalization boundaries returned by these functions may not be
  * complete: There may be more boundaries that could be returned.
  * Different functions may return different boundaries.
- * @stable ICU 4.4
+ * @draft ICU 4.4
+ * @provisional This API might change or be removed in a future release.
  * @author Markus W. Scherer
  */
 public abstract class Normalizer2 {
@@ -59,7 +59,8 @@ public abstract class Normalizer2 {
      * For details about standard Unicode normalization forms
      * and about the algorithms which are also used with custom mapping tables
      * see http://www.unicode.org/unicode/reports/tr15/
-     * @stable ICU 4.4
+     * @draft ICU 4.4
+     * @provisional This API might change or be removed in a future release.
      */
     public enum Mode {
         /**
@@ -68,7 +69,8 @@ public abstract class Normalizer2 {
          * Same as standard NFKC when using an "nfkc" instance.
          * For details about standard Unicode normalization forms
          * see http://www.unicode.org/unicode/reports/tr15/
-         * @stable ICU 4.4
+         * @draft ICU 4.4
+         * @provisional This API might change or be removed in a future release.
          */
         COMPOSE,
         /**
@@ -77,7 +79,8 @@ public abstract class Normalizer2 {
          * Same as standard NFKD when using an "nfkc" instance.
          * For details about standard Unicode normalization forms
          * see http://www.unicode.org/unicode/reports/tr15/
-         * @stable ICU 4.4
+         * @draft ICU 4.4
+         * @provisional This API might change or be removed in a future release.
          */
         DECOMPOSE,
         /**
@@ -90,7 +93,8 @@ public abstract class Normalizer2 {
          * Not a standard Unicode normalization form.<br>
          * Not a unique form: Different FCD strings can be canonically equivalent.<br>
          * For details see http://www.unicode.org/notes/tn5/#FCD
-         * @stable ICU 4.4
+         * @draft ICU 4.4
+         * @provisional This API might change or be removed in a future release.
          */
         FCD,
         /**
@@ -100,7 +104,8 @@ public abstract class Normalizer2 {
          * The result will conform to FCD which is useful for processing.<br>
          * Not a standard Unicode normalization form.<br>
          * For details see http://www.unicode.org/notes/tn5/#FCC
-         * @stable ICU 4.4
+         * @draft ICU 4.4
+         * @provisional This API might change or be removed in a future release.
          */
         COMPOSE_CONTIGUOUS
     };
@@ -124,7 +129,8 @@ public abstract class Normalizer2 {
      * @param name "nfc" or "nfkc" or "nfkc_cf" or name of custom data file
      * @param mode normalization mode (compose or decompose etc.)
      * @return the requested Normalizer2, if successful
-     * @stable ICU 4.4
+     * @draft ICU 4.4
+     * @provisional This API might change or be removed in a future release.
      */
     public static Normalizer2 getInstance(InputStream data, String name, Mode mode) {
         Norm2AllModes all2Modes=Norm2AllModes.getInstance(data, name);
@@ -141,12 +147,12 @@ public abstract class Normalizer2 {
      * Returns the normalized form of the source string.
      * @param src source string
      * @return normalized src
-     * @stable ICU 4.4
+     * @draft ICU 4.4
+     * @provisional This API might change or be removed in a future release.
      */
     public String normalize(CharSequence src) {
         return normalize(src, new StringBuilder()).toString();
     }
-
     /**
      * Writes the normalized form of the source string to the destination string
      * (replacing its contents) and returns the destination string.
@@ -154,10 +160,10 @@ public abstract class Normalizer2 {
      * @param src source string
      * @param dest destination string; its contents is replaced with normalized src
      * @return dest
-     * @stable ICU 4.4
+     * @draft ICU 4.4
+     * @provisional This API might change or be removed in a future release.
      */
     public abstract StringBuilder normalize(CharSequence src, StringBuilder dest);
-
     /**
      * Writes the normalized form of the source string to the destination Appendable
      * and returns the destination Appendable.
@@ -165,11 +171,10 @@ public abstract class Normalizer2 {
      * @param src source string
      * @param dest destination Appendable; gets normalized src appended
      * @return dest
-     * @draft ICU 4.6
+     * @internal ICU 4.4 TODO: propose for 4.6
      * @provisional This API might change or be removed in a future release.
      */
     public abstract Appendable normalize(CharSequence src, Appendable dest);
-
     /**
      * Appends the normalized form of the second string to the first string
      * (merging them at the boundary) and returns the first string.
@@ -178,11 +183,11 @@ public abstract class Normalizer2 {
      * @param first string, should be normalized
      * @param second string, will be normalized
      * @return first
-     * @stable ICU 4.4
+     * @draft ICU 4.4
+     * @provisional This API might change or be removed in a future release.
      */
     public abstract StringBuilder normalizeSecondAndAppend(
             StringBuilder first, CharSequence second);
-
     /**
      * Appends the second string to the first string
      * (merging them at the boundary) and returns the first string.
@@ -191,22 +196,10 @@ public abstract class Normalizer2 {
      * @param first string, should be normalized
      * @param second string, should be normalized
      * @return first
-     * @stable ICU 4.4
-     */
-    public abstract StringBuilder append(StringBuilder first, CharSequence second);
-
-    /**
-     * Gets the decomposition mapping of c.
-     * Roughly equivalent to normalizing the String form of c
-     * on a DECOMPOSE Normalizer2 instance, but much faster, and except that this function
-     * returns null if c does not have a decomposition mapping in this instance's data.
-     * This function is independent of the mode of the Normalizer2.
-     * @param c code point
-     * @return c's decomposition mapping, if any; otherwise null
-     * @draft ICU 4.6
+     * @draft ICU 4.4
      * @provisional This API might change or be removed in a future release.
      */
-    public abstract String getDecomposition(int c);
+    public abstract StringBuilder append(StringBuilder first, CharSequence second);
 
     /**
      * Tests if the string is normalized.
@@ -216,7 +209,8 @@ public abstract class Normalizer2 {
      * at the cost of doing more work in those cases.
      * @param s input string
      * @return true if s is normalized
-     * @stable ICU 4.4
+     * @draft ICU 4.4
+     * @provisional This API might change or be removed in a future release.
      */
     public abstract boolean isNormalized(CharSequence s);
 
@@ -229,7 +223,8 @@ public abstract class Normalizer2 {
      * re-checking the "yes" prefix.
      * @param s input string
      * @return the quick check result
-     * @stable ICU 4.4
+     * @draft ICU 4.4
+     * @provisional This API might change or be removed in a future release.
      */
     public abstract Normalizer.QuickCheckResult quickCheck(CharSequence s);
 
@@ -249,7 +244,8 @@ public abstract class Normalizer2 {
      * copy that prefix and use normalizeSecondAndAppend() for the remainder.
      * @param s input string
      * @return "yes" span end index
-     * @stable ICU 4.4
+     * @draft ICU 4.4
+     * @provisional This API might change or be removed in a future release.
      */
     public abstract int spanQuickCheckYes(CharSequence s);
 
@@ -264,7 +260,8 @@ public abstract class Normalizer2 {
      * This is used for iterative normalization. See the class documentation for details.
      * @param c character to test
      * @return true if c has a normalization boundary before it
-     * @stable ICU 4.4
+     * @draft ICU 4.4
+     * @provisional This API might change or be removed in a future release.
      */
     public abstract boolean hasBoundaryBefore(int c);
 
@@ -281,7 +278,8 @@ public abstract class Normalizer2 {
      * Note that this operation may be significantly slower than hasBoundaryBefore().
      * @param c character to test
      * @return true if c has a normalization boundary after it
-     * @stable ICU 4.4
+     * @draft ICU 4.4
+     * @provisional This API might change or be removed in a future release.
      */
     public abstract boolean hasBoundaryAfter(int c);
 
@@ -297,7 +295,8 @@ public abstract class Normalizer2 {
      * Note that this operation may be significantly slower than hasBoundaryBefore().
      * @param c character to test
      * @return true if c is normalization-inert
-     * @stable ICU 4.4
+     * @draft ICU 4.4
+     * @provisional This API might change or be removed in a future release.
      */
     public abstract boolean isInert(int c);
 

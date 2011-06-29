@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 2003-2010, International Business Machines Corporation and         *
+* Copyright (C) 2003-2009, International Business Machines Corporation and         *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 */
@@ -12,9 +12,9 @@ import java.util.MissingResourceException;
 import java.util.Set;
 
 import com.ibm.icu.impl.ICULocaleService;
-import com.ibm.icu.impl.ICULocaleService.LocaleKeyFactory;
 import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.impl.ICUService;
+import com.ibm.icu.impl.ICULocaleService.LocaleKeyFactory;
 import com.ibm.icu.impl.ICUService.Factory;
 import com.ibm.icu.text.Collator.CollatorFactory;
 import com.ibm.icu.util.ULocale;
@@ -85,8 +85,8 @@ final class CollatorServiceShim extends Collator.ServiceShim {
         // TODO rewrite this to just wrap getAvailableULocales later
         Locale[] result;
         if (service.isDefault()) {
-            result = ICUResourceBundle.getAvailableLocales(ICUResourceBundle.ICU_COLLATION_BASE_NAME,
-                    ICUResourceBundle.ICU_DATA_CLASS_LOADER);
+            ClassLoader cl = getClass().getClassLoader();
+            result = ICUResourceBundle.getAvailableLocales(ICUResourceBundle.ICU_COLLATION_BASE_NAME, cl);
         } else {
             result = service.getAvailableLocales();
         }
@@ -96,8 +96,8 @@ final class CollatorServiceShim extends Collator.ServiceShim {
     ULocale[] getAvailableULocales() {
         ULocale[] result;
         if (service.isDefault()) {
-            result = ICUResourceBundle.getAvailableULocales(ICUResourceBundle.ICU_COLLATION_BASE_NAME,
-                    ICUResourceBundle.ICU_DATA_CLASS_LOADER);
+            ClassLoader cl = getClass().getClassLoader();
+            result = ICUResourceBundle.getAvailableULocales(ICUResourceBundle.ICU_COLLATION_BASE_NAME, cl);
         } else {
             result = service.getAvailableULocales();
         }

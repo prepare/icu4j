@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 1996-2011, International Business Machines Corporation and    *
+* Copyright (C) 1996-2010, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 */
@@ -15,8 +15,10 @@ import com.ibm.icu.dev.test.TestFmwk;
 import com.ibm.icu.dev.test.TestUtil;
 import com.ibm.icu.impl.Norm2AllModes;
 import com.ibm.icu.impl.Normalizer2Impl;
-import com.ibm.icu.impl.PatternProps;
+import com.ibm.icu.impl.UBiDiProps;
+import com.ibm.icu.impl.UCaseProps;
 import com.ibm.icu.impl.UCharacterName;
+import com.ibm.icu.impl.UCharacterProperty;
 import com.ibm.icu.impl.Utility;
 import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.lang.UCharacterCategory;
@@ -46,7 +48,7 @@ public final class UCharacterTest extends TestFmwk
     /**
     * ICU4J data version number
     */
-    private final VersionInfo VERSION_ = VersionInfo.getInstance("6.0.0.0");
+    private final VersionInfo VERSION_ = VersionInfo.getInstance("5.2.0.0");
 
     // constructor ===================================================
 
@@ -180,23 +182,23 @@ public final class UCharacterTest extends TestFmwk
                   " and \\u" + hex(nonwhitespaces[i]));
         }
 
-        int patternWhiteSpace[] = {0x9, 0xd, 0x20, 0x85,
+        int rulewhitespace[] = {0x9, 0xd, 0x20, 0x85,
                                 0x200e, 0x200f, 0x2028, 0x2029};
-        int nonPatternWhiteSpace[] = {0x8, 0xe, 0x21, 0x86, 0xa0, 0xa1,
+        int nonrulewhitespace[] = {0x8, 0xe, 0x21, 0x86, 0xa0, 0xa1,
                                    0x1680, 0x1681, 0x180e, 0x180f,
                                    0x1FFF, 0x2000, 0x200a, 0x200b,
                                    0x2010, 0x202f, 0x2030, 0x205f,
                                    0x2060, 0x3000, 0x3001};
-        for (int i = 0; i < patternWhiteSpace.length; i ++) {
-            if (!PatternProps.isWhiteSpace(patternWhiteSpace[i])) {
-                errln("\\u" + Utility.hex(patternWhiteSpace[i], 4)
-                      + " expected to be a Pattern_White_Space");
+        for (int i = 0; i < rulewhitespace.length; i ++) {
+            if (!UCharacterProperty.isRuleWhiteSpace(rulewhitespace[i])) {
+                errln("\\u" + Utility.hex(rulewhitespace[i], 4)
+                      + " expected to be a rule white space");
             }
         }
-        for (int i = 0; i < nonPatternWhiteSpace.length; i ++) {
-            if (PatternProps.isWhiteSpace(nonPatternWhiteSpace[i])) {
-                errln("\\u" + Utility.hex(nonPatternWhiteSpace[i], 4)
-                      + " expected to be a non-Pattern_White_Space");
+        for (int i = 0; i < nonrulewhitespace.length; i ++) {
+            if (UCharacterProperty.isRuleWhiteSpace(nonrulewhitespace[i])) {
+                errln("\\u" + Utility.hex(nonrulewhitespace[i], 4)
+                      + " expected to be a non rule white space");
             }
         }
 
@@ -245,46 +247,6 @@ public final class UCharacterTest extends TestFmwk
                     (int)c, j, i, z));
             }
         }
-    }
-
-    /**
-     * Test various implementations of Pattern_Syntax & Pattern_White_Space.
-     */
-    public void TestPatternProperties() {
-        UnicodeSet syn_pp = new UnicodeSet();
-        UnicodeSet syn_prop = new UnicodeSet("[:Pattern_Syntax:]");
-        UnicodeSet syn_list = new UnicodeSet(
-            "[!-/\\:-@\\[-\\^`\\{-~"+
-            "\u00A1-\u00A7\u00A9\u00AB\u00AC\u00AE\u00B0\u00B1\u00B6\u00BB\u00BF\u00D7\u00F7"+
-            "\u2010-\u2027\u2030-\u203E\u2041-\u2053\u2055-\u205E\u2190-\u245F\u2500-\u2775"+
-            "\u2794-\u2BFF\u2E00-\u2E7F\u3001-\u3003\u3008-\u3020\u3030\uFD3E\uFD3F\uFE45\uFE46]");
-        UnicodeSet ws_pp = new UnicodeSet();
-        UnicodeSet ws_prop = new UnicodeSet("[:Pattern_White_Space:]");
-        UnicodeSet ws_list = new UnicodeSet("[\\u0009-\\u000D\\ \\u0085\\u200E\\u200F\\u2028\\u2029]");
-        UnicodeSet syn_ws_pp = new UnicodeSet();
-        UnicodeSet syn_ws_prop = new UnicodeSet(syn_prop).addAll(ws_prop);
-        for(int c=0; c<=0xffff; ++c) {
-            if(PatternProps.isSyntax(c)) {
-                syn_pp.add(c);
-            }
-            if(PatternProps.isWhiteSpace(c)) {
-                ws_pp.add(c);
-            }
-            if(PatternProps.isSyntaxOrWhiteSpace(c)) {
-                syn_ws_pp.add(c);
-            }
-        }
-        compareUSets(syn_pp, syn_prop,
-                     "PatternProps.isSyntax()", "[:Pattern_Syntax:]", true);
-        compareUSets(syn_pp, syn_list,
-                     "PatternProps.isSyntax()", "[Pattern_Syntax ranges]", true);
-        compareUSets(ws_pp, ws_prop,
-                     "PatternProps.isWhiteSpace()", "[:Pattern_White_Space:]", true);
-        compareUSets(ws_pp, ws_list,
-                     "PatternProps.isWhiteSpace()", "[Pattern_White_Space ranges]", true);
-        compareUSets(syn_ws_pp, syn_ws_prop,
-                     "PatternProps.isSyntaxOrWhiteSpace()",
-                     "[[:Pattern_Syntax:][:Pattern_White_Space:]]", true);
     }
 
     /**
@@ -437,7 +399,7 @@ public final class UCharacterTest extends TestFmwk
     public void TestVersion()
     {
         if (!UCharacter.getUnicodeVersion().equals(VERSION_))
-            errln("FAIL expected: " + VERSION_ + " got: " + UCharacter.getUnicodeVersion());
+            errln("FAIL expected: " + VERSION_ + "got: " + UCharacter.getUnicodeVersion());
     }
 
     /**
@@ -1853,6 +1815,7 @@ public final class UCharacterTest extends TestFmwk
             { 0x072A, UProperty.JOINING_GROUP, UCharacter.JoiningGroup.DALATH_RISH },
             { 0x0647, UProperty.JOINING_GROUP, UCharacter.JoiningGroup.HEH },
             { 0x06C1, UProperty.JOINING_GROUP, UCharacter.JoiningGroup.HEH_GOAL },
+            { 0x06C3, UProperty.JOINING_GROUP, UCharacter.JoiningGroup.HAMZA_ON_HEH_GOAL },
 
             { 0x200C, UProperty.JOINING_TYPE, UCharacter.JoiningType.NON_JOINING },
             { 0x200D, UProperty.JOINING_TYPE, UCharacter.JoiningType.JOIN_CAUSING },
@@ -1984,11 +1947,6 @@ public final class UCharacterTest extends TestFmwk
             { 0xa6e6,  UProperty.SCRIPT, UScript.BAMUM },
             { 0xa4d0,  UProperty.SCRIPT, UScript.LISU },
             { 0x10a7f,  UProperty.SCRIPT, UScript.OLD_SOUTH_ARABIAN },
-
-            { -1, 0x600, 0 }, /* version break for Unicode 6.0 */
-
-            /* value changed in Unicode 6.0 */
-            { 0x06C3, UProperty.JOINING_GROUP, UCharacter.JoiningGroup.TEH_MARBUTA_GOAL },
 
             /* undefined UProperty values */
             { 0x61, 0x4a7, 0 },
@@ -2295,11 +2253,19 @@ public final class UCharacterTest extends TestFmwk
                                         String a_name, String b_name,
                                         boolean expect,
                                         boolean diffIsError){
-        int i, start, end;
-        boolean equal=true;
-        for(i=0; i < a.getRangeCount(); ++i) {
+        int i, start, end, length;
+        boolean equal;
+        equal=true;
+        i=0;
+        for(;;) {
             start  = a.getRangeStart(i);
+            length = (i < a.getRangeCount()) ? 0 : a.getRangeCount();
             end    = a.getRangeEnd(i);
+
+            if(length!=0) {
+                return equal; /* done with code points, got a string or -1 */
+            }
+
             if(expect!=b.contains(start, end)) {
                 equal=false;
                 while(start<=end) {
@@ -2321,8 +2287,9 @@ public final class UCharacterTest extends TestFmwk
                     ++start;
                 }
             }
+
+            ++i;
         }
-        return equal;
     }
     private boolean showAMinusB(UnicodeSet a, UnicodeSet b,
                                         String a_name, String b_name,
@@ -2365,7 +2332,7 @@ public final class UCharacterTest extends TestFmwk
         *
         * Unicode 4 changed 00AD Soft Hyphen to Cf and removed it from Dash
         * but not from Hyphen.
-        * UTC 94 (2003mar) decided to leave it that way and to change UCD.html.
+        * UTC 94 (2003mar) decided to leave it that way and to changed UCD.html.
         * Therefore, do not show errors when testing the Hyphen property.
         */
        logln("Starting with Unicode 4, inconsistencies with [:Hyphen:] are\n"
@@ -2475,6 +2442,20 @@ public final class UCharacterTest extends TestFmwk
         }
     }
 
+    public void TestCasePropsDummy() {
+        // code coverage for UCaseProps.getDummy() 
+        if(UCaseProps.getDummy().tolower(0x41)!=0x41) {
+            errln("UCaseProps.getDummy().tolower(0x41)!=0x41");
+        }
+    }
+
+    public void TestBiDiPropsDummy() {
+        // code coverage for UBiDiProps.getDummy() 
+        if(UBiDiProps.getDummy().getClass(0x20)!=0) {
+            errln("UBiDiProps.getDummy().getClass(0x20)!=0");
+        }
+    }
+    
     public void TestBlockData()
     {
         Class ubc = UCharacter.UnicodeBlock.class;
@@ -2529,6 +2510,30 @@ public final class UCharacterTest extends TestFmwk
         }
     }
 
+    /*
+     * The following method tests
+     *      static int idOf(int ch)
+     */
+    public void TestIDOf(){
+        int[] invalid_test = {-2, -1, UTF16.CODEPOINT_MAX_VALUE+1, UTF16.CODEPOINT_MAX_VALUE+2};
+        
+        for(int i=0; i < invalid_test.length; i++){
+            int result = UCharacter.getIntPropertyValue(invalid_test[i], UProperty.BLOCK);
+            if(result != -1){
+                errln("UCharacter.UnicodeBlock.idOf() was suppose to return -1. Got " + result);
+            }
+        }
+        
+        int[] valid_test = {0, 1, UTF16.CODEPOINT_MAX_VALUE, UTF16.CODEPOINT_MAX_VALUE-1};
+        
+        for(int i=0; i < valid_test.length; i++){
+            int result = UCharacter.getIntPropertyValue(valid_test[i], UProperty.BLOCK);
+            if(result == -1){
+                errln("UCharacter.UnicodeBlock.idOf() was not suppose to return -1. Got " + result);
+            }
+        }
+    }
+    
     /*
      * The following method tests
      *      public static final UnicodeBlock forName(String blockName)
@@ -2855,28 +2860,24 @@ public final class UCharacterTest extends TestFmwk
         int[] valid = {
                 UCharacter.MIN_VALUE, UCharacter.MIN_VALUE+1,
                 UCharacter.MAX_VALUE, UCharacter.MAX_VALUE-1};
-
+        
         for(int i=0; i<invalid.length; i++){
             try{
-                if (UCharacter.hasBinaryProperty(invalid[i], 1)) {
-                    errln("UCharacter.hasBinaryProperty(ch, property) should return " +
-                            "false for out-of-range code points but " +
-                            "returns true for " + invalid[i]);
-                }
-            } catch(Exception e) {
-                errln("UCharacter.hasBinaryProperty(ch, property) should not " +
-                        "throw an exception for any input. Value passed: " +
+                UCharacter.hasBinaryProperty(invalid[i], 1);
+                errln("UCharacter.hasBinaryProperty(ch, property) was suppose to " +
+                        "give an exception for an invalid input. Value passed: " +
                         invalid[i]);
-            }
+                
+            } catch(Exception e){}
         }
-
+        
         for(int i=0; i<valid.length; i++){
             try{
                 UCharacter.hasBinaryProperty(valid[i], 1);
-            } catch(Exception e) {
-                errln("UCharacter.hasBinaryProperty(ch, property) should not " +
-                        "throw an exception for any input. Value passed: " +
-                        valid[i]);
+            } catch(Exception e){
+                errln("UCharacter.hasBinaryProperty(ch, property) was not suppose to " +
+                        "give an exception for an valid input. Value passed: " +
+                        invalid[i]);
             }
         }
     }

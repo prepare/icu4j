@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2007-2011, International Business Machines Corporation and    *
+ * Copyright (C) 2007-2010, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -9,8 +9,6 @@ package com.ibm.icu.dev.test.format;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -48,10 +46,6 @@ public class PluralRulesTest extends TestFmwk {
         "a: n mod 2 is 1 or n mod 5 is 1 and n is not 6", "a:1,3,5,7,9,11,13,15,16",
         "a: n in 2..5; b: n in 5..8; c: n mod 2 is 1", "a:2,3,4,5;b:6,7,8;c:1,9,11",
         "a: n within 2..5; b: n within 5..8; c: n mod 2 is 1", "a:2,3,4,5;b:6,7,8;c:1,9,11",
-        "a: n in 2,4..6; b: n within 7..9,11..12,20", "a:2,4,5,6;b:7,8,9,11,12,20",
-        "a: n in 2..8,12 and n not in 4..6", "a:2,3,7,8,12",
-        "a: n mod 10 in 2,3,5..7 and n is not 12", "a:2,3,5,6,7,13,15,16,17",
-        "a: n in 2..6,3..7", "a:2,3,4,5,6,7",
     };
 
     private String[] getTargetStrings(String targets) {
@@ -68,7 +62,7 @@ public class PluralRulesTest extends TestFmwk {
                     list.add(null);
                 }
                 if (list.get(val) != null) {
-                    fail("test data error, key: " + list.get(val) + " already set for: " + val);
+                    fail("key: " + list.get(val) + " already set for: " + val);
                 }
                 list.set(val, key);
             }
@@ -112,57 +106,33 @@ public class PluralRulesTest extends TestFmwk {
     }
 
     private static String[][] equalityTestData = {
-        { "a: n is 5",
-          "a: n in 2..6 and n not in 2..4 and n is not 6" },
-        { "a: n in 2..3",
-          "a: n is 2 or n is 3",
-          "a: n is 3 and n in 2..5 or n is 2" },
+        { "a: n in 2..3", 
+            "a: n is 2 or n is 3", 
+            "a:n is 3 and n in 2..5 or n is 2" },
         { "a: n is 12; b:n mod 10 in 2..3",
           "b: n mod 10 in 2..3 and n is not 12; a: n in 12..12",
-          "b: n is 13; a: n is 12; b: n mod 10 is 2 or n mod 10 is 3" },
+          "b: n is 13; a: n in 12..13; b: n mod 10 is 2 or n mod 10 is 3" },
     };
 
-    private static String[][] inequalityTestData = {
-        { "a: n mod 8 is 3",
-          "a: n mod 7 is 3"
-        },
-        { "a: n mod 3 is 2 and n is not 5",
-          "a: n mod 6 is 2 or n is 8 or n is 11"
-        }
-    };
-
-    private void compareEquality(String id, Object[] objects, boolean shouldBeEqual) {
+    private void compareEquality(Object[] objects) {
         for (int i = 0; i < objects.length; ++i) {
             Object lhs = objects[i];
-            int start = shouldBeEqual ? i : i + 1;
-            for (int j = start; j < objects.length; ++j) {
+            for (int j = i; j < objects.length; ++j) {
                 Object rhs = objects[j];
-                if (shouldBeEqual != lhs.equals(rhs)) {
-                    String msg = shouldBeEqual ? "should be equal" : "should not be equal";
-                    fail(id + " " + msg + " (" + i + ", " + j + "):\n    " + lhs + "\n    " + rhs);
-                }
-                // assertEquals("obj " + i + " and " + j, lhs, rhs);
+                assertEquals("obj " + i + " and " + j, lhs, rhs);
             }
-        }
-    }
-
-    private void compareEqualityTestSets(String[][] sets, boolean shouldBeEqual) {
-        for (int i = 0; i < sets.length; ++i) {
-            String[] patterns = sets[i];
-            PluralRules[] rules = new PluralRules[patterns.length];
-            for (int j = 0; j < patterns.length; ++j) {
-                rules[j] = PluralRules.createRules(patterns[j]);
-            }
-            compareEquality("test " + i, rules, shouldBeEqual);
         }
     }
 
     public void testEquality() {
-        compareEqualityTestSets(equalityTestData, true);
-    }
-
-    public void testInequality() {
-        compareEqualityTestSets(inequalityTestData, false);
+        for (int i = 0; i < equalityTestData.length; ++i) {
+            String[] patterns = equalityTestData[i];
+            PluralRules[] rules = new PluralRules[patterns.length];
+            for (int j = 0; j < patterns.length; ++j) {
+                rules[j] = PluralRules.createRules(patterns[j]);
+            }
+            compareEquality(rules);
+        }
     }
 
     public void testBuiltInRules() {
@@ -211,7 +181,7 @@ public class PluralRulesTest extends TestFmwk {
 
         assertEquals("locales are unique in list", locales.length, localeSet.size());
     }
-
+    
     /*
      * Test the method public static PluralRules parseDescription(String description)
      */
@@ -243,11 +213,10 @@ public class PluralRulesTest extends TestFmwk {
      * Tests the method public int hashCode()
      */
     public void TestHashCode() {
-// Bad test, breaks whenever PluralRules implementation changes.
-//        PluralRules pr = PluralRules.DEFAULT;
-//        if (106069776 != pr.hashCode()) {
-//            errln("PluralRules.hashCode() was suppose to return 106069776 " + "when PluralRules.DEFAULT.");
-//        }
+        PluralRules pr = PluralRules.DEFAULT;
+        if (106069776 != pr.hashCode()) {
+            errln("PluralRules.hashCode() was suppose to return 106069776 " + "when PluralRules.DEFAULT.");
+        }
     }
 
     /*
@@ -256,134 +225,9 @@ public class PluralRulesTest extends TestFmwk {
     public void TestEquals() {
         PluralRules pr = PluralRules.DEFAULT;
 
+        // Tests when if (rhs == null) is true
         if (pr.equals((PluralRules) null)) {
-            errln("PluralRules.equals(PluralRules) was supposed to return false " + "when passing null.");
+            errln("PluralRules.equals(PluralRules) was suppose to return false " + "when passing null.");
         }
     }
-
-    private void assertRuleValue(String rule, double value) {
-        assertRuleKeyValue("a:" + rule, "a", value);
-    }
-
-    private void assertRuleKeyValue(String rule, String key, double value) {
-        PluralRules pr = PluralRules.createRules(rule);
-        assertEquals(rule, value, pr.getUniqueKeywordValue(key));
-    }
-
-    /*
-     * Tests getUniqueKeywordValue()
-     */
-    public void TestGetUniqueKeywordValue() {
-        assertRuleValue("n is 1", 1);
-        assertRuleValue("n in 2..2", 2);
-        assertRuleValue("n within 2..2", 2);
-        assertRuleValue("n in 3..4", PluralRules.NO_UNIQUE_VALUE);
-        assertRuleValue("n within 3..4", PluralRules.NO_UNIQUE_VALUE);
-        assertRuleValue("n is 2 or n is 2", 2);
-        assertRuleValue("n is 2 and n is 2", 2);
-        assertRuleValue("n is 2 or n is 3", PluralRules.NO_UNIQUE_VALUE);
-        assertRuleValue("n is 2 and n is 3", PluralRules.NO_UNIQUE_VALUE);
-        assertRuleValue("n is 2 or n in 2..3", PluralRules.NO_UNIQUE_VALUE);
-        assertRuleValue("n is 2 and n in 2..3", 2);
-        assertRuleKeyValue("a: n is 1", "not_defined", PluralRules.NO_UNIQUE_VALUE); // key not defined
-        assertRuleKeyValue("a: n is 1", "other", PluralRules.NO_UNIQUE_VALUE); // key matches default rule
-        assertRuleValue("n in 2,3", PluralRules.NO_UNIQUE_VALUE);
-        assertRuleValue("n in 2,3..6 and n not in 2..3,5..6", 4);
-    }
-
-    /**
-     * The version in PluralFormatUnitTest is not really a test, and it's in the wrong place
-     * anyway, so I'm putting a variant of it here.
-     */
-    public void TestGetSamples() {
-        Set<ULocale> uniqueRuleSet = new HashSet<ULocale>();
-        for (ULocale locale : PluralRules.getAvailableULocales()) {
-           uniqueRuleSet.add(PluralRules.getFunctionalEquivalent(locale, null));
-        }
-        for (ULocale locale : uniqueRuleSet) {
-            PluralRules rules = PluralRules.forLocale(locale);
-            logln("\nlocale: " + (locale == ULocale.ROOT ? "root" : locale.toString()) + ", rules: " + rules);
-            Set<String> keywords = rules.getKeywords();
-            for (String keyword : keywords) {
-                Collection<Double> list = rules.getSamples(keyword);
-                logln("keyword: " + keyword + ", samples: " + list);
-
-                assertNotNull("list is not null", list);
-                if (list != null) {
-                    assertTrue("list is not empty", !list.isEmpty());
-
-                    for (double value : list) {
-                        assertEquals("value " + value + " matches keyword", keyword, rules.select(value));
-                    }
-                }
-            }
-
-            assertNull("list is null", rules.getSamples("@#$%^&*"));
-        }
-    }
-
-    /**
-     * Returns the empty set if the keyword is not defined, null if there are an unlimited
-     * number of values for the keyword, or the set of values that trigger the keyword.
-     */
-     public void TestGetAllKeywordValues() {
-         // data is pairs of strings, the rule, and the expected values as arguments
-         String[] data = {
-             "a: n in 2..5", "a: 2,3,4,5; other: null; b:",
-             "a: n not in 2..5", "a: null; other: null",
-             "a: n within 2..5", "a: null; other: null",
-             "a: n not within 2..5", "a: null; other: null",
-             "a: n in 2..5 or n within 6..8", "a: null", // ignore 'other' here on out, always null
-             "a: n in 2..5 and n within 6..8", "a:",
-             "a: n in 2..5 and n within 5..8", "a: 5",
-             "a: n within 2..5 and n within 6..8", "a:", // our sampling catches these
-             "a: n within 2..5 and n within 5..8", "a: 5", // ''
-             "a: n within 1..2 and n within 2..3 or n within 3..4 and n within 4..5", "a: 2,4",
-             "a: n within 1..2 and n within 2..3 or n within 3..4 and n within 4..5 " +
-               "or n within 5..6 and n within 6..7", "a: null", // but not this...
-             "a: n mod 3 is 0", "a: null",
-             "a: n mod 3 is 0 and n within 1..2", "a:",
-             "a: n mod 3 is 0 and n within 0..5", "a: 0,3",
-             "a: n mod 3 is 0 and n within 0..6", "a: null", // similarly with mod, we don't catch...
-             "a: n mod 3 is 0 and n in 3..12", "a: 3,6,9,12",
-             "a: n in 2,4..6 and n is not 5", "a: 2,4,6",
-         };
-         for (int i = 0; i < data.length; i += 2) {
-             String ruleDescription = data[i];
-             String result = data[i+1];
-
-             PluralRules p = PluralRules.createRules(ruleDescription);
-             for (String ruleResult : result.split(";")) {
-                 String[] ruleAndValues = ruleResult.split(":");
-                 String keyword = ruleAndValues[0].trim();
-                 String valueList = ruleAndValues.length < 2 ? null : ruleAndValues[1];
-                 if (valueList != null) {
-                     valueList = valueList.trim();
-                 }
-                 Collection<Double> values;
-                 if (valueList == null || valueList.length() == 0) {
-                     values = Collections.<Double>emptyList();
-                 } else if ("null".equals(valueList)) {
-                     values = null;
-                 } else {
-                     values = new ArrayList<Double>();
-                     for (String value : valueList.split(",")) {
-                         values.add(Double.parseDouble(value));
-                     }
-                 }
-
-                 Collection<Double> results = p.getAllKeywordValues(keyword);
-                 assertEquals("keyword '" + keyword + "'", values, results);
-
-                 if (results != null) {
-                     try {
-                         results.add(PluralRules.NO_UNIQUE_VALUE);
-                         fail("returned set is modifiable");
-                     } catch (UnsupportedOperationException e) {
-                         // pass
-                     }
-                 }
-             }
-         }
-     }
 }

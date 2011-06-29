@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2000-2011, International Business Machines Corporation and    *
+ * Copyright (C) 2000-2010, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -21,7 +21,6 @@ import com.ibm.icu.text.Collator;
 import com.ibm.icu.text.RuleBasedCollator;
 import com.ibm.icu.text.SearchIterator;
 import com.ibm.icu.text.StringSearch;
-import com.ibm.icu.util.ULocale;
 
 public class SearchTest extends TestFmwk {
 
@@ -601,8 +600,8 @@ public class SearchTest extends TestFmwk {
             if (matchindex != strsrch.getMatchStart() ||
                 matchlength != strsrch.getMatchLength()) {
                 errln("Text: " + search.text);
-                errln("Searching forward for pattern: " + strsrch.getPattern());
-                errln("Expected offset,len " + matchindex + ", " + matchlength + "; got " + strsrch.getMatchStart() + ", " + strsrch.getMatchLength());
+                errln("Pattern: " + strsrch.getPattern());
+                errln("Error following match found at " + strsrch.getMatchStart() + ", " + strsrch.getMatchLength());
                 return false;
             }
             count ++;
@@ -620,8 +619,8 @@ public class SearchTest extends TestFmwk {
         if (strsrch.getMatchStart() != SearchIterator.DONE ||
             strsrch.getMatchLength() != 0) {
                 errln("Text: " + search.text);
-                errln("Searching forward for pattern: " + strsrch.getPattern());
-                errln("Expected DONE offset,len -1, 0; got " + strsrch.getMatchStart() + ", " + strsrch.getMatchLength());
+                errln("Pattern: " + strsrch.getPattern());
+                errln("Error following match found at " + strsrch.getMatchStart() + ", " + strsrch.getMatchLength());
                 return false;
         }
         // start of preceding matches
@@ -633,8 +632,8 @@ public class SearchTest extends TestFmwk {
             if (matchindex != strsrch.getMatchStart() ||
                 matchlength != strsrch.getMatchLength()) {
                 errln("Text: " + search.text);
-                errln("Searching backward for pattern: " + strsrch.getPattern());
-                errln("Expected offset,len " + matchindex + ", " + matchlength + "; got " + strsrch.getMatchStart() + ", " + strsrch.getMatchLength());
+                errln("Pattern: " + strsrch.getPattern());
+                errln("Error following match found at " + strsrch.getMatchStart() + ", " + strsrch.getMatchLength());
                 return false;
             }
 
@@ -652,8 +651,8 @@ public class SearchTest extends TestFmwk {
         if (strsrch.getMatchStart() != SearchIterator.DONE ||
             strsrch.getMatchLength() != 0) {
                 errln("Text: " + search.text);
-                errln("Searching backward for pattern: " + strsrch.getPattern());
-                errln("Expected DONE offset,len -1, 0; got " + strsrch.getMatchStart() + ", " + strsrch.getMatchLength());
+                errln("Pattern: " + strsrch.getPattern());
+                errln("Error following match found at " + strsrch.getMatchStart() + ", " + strsrch.getMatchLength());
                 return false;
         }
         return true;
@@ -1790,9 +1789,6 @@ public class SearchTest extends TestFmwk {
     }
 
     public void TestSupplementary() {
-        if (skipIfBeforeICU(49,0,2)) { // ticket#8080
-            return;
-        }
         int count = 0;
         while (SUPPLEMENTARY[count].text != null) {
             if (!assertEqual(SUPPLEMENTARY[count])) {
@@ -1803,9 +1799,6 @@ public class SearchTest extends TestFmwk {
     }
 
     public void TestSupplementaryCanonical() {
-        if (skipIfBeforeICU(49,0,2)) { // ticket#8080
-            return;
-        }
         int count = 0;
         while (SUPPLEMENTARYCANONICAL[count].text != null) {
             if (!assertCanonicalEqual(SUPPLEMENTARYCANONICAL[count])) {
@@ -2021,153 +2014,4 @@ public class SearchTest extends TestFmwk {
             count++;
         }
     }
-
-    public void TestUsingSearchCollator() {
-        String scKoText =
-            " " +
-    /*01*/  "\uAC00 " +                   // simple LV Hangul
-    /*03*/  "\uAC01 " +                   // simple LVT Hangul
-    /*05*/  "\uAC0F " +                   // LVTT, last jamo expands for search
-    /*07*/  "\uAFFF " +                   // LLVVVTT, every jamo expands for search
-    /*09*/  "\u1100\u1161\u11A8 " +       // 0xAC01 as conjoining jamo
-    /*13*/  "\u1100\u1161\u1100 " +       // 0xAC01 as basic conjoining jamo (per search rules)
-    /*17*/  "\u3131\u314F\u3131 " +       // 0xAC01 as compatibility jamo
-    /*21*/  "\u1100\u1161\u11B6 " +       // 0xAC0F as conjoining jamo; last expands for search
-    /*25*/  "\u1100\u1161\u1105\u1112 " + // 0xAC0F as basic conjoining jamo; last expands for search
-    /*30*/  "\u1101\u1170\u11B6 " +       // 0xAFFF as conjoining jamo; all expand for search
-    /*34*/  "\u00E6 " +                   // small letter ae, expands
-    /*36*/  "\u1E4D " +                   // small letter o with tilde and acute, decomposes
-            "";
-
-        String scKoPat0 = "\uAC01";
-        String scKoPat1 = "\u1100\u1161\u11A8"; // 0xAC01 as conjoining jamo
-        String scKoPat2 = "\uAC0F";
-        String scKoPat3 = "\u1100\u1161\u1105\u1112"; // 0xAC0F as basic conjoining jamo
-        String scKoPat4 = "\uAFFF";
-        String scKoPat5 = "\u1101\u1170\u11B6"; // 0xAFFF as conjoining jamo
-
-        int[] scKoSrchOff01 = { 3,  9, 13 };
-        int[] scKoSrchOff23 = { 5, 21, 25 };
-        int[] scKoSrchOff45 = { 7, 30     };
-
-        int[] scKoStndOff01 = { 3,  9 };
-        int[] scKoStndOff2  = { 5, 21 };
-        int[] scKoStndOff3  = { 25    };
-        int[] scKoStndOff45 = { 7, 30 };
-
-        class PatternAndOffsets {
-            private String pattern;
-            private int[] offsets;
-            PatternAndOffsets(String pat, int[] offs) {
-                pattern = pat;
-                offsets = offs;
-            }
-            public String getPattern() { return pattern; }
-            public int[] getOffsets() { return offsets; }
-        }
-        final PatternAndOffsets[] scKoSrchPatternsOffsets = { 
-            new PatternAndOffsets( scKoPat0, scKoSrchOff01 ),
-            new PatternAndOffsets( scKoPat1, scKoSrchOff01 ),
-            new PatternAndOffsets( scKoPat2, scKoSrchOff23 ),
-            new PatternAndOffsets( scKoPat3, scKoSrchOff23 ),
-            new PatternAndOffsets( scKoPat4, scKoSrchOff45 ),
-            new PatternAndOffsets( scKoPat5, scKoSrchOff45 ),
-        };
-        final PatternAndOffsets[] scKoStndPatternsOffsets = { 
-            new PatternAndOffsets( scKoPat0, scKoStndOff01 ),
-            new PatternAndOffsets( scKoPat1, scKoStndOff01 ),
-            new PatternAndOffsets( scKoPat2, scKoStndOff2  ),
-            new PatternAndOffsets( scKoPat3, scKoStndOff3  ),
-            new PatternAndOffsets( scKoPat4, scKoStndOff45 ),
-            new PatternAndOffsets( scKoPat5, scKoStndOff45 ),
-        };
-
-        class TUSCItem {
-            private String localeString;
-            private String text;
-            private PatternAndOffsets[] patternsAndOffsets;
-            TUSCItem(String locStr, String txt, PatternAndOffsets[] patsAndOffs) {
-                localeString = locStr;
-                text = txt;
-                patternsAndOffsets = patsAndOffs;
-            }
-            public String getLocaleString() { return localeString; }
-            public String getText() { return text; }
-            public PatternAndOffsets[] getPatternsAndOffsets() { return patternsAndOffsets; }
-        }
-        final TUSCItem[] tuscItems = { 
-            new TUSCItem( "root",                  scKoText, scKoStndPatternsOffsets ),
-            new TUSCItem( "root@collation=search", scKoText, scKoSrchPatternsOffsets ),
-            new TUSCItem( "ko@collation=search",   scKoText, scKoSrchPatternsOffsets ),
-        };
-        
-        String dummyPat = "a";
-
-        for (TUSCItem tuscItem: tuscItems) {
-            String localeString = tuscItem.getLocaleString();
-            ULocale uloc = new ULocale(localeString);
-            RuleBasedCollator col = null;
-            try {
-                col = (RuleBasedCollator)Collator.getInstance(uloc);
-            } catch (Exception e) {
-                errln("Error: in locale " + localeString + ", err in Collator.getInstance");
-                continue;
-            }
-            StringCharacterIterator ci = new StringCharacterIterator(tuscItem.getText());
-            StringSearch srch = new StringSearch(dummyPat, ci, col);
-            for ( PatternAndOffsets patternAndOffsets: tuscItem.getPatternsAndOffsets() ) {
-                srch.setPattern(patternAndOffsets.getPattern());
-                int[] offsets = patternAndOffsets.getOffsets();
-                int ioff, noff = offsets.length;
-                int offset;
-
-                srch.reset();
-                ioff = 0;
-                while (true) {
-                    offset = srch.next();
-                    if (offset == SearchIterator.DONE) {
-                        break;
-                    }
-                    if ( ioff < noff ) {
-                        if ( offset != offsets[ioff] ) {
-                            errln("Error: in locale " + localeString + ", expected SearchIterator.next() " + offsets[ioff] + ", got " + offset);
-                            //ioff = noff;
-                            //break;
-                        }
-                        ioff++;
-                    } else {
-                        errln("Error: in locale " + localeString + ", SearchIterator.next() returned more matches than expected");
-                    }
-                }
-                if ( ioff < noff ) {
-                    errln("Error: in locale " + localeString + ", SearchIterator.next() returned fewer matches than expected");
-                }
-
-                srch.reset();
-                ioff = noff;
-                while (true) {
-                    offset = srch.previous();
-                    if (offset == SearchIterator.DONE) {
-                        break;
-                    }
-                    if ( ioff > 0 ) {
-                        ioff--;
-                        if ( offset != offsets[ioff] ) {
-                             errln("Error: in locale " + localeString + ", expected SearchIterator.previous() " + offsets[ioff] + ", got " + offset);
-                            //ioff = 0;
-                            // break;
-                        }
-                    } else {
-                        errln("Error: in locale " + localeString + ", expected SearchIterator.previous() returned more matches than expected");
-                    }
-                }
-                if ( ioff > 0 ) {
-                    errln("Error: in locale " + localeString + ", expected SearchIterator.previous() returned fewer matches than expected");
-                }
-            }
-        }
-    }
-
- 
-
 }

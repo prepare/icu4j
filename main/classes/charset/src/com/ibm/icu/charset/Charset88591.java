@@ -1,12 +1,14 @@
 /**
  *******************************************************************************
- * Copyright (C) 2006-2011, International Business Machines Corporation and    *
+ * Copyright (C) 2006-2008, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
 
 package com.ibm.icu.charset;
 
+import java.nio.BufferOverflowException;
+import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.CharsetDecoder;
@@ -38,22 +40,15 @@ class Charset88591 extends CharsetASCII {
             return null;
         }
 
-        protected CoderResult decodeLoopCoreUnoptimized(ByteBuffer source, CharBuffer target) {
-            byte ch;
+        protected CoderResult decodeLoopCoreUnoptimized(ByteBuffer source, CharBuffer target)
+                throws BufferUnderflowException, BufferOverflowException {
+
             /*
              * perform 88591 conversion from the source buffer to the target buffer. no range check
-             * is necessary.
+             * is necessary (an exception will be generated to end the loop).
              */
-            while (source.hasRemaining()) {
-                ch = source.get();
-                if (target.hasRemaining()) {
-                    target.put((char) (ch & 0xff));
-                } else {
-                    return CoderResult.OVERFLOW;
-                }
-            }
-            
-            return CoderResult.UNDERFLOW;
+            while (true)
+                target.put((char) (source.get() & 0xff));
         }
     }
 
@@ -93,7 +88,8 @@ class Charset88591 extends CharsetASCII {
                 return null;
         }
 
-        protected final CoderResult encodeLoopCoreUnoptimized(CharBuffer source, ByteBuffer target, boolean flush) {
+        protected final CoderResult encodeLoopCoreUnoptimized(CharBuffer source, ByteBuffer target,
+                boolean flush) throws BufferUnderflowException, BufferOverflowException {
             int ch;
 
             /*
@@ -101,24 +97,19 @@ class Charset88591 extends CharsetASCII {
              * each char in the source is within the correct range
              */
             
-            while (source.hasRemaining()) {
+            while (true) {
                 ch = (int) source.get();
                 if ((ch & 0xff00) == 0) {
-                    if (target.hasRemaining()) {
-                        target.put((byte) ch);
-                    } else {
-                        return CoderResult.OVERFLOW;
-                    }
+                    target.put((byte) ch);
                 } else {
-                    /*
-                     * if we reach here, it's because a character was not in the correct range, and we need
-                     * to deal with this by calling encodeMalformedOrUnmappable.
-                     */
-                    return encodeMalformedOrUnmappable(source, ch, flush);
+                    break;
                 }
             }
-            
-            return CoderResult.UNDERFLOW;
+            /*
+             * if we reach here, it's because a character was not in the correct range, and we need
+             * to deak with this by calling encodeMalformedOrUnmappable.
+             */
+            return encodeMalformedOrUnmappable(source, ch, flush);
         }
 
     }

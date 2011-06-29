@@ -15,7 +15,7 @@ import com.ibm.icu.dev.test.TestFmwk.TestParams;
 
 public class UnitTest extends TestCase {
 
-	public void runUtility(String testname) throws Exception {
+    public void runUtility(String testname) throws Exception {
         TestParams params = TestParams.create("-n", null);
         TestFmwk test = new TestAll();
         test.resolveTarget(params, testname).run();
@@ -53,10 +53,6 @@ public class UnitTest extends TestCase {
 
     public void testProperty() throws Exception {
         runUtility("Core/Property");
-    }
-
-    public void testSpoofChecker() throws Exception {
-        runUtility("Core/SpoofChecker");
     }
 
     public void testNormalizer() throws Exception {

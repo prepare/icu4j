@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2002-2011, International Business Machines Corporation and    *
+ * Copyright (C) 2002-2010, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -13,9 +13,8 @@
 package com.ibm.icu.dev.test.collator;
 
 import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Locale;
+import java.util.Vector;
 
 import com.ibm.icu.dev.test.TestFmwk;
 import com.ibm.icu.text.CollationElementIterator;
@@ -401,9 +400,9 @@ public class CollationRegressionTest extends TestFmwk {
     public void Test4062418(/* char* par */) {
         RuleBasedCollator c = null;
         try {
-            c = (RuleBasedCollator) Collator.getInstance(Locale.CANADA_FRENCH);
+            c = (RuleBasedCollator) Collator.getInstance(Locale.FRANCE);
         } catch (Exception e) {
-            errln("Failed to create collator for Locale.CANADA_FRENCH");
+            errln("Failed to create collator for Locale::FRANCE()");
             return;
         }
         c.setStrength(Collator.SECONDARY);
@@ -457,9 +456,9 @@ public class CollationRegressionTest extends TestFmwk {
     public void Test4066696(/* char* par */) {
         RuleBasedCollator c = null;
         try {
-            c = (RuleBasedCollator)Collator.getInstance(Locale.CANADA_FRENCH);
+            c = (RuleBasedCollator)Collator.getInstance(Locale.FRANCE);
         } catch(Exception e) {
-            errln("Failure creating collator for Locale.CANADA_FRENCH");
+            errln("Failure creating collator for Locale::getFrance()");
             return;
         }
         c.setStrength(Collator.SECONDARY);
@@ -752,10 +751,10 @@ public class CollationRegressionTest extends TestFmwk {
     public void Test4132736(/* char* par */) {
         Collator c = null;
         try {
-            c = Collator.getInstance(Locale.CANADA_FRENCH);
+            c = Collator.getInstance(Locale.FRANCE);
             c.setStrength(Collator.TERTIARY);
         } catch (Exception e) {
-            errln("Failed to create a collator for Locale.CANADA_FRENCH");
+            errln("Failed to create a collator for Locale::getFrance()");
         }
     
         String test1[] = {
@@ -1056,18 +1055,18 @@ public class CollationRegressionTest extends TestFmwk {
         String text = "T\u00f6ne"; // o-umlaut
 
         CollationElementIterator iter = coll.getCollationElementIterator(text);
-        List elements = new ArrayList();
+        Vector elements = new Vector();
         int elem;
 
         // Iterate forward and collect all of the elements into a Vector
         while ((elem = iter.next()) != CollationElementIterator.NULLORDER) {
-            elements.add(new Integer(elem));
+            elements.addElement(new Integer(elem));
         }
 
         // Now iterate backward and make sure they're the same
         int index = elements.size() - 1;
         while ((elem = iter.previous()) != CollationElementIterator.NULLORDER) {
-            int expect = ((Integer)elements.get(index)).intValue();
+            int expect = ((Integer)elements.elementAt(index)).intValue();
 
             if (elem != expect) {
                 errln("Mismatch at index " + index
@@ -1135,110 +1134,6 @@ public class CollationRegressionTest extends TestFmwk {
         }
     }
     
-    // Fixing the infinite loop for surrogates
-    public void Test8484()
-    {
-        String s = "\u9FE1\uCEF3\u2798\uAAB6\uDA7C";
-        Collator coll = Collator.getInstance();
-        CollationKey collKey = coll.getCollationKey(s); 
-        logln("Pass: " + collKey.toString() + " generated OK.");
-    }
-    
-    public  void TestBengaliSortKey() throws Exception {
-        char rules[] = { 0x26, 0x9fa, 0x3c, 0x98c, 0x3c, 0x9e1, 0x3c, 0x98f, 0x3c, 0x990, 0x3c, 0x993, 
-                0x3c, 0x994, 0x3c, 0x9bc, 0x3c, 0x982, 0x3c, 0x983, 0x3c, 0x981, 0x3c, 0x9b0, 0x3c, 
-                0x9b8, 0x3c, 0x9b9, 0x3c, 0x9bd, 0x3c, 0x9be, 0x3c, 0x9bf, 0x3c, 0x9c8, 0x3c, 0x9cb, 
-                0x3d, 0x9cb };
- 
-        Collator col = new RuleBasedCollator(String.copyValueOf(rules));
-        
-        String str1 = "\u09be";
-        String str2 = "\u0b70";
-        
-        int result = col.compare(str1, str2);
-        System.out.flush();
-
-        if(result >= 0 ) {
-            errln("\nERROR: result is " + result + " , wanted negative.");
-            errln(printKey(col, str1).toString());
-            errln(printKey(col, str2).toString());
-        } else {
-            logln("Pass: result is OK.");
-        }
-    }
-
-    private static StringBuilder printKey(Collator col, String str1) {
-        StringBuilder sb = new StringBuilder();
-        CollationKey sortk1 = col.getCollationKey(str1);
-        byte[] bytes = sortk1.toByteArray();
-        for(int i=0;i<str1.length();i++) {
-            sb.append("\\u"+Integer.toHexString(str1.charAt(i)));
-        }
-        System.out.print(": ");
-        for(int i=0;i<bytes.length;i++) {
-            sb.append(" 0x"+Integer.toHexString(((int)bytes[i])&0xff));
-        }
-        sb.append("\n");
-        return sb;
-    }
-
-    /*
-     * Test case for ticket#8624
-     * Bad collation key with upper first option.
-     */
-    public void TestCaseFirstCompression() {
-        RuleBasedCollator col = (RuleBasedCollator)Collator.getInstance(Locale.US);
-
-        // Default
-        caseFirstCompressionSub(col, "default");
-
-        // Upper first
-        col.setUpperCaseFirst(true);
-        caseFirstCompressionSub(col, "upper first");
-
-        // Lower first
-        col.setLowerCaseFirst(true);
-        caseFirstCompressionSub(col, "lower first");
-    }
-
-    /*
-     * Compare two strings - "aaa...A" and "aaa...a" with
-     * Collation#compare and CollationKey#compareTo, called from
-     * TestCaseFirstCompression.
-     */
-    private void caseFirstCompressionSub(RuleBasedCollator col, String opt) {
-        final int maxLength = 50;
-
-        StringBuilder buf1 = new StringBuilder();
-        StringBuilder buf2 = new StringBuilder();
-        String str1, str2;
-
-        for (int n = 1; n <= maxLength; n++) {
-            buf1.setLength(0);
-            buf2.setLength(0);
-
-            for (int i = 0; i < n - 1; i++) {
-                buf1.append('a');
-                buf2.append('a');
-            }
-            buf1.append('A');
-            buf2.append('a');
-
-            str1 = buf1.toString();
-            str2 = buf2.toString();
-
-            CollationKey key1 = col.getCollationKey(str1);
-            CollationKey key2 = col.getCollationKey(str2);
-
-            int cmpKey = key1.compareTo(key2);
-            int cmpCol = col.compare(str1, str2);
-
-            if ((cmpKey < 0 && cmpCol >= 0) || (cmpKey > 0 && cmpCol <= 0) || (cmpKey == 0 && cmpCol != 0)) {
-                errln("Inconsistent comparison(" + opt + "): str1=" + str1 + ", str2=" + str2 + ", cmpKey=" + cmpKey + " , cmpCol=" + cmpCol);
-            }
-        }
-    }
-
     /* RuleBasedCollator not subclassable
      * @bug 4146160
     //

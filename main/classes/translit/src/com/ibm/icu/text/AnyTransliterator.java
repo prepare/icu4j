@@ -8,15 +8,13 @@
 *****************************************************************
 */
 package com.ibm.icu.text;
-
-import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.MissingResourceException;
 import java.util.Set;
+import java.util.Vector;
 
 import com.ibm.icu.lang.UScript;
 /**
@@ -197,7 +195,7 @@ class AnyTransliterator extends Transliterator {
 
             if (t != null) {
                 if (!isWide(targetScript)) {
-                    List<Transliterator> v = new ArrayList<Transliterator>();
+                    Vector<Transliterator> v = new Vector<Transliterator>();
                     v.add(widthFix);
                     v.add(t);
                     t = new CompoundTransliterator(v);
@@ -403,19 +401,6 @@ class AnyTransliterator extends Transliterator {
             filter = new UnicodeSet((UnicodeSet)filter);
         }
         return new AnyTransliterator(getID(), filter, target, targetScript, widthFix, cache);
-    }
-
-    /* (non-Javadoc)
-     * @see com.ibm.icu.text.Transliterator#addSourceTargetSet(com.ibm.icu.text.UnicodeSet, com.ibm.icu.text.UnicodeSet, com.ibm.icu.text.UnicodeSet)
-     */
-    @Override
-    public void addSourceTargetSet(UnicodeSet inputFilter, UnicodeSet sourceSet, UnicodeSet targetSet) {
-        UnicodeSet myFilter = getFilterAsUnicodeSet(inputFilter);
-        // Assume that it can modify any character to any other character
-        sourceSet.addAll(myFilter);
-        if (myFilter.size() != 0) {
-            targetSet.addAll(0, 0x10FFFF);
-        }
     }
 }
 

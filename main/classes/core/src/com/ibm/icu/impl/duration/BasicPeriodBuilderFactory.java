@@ -1,17 +1,17 @@
 /*
 ******************************************************************************
-* Copyright (C) 2007-2011, International Business Machines Corporation and   *
+* Copyright (C) 2007-2009, International Business Machines Corporation and   *
 * others. All Rights Reserved.                                               *
 ******************************************************************************
 */
 
 package com.ibm.icu.impl.duration;
 
-import java.util.TimeZone;
-
 import com.ibm.icu.impl.duration.impl.DataRecord;
 import com.ibm.icu.impl.duration.impl.PeriodFormatterData;
 import com.ibm.icu.impl.duration.impl.PeriodFormatterDataService;
+
+import java.util.TimeZone;
 
 /**
  * Default implementation of PeriodBuilderFactory.  This creates builders that
@@ -451,7 +451,7 @@ class OneOrTwoUnitBuilder extends PeriodBuilderImpl {
             duration -= unitDuration;
           } else {
             if (count >= 1) {
-              period = period.and((float)count, unit);
+              period.and((float)count, unit);
             }
             break;
           }
@@ -503,7 +503,7 @@ class MultiUnitBuilder extends PeriodBuilderImpl {
           if (period == null) {
             period = Period.at((float)count, unit).inPast(inPast);
           } else {
-            period = period.and((float)count, unit);
+            period.and((float)count, unit);
           }
         }
       }

@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 2006-2011, International Business Machines Corporation and    *
+* Copyright (C) 2006-2010, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 *
@@ -2787,27 +2787,6 @@ public class TestCharset extends TestFmwk {
         smBufDecode(decoder, "UTF-7", bs, us);
         smBufEncode(encoder, "UTF-7", us, bs);
         
-        /* Testing UTF-7 toUnicode with substitute callbacks */
-        {
-            byte [] bytesTestErrorConsumption = {
-                    /* a~       a+AB~                         a+AB\x0c                      a+AB-                         a+AB.                         a+. */
-                    0x61, 0x7e, 0x61, 0x2b, 0x41, 0x42, 0x7e, 0x61, 0x2b, 0x41, 0x42, 0x0c, 0x61, 0x2b, 0x41, 0x42, 0x2d, 0x61, 0x2b, 0x41, 0x42, 0x2e, 0x61, 0x2b, 0x2e
-    
-            };
-            char [] unicodeTestErrorConsumption = {
-                    0x61, 0xfffd, 0x61, 0xfffd, 0xfffd, 0x61, 0xfffd, 0xfffd, 0x61, 0xfffd, 0x61, 0xfffd, 0x2e, 0x61, 0xfffd, 0x2e
-            };
-            bs = ByteBuffer.wrap(bytesTestErrorConsumption);
-            us = CharBuffer.wrap(unicodeTestErrorConsumption);
-    
-            CodingErrorAction savedMal = decoder.malformedInputAction();
-            CodingErrorAction savedUMap = decoder.unmappableCharacterAction();
-            decoder.onMalformedInput(CodingErrorAction.REPLACE);
-            decoder.onUnmappableCharacter(CodingErrorAction.REPLACE);
-            smBufDecode(decoder, "UTF-7 DE Error Consumption", bs, us);
-            decoder.onMalformedInput(savedMal);
-            decoder.onUnmappableCharacter(savedUMap);
-        }
         /* ticket 6151 */
         CharBuffer smallus = CharBuffer.allocate(1);
         ByteBuffer bigbs = ByteBuffer.allocate(3);
@@ -3160,7 +3139,7 @@ public class TestCharset extends TestFmwk {
         
         //test for overflow buffer error
         ccus.put((char)0x2262);
-        ccbs.put((byte)0x2b); ccbs.put((byte)0x49); ccbs.put((byte)0x6d); ccbs.put((byte)0x49); ccbs.put((byte)0x2d);
+        ccbs.put((byte)0x2b); ccbs.put((byte)0x49); ccbs.put((byte)0x6d); ccbs.put((byte)0x49);
         
         ccbs.limit(ccbs.position());
         ccbs.position(0);
@@ -3178,7 +3157,7 @@ public class TestCharset extends TestFmwk {
         //test for overflow buffer error
         encoder.reset();
         ccus.put((char)0x3980); ccus.put((char)0x2715);
-        ccbs.put((byte)0x2b); ccbs.put((byte)0x4f); ccbs.put((byte)0x59); ccbs.put((byte)0x2d);
+        ccbs.put((byte)0x2b); ccbs.put((byte)0x4f); ccbs.put((byte)0x59);
         
         ccbs.limit(ccbs.position());
         ccbs.position(0);
@@ -5610,71 +5589,6 @@ public class TestCharset extends TestFmwk {
             if (result.isError()) {
                 /* We don't care about any failures. */
                 continue;
-            }
-        }
-    }
-    
-    public void TestIsFixedWidth(){
-        String[] fixedWidth = {
-                "US-ASCII",
-                "UTF32",
-                "ibm-5478_P100-1995"
-        };
-        
-        String[] notFixedWidth = {
-                "GB18030",
-                "UTF8",
-                "windows-949-2000",
-                "UTF16"
-        };
-        CharsetProvider provider = new CharsetProviderICU();
-        Charset charset;
-        
-        for (int i = 0; i < fixedWidth.length; i++) {
-            charset = provider.charsetForName(fixedWidth[i]);
-            
-            if (!((CharsetICU)charset).isFixedWidth()) {
-                errln(fixedWidth[i] + " is a fixedWidth charset but returned false.");
-            }
-        }
-        
-        for (int i = 0; i < notFixedWidth.length; i++) {
-            charset = provider.charsetForName(notFixedWidth[i]);
-            
-            if (((CharsetICU)charset).isFixedWidth()) {
-                errln(notFixedWidth[i] + " is NOT a fixedWidth charset but returned true.");
-            }
-        }
-    }
-    
-    public void TestBytesLengthForString() {
-        CharsetProviderICU provider = new CharsetProviderICU();
-        String[] charsets = {
-                "windows-949-2000",
-                "ibm-1047_P100-1995,swaplfnl",
-                "ibm-930_P120-1999",
-                "ISCII,version=0",
-                "ISO_2022,locale=ko,version=0"
-        };
-        
-        int[] expected = {
-                40,
-                20,
-                60,
-                80,
-                60
-        };
-        
-        int stringLength = 10;
-        int length;
-        int maxCharSize;
-        
-        for (int i = 0; i < charsets.length; i++) {
-            maxCharSize = (int)provider.charsetForName(charsets[i]).newEncoder().maxBytesPerChar();
-            length = CharsetEncoderICU.getMaxBytesForString(stringLength, maxCharSize);
-            
-            if (length != expected[i]) {
-                errln("For charset " + charsets[i] + " with string length " + stringLength + ", expected max byte length is " + expected[i] + " but got " + length);
             }
         }
     }

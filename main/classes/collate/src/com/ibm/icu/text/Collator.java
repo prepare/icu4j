@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 1996-2011, International Business Machines Corporation and    *
+* Copyright (C) 1996-2010, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 */
@@ -16,9 +16,6 @@ import java.util.Set;
 
 import com.ibm.icu.impl.ICUDebug;
 import com.ibm.icu.impl.ICUResourceBundle;
-import com.ibm.icu.impl.Norm2AllModes;
-import com.ibm.icu.lang.UScript;
-import com.ibm.icu.util.Freezable;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.UResourceBundle;
 import com.ibm.icu.util.VersionInfo;
@@ -124,7 +121,7 @@ import com.ibm.icu.util.VersionInfo;
 * @author Syn Wee Quek
 * @stable ICU 2.8
 */
-public abstract class Collator implements Comparator<Object>, Freezable<Collator>
+public abstract class Collator implements Comparator<Object>, Cloneable
 {
     // public data members ---------------------------------------------------
 
@@ -227,68 +224,6 @@ public abstract class Collator implements Comparator<Object>, Freezable<Collator
      */
     public final static int CANONICAL_DECOMPOSITION = 17;
 
-    /**
-     * Reordering codes for non-script groups that can be reordered under collation.
-     * 
-     * @see #getReorderCodes
-     * @see #setReorderCodes
-     * @see #getEquivalentReorderCodes
-     * @draft ICU 4.8
-     */
-    public static interface ReorderCodes {
-        /**
-         * A special reordering code that is used to specify the default reordering codes for a locale.
-         * @draft ICU 4.8
-         */
-        public final static int DEFAULT          = 1;
-        /**
-         * A speical reordering code that is used to specify no reordering codes.
-         * @draft ICU 4.8
-         */
-        public final static int NONE          = UScript.UNKNOWN;
-        /**
-         * A special reordering code that is used to specify all other codes used for reordering except 
-         * for the codes listed as ReorderingCodes and those listed explicitly in a reordering.
-         * @draft ICU 4.8
-         */
-        public final static int OTHERS          = UScript.UNKNOWN;
-        /**
-         * Characters with the space property.
-         * @draft ICU 4.8
-         */
-        public final static int SPACE          = 0x1000;
-        /**
-         * The first entry in the enumeration.
-         * @draft ICU 4.8
-         */
-        public final static int FIRST          = SPACE;
-        /**
-         * Characters with the punctuation property.
-         * @draft ICU 4.8
-         */
-        public final static int PUNCTUATION    = 0x1001;
-        /**
-         * Characters with the symbol property.
-         * @draft ICU 4.8
-         */
-        public final static int SYMBOL         = 0x1002;
-        /**
-         * Characters with the currency property.
-         * @draft ICU 4.8
-         */
-        public final static int CURRENCY       = 0x1003;
-        /**
-         * Characters with the digit property.
-         * @draft ICU 4.8
-         */
-        public final static int DIGIT          = 0x1004;
-        /**
-         * The limit of the reorder codes..
-         * @draft ICU 4.8
-         */
-        public final static int LIMIT          = 0x1005;        
-    }
-    
     // public methods --------------------------------------------------------
 
     // public setters --------------------------------------------------------
@@ -315,10 +250,6 @@ public abstract class Collator implements Comparator<Object>, Freezable<Collator
      */
     public void setStrength(int newStrength)
     {
-        if (isFrozen()) {
-            throw new UnsupportedOperationException("Attempt to modify frozen object");
-        }
-
         if ((newStrength != PRIMARY) &&
             (newStrength != SECONDARY) &&
             (newStrength != TERTIARY) &&
@@ -371,49 +302,12 @@ public abstract class Collator implements Comparator<Object>, Freezable<Collator
      */
     public void setDecomposition(int decomposition)
     {
-        if (isFrozen()) {
-            throw new UnsupportedOperationException("Attempt to modify frozen object");
-        }
-        internalSetDecomposition(decomposition);
-    }
-
-    /**
-     * Internal set decompostion call to workaround frozen state because of self-modification
-     * in the RuleBasedCollator. This method <b>must</b> only be called by code that has
-     * passed the frozen check already <b>and</b> has the lock if the Collator is frozen.
-     * Better still this method should go away and RuleBasedCollator.getSortKeyBytes()
-     * should be fixed to not self-modify.
-     * @param decomposition
-     * @internal
-     */
-    protected void internalSetDecomposition(int decomposition)
-    {
         if ((decomposition != NO_DECOMPOSITION) &&
             (decomposition != CANONICAL_DECOMPOSITION)) {
             throw new IllegalArgumentException("Wrong decomposition mode.");
         }
         m_decomposition_ = decomposition;
-        if (decomposition != NO_DECOMPOSITION) {
-            // ensure the FCD data is initialized
-            Norm2AllModes.getFCDNormalizer2();
-        }
     }
-
-    /** 
-     * Sets the reordering codes for this collator.
-     * Reordering codes allow the collation ordering for groups of characters to be changed.
-     * The reordering codes are a combination of UScript  codes and ReorderCodes.
-     * These allow the ordering of characters belonging to these groups to be changed as a group.  
-     * @param order the reordering codes to apply to this collator; if this is null or an empty array
-     * then this clears any existing reordering
-     * @see #getReorderCodes
-     * @see #getEquivalentReorderCodes
-     * @draft ICU 4.8
-     */ 
-    public void setReorderCodes(int... order) 
-    { 
-        throw new UnsupportedOperationException(); 
-    } 
 
     // public getters --------------------------------------------------------
 
@@ -668,8 +562,9 @@ public abstract class Collator implements Comparator<Object>, Freezable<Collator
     public static Locale[] getAvailableLocales() {
         // TODO make this wrap getAvailableULocales later
         if (shim == null) {
+            ClassLoader cl = Collator.class.getClassLoader();
             return ICUResourceBundle.getAvailableLocales(
-                ICUResourceBundle.ICU_COLLATION_BASE_NAME, ICUResourceBundle.ICU_DATA_CLASS_LOADER);
+                ICUResourceBundle.ICU_COLLATION_BASE_NAME, cl);
         }
         return shim.getAvailableLocales();
     }
@@ -684,8 +579,9 @@ public abstract class Collator implements Comparator<Object>, Freezable<Collator
      */
     public static final ULocale[] getAvailableULocales() {
         if (shim == null) {
+            ClassLoader cl = Collator.class.getClassLoader();
             return ICUResourceBundle.getAvailableULocales(
-                ICUResourceBundle.ICU_COLLATION_BASE_NAME, ICUResourceBundle.ICU_DATA_CLASS_LOADER);
+                ICUResourceBundle.ICU_COLLATION_BASE_NAME, cl);
         }
         return shim.getAvailableULocales();
     }
@@ -708,7 +604,6 @@ public abstract class Collator implements Comparator<Object>, Freezable<Collator
      * The resource bundle base name for this service.
      * *since ICU 3.0
      */
-    
     private static final String BASE = ICUResourceBundle.ICU_COLLATION_BASE_NAME;
 
     /**
@@ -824,7 +719,8 @@ public abstract class Collator implements Comparator<Object>, Freezable<Collator
     public static final ULocale getFunctionalEquivalent(String keyword,
                                                         ULocale locID,
                                                         boolean isAvailable[]) {
-        return ICUResourceBundle.getFunctionalEquivalent(BASE, ICUResourceBundle.ICU_DATA_CLASS_LOADER, RESOURCE,
+        ClassLoader cl = Collator.class.getClassLoader();
+        return ICUResourceBundle.getFunctionalEquivalent(BASE, cl, RESOURCE,
                                                          keyword, locID, isAvailable, true);
     }
 
@@ -1090,64 +986,7 @@ public abstract class Collator implements Comparator<Object>, Freezable<Collator
      * @stable ICU 2.8
      */
     public abstract VersionInfo getUCAVersion();
-    
-    /**  
-     * Retrieves the reordering codes for this collator.
-     * These reordering codes are a combination of UScript codes and ReorderCodes.
-     * @return a copy of the reordering codes for this collator; 
-     * if none are set then returns an empty array
-     * @see #setReorderCodes
-     * @see #getEquivalentReorderCodes
-     * @draft ICU 4.8
-     */ 
-    public int[] getReorderCodes() 
-    { 
-        throw new UnsupportedOperationException(); 
-    }   
 
-    /**
-     * Retrieves all the reorder codes that are grouped with the given reorder code. Some reorder
-     * codes are grouped and must reorder together.
-     * 
-     * @param reorderCode code for which equivalents to be retrieved
-     * @return the set of all reorder codes in the same group as the given reorder code.
-     * @see #setReorderCodes
-     * @see #getReorderCodes
-     * @draft ICU 4.8
-     */
-    public static int[] getEquivalentReorderCodes(int reorderCode)
-    { 
-        throw new UnsupportedOperationException(); 
-    }   
-
-
-    // Freezable interface implementation -------------------------------------------------
-    
-    /**
-     * Determines whether the object has been frozen or not.
-     * @draft ICU 4.8
-     */
-    public boolean isFrozen() {
-        return false;
-    }
-
-    /**
-     * Freezes the collaotr.
-     * @return the collator itself.
-     * @draft ICU 4.8
-     */
-    public Collator freeze() {
-        throw new UnsupportedOperationException("Needs to be implemented by the subclass.");
-    }
-
-    /**
-     * Provides for the clone operation. Any clone is initially unfrozen.
-     * @draft ICU 4.8
-     */
-    public Collator cloneAsThawed() {
-        throw new UnsupportedOperationException("Needs to be implemented by the subclass.");
-    }
-    
     // protected constructor -------------------------------------------------
 
     /**
