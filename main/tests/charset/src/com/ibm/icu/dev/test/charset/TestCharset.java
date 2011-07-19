@@ -5609,7 +5609,6 @@ public class TestCharset extends TestFmwk {
             }
         }
     }
-    
     public void TestIsFixedWidth(){
         String[] fixedWidth = {
                 "US-ASCII",
@@ -5639,38 +5638,6 @@ public class TestCharset extends TestFmwk {
             
             if (((CharsetICU)charset).isFixedWidth()) {
                 errln(notFixedWidth[i] + " is NOT a fixedWidth charset but returned true.");
-            }
-        }
-    }
-    
-    public void TestBytesLengthForString() {
-        CharsetProviderICU provider = new CharsetProviderICU();
-        String[] charsets = {
-                "windows-949-2000",
-                "ibm-1047_P100-1995,swaplfnl",
-                "ibm-930_P120-1999",
-                "ISCII,version=0",
-                "ISO_2022,locale=ko,version=0"
-        };
-        
-        int[] expected = {
-                40,
-                20,
-                60,
-                80,
-                60
-        };
-        
-        int stringLength = 10;
-        int length;
-        int maxCharSize;
-        
-        for (int i = 0; i < charsets.length; i++) {
-            maxCharSize = (int)provider.charsetForName(charsets[i]).newEncoder().maxBytesPerChar();
-            length = CharsetEncoderICU.getMaxBytesForString(stringLength, maxCharSize);
-            
-            if (length != expected[i]) {
-                errln("For charset " + charsets[i] + " with string length " + stringLength + ", expected max byte length is " + expected[i] + " but got " + length);
             }
         }
     }

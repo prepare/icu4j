@@ -116,19 +116,21 @@ public final class UCharacterProperty
 
     /**
      * Gets the unicode additional properties.
-     * Java version of C u_getUnicodeProperties().
+     * C version getUnicodeProperties.
      * @param codepoint codepoint whose additional properties is to be
      *                  retrieved
      * @param column The column index.
      * @return unicode properties
      */
-    public int getAdditional(int codepoint, int column) {
-        assert column >= 0;
-        if (column >= m_additionalColumnsCount_) {
-            return 0;
+       public int getAdditional(int codepoint, int column) {
+        if (column == -1) {
+            return getProperty(codepoint);
         }
-        return m_additionalVectors_[m_additionalTrie_.get(codepoint) + column];
-    }
+           if (column < 0 || column >= m_additionalColumnsCount_) {
+           return 0;
+       }
+       return m_additionalVectors_[m_additionalTrie_.get(codepoint) + column];
+       }
 
     static final int MY_MASK = UCharacterProperty.TYPE_MASK
         & ((1<<UCharacterCategory.UPPERCASE_LETTER) |
@@ -490,7 +492,8 @@ public final class UCharacterProperty
         new IntProperty(0, BLOCK_MASK_, BLOCK_SHIFT_),
         new CombiningClassIntProperty(SRC_NFC) {  // CANONICAL_COMBINING_CLASS
             int getValue(int c) {
-                return Norm2AllModes.getNFCInstance().decomp.getCombiningClass(c);
+                Normalizer2Impl impl = Norm2AllModes.getNFCInstance().impl;
+                return impl.getCC(impl.getNorm16(c));
             }
         },
         new IntProperty(2, DECOMPOSITION_TYPE_MASK_, 0),
