@@ -261,18 +261,12 @@ public final class ULocale implements Serializable {
      */
     public enum Category {
         /**
-         * Category used to represent the generic default locale.
-         * @internal
-         */
-        BASE,
-        /**
          * Category used to represent the default locale for displaying user interfaces.
          * @stable ICU 49
          */
         DISPLAY,
         /**
-         * Category used to represent the default locale for formatting dates/numbers/currencies,
-         * sorting text, and other locale services.
+         * Category used to represent the default locale for formatting date, number and/or currency.
          * @stable ICU 49
          */
         FORMAT
@@ -417,7 +411,7 @@ public final class ULocale implements Serializable {
         }
         ULocale result = CACHE.get(loc);
         if (result == null) {
-            result = JDKLocaleHelper.INSTANCE.toULocale(loc);
+            result = JDKLocaleHelper.toULocale(loc);
             CACHE.put(loc, result);
         }
         return result;
@@ -523,7 +517,7 @@ public final class ULocale implements Serializable {
      */
     public Locale toLocale() {
         if (locale == null) {
-            locale = JDKLocaleHelper.INSTANCE.toLocale(this);
+            locale = JDKLocaleHelper.toLocale(this);
         }
         return locale;
     }
@@ -533,14 +527,17 @@ public final class ULocale implements Serializable {
     /**
      * Keep our own default ULocale.
      */
-    private static Locale[] defaultLocales = new Locale[Category.values().length];
-    private static ULocale[] defaultULocales = new ULocale[Category.values().length];
+    private static Locale defaultLocale = Locale.getDefault();
+    private static ULocale defaultULocale = forLocale(defaultLocale);
+
+    private static Locale[] defaultCategoryLocales = new Locale[Category.values().length];
+    private static ULocale[] defaultCategoryULocales = new ULocale[Category.values().length];
 
     static {
         for (Category cat: Category.values()) {
             int idx = cat.ordinal();
-            defaultLocales[idx] = JDKLocaleHelper.INSTANCE.getDefault(cat);
-            defaultULocales[idx] = forLocale(defaultLocales[idx]);
+            defaultCategoryLocales[idx] = JDKLocaleHelper.getDefault(cat);
+            defaultCategoryULocales[idx] = forLocale(defaultCategoryLocales[idx]);
         }
     }
 
@@ -550,7 +547,25 @@ public final class ULocale implements Serializable {
      * @stable ICU 2.8
      */
     public static ULocale getDefault() {
-        return getDefault(Category.BASE);
+        synchronized (ULocale.class) {
+            if (defaultULocale == null) {
+                // When Java's default locale has extensions (such as ja-JP-u-ca-japanese),
+                // Locale -> ULocale mapping requires BCP47 keyword mapping data that is currently
+                // stored in a resource bundle. However, UResourceBundle currently requires
+                // non-null default ULocale. For now, this implementation returns ULocale.ROOT
+                // to avoid the problem.
+
+                // TODO: Consider moving BCP47 mapping data out of resource bundle later.
+
+                return ULocale.ROOT;
+            }
+            Locale currentDefault = Locale.getDefault();
+            if (!defaultLocale.equals(currentDefault)) {
+                defaultLocale = currentDefault;
+                defaultULocale = forLocale(currentDefault);
+            }
+            return defaultULocale;
+        }
     }
 
     /**
@@ -558,16 +573,25 @@ public final class ULocale implements Serializable {
      * If the caller does not have write permission to the
      * user.language property, a security exception will be thrown,
      * and the default ULocale will remain unchanged.
+     * <p>
+     * By setting the default ULocale with this method, all of the default categoy locales
+     * are also set to the specified default ULocale.
      * @param newLocale the new default locale
      * @throws SecurityException if a security manager exists and its
      *        <code>checkPermission</code> method doesn't allow the operation.
      * @throws NullPointerException if <code>newLocale</code> is null
      * @see SecurityManager#checkPermission(java.security.Permission)
      * @see java.util.PropertyPermission
+     * @see ULocale#setDefault(Category, ULocale)
      * @stable ICU 3.0
      */
     public static synchronized void setDefault(ULocale newLocale){
-        setDefault(Category.BASE, newLocale);
+        Locale.setDefault(newLocale.toLocale());
+        defaultULocale = newLocale;
+        // This method also updates all category default locales
+        for (Category cat : Category.values()) {
+            setDefault(cat, newLocale);
+        }
     }
 
     /**
@@ -579,24 +603,24 @@ public final class ULocale implements Serializable {
      */
     public static ULocale getDefault(Category category) {
         synchronized (ULocale.class) {
-            Locale currentDefault = JDKLocaleHelper.INSTANCE.getDefault(category);
             int idx = category.ordinal();
-            if (!defaultLocales[idx].equals(currentDefault)) {
-                defaultLocales[idx] = currentDefault;
-                defaultULocales[idx] = forLocale(currentDefault);
-            }
-            if (defaultULocales[idx] == null) {
-                // When Java's default locale has extensions (such as ja-JP-u-ca-japanese),
-                // Locale -> ULocale mapping requires BCP47 keyword mapping data that is currently
-                // stored in a resource bundle. However, UResourceBundle currently requires
-                // non-null default ULocale. For now, this implementation returns ULocale.ROOT
-                // to avoid the problem.
-
-                // TODO: Consider moving BCP47 mapping data out of resource bundle later.
-
+            if (defaultCategoryULocales[idx] == null) {
+                // Just in case this method is called during ULocale class
+                // initialization. Unlike getDefault(), we do not have
+                // cyclic dependency for category default.
                 return ULocale.ROOT;
             }
-            return defaultULocales[idx];
+            if (JDKLocaleHelper.isJava7orNewer()) {
+                Locale currentDefault = JDKLocaleHelper.getDefault(category);
+                if (!defaultCategoryLocales[idx].equals(currentDefault)) {
+                    defaultCategoryLocales[idx] = currentDefault;
+                    defaultCategoryULocales[idx] = forLocale(currentDefault);
+                }
+            } else {
+                // No synchronization with JDK Locale, because category default
+                // is not supported in Java 6 or older versions
+            }
+            return defaultCategoryULocales[idx];
         }
     }
 
@@ -614,8 +638,8 @@ public final class ULocale implements Serializable {
      * @stable ICU 49
      */
     public static synchronized void setDefault(Category category, ULocale newLocale) {
-        JDKLocaleHelper.INSTANCE.setDefault(category, newLocale.toLocale());
-        defaultULocales[category.ordinal()] = newLocale;
+        JDKLocaleHelper.setDefault(category, newLocale.toLocale());
+        defaultCategoryULocales[category.ordinal()] = newLocale;
     }
 
     /**
@@ -3584,8 +3608,6 @@ public final class ULocale implements Serializable {
      * JDK Locale Helper
      */
     private static final class JDKLocaleHelper {
-        public static final JDKLocaleHelper INSTANCE = new JDKLocaleHelper();
-
         private static boolean isJava7orNewer = false;
 
         /*
@@ -3671,15 +3693,19 @@ public final class ULocale implements Serializable {
         private JDKLocaleHelper() {
         }
 
-        public ULocale toULocale(Locale loc) {
+        public static boolean isJava7orNewer() {
+            return isJava7orNewer;
+        }
+
+        public static ULocale toULocale(Locale loc) {
             return isJava7orNewer ? toULocale7(loc) : toULocale6(loc);
         }
 
-        public Locale toLocale(ULocale uloc) {
+        public static Locale toLocale(ULocale uloc) {
             return isJava7orNewer ? toLocale7(uloc) : toLocale6(uloc);
         }
 
-        private ULocale toULocale7(Locale loc) {
+        private static ULocale toULocale7(Locale loc) {
             String language = loc.getLanguage();
             String script = "";
             String country = loc.getCountry();
@@ -3816,7 +3842,7 @@ public final class ULocale implements Serializable {
             return new ULocale(getName(buf.toString()), loc);
         }
 
-        private ULocale toULocale6(Locale loc) {
+        private static ULocale toULocale6(Locale loc) {
             ULocale uloc = null;
             String locStr = loc.toString();
             if (locStr.length() == 0) {
@@ -3835,7 +3861,7 @@ public final class ULocale implements Serializable {
             return uloc;
         }
 
-        private Locale toLocale7(ULocale uloc) {
+        private static Locale toLocale7(ULocale uloc) {
             Locale loc = null;
             String ulocStr = uloc.getName();
             if (uloc.getScript().length() > 0 || ulocStr.contains("@")) {
@@ -3876,7 +3902,7 @@ public final class ULocale implements Serializable {
             return loc;
         }
 
-        private Locale toLocale6(ULocale uloc) {
+        private static Locale toLocale6(ULocale uloc) {
             String locstr = uloc.getBaseName();
             for (int i = 0; i < JAVA6_MAPDATA.length; i++) {
                 if (locstr.equals(JAVA6_MAPDATA[i][1]) || locstr.equals(JAVA6_MAPDATA[i][4])) {
@@ -3897,7 +3923,7 @@ public final class ULocale implements Serializable {
             return new Locale(names[0], names[2], names[3]);
         }
 
-        public Locale getDefault(Category category) {
+        public static Locale getDefault(Category category) {
             Locale loc = Locale.getDefault();
             if (isJava7orNewer) {
                 Object cat = null;
@@ -3924,10 +3950,8 @@ public final class ULocale implements Serializable {
             return loc;
         }
 
-        public void setDefault(Category category, Locale newLocale) {
-            if (category == Category.BASE) {
-                Locale.setDefault(newLocale);
-            } else if (isJava7orNewer) {
+        public static void setDefault(Category category, Locale newLocale) {
+            if (isJava7orNewer) {
                 Object cat = null;
                 switch (category) {
                 case DISPLAY:
