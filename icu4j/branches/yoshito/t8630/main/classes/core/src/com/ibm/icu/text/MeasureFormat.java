@@ -11,6 +11,7 @@
 package com.ibm.icu.text;
 
 import com.ibm.icu.util.ULocale;
+import com.ibm.icu.util.ULocale.Category;
 
 /**
  * A formatter for Measure objects.  This is an abstract base class.
@@ -51,6 +52,6 @@ public abstract class MeasureFormat extends UFormat {
      * @stable ICU 3.0
      */
     public static MeasureFormat getCurrencyFormat() {
-        return getCurrencyFormat(ULocale.getDefault());
+        return getCurrencyFormat(ULocale.getDefault(Category.FORMAT));
     }
 }

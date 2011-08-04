@@ -24,6 +24,7 @@ import com.ibm.icu.text.TimeZoneFormat.Style;
 import com.ibm.icu.text.TimeZoneFormat.TimeType;
 import com.ibm.icu.text.TimeZoneNames;
 import com.ibm.icu.text.TimeZoneNames.NameType;
+import com.ibm.icu.util.ULocale.Category;
 
 /**
  * {@icuenhanced java.util.TimeZone}.{@icu _usage_}
@@ -381,7 +382,7 @@ abstract public class TimeZone implements Serializable, Cloneable {
      * @stable ICU 2.0
      */
     public final String getDisplayName() {
-        return _getDisplayName(LONG_GENERIC, false, ULocale.getDefault());
+        return _getDisplayName(LONG_GENERIC, false, ULocale.getDefault(Category.DISPLAY));
     }
 
     /**
@@ -429,7 +430,7 @@ abstract public class TimeZone implements Serializable, Cloneable {
      * @stable ICU 2.0
      */
     public final String getDisplayName(boolean daylight, int style) {
-        return getDisplayName(daylight, style, ULocale.getDefault());
+        return getDisplayName(daylight, style, ULocale.getDefault(Category.DISPLAY));
     }
 
     /**

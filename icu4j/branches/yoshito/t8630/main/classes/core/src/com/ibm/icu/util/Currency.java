@@ -26,6 +26,7 @@ import com.ibm.icu.text.CurrencyDisplayNames;
 import com.ibm.icu.text.CurrencyMetaInfo;
 import com.ibm.icu.text.CurrencyMetaInfo.CurrencyDigits;
 import com.ibm.icu.text.CurrencyMetaInfo.CurrencyFilter;
+import com.ibm.icu.util.ULocale.Category;
 
 /**
  * A class encapsulating a currency, as defined by ISO 4217.  A
@@ -406,7 +407,7 @@ public class Currency extends MeasureUnit implements Serializable {
      * @stable ICU 3.4
      */
     public String getSymbol() {
-        return getSymbol(ULocale.getDefault());
+        return getSymbol(ULocale.getDefault(Category.DISPLAY));
     }
 
     /**

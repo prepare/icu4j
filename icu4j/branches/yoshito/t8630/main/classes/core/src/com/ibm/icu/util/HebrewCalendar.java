@@ -9,6 +9,7 @@ import java.util.Date;
 import java.util.Locale;
 
 import com.ibm.icu.impl.CalendarCache;
+import com.ibm.icu.util.ULocale.Category;
 
 /**
  * <code>HebrewCalendar</code> is a subclass of <code>Calendar</code>
@@ -278,7 +279,7 @@ public class HebrewCalendar extends Calendar {
      * @stable ICU 2.8
      */
     public HebrewCalendar() {
-        this(TimeZone.getDefault(), ULocale.getDefault());
+        this(TimeZone.getDefault(), ULocale.getDefault(Category.FORMAT));
     }
 
     /**
@@ -289,7 +290,7 @@ public class HebrewCalendar extends Calendar {
      * @stable ICU 2.8
      */
     public HebrewCalendar(TimeZone zone) {
-        this(zone, ULocale.getDefault());
+        this(zone, ULocale.getDefault(Category.FORMAT));
     }
 
     /**
@@ -355,7 +356,7 @@ public class HebrewCalendar extends Calendar {
      * @stable ICU 2.8
      */
     public HebrewCalendar(int year, int month, int date) {
-        super(TimeZone.getDefault(), ULocale.getDefault());
+        super(TimeZone.getDefault(), ULocale.getDefault(Category.FORMAT));
         this.set(YEAR, year);
         this.set(MONTH, month);
         this.set(DATE, date);
@@ -369,7 +370,7 @@ public class HebrewCalendar extends Calendar {
      * @stable ICU 2.8
      */
     public HebrewCalendar(Date date) {
-        super(TimeZone.getDefault(), ULocale.getDefault());
+        super(TimeZone.getDefault(), ULocale.getDefault(Category.FORMAT));
         this.setTime(date);
     }
 
@@ -394,7 +395,7 @@ public class HebrewCalendar extends Calendar {
     public HebrewCalendar(int year, int month, int date, int hour,
                              int minute, int second)
     {
-        super(TimeZone.getDefault(), ULocale.getDefault());
+        super(TimeZone.getDefault(), ULocale.getDefault(Category.FORMAT));
         this.set(YEAR, year);
         this.set(MONTH, month);
         this.set(DATE, date);

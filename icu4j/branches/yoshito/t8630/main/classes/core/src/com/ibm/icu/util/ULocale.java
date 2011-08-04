@@ -563,6 +563,17 @@ public final class ULocale implements Serializable {
             if (!defaultLocale.equals(currentDefault)) {
                 defaultLocale = currentDefault;
                 defaultULocale = forLocale(currentDefault);
+
+                if (!JDKLocaleHelper.isJava7orNewer()) {
+                    // Detected Java default Locale change.
+                    // We need to update category defaults to match the
+                    // Java 7's behavior on Java 6 or older environment.
+                    for (Category cat : Category.values()) {
+                        int idx = cat.ordinal();
+                        defaultCategoryLocales[idx] = currentDefault;
+                        defaultCategoryULocales[idx] = forLocale(currentDefault);
+                    }
+                }
             }
             return defaultULocale;
         }
@@ -611,12 +622,36 @@ public final class ULocale implements Serializable {
                 return ULocale.ROOT;
             }
             if (JDKLocaleHelper.isJava7orNewer()) {
-                Locale currentDefault = JDKLocaleHelper.getDefault(category);
-                if (!defaultCategoryLocales[idx].equals(currentDefault)) {
-                    defaultCategoryLocales[idx] = currentDefault;
-                    defaultCategoryULocales[idx] = forLocale(currentDefault);
+                Locale currentCategoryDefault = JDKLocaleHelper.getDefault(category);
+                if (!defaultCategoryLocales[idx].equals(currentCategoryDefault)) {
+                    defaultCategoryLocales[idx] = currentCategoryDefault;
+                    defaultCategoryULocales[idx] = forLocale(currentCategoryDefault);
                 }
             } else {
+                // java.util.Locale.setDefault(Locale) in Java 7 updates
+                // category locale defaults. On Java 6 or older environment,
+                // ICU4J checks if the default locale has changed and update
+                // category ULocales here if necessary.
+                
+                // Note: When java.util.Locale.setDefault(Locale) is called
+                // with a Locale same with the previous one, Java 7 still
+                // updates category locale defaults. On Java 6 or older env,
+                // there is no good way to detect the event, ICU4J simply
+                // check if the default Java Locale has changed since last
+                // time.
+
+                Locale currentDefault = Locale.getDefault();
+                if (!defaultLocale.equals(currentDefault)) {
+                    defaultLocale = currentDefault;
+                    defaultULocale = forLocale(currentDefault);
+
+                    for (Category cat : Category.values()) {
+                        int tmpIdx = cat.ordinal();
+                        defaultCategoryLocales[tmpIdx] = currentDefault;
+                        defaultCategoryULocales[tmpIdx] = forLocale(currentDefault);
+                    }
+                }
+                
                 // No synchronization with JDK Locale, because category default
                 // is not supported in Java 6 or older versions
             }
@@ -1155,7 +1190,7 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public String getDisplayLanguage() {
-        return getDisplayLanguageInternal(this, getDefault(), false);
+        return getDisplayLanguageInternal(this, getDefault(Category.DISPLAY), false);
     }
 
     /**
@@ -1199,7 +1234,7 @@ public final class ULocale implements Serializable {
      * @stable ICU 4.4
      */
     public String getDisplayLanguageWithDialect() {
-        return getDisplayLanguageInternal(this, getDefault(), true);
+        return getDisplayLanguageInternal(this, getDefault(Category.DISPLAY), true);
     }
 
     /**
@@ -1252,7 +1287,7 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public String getDisplayScript() {
-        return getDisplayScriptInternal(this, getDefault());
+        return getDisplayScriptInternal(this, getDefault(Category.DISPLAY));
     }
 
     /**
@@ -1300,7 +1335,7 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public String getDisplayCountry() {
-        return getDisplayCountryInternal(this, getDefault());
+        return getDisplayCountryInternal(this, getDefault(Category.DISPLAY));
     }
 
     /**
@@ -1349,7 +1384,7 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public String getDisplayVariant() {
-        return getDisplayVariantInternal(this, getDefault());
+        return getDisplayVariantInternal(this, getDefault(Category.DISPLAY));
     }
 
     /**
@@ -1399,7 +1434,7 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public static String getDisplayKeyword(String keyword) {
-        return getDisplayKeywordInternal(keyword, getDefault());
+        return getDisplayKeywordInternal(keyword, getDefault(Category.DISPLAY));
     }
 
     /**
@@ -1437,7 +1472,7 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public String getDisplayKeywordValue(String keyword) {
-        return getDisplayKeywordValueInternal(this, keyword, getDefault());
+        return getDisplayKeywordValueInternal(this, keyword, getDefault(Category.DISPLAY));
     }
 
     /**
@@ -1494,7 +1529,7 @@ public final class ULocale implements Serializable {
      * @stable ICU 3.0
      */
     public String getDisplayName() {
-        return getDisplayNameInternal(this, getDefault());
+        return getDisplayNameInternal(this, getDefault(Category.DISPLAY));
     }
 
     /**
@@ -1542,7 +1577,7 @@ public final class ULocale implements Serializable {
      * @stable ICU 4.4
      */
     public String getDisplayNameWithDialect() {
-        return getDisplayNameWithDialectInternal(this, getDefault());
+        return getDisplayNameWithDialectInternal(this, getDefault(Category.DISPLAY));
     }
 
     /**

@@ -24,6 +24,7 @@ import com.ibm.icu.text.TransliteratorIDParser.SingleID;
 import com.ibm.icu.util.CaseInsensitiveString;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.UResourceBundle;
+import com.ibm.icu.util.ULocale.Category;
 
 /**
  * <code>Transliterator</code> is an abstract class that transliterates text from one format to another. The most common
@@ -1158,7 +1159,7 @@ public abstract class Transliterator implements StringTransform  {
      * @stable ICU 2.0
      */
     public final static String getDisplayName(String ID) {
-        return getDisplayName(ID, ULocale.getDefault());
+        return getDisplayName(ID, ULocale.getDefault(Category.DISPLAY));
     }
 
     /**

@@ -15,6 +15,7 @@ import com.ibm.icu.impl.CalendarAstronomer;
 import com.ibm.icu.impl.CalendarCache;
 import com.ibm.icu.text.ChineseDateFormat;
 import com.ibm.icu.text.DateFormat;
+import com.ibm.icu.util.ULocale.Category;
 
 /**
  * <code>ChineseCalendar</code> is a concrete subclass of {@link Calendar}
@@ -164,7 +165,7 @@ public class ChineseCalendar extends Calendar {
      * @stable ICU 4.0
      */
     public ChineseCalendar(int year, int month, int isLeapMonth, int date) {
-        super(TimeZone.getDefault(), ULocale.getDefault());
+        super(TimeZone.getDefault(), ULocale.getDefault(Category.FORMAT));
 
         // We need to set the current time once to initialize the ChineseCalendar's
         // ERA field to be the current era.
@@ -200,7 +201,7 @@ public class ChineseCalendar extends Calendar {
     public ChineseCalendar(int year, int month, int isLeapMonth, int date, int hour,
                              int minute, int second)
     {
-        super(TimeZone.getDefault(), ULocale.getDefault());
+        super(TimeZone.getDefault(), ULocale.getDefault(Category.FORMAT));
 
         // We need to set the current time once to initialize the ChineseCalendar's
         // ERA field to be the current era.
@@ -234,7 +235,7 @@ public class ChineseCalendar extends Calendar {
      */ 
     public ChineseCalendar(int era, int year, int month, int isLeapMonth, int date) 
     { 
-        super(TimeZone.getDefault(), ULocale.getDefault()); 
+        super(TimeZone.getDefault(), ULocale.getDefault(Category.FORMAT)); 
 
         // We need to set the current time once to initialize the ChineseCalendar's 
         // ERA field to be the current era. 
@@ -274,7 +275,7 @@ public class ChineseCalendar extends Calendar {
     public ChineseCalendar(int era, int year, int month, int isLeapMonth, int date, int hour, 
                            int minute, int second) 
     { 
-        super(TimeZone.getDefault(), ULocale.getDefault()); 
+        super(TimeZone.getDefault(), ULocale.getDefault(Category.FORMAT)); 
 
         // We need to set the current time once to initialize the ChineseCalendar's 
         // ERA field to be the current era. 
@@ -312,7 +313,7 @@ public class ChineseCalendar extends Calendar {
      * @stable ICU 4.0
      */
     public ChineseCalendar(TimeZone zone) {
-        super(zone, ULocale.getDefault());
+        super(zone, ULocale.getDefault(Category.FORMAT));
         setTimeInMillis(System.currentTimeMillis());
     }
 
