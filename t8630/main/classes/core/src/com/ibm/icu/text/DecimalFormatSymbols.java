@@ -24,6 +24,7 @@ import com.ibm.icu.impl.SimpleCache;
 import com.ibm.icu.util.Currency;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.UResourceBundle;
+import com.ibm.icu.util.ULocale.Category;
 
 /**
  * {@icuenhanced java.text.DecimalFormatSymbols}.{@icu _usage_}
@@ -47,7 +48,7 @@ public class DecimalFormatSymbols implements Cloneable, Serializable {
      * @stable ICU 2.0
      */
     public DecimalFormatSymbols() {
-        initialize(ULocale.getDefault());
+        initialize(ULocale.getDefault(Category.FORMAT));
     }
 
     /**

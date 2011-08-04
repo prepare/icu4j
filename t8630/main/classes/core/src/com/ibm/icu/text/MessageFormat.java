@@ -37,6 +37,7 @@ import com.ibm.icu.impl.Utility;
 import com.ibm.icu.text.MessagePattern.ArgType;
 import com.ibm.icu.text.MessagePattern.Part;
 import com.ibm.icu.util.ULocale;
+import com.ibm.icu.util.ULocale.Category;
 
 /**
  * {@icuenhanced java.text.MessageFormat}.{@icu _usage_}
@@ -337,7 +338,7 @@ public class MessageFormat extends UFormat {
      * @stable ICU 3.0
      */
     public MessageFormat(String pattern) {
-        this.ulocale = ULocale.getDefault();
+        this.ulocale = ULocale.getDefault(Category.FORMAT);
         applyPattern(pattern);
     }
 

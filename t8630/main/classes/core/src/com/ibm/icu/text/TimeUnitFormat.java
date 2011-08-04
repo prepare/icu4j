@@ -20,6 +20,7 @@ import com.ibm.icu.util.TimeUnit;
 import com.ibm.icu.util.TimeUnitAmount;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.UResourceBundle;
+import com.ibm.icu.util.ULocale.Category;
 
 
 /**
@@ -323,7 +324,7 @@ public class TimeUnitFormat extends MeasureFormat {
             if (format != null) {
                 locale = format.getLocale(null);
             } else {
-                locale = ULocale.getDefault();
+                locale = ULocale.getDefault(Category.FORMAT);
             }
         }
         if (format == null) {

@@ -18,6 +18,7 @@ import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.UResourceBundle;
 import com.ibm.icu.util.UResourceBundleIterator;
+import com.ibm.icu.util.ULocale.Category;
 
 
 /**
@@ -157,7 +158,7 @@ public class NumberingSystem {
      * @stable ICU 4.2
      */
     public static NumberingSystem getInstance() {
-        return getInstance(ULocale.getDefault());
+        return getInstance(ULocale.getDefault(Category.FORMAT));
     }
 
     /**

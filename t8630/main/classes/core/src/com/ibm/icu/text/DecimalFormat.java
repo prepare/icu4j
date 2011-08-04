@@ -31,6 +31,7 @@ import com.ibm.icu.math.MathContext;
 import com.ibm.icu.util.Currency;
 import com.ibm.icu.util.CurrencyAmount;
 import com.ibm.icu.util.ULocale;
+import com.ibm.icu.util.ULocale.Category;
 
 /**
  * {@icuenhanced java.text.DecimalFormat}.{@icu _usage_}
@@ -615,7 +616,7 @@ public class DecimalFormat extends NumberFormat {
      * @stable ICU 2.0
      */
     public DecimalFormat() {
-        ULocale def = ULocale.getDefault();
+        ULocale def = ULocale.getDefault(Category.FORMAT);
         String pattern = getPattern(def, 0);
         // Always applyPattern after the symbols are set
         this.symbols = new DecimalFormatSymbols(def);
@@ -649,7 +650,7 @@ public class DecimalFormat extends NumberFormat {
      */
     public DecimalFormat(String pattern) {
         // Always applyPattern after the symbols are set
-        ULocale def = ULocale.getDefault();
+        ULocale def = ULocale.getDefault(Category.FORMAT);
         this.symbols = new DecimalFormatSymbols(def);
         setCurrency(Currency.getInstance(def));
         applyPatternWithoutExpandAffix(pattern, false);

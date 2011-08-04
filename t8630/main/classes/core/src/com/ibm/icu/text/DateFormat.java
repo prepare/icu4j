@@ -22,6 +22,7 @@ import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.GregorianCalendar;
 import com.ibm.icu.util.TimeZone;
 import com.ibm.icu.util.ULocale;
+import com.ibm.icu.util.ULocale.Category;
 
 /**
  * {@icuenhanced java.text.DateFormat}.{@icu _usage_}
@@ -913,7 +914,7 @@ public abstract class DateFormat extends UFormat {
      */
     public final static DateFormat getTimeInstance()
     {
-        return get(-1, DEFAULT, ULocale.getDefault());
+        return get(-1, DEFAULT, ULocale.getDefault(Category.FORMAT));
     }
 
     /**
@@ -926,7 +927,7 @@ public abstract class DateFormat extends UFormat {
      */
     public final static DateFormat getTimeInstance(int style)
     {
-        return get(-1, style, ULocale.getDefault());
+        return get(-1, style, ULocale.getDefault(Category.FORMAT));
     }
 
     /**
@@ -967,7 +968,7 @@ public abstract class DateFormat extends UFormat {
      */
     public final static DateFormat getDateInstance()
     {
-        return get(DEFAULT, -1, ULocale.getDefault());
+        return get(DEFAULT, -1, ULocale.getDefault(Category.FORMAT));
     }
 
     /**
@@ -980,7 +981,7 @@ public abstract class DateFormat extends UFormat {
      */
     public final static DateFormat getDateInstance(int style)
     {
-        return get(style, -1, ULocale.getDefault());
+        return get(style, -1, ULocale.getDefault(Category.FORMAT));
     }
 
     /**
@@ -1021,7 +1022,7 @@ public abstract class DateFormat extends UFormat {
      */
     public final static DateFormat getDateTimeInstance()
     {
-        return get(DEFAULT, DEFAULT, ULocale.getDefault());
+        return get(DEFAULT, DEFAULT, ULocale.getDefault(Category.FORMAT));
     }
 
     /**
@@ -1037,7 +1038,7 @@ public abstract class DateFormat extends UFormat {
     public final static DateFormat getDateTimeInstance(int dateStyle,
                                                        int timeStyle)
     {
-        return get(dateStyle, timeStyle, ULocale.getDefault());
+        return get(dateStyle, timeStyle, ULocale.getDefault(Category.FORMAT));
     }
 
     /**
@@ -1434,7 +1435,7 @@ public abstract class DateFormat extends UFormat {
      * @stable ICU 2.0
      */
     static final public DateFormat getInstance(Calendar cal) {
-        return getInstance(cal, ULocale.getDefault());
+        return getInstance(cal, ULocale.getDefault(Category.FORMAT));
     }
 
     /**
@@ -1442,7 +1443,7 @@ public abstract class DateFormat extends UFormat {
      * @stable ICU 2.0
      */
     static final public DateFormat getDateInstance(Calendar cal, int dateStyle) {
-        return getDateInstance(cal, dateStyle, ULocale.getDefault());
+        return getDateInstance(cal, dateStyle, ULocale.getDefault(Category.FORMAT));
     }
 
     /**
@@ -1450,7 +1451,7 @@ public abstract class DateFormat extends UFormat {
      * @stable ICU 2.0
      */
     static final public DateFormat getTimeInstance(Calendar cal, int timeStyle) {
-        return getTimeInstance(cal, timeStyle, ULocale.getDefault());
+        return getTimeInstance(cal, timeStyle, ULocale.getDefault(Category.FORMAT));
     }
 
     /**
@@ -1458,7 +1459,7 @@ public abstract class DateFormat extends UFormat {
      * @stable ICU 2.0
      */
     static final public DateFormat getDateTimeInstance(Calendar cal, int dateStyle, int timeStyle) {
-        return getDateTimeInstance(cal, dateStyle, timeStyle, ULocale.getDefault());
+        return getDateTimeInstance(cal, dateStyle, timeStyle, ULocale.getDefault(Category.FORMAT));
     }
 
     /**
@@ -1466,7 +1467,7 @@ public abstract class DateFormat extends UFormat {
      * @stable ICU 4.0
      */
     public final static DateFormat getPatternInstance(String pattern) {
-        return getPatternInstance(pattern, ULocale.getDefault());
+        return getPatternInstance(pattern, ULocale.getDefault(Category.FORMAT));
     }
 
     /**

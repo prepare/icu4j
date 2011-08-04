@@ -23,6 +23,7 @@ import com.ibm.icu.impl.PatternProps;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.UResourceBundle;
 import com.ibm.icu.util.UResourceBundleIterator;
+import com.ibm.icu.util.ULocale.Category;
 
 
 /**
@@ -614,7 +615,7 @@ public class RuleBasedNumberFormat extends NumberFormat {
      * @stable ICU 2.0
      */
     public RuleBasedNumberFormat(String description) {
-        locale = ULocale.getDefault();
+        locale = ULocale.getDefault(Category.FORMAT);
         init(description, null);
     }
 
@@ -640,7 +641,7 @@ public class RuleBasedNumberFormat extends NumberFormat {
      * @stable ICU 3.2
      */
     public RuleBasedNumberFormat(String description, String[][] localizations) {
-        locale = ULocale.getDefault();
+        locale = ULocale.getDefault(Category.FORMAT);
         init(description, localizations);
     }
 
@@ -815,7 +816,7 @@ public class RuleBasedNumberFormat extends NumberFormat {
      * @stable ICU 2.0
      */
     public RuleBasedNumberFormat(int format) {
-        this(ULocale.getDefault(), format);
+        this(ULocale.getDefault(Category.FORMAT), format);
     }
 
     //-----------------------------------------------------------------------
@@ -911,7 +912,7 @@ public class RuleBasedNumberFormat extends NumberFormat {
         try {
             loc = (ULocale) in.readObject();
         } catch (Exception e) {
-            loc = ULocale.getDefault();
+            loc = ULocale.getDefault(Category.FORMAT);
         }
 
         // build a brand-new RuleBasedNumberFormat from the description,
@@ -963,7 +964,7 @@ public class RuleBasedNumberFormat extends NumberFormat {
 
     private String[] getNameListForLocale(ULocale loc) {
         if (loc != null && ruleSetDisplayNames != null) {
-            String[] localeNames = { loc.getBaseName(), ULocale.getDefault().getBaseName() };
+            String[] localeNames = { loc.getBaseName(), ULocale.getDefault(Category.DISPLAY).getBaseName() };
             for (int i = 0; i < localeNames.length; ++i) {
                 String lname = localeNames[i];
                 while (lname.length() > 0) {
@@ -1007,7 +1008,7 @@ public class RuleBasedNumberFormat extends NumberFormat {
      * @stable ICU 3.2
      */
     public String[] getRuleSetDisplayNames() {
-        return getRuleSetDisplayNames(ULocale.getDefault());
+        return getRuleSetDisplayNames(ULocale.getDefault(Category.DISPLAY));
     }
 
     /**
@@ -1040,7 +1041,7 @@ public class RuleBasedNumberFormat extends NumberFormat {
      * @stable ICU 3.2
      */
     public String getRuleSetDisplayName(String ruleSetName) {
-        return getRuleSetDisplayName(ruleSetName, ULocale.getDefault());
+        return getRuleSetDisplayName(ruleSetName, ULocale.getDefault(Category.DISPLAY));
     }
 
     /**
