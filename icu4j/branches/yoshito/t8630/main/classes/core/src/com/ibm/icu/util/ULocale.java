@@ -673,8 +673,11 @@ public final class ULocale implements Serializable {
      * @stable ICU 49
      */
     public static synchronized void setDefault(Category category, ULocale newLocale) {
-        JDKLocaleHelper.setDefault(category, newLocale.toLocale());
-        defaultCategoryULocales[category.ordinal()] = newLocale;
+        Locale newJavaDefault = newLocale.toLocale();
+        int idx = category.ordinal();
+        defaultCategoryULocales[idx] = newLocale;
+        defaultCategoryLocales[idx] = newJavaDefault;
+        JDKLocaleHelper.setDefault(category, newJavaDefault);
     }
 
     /**
