@@ -117,7 +117,14 @@ public final class CollationElementIterator
      * @see #next
      * @see #previous */
     public final static int NULLORDER = 0xffffffff;
-
+    /**
+     * This indicates an error has occurred during processing or there are no more CEs 
+     * to be returned.
+     *
+     * @internal
+     */
+    public final static long PROCESSED_NULLORDER = 9223372036854775807L;
+    
     /**
      * <p>This constant is returned by the iterator in the methods
      * next() and previous() when a collation element result is to be
