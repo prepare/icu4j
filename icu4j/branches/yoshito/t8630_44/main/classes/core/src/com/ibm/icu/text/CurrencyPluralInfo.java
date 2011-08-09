@@ -14,6 +14,7 @@ import java.util.Map;
 
 import com.ibm.icu.impl.CurrencyData;
 import com.ibm.icu.util.ULocale;
+import com.ibm.icu.util.ULocale.Category;
 
 /**
  * This class represents the information needed by
@@ -41,7 +42,7 @@ public class CurrencyPluralInfo implements Cloneable, Serializable {
      * @stable ICU 4.2
      */
     public CurrencyPluralInfo() {
-        initialize(ULocale.getDefault());
+        initialize(ULocale.getDefault(Category.FORMAT));
     }
 
     /**
