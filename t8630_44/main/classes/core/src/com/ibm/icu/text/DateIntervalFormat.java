@@ -21,6 +21,7 @@ import com.ibm.icu.text.DateIntervalInfo.PatternInfo;
 import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.DateInterval;
 import com.ibm.icu.util.ULocale;
+import com.ibm.icu.util.ULocale.Category;
 
 
 /**
@@ -362,7 +363,7 @@ public class DateIntervalFormat extends UFormat {
         getInstance(String skeleton)
                                                  
     {
-        return getInstance(skeleton, ULocale.getDefault());
+        return getInstance(skeleton, ULocale.getDefault(Category.FORMAT));
     }
 
 
@@ -438,7 +439,7 @@ public class DateIntervalFormat extends UFormat {
     public static final DateIntervalFormat getInstance(String skeleton, 
                                                    DateIntervalInfo dtitvinf)
     {
-        return getInstance(skeleton, ULocale.getDefault(), dtitvinf);
+        return getInstance(skeleton, ULocale.getDefault(Category.FORMAT), dtitvinf);
     }
 
 

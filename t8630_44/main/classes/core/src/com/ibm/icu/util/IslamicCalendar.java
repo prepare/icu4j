@@ -10,6 +10,7 @@ import java.util.Locale;
 
 import com.ibm.icu.impl.CalendarAstronomer;
 import com.ibm.icu.impl.CalendarCache;
+import com.ibm.icu.util.ULocale.Category;
 
 /**
  * <code>IslamicCalendar</code> is a subclass of <code>Calendar</code>
@@ -168,7 +169,7 @@ public class IslamicCalendar extends Calendar {
      */
     public IslamicCalendar()
     {
-        this(TimeZone.getDefault(), ULocale.getDefault());
+        this(TimeZone.getDefault(), ULocale.getDefault(Category.FORMAT));
     }
 
     /**
@@ -179,7 +180,7 @@ public class IslamicCalendar extends Calendar {
      */
     public IslamicCalendar(TimeZone zone)
     {
-        this(zone, ULocale.getDefault());
+        this(zone, ULocale.getDefault(Category.FORMAT));
     }
 
     /**
@@ -242,7 +243,7 @@ public class IslamicCalendar extends Calendar {
      * @stable ICU 2.8
      */
     public IslamicCalendar(Date date) {
-        super(TimeZone.getDefault(), ULocale.getDefault());
+        super(TimeZone.getDefault(), ULocale.getDefault(Category.FORMAT));
         this.setTime(date);
     }
 
@@ -258,7 +259,7 @@ public class IslamicCalendar extends Calendar {
      */
     public IslamicCalendar(int year, int month, int date)
     {
-        super(TimeZone.getDefault(), ULocale.getDefault());
+        super(TimeZone.getDefault(), ULocale.getDefault(Category.FORMAT));
         this.set(Calendar.YEAR, year);
         this.set(Calendar.MONTH, month);
         this.set(Calendar.DATE, date);
@@ -283,7 +284,7 @@ public class IslamicCalendar extends Calendar {
     public IslamicCalendar(int year, int month, int date, int hour,
                              int minute, int second)
     {
-        super(TimeZone.getDefault(), ULocale.getDefault());
+        super(TimeZone.getDefault(), ULocale.getDefault(Category.FORMAT));
         this.set(Calendar.YEAR, year);
         this.set(Calendar.MONTH, month);
         this.set(Calendar.DATE, date);
