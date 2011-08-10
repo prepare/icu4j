@@ -38,6 +38,7 @@ import com.ibm.icu.util.HebrewCalendar;
 import com.ibm.icu.util.TimeZone;
 import com.ibm.icu.util.TimeZoneTransition;
 import com.ibm.icu.util.ULocale;
+import com.ibm.icu.util.ULocale.Category;
 
 
 /**
@@ -499,7 +500,7 @@ public class SimpleDateFormat extends DateFormat {
      */
     private void initialize() {
         if (locale == null) {
-            locale = ULocale.getDefault();
+            locale = ULocale.getDefault(Category.FORMAT);
         }
         if (formatData == null) {
             formatData = new DateFormatSymbols(locale);
@@ -541,7 +542,7 @@ public class SimpleDateFormat extends DateFormat {
      * This method is only used by the default SimpleDateFormat constructor.
      */
     private static synchronized String getDefaultPattern() {
-        ULocale defaultLocale = ULocale.getDefault();
+        ULocale defaultLocale = ULocale.getDefault(Category.FORMAT);
         if (!defaultLocale.equals(cachedDefaultLocale)) {
             cachedDefaultLocale = defaultLocale;
             Calendar cal = Calendar.getInstance(cachedDefaultLocale);

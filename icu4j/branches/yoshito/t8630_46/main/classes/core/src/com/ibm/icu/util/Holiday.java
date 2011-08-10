@@ -12,6 +12,8 @@ import java.util.Locale;
 import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 
+import com.ibm.icu.util.ULocale.Category;
+
 /**
  * <b>Note:</b> The Holiday framework is a technology preview.
  * Despite its age, is still draft API, and clients should treat it as such.
@@ -28,7 +30,7 @@ public abstract class Holiday implements DateRule
      */
     public static Holiday[] getHolidays()
     {
-        return getHolidays(ULocale.getDefault());
+        return getHolidays(ULocale.getDefault(Category.FORMAT));
     }
 
     /**
@@ -143,7 +145,7 @@ public abstract class Holiday implements DateRule
      * @provisional This API might change or be removed in a future release.
      */
     public String getDisplayName() {
-        return getDisplayName(ULocale.getDefault());
+        return getDisplayName(ULocale.getDefault(Category.DISPLAY));
     }
 
     /**

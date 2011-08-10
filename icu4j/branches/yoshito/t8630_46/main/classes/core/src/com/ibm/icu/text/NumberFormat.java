@@ -26,6 +26,7 @@ import com.ibm.icu.util.Currency;
 import com.ibm.icu.util.CurrencyAmount;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.UResourceBundle;
+import com.ibm.icu.util.ULocale.Category;
 
 /**
  * {@icuenhanced java.text.NumberFormat}.{@icu _usage_}
@@ -507,7 +508,7 @@ public abstract class NumberFormat extends UFormat {
      */
     //Bug 4408066 [Richard/GCL]
     public final static NumberFormat getInstance() {
-        return getInstance(ULocale.getDefault(), NUMBERSTYLE);
+        return getInstance(ULocale.getDefault(Category.FORMAT), NUMBERSTYLE);
     }
 
     /**
@@ -538,7 +539,7 @@ public abstract class NumberFormat extends UFormat {
      * @stable ICU 4.2
      */
     public final static NumberFormat getInstance(int style) {
-        return getInstance(ULocale.getDefault(), style);
+        return getInstance(ULocale.getDefault(Category.FORMAT), style);
     }
 
     /**
@@ -557,7 +558,7 @@ public abstract class NumberFormat extends UFormat {
      * @stable ICU 2.0
      */
     public final static NumberFormat getNumberInstance() {
-        return getInstance(ULocale.getDefault(), NUMBERSTYLE);
+        return getInstance(ULocale.getDefault(Category.FORMAT), NUMBERSTYLE);
     }
 
     /**
@@ -589,7 +590,7 @@ public abstract class NumberFormat extends UFormat {
      */
     //Bug 4408066 [Richard/GCL]
     public final static NumberFormat getIntegerInstance() {
-        return getInstance(ULocale.getDefault(), INTEGERSTYLE);
+        return getInstance(ULocale.getDefault(Category.FORMAT), INTEGERSTYLE);
     }
 
     /**
@@ -631,7 +632,7 @@ public abstract class NumberFormat extends UFormat {
      * @stable ICU 2.0
      */
     public final static NumberFormat getCurrencyInstance() {
-        return getInstance(ULocale.getDefault(), CURRENCYSTYLE);
+        return getInstance(ULocale.getDefault(Category.FORMAT), CURRENCYSTYLE);
     }
 
     /**
@@ -658,7 +659,7 @@ public abstract class NumberFormat extends UFormat {
      * @stable ICU 2.0
      */
     public final static NumberFormat getPercentInstance() {
-        return getInstance(ULocale.getDefault(), PERCENTSTYLE);
+        return getInstance(ULocale.getDefault(Category.FORMAT), PERCENTSTYLE);
     }
 
     /**
@@ -685,7 +686,7 @@ public abstract class NumberFormat extends UFormat {
      * @stable ICU 2.0
      */
     public final static NumberFormat getScientificInstance() {
-        return getInstance(ULocale.getDefault(), SCIENTIFICSTYLE);
+        return getInstance(ULocale.getDefault(Category.FORMAT), SCIENTIFICSTYLE);
     }
 
     /**
@@ -1197,7 +1198,7 @@ public abstract class NumberFormat extends UFormat {
         if (c == null) {
             ULocale uloc = getLocale(ULocale.VALID_LOCALE);
             if (uloc == null) {
-                uloc = ULocale.getDefault();
+                uloc = ULocale.getDefault(Category.FORMAT);
             }
             c = Currency.getInstance(uloc);
         }
