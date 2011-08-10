@@ -66,37 +66,7 @@ public final class MessagePatternUtil {
    * @provisional This API might change or be removed in a future release.
    */
   public static class Node {
-    /**
-     * @return the MessagePattern's Part index for the start Part for this node;
-     *         -1 if there is no corresponding Part (e.g., for TEXT).
-     * @draft ICU 49
-     * @provisional This API might change or be removed in a future release.
-     */
-    public int getStartPartIndex() {
-      return start;
-    }
-    /**
-     * Returns the same index as {@link #getStartPartIndex()} for simple nodes.
-     * @return the MessagePattern's Part index for the limit Part for this node
-     * @draft ICU 49
-     * @provisional This API might change or be removed in a future release.
-     */
-    public int getLimitPartIndex() {
-      return limit;
-    }
-    // TODO(API): see if the start/limit part indexes (and other Part indexes in other classes)
-    // are useful
-    // TODO(API): need/want getParent()?
-
-    private Node(int start, int limit) {
-      this.start = start;
-      this.limit = limit;
-    }
-
-    // TODO(impl): should each Node have a reference to its MessagePattern?
-    // TODO(impl): should field values be dynamically fetched from the MessagePattern as much as possible?
-    int start;
-    int limit;
+    private Node() {}
   }
 
   /**
@@ -123,8 +93,8 @@ public final class MessagePatternUtil {
       return list.toString();
     }
 
-    private MessageNode(int start, int limit) {
-      super(start, limit);
+    private MessageNode() {
+      super();
     }
     private void addContentsNode(MessageContentsNode node) {
       if (node instanceof TextNode && !list.isEmpty()) {
@@ -197,12 +167,12 @@ public final class MessagePatternUtil {
       return "{REPLACE_NUMBER}";
     }
 
-    private MessageContentsNode(int start, int limit, Type type) {
-      super(start, limit);
+    private MessageContentsNode(Type type) {
+      super();
       this.type = type;
     }
-    private static MessageContentsNode createReplaceNumberNode(int start) {
-      return new MessageContentsNode(start, start, Type.REPLACE_NUMBER);
+    private static MessageContentsNode createReplaceNumberNode() {
+      return new MessageContentsNode(Type.REPLACE_NUMBER);
     }
 
     private Type type;
@@ -233,7 +203,7 @@ public final class MessagePatternUtil {
     }
 
     private TextNode(String text) {
-      super(-1, -1, Type.TEXT);
+      super(Type.TEXT);
       this.text = text;
     }
 
@@ -318,11 +288,11 @@ public final class MessagePatternUtil {
       return sb.append('}').toString();
     }
 
-    private ArgNode(int start, int limit) {
-      super(start, limit, Type.ARG);
+    private ArgNode() {
+      super(Type.ARG);
     }
-    private static ArgNode createArgNode(int start, int limit) {
-      return new ArgNode(start, limit);
+    private static ArgNode createArgNode() {
+      return new ArgNode();
     }
 
     private MessagePattern.ArgType argType;
@@ -354,7 +324,7 @@ public final class MessagePatternUtil {
      * @provisional This API might change or be removed in a future release.
      */
     public boolean hasExplicitOffset() {
-      return offsetPartIndex >= 0;
+      return explicitOffset;
     }
     /**
      * @return the plural offset, or 0 if this is not a plural style or
@@ -364,16 +334,6 @@ public final class MessagePatternUtil {
      */
     public double getOffset() {
       return offset;
-    }
-    /**
-     * @return the plural offset Part index, or -1 if there is none
-     * @draft ICU 49
-     * @provisional This API might change or be removed in a future release.
-     */
-    public int getOffsetPartIndex() {
-      // TODO(API): If part indexes are not otherwise useful,
-      // then we only need hasExplicitOffset() (above) instead of this method.
-      return offsetPartIndex;
     }
     /**
      * @return the list of variants: the nested messages with their selection criteria
@@ -434,8 +394,8 @@ public final class MessagePatternUtil {
       return sb.append(list.toString()).toString();
     }
 
-    private ComplexArgStyleNode(int start, int limit, MessagePattern.ArgType argType) {
-      super(start, limit);
+    private ComplexArgStyleNode(MessagePattern.ArgType argType) {
+      super();
       this.argType = argType;
     }
     private void addVariant(VariantNode variant) {
@@ -448,7 +408,7 @@ public final class MessagePatternUtil {
 
     private MessagePattern.ArgType argType;
     private double offset;
-    private int offsetPartIndex = -1;
+    private boolean explicitOffset;
     private List<VariantNode> list = new ArrayList<VariantNode>();
   }
 
@@ -510,10 +470,9 @@ public final class MessagePatternUtil {
       return sb.append(msgNode.toString()).append('}').toString();
     }
 
-    private VariantNode(int start, int limit) {
-      super(start, limit);
+    private VariantNode() {
+      super();
     }
-    // TODO: Do these part indexes make sense for this class?
 
     private String selector;
     private double numericValue = MessagePattern.NO_NUMERIC_VALUE;
@@ -522,7 +481,7 @@ public final class MessagePatternUtil {
 
   private static MessageNode buildMessageNode(MessagePattern pattern, int start, int limit) {
     int prevPatternIndex = pattern.getPart(start).getLimit();
-    MessageNode node = new MessageNode(start, limit);
+    MessageNode node = new MessageNode();
     for (int i = start + 1;; ++i) {
       MessagePattern.Part part = pattern.getPart(i);
       int patternIndex = part.getIndex();
@@ -540,7 +499,7 @@ public final class MessagePatternUtil {
         i = argLimit;
         part = pattern.getPart(i);
       } else if (partType == MessagePattern.Part.Type.REPLACE_NUMBER) {
-        node.addContentsNode(MessageContentsNode.createReplaceNumberNode(i));
+        node.addContentsNode(MessageContentsNode.createReplaceNumberNode());
       // else: ignore SKIP_SYNTAX and INSERT_CHAR parts.
       }
       prevPatternIndex = part.getLimit();
@@ -549,7 +508,7 @@ public final class MessagePatternUtil {
   }
 
   private static ArgNode buildArgNode(MessagePattern pattern, int start, int limit) {
-    ArgNode node = ArgNode.createArgNode(start, limit);
+    ArgNode node = ArgNode.createArgNode();
     MessagePattern.Part part = pattern.getPart(start);
     MessagePattern.ArgType argType = node.argType = part.getArgType();
     part = pattern.getPart(++start);  // ARG_NAME or ARG_NUMBER
@@ -588,14 +547,14 @@ public final class MessagePatternUtil {
 
   private static ComplexArgStyleNode buildChoiceStyleNode(MessagePattern pattern,
                                                           int start, int limit) {
-    ComplexArgStyleNode node = new ComplexArgStyleNode(start, limit, MessagePattern.ArgType.CHOICE);
+    ComplexArgStyleNode node = new ComplexArgStyleNode(MessagePattern.ArgType.CHOICE);
     while (start < limit) {
       int valueIndex = start;
       MessagePattern.Part part = pattern.getPart(start);
       double value = pattern.getNumericValue(part);
       start += 2;
       int msgLimit = pattern.getLimitPartIndex(start);
-      VariantNode variant = new VariantNode(valueIndex, msgLimit);
+      VariantNode variant = new VariantNode();
       variant.selector = pattern.getSubstring(pattern.getPart(valueIndex + 1));
       variant.numericValue = value;
       variant.msgNode = buildMessageNode(pattern, start, msgLimit);
@@ -607,14 +566,14 @@ public final class MessagePatternUtil {
 
   private static ComplexArgStyleNode buildPluralStyleNode(MessagePattern pattern,
                                                           int start, int limit) {
-    ComplexArgStyleNode node = new ComplexArgStyleNode(start, limit, MessagePattern.ArgType.PLURAL);
+    ComplexArgStyleNode node = new ComplexArgStyleNode(MessagePattern.ArgType.PLURAL);
     MessagePattern.Part offset = pattern.getPart(start);
     if (offset.getType().hasNumericValue()) {
-      node.offsetPartIndex = start++;
+      node.explicitOffset = true;
       node.offset = pattern.getNumericValue(offset);
+      ++start;
     }
     while (start < limit) {
-      int selectorIndex = start;
       MessagePattern.Part selector = pattern.getPart(start++);
       double value = MessagePattern.NO_NUMERIC_VALUE;
       MessagePattern.Part part = pattern.getPart(start);
@@ -623,7 +582,7 @@ public final class MessagePatternUtil {
         ++start;
       }
       int msgLimit = pattern.getLimitPartIndex(start);
-      VariantNode variant = new VariantNode(selectorIndex, msgLimit);
+      VariantNode variant = new VariantNode();
       variant.selector = pattern.getSubstring(selector);
       variant.numericValue = value;
       variant.msgNode = buildMessageNode(pattern, start, msgLimit);
@@ -635,12 +594,11 @@ public final class MessagePatternUtil {
 
   private static ComplexArgStyleNode buildSelectStyleNode(MessagePattern pattern,
                                                           int start, int limit) {
-    ComplexArgStyleNode node = new ComplexArgStyleNode(start, limit, MessagePattern.ArgType.SELECT);
+    ComplexArgStyleNode node = new ComplexArgStyleNode(MessagePattern.ArgType.SELECT);
     while (start < limit) {
-      int selectorIndex = start;
       MessagePattern.Part selector = pattern.getPart(start++);
       int msgLimit = pattern.getLimitPartIndex(start);
-      VariantNode variant = new VariantNode(selectorIndex, msgLimit);
+      VariantNode variant = new VariantNode();
       variant.selector = pattern.getSubstring(selector);
       variant.msgNode = buildMessageNode(pattern, start, msgLimit);
       node.addVariant(variant);
