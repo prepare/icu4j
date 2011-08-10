@@ -8,6 +8,8 @@ package com.ibm.icu.util;
 import java.util.Date;
 import java.util.Locale;
 
+import com.ibm.icu.util.ULocale.Category;
+
 /**
  * {@icuenhanced java.util.GregorianCalendar}.{@icu _usage_}
  *
@@ -331,7 +333,7 @@ public class GregorianCalendar extends Calendar {
      * @stable ICU 2.0
      */
     public GregorianCalendar() {
-        this(TimeZone.getDefault(), ULocale.getDefault());
+        this(TimeZone.getDefault(), ULocale.getDefault(Category.FORMAT));
     }
 
     /**
@@ -341,7 +343,7 @@ public class GregorianCalendar extends Calendar {
      * @stable ICU 2.0
      */
     public GregorianCalendar(TimeZone zone) {
-        this(zone, ULocale.getDefault());
+        this(zone, ULocale.getDefault(Category.FORMAT));
     }
 
     /**
@@ -398,7 +400,7 @@ public class GregorianCalendar extends Calendar {
      * @stable ICU 2.0
      */
     public GregorianCalendar(int year, int month, int date) {
-        super(TimeZone.getDefault(), ULocale.getDefault());
+        super(TimeZone.getDefault(), ULocale.getDefault(Category.FORMAT));
         set(ERA, AD);
         set(YEAR, year);
         set(MONTH, month);
@@ -420,7 +422,7 @@ public class GregorianCalendar extends Calendar {
      */
     public GregorianCalendar(int year, int month, int date, int hour,
                              int minute) {
-        super(TimeZone.getDefault(), ULocale.getDefault());
+        super(TimeZone.getDefault(), ULocale.getDefault(Category.FORMAT));
         set(ERA, AD);
         set(YEAR, year);
         set(MONTH, month);
@@ -446,7 +448,7 @@ public class GregorianCalendar extends Calendar {
      */
     public GregorianCalendar(int year, int month, int date, int hour,
                              int minute, int second) {
-        super(TimeZone.getDefault(), ULocale.getDefault());
+        super(TimeZone.getDefault(), ULocale.getDefault(Category.FORMAT));
         set(ERA, AD);
         set(YEAR, year);
         set(MONTH, month);

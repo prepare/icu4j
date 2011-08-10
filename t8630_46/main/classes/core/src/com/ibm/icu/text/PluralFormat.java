@@ -16,6 +16,7 @@ import java.util.Set;
 
 import com.ibm.icu.impl.UCharacterProperty;
 import com.ibm.icu.util.ULocale;
+import com.ibm.icu.util.ULocale.Category;
 
 /**
  * <p>
@@ -189,7 +190,7 @@ public class PluralFormat extends UFormat {
      * @stable ICU 3.8
      */
     public PluralFormat() {
-        init(null, ULocale.getDefault());
+        init(null, ULocale.getDefault(Category.FORMAT));
     }
 
     /**
@@ -211,7 +212,7 @@ public class PluralFormat extends UFormat {
      * @stable ICU 3.8
      */
     public PluralFormat(PluralRules rules) {
-        init(rules, ULocale.getDefault());
+        init(rules, ULocale.getDefault(Category.FORMAT));
     }
 
     /**
@@ -236,7 +237,7 @@ public class PluralFormat extends UFormat {
      * @stable ICU 3.8
      */
     public PluralFormat(String pattern) {
-        init(null, ULocale.getDefault());
+        init(null, ULocale.getDefault(Category.FORMAT));
         applyPattern(pattern);
     }
 
@@ -268,7 +269,7 @@ public class PluralFormat extends UFormat {
      * @stable ICU 3.8
      */
     public PluralFormat(PluralRules rules, String pattern) {
-        init(rules, ULocale.getDefault());
+        init(rules, ULocale.getDefault(Category.FORMAT));
         applyPattern(pattern);
     }
 
@@ -515,7 +516,7 @@ public class PluralFormat extends UFormat {
      */
     public void setLocale(ULocale ulocale) {
         if (ulocale == null) {
-            ulocale = ULocale.getDefault();
+            ulocale = ULocale.getDefault(Category.FORMAT);
         }
         init(null, ulocale);
     }
@@ -556,7 +557,7 @@ public class PluralFormat extends UFormat {
      */
     private void parsingFailure(String errorText) {
         // Set PluralFormat to a valid state.
-        init(null, ULocale.getDefault());
+        init(null, ULocale.getDefault(Category.FORMAT));
         throw new IllegalArgumentException(errorText);
     }
 

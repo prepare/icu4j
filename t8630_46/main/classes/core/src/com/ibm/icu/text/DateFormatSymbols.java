@@ -26,6 +26,7 @@ import com.ibm.icu.impl.ZoneStringFormat;
 import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.UResourceBundle;
+import com.ibm.icu.util.ULocale.Category;
 
 /**
  * {@icuenhanced java.text.DateFormatSymbols}.{@icu _usage_}
@@ -135,7 +136,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      */
     public DateFormatSymbols()
     {
-        this(ULocale.getDefault());
+        this(ULocale.getDefault(Category.FORMAT));
     }
 
     /**

@@ -10,6 +10,7 @@ import java.util.MissingResourceException;
 
 import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.text.UnicodeSet;
+import com.ibm.icu.util.ULocale.Category;
 
 /**
  * A class for accessing miscelleneous data in the locale bundles
@@ -195,7 +196,7 @@ public final class LocaleData {
      * @stable ICU 3.4
      */
     public static final LocaleData getInstance() {
-       return LocaleData.getInstance(ULocale.getDefault());
+       return LocaleData.getInstance(ULocale.getDefault(Category.FORMAT));
     }
 
     /**

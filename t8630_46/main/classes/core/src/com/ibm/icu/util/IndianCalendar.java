@@ -10,6 +10,8 @@ package com.ibm.icu.util;
 import java.util.Date;
 import java.util.Locale;
 
+import com.ibm.icu.util.ULocale.Category;
+
 /**
  * <code>IndianCalendar</code> is a subclass of <code>GregorianCalendar</code>
  * that numbers years since the birth of the Buddha.  This is the civil calendar
@@ -157,7 +159,7 @@ public class IndianCalendar extends Calendar {
      * @stable ICU 3.8
      */
     public IndianCalendar() {
-       this(TimeZone.getDefault(), ULocale.getDefault());
+       this(TimeZone.getDefault(), ULocale.getDefault(Category.FORMAT));
     }
 
     /**
@@ -168,7 +170,7 @@ public class IndianCalendar extends Calendar {
      * @stable ICU 3.8
      */
     public IndianCalendar(TimeZone zone) {
-       this(zone, ULocale.getDefault());
+       this(zone, ULocale.getDefault(Category.FORMAT));
     }
 
     /**
@@ -229,7 +231,7 @@ public class IndianCalendar extends Calendar {
      * @stable ICU 3.8
      */
     public IndianCalendar(Date date) {
-        super(TimeZone.getDefault(), ULocale.getDefault());
+        super(TimeZone.getDefault(), ULocale.getDefault(Category.FORMAT));
         this.setTime(date);
     }
 
@@ -246,7 +248,7 @@ public class IndianCalendar extends Calendar {
      * @stable ICU 3.8
      */
     public IndianCalendar(int year, int month, int date) {
-       super(TimeZone.getDefault(), ULocale.getDefault());
+       super(TimeZone.getDefault(), ULocale.getDefault(Category.FORMAT));
        this.set(Calendar.YEAR, year);
        this.set(Calendar.MONTH, month);
        this.set(Calendar.DATE, date);
@@ -274,7 +276,7 @@ public class IndianCalendar extends Calendar {
     public IndianCalendar(int year, int month, int date, int hour,
                              int minute, int second)
     {
-       super(TimeZone.getDefault(), ULocale.getDefault());
+       super(TimeZone.getDefault(), ULocale.getDefault(Category.FORMAT));
        this.set(Calendar.YEAR, year);
        this.set(Calendar.MONTH, month);
        this.set(Calendar.DATE, date);

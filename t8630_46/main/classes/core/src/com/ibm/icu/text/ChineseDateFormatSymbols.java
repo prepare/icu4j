@@ -12,6 +12,7 @@ import com.ibm.icu.impl.CalendarData;
 import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.ChineseCalendar;
 import com.ibm.icu.util.ULocale;
+import com.ibm.icu.util.ULocale.Category;
 
 /**
  * A subclass of {@link DateFormatSymbols} for {@link ChineseDateFormat}.
@@ -38,7 +39,7 @@ public class ChineseDateFormatSymbols extends DateFormatSymbols {
      * @stable ICU 2.0
      */
     public ChineseDateFormatSymbols() {
-        this(ULocale.getDefault());
+        this(ULocale.getDefault(Category.FORMAT));
     }
 
     /**
