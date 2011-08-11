@@ -349,14 +349,15 @@ public class DateIntervalFormat extends UFormat {
 
 
     /**
-     * Construct a DateIntervalFormat from skeleton and  the default locale.
+     * Construct a DateIntervalFormat from skeleton and  the default <code>FORMAT</code> locale.
      *
      * This is a convenient override of 
      * getInstance(String skeleton, ULocale locale)  
-     * with the value of locale as default locale.
+     * with the value of locale as default <code>FORMAT</code> locale.
      *
      * @param skeleton  the skeleton on which interval format based.
      * @return          a date time interval formatter.
+     * @see Category#FORMAT
      * @stable ICU 4.0
      */
     public static final DateIntervalFormat 
@@ -425,15 +426,16 @@ public class DateIntervalFormat extends UFormat {
 
     /**
      * Construct a DateIntervalFormat from skeleton
-     *  DateIntervalInfo, and default locale.
+     *  DateIntervalInfo, and the default <code>FORMAT</code> locale.
      *
      * This is a convenient override of
      * getInstance(String skeleton, ULocale locale, DateIntervalInfo dtitvinf)
-     * with the locale value as default locale.
+     * with the locale value as default <code>FORMAT</code> locale.
      *
      * @param skeleton  the skeleton on which interval format based.
      * @param dtitvinf  the DateIntervalInfo object to be adopted.
      * @return          a date time interval formatter.
+     * @see Category#FORMAT
      * @stable ICU 4.0
      */
     public static final DateIntervalFormat getInstance(String skeleton, 

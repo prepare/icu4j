@@ -44,7 +44,8 @@ import com.ibm.icu.util.ULocale.Category;
  */
 public class DecimalFormatSymbols implements Cloneable, Serializable {
     /**
-     * Creates a DecimalFormatSymbols object for the default locale.
+     * Creates a DecimalFormatSymbols object for the default <code>FORMAT</code> locale.
+     * @see Category#FORMAT
      * @stable ICU 2.0
      */
     public DecimalFormatSymbols() {

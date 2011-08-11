@@ -190,9 +190,10 @@ public final class LocaleData {
     }
     
     /**
-     * Gets the LocaleData object associated with the default locale
+     * Gets the LocaleData object associated with the default <code>FORMAT</code> locale
      *
      * @return          A locale data object.
+     * @see Category#FORMAT
      * @stable ICU 3.4
      */
     public static final LocaleData getInstance() {

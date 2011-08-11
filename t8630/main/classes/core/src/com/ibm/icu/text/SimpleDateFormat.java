@@ -368,11 +368,12 @@ public class SimpleDateFormat extends DateFormat {
     private volatile TimeZoneFormat tzFormat;
 
     /**
-     * Constructs a SimpleDateFormat using the default pattern for the default
+     * Constructs a SimpleDateFormat using the default pattern for the default <code>FORMAT</code>
      * locale.  <b>Note:</b> Not all locales support SimpleDateFormat; for full
      * generality, use the factory methods in the DateFormat class.
      *
      * @see DateFormat
+     * @see Category#FORMAT
      * @stable ICU 2.0
      */
     public SimpleDateFormat() {
@@ -380,9 +381,10 @@ public class SimpleDateFormat extends DateFormat {
     }
 
     /**
-     * Constructs a SimpleDateFormat using the given pattern in the default
+     * Constructs a SimpleDateFormat using the given pattern in the default <code>FORMAT</code>
      * locale.  <b>Note:</b> Not all locales support SimpleDateFormat; for full
      * generality, use the factory methods in the DateFormat class.
+     * @see Category#FORMAT
      * @stable ICU 2.0
      */
     public SimpleDateFormat(String pattern)
@@ -433,7 +435,7 @@ public class SimpleDateFormat extends DateFormat {
     /**
      * Constructs a SimpleDateFormat using the given pattern and
      * locale-specific symbol data.
-     * Warning: uses default locale for digits!
+     * Warning: uses default <code>FORMAT</code> locale for digits!
      * @stable ICU 2.0
      */
     public SimpleDateFormat(String pattern, DateFormatSymbols formatData)
