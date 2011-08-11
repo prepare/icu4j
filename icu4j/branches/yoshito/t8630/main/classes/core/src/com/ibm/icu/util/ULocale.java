@@ -1188,8 +1188,9 @@ public final class ULocale implements Serializable {
     // display names
 
     /**
-     * Returns this locale's language localized for display in the default locale.
+     * Returns this locale's language localized for display in the default <code>DISPLAY</code> locale.
      * @return the localized language name.
+     * @see Category#DISPLAY
      * @stable ICU 3.0
      */
     public String getDisplayLanguage() {
@@ -1231,9 +1232,10 @@ public final class ULocale implements Serializable {
         return getDisplayLanguageInternal(new ULocale(localeID), displayLocale, false);
     }
     /**
-     * {@icu} Returns this locale's language localized for display in the default locale.
+     * {@icu} Returns this locale's language localized for display in the default <code>DISPLAY</code> locale.
      * If a dialect name is present in the data, then it is returned.
      * @return the localized language name.
+     * @see Category#DISPLAY
      * @stable ICU 4.4
      */
     public String getDisplayLanguageWithDialect() {
@@ -1285,8 +1287,9 @@ public final class ULocale implements Serializable {
     }
 
     /**
-     * {@icu} Returns this locale's script localized for display in the default locale.
+     * {@icu} Returns this locale's script localized for display in the default <code>DISPLAY</code> locale.
      * @return the localized script name.
+     * @see Category#DISPLAY
      * @stable ICU 3.0
      */
     public String getDisplayScript() {
@@ -1333,8 +1336,9 @@ public final class ULocale implements Serializable {
     }
 
     /**
-     * Returns this locale's country localized for display in the default locale.
+     * Returns this locale's country localized for display in the default <code>DISPLAY</code> locale.
      * @return the localized country name.
+     * @see Category#DISPLAY
      * @stable ICU 3.0
      */
     public String getDisplayCountry() {
@@ -1382,8 +1386,9 @@ public final class ULocale implements Serializable {
     }
 
     /**
-     * Returns this locale's variant localized for display in the default locale.
+     * Returns this locale's variant localized for display in the default <code>DISPLAY</code> locale.
      * @return the localized variant name.
+     * @see Category#DISPLAY
      * @stable ICU 3.0
      */
     public String getDisplayVariant() {
@@ -1430,10 +1435,11 @@ public final class ULocale implements Serializable {
     }
 
     /**
-     * {@icu} Returns a keyword localized for display in the default locale.
+     * {@icu} Returns a keyword localized for display in the default <code>DISPLAY</code> locale.
      * @param keyword the keyword to be displayed.
      * @return the localized keyword name.
      * @see #getKeywords()
+     * @see Category#DISPLAY
      * @stable ICU 3.0
      */
     public static String getDisplayKeyword(String keyword) {
@@ -1469,9 +1475,10 @@ public final class ULocale implements Serializable {
     }
 
     /**
-     * {@icu} Returns a keyword value localized for display in the default locale.
+     * {@icu} Returns a keyword value localized for display in the default <code>DISPLAY</code> locale.
      * @param keyword the keyword whose value is to be displayed.
      * @return the localized value name.
+     * @see Category#DISPLAY
      * @stable ICU 3.0
      */
     public String getDisplayKeywordValue(String keyword) {
@@ -1527,8 +1534,9 @@ public final class ULocale implements Serializable {
     }
 
     /**
-     * Returns this locale name localized for display in the default locale.
+     * Returns this locale name localized for display in the default <code>DISPLAY</code> locale.
      * @return the localized locale name.
+     * @see Category#DISPLAY
      * @stable ICU 3.0
      */
     public String getDisplayName() {
@@ -1574,9 +1582,10 @@ public final class ULocale implements Serializable {
     }
 
     /**
-     * {@icu} Returns this locale name localized for display in the default locale.
+     * {@icu} Returns this locale name localized for display in the default <code>DISPLAY</code> locale.
      * If a dialect name is present in the locale data, then it is returned.
      * @return the localized locale name.
+     * @see Category#DISPLAY
      * @stable ICU 4.4
      */
     public String getDisplayNameWithDialect() {

@@ -872,9 +872,10 @@ public abstract class Collator implements Comparator<Object>, Freezable<Collator
 
     /**
      * {@icu} Returns the name of the collator for the objectLocale, localized for the
-     * current locale.
+     * default <code>DISPLAY</code> locale.
      * @param objectLocale the locale of the collator
      * @return the display name
+     * @see com.ibm.icu.util.ULocale.Category#DISPLAY
      * @stable ICU 2.6
      */
     static public String getDisplayName(Locale objectLocale) {
@@ -883,9 +884,10 @@ public abstract class Collator implements Comparator<Object>, Freezable<Collator
 
     /**
      * {@icu} Returns the name of the collator for the objectLocale, localized for the
-     * current locale.
+     * default <code>DISPLAY</code> locale.
      * @param objectLocale the locale of the collator
      * @return the display name
+     * @see com.ibm.icu.util.ULocale.Category#DISPLAY
      * @stable ICU 3.2
      */
     static public String getDisplayName(ULocale objectLocale) {

@@ -140,7 +140,8 @@ public abstract class Holiday implements DateRule
     }
 
     /**
-     * Return the name of this holiday in the language of the default locale.
+     * Return the name of this holiday in the language of the default <code>DISPLAY</code> locale.
+     * @see Category#DISPLAY
      * @draft ICU 2.8
      * @provisional This API might change or be removed in a future release.
      */

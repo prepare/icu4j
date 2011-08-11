@@ -38,7 +38,8 @@ public class CurrencyPluralInfo implements Cloneable, Serializable {
     private static final long serialVersionUID = 1;
 
     /**
-     * Create a CurrencyPluralInfo object for the default locale.
+     * Create a CurrencyPluralInfo object for the default <code>FORMAT</code> locale.
+     * @see Category#FORMAT
      * @stable ICU 4.2
      */
     public CurrencyPluralInfo() {

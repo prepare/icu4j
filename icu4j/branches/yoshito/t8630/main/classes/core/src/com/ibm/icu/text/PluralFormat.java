@@ -589,7 +589,8 @@ public class PluralFormat extends UFormat {
      *     constructed from {@link #PluralFormat(ULocale)}.
      * @param ulocale the <code>ULocale</code> used to configure the
      *     formatter. If <code>ulocale</code> is <code>null</code>, the
-     *     default locale will be used.
+     *     default <code>FORMAT</code> locale will be used.
+     * @see Category#FORMAT
      * @stable ICU 3.8
      */
     public void setLocale(ULocale ulocale) {

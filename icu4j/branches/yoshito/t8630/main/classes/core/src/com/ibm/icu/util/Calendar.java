@@ -1485,8 +1485,9 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
 
     /**
      * Constructs a Calendar with the default time zone
-     * and locale.
+     * and the default <code>FORMAT</code> locale.
      * @see     TimeZone#getDefault
+     * @see Category#FORMAT
      * @stable ICU 2.0
      */
     protected Calendar()

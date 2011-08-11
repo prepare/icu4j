@@ -608,10 +608,11 @@ public class RuleBasedNumberFormat extends NumberFormat {
 
     /**
      * Creates a RuleBasedNumberFormat that behaves according to the description
-     * passed in.  The formatter uses the default locale.
+     * passed in.  The formatter uses the default <code>FORMAT</code> locale.
      * @param description A description of the formatter's desired behavior.
      * See the class documentation for a complete explanation of the description
      * syntax.
+     * @see Category#FORMAT
      * @stable ICU 2.0
      */
     public RuleBasedNumberFormat(String description) {
@@ -621,7 +622,7 @@ public class RuleBasedNumberFormat extends NumberFormat {
 
     /**
      * Creates a RuleBasedNumberFormat that behaves according to the description
-     * passed in.  The formatter uses the default locale.
+     * passed in.  The formatter uses the default <code>FORMAT</code> locale.
      * <p>
      * The localizations data provides information about the public
      * rule sets and their localized display names for different
@@ -638,6 +639,7 @@ public class RuleBasedNumberFormat extends NumberFormat {
      * syntax.
      * @param localizations a list of localizations for the rule set
      * names in the description.
+     * @see Category#FORMAT
      * @stable ICU 3.2
      */
     public RuleBasedNumberFormat(String description, String[][] localizations) {
@@ -806,13 +808,14 @@ public class RuleBasedNumberFormat extends NumberFormat {
 
     /**
      * Creates a RuleBasedNumberFormat from a predefined description.  Uses the
-     * default locale.
+     * default <code>FORMAT</code> locale.
      * @param format A selector code specifying which kind of formatter to create.
      * There are three legal values: SPELLOUT, which creates a formatter that spells
      * out a value in words in the default locale's langyage, ORDINAL, which attaches
      * an ordinal suffix from the default locale's language to a numeral, and
      * DURATION, which formats a duration in seconds as hours, minutes, and seconds.
      * or NUMBERING_SYSTEM, which is used for alternate numbering systems such as Hebrew.
+     * @see Category#FORMAT
      * @stable ICU 2.0
      */
     public RuleBasedNumberFormat(int format) {
@@ -1002,9 +1005,10 @@ public class RuleBasedNumberFormat extends NumberFormat {
     }
 
     /**
-     * Return the rule set display names for the current default locale.
+     * Return the rule set display names for the current default <code>DISPLAY</code> locale.
      * @return an array of the display names
      * @see #getRuleSetDisplayNames(ULocale)
+     * @see Category#DISPLAY
      * @stable ICU 3.2
      */
     public String[] getRuleSetDisplayNames() {
@@ -1035,9 +1039,10 @@ public class RuleBasedNumberFormat extends NumberFormat {
     }
 
     /**
-     * Return the rule set display name for the provided rule set in the current default locale.
+     * Return the rule set display name for the provided rule set in the current default <code>DISPLAY</code> locale.
      * @return the display name for the rule set
      * @see #getRuleSetDisplayName(String,ULocale)
+     * @see Category#DISPLAY
      * @stable ICU 3.2
      */
     public String getRuleSetDisplayName(String ruleSetName) {

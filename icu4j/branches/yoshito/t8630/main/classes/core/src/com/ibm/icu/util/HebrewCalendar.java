@@ -275,7 +275,8 @@ public class HebrewCalendar extends Calendar {
 
     /**
      * Constructs a default <code>HebrewCalendar</code> using the current time
-     * in the default time zone with the default locale.
+     * in the default time zone with the default <code>FORMAT</code> locale.
+     * @see Category#FORMAT
      * @stable ICU 2.8
      */
     public HebrewCalendar() {
@@ -284,9 +285,10 @@ public class HebrewCalendar extends Calendar {
 
     /**
      * Constructs a <code>HebrewCalendar</code> based on the current time
-     * in the given time zone with the default locale.
+     * in the given time zone with the default <code>FORMAT</code> locale.
      *
      * @param zone The time zone for the new calendar.
+     * @see Category#FORMAT
      * @stable ICU 2.8
      */
     public HebrewCalendar(TimeZone zone) {
@@ -345,7 +347,7 @@ public class HebrewCalendar extends Calendar {
 
     /**
      * Constructs a <code>HebrewCalendar</code> with the given date set
-     * in the default time zone with the default locale.
+     * in the default time zone with the default <code>FORMAT</code> locale.
      *
      * @param year      The value used to set the calendar's {@link #YEAR YEAR} time field.
      *
@@ -353,6 +355,7 @@ public class HebrewCalendar extends Calendar {
      *                  The value is 0-based. e.g., 0 for Tishri.
      *
      * @param date      The value used to set the calendar's {@link #DATE DATE} time field.
+     * @see Category#FORMAT
      * @stable ICU 2.8
      */
     public HebrewCalendar(int year, int month, int date) {
@@ -364,9 +367,10 @@ public class HebrewCalendar extends Calendar {
 
     /**
      * Constructs a <code>HebrewCalendar</code> with the given date set
-     * in the default time zone with the default locale.
+     * in the default time zone with the default <code>FORMAT</code> locale.
      *
      * @param date      The date to which the new calendar is set.
+     * @see Category#FORMAT
      * @stable ICU 2.8
      */
     public HebrewCalendar(Date date) {
@@ -376,7 +380,7 @@ public class HebrewCalendar extends Calendar {
 
     /**
      * Constructs a <code>HebrewCalendar</code> with the given date
-     * and time set for the default time zone with the default locale.
+     * and time set for the default time zone with the default <code>FORMAT</code> locale.
      *
      * @param year      The value used to set the calendar's {@link #YEAR YEAR} time field.
      *
@@ -390,6 +394,7 @@ public class HebrewCalendar extends Calendar {
      * @param minute    The value used to set the calendar's {@link #MINUTE MINUTE} time field.
      *
      * @param second    The value used to set the calendar's {@link #SECOND SECOND} time field.
+     * @see Category#FORMAT
      * @stable ICU 2.8
      */
     public HebrewCalendar(int year, int month, int date, int hour,

@@ -402,8 +402,9 @@ public class Currency extends MeasureUnit implements Serializable {
 
     /**
      * Convenience and compatibility override of getName that
-     * requests the symbol name.
+     * requests the symbol name for the default <code>DISPLAY</code> locale.
      * @see #getName
+     * @see Category#DISPLAY
      * @stable ICU 3.4
      */
     public String getSymbol() {

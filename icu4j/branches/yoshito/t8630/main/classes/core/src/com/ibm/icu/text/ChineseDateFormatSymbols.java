@@ -35,7 +35,8 @@ public class ChineseDateFormatSymbols extends DateFormatSymbols {
     String isLeapMonth[]; // Do NOT add =null initializer
 
     /**
-     * Construct a ChineseDateFormatSymbols for the default locale.
+     * Construct a ChineseDateFormatSymbols for the default <code>FORMAT</code> locale.
+     * @see Category#FORMAT
      * @stable ICU 2.0
      */
     public ChineseDateFormatSymbols() {

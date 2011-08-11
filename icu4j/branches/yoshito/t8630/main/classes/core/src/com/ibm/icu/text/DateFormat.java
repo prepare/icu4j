@@ -908,8 +908,9 @@ public abstract class DateFormat extends UFormat {
 
     /**
      * Gets the time formatter with the default formatting style
-     * for the default locale.
+     * for the default <code>FORMAT</code> locale.
      * @return a time formatter.
+     * @see Category#FORMAT
      * @stable ICU 2.0
      */
     public final static DateFormat getTimeInstance()
@@ -919,10 +920,11 @@ public abstract class DateFormat extends UFormat {
 
     /**
      * Returns the time formatter with the given formatting style
-     * for the default locale.
+     * for the default <code>FORMAT</code> locale.
      * @param style the given formatting style. For example,
      * SHORT for "h:mm a" in the US locale.
      * @return a time formatter.
+     * @see Category#FORMAT
      * @stable ICU 2.0
      */
     public final static DateFormat getTimeInstance(int style)
@@ -962,8 +964,9 @@ public abstract class DateFormat extends UFormat {
 
     /**
      * Returns the date formatter with the default formatting style
-     * for the default locale.
+     * for the default <code>FORMAT</code> locale.
      * @return a date formatter.
+     * @see Category#FORMAT
      * @stable ICU 2.0
      */
     public final static DateFormat getDateInstance()
@@ -973,10 +976,11 @@ public abstract class DateFormat extends UFormat {
 
     /**
      * Returns the date formatter with the given formatting style
-     * for the default locale.
+     * for the default <code>FORMAT</code> locale.
      * @param style the given formatting style. For example,
      * SHORT for "M/d/yy" in the US locale.
      * @return a date formatter.
+     * @see Category#FORMAT
      * @stable ICU 2.0
      */
     public final static DateFormat getDateInstance(int style)
@@ -1016,8 +1020,9 @@ public abstract class DateFormat extends UFormat {
 
     /**
      * Returns the date/time formatter with the default formatting style
-     * for the default locale.
+     * for the default <code>FORMAT</code> locale.
      * @return a date/time formatter.
+     * @see Category#FORMAT
      * @stable ICU 2.0
      */
     public final static DateFormat getDateTimeInstance()
@@ -1027,12 +1032,13 @@ public abstract class DateFormat extends UFormat {
 
     /**
      * Returns the date/time formatter with the given date and time
-     * formatting styles for the default locale.
+     * formatting styles for the default <code>FORMAT</code> locale.
      * @param dateStyle the given date formatting style. For example,
      * SHORT for "M/d/yy" in the US locale.
      * @param timeStyle the given time formatting style. For example,
      * SHORT for "h:mm a" in the US locale.
      * @return a date/time formatter.
+     * @see Category#FORMAT
      * @stable ICU 2.0
      */
     public final static DateFormat getDateTimeInstance(int dateStyle,
