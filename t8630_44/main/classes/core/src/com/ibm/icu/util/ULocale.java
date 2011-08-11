@@ -257,20 +257,17 @@ public final class ULocale implements Serializable {
     /**
      * Enum for locale categories. These locale categories are used to get/set the default locale for
      * the specific functionality represented by the category.
-     * @internal
-     * @deprecated This API is ICU internal only.
+     * @stable ICU 49
      */
     public enum Category {
         /**
          * Category used to represent the default locale for displaying user interfaces.
-         * @internal
-         * @deprecated This API is ICU internal only.
+         * @stable ICU 49
          */
         DISPLAY,
         /**
          * Category used to represent the default locale for formatting date, number and/or currency.
-         * @internal
-         * @deprecated This API is ICU internal only.
+         * @stable ICU 49
          */
         FORMAT
     }
@@ -613,8 +610,7 @@ public final class ULocale implements Serializable {
      * 
      * @param category the category
      * @return the default ULocale for the specified category.
-     * @internal
-     * @deprecated This API is ICU internal only.
+     * @stable ICU 49
      */
     public static ULocale getDefault(Category category) {
         synchronized (ULocale.class) {
@@ -674,8 +670,7 @@ public final class ULocale implements Serializable {
      * @param newLocale the new default locale
      * @see SecurityManager#checkPermission(java.security.Permission)
      * @see java.util.PropertyPermission
-     * @internal
-     * @deprecated This API is ICU internal only.
+     * @stable ICU 49
      */
     public static synchronized void setDefault(Category category, ULocale newLocale) {
         Locale newJavaDefault = newLocale.toLocale();
@@ -1193,8 +1188,9 @@ public final class ULocale implements Serializable {
     // display names
 
     /**
-     * Returns this locale's language localized for display in the default locale.
+     * Returns this locale's language localized for display in the default <code>DISPLAY</code> locale.
      * @return the localized language name.
+     * @see Category#DISPLAY
      * @stable ICU 3.0
      */
     public String getDisplayLanguage() {
@@ -1236,9 +1232,10 @@ public final class ULocale implements Serializable {
         return getDisplayLanguageInternal(new ULocale(localeID), displayLocale, false);
     }
     /**
-     * {@icu} Returns this locale's language localized for display in the default locale.
+     * {@icu} Returns this locale's language localized for display in the default <code>DISPLAY</code> locale.
      * If a dialect name is present in the data, then it is returned.
      * @return the localized language name.
+     * @see Category#DISPLAY
      * @draft ICU 4.4
      * @provisional This API might change or be removed in a future release.
      */
@@ -1294,8 +1291,9 @@ public final class ULocale implements Serializable {
     }
 
     /**
-     * {@icu} Returns this locale's script localized for display in the default locale.
+     * {@icu} Returns this locale's script localized for display in the default <code>DISPLAY</code> locale.
      * @return the localized script name.
+     * @see Category#DISPLAY
      * @stable ICU 3.0
      */
     public String getDisplayScript() {
@@ -1342,8 +1340,9 @@ public final class ULocale implements Serializable {
     }
 
     /**
-     * Returns this locale's country localized for display in the default locale.
+     * Returns this locale's country localized for display in the default <code>DISPLAY</code> locale.
      * @return the localized country name.
+     * @see Category#DISPLAY
      * @stable ICU 3.0
      */
     public String getDisplayCountry() {
@@ -1391,8 +1390,9 @@ public final class ULocale implements Serializable {
     }
 
     /**
-     * Returns this locale's variant localized for display in the default locale.
+     * Returns this locale's variant localized for display in the default <code>DISPLAY</code> locale.
      * @return the localized variant name.
+     * @see Category#DISPLAY
      * @stable ICU 3.0
      */
     public String getDisplayVariant() {
@@ -1439,10 +1439,11 @@ public final class ULocale implements Serializable {
     }
 
     /**
-     * {@icu} Returns a keyword localized for display in the default locale.
+     * {@icu} Returns a keyword localized for display in the default <code>DISPLAY</code> locale.
      * @param keyword the keyword to be displayed.
      * @return the localized keyword name.
      * @see #getKeywords()
+     * @see Category#DISPLAY
      * @stable ICU 3.0
      */
     public static String getDisplayKeyword(String keyword) {
@@ -1478,9 +1479,10 @@ public final class ULocale implements Serializable {
     }
 
     /**
-     * {@icu} Returns a keyword value localized for display in the default locale.
+     * {@icu} Returns a keyword value localized for display in the default <code>DISPLAY</code> locale.
      * @param keyword the keyword whose value is to be displayed.
      * @return the localized value name.
+     * @see Category#DISPLAY
      * @stable ICU 3.0
      */
     public String getDisplayKeywordValue(String keyword) {
@@ -1536,8 +1538,9 @@ public final class ULocale implements Serializable {
     }
 
     /**
-     * Returns this locale name localized for display in the default locale.
+     * Returns this locale name localized for display in the default <code>DISPLAY</code> locale.
      * @return the localized locale name.
+     * @see Category#DISPLAY
      * @stable ICU 3.0
      */
     public String getDisplayName() {
@@ -1583,9 +1586,10 @@ public final class ULocale implements Serializable {
     }
 
     /**
-     * {@icu} Returns this locale name localized for display in the default locale.
+     * {@icu} Returns this locale name localized for display in the default <code>DISPLAY</code> locale.
      * If a dialect name is present in the locale data, then it is returned.
      * @return the localized locale name.
+     * @see Category#DISPLAY
      * @draft ICU 4.4
      * @provisional This API might change or be removed in a future release.
      */

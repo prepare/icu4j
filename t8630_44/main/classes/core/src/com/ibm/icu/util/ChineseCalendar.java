@@ -154,7 +154,7 @@ public class ChineseCalendar extends Calendar {
 
     /**
      * Constructs a <code>ChineseCalendar</code> with the given date set
-     * in the default time zone with the default locale.
+     * in the default time zone with the default <code>FORMAT</code> locale.
      *
      * @param year      The value used to set the calendar's {@link #YEAR YEAR} time field.
      * @param month     The value used to set the calendar's {@link #MONTH MONTH} time field.
@@ -162,6 +162,7 @@ public class ChineseCalendar extends Calendar {
      * @param isLeapMonth The value used to set the Chinese calendar's (@link #IS_LEAP_MONTH)
      *                  time field.
      * @param date      The value used to set the calendar's {@link #DATE DATE} time field.
+     * @see Category#FORMAT
      * @stable ICU 4.0
      */
     public ChineseCalendar(int year, int month, int isLeapMonth, int date) {
@@ -182,7 +183,7 @@ public class ChineseCalendar extends Calendar {
 
     /**
      * Constructs a <code>ChineseCalendar</code> with the given date
-     * and time set for the default time zone with the default locale.
+     * and time set for the default time zone with the default <code>FORMAT</code> locale.
      *
      * @param year  the value used to set the {@link #YEAR YEAR} time field in the calendar.
      * @param month the value used to set the {@link #MONTH MONTH} time field in the calendar.
@@ -196,6 +197,7 @@ public class ChineseCalendar extends Calendar {
      *              in the calendar.
      * @param second the value used to set the {@link #SECOND SECOND} time field
      *              in the calendar.
+     * @see Category#FORMAT
      * @stable ICU 4.0
      */
     public ChineseCalendar(int year, int month, int isLeapMonth, int date, int hour,
@@ -232,8 +234,9 @@ public class ChineseCalendar extends Calendar {
 
     /**
      * Construct a <code>ChineseCalendar</code> based on the current time
-     * in the given time zone with the default locale.
+     * in the given time zone with the default <code>FORMAT</code> locale.
      * @param zone the given time zone
+     * @see Category#FORMAT
      * @stable ICU 4.0
      */
     public ChineseCalendar(TimeZone zone) {

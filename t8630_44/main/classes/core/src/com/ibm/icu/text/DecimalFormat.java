@@ -602,7 +602,7 @@ public class DecimalFormat extends NumberFormat {
 
     /**
      * Creates a DecimalFormat using the default pattern and symbols for the default
-     * locale. This is a convenient way to obtain a DecimalFormat when
+     * <code>FORMAT</code> locale. This is a convenient way to obtain a DecimalFormat when
      * internationalization is not the main concern.
      *
      * <p>To obtain standard formats for a given locale, use the factory methods on
@@ -613,6 +613,7 @@ public class DecimalFormat extends NumberFormat {
      * @see NumberFormat#getNumberInstance
      * @see NumberFormat#getCurrencyInstance
      * @see NumberFormat#getPercentInstance
+     * @see Category#FORMAT
      * @stable ICU 2.0
      */
     public DecimalFormat() {
@@ -633,7 +634,7 @@ public class DecimalFormat extends NumberFormat {
 
     /**
      * Creates a DecimalFormat from the given pattern and the symbols for the default
-     * locale. This is a convenient way to obtain a DecimalFormat when
+     * <code>FORMAT</code> locale. This is a convenient way to obtain a DecimalFormat when
      * internationalization is not the main concern.
      *
      * <p>To obtain standard formats for a given locale, use the factory methods on
@@ -646,6 +647,7 @@ public class DecimalFormat extends NumberFormat {
      * @see NumberFormat#getNumberInstance
      * @see NumberFormat#getCurrencyInstance
      * @see NumberFormat#getPercentInstance
+     * @see Category#FORMAT
      * @stable ICU 2.0
      */
     public DecimalFormat(String pattern) {
