@@ -131,7 +131,8 @@ class NumberingSystem {
     }
 
     /**
-     * Returns the default numbering system for the default locale.
+     * Returns the default numbering system for the default <code>FORMAT</code> locale.
+     * @see Category#FORMAT
      * @stable ICU 4.2
      */
     public static NumberingSystem getInstance() {

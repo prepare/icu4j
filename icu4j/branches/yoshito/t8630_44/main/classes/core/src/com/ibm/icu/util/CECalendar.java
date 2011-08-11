@@ -51,7 +51,7 @@ abstract class CECalendar extends Calendar {
 
     /**
      * Constructs a default <code>CECalendar</code> using the current time
-     * in the default time zone with the default locale.
+     * in the default time zone with the default <code>FORMAT</code> locale.
      */
     protected CECalendar() {
         this(TimeZone.getDefault(), ULocale.getDefault(Category.FORMAT));
@@ -59,7 +59,7 @@ abstract class CECalendar extends Calendar {
 
     /**
      * Constructs a <code>CECalendar</code> based on the current time
-     * in the given time zone with the default locale.
+     * in the given time zone with the default <code>FORMAT</code> locale.
      *
      * @param zone The time zone for the new calendar.
      */
@@ -115,7 +115,7 @@ abstract class CECalendar extends Calendar {
 
     /**
      * Constructs a <code>CECalendar</code> with the given date set
-     * in the default time zone with the default locale.
+     * in the default time zone with the default <code>FORMAT</code> locale.
      *
      * @param year      The value used to set the calendar's {@link #YEAR YEAR} time field.
      *
@@ -131,7 +131,7 @@ abstract class CECalendar extends Calendar {
 
     /**
      * Constructs a <code>CECalendar</code> with the given date set
-     * in the default time zone with the default locale.
+     * in the default time zone with the default <code>FORMAT</code> locale.
      *
      * @param date      The date to which the new calendar is set.
      */
@@ -142,7 +142,7 @@ abstract class CECalendar extends Calendar {
 
     /**
      * Constructs a <code>CECalendar</code> with the given date
-     * and time set for the default time zone with the default locale.
+     * and time set for the default time zone with the default <code>FORMAT</code> locale.
      *
      * @param year      The value used to set the calendar's {@link #YEAR YEAR} time field.
      * @param month     The value used to set the calendar's {@link #MONTH MONTH} time field.

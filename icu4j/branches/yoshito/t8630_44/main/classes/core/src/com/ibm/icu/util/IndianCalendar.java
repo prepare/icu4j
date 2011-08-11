@@ -155,7 +155,8 @@ public class IndianCalendar extends Calendar {
     
     /**
      * Constructs a <code>IndianCalendar</code> using the current time
-     * in the default time zone with the default locale.
+     * in the default time zone with the default <code>FORMAT</code> locale.
+     * @see Category#FORMAT
      * @stable ICU 3.8
      */
     public IndianCalendar() {
@@ -164,9 +165,10 @@ public class IndianCalendar extends Calendar {
 
     /**
      * Constructs a <code>IndianCalendar</code> based on the current time
-     * in the given time zone with the default locale.
+     * in the given time zone with the default <code>FORMAT</code> locale.
      *
      * @param zone the given time zone.
+     * @see Category#FORMAT
      * @stable ICU 3.8
      */
     public IndianCalendar(TimeZone zone) {
@@ -225,9 +227,10 @@ public class IndianCalendar extends Calendar {
 
     /**
      * Constructs a <code>IndianCalendar</code> with the given date set
-     * in the default time zone with the default locale.
+     * in the default time zone with the default <code>FORMAT</code> locale.
      *
      * @param date      The date to which the new calendar is set.
+     * @see Category#FORMAT
      * @stable ICU 3.8
      */
     public IndianCalendar(Date date) {
@@ -237,7 +240,7 @@ public class IndianCalendar extends Calendar {
 
     /**
      * Constructs a <code>IndianCalendar</code> with the given date set
-     * in the default time zone with the default locale.
+     * in the default time zone with the default <code>FORMAT</code> locale.
      *
      * @param year      The value used to set the calendar's {@link #YEAR YEAR} time field.
      *
@@ -245,6 +248,7 @@ public class IndianCalendar extends Calendar {
      *                  The value is 0-based. e.g., 0 for January.
      *
      * @param date      The value used to set the calendar's {@link #DATE DATE} time field.
+     * @see Category#FORMAT
      * @stable ICU 3.8
      */
     public IndianCalendar(int year, int month, int date) {
@@ -257,7 +261,7 @@ public class IndianCalendar extends Calendar {
 
     /**
      * Constructs a IndianCalendar with the given date
-     * and time set for the default time zone with the default locale.
+     * and time set for the default time zone with the default <code>FORMAT</code> locale.
      *
      * @param year      The value used to set the calendar's {@link #YEAR YEAR} time field.
      *
@@ -271,6 +275,7 @@ public class IndianCalendar extends Calendar {
      * @param minute    The value used to set the calendar's {@link #MINUTE MINUTE} time field.
      *
      * @param second    The value used to set the calendar's {@link #SECOND SECOND} time field.
+     * @see Category#FORMAT
      * @stable ICU 3.8
      */
     public IndianCalendar(int year, int month, int date, int hour,

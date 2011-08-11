@@ -329,7 +329,8 @@ public class GregorianCalendar extends Calendar {
 
     /**
      * Constructs a default GregorianCalendar using the current time
-     * in the default time zone with the default locale.
+     * in the default time zone with the default <code>FORMAT</code> locale.
+     * @see Category#FORMAT
      * @stable ICU 2.0
      */
     public GregorianCalendar() {
@@ -338,8 +339,9 @@ public class GregorianCalendar extends Calendar {
 
     /**
      * Constructs a GregorianCalendar based on the current time
-     * in the given time zone with the default locale.
+     * in the given time zone with the default <code>FORMAT</code> locale.
      * @param zone the given time zone.
+     * @see Category#FORMAT
      * @stable ICU 2.0
      */
     public GregorianCalendar(TimeZone zone) {
@@ -392,11 +394,12 @@ public class GregorianCalendar extends Calendar {
 
     /**
      * Constructs a GregorianCalendar with the given date set
-     * in the default time zone with the default locale.
+     * in the default time zone with the default <code>FORMAT</code> locale.
      * @param year the value used to set the YEAR time field in the calendar.
      * @param month the value used to set the MONTH time field in the calendar.
      * Month value is 0-based. e.g., 0 for January.
      * @param date the value used to set the DATE time field in the calendar.
+     * @see Category#FORMAT
      * @stable ICU 2.0
      */
     public GregorianCalendar(int year, int month, int date) {
@@ -409,7 +412,7 @@ public class GregorianCalendar extends Calendar {
 
     /**
      * Constructs a GregorianCalendar with the given date
-     * and time set for the default time zone with the default locale.
+     * and time set for the default time zone with the default <code>FORMAT</code> locale.
      * @param year the value used to set the YEAR time field in the calendar.
      * @param month the value used to set the MONTH time field in the calendar.
      * Month value is 0-based. e.g., 0 for January.
@@ -418,6 +421,7 @@ public class GregorianCalendar extends Calendar {
      * in the calendar.
      * @param minute the value used to set the MINUTE time field
      * in the calendar.
+     * @see Category#FORMAT
      * @stable ICU 2.0
      */
     public GregorianCalendar(int year, int month, int date, int hour,
@@ -433,7 +437,7 @@ public class GregorianCalendar extends Calendar {
 
     /**
      * Constructs a GregorianCalendar with the given date
-     * and time set for the default time zone with the default locale.
+     * and time set for the default time zone with the default <code>FORMAT</code> locale.
      * @param year the value used to set the YEAR time field in the calendar.
      * @param month the value used to set the MONTH time field in the calendar.
      * Month value is 0-based. e.g., 0 for January.
@@ -444,6 +448,7 @@ public class GregorianCalendar extends Calendar {
      * in the calendar.
      * @param second the value used to set the SECOND time field
      * in the calendar.
+     * @see Category#FORMAT
      * @stable ICU 2.0
      */
     public GregorianCalendar(int year, int month, int date, int hour,
