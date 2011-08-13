@@ -335,7 +335,7 @@ public class MessagePatternUtilDemo {
                                  "other{His n'ame is {person_name}.}}__'_";
         print(msg);
         print("{num,plural,offset:1 =0{no one} =1{one, that is one and # others} " +
-                                   "one{one and # (probably 0) others} few{one and # others} " +
+                                   "one{one and # (probably 1) others} few{one and # others} " +
                                    "other{lots & lots}}");
         print(
             "{p1_gender,select," +
