@@ -1,6 +1,6 @@
 /*
 *******************************************************************************
-*   Copyright (C) 2009-2011, International Business Machines
+*   Copyright (C) 2009-2010, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 *******************************************************************************
 */
@@ -8,6 +8,7 @@ package com.ibm.icu.impl;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.MissingResourceException;
 
 import com.ibm.icu.text.Normalizer;
 import com.ibm.icu.text.Normalizer2;
@@ -53,10 +54,6 @@ public final class Norm2AllModes {
             } else {
                 throw new IllegalArgumentException();
             }
-        }
-        @Override
-        public String getDecomposition(int c) {
-            return null;
         }
         @Override
         public boolean isNormalized(CharSequence s) { return true; }
@@ -123,16 +120,6 @@ public final class Norm2AllModes {
         }
         protected abstract void normalizeAndAppend(
                 CharSequence src, boolean doNormalize, Normalizer2Impl.ReorderingBuffer buffer);
-
-        @Override
-        public String getDecomposition(int c) {
-            return impl.getDecomposition(c);
-        }
-
-        @Override
-        public int getCombiningClass(int c) {
-            return impl.getCC(impl.getNorm16(c));
-        }
 
         // quick checks
         @Override
@@ -332,12 +319,13 @@ public final class Norm2AllModes {
     private static CacheBase<String, Norm2AllModes, InputStream> cache =
         new SoftCache<String, Norm2AllModes, InputStream>() {
             protected Norm2AllModes createInstance(String key, InputStream data) {
-                Normalizer2Impl impl;
                 if(data==null) {
-                    impl=new Normalizer2Impl().load(ICUResourceBundle.ICU_BUNDLE+"/"+key+".nrm");
-                } else {
-                    impl=new Normalizer2Impl().load(data);
+                    throw new MissingResourceException(
+                            "No Normalizer2 data name \""+key+"\" cached, and InputStream is null",
+                            "Normalizer2",
+                            key);
                 }
+                Normalizer2Impl impl=new Normalizer2Impl().load(data);
                 return new Norm2AllModes(impl);
             }
         };

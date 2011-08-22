@@ -7,6 +7,9 @@
 
 package com.ibm.icu.text;
 
+import java.io.IOException;
+import java.util.MissingResourceException;
+
 import com.ibm.icu.impl.UBiDiProps;
 import com.ibm.icu.lang.UCharacterDirection;
 
@@ -210,13 +213,10 @@ public final class ArabicShaping {
      * De-shaping mode: Any Seen character followed by Tail character will be
      *                  replaced by one cell Seen and a space will replace the Tail.
      * Affects: Seen options
-     * @stable ICU 4.2
      */
     public static final int SEEN_TWOCELL_NEAR = 0x200000;
 
-    /** Bit mask for Seen memory options. 
-     * @stable ICU 4.2
-     */
+    /** Bit mask for Seen memory options. */
     public static final int SEEN_MASK = 0x700000;
 
     /* YehHamza options */ 
@@ -229,14 +229,11 @@ public final class ArabicShaping {
      * De-shaping mode: Any Yeh (final or isolated) character followed by Hamza character will be
      *                  replaced by one cell YehHamza and space will replace the Hamza.
      * Affects: YehHamza options
-     * @stable ICU 4.2 
      */
     public static final int YEHHAMZA_TWOCELL_NEAR  = 0x1000000;
 
 
-    /** Bit mask for YehHamza memory options. 
-     * @stable ICU 4.2
-     */
+    /** Bit mask for YehHamza memory options. */
     public static final int YEHHAMZA_MASK = 0x3800000;
 
     /* New Tashkeel options */ 
@@ -247,7 +244,6 @@ public final class ArabicShaping {
      *
      * De-shaping mode: N/A
      * Affects: Tashkeel options
-     * @stable ICU 4.2
      */
     public static final int TASHKEEL_BEGIN = 0x40000;
 
@@ -258,7 +254,6 @@ public final class ArabicShaping {
      *
      * De-shaping mode: N/A
      * Affects: Tashkeel options
-     * @stable ICU 4.2
      */
     public static final int TASHKEEL_END = 0x60000;
 
@@ -268,7 +263,6 @@ public final class ArabicShaping {
      * De-shaping mode: N/A 
      *
      * Affects: Tashkeel options
-     * @stable ICU 4.2
      */
     public static final int TASHKEEL_RESIZE = 0x80000;
 
@@ -279,13 +273,10 @@ public final class ArabicShaping {
      *
      * De-shaping mode: N/A
      * Affects: YehHamza options
-     * @stable ICU 4.2
      */
     public static final int TASHKEEL_REPLACE_BY_TATWEEL = 0xC0000;
 
-    /** Bit mask for Tashkeel replacement with Space or Tatweel memory options. 
-     *  @stable ICU 4.2
-     */
+    /** Bit mask for Tashkeel replacement with Space or Tatweel memory options. */
     public static final int TASHKEEL_MASK  = 0xE0000;
     
     /* Space location Control options */ 
@@ -306,13 +297,10 @@ public final class ArabicShaping {
      *      the physical memory address beginning, same as BEGIN in default behavior) 
      *    D. END For Logical text: Same as END in default behavior. 
      * Affects: All LamAlef BEGIN, END and AUTO options.
-     * @stable ICU 4.2 
      */
     public static final int SPACES_RELATIVE_TO_TEXT_BEGIN_END = 0x4000000;
 
-    /** Bit mask for swapping BEGIN and END for Visual LTR text 
-     * @stable ICU 4.2
-     */
+    /** Bit mask for swapping BEGIN and END for Visual LTR text */
     public static final int SPACES_RELATIVE_TO_TEXT_MASK = 0x4000000;
     
     /**
@@ -325,13 +313,10 @@ public final class ArabicShaping {
      * Shaping Mode: Only shaping.
      * De-shaping Mode: N/A.
      * Affects: All Seen options
-     * @stable ICU 4.2
      */
     public static final int SHAPE_TAIL_NEW_UNICODE = 0x8000000;
 
-    /** Bit mask for new Unicode Tail option 
-     * @stable ICU 4.2
-     */
+    /** Bit mask for new Unicode Tail option */
     public static final int SHAPE_TAIL_TYPE_MASK = 0x8000000;
 
     /**
@@ -344,7 +329,6 @@ public final class ArabicShaping {
      * Memory option: allow the result to have a different length than the source.
      * Affects: LamAlef options
      * This option is an alias to LENGTH_GROW_SHRINK
-     * @stable ICU 4.2
      */
     public static final int LAMALEF_RESIZE   = 0;
     
@@ -360,7 +344,6 @@ public final class ArabicShaping {
      * If more room is necessary, then try to consume spaces next to modified characters.
      * Affects: LamAlef options
      * This option is an alias to LENGTH_FIXED_SPACES_NEAR
-     * @stable ICU 4.2
      */
     public static final int LAMALEF_NEAR = 1 ;
         
@@ -377,7 +360,6 @@ public final class ArabicShaping {
      * If more room is necessary, then try to consume spaces at the end of the text.
      * Affects: LamAlef options
      * This option is an alias to LENGTH_FIXED_SPACES_AT_END
-     * @stable ICU 4.2
      */
     public static final int LAMALEF_END = 2;
     
@@ -393,7 +375,6 @@ public final class ArabicShaping {
      * If more room is necessary, then try to consume spaces at the beginning of the text.
      * Affects: LamAlef options
      * This option is an alias to LENGTH_FIXED_SPACES_AT_BEGINNING
-     * @stable ICU 4.2
      */
     public static final int LAMALEF_BEGIN = 3; 
 
@@ -406,7 +387,6 @@ public final class ArabicShaping {
      *
      * Deshaping Mode: Perform the same function as the flag equals LAMALEF_END. 
      * Affects: LamAlef options
-     * @stable ICU 4.2
      */
     public static final int LAMALEF_AUTO  = 0x10000; 
     
@@ -416,9 +396,7 @@ public final class ArabicShaping {
      */
     public static final int LENGTH_MASK = 0x10003;
 
-    /** Bit mask for LamAlef memory options. 
-     * @stable ICU 4.2
-     */
+    /** Bit mask for LamAlef memory options. */
 
     public static final int LAMALEF_MASK  = 0x10003;
 
@@ -432,7 +410,6 @@ public final class ArabicShaping {
      * Direction indicator:the source is in visual RTL order,
      * the rightmost displayed character stored first.
      * This option is an alias to U_SHAPE_TEXT_DIRECTION_LOGICAL
-     * @stable ICU 4.2
      */
     public static final int TEXT_DIRECTION_VISUAL_RTL = 0;
     
@@ -874,7 +851,15 @@ public final class ArabicShaping {
                                                 int length,
                                                 char digitBase,
                                                 boolean lastStrongWasAL) {
-        UBiDiProps bdp=UBiDiProps.INSTANCE;
+        UBiDiProps bdp;
+        try {
+            bdp=UBiDiProps.getSingleton();
+        } catch (IOException e) {
+            ///CLOVER:OFF
+            // This is dependent on the UBiDiProps object
+            throw new MissingResourceException(e.getMessage(), "(BidiProps)", "");
+            ///CLOVER:ON
+        }
         digitBase -= '0'; // move common adjustment out of loop
 
         for(int i = start + length; --i >= start;) {

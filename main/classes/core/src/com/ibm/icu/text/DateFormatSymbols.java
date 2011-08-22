@@ -20,12 +20,12 @@ import com.ibm.icu.impl.ICUCache;
 import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.impl.SimpleCache;
 import com.ibm.icu.impl.Utility;
-import com.ibm.icu.text.TimeZoneNames.NameType;
+import com.ibm.icu.impl.ZoneMeta;
+import com.ibm.icu.impl.ZoneStringFormat;
 import com.ibm.icu.util.Calendar;
-import com.ibm.icu.util.TimeZone;
 import com.ibm.icu.util.ULocale;
-import com.ibm.icu.util.UResourceBundle;
 import com.ibm.icu.util.ULocale.Category;
+import com.ibm.icu.util.UResourceBundle;
 
 /**
  * {@icuenhanced java.text.DateFormatSymbols}.{@icu _usage_}
@@ -411,6 +411,23 @@ public class DateFormatSymbols implements Serializable, Cloneable {
     String standaloneQuarters[] = null;
 
     /**
+     * Pattern string used for localized time zone GMT format.  For example, "GMT{0}"
+     * @serial
+     */
+    String gmtFormat = null;
+
+    /**
+     * Pattern strings used for formatting zone offset in a localized time zone GMT string.
+     * This is 2x2 String array holding followings
+     * [0][0] Negative H + m + s
+     * [0][1] Negative H + m
+     * [1][0] Positive H + m + s
+     * [1][1] Positive H + m
+     * @serial
+     */
+    String gmtHourFormats[][] = null;
+
+    /**
      * Localized names of time zones in this locale.  This is a
      * two-dimensional array of strings of size <em>n</em> by <em>m</em>,
      * where <em>m</em> is at least 5 and up to 7.  Each of the <em>n</em> rows is an
@@ -446,6 +463,13 @@ public class DateFormatSymbols implements Serializable, Cloneable {
     private String zoneStrings[][] = null;
 
      /**
+      * Since ICU 3.8.1, we use ZoneStringFormat to access localized
+      * zone names.  This field remains null unless setZoneStrings is
+      * called.
+      */
+    private transient ZoneStringFormat zsformat = null;
+
+     /**
      * Unlocalized date-time pattern characters. For example: 'y', 'd', etc.
      * All locales use the same unlocalized pattern characters.
      */
@@ -465,21 +489,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
 
     /* use serialVersionUID from JDK 1.1.4 for interoperability */
     private static final long serialVersionUID = -5987973545549424702L;
-
-    private static final String[][] CALENDAR_CLASSES = {
-        {"GregorianCalendar", "gregorian"},
-        {"JapaneseCalendar", "japanese"},
-        {"BuddhistCalendar", "buddhist"},
-        {"TaiwanCalendar", "roc"},
-        {"PersianCalendar", "persian"},
-        {"IslamicCalendar", "islamic"},
-        {"HebrewCalendar", "hebrew"},
-        {"ChineseCalendar", "chinese"},
-        {"IndianCalendar", "indian"},
-        {"CopticCalendar", "coptic"},
-        {"EthiopicCalendar", "ethiopic"},
-    };
-
 
     /**
      * Returns era strings. For example: "AD" and "BC".
@@ -855,74 +864,25 @@ public class DateFormatSymbols implements Serializable, Cloneable {
     }
 
     /**
-     * Returns time zone strings.
-     * <p>
-     * The array returned by this API is a two dimensional String array and
-     * each row contains at least following strings:
-     * <ul>
-     * <li>ZoneStrings[n][0] - System time zone ID
-     * <li>ZoneStrings[n][1] - Long standard time display name
-     * <li>ZoneStrings[n][2] - Short standard time display name
-     * <li>ZoneStrings[n][3] - Long daylight saving time display name
-     * <li>ZoneStrings[n][4] - Short daylight saving time display name
-     * </ul>
-     * When a localized display name is not available, the corresponding
-     * array element will be <code>null</code>.
-     * <p>
-     * <b>Note</b>: ICU implements time zone display name formatting algorithm
-     * specified by <a href="http://www.unicode.org/reports/tr35/">UTS#35 Unicode
-     * Locale Data Markup Language(LDML)</a>. The algorithm supports historic
-     * display name changes and various different type of names not available in
-     * JDK. For accessing the full set of time zone string data used by ICU implementation,
-     * you should use {@link TimeZoneNames} APIs instead.
-     * 
-     * @return the time zone strings.
+     * Returns timezone strings.
+     * @return the timezone strings.
      * @stable ICU 2.0
      */
     public String[][] getZoneStrings() {
         if (zoneStrings != null) {
             return duplicate(zoneStrings);
         }
-
-        String[] tzIDs = TimeZone.getAvailableIDs();
-        TimeZoneNames tznames = TimeZoneNames.getInstance(validLocale);
-        long now = System.currentTimeMillis();
-        String[][] array = new String[tzIDs.length][5];
-        for (int i = 0; i < tzIDs.length; i++) {
-            String canonicalID = TimeZone.getCanonicalID(tzIDs[i]);
-            if (canonicalID == null) {
-                canonicalID = tzIDs[i];
-            }
-
-            array[i][0] = tzIDs[i];
-            array[i][1] = tznames.getDisplayName(canonicalID, NameType.LONG_STANDARD, now);
-            array[i][2] = tznames.getDisplayName(canonicalID, NameType.SHORT_STANDARD, now);
-            array[i][3] = tznames.getDisplayName(canonicalID, NameType.LONG_DAYLIGHT, now);
-            array[i][4] = tznames.getDisplayName(canonicalID, NameType.SHORT_DAYLIGHT, now);
-        }
-
-        zoneStrings = array;
-        return zoneStrings;
+        return ZoneStringFormat.getInstance(requestedLocale).getZoneStrings();
     }
 
     /**
-     * Sets time zone strings.
-     * <p>
-     * <b>Note</b>: {@link SimpleDateFormat} no longer uses the
-     * zone strings stored in a <code>DateFormatSymbols</code>.
-     * Therefore, the time zone strings set by this method have
-     * no effects in an instance of <code>SimpleDateFormat</code>
-     * for formatting time zones. If you want to customize time
-     * zone display names formatted by <code>SimpleDateFormat</code>,
-     * you should customize {@link TimeZoneFormat} and set the
-     * instance by {@link SimpleDateFormat#setTimeZoneFormat(TimeZoneFormat)}
-     * instead.
-     * 
-     * @param newZoneStrings the new time zone strings.
+     * Sets timezone strings.
+     * @param newZoneStrings the new timezone strings.
      * @stable ICU 2.0
      */
     public void setZoneStrings(String[][] newZoneStrings) {
         zoneStrings = duplicate(newZoneStrings);
+        zsformat = new ZoneStringFormat(zoneStrings);
     }
 
     /**
@@ -998,6 +958,8 @@ public class DateFormatSymbols implements Serializable, Cloneable {
                 && Utility.arrayEquals(standaloneShortWeekdays, that.standaloneShortWeekdays)
                 && Utility.arrayEquals(standaloneNarrowWeekdays, that.standaloneNarrowWeekdays)
                 && Utility.arrayEquals(ampms, that.ampms)
+                && gmtFormat.equals(that.gmtFormat)
+                && arrayOfArrayEquals(gmtHourFormats, that.gmtHourFormats)
                 && arrayOfArrayEquals(zoneStrings, that.zoneStrings)
                 // getDiplayName maps deprecated country and language codes to the current ones
                 // too bad there is no way to get the current codes!
@@ -1068,6 +1030,9 @@ public class DateFormatSymbols implements Serializable, Cloneable {
         this.standaloneShortQuarters = dfs.standaloneShortQuarters;
         this.standaloneQuarters = dfs.standaloneQuarters;
 
+        this.gmtFormat = dfs.gmtFormat;
+        this.gmtHourFormats = dfs.gmtHourFormats;
+
         this.zoneStrings = dfs.zoneStrings; // always null at initialization time for now
         this.localPatternChars = dfs.localPatternChars;
 
@@ -1091,17 +1056,63 @@ public class DateFormatSymbols implements Serializable, Cloneable {
         // is cached.
         eras = calData.getEras("abbreviated");
 
-        eraNames = calData.getEras("wide");
+        try {
+           eraNames = calData.getEras("wide");
+        }
+        catch (MissingResourceException e) {
+           eraNames = calData.getEras("abbreviated");
+        }
 
-        narrowEras = calData.getEras("narrow");
+        // NOTE: since the above code assumes that abbreviated
+        // era names exist, we make the same assumption here too.
+        try {
+            narrowEras = calData.getEras("narrow");
+        } catch (MissingResourceException e) {
+            narrowEras = calData.getEras("abbreviated");
+        }
 
         months = calData.getStringArray("monthNames", "wide");
         shortMonths = calData.getStringArray("monthNames", "abbreviated");
-        narrowMonths = calData.getStringArray("monthNames", "narrow");
-        
-        standaloneMonths = calData.getStringArray("monthNames", "stand-alone", "wide");
-        standaloneShortMonths = calData.getStringArray("monthNames", "stand-alone", "abbreviated");
-        standaloneNarrowMonths = calData.getStringArray("monthNames", "stand-alone", "narrow");
+
+        try {
+           narrowMonths = calData.getStringArray("monthNames", "narrow");
+        }
+        catch (MissingResourceException e) {
+            try {
+                narrowMonths = calData.getStringArray("monthNames", "stand-alone", "narrow");
+            }
+            catch (MissingResourceException e1) {
+               narrowMonths = calData.getStringArray("monthNames", "abbreviated");
+            }
+        }
+
+        try {
+           standaloneMonths = calData.getStringArray("monthNames", "stand-alone", "wide");
+        }
+        catch (MissingResourceException e) {
+           standaloneMonths = calData.getStringArray("monthNames", "format", "wide");
+        }
+
+        try {
+           standaloneShortMonths =
+               calData.getStringArray("monthNames", "stand-alone", "abbreviated");
+        }
+        catch (MissingResourceException e) {
+           standaloneShortMonths = calData.getStringArray("monthNames", "format", "abbreviated");
+        }
+
+        try {
+           standaloneNarrowMonths = calData.getStringArray("monthNames", "stand-alone", "narrow");
+        }
+        catch (MissingResourceException e) {
+           try {
+              standaloneNarrowMonths = calData.getStringArray("monthNames", "format", "narrow");
+           }
+           catch (MissingResourceException e1) {
+              standaloneNarrowMonths =
+                  calData.getStringArray("monthNames", "format", "abbreviated");
+           }
+        }
 
         String[] lWeekdays = calData.getStringArray("dayNames", "wide");
         weekdays = new String[8];
@@ -1130,19 +1141,39 @@ public class DateFormatSymbols implements Serializable, Cloneable {
         System.arraycopy(nWeekdays, 0, narrowWeekdays, 1, nWeekdays.length);
 
         String [] saWeekdays = null;
-        saWeekdays = calData.getStringArray("dayNames", "stand-alone", "wide");
+        try {
+           saWeekdays = calData.getStringArray("dayNames", "stand-alone", "wide");
+        }
+        catch (MissingResourceException e) {
+           saWeekdays = calData.getStringArray("dayNames", "format", "wide");
+        }
         standaloneWeekdays = new String[8];
         standaloneWeekdays[0] = "";  // 1-based
         System.arraycopy(saWeekdays, 0, standaloneWeekdays, 1, saWeekdays.length);
 
         String [] ssWeekdays = null;
-        ssWeekdays = calData.getStringArray("dayNames", "stand-alone", "abbreviated");
+        try {
+           ssWeekdays = calData.getStringArray("dayNames", "stand-alone", "abbreviated");
+        }
+        catch (MissingResourceException e) {
+           ssWeekdays = calData.getStringArray("dayNames", "format", "abbreviated");
+        }
         standaloneShortWeekdays = new String[8];
         standaloneShortWeekdays[0] = "";  // 1-based
         System.arraycopy(ssWeekdays, 0, standaloneShortWeekdays, 1, ssWeekdays.length);
 
         String [] snWeekdays = null;
-        snWeekdays = calData.getStringArray("dayNames", "stand-alone", "narrow");
+        try {
+           snWeekdays = calData.getStringArray("dayNames", "stand-alone", "narrow");
+        }
+        catch (MissingResourceException e) {
+           try {
+              snWeekdays = calData.getStringArray("dayNames", "format", "narrow");
+           }
+           catch (MissingResourceException e1) {
+              snWeekdays = calData.getStringArray("dayNames", "format", "abbreviated");
+           }
+        }
         standaloneNarrowWeekdays = new String[8];
         standaloneNarrowWeekdays[0] = "";  // 1-based
         System.arraycopy(snWeekdays, 0, standaloneNarrowWeekdays, 1, snWeekdays.length);
@@ -1152,8 +1183,22 @@ public class DateFormatSymbols implements Serializable, Cloneable {
         quarters = calData.getStringArray("quarters", "wide");
         shortQuarters = calData.getStringArray("quarters", "abbreviated");
 
-        standaloneQuarters = calData.getStringArray("quarters", "stand-alone", "wide");
-        standaloneShortQuarters = calData.getStringArray("quarters", "stand-alone", "abbreviated");
+        try {
+           standaloneQuarters = calData.getStringArray("quarters", "stand-alone", "wide");
+        }
+        catch (MissingResourceException e) {
+           standaloneQuarters = calData.getStringArray("quarters", "format", "wide");
+        }
+
+        try {
+           standaloneShortQuarters = calData.getStringArray("quarters", "stand-alone", "abbreviated");
+        }
+        catch (MissingResourceException e) {
+            standaloneShortQuarters = calData.getStringArray("quarters", "format", "abbreviated");
+        }
+
+        // Initialize localized GMT format patterns
+        initializeGMTFormat(desiredLocale);
 
         requestedLocale = desiredLocale;
 
@@ -1171,6 +1216,60 @@ public class DateFormatSymbols implements Serializable, Cloneable {
         // TODO: obtain correct actual/valid locale later
         ULocale uloc = rb.getULocale();
         setLocale(uloc, uloc);
+    }
+
+    static final String DEFAULT_GMT_PATTERN = "GMT{0}";
+    static final String[][] DEFAULT_GMT_HOUR_PATTERNS = {
+        {"-HH:mm:ss", "-HH:mm"},
+        {"+HH:mm:ss", "+HH:mm"}
+    };
+
+    /**
+     * Initializes localized GMT format patterns
+     */
+    private void initializeGMTFormat(ULocale desiredLocale) {
+        // TimeZone format localization is not included in CalendarData
+        gmtFormat = ZoneMeta.getTZLocalizationInfo(desiredLocale, ZoneMeta.GMT);
+        if (gmtFormat == null) {
+            gmtFormat = DEFAULT_GMT_PATTERN;
+        }
+
+        try {
+            String offsetHM = ZoneMeta.getTZLocalizationInfo(desiredLocale, ZoneMeta.HOUR);
+            gmtHourFormats = new String[2][2];
+            int sepIdx = offsetHM.indexOf(';');
+            if (sepIdx != -1) {
+                gmtHourFormats[OFFSET_POSITIVE][OFFSET_HM] = offsetHM.substring(0, sepIdx);
+                gmtHourFormats[OFFSET_NEGATIVE][OFFSET_HM] = offsetHM.substring(sepIdx + 1);
+            } else {
+                gmtHourFormats[OFFSET_POSITIVE][OFFSET_HM] = "+HH:mm";
+                gmtHourFormats[OFFSET_NEGATIVE][OFFSET_HM] = "-HH:mm";
+            }
+            // CLDR 1.5 does not have GMT offset pattern including second field.
+            // For now, append "ss" to the end.
+            if (gmtHourFormats[OFFSET_POSITIVE][OFFSET_HM].indexOf(':') != -1) {
+                gmtHourFormats[OFFSET_POSITIVE][OFFSET_HMS] =
+                    gmtHourFormats[OFFSET_POSITIVE][OFFSET_HM] + ":ss";
+            } else if (gmtHourFormats[OFFSET_POSITIVE][OFFSET_HM].indexOf('.') != -1) {
+                gmtHourFormats[OFFSET_POSITIVE][OFFSET_HMS] =
+                    gmtHourFormats[OFFSET_POSITIVE][OFFSET_HM] + ".ss";
+            } else {
+                gmtHourFormats[OFFSET_POSITIVE][OFFSET_HMS] =
+                    gmtHourFormats[OFFSET_POSITIVE][OFFSET_HM] + "ss";
+            }
+            if (gmtHourFormats[OFFSET_NEGATIVE][OFFSET_HM].indexOf(':') != -1) {
+                gmtHourFormats[OFFSET_NEGATIVE][OFFSET_HMS] =
+                    gmtHourFormats[OFFSET_NEGATIVE][OFFSET_HM] + ":ss";
+            } else if (gmtHourFormats[OFFSET_NEGATIVE][OFFSET_HM].indexOf('.') != -1) {
+                gmtHourFormats[OFFSET_NEGATIVE][OFFSET_HMS] =
+                    gmtHourFormats[OFFSET_NEGATIVE][OFFSET_HM] + ".ss";
+            } else {
+                gmtHourFormats[OFFSET_NEGATIVE][OFFSET_HMS] =
+                    gmtHourFormats[OFFSET_NEGATIVE][OFFSET_HM] + "ss";
+            }
+        } catch (MissingResourceException e) {
+            gmtHourFormats = DEFAULT_GMT_HOUR_PATTERNS;
+        }
     }
 
     private static final boolean arrayOfArrayEquals(Object[][] aa1, Object[][]aa2) {
@@ -1191,6 +1290,45 @@ public class DateFormatSymbols implements Serializable, Cloneable {
             }
         }
         return equal;
+    }
+
+    /**
+     * Package local method (for now) to get localized GMT format pattern.
+     */
+    String getGmtFormat() {
+        return gmtFormat;
+    }
+
+    static final int OFFSET_HMS = 0;
+    static final int OFFSET_HM = 1;
+    static final int OFFSET_NEGATIVE = 0;
+    static final int OFFSET_POSITIVE = 1;
+
+    /*
+     * Package local method (for now) to get hour format pattern used by localized
+     * GMT string.
+     */
+    String getGmtHourFormat(int sign, int width) {
+        return gmtHourFormats[sign][width];
+    }
+
+    /*
+     * Package local method to access ZoneStringFormat used by this
+     * DateFormatSymbols instance.
+     */
+    ZoneStringFormat getZoneStringFormat() {
+        if (zsformat != null) {
+            return zsformat;
+        }
+        if (zoneStrings != null) {
+            zsformat = new ZoneStringFormat(zoneStrings);
+            return zsformat;
+        }
+        // We do not want to hold the reference to an instance of
+        // ZoneStringFormat.  An instance of ZoneStringFormat for
+        // a locale is shared and cached in ZoneStringFormat class
+        // itself.
+        return ZoneStringFormat.getInstance(requestedLocale);
     }
 
     /*
@@ -1373,7 +1511,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
 
     /**
      * Variant of DateFormatSymbols(Calendar, ULocale) that takes the Calendar class
-     * instead of a Calendar instance.
+     * instead of a Calandar instance.
      * @see #DateFormatSymbols(Calendar, Locale)
      * @stable ICU 3.2
      */
@@ -1381,16 +1519,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
         String fullName = calendarClass.getName();
         int lastDot = fullName.lastIndexOf('.');
         String className = fullName.substring(lastDot+1);
-        String calType = null;
-        for (String[] calClassInfo : CALENDAR_CLASSES) {
-            if (calClassInfo[0].equals(className)) {
-                calType = calClassInfo[1];
-                break;
-            }
-        }
-        if (calType == null) {
-            calType = className.replaceAll("Calendar", "").toLowerCase(Locale.ENGLISH);
-        }
+        String calType = className.replaceAll("Calendar", "").toLowerCase();
 
         initializeData(locale, calType);
     }
@@ -1571,5 +1700,8 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      */
     private void readObject(ObjectInputStream stream) throws IOException, ClassNotFoundException {
         stream.defaultReadObject();
+        if (gmtFormat == null) {
+            initializeGMTFormat(requestedLocale);
+        }
     }
 }

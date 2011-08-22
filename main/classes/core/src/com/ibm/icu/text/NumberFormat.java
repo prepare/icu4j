@@ -25,8 +25,8 @@ import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.util.Currency;
 import com.ibm.icu.util.CurrencyAmount;
 import com.ibm.icu.util.ULocale;
-import com.ibm.icu.util.UResourceBundle;
 import com.ibm.icu.util.ULocale.Category;
+import com.ibm.icu.util.UResourceBundle;
 
 /**
  * {@icuenhanced java.text.NumberFormat}.{@icu _usage_}
@@ -430,9 +430,8 @@ public abstract class NumberFormat extends UFormat {
      * on output, the position after the last matched character. If
      * the parse fails, the position in unchanged upon output.
      * @return a CurrencyAmount, or null upon failure
-     * @internal
      */
-    public CurrencyAmount parseCurrency(String text, ParsePosition pos) {
+    CurrencyAmount parseCurrency(String text, ParsePosition pos) {
         ///CLOVER:OFF
         // Default implementation only -- subclasses should override
         Number n = parse(text, pos);
@@ -467,6 +466,8 @@ public abstract class NumberFormat extends UFormat {
     /**
      * {@icu} Sets whether strict parsing is in effect.  When this is true, the
      * following conditions cause a parse failure (examples use the pattern "#,##0.#"):<ul>
+     * <li>Leading zeros<br>
+     * '00', '0123' fail the parse, but '0' and '0.001' pass</li>
      * <li>Leading or doubled grouping separators<br>
      * ',123' and '1,,234" fail</li>
      * <li>Groups of incorrect length when grouping is used<br>
@@ -475,7 +476,7 @@ public abstract class NumberFormat extends UFormat {
      * '1,234E5' fails, but '1234E5' and '1,234E' pass ('E' is not an exponent when
      * not followed by a number)</li>
      * </ul>
-     * When strict parsing is off,  all grouping separators are ignored.
+     * When strict parsing is off, leading zeros and all grouping separators are ignored.
      * This is the default behavior.
      * @param value True to enable strict parsing.  Default is false.
      * @see #isParseStrict
@@ -1394,12 +1395,27 @@ public abstract class NumberFormat extends UFormat {
 
         // TEMPORARY, until we get scientific patterns into the main
         // resources:  Retrieve scientific patterns from our resources.
-        //if (choice == SCIENTIFICSTYLE) {
+        if (choice == SCIENTIFICSTYLE) {
             // Temporarily hard code; retrieve from resource later
             /*For ICU compatibility [Richard/GCL]*/
-        //    return "#E0";
+            return "#E0";
             // return NumberFormat.getBaseStringArray("NumberPatterns")[SCIENTIFICSTYLE];
+        }
+        // TEMPORARY: Use rounding for Swiss currency
+        //if (choice == CURRENCYSTYLE &&
+        //    forLocale.getCountry().equals("CH")) {
+        //    return "'Fr. '#,##0.05;'Fr.-'#,##0.05";
         //}
+        // TEMPORARY: Special case IN number format
+        //if (choice == NUMBERSTYLE &&
+        //    forLocale.getCountry().equals("IN")) {
+        //    return "#,##,##0.###";
+        //}
+
+        // {dlf}
+        ICUResourceBundle rb = (ICUResourceBundle)UResourceBundle.
+            getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, forLocale);
+        String[] numberPatterns = rb.getStringArray("NumberPatterns");
 
         /* {dlf}
         // Try the cache first
@@ -1413,6 +1429,9 @@ public abstract class NumberFormat extends UFormat {
         }
         */
 
+        /*Bug 4408066
+         Add codes for the new method getIntegerInstance() [Richard/GCL]
+        */
         /* for ISOCURRENCYSTYLE and PLURALCURRENCYSTYLE,
          * the pattern is the same as the pattern of CURRENCYSTYLE
          * but by replacing the single currency sign with
@@ -1421,16 +1440,7 @@ public abstract class NumberFormat extends UFormat {
         int entry = (choice == INTEGERSTYLE) ? NUMBERSTYLE :
                 ((choice == ISOCURRENCYSTYLE || choice == PLURALCURRENCYSTYLE)?
                 CURRENCYSTYLE : choice); //[Richard/GCL]
-        
-        ICUResourceBundle rb = (ICUResourceBundle)UResourceBundle.
-        getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, forLocale);
-        String[] numberPatternKeys = { "decimalFormat", "currencyFormat", "percentFormat", "scientificFormat" };
-        return rb.getStringWithFallback("NumberElements/latn/patterns/"+numberPatternKeys[entry]);
-        //
-        // TODO: Make lookups of patterns depend on the locale's numbering system.
-        //       Right now we assume "latn" because no locales have any variations this way.
-        //       But we have the structure in CLDR to do this.
-        //
+        return numberPatterns[entry]; //[Richard/GCL]
     }
 
     /**

@@ -1,6 +1,6 @@
 /**
  *******************************************************************************
- * Copyright (C) 2006-2011, International Business Machines Corporation and    *
+ * Copyright (C) 2006-2009, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  *
@@ -917,36 +917,4 @@ public abstract class CharsetEncoderICU extends CharsetEncoder {
         fromUChar32 = UCharacter.getCodePoint(lead, trail);
         return null;
     }
-    
-    /**
-     * Returns the maxCharsPerByte value for the Charset that created this encoder.
-     * @return maxCharsPerByte
-     * @draft ICU 4.8
-     * @provisional This API might change or be removed in a future release.
-     */
-    public final float maxCharsPerByte() {
-        return ((CharsetICU)(this.charset())).maxCharsPerByte;
-    }
-    
-    /**
-     * Calculates the size of a buffer for conversion from Unicode to a charset.
-     * The calculated size is guaranteed to be sufficient for this conversion.
-     *
-     * It takes into account initial and final non-character bytes that are output
-     * by some converters.
-     * It does not take into account callbacks which output more than one charset
-     * character sequence per call, like escape callbacks.
-     * The default (substitution) callback only outputs one charset character sequence.
-     *
-     * @param length Number of chars to be converted.
-     * @param maxCharSize Return value from maxBytesPerChar for the converter
-     *                    that will be used.
-     * @return Size of a buffer that will be large enough to hold the output of bytes
-     *
-     * @draft ICU 49
-     */
-    public static int getMaxBytesForString(int length, int maxCharSize) {
-        return ((length + 10) * maxCharSize);
-    }
-
 }

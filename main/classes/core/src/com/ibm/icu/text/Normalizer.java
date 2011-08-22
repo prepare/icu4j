@@ -1,10 +1,11 @@
 /*
  *******************************************************************************
- * Copyright (C) 2000-2011, International Business Machines Corporation and    *
+ * Copyright (C) 2000-2010, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
 package com.ibm.icu.text;
+import java.io.IOException;
 import java.nio.CharBuffer;
 import java.text.CharacterIterator;
 
@@ -1372,9 +1373,14 @@ public final class Normalizer implements Cloneable {
         // case folding and NFKC.)
         // For the derivation, see Unicode's DerivedNormalizationProps.txt.
         Normalizer2 nfkc=NFKCModeImpl.INSTANCE.normalizer2;
-        UCaseProps csp=UCaseProps.INSTANCE;
+        UCaseProps csp;
+        try {
+            csp=UCaseProps.getSingleton();
+        } catch(IOException e) {
+            throw new RuntimeException(e);
+        }
         // first: b = NFKC(Fold(a))
-        StringBuilder folded=new StringBuilder();
+        StringBuffer folded=new StringBuffer();
         int folded1Length=csp.toFullFolding(c, folded, 0);
         if(folded1Length<0) {
             Normalizer2Impl nfkcImpl=((Norm2AllModes.Normalizer2WithImpl)nfkc).impl;
@@ -2025,7 +2031,7 @@ public final class Normalizer implements Cloneable {
         String decomp1, decomp2;
 
         /* case folding buffers, only use current-level start/limit */
-        StringBuilder fold1, fold2;
+        StringBuffer fold1, fold2;
 
         /* track which is the current level per string */
         int level1, level2;
@@ -2048,9 +2054,13 @@ public final class Normalizer implements Cloneable {
             nfcImpl=null;
         }
         if((options&COMPARE_IGNORE_CASE)!=0) {
-            csp=UCaseProps.INSTANCE;
-            fold1=new StringBuilder();
-            fold2=new StringBuilder();
+            try {
+                csp=UCaseProps.getSingleton();
+            } catch(IOException e) {
+                throw new RuntimeException(e);
+            }
+            fold1=new StringBuffer();
+            fold2=new StringBuffer();
         } else {
             csp=null;
             fold1=fold2=null;

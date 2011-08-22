@@ -243,8 +243,6 @@ class CharsetUTF7 extends CharsetICU {
                                     offsets.put(sourceIndex++);
                                 }
                             } else {  // Get out and set the CoderResult.
-                                charErrorBufferArray[charErrorBufferLength++] = b;
-                                cr = CoderResult.OVERFLOW;
                                 break;
                             }
                         } else { /* PLUS or (AMPERSAND in IMAP)*/

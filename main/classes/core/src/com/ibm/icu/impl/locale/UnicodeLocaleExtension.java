@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2009-2010, International Business Machines Corporation and    *
+ * Copyright (C) 2009-2011, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -55,7 +55,7 @@ public class UnicodeLocaleExtension extends Extension {
             StringBuilder sb = new StringBuilder();
             for (String attribute : _attributes) {
                 sb.append(LanguageTag.SEP).append(attribute);
-            }
+                }
             for (Entry<String, String> keyword : _keywords.entrySet()) {
                 String key = keyword.getKey();
                 String value = keyword.getValue();
@@ -63,15 +63,15 @@ public class UnicodeLocaleExtension extends Extension {
                 sb.append(LanguageTag.SEP).append(key);
                 if (value.length() > 0) {
                     sb.append(LanguageTag.SEP).append(value);
+                    }
+                    }
+            _value = sb.substring(1);   // skip leading '-'
                 }
             }
-            _value = sb.substring(1);   // skip leading '-'
-        }
-    }
 
     public Set<String> getUnicodeLocaleAttributes() {
         return Collections.unmodifiableSet(_attributes);
-    }
+        }
 
     public Set<String> getUnicodeLocaleKeys() {
         return Collections.unmodifiableSet(_keywords.keySet());
@@ -83,7 +83,7 @@ public class UnicodeLocaleExtension extends Extension {
 
     public static boolean isSingletonChar(char c) {
         return (SINGLETON == AsciiUtil.toLower(c));
-    }
+        }
 
     public static boolean isAttribute(String s) {
         // 3*8alphanum

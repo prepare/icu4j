@@ -1,5 +1,5 @@
 /*
-*   Copyright (C) 2007-2010, International Business Machines
+*   Copyright (C) 2007-2011, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 */
 
@@ -9,7 +9,6 @@ import java.util.Locale;
 import java.util.MissingResourceException;
 import java.util.Set;
 
-import com.ibm.icu.impl.CalendarUtil;
 import com.ibm.icu.impl.ICULocaleService;
 import com.ibm.icu.impl.ICULocaleService.LocaleKey;
 import com.ibm.icu.impl.ICULocaleService.LocaleKeyFactory;
@@ -65,18 +64,7 @@ class CalendarServiceShim extends Calendar.CalendarShim {
         if (desiredLocale.equals(ULocale.ROOT)) {
             desiredLocale = ULocale.ROOT;
         }
-        // We need to force the calendar type here, because the actual locale's default
-        // calendar may be different than the requested locale's default calendar.
-        // ( Territory-based data, not language based.
-        ULocale useLocale;
-        if ( desiredLocale.getKeywordValue("calendar") == null) {
-            String calType = CalendarUtil.getCalendarType(desiredLocale);
-            useLocale = desiredLocale.setKeywordValue("calendar", calType);
-        } else {
-            useLocale = desiredLocale;
-        }
-        
-        Calendar cal = (Calendar)service.get(useLocale, actualLoc);
+        Calendar cal = (Calendar)service.get(desiredLocale, actualLoc);
         if (cal == null) {
             throw new MissingResourceException("Unable to construct Calendar", "", "");
         }

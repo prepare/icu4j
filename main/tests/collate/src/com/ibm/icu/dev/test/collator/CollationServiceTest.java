@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2003-2010, International Business Machines Corporation and    *
+ * Copyright (C) 2003-2009, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -341,21 +341,21 @@ public class CollationServiceTest extends TestFmwk {
 
         boolean isAvailable[] = new boolean[1];
         ULocale equiv = Collator.getFunctionalEquivalent(KW[0],
-                                                         new ULocale("de"),
+                                                         new ULocale("fr"),
                                                          isAvailable);
-        if (assertTrue("getFunctionalEquivalent(de)!=null", equiv!=null)) {
-            assertEquals("getFunctionalEquivalent(de)", "de", equiv.toString());
+        if (assertTrue("getFunctionalEquivalent(fr)!=null", equiv!=null)) {
+            assertEquals("getFunctionalEquivalent(fr)", "fr", equiv.toString());
         }
-        assertTrue("getFunctionalEquivalent(de).isAvailable==true",
+        assertTrue("getFunctionalEquivalent(fr).isAvailable==true",
                    isAvailable[0] == true);
         
         equiv = Collator.getFunctionalEquivalent(KW[0],
-                                                 new ULocale("de_DE"),
+                                                 new ULocale("fr_FR"),
                                                  isAvailable);
-        if (assertTrue("getFunctionalEquivalent(de_DE)!=null", equiv!=null)) {
-            assertEquals("getFunctionalEquivalent(de_DE)", "de", equiv.toString());
+        if (assertTrue("getFunctionalEquivalent(fr_FR)!=null", equiv!=null)) {
+            assertEquals("getFunctionalEquivalent(fr_FR)", "fr", equiv.toString());
         }
-        assertTrue("getFunctionalEquivalent(de_DE).isAvailable==true",
+        assertTrue("getFunctionalEquivalent(fr_FR).isAvailable==true",
                    isAvailable[0] == true);
 
         equiv = Collator.getFunctionalEquivalent(KW[0], new ULocale("zh_Hans"));
@@ -393,7 +393,7 @@ public class CollationServiceTest extends TestFmwk {
                           "nl_BE@collation=pinyin", "root", "t",
                           "nl_BE@collation=big5han", "root", "t",
                           "nl_BE@collation=phonebook", "root", "t",
-                          "en_US_VALLEYGIRL","root","f"
+                          "en_US_VALLEYGIRL","en","f"
                         };
         final int DATA_COUNT=(DATA.length/3);
         
@@ -444,22 +444,22 @@ public class CollationServiceTest extends TestFmwk {
     
     public void TestGetKeywordValues(){
         final String[][] PREFERRED = {
-            {"und",             "standard", "ducet", "search"},
-            {"en_US",           "standard", "ducet", "search"},
-            {"en_029",          "standard", "ducet", "search"},
-            {"de_DE",           "standard", "phonebook", "search", "ducet"},
-            {"de_Latn_DE",      "standard", "phonebook", "search", "ducet"},
-            {"zh",              "pinyin", "big5han", "gb2312han", "standard", "stroke", "ducet", "search"},
-            {"zh_Hans",         "pinyin", "big5han", "gb2312han", "standard", "stroke", "ducet", "search"},
-            {"zh_CN",           "pinyin", "big5han", "gb2312han", "standard", "stroke", "ducet", "search"},
-            {"zh_Hant",         "stroke", "big5han", "gb2312han", "pinyin", "standard", "ducet", "search"},
-            {"zh_TW",           "stroke", "big5han", "gb2312han", "pinyin", "standard", "ducet", "search"},
-            {"zh__PINYIN",      "pinyin", "big5han", "gb2312han", "standard", "stroke", "ducet", "search"},
-            {"es_ES",           "standard", "search", "traditional", "ducet"},
-            {"es__TRADITIONAL", "traditional", "search", "standard", "ducet"},
-            {"und@collation=phonebook",     "standard", "ducet", "search"},
-            {"de_DE@collation=big5han",     "standard", "phonebook", "search", "ducet"},
-            {"zzz@collation=xxx",           "standard", "ducet", "search"},
+            {"und",             "standard"},
+            {"en_US",           "standard"},
+            {"en_029",          "standard"},
+            {"de_DE",           "standard", "phonebook"},
+            {"de_Latn_DE",      "standard", "phonebook"},
+            {"zh",              "pinyin", "big5han", "gb2312han", "standard", "stroke", "unihan"},
+            {"zh_Hans",         "pinyin", "big5han", "gb2312han", "standard", "stroke", "unihan"},
+            {"zh_CN",           "pinyin", "big5han", "gb2312han", "standard", "stroke", "unihan"},
+            {"zh_Hant",         "stroke", "big5han", "gb2312han", "pinyin", "standard", "unihan"},
+            {"zh_TW",           "stroke", "big5han", "gb2312han", "pinyin", "standard", "unihan"},
+            {"zh__PINYIN",      "pinyin", "big5han", "gb2312han", "standard", "stroke", "unihan"},
+            {"es_ES",           "standard", "traditional"},
+            {"es__TRADITIONAL", "traditional", "standard"},
+            {"und@collation=phonebook",     "standard"},
+            {"de_DE@collation=big5han",     "standard", "phonebook"},
+            {"zzz@collation=xxx",           "standard"},
         };
 
         for (int i = 0; i < PREFERRED.length; i++) {

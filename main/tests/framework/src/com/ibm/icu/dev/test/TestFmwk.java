@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2011, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2009, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -25,6 +25,7 @@ import java.util.Locale;
 import java.util.MissingResourceException;
 import java.util.Random;
 
+import com.ibm.icu.text.UTF16;
 import com.ibm.icu.util.TimeZone;
 import com.ibm.icu.util.ULocale;
 
@@ -922,8 +923,8 @@ public class TestFmwk extends AbstractTestLog {
         return result + foo;
     }
 
-    public static String hex(CharSequence s) {
-        StringBuilder result = new StringBuilder();
+    public static String hex(String s) {
+        StringBuffer result = new StringBuffer();
         for (int i = 0; i < s.length(); ++i) {
             if (i != 0)
                 result.append(',');
@@ -932,18 +933,21 @@ public class TestFmwk extends AbstractTestLog {
         return result.toString();
     }
 
-    public static String prettify(CharSequence s) {
-        StringBuilder result = new StringBuilder();
+    public static String hex(StringBuffer s) {
+        return hex(s.toString());
+    }
+    public static String prettify(String s) {
+        StringBuffer result = new StringBuffer();
         int ch;
-        for (int i = 0; i < s.length(); i += Character.charCount(ch)) {
-            ch = Character.codePointAt(s, i);
+        for (int i = 0; i < s.length(); i += UTF16.getCharCount(ch)) {
+            ch = UTF16.charAt(s, i);
             if (ch > 0xfffff) {
                 result.append("\\U00");
                 result.append(hex(ch));
             } else if (ch > 0xffff) {
                 result.append("\\U000");
                 result.append(hex(ch));
-            } else if (ch < 0x20 || 0x7e < ch) {
+            } else if (ch > 0x7f) {
                 result.append("\\u");
                 result.append(hex(ch));
             } else {
@@ -952,6 +956,9 @@ public class TestFmwk extends AbstractTestLog {
 
         }
         return result.toString();
+    }
+    public static String prettify(StringBuffer s) {
+        return prettify(s.toString());
     }
 
     private static java.util.GregorianCalendar cal;
@@ -1444,7 +1451,6 @@ public class TestFmwk extends AbstractTestLog {
 
         private void msg(String message, int level, boolean incCount,
                 boolean newln) {
-            int oldLevel = level;
             if (level == WARN && (!warnings && !nodata)){
                 level = ERR;
             }
@@ -1463,7 +1469,7 @@ public class TestFmwk extends AbstractTestLog {
                 if (!suppressIndent) {
                     indent(indentLevel + 1);
                     final String[] MSGNAMES = {"", "Warning: ", "Error: "};
-                    log.print(MSGNAMES[oldLevel]);
+                    log.print(MSGNAMES[level]);
                 }
 
                 log.print(message);

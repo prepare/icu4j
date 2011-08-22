@@ -19,8 +19,8 @@ import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.util.TimeUnit;
 import com.ibm.icu.util.TimeUnitAmount;
 import com.ibm.icu.util.ULocale;
-import com.ibm.icu.util.UResourceBundle;
 import com.ibm.icu.util.ULocale.Category;
+import com.ibm.icu.util.UResourceBundle;
 
 
 /**
@@ -471,18 +471,6 @@ public class TimeUnitFormat extends MeasureFormat {
             }
             parentLocale=parentLocale.getFallback();
         }
-
-        // if no unitsShort resource was found even after fallback to root locale
-        // then search the units resource fallback from the current level to root
-        if ( parentLocale == null && resourceKey.equals("unitsShort") ) {
-            searchInTree("units", styl, timeUnit, srcPluralCount, searchPluralCount, countToPatterns);
-            if ( countToPatterns != null &&
-                    countToPatterns.get(srcPluralCount) != null &&
-                    countToPatterns.get(srcPluralCount)[styl] != null ) {
-                return;
-            }
-        }
-
         // if not found the pattern for this plural count at all,
         // fall-back to plural count "other"
         if ( searchPluralCount.equals("other") ) {

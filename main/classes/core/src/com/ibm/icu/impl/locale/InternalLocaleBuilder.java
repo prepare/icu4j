@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2009-2010, International Business Machines Corporation and    *
+ * Copyright (C) 2009-2011, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -70,7 +70,7 @@ public final class InternalLocaleBuilder {
     public InternalLocaleBuilder setVariant(String variant) throws LocaleSyntaxException {
         if (variant == null || variant.length() == 0) {
             _variant = "";
-        } else {
+            } else {
             // normalize separators to "_"
             String var = variant.replaceAll(LanguageTag.SEP, BaseLocale.SEP);
             int errIdx = checkVariants(var, BaseLocale.SEP);
@@ -80,7 +80,7 @@ public final class InternalLocaleBuilder {
             _variant = var;
         }
         return this;
-    }
+            }
 
     public InternalLocaleBuilder addUnicodeLocaleAttribute(String attribute) throws LocaleSyntaxException {
         if (attribute == null || !UnicodeLocaleExtension.isAttribute(attribute)) {
@@ -155,12 +155,12 @@ public final class InternalLocaleBuilder {
                 }
                 if (_ukeywords != null) {
                     _ukeywords.clear();
-                }
-            } else {
+            }
+        } else {
                 if (_extensions != null && _extensions.containsKey(key)) {
                     _extensions.remove(key);
                 }
-            }
+                }
         } else {
             // validate value
             String val = value.replaceAll(BaseLocale.SEP, LanguageTag.SEP);
@@ -175,9 +175,9 @@ public final class InternalLocaleBuilder {
                 }
                 if (!validSubtag) {
                     throw new LocaleSyntaxException("Ill-formed extension value: " + s, itr.currentStart());
-                }
-                itr.next();
             }
+                itr.next();
+                }
 
             if (UnicodeLocaleExtension.isSingletonChar(key.value())) {
                 setUnicodeLocaleExtension(val);
@@ -187,9 +187,9 @@ public final class InternalLocaleBuilder {
                 }
                 _extensions.put(key, val);
             }
-        }
+            }
         return this;
-    }
+        }
 
     /*
      * Set extension/private subtags in a single string representation
@@ -197,8 +197,8 @@ public final class InternalLocaleBuilder {
     public InternalLocaleBuilder setExtensions(String subtags) throws LocaleSyntaxException {
         if (subtags == null || subtags.length() == 0) {
             clearExtensions();
-            return this;
-        }
+        return this;
+    }
         subtags = subtags.replaceAll(BaseLocale.SEP, LanguageTag.SEP);
         StringTokenIterator itr = new StringTokenIterator(subtags, LanguageTag.SEP);
 
@@ -256,10 +256,10 @@ public final class InternalLocaleBuilder {
                     parsed = itr.currentEnd();
 
                     itr.next();
-                }
+            }
                 if (parsed <= start) {
                     throw new LocaleSyntaxException("Incomplete privateuse:" + subtags.substring(start), start);
-                } else {
+        } else {
                     privateuse = sb.toString();
                 }
             }
@@ -296,7 +296,7 @@ public final class InternalLocaleBuilder {
                     }
                 }
             }
-        }
+            }
         if (privateuse != null && privateuse.length() > 0) {
             // privateuse string contains prefix, e.g. "x-abc-def"
             if (_extensions == null) {
@@ -374,18 +374,18 @@ public final class InternalLocaleBuilder {
         // LocaleExtensions always store validated/canonicalized values,
         // so no checks are necessary.
         if (language.length() > 0 && !LanguageTag.isLanguage(language)) {
-            throw new LocaleSyntaxException("Ill-formed language: " + language);
-        }
+                throw new LocaleSyntaxException("Ill-formed language: " + language);
+            }
 
         if (script.length() > 0 && !LanguageTag.isScript(script)) {
-            throw new LocaleSyntaxException("Ill-formed script: " + script);
-        }
+                throw new LocaleSyntaxException("Ill-formed script: " + script);
+            }
 
         if (region.length() > 0 && !LanguageTag.isRegion(region)) {
-            throw new LocaleSyntaxException("Ill-formed region: " + region);
-        }
+                throw new LocaleSyntaxException("Ill-formed region: " + region);
+            }
 
-        if (variant.length() > 0) {
+            if (variant.length() > 0) {
             int errIdx = checkVariants(variant, BaseLocale.SEP);
             if (errIdx != -1) {
                 throw new LocaleSyntaxException("Ill-formed variant: " + variant, errIdx);
@@ -419,10 +419,10 @@ public final class InternalLocaleBuilder {
                         }
                         _ukeywords.put(new CaseInsensitiveString(ukey), ue.getUnicodeLocaleType(ukey));
                     }
-                } else {
+        } else {
                     if (_extensions == null) {
                         _extensions = new HashMap<CaseInsensitiveChar, String>(4);
-                    }
+        }
                     _extensions.put(new CaseInsensitiveChar(key.charValue()), e.getValue());
                 }
             }
@@ -498,7 +498,7 @@ public final class InternalLocaleBuilder {
         }
 
         return new LocaleExtensions(_extensions, _uattributes, _ukeywords);
-    }
+        }
 
     /*
      * Remove special private use subtag sequence identified by "lvariant"
@@ -660,7 +660,7 @@ public final class InternalLocaleBuilder {
 
         CaseInsensitiveChar(char c) {
             _c = c;
-        }
+    }
 
         public char value() {
             return _c;
@@ -676,7 +676,7 @@ public final class InternalLocaleBuilder {
             }
             if (!(obj instanceof CaseInsensitiveChar)) {
                 return false;
-            }
+        }
             return _c ==  AsciiUtil.toLower(((CaseInsensitiveChar)obj).value());
         }
 
