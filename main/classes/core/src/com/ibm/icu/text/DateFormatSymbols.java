@@ -24,8 +24,8 @@ import com.ibm.icu.text.TimeZoneNames.NameType;
 import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.TimeZone;
 import com.ibm.icu.util.ULocale;
-import com.ibm.icu.util.UResourceBundle;
 import com.ibm.icu.util.ULocale.Category;
+import com.ibm.icu.util.UResourceBundle;
 
 /**
  * {@icuenhanced java.text.DateFormatSymbols}.{@icu _usage_}
@@ -465,21 +465,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
 
     /* use serialVersionUID from JDK 1.1.4 for interoperability */
     private static final long serialVersionUID = -5987973545549424702L;
-
-    private static final String[][] CALENDAR_CLASSES = {
-        {"GregorianCalendar", "gregorian"},
-        {"JapaneseCalendar", "japanese"},
-        {"BuddhistCalendar", "buddhist"},
-        {"TaiwanCalendar", "roc"},
-        {"PersianCalendar", "persian"},
-        {"IslamicCalendar", "islamic"},
-        {"HebrewCalendar", "hebrew"},
-        {"ChineseCalendar", "chinese"},
-        {"IndianCalendar", "indian"},
-        {"CopticCalendar", "coptic"},
-        {"EthiopicCalendar", "ethiopic"},
-    };
-
 
     /**
      * Returns era strings. For example: "AD" and "BC".
@@ -1373,7 +1358,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
 
     /**
      * Variant of DateFormatSymbols(Calendar, ULocale) that takes the Calendar class
-     * instead of a Calendar instance.
+     * instead of a Calandar instance.
      * @see #DateFormatSymbols(Calendar, Locale)
      * @stable ICU 3.2
      */
@@ -1381,16 +1366,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
         String fullName = calendarClass.getName();
         int lastDot = fullName.lastIndexOf('.');
         String className = fullName.substring(lastDot+1);
-        String calType = null;
-        for (String[] calClassInfo : CALENDAR_CLASSES) {
-            if (calClassInfo[0].equals(className)) {
-                calType = calClassInfo[1];
-                break;
-            }
-        }
-        if (calType == null) {
-            calType = className.replaceAll("Calendar", "").toLowerCase(Locale.ENGLISH);
-        }
+        String calType = className.replaceAll("Calendar", "").toLowerCase();
 
         initializeData(locale, calType);
     }

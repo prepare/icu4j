@@ -684,8 +684,6 @@ public final class UCharacterTest extends TestFmwk
             type = 0,
             dir = 0;
 
-        Normalizer2 nfkc = Normalizer2.getInstance(null, "nfkc", Normalizer2.Mode.COMPOSE);
-
         try
         {
             BufferedReader input = TestUtil.getDataReader(
@@ -757,12 +755,6 @@ public final class UCharacterTest extends TestFmwk
                 if (UCharacter.getCombiningClass(ch) != cc)
                 {
                     errln("FAIL \\u" + hex(ch) + " expected combining " +
-                            "class " + cc);
-                    break;
-                }
-                if (nfkc.getCombiningClass(ch) != cc)
-                {
-                    errln("FAIL \\u" + hex(ch) + " expected NFKC combining " +
                             "class " + cc);
                     break;
                 }
@@ -2651,18 +2643,17 @@ public final class UCharacterTest extends TestFmwk
             try{
                 UCharacter.getCombiningClass(valid_tests[i]);
             } catch(Exception e){
-                errln("UCharacter.getCombiningClass(int) was not supposed to have " +
+                errln("UCharacter.getCombiningClass(int) was not suppose to have " +
                         "an exception. Value passed: " + valid_tests[i]);
             }
         }
             
         for(int i=0; i< invalid_tests.length; i++){
             try{
-                assertEquals("getCombiningClass(out of range)",
-                             0, UCharacter.getCombiningClass(invalid_tests[i]));
-            } catch(Exception e){
-                errln("UCharacter.getCombiningClass(int) was not supposed to have " +
+                UCharacter.getCombiningClass(invalid_tests[i]);
+                errln("UCharacter.getCombiningClass(int) was suppose to have " +
                         "an exception. Value passed: " + invalid_tests[i]);
+            } catch(Exception e){
             }
         }
     }

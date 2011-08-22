@@ -175,7 +175,7 @@ public final class ZoneMeta {
         }
 
         if (region != null) {
-            region = region.toUpperCase(Locale.ENGLISH);
+            region = region.toUpperCase(Locale.US);
         }
 
         // Filter by region/rawOffset
@@ -559,7 +559,7 @@ public final class ZoneMeta {
      */
     static boolean parseCustomID(String id, int[] fields) {
         NumberFormat numberFormat = null;
-        String idUppercase = id.toUpperCase(Locale.ENGLISH);
+        String idUppercase = id.toUpperCase();
 
         if (id != null && id.length() > kGMT_ID.length() &&
             idUppercase.startsWith(kGMT_ID)) {

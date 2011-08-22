@@ -1,6 +1,6 @@
 /**
  *******************************************************************************
- * Copyright (C) 2006-2011, International Business Machines Corporation and    *
+ * Copyright (C) 2006-2008, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  *
@@ -8,6 +8,8 @@
  */
 package com.ibm.icu.charset;
 
+import java.nio.BufferOverflowException;
+import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.IntBuffer;
@@ -88,10 +90,21 @@ class CharsetASCII extends CharsetICU {
                 }
             } else {
                 /* unoptimized loop */
-                cr = decodeLoopCoreUnoptimized(source, target);
-                if (cr == CoderResult.OVERFLOW) {
+
+                try {
+                    /*
+                     * perform the core loop... if it throws an exception, it must be due to an
+                     * overflow or underflow
+                     */
+                    cr = decodeLoopCoreUnoptimized(source, target);
+
+                } catch (BufferUnderflowException ex) {
+                    /* all of the source has been read */
+                    cr = CoderResult.UNDERFLOW;
+                } catch (BufferOverflowException ex) {
                     /* the target is full */
                     source.position(source.position() - 1); /* rewind by 1 */
+                    cr = CoderResult.OVERFLOW;
                 }
             }
 
@@ -129,32 +142,22 @@ class CharsetASCII extends CharsetICU {
                 return null;
         }
 
-        protected CoderResult decodeLoopCoreUnoptimized(ByteBuffer source, CharBuffer target) {
+        protected CoderResult decodeLoopCoreUnoptimized(ByteBuffer source, CharBuffer target)
+                throws BufferUnderflowException, BufferOverflowException {
             int ch = 0;
 
             /*
              * perform ascii conversion from the source buffer to the target buffer, making sure
              * each byte in the source is within the correct range
              */
-            while (source.hasRemaining()) {
-                ch = source.get() & 0xff;
-                
-                if ((ch & 0x80) == 0) {
-                    if (target.hasRemaining()) {
-                        target.put((char)ch);
-                    } else {
-                        return CoderResult.OVERFLOW;
-                    }
-                } else {
-                    /*
-                     * if we reach here, it's because a character was not in the correct range, and we need
-                     * to deak with this by calling decodeMalformedOrUnmappable
-                     */
-                    return decodeMalformedOrUnmappable(ch);
-                }
-            }
-            
-            return CoderResult.UNDERFLOW;
+            while (((ch = (source.get() & 0xff)) & 0x80) == 0)
+                target.put((char) ch);
+
+            /*
+             * if we reach here, it's because a character was not in the correct range, and we need
+             * to deak with this by calling decodeMalformedOrUnmappable
+             */
+            return decodeMalformedOrUnmappable(ch);
         }
 
         protected CoderResult decodeMalformedOrUnmappable(int ch) {
@@ -244,11 +247,19 @@ class CharsetASCII extends CharsetICU {
                     }
                 } else {
                     /* unoptimized loop */
-                    
-                    cr = encodeLoopCoreUnoptimized(source, target, flush);
-                    
-                    if (cr == CoderResult.OVERFLOW) {
+
+                    try {
+                        /*
+                         * perform the core loop... if it throws an exception, it must be due to an
+                         * overflow or underflow
+                         */
+                        cr = encodeLoopCoreUnoptimized(source, target, flush);
+
+                    } catch (BufferUnderflowException ex) {
+                        cr = CoderResult.UNDERFLOW;
+                    } catch (BufferOverflowException ex) {
                         source.position(source.position() - 1); /* rewind by 1 */
+                        cr = CoderResult.OVERFLOW;
                     }
                 }
             }
@@ -281,39 +292,29 @@ class CharsetASCII extends CharsetICU {
              * early termination of the loop
              */
             if ((ch & 0xff80) != 0) {
-                source.position((i + 1) - source.arrayOffset());
+                source.position(i + 1);
                 target.position(i + offset);
                 return encodeMalformedOrUnmappable(source, ch, flush);
             } else
                 return null;
         }
 
-        protected CoderResult encodeLoopCoreUnoptimized(CharBuffer source, ByteBuffer target, boolean flush) {
+        protected CoderResult encodeLoopCoreUnoptimized(CharBuffer source, ByteBuffer target,
+                boolean flush) throws BufferUnderflowException, BufferOverflowException {
             int ch;
-            
+
             /*
              * perform ascii conversion from the source buffer to the target buffer, making sure
              * each char in the source is within the correct range
              */
-            while (source.hasRemaining()) {
-                ch = (int) source.get();
-                
-                if ((ch & 0xff80) == 0) {
-                    if (target.hasRemaining()) {
-                        target.put((byte) ch);
-                    } else {
-                        return CoderResult.OVERFLOW;
-                    }
-                } else {
-                    /*
-                     * if we reach here, it's because a character was not in the correct range, and we need
-                     * to deak with this by calling encodeMalformedOrUnmappable.
-                     */
-                    return encodeMalformedOrUnmappable(source, ch, flush);
-                }
-            }
-            
-            return CoderResult.UNDERFLOW;
+            while (((ch = (int) source.get()) & 0xff80) == 0)
+                target.put((byte) ch);
+
+            /*
+             * if we reach here, it's because a character was not in the correct range, and we need
+             * to deak with this by calling encodeMalformedOrUnmappable.
+             */
+            return encodeMalformedOrUnmappable(source, ch, flush);
         }
 
         protected final CoderResult encodeMalformedOrUnmappable(CharBuffer source, int ch, boolean flush) {

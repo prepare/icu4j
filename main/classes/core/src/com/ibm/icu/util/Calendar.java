@@ -1695,7 +1695,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
     private static int getCalendarTypeForLocale(ULocale l) {
         String s = CalendarUtil.getCalendarType(l);
         if (s != null) {
-            s = s.toLowerCase(Locale.ENGLISH);
+            s = s.toLowerCase();
             for (int i = 0; i < calTypes.length; ++i) {
                 if (s.equals(calTypes[i])) {
                     return i;
