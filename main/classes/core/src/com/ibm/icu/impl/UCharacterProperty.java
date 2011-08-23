@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 1996-2011, International Business Machines Corporation and    *
+* Copyright (C) 1996-2010, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 */
@@ -116,19 +116,21 @@ public final class UCharacterProperty
 
     /**
      * Gets the unicode additional properties.
-     * Java version of C u_getUnicodeProperties().
+     * C version getUnicodeProperties.
      * @param codepoint codepoint whose additional properties is to be
      *                  retrieved
      * @param column The column index.
      * @return unicode properties
      */
-    public int getAdditional(int codepoint, int column) {
-        assert column >= 0;
-        if (column >= m_additionalColumnsCount_) {
-            return 0;
+       public int getAdditional(int codepoint, int column) {
+        if (column == -1) {
+            return getProperty(codepoint);
         }
-        return m_additionalVectors_[m_additionalTrie_.get(codepoint) + column];
-    }
+           if (column < 0 || column >= m_additionalColumnsCount_) {
+           return 0;
+       }
+       return m_additionalVectors_[m_additionalTrie_.get(codepoint) + column];
+       }
 
     static final int MY_MASK = UCharacterProperty.TYPE_MASK
         & ((1<<UCharacterCategory.UPPERCASE_LETTER) |
@@ -363,8 +365,8 @@ public final class UCharacterProperty
                 if(c>=0) {
                     /* single code point */
                     UCaseProps csp=UCaseProps.INSTANCE;
-                    UCaseProps.dummyStringBuilder.setLength(0);
-                    return csp.toFullFolding(c, UCaseProps.dummyStringBuilder,
+                    UCaseProps.dummyStringBuffer.setLength(0);
+                    return csp.toFullFolding(c, UCaseProps.dummyStringBuffer,
                                              UCharacter.FOLD_CASE_DEFAULT)>=0;
                 } else {
                     String folded=UCharacter.foldCase(nfd, true);
@@ -490,7 +492,8 @@ public final class UCharacterProperty
         new IntProperty(0, BLOCK_MASK_, BLOCK_SHIFT_),
         new CombiningClassIntProperty(SRC_NFC) {  // CANONICAL_COMBINING_CLASS
             int getValue(int c) {
-                return Norm2AllModes.getNFCInstance().decomp.getCombiningClass(c);
+                Normalizer2Impl impl = Norm2AllModes.getNFCInstance().impl;
+                return impl.getCC(impl.getNorm16(c));
             }
         },
         new IntProperty(2, DECOMPOSITION_TYPE_MASK_, 0),
@@ -725,6 +728,28 @@ public final class UCharacterProperty
         }
     }
     */
+
+    /**
+     * Checks if the argument c is to be treated as a white space in ICU
+     * rules. Usually ICU rule white spaces are ignored unless quoted.
+     * Equivalent to test for Pattern_White_Space Unicode property.
+     * Stable set of characters, won't change.
+     * See UAX #31 Identifier and Pattern Syntax: http://www.unicode.org/reports/tr31/
+     * @param c codepoint to check
+     * @return true if c is a ICU white space
+     */
+    public static boolean isRuleWhiteSpace(int c)
+    {
+        /* "white space" in the sense of ICU rule parsers
+           This is a FIXED LIST that is NOT DEPENDENT ON UNICODE PROPERTIES.
+           See UAX #31 Identifier and Pattern Syntax: http://www.unicode.org/reports/tr31/
+           U+0009..U+000D, U+0020, U+0085, U+200E..U+200F, and U+2028..U+2029
+           Equivalent to test for Pattern_White_Space Unicode property.
+        */
+        return (c >= 0x0009 && c <= 0x2029 &&
+                (c <= 0x000D || c == 0x0020 || c == 0x0085 ||
+                 c == 0x200E || c == 0x200F || c >= 0x2028));
+    }
 
     /**
      * Get the the maximum values for some enum/int properties.

@@ -70,6 +70,10 @@ public class CollationMiscTest extends TestFmwk {
 
     public void TestComposeDecompose()
     {
+        if(skipIfBeforeICU(4, 5, 2)) {
+            return;
+        }
+        
         Tester t[] = new Tester[0x30000];
         t[0] = new Tester();
         logln("Testing UCA extensively\n");
@@ -3173,8 +3177,6 @@ public class CollationMiscTest extends TestFmwk {
     {
         Collator myCollation;
         int[] reorderCodes = {UScript.GREEK, UScript.HAN, ReorderCodes.PUNCTUATION};
-        int[] duplicateReorderCodes = {UScript.CUNEIFORM, UScript.GREEK, ReorderCodes.CURRENCY, UScript.EGYPTIAN_HIEROGLYPHS};
-        int[] reorderCodesStartingWithDefault = {ReorderCodes.DEFAULT, UScript.GREEK, UScript.HAN, ReorderCodes.PUNCTUATION};
         int[] retrievedReorderCodes;
         String greekString = "\u03b1";
         String punctuationString = "\u203e";
@@ -3197,7 +3199,7 @@ public class CollationMiscTest extends TestFmwk {
         /* clear the reordering */
         myCollation.setReorderCodes(null);    
         retrievedReorderCodes = myCollation.getReorderCodes();
-        if (retrievedReorderCodes.length != 0) {
+        if (retrievedReorderCodes != null) {
             errln("ERROR: retrieved reorder codes was not null.");
         }
 
@@ -3221,80 +3223,14 @@ public class CollationMiscTest extends TestFmwk {
         /* clear the reordering */
         myCollation.setReorderCodes(new int[]{});    
         retrievedReorderCodes = myCollation.getReorderCodes();
-        if (retrievedReorderCodes.length != 0) {
+        if (retrievedReorderCodes != null) {
             errln("ERROR: retrieved reorder codes was not null.");
         }
 
         if (!(myCollation.compare(greekString, punctuationString) > 0)) {
             errln("ERROR: collation result should have been greater.");
         }
-        
-        boolean gotException = false;
-        /* set duplicates in the reorder codes */
-        try {
-            myCollation.setReorderCodes(duplicateReorderCodes);
-        } catch (IllegalArgumentException e) {
-            // expect exception on illegal arguments
-            gotException = true;
-        }
-        if (!gotException) {
-            errln("ERROR: exception was not thrown for illegal reorder codes argument.");            
-        }
-        
-        /* set duplicate reorder codes */
-        gotException = false;
-        try {
-            myCollation.setReorderCodes(reorderCodesStartingWithDefault);
-        } catch (IllegalArgumentException e) {
-            gotException = true;
-        }
-        if (!gotException) {
-            errln("ERROR: reorder codes following a 'default' code should have thrown an exception but did not.");            
-        }
-    }
-    
-    /*
-     * Test reordering API.
-     */
-    public void TestReorderingAPIWithRuleCreatedCollator() throws Exception
-    {
-        Collator myCollation;
-        String rules = "[reorder Hani Grek]";
-        int[] rulesReorderCodes = {UScript.HAN, UScript.GREEK};
-        int[] reorderCodes = {UScript.GREEK, UScript.HAN, ReorderCodes.PUNCTUATION};
-        int[] retrievedReorderCodes;
 
-        
-        /* build collator tertiary */
-        myCollation = new RuleBasedCollator(rules);
-        myCollation.setStrength(Collator.TERTIARY);
-
-        retrievedReorderCodes = myCollation.getReorderCodes();
-        if (!Arrays.equals(rulesReorderCodes, retrievedReorderCodes)) {
-            errln("ERROR: retrieved reorder codes do not match set reorder codes.");
-        }
-        
-        /* clear the reordering */
-        myCollation.setReorderCodes(null);    
-        retrievedReorderCodes = myCollation.getReorderCodes();
-        if (retrievedReorderCodes.length != 0) {
-            errln("ERROR: retrieved reorder codes was not null.");
-        }
-
-        /* set the reorderding */
-        myCollation.setReorderCodes(reorderCodes);
-        
-        retrievedReorderCodes = myCollation.getReorderCodes();
-        if (!Arrays.equals(reorderCodes, retrievedReorderCodes)) {
-            errln("ERROR: retrieved reorder codes do not match set reorder codes.");
-        }
-        
-        /* reset the reordering */
-        myCollation.setReorderCodes(ReorderCodes.DEFAULT);    
-        retrievedReorderCodes = myCollation.getReorderCodes();
-        if (!Arrays.equals(rulesReorderCodes, retrievedReorderCodes)) {
-            errln("ERROR: retrieved reorder codes do not match set reorder codes.");
-        }
     }
     
     public void TestSameLeadBytScriptReorder(){
@@ -3313,31 +3249,6 @@ public class CollationMiscTest extends TestFmwk {
                 -1,
         };
 
-        Collator  myCollation;
-        String rules = "[reorder Goth Latn]";
-        try {
-            myCollation = new RuleBasedCollator(rules);
-        } catch (Exception e) {
-            warnln("ERROR: in creation of rule based collator");
-            return;
-        }
-        myCollation.setDecomposition(Collator.CANONICAL_DECOMPOSITION);
-        myCollation.setStrength(Collator.TERTIARY);
-        for (int i = 0; i < testSourceCases.length ; i++)
-        {
-            CollationTest.doTest(this, (RuleBasedCollator)myCollation, 
-                    testSourceCases[i], testTargetCases[i], 
-                    results[i]);
-        }
-
-        // ensure that the non-reordered and reordered collation is the same
-        Collator nonReorderdCollator = RuleBasedCollator.getInstance();
-        int nonReorderedResults = nonReorderdCollator.compare(testSourceCases[0], testSourceCases[1]);
-        CollationTest.doTest(this, (RuleBasedCollator)myCollation, 
-                testSourceCases[0], testSourceCases[1], nonReorderedResults);   
-     }
-    
-    public void TestEquivalentReorderingScripts() {
         int[] equivalentScriptsResult = {
                 UScript.BOPOMOFO,               //Bopo
                 UScript.LISU,                   //Lisu
@@ -3362,18 +3273,41 @@ public class CollationMiscTest extends TestFmwk {
                 UScript.CUNEIFORM,              //Xsux
                 UScript.EGYPTIAN_HIEROGLYPHS    //Egyp
         };
+
+        Collator  myCollation;
+        String rules = "[reorder Goth Latn]";
+        try {
+            myCollation = new RuleBasedCollator(rules);
+        } catch (Exception e) {
+            warnln("ERROR: in creation of rule based collator");
+            return;
+        }
+        myCollation.setDecomposition(Collator.CANONICAL_DECOMPOSITION);
+        myCollation.setStrength(Collator.TERTIARY);
+        for (int i = 0; i < testSourceCases.length ; i++)
+        {
+            CollationTest.doTest(this, (RuleBasedCollator)myCollation, 
+                    testSourceCases[i], testTargetCases[i], 
+                    results[i]);
+        }
+
+        // ensure that the non-reordered and reordered collation is the same
+        Collator nonReorderdCollator = RuleBasedCollator.getInstance();
+        int nonReorderedResults = nonReorderdCollator.compare(testSourceCases[0], testSourceCases[1]);
+        CollationTest.doTest(this, (RuleBasedCollator)myCollation, 
+                testSourceCases[0], testSourceCases[1], nonReorderedResults);
+    
         Arrays.sort(equivalentScriptsResult);
-        
-        int[] equivalentScripts = RuleBasedCollator.getEquivalentReorderCodes(UScript.GOTHIC);
+        int[] equivalentScripts = RuleBasedCollator.getReorderingCodesGroup(UScript.GOTHIC);
         Arrays.sort(equivalentScripts);
         assertTrue("Script Equivalents for Reordering", Arrays.equals(equivalentScripts, equivalentScriptsResult));
 
-        equivalentScripts = RuleBasedCollator.getEquivalentReorderCodes(UScript.SHAVIAN);
+        equivalentScripts = RuleBasedCollator.getReorderingCodesGroup(UScript.SHAVIAN);
         Arrays.sort(equivalentScripts);
         assertTrue("Script Equivalents for Reordering", Arrays.equals(equivalentScripts, equivalentScriptsResult));
     }
     
-    public void TestGreekFirstReorderCloning() {
+    public void TestGreekFirstReorderCloning(){
         String[] testSourceCases = {
             "\u0041",
             "\u03b1\u0041",
@@ -3480,8 +3414,8 @@ public class CollationMiscTest extends TestFmwk {
         };
         
         OneTestCase[] privateUseCharacterStrings = {
-            new OneTestCase("\u0391", "\u0391", 0),
-            new OneTestCase("\u0041", "\u0391", -1),
+            //new OneTestCase("\u0391", "\u0391", 0),
+            //new OneTestCase("\u0041", "\u0391", -1),
             new OneTestCase("\u03B1\u0041", "\u03B1\u0391", -1),
             new OneTestCase("\u0060", "\u0391", -1),
             new OneTestCase("\u0391", "\ue2dc", 1),
@@ -3568,53 +3502,5 @@ public class CollationMiscTest extends TestFmwk {
 
         /* Test collation reordering API */
         doTestOneReorderingAPITestCase(collationTestCases, apiRules);
-    }
-    
-    public void TestFrozeness()
-    {
-        Collator myCollation = Collator.getInstance(ULocale.CANADA);
-        boolean exceptionCaught = false;
-        
-        myCollation.freeze();
-        assertTrue("Collator not frozen.", myCollation.isFrozen());
-
-        try {
-            myCollation.setStrength(Collator.SECONDARY);
-        } catch (UnsupportedOperationException e) {
-            // expected
-            exceptionCaught = true;
-        }
-        assertTrue("Frozen collator allowed change.", exceptionCaught);
-        exceptionCaught = false;
-        
-        try {
-            myCollation.setReorderCodes(ReorderCodes.DEFAULT);
-        } catch (UnsupportedOperationException e) {
-            // expected
-            exceptionCaught = true;
-        }
-        assertTrue("Frozen collator allowed change.", exceptionCaught);
-        exceptionCaught = false;
-        
-        try {
-            myCollation.setVariableTop(12);
-        } catch (UnsupportedOperationException e) {
-            // expected
-            exceptionCaught = true;
-        }
-        assertTrue("Frozen collator allowed change.", exceptionCaught);
-        exceptionCaught = false;
-        
-        Collator myClone = null;
-        try {
-            myClone = (Collator) myCollation.clone();
-        } catch (CloneNotSupportedException e) {
-            // should not happen - clone is implemented in Collator
-            errln("ERROR: unable to clone collator.");
-        }
-        assertTrue("Clone not frozen as expected.", myClone.isFrozen());
-        
-        myClone = myClone.cloneAsThawed();
-        assertFalse("Clone not thawed as expected.", myClone.isFrozen());        
     }
 }

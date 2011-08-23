@@ -23,8 +23,8 @@ import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.impl.SimpleCache;
 import com.ibm.icu.util.Currency;
 import com.ibm.icu.util.ULocale;
-import com.ibm.icu.util.UResourceBundle;
 import com.ibm.icu.util.ULocale.Category;
+import com.ibm.icu.util.UResourceBundle;
 
 /**
  * {@icuenhanced java.text.DecimalFormatSymbols}.{@icu _usage_}
@@ -911,17 +911,22 @@ public class DecimalFormatSymbols implements Cloneable, Serializable {
             currencySymbol = isChoiceFormat[0]
                 ? new ChoiceFormat(currname).format(2.0)
                 : currname;
-            CurrencyFormatInfo fmtInfo = info.getFormatInfo(intlCurrencySymbol);
-            if (fmtInfo != null) {
-                currencyPattern = fmtInfo.currencyPattern;
-                monetarySeparator = fmtInfo.monetarySeparator;
-                monetaryGroupingSeparator = fmtInfo.monetaryGroupingSeparator;
-            }
         } else {
             intlCurrencySymbol = "XXX";
             currencySymbol = "\u00A4"; // 'OX' currency symbol
         }
 
+
+        // Get currency pattern/separator overrides if they exist.
+        Currency curr = Currency.getInstance(locale);
+        if (curr != null){
+            CurrencyFormatInfo fmtInfo = info.getFormatInfo(curr.getCurrencyCode());
+            if (fmtInfo != null) {
+                currencyPattern = fmtInfo.currencyPattern;
+                monetarySeparator = fmtInfo.monetarySeparator;
+                monetaryGroupingSeparator = fmtInfo.monetaryGroupingSeparator;
+            }
+        }
 
         // Get currency spacing data.
         currencySpcBeforeSym = new String[3];

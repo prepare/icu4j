@@ -1,6 +1,6 @@
 /*
 **********************************************************************
-*   Copyright (c) 2001-2011, International Business Machines
+*   Copyright (c) 2001-2010, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 **********************************************************************
 *   Date        Name        Description
@@ -8,7 +8,6 @@
 **********************************************************************
 */
 package com.ibm.icu.text;
-import com.ibm.icu.impl.Utility;
 import com.ibm.icu.lang.UCharacter;
 
 /**
@@ -139,14 +138,14 @@ class UnescapeTransliterator extends Transliterator {
                                        Position pos, boolean isIncremental) {
         int start = pos.start;
         int limit = pos.limit;
-        int i, ipat;
+        int i, j, ipat;
 
       loop:
         while (start < limit) {
             // Loop over the forms in spec[].  Exit this loop when we
             // match one of the specs.  Exit the outer loop if a
             // partial match is detected and isIncremental is true.
-            for (ipat = 0; spec[ipat] != END;) {
+            for (j=0, ipat=0; spec[ipat] != END; ++j) {
 
                 // Read the header
                 int prefixLen = spec[ipat++];
@@ -248,39 +247,5 @@ class UnescapeTransliterator extends Transliterator {
         pos.contextLimit += limit - pos.limit;
         pos.limit = limit;
         pos.start = start;
-    }
-
-    /* (non-Javadoc)
-     * @see com.ibm.icu.text.Transliterator#addSourceTargetSet(com.ibm.icu.text.UnicodeSet, com.ibm.icu.text.UnicodeSet, com.ibm.icu.text.UnicodeSet)
-     */
-    @Override
-    public void addSourceTargetSet(UnicodeSet inputFilter, UnicodeSet sourceSet, UnicodeSet targetSet) {
-        // Each form consists of a prefix, suffix,
-        // * radix, minimum digit count, and maximum digit count.  These
-        // * values are stored as a five character header. ...
-        UnicodeSet myFilter = getFilterAsUnicodeSet(inputFilter);
-        UnicodeSet items = new UnicodeSet();
-        StringBuilder buffer = new StringBuilder();
-        for (int i = 0; spec[i] != END;) {
-            // first 5 items are header
-            int end = i + spec[i] + spec[i+1] + 5;
-            int radix = spec[i+2];
-            for (int j = 0; j < radix; ++j) {
-                Utility.appendNumber(buffer, j, radix, 0);
-            }
-            // then add the characters
-            for (int j = i + 5; j < end; ++j) {
-                items.add(spec[j]);
-            }
-            // and go to next block
-            i = end;
-        }
-        items.addAll(buffer.toString());
-        items.retainAll(myFilter);
-
-        if (items.size() > 0) {
-            sourceSet.addAll(items);
-            targetSet.addAll(0,0x10FFFF); // assume we can produce any character
-        }
     }
 }

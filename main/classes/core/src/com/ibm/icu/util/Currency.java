@@ -70,7 +70,7 @@ public class Currency extends MeasureUnit implements Serializable {
     public static final int SYMBOL_NAME = 0;
 
     /**
-     * Selector for getName() indicating the long name for a
+     * Selector for ucurr_getName indicating the long name for a
      * currency, such as "US Dollar" for USD.
      * @stable ICU 2.6
      */
@@ -168,39 +168,32 @@ public class Currency extends MeasureUnit implements Serializable {
     }
 
     private static final String EUR_STR = "EUR";
-    private static final ICUCache<ULocale, String> currencyCodeCache = new SimpleCache<ULocale, String>();
     
     /**
      * Instantiate a currency from resource data.
      */
     /* package */ static Currency createCurrency(ULocale loc) {
-        
         String variant = loc.getVariant();
         if ("EURO".equals(variant)) {
             return new Currency(EUR_STR);
         }
         
-        String code = currencyCodeCache.get(loc);
-        if (code == null) {
-            String country = loc.getCountry();
+        String country = loc.getCountry();
         
-            CurrencyMetaInfo info = CurrencyMetaInfo.getInstance();
-            List<String> list = info.currencies(CurrencyFilter.onRegion(country));
-            if (list.size() > 0) {
-                code = list.get(0);
-                boolean isPreEuro = "PREEURO".equals(variant);
-                if (isPreEuro && EUR_STR.equals(code)) {
-                    if (list.size() < 2) {
-                        return null;
-                    }
-                    code = list.get(1);
+        CurrencyMetaInfo info = CurrencyMetaInfo.getInstance();
+        List<String> list = info.currencies(CurrencyFilter.onRegion(country));
+        if (list.size() > 0) {
+            String code = list.get(0);
+            boolean isPreEuro = "PREEURO".equals(variant);
+            if (isPreEuro && EUR_STR.equals(code)) {
+                if (list.size() < 2) {
+                    return null;
                 }
-            } else {
-                return null;
+                code = list.get(1);
             }
-            currencyCodeCache.put(loc, code);
+            return new Currency(code);
         }
-        return new Currency(code);
+        return null;
     }
 
     /**
@@ -220,7 +213,7 @@ public class Currency extends MeasureUnit implements Serializable {
             throw new IllegalArgumentException(
                     "The input currency code is not 3-letter alphabetic code.");
         }
-        return new Currency(theISOCode.toUpperCase(Locale.ENGLISH));
+        return new Currency(theISOCode.toUpperCase(Locale.US));
     }
 
     private static boolean isAlpha3Code(String code) {
@@ -761,10 +754,7 @@ public class Currency extends MeasureUnit implements Serializable {
         List<String> all = (ALL_CODES == null) ? null : ALL_CODES.get();
         if (all == null) {
             CurrencyMetaInfo info = CurrencyMetaInfo.getInstance();
-            // Filter out non-tender currencies which have "from" date set to 9999-12-31
-            // CurrencyFilter has "to" value set to 9998-12-31 in order to exclude them
-            CurrencyFilter filter = CurrencyFilter.onRange(null, new Date(253373299200000L));
-            all = Collections.unmodifiableList(info.currencies(filter));
+            all = Collections.unmodifiableList(info.currencies(null));
             ALL_CODES = new SoftReference<List<String>>(all);
         }
         return all;
@@ -814,5 +804,81 @@ public class Currency extends MeasureUnit implements Serializable {
         List<String> allActive = info.currencies(CurrencyFilter.onRange(from, to));
         return allActive.contains(code);
     }
+
+    // -------- BEGIN ULocale boilerplate --------
+
+    /**
+     * Return the locale that was used to create this object, or null.
+     * This may may differ from the locale requested at the time of
+     * this object's creation.  For example, if an object is created
+     * for locale <tt>en_US_CALIFORNIA</tt>, the actual data may be
+     * drawn from <tt>en</tt> (the <i>actual</i> locale), and
+     * <tt>en_US</tt> may be the most specific locale that exists (the
+     * <i>valid</i> locale).
+     *
+     * <p>Note: This method will be obsoleted.  The implementation is
+     * no longer locale-specific and so there is no longer a valid or
+     * actual locale associated with the Currency object.  Until
+     * it is removed, this method will return the root locale.
+     * @param type type of information requested, either {@link
+     * com.ibm.icu.util.ULocale#VALID_LOCALE} or {@link
+     * com.ibm.icu.util.ULocale#ACTUAL_LOCALE}.
+     * @return the information specified by <i>type</i>, or null if
+     * this object was not constructed from locale data.
+     * @see com.ibm.icu.util.ULocale
+     * @see com.ibm.icu.util.ULocale#VALID_LOCALE
+     * @see com.ibm.icu.util.ULocale#ACTUAL_LOCALE
+     * @obsolete ICU 3.2 to be removed
+     * @deprecated This API is obsolete.
+     */
+    public final ULocale getLocale(ULocale.Type type) {
+        ULocale result = (type == ULocale.ACTUAL_LOCALE) ? actualLocale : validLocale;
+        if (result == null) {
+            return ULocale.ROOT;
+        }
+        return result;
+    }
+
+    /**
+     * Set information about the locales that were used to create this
+     * object.  If the object was not constructed from locale data,
+     * both arguments should be set to null.  Otherwise, neither
+     * should be null.  The actual locale must be at the same level or
+     * less specific than the valid locale.  This method is intended
+     * for use by factories or other entities that create objects of
+     * this class.
+     * @param valid the most specific locale containing any resource
+     * data, or null
+     * @param actual the locale containing data used to construct this
+     * object, or null
+     * @see com.ibm.icu.util.ULocale
+     * @see com.ibm.icu.util.ULocale#VALID_LOCALE
+     * @see com.ibm.icu.util.ULocale#ACTUAL_LOCALE
+     */
+    final void setLocale(ULocale valid, ULocale actual) {
+        // Change the following to an assertion later
+        if ((valid == null) != (actual == null)) {
+            ///CLOVER:OFF
+            throw new IllegalArgumentException();
+            ///CLOVER:ON
+        }
+        // Another check we could do is that the actual locale is at
+        // the same level or less specific than the valid locale.
+        this.validLocale = valid;
+        this.actualLocale = actual;
+    }
+
+    /*
+     * The most specific locale containing any resource data, or null.
+     */
+    private ULocale validLocale;
+
+    /*
+     * The locale containing data used to construct this object, or null.
+     */
+    private ULocale actualLocale;
+
+    // -------- END ULocale boilerplate --------
 }
+
 //eof

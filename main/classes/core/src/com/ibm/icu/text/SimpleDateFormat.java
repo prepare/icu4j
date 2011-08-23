@@ -10,6 +10,7 @@ package com.ibm.icu.text;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.lang.ref.WeakReference;
 import java.text.AttributedCharacterIterator;
 import java.text.AttributedString;
 import java.text.FieldPosition;
@@ -25,15 +26,15 @@ import java.util.MissingResourceException;
 import com.ibm.icu.impl.CalendarData;
 import com.ibm.icu.impl.DateNumberFormat;
 import com.ibm.icu.impl.ICUCache;
-import com.ibm.icu.impl.PatternProps;
 import com.ibm.icu.impl.SimpleCache;
+import com.ibm.icu.impl.UCharacterProperty;
+import com.ibm.icu.impl.ZoneMeta;
+import com.ibm.icu.impl.ZoneStringFormat.ZoneStringInfo;
 import com.ibm.icu.lang.UCharacter;
-import com.ibm.icu.text.TimeZoneFormat.Style;
-import com.ibm.icu.text.TimeZoneFormat.TimeType;
 import com.ibm.icu.util.BasicTimeZone;
 import com.ibm.icu.util.Calendar;
+import com.ibm.icu.util.GregorianCalendar;
 import com.ibm.icu.util.HebrewCalendar;
-import com.ibm.icu.util.Output;
 import com.ibm.icu.util.TimeZone;
 import com.ibm.icu.util.TimeZoneTransition;
 import com.ibm.icu.util.ULocale;
@@ -346,6 +347,8 @@ public class SimpleDateFormat extends DateFormat {
     private transient int tztype = TZTYPE_UNK;
 
     private static final int millisPerHour = 60 * 60 * 1000;
+    private static final int millisPerMinute = 60 * 1000;
+    private static final int millisPerSecond = 1000;
 
     // When possessing ISO format, the ERA may be ommitted is the
     // year specifier is a negative number.
@@ -361,11 +364,6 @@ public class SimpleDateFormat extends DateFormat {
      * subFormat variant that takes a StringBuffer.
      */
     private transient boolean useFastFormat;
-
-    /*
-     *  The time zone sub-formatter, introduced in ICU 4.8
-     */
-    private volatile TimeZoneFormat tzFormat;
 
     /**
      * Constructs a SimpleDateFormat using the default pattern for the default <code>FORMAT</code>
@@ -514,7 +512,7 @@ public class SimpleDateFormat extends DateFormat {
         }
         if (numberFormat == null) {
             NumberingSystem ns = NumberingSystem.getInstance(locale);
-            if (ns.isAlgorithmic()) {
+            if ( ns.isAlgorithmic() ) {
                 numberFormat = NumberFormat.getInstance(locale);
             } else {
                 String digitString = ns.getDescription();
@@ -534,46 +532,6 @@ public class SimpleDateFormat extends DateFormat {
            initNumberFormatters(locale);
         }
 
-    }
-
-    /**
-     * Private method lazily instantiate the TimeZoneFormat field
-     * @param bForceUpdate when true, check if tzFormat is synchronized with
-     * the current numberFormat and update its digits if necessary. When false,
-     * this check is skipped.
-     */
-    private synchronized void initializeTimeZoneFormat(boolean bForceUpdate) {
-        if (bForceUpdate || tzFormat == null) {
-            tzFormat = TimeZoneFormat.getInstance(locale);
-
-            String digits = null;
-            if (numberFormat instanceof DecimalFormat) {
-                DecimalFormatSymbols decsym = ((DecimalFormat) numberFormat).getDecimalFormatSymbols();
-                digits = new String(decsym.getDigits());
-            } else if (numberFormat instanceof DateNumberFormat) {
-                digits = new String(((DateNumberFormat)numberFormat).getDigits());
-            }
-
-            if (digits != null) {
-                if (!tzFormat.getGMTOffsetDigits().equals(digits)) {
-                    if (tzFormat.isFrozen()) {
-                        tzFormat = tzFormat.cloneAsThawed();
-                    }
-                    tzFormat.setGMTOffsetDigits(digits);
-                }
-            }
-        }
-    }
-
-    /**
-     * Private method, returns non-null TimeZoneFormat.
-     * @return the TimeZoneFormat used by this formatter.
-     */
-    private TimeZoneFormat tzFormat() {
-        if (tzFormat == null) {
-            initializeTimeZoneFormat(false);
-        }
-        return tzFormat;
     }
 
     // privates for the default pattern
@@ -1003,32 +961,67 @@ public class SimpleDateFormat extends DateFormat {
         case 17: // 'z' - ZONE_OFFSET
             if (count < 4) {
                 // "z", "zz", "zzz"
-                result = tzFormat().format(Style.SPECIFIC_SHORT_COMMONLY_USED, tz, date);
+                result = formatData.getTimeZoneFormat().format(tz, date, TimeZone.SHORT_COMMONLY_USED);
             } else {
-                result = tzFormat().format(Style.SPECIFIC_LONG, tz, date);
+                result = formatData.getTimeZoneFormat().format(tz, date, TimeZone.LONG);
             }
+            if ( result == null )
+                result = formatData.getTimeZoneFormat().format(tz, date, TimeZone.LONG_GMT);
             buf.append(result);
             break;
         case 23: // 'Z' - TIMEZONE_RFC
-        {
             if (count < 4) {
-                // RFC822 format
-                result = tzFormat().format(Style.RFC822, tz, date);
+                // RFC822 format, must use ASCII digits
+                int val = (cal.get(Calendar.ZONE_OFFSET) + cal.get(Calendar.DST_OFFSET));
+                char sign = '+';
+                if (val < 0) {
+                    val = -val;
+                    sign = '-';
+                }
+                buf.append(sign);
+
+                int offsetH = val / millisPerHour;
+                val = val % millisPerHour;
+                int offsetM = val / millisPerMinute;
+                val = val % millisPerMinute;
+                int offsetS = val / millisPerSecond;
+
+                int num = 0, denom = 0;
+                if (offsetS == 0) {
+                    val = offsetH*100 + offsetM; // HHmm
+                    num = val % 10000;
+                    denom = 1000;
+                } else {
+                    val = offsetH*10000 + offsetM*100 + offsetS; // HHmmss
+                    num = val % 1000000;
+                    denom = 100000;
+                }
+                while (denom >= 1) {
+                    char digit = (char)((num / denom) + '0');
+                    buf.append(digit);
+                    num = num % denom;
+                    denom /= 10;
+                }
             } else {
                 // long form, localized GMT pattern
-                result = tzFormat().format(Style.LOCALIZED_GMT, tz, date);
-            }
+                result = formatData.getTimeZoneFormat().format(tz, date, TimeZone.LONG_GMT);
                 buf.append(result);
-            break;
             }
+            break;
+
         case 24: // 'v' - TIMEZONE_GENERIC
             if (count == 1) {
                 // "v"
-                result = tzFormat().format(Style.GENERIC_SHORT, tz, date);
+               result = formatData.getTimeZoneFormat().format(tz, date, TimeZone.SHORT_GENERIC);
             } else if (count == 4) {
                 // "vvvv"
-                result = tzFormat().format(Style.GENERIC_LONG, tz, date);
+               result = formatData.getTimeZoneFormat().format(tz, date, TimeZone.LONG_GENERIC);
             }
+            
+            if ( result == null ) {
+                result = formatData.getTimeZoneFormat().format(tz, date, TimeZone.LONG_GMT);
+            }
+            
             buf.append(result);
             break;
 
@@ -1080,10 +1073,13 @@ public class SimpleDateFormat extends DateFormat {
         case 29: // 'V' - TIMEZONE_SPECIAL
             if (count == 1) {
                 // "V"
-                result = tzFormat().format(Style.SPECIFIC_SHORT, tz, date);
+                result = formatData.getTimeZoneFormat().format(tz, date, TimeZone.SHORT);
             } else if (count == 4) {
                 // "VVVV"
-                result = tzFormat().format(Style.GENERIC_LOCATION, tz, date);
+                result = formatData.getTimeZoneFormat().format(tz, date, TimeZone.GENERIC_LOCATION);
+            }
+            if ( result == null ) {
+                result = formatData.getTimeZoneFormat().format(tz, date, TimeZone.LONG_GMT);               
             }
             buf.append(result);
             break;
@@ -1229,6 +1225,276 @@ public class SimpleDateFormat extends DateFormat {
         return patternItems;
     }
 
+    /*
+     * Time zone localized GMT format stuffs
+     */
+    private static final String STR_GMT = "GMT";
+    private static final String STR_UT = "UT";
+    private static final String STR_UTC = "UTC";
+    private static final int STR_GMT_LEN = 3;
+    private static final int STR_UT_LEN = 2;
+    private static final int STR_UTC_LEN = 3;
+    private static final char PLUS = '+';
+    private static final char MINUS = '-';
+    private static final char COLON = ':';
+
+
+    private Integer parseGMT(String text, ParsePosition pos, NumberFormat currentNumberFormat) {
+        if (!isDefaultGMTFormat()) {
+            int start = pos.getIndex();
+            String gmtPattern = formatData.gmtFormat;
+
+            // Quick check
+            boolean prefixMatch = false;
+            int prefixLen = gmtPattern.indexOf('{');
+            if (prefixLen > 0 && text.regionMatches(start, gmtPattern, 0, prefixLen)) {
+                prefixMatch = true;
+            }
+
+            if (prefixMatch) {
+                // Prefix matched
+                MessageFormat fmt;
+                Object[] parsedObjects;
+                int offset;
+
+                // Try negative Hms
+                fmt = getGMTFormatter(DateFormatSymbols.OFFSET_NEGATIVE,
+                                      DateFormatSymbols.OFFSET_HMS);
+                parsedObjects = fmt.parse(text, pos);
+                if ((parsedObjects != null) && (parsedObjects[0] instanceof Date)
+                    && (pos.getIndex() - start) >= getGMTFormatMinHMSLen(
+                        DateFormatSymbols.OFFSET_NEGATIVE)) {
+                    offset = (int)((Date)parsedObjects[0]).getTime();
+                    return new Integer(-offset /* negative */);
+                }
+
+                // Reset ParsePosition
+                pos.setIndex(start);
+                pos.setErrorIndex(-1);
+
+                // Try positive Hms
+                fmt = getGMTFormatter(DateFormatSymbols.OFFSET_POSITIVE,
+                                      DateFormatSymbols.OFFSET_HMS);
+                parsedObjects = fmt.parse(text, pos);
+                if ((parsedObjects != null) && (parsedObjects[0] instanceof Date)
+                    && (pos.getIndex() - start) >= getGMTFormatMinHMSLen(
+                        DateFormatSymbols.OFFSET_POSITIVE)) {
+                    offset = (int)((Date)parsedObjects[0]).getTime();
+                    return new Integer(offset);
+                }
+
+                // Reset ParsePosition
+                pos.setIndex(start);
+                pos.setErrorIndex(-1);
+
+                // Try negative Hm
+                fmt = getGMTFormatter(DateFormatSymbols.OFFSET_NEGATIVE,
+                                      DateFormatSymbols.OFFSET_HM);
+                parsedObjects = fmt.parse(text, pos);
+                if ((parsedObjects != null) && (parsedObjects[0] instanceof Date)) {
+                    offset = (int)((Date)parsedObjects[0]).getTime();
+                    return new Integer(-offset /* negative */);
+                }
+
+                // Reset ParsePosition
+                pos.setIndex(start);
+                pos.setErrorIndex(-1);
+
+                // Try positive Hm
+                fmt = getGMTFormatter(DateFormatSymbols.OFFSET_POSITIVE,
+                                      DateFormatSymbols.OFFSET_HM);
+                parsedObjects = fmt.parse(text, pos);
+                if ((parsedObjects != null) && (parsedObjects[0] instanceof Date)) {
+                    offset = (int)((Date)parsedObjects[0]).getTime();
+                    return new Integer(offset);
+                }
+
+                // Reset ParsePosition
+                pos.setIndex(start);
+                pos.setErrorIndex(-1);
+            }
+        }
+
+        return parseGMTDefault(text, pos, currentNumberFormat);
+    }
+
+    private Integer parseGMTDefault(String text, ParsePosition pos,
+                                    NumberFormat currentNumberFormat) {
+        int start = pos.getIndex();
+
+        if (start + STR_UT_LEN + 1 >= text.length()) {
+            pos.setErrorIndex(start);
+            return null;
+        }
+
+        int cur = start;
+        // "GMT"
+        if (text.regionMatches(true, start, STR_GMT, 0, STR_GMT_LEN)) {
+            cur += STR_GMT_LEN;
+        } else if (text.regionMatches(true, start, STR_UT, 0, STR_UT_LEN)) {
+            cur += STR_UT_LEN;
+        } else {
+            pos.setErrorIndex(start);
+            return null;
+        }
+        // Sign
+        boolean negative = false;
+        if (text.charAt(cur) == MINUS) {
+            negative = true;
+        } else if (text.charAt(cur) != PLUS) {
+            pos.setErrorIndex(cur);
+            return null;
+        }
+        cur++;
+
+        // Numbers
+        int numLen;
+        pos.setIndex(cur);
+
+        Number n = parseInt(text, 6, pos, false,currentNumberFormat);
+        numLen = pos.getIndex() - cur;
+
+        if (n == null || numLen <= 0 || numLen > 6) {
+            pos.setIndex(start);
+            pos.setErrorIndex(cur);
+            return null;
+        }
+
+        int numVal = n.intValue();
+
+        int hour = 0;
+        int min = 0;
+        int sec = 0;
+
+        if (numLen <= 2) {
+            // H[H][:mm[:ss]]
+            hour = numVal;
+            cur += numLen;
+            if (cur + 2 < text.length() && text.charAt(cur) == COLON) {
+                cur++;
+                pos.setIndex(cur);
+                n = parseInt(text, 2, pos, false,currentNumberFormat);
+                numLen = pos.getIndex() - cur;
+                if (n != null && numLen == 2) {
+                    // got minute field
+                    min = n.intValue();
+                    cur += numLen;
+                    if (cur + 2 < text.length() && text.charAt(cur) == COLON) {
+                        cur++;
+                        pos.setIndex(cur);
+                        n = parseInt(text, 2, pos, false,currentNumberFormat);
+                        numLen = pos.getIndex() - cur;
+                        if (n != null && numLen == 2) {
+                            // got second field
+                            sec = n.intValue();
+                        } else {
+                            // reset position
+                            pos.setIndex(cur - 1);
+                            pos.setErrorIndex(-1);
+                        }
+                    }
+                } else {
+                    // reset postion
+                    pos.setIndex(cur - 1);
+                    pos.setErrorIndex(-1);
+                }
+            }
+        } else if (numLen == 3 || numLen == 4) {
+            // Hmm or HHmm
+            hour = numVal / 100;
+            min = numVal % 100;
+        } else { // numLen == 5 || numLen == 6
+            // Hmmss or HHmmss
+            hour = numVal / 10000;
+            min = (numVal % 10000) / 100;
+            sec = numVal % 100;
+        }
+
+        int offset = ((hour*60 + min)*60 + sec)*1000;
+        if (negative) {
+            offset = -offset;
+        }
+        return new Integer(offset);
+    }
+
+    transient private WeakReference<MessageFormat>[] gmtfmtCache;
+
+    @SuppressWarnings("unchecked")
+    private MessageFormat getGMTFormatter(int sign, int width) {
+        MessageFormat fmt = null;
+        if (gmtfmtCache == null) {
+            gmtfmtCache = new WeakReference[4];
+        }
+        int cacheIdx = sign*2 + width;
+        if (gmtfmtCache[cacheIdx] != null) {
+            fmt = gmtfmtCache[cacheIdx].get();
+        }
+        if (fmt == null) {
+            fmt = new MessageFormat(formatData.gmtFormat);
+            GregorianCalendar gcal = new GregorianCalendar(TimeZone.getTimeZone("Etc/UTC"));
+            SimpleDateFormat sdf = (SimpleDateFormat)this.clone();
+            sdf.setCalendar(gcal);
+            sdf.applyPattern(formatData.getGmtHourFormat(sign, width));
+            fmt.setFormat(0, sdf);
+            gmtfmtCache[cacheIdx] = new WeakReference<MessageFormat>(fmt);
+        }
+        return fmt;
+    }
+
+    transient private int[] gmtFormatHmsMinLen = null;
+
+    private int getGMTFormatMinHMSLen(int sign) {
+        if (gmtFormatHmsMinLen == null) {
+            gmtFormatHmsMinLen = new int[2];
+            Long offset = new Long(60*60*1000); // 1 hour
+
+            StringBuffer buf = new StringBuffer();
+            MessageFormat fmtNeg = getGMTFormatter(DateFormatSymbols.OFFSET_NEGATIVE, DateFormatSymbols.OFFSET_HMS);
+            fmtNeg.format(new Object[] {offset}, buf, null);
+            gmtFormatHmsMinLen[0] = buf.length();
+
+            buf.setLength(0);
+            MessageFormat fmtPos = getGMTFormatter(DateFormatSymbols.OFFSET_POSITIVE, DateFormatSymbols.OFFSET_HMS);
+            fmtPos.format(new Object[] {offset}, buf, null);
+            gmtFormatHmsMinLen[1] = buf.length();
+        }
+        return gmtFormatHmsMinLen[(sign < 0 ? 0 : 1)];
+    }
+
+    private boolean isDefaultGMTFormat() {
+        // GMT pattern
+        if (!DateFormatSymbols.DEFAULT_GMT_PATTERN.equals(formatData.getGmtFormat())) {
+            return false;
+        }
+        // GMT offset hour patters
+        boolean res = true;
+        for (int sign = 0; sign < 2 && res; sign++) {
+            for (int width = 0; width < 2; width++) {
+                if (!DateFormatSymbols.DEFAULT_GMT_HOUR_PATTERNS[sign][width]
+                    .equals(formatData.getGmtHourFormat(sign, width))) {
+
+                    res = false;
+                    break;
+                }
+            }
+        }
+        return res;
+    }
+
+    /*
+     * Internal method. Returns null if the value of an array is empty, or if the
+     * index is out of bounds
+     */
+/*    private String getZoneArrayValue(String[] zs, int ix) {
+        if (ix >= 0 && ix < zs.length) {
+            String result = zs[ix];
+            if (result != null && result.length() != 0) {
+                return result;
+            }
+        }
+        return null;
+    }*/
+
     /**
      * Internal high-speed method.  Reuses a StringBuffer for results
      * instead of creating a String on the heap for each call.
@@ -1237,10 +1503,7 @@ public class SimpleDateFormat extends DateFormat {
      */
     protected void zeroPaddingNumber(NumberFormat nf,StringBuffer buf, int value,
                                      int minDigits, int maxDigits) {
-        // Note: Indian calendar uses negative value for a calendar
-        // field. fastZeroPaddingNumber cannot handle negative numbers.
-        // BTW, it looks like a design bug in the Indian calendar...
-        if (useLocalZeroPaddingNumberFormat && value >= 0) {
+        if (useLocalZeroPaddingNumberFormat) {
             fastZeroPaddingNumber(buf, value, minDigits, maxDigits);
         } else {
             nf.setMinimumIntegerDigits(minDigits);
@@ -1257,15 +1520,14 @@ public class SimpleDateFormat extends DateFormat {
         // Override this method to update local zero padding number formatter
         super.setNumberFormat(newNumberFormat);
         initLocalZeroPaddingNumberFormat();
-        initializeTimeZoneFormat(true);
     }
 
     private void initLocalZeroPaddingNumberFormat() {
         if (numberFormat instanceof DecimalFormat) {
-            decDigits = ((DecimalFormat)numberFormat).getDecimalFormatSymbols().getDigits();
+            zeroDigit = ((DecimalFormat)numberFormat).getDecimalFormatSymbols().getZeroDigit();
             useLocalZeroPaddingNumberFormat = true;
         } else if (numberFormat instanceof DateNumberFormat) {
-            decDigits = ((DateNumberFormat)numberFormat).getDigits();
+            zeroDigit = ((DateNumberFormat)numberFormat).getZeroDigit();
             useLocalZeroPaddingNumberFormat = true;
         } else {
             useLocalZeroPaddingNumberFormat = false;
@@ -1278,7 +1540,7 @@ public class SimpleDateFormat extends DateFormat {
 
     // If true, use local version of zero padding number format
     private transient boolean useLocalZeroPaddingNumberFormat;
-    private transient char[] decDigits;
+    private transient char zeroDigit;
     private transient char[] decimalBuf;
 
     /*
@@ -1296,7 +1558,7 @@ public class SimpleDateFormat extends DateFormat {
         int limit = decimalBuf.length < maxDigits ? decimalBuf.length : maxDigits;
         int index = limit - 1;
         while (true) {
-            decimalBuf[index] = decDigits[(value % 10)];
+            decimalBuf[index] = (char)((value % 10) + zeroDigit);
             value /= 10;
             if (index == 0 || value == 0) {
                 break;
@@ -1305,13 +1567,13 @@ public class SimpleDateFormat extends DateFormat {
         }
         int padding = minDigits - (limit - index);
         while (padding > 0 && index > 0) {
-            decimalBuf[--index] = decDigits[0];
+            decimalBuf[--index] = zeroDigit;
             padding--;
         }
         while (padding > 0) {
             // when pattern width is longer than decimalBuf, need extra
             // leading zeros - ticke#7595
-            buf.append(decDigits[0]);
+            buf.append(zeroDigit);
             padding--;
         }
         buf.append(decimalBuf, index, limit - index);
@@ -1458,7 +1720,7 @@ public class SimpleDateFormat extends DateFormat {
                                 while (idx < plen) {
 
                                     char pch = patl.charAt(idx);
-                                    if (PatternProps.isWhiteSpace(pch))
+                                    if (UCharacterProperty.isRuleWhiteSpace(pch))
                                         idx++;
                                     else
                                         break;
@@ -1492,16 +1754,16 @@ public class SimpleDateFormat extends DateFormat {
                 while (idx < plen && pos < tlen) {
                     char pch = patl.charAt(idx);
                     char ich = text.charAt(pos);
-                    if (PatternProps.isWhiteSpace(pch)
-                        && PatternProps.isWhiteSpace(ich)) {
+                    if (UCharacterProperty.isRuleWhiteSpace(pch)
+                        && UCharacterProperty.isRuleWhiteSpace(ich)) {
                         // White space characters found in both patten and input.
                         // Skip contiguous white spaces.
                         while ((idx + 1) < plen &&
-                                PatternProps.isWhiteSpace(patl.charAt(idx + 1))) {
+                                UCharacterProperty.isRuleWhiteSpace(patl.charAt(idx + 1))) {
                              ++idx;
                         }
                         while ((pos + 1) < tlen &&
-                                PatternProps.isWhiteSpace(text.charAt(pos + 1))) {
+                                UCharacterProperty.isRuleWhiteSpace(text.charAt(pos + 1))) {
                              ++pos;
                         }
                     } else if (pch != ich) {
@@ -1843,7 +2105,7 @@ public class SimpleDateFormat extends DateFormat {
                 return -start;
             }
             int c = UTF16.charAt(text, start);
-            if (!UCharacter.isUWhiteSpace(c) || !PatternProps.isWhiteSpace(c)) {
+            if (!UCharacter.isUWhiteSpace(c) || !UCharacterProperty.isRuleWhiteSpace(c)) {
                 break;
             }
             start += UTF16.getCharCount(c);
@@ -1876,13 +2138,12 @@ public class SimpleDateFormat extends DateFormat {
 
         switch (patternCharIndex)
             {
-            case 0: // 'G' - ERA
+            case 0: // 'G' - ERA              
                 int ps = 0;
-                if (count == 5) {
-                    ps = matchString(text, start, Calendar.ERA, formatData.narrowEras, cal);
-                } else if (count == 4) {
+                if (count == 4) {
                     ps = matchString(text, start, Calendar.ERA, formatData.eraNames, cal);
-                } else {
+                }
+                else {
                     ps = matchString(text, start, Calendar.ERA, formatData.eras, cal);
                 }
 
@@ -2041,71 +2302,157 @@ public class SimpleDateFormat extends DateFormat {
                 cal.set(Calendar.HOUR, value);
                 return pos.getIndex();
             case 17: // 'z' - ZONE_OFFSET
-            {
-                Output<TimeType> tzTimeType = new Output<TimeType>();
-                Style style = (count < 4) ? Style.SPECIFIC_SHORT_COMMONLY_USED : Style.SPECIFIC_LONG;
-                TimeZone tz = tzFormat().parse(style, text, pos, tzTimeType);
-                if (tz != null) {
-                    if (tzTimeType.value == TimeType.STANDARD) {
-                        tztype = TZTYPE_STD;
-                    } else if (tzTimeType.value == TimeType.DAYLIGHT) {
-                        tztype = TZTYPE_DST;
-                    }
-                    cal.setTimeZone(tz);
-                    return pos.getIndex();
-                }
-                return -start;
-                    }
             case 23: // 'Z' - TIMEZONE_RFC
-            {
-                Output<TimeType> tzTimeType = new Output<TimeType>();
-                Style style = (count < 4) ? Style.RFC822 : Style.LOCALIZED_GMT;
-                TimeZone tz = tzFormat().parse(style, text, pos, tzTimeType);
-                if (tz != null) {
-                    if (tzTimeType.value == TimeType.STANDARD) {
-                        tztype = TZTYPE_STD;
-                    } else if (tzTimeType.value == TimeType.DAYLIGHT) {
-                        tztype = TZTYPE_DST;
-                    }
-                    cal.setTimeZone(tz);
-                    return pos.getIndex();
-                    }
-                return -start;
-                }
             case 24: // 'v' - TIMEZONE_GENERIC
-            {
-                Output<TimeType> tzTimeType = new Output<TimeType>();
-                // Note: 'v' only supports count 1 and 4
-                Style style = (count < 4) ? Style.GENERIC_SHORT : Style.GENERIC_LONG;
-                TimeZone tz = tzFormat().parse(style, text, pos, tzTimeType);
-                if (tz != null) {
-                    if (tzTimeType.value == TimeType.STANDARD) {
-                        tztype = TZTYPE_STD;
-                    } else if (tzTimeType.value == TimeType.DAYLIGHT) {
-                        tztype = TZTYPE_DST;
-                    }
-                    cal.setTimeZone(tz);
-                    return pos.getIndex();
-                }
-                return -start;
-            }
             case 29: // 'V' - TIMEZONE_SPECIAL
             {
-                Output<TimeType> tzTimeType = new Output<TimeType>();
-                // Note: 'v' only supports count 1 and 4
-                Style style = (count < 4) ? Style.SPECIFIC_SHORT : Style.GENERIC_LOCATION;
-                TimeZone tz = tzFormat().parse(style, text, pos, tzTimeType);
-                if (tz != null) {
-                    if (tzTimeType.value == TimeType.STANDARD) {
-                        tztype = TZTYPE_STD;
-                    } else if (tzTimeType.value == TimeType.DAYLIGHT) {
-                        tztype = TZTYPE_DST;
+                TimeZone tz = null;
+                int offset = 0;
+                boolean parsed = false;
+
+                // Step 1
+                // Check if this is a long GMT offset string (either localized or default)
+                Integer gmtoff = parseGMT(text, pos, currentNumberFormat);
+                if (gmtoff != null) {
+                    offset = gmtoff.intValue();
+                    parsed = true;
                 }
+
+                if (!parsed) {
+                    // Step 2
+                    // Check if this is an RFC822 time zone offset.
+                    // ICU supports the standard RFC822 format [+|-]HHmm
+                    // and its extended form [+|-]HHmmSS.
+
+                    do {
+                        int sign = 0;
+                        char signChar = text.charAt(start);
+                        if (signChar == '+') {
+                            sign = 1;
+                        } else if (signChar == '-') {
+                            sign = -1;
+                        } else {
+                            // Not an RFC822 offset string
+                            break;
+                        }
+
+                        // Parse digits
+                        int orgPos = start + 1;
+                        pos.setIndex(orgPos);
+                        number = parseInt(text, 6, pos, false,currentNumberFormat);
+                        int numLen = pos.getIndex() - orgPos;
+                        if (numLen <= 0) {
+                            break;
+                        }
+
+                        // Followings are possible format (excluding sign char)
+                        // HHmmSS
+                        // HmmSS
+                        // HHmm
+                        // Hmm
+                        // HH
+                        // H
+                        int val = number.intValue();
+                        int hour = 0, min = 0, sec = 0;
+                        switch(numLen) {
+                        case 1: // H
+                        case 2: // HH
+                            hour = val;
+                            break;
+                        case 3: // Hmm
+                        case 4: // HHmm
+                            hour = val / 100;
+                            min = val % 100;
+                            break;
+                        case 5: // Hmmss
+                        case 6: // HHmmss
+                            hour = val / 10000;
+                            min = (val % 10000) / 100;
+                            sec = val % 100;
+                            break;
+                        }
+                        if (hour > 23 || min > 59 || sec > 59) {
+                            // Invalid value range
+                            break;
+                        }
+                        offset = (((hour * 60) + min) * 60 + sec) * 1000 * sign;
+                        parsed = true;
+                    } while (false);
+
+                    if (!parsed) {
+                        // Failed to parse.  Reset the position.
+                        pos.setIndex(start);
+                    }
+                }
+
+                if (parsed) {
+                    // offset was successfully parsed as either a long GMT string or
+                    // RFC822 zone offset string.  Create normalized zone ID for the
+                    // offset.
+                    tz = ZoneMeta.getCustomTimeZone(offset);
                     cal.setTimeZone(tz);
                     return pos.getIndex();
                 }
+
+                // Step 3
+                // At this point, check for named time zones by looking through
+                // the locale data from the DateFormatZoneData strings.
+                // Want to be able to parse both short and long forms.
+                // optimize for calendar's current time zone
+                ZoneStringInfo zsinfo = null;
+                switch (patternCharIndex) {
+                case 17: // 'z' - ZONE_OFFSET
+                    if (count < 4) {
+                        zsinfo = formatData.getZoneStringFormat().findSpecificShort(text, start);
+                    } else {
+                        zsinfo = formatData.getZoneStringFormat().findSpecificLong(text, start);
+                    }
+                    break;
+                case 24: // 'v' - TIMEZONE_GENERIC
+                    if (count == 1) {
+                        zsinfo = formatData.getZoneStringFormat().findGenericShort(text, start);
+                    } else if (count == 4) {
+                        zsinfo = formatData.getZoneStringFormat().findGenericLong(text, start);
+                    }
+                    break;
+                case 29: // 'V' - TIMEZONE_SPECIAL
+                    if (count == 1) {
+                        zsinfo = formatData.getZoneStringFormat().findSpecificShort(text, start);
+                    } else if (count == 4) {
+                        zsinfo = formatData.getZoneStringFormat().findGenericLocation(text, start);
+                    }
+                    break;
+                }
+                if (zsinfo != null) {
+                    if (zsinfo.isStandard()) {
+                        tztype = TZTYPE_STD;
+                    } else if (zsinfo.isDaylight()) {
+                        tztype = TZTYPE_DST;
+                    }
+                    tz = TimeZone.getTimeZone(zsinfo.getID());
+                    cal.setTimeZone(tz);
+                    return start + zsinfo.getString().length();
+                }
+                // Step 4
+                // Final attempt - is this standalone GMT/UT/UTC?
+                int gmtLen = 0;
+                if (text.regionMatches(true, start, STR_GMT, 0, STR_GMT_LEN)) {
+                    gmtLen = STR_GMT_LEN;
+                } else if (text.regionMatches(true, start, STR_UTC, 0, STR_UTC_LEN)) {
+                    gmtLen = STR_UTC_LEN;
+                } else if (text.regionMatches(true, start, STR_UT, 0, STR_UT_LEN)) {
+                    gmtLen = STR_UT_LEN;
+                }
+                if (gmtLen > 0) {
+                    tz = TimeZone.getTimeZone("Etc/GMT");
+                    cal.setTimeZone(tz);
+                    return start + gmtLen;
+                }
+
+                // complete failure
                 return -start;
             }
+
             case 27: // 'Q' - QUARTER
                 if (count <= 2) { // i.e., Q or QQ.
                     // Don't want to parse the quarter if it is a string
@@ -2331,6 +2678,7 @@ public class SimpleDateFormat extends DateFormat {
     public void setDateFormatSymbols(DateFormatSymbols newFormatSymbols)
     {
         this.formatData = (DateFormatSymbols)newFormatSymbols.clone();
+        gmtfmtCache = null;
     }
 
     /**
@@ -2339,36 +2687,6 @@ public class SimpleDateFormat extends DateFormat {
      */
     protected DateFormatSymbols getSymbols() {
         return formatData;
-    }
-
-    /**
-     * {@icu} Gets the time zone formatter which this date/time
-     * formatter uses to format and parse a time zone.
-     * 
-     * @return the time zone formatter which this date/time
-     * formatter uses.
-     * @internal ICU 4.8 technology preview
-     * @deprecated This API might change or be removed in a future release.
-     */
-    public TimeZoneFormat getTimeZoneFormat() {
-        return tzFormat().freeze();
-    }
-
-    /**
-     * {@icu} Allows you to set the time zoen formatter.
-     * 
-     * @param tzfmt the new time zone formatter
-     * @internal ICU 4.8 technology preview
-     * @deprecated This API might change or be removed in a future release.
-     */
-    public void setTimeZoneFormat(TimeZoneFormat tzfmt) {
-        if (tzfmt.isFrozen()) {
-            // If frozen, use it as is.
-            tzFormat = tzfmt;
-        } else {
-            // If not frozen, clone and freeze.
-            tzFormat = tzfmt.cloneAsThawed().freeze();
-        }
     }
 
     /**
@@ -2413,7 +2731,6 @@ public class SimpleDateFormat extends DateFormat {
             // calculate and set value before serialization.
             initializeDefaultCenturyStart(defaultCenturyBase);
         }
-        initializeTimeZoneFormat(false);
         stream.defaultWriteObject();
     }
 

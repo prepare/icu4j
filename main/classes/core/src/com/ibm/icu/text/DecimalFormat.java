@@ -23,7 +23,7 @@ import java.util.Iterator;
 import java.util.Set;
 
 import com.ibm.icu.impl.ICUConfig;
-import com.ibm.icu.impl.PatternProps;
+import com.ibm.icu.impl.UCharacterProperty;
 import com.ibm.icu.impl.Utility;
 import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.math.BigDecimal;
@@ -1654,9 +1654,8 @@ public class DecimalFormat extends NumberFormat {
      *  have 0 <= pos.getIndex() < text.length(); on output, the position after the last
      *  matched character. If the parse fails, the position in unchanged upon output.
      * @return a CurrencyAmount, or null upon failure
-     * @internal
      */
-    public CurrencyAmount parseCurrency(String text, ParsePosition pos) {
+    CurrencyAmount parseCurrency(String text, ParsePosition pos) {
         return (CurrencyAmount) parse(text, pos, true);
     }
 
@@ -2044,6 +2043,8 @@ public class DecimalFormat extends NumberFormat {
                 0xFF0E, 0xFF0E,
                 0xFF61, 0xFF61).freeze();
 
+    private static final UnicodeSet EMPTY_SET = new UnicodeSet().freeze();
+
     // When parsing a number with big exponential value, it requires to transform the
     // value into a string representation to construct BigInteger instance.  We want to
     // set the maximum size because it can easily trigger OutOfMemoryException.
@@ -2140,14 +2141,20 @@ public class DecimalFormat extends NumberFormat {
             int lastGroup = -1; // where did we last see a grouping separator?
             int gs2 = groupingSize2 == 0 ? groupingSize : groupingSize2;
 
+            // Strict parsing leading zeroes. If a leading zero would be forced by the
+            // pattern, then don't fail strict parsing.
+            boolean strictLeadingZero = false;
+            int leadingZeroPos = 0;
+            int leadingZeroCount = 0;
+
             // equivalent grouping and decimal support
             boolean skipExtendedSeparatorParsing = ICUConfig.get(
                 "com.ibm.icu.text.DecimalFormat.SkipExtendedSeparatorParsing", "false")
                 .equals("true");
 
-            UnicodeSet decimalEquiv = skipExtendedSeparatorParsing ? UnicodeSet.EMPTY :
+            UnicodeSet decimalEquiv = skipExtendedSeparatorParsing ? EMPTY_SET :
                 getEquivalentDecimals(decimal, strictParse);
-            UnicodeSet groupEquiv = skipExtendedSeparatorParsing ? UnicodeSet.EMPTY :
+            UnicodeSet groupEquiv = skipExtendedSeparatorParsing ? EMPTY_SET :
                 (strictParse ? strictDefaultGroupingSeparators : defaultGroupingSeparators);
 
             // We have to track digitCount ourselves, because digits.count will pin when
@@ -2155,9 +2162,8 @@ public class DecimalFormat extends NumberFormat {
             int digitCount = 0;
 
             int backup = -1;
-            int ch;
-            for (; position < text.length(); position += UTF16.getCharCount(ch)) {
-                ch = UTF16.charAt(text,position);
+            for (; position < text.length(); ++position) {
+                char ch = text.charAt(position);
 
 
                 // We recognize all digit ranges, not only the Latin digit range
@@ -2188,8 +2194,8 @@ public class DecimalFormat extends NumberFormat {
                         // group. If there was a group separator before that, the group
                         // must == the secondary group length, else it can be <= the the
                         // secondary group length.
-                        if ((lastGroup != -1 && countCodePoints(text,lastGroup,backup) - 1 != gs2)
-                                || (lastGroup == -1 && countCodePoints(text,oldStart,position) - 1 > gs2)) {
+                        if ((lastGroup != -1 && backup - lastGroup - 1 != gs2)
+                                || (lastGroup == -1 && position - oldStart - 1 > gs2)) {
                             strictFail = true;
                             break;
                         }
@@ -2201,6 +2207,14 @@ public class DecimalFormat extends NumberFormat {
                     // Handle leading zeros
                     if (digits.count == 0) {
                         if (!sawDecimal) {
+                            if (strictParse) {
+                                // Allow leading zeros in exponents
+                                // Count leading zeros for checking later
+                                if (!strictLeadingZero)
+                                    leadingZeroPos = position + 1;
+                                strictLeadingZero = true;
+                                ++leadingZeroCount;
+                            }
                             // Ignore leading zeros in integer part of number.
                             continue;
                         }
@@ -2217,8 +2231,8 @@ public class DecimalFormat extends NumberFormat {
                 {
                     if (strictParse) {
                         if (backup != -1) {
-                            if ((lastGroup != -1 && countCodePoints(text,lastGroup,backup) - 1 != gs2)
-                                    || (lastGroup == -1 && countCodePoints(text,oldStart,position) - 1 > gs2)) {
+                            if ((lastGroup != -1 && backup - lastGroup - 1 != gs2)
+                                    || (lastGroup == -1 && position - oldStart - 1 > gs2)) {
                                 strictFail = true;
                                 break;
                             }
@@ -2235,7 +2249,7 @@ public class DecimalFormat extends NumberFormat {
                 } else if (ch == decimal) {
                     if (strictParse) {
                         if (backup != -1 ||
-                            (lastGroup != -1 && countCodePoints(text,lastGroup,position) != groupingSize + 1)) {
+                            (lastGroup != -1 && position - lastGroup != groupingSize + 1)) {
                             strictFail = true;
                             break;
                         }
@@ -2266,7 +2280,7 @@ public class DecimalFormat extends NumberFormat {
                 } else if (!sawDecimal && decimalEquiv.contains(ch)) {
                     if (strictParse) {
                         if (backup != -1 ||
-                            (lastGroup != -1 && countCodePoints(text,lastGroup,position) != groupingSize + 1)) {
+                            (lastGroup != -1 && position - lastGroup != groupingSize + 1)) {
                             strictFail = true;
                             break;
                         }
@@ -2278,7 +2292,7 @@ public class DecimalFormat extends NumberFormat {
 
                     // Once we see a decimal separator character, we only accept that
                     // decimal separator character from then on.
-                    decimal = (char) ch;
+                    decimal = ch;
                     sawDecimal = true;
                 } else if (isGroupingUsed() && !sawGrouping && groupEquiv.contains(ch)) {
                     if (sawDecimal) {
@@ -2293,19 +2307,19 @@ public class DecimalFormat extends NumberFormat {
                     }
                     // Once we see a grouping character, we only accept that grouping
                     // character from then on.
-                    grouping = (char) ch;
+                    grouping = ch;
 
                     // Ignore grouping characters, if we are using them, but require that
                     // they be followed by a digit. Otherwise we backup and reprocess
                     // them.
                     backup = position;
                     sawGrouping = true;
-                } else if (!sawExponent && text.regionMatches(true, position, exponentSep, 0, exponentSep.length())) {
+                } else if (!sawExponent && text.regionMatches(position, exponentSep, 0, exponentSep.length())) {
                     // Parse sign, if present
                     boolean negExp = false;
                     int pos = position + exponentSep.length();
                     if (pos < text.length()) {
-                        ch = UTF16.charAt(text,pos);
+                        ch = text.charAt(pos);
                         if (ch == symbols.getPlusSign()) {
                             ++pos;
                         } else if (ch == symbols.getMinusSign()) {
@@ -2317,16 +2331,16 @@ public class DecimalFormat extends NumberFormat {
                     DigitList exponentDigits = new DigitList();
                     exponentDigits.count = 0;
                     while (pos < text.length()) {
-                        digit = UTF16.charAt(text,pos) - digitSymbols[0];
+                        digit = text.charAt(pos) - digitSymbols[0];
                         if (digit < 0 || digit > 9) {
                             // Can't parse "[1E0]" when pattern is "0.###E0;[0.###E0]"
                             // Should update reassign the value of 'ch' in the code: digit
                             // = Character.digit(ch, 10); [Richard/GCL]
-                            digit = UCharacter.digit(UTF16.charAt(text,pos), 10);
+                            digit = UCharacter.digit(text.charAt(pos), 10);
                         }
                         if (digit >= 0 && digit <= 9) {
                             exponentDigits.append((char) (digit + '0'));
-                            pos += UTF16.getCharCount(UTF16.charAt(text,pos));
+                            ++pos;
                         } else {
                             break;
                         }
@@ -2376,8 +2390,15 @@ public class DecimalFormat extends NumberFormat {
                 digits.decimalAt = digitCount; // Not digits.count!
 
             // check for strict parse errors
+            if (strictParse && strictLeadingZero) {
+                if ((leadingZeroCount + digits.decimalAt) > this.getMinimumIntegerDigits()) {
+                    parsePosition.setIndex(oldStart);
+                    parsePosition.setErrorIndex(leadingZeroPos);
+                    return false;
+                }
+            }
             if (strictParse && !sawDecimal) {
-                if (lastGroup != -1 && countCodePoints(text,lastGroup,position) != groupingSize + 1) {
+                if (lastGroup != -1 && position - lastGroup != groupingSize + 1) {
                     strictFail = true;
                 }
             }
@@ -2455,22 +2476,12 @@ public class DecimalFormat extends NumberFormat {
         return true;
     }
 
-    // Utility method used to count the number of codepoints 
-    private int countCodePoints(String str,int start, int end) {
-        int count = 0;
-        int index = start;
-        while ( index < end ) {
-            count++;
-            index += UTF16.getCharCount(UTF16.charAt(str, index));
-        }
-        return count;
-    }
     /**
      * Returns a set of characters equivalent to the given desimal separator used for
      * parsing number.  This method may return an empty set.
      */
     private UnicodeSet getEquivalentDecimals(char decimal, boolean strictParse) {
-        UnicodeSet equivSet = UnicodeSet.EMPTY;
+        UnicodeSet equivSet = EMPTY_SET;
         if (strictParse) {
             if (strictDotEquivalents.contains(decimal)) {
                 equivSet = strictDotEquivalents;
@@ -2543,9 +2554,9 @@ public class DecimalFormat extends NumberFormat {
         for (int i = 0; i < affix.length();) {
             int c = UTF16.charAt(affix, i);
             int len = UTF16.getCharCount(c);
-            if (PatternProps.isWhiteSpace(c)) {
+            if (UCharacterProperty.isRuleWhiteSpace(c)) {
                 // We may have a pattern like: \u200F and input text like: \u200F Note
-                // that U+200F and U+0020 are Pattern_White_Space but only U+0020 is
+                // that U+200F and U+0020 are RuleWhiteSpace but only U+0020 is
                 // UWhiteSpace. So we have to first do a direct match of the run of RULE
                 // whitespace in the pattern, then match any extra characters.
                 boolean literalMatch = false;
@@ -2558,13 +2569,13 @@ public class DecimalFormat extends NumberFormat {
                     }
                     c = UTF16.charAt(affix, i);
                     len = UTF16.getCharCount(c);
-                    if (!PatternProps.isWhiteSpace(c)) {
+                    if (!UCharacterProperty.isRuleWhiteSpace(c)) {
                         break;
                     }
                 }
 
                 // Advance over run in affix
-                i = skipPatternWhiteSpace(affix, i);
+                i = skipRuleWhiteSpace(affix, i);
 
                 // Advance over run in input text. Must see at least one white space char
                 // in input, unless we've already matched some characters literally.
@@ -2590,12 +2601,12 @@ public class DecimalFormat extends NumberFormat {
     }
 
     /**
-     * Skips over a run of zero or more Pattern_White_Space characters at pos in text.
+     * Skips over a run of zero or more isRuleWhiteSpace() characters at pos in text.
      */
-    private static int skipPatternWhiteSpace(String text, int pos) {
+    private static int skipRuleWhiteSpace(String text, int pos) {
         while (pos < text.length()) {
             int c = UTF16.charAt(text, pos);
-            if (!PatternProps.isWhiteSpace(c)) {
+            if (!UCharacterProperty.isRuleWhiteSpace(c)) {
                 break;
             }
             pos += UTF16.getCharCount(c);
@@ -2694,15 +2705,6 @@ public class DecimalFormat extends NumberFormat {
                 if (iso != null) {
                     if (currency != null) {
                         currency[0] = Currency.getInstance(iso);
-                    } else {
-                        // The formatter is currency-style but the client has not requested
-                        // the value of the parsed currency. In this case, if that value does
-                        // not match the formatter's current value, then the parse fails.
-                        Currency effectiveCurr = getEffectiveCurrency();
-                        if (iso.compareTo(effectiveCurr.getCurrencyCode()) != 0) {
-                            pos = -1;
-                            continue;
-                        }
                     }
                     pos = ppos.getIndex();
                 } else {
@@ -2720,8 +2722,8 @@ public class DecimalFormat extends NumberFormat {
                 break;
             }
             pos = match(text, pos, c);
-            if (PatternProps.isWhiteSpace(c)) {
-                i = skipPatternWhiteSpace(affixPat, i);
+            if (UCharacterProperty.isRuleWhiteSpace(c)) {
+                i = skipRuleWhiteSpace(affixPat, i);
             }
         }
 
@@ -2730,18 +2732,18 @@ public class DecimalFormat extends NumberFormat {
 
     /**
      * Matches a single character at text[pos] and return the index of the next character
-     * upon success. Return -1 on failure. If ch is a Pattern_White_Space then match a run of
+     * upon success. Return -1 on failure. If isRuleWhiteSpace(ch) then match a run of
      * white space in text.
      */
     static final int match(String text, int pos, int ch) {
         if (pos >= text.length()) {
             return -1;
         }
-        if (PatternProps.isWhiteSpace(ch)) {
+        if (UCharacterProperty.isRuleWhiteSpace(ch)) {
             // Advance over run of white space in input text
             // Must see at least one white space char in input
             int s = pos;
-            pos = skipPatternWhiteSpace(text, pos);
+            pos = skipRuleWhiteSpace(text, pos);
             if (pos == s) {
                 return -1;
             }
@@ -2760,8 +2762,8 @@ public class DecimalFormat extends NumberFormat {
             int ch = UTF16.charAt(str, i);
             i += UTF16.getCharCount(ch);
             pos = match(text, pos, ch);
-            if (PatternProps.isWhiteSpace(ch)) {
-                i = skipPatternWhiteSpace(str, i);
+            if (UCharacterProperty.isRuleWhiteSpace(ch)) {
+                i = skipRuleWhiteSpace(str, i);
             }
         }
         return pos;

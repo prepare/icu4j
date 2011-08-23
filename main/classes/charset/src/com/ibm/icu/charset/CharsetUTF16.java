@@ -1,6 +1,6 @@
 /**
  *******************************************************************************
- * Copyright (C) 2006-2011, International Business Machines Corporation and    *
+ * Copyright (C) 2006-2010, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -15,7 +15,6 @@ import java.nio.charset.CoderResult;
 
 import com.ibm.icu.text.UTF16;
 import com.ibm.icu.text.UnicodeSet;
-import com.ibm.icu.util.VersionInfo;
 
 /**
  * @author Niti Hantaweepant
@@ -62,15 +61,13 @@ class CharsetUTF16 extends CharsetICU {
             this.fromUSubstitution = fromUSubstitution_LE;
             this.endianXOR = ENDIAN_XOR_LE;
         }
-        
-        /* UnicodeBig and UnicodeLittle requires maxBytesPerChar set to 4 in Java 5 or less */
-        if ((VersionInfo.javaVersion().getMajor() == 1 && VersionInfo.javaVersion().getMinor() <= 5)
-                && (isEndianSpecified && version == 1)) { 
-            maxBytesPerChar = 4; 
-        } else { 
-            maxBytesPerChar = 2; 
-        } 
 
+        /* The maxBytesPerChar for UnicodeBig/UnicodeLittle should be 4. */
+        if (isEndianSpecified && version == 1) {
+            maxBytesPerChar = 4;
+        } else {
+            maxBytesPerChar = 2;
+        }
         minBytesPerChar = 2;
         maxCharsPerByte = 1;
     }

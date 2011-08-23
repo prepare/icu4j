@@ -1,6 +1,6 @@
 /*
 *******************************************************************************
-*   Copyright (C) 2009-2011, International Business Machines
+*   Copyright (C) 2009-2010, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 *******************************************************************************
 */
@@ -196,10 +196,8 @@ public abstract class Normalizer2 {
     public abstract StringBuilder append(StringBuilder first, CharSequence second);
 
     /**
-     * Gets the decomposition mapping of c.
-     * Roughly equivalent to normalizing the String form of c
-     * on a DECOMPOSE Normalizer2 instance, but much faster, and except that this function
-     * returns null if c does not have a decomposition mapping in this instance's data.
+     * Gets the decomposition mapping of c. Equivalent to normalize(String(c))
+     * on a DECOMPOSE Normalizer2 instance, but much faster.
      * This function is independent of the mode of the Normalizer2.
      * @param c code point
      * @return c's decomposition mapping, if any; otherwise null
@@ -207,17 +205,6 @@ public abstract class Normalizer2 {
      * @provisional This API might change or be removed in a future release.
      */
     public abstract String getDecomposition(int c);
-
-    /**
-     * Gets the combining class of c.
-     * The default implementation returns 0
-     * but all standard implementations return the Unicode Canonical_Combining_Class value.
-     * @param c code point
-     * @return c's combining class
-     * @draft ICU 49
-     * @provisional This API might change or be removed in a future release.
-     */
-    public int getCombiningClass(int c) { return 0; }
 
     /**
      * Tests if the string is normalized.

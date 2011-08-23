@@ -1,6 +1,6 @@
 <!--
 *******************************************************************************
-* Copyright (C) 1997-2011, International Business Machines Corporation and    *
+* Copyright (C) 1997-2010, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 -->
@@ -16,18 +16,18 @@
     <!-- icu4j binaries -->
     <property name="icu4j.jar.file" value="icu4j.jar"/>
     <property name="icu4jtests.jar.file" value="icu4jtests.jar"/>
-    <property name="icu4j-charset.jar.file" value="icu4j-charset.jar"/>
+    <property name="icu4j-charsets.jar.file" value="icu4j-charsets.jar"/>
     <property name="icu4j-localespi.jar.file" value="icu4j-localespi.jar"/>
 
     <property name="icu4jdemos.jar.file" value="icu4jdemos.jar"/>
 
     <!-- icu4j release files -->
     <property name="icu4j.jar.versioned.file" value="icu4j-${release.file.ver}.jar"/>
-    <property name="icu4j-charset.jar.versioned.file" value="icu4j-charset-${release.file.ver}.jar"/>
+    <property name="icu4j-charsets.jar.versioned.file" value="icu4j-charsets-${release.file.ver}.jar"/>
     <property name="icu4j-localespi.jar.versioned.file" value="icu4j-localespi-${release.file.ver}.jar"/>
 
     <property name="icu4j-src.jar.versioned.file" value="icu4j-${release.file.ver}-src.jar"/>
-    <property name="icu4j-charset-src.jar.versioned.file" value="icu4j-charset-${release.file.ver}-src.jar"/>
+    <property name="icu4j-charsets-src.jar.versioned.file" value="icu4j-charsets-${release.file.ver}-src.jar"/>
     <property name="icu4j-localespi-src.jar.versioned.file" value="icu4j-localespi-${release.file.ver}-src.jar"/>
 
     <property name="icu4jsrc.zip.file" value="icu4j-${release.file.ver}.zip"/>
@@ -94,7 +94,6 @@
         <ant dir="${icu4j.build-tools.dir}" target="clean" inheritAll="false"/>
         <ant dir="${icu4j.tools.dir}" target="clean" inheritAll="false"/>
         <ant dir="${icu4j.demos.dir}" target="clean" inheritAll="false"/>
-        <ant dir="${icu4j.perf.dir}" target="clean" inheritAll="false"/>
 
         <!-- delete all .jar files root directory -->
         <delete>
@@ -110,7 +109,7 @@
     </target>
 
     <!-- meta build targets -->
-    <target name="all" depends="info, main, tests, build-tools, tools, demos, perf, jar, docs" description="Build all primary targets"/>
+    <target name="all" depends="info, main, tests, build-tools, tools, demos, jar, docs" description="Build all primary targets"/>
     <target name="main" depends="info, core, collate, charset, currdata, langdata, regiondata, translit, localespi" description="Build ICU4J runtime library classes"/>
     <target name="tests" depends="info, core-tests, charset-tests, collate-tests, packaging-tests, translit-tests, localespi-tests" description="Build ICU4J test classes"/>
     <target name="release" depends="info, releaseBinaries, releaseSrcJars, releaseDocs, releaseSourceArchiveTgz" description="Build all ICU4J release files for distribution"/>
@@ -123,20 +122,20 @@
     <target name="check" description="Run the standard ICU4J test suite">
         <antcall target="_runCheck">
             <param name="runcheck.arg" value="-n"/>
-            <param name="runcheck.jvmarg" value="${jvm_options} -ea"/>
+            <param name="runcheck.jvmarg" value="${jvm_options}"/>
         </antcall>
     </target>
 
     <target name="exhaustiveCheck" description="Run the standard ICU4J test suite in exhaustive mode">
         <antcall target="_runCheck">
             <param name="runcheck.arg" value="-n -e10"/>
-            <param name="runcheck.jvmarg" value="${jvm_options} -ea"/>
+            <param name="runcheck.jvmarg" value="${jvm_options}"/>
         </antcall>
     </target>
 
     <target name="timeZoneCheck" description="Run the complete test for TimeZoneRoundTripAll">
         <antcall target="_runCheck">
-            <param name="runcheck.arg" value="-n -prop:TimeZoneRoundTripAll=true Core/Format/DateFormat/TimeZoneFormatTest -v"/>
+            <param name="runcheck.arg" value="-n -prop:TimeZoneRoundTripAll=true Core/Format/DateFormat/TimeZoneFormatTest"/>
             <param name="runcheck.jvmarg" value="${jvm_options}"/>
         </antcall>
     </target>
@@ -303,7 +302,7 @@
             <jvmarg line="${securecheck.jvmarg}"/>
             <classpath>
                 <pathelement path="${icu4j.jar.file}"/>
-                <pathelement path="${icu4j-charset.jar.file}"/>
+                <pathelement path="${icu4j-charsets.jar.file}"/>
                 <pathelement path="${icu4jtests.jar.file}"/>
             </classpath>
         </java>
@@ -311,7 +310,7 @@
 
     <!-- jar targets -->
     <target name="jar" depends="icu4jJar, charset, localespi" description="Build ICU4J runtime library jar files">
-        <copy file="${icu4j.charset.jar}" tofile="${icu4j-charset.jar.file}"/>
+        <copy file="${icu4j.charset.jar}" tofile="${icu4j-charsets.jar.file}"/>
         <copy file="${icu4j.localespi.jar}" tofile="${icu4j-localespi.jar.file}" failonerror="false"/>
     </target>
 
@@ -356,7 +355,7 @@
         </jar>
     </target>
 
-    <target name="jarDemos" depends="icu4jJar, demos" description="Build ICU4J demo jar file">
+    <target name="jarDemos" depends="demos" description="Build ICU4J demo jar file">
         <copy file="${icu4j.demos.jar}" tofile="${icu4jdemos.jar.file}"/>
     </target>
 
@@ -365,7 +364,7 @@
     <target name="releaseBinaries" depends="icu4jJar, charset, localespi" description="Build ICU4J binary files for distribution">
         <mkdir dir="${release.dir}"/>
         <copy file="${icu4j.jar.file}" tofile="${release.dir}/${icu4j.jar.versioned.file}"/>
-        <copy file="${icu4j.charset.jar}" tofile="${release.dir}/${icu4j-charset.jar.versioned.file}"/>
+        <copy file="${icu4j.charset.jar}" tofile="${release.dir}/${icu4j-charsets.jar.versioned.file}"/>
         <copy file="${icu4j.localespi.jar}" tofile="${release.dir}/${icu4j-localespi.jar.versioned.file}"/>
     </target>
 
@@ -390,7 +389,7 @@
         <ant dir="${icu4j.charset.dir}" target="src-jar" inheritAll="false"/>
         <ant dir="${icu4j.localespi.dir}" target="src-jar" inheritAll="false"/>
 
-        <copy file="${icu4j.charset.dir}/${out.dir}/lib/icu4j-charset-src.jar" tofile="${release.dir}/${icu4j-charset-src.jar.versioned.file}"/>
+        <copy file="${icu4j.charset.dir}/${out.dir}/lib/icu4j-charset-src.jar" tofile="${release.dir}/${icu4j-charsets-src.jar.versioned.file}"/>
         <copy file="${icu4j.localespi.dir}/${out.dir}/lib/icu4j-localespi-src.jar" tofile="${release.dir}/${icu4j-localespi-src.jar.versioned.file}"/>
     </target>
 
@@ -564,9 +563,6 @@
 
     <target name="tools" depends="core, core-tests, collate, translit, translit-tests" description="Build tool classes">
         <ant dir="${icu4j.tools.dir}" inheritAll="false"/>
-    </target>
-    <target name="perf" depends="core, charset, collate, tools" description="Build performance test classes">
-        <ant dir="${icu4j.perf.dir}" inheritAll="false"/>
     </target>
 
     <!-- doc targets -->
@@ -834,30 +830,6 @@
         </java>
     </target>
 
-    <target name="serialTestData" depends="main, tests">
-        <property name="serial.test.data.dir" value="${out.dir}/serialTestData"/>
-        <delete dir="${serial.test.data.dir}"/>
-        <mkdir dir="${serial.test.data.dir}"/>
-        <java classname="com.ibm.icu.dev.test.serializable.SerializableWriter" fork="yes" failonerror="true">
-            <arg line="${serial.test.data.dir}"/>
-            <classpath>
-                <pathelement path="${icu4j.core.jar}"/>
-                <pathelement path="${icu4j.collate.jar}"/>
-                <pathelement path="${icu4j.charset.jar}"/>
-                <pathelement path="${icu4j.currdata.jar}"/>
-                <pathelement path="${icu4j.langdata.jar}"/>
-                <pathelement path="${icu4j.regiondata.jar}"/>
-                <pathelement path="${icu4j.translit.jar}"/>
-                <pathelement path="${icu4j.test-framework.jar}"/>
-                <pathelement path="${icu4j.core-tests.jar}"/>
-            </classpath>
-        </java>
-        <echo message="Note: The serialization compatibility test data files were"/>
-        <echo message="created in ${serial.test.data.dir}. Once you confirm"/>
-        <echo message="the test runs clean, you should copy the data file directory to"/>
-        <echo message="main/tests/core/src/com/ibm/icu/dev/test/serializable/data."/>
-    </target>
-
     <!-- Special packaging targets -->
     <target name="translitIMEJar" depends="info" description="Build transliterator IME 'icutransime.jar' jar file">
         <property name="translit.ime.out.dir" value="${out.dir}/translit_ime"/>
@@ -1079,7 +1051,6 @@
                 encoding="${java.src.encoding}"
                 debug="on" deprecation="off">
             <include name="com/ibm/icu/impl/data/*Holiday*.java"/>
-            <include name="com/ibm/icu/impl/TimeZoneNames*.java"/>
             <include name="com/ibm/icu/lang/UCharacter.java"/>
             <include name="com/ibm/icu/text/UnicodeSetIterator.java"/>
             <include name="com/ibm/icu/text/NumberFormatServiceShim.java"/>
@@ -1137,6 +1108,7 @@
             <src path="${icu4j.collate.dir}/src"/>
 
             <include name="com/ibm/icu/impl/data/*Break*.java"/>
+            <include name="com/ibm/icu/text/AlphabeticIndex.java"/>
             <include name="com/ibm/icu/text/*BreakIterator*.java"/>
             <include name="com/ibm/icu/text/*Collation*.java"/>
             <include name="com/ibm/icu/text/*Collator*.java"/>
@@ -1175,7 +1147,6 @@
             <include name="com/ibm/icu/dev/test/TestAllCollate.java"/>
             <include name="com/ibm/icu/dev/test/collator/**/*.java"/>
             <include name="java,com/ibm/icu/dev/test/search/**/*.java"/>
-            <exclude name="com/ibm/icu/dev/test/collator/AlphabeticIndexTest.java"/>
             <exclude name="com/ibm/icu/dev/test/collator/RandomCollator.java"/>
             <exclude name="com/ibm/icu/dev/test/collator/IndexCharactersTest.java"/>
         </javac>
@@ -1234,7 +1205,6 @@
                 target="${javac.target}"
                 encoding="${java.src.encoding}"
                 debug="on" deprecation="off">
-            <include name="com/ibm/icu/impl/TimeZoneNames*.java"/>
             <include name="com/ibm/icu/lang/UCharacter.java"/>
             <include name="com/ibm/icu/text/*Collator*.java"/>
             <include name="com/ibm/icu/text/*Format*.java"/>

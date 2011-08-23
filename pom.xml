@@ -11,7 +11,7 @@
 
   <groupId>com.ibm.icu</groupId>
   <artifactId>icu4j</artifactId>
-  <version>4.8</version>
+  <version>4.6.1.1</version>
 
   <name>ICU4J</name>
   <description>
@@ -73,14 +73,6 @@
       <id>markus</id>
       <name>Markus Scherer</name>
       <organization>Google</organization>
-      <roles>
-        <role>PMC Member</role>
-      </roles>
-    </developer>
-    <developer>
-      <id>pedberg</id>
-      <name>Peter Edberg</name>
-      <organization>Apple</organization>
       <roles>
         <role>PMC Member</role>
       </roles>

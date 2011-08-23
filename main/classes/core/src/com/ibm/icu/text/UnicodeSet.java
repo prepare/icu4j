@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2011, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2010, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -15,7 +15,6 @@ import java.util.TreeSet;
 
 import com.ibm.icu.impl.BMPSet;
 import com.ibm.icu.impl.Norm2AllModes;
-import com.ibm.icu.impl.PatternProps;
 import com.ibm.icu.impl.RuleCharacterIterator;
 import com.ibm.icu.impl.SortedSetRelation;
 import com.ibm.icu.impl.UBiDiProps;
@@ -24,7 +23,6 @@ import com.ibm.icu.impl.UCharacterProperty;
 import com.ibm.icu.impl.UPropertyAliases;
 import com.ibm.icu.impl.UnicodeSetStringSpan;
 import com.ibm.icu.impl.Utility;
-import com.ibm.icu.lang.CharSequences;
 import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.lang.UProperty;
 import com.ibm.icu.lang.UScript;
@@ -116,7 +114,7 @@ import com.ibm.icu.util.VersionInfo;
  * </blockquote>
  *
  * Any character may be preceded by a backslash in order to remove any special
- * meaning.  White space characters, as defined by the Unicode Pattern_White_Space property, are
+ * meaning.  White space characters, as defined by UCharacterProperty.isRuleWhiteSpace(), are
  * ignored, unless they are escaped.
  *
  * <p>Property patterns specify a set of characters having a certain
@@ -273,19 +271,6 @@ import com.ibm.icu.util.VersionInfo;
  */
 public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Comparable<UnicodeSet>, Freezable<UnicodeSet> {
 
-    /**
-     * Constant for the empty set.
-     * @draft 4.8
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final UnicodeSet EMPTY = new UnicodeSet().freeze();
-    /**
-     * Constant for the set of all code points. (Since UnicodeSets can include strings, does not include everything that a UnicodeSet can.)
-     * @draft 4.8
-     * @provisional This API might change or be removed in a future release.
-     */
-    public static final UnicodeSet ALL_CODE_POINTS = new UnicodeSet(0, 0x10FFFF).freeze();
-
     private static final int LOW = 0x000000; // LOW <= all valid values. ZERO for codepoints
     private static final int HIGH = 0x110000; // HIGH > all valid values. 10000 for code units.
     // 110000 for codepoints
@@ -425,7 +410,8 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
      * Constructs a set from the given pattern.  See the class description
      * for the syntax of the pattern language.
      * @param pattern a string specifying what characters are in the set
-     * @param ignoreWhitespace if true, ignore Unicode Pattern_White_Space characters
+     * @param ignoreWhitespace if true, ignore characters for which
+     * UCharacterProperty.isRuleWhiteSpace() returns true
      * @exception java.lang.IllegalArgumentException if the pattern contains
      * a syntax error.
      * @stable ICU 2.0
@@ -548,7 +534,8 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
      * optionally ignoring whitespace.
      * See the class description for the syntax of the pattern language.
      * @param pattern a string specifying what characters are in the set
-     * @param ignoreWhitespace if true then Unicode Pattern_White_Space characters are ignored
+     * @param ignoreWhitespace if true then characters for which
+     * UCharacterProperty.isRuleWhiteSpace() returns true are ignored
      * @exception java.lang.IllegalArgumentException if the pattern
      * contains a syntax error.
      * @stable ICU 2.0
@@ -627,7 +614,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
             break;
         default:
             // Escape whitespace
-            if (PatternProps.isWhiteSpace(c)) {
+            if (UCharacterProperty.isRuleWhiteSpace(c)) {
                 buf.append('\\');
             }
             break;
@@ -1265,11 +1252,11 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
      * @return this object, for chaining
      * @stable ICU 2.0
      */
-    public final UnicodeSet add(CharSequence s) {
+    public final UnicodeSet add(String s) {
         checkFrozen();
         int cp = getSingleCP(s);
         if (cp < 0) {
-            strings.add(s.toString());
+            strings.add(s);
             pat = null;
         } else {
             add_unchecked(cp, cp);
@@ -1282,7 +1269,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
      * otherwise returns -1.
      * @param string to test
      */
-    private static int getSingleCP(CharSequence s) {
+    private static int getSingleCP(String s) {
         if (s.length() < 1) {
             throw new IllegalArgumentException("Can't use zero-length strings in UnicodeSet");
         }
@@ -1304,7 +1291,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
      * @return this object, for chaining
      * @stable ICU 2.0
      */
-    public final UnicodeSet addAll(CharSequence s) {
+    public final UnicodeSet addAll(String s) {
         checkFrozen();
         int cp;
         for (int i = 0; i < s.length(); i += UTF16.getCharCount(cp)) {
@@ -2340,7 +2327,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
 
             // Skip over trailing whitespace
             if ((options & IGNORE_SPACE) != 0) {
-                i = PatternProps.skipWhiteSpace(pattern, i);
+                i = Utility.skipWhitespace(pattern, i);
             }
 
             if (i != pattern.length()) {
@@ -3188,27 +3175,30 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
 
 
     /**
-     * Remove leading and trailing Pattern_White_Space and compress
-     * internal Pattern_White_Space to a single space character.
+     * Remove leading and trailing rule white space and compress
+     * internal rule white space to a single space character.
+     *
+     * @see UCharacterProperty#isRuleWhiteSpace
      */
     private static String mungeCharName(String source) {
-        source = PatternProps.trimWhiteSpace(source);
-        StringBuilder buf = null;
-        for (int i=0; i<source.length(); ++i) {
-            char ch = source.charAt(i);
-            if (PatternProps.isWhiteSpace(ch)) {
-                if (buf == null) {
-                    buf = new StringBuilder().append(source, 0, i);
-                } else if (buf.charAt(buf.length() - 1) == ' ') {
+        StringBuffer buf = new StringBuffer();
+        for (int i=0; i<source.length(); ) {
+            int ch = UTF16.charAt(source, i);
+            i += UTF16.getCharCount(ch);
+            if (UCharacterProperty.isRuleWhiteSpace(ch)) {
+                if (buf.length() == 0 ||
+                        buf.charAt(buf.length() - 1) == ' ') {
                     continue;
                 }
                 ch = ' '; // convert to ' '
             }
-            if (buf != null) {
-                buf.append(ch);
-            }
+            UTF16.append(buf, ch);
         }
-        return buf == null ? source : buf.toString();
+        if (buf.length() != 0 &&
+                buf.charAt(buf.length() - 1) == ' ') {
+            buf.setLength(buf.length() - 1);
+        }
+        return buf.toString();
     }
 
     //----------------------------------------------------------------
@@ -3325,7 +3315,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
                     if (p == UProperty.CANONICAL_COMBINING_CLASS ||
                             p == UProperty.LEAD_CANONICAL_COMBINING_CLASS ||
                             p == UProperty.TRAIL_CANONICAL_COMBINING_CLASS) {
-                        v = Integer.parseInt(PatternProps.trimWhiteSpace(valueAlias));
+                        v = Integer.parseInt(Utility.deleteRuleWhiteSpace(valueAlias));
                         // If the resultant set is empty then the numeric value
                         // was invalid.
                         //mustNotBeEmpty = true;
@@ -3341,7 +3331,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
                 switch (p) {
                 case UProperty.NUMERIC_VALUE:
                 {
-                    double value = Double.parseDouble(PatternProps.trimWhiteSpace(valueAlias));
+                    double value = Double.parseDouble(Utility.deleteRuleWhiteSpace(valueAlias));
                     applyFilter(new NumericValueFilter(value), UCharacterProperty.SRC_CHAR);
                     return this;
                 }
@@ -3504,7 +3494,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
         // Look for an opening [:, [:^, \p, or \P
         if (pattern.regionMatches(pos, "[:", 0, 2)) {
             posix = true;
-            pos = PatternProps.skipWhiteSpace(pattern, (pos+2));
+            pos = Utility.skipWhitespace(pattern, pos+2);
             if (pos < pattern.length() && pattern.charAt(pos) == '^') {
                 ++pos;
                 invert = true;
@@ -3514,7 +3504,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
             char c = pattern.charAt(pos+1);
             invert = (c == 'P');
             isName = (c == 'N');
-            pos = PatternProps.skipWhiteSpace(pattern, (pos+2));
+            pos = Utility.skipWhitespace(pattern, pos+2);
             if (pos == pattern.length() || pattern.charAt(pos++) != '{') {
                 // Syntax error; "\p" or "\P" not followed by "{"
                 return null;
@@ -3599,7 +3589,8 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
 
     /**
      * Bitmask for constructor and applyPattern() indicating that
-     * white space should be ignored.  If set, ignore Unicode Pattern_White_Space characters,
+     * white space should be ignored.  If set, ignore characters for
+     * which UCharacterProperty.isRuleWhiteSpace() returns true,
      * unless they are quoted or escaped.  This may be ORed together
      * with other selectors.
      * @stable ICU 3.8
@@ -3661,7 +3652,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
 
     //  add the result of a full case mapping to the set
     //  use str as a temporary string to avoid constructing one
-    private static final void addCaseMapping(UnicodeSet set, int result, StringBuilder full) {
+    private static final void addCaseMapping(UnicodeSet set, int result, StringBuffer full) {
         if(result >= 0) {
             if(result > UCaseProps.MAX_STRING_LENGTH) {
                 // add a single-code point case mapping
@@ -3716,7 +3707,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
 
             int n = getRangeCount();
             int result;
-            StringBuilder full = new StringBuilder();
+            StringBuffer full = new StringBuffer();
             int locCache[] = new int[1];
 
             for (int i=0; i<n; ++i) {
@@ -4252,26 +4243,52 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
      * Utility to compare a string to a code point.
      * Same results as turning the code point into a string (with the [ugly] new StringBuilder().appendCodePoint(codepoint).toString())
      * and comparing, but much faster (no object creation). 
-     * Actually, there is one difference; a null compares as less.
      * Note that this (=String) order is UTF-16 order -- *not* code point order.
      * @stable ICU 4.4
      */
-
     public static int compare(String string, int codePoint) {
-        return CharSequences.compare(string, codePoint);
+        if (codePoint < Character.MIN_CODE_POINT || codePoint > Character.MAX_CODE_POINT) {
+            throw new IllegalArgumentException();
+        }
+        int stringLength = string.length();
+        if (stringLength == 0) {
+            return -1;
+        }
+        char firstChar = string.charAt(0);
+        int offset = codePoint - Character.MIN_SUPPLEMENTARY_CODE_POINT;
+
+        if (offset < 0) { // BMP codePoint
+            int result = firstChar - codePoint;
+            if (result != 0) {
+                return result;
+            }
+            return stringLength - 1;
+        } 
+        // non BMP
+        char lead = (char)((offset >>> 10) + Character.MIN_HIGH_SURROGATE);
+        int result = firstChar - lead;
+        if (result != 0) {
+            return result;
+        }
+        if (stringLength > 1) {
+            char trail = (char)((offset & 0x3ff) + Character.MIN_LOW_SURROGATE);
+            result = string.charAt(1) - trail;
+            if (result != 0) {
+                return result;
+            }
+        }
+        return stringLength - 2;
     }
 
     /**
      * Utility to compare a string to a code point.
      * Same results as turning the code point into a string and comparing, but much faster (no object creation). 
      * Actually, there is one difference; a null compares as less.
-     * Note that this (=String) order is UTF-16 order -- *not* code point order.
      * @stable ICU 4.4
      */
-    public static int compare(int codePoint, String string) {
-        return -CharSequences.compare(string, codePoint);
+    public static int compare(int codepoint, String a) {
+        return -compare(a, codepoint);
     }
-
 
     /**
      * Utility to compare two iterables. Warning: the ordering in iterables is important. For Collections that are ordered,
@@ -4282,19 +4299,8 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
      * @stable ICU 4.4
      */
     public static <T extends Comparable<T>> int compare(Iterable<T> collection1, Iterable<T> collection2) {
-        return compare(collection1.iterator(), collection2.iterator());
-    }
-    
-    /**
-     * Utility to compare two iterators. Warning: the ordering in iterables is important. For Collections that are ordered,
-     * like Lists, that is expected. However, Sets in Java violate Leibniz's law when it comes to iteration.
-     * That means that sets can't be compared directly with this method, unless they are TreeSets without
-     * (or with the same) comparator. Unfortunately, it is impossible to reliably detect in Java whether subclass of
-     * Collection satisfies the right criteria, so it is left to the user to avoid those circumstances.
-     * @internal
-     * @deprecated This API is ICU internal only.
-     */
-    public static <T extends Comparable<T>> int compare(Iterator<T> first, Iterator<T> other) {
+        Iterator<T> first = collection1.iterator();
+        Iterator<T> other = collection2.iterator();
         while (true) {
             if (!first.hasNext()) {
                 return other.hasNext() ? -1 : 0;
@@ -4309,7 +4315,6 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
             }
         }
     }
-
 
     /**
      * Utility to compare two collections, optionally by size, and then lexicographically.
@@ -4366,8 +4371,13 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    public static int getSingleCodePoint(CharSequence s) {
-        return CharSequences.getSingleCodePoint(s);
+    public static int getSingleCodePoint(String s) {
+        int length = s.length();
+        if (length < 1 || length > 2) {
+            return Integer.MAX_VALUE;
+        }
+        int result = s.codePointAt(0);
+        return (result < 0x10000) == (length == 1) ? result : Integer.MAX_VALUE;
     }
 
     /**

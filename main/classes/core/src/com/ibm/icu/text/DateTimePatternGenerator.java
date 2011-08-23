@@ -11,14 +11,12 @@ import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.TreeSet;
 
 import com.ibm.icu.impl.ICUCache;
 import com.ibm.icu.impl.ICUResourceBundle;
@@ -28,8 +26,8 @@ import com.ibm.icu.impl.Utility;
 import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.Freezable;
 import com.ibm.icu.util.ULocale;
-import com.ibm.icu.util.UResourceBundle;
 import com.ibm.icu.util.ULocale.Category;
+import com.ibm.icu.util.UResourceBundle;
 
 /**
  * This class provides flexible generation of date format patterns, like
@@ -227,7 +225,7 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
                 result.setAvailableFormat(formatKey);
                 // Add pattern with its associated skeleton. Override any duplicate derived from std patterns,
                 // but not a previous availableFormats entry:
-                result.addPatternWithSkeleton(formatValue, formatKey, true, returnInfo);
+                result.addPatternWithSkeleton(formatValue, formatKey, false, returnInfo);
             } 
         }catch(Exception e) {
         }
@@ -248,7 +246,7 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
                         result.setAvailableFormat(formatKey);
                         // Add pattern with its associated skeleton. Override any duplicate derived from std patterns,
                         // but not a previous availableFormats entry:
-                        result.addPatternWithSkeleton(formatValue, formatKey, true, returnInfo);
+                        result.addPatternWithSkeleton(formatValue, formatKey, false, returnInfo);
                         //System.out.println(" availableFormat:"+formatValue);
                     }
                 } 
@@ -405,7 +403,7 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
 
         String datePattern, timePattern;
         synchronized(this) {
-            current.set(skeleton, fp, false);
+            current.set(skeleton, fp);
             PatternWithMatcher bestWithMatcher = getBestRaw(current, -1, _distanceInfo, skipMatcher);
             if (_distanceInfo.missingFieldMask == 0 && _distanceInfo.extraFieldMask == 0) {
                 // we have a good item. Adjust the field types
@@ -499,9 +497,9 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
         checkFrozen();
         DateTimeMatcher matcher;
         if (skeletonToUse == null) {
-            matcher = new DateTimeMatcher().set(pattern, fp, false);
+            matcher = new DateTimeMatcher().set(pattern, fp);
         } else {
-            matcher = new DateTimeMatcher().set(skeletonToUse, fp, false);
+            matcher = new DateTimeMatcher().set(skeletonToUse, fp);
         }
         String basePattern = matcher.getBasePattern();
         PatternWithSkeletonFlag previousPatternWithSameBase = basePattern_pattern.get(basePattern);
@@ -534,25 +532,10 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
      */
     public String getSkeleton(String pattern) {
         synchronized (this) { // synchronized since a getter must be thread-safe
-            current.set(pattern, fp, false);
+            current.set(pattern, fp);
             return current.toString();
         }
     }
-    
-    /**
-     * Same as getSkeleton, but allows duplicates
-     * 
-     * @param pattern Input pattern, such as "dd/MMM"
-     * @return skeleton, such as "MMMdd"
-     * @internal
-     */
-    public String getSkeletonAllowingDuplicates(String pattern) {
-        synchronized (this) { // synchronized since a getter must be thread-safe
-            current.set(pattern, fp, true);
-            return current.toString();
-        }
-    }
-
 
     /**
      * Utility to return a unique base skeleton from a given pattern. This is
@@ -567,7 +550,7 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
      */
     public String getBaseSkeleton(String pattern) {
         synchronized (this) { // synchronized since a getter must be thread-safe
-            current.set(pattern, fp, false);
+            current.set(pattern, fp);
             return current.getBasePattern();
         }
     }
@@ -648,7 +631,7 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
     public String replaceFieldTypes(String pattern, String skeleton, int options) {
         synchronized (this) { // synchronized since a getter must be thread-safe
             PatternWithMatcher patternNoMatcher = new PatternWithMatcher(pattern, null);
-            return adjustFieldTypes(patternNoMatcher, current.set(skeleton, fp, false), false, options);
+            return adjustFieldTypes(patternNoMatcher, current.set(skeleton, fp), false, options);
         }
     }
 
@@ -1101,23 +1084,12 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
         }
 
         /**
-         * @internal
-         * @deprecated This API is ICU internal only.
-         */
-        public static String getCanonicalCode(int type) {
-            try {
-                return CANONICAL_ITEMS[type];
-            } catch (Exception e) {
-                return String.valueOf(type);
-            }
-        }
-        /**
          * Check if the type of this variable field is numeric.
          * @return true if the type of this variable field is numeric.
          * @internal
          * @deprecated This API is ICU internal only.
          */
-        public boolean isNumeric() {
+        protected boolean isNumeric() {
             return types[canonicalIndex][2] > 0;
         }
 
@@ -1449,35 +1421,19 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
         if (id.equals(skeleton)) {
             return true; // fast path
         }
-        // must clone array, make sure items are in same order.
-        TreeSet<String> parser1 = getSet(id);
-        TreeSet<String> parser2 = getSet(skeleton);
+        List<Object> parser1 = fp.set(id).getItems();
+        List<Object> parser2 = fp.set(skeleton).getItems();
         if (parser1.size() != parser2.size()) {
             return false;
         }
-        Iterator<String> it2 = parser2.iterator();
-        for (String item : parser1) {
-            int index1 = getCanonicalIndex(item, false);
-            String item2 = it2.next(); // same length so safe
-            int index2 = getCanonicalIndex(item2, false);
+        for (int i = 0; i < parser1.size(); ++i) {
+            int index1 = getCanonicalIndex(parser1.get(i).toString(), false);
+            int index2 = getCanonicalIndex(parser2.get(i).toString(), false);
             if (types[index1][1] != types[index2][1]) {
                 return false;
             }
         }
         return true;
-    }
-
-    private TreeSet<String> getSet(String id) {
-        final List<Object> items = fp.set(id).getItems();
-        TreeSet<String> result = new TreeSet<String>();
-        for (Object obj : items) {
-            final String item = obj.toString();
-            if (item.startsWith("G") || item.startsWith("a")) {
-                continue;
-            }
-            result.add(item);
-        }
-        return result;
     }
 
     // ========= PRIVATES ============
@@ -1876,8 +1832,6 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
         {'L', MONTH, SHORT - DELTA, 3},
         {'L', MONTH, LONG - DELTA, 4},
         {'L', MONTH, NARROW - DELTA, 5},
-        
-        {'l', MONTH, NUMERIC + DELTA, 1, 1},
 
         {'w', WEEK_OF_YEAR, NUMERIC, 1, 2},
         {'W', WEEK_OF_MONTH, NUMERIC + DELTA, 1},
@@ -1955,7 +1909,7 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
             return result.toString();
         }
 
-        DateTimeMatcher set(String pattern, FormatParser fp, boolean allowDuplicateFields) {
+        DateTimeMatcher set(String pattern, FormatParser fp) {
             for (int i = 0; i < TYPE_LIMIT; ++i) {
                 type[i] = NONE;
                 original[i] = "";
@@ -1977,9 +1931,6 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
                 int[] row = types[canonicalIndex];
                 int typeValue = row[1];
                 if (original[typeValue].length() != 0) {
-                    if (allowDuplicateFields) {
-                        continue;
-                    }
                     throw new IllegalArgumentException("Conflicting fields:\t"
                             + original[typeValue] + ", " + field + "\t in " + pattern);
                 }

@@ -1,6 +1,6 @@
  /*
   *******************************************************************************
-  * Copyright (C) 2005-2011, International Business Machines Corporation and         *
+  * Copyright (C) 2005-2010, International Business Machines Corporation and         *
   * others. All Rights Reserved.                                                *
   *******************************************************************************
   */
@@ -402,26 +402,6 @@ public class OlsonTimeZone extends BasicTimeZone {
     }
 
     /**
-     * Returns the canonical ID of this system time zone
-     */
-    public String getCanonicalID() {
-        if (canonicalID == null) {
-            synchronized(this) {
-                if (canonicalID == null) {
-                    canonicalID = getCanonicalID(getID());
-
-                    assert(canonicalID != null);
-                    if (canonicalID == null) {
-                        // This should never happen...
-                        canonicalID = getID();
-                    }
-                }
-            }
-        }
-        return canonicalID;
-    }
-
-    /**
      * Construct a GMT+0 zone with no transitions.  This is done when a
      * constructor fails so the resultant object is well-behaved.
      */
@@ -444,10 +424,8 @@ public class OlsonTimeZone extends BasicTimeZone {
      * @param top the top-level zoneinfo resource bundle.  This is used
      * to lookup the rule that `res' may refer to, if there is one.
      * @param res the resource bundle of the zone to be constructed
-     * @param id time zone ID
      */
-    public OlsonTimeZone(UResourceBundle top, UResourceBundle res, String id){
-        super.setID(id);
+    public OlsonTimeZone(UResourceBundle top, UResourceBundle res){
         construct(top, res);
     }
 
@@ -611,21 +589,7 @@ public class OlsonTimeZone extends BasicTimeZone {
         super.setID(id);
     }
 
-    /* (non-Javadoc)
-     * @see com.ibm.icu.util.TimeZone#setID(java.lang.String)
-     */
-    @Override
     public void setID(String id){
-        // Before updating the ID, preserve the original ID's canonical ID.
-        if (canonicalID == null) {
-            canonicalID = getCanonicalID(getID());
-            assert(canonicalID != null);
-            if (canonicalID == null) {
-                // This should never happen...
-                canonicalID = getID();
-            }
-        }
-
         if (finalZone != null){
             finalZone.setID(id);
         }
@@ -832,12 +796,6 @@ public class OlsonTimeZone extends BasicTimeZone {
      */
     private SimpleTimeZone finalZone = null; // owned, may be NULL
  
-    /**
-     * The canonical ID of this zone. Initialized when {@link #getCanonicalID()}
-     * is invoked first time, or {@link #setID(String)} is called.
-     */
-    private volatile String canonicalID = null;
-
     private static final String ZONEINFORES = "zoneinfo64";
 
     private static final boolean DEBUG = ICUDebug.enabled("olson");

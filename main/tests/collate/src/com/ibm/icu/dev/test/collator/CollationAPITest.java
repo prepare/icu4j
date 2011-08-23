@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2002-2011, International Business Machines Corporation and         *
+ * Copyright (C) 2002-2010, International Business Machines Corporation and         *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -737,17 +737,10 @@ public class CollationAPITest extends TestFmwk {
             
             public void setVariableTop(int ce)
             {
-                if (isFrozen()) {
-                    throw new UnsupportedOperationException("Attempt to modify frozen object");
-                }
             }
             
             public int setVariableTop(String str) 
             {
-                if (isFrozen()) {
-                    throw new UnsupportedOperationException("Attempt to modify frozen object");
-                }
-
                 return 0;
             }
             
@@ -762,7 +755,7 @@ public class CollationAPITest extends TestFmwk {
             public VersionInfo getUCAVersion()
             {
                 return VersionInfo.getInstance(0);
-            }            
+            }
         }
  
         Collator col1 = new TestCollator();

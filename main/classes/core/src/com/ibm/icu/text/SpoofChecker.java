@@ -37,107 +37,96 @@ import com.ibm.icu.util.ULocale;
 
 /**
  *
- * <b>Unicode Security and Spoofing Detection.</b>
+ * \brief for Unicode Security and Spoofing Detection.
  *
- * <p>This class is intended to check strings, typically
+ * These functions are intended to check strings, typically
  * identifiers of some type, such as URLs, for the presence of
  * characters that are likely to be visually confusing - 
  * for cases where the displayed form of an identifier may
  * not be what it appears to be.
  *
- * <p>Unicode Technical Report #36, 
- * <a href="http://unicode.org/reports/tr36">http://unicode.org/reports/tr36</a> and
- * Unicode Technical Standard #39, 
- * <a href="http://unicode.org/reports/tr39">http://unicode.org/reports/tr39</a>
+ * Unicode Technical Report #36, http://unicode.org/reports/tr36, and
+ * Unicode Technical Standard #39, http://unicode.org/reports/tr39
  * "Unicode security considerations", give more background on 
  * security and spoofing issues with Unicode identifiers.
  * The tests and checks provided by this module implement the recommendations
  * from these Unicode documents.
  *
- * <p>The tests available on identifiers fall into two general categories:
- *   <ul>
- *     <li>  Single identifier tests.  Check whether an identifier is
+ * The tests available on identifiers fall into two general categories:
+ *   -#  Single identifier tests.  Check whether an identifier is
  *       potentially confusable with any other string, or is suspicious
- *       for other reasons. </li>
- *     <li> Two identifier tests.  Check whether two specific identifiers are confusable.
+ *       for other reasons.
+ *   -#  Two identifier tests.  Check whether two specific identifiers are confusable.
  *       This does not consider whether either of strings is potentially
- *       confusable with any string other than the exact one specified. </li>
- *   </ul>
+ *       confusable with any string other than the exact one specified.
  *
- * <p>The steps to perform confusability testing are
- *   <ul>
- *     <li>  Create a <code>SpoofChecker.Builder</code> </li>
- *     <li>  Configure the Builder for the desired set of tests.  The tests that will
- *           be performed are specified by a set of SpoofCheck flags. </li>
- *     <li>  Build a <code>SpoofChecker</code> from the Builder. </li>
- *     <li>  Perform the checks using the pre-configured <code>SpoofChecker</code>.  The results indicate
- *           which (if any) of the selected tests have identified possible problems with the identifier.
- *           Results are reported as a set of SpoofCheck flags;  this mirrors the form in which
- *           the set of tests to perform was originally specified to the SpoofChecker. </li>
- *    </ul>
+ * The steps to perform confusability testing are
+ *   -#  Create a SpoofChecker.Builder
+ *   -#  Configure the Builder for the desired set of tests.  The tests that will
+ *       be performed are specified by a set of SpoofCheck flags.
+ *   -#  Build a SpoofChecker from the Builder.
+ *   -#  Perform the checks using the pre-configured SpoofChecker.  The results indicate
+ *       which (if any) of the selected tests have identified possible problems with the identifier.
+ *       Results are reported as a set of SpoofCheck flags;  this mirrors the form in which
+ *       the set of tests to perform was originally specified to the SpoofChecker.
  *
- * <p>A <code>SpoofChecker</code> instance may be used repeatedly to perform checks on any number 
- *    of identifiers.
+ * A SpoofChecker may be used repeatedly to perform checks on any number of identifiers.
  *
- * <p>Thread Safety: The methods on SpoofChecker objects are thread safe.  
+ * Thread Safety: The methods on SpoofChecker objects are thread safe.  
  * The test functions for checking a single identifier, or for testing 
  * whether two identifiers are potentially confusable,  may called concurrently 
  * from multiple threads using the same SpoofChecker instance.
  *
  *
- * <p>Descriptions of the available checks.
+ * Descriptions of the available checks.
  *
- * <p>When testing whether pairs of identifiers are confusable, with <code>areConfusable()</code>
- * the relevant tests are
+ * When testing whether pairs of identifiers are confusable, with the areConfusable()
+ * family of functions, the relevant tests are
  *
- *  <ul>
- *   <li> <code>SINGLE_SCRIPT_CONFUSABLE</code>:  All of the characters from the two identifiers are
- *      from a single script, and the two identifiers are visually confusable.</li>
- *   <li> <code>MIXED_SCRIPT_CONFUSABLE</code>:  At least one of the identifiers contains characters
- *      from more than one script, and the two identifiers are visually confusable.</li>
- *   <li> <code>WHOLE_SCRIPT_CONFUSABLE</code>: Each of the two identifiers is of a single script, but
- *      the the two identifiers are from different scripts, and they are visually confusable.</li>
- *  </ul>
+ *   -# SINGLE_SCRIPT_CONFUSABLE:  All of the characters from the two identifiers are
+ *      from a single script, and the two identifiers are visually confusable.
+ *   -# MIXED_SCRIPT_CONFUSABLE:  At least one of the identifiers contains characters
+ *      from more than one script, and the two identifiers are visually confusable.
+ *   -# WHOLE_SCRIPT_CONFUSABLE: Each of the two identifiers is of a single script, but
+ *      the the two identifiers are from different scripts, and they are visually confusable.
  *
- * <p>The safest approach is to enable all three of these checks as a group.
+ * The safest approach is to enable all three of these checks as a group.
  *
- * <p><code>ANY_CASE</code> is a modifier for the above tests.  If the identifiers being checked can
+ * ANY_CASE is a modifier for the above tests.  If the identifiers being checked can
  * be of mixed case and are used in a case-sensitive manner, this option should be specified.
  *
- * <p>If the identifiers being checked are used in a case-insensitive manner, and if they are
- * displayed to users in lower-case form only, the <code>ANY_CASE</code> option should not be
+ * If the identifiers being checked are used in a case-insensitive manner, and if they are
+ * displayed to users in lower-case form only, the ANY_CASE option should not be
  * specified.  Confusabality issues involving upper case letters will not be reported.
  *
- * <p>When performing tests on a single identifier, with the check() family of functions,
+ * When performing tests on a single identifier, with the check() family of functions,
  * the relevant tests are:
  *
- *  <ul>
- *    <li><code>MIXED_SCRIPT_CONFUSABLE</code>: the identifier contains characters from multiple
- *       scripts, and there exists an identifier of a single script that is visually confusable.</li>
- *    <li><code>WHOLE_SCRIPT_CONFUSABLE</code>: the identifier consists of characters from a single
+ *    -# MIXED_SCRIPT_CONFUSABLE: the identifier contains characters from multiple
+ *       scripts, and there exists an identifier of a single script that is visually confusable.
+ *    -# WHOLE_SCRIPT_CONFUSABLE: the identifier consists of characters from a single
  *       script, and there exists a visually confusable identifier.
  *       The visually confusable identifier also consists of characters from a single script.
- *       but not the same script as the identifier being checked.</li>
- *    <li><code>ANY_CASE</code>: modifies the mixed script and whole script confusables tests.  If
+ *       but not the same script as the identifier being checked.
+ *    -# ANY_CASE: modifies the mixed script and whole script confusables tests.  If
  *       specified, the checks will find confusable characters of any case.  
- *       If this flag is not set, the test is performed assuming case folded identifiers.</li>
- *    <li><code>SINGLE_SCRIPT</code>: check that the identifier contains only characters from a
- *       single script.  (Characters from the <em>common</em> and <em>inherited</em> scripts are ignored.)
- *       This is not a test for confusable identifiers</li>
- *    <li><code>INVISIBLE</code>: check an identifier for the presence of invisible characters,
+ *       If this flag is not set, the test is performed assuming case folded identifiers.
+ *    -# SINGLE_SCRIPT: check that the identifier contains only characters from a
+ *       single script.  (Characters from the 'common' and 'inherited' scripts are ignored.)
+ *       This is not a test for confusable identifiers
+ *    -# INVISIBLE: check an identifier for the presence of invisible characters,
  *       such as zero-width spaces, or character sequences that are
  *       likely not to display, such as multiple occurrences of the same
  *       non-spacing mark.  This check does not test the input string as a whole
- *       for conformance to any particular syntax for identifiers.</li>
- *    <li><code>CHAR_LIMIT</code>: check that an identifier contains only characters from a specified set
- *       of acceptable characters.  See <code>Builder.setAllowedChars()</code> and
- *       <code>Builder.setAllowedLocales()</code>.</li>
- *  </ul>
+ *       for conformance to any particular syntax for identifiers.
+ *    -# CHAR_LIMIT: check that an identifier contains only characters from a specified set
+ *       of acceptable characters.  See Builder.setAllowedChars() and
+ *       Builder.setAllowedLocales().
  *
- *  <p>Note on Scripts:
- *     <blockquote>Characters from the Unicode Scripts "Common" and "Inherited" are ignored when considering
+ *  Note on Scripts:
+ *     Characters from the Unicode Scripts "Common" and "Inherited" are ignored when considering
  *     the script of an identifier. Common characters include digits and symbols that
- *     are normally used with text from many different scripts. </blockquote>
+ *     are normally used with text from many different scripts.
  *
  * @draft ICU 4.6
  * @provisional This API might change or be removed in a future release.
@@ -354,7 +343,7 @@ public class SpoofChecker {
          * 
          * @param checks
          *            The set of checks that this spoof checker will perform. The value is an 'or' of the desired
-         *            checks.
+         *            checks..
          * @return self
          * @draft ICU 4.6
          * @provisional This API might change or be removed in a future release.
@@ -680,7 +669,7 @@ public class SpoofChecker {
                 //
                 // printf("Number of scriptSets: %d\n", scriptSets.size());
                 {
-                    //int duplicateCount = 0;
+                    int duplicateCount = 0;
                     rtScriptSetsCount = 2;
                     for (int outeri = 2; outeri < scriptSets.size(); outeri++) {
                         BuilderScriptSet outerSet = scriptSets.elementAt(outeri);
@@ -697,7 +686,7 @@ public class SpoofChecker {
                                 innerSet.sset = outerSet.sset;
                                 innerSet.index = outeri;
                                 innerSet.rindex = outerSet.rindex;
-                                //duplicateCount++;
+                                duplicateCount++;
                             }
                             // But this doesn't get all. We need to fix the TRIE.
                         }
@@ -865,29 +854,38 @@ public class SpoofChecker {
                 StringBuffer fInput = new StringBuffer();
                 WSConfusableDataBuilder.readWholeFileToString(confusables, fInput);
 
-                // Regular Expression to parse a line from Confusables.txt. The expression will match
-                // any line. What was matched is determined by examining which capture groups have a match.
-                //   Capture Group 1: the source char
-                //   Capture Group 2: the replacement chars
-                //   Capture Group 3-6 the table type, SL, SA, ML, or MA
-                //   Capture Group 7: A blank or comment only line.
-                //   Capture Group 8: A syntactically invalid line. Anything that didn't match before.
+                // Regular Expression to parse a line from Confusables.txt. The
+                // expression will match
+                // any line. What was matched is determined by examining which capture
+                // groups have a match.
+                // Capture Group 1: the source char
+                // Capture Group 2: the replacement chars
+                // Capture Group 3-6 the table type, SL, SA, ML, or MA
+                // Capture Group 7: A blank or comment only line.
+                // Capture Group 8: A syntactically invalid line. Anything that didn't
+                // match before.
                 // Example Line from the confusables.txt source file:
-                //   "1D702 ; 006E 0329 ; SL # MATHEMATICAL ITALIC SMALL ETA ... "
-                fParseLine = Pattern.compile("(?m)^[ \\t]*([0-9A-Fa-f]+)[ \\t]+;" + // Match the source char
-                        "[ \\t]*([0-9A-Fa-f]+" +                     // Match the replacement char(s)
-                        "(?:[ \\t]+[0-9A-Fa-f]+)*)[ \\t]*;" +        //     (continued)
-                        "\\s*(?:(SL)|(SA)|(ML)|(MA))" +              // Match the table type
-                        "[ \\t]*(?:#.*?)?$" +                        // Match any trailing #comment
-                        "|^([ \\t]*(?:#.*?)?)$" +                    // OR match empty lines or lines with only a #comment
-                        "|^(.*?)$");                                 // OR match any line, which catches illegal lines.
+                // "1D702 ; 006E 0329 ; SL # MATHEMATICAL ITALIC SMALL ETA ... "
+                fParseLine = Pattern.compile("(?m)^[ \\t]*([0-9A-Fa-f]+)[ \\t]+;" + // Match
+                        // the
+                        // source
+                        // char
+                        "[ \\t]*([0-9A-Fa-f]+" + // Match the replacement char(s)
+                        "(?:[ \\t]+[0-9A-Fa-f]+)*)[ \\t]*;" + // (continued)
+                        "\\s*(?:(SL)|(SA)|(ML)|(MA))" + // Match the table type
+                        "[ \\t]*(?:#.*?)?$" + // Match any trailing #comment
+                        "|^([ \\t]*(?:#.*?)?)$" + // OR match empty lines or lines with
+                        // only a #comment
+                        "|^(.*?)$"); // OR match any line, which catches illegal lines.
 
-                // Regular expression for parsing a hex number out of a space-separated list of them.
+                // Regular expression for parsing a hex number out of a space-separated
+                // list of them.
                 // Capture group 1 gets the number, with spaces removed.
                 fParseHexNum = Pattern.compile("\\s*([0-9A-F]+)");
 
                 // Zap any Byte Order Mark at the start of input. Changing it to a space
-                // is benign given the syntax of the input.
+                // is benign
+                // given the syntax of the input.
                 if (fInput.charAt(0) == 0xfeff) {
                     fInput.setCharAt(0, (char) 0x20);
                 }
@@ -917,14 +915,14 @@ public class SpoofChecker {
                     }
                     Matcher m = fParseHexNum.matcher(matcher.group(2));
 
-                    StringBuilder mapString = new StringBuilder();
+                    StringBuffer mapString = new StringBuffer();
                     while (m.find()) {
                         int c = Integer.parseInt(m.group(1), 16);
                         if (keyChar > 0x10ffff) {
                             throw new ParseException("Confusables, line " + fLineNum + ": Bad code point: "
                                     + Integer.toString(c, 16), matcher.start(2));
                         }
-                        mapString.appendCodePoint(c);
+                        mapString.append(c);
                     }
                     assert (mapString.length() >= 1);
 
@@ -945,14 +943,18 @@ public class SpoofChecker {
                 // Input data is now all parsed and collected.
                 // Now create the run-time binary form of the data.
                 //
-                // This is done in two steps. First the data is assembled into vectors and strings,
-                // for ease of construction, then the contents of these collections are dumped
+                // This is done in two steps. First the data is assembled into vectors
+                // and strings,
+                // for ease of construction, then the contents of these collections are
+                // dumped
                 // into the actual raw-bytes data storage.
 
-                // Build up the string array, and record the index of each string therein
+                // Build up the string array, and record the index of each string
+                // therein
                 // in the (build time only) string pool.
                 // Strings of length one are not entered into the strings array.
-                // At the same time, build up the string lengths table, which records the
+                // At the same time, build up the string lengths table, which records
+                // the
                 // position in the string table of the first string of each length >= 4.
                 // (Strings in the table are sorted by length)
                 stringPool.sort();
@@ -1354,18 +1356,15 @@ public class SpoofChecker {
     }
 
     /**
-     * A struct-like class to hold the results of a Spoof Check operation. 
-     * Tells which check(s) have failed 
-     * and the position within the string where the failure was found.
+     * Represent the results of a Spoof Check operation. Encapsulates which check(s) have failed and the index in the
+     * string where the failure was found.
      * 
      * @draft ICU 4.6
      * @provisional This API might change or be removed in a future release.
      */
     public static class CheckResult {
         /**
-         * Indicate which of the spoof check(s) has failed.  The value is a bitwise OR
-         * of the constants for the tests in question, SINGLE_SCRIPT_CONFUSABLE,
-         * MIXED_SCRIPT_CONFUSABLE, WHOLE_SCRIPT_CONFUSABLE, and so on.
+         * Indicate which of the spoof check(s) has failed.
          * 
          * @draft ICU 4.6
          * @provisional This API might change or be removed in a future release.
@@ -1397,13 +1396,12 @@ public class SpoofChecker {
      * @param text
      *            A String to be checked for possible security issues.
      * @param checkResult
-     *            Output parameter, indicates which specific tests failed.
-     *            May be null if the information is not wanted.
+     *            Optional caller provided fill-in parameter. If not null, on return it will be filled.
      * @return True there any issue is found with the input string.
-     * @draft ICU 4.8
+     * @draft ICU 4.6
      * @provisional This API might change or be removed in a future release.
      */
-    public boolean failsChecks(String text, CheckResult checkResult) {
+    public boolean check(String text, CheckResult checkResult) {
         int length = text.length();
 
         int result = 0;
@@ -1546,11 +1544,11 @@ public class SpoofChecker {
      * @param text
      *            A String to be checked for possible security issues.
      * @return True there any issue is found with the input string.
-     * @draft ICU 4.8
+     * @draft ICU 4.6
      * @provisional This API might change or be removed in a future release.
      */
-    public boolean failsChecks(String text) {
-        return failsChecks(text, null);
+    public boolean check(String text) {
+        return check(text, null);
     }
 
     /**
@@ -1819,7 +1817,7 @@ public class SpoofChecker {
             assert (ix < stringLengthsLimit);
         }
 
-        assert (value + stringLen <= fSpoofData.fRawData.fCFUStringTableLen);
+        assert (value + stringLen < fSpoofData.fRawData.fCFUStringTableLen);
         dest.append(fSpoofData.fCFUStrings, value, stringLen);
         return;
     }
@@ -1883,14 +1881,6 @@ public class SpoofChecker {
             sc = UScript.getScript(c);
             if (sc == UScript.COMMON || sc == UScript.INHERITED || sc == UScript.UNKNOWN) {
                 continue;
-            }
-            
-            // Temporary fix: fold Japanese and Korean into Han.
-            //   Names are allowed to mix these scripts.
-            //   A more general solution will follow later for characters that are
-            //   used with multiple scripts.            
-            if (sc == UScript.KATAKANA || sc == UScript.HIRAGANA || sc == UScript.HANGUL) {
-                sc = UScript.HAN;
             }
             if (sc != lastScript) {
                 scriptCount++;

@@ -1,6 +1,6 @@
 /**
  *******************************************************************************
- * Copyright (C) 2000-2011, International Business Machines Corporation and    *
+ * Copyright (C) 2000-2010, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -17,7 +17,6 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 
 import com.ibm.icu.dev.test.TestFmwk;
 import com.ibm.icu.impl.ICUResourceBundle;
@@ -26,7 +25,6 @@ import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.GregorianCalendar;
 import com.ibm.icu.util.SimpleTimeZone;
 import com.ibm.icu.util.TimeZone;
-import com.ibm.icu.util.TimeZone.SystemTimeZoneType;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.UResourceBundle;
 
@@ -47,6 +45,8 @@ public class TimeZoneTest extends TestFmwk
     // when year/rule are changed.
     static final int REFERENCE_YEAR = 2009;
     static final String REFERENCE_DATA_VERSION = "2009d";
+
+
 
     public static void main(String[] args) throws Exception {
         new TimeZoneTest().run(args);
@@ -282,28 +282,28 @@ public class TimeZoneTest extends TestFmwk
         String[] DATA = {
             // ID               offset(sec)     output ID
             "GMT",              "0",            "GMT",      // system ID
-            "GMT-YOUR.AD.HERE", "0",            TimeZone.UNKNOWN_ZONE_ID,
+            "GMT-YOUR.AD.HERE", "0",            "GMT",
             "GMT0",             "0",            "GMT0",     // system ID
             "GMT+0",            "0",            "GMT+0",    // system ID
             "GMT+1",            "3600",         "GMT+01:00",
             "GMT-0030",         "-1800",        "GMT-00:30",
-            "GMT+15:99",        "0",            TimeZone.UNKNOWN_ZONE_ID,
-            "GMT+",             "0",            TimeZone.UNKNOWN_ZONE_ID,
-            "GMT-",             "0",            TimeZone.UNKNOWN_ZONE_ID,
-            "GMT+0:",           "0",            TimeZone.UNKNOWN_ZONE_ID,
-            "GMT-:",            "0",            TimeZone.UNKNOWN_ZONE_ID,
+            "GMT+15:99",        "0",            "GMT",
+            "GMT+",             "0",            "GMT",
+            "GMT-",             "0",            "GMT",
+            "GMT+0:",           "0",            "GMT",
+            "GMT-:",            "0",            "GMT",
             "GMT+0010",         "600",          "GMT+00:10",
             "GMT-10",           "-36000",       "GMT-10:00",
-            "GMT+30",           "0",            TimeZone.UNKNOWN_ZONE_ID,
+            "GMT+30",           "0",            "GMT",
             "GMT-3:30",         "-12600",       "GMT-03:30",
             "GMT-230",          "-9000",        "GMT-02:30",
             "GMT+05:13:05",     "18785",        "GMT+05:13:05",
             "GMT-71023",        "-25823",       "GMT-07:10:23",
-            "GMT+01:23:45:67",  "0",            TimeZone.UNKNOWN_ZONE_ID,
-            "GMT+01:234",       "0",            TimeZone.UNKNOWN_ZONE_ID,
-            "GMT-2:31:123",     "0",            TimeZone.UNKNOWN_ZONE_ID,
-            "GMT+3:75",         "0",            TimeZone.UNKNOWN_ZONE_ID,
-            "GMT-01010101",     "0",            TimeZone.UNKNOWN_ZONE_ID,
+            "GMT+01:23:45:67",  "0",            "GMT",
+            "GMT+01:234",       "0",            "GMT",
+            "GMT-2:31:123",     "0",            "GMT",
+            "GMT+3:75",         "0",            "GMT",
+            "GMT-01010101",     "0",            "GMT",
         };
         for (int i = 0; i < DATA.length; i += 3) {
             String id = DATA[i];
@@ -364,7 +364,7 @@ public class TimeZoneTest extends TestFmwk
             Boolean.FALSE, new Integer(TimeZone.SHORT), "PST",
             Boolean.TRUE,  new Integer(TimeZone.SHORT), "PDT",
             Boolean.FALSE, new Integer(TimeZone.LONG),  "Pacific Standard Time",
-            Boolean.TRUE,  new Integer(TimeZone.LONG),  "Pacific Daylight Time",
+            Boolean.TRUE,  new Integer(TimeZone.LONG),  "Pacific Daylight Time",                
             // v and vvvv
             Boolean.FALSE, new Integer(TimeZone.SHORT_GENERIC), "PT",
             Boolean.TRUE,  new Integer(TimeZone.SHORT_GENERIC), "PT",
@@ -374,12 +374,12 @@ public class TimeZoneTest extends TestFmwk
             Boolean.FALSE, new Integer(TimeZone.SHORT_GMT), "-0800",
             Boolean.TRUE,  new Integer(TimeZone.SHORT_GMT), "-0700",
             Boolean.FALSE, new Integer(TimeZone.LONG_GMT),  "GMT-08:00",
-            Boolean.TRUE,  new Integer(TimeZone.LONG_GMT),  "GMT-07:00",
+            Boolean.TRUE,  new Integer(TimeZone.LONG_GMT),  "GMT-07:00",              
             // V and VVVV
             Boolean.FALSE, new Integer(TimeZone.SHORT_COMMONLY_USED), "PST",
             Boolean.TRUE,  new Integer(TimeZone.SHORT_COMMONLY_USED), "PDT",
-            Boolean.FALSE, new Integer(TimeZone.GENERIC_LOCATION),  "United States Time (Los Angeles)",
-            Boolean.TRUE,  new Integer(TimeZone.GENERIC_LOCATION),  "United States Time (Los Angeles)",
+            Boolean.FALSE, new Integer(TimeZone.GENERIC_LOCATION),  "United States (Los Angeles)",
+            Boolean.TRUE,  new Integer(TimeZone.GENERIC_LOCATION),  "United States (Los Angeles)",
         };
 
         for (int i=0; i<DATA.length; i+=3) {
@@ -430,7 +430,7 @@ public class TimeZoneTest extends TestFmwk
         }
         // dlf - we will use generic time, or if unavailable, GMT for standard time in the zone 
         //     - we now (3.4.1) have localizations for this zone, so change test string
-        else if(!name.equals("\u0126in ta\u2019 Stati Uniti (Los Angeles)") &&
+        else if(!name.equals("Stati Uniti (Los Angeles)") &&
             !name.equals("GMT-08:00") &&
             !name.equals("GMT-8:00") &&
             !name.equals("GMT-0800") &&
@@ -476,24 +476,14 @@ public class TimeZoneTest extends TestFmwk
             ULocale locale = new ULocale(locales[j]);
             for (int i = 0; i < timezones.length; ++i) {
                 TimeZone tz = TimeZone.getTimeZone(timezones[i]);
-                String displayName0 = tz.getDisplayName(locale);
+                String displayName0 = tz.getDisplayName(locale); // doesn't work???
                 SimpleDateFormat dt = new SimpleDateFormat("vvvv", locale);
                 dt.setTimeZone(tz);
                 String displayName1 = dt.format(now);  // date value _does_ matter if we fallback to GMT
                 logln(locale.getDisplayName() + ", " + tz.getID() + ": " + displayName0);
                 if (!displayName1.equals(displayName0)) {
-                    // This could happen when the date used is in DST,
-                    // because TimeZone.getDisplayName(ULocale) may use
-                    // localized GMT format for the time zone's standard
-                    // time.
-                    if (tz.inDaylightTime(now)) {
-                        // Try getDisplayName with daylight argument
-                        displayName0 = tz.getDisplayName(true, TimeZone.LONG_GENERIC, locale);
-                    }
-                    if (!displayName1.equals(displayName0)) {
-                        errln(locale.getDisplayName() + ", " + tz.getID() + 
-                                ": expected " + displayName1 + " but got: " + displayName0);
-                    }
+                    errln(locale.getDisplayName() + ", " + tz.getID() + 
+                          ": expected " + displayName1 + " but got: " + displayName0);
                 }
             }
         }
@@ -760,114 +750,8 @@ public class TimeZoneTest extends TestFmwk
         tz = TimeZone.getTimeZone("NON_EXISTENT");
         if (tz == null)
             errln("FAIL: getTimeZone(NON_EXISTENT) = null");
-        else if (!tz.getID().equals(TimeZone.UNKNOWN_ZONE_ID))
+        else if (!tz.getID().equals("GMT"))
             errln("FAIL: getTimeZone(NON_EXISTENT) = " + tz.getID());
-    }
-
-    public void TestGetAvailableIDsNew() {
-        Set<String> any = TimeZone.getAvailableIDs(SystemTimeZoneType.ANY, null, null);
-        Set<String> canonical = TimeZone.getAvailableIDs(SystemTimeZoneType.CANONICAL, null, null);
-        Set<String> canonicalLoc = TimeZone.getAvailableIDs(SystemTimeZoneType.CANONICAL_LOCATION, null, null);
-
-        checkContainsAll(any, "ANY", canonical, "CANONICAL");
-        checkContainsAll(canonical, "CANONICAL", canonicalLoc, "CANONICALLOC");
-
-        Set<String> any_US = TimeZone.getAvailableIDs(SystemTimeZoneType.ANY, "US", null);
-        Set<String> canonical_US = TimeZone.getAvailableIDs(SystemTimeZoneType.CANONICAL, "US", null);
-        Set<String> canonicalLoc_US = TimeZone.getAvailableIDs(SystemTimeZoneType.CANONICAL_LOCATION, "US", null);
-
-        checkContainsAll(any, "ANY", any_US, "ANY_US");
-        checkContainsAll(canonical, "CANONICAL", canonical_US, "CANONICAL_US");
-        checkContainsAll(canonicalLoc, "CANONICALLOC", canonicalLoc_US, "CANONICALLOC_US");
-
-        checkContainsAll(any_US, "ANY_US", canonical_US, "CANONICAL_US");
-        checkContainsAll(canonical_US, "CANONICAL_US", canonicalLoc_US, "CANONICALLOC_US");
-
-        final int HOUR = 60*60*1000;
-        Set<String> any_W5 = TimeZone.getAvailableIDs(SystemTimeZoneType.ANY, null, -5 * HOUR);
-        Set<String> any_CA_W5 = TimeZone.getAvailableIDs(SystemTimeZoneType.ANY, "CA", -5 * HOUR);
-
-        checkContainsAll(any, "ANY", any_W5, "ANY_W5");
-        checkContainsAll(any_W5, "ANY_W5", any_CA_W5, "ANY_CA_W5");
-
-        boolean[] isSystemID = new boolean[1];
-
-        // An ID in any set, but not in canonical set must not be a canonical ID
-        for (String id : any) {
-            if (canonical.contains(id)) {
-                continue;
-            }
-            String cid = TimeZone.getCanonicalID(id, isSystemID);
-            if (id.equals(cid)) {
-                errln("FAIL: canonical ID [" + id + "] is not in CANONICAL");
-            }
-            if (!isSystemID[0]) {
-                errln("FAIL: ANY contains non-system ID: " + id);
-            }
-        }
-
-        // canonical set must contains only canonical IDs
-        for (String id : canonical) {
-            String cid = TimeZone.getCanonicalID(id, isSystemID);
-            if (!id.equals(cid)) {
-                errln("FAIL: CANONICAL contains non-canonical ID: " + id);
-            }
-            if (!isSystemID[0]) {
-                errln("FAIL: CANONICAL contains non-system ID: " + id);
-            }
-        }
-
-        // canonicalLoc set must contains only canonical location IDs
-        for (String id : canonicalLoc) {
-            String cid = TimeZone.getCanonicalID(id, isSystemID);
-            if (!id.equals(cid)) {
-                errln("FAIL: CANONICAL contains non-canonical ID: " + id);
-            }
-            if (!isSystemID[0]) {
-                errln("FAIL: CANONICAL contains non-system ID: " + id);
-            }
-            String region = TimeZone.getRegion(id);
-            if (region.equals("001")) {
-                errln("FAIL: CANONICALLOC contains non location zone: " + id);
-            }
-        }
-
-        // any_US must contain only US zones
-        for (String id : any_US) {
-            String region = TimeZone.getRegion(id);
-            if (!region.equals("US")) {
-                errln("FAIL: ANY_US contains non-US zone ID: " + id);
-            }
-        }
-
-        // any_W5 must contain only GMT-05:00 zones
-        for (String id : any_W5) {
-            TimeZone tz = TimeZone.getTimeZone(id);
-            if (tz.getRawOffset() != -5 * HOUR) {
-                errln("FAIL: ANY_W5 contains a zone whose offset is not -5:00: " + id);
-            }
-        }
-
-        // No US zones with GMT+14:00
-        Set<String> any_US_E14 = TimeZone.getAvailableIDs(SystemTimeZoneType.ANY, "US", 14 * HOUR);
-        if (!any_US_E14.isEmpty()) {
-            errln("FAIL: ANY_US_E14 must be empty");
-        }
-    }
-
-    private void checkContainsAll(Set<String> set1, String name1, Set<String> set2, String name2) {
-        if (!set1.containsAll(set2)) {
-            StringBuilder buf = new StringBuilder();
-            for (String s : set2) {
-                if (!set1.contains(s)) {
-                    if (buf.length() != 0) {
-                        buf.append(",");
-                    }
-                    buf.append(s);
-                }
-            }
-            errln("FAIL: " + name1 + " does not contain all of " + name2 + " - missing: {" + buf + "}");
-        }
     }
 
     /**
@@ -1574,7 +1458,6 @@ public class TimeZoneTest extends TestFmwk
                 {"GMT-091015", "GMT-09:10:15", null},
                 {"GMT+1:90", null, null},
                 {"America/Argentina/Buenos_Aires", "America/Buenos_Aires", "true"},
-                {"Etc/Unknown", "Etc/Unknown", null},
                 {"bogus", null, null},
                 {"", null, null},
                 {null, null, null},
@@ -1757,48 +1640,6 @@ public class TimeZoneTest extends TestFmwk
             // string representation should be also same
             if (!tz1.toString().equals(tz2.toString())) {
                 errln("Fail: Two time zone instances for " + id + " have different toString() values.");
-            }
-        }
-    }
-
-    /*
-     * Test case for getRegion
-     */
-    public void TestGetRegion() {
-        final String[][] TEST_DATA = {
-            {"America/Los_Angeles",             "US"},
-            {"America/Indianapolis",            "US"},  // CLDR canonical, Olson backward
-            {"America/Indiana/Indianapolis",    "US"},  // CLDR alias
-            {"Mexico/General",                  "MX"},  // Link America/Mexico_City, Olson backward
-            {"Etc/UTC",                         "001"},
-            {"EST5EDT",                         "001"},
-            {"PST",                             "US"},  // Link America/Los_Angeles
-            {"Europe/Helsinki",                 "FI"},
-            {"Europe/Mariehamn",                "AX"},  // Link Europe/Helsinki, but in zone.tab
-            {"Asia/Riyadh",                     "SA"},
-            {"Asia/Riyadh87",                   "001"}, // this should be "SA" actually, but not in zone.tab
-            {"Etc/Unknown",                     null},  // CLDR canonical, but not a sysmte zone ID
-            {"bogus",                           null},  // bogus
-            {"GMT+08:00",                       null},  // a custom ID, not a system zone ID
-        };
-
-        for (String[] test : TEST_DATA) {
-            try {
-                String region = TimeZone.getRegion(test[0]);
-                if (!region.equals(test[1])) {
-                    if (test[1] == null) {
-                        errln("Fail: getRegion(\"" + test[0] + "\") returns "
-                                + region + " [expected: IllegalArgumentException]");
-                    } else {
-                        errln("Fail: getRegion(\"" + test[0] + "\") returns "
-                                + region + " [expected: " + test[1] + "]");
-                    }
-                }
-            } catch (IllegalArgumentException e) {
-                if (test[1] != null) {
-                    errln("Fail: getRegion(\"" + test[0]
-                                + "\") throws IllegalArgumentException [expected: " + test[1] + "]");
-                }
             }
         }
     }

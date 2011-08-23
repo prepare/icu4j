@@ -411,7 +411,7 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         String[] DATA = {
             "fr", "CA", "", "1,50\u00a0$",
             "de", "DE", "", "1,50\u00a0\u20AC",
-            "de", "DE", "PREEURO", "1,50\u00a0DEM",
+            "de", "DE", "PREEURO", "1,50\u00a0DM",
             "fr", "FR", "", "1,50\u00a0\u20AC",
             "fr", "FR", "PREEURO", "1,50\u00a0F",
         };
@@ -487,15 +487,15 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             //{"zh_CN", "1234.56", "CHY", "CHY1,234.56", "CHY1,234.56", "1,234.56 CHY"},
             {"zh_CN", "1", "CNY", "\uFFE51.00", "CNY1.00", "1.00 \u4EBA\u6C11\u5E01"},
             {"zh_CN", "1234.56", "CNY", "\uFFE51,234.56", "CNY1,234.56", "1,234.56 \u4EBA\u6C11\u5E01"}, 
-            {"ru_RU", "1", "RUB", "1,00\u00A0\u0440\u0443\u0431.", "1,00\u00A0RUB", "1,00 \u0440\u043E\u0441\u0441\u0438\u0439\u0441\u043A\u0438\u0439 \u0440\u0443\u0431\u043B\u044C"},
-            {"ru_RU", "2", "RUB", "2,00\u00A0\u0440\u0443\u0431.", "2,00\u00A0RUB", "2,00 \u0440\u043E\u0441\u0441\u0438\u0439\u0441\u043A\u0438\u0445 \u0440\u0443\u0431\u043B\u044F"},
-            {"ru_RU", "5", "RUB", "5,00\u00A0\u0440\u0443\u0431.", "5,00\u00A0RUB", "5,00 \u0440\u043E\u0441\u0441\u0438\u0439\u0441\u043A\u0438\u0445 \u0440\u0443\u0431\u043B\u0435\u0439"},
+            {"ru_RU", "1", "RUB", "1,00\u00A0\u0440\u0443\u0431.", "1,00\u00A0RUB", "1,00 \u0420\u043E\u0441\u0441\u0438\u0439\u0441\u043A\u0438\u0439 \u0440\u0443\u0431\u043B\u044C"},
+            {"ru_RU", "2", "RUB", "2,00\u00A0\u0440\u0443\u0431.", "2,00\u00A0RUB", "2,00 \u0420\u043E\u0441\u0441\u0438\u0439\u0441\u043A\u0438\u0445 \u0440\u0443\u0431\u043B\u044F"},
+            {"ru_RU", "5", "RUB", "5,00\u00A0\u0440\u0443\u0431.", "5,00\u00A0RUB", "5,00 \u0420\u043E\u0441\u0441\u0438\u0439\u0441\u043A\u0438\u0445 \u0440\u0443\u0431\u043B\u0435\u0439"},
             // test locale without currency information
             {"root", "-1.23", "USD", "-US$\u00a01.23", "-USD\u00a01.23", "-1.23 USD"},
             {"root@numbers=latn", "-1.23", "USD", "-US$\u00a01.23", "-USD\u00a01.23", "-1.23 USD"}, // ensure that the root locale is still used with modifiers
-            {"root@numbers=arab", "-1.23", "USD", "-US$\u00a0\u0661\u066B\u0662\u0663", "-USD\u00a0\u0661\u066B\u0662\u0663", "-\u0661\u066B\u0662\u0663 USD"}, // ensure that the root locale is still used with modifiers
+            {"root@numbers=arab", "-1.23", "USD", "-US$\u00a0\u0661.\u0662\u0663", "-USD\u00a0\u0661.\u0662\u0663", "-\u0661.\u0662\u0663 USD"}, // ensure that the root locale is still used with modifiers
             // test choice format
-            {"es_AR", "1", "INR", "\u20B91,00", "INR1,00", "1,00 rupia india"},
+            {"es_AR", "1", "INR", "Rs\u00A01,00", "INR\u00A01,00", "1,00 rupia india"},
             {"ar_EG", "1", "USD", "US$\u00A0\u0661\u066B\u0660\u0660", "USD\u00a0\u0661\u066b\u0660\u0660", "\u0661\u066b\u0660\u0660 \u062f\u0648\u0644\u0627\u0631 \u0623\u0645\u0631\u064a\u0643\u064a"},
         };
         
@@ -579,101 +579,6 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         }
     }
 
-    public void TestParseCurrency() {
-        class ParseCurrencyItem {
-            private String localeString;
-            private String descrip;
-            private String currStr;
-            private int    numExpectPos;
-            private int    numExpectVal;
-            private int    curExpectPos;
-            private int    curExpectVal;
-            private String curExpectCurr;
-
-            ParseCurrencyItem(String locStr, String desc, String curr, int numExPos, int numExVal, int curExPos, int curExVal, String curExCurr) {
-                localeString  = locStr;
-                descrip       = desc;
-                currStr       = curr;
-                numExpectPos  = numExPos;
-                numExpectVal  = numExVal;
-                curExpectPos  = curExPos;
-                curExpectVal  = curExVal;
-                curExpectCurr = curExCurr;
-            }
-            public String getLocaleString()  { return localeString; }
-            public String getDescrip()       { return descrip; }
-            public String getCurrStr()       { return currStr; }
-            public int    getNumExpectPos()  { return numExpectPos; }
-            public int    getNumExpectVal()  { return numExpectVal; }
-            public int    getCurExpectPos()  { return curExpectPos; }
-            public int    getCurExpectVal()  { return curExpectVal; }
-            public String getCurExpectCurr() { return curExpectCurr; }
-        }
-        final ParseCurrencyItem[] parseCurrencyItems = { 
-            new ParseCurrencyItem( "en_US", "dollars2", "$2.00",            5,  2,  5,  2,  "USD" ),
-            new ParseCurrencyItem( "en_US", "dollars4", "$4",               2,  4,  2,  4,  "USD" ),
-            new ParseCurrencyItem( "en_US", "dollars9", "9\u00A0$",         0,  0,  0,  0,  ""    ),
-            new ParseCurrencyItem( "en_US", "pounds3",  "\u00A33.00",       0,  0,  5,  3,  "GBP" ),
-            new ParseCurrencyItem( "en_US", "pounds5",  "\u00A35",          0,  0,  2,  5,  "GBP" ),
-            new ParseCurrencyItem( "en_US", "pounds7",  "7\u00A0\u00A3",    0,  0,  0,  0,  ""    ),
-            new ParseCurrencyItem( "en_US", "euros8",   "\u20AC8",          0,  0,  2,  8,  "EUR" ),
-
-            new ParseCurrencyItem( "en_GB", "pounds3",  "\u00A33.00",       5,  3,  5,  3,  "GBP" ),
-            new ParseCurrencyItem( "en_GB", "pounds5",  "\u00A35",          2,  5,  2,  5,  "GBP" ),
-            new ParseCurrencyItem( "en_GB", "pounds7",  "7\u00A0\u00A3",    0,  0,  0,  0,  ""    ),
-            new ParseCurrencyItem( "en_GB", "euros4",   "4,00\u00A0\u20AC", 0,  0,  0,  0,  ""    ),
-            new ParseCurrencyItem( "en_GB", "euros6",   "6\u00A0\u20AC",    0,  0,  0,  0,  ""    ),
-            new ParseCurrencyItem( "en_GB", "euros8",   "\u20AC8",          0,  0,  2,  8,  "EUR" ),
-            new ParseCurrencyItem( "en_GB", "dollars4", "$4",               0,  0,  2,  4,  "USD" ),
-
-            new ParseCurrencyItem( "fr_FR", "euros4",   "4,00\u00A0\u20AC", 6,  4,  6,  4,  "EUR" ),
-            new ParseCurrencyItem( "fr_FR", "euros6",   "6\u00A0\u20AC",    3,  6,  3,  6,  "EUR" ),
-            new ParseCurrencyItem( "fr_FR", "euros8",   "\u20AC8",          0,  0,  0,  0,  ""    ),
-            new ParseCurrencyItem( "fr_FR", "dollars2", "$2.00",            0,  0,  0,  0,  ""    ),
-            new ParseCurrencyItem( "fr_FR", "dollars4", "$4",               0,  0,  0,  0,  ""    ),
-        };
-        for (ParseCurrencyItem item: parseCurrencyItems) {
-            String localeString = item.getLocaleString();
-            ULocale uloc = new ULocale(localeString);
-            NumberFormat fmt = null;
-            try {
-                fmt = NumberFormat.getCurrencyInstance(uloc);
-            } catch (Exception e) {
-                errln("NumberFormat.getCurrencyInstance fails for locale " + localeString);
-                continue;
-            }
-            String currStr = item.getCurrStr();
-            ParsePosition parsePos = new ParsePosition(0);
-
-            Number numVal = fmt.parse(currStr, parsePos);
-            if ( parsePos.getIndex() != item.getNumExpectPos() || (numVal != null && numVal.intValue() != item.getNumExpectVal()) ) {
-                if (numVal != null) {
-                    errln("NumberFormat.getCurrencyInstance parse " + localeString + "/" + item.getDescrip() + 
-                            ", expect pos/val " + item.getNumExpectPos() + "/" + item.getNumExpectVal() +
-                            ", get " + parsePos.getIndex() + "/" + numVal.intValue() );
-                } else {
-                    errln("NumberFormat.getCurrencyInstance parse " + localeString + "/" + item.getDescrip() + 
-                            ", expect pos/val " + item.getNumExpectPos() + "/" + item.getNumExpectVal() +
-                            ", get " + parsePos.getIndex() + "/(NULL)" );
-                }
-            }
-            
-            parsePos.setIndex(0);
-            CurrencyAmount currAmt = fmt.parseCurrency(currStr, parsePos);
-            if ( parsePos.getIndex() != item.getCurExpectPos() || (currAmt != null && (currAmt.getNumber().intValue() != item.getCurExpectVal() ||
-                    currAmt.getCurrency().getCurrencyCode().compareTo(item.getCurExpectCurr()) != 0)) ) {
-                if (currAmt != null) {
-                    errln("NumberFormat.getCurrencyInstance parseCurrency " + localeString + "/" + item.getDescrip() + 
-                            ", expect pos/val/curr " + item.getCurExpectPos() + "/" + item.getCurExpectVal() + "/" + item.getCurExpectCurr() +
-                            ", get " + parsePos.getIndex() + "/" + currAmt.getNumber().intValue() + "/" + currAmt.getCurrency().getCurrencyCode() );
-                } else {
-                    errln("NumberFormat.getCurrencyInstance parseCurrency " + localeString + "/" + item.getDescrip() + 
-                            ", expect pos/val/curr " + item.getCurExpectPos() + "/" + item.getCurExpectVal() + "/" + item.getCurExpectCurr() +
-                            ", get " + parsePos.getIndex() + "/(NULL)" );
-                }
-            }
-        }
-    }
 
     /**
      * Test the Currency object handling, new as of ICU 2.2.
@@ -1242,11 +1147,11 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         DecimalFormatSymbols US = new DecimalFormatSymbols(Locale.US);
         DecimalFormat df = new DecimalFormat("'*&'' '\u00A4' ''&*' #,##0.00", US);
         df.setCurrency(Currency.getInstance("INR"));
-        expect2(df, 1.0, "*&' \u20B9 '&* 1.00");
-        expect2(df, -2.0, "-*&' \u20B9 '&* 2.00");
+        expect2(df, 1.0, "*&' Rs '&* 1.00");
+        expect2(df, -2.0, "-*&' Rs '&* 2.00");
         df.applyPattern("#,##0.00 '*&'' '\u00A4' ''&*'");
-        expect2(df, 2.0, "2.00 *&' \u20B9 '&*");
-        expect2(df, -1.0, "-1.00 *&' \u20B9 '&*");
+        expect2(df, 2.0, "2.00 *&' Rs '&*");
+        expect2(df, -1.0, "-1.00 *&' Rs '&*");
 
 //#if defined(ECLIPSE)
 //##        BigDecimal r;
@@ -1371,7 +1276,7 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         
         expect2(fmt1,1234.567,"\u0e51,\u0e52\u0e53\u0e54.\u0e55\u0e56\u0e57");
         expect3(fmt2,5678.0,"\u05d4\u05f3\u05ea\u05e8\u05e2\u05f4\u05d7");
-        expect2(fmt3,1234.567,"\u06f1\u066c\u06f2\u06f3\u06f4\u066b\u06f5\u06f6\u06f7");
+        expect2(fmt3,1234.567,"\u06f1,\u06f2\u06f3\u06f4.\u06f5\u06f6\u06f7");
         expect2(fmt4,1234.567,"\u0967,\u0968\u0969\u096a.\u096b\u096c\u096d");
         expect2(fmt5,1234.567,"\u0661\u066c\u0662\u0663\u0664\u066b\u0665\u0666\u0667");
         expect2(fmt6,1234.567,"1.234,567");
@@ -2083,12 +1988,12 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             "12345, ",     // comma not followed by digit is not a group separator, but end of number
             "1,234, ",     // if group separator is present, group sizes must be appropriate
             "1,234,567",   // ...secondary too
-            "0E",          // an exponent not followed by zero or digits is not an exponent
-            "00",          // leading zero before zero - used to be error - see ticket #7913
-            "012",         // leading zero before digit - used to be error - see ticket #7913
-            "0,456",       // leading zero before group separator - used to be error - see ticket #7913
+            "0E",          // an exponnent not followed by zero or digits is not an exponent
         };
         String[] fail = {
+            "00",        // leading zero before zero
+            "012",       // leading zero before digit
+            "0,456",     // leading zero before group separator
             "1,2",       // wrong number of digits after group separator
             ",0",        // leading group separator before zero
             ",1",        // leading group separator before digit
@@ -2110,9 +2015,9 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             "0E2",      // single zero before exponent is ok
             "1234E2",   // any number of digits before exponent is ok
             "1,234E",   // an exponent string not followed by zero or digits is not an exponent
-            "00E2",     // leading zeroes now allowed in strict mode - see ticket #
         };
         String[] scientificFail = {
+            "00E2",     // double zeros fail
             "1,234E2",  // group separators with exponent fail
         };
 
@@ -2830,43 +2735,6 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         }
         if (ca.equals(cb)) {
             errln("Comparison should return false.");
-        }
-    }
-
-    public void TestExponentParse() {
-        ParsePosition parsePos = new ParsePosition(0);
-        DecimalFormatSymbols symbols = new DecimalFormatSymbols(Locale.US);
-        DecimalFormat fmt = new DecimalFormat("#####", symbols);
-        Number result = fmt.parse("5.06e-27", parsePos);
-        if ( result.doubleValue() != 5.06E-27 || parsePos.getIndex() != 8) {
-            errln("ERROR: ERROR: parse failed - expected 5.06E-27, 8; got " + result.doubleValue() + ", " + parsePos.getIndex());
-        }
-    }
-
-    public void TestExplicitParents() {
-        // We use these for testing because decimal and grouping separators will be inherited from es_419
-        // starting with CLDR 2.0
-        String[] DATA = {
-                "es", "CO", "", "1.250,75",
-                "es", "CR", "", "1.250,75",
-                "es", "ES", "", "1.250,75",
-                "es", "GQ", "", "1.250,75",
-                "es", "MX", "", "1,250.75",
-                "es", "US", "", "1,250.75",
-                "es", "VE", "", "1.250,75",
-
-        };
-
-        for (int i=0; i<DATA.length; i+=4) {
-            Locale locale = new Locale(DATA[i], DATA[i+1], DATA[i+2]);
-            NumberFormat fmt = NumberFormat.getInstance(locale);
-            String s = fmt.format(1250.75);
-            if (s.equals(DATA[i+3])) {
-                logln("Ok: 1250.75 x " + locale + " => " + s);
-            } else {
-                errln("FAIL: 1250.75 x " + locale + " => " + s +
-                      ", expected " + DATA[i+3]);
-            }
         }
     }
 }

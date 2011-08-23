@@ -1,13 +1,12 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2011, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2010, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
 package com.ibm.icu.text;
 
 import com.ibm.icu.impl.UCaseProps;
-import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.util.ULocale;
 
 /**
@@ -37,7 +36,7 @@ class UppercaseTransliterator extends Transliterator {
 
     private UCaseProps csp;
     private ReplaceableContextIterator iter;
-    private StringBuilder result;
+    private StringBuffer result;
     private int[] locCache;
 
     /**
@@ -48,7 +47,7 @@ class UppercaseTransliterator extends Transliterator {
         locale = loc;
         csp=UCaseProps.INSTANCE;
         iter=new ReplaceableContextIterator();
-        result = new StringBuilder();
+        result = new StringBuffer();
         locCache = new int[1];
         locCache[0]=0;
     }
@@ -105,25 +104,5 @@ class UppercaseTransliterator extends Transliterator {
             }
         }
         offsets.start = offsets.limit;
-    }
-
-    // NOTE: normally this would be static, but because the results vary by locale....
-    SourceTargetUtility sourceTargetUtility = null;
-    
-    /* (non-Javadoc)
-     * @see com.ibm.icu.text.Transliterator#addSourceTargetSet(com.ibm.icu.text.UnicodeSet, com.ibm.icu.text.UnicodeSet, com.ibm.icu.text.UnicodeSet)
-     */
-    @Override
-    public void addSourceTargetSet(UnicodeSet inputFilter, UnicodeSet sourceSet, UnicodeSet targetSet) {
-        synchronized (this) {
-            if (sourceTargetUtility == null) {
-                sourceTargetUtility = new SourceTargetUtility(new Transform<String,String>() {
-                    public String transform(String source) {
-                        return UCharacter.toUpperCase(locale, source);
-                    }
-                });
-            }
-        }
-        sourceTargetUtility.addSourceTargetSet(this, inputFilter, sourceSet, targetSet);
     }
 }

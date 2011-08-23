@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 2006-2011, International Business Machines Corporation and    *
+* Copyright (C) 2006-2010, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 *
@@ -369,32 +369,6 @@ public abstract class CharsetICU extends Charset{
            setFillIn.clear();
            getUnicodeSetImpl(setFillIn, which);
        }
-       
-       /**
-        * Returns whether or not the charset of the converter has a fixed number of bytes
-        * per charset character.
-        * An example of this are converters that are of the type UCNV_SBCS or UCNV_DBCS.
-        * Another example is UTF-32 which is always 4 bytes per character.  A UTF-32 code point
-        * may represent more than one UTF-8 or UTF-16 code units but always have size of 4 bytes.
-        * Note: This method is not intended to be used to determine whether the charset has a
-        * fixed ratio of bytes to Unicode codes units for any particular Unicode encoding form.
-        * @return true if the converter is fixed-width
-        * @draft ICU 4.8
-        * @provisional This API might change or be removed in a future release.
-        */
-       public boolean isFixedWidth() {
-           if (this instanceof CharsetASCII || this instanceof CharsetUTF32) {
-               return true;
-           }
-           
-           if (this instanceof CharsetMBCS) {
-               if (((CharsetMBCS)this).sharedData.staticData.maxBytesPerChar == ((CharsetMBCS)this).sharedData.staticData.minBytesPerChar) {
-                   return true;
-               }
-           }
-           
-           return false;
-       }
       
        static void getNonSurrogateUnicodeSet(UnicodeSet setFillIn){
            setFillIn.add(0, 0xd7ff);
@@ -404,4 +378,5 @@ public abstract class CharsetICU extends Charset{
        static void getCompleteUnicodeSet(UnicodeSet setFillIn){
            setFillIn.add(0, 0x10ffff);
        }
+
 }

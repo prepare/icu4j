@@ -16,6 +16,7 @@ import java.util.Map;
 
 import com.ibm.icu.impl.IllegalIcuArgumentException;
 import com.ibm.icu.impl.Norm2AllModes;
+import com.ibm.icu.impl.Normalizer2Impl;
 import com.ibm.icu.impl.Trie2;
 import com.ibm.icu.impl.UBiDiProps;
 import com.ibm.icu.impl.UCaseProps;
@@ -2198,7 +2199,7 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
         private static SoftReference<Map<String, UnicodeBlock>> mref;
 
         private static String trimBlockName(String name) {
-            String upper = name.toUpperCase(Locale.ENGLISH);
+            String upper = name.toUpperCase();
             StringBuilder result = new StringBuilder(upper.length());
             for (int i = 0; i < upper.length(); i++) {
                 char c = upper.charAt(i);
@@ -3886,7 +3887,11 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
      */
     public static int getCombiningClass(int ch)
     {
-        return Norm2AllModes.getNFCInstance().decomp.getCombiningClass(ch);
+        if (ch < MIN_VALUE || ch > MAX_VALUE) {
+            throw new IllegalArgumentException("Codepoint out of bounds");
+        }
+        Normalizer2Impl impl = Norm2AllModes.getNFCInstance().impl;
+        return impl.getCC(impl.getNorm16(ch));
     }
 
     /**
@@ -4202,7 +4207,7 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
      * @see UProperty
      * @stable ICU 2.4
      */
-    public static int getPropertyEnum(CharSequence propertyAlias) {
+    public static int getPropertyEnum(String propertyAlias) {
         int propEnum = UPropertyAliases.INSTANCE.getPropertyEnum(propertyAlias);
         if (propEnum == UProperty.UNDEFINED) {
             throw new IllegalIcuArgumentException("Invalid name: " + propertyAlias);
@@ -4314,7 +4319,7 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
      *         selector or valueAlias is not a value of this property
      * @stable ICU 2.4
      */
-    public static int getPropertyValueEnum(int property, CharSequence valueAlias) {
+    public static int getPropertyValueEnum(int property, String valueAlias) {
         int propEnum = UPropertyAliases.INSTANCE.getPropertyValueEnum(property, valueAlias);
         if (propEnum == UProperty.UNDEFINED) {
             throw new IllegalIcuArgumentException("Invalid name: " + valueAlias);
@@ -4557,7 +4562,7 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
      */
     public static String toUpperCase(ULocale locale, String str) {
         StringContextIterator iter = new StringContextIterator(str);
-        StringBuilder result = new StringBuilder(str.length());
+        StringBuffer result = new StringBuffer(str.length());
         int[] locCache = new int[1];
         int c;
 
@@ -4578,7 +4583,11 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
                 continue;
             /* } else { append single-code point mapping */
             }
-            result.appendCodePoint(c);
+            if(c<=0xffff) {
+                result.append((char)c);
+            } else {
+                UTF16.append(result, c);
+            }
         }
         return result.toString();
     }
@@ -4606,7 +4615,7 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
      */
     public static String toLowerCase(ULocale locale, String str) {
         StringContextIterator iter = new StringContextIterator(str);
-        StringBuilder result = new StringBuilder(str.length());
+        StringBuffer result = new StringBuffer(str.length());
         int[] locCache = new int[1];
         int c;
 
@@ -4627,7 +4636,11 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
                 continue;
             /* } else { append single-code point mapping */
             }
-            result.appendCodePoint(c);
+            if(c<=0xffff) {
+                result.append((char)c);
+            } else {
+                UTF16.append(result, c);
+            }
         }
         return result.toString();
     }
@@ -4707,7 +4720,7 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
                                      BreakIterator titleIter,
                                      int options) {
         StringContextIterator iter = new StringContextIterator(str);
-        StringBuilder result = new StringBuilder(str.length());
+        StringBuffer result = new StringBuffer(str.length());
         int[] locCache = new int[1];
         int c, nc, srcLength = str.length();
 
@@ -4782,12 +4795,20 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
                         if(c<0) {
                             /* (not) original code point */
                             c=~c;
-                            result.appendCodePoint(c);
+                            if(c<=0xffff) {
+                                result.append((char)c);
+                            } else {
+                                UTF16.append(result, c);
+                            }
                         } else if(c<=UCaseProps.MAX_STRING_LENGTH) {
                             /* mapping already appended to result */
                         } else {
                             /* append single-code point mapping */
-                            result.appendCodePoint(c);
+                            if(c<=0xffff) {
+                                result.append((char)c);
+                            } else {
+                                UTF16.append(result, c);
+                            }
                         }
 
                         if((options&TITLECASE_NO_LOWERCASE)!=0) {
@@ -4932,7 +4953,7 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
      * @stable ICU 2.6
      */
     public static final String foldCase(String str, int options) {
-        StringBuilder result = new StringBuilder(str.length());
+        StringBuffer result = new StringBuffer(str.length());
         int c, i, length;
 
         length = str.length();
@@ -4950,7 +4971,11 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
                 continue;
             /* } else { append single-code point mapping */
             }
-            result.appendCodePoint(c);
+            if(c<=0xffff) {
+                result.append((char)c);
+            } else {
+                UTF16.append(result, c);
+            }
         }
         return result.toString();
     }
@@ -5196,6 +5221,9 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
      */
     public static boolean hasBinaryProperty(int ch, int property)
     {
+    if (ch < MIN_VALUE || ch > MAX_VALUE) {
+        throw new IllegalArgumentException("Codepoint out of bounds");
+        }
         return UCharacterProperty.INSTANCE.hasBinaryProperty(ch, property);
     }
 

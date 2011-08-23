@@ -26,6 +26,7 @@ import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.StringTokenizer;
+import java.util.concurrent.ConcurrentHashMap;
 
 import com.ibm.icu.impl.URLHandler.URLVisitor;
 import com.ibm.icu.util.ULocale;
@@ -880,10 +881,12 @@ public  class ICUResourceBundle extends UResourceBundle {
 
                 b = (ICUResourceBundle)addToCache(root, fullName, defaultLocale, b);
 
-                if (b.getTableResource("%%Parent") != RES_BOGUS) {
-                    String parentLocaleName = b.getString("%%Parent");
-                    parent = instantiateBundle(baseName, parentLocaleName, root, disableFallback);
-                } else if (i != -1) {
+                boolean ParentIsRoot = false;
+                if (b.getTableResource("%%ParentIsRoot") != RES_BOGUS) {
+                    ParentIsRoot = true;
+                }
+
+                if (i != -1 && !ParentIsRoot) {
                     parent = instantiateBundle(baseName, localeName.substring(0, i), root, disableFallback);
                 } else if (!localeName.equals(rootLocale)){
                     parent = instantiateBundle(baseName, rootLocale, root, true);
@@ -994,21 +997,42 @@ public  class ICUResourceBundle extends UResourceBundle {
      */
     public static final int ARRAY16 = 9;
 
+    private static final ConcurrentHashMap<String, ICUResourceBundle> cache = 
+        new ConcurrentHashMap<String, ICUResourceBundle>();
+    private static final ICUResourceBundle NULL_BUNDLE = 
+        new ICUResourceBundle(null, null, null, 0, null) {
+        public int hashCode() {
+            return 0;
+        }
+        public boolean equals(Object rhs) {
+            return this == rhs;
+        }
+    };
+    
    /**
-    * Create a bundle using a reader.
+    *
     * @param baseName The name for the bundle.
     * @param localeID The locale identification.
     * @param root The ClassLoader object root.
     * @return the new bundle
     */
-    public static ICUResourceBundle createBundle(String baseName, String localeID, ClassLoader root) {
-        String resolvedName = getFullName(baseName, localeID);
-        ICUResourceBundleReader reader = ICUResourceBundleReader.getReader(resolvedName, root);
-        if (reader == null) {
-            // could not open the .res file
-            return null;
+    public static ICUResourceBundle createBundle(String baseName, String localeID, 
+            ClassLoader root) {
+        
+        String resKey = Integer.toHexString(root.hashCode()) + baseName + localeID;
+        ICUResourceBundle b = cache.get(resKey);
+        if (b == null) {
+            String resolvedName = getFullName(baseName, localeID);
+            ICUResourceBundleReader reader = ICUResourceBundleReader.getReader(resolvedName, root);
+            // could not open the .res file so return null
+            if (reader == null) {
+                b = NULL_BUNDLE;
+            } else {
+                b = getBundle(reader, baseName, localeID, root);
+            }
+            cache.put(resKey, b);
         }
-        return getBundle(reader, baseName, localeID, root);
+        return b == NULL_BUNDLE ? null : b;
     }
 
     protected String getLocaleID() {
@@ -1262,7 +1286,7 @@ public  class ICUResourceBundle extends UResourceBundle {
         if (lookup != null) {
             indexKey = Integer.valueOf(index);
             res = lookup.get(indexKey);
-        } 
+        }
         if (res == null) {
             boolean[] alias = new boolean[1];
             res = handleGetImpl(index, table, requested, alias);

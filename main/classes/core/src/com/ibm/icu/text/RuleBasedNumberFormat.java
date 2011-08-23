@@ -19,11 +19,11 @@ import java.util.Set;
 
 import com.ibm.icu.impl.ICUDebug;
 import com.ibm.icu.impl.ICUResourceBundle;
-import com.ibm.icu.impl.PatternProps;
+import com.ibm.icu.impl.UCharacterProperty;
 import com.ibm.icu.util.ULocale;
+import com.ibm.icu.util.ULocale.Category;
 import com.ibm.icu.util.UResourceBundle;
 import com.ibm.icu.util.UResourceBundleIterator;
-import com.ibm.icu.util.ULocale.Category;
 
 
 /**
@@ -1454,7 +1454,7 @@ public class RuleBasedNumberFormat extends NumberFormat {
                 }
                 int lpStart = lp + specialName.length();
                 while (lpStart < lpEnd &&
-                       PatternProps.isWhiteSpace(description.charAt(lpStart))) {
+                       UCharacterProperty.isRuleWhiteSpace(description.charAt(lpStart))) {
                     ++lpStart;
                 }
 
@@ -1654,7 +1654,7 @@ public class RuleBasedNumberFormat extends NumberFormat {
         while (start != -1 && start < description.length()) {
             // seek to the first non-whitespace character...
             while (start < description.length()
-                   && PatternProps.isWhiteSpace(description.charAt(start))) {
+                   && UCharacterProperty.isRuleWhiteSpace(description.charAt(start))) {
                 ++start;
             }
 

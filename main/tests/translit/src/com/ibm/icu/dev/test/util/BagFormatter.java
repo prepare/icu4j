@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2002-2011, International Business Machines Corporation and    *
+ * Copyright (C) 2002-2010, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -467,28 +467,6 @@ public class BagFormatter {
     static {
         nf.setGroupingUsed(false);
     }
-    
-    private int maxWidthOverride = -1;
-    private int maxLabelWidthOverride = -1;
-
-    public BagFormatter setValueWidthOverride(int maxWidthOverride) {
-        this.maxWidthOverride  = maxWidthOverride;
-        return this;
-    }
-
-    public int getValueWidthOverride() {
-        return maxWidthOverride;
-    }
-
-    public BagFormatter setLabelWidthOverride(int maxWidthOverride) {
-        this.maxLabelWidthOverride  = maxWidthOverride;
-        return this;
-    }
-
-    public int getLabelWidthOverride() {
-        return maxLabelWidthOverride;
-    }
-
 
     private class MyVisitor extends Visitor {
         private PrintWriter output;
@@ -538,8 +516,7 @@ public class BagFormatter {
                 tabber.add(propName.length() + 2,Tabber.LEFT);
             }
 
-            valueSize = maxWidthOverride > 0 ? maxWidthOverride : getValueSource().getMaxWidth(shortValue);
-            
+            valueSize = getValueSource().getMaxWidth(shortValue);
             if (DEBUG) System.out.println("ValueSize: " + valueSize);
             if (valueSize > 0) {
                 tabber.add(valueSize + 2,Tabber.LEFT); // value
@@ -547,7 +524,7 @@ public class BagFormatter {
 
             tabber.add(3,Tabber.LEFT); // comment character
 
-            labelSize = maxLabelWidthOverride > 0 ? maxLabelWidthOverride : getLabelSource(true).getMaxWidth(shortLabel);
+            labelSize = getLabelSource(true).getMaxWidth(shortLabel);
             if (labelSize > 0) {
                 tabber.add(labelSize + 1,Tabber.LEFT); // value
             }
@@ -914,7 +891,6 @@ public class BagFormatter {
     // ===== CONVENIENCES =====
     private class Join extends Visitor {
         StringBuffer output = new StringBuffer();
-        @SuppressWarnings("unused")
         int depth = 0;
         String join (Object o) {
             output.setLength(0);
