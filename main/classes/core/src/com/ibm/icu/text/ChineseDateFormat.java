@@ -1,5 +1,5 @@
 /*********************************************************************
- * Copyright (C) 2000-2011, International Business Machines Corporation and
+ * Copyright (C) 2000-2010, International Business Machines Corporation and
  * others. All Rights Reserved.
  *********************************************************************
  */
@@ -10,7 +10,7 @@ import java.text.FieldPosition;
 import java.text.ParsePosition;
 import java.util.Locale;
 
-import com.ibm.icu.impl.PatternProps;
+import com.ibm.icu.impl.Utility;
 import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.ChineseCalendar;
 import com.ibm.icu.util.TimeZone;
@@ -81,7 +81,7 @@ public class ChineseDateFormat extends SimpleDateFormat {
      *         string by separating them with a semi-colon. For example, the override string "m=thai;y=deva" would format using
      *         Thai digits for the month and Devanagari digits for the year.
      * @param locale the locale
-     * @stable ICU 4.2
+     * @draft ICU 4.2
      */
    public ChineseDateFormat(String pattern, String override, ULocale locale) {
        super(pattern, new ChineseDateFormatSymbols(locale), 
@@ -152,7 +152,7 @@ public class ChineseDateFormat extends SimpleDateFormat {
         }
 
         // Skip whitespace
-        start = PatternProps.skipWhiteSpace(text, start);
+        start = Utility.skipWhitespace(text, start);
 
         ParsePosition pos = new ParsePosition(start);
 

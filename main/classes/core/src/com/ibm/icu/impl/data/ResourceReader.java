@@ -14,7 +14,7 @@ import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 
 import com.ibm.icu.impl.ICUData;
-import com.ibm.icu.impl.PatternProps;
+import com.ibm.icu.impl.Utility;
 
 /**
  * A reader for text resource data in the current package or the package
@@ -157,7 +157,7 @@ public class ResourceReader {
     /**
      * Read a line, ignoring blank lines and lines that start with
      * '#'.
-     * @param trim if true then trim leading Pattern_White_Space.
+     * @param trim if true then trim leading rule white space.
      */
     public String readLineSkippingComments(boolean trim) throws IOException {
         for (;;) {
@@ -166,7 +166,7 @@ public class ResourceReader {
                 return line;
             }
             // Skip over white space
-            int pos = PatternProps.skipWhiteSpace(line, 0);
+            int pos = Utility.skipWhitespace(line, 0);
             // Ignore blank lines and comment lines
             if (pos == line.length() || line.charAt(pos) == '#') {
                 continue;
@@ -180,7 +180,7 @@ public class ResourceReader {
 
     /**
      * Read a line, ignoring blank lines and lines that start with
-     * '#'. Do not trim leading Pattern_White_Space.
+     * '#'. Do not trim leading rule white space.
      */
     public String readLineSkippingComments() throws IOException {
         return readLineSkippingComments(false);

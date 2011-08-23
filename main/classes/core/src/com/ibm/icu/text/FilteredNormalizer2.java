@@ -1,6 +1,6 @@
 /*
 *******************************************************************************
-*   Copyright (C) 2009-2011, International Business Machines
+*   Copyright (C) 2009-2010, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 *******************************************************************************
 */
@@ -16,7 +16,8 @@ import java.io.IOException;
  * Not-in-the-filter text is treated as "is normalized" and "quick check yes".
  * This class implements all of (and only) the Normalizer2 API.
  * An instance of this class is unmodifiable/immutable.
- * @stable ICU 4.4
+ * @draft ICU 4.4
+ * @provisional This API might change or be removed in a future release.
  * @author Markus W. Scherer
  */
 public class FilteredNormalizer2 extends Normalizer2 {
@@ -28,16 +29,17 @@ public class FilteredNormalizer2 extends Normalizer2 {
      * The filter set should be frozen; otherwise the performance will suffer greatly.
      * @param n2 wrapped Normalizer2 instance
      * @param filterSet UnicodeSet which determines the characters to be normalized
-     * @stable ICU 4.4
+     * @draft ICU 4.4
+     * @provisional This API might change or be removed in a future release.
      */
     public FilteredNormalizer2(Normalizer2 n2, UnicodeSet filterSet) {
         norm2=n2;
         set=filterSet;
     }
 
-    /**
-     * {@inheritDoc}
-     * @stable ICU 4.4
+    /** {@inheritDoc}
+     * @draft ICU 4.4
+     * @provisional This API might change or be removed in a future release.
      */
     @Override
     public StringBuilder normalize(CharSequence src, StringBuilder dest) {
@@ -48,12 +50,10 @@ public class FilteredNormalizer2 extends Normalizer2 {
         normalize(src, dest, UnicodeSet.SpanCondition.SIMPLE);
         return dest;
     }
-    /**
-     * {@inheritDoc}
-     * @draft ICU 4.6
+    /** {@inheritDoc}
+     * @internal ICU 4.4 TODO: propose for 4.6
      * @provisional This API might change or be removed in a future release.
      */
-    @Override
     public Appendable normalize(CharSequence src, Appendable dest) {
         if(dest==src) {
             throw new IllegalArgumentException();
@@ -61,47 +61,27 @@ public class FilteredNormalizer2 extends Normalizer2 {
         return normalize(src, dest, UnicodeSet.SpanCondition.SIMPLE);
     }
 
-    /**
-     * {@inheritDoc}
-     * @stable ICU 4.4
+    /** {@inheritDoc}
+     * @draft ICU 4.4
+     * @provisional This API might change or be removed in a future release.
      */
     @Override
     public StringBuilder normalizeSecondAndAppend(
             StringBuilder first, CharSequence second) {
         return normalizeSecondAndAppend(first, second, true);
     }
-    /**
-     * {@inheritDoc}
-     * @stable ICU 4.4
+    /** {@inheritDoc}
+     * @draft ICU 4.4
+     * @provisional This API might change or be removed in a future release.
      */
     @Override
     public StringBuilder append(StringBuilder first, CharSequence second) {
         return normalizeSecondAndAppend(first, second, false);
     }
 
-    /**
-     * {@inheritDoc}
-     * @draft ICU 4.6
+    /** {@inheritDoc}
+     * @draft ICU 4.4
      * @provisional This API might change or be removed in a future release.
-     */
-    @Override
-    public String getDecomposition(int c) {
-        return set.contains(c) ? norm2.getDecomposition(c) : null;
-    }
-
-    /**
-     * {@inheritDoc}
-     * @draft ICU 49
-     * @provisional This API might change or be removed in a future release.
-     */
-    @Override
-    public int getCombiningClass(int c) {
-        return set.contains(c) ? norm2.getCombiningClass(c) : 0;
-    }
-
-    /**
-     * {@inheritDoc}
-     * @stable ICU 4.4
      */
     @Override
     public boolean isNormalized(CharSequence s) {
@@ -120,10 +100,9 @@ public class FilteredNormalizer2 extends Normalizer2 {
         }
         return true;
     }
-
-    /**
-     * {@inheritDoc}
-     * @stable ICU 4.4
+    /** {@inheritDoc}
+     * @draft ICU 4.4
+     * @provisional This API might change or be removed in a future release.
      */
     @Override
     public Normalizer.QuickCheckResult quickCheck(CharSequence s) {
@@ -147,9 +126,9 @@ public class FilteredNormalizer2 extends Normalizer2 {
         }
         return result;
     }
-    /**
-     * {@inheritDoc}
-     * @stable ICU 4.4
+    /** {@inheritDoc}
+     * @draft ICU 4.4
+     * @provisional This API might change or be removed in a future release.
      */
     @Override
     public int spanQuickCheckYes(CharSequence s) {
@@ -172,27 +151,27 @@ public class FilteredNormalizer2 extends Normalizer2 {
         return s.length();
     }
 
-    /**
-     * {@inheritDoc}
-     * @stable ICU 4.4
+    /** {@inheritDoc}
+     * @draft ICU 4.4
+     * @provisional This API might change or be removed in a future release.
      */
     @Override
     public boolean hasBoundaryBefore(int c) {
         return !set.contains(c) || norm2.hasBoundaryBefore(c);
     }
 
-    /**
-     * {@inheritDoc}
-     * @stable ICU 4.4
+    /** {@inheritDoc}
+     * @draft ICU 4.4
+     * @provisional This API might change or be removed in a future release.
      */
     @Override
     public boolean hasBoundaryAfter(int c) {
         return !set.contains(c) || norm2.hasBoundaryAfter(c);
     }
 
-    /**
-     * {@inheritDoc}
-     * @stable ICU 4.4
+    /** {@inheritDoc}
+     * @draft ICU 4.4
+     * @provisional This API might change or be removed in a future release.
      */
     @Override
     public boolean isInert(int c) {

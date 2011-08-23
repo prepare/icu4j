@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2000-2011, International Business Machines Corporation and
+ * Copyright (C) 2000-2010, International Business Machines Corporation and
  * others. All Rights Reserved.
  *******************************************************************************
  */
@@ -9,7 +9,6 @@ package com.ibm.icu.dev.test.calendar;
 import java.text.ParseException;
 import java.util.Date;
 import java.util.Locale;
-import java.util.Set;
 
 import com.ibm.icu.impl.CalendarAstronomer;
 import com.ibm.icu.impl.LocaleUtility;
@@ -23,7 +22,6 @@ import com.ibm.icu.util.GregorianCalendar;
 import com.ibm.icu.util.JapaneseCalendar;
 import com.ibm.icu.util.TaiwanCalendar;
 import com.ibm.icu.util.TimeZone;
-import com.ibm.icu.util.TimeZone.SystemTimeZoneType;
 import com.ibm.icu.util.ULocale;
 
 /**
@@ -791,22 +789,18 @@ public class IBMCalendarTest extends CalendarTest {
                                {"US", "America/Los_Angeles", "PST"} };
         StringBuffer buf = new StringBuffer();
         for (int i=0; i<COUNTRY.length; ++i) {
-            Set<String> a = ZoneMeta.getAvailableIDs(SystemTimeZoneType.ANY, COUNTRY[i][0], null);
+            String[] a = ZoneMeta.getAvailableIDs(COUNTRY[i][0]);
             buf.setLength(0);
             buf.append("Country \"" + COUNTRY[i][0] + "\": [");
             // Use bitmask to track which of the expected zones we see
             int mask = 0;
-            boolean first = true;
-            for (String z : a) {
-                if (first) {
-                    first = false;
-                } else {
-                    buf.append(", ");
-                }
-                buf.append(z);
-                for (int k = 1; k < COUNTRY[i].length; ++k) {
-                    if ((mask & (1 << k)) == 0 && z.equals(COUNTRY[i][k])) {
-                        mask |= (1 << k);
+            for (int j=0; j<a.length; ++j) {
+                if (j!=0) buf.append(", ");
+                buf.append(a[j]);
+                for (int k=1; k<COUNTRY[i].length; ++k) {
+                    if ((mask & (1<<k)) == 0 &&
+                        a[j].equals(COUNTRY[i][k])) {
+                        mask |= (1<<k);
                     }
                 }
             }
@@ -943,8 +937,8 @@ public class IBMCalendarTest extends CalendarTest {
                 if (!df.equals(handleGetDateFormat("",ULocale.getDefault()))){
                     errln ("Calendar.handleGetDateFormat(String, Locale) should delegate to ( ,ULocale)");
                 }
-                if (!getType().equals("unknown")){
-                    errln ("Calendar.getType() should be 'unknown'");
+                if (!getType().equals("gregorian")){
+                    errln ("Calendar.getType() should be 'gregorian'");
                 }
             }
         }
@@ -1008,15 +1002,14 @@ public class IBMCalendarTest extends CalendarTest {
                 "en_US_VALLEYGIRL@collation=phonebook;calendar=gregorian",
                 "ja_JP@calendar=japanese",
                 "th_TH@calendar=buddhist",
-                "th-TH-u-ca-gregory",
                 "ja_JP_TRADITIONAL",
                 "th_TH_TRADITIONAL",
                 "th_TH_TRADITIONAL@calendar=gregorian",
                 "en_US",
                 "th_TH",    // Default calendar for th_TH is buddhist
                 "th",       // th's default region is TH and buddhist is used as default for TH
-                "en_TH",    // Default calendar for any locales with region TH is buddhist
-                "th_TH@calendar=iso8601",   // iso8601 calendar type
+// FIXME: ICU Service canonicalize en_TH to en, so TH is ignored in Calendar instantiation.  See #6816.
+//                "en_TH",    // Default calendar for any locales with region TH is buddhist
         };
 
         String[] types = {
@@ -1025,63 +1018,20 @@ public class IBMCalendarTest extends CalendarTest {
                 "gregorian",
                 "japanese",
                 "buddhist",
-                "gregorian",
                 "japanese",
                 "buddhist",
                 "gregorian",
                 "gregorian",
                 "buddhist",
                 "buddhist",
-                "buddhist",
-                "gregorian",    // iso8601 is a gregiran sub type
+// FIXME: ICU Service canonicalize en_TH to en, so TH is ignored in Calendar instantiation.  See #6816.
+//                "buddhist",
         };
 
         for (int i = 0; i < locs.length; i++) {
             Calendar cal = Calendar.getInstance(new ULocale(locs[i]));
             if (!cal.getType().equals(types[i])) {
                 errln(locs[i] + " Calendar type " + cal.getType() + " instead of " + types[i]);
-            }
-        }
-    }
-
-    public void TestISO8601() {
-        final ULocale[] TEST_LOCALES = {
-            new ULocale("en_US@calendar=iso8601"),
-            new ULocale("en_US@calendar=Iso8601"),
-            new ULocale("th_TH@calendar=iso8601"),
-            new ULocale("ar_EG@calendar=iso8601")
-        };
-
-        final int[][] TEST_DATA = {
-            // {<year>, <week# of Jan 1>, <week# year of Jan 1>}
-            {2008, 1, 2008},
-            {2009, 1, 2009},
-            {2010, 53, 2009},
-            {2011, 52, 2010},
-            {2012, 52, 2011},
-            {2013, 1, 2013},
-            {2014, 1, 2014},
-        };
-
-        for (ULocale locale : TEST_LOCALES) {
-            Calendar cal = Calendar.getInstance(locale);
-            // No matter what locale is used, if calendar type is "iso8601",
-            // calendar type must be Gregorian
-            if (!cal.getType().equals("gregorian")) {
-                errln("Error: Gregorian calendar is not used for locale: " + locale);
-            }
-
-            for (int[] data : TEST_DATA) {
-                cal.set(data[0], Calendar.JANUARY, 1);
-                int weekNum = cal.get(Calendar.WEEK_OF_YEAR);
-                int weekYear = cal.get(Calendar.YEAR_WOY);
-
-                if (weekNum != data[1] || weekYear != data[2]) {
-                    errln("Error: Incorrect week of year on January 1st, " + data[0]
-                            + " for locale " + locale
-                            + ": Returned [weekNum=" + weekNum + ", weekYear=" + weekYear
-                            + "], Expected [weekNum=" + data[1] + ", weekYear=" + data[2] + "]");
-                }
             }
         }
     }

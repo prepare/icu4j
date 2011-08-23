@@ -14,6 +14,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
@@ -33,7 +34,6 @@ import com.ibm.icu.util.IllformedLocaleException;
 import com.ibm.icu.util.LocaleData;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.ULocale.Builder;
-import com.ibm.icu.util.ULocale.Category;
 import com.ibm.icu.util.UResourceBundle;
 import com.ibm.icu.util.VersionInfo;
 
@@ -205,8 +205,8 @@ public class ULocaleTest extends TestFmwk {
         Calendar cal = Calendar.getInstance(jaJPJP);
         String caltype = cal.getType();
         if (!caltype.equals("japanese")) {
-            errln("FAIL: Invalid calendar type: " + caltype + " /expected: japanese");
-        }
+                errln("FAIL: Invalid calendar type: " + caltype + " /expected: japanese");
+            }
 
         cal = Calendar.getInstance(jaJP);
         caltype = cal.getType();
@@ -222,7 +222,7 @@ public class ULocaleTest extends TestFmwk {
                 errln("FAIL: Invalid default ULocale: " + defUloc + " /expected: ja_JP_JP@calendar=japanese");
             }
         } else {
-            if (!defUloc.toString().equals("ja_JP@calendar=japanese")) {
+        if (!defUloc.toString().equals("ja_JP@calendar=japanese")) {
                 errln("FAIL: Invalid default ULocale: " + defUloc + " /expected: ja_JP@calendar=japanese");
             }
         }
@@ -230,8 +230,8 @@ public class ULocaleTest extends TestFmwk {
         cal = Calendar.getInstance();
         caltype = cal.getType();
         if (!caltype.equals("japanese")) {
-            errln("FAIL: Invalid calendar type: " + caltype + " /expected: japanese");
-        }
+                errln("FAIL: Invalid calendar type: " + caltype + " /expected: japanese");
+            }
         Locale.setDefault(backupDefault);
 
         // Set default via ULocale
@@ -1225,15 +1225,15 @@ public class ULocaleTest extends TestFmwk {
         }
     }
     private void initHashtable() {
-        h[0] = new HashMap<String, String>();
-        h[1] = new HashMap<String, String>();
+        h[0] = new Hashtable();
+        h[1] = new Hashtable();
 
         //display in English
-        h[0].put("collation", "Sort Order");
-        h[0].put("calendar", "Calendar");
+        h[0].put("collation", "collation");
+        h[0].put("calendar", "calendar");
         h[0].put("currency", "Currency");
         h[0].put("phonebook", "Phonebook Order");
-        h[0].put("pinyin", "Pinyin Sort Order");
+        h[0].put("pinyin", "Simplified Chinese Pinyin Sort Order");
         h[0].put("traditional", "Traditional Sort Order");
         h[0].put("stroke", "Stroke Order");
         h[0].put("direct", "Direct Sort Order");
@@ -1249,7 +1249,7 @@ public class ULocaleTest extends TestFmwk {
         h[1].put("collation", "\u5BF9\u7167");
         h[1].put("calendar", "\u65E5\u5386");
         h[1].put("currency", "\u8D27\u5E01");
-        h[1].put("direct", "\u76F4\u63A5\u6392\u5E8F\u987A\u5E8F");
+        h[1].put("direct", "\u987A\u5E8F");
         h[1].put("phonebook", "\u7535\u8BDD\u7C3F\u987A\u5E8F");
         h[1].put("pinyin", "\u62FC\u97F3\u987a\u5e8f");
         h[1].put("stroke", "\u7B14\u5212\u987A\u5E8F");
@@ -1264,19 +1264,16 @@ public class ULocaleTest extends TestFmwk {
     }
 
     //Hashtables for storing expected display of keys/types of locale in English and Chinese
-    private static Map[] h = new Map[2];
+    private static Hashtable[] h = new Hashtable[2];
     
     private static final String ACCEPT_LANGUAGE_TESTS[][]  =  {
     /*#      result  fallback? */
     /*0*/ { "mt_MT", "false" },
     /*1*/ { "en", "false" },
     /*2*/ { "en", "true" }, // fell back from en-zzz to en
-    /*3*/ { null, "true" },
-    /*4*/ { "es", "false" }, 
-    /*5*/ { "de", "false" },
-    /*6*/ { "zh_TW", "false" },
-    /*7*/ { "zh", "true" },
-    };
+    /*3*/ {  null, "true" },
+    /*4*/ {  "es", "false" }, 
+    /*5*/ { "de", "false" }};
     
     private static final String ACCEPT_LANGUAGE_HTTP[] = { 
                     /*0*/ "mt-mt, ja;q=0.76, en-us;q=0.95, en;q=0.92, en-gb;q=0.89, fr;q=0.87, iu-ca;q=0.84, iu;q=0.82, ja-jp;q=0.79, mt;q=0.97, de-de;q=0.74, de;q=0.71, es;q=0.68, it-it;q=0.66, it;q=0.63, vi-vn;q=0.61, vi;q=0.58, nl-nl;q=0.55, nl;q=0.53, th-th-traditional;q=.01",
@@ -1294,12 +1291,9 @@ public class ULocaleTest extends TestFmwk {
                                "xxx-yyy;q=.01, xxx-yyy;q=.01, xxx-yyy;q=.01, xxx-yyy;q=.01, xxx-yyy;q=.01, xxx-yyy;q=.01, "+
                                "xxx-yyy;q=.01, xxx-yyy;q=.01, xxx-yyy;q=.01, xxx-yyy;q=.01, xxx-yyy;q=.01, xxx-yyy;q=.01, "+
                                "es",
-                    /*5*/ "de;q=.9, fr;q=.9, xxx-yyy, sr;q=.8",
-                    /*6*/ "zh-tw",
-                    /*7*/ "zh-hant-cn",
-    };
-
-
+                        /*5*/ "de;q=.9, fr;q=.9, xxx-yyy, sr;q=.8"};
+    
+    
     public void TestAcceptLanguage() {
         for(int i = 0 ; i < (ACCEPT_LANGUAGE_HTTP.length); i++) {
             Boolean expectBoolean = new Boolean(ACCEPT_LANGUAGE_TESTS[i][1]);
@@ -3007,8 +3001,8 @@ public class ULocaleTest extends TestFmwk {
                 "vi"
             }, {
                 "und_VU",
-                "bi_Latn_VU",
-                "bi"
+                "fr_Latn_VU",
+                "fr_VU"
             }, {
                 "und_WF",
                 "fr_Latn_WF",
@@ -4160,64 +4154,5 @@ public class ULocaleTest extends TestFmwk {
                 assertEquals("toLocale with " + DATA6[i][0], DATA6[i][1], loc);
             }
         }
-    }
-
-    public void TestCategoryDefault() {
-        Locale backupDefault = Locale.getDefault();
-
-        ULocale orgDefault = ULocale.getDefault();
-
-        // Setting a category default won't change default ULocale
-        ULocale uJaJp = new ULocale("ja_JP");
-        ULocale uDeDePhonebook = new ULocale("de_DE@collation=phonebook");
-
-        ULocale.setDefault(Category.DISPLAY, uJaJp);
-        ULocale.setDefault(Category.FORMAT, uDeDePhonebook);
-
-        if (!ULocale.getDefault().equals(orgDefault)) {
-            errln("FAIL: Default ULocale is " + ULocale.getDefault() + ", expected: " + orgDefault);
-        }
-
-        if (!ULocale.getDefault(Category.DISPLAY).equals(uJaJp)) {
-            errln("FAIL: DISPLAY ULocale is " + ULocale.getDefault(Category.DISPLAY) + ", expected: " + uJaJp);
-        }
-
-        if (!ULocale.getDefault(Category.FORMAT).equals(uDeDePhonebook)) {
-            errln("FAIL: FORMAT ULocale is " + ULocale.getDefault(Category.FORMAT) + ", expected: " + uDeDePhonebook);
-        }
-
-        // Setting ULocale default will overrides category defaults
-        ULocale uFrFr = new ULocale("fr_FR");
-
-        ULocale.setDefault(uFrFr);
-
-        if (!ULocale.getDefault(Category.DISPLAY).equals(uFrFr)) {
-            errln("FAIL: DISPLAY ULocale is " + ULocale.getDefault(Category.DISPLAY) + ", expected: " + uFrFr);
-        }
-
-        if (!ULocale.getDefault(Category.FORMAT).equals(uFrFr)) {
-            errln("FAIL: FORMAT ULocale is " + ULocale.getDefault(Category.FORMAT) + ", expected: " + uFrFr);
-        }
-
-        // Setting Locale default will updates ULocale default and category defaults
-        Locale arEg = new Locale("ar", "EG");
-        ULocale uArEg = ULocale.forLocale(arEg);
-
-        Locale.setDefault(arEg);
-
-        if (!ULocale.getDefault().equals(uArEg)) {
-            errln("FAIL: Default ULocale is " + ULocale.getDefault() + ", expected: " + uArEg);
-        }
-
-        if (!ULocale.getDefault(Category.DISPLAY).equals(uArEg)) {
-            errln("FAIL: DISPLAY ULocale is " + ULocale.getDefault(Category.DISPLAY) + ", expected: " + uArEg);
-        }
-
-        if (!ULocale.getDefault(Category.FORMAT).equals(uArEg)) {
-            errln("FAIL: FORMAT ULocale is " + ULocale.getDefault(Category.FORMAT) + ", expected: " + uArEg);
-        }
-
-        // Restore back up
-        Locale.setDefault(backupDefault);
     }
 }

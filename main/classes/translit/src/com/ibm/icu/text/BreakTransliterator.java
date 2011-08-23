@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2010, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2011, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -386,18 +386,6 @@ final class BreakTransliterator extends Transliterator {
             }
         }
 
-    }
-    /* (non-Javadoc)
-     * @see com.ibm.icu.text.Transliterator#addSourceTargetSet(com.ibm.icu.text.UnicodeSet, com.ibm.icu.text.UnicodeSet, com.ibm.icu.text.UnicodeSet)
-     */
-    @Override
-    public void addSourceTargetSet(UnicodeSet inputFilter, UnicodeSet sourceSet, UnicodeSet targetSet) {
-        UnicodeSet myFilter = getFilterAsUnicodeSet(inputFilter);
-        // Doesn't actually modify the source characters, so leave them alone.
-        // add the characters inserted
-        if (myFilter.size() != 0) {
-            targetSet.addAll(insertion);
-        }
     }
 
 }

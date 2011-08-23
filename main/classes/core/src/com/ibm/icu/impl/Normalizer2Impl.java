@@ -1,6 +1,6 @@
 /*
 *******************************************************************************
-*   Copyright (C) 2009-2011, International Business Machines
+*   Copyright (C) 2009-2010, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 *******************************************************************************
 */
@@ -340,9 +340,6 @@ public final class Normalizer2Impl {
          * @draft ICU 4.6
          */
         public static boolean equal(CharSequence s1,  CharSequence s2) {
-            if(s1==s2) {
-                return true;
-            }
             int length=s1.length();
             if(length!=s2.length()) {
                 return false;
@@ -371,9 +368,6 @@ public final class Normalizer2Impl {
             if((limit1-start1)!=(limit2-start2)) {
                 return false;
             }
-            if(s1==s2 && start1==start2) {
-                return true;
-            }
             while(start1<limit1) {
                 if(s1.charAt(start1++)!=s2.charAt(start2++)) {
                     return false;
@@ -385,19 +379,23 @@ public final class Normalizer2Impl {
 
     public Normalizer2Impl() {}
 
-    private static final class IsAcceptable implements ICUBinary.Authenticate {
+    private static final class Reader implements ICUBinary.Authenticate {
         // @Override when we switch to Java 6
         public boolean isDataVersionAcceptable(byte version[]) {
             return version[0]==1;
         }
+        public VersionInfo readHeader(InputStream data) throws IOException {
+            byte[] dataVersion=ICUBinary.readHeader(data, DATA_FORMAT, this);
+            return VersionInfo.getInstance(dataVersion[0], dataVersion[1],
+                                           dataVersion[2], dataVersion[3]);
+        }
+        private static final byte DATA_FORMAT[] = { 0x4e, 0x72, 0x6d, 0x32  };  // "Nrm2"
     }
-    private static final IsAcceptable IS_ACCEPTABLE = new IsAcceptable();
-    private static final byte DATA_FORMAT[] = { 0x4e, 0x72, 0x6d, 0x32  };  // "Nrm2"
-
+    private static final Reader READER=new Reader();
     public Normalizer2Impl load(InputStream data) {
         try {
             BufferedInputStream bis=new BufferedInputStream(data);
-            dataVersion=ICUBinary.readHeaderAndDataVersion(bis, DATA_FORMAT, IS_ACCEPTABLE);
+            dataVersion=READER.readHeader(bis);
             DataInputStream ds=new DataInputStream(bis);
             int indexesLength=ds.readInt()/4;  // inIndexes[IX_NORM_TRIE_OFFSET]/4
             if(indexesLength<=IX_MIN_MAYBE_YES) {
@@ -487,14 +485,6 @@ public final class Normalizer2Impl {
     // low-level properties ------------------------------------------------ ***
 
     public Trie2_16 getNormTrie() { return normTrie; }
-    /**
-     * Builds and returns the FCD trie based on the data used in this instance.
-     * This is required before any of {@link #getFCD16(int)} or
-     * {@link #getFCD16FromSingleLead(char)} are called,
-     * or else they crash.
-     * This method is called automatically by Normalizer2.getInstance(..., Mode.FCD).
-     * @return The FCD trie for this instance's data.
-     */
     public synchronized Trie2_16 getFCDTrie() {
         if(fcdTrie!=null) {
             return fcdTrie;
@@ -530,13 +520,6 @@ public final class Normalizer2Impl {
         return fcdTrie=newFCDTrie.toTrie2_16();
     }
 
-    /**
-     * Builds the canonical-iterator data for this instance.
-     * This is required before any of {@link #isCanonSegmentStarter(int)} or
-     * {@link #getCanonStartSet(int, UnicodeSet)} are called,
-     * or else they crash.
-     * @return this
-     */
     public synchronized Normalizer2Impl ensureCanonIterData() {
         if(canonIterData==null) {
             Trie2Writable newData=new Trie2Writable(0, 0);
@@ -644,24 +627,10 @@ public final class Normalizer2Impl {
         return norm16>=MIN_NORMAL_MAYBE_YES ? norm16&0xff : 0;
     }
 
-    /**
-     * Returns the FCD data for code point c.
-     * <b>{@link #getFCDTrie()} must have been called before this method,
-     * or else this method will crash.</b>
-     * @param c A Unicode code point.
-     * @return The lccc(c) in bits 15..8 and tccc(c) in bits 7..0.
-     */
     public int getFCD16(int c) { return fcdTrie.get(c); }
-    /**
-     * Returns the FCD data for the single-or-lead code unit c.
-     * <b>{@link #getFCDTrie()} must have been called before this method,
-     * or else this method will crash.</b>
-     * @param c A Unicode code point.
-     * @return The lccc(c) in bits 15..8 and tccc(c) in bits 7..0.
-     */
     public int getFCD16FromSingleLead(char c) { return fcdTrie.getFromU16SingleLead(c); }
 
-    private void setFCD16FromNorm16(int start, int end, int norm16, Trie2Writable newFCDTrie) {
+    void setFCD16FromNorm16(int start, int end, int norm16, Trie2Writable newFCDTrie) {
         // Only loops for 1:1 algorithmic mappings.
         for(;;) {
             if(norm16>=MIN_NORMAL_MAYBE_YES) {
@@ -741,26 +710,9 @@ public final class Normalizer2Impl {
         }
     }
 
-    /**
-     * Returns true if code point c starts a canonical-iterator string segment.
-     * <b>{@link #ensureCanonIterData()} must have been called before this method,
-     * or else this method will crash.</b>
-     * @param c A Unicode code point.
-     * @return true if c starts a canonical-iterator string segment.
-     */
     public boolean isCanonSegmentStarter(int c) {
         return canonIterData.get(c)>=0;
     }
-    /**
-     * Returns true if there are characters whose decomposition starts with c.
-     * If so, then the set is cleared and then filled with those characters.
-     * <b>{@link #ensureCanonIterData()} must have been called before this method,
-     * or else this method will crash.</b>
-     * @param c A Unicode code point.
-     * @param set A UnicodeSet to receive the characters whose decompositions
-     *        start with c, if there are any.
-     * @return true if there are characters whose decomposition starts with c.
-     */
     public boolean getCanonStartSet(int c, UnicodeSet set) {
         int canonValue=canonIterData.get(c)&~CANON_NOT_SEGMENT_STARTER;
         if(canonValue==0) {
@@ -1721,7 +1673,7 @@ public final class Normalizer2Impl {
         } else {
             // trail character is 3400..10FFFF
             // result entry has 3 units
-            key1=COMP_1_TRAIL_LIMIT+(((trail>>COMP_1_TRAIL_SHIFT))&~COMP_1_TRIPLE);
+            key1=COMP_1_TRAIL_LIMIT+((trail>>COMP_1_TRAIL_SHIFT))&~COMP_1_TRIPLE;
             int key2=(trail<<COMP_2_TRAIL_SHIFT)&0xffff;
             int secondUnit;
             for(;;) {
@@ -1747,8 +1699,8 @@ public final class Normalizer2Impl {
         return -1;
     }
     /**
-     * @param list some character's compositions list
-     * @param set recursively receives the composites from these compositions
+     * @param c Character which has compositions
+     * @param set recursively receives the composites from c's compositions
      */
     private void addComposites(int list, UnicodeSet set) {
         int firstUnit, compositeAndFwd;

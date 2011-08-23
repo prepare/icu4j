@@ -203,7 +203,7 @@ public abstract class DateFormat extends UFormat {
 
     /**
      * Alias for FRACTIONAL_SECOND_FIELD.
-     * @stable ICU 3.0
+     * @deprecated ICU 3.0 use FRACTIONAL_SECOND_FIELD.
      */
     public final static int MILLISECOND_FIELD = FRACTIONAL_SECOND_FIELD;
 

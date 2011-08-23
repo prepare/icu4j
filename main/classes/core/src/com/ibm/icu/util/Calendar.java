@@ -12,6 +12,7 @@ import java.io.Serializable;
 import java.text.StringCharacterIterator;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Hashtable;
 import java.util.Locale;
 import java.util.MissingResourceException;
 import java.util.Set;
@@ -926,7 +927,8 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
     /**
      * {@icu} Field indicating whether or not the current month is a leap month.
      * Should have a value of 0 for non-leap months, and 1 for leap months.
-     * @stable ICU 4.4
+     * @draft ICU 4.4
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int IS_LEAP_MONTH = 22;
 
@@ -1376,7 +1378,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      * Cache to hold the firstDayOfWeek and minimalDaysInFirstWeek
      * of a Locale.
      */
-    private static ICUCache<ULocale, WeekData> cachedLocaleData = new SimpleCache<ULocale, WeekData>();
+    private static Hashtable<ULocale, WeekData> cachedLocaleData = new Hashtable<ULocale, WeekData>(3);
 
     /**
      * Value of the time stamp <code>stamp[]</code> indicating that
@@ -1518,34 +1520,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
         setWeekData(locale);
         initInternal();
     }
-    
-    private void recalculateStamp() {
-        int index;
-        int currentValue;
-        int j, i;
-        
-        nextStamp = 1;
-        
-        for (j = 0; j < stamp.length; j++) {
-            currentValue = STAMP_MAX;
-            index = -1;
-            
-            for (i = 0; i < stamp.length; i++) {
-                if (stamp[i] > nextStamp && stamp[i] < currentValue) {
-                    currentValue = stamp[i];
-                    index = i;
-                }
-            }
-            
-            if (index >= 0) {
-                stamp[index] = ++nextStamp;
-            } else {
-                break;
-            }
-        }
-        nextStamp++;
-    }
-    
+
     private void initInternal()
     {
         // Allocate fields through the framework method.  Subclasses
@@ -1655,8 +1630,6 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
         cal.setTimeInMillis(System.currentTimeMillis());
         return cal;
     }
-    /* Max value for stamp allowable before recalcution */
-    private static int STAMP_MAX = 10000;
 
     private static final String[] calTypes = {
         "gregorian",
@@ -1672,7 +1645,6 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
         "coptic",
         "ethiopic",
         "ethiopic-amete-alem",
-        "iso8601",
     };
 
     // must be in the order of calTypes above
@@ -1689,13 +1661,12 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
     private static final int CALTYPE_COPTIC = 10;
     private static final int CALTYPE_ETHIOPIC = 11;
     private static final int CALTYPE_ETHIOPIC_AMETE_ALEM = 12;
-    private static final int CALTYPE_ISO8601 = 13;
     private static final int CALTYPE_UNKNOWN = -1;
 
     private static int getCalendarTypeForLocale(ULocale l) {
         String s = CalendarUtil.getCalendarType(l);
         if (s != null) {
-            s = s.toLowerCase(Locale.ENGLISH);
+            s = s.toLowerCase();
             for (int i = 0; i < calTypes.length; ++i) {
                 if (s.equals(calTypes[i])) {
                     return i;
@@ -1832,12 +1803,6 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
         case CALTYPE_ETHIOPIC_AMETE_ALEM:
             cal = new EthiopicCalendar(zone, locale);
             ((EthiopicCalendar)cal).setAmeteAlemEra(true);
-            break;
-        case CALTYPE_ISO8601:
-            // Only differs week numbering rule from Gregorian
-            cal = new GregorianCalendar(zone, locale);
-            cal.setFirstDayOfWeek(MONDAY);
-            cal.setMinimalDaysInFirstWeek(4);
             break;
         default:
             // we must not get here, because unknown type is mapped to
@@ -2088,10 +2053,6 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
             computeFields();
         }
         fields[field] = value;
-        /* Ensure that the fNextStamp value doesn't go pass max value for 32 bit integer */
-        if (nextStamp == STAMP_MAX) {
-            recalculateStamp();
-        }
         stamp[field] = nextStamp++;
         isTimeSet = areFieldsSet = areFieldsVirtuallySet = false;
     }
@@ -2339,7 +2300,6 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
         case DAY_OF_MONTH:
             {
                 Calendar cal = (Calendar) clone();
-                cal.setLenient(true);
                 cal.prepareGetActual(field, false);
                 result = handleGetMonthLength(cal.get(EXTENDED_YEAR), cal.get(MONTH));
             }
@@ -2348,7 +2308,6 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
         case DAY_OF_YEAR:
             {
                 Calendar cal = (Calendar) clone();
-                cal.setLenient(true);
                 cal.prepareGetActual(field, false);
                 result = handleGetYearLength(cal.get(EXTENDED_YEAR));
             }
@@ -4289,55 +4248,19 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
         WeekData data = cachedLocaleData.get(locale);
 
         if (data == null) {  /* cache miss */
-            // Since week and weekend data is territory based instead of language based,
-            // we may need to tweak the locale that we are using to try to get the appropriate
-            // values, using the following logic:
-            // 1). If the locale has a language but no territory, use the territory as defined by 
-            //     the likely subtags.
-            // 2). If the locale has an unnecessary script designation then we ignore it,
-            //     ( i.e. "en_Latn_US" becomes "en_US" )
- 
-            ULocale useLocale;
-            CalendarData calData = new CalendarData(locale, getType());
-            ULocale min = ULocale.minimizeSubtags(calData.getULocale());
-            if ( min.getCountry().length() > 0 ) {
-                useLocale = min;
-            } else {
-                ULocale max = ULocale.addLikelySubtags(min);
-                StringBuilder buf = new StringBuilder();
-                buf.append(min.getLanguage());
-                if ( min.getScript().length() > 0) {
-                    buf.append("_"+min.getScript());
-                }
-                if ( max.getCountry().length() > 0) {
-                    buf.append("_"+max.getCountry());
-                }
-                if ( min.getVariant().length() > 0) {
-                    buf.append("_"+min.getVariant());
-                }
-                useLocale = new ULocale(buf.toString());                
-            }
- 
-            UResourceBundle rb = UResourceBundle.getBundleInstance(
-                    ICUResourceBundle.ICU_BASE_NAME,
-                    "supplementalData",
-                    ICUResourceBundle.ICU_DATA_CLASS_LOADER);
-            UResourceBundle weekDataInfo = rb.get("weekData");
-            UResourceBundle weekDataBundle = null;
-            try {
-                weekDataBundle = weekDataInfo.get(useLocale.getCountry());
-            } catch (MissingResourceException mre) {
-                // use "001" as fallback
-                weekDataBundle = weekDataInfo.get("001");
-            }
 
-            int[] wdi = weekDataBundle.getIntVector();
-            data = new WeekData(wdi[0],wdi[1],wdi[2],wdi[3],wdi[4],wdi[5],
+            CalendarData calData = new CalendarData(locale, getType());
+            int[] dateTimeElements = calData.get("DateTimeElements").getIntVector();
+            int[] weekend = calData.get("weekend").getIntVector();
+            data = new WeekData(dateTimeElements[0],dateTimeElements[1],
+                                weekend[0],
+                                weekend[1],
+                                weekend[2],
+                                weekend[3],
                                 calData.getULocale());
             /* cache update */
             cachedLocaleData.put(locale, data);
         }
-        
         setFirstDayOfWeek(data.firstDayOfWeek);
         setMinimalDaysInFirstWeek(data.minimalDaysInFirstWeek);
         weekendOnset       = data.weekendOnset;
@@ -4765,7 +4688,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      */
     protected void validateFields() {
         for (int field = 0; field < fields.length; field++) {
-            if (stamp[field] >= MINIMUM_USER_STAMP) {
+            if (isSet(field)) {
                 validateField(field);
             }
         }
@@ -5568,7 +5491,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      * @stable ICU 3.8
      */
     public String getType() {
-        return "unknown";
+        return "gregorian";
     }
 
     // -------- BEGIN ULocale boilerplate --------

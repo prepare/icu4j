@@ -912,7 +912,7 @@ public final class ULocale implements Serializable {
     public String getName() {
         return localeID; // always normalized
     }
-    
+
     /**
      * Gets the shortest length subtag's size.
      *
@@ -1237,7 +1237,8 @@ public final class ULocale implements Serializable {
      * If a dialect name is present in the data, then it is returned.
      * @return the localized language name.
      * @see Category#DISPLAY
-     * @stable ICU 4.4
+     * @draft ICU 4.4
+     * @provisional This API might change or be removed in a future release.
      */
     public String getDisplayLanguageWithDialect() {
         return getDisplayLanguageInternal(this, getDefault(Category.DISPLAY), true);
@@ -1248,7 +1249,8 @@ public final class ULocale implements Serializable {
      * If a dialect name is present in the data, then it is returned.
      * @param displayLocale the locale in which to display the name.
      * @return the localized language name.
-     * @stable ICU 4.4
+     * @draft ICU 4.4
+     * @provisional This API might change or be removed in a future release.
      */
     public String getDisplayLanguageWithDialect(ULocale displayLocale) {
         return getDisplayLanguageInternal(this, displayLocale, true);
@@ -1261,7 +1263,8 @@ public final class ULocale implements Serializable {
      * @param localeID the id of the locale whose language will be displayed
      * @param displayLocaleID the id of the locale in which to display the name.
      * @return the localized language name.
-     * @stable ICU 4.4
+     * @draft ICU 4.4
+     * @provisional This API might change or be removed in a future release.
      */
     public static String getDisplayLanguageWithDialect(String localeID, String displayLocaleID) {
         return getDisplayLanguageInternal(new ULocale(localeID), new ULocale(displayLocaleID),
@@ -1275,7 +1278,8 @@ public final class ULocale implements Serializable {
      * @param localeID the id of the locale whose language will be displayed.
      * @param displayLocale the locale in which to display the name.
      * @return the localized language name.
-     * @stable ICU 4.4
+     * @draft ICU 4.4
+     * @provisional This API might change or be removed in a future release.
      */
     public static String getDisplayLanguageWithDialect(String localeID, ULocale displayLocale) {
         return getDisplayLanguageInternal(new ULocale(localeID), displayLocale, true);
@@ -1587,7 +1591,8 @@ public final class ULocale implements Serializable {
      * If a dialect name is present in the locale data, then it is returned.
      * @return the localized locale name.
      * @see Category#DISPLAY
-     * @stable ICU 4.4
+     * @draft ICU 4.4
+     * @provisional This API might change or be removed in a future release.
      */
     public String getDisplayNameWithDialect() {
         return getDisplayNameWithDialectInternal(this, getDefault(Category.DISPLAY));
@@ -1598,7 +1603,8 @@ public final class ULocale implements Serializable {
      * If a dialect name is present in the locale data, then it is returned.
      * @param displayLocale the locale in which to display the locale name.
      * @return the localized locale name.
-     * @stable ICU 4.4
+     * @draft ICU 4.4
+     * @provisional This API might change or be removed in a future release.
      */
     public String getDisplayNameWithDialect(ULocale displayLocale) {
         return getDisplayNameWithDialectInternal(this, displayLocale);
@@ -1611,7 +1617,8 @@ public final class ULocale implements Serializable {
      * @param localeID the locale whose name is to be displayed.
      * @param displayLocaleID the id of the locale in which to display the locale name.
      * @return the localized locale name.
-     * @stable ICU 4.4
+     * @draft ICU 4.4
+     * @provisional This API might change or be removed in a future release.
      */
     public static String getDisplayNameWithDialect(String localeID, String displayLocaleID) {
         return getDisplayNameWithDialectInternal(new ULocale(localeID),
@@ -1625,7 +1632,8 @@ public final class ULocale implements Serializable {
      * @param localeID the locale whose name is to be displayed.
      * @param displayLocale the locale in which to display the locale name.
      * @return the localized locale name.
-     * @stable ICU 4.4
+     * @draft ICU 4.4
+     * @provisional This API might change or be removed in a future release.
      */
     public static String getDisplayNameWithDialect(String localeID, ULocale displayLocale) {
         return getDisplayNameWithDialectInternal(new ULocale(localeID), displayLocale);
@@ -2711,7 +2719,7 @@ public final class ULocale implements Serializable {
      * {@icu} Returns the extension (or private use) value associated with
      * the specified key, or null if there is no extension
      * associated with the key. To be well-formed, the key must be one
-     * of <code>[0-9A-Za-z]</code>. Keys are case-insensitive, so
+     * of <code>[0-9A-Za-z]</code>.  Keys are case-insensitive, so
      * for example 'z' and 'Z' represent the same extension.
      *
      * @param key the extension key
@@ -2733,7 +2741,7 @@ public final class ULocale implements Serializable {
 
     /**
      * {@icu} Returns the set of extension keys associated with this locale, or the
-     * empty set if it has no extensions. The returned set is unmodifiable.
+     * empty set if it has no extensions.  The returned set is unmodifiable.
      * The keys will all be lower-case.
      *
      * @return the set of extension keys, or the empty set if this locale has
@@ -2751,8 +2759,8 @@ public final class ULocale implements Serializable {
      * returned set is unmodifiable.
      *
      * @return The set of attributes.
-     * @draft ICU 4.6
-     * @provisional This API might change or be removed in a future release.
+     * @internal
+     * @deprecated This API is ICU internal only.
      */
     public Set<String> getUnicodeLocaleAttributes() {
         return extensions().getUnicodeLocaleAttributes();
@@ -2770,7 +2778,7 @@ public final class ULocale implements Serializable {
      * locale does not define the key.
      * @throws IllegalArgumentException if the key is not well-formed
      * @throws NullPointerException if <code>key</code> is null
-     * 
+     *
      * @draft ICU 4.4
      * @provisional This API might change or be removed in a future release.
      */
@@ -2787,7 +2795,7 @@ public final class ULocale implements Serializable {
      *
      * @return The set of Unicode locale keys, or the empty set if this locale has
      * no Unicode locale keywords.
-     * 
+     *
      * @draft ICU 4.4
      * @provisional This API might change or be removed in a future release.
      */
@@ -3082,6 +3090,44 @@ public final class ULocale implements Serializable {
         }
 
         /**
+         * Constructs an empty Builder with an option whether to allow
+         * <code>setVariant</code> to accept a value that does not
+         * conform to the IETF BCP 47 variant subtag's syntax requirements.
+         * <p>
+         * <b>Note:</b> This constructor is obsolete and ill-formed variants
+         * are not supported by <code>Builder</code> in ICU4J 4.4.2.2 or later
+         * versions.
+         *
+         * @param isLenientVariant When true, this <code>Builder</code>
+         * will accept an ill-formed variant.
+         * @see #setVariant(String)
+         *
+         * @obsolete ICU 4.4 to be removed
+         * @deprecated This API is obsolete.
+         */
+        public Builder(boolean isLenientVariant) {
+            _locbld = new InternalLocaleBuilder();
+        }
+
+        /**
+         * Returns true if this <code>Builder</code> accepts a value that does
+         * not conform to the IETF BCP 47 variant subtag's syntax requirements
+         * in <code>setVariant</code>
+         * <p>
+         * <b>Note:</b> This method is obsolete and always returns false in ICU4J
+         * 4.4.2.2 or later versions.
+         *
+         * @return true if this <code>Build</code> accepts an ill-formed variant.
+         *
+         * @obsolete ICU 4.4 to be removed
+         * @deprecated This API is obsolete.
+         */
+        public boolean isLenientVariant() {
+            return false;
+        }
+
+
+        /**
          * Resets the <code>Builder</code> to match the provided
          * <code>locale</code>.  Existing state is discarded.
          *
@@ -3319,8 +3365,8 @@ public final class ULocale implements Serializable {
          * @throws IllformedLocaleException if <code>attribute</code> is ill-formed
          * @see #setExtension(char, String)
          *
-         * @draft ICU 4.6
-         * @provisional This API might change or be removed in a future release.
+         * @internal
+         * @deprecated This API is ICU internal only.
          */
         public Builder addUnicodeLocaleAttribute(String attribute) {
             try {
@@ -3344,8 +3390,8 @@ public final class ULocale implements Serializable {
          * @throws IllformedLocaleException if <code>attribute</code> is ill-formed
          * @see #setExtension(char, String)
          *
-         * @draft ICU 4.6
-         * @provisional This API might change or be removed in a future release.
+         * @internal
+         * @deprecated This API is ICU internal only.
          */
         public Builder removeUnicodeLocaleAttribute(String attribute) {
             try {
@@ -3423,8 +3469,8 @@ public final class ULocale implements Serializable {
                         if (lkey.equals("va") && ltype.equals("posix") && base.getVariant().length() == 0) {
                             id = id + "_POSIX";
                         } else {
-                            kwds.put(lkey, ltype);
-                        }
+                        kwds.put(lkey, ltype);
+                    }
                     }
                     // Mapping Unicode locale attribute to the special keyword, attribute=xxx-yyy
                     Set<String> uattributes = uext.getUnicodeLocaleAttributes();

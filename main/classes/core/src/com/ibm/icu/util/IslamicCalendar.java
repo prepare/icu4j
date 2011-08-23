@@ -283,7 +283,7 @@ public class IslamicCalendar extends Calendar {
      *              in the calendar.
      * @param second the value used to set the {@link #SECOND SECOND} time field
      *              in the calendar.
-     * @see Category#FORMAT
+     * @see Category#FORMAT              
      * @stable ICU 2.8
      */
     public IslamicCalendar(int year, int month, int date, int hour,
@@ -420,15 +420,11 @@ public class IslamicCalendar extends Calendar {
      * @param month  The hijri month, 0-based
      */
     private long monthStart(int year, int month) {
-        // Normalize year/month in case month is outside the normal bounds, which may occur
-        // in the case of an add operation
-        int realYear = year + month / 12;
-        int realMonth = month % 12;
         if (civil) {
-            return (long)Math.ceil(29.5*realMonth)
-                    + (realYear-1)*354 + (long)Math.floor((3+11*realYear)/30.0);
+            return (long)Math.ceil(29.5*month)
+                    + (year-1)*354 + (long)Math.floor((3+11*year)/30.0);
         } else {
-            return trueMonthStart(12*(realYear-1) + realMonth);
+            return trueMonthStart(12*(year-1) + month);
         }
     }
     

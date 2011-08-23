@@ -6,8 +6,8 @@
  */
 package com.ibm.icu.text;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Hashtable;
+
 
 /**
  * <code>RuleBasedTransliterator</code> is a transliterator
@@ -15,8 +15,8 @@ import java.util.Map;
  * translations. Rule sets are stored in resource bundles indexed by
  * name. Rules within a rule set are separated by semicolons (';').
  * To include a literal semicolon, prefix it with a backslash ('\').
- * Unicode Pattern_White_Space is ignored.
- * If the first non-blank character on a line is '#',
+ * Whitespace, as defined by <code>UCharacterProperty.isRuleWhiteSpace()</code>,
+ * is ignored. If the first non-blank character on a line is '#',
  * the entire line is ignored as a comment. </p>
  *
  * <p>Each set of rules consists of two groups, one forward, and one
@@ -372,7 +372,7 @@ public class RuleBasedTransliterator extends Transliterator {
 
     static class Data {
         public Data() {
-            variableNames = new HashMap<String, char[]>();
+            variableNames = new Hashtable<String, char[]>();
             ruleSet = new TransliterationRuleSet();
         }
 
@@ -390,7 +390,7 @@ public class RuleBasedTransliterator extends Transliterator {
          * data.variables.  The stand-in also represents the UnicodeSet in
          * the stored rules.
          */
-        Map<String, char[]> variableNames;
+        Hashtable<String, char[]> variableNames;
 
         /**
          * Map category variable (Character) to UnicodeMatcher or UnicodeReplacer.
@@ -448,32 +448,24 @@ public class RuleBasedTransliterator extends Transliterator {
         return data.ruleSet.toRules(escapeUnprintable);
     }
 
-//    /**
-//     * Return the set of all characters that may be modified by this
-//     * Transliterator, ignoring the effect of our filter.
-//     * @internal
-//     * @deprecated This API is ICU internal only.
-//     */
-//    protected UnicodeSet handleGetSourceSet() {
-//        return data.ruleSet.getSourceTargetSet(false, unicodeFilter);
-//    }
-//
-//    /**
-//     * Returns the set of all characters that may be generated as
-//     * replacement text by this transliterator.
-//     * @internal
-//     * @deprecated This API is ICU internal only.
-//     */
-//    public UnicodeSet getTargetSet() {
-//        return data.ruleSet.getSourceTargetSet(true, unicodeFilter);
-//    }
-    
     /**
+     * Return the set of all characters that may be modified by this
+     * Transliterator, ignoring the effect of our filter.
      * @internal
+     * @deprecated This API is ICU internal only.
      */
-    @Override
-    public void addSourceTargetSet(UnicodeSet filter, UnicodeSet sourceSet, UnicodeSet targetSet) {
-        data.ruleSet.addSourceTargetSet(filter, sourceSet, targetSet);
+    protected UnicodeSet handleGetSourceSet() {
+        return data.ruleSet.getSourceTargetSet(false);
+    }
+
+    /**
+     * Returns the set of all characters that may be generated as
+     * replacement text by this transliterator.
+     * @internal
+     * @deprecated This API is ICU internal only.
+     */
+    public UnicodeSet getTargetSet() {
+        return data.ruleSet.getSourceTargetSet(true);
     }
 
     /**
