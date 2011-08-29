@@ -20,6 +20,7 @@ public class CollationPCE
     protected static final int    BUFFER_GROW = 8;
     
     private PCEBuffer          pceBuffer;
+    private RCEBuffer          rceBuffer;
     private int                strength;
     private boolean            toShift;
     private boolean            isShifted;
@@ -27,7 +28,9 @@ public class CollationPCE
 
     public CollationPCE(CollationElementIterator elems)
     {
-        init(elems.getCollator());    
+        init(elems.getCollator());  
+        pceBuffer = new PCEBuffer();
+        rceBuffer = new RCEBuffer();
     }
 
     public void init(Collator coll)
@@ -95,7 +98,7 @@ public class CollationPCE
 
     public class PCEI 
     {
-        int ce;
+        long ce;
         int low;
         int high;    
     }
@@ -123,7 +126,7 @@ public class CollationPCE
             bufferIndex = 0;
         }
         
-        public void put(int ce, int ixLow, int ixHigh)
+        public void put(long ce, int ixLow, int ixHigh)
         {
             if (bufferIndex >= bufferSize) {
                 buffer.ensureCapacity(bufferSize + BUFFER_GROW);
@@ -191,5 +194,12 @@ public class CollationPCE
      */
     public void setShifted(boolean isShifted) {
         this.isShifted = isShifted;
+    }
+
+    /**
+     * @return the rceBuffer
+     */
+    public RCEBuffer getRceBuffer() {
+        return rceBuffer;
     }
 }

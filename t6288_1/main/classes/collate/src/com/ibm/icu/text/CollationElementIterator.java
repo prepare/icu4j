@@ -23,6 +23,9 @@ import com.ibm.icu.impl.Normalizer2Impl;
 import com.ibm.icu.impl.StringUCharacterIterator;
 import com.ibm.icu.impl.UCharacterProperty;
 import com.ibm.icu.lang.UCharacter;
+import com.ibm.icu.text.CollationPCE.PCEI;
+import com.ibm.icu.text.CollationPCE.RCEBuffer;
+import com.ibm.icu.text.CollationPCE.RCEI;
 
 /**
  * <p><code>CollationElementIterator</code> is an iterator created by
@@ -393,9 +396,89 @@ public final class CollationElementIterator
      *
      * @internal
      */
-    public int previousProcessed()
+    public long previousProcessed()
     {
-        return 0;
+        int ixLow;
+        int ixHigh;
+        int low = 0, high = 0;
+        long result = IGNORABLE;
+
+        if (m_PCE_ == null) {
+            m_PCE_ = new CollationPCE(this);
+        } else {
+            m_PCE_.getPceBuffer().reset();
+        }
+        
+        m_reset_ = false;
+
+        if (m_source_.getIndex() <= 0 && m_isForwards_) {
+            // if iterator is new or reset, we can immediate perform  backwards
+            // iteration even when the offset is not right.
+            m_source_.setToLimit();
+            updateInternalState();
+        }
+        m_isForwards_ = false;
+        if (m_CEBufferSize_ > 0) {
+            if (m_CEBufferOffset_ > 0) {
+                return m_CEBuffer_[-- m_CEBufferOffset_];
+            }
+            m_CEBufferSize_ = 0;
+            m_CEBufferOffset_ = 0;
+        }
+
+        while (m_PCE_.getPceBuffer().empty()) {
+            // buffer raw CEs up to non-ignorable primary
+            RCEBuffer rceb = m_PCE_.getRceBuffer();
+            int ce;
+            boolean isNullOrder = false;
+            
+            // **** do we need to reset rceb, or will it always be empty at this point ****
+            do {
+                high = getOffset();
+                ce   = getPrevCE();
+                low  = getOffset();
+
+                if (ce == NULLORDER) {
+                    if (!rceb.empty()) {
+                        break;
+                    }
+
+                    isNullOrder = false;
+                    break;
+                }
+
+                rceb.put(ce, low, high);
+            } while ((ce & RuleBasedCollator.CE_PRIMARY_MASK_) == 0);
+            
+            if (isNullOrder) {
+                break;
+            }
+
+            // process the raw CEs
+            while (!rceb.empty()) {
+                RCEI rcei = rceb.get();
+
+                result = processCE(rcei.ce);
+
+                if (result != IGNORABLE) {
+                    m_PCE_.getPceBuffer().put(result, rcei.low, rcei.high);
+                }
+            }
+        }
+
+        if (m_PCE_.getPceBuffer().empty()) {
+            // **** Is -1 the right value for ixLow, ixHigh? ****
+            ixLow  = -1;
+            ixHigh = -1;
+            return PROCESSED_NULLORDER;
+        }
+
+        PCEI pcei = m_PCE_.getPceBuffer().get();
+
+        ixLow = low;
+        ixHigh = high;
+        
+        return pcei.ce;
     }
 
     /**
@@ -437,6 +520,11 @@ public final class CollationElementIterator
             m_CEBufferOffset_ = 0;
         }
 
+        return getPrevCE();
+    }
+    
+    private int getPrevCE()
+    {
         int result = NULLORDER;
         char ch = 0;
         do {
@@ -484,6 +572,7 @@ public final class CollationElementIterator
             result = previousImplicit(ch);
         }
         return result;
+        
     }
 
     public long processCE(int ce)
