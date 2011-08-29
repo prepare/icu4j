@@ -327,6 +327,78 @@ public final class CollationElementIterator
     }
 
     /**
+     * Get the processed ordering priority of the next collation element in the text.
+     * A single character may contain more than one collation element.
+     *
+     * @param elems The UCollationElements containing the text.
+     * @param ixLow a pointer to an int32_t to receive the iterator index before fetching the CE.
+     * @param ixHigh a pointer to an int32_t to receive the iterator index after fetching the CE.
+     * @param status A pointer to an UErrorCode to receive any errors.
+     * @return The next collation elements ordering, otherwise returns UCOL_PROCESSED_NULLORDER 
+     *         if an error has occured or if the end of string has been reached
+     *
+     * @internal
+     */
+    public long nextProcessed()
+    {
+        int ixLow;
+        int ixHigh;
+        int low = 0, high = 0;
+        long result = IGNORABLE;
+
+        if (m_PCE_ == null) {
+            m_PCE_ = new CollationPCE(this);
+        } else {
+            m_PCE_.getPceBuffer().reset();
+        }
+
+        m_reset_ = false;
+
+        do {
+            low = getOffset();
+            int ce = next();
+            high = getOffset();
+
+            if (ce == NULLORDER) {
+                 result = PROCESSED_NULLORDER;
+                 break;
+            }
+
+            result = processCE(ce);
+        } while (result == IGNORABLE);
+
+        ixLow = low;
+        ixHigh = high;
+
+        return result;
+    }
+
+    /**
+     * Get the processed ordering priority of the previous collation element in the text.
+     * A single character may contain more than one collation element.
+     * Note that internally a stack is used to store buffered collation elements. 
+     * It is very rare that the stack will overflow, however if such a case is 
+     * encountered, the problem can be solved by increasing the size 
+     * UCOL_EXPAND_CE_BUFFER_SIZE in ucol_imp.h.
+     *
+     * @param elems The UCollationElements containing the text.
+     * @param ixLow A pointer to an int32_t to receive the iterator index after fetching the CE
+     * @param ixHigh A pointer to an int32_t to receiver the iterator index before fetching the CE
+     * @param status A pointer to an UErrorCode to receive any errors. Noteably 
+     *               a U_BUFFER_OVERFLOW_ERROR is returned if the internal stack
+     *               buffer has been exhausted.
+     * @return The previous collation elements ordering, otherwise returns 
+     *         UCOL_PROCESSED_NULLORDER if an error has occured or if the start of
+     *         string has been reached.
+     *
+     * @internal
+     */
+    public int previousProcessed()
+    {
+        return 0;
+    }
+
+    /**
      * <p>Get the previous collation element in the source string.</p>
      *
      * <p>This iterator iterates over a sequence of collation elements
@@ -414,6 +486,65 @@ public final class CollationElementIterator
         return result;
     }
 
+    public long processCE(int ce)
+    {
+        long primary = 0, secondary = 0, tertiary = 0, quaternary = 0;
+
+        // This is clean, but somewhat slow...
+        // We could apply the mask to ce and then
+        // just get all three orders...
+        switch(m_PCE_.getStrength()) {
+        default:
+            tertiary =  tertiaryOrder(ce);
+            // $FALL-THROUGH$
+
+        case Collator.SECONDARY:
+            secondary = secondaryOrder(ce);
+            // $FALL-THROUGH$
+
+        case Collator.PRIMARY:
+            primary = primaryOrder(ce);
+        }
+
+        // **** This should probably handle continuations too.  ****
+        // **** That means that we need 24 bits for the primary ****
+        // **** instead of the 16 that we're currently using.   ****
+        // **** So we can lay out the 64 bits as: 24.12.12.16.  ****
+        // **** Another complication with continuations is that ****
+        // **** the *second* CE is marked as a continuation, so ****
+        // **** we always have to peek ahead to know how long   ****
+        // **** the primary is...                               ****
+        if ( (m_PCE_.toShift() && m_PCE_.getVariableTop() > ce && primary != 0) || 
+             (m_PCE_.isShifted() && primary == 0) ) {
+
+            if (primary == 0) {
+                return IGNORABLE;
+            }
+
+            if (m_PCE_.getStrength() >= Collator.QUATERNARY) {
+                quaternary = primary;
+            }
+
+            primary = secondary = tertiary = 0;
+            m_PCE_.setShifted(true);
+        } else {
+            if (m_PCE_.getStrength() >= Collator.QUATERNARY) {
+                quaternary = 0xFFFF;
+            }
+
+            m_PCE_.setShifted(false);
+        }
+
+        return primary << 48 | secondary << 32 | tertiary << 16 | quaternary;
+    }
+    
+    public void initPCE()
+    {
+        if (m_PCE_ != null) {
+            m_PCE_.init(m_collator_);
+        }
+    }
+    
     /**
      * Return the primary order of the specified collation element,
      * i.e. the first 16 bits.  This value is unsigned.
@@ -601,6 +732,7 @@ public final class CollationElementIterator
         m_utilStringBuffer_ = new StringBuilder();
         m_collator_ = collator;
         m_CEBuffer_ = new int[CE_BUFFER_INIT_SIZE_];
+        m_PCE_ = new CollationPCE(this);
         m_buffer_ = new StringBuilder();
         m_utilSpecialBackUp_ = new Backup();
         if (collator.getDecomposition() != Collator.NO_DECOMPOSITION) {
@@ -853,6 +985,14 @@ public final class CollationElementIterator
      * expansion sequence this can handle without bombing out.
      */
     private static final int CE_BUFFER_INIT_SIZE_ = 512;
+    /**
+     * CE buffer
+     */
+    private CollationPCE m_PCE_;
+    /**
+     * Indicates if this data has been reset.
+     */
+    private boolean m_reset_;
     /**
      * Backup storage for special processing inner cases
      */
@@ -2815,5 +2955,13 @@ public final class CollationElementIterator
             // we are in the buffer, buffer offset will never be 0 here
             m_bufferOffset_ ++;
         }
+    }
+
+
+    /**
+     * @return the m_collator_
+     */
+    public RuleBasedCollator getCollator() {
+        return m_collator_;
     }
 }
