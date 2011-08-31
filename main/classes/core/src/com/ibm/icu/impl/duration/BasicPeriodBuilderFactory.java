@@ -451,7 +451,7 @@ class OneOrTwoUnitBuilder extends PeriodBuilderImpl {
             duration -= unitDuration;
           } else {
             if (count >= 1) {
-              period = period.and((float)count, unit);
+              period.and((float)count, unit);
             }
             break;
           }
@@ -503,7 +503,7 @@ class MultiUnitBuilder extends PeriodBuilderImpl {
           if (period == null) {
             period = Period.at((float)count, unit).inPast(inPast);
           } else {
-            period = period.and((float)count, unit);
+            period.and((float)count, unit);
           }
         }
       }

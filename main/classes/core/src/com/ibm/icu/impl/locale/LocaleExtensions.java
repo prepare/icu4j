@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2009-2010, International Business Machines Corporation and    *
+ * Copyright (C) 2009-2011, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -76,13 +76,13 @@ public class LocaleExtensions {
                     value = InternalLocaleBuilder.removePrivateuseVariant(value);
                     if (value == null) {
                         continue;
-                    }
+                }
                 }
 
                 Extension e = new Extension(key, AsciiUtil.toLowerString(value));
                 _map.put(Character.valueOf(key), e);
+                }
             }
-        }
 
         if (hasUAttributes || hasUKeywords) {
             TreeSet<String> uaset = null;
@@ -92,8 +92,8 @@ public class LocaleExtensions {
                 uaset = new TreeSet<String>();
                 for (CaseInsensitiveString cis : uattributes) {
                     uaset.add(AsciiUtil.toLowerString(cis.value()));
-                }
             }
+        }
 
             if (hasUKeywords) {
                 ukmap = new TreeMap<String, String>();
@@ -101,12 +101,12 @@ public class LocaleExtensions {
                     String key = AsciiUtil.toLowerString(kwd.getKey().value());
                     String type = AsciiUtil.toLowerString(kwd.getValue());
                     ukmap.put(key, type);
-                }
-            }
+    }
+        }
 
             UnicodeLocaleExtension ule = new UnicodeLocaleExtension(uaset, ukmap);
             _map.put(Character.valueOf(UnicodeLocaleExtension.SINGLETON), ule);
-        }
+    }
 
         if (_map.size() == 0) {
             // this could happen when only privuateuse with special variant

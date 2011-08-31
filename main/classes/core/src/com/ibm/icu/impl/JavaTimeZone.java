@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2008-2011, International Business Machines Corporation and    *
+ * Copyright (C) 2008-2010, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -78,8 +78,8 @@ public class JavaTimeZone extends TimeZone {
         }
         if (javatz == null) {
             // Final fallback
-            id = TimeZone.UNKNOWN_ZONE_ID;
-            javatz = new java.util.SimpleTimeZone(0, id);
+            id = "GMT";
+            javatz = java.util.TimeZone.getTimeZone(id);
         }
         setID(id);
         javacal = new java.util.GregorianCalendar(javatz);

@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (c) 2004-2011, International Business Machines
+ * Copyright (c) 2004-2010, International Business Machines
  * Corporation and others.  All Rights Reserved.
  * Copyright (C) 2010 , Yahoo! Inc.                                            
  *******************************************************************************
@@ -26,9 +26,13 @@ public class SelectFormatUnitTest extends TestFmwk {
      * Unit tests for pattern syntax
      */
     public void TestPatternSyntax() {
+        log("Inside TestPatternSyntax");
+
         String checkSyntaxData[] = {
+            "odd{foo} odd{bar} other{foobar}",
+            "odd{foo} other{bar} other{foobar}",
             "odd{foo}",
-            "*odd{foo} other{bar}",
+            "1odd{foo} other{bar}",
             "odd{foo},other{bar}",
             "od d{foo} other{bar}",
             "odd{foo}{foobar}other{foo}",
@@ -37,42 +41,53 @@ public class SelectFormatUnitTest extends TestFmwk {
             "odd{fo{o1}other{foo2}}"
         };
 
-        //Test SelectFormat pattern syntax
-        SelectFormat selFmt = new SelectFormat(SIMPLE_PATTERN);
-        for (int i=0; i<checkSyntaxData.length; ++i) {
-            try {
-                selFmt.applyPattern(checkSyntaxData[i]);
-                errln("\nERROR: Unexpected result - SelectFormat Unit Test failed "
-                      + "to detect syntax error with pattern: "+checkSyntaxData[i]);
-            } catch (IllegalArgumentException e){
-                // ok
-                continue;
-            }
-        }
+        String expectedErrorMsgs[] = {
+            "Duplicate keyword error.",
+            "Duplicate keyword error.",
+            "Pattern syntax error. Value for case \"other\" was not defined. ",
+            "Pattern syntax error.",
+            "Pattern syntax error.",
+            "Pattern syntax error.",
+            "Pattern syntax error.",
+            "Pattern syntax error.",
+            "Pattern syntax error.",
+            "Pattern syntax error. Value for case \"other\" was not defined. ",
+        };
 
-        // ICU 4.8 does not check for duplicate keywords any more.
-        selFmt.applyPattern("odd{foo} odd{bar} other{foobar}");
-        assertEquals("should use first occurrence of the 'odd' keyword", "foo", selFmt.format("odd"));
-        selFmt.applyPattern("odd{foo} other{bar} other{foobar}");
-        assertEquals("should use first occurrence of the 'other' keyword", "bar", selFmt.format("other"));
+        //Test SelectFormat pattern syntax
+        try {
+            SelectFormat selFmt = new SelectFormat(SIMPLE_PATTERN);
+            for (int i=0; i<checkSyntaxData.length; ++i) {
+                try {
+                    selFmt.applyPattern(checkSyntaxData[i]);
+                    errln("\nERROR: Unexpected result - SelectFormat Unit Test failed "
+                          + "to detect syntax error with pattern: "+checkSyntaxData[i]);
+                } catch (IllegalArgumentException e){
+                    assertEquals("Error:TestPatternSyntax failed with unexpected"
+                                 + " error message for pattern: " + checkSyntaxData[i] ,
+                                 expectedErrorMsgs[i], e.getMessage() );
+                    continue;
+                }
+            }
+        } catch (Exception e){
+            errln("Exception encountered in TestPatternSyntax ");
+        }
     }
 
     /**
      * Unit tests for invalid keywords 
      */
     public void TestInvalidKeyword() {
-        // Test formatting with invalid keyword:
-        // one which contains Pattern_Syntax or Pattern_White_Space.
+        //Test formatting with invalid keyword
+        log("Inside TestInvalidKeyword");
+
         String keywords[] = {
-            "9Keyword-_",
-            "-Keyword-_",
-            "_Keyword-_",
-            "\\u00E9Keyword-_",
-            "Key word",
-            " Keyword",
-            "Keyword ",
-            "Key*word-_",
-            "*Keyword-_"
+            "9Keyword-_",       //Starts with a digit
+            "-Keyword-_",       //Starts with a hyphen
+            "_Keyword-_",       //Starts with an underscore
+            "\\u00E9Keyword-_", //Starts with non-ASCII character
+            "Key*word-_",        //Contains a sepial character not allowed
+            "*Keyword-_"       //Starts with a sepial character not allowed
         };
 
         String expected = "Invalid formatting argument.";
@@ -87,6 +102,9 @@ public class SelectFormatUnitTest extends TestFmwk {
                             +"error message for keyword: " + keywords[i] 
                             , expected , e.getMessage() );
                 continue;
+            } catch (Exception e){
+                errln("ERROR:TestInvalidKeyword failed with an invalid keyword: "
+                     + keywords[i] + " with exception: " + e.getMessage() );
             }
         }
 
@@ -97,6 +115,8 @@ public class SelectFormatUnitTest extends TestFmwk {
      */
     public void TestApplyFormat() {
         //Test applying and formatting with various pattern
+        log("Inside TestApplyFormat");
+
         String patternTestData[] = {
             "fem {femValue} other{even}",
             "other{odd or even}",
@@ -139,7 +159,7 @@ public class SelectFormatUnitTest extends TestFmwk {
         for (int i=0; i<patternTestData.length; ++i) {
             try {
                 selFmt.applyPattern(patternTestData[i]);
-            } catch (IllegalArgumentException e){
+            } catch (Exception e){
                 errln("ERROR: SelectFormat Unit Test failed to apply pattern- "
                      + patternTestData[i] );
                 continue;

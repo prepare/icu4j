@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2009-2010, International Business Machines Corporation and    *
+ * Copyright (C) 2009-2011, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -20,7 +20,7 @@ public abstract class LocaleObjectCache<K, V> {
 
     public LocaleObjectCache(int initialCapacity, float loadFactor, int concurrencyLevel) {
         _map = new ConcurrentHashMap<K, CacheEntry<K, V>>(initialCapacity, loadFactor, concurrencyLevel);
-    }
+        }
 
     public V get(K key) {
         V value = null;
@@ -35,8 +35,8 @@ public abstract class LocaleObjectCache<K, V> {
             V newVal = createObject(key);
             if (key == null || newVal == null) {
                 // subclass must return non-null key/value object
-                return null;
-            }
+        return null;
+    }
 
             CacheEntry<K, V> newEntry = new CacheEntry<K, V>(key, newVal, _queue);
 
@@ -66,7 +66,7 @@ public abstract class LocaleObjectCache<K, V> {
 
     protected K normalizeKey(K key) {
         return key;
-    }
+        }
 
     private static class CacheEntry<K, V> extends SoftReference<V> {
         private K _key;

@@ -1039,7 +1039,6 @@ public class UnicodeSetStringSpanTest extends TestFmwk {
         UnicodeSetWithStrings[] sets_with_str = new UnicodeSetWithStrings[SET_COUNT];
 
         String testName = null;
-        @SuppressWarnings("unused")
         String testNameLimit;
 
         for (i = 0; i < testdata.length; ++i) {

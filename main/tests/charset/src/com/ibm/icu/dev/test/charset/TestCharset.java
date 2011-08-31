@@ -68,6 +68,10 @@ public class TestCharset extends TestFmwk {
     
     protected void init(){
         try{
+            if ("UTF-16".equals(m_encoding)) {
+                int x = 2;
+                x++;
+            }
             CharsetProviderICU provider = new CharsetProviderICU();
             //Charset charset = CharsetICU.forName(encoding);
             m_charset = provider.charsetForName(m_encoding);
@@ -5606,114 +5610,6 @@ public class TestCharset extends TestFmwk {
             if (result.isError()) {
                 /* We don't care about any failures. */
                 continue;
-            }
-        }
-    }
-    
-    public void TestIsFixedWidth(){
-        String[] fixedWidth = {
-                "US-ASCII",
-                "UTF32",
-                "ibm-5478_P100-1995"
-        };
-        
-        String[] notFixedWidth = {
-                "GB18030",
-                "UTF8",
-                "windows-949-2000",
-                "UTF16"
-        };
-        CharsetProvider provider = new CharsetProviderICU();
-        Charset charset;
-        
-        for (int i = 0; i < fixedWidth.length; i++) {
-            charset = provider.charsetForName(fixedWidth[i]);
-            
-            if (!((CharsetICU)charset).isFixedWidth()) {
-                errln(fixedWidth[i] + " is a fixedWidth charset but returned false.");
-            }
-        }
-        
-        for (int i = 0; i < notFixedWidth.length; i++) {
-            charset = provider.charsetForName(notFixedWidth[i]);
-            
-            if (((CharsetICU)charset).isFixedWidth()) {
-                errln(notFixedWidth[i] + " is NOT a fixedWidth charset but returned true.");
-            }
-        }
-    }
-    
-    public void TestBytesLengthForString() {
-        CharsetProviderICU provider = new CharsetProviderICU();
-        String[] charsets = {
-                "windows-949-2000",
-                "ibm-1047_P100-1995,swaplfnl",
-                "ibm-930_P120-1999",
-                "ISCII,version=0",
-                "ISO_2022,locale=ko,version=0"
-        };
-        
-        int[] expected = {
-                40,
-                20,
-                60,
-                80,
-                60
-        };
-        
-        int stringLength = 10;
-        int length;
-        int maxCharSize;
-        
-        for (int i = 0; i < charsets.length; i++) {
-            maxCharSize = (int)provider.charsetForName(charsets[i]).newEncoder().maxBytesPerChar();
-            length = CharsetEncoderICU.getMaxBytesForString(stringLength, maxCharSize);
-            
-            if (length != expected[i]) {
-                errln("For charset " + charsets[i] + " with string length " + stringLength + ", expected max byte length is " + expected[i] + " but got " + length);
-            }
-        }
-    }
-    
-    /*
-     * When converting slices of a larger CharBuffer, Charset88591 and CharsetASCII does not handle the buffer correctly when
-     * an unmappable character occurs.
-     * Ticket #8729
-     */
-    public void TestCharsetASCII8859BufferHandling() {
-        String firstLine = "C077693790=|MEMO=|00=|022=|Blanche st and the driveway grate was fault and rotated under my car=|\r\n";
-        String secondLine = "C077693790=|MEMO=|00=|023=|puncturing the fuel tank. I spoke to the store operator (Ram Reddi –=|\r\n";
-        
-        String charsetNames[] = {
-                "ASCII",
-                "ISO-8859-1"
-        };
-        
-        CoderResult result = CoderResult.UNDERFLOW;
-        
-        CharsetEncoder encoder;
-        
-        ByteBuffer outBuffer = ByteBuffer.allocate(500);
-        CharBuffer charBuffer = CharBuffer.allocate(firstLine.length() + secondLine.length());
-        charBuffer.put(firstLine);
-        charBuffer.put(secondLine);
-        charBuffer.flip();
-        
-        for (int i = 0; i < charsetNames.length; i++) {
-            encoder =  CharsetICU.forNameICU(charsetNames[i]).newEncoder();
-            
-            charBuffer.position(firstLine.length());
-            CharBuffer charBufferSlice = charBuffer.slice();
-            charBufferSlice.limit(secondLine.length() - 2);
-    
-    
-            try {
-                result = encoder.encode(charBufferSlice, outBuffer, false);
-                if (!result.isUnmappable()) {
-                    errln("Result of encoding " + charsetNames[i] + " should be: \"Unmappable\". Instead got: " + result);
-                }
-            } catch (IllegalArgumentException ex) {
-                errln("IllegalArgumentException should not have been thrown when encoding: " + charsetNames[i]);
             }
         }
     }

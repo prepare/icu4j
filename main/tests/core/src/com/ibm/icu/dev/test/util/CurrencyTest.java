@@ -1,6 +1,6 @@
 /*
  **********************************************************************
- * Copyright (c) 2002-2011, International Business Machines
+ * Copyright (c) 2002-2009, International Business Machines
  * Corporation and others.  All Rights Reserved.
  **********************************************************************
  * Author: Alan Liu
@@ -20,9 +20,6 @@ import java.util.Locale;
 import java.util.Set;
 
 import com.ibm.icu.dev.test.TestFmwk;
-import com.ibm.icu.impl.CurrencyData;
-import com.ibm.icu.text.CurrencyDisplayNames;
-import com.ibm.icu.text.CurrencyMetaInfo;
 import com.ibm.icu.text.DecimalFormatSymbols;
 import com.ibm.icu.util.Currency;
 import com.ibm.icu.util.ULocale;
@@ -157,18 +154,6 @@ public class CurrencyTest extends TestFmwk {
         if (found) {
             errln("found locale" + fu_FU + " in currency locales after unregister");
         }
-        
-        Locale[] locs = Currency.getAvailableLocales();
-        found = false;
-        for (int i = 0; i < locs.length; ++i) {
-            if (locs[i].equals(fu_FU)) {
-                found = true;
-                break;
-            }
-        }
-        if (found) {
-            errln("found locale" + fu_FU + " in currency locales after unregister");
-        }
     }
 
     /**
@@ -200,147 +185,9 @@ public class CurrencyTest extends TestFmwk {
                 "$",
                 usd.getSymbol());
         }
-    }
-    
-    // Provide better code coverage for the CurrencyDisplayNames class
-    public void TestCurrencyDisplayNames() {
-        if (!CurrencyDisplayNames.hasData()) {
-            errln("hasData() should return true.");
-        }
-    }
-    
-    // Provide better code coverage for the CurrencyData class
-    public void TestCurrencyData() {
-        CurrencyData.DefaultInfo info_fallback = (CurrencyData.DefaultInfo)CurrencyData.DefaultInfo.getWithFallback(true);
-        if (info_fallback == null) {
-            errln("getWithFallback() returned null.");
-            return;
-        }
-        
-        CurrencyData.DefaultInfo info_nofallback = (CurrencyData.DefaultInfo)CurrencyData.DefaultInfo.getWithFallback(false);
-        if (info_nofallback == null) {
-            errln("getWithFallback() returned null.");
-            return;
-        }
-        
-        if (!info_fallback.getName("isoCode").equals("isoCode") || info_nofallback.getName("isoCode") != null) {
-            errln("Error calling getName().");
-            return;
-        }
-        
-        if (!info_fallback.getPluralName("isoCode", "type").equals("isoCode") || info_nofallback.getPluralName("isoCode", "type") != null) {
-            errln("Error calling getPluralName().");
-            return;
-        }
-        
-        if (!info_fallback.getSymbol("isoCode").equals("isoCode") || info_nofallback.getSymbol("isoCode") != null) {
-            errln("Error calling getSymbol().");
-            return;
-        }
-        
-        if (!info_fallback.symbolMap().isEmpty()) {
-            errln("symbolMap() should return empty map.");
-            return;
-        }
-        
-        if (!info_fallback.nameMap().isEmpty()) {
-            errln("nameMap() should return empty map.");
-            return;
-        }
-        
-        if (!info_fallback.getUnitPatterns().isEmpty() || info_nofallback.getUnitPatterns() != null) {
-            errln("Error calling getUnitPatterns().");
-            return;
-        }
-        
-        if (!info_fallback.getSpacingInfo().equals((CurrencyData.CurrencySpacingInfo.DEFAULT)) ||
-                info_nofallback.getSpacingInfo() != null) {
-            errln("Error calling getSpacingInfo().");
-            return;
-        }
-        
-        if (info_fallback.getLocale() != ULocale.ROOT) {
-            errln("Error calling getLocale().");
-            return;
-        }
-        
-        if (info_fallback.getFormatInfo("isoCode") != null) {
-            errln("Error calling getFormatInfo().");
-            return;
-        }
-    }
-    
-    // Provide better code coverage for the CurrencyMetaInfo class
-    public void TestCurrencyMetaInfo() {
-        CurrencyMetaInfo metainfo = CurrencyMetaInfo.getInstance();
-        if (metainfo == null) {
-            errln("Unable to get CurrencyMetaInfo instance.");
-            return;
-        }
-        
-        if (!CurrencyMetaInfo.hasData()) {
-            errln("hasData() should note return false.");
-            return;
-        }
-        
-        CurrencyMetaInfo.CurrencyFilter filter;
-        CurrencyMetaInfo.CurrencyInfo info;
-        CurrencyMetaInfo.CurrencyDigits digits;
-        
-        { // CurrencyFilter
-            filter = CurrencyMetaInfo.CurrencyFilter.onCurrency("currency");
-            CurrencyMetaInfo.CurrencyFilter filter2 = CurrencyMetaInfo.CurrencyFilter.onCurrency("test");
-            if (filter == null) {
-                errln("Unable to create CurrencyFilter.");
-                return;
-            }
-            
-            if (filter.equals(new Object())) {
-                errln("filter should not equal to Object");
-                return;
-            }
-            
-            if (filter.equals(filter2)) {
-                errln("filter should not equal filter2");
-                return;
-            }
-            
-            if (filter.hashCode() == 0) {
-                errln("Error getting filter hashcode");
-                return;
-            }
-            
-            if (filter.toString() == null) {
-                errln("Error calling toString()");
-                return;
-            }
-        }
-            
-        { // CurrencyInfo
-            info = new CurrencyMetaInfo.CurrencyInfo("region", "code", 0, 1, 1);
-            if (info == null) {
-                errln("Error creating CurrencyInfo.");
-                return;
-            }
-            
-            if (info.toString() == null) {
-                errln("Error calling toString()");
-                return;
-            }
-        }
-        
-        { // CurrencyDigits
-            digits = metainfo.currencyDigits("isoCode");
-            if (digits == null) {
-                errln("Unable to get CurrencyDigits.");
-                return;
-            }
-            
-            if (digits.toString() == null) {
-                errln("Error calling toString()");
-                return;
-            }
-        }
+        assertEquals("USD.getLocale()",
+                ULocale.ROOT,
+                usd.getLocale(null));
     }
 
     public void TestCurrencyKeyword() {
@@ -370,7 +217,6 @@ public class CurrencyTest extends TestFmwk {
             { "eo_AO", "1979-12-29", "AOK" },
             { "eo_AO", "1969-12-31" },
             { "eo_DE@currency=DEM", "2000-12-23", "EUR", "DEM" },
-            { "eo-DE-u-cu-dem", "2000-12-23", "EUR", "DEM" },
             { "en_US", null, "USD" },
             { "en_US_PREEURO", null, "USD" },
             { "en_US_Q", null, "USD" },
@@ -466,40 +312,6 @@ public class CurrencyTest extends TestFmwk {
             Set<String> returnedSet = new HashSet<String>();
             returnedSet.addAll(Arrays.asList(all));
             assertEquals(loc.toString(), ALLSET, returnedSet);
-        }
-    }
-
-    public void TestIsAvailable() {
-        Date d1995 = new Date(788918400000L);   // 1995-01-01 00:00 GMT
-        Date d2000 = new Date(946684800000L);   // 2000-01-01 00:00 GMT
-        Date d2005 = new Date(1104537600000L);  // 2005-01-01 00:00 GMT
-
-        assertTrue("USD all time", Currency.isAvailable("USD", null, null));
-        assertTrue("USD before 1995", Currency.isAvailable("USD", null, d1995));
-        assertTrue("USD 1995-2005", Currency.isAvailable("USD", d1995, d2005));
-        assertTrue("USD after 2005", Currency.isAvailable("USD", d2005, null));
-        assertTrue("USD on 2005-01-01", Currency.isAvailable("USD", d2005, d2005));
-
-        assertTrue("usd all time", Currency.isAvailable("usd", null, null));
-
-        assertTrue("DEM all time", Currency.isAvailable("DEM", null, null));
-        assertTrue("DEM before 1995", Currency.isAvailable("DEM", null, d1995));
-        assertTrue("DEM 1995-2000", Currency.isAvailable("DEM", d1995, d2000));
-        assertTrue("DEM 1995-2005", Currency.isAvailable("DEM", d1995, d2005));
-        assertFalse("DEM after 2005", Currency.isAvailable("DEM", d2005, null));
-        assertTrue("DEM on 2000-01-01", Currency.isAvailable("DEM", d2000, d2000));
-        assertFalse("DEM on 2005-01-01", Currency.isAvailable("DEM", d2005, d2005));
-
-        assertFalse("XXX unknown code", Currency.isAvailable("XXX", null, null));
-
-        assertFalse("USDOLLAR invalid code", Currency.isAvailable("USDOLLAR", null, null));
-
-        // illegal argument combination
-        try {
-            Currency.isAvailable("USD", d2005, d1995);
-            errln("Expected IllegalArgumentException, because lower range is after upper range");
-        } catch (IllegalArgumentException e) {
-            logln("IllegalArgumentException, because lower range is after upper range");
         }
     }
 }

@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 2006-2011, International Business Machines Corporation and    *
+* Copyright (C) 2006-2010, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 *
@@ -326,7 +326,7 @@ public abstract class CharsetDecoderICU extends CharsetDecoder{
             charErrorBufferLength = 0;
         }
     
-        if (!flush && !source.hasRemaining() && toULength == 0 && preToULength >= 0) {
+        if (!flush && !source.hasRemaining() && preToULength >= 0) {
             /* the overflow buffer is emptied and there is no new input: we are done */
             return CoderResult.UNDERFLOW;
         }
@@ -722,14 +722,4 @@ public abstract class CharsetDecoderICU extends CharsetDecoder{
             
         }
     }*/
-    
-    /**
-     * Returns the maxBytesPerChar value for the Charset that created this decoder.
-     * @return maxBytesPerChar
-     * @draft ICU 4.8
-     * @provisional This API might change or be removed in a future release.
-     */
-    public final float maxBytesPerChar() {
-        return ((CharsetICU)(this.charset())).maxBytesPerChar;
-    }
 }

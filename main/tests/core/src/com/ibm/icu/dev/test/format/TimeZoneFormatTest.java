@@ -1,6 +1,6 @@
 /*
  ********************************************************************************
- * Copyright (C) 2007-2011, Google, International Business Machines Corporation *
+ * Copyright (C) 2007-2010, Google, International Business Machines Corporation *
  * and others. All Rights Reserved.                                             *
  ********************************************************************************
  */
@@ -10,16 +10,13 @@ package com.ibm.icu.dev.test.format;
 import java.text.ParseException;
 import java.text.ParsePosition;
 import java.util.Date;
-import java.util.Set;
 
 import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.text.SimpleDateFormat;
-import com.ibm.icu.text.TimeZoneFormat;
 import com.ibm.icu.util.BasicTimeZone;
 import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.SimpleTimeZone;
 import com.ibm.icu.util.TimeZone;
-import com.ibm.icu.util.TimeZone.SystemTimeZoneType;
 import com.ibm.icu.util.TimeZoneTransition;
 import com.ibm.icu.util.ULocale;
 
@@ -30,7 +27,6 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
     }
 
     private static final String[] PATTERNS = {"z", "zzzz", "Z", "ZZZZ", "v", "vvvv", "V", "VVVV"};
-    boolean REALLY_VERBOSE_LOG = false;
 
     /*
      * Test case for checking if a TimeZone is properly set in the result calendar
@@ -84,12 +80,7 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
 
         // Run the roundtrip test
         for (int locidx = 0; locidx < LOCALES.length; locidx++) {
-            logln("Locale: " + LOCALES[locidx].toString());
-
-            String localGMTString = TimeZoneFormat.getInstance(LOCALES[locidx]).formatOffsetLocalizedGMT(0);
-
             for (int patidx = 0; patidx < PATTERNS.length; patidx++) {
-                logln("    pattern: " + PATTERNS[patidx]);
                 SimpleDateFormat sdf = new SimpleDateFormat(PATTERNS[patidx], LOCALES[locidx]);
 
                 for (int tzidx = 0; tzidx < tzids.length; tzidx++) {
@@ -122,13 +113,13 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                         if (PATTERNS[patidx].equals("VVVV")) {
                             // Location: time zone rule must be preserved except
                             // zones not actually associated with a specific location.
+                            // Time zones in this category do not have "/" in its ID.
                             String canonicalID = TimeZone.getCanonicalID(tzids[tzidx]);
-                            boolean hasNoLocation = TimeZone.getRegion(tzids[tzidx]).equals("001");
                             if (canonicalID != null && !outtz.getID().equals(canonicalID)) {
                                 // Canonical ID did not match - check the rules
                                 boolean bFailure = false;
                                 if ((tz instanceof BasicTimeZone) && (outtz instanceof BasicTimeZone)) {
-                                    bFailure = !hasNoLocation
+                                    bFailure = !(canonicalID.indexOf('/') == -1)
                                                 && !((BasicTimeZone)outtz).hasEquivalentTransitions(tz, low, high);
                                 }
                                 if (bFailure) {
@@ -136,7 +127,7 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                                             + ", locale=" + LOCALES[locidx] + ", pattern=" + PATTERNS[patidx]
                                             + ", time=" + DATES[datidx].getTime() + ", str=" + tzstr
                                             + ", outtz=" + outtz.getID());
-                                } else if (REALLY_VERBOSE_LOG) {
+                                } else {
                                     logln("Canonical round trip failed (as expected); tz=" + tzids[tzidx]
                                             + ", locale=" + LOCALES[locidx] + ", pattern=" + PATTERNS[patidx]
                                             + ", time=" + DATES[datidx].getTime() + ", str=" + tzstr
@@ -152,7 +143,7 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                                 }
                             }
 
-                            if (tzstr.equals(localGMTString) || numDigits >= 3) {
+                            if (numDigits >= 3) {
                                 // Localized GMT or RFC: total offset (raw + dst) must be preserved.
                                 int inOffset = inOffsets[0] + inOffsets[1];
                                 int outOffset = outOffsets[0] + outOffsets[1];
@@ -169,12 +160,10 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                                             && tzids[tzidx].startsWith("SystemV/")) {
                                         // JDK uses rule SystemV for these zones while
                                         // ICU handles these zones as aliases of existing time zones
-                                        if (REALLY_VERBOSE_LOG) {
-                                            logln("Raw offset round trip failed; tz=" + tzids[tzidx]
-                                                + ", locale=" + LOCALES[locidx] + ", pattern=" + PATTERNS[patidx]
-                                                + ", time=" + DATES[datidx].getTime() + ", str=" + tzstr
-                                                + ", inRawOffset=" + inOffsets[0] + ", outRawOffset=" + outOffsets[0]);
-                                        }
+                                        logln("Raw offset round trip failed; tz=" + tzids[tzidx]
+                                            + ", locale=" + LOCALES[locidx] + ", pattern=" + PATTERNS[patidx]
+                                            + ", time=" + DATES[datidx].getTime() + ", str=" + tzstr
+                                            + ", inRawOffset=" + inOffsets[0] + ", outRawOffset=" + outOffsets[0]);
 
                                     } else {
                                         errln("Raw offset round trip failed; tz=" + tzids[tzidx]
@@ -226,6 +215,7 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         final String BASEPATTERN = "yyyy-MM-dd'T'HH:mm:ss.SSS";
 
         ULocale[] LOCALES = null;
+        boolean REALLY_VERBOSE = false;
 
         // timer for performance analysis
         long[] times = new long[PATTERNS.length];
@@ -266,10 +256,15 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                 String pattern = BASEPATTERN + " " + PATTERNS[patidx];
                 SimpleDateFormat sdf = new SimpleDateFormat(pattern, LOCALES[locidx]);
 
-                Set<String> ids = TimeZone.getAvailableIDs(SystemTimeZoneType.CANONICAL, null, null);
-                for (String id : ids) {
-                    BasicTimeZone btz = (BasicTimeZone)TimeZone.getTimeZone(id, TimeZone.TIMEZONE_ICU);
-                    TimeZone tz = TimeZone.getTimeZone(id);
+                String[] ids = TimeZone.getAvailableIDs();
+                for (int zidx = 0; zidx < ids.length; zidx++) {
+                    String id = TimeZone.getCanonicalID(ids[zidx]);
+                    if (id == null || !id.equals(ids[zidx])) {
+                        // Skip aliases
+                        continue;
+                    }
+                    BasicTimeZone btz = (BasicTimeZone)TimeZone.getTimeZone(ids[zidx], TimeZone.TIMEZONE_ICU);
+                    TimeZone tz = TimeZone.getTimeZone(ids[zidx]);
                     sdf.setTimeZone(tz);
 
                     long t = START_TIME;
@@ -315,7 +310,7 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                                 if (restime != testTimes[testidx]) {
                                     StringBuffer msg = new StringBuffer();
                                     msg.append("Time round trip failed for ")
-                                        .append("tzid=").append(id)
+                                        .append("tzid=").append(ids[zidx])
                                         .append(", locale=").append(LOCALES[locidx])
                                         .append(", pattern=").append(PATTERNS[patidx])
                                         .append(", text=").append(text)
@@ -325,7 +320,7 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                                         .append(", diff=").append(restime - testTimes[testidx]);
                                     if (expectedRoundTrip[testidx]) {
                                         errln("FAIL: " + msg.toString());
-                                    } else if (REALLY_VERBOSE_LOG) {
+                                    } else if (REALLY_VERBOSE) {
                                         logln(msg.toString());
                                     }
                                 }

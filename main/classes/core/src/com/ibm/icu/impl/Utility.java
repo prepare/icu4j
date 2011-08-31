@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2011, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2010, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -8,7 +8,6 @@ package com.ibm.icu.impl;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Locale;
 import java.util.regex.Pattern;
 
 import com.ibm.icu.lang.UCharacter;
@@ -965,7 +964,7 @@ public final class Utility {
         if (negative) {
             i = -i;
         }
-        String result = Long.toString(i, 16).toUpperCase(Locale.ENGLISH);
+        String result = Long.toString(i, 16).toUpperCase();
         if (result.length() < places) {
             result = "0000000000000000".substring(result.length(),places) + result;
         }
@@ -1013,15 +1012,6 @@ public final class Utility {
         }
     }
 
-    public static String hex(byte[] o, int start, int end, String separator) {
-        StringBuilder result = new StringBuilder();
-        //int ch;
-        for (int i = start; i < end; ++i) {
-          if (i != 0) result.append(separator);
-          result.append(hex(o[i]));
-        }
-        return result.toString();
-      }
 
     /**
      * Convert a string to comma-separated groups of 4 hex uppercase
@@ -1099,6 +1089,46 @@ public final class Utility {
     }
 
     /**
+     * Skip over a sequence of zero or more white space characters
+     * at pos.  Return the index of the first non-white-space character
+     * at or after pos, or str.length(), if there is none.
+     */
+    public static int skipWhitespace(String str, int pos) {
+        while (pos < str.length()) {
+            int c = Character.codePointAt(str, pos);
+            if (!UCharacterProperty.isRuleWhiteSpace(c)) {
+                break;
+            }
+            pos += UTF16.getCharCount(c);
+        }
+        return pos;
+    }
+
+    /**
+     * Skip over a sequence of zero or more white space characters
+     * at pos[0], advancing it.
+     */
+    public static void skipWhitespace(String str, int[] pos) {
+        pos[0] = skipWhitespace(str, pos[0]);
+    }
+
+    /**
+     * Remove all rule white space from a string.
+     */
+    public static String deleteRuleWhiteSpace(String str) {
+        StringBuilder buf = new StringBuilder();
+        for (int i=0; i<str.length(); ) {
+            int ch = Character.codePointAt(str, i);
+            i += UTF16.getCharCount(ch);
+            if (UCharacterProperty.isRuleWhiteSpace(ch)) {
+                continue;
+            }
+            buf.appendCodePoint(ch);
+        }
+        return buf.toString();
+    }
+
+    /**
      * Parse a single non-whitespace character 'ch', optionally
      * preceded by whitespace.
      * @param id the string to be parsed
@@ -1112,7 +1142,7 @@ public final class Utility {
      */
     public static boolean parseChar(String id, int[] pos, char ch) {
         int start = pos[0];
-        pos[0] = PatternProps.skipWhiteSpace(id, pos[0]);
+        skipWhitespace(id, pos);
         if (pos[0] == id.length() ||
                 id.charAt(pos[0]) != ch) {
             pos[0] = start;
@@ -1156,12 +1186,12 @@ public final class Utility {
                     return -1;
                 }
                 c = rule.charAt(pos++);
-                if (!PatternProps.isWhiteSpace(c)) {
+                if (!UCharacterProperty.isRuleWhiteSpace(c)) {
                     return -1;
                 }
                 // FALL THROUGH to skipWhitespace
             case '~':
-                pos = PatternProps.skipWhiteSpace(rule, pos);
+                pos = skipWhitespace(rule, pos);
                 break;
             case '#':
                 p[0] = pos;
@@ -1191,7 +1221,7 @@ public final class Utility {
      * pattern.  Characters are matched literally and case-sensitively
      * except for the following special characters:
      *
-     * ~  zero or more Pattern_White_Space chars
+     * ~  zero or more uprv_isRuleWhiteSpace chars
      *
      * If end of pattern is reached with all matches along the way,
      * pos is advanced to the first unparsed index and returned.
@@ -1220,7 +1250,7 @@ public final class Utility {
 
             // parse \s*
             if (cpat == '~') {
-                if (PatternProps.isWhiteSpace(c)) {
+                if (UCharacterProperty.isRuleWhiteSpace(c)) {
                     index += UTF16.getCharCount(c);
                     continue;
                 } else {
@@ -1307,13 +1337,15 @@ public final class Utility {
      * @param pos INPUT-OUPUT parameter.  On INPUT, pos[0] is the
      * first character to examine.  It must be less than str.length(),
      * and it must not point to a whitespace character.  That is, must
-     * have pos[0] < str.length().  On
+     * have pos[0] < str.length() and
+     * !UCharacterProperty.isRuleWhiteSpace(UTF16.charAt(str, pos[0])).  On
      * OUTPUT, the position after the last parsed character.
      * @return the Unicode identifier, or null if there is no valid
      * identifier at pos[0].
      */
     public static String parseUnicodeIdentifier(String str, int[] pos) {
         // assert(pos[0] < str.length());
+        // assert(!UCharacterProperty.isRuleWhiteSpace(UTF16.charAt(str, pos[0])));
         StringBuilder buf = new StringBuilder();
         int p = pos[0];
         while (p < str.length()) {
@@ -1616,7 +1648,7 @@ public final class Utility {
                         !((c >= 0x0030/*'0'*/ && c <= 0x0039/*'9'*/) ||
                                 (c >= 0x0041/*'A'*/ && c <= 0x005A/*'Z'*/) ||
                                 (c >= 0x0061/*'a'*/ && c <= 0x007A/*'z'*/))) ||
-                                PatternProps.isWhiteSpace(c)) {
+                                UCharacterProperty.isRuleWhiteSpace(c)) {
             quoteBuf.appendCodePoint(c);
             // Double ' within a quote
             if (c == APOSTROPHE) {
@@ -1767,7 +1799,7 @@ public final class Utility {
      * Parse a list of hex numbers and return a string
      * @param string String of hex numbers.
      * @param minLength Minimal length.
-     * @param separator Separator.
+     * @param separator Seperator.
      * @return A string from hex numbers.
      */
     public static String fromHex(String string, int minLength, String separator) {
@@ -1778,7 +1810,7 @@ public final class Utility {
      * Parse a list of hex numbers and return a string
      * @param string String of hex numbers.
      * @param minLength Minimal length.
-     * @param separator Separator.
+     * @param separator Seperator.
      * @return A string from hex numbers.
      */
     public static String fromHex(String string, int minLength, Pattern separator) {
