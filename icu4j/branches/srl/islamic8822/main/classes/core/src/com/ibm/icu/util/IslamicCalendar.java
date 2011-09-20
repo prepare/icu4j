@@ -654,7 +654,11 @@ public class IslamicCalendar extends Calendar {
      * @stable ICU 3.8
      */
     public String getType() {
-        return "islamic";
+        if(civil) {
+            return "islamic-civil";
+        } else {
+            return "islamic";
+        }
     }
 
     /*
