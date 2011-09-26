@@ -23,6 +23,7 @@ import com.ibm.icu.impl.Normalizer2Impl;
 import com.ibm.icu.impl.StringUCharacterIterator;
 import com.ibm.icu.impl.UCharacterProperty;
 import com.ibm.icu.lang.UCharacter;
+import com.ibm.icu.text.CollationElementBuffer.CEI;
 import com.ibm.icu.text.CollationPCE.PCEI;
 import com.ibm.icu.text.CollationPCE.RCEBuffer;
 import com.ibm.icu.text.CollationPCE.RCEI;
@@ -342,12 +343,11 @@ public final class CollationElementIterator
      *
      * @internal
      */
-    public long nextProcessed()
+    public CEI nextProcessed()
     {
-        int ixLow;
-        int ixHigh;
         int low = 0, high = 0;
         long result = IGNORABLE;
+        CEI retValue = m_CollationElementBuffer.createCEI();
 
         if (m_PCE_ == null) {
             m_PCE_ = new CollationPCE(this);
@@ -370,10 +370,11 @@ public final class CollationElementIterator
             result = processCE(ce);
         } while (result == IGNORABLE);
 
-        ixLow = low;
-        ixHigh = high;
+        retValue.lowIndex = low;
+        retValue.highIndex = high;
+        retValue.ce = result;
 
-        return result;
+        return retValue;
     }
 
     /**
@@ -396,12 +397,11 @@ public final class CollationElementIterator
      *
      * @internal
      */
-    public long previousProcessed()
+    public CEI previousProcessed()
     {
-        int ixLow;
-        int ixHigh;
         int low = 0, high = 0;
         long result = IGNORABLE;
+        CEI retValue = m_CollationElementBuffer.createCEI();
 
         if (m_PCE_ == null) {
             m_PCE_ = new CollationPCE(this);
@@ -410,21 +410,6 @@ public final class CollationElementIterator
         }
         
         m_reset_ = false;
-
-        if (m_source_.getIndex() <= 0 && m_isForwards_) {
-            // if iterator is new or reset, we can immediate perform  backwards
-            // iteration even when the offset is not right.
-            m_source_.setToLimit();
-            updateInternalState();
-        }
-        m_isForwards_ = false;
-        if (m_CEBufferSize_ > 0) {
-            if (m_CEBufferOffset_ > 0) {
-                return m_CEBuffer_[-- m_CEBufferOffset_];
-            }
-            m_CEBufferSize_ = 0;
-            m_CEBufferOffset_ = 0;
-        }
 
         while (m_PCE_.getPceBuffer().empty()) {
             // buffer raw CEs up to non-ignorable primary
@@ -468,17 +453,19 @@ public final class CollationElementIterator
 
         if (m_PCE_.getPceBuffer().empty()) {
             // **** Is -1 the right value for ixLow, ixHigh? ****
-            ixLow  = -1;
-            ixHigh = -1;
-            return PROCESSED_NULLORDER;
+            retValue.lowIndex  = -1;
+            retValue.highIndex = -1;
+            retValue.ce = PROCESSED_NULLORDER;
+            return retValue;
         }
 
         PCEI pcei = m_PCE_.getPceBuffer().get();
 
-        ixLow = low;
-        ixHigh = high;
+        retValue.lowIndex = low;
+        retValue.highIndex = high;
+        retValue.ce = pcei.ce;
         
-        return pcei.ce;
+        return retValue;
     }
 
     /**
@@ -824,6 +811,7 @@ public final class CollationElementIterator
         m_PCE_ = new CollationPCE(this);
         m_buffer_ = new StringBuilder();
         m_utilSpecialBackUp_ = new Backup();
+        m_CollationElementBuffer = new CollationElementBuffer();
         if (collator.getDecomposition() != Collator.NO_DECOMPOSITION) {
             m_nfcImpl_.getFCDTrie();  // ensure the FCD data is initialized
         }
@@ -1075,9 +1063,13 @@ public final class CollationElementIterator
      */
     private static final int CE_BUFFER_INIT_SIZE_ = 512;
     /**
-     * CE buffer
+     * PCE buffer
      */
     private CollationPCE m_PCE_;
+    /**
+     * Collation Element Buffer 
+     */
+    private CollationElementBuffer m_CollationElementBuffer;
     /**
      * Indicates if this data has been reset.
      */
