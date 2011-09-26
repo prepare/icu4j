@@ -953,6 +953,25 @@ public final class StringSearch extends SearchIterator
     }
     
     /**
+     * Appends a long to a long array, increasing the size of the array when 
+     * we are out of space.
+     * @param offset in array to append to
+     * @param value to append
+     * @param array to append to
+     * @return the array appended to, this could be a new and bigger array
+     */
+    private static final long[] appendLong(int offset, long value, long array[])
+    {
+        if (offset >= array.length) {
+            long temp[] = new long[offset + INITIAL_ARRAY_SIZE_];
+            System.arraycopy(array, 0, temp, 0, array.length);
+            array = temp;
+        }
+        array[offset] = value;
+        return array;
+    }
+    
+    /**
      * Initializing the ce table for a pattern. Stores non-ignorable collation 
      * keys. Table size will be estimated by the size of the pattern text. 
      * Table expansion will be perform as we go along. Adding 1 to ensure that 
@@ -996,11 +1015,28 @@ public final class StringSearch extends SearchIterator
     *               method, status assumed to be success when passed in.
     * @return total number of expansions
     */
-    // TODO: implement this
     private final int initializePatternPCETable()
     {
+        m_utilColEIter_.setText(m_pattern_.targetText);
+        
+        int offset = 0;
         int result = 0;
-
+        
+        m_utilColEIter_.initPCE();
+        m_utilColEIter_.reset();
+        long pce = m_utilColEIter_.nextProcessed().getCE();
+    
+        while (pce != CollationElementIterator.PROCESSED_NULLORDER) {
+            if (pce != CollationElementIterator.IGNORABLE) {
+                m_pattern_.m_PCE_ = appendLong(offset, pce, m_pattern_.m_PCE_);
+                offset ++;            
+            }
+            pce = m_utilColEIter_.nextProcessed().getCE();
+        }
+    
+        m_pattern_.m_PCE_ = appendLong(offset, 0, m_pattern_.m_PCE_);
+        m_pattern_.m_PCELength_ = offset;
+    
         return result;
     }    
     
@@ -2886,6 +2922,11 @@ public final class StringSearch extends SearchIterator
         return U_CE_MATCH;
     }
     
+    protected int getPCELength()
+    {
+        return m_pattern_.m_PCELength_;
+    }
+    
     /**
      *  Simple forward search for the pattern, starting at a specified index,
      *     and using using a default set search options.
@@ -2921,22 +2962,12 @@ public final class StringSearch extends SearchIterator
      *
      *
      *  @param startIdx   The index into the text to begin the search.
-     *  @param matchStart An out parameter, the starting index of the matched text.
-     *                    This parameter may be NULL.
-     *                    A value of -1 will be returned if no match was found.
-     *  @param matchLimit Out parameter, the index of the first position following the matched text.
-     *                    The matchLimit will be at a suitable position for beginning a subsequent search
-     *                    in the input text.
-     *                    This parameter may be NULL.
-     *                    A value of -1 will be returned if no match was found.
      *          
      *  @return           TRUE if a match was found, FALSE otherwise.
      *
      *  @internal
      */
-    private boolean search( int startIdx,
-                            int matchStart,
-                            int matchLimit )
+    private boolean search( int startIdx )
     {
         // Input parameter sanity check.
         if( (m_pattern_.m_CELength_ == 0)            ||
@@ -2946,12 +2977,12 @@ public final class StringSearch extends SearchIterator
                return false;
         }
 
-        if (m_pattern_.m_PCE_ == null) {
+        if (m_pattern_.m_PCELength_ == 0) {
             initializePatternPCETable();
         }
 
         m_colEIter_.setOffset(startIdx);
-        CollationElementBuffer ceb = new CollationElementBuffer(this);
+        CollationElementBuffer ceb = new CollationElementBuffer(this, m_colEIter_);
         
         int targetIx = 0;
         CollationElementBuffer.CEI targetCEI = null;
@@ -3151,11 +3182,10 @@ public final class StringSearch extends SearchIterator
         if (found == false) {
             mLimit = -1;
             mStart = -1;
+        } else {
+            m_matchedIndex_ = mStart;
+            matchLength = mLimit - mStart;
         }
-        
-        // TODO: create return structure to contain matchStart and matchLimit
-        matchStart = mStart;
-        matchLimit = mLimit;
 
         return found;
     }
@@ -3211,9 +3241,7 @@ public final class StringSearch extends SearchIterator
      *
      *  @internal
      */
-    private boolean searchBackwards( int startIdx,
-                                     int matchStart,
-                                     int matchLimit )
+    private boolean searchBackwards( int startIdx )
     {
         // Input parameter sanity check.
         if(m_pattern_.m_CELength_ == 0   ||
@@ -3223,11 +3251,11 @@ public final class StringSearch extends SearchIterator
                return false;
         }
 
-        if (m_pattern_.m_PCE_ == null) {
+        if (m_pattern_.m_PCELength_ == 0) {
             initializePatternPCETable();
         }
 
-        CollationElementBuffer ceb = new CollationElementBuffer(this);
+        CollationElementBuffer ceb = new CollationElementBuffer(this, m_colEIter_);
         int targetIx = 0;
 
         /*
@@ -3403,11 +3431,10 @@ public final class StringSearch extends SearchIterator
         if (found == false) {
             mLimit = -1;
             mStart = -1;
+        } else {
+            m_matchedIndex_ = mStart;
+            matchLength = mLimit - mStart;
         }
-
-        // TODO: create return structure to contain matchStart and matchLimit
-        matchStart= mStart;
-        matchLimit = mLimit;
 
         return found;
     }
@@ -3421,79 +3448,85 @@ public final class StringSearch extends SearchIterator
      */
     private void handleNextExact(int start)
     {
-        int textoffset = shiftForward(start, 
-                                         CollationElementIterator.NULLORDER,
-                                         m_pattern_.m_CELength_);
-        int targetce = CollationElementIterator.IGNORABLE;
-        while (textoffset <= m_textLimitOffset_) {
-            m_colEIter_.setExactOffset(textoffset);
-            int patternceindex = m_pattern_.m_CELength_ - 1;
-            boolean found = false;
-            int lastce = CollationElementIterator.NULLORDER;
-            
-            while (true) {
-                // finding the last pattern ce match, imagine composite 
-                // characters. for example: search for pattern A in text \u00C0
-                // we'll have to skip \u0300 the grave first before we get to A
-                targetce = m_colEIter_.previous();
-                if (targetce == CollationElementIterator.NULLORDER) {
-                    found = false;
-                    break;
-                }
-                targetce = getCE(targetce);
-                if (targetce == CollationElementIterator.IGNORABLE && 
-                    m_colEIter_.isInBuffer()) { 
-                    // this is for the text \u0315\u0300 that requires 
-                    // normalization and pattern \u0300, where \u0315 is ignorable
-                    continue;
-                }
-                if (lastce == CollationElementIterator.NULLORDER 
-                    || lastce == CollationElementIterator.IGNORABLE) {
-                    lastce = targetce;
-                }
-                if (targetce == m_pattern_.m_CE_[patternceindex]) {
-                    // the first ce can be a contraction
-                    found = true;
-                    break;
-                }
-                if (m_colEIter_.m_CEBufferOffset_ <= 0) {
-                    found = false;
-                    break;
-                }
-            }
-    
-            while (found && patternceindex > 0) {
-                lastce = targetce;
-                targetce = m_colEIter_.previous();
-                if (targetce == CollationElementIterator.NULLORDER) {
-                    found = false;
-                    break;
-                }
-                targetce = getCE(targetce);
-                if (targetce == CollationElementIterator.IGNORABLE) {
-                    continue;
-                }
-    
-                patternceindex --;
-                found = found && targetce == m_pattern_.m_CE_[patternceindex]; 
-            }
-            
-            targetce = lastce;
-    
-            if (!found) {
-                textoffset = shiftForward(textoffset, lastce, patternceindex);
-                // status checked at loop.
-                patternceindex = m_pattern_.m_CELength_;
-                continue;
-            }
-            
-            if (checkNextExactMatch(textoffset)) {
-                // status checked in ucol_setOffset
-                return;
-            }
-            textoffset = m_utilBuffer_[0];
+//        int textoffset = shiftForward(start, 
+//                                         CollationElementIterator.NULLORDER,
+//                                         m_pattern_.m_CELength_);
+//        int targetce = CollationElementIterator.IGNORABLE;
+//        while (textoffset <= m_textLimitOffset_) {
+//            m_colEIter_.setExactOffset(textoffset);
+//            int patternceindex = m_pattern_.m_CELength_ - 1;
+//            boolean found = false;
+//            int lastce = CollationElementIterator.NULLORDER;
+//            
+//            while (true) {
+//                // finding the last pattern ce match, imagine composite 
+//                // characters. for example: search for pattern A in text \u00C0
+//                // we'll have to skip \u0300 the grave first before we get to A
+//                targetce = m_colEIter_.previous();
+//                if (targetce == CollationElementIterator.NULLORDER) {
+//                    found = false;
+//                    break;
+//                }
+//                targetce = getCE(targetce);
+//                if (targetce == CollationElementIterator.IGNORABLE && 
+//                    m_colEIter_.isInBuffer()) { 
+//                    // this is for the text \u0315\u0300 that requires 
+//                    // normalization and pattern \u0300, where \u0315 is ignorable
+//                    continue;
+//                }
+//                if (lastce == CollationElementIterator.NULLORDER 
+//                    || lastce == CollationElementIterator.IGNORABLE) {
+//                    lastce = targetce;
+//                }
+//                if (targetce == m_pattern_.m_CE_[patternceindex]) {
+//                    // the first ce can be a contraction
+//                    found = true;
+//                    break;
+//                }
+//                if (m_colEIter_.m_CEBufferOffset_ <= 0) {
+//                    found = false;
+//                    break;
+//                }
+//            }
+//    
+//            while (found && patternceindex > 0) {
+//                lastce = targetce;
+//                targetce = m_colEIter_.previous();
+//                if (targetce == CollationElementIterator.NULLORDER) {
+//                    found = false;
+//                    break;
+//                }
+//                targetce = getCE(targetce);
+//                if (targetce == CollationElementIterator.IGNORABLE) {
+//                    continue;
+//                }
+//    
+//                patternceindex --;
+//                found = found && targetce == m_pattern_.m_CE_[patternceindex]; 
+//            }
+//            
+//            targetce = lastce;
+//    
+//            if (!found) {
+//                textoffset = shiftForward(textoffset, lastce, patternceindex);
+//                // status checked at loop.
+//                patternceindex = m_pattern_.m_CELength_;
+//                continue;
+//            }
+//            
+//            if (checkNextExactMatch(textoffset)) {
+//                // status checked in ucol_setOffset
+//                return;
+//            }
+//            textoffset = m_utilBuffer_[0];
+//        }
+//        setMatchNotFound();
+        int textOffset = m_colEIter_.getOffset();
+
+        if (!search(textOffset)) {
+            setMatchNotFound();
         }
-        setMatchNotFound();
+
     }
 
     /**
@@ -3580,6 +3613,12 @@ public final class StringSearch extends SearchIterator
             textoffset = m_utilBuffer_[0];
         }
         setMatchNotFound();
+//      int textOffset = m_colEIter_.getOffset();
+//
+//                if (!search(textOffset)) {
+//                    setMatchNotFound();
+//                }
+
     }
     
     /**
@@ -3662,6 +3701,32 @@ public final class StringSearch extends SearchIterator
             textoffset = m_utilBuffer_[0];
         }
         setMatchNotFound();
+        
+//        int textOffset;
+//
+//        if (isOverlapping()) {
+//            if (m_matchedIndex_ != DONE) {
+//                textOffset = m_matchedIndex_ + matchLength - 1;
+//            } else {
+//                // move the start position at the end of possible match
+//                initializePatternPCETable();
+//                for (int nPCEs = 0; nPCEs < m_pattern_.m_PCELength_ - 1; nPCEs++) {
+//                    long pce = m_colEIter_.nextProcessed();
+//                    if (pce == CollationElementIterator.PROCESSED_NULLORDER) {
+//                        // at the end of the text
+//                        break;
+//                    }
+//                }
+//                textOffset = m_colEIter_.getOffset();
+//            }
+//        } else {
+//            textOffset = m_colEIter_.getOffset();
+//        }
+//
+//        if (!searchBackwards(textOffset)) {
+//            setMatchNotFound();
+//        }
+        
     }
     
     /**
@@ -3754,6 +3819,30 @@ public final class StringSearch extends SearchIterator
             textoffset = m_utilBuffer_[0];
         }
         setMatchNotFound();
+//      int textOffset;
+//
+//                if (isOverlapping()) {
+//                    if (m_matchedIndex_ != DONE) {
+//                        textOffset = m_matchedIndex_ + matchLength - 1;
+//                    } else {
+//                        // move the start position at the end of possible match
+//                        initializePatternPCETable();
+//                        for (int nPCEs = 0; nPCEs < m_pattern_.m_PCELength_ - 1; nPCEs++) {
+//                            long pce = m_colEIter_.nextProcessed();
+//                            if (pce == CollationElementIterator.PROCESSED_NULLORDER) {
+//                                // at the end of the text
+//                                break;
+//                            }
+//                        }
+//                        textOffset = m_colEIter_.getOffset();
+//                    }
+//                } else {
+//                    textOffset = m_colEIter_.getOffset();
+//                }
+//
+//                if (!searchBackwards(textOffset)) {
+//                    setMatchNotFound();
+//                }
     }
     
     /**

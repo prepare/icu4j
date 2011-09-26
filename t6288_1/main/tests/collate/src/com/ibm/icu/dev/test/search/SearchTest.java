@@ -2022,6 +2022,65 @@ public class SearchTest extends TestFmwk {
         }
     }
 
+    //Test for ticket 5024
+    public void Test5240() {
+        String rules = CONTRACTIONRULE;
+        RuleBasedCollator collator = null;
+        try {
+            collator = new RuleBasedCollator(rules);
+            collator.setStrength(Collator.PRIMARY);
+            collator.setDecomposition(Collator.NO_DECOMPOSITION);
+        } catch (Exception e) {
+            errln("Error opening collator ");
+        }
+        String pattern = "Ű";
+        String text = "abű";
+//        String pattern = "Test";
+//        String text = "test test test";
+        StringSearch strsrch = null;
+        try {
+            strsrch = new StringSearch(pattern, new StringCharacterIterator(text), collator, null);
+        } catch (Exception e) {
+            errln("Error opening string search ");
+            return;
+        }
+        
+        System.out.println("");
+        int pos = 0;
+        while (pos >= 0) {
+          pos = strsrch.next();
+          System.out.println(pos);
+        }
+    }
+
+    public void Test5240_1() {
+        String pattern = "d";
+        String text = "bad";
+//        String pattern = "Ű";
+//        String text = "abű";
+//        String pattern = "Test";
+//        String text = "test test test";
+        StringSearch strsrch = null;
+        try {
+            strsrch = new StringSearch(pattern, text);
+        } catch (Exception e) {
+            errln("Error opening string search ");
+            return;
+        }
+        
+        RuleBasedCollator collator = strsrch.getCollator();
+        collator.setStrength(Collator.SECONDARY);
+        strsrch.setCollator(collator);
+        strsrch.reset();
+        
+        System.out.println("");
+        int pos = 0;
+        while (pos >= 0) {
+          pos = strsrch.next();
+          System.out.println(pos);
+        }
+    }
+
     public void TestUsingSearchCollator() {
         String scKoText =
             " " +
