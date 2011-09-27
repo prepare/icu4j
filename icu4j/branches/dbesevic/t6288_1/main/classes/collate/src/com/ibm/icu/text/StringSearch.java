@@ -2866,7 +2866,7 @@ public final class StringSearch extends SearchIterator
     private int nextBoundaryAfter(int startIndex) 
     {
         if (m_charBreakIter_ != null) {
-            m_charBreakIter_.following(startIndex);
+            return m_charBreakIter_.following(startIndex);
         }
 
         return startIndex;
