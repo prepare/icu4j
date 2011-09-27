@@ -406,7 +406,7 @@ public final class CollationElementIterator
         if (m_PCE_ == null) {
             m_PCE_ = new CollationPCE(this);
         } else {
-            m_PCE_.getPceBuffer().reset();
+            //m_PCE_.getPceBuffer().reset();
         }
         
         m_reset_ = false;

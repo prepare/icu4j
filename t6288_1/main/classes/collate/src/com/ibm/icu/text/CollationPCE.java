@@ -81,7 +81,7 @@ public class CollationPCE
             tempBuf.low  = ixLow;
             tempBuf.high = ixHigh;
             
-            buffer.add(tempBuf);
+            buffer.add(bufferIndex, tempBuf);
 
             bufferIndex += 1;
         }
@@ -139,7 +139,7 @@ public class CollationPCE
             tempBuf.low  = ixLow;
             tempBuf.high = ixHigh;
             
-            buffer.add(tempBuf);
+            buffer.add(bufferIndex, tempBuf);
 
             bufferIndex += 1;
         }
