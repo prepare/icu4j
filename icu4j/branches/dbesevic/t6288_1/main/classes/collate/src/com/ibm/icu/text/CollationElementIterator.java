@@ -428,7 +428,7 @@ public final class CollationElementIterator
                         break;
                     }
 
-                    isNullOrder = false;
+                    isNullOrder = true;
                     break;
                 }
 

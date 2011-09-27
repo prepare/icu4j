@@ -65,7 +65,7 @@ public class CollationPCE
 
         public boolean empty()
         {
-            return buffer.isEmpty();
+            return bufferIndex <= 0;
         }
         
         public void put(int ce, int ixLow, int ixHigh)
@@ -89,7 +89,7 @@ public class CollationPCE
         public RCEI get()
         {
             if (bufferIndex > 0) {
-                return buffer.get(bufferIndex--);
+                return buffer.get(--bufferIndex);
             }
 
             return null;
@@ -118,7 +118,7 @@ public class CollationPCE
 
         public boolean empty()
         {
-            return buffer.isEmpty();
+            return bufferIndex <= 0;
         }
         
         public void reset()
@@ -147,7 +147,7 @@ public class CollationPCE
         public PCEI get()
         {
             if (bufferIndex > 0) {
-                return buffer.get(bufferIndex--);
+                return buffer.get(--bufferIndex);
             }
 
             return null;
