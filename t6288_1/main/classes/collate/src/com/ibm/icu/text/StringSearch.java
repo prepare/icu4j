@@ -2855,7 +2855,13 @@ public final class StringSearch extends SearchIterator
      */
     private boolean isBreakBoundary(int index) 
     {
-        return ((m_charBreakIter_ != null) && m_charBreakIter_.isBoundary(index));
+        BreakIterator breakIter = breakIterator;
+        
+        if (breakIter == null) {
+            breakIter = m_charBreakIter_;
+        }
+        
+        return ((breakIter != null) && breakIter.isBoundary(index));
     }
     
     /*
