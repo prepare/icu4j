@@ -581,11 +581,18 @@
             <include name="lib/*.jar"/>
         </fileset>
         <pathconvert property="jcite.libs" refid="jcite.files"/>
-        <echo message="${jcite.libs}"/>
+
+        <dirset dir="${basedir}" id="jcite.src.dirs">
+            <include name="samples/src"/>
+            <include name="demos/src"/>
+            <include name="main/tests/*/src"/>
+        </dirset>
+        <pathconvert property="jcite.addl.src" refid="jcite.src.dirs"/>
     </target>
 
     <target name="_docsWithJCite" if="jcite.libs">
-        <echo message="!!! building docs with JCite !!!!"/>
+        <echo message="JCite library path:             ${jcite.libs}"/>
+        <echo message="JCite additional source path:   ${jcite.addl.src}"/>
         <javadoc
                 destdir="${doc.dir}"
                 nodeprecatedlist="true"
@@ -594,7 +601,7 @@
                 encoding="${java.src.encoding}"
                 docencoding="UTF-8"
                 bottom="&lt;font size=-1&gt;Copyright (c) ${current.year} IBM Corporation and others.&lt;/font&gt;"
-                additionalparam="-breakiterator -use -tagletpath ${icu4j.build-tools.jar}${path.separator}${jcite.libs} -taglet com.ibm.icu.dev.tool.docs.ICUTaglet -taglet ch.arrenbrecht.jcite.JCiteTaglet -J-Djciteverbose=true"
+                additionalparam="-breakiterator -use -tagletpath ${icu4j.build-tools.jar}${path.separator}${jcite.libs} -taglet com.ibm.icu.dev.tool.docs.ICUTaglet -taglet ch.arrenbrecht.jcite.JCiteTaglet -J-Djciteverbose=true -J-Djcitesourcepath=${jcite.addl.src}"
                 link="http://java.sun.com/javase/6/docs/api/"
                 source="1.5"
                 stylesheetfile="stylesheet.css">
