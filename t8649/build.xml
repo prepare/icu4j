@@ -570,7 +570,53 @@
     </target>
 
     <!-- doc targets -->
-    <target name="docs" depends="info, build-tools" description="Build API documents">
+    <target name="docs" depends="info, build-tools, _checkJCite" description="Build API documents">
+        <antcall target="_docsWithJCite"/>
+        <antcall target="_docsWithoutJCite"/>
+    </target>
+
+    <target name="_checkJCite" if="env.JCITE_DIR">
+        <fileset dir="${env.JCITE_DIR}" id="jcite.files">
+            <include name="build/*.jar"/>
+            <include name="lib/*.jar"/>
+        </fileset>
+        <pathconvert property="jcite.libs" refid="jcite.files"/>
+        <echo message="${jcite.libs}"/>
+    </target>
+
+    <target name="_docsWithJCite" if="jcite.libs">
+        <echo message="!!! building docs with JCite !!!!"/>
+        <javadoc
+                destdir="${doc.dir}"
+                nodeprecatedlist="true"
+                windowtitle="icu4j"
+                doctitle="icu4j"
+                encoding="${java.src.encoding}"
+                docencoding="UTF-8"
+                bottom="&lt;font size=-1&gt;Copyright (c) ${current.year} IBM Corporation and others.&lt;/font&gt;"
+                additionalparam="-breakiterator -use -tagletpath ${icu4j.build-tools.jar}${path.separator}${jcite.libs} -taglet com.ibm.icu.dev.tool.docs.ICUTaglet -taglet ch.arrenbrecht.jcite.JCiteTaglet -J-Djciteverbose=true"
+                link="http://java.sun.com/javase/6/docs/api/"
+                source="1.5"
+                stylesheetfile="stylesheet.css">
+            <packageset dir="${icu4j.core.dir}/src">
+                <include name="com/ibm/icu/lang/**"/>
+                <include name="com/ibm/icu/math/**"/>
+                <include name="com/ibm/icu/text/**"/>
+                <include name="com/ibm/icu/util/**"/>
+            </packageset>
+            <packageset dir="${icu4j.collate.dir}/src">
+                <include name="com/ibm/icu/text/**"/>
+            </packageset>
+            <packageset dir="${icu4j.translit.dir}/src">
+                <include name="com/ibm/icu/text/**"/>
+            </packageset>
+            <packageset dir="${icu4j.charset.dir}/src">
+                <include name="com/ibm/icu/charset/**"/>
+            </packageset>
+        </javadoc>
+    </target>
+
+    <target name="_docsWithoutJCite" unless="jcite.libs">
         <javadoc
                 destdir="${doc.dir}"
                 nodeprecatedlist="true"
@@ -581,7 +627,8 @@
                 bottom="&lt;font size=-1&gt;Copyright (c) ${current.year} IBM Corporation and others.&lt;/font&gt;"
                 additionalparam="-breakiterator -use -tagletpath ${icu4j.build-tools.jar} -taglet com.ibm.icu.dev.tool.docs.ICUTaglet"
                 link="http://java.sun.com/javase/6/docs/api/"
-                source="1.5">
+                source="1.5"
+                stylesheetfile="stylesheet.css">
             <packageset dir="${icu4j.core.dir}/src">
                 <include name="com/ibm/icu/lang/**"/>
                 <include name="com/ibm/icu/math/**"/>
