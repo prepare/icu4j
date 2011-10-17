@@ -20,15 +20,15 @@ import com.ibm.icu.util.ULocale;
 /**
  * com.ibm.icu.util.BasicTimeZone Coding Examples
  */
-public class BasicTimeZoneDemo {
+public class BasicTimeZoneExample {
     public static void main(String... args) {
-        nextTransitionDemo();
-        previousTransitionDemo();
-        timeZoneRulesDemo();
-        equivalentTransitionsDemo();
+        nextTransitionExample();
+        previousTransitionExample();
+        timeZoneRulesExample();
+        equivalentTransitionsExample();
     }
 
-    public static void nextTransitionDemo() {
+    public static void nextTransitionExample() {
         // ---getNextTransitionExample
         System.out.println("### Iterates time zone transitions in America/Los_Angeles starting 2005-01-01 and forward");
 
@@ -55,7 +55,7 @@ public class BasicTimeZoneDemo {
         // ---getNextTransitionExample
     }
 
-    public static void previousTransitionDemo() {
+    public static void previousTransitionExample() {
         // ---getPreviousTransitionExample
         System.out.println("### Iterates time zone transitions in America/Los_Angeles starting 2010-01-01 and backward");
 
@@ -82,7 +82,7 @@ public class BasicTimeZoneDemo {
         // ---getPreviousTransitionExample
     }
 
-    public static void timeZoneRulesDemo() {
+    public static void timeZoneRulesExample() {
         // ---getTimeZoneRulesExample
         System.out.println("### Extracts time zone rules used by America/Los_Angeles since year 2005");
 
@@ -97,7 +97,7 @@ public class BasicTimeZoneDemo {
         // ---getTimeZoneRulesExample
     }
 
-    public static void equivalentTransitionsDemo() {
+    public static void equivalentTransitionsExample() {
         // ---hasEquivalentTransitionsExample
         System.out.println("### Compare America/New_York and America/Detroit since year 1970");
 
