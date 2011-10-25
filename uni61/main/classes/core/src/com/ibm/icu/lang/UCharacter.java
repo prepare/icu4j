@@ -1025,10 +1025,35 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
         /** @stable ICU 4.6 */
         public static final int CJK_UNIFIED_IDEOGRAPHS_EXTENSION_D_ID = 209; /*[2B740]*/
 
+        /* New blocks in Unicode 6.1 */
+
+        /** @stable ICU 49 */
+        public static final int ARABIC_EXTENDED_A_ID = 210; /*[08A0]*/
+        /** @stable ICU 49 */
+        public static final int ARABIC_MATHEMATICAL_ALPHABETIC_SYMBOLS_ID = 211; /*[1EE00]*/
+        /** @stable ICU 49 */
+        public static final int CHAKMA_ID = 212; /*[11100]*/
+        /** @stable ICU 49 */
+        public static final int MEETEI_MAYEK_EXTENSIONS_ID = 213; /*[AAE0]*/
+        /** @stable ICU 49 */
+        public static final int MEROITIC_CURSIVE_ID = 214; /*[109A0]*/
+        /** @stable ICU 49 */
+        public static final int MEROITIC_HIEROGLYPHS_ID = 215; /*[10980]*/
+        /** @stable ICU 49 */
+        public static final int MIAO_ID = 216; /*[16F00]*/
+        /** @stable ICU 49 */
+        public static final int SHARADA_ID = 217; /*[11180]*/
+        /** @stable ICU 49 */
+        public static final int SORA_SOMPENG_ID = 218; /*[110D0]*/
+        /** @stable ICU 49 */
+        public static final int SUNDANESE_SUPPLEMENT_ID = 219; /*[1CC0]*/
+        /** @stable ICU 49 */
+        public static final int TAKRI_ID = 220; /*[11680]*/
+
         /**
          * @stable ICU 2.4
          */
-        public static final int COUNT = 210;
+        public static final int COUNT = 221;
 
         // blocks objects ---------------------------------------------------
 
@@ -2111,6 +2136,38 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
         public static final UnicodeBlock CJK_UNIFIED_IDEOGRAPHS_EXTENSION_D =
             new UnicodeBlock("CJK_UNIFIED_IDEOGRAPHS_EXTENSION_D",
                              CJK_UNIFIED_IDEOGRAPHS_EXTENSION_D_ID); /*[2B740]*/
+
+        /* New blocks in Unicode 6.1 */
+
+        /** @stable ICU 49 */
+        public static final UnicodeBlock ARABIC_EXTENDED_A =
+            new UnicodeBlock("ARABIC_EXTENDED_A", ARABIC_EXTENDED_A_ID); /*[08A0]*/
+        /** @stable ICU 49 */
+        public static final UnicodeBlock ARABIC_MATHEMATICAL_ALPHABETIC_SYMBOLS =
+            new UnicodeBlock("ARABIC_MATHEMATICAL_ALPHABETIC_SYMBOLS", ARABIC_MATHEMATICAL_ALPHABETIC_SYMBOLS_ID); /*[1EE00]*/
+        /** @stable ICU 49 */
+        public static final UnicodeBlock CHAKMA = new UnicodeBlock("CHAKMA", CHAKMA_ID); /*[11100]*/
+        /** @stable ICU 49 */
+        public static final UnicodeBlock MEETEI_MAYEK_EXTENSIONS =
+            new UnicodeBlock("MEETEI_MAYEK_EXTENSIONS", MEETEI_MAYEK_EXTENSIONS_ID); /*[AAE0]*/
+        /** @stable ICU 49 */
+        public static final UnicodeBlock MEROITIC_CURSIVE =
+            new UnicodeBlock("MEROITIC_CURSIVE", MEROITIC_CURSIVE_ID); /*[109A0]*/
+        /** @stable ICU 49 */
+        public static final UnicodeBlock MEROITIC_HIEROGLYPHS =
+            new UnicodeBlock("MEROITIC_HIEROGLYPHS", MEROITIC_HIEROGLYPHS_ID); /*[10980]*/
+        /** @stable ICU 49 */
+        public static final UnicodeBlock MIAO = new UnicodeBlock("MIAO", MIAO_ID); /*[16F00]*/
+        /** @stable ICU 49 */
+        public static final UnicodeBlock SHARADA = new UnicodeBlock("SHARADA", SHARADA_ID); /*[11180]*/
+        /** @stable ICU 49 */
+        public static final UnicodeBlock SORA_SOMPENG =
+            new UnicodeBlock("SORA_SOMPENG", SORA_SOMPENG_ID); /*[110D0]*/
+        /** @stable ICU 49 */
+        public static final UnicodeBlock SUNDANESE_SUPPLEMENT =
+            new UnicodeBlock("SUNDANESE_SUPPLEMENT", SUNDANESE_SUPPLEMENT_ID); /*[1CC0]*/
+        /** @stable ICU 49 */
+        public static final UnicodeBlock TAKRI = new UnicodeBlock("TAKRI", TAKRI_ID); /*[11680]*/
 
         /**
          * @stable ICU 2.4
