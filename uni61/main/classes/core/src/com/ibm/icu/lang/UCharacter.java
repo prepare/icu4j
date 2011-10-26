@@ -2694,10 +2694,12 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
         public static final int FARSI_YEH = 55;
         /** @stable ICU 4.4 */
         public static final int NYA = 56;
+        /** @stable ICU 49 */
+        public static final int ROHINGYA_YEH = 57;
         /**
          * @stable ICU 2.4
          */
-        public static final int COUNT = 57;
+        public static final int COUNT = 58;
     }
 
     /**
@@ -3025,25 +3027,18 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
          * @stable ICU 2.4
          */
         public static final int ZWSPACE = 28;
-
         /**
          * @stable ICU 2.6
          */
-        public static final int NEXT_LINE = 29;       /*[NL]*/
-
-        /* from here on: new in Unicode 4/ICU 2.6 */
-
+        public static final int NEXT_LINE = 29;  /*[NL]*/ /* from here on: new in Unicode 4/ICU 2.6 */
         /**
          * @stable ICU 2.6
          */
         public static final int  WORD_JOINER = 30;      /*[WJ]*/
-
-        /* from here on: new in Unicode 4.1/ICU 3.4 */
-
         /**
          * @stable ICU 3.4
          */
-        public static final int  H2 = 31;
+        public static final int  H2 = 31;  /* from here on: new in Unicode 4.1/ICU 3.4 */
         /**
          * @stable ICU 3.4
          */
@@ -3061,10 +3056,9 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
          */
         public static final int  JV = 35;
         /** @stable ICU 4.4 */
-        public static final int  CLOSE_PARENTHESIS = 36; /*[CP]*/
-
-        /* new in Unicode 5.2/ICU 4.4 */
-
+        public static final int  CLOSE_PARENTHESIS = 36; /*[CP]*/ /* new in Unicode 5.2/ICU 4.4 */
+        /** @stable ICU 49 */
+        public static final int  HEBREW_LETTER = 37;  /*[HL]*/ /* new in Unicode 6.1/ICU 49 */
         /**
          * @stable ICU 2.4
          */
