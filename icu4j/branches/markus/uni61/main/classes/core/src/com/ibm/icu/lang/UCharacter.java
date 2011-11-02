@@ -3062,7 +3062,7 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
         /**
          * @stable ICU 2.4
          */
-        public static final int COUNT = 37;
+        public static final int COUNT = 38;
     }
 
     /**
