@@ -381,7 +381,9 @@ public class TestUScript extends TestFmwk {
         if(!UScript.getScriptExtensions(0x063f, scripts).isEmpty()) {
             errln("UScript.getScriptExtensions(U+063F) is not empty");
         }
-        if(UScript.getScriptExtensions(0x0640, scripts).cardinality()!=2 || !scripts.get(UScript.ARABIC) || !scripts.get(UScript.SYRIAC)) {
+        if(UScript.getScriptExtensions(0x0640, scripts).cardinality()!=3 ||
+           !scripts.get(UScript.ARABIC) || !scripts.get(UScript.SYRIAC) || !scripts.get(UScript.MANDAIC)
+        ) {
             errln("UScript.getScriptExtensions(U+0640) failed");
         }
         UScript.getScriptExtensions(0xfdf2, scripts);
