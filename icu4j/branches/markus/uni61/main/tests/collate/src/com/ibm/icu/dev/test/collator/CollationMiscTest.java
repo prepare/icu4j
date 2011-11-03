@@ -3360,7 +3360,11 @@ public class CollationMiscTest extends TestFmwk {
                 UScript.UGARITIC,               //Ugar
                 UScript.OLD_PERSIAN,            //Xpeo
                 UScript.CUNEIFORM,              //Xsux
-                UScript.EGYPTIAN_HIEROGLYPHS    //Egyp
+                UScript.EGYPTIAN_HIEROGLYPHS,   //Egyp
+                UScript.PHONETIC_POLLARD,       //Plrd
+                UScript.SORA_SOMPENG,           //Sora
+                UScript.MEROITIC_CURSIVE,       //Merc
+                UScript.MEROITIC_HIEROGLYPHS    //Mero
         };
         Arrays.sort(equivalentScriptsResult);
         
