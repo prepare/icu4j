@@ -2861,7 +2861,7 @@ public final class StringSearch extends SearchIterator
             breakIter = m_charBreakIter_;
         }
         
-        return ((breakIter != null) && breakIter.isBoundary(index));
+        return ((index >= 0) && (breakIter != null) && breakIter.isBoundary(index));
     }
     
     /*
@@ -3086,7 +3086,7 @@ public final class StringSearch extends SearchIterator
             //       to the first CE after the match. In this case, we reject the match.
             CollationElementBuffer.CEI nextCEI = null;
             // TODO: implement strsrch->search->elementComparisonType == 0 instead of false
-            if (false) {
+            if (true) {
                 nextCEI  = ceb.get(targetIx + targetIxOffset);
                 maxLimit = nextCEI.lowIndex;
                 if (nextCEI.lowIndex == nextCEI.highIndex && nextCEI.ce != CollationElementIterator.PROCESSED_NULLORDER) {
@@ -3323,7 +3323,7 @@ public final class StringSearch extends SearchIterator
                 //    Note that the target CE will be UCOL_NULLORDER if we reach the end of input,
                 //    which will fail the compare, below.
                 // TODO: use strsrch->search->elementComparisonType instead 1
-                int ceMatch = compareCE64s(targetCEI.ce, patCE, 1);
+                int ceMatch = compareCE64s(targetCEI.ce, patCE, 0);
                 if ( ceMatch == U_CE_NO_MATCH ) {
                     found = false;
                     break;
@@ -3529,7 +3529,7 @@ public final class StringSearch extends SearchIterator
 //        setMatchNotFound();
         int textOffset = m_colEIter_.getOffset();
 
-        if (!search(textOffset)) {
+        if (!search(start)) {
             setMatchNotFound();
         }
 
@@ -3621,7 +3621,7 @@ public final class StringSearch extends SearchIterator
 //        setMatchNotFound();
       int textOffset = m_colEIter_.getOffset();
 
-                if (!search(textOffset)) {
+                if (!search(start)) {
                     setMatchNotFound();
                 }
 

@@ -417,6 +417,7 @@ public final class CollationElementIterator
             RCEBuffer rceb = m_PCE_.getRceBuffer();
             int ce;
             boolean isNullOrder = false;
+            rceb.reset();
             
             // **** do we need to reset rceb, or will it always be empty at this point ****
             do {
@@ -462,8 +463,8 @@ public final class CollationElementIterator
 
         PCEI pcei = m_PCE_.getPceBuffer().get();
 
-        retValue.lowIndex = low;
-        retValue.highIndex = high;
+        retValue.lowIndex = pcei.low;
+        retValue.highIndex = pcei.high;
         retValue.ce = pcei.ce;
         
         return retValue;

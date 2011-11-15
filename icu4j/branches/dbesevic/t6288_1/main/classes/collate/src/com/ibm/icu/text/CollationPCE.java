@@ -94,6 +94,12 @@ public class CollationPCE
 
             return null;
         }
+        
+        public void reset()
+        {
+            bufferIndex = 0;
+            buffer.clear();
+        }
     }
 
     public class PCEI 
