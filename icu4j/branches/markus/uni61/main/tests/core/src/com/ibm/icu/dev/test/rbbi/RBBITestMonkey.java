@@ -70,6 +70,7 @@ public class RBBITestMonkey extends TestFmwk {
  
     /**
      * Monkey test subclass for testing Character (Grapheme Cluster) boundaries.
+     * NOte: As of Unicode 6.1, the Prepend set is empty, so skip all Prepend-related stuff here
      */
     static class RBBICharMonkey extends RBBIMonkeyKind {
         List                      fSets;
@@ -77,7 +78,7 @@ public class RBBITestMonkey extends TestFmwk {
         UnicodeSet                fCRLFSet;
         UnicodeSet                fControlSet;
         UnicodeSet                fExtendSet;
-        UnicodeSet                fPrependSet;
+        //UnicodeSet                fPrependSet;
         UnicodeSet                fSpacingSet;
         UnicodeSet                fLSet;
         UnicodeSet                fVSet;
@@ -96,7 +97,7 @@ public class RBBITestMonkey extends TestFmwk {
         fCRLFSet    = new UnicodeSet("[\\r\\n]");
         fControlSet = new UnicodeSet("[\\p{Grapheme_Cluster_Break = Control}]");
         fExtendSet  = new UnicodeSet("[\\p{Grapheme_Cluster_Break = Extend}]");
-        fPrependSet = new UnicodeSet("[\\p{Grapheme_Cluster_Break = Prepend}]");
+        //fPrependSet = new UnicodeSet("[\\p{Grapheme_Cluster_Break = Prepend}]");
         fSpacingSet = new UnicodeSet("[\\p{Grapheme_Cluster_Break = SpacingMark}]");
         fLSet       = new UnicodeSet("[\\p{Grapheme_Cluster_Break = L}]");
         fVSet       = new UnicodeSet("[\\p{Grapheme_Cluster_Break = V}]");
@@ -116,7 +117,7 @@ public class RBBITestMonkey extends TestFmwk {
         fSets.add(fCRLFSet);
         fSets.add(fControlSet);
         fSets.add(fExtendSet);
-        fSets.add(fPrependSet);
+        //fSets.add(fPrependSet);
         fSets.add(fSpacingSet);
         fSets.add(fHangulSet);
         fSets.add(fAnySet);
@@ -223,9 +224,9 @@ public class RBBITestMonkey extends TestFmwk {
             }
     
             // Rule (GB9b)   Prepend x
-            if (fPrependSet.contains(c1)) {
-                continue;
-            }
+            //if (fPrependSet.contains(c1)) {
+            //    continue;
+            //}
     
             // Rule (GB10)  Any  <break>  Any
             break;
