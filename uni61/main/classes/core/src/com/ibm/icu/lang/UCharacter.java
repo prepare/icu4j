@@ -3034,35 +3034,37 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
         /**
          * @stable ICU 2.6
          */
-        public static final int  WORD_JOINER = 30;      /*[WJ]*/
+        public static final int WORD_JOINER = 30;      /*[WJ]*/
         /**
          * @stable ICU 3.4
          */
-        public static final int  H2 = 31;  /* from here on: new in Unicode 4.1/ICU 3.4 */
+        public static final int H2 = 31;  /* from here on: new in Unicode 4.1/ICU 3.4 */
         /**
          * @stable ICU 3.4
          */
-        public static final int  H3 = 32;
+        public static final int H3 = 32;
         /**
          * @stable ICU 3.4
          */
-        public static final int  JL = 33;
+        public static final int JL = 33;
         /**
          * @stable ICU 3.4
          */
-        public static final int  JT = 34;
+        public static final int JT = 34;
         /**
          * @stable ICU 3.4
          */
-        public static final int  JV = 35;
+        public static final int JV = 35;
         /** @stable ICU 4.4 */
-        public static final int  CLOSE_PARENTHESIS = 36; /*[CP]*/ /* new in Unicode 5.2/ICU 4.4 */
+        public static final int CLOSE_PARENTHESIS = 36; /*[CP]*/ /* new in Unicode 5.2/ICU 4.4 */
         /** @stable ICU 49 */
-        public static final int  HEBREW_LETTER = 37;  /*[HL]*/ /* new in Unicode 6.1/ICU 49 */
+        public static final int CONDITIONAL_JAPANESE_STARTER = 37;  /*[CJ]*/ /* new in Unicode 6.1/ICU 49 */
+        /** @stable ICU 49 */
+        public static final int HEBREW_LETTER = 38;  /*[HL]*/ /* new in Unicode 6.1/ICU 49 */
         /**
          * @stable ICU 2.4
          */
-        public static final int COUNT = 38;
+        public static final int COUNT = 39;
     }
 
     /**
