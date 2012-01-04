@@ -1,7 +1,7 @@
 /*
  * @(#)TimeZone.java    1.51 00/01/19
  *
- * Copyright (C) 1996-2011, International Business Machines
+ * Copyright (C) 1996-2012, International Business Machines
  * Corporation and others.  All Rights Reserved.
  */
 
@@ -650,6 +650,32 @@ abstract public class TimeZone implements Serializable, Cloneable, Freezable<Tim
      * @stable ICU 2.0
      */
     abstract public boolean useDaylightTime();
+
+    /**
+     * Queries if this time zone is in daylight saving time or will observe
+     * daylight saving time at any future time.
+     * <p>The default implementation in this class returns <code>true</code> if {@link #useDaylightTime()}
+     * or {@link #inDaylightTime(Date) inDaylightTime(new Date())} returns <code>true</code>.
+     * <p><strong>Note:</strong> This method was added for JDK compatibility support.
+     * The JDK's <code>useDaylightTime()</code> only checks the last known rule(s),
+     * unlike ICU implementation (which checks availability of daylight saving time
+     * in the current year). Therefore, <code>useDaylightTime()</code> in JDK may return
+     * <code>false</code> even the time zone is in daylight saving time currently.
+     * In ICU, {@link #useDaylightTime()} always returns <code>true</code> if the time zone
+     * is currently in daylight saving time. For this reason, the behavior of the default
+     * implementation in this class may differ from the JDK's behavior too. ICU's TimeZone
+     * subclass implementations override this method to support the exact same behavior with JDK's
+     * <code>observesDaylightSavingTime()</code>, which returns <code>false</code> even daylight
+     * saving time occurred earlier in the same year (and not currently in daylight saving time).
+     * @return <code>true</code> if this time zone is in daylight saving time or will observe
+     * daylight saving time at any future time.
+     * @see #useDaylightTime
+     * 
+     * @stable ICU 49
+     */
+    public boolean observesDaylightTime() {
+        return useDaylightTime() || inDaylightTime(new Date());
+    }
 
     /**
      * Queries if the given date is in daylight savings time in

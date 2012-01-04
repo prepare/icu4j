@@ -142,6 +142,16 @@ public class VTimeZone extends BasicTimeZone {
 
     /**
      * {@inheritDoc}
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
+     */
+    @Override
+    public boolean observesDaylightTime() {
+        return tz.observesDaylightTime();
+    }
+
+    /**
+     * {@inheritDoc}
      * @stable ICU 3.8
      */
     @Override
