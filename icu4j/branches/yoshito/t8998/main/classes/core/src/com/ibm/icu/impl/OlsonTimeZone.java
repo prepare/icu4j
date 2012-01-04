@@ -334,6 +334,38 @@ public class OlsonTimeZone extends BasicTimeZone {
         return false;
     }
 
+    /* (non-Javadoc)
+     * @see com.ibm.icu.util.TimeZone#observesDaylightTime()
+     */
+    @Override
+    public boolean observesDaylightTime() {
+        long current = System.currentTimeMillis();
+
+        if (finalZone != null && current >= finalStartMillis) {
+            if (finalZone.useDaylightTime()) {
+                return true;
+            }
+        }
+        
+        // Return TRUE if DST is observed at any future time
+        long currentSec = Grego.floorDivide(current, Grego.MILLIS_PER_SECOND);
+        boolean bFutureTransition = false;
+        for (int i = 0; i < transitionCount; ++i) {
+            if (bFutureTransition) {
+                if (dstOffsetAt(i) != 0) {
+                    return true;
+                }
+            } else if (transitionTimes64[i] > currentSec) {
+                // The first transition after the current time.
+                // Checks both before and after the transition.
+                if (dstOffsetAt(i - 1) != 0 || dstOffsetAt(i) != 0) {
+                    return true;
+                }
+                bFutureTransition = true;
+            }
+        }
+        return false;
+    }
     /**
      * TimeZone API
      * Returns the amount of time to be added to local standard time
