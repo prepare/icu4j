@@ -656,21 +656,24 @@ abstract public class TimeZone implements Serializable, Cloneable, Freezable<Tim
      * daylight saving time at any future time.
      * <p>The default implementation in this class returns <code>true</code> if {@link #useDaylightTime()}
      * or {@link #inDaylightTime(Date) inDaylightTime(new Date())} returns <code>true</code>.
-     * <p><strong>Note:</strong> This method was added for JDK compatibility support.
-     * The JDK's <code>useDaylightTime()</code> only checks the last known rule(s),
-     * unlike ICU implementation (which checks availability of daylight saving time
-     * in the current year). Therefore, <code>useDaylightTime()</code> in JDK may return
-     * <code>false</code> even the time zone is in daylight saving time currently.
-     * In ICU, {@link #useDaylightTime()} always returns <code>true</code> if the time zone
-     * is currently in daylight saving time. For this reason, the behavior of the default
-     * implementation in this class may differ from the JDK's behavior too. ICU's TimeZone
-     * subclass implementations override this method to support the exact same behavior with JDK's
-     * <code>observesDaylightSavingTime()</code>, which returns <code>false</code> even daylight
-     * saving time occurred earlier in the same year (and not currently in daylight saving time).
+     * <p>
+     * <strong>Note:</strong> This method was added for JDK compatibility support.
+     * The JDK's <code>useDaylightTime()</code> only checks the last known rule(s), therefore
+     * it may return false even the zone observes daylight saving time currently. JDK added
+     * <code>observesDaylightTime()</code> to resolve the issue. In ICU, {@link #useDaylightTime()}
+     * works differently. The ICU implementation checks if the zone uses daylight saving time
+     * in the current calendar year. Therefore, it will never return <code>false</code> if
+     * daylight saving time is currently used.
+     * <p>
+     * ICU's TimeZone subclass implementations override this method to support the same behavior
+     * with JDK's <code>observesDaylightSavingTime()</code>. Unlike {@link #useDaylightTime()},
+     * the implementation does not take past daylight saving time into account, so
+     * that this method may return <code>false</code> even when {@link #useDaylightTime()} returns
+     * <code>true</code>.
+     * 
      * @return <code>true</code> if this time zone is in daylight saving time or will observe
      * daylight saving time at any future time.
      * @see #useDaylightTime
-     * 
      * @stable ICU 49
      */
     public boolean observesDaylightTime() {
