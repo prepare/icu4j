@@ -223,7 +223,7 @@ public class ReportAPI {
             } else {
                 int change = statusChange(a, r);
                 if (change > 0) {
-                    if (r.isStable()) {
+                    if (a.isStable()) {
                         promotedStable.add(a);
                     } else {
                         promotedDraft.add(a);
