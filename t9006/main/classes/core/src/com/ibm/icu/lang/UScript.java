@@ -1034,7 +1034,8 @@ public final class UScript {
      * @param c code point
      * @param sc script code
      * @return true if Script(c)==sc or sc is in Script_Extensions(c)
-     * @stable ICU 4.6
+     * @draft ICU 4.6
+     * @provisional This API might change or be removed in a future release.
      */
     public static final boolean hasScript(int c, int sc) {
         int scriptX=UCharacterProperty.INSTANCE.getAdditional(c, 0)&UCharacterProperty.SCRIPT_X_MASK;
@@ -1074,7 +1075,8 @@ public final class UScript {
      * @param set set of script code integers; will be cleared, then bits are set
      *            corresponding to c's Script_Extensions
      * @return set
-     * @stable ICU 4.6
+     * @draft ICU 4.6
+     * @provisional This API might change or be removed in a future release.
      */
     public static final BitSet getScriptExtensions(int c, BitSet set) {
         set.clear();
