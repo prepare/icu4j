@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 1996-2011, International Business Machines Corporation and    *
+* Copyright (C) 1996-2010, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 */
@@ -384,11 +384,11 @@ final class RBBIDataWrapper {
         } else {
             int n;
             int state;
-            StringBuilder header = new StringBuilder(" Row  Acc Look  Tag");
+            String header = " Row  Acc Look  Tag";
             for (n=0; n<fHeader.fCatCount; n++) {
-                header.append(intToString(n, 5));
+                header += intToString(n, 5);     
             }
-            System.out.println(header.toString());
+            System.out.println(header);
             for (n=0; n<header.length(); n++) {
                 System.out.print("-");
             }

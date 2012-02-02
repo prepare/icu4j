@@ -1425,16 +1425,12 @@ public abstract class NumberFormat extends UFormat {
         ICUResourceBundle rb = (ICUResourceBundle)UResourceBundle.
         getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, forLocale);
         String[] numberPatternKeys = { "decimalFormat", "currencyFormat", "percentFormat", "scientificFormat" };
-        NumberingSystem ns = NumberingSystem.getInstance(forLocale);
-        
-        String result = null;
-        try {
-            result = rb.getStringWithFallback("NumberElements/" + ns.getName() + "/patterns/"+numberPatternKeys[entry]);
-        } catch ( MissingResourceException ex ) {
-            result = rb.getStringWithFallback("NumberElements/latn/patterns/"+numberPatternKeys[entry]);
-        }
-        
-        return result;
+        return rb.getStringWithFallback("NumberElements/latn/patterns/"+numberPatternKeys[entry]);
+        //
+        // TODO: Make lookups of patterns depend on the locale's numbering system.
+        //       Right now we assume "latn" because no locales have any variations this way.
+        //       But we have the structure in CLDR to do this.
+        //
     }
 
     /**

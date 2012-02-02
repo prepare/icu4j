@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2011, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2010, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -277,7 +277,7 @@ public final class UnicodeMap<T> implements Cloneable, Freezable, StringTransfor
             throw new UnsupportedOperationException("Attempt to modify locked object");
         }
         if (errorOnReset && values[baseIndex] != null) {
-            throw new UnsupportedOperationException("Attempt to reset value for " + Utility.hex(codepoint)
+            throw new IllegalArgumentException("Attempt to reset value for " + Utility.hex(codepoint)
                     + " when that is disallowed. Old: " + values[baseIndex] + "; New: " + value);
         }
 
@@ -916,47 +916,6 @@ public final class UnicodeMap<T> implements Cloneable, Freezable, StringTransfor
             throw new UnsupportedOperationException();
         }
 
-    }
-    
-    public static class EntryRange<T> {
-        public int codepoint;
-        public int codepointEnd;
-        public String string;
-        public T value;
-    }
-    
-    public Iterable<EntryRange> entryRanges() {
-        return new EntryRanges();
-    }
-
-    private class EntryRanges implements Iterable<EntryRange>, Iterator<EntryRange> {
-        int pos;
-        EntryRange result = new EntryRange();
-        Iterator<Entry<String, T>> stringIterator = stringMap == null ? null : stringMap.entrySet().iterator();
-        public Iterator<EntryRange> iterator() {
-            return this;
-        }
-        public boolean hasNext() {
-            return pos < length-1 || (stringIterator != null && stringIterator.hasNext());
-        }
-        public EntryRange next() {
-            if (pos < length-1) {
-                result.codepoint = transitions[pos];
-                result.codepointEnd = transitions[pos+1]-1;
-                result.string = null;
-                result.value = values[pos];
-                ++pos;
-            } else {
-                Entry<String, T> entry = stringIterator.next();
-                result.codepoint = result.codepointEnd = -1;
-                result.string = entry.getKey();
-                result.value = entry.getValue();
-            }
-            return result;
-        }
-        public void remove() {
-            throw new UnsupportedOperationException();
-        }
     }
 
     /* (non-Javadoc)

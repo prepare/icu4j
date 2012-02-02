@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2003-2011, International Business Machines Corporation and    *
+ * Copyright (C) 2003-2010, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -48,16 +48,18 @@ class NumberFormatServiceShim extends NumberFormat.NumberFormatShim {
         }
 
         public Object create(Key key, ICUService srvc) {
-            if (!handlesKey(key) || !(key instanceof LocaleKey)) {
-                return null;
+            if (handlesKey(key)) {
+                LocaleKey lkey = (LocaleKey)key;
+                ULocale loc = lkey.canonicalLocale();
+                int kind = lkey.kind();
+
+                Object result = delegate.createFormat(loc, kind);
+                if (result == null) {
+                    result = srvc.getKey(key, null, this);
+                }
+                return result;
             }
-            
-            LocaleKey lkey = (LocaleKey)key;
-            Object result = delegate.createFormat(lkey.canonicalLocale(), lkey.kind());
-            if (result == null) {
-                result = srvc.getKey(key, null, this);
-            }
-            return result;
+            return null;
         }
 
         protected Set<String> getSupportedIDs() {

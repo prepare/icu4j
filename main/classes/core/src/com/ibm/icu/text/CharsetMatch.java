@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 2005-2011, International Business Machines Corporation and    *
+* Copyright (C) 2005-2010, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 */
@@ -102,17 +102,7 @@ public class CharsetMatch implements Comparable<CharsetMatch> {
             
             return sb.toString();
         } else {
-            String name = getName();
-            /*
-             * getName() may return a name with a suffix 'rtl' or 'ltr'. This cannot
-             * be used to open a charset (e.g. IBM424_rtl). The ending '_rtl' or 'ltr'
-             * should be stripped off before creating the string.
-             */
-            int startSuffix = name.indexOf("_rtl") < 0 ? name.indexOf("_ltr") : name.indexOf("_rtl");
-            if (startSuffix > 0) {
-                name = name.substring(0, startSuffix);
-            }
-            result = new String(fRawInput, name);
+            result = new String(fRawInput, getName());            
         }
         return result;
 

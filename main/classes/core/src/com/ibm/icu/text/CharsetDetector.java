@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 2005-2011, International Business Machines Corporation and    *
+* Copyright (C) 2005-2009, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 */
@@ -88,6 +88,8 @@ public class CharsetDetector {
         fRawInput  = in;
         fRawLength = in.length;
         
+        MungeInput();
+        
         return this;
     }
     
@@ -128,6 +130,7 @@ public class CharsetDetector {
         }
         fInputStream.reset();
         
+        MungeInput();                     // Strip html markup, collect byte stats.
         return this;
     }
 
@@ -186,8 +189,6 @@ public class CharsetDetector {
         int               detectResults;
         int               confidence;
         ArrayList<CharsetMatch>         matches = new ArrayList<CharsetMatch>();
-        
-        MungeInput();  // Strip html markup, collect byte stats.
         
         //  Iterate over all possible charsets, remember all that
         //    give a match quality > 0.

@@ -369,17 +369,6 @@ public abstract class Transliterator implements StringTransform  {
             }
             return false;
         }
-        
-        /**
-         * Mock implementation of hashCode(). This implementation always returns a constant
-         * value. When Java assertion is enabled, this method triggers an assertion failure.
-         * @internal
-         * @deprecated This API is ICU internal only.
-         */
-        public int hashCode() {
-            assert false : "hashCode not designed";
-            return 42;
-        }
 
         /**
          * Returns a string representation of this Position.
@@ -1256,7 +1245,7 @@ public abstract class Transliterator implements StringTransform  {
             MessageFormat format = new MessageFormat(
                     bundle.getString(RB_DISPLAY_NAME_PATTERN));
             // Construct the argument array
-            Object[] args = new Object[] { Integer.valueOf(2), stv[0], stv[1] };
+            Object[] args = new Object[] { new Integer(2), stv[0], stv[1] };
 
             // Use display names for the scripts, if they exist
             for (int j=1; j<=2; ++j) {

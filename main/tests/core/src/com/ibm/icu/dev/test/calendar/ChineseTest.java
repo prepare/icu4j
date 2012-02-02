@@ -1,5 +1,5 @@
 /*********************************************************************
- * Copyright (C) 2000-2012, International Business Machines Corporation and
+ * Copyright (C) 2000-2010, International Business Machines Corporation and
  * others. All Rights Reserved.
  *********************************************************************
  */
@@ -16,7 +16,6 @@ import com.ibm.icu.util.ChineseCalendar;
 import com.ibm.icu.util.GregorianCalendar;
 import com.ibm.icu.util.TimeZone;
 import com.ibm.icu.util.ULocale;
-import com.ibm.icu.util.VersionInfo;
 
 /**
  * Test of ChineseCalendar.
@@ -250,13 +249,6 @@ public class ChineseTest extends CalendarTest {
 
     /**
      * Test formatting.
-     * Q: Why is this in Calendar tests instead of Format tests?
-     * Note: This test assumes that Chinese calendar formatted dates can be parsed
-     * unambiguously to recover the original Date that was formatted. This is not
-     * currently true since Chinese calendar formatted dates do not include an era.
-     * To address this will require formatting/parsing of fields from some other
-     * associated calendar, as per ICU ticket #9043. This test should be timebombed
-     * until that ticket is addressed.
      */
     public void TestFormat() {
         ChineseCalendar cal = new ChineseCalendar();
@@ -279,8 +271,6 @@ public class ChineseTest extends CalendarTest {
                 Date e = fmt.parse(s);
                 if (e.equals(DATA[i])) {
                     logln("Ok: " + DATA[i] + " -> " + s + " -> " + e);
-                } else if (isICUVersionBefore(50, 1)) { // until ticket #9043 fixes the ambiguous era problem
-                    logln("Ambiguous parse fails: " + DATA[i] + " -> " + s + " -> " + e);
                 } else {
                     errln("FAIL: " + DATA[i] + " -> " + s + " -> " + e);
                 }

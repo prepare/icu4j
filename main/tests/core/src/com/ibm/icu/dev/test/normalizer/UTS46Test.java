@@ -1,6 +1,6 @@
 /*
 *******************************************************************************
-* Copyright (C) 2010-2011, International Business Machines
+* Copyright (C) 2010, International Business Machines
 * Corporation and others.  All Rights Reserved.
 *******************************************************************************
 */
@@ -26,11 +26,8 @@ public class UTS46Test extends TestFmwk {
         new UTS46Test().run(args);
     }
     public UTS46Test() {
-        int commonOptions=
-            IDNA.USE_STD3_RULES|IDNA.CHECK_BIDI|
-            IDNA.CHECK_CONTEXTJ|IDNA.CHECK_CONTEXTO;
-        trans=IDNA.getUTS46Instance(commonOptions);
-        nontrans=IDNA.getUTS46Instance(commonOptions|
+        trans=IDNA.getUTS46Instance(IDNA.USE_STD3_RULES|IDNA.CHECK_BIDI|IDNA.CHECK_CONTEXTJ);
+        nontrans=IDNA.getUTS46Instance(IDNA.USE_STD3_RULES|IDNA.CHECK_BIDI|IDNA.CHECK_CONTEXTJ|
                                        IDNA.NONTRANSITIONAL_TO_ASCII|IDNA.NONTRANSITIONAL_TO_UNICODE);
     }
 
@@ -89,8 +86,8 @@ public class UTS46Test extends TestFmwk {
         input="a\u2260b\u226Ec\u226Fd";
         not3.nameToUnicode(input, result, info);
         if(!UTF16Plus.equal(result, input) || info.hasErrors()) {
-            errln(String.format("notSTD3.nameToUnicode(equiv to non-LDH ASCII) unexpected errors %s string %s",
-                                info.getErrors().toString(), prettify(result.toString())));
+            errln(String.format("notSTD3.nameToUnicode(equiv to non-LDH ASCII) unexpected errors %04lx string %s",
+                                info.getErrors(), prettify(result.toString())));
         }
     }
 
@@ -110,8 +107,6 @@ public class UTS46Test extends TestFmwk {
         errorNamesToErrors.put("UIDNA_ERROR_INVALID_ACE_LABEL", IDNA.Error.INVALID_ACE_LABEL);
         errorNamesToErrors.put("UIDNA_ERROR_BIDI", IDNA.Error.BIDI);
         errorNamesToErrors.put("UIDNA_ERROR_CONTEXTJ", IDNA.Error.CONTEXTJ);
-        errorNamesToErrors.put("UIDNA_ERROR_CONTEXTO_PUNCTUATION", IDNA.Error.CONTEXTO_PUNCTUATION);
-        errorNamesToErrors.put("UIDNA_ERROR_CONTEXTO_DIGITS", IDNA.Error.CONTEXTO_DIGITS);
     }
 
     private static final class TestCase {
@@ -429,29 +424,6 @@ public class UTS46Test extends TestFmwk {
           "\u06EF\u200C\u06EF", "UIDNA_ERROR_CONTEXTJ" },
         { "\u0644\u200C", "N",  // D ZWNJ
           "\u0644\u200C", "UIDNA_ERROR_BIDI|UIDNA_ERROR_CONTEXTJ" },
-        { "\u0660\u0661", "B",  // Arabic-Indic Digits alone
-          "\u0660\u0661", "UIDNA_ERROR_BIDI" },
-        { "\u06F0\u06F1", "B",  // Extended Arabic-Indic Digits alone
-          "\u06F0\u06F1", "" },
-        { "\u0660\u06F1", "B",  // Mixed Arabic-Indic Digits
-          "\u0660\u06F1", "UIDNA_ERROR_CONTEXTO_DIGITS|UIDNA_ERROR_BIDI" },
-        // All of the CONTEXTO "Would otherwise have been DISALLOWED" characters
-        // in their correct contexts,
-        // then each in incorrect context.
-        { "l\u00B7l\u4E00\u0375\u03B1\u05D0\u05F3\u05F4\u30FB", "B",
-          "l\u00B7l\u4E00\u0375\u03B1\u05D0\u05F3\u05F4\u30FB", "UIDNA_ERROR_BIDI" },
-        { "l\u00B7", "B",
-          "l\u00B7", "UIDNA_ERROR_CONTEXTO_PUNCTUATION" },
-        { "\u00B7l", "B",
-          "\u00B7l", "UIDNA_ERROR_CONTEXTO_PUNCTUATION" },
-        { "\u0375", "B",
-          "\u0375", "UIDNA_ERROR_CONTEXTO_PUNCTUATION" },
-        { "\u03B1\u05F3", "B",
-          "\u03B1\u05F3", "UIDNA_ERROR_CONTEXTO_PUNCTUATION|UIDNA_ERROR_BIDI" },
-        { "\u05F4", "B",
-          "\u05F4", "UIDNA_ERROR_CONTEXTO_PUNCTUATION" },
-        { "l\u30FB", "B",
-          "l\u30FB", "UIDNA_ERROR_CONTEXTO_PUNCTUATION" },
         // { "", "B",
         //   "", "" },
     };
@@ -602,8 +574,8 @@ public class UTS46Test extends TestFmwk {
             if(aN.indexOf(".")<0) {
                 if(!UTF16Plus.equal(aN, aNL) || !sameErrors(aNInfo, aNLInfo)) {
                     errln(String.format("N.nameToASCII([%d] %s)!=N.labelToASCII() "+
-                                        "(errors %s vs %s) %s vs. %s",
-                                        i, testCase.s, aNInfo.getErrors().toString(), aNLInfo.getErrors().toString(),
+                                        "(errors %s vs %04lx) %s vs. %s",
+                                        i, testCase.s, aNInfo.getErrors(), aNLInfo.getErrors(),
                                         prettify(aN.toString()), prettify(aNL.toString())));
                     continue;
                 }
@@ -617,8 +589,8 @@ public class UTS46Test extends TestFmwk {
             if(aT.indexOf(".")<0) {
                 if(!UTF16Plus.equal(aT, aTL) || !sameErrors(aTInfo, aTLInfo)) {
                     errln(String.format("T.nameToASCII([%d] %s)!=T.labelToASCII() "+
-                                        "(errors %s vs %s) %s vs. %s",
-                                        i, testCase.s, aTInfo.getErrors().toString(), aTLInfo.getErrors().toString(),
+                                        "(errors %s vs %04lx) %s vs. %s",
+                                        i, testCase.s, aTInfo.getErrors(), aTLInfo.getErrors(),
                                         prettify(aT.toString()), prettify(aTL.toString())));
                     continue;
                 }
@@ -632,8 +604,8 @@ public class UTS46Test extends TestFmwk {
             if(uN.indexOf(".")<0) {
                 if(!UTF16Plus.equal(uN, uNL) || !sameErrors(uNInfo, uNLInfo)) {
                     errln(String.format("N.nameToUnicode([%d] %s)!=N.labelToUnicode() "+
-                                        "(errors %s vs %s) %s vs. %s",
-                                        i, testCase.s, uNInfo.getErrors().toString(), uNLInfo.getErrors().toString(),
+                                        "(errors %s vs %04lx) %s vs. %s",
+                                        i, testCase.s, uNInfo.getErrors(), uNLInfo.getErrors(),
                                         prettify(uN.toString()), prettify(uNL.toString())));
                     continue;
                 }
@@ -647,8 +619,8 @@ public class UTS46Test extends TestFmwk {
             if(uT.indexOf(".")<0) {
                 if(!UTF16Plus.equal(uT, uTL) || !sameErrors(uTInfo, uTLInfo)) {
                     errln(String.format("T.nameToUnicode([%d] %s)!=T.labelToUnicode() "+
-                                        "(errors %s vs %s) %s vs. %s",
-                                        i, testCase.s, uTInfo.getErrors().toString(), uTLInfo.getErrors().toString(),
+                                        "(errors %s vs %04lx) %s vs. %s",
+                                        i, testCase.s, uTInfo.getErrors(), uTLInfo.getErrors(),
                                         prettify(uT.toString()), prettify(uTL.toString())));
                     continue;
                 }

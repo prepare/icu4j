@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2005-2012 International Business Machines Corporation and          *
+ * Copyright (C) 2005-2011 International Business Machines Corporation and          *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -50,7 +50,7 @@ public class RuleBasedBreakIterator extends BreakIterator {
      * @param is an input stream supplying the compiled binary rules.
      * @throws IOException if there is an error while reading the rules from the InputStream.
      * @see    #compileRules(String, OutputStream)
-     * @stable ICU 4.8
+     * @draft ICU 4.8
      */
     public static RuleBasedBreakIterator getInstanceFromCompiledRules(InputStream is) throws IOException {
         RuleBasedBreakIterator  This = new RuleBasedBreakIterator();
@@ -116,12 +116,6 @@ public class RuleBasedBreakIterator extends BreakIterator {
      * @stable ICU 2.0
      */
     public boolean equals(Object that) {
-        if (that == null) {
-            return false;
-        }
-        if (this == that) {
-            return true;
-        }
         try {
             RuleBasedBreakIterator other = (RuleBasedBreakIterator) that;
             if (fRData != other.fRData && (fRData == null || other.fRData == null)) {System.out.println("GOT HERE");
@@ -150,7 +144,7 @@ public class RuleBasedBreakIterator extends BreakIterator {
      * @stable ICU 2.0
      */
     public String toString() {
-        String retStr = "";
+        String   retStr = null;
         if (fRData != null) {
             retStr =  fRData.fRuleSource;
         }
@@ -336,7 +330,7 @@ public class RuleBasedBreakIterator extends BreakIterator {
      * @param ruleBinary  An output stream to receive the compiled rules.
      * @throws IOException If there is an error writing the output.
      * @see #getInstanceFromCompiledRules(InputStream)
-     * @stable ICU 4.8
+     * @draft ICU 4.8
      */
     public static void compileRules(String rules, OutputStream ruleBinary) throws IOException {
         RBBIRuleBuilder.compileRules(rules, ruleBinary);
@@ -1176,10 +1170,6 @@ public int getRuleStatusVec(int[] fillInArray) {
     
     
     private int handlePrevious(short stateTable[]) {
-        if (fText == null || stateTable == null) {
-            return 0;
-        }
-        
         int            state;
         int            category           = 0;
         int            mode;
@@ -1192,6 +1182,10 @@ public int getRuleStatusVec(int[] fillInArray) {
         boolean        lookAheadHardBreak = 
             (stateTable[RBBIDataWrapper.FLAGS+1] & RBBIDataWrapper.RBBI_LOOKAHEAD_HARD_BREAK) != 0;
         
+        
+        if (fText == null || stateTable == null) {
+            return 0;
+        }
         // handlePrevious() never gets the rule status.
         // Flag the status as invalid; if the user ever asks for status, we will need
         // to back up, then re-find the break position using handleNext(), which does

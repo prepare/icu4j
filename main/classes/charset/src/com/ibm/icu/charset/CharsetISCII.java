@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2008-2011, International Business Machines Corporation and    *
+ * Copyright (C) 2008-2009, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -106,10 +106,10 @@ class CharsetISCII extends CharsetICU {
         static final short ZERO = 0x00;
     }
     
-    private final static String ISCII_CNV_PREFIX = "ISCII,version=";
+    private final String ISCII_CNV_PREFIX = "ISCII,version=";
     
     @SuppressWarnings("unused")
-    private static final class UConverterDataISCII {
+    private final class UConverterDataISCII {
         int option;
         int contextCharToUnicode;      /* previous Unicode codepoint for contextual analysis */
         int contextCharFromUnicode;    /* previous Unicode codepoint for contextual analysis */
@@ -766,7 +766,7 @@ class CharsetISCII extends CharsetICU {
         
         extraInfo = new UConverterDataISCII( 
                             option,
-                            ISCII_CNV_PREFIX + (option & UCNV_OPTIONS_VERSION_MASK)  /* name */
+                            new String(ISCII_CNV_PREFIX + (option & UCNV_OPTIONS_VERSION_MASK))  /* name */
                         );
         
         initializePNJSets();
@@ -1234,7 +1234,7 @@ class CharsetISCII extends CharsetICU {
                 /* Write the language code following LF only if LF is not the last character. */
                 if (fromUnicodeStatus == LF) {
                     targetByteUnit = ATR << 8;
-                    targetByteUnit += 0xff & (byte)lookupInitialData[range].isciiLang;
+                    targetByteUnit += (byte)lookupInitialData[range].isciiLang;
                     fromUnicodeStatus = 0x0000;
                     /* now append ATR and language code */
                     cr = WriteToTargetFromU(offsets, source, target, targetByteUnit);

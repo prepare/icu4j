@@ -1,6 +1,6 @@
 /*
  ******************************************************************************
- * Copyright (C) 2007-2011, International Business Machines Corporation and   *
+ * Copyright (C) 2007-2009, International Business Machines Corporation and   *
  * others. All Rights Reserved.                                               *
  ******************************************************************************
  */
@@ -66,7 +66,6 @@ public class ResourceBasedPeriodFormatterDataService extends
                 }
                 localeNames.add(string);
             }
-            br.close();
         } catch (IOException e) {
             throw new IllegalStateException("IO Error reading " + PATH
                     + "index.txt: " + e.toString());

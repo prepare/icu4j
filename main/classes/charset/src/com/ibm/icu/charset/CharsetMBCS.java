@@ -19,7 +19,6 @@ import java.nio.IntBuffer;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CoderResult;
-import java.util.Locale;
 
 import com.ibm.icu.charset.UConverterSharedData.UConverterType;
 import com.ibm.icu.impl.ICUData;
@@ -50,7 +49,7 @@ class CharsetMBCS extends CharsetICU {
      * Fallbacks to Unicode are stored outside the normal state table and code point structures in a vector of items of
      * this type. They are sorted by offset.
      */
-    final static class MBCSToUFallback {
+    final class MBCSToUFallback {
         int offset;
         int codePoint;
     }
@@ -136,7 +135,7 @@ class CharsetMBCS extends CharsetICU {
     /**
      * MBCS data header. See data format description above.
      */
-    final static class MBCSHeader {
+    final class MBCSHeader {
         byte version[/* U_MAX_VERSION_LENGTH */];
         int countStates, countToUFallbacks, offsetToUCodeUnits, offsetFromUTable, offsetFromUBytes;
         int flags;
@@ -623,7 +622,7 @@ class CharsetMBCS extends CharsetICU {
             int st1, st2, st3, i;
             
             for (st1 = 0; stageUTF8Index < stageUTF8Length; ++st1) {
-                st2 = ((char)stage[2*st1]<<8) | (0xff & stage[2*st1+1]);
+                st2 = ((char)stage[2*st1]<<8) | stage[2*st1+1];
                 if (st2 != stage1Length/2) {
                     /* each stage 2 block has 64 entries corresponding to 16 entries in the mbcsIndex */
                     for (i = 0; i < 16; ++i) {
@@ -890,7 +889,7 @@ class CharsetMBCS extends CharsetICU {
                 try {
                     if (!EBCDICSwapLFNL()) {
                         /* this option does not apply, remove it */
-                        this.options = myOptions & ~UConverterConstants.OPTION_SWAP_LFNL;
+                        this.options = myOptions &= ~UConverterConstants.OPTION_SWAP_LFNL;
                     }
                 } catch (Exception e) {
                     /* something went wrong. */
@@ -899,15 +898,14 @@ class CharsetMBCS extends CharsetICU {
             }
         }
 
-        String lowerCaseName = icuCanonicalName.toLowerCase(Locale.ENGLISH);
-        if (lowerCaseName.indexOf("gb18030") >= 0) {
+        if (icuCanonicalName.toLowerCase().indexOf("gb18030") >= 0) {
             /* set a flag for GB 18030 mode, which changes the callback behavior */
             this.options |= MBCS_OPTION_GB18030;
-        } else if (lowerCaseName.indexOf("keis") >= 0) {
+        } else if (icuCanonicalName.toLowerCase().indexOf("keis") >= 0) {
             this.options |= MBCS_OPTION_KEIS;
-        } else if (lowerCaseName.indexOf("jef") >= 0) {
+        } else if (icuCanonicalName.toLowerCase().indexOf("jef") >= 0) {
             this.options |= MBCS_OPTION_JEF;
-        } else if (lowerCaseName.indexOf("jips") >= 0) {
+        } else if (icuCanonicalName.toLowerCase().indexOf("jips") >= 0) {
             this.options |= MBCS_OPTION_JIPS;
         }
 
@@ -1063,7 +1061,8 @@ class CharsetMBCS extends CharsetICU {
         }
         
         /* set the canonical converter name */
-        newName = icuCanonicalName.concat(UConverterConstants.OPTION_SWAP_LFNL_STRING);
+        newName = new String(icuCanonicalName);
+        newName.concat(UConverterConstants.OPTION_SWAP_LFNL_STRING);
         
         if (mbcsTable.swapLFNLStateTable == null) {
             mbcsTable.swapLFNLStateTable = newStateTable;
@@ -2641,7 +2640,7 @@ class CharsetMBCS extends CharsetICU {
                 toUFallbacks = mbcsTable.toUFallbacks;
                 start = 0;
                 while (start < limit - 1) {
-                    i = (start + limit) >>> 1;
+                    i = (start + limit) / 2;
                     if (offset < toUFallbacks[i].offset) {
                         limit = i;
                     } else {
@@ -4981,14 +4980,14 @@ class CharsetMBCS extends CharsetICU {
            if(c>=0){
                setFillIn.add(c);
            } else {
-               StringBuilder normalizedStringBuilder = new StringBuilder();
+               String normalizedString=""; // String for composite characters 
                for(int j=0; j<length;j++){
-                   normalizedStringBuilder.append(s[j]);
+                   normalizedString+=s[j];
                }
-               String normalizedString = normalizedStringBuilder.toString();
                for(int j=0;j<length;j++){
                    setFillIn.add(normalizedString);
                }
+             
              }
        }
        
@@ -5003,11 +5002,11 @@ class CharsetMBCS extends CharsetICU {
                        FROM_U_GET_PARTIAL_INDEX(value));
            } else if ((useFallback ? (value&FROM_U_RESERVED_MASK)==0:((value&(FROM_U_ROUNDTRIP_FLAG|FROM_U_RESERVED_MASK))==FROM_U_ROUNDTRIP_FLAG)) 
                    && FROM_U_GET_LENGTH(value)>=minLength) {
-               StringBuilder normalizedStringBuilder = new StringBuilder(); // String for composite characters
+               String normalizedString=""; // String for composite characters 
                for(int j=0; j<(length+1);j++){
-                   normalizedStringBuilder.append(s[j]);
+                   normalizedString+=s[j];
                }
-             setFillIn.add(normalizedStringBuilder.toString());
+             setFillIn.add(normalizedString);
            }
        }
         

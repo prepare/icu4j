@@ -66,10 +66,14 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
     @Override
     public synchronized Set<String> getAvailableMetaZoneIDs() {
         if (METAZONE_IDS == null) {
-            UResourceBundle bundle = UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, "metaZones");
-            UResourceBundle mapTimezones = bundle.get("mapTimezones");
-            Set<String> keys = mapTimezones.keySet();
-            METAZONE_IDS = Collections.unmodifiableSet(keys);
+            try {
+                UResourceBundle bundle = UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, "metaZones");
+                UResourceBundle mapTimezones = bundle.get("mapTimezones");
+                Set<String> keys = mapTimezones.keySet();
+                METAZONE_IDS = Collections.unmodifiableSet(keys);
+            } catch (MissingResourceException e) {
+                METAZONE_IDS = Collections.emptySet();
+            }
         }
         return METAZONE_IDS;
     }
@@ -172,10 +176,10 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
     }
 
     /* (non-Javadoc)
-     * @see com.ibm.icu.text.TimeZoneNames#find(java.lang.CharSequence, int, java.util.Set)
+     * @see com.ibm.icu.text.TimeZoneNames#find(java.lang.String, int, java.util.Set)
      */
     @Override
-    public synchronized Collection<MatchInfo> find(CharSequence text, int start, EnumSet<NameType> nameTypes) {
+    public synchronized Collection<MatchInfo> find(String text, int start, EnumSet<NameType> nameTypes) {
         if (text == null || text.length() == 0 || start < 0 || start >= text.length()) {
             throw new IllegalArgumentException("bad input text or range");
         }
@@ -214,9 +218,16 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
      * @param locale The locale
      */
     private void initialize(ULocale locale) {
-        ICUResourceBundle bundle = (ICUResourceBundle)ICUResourceBundle.getBundleInstance(
-                ICUResourceBundle.ICU_ZONE_BASE_NAME, locale);
-        _zoneStrings = (ICUResourceBundle)bundle.get(ZONE_STRINGS_BUNDLE);
+        if (locale == null) {
+            return;
+        }
+        try {
+            ICUResourceBundle bundle = (ICUResourceBundle)ICUResourceBundle.getBundleInstance(
+                    ICUResourceBundle.ICU_ZONE_BASE_NAME, locale);
+            _zoneStrings = (ICUResourceBundle)bundle.get(ZONE_STRINGS_BUNDLE);
+        } catch (MissingResourceException mre) {
+            _zoneStrings = null;
+        }
 
         _tzNamesMap = new ConcurrentHashMap<String, TZNames>();
         _mzNamesMap = new ConcurrentHashMap<String, ZNames>();
@@ -252,16 +263,16 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
 
     /*
      * The custom serialization method.
-     * This implementation only preserve locale object used for the names.
+     * This implementation only preserve locale used for the names.
      */
     private void writeObject(ObjectOutputStream out) throws IOException {
-        ULocale locale = _zoneStrings.getULocale();
+        ULocale locale = _zoneStrings == null ? null : _zoneStrings.getULocale();
         out.writeObject(locale);
     }
 
     /*
      * The custom deserialization method.
-     * This implementation only read locale object used by the object.
+     * This implementation only read locale used by the object.
      */
     private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
         ULocale locale = (ULocale)in.readObject();
@@ -400,22 +411,25 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
      * This class stores name data for a meta zone
      */
     private static class ZNames {
-        private static final ZNames EMPTY_ZNAMES = new ZNames(null);
+        private static final ZNames EMPTY_ZNAMES = new ZNames(null, false);
 
         private String[] _names;
+        private boolean _shortCommonlyUsed;
 
         private static final String[] KEYS = {"lg", "ls", "ld", "sg", "ss", "sd"};
 
-        protected ZNames(String[] names) {
+        protected ZNames(String[] names, boolean shortCommonlyUsed) {
             _names = names;
+            _shortCommonlyUsed = shortCommonlyUsed;
         }
 
         public static ZNames getInstance(ICUResourceBundle zoneStrings, String key) {
-            String[] names = loadData(zoneStrings, key);
+            boolean[] cu = new boolean[1];
+            String[] names = loadData(zoneStrings, key, cu);
             if (names == null) {
                 return EMPTY_ZNAMES;
             }
-            return new ZNames(names);
+            return new ZNames(names, cu[0]);
         }
 
         public String getName(NameType type) {
@@ -434,7 +448,9 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
                 name = _names[2];
                 break;
             case SHORT_GENERIC:
-                name = _names[3];
+                if (_shortCommonlyUsed) {
+                    name = _names[3];
+                }
                 break;
             case SHORT_STANDARD:
                 name = _names[4];
@@ -442,16 +458,27 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
             case SHORT_DAYLIGHT:
                 name = _names[5];
                 break;
+            case SHORT_STANDARD_COMMONLY_USED:
+                if (_shortCommonlyUsed) {
+                    name = _names[4];
+                }
+                break;
+            case SHORT_DAYLIGHT_COMMONLY_USED:
+                if (_shortCommonlyUsed) {
+                    name = _names[5];
+                }
+                break;
             }
 
             return name;
         }
 
-        protected static String[] loadData(ICUResourceBundle zoneStrings, String key) {
+        protected static String[] loadData(ICUResourceBundle zoneStrings, String key, boolean[] shortCommonlyUsed) {
             if (zoneStrings == null || key == null || key.length() == 0) {
                 return null;
             }
 
+            shortCommonlyUsed[0] = false;
             ICUResourceBundle table = null;
             try {
                 table = zoneStrings.getWithFallback(key);
@@ -474,6 +501,14 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
                 return null;
             }
 
+            try {
+                ICUResourceBundle cuRes = table.getWithFallback("cu");
+                int cu = cuRes.getInt();
+                shortCommonlyUsed[0] = (cu != 0);
+            } catch (MissingResourceException e) {
+                // cu is optional
+            }
+
             return names;
         }
     }
@@ -484,7 +519,7 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
     private static class TZNames extends ZNames {
         private String _locationName;
 
-        private static final TZNames EMPTY_TZNAMES = new TZNames(null, null);
+        private static final TZNames EMPTY_TZNAMES = new TZNames(null, false, null);
 
         public static TZNames getInstance(ICUResourceBundle zoneStrings, String key) {
             if (zoneStrings == null || key == null || key.length() == 0) {
@@ -505,20 +540,21 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
                 // location name is optional
             }
 
-            String[] names = loadData(zoneStrings, key);
+            boolean[] cu = new boolean[1];
+            String[] names = loadData(zoneStrings, key, cu);
 
             if (locationName == null && names == null) {
                 return EMPTY_TZNAMES;
             }
-            return new TZNames(names, locationName);
+            return new TZNames(names, cu[0], locationName);
         }
 
         public String getLocationName() {
             return _locationName;
         }
 
-        private TZNames(String[] names, String locationName) {
-            super(names);
+        private TZNames(String[] names, boolean shortCommonlyUsed, String locationName) {
+            super(names, shortCommonlyUsed);
             _locationName = locationName;
         }
     }
@@ -559,12 +595,11 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
         @Override
         protected List<MZMapEntry> createInstance(String key, String data) {
             List<MZMapEntry> mzMaps = null;
-
-            UResourceBundle bundle = UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, "metaZones");
-            UResourceBundle metazoneInfoBundle = bundle.get("metazoneInfo");
-
-            String tzkey = data.replace('/', ':');
             try {
+                UResourceBundle bundle = UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, "metaZones");
+                UResourceBundle metazoneInfoBundle = bundle.get("metazoneInfo");
+
+                String tzkey = data.replace('/', ':');
                 UResourceBundle zoneBundle = metazoneInfoBundle.get(tzkey);
 
                 mzMaps = new ArrayList<MZMapEntry>(zoneBundle.getSize());
@@ -584,6 +619,9 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
                 }
 
             } catch (MissingResourceException mre) {
+                // fall through
+            }
+            if (mzMaps == null) {
                 mzMaps = Collections.emptyList();
             }
             return mzMaps;
@@ -649,7 +687,7 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
             }
 
             long date = Grego.fieldsToDay(year, month - 1, day) * Grego.MILLIS_PER_DAY
-                        + (long)hour * Grego.MILLIS_PER_HOUR + (long)min * Grego.MILLIS_PER_MINUTE;
+                        + hour * Grego.MILLIS_PER_HOUR + min * Grego.MILLIS_PER_MINUTE;
             return date;
          }
     }
@@ -666,11 +704,9 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
         @Override
         protected Map<String, String> createInstance(String key, String data) {
             Map<String, String> map = null;
-
-            UResourceBundle bundle = UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, "metaZones");
-            UResourceBundle mapTimezones = bundle.get("mapTimezones");
-
             try {
+                UResourceBundle bundle = UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, "metaZones");
+                UResourceBundle mapTimezones = bundle.get("mapTimezones");
                 UResourceBundle regionMap = mapTimezones.get(key);
 
                 Set<String> regions = regionMap.keySet();
@@ -681,6 +717,9 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
                     map.put(region.intern(), tzID);
                 }
             } catch (MissingResourceException e) {
+                // fall through
+            }
+            if (map == null) {
                 map = Collections.emptyMap();
             }
             return map;

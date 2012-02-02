@@ -1,6 +1,6 @@
 /*
 *******************************************************************************
-*   Copyright (C) 2011-2012, International Business Machines
+*   Copyright (C) 2011, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 *******************************************************************************
 *   created on: 2011jan05
@@ -18,17 +18,20 @@ import java.util.HashMap;
  * <p>This class is not intended for public subclassing.
  *
  * @author Markus W. Scherer
- * @stable ICU 4.8
+ * @draft ICU 4.8
+ * @provisional This API might change or be removed in a future release.
  */
 public abstract class StringTrieBuilder {
     /**
      * Build options for BytesTrieBuilder and CharsTrieBuilder.
-     * @stable ICU 4.8
+     * @draft ICU 4.8
+     * @provisional This API might change or be removed in a future release.
      */
     public enum Option {
         /**
          * Builds a trie quickly.
-         * @stable ICU 4.8
+         * @draft ICU 4.8
+         * @provisional This API might change or be removed in a future release.
          */
         FAST,
         /**
@@ -39,7 +42,8 @@ public abstract class StringTrieBuilder {
          * <p>This option can be effective when many integer values are the same
          * and string/byte sequence suffixes can be shared.
          * Runtime speed is not expected to improve.
-         * @stable ICU 4.8
+         * @draft ICU 4.8
+         * @provisional This API might change or be removed in a future release.
          */
         SMALL
     }
@@ -618,10 +622,6 @@ public abstract class StringTrieBuilder {
             return true;
         }
         @Override
-        public int hashCode() {
-            return super.hashCode();
-        }
-        @Override
         public int markRightEdgesFirst(int edgeNumber) {
             if(offset==0) {
                 firstEdgeNumber=edgeNumber;
@@ -726,10 +726,6 @@ public abstract class StringTrieBuilder {
             }
             SplitBranchNode o=(SplitBranchNode)other;
             return unit==o.unit && lessThan==o.lessThan && greaterOrEqual==o.greaterOrEqual;
-        }
-        @Override
-        public int hashCode() {
-            return super.hashCode();
         }
         @Override
         public int markRightEdgesFirst(int edgeNumber) {

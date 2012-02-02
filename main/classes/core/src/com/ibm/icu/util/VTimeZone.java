@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2007-2012, International Business Machines Corporation and    *
+ * Copyright (C) 2007-2011, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -47,9 +47,10 @@ public class VTimeZone extends BasicTimeZone {
      * @stable ICU 3.8
      */
     public static VTimeZone create(String tzid) {
-        VTimeZone vtz = new VTimeZone(tzid);
+        VTimeZone vtz = new VTimeZone();
         vtz.tz = (BasicTimeZone)TimeZone.getTimeZone(tzid, TimeZone.TIMEZONE_ICU);
         vtz.olsonzid = vtz.tz.getID();
+        vtz.setID(tzid);
 
         return vtz;
     }
@@ -75,7 +76,6 @@ public class VTimeZone extends BasicTimeZone {
      * {@inheritDoc}
      * @stable ICU 3.8
      */
-    @Override
     public int getOffset(int era, int year, int month, int day, int dayOfWeek,
             int milliseconds) {
         return tz.getOffset(era, year, month, day, dayOfWeek, milliseconds);
@@ -85,7 +85,6 @@ public class VTimeZone extends BasicTimeZone {
      * {@inheritDoc}
      * @stable ICU 3.8
      */
-    @Override
     public void getOffset(long date, boolean local, int[] offsets) {
         tz.getOffset(date, local, offsets);
     }
@@ -95,7 +94,6 @@ public class VTimeZone extends BasicTimeZone {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    @Override
     public void getOffsetFromLocal(long date,
             int nonExistingTimeOpt, int duplicatedTimeOpt, int[] offsets) {
         tz.getOffsetFromLocal(date, nonExistingTimeOpt, duplicatedTimeOpt, offsets);
@@ -105,7 +103,6 @@ public class VTimeZone extends BasicTimeZone {
      * {@inheritDoc}
      * @stable ICU 3.8
      */
-    @Override
     public int getRawOffset() {
         return tz.getRawOffset();
     }
@@ -114,7 +111,6 @@ public class VTimeZone extends BasicTimeZone {
      * {@inheritDoc}
      * @stable ICU 3.8
      */
-    @Override
     public boolean inDaylightTime(Date date) {
         return tz.inDaylightTime(date);
     }
@@ -123,11 +119,7 @@ public class VTimeZone extends BasicTimeZone {
      * {@inheritDoc}
      * @stable ICU 3.8
      */
-    @Override
     public void setRawOffset(int offsetMillis) {
-        if (isFrozen()) {
-            throw new UnsupportedOperationException("Attempt to modify a frozen VTimeZone instance.");
-        }
         tz.setRawOffset(offsetMillis);
     }
 
@@ -135,33 +127,15 @@ public class VTimeZone extends BasicTimeZone {
      * {@inheritDoc}
      * @stable ICU 3.8
      */
-    @Override
     public boolean useDaylightTime() {
         return tz.useDaylightTime();
     }
 
     /**
      * {@inheritDoc}
-     * @draft ICU 49
-     * @provisional This API might change or be removed in a future release.
-     */
-    @Override
-    public boolean observesDaylightTime() {
-        return tz.observesDaylightTime();
-    }
-
-    /**
-     * {@inheritDoc}
      * @stable ICU 3.8
      */
-    @Override
     public boolean hasSameRules(TimeZone other) {
-        if (this == other) {
-            return true;
-        }
-        if (other instanceof VTimeZone) {
-            return tz.hasSameRules(((VTimeZone)other).tz);
-        }
         return tz.hasSameRules(other);
     }
 
@@ -186,9 +160,6 @@ public class VTimeZone extends BasicTimeZone {
      * @stable ICU 3.8
      */
     public void setTZURL(String url) {
-        if (isFrozen()) {
-            throw new UnsupportedOperationException("Attempt to modify a frozen VTimeZone instance.");
-        }
         tzurl = url;
     }
 
@@ -213,9 +184,6 @@ public class VTimeZone extends BasicTimeZone {
      * @stable ICU 3.8
      */
     public void setLastModified(Date date) {
-        if (isFrozen()) {
-            throw new UnsupportedOperationException("Attempt to modify a frozen VTimeZone instance.");
-        }
         lastmod = date;
     }
 
@@ -330,7 +298,6 @@ public class VTimeZone extends BasicTimeZone {
      * {@inheritDoc}
      * @stable ICU 3.8
      */
-    @Override
     public TimeZoneTransition getNextTransition(long base, boolean inclusive) {
         return tz.getNextTransition(base, inclusive);
     }
@@ -339,7 +306,6 @@ public class VTimeZone extends BasicTimeZone {
      * {@inheritDoc}
      * @stable ICU 3.8
      */
-    @Override
     public TimeZoneTransition getPreviousTransition(long base, boolean inclusive) {
         return tz.getPreviousTransition(base, inclusive);
     }
@@ -348,11 +314,7 @@ public class VTimeZone extends BasicTimeZone {
      * {@inheritDoc}
      * @stable ICU 3.8
      */
-    @Override
     public boolean hasEquivalentTransitions(TimeZone other, long start, long end) {
-        if (this == other) {
-            return true;
-        }
         return tz.hasEquivalentTransitions(other, start, end);
     }
 
@@ -360,7 +322,6 @@ public class VTimeZone extends BasicTimeZone {
      * {@inheritDoc}
      * @stable ICU 3.8
      */
-    @Override
     public TimeZoneRule[] getTimeZoneRules() {
         return tz.getTimeZoneRules();
     }
@@ -369,7 +330,6 @@ public class VTimeZone extends BasicTimeZone {
      * {@inheritDoc}
      * @stable ICU 3.8
      */
-    @Override
     public TimeZoneRule[] getTimeZoneRules(long start) {
         return tz.getTimeZoneRules(start);
     }
@@ -378,12 +338,10 @@ public class VTimeZone extends BasicTimeZone {
      * {@inheritDoc}
      * @stable ICU 3.8
      */
-    @Override
     public Object clone() {
-        if (isFrozen()) {
-            return this;
-        }
-        return cloneAsThawed();
+        VTimeZone other = (VTimeZone)super.clone();
+        other.tz = (BasicTimeZone)tz.clone();
+        return other;
     }
 
     // private stuff ------------------------------------------------------
@@ -458,10 +416,6 @@ public class VTimeZone extends BasicTimeZone {
     
     /* Hide the constructor */
     private VTimeZone() {
-    }
-
-    private VTimeZone(String tzid) {
-        super(tzid);
     }
 
     /*
@@ -2077,39 +2031,5 @@ public class VTimeZone extends BasicTimeZone {
         }
         sb.append(str);
         return sb.toString();
-    }
-
-    // Freezable stuffs
-    private transient boolean isFrozen = false;
-
-    /**
-     * {@inheritDoc}
-     * @draft ICU 49
-     * @provisional This API might change or be removed in a future release.
-     */
-    public boolean isFrozen() {
-        return isFrozen;
-    }
-
-    /**
-     * {@inheritDoc}
-     * @draft ICU 49
-     * @provisional This API might change or be removed in a future release.
-     */
-    public TimeZone freeze() {
-        isFrozen = true;
-        return this;
-    }
-
-    /**
-     * {@inheritDoc}
-     * @draft ICU 49
-     * @provisional This API might change or be removed in a future release.
-     */
-    public TimeZone cloneAsThawed() {
-        VTimeZone vtz = (VTimeZone)super.cloneAsThawed();
-        vtz.tz = (BasicTimeZone)tz.cloneAsThawed();
-        vtz.isFrozen = false;
-        return vtz;
     }
 }

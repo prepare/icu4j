@@ -1,7 +1,7 @@
 /*
  *******************************************************************************
- * Copyright (C) 2003-2011 International Business Machines Corporation and
- * others. All Rights Reserved.
+ * Copyright (C) 2003-2010 International Business Machines Corporation and     *
+ * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
  package com.ibm.icu.dev.test.rbbi;
@@ -70,7 +70,6 @@ public class RBBITestMonkey extends TestFmwk {
  
     /**
      * Monkey test subclass for testing Character (Grapheme Cluster) boundaries.
-     * Note: As of Unicode 6.1, fPrependSet is empty, so don't add it to fSets
      */
     static class RBBICharMonkey extends RBBIMonkeyKind {
         List                      fSets;
@@ -117,9 +116,7 @@ public class RBBITestMonkey extends TestFmwk {
         fSets.add(fCRLFSet);
         fSets.add(fControlSet);
         fSets.add(fExtendSet);
-        if (!fPrependSet.isEmpty()) {
-            fSets.add(fPrependSet);
-        }
+        fSets.add(fPrependSet);
         fSets.add(fSpacingSet);
         fSets.add(fHangulSet);
         fSets.add(fAnySet);

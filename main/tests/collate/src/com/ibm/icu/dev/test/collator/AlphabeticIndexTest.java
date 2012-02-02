@@ -22,7 +22,7 @@ import com.ibm.icu.dev.test.util.CollectionUtilities;
 import com.ibm.icu.impl.ICUDebug;
 import com.ibm.icu.impl.Row;
 import com.ibm.icu.impl.Row.R4;
-import com.ibm.icu.lang.UCharacter;
+import com.ibm.icu.impl.Utility;
 import com.ibm.icu.lang.UProperty;
 import com.ibm.icu.lang.UScript;
 import com.ibm.icu.text.AlphabeticIndex;
@@ -31,10 +31,12 @@ import com.ibm.icu.text.AlphabeticIndex.Bucket.LabelType;
 import com.ibm.icu.text.AlphabeticIndex.Record;
 import com.ibm.icu.text.Collator;
 import com.ibm.icu.text.Normalizer2;
+import com.ibm.icu.text.Normalizer2.Mode;
 import com.ibm.icu.text.RawCollationKey;
 import com.ibm.icu.text.RuleBasedCollator;
 import com.ibm.icu.text.UnicodeSet;
 import com.ibm.icu.util.ULocale;
+import com.ibm.icu.util.UResourceBundle;
 
 /**
  * @author markdavis
@@ -199,18 +201,18 @@ public class AlphabeticIndexTest extends TestFmwk {
 //        int comp = foo.compare("a", "ā");
 //        assertEquals("should fall back to default for zh", -1, comp);
 //    }
-//    
-//    /**
-//     * @param rb
-//     * @param i
-//     */
-//    private static void showBundle(UResourceBundle rb, int i) {
-//        for (String key : rb.keySet()) {
-//            System.out.print("\n" + Utility.repeat("  ", i) + key);
-//            UResourceBundle rb2 = rb.get(key);
-//            showBundle(rb2, i+1);
-//        }
-//    }
+    
+    /**
+     * @param rb
+     * @param i
+     */
+    private static void showBundle(UResourceBundle rb, int i) {
+        for (String key : rb.keySet()) {
+            System.out.print("\n" + Utility.repeat("  ", i) + key);
+            UResourceBundle rb2 = rb.get(key);
+            showBundle(rb2, i+1);
+        }
+    }
 
     
     public void TestA() {
@@ -262,20 +264,7 @@ public class AlphabeticIndexTest extends TestFmwk {
             missingScripts.removeAll(s);
         }
         if (missingScripts.size() != 0) {
-            String missingScriptNames = "";
-            UnicodeSet missingChars = new UnicodeSet(missingScripts);
-            for(;;) {
-                int c = missingChars.charAt(0);
-                if (c < 0) {
-                    break;
-                }
-                int script = UScript.getScript(c);
-                missingScriptNames += " " +
-                        UCharacter.getPropertyValueName(
-                                UProperty.SCRIPT, script, UProperty.NameChoice.SHORT);
-                missingChars.removeAll(new UnicodeSet().applyIntPropertyValue(UProperty.SCRIPT, script));
-            }
-            errln("Missing character from:" + missingScriptNames + " -- " + missingScripts);
+            errln("Missing character from: " + missingScripts);
         }
     }
 
@@ -675,7 +664,7 @@ public class AlphabeticIndexTest extends TestFmwk {
             ruleBasedCollator.getContractionsAndExpansions(extras, expansions, true);
             extras.addAll(expansions).removeAll(TO_TRY);
             if (extras.size() != 0) {
-                Normalizer2 normalizer = Normalizer2.getNFKCInstance();
+                Normalizer2 normalizer = Normalizer2.getInstance(null, "nfkc", Mode.COMPOSE);
                 for (String current : extras) {
                     if (!TO_TRY.containsAll(current))
                         continue;

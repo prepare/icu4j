@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2012, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2011, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -172,7 +172,8 @@ public class DecimalFormatSymbols implements Cloneable, Serializable {
     /**
      * Returns the array of characters used as digits, in order from 0 through 9
      * @return The array
-     * @stable ICU 4.6
+     * @draft ICU 4.6
+     * @provisional This API might change or be removed in a future release.
      */
     public char[] getDigits() {
         if ( digits != null ) {
@@ -730,12 +731,8 @@ public class DecimalFormatSymbols implements Cloneable, Serializable {
      * @stable ICU 2.0
      */
     public boolean equals(Object obj) {
-        if (!(obj instanceof DecimalFormatSymbols)) {
-            return false;
-        }
-        if (this == obj) {
-            return true;
-        }
+        if (obj == null) return false;
+        if (this == obj) return true;
         DecimalFormatSymbols other = (DecimalFormatSymbols) obj;
         for (int i = 0; i <= CURRENCY_SPC_INSERT; i++) {
             if (!currencySpcBeforeSym[i].equals(other.currencySpcBeforeSym[i])) {

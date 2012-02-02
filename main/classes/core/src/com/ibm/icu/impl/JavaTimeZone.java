@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2008-2012, International Business Machines Corporation and    *
+ * Copyright (C) 2008-2011, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -8,8 +8,6 @@ package com.ibm.icu.impl;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.Date;
 import java.util.TreeSet;
 
@@ -33,7 +31,6 @@ public class JavaTimeZone extends TimeZone {
 
     private java.util.TimeZone javatz;
     private transient java.util.Calendar javacal;
-    private static Method mObservesDaylightTime;
 
     static {
         AVAILABLESET = new TreeSet<String>();
@@ -41,65 +38,51 @@ public class JavaTimeZone extends TimeZone {
         for (int i = 0; i < availableIds.length; i++) {
             AVAILABLESET.add(availableIds[i]);
         }
-
-        try {
-            mObservesDaylightTime = java.util.TimeZone.class.getMethod("observesDaylightTime", (Class[]) null);
-        } catch (NoSuchMethodException e) {
-            // Java 6 or older
-        } catch (SecurityException e) {
-            // not visible
-        }
     }
 
     /**
      * Constructs a JavaTimeZone with the default Java TimeZone
      */
     public JavaTimeZone() {
-        this(java.util.TimeZone.getDefault(), null);
-    }
-
-    /**
-     * Constructs a JavaTimeZone with the specified Java TimeZone and ID.
-     * @param jtz the Java TimeZone
-     * @param id the ID of the zone. if null, the zone ID is initialized
-     * by the given Java TimeZone's ID.
-     */
-    public JavaTimeZone(java.util.TimeZone jtz, String id) {
-        if (id == null) {
-            id = jtz.getID();
-        }
-        javatz = jtz;
-        setID(id);
+        javatz = java.util.TimeZone.getDefault();
+        setID(javatz.getID());
         javacal = new java.util.GregorianCalendar(javatz);
     }
 
     /**
-     * Creates an instance of JavaTimeZone with the given timezone ID.
+     * Constructs a JavaTimeZone with the given timezone ID.
      * @param id A timezone ID, either a system ID or a custom ID.
-     * @return An instance of JavaTimeZone for the given ID, or null
-     * when the ID cannot be understood.
      */
-    public static JavaTimeZone createTimeZone(String id) {
-        java.util.TimeZone jtz = null;
-
+    public JavaTimeZone(String id) {
         if (AVAILABLESET.contains(id)) {
-            jtz = java.util.TimeZone.getTimeZone(id);
+            javatz = java.util.TimeZone.getTimeZone(id);
         }
-
-        if (jtz == null) {
+        if (javatz == null) {
             // Use ICU's canonical ID mapping
             boolean[] isSystemID = new boolean[1];
             String canonicalID = TimeZone.getCanonicalID(id, isSystemID);
             if (isSystemID[0] && AVAILABLESET.contains(canonicalID)) {
-                jtz = java.util.TimeZone.getTimeZone(canonicalID);
+                javatz = java.util.TimeZone.getTimeZone(canonicalID);
             }
         }
 
-        if (jtz == null) {
-            return null;
+        if (javatz == null){
+            int[] fields = new int[4];
+            if (ZoneMeta.parseCustomID(id, fields)) {
+                // JDK does not support offset seconds.
+                // If custom ID, we create java.util.SimpleTimeZone here.
+                id = ZoneMeta.formatCustomID(fields[1], fields[2], fields[3], fields[0] < 0);
+                int offset = fields[0] * ((fields[1] * 60 + fields[2]) * 60 + fields[3]) * 1000;
+                javatz = new java.util.SimpleTimeZone(offset, id);
+            }
         }
-
-        return new JavaTimeZone(jtz, id);
+        if (javatz == null) {
+            // Final fallback
+            id = TimeZone.UNKNOWN_ZONE_ID;
+            javatz = new java.util.SimpleTimeZone(0, id);
+        }
+        setID(id);
+        javacal = new java.util.GregorianCalendar(javatz);
     }
 
     /* (non-Javadoc)
@@ -172,9 +155,6 @@ public class JavaTimeZone extends TimeZone {
      * @see com.ibm.icu.util.TimeZone#setRawOffset(int)
      */
     public void setRawOffset(int offsetMillis) {
-        if (isFrozen()) {
-            throw new UnsupportedOperationException("Attempt to modify a frozen JavaTimeZone instance.");
-        }
         javatz.setRawOffset(offsetMillis);
     }
 
@@ -186,26 +166,20 @@ public class JavaTimeZone extends TimeZone {
     }
 
     /* (non-Javadoc)
-     * @see com.ibm.icu.util.TimeZone#observesDaylightTime()
-     */
-    public boolean observesDaylightTime() {
-        if (mObservesDaylightTime != null) {
-            // Java 7+
-            try {
-                return (Boolean)mObservesDaylightTime.invoke(javatz, (Object[]) null);
-            } catch (IllegalAccessException e) {
-            } catch (IllegalArgumentException e) {
-            } catch (InvocationTargetException e) {
-            }
-        }
-        return super.observesDaylightTime();
-    }
-
-    /* (non-Javadoc)
      * @see com.ibm.icu.util.TimeZone#getDSTSavings()
      */
     public int getDSTSavings() {
-        return javatz.getDSTSavings();
+        int dstSavings = super.getDSTSavings();
+        try {
+            // hack so test compiles and runs in both JDK 1.3 and JDK 1.4+
+            final Object[] args = new Object[0];
+            final Class<?>[] argtypes = new Class[0];
+            java.lang.reflect.Method m = javatz.getClass().getMethod("getDSTSavings", argtypes); 
+            dstSavings = ((Integer) m.invoke(javatz, args)).intValue();
+        } catch (Exception e) {
+            // just use the result returned by super.getDSTSavings()
+        }
+        return dstSavings;
     }
 
     public java.util.TimeZone unwrap() {
@@ -216,10 +190,9 @@ public class JavaTimeZone extends TimeZone {
      * @see com.ibm.icu.util.TimeZone#clone()
      */
     public Object clone() {
-        if (isFrozen()) {
-            return this;
-        }
-        return cloneAsThawed();
+        JavaTimeZone other = (JavaTimeZone)super.clone();
+        other.javatz = (java.util.TimeZone)javatz.clone();
+        return other;
     }
 
     /* (non-Javadoc)
@@ -233,34 +206,4 @@ public class JavaTimeZone extends TimeZone {
         s.defaultReadObject();
         javacal = new java.util.GregorianCalendar(javatz);
     }
-
-    // Freezable stuffs
-    private transient boolean isFrozen = false;
-
-    /* (non-Javadoc)
-     * @see com.ibm.icu.util.TimeZone#isFrozen()
-     */
-    public boolean isFrozen() {
-        return isFrozen;
-    }
-
-    /* (non-Javadoc)
-     * @see com.ibm.icu.util.TimeZone#freeze()
-     */
-    public TimeZone freeze() {
-        isFrozen = true;
-        return this;
-    }
-
-    /* (non-Javadoc)
-     * @see com.ibm.icu.util.TimeZone#cloneAsThawed()
-     */
-    public TimeZone cloneAsThawed() {
-        JavaTimeZone tz = (JavaTimeZone)super.cloneAsThawed();
-        tz.javatz = (java.util.TimeZone)javatz.clone();
-        tz.javacal = (java.util.GregorianCalendar)javacal.clone();
-        tz.isFrozen = false;
-        return tz;
-    }
-
 }

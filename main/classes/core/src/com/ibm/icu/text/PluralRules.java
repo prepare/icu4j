@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2007-2012, International Business Machines Corporation and    *
+ * Copyright (C) 2007-2011, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -18,7 +18,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import com.ibm.icu.impl.PatternProps;
@@ -144,7 +143,8 @@ public class PluralRules implements Serializable {
     /**
      * Value returned by {@link #getUniqueKeywordValue} when there is no
      * unique value to return.
-     * @stable ICU 4.8
+     * @draft ICU 4.8
+     * @provisional This API might change or be removed in a future release.
      */
     public static final double NO_UNIQUE_VALUE = -0.00123456777;
 
@@ -864,7 +864,8 @@ public class PluralRules implements Serializable {
      *
      * @param keyword the keyword to check for a unique value
      * @return The unique value for the keyword, or NO_UNIQUE_VALUE.
-     * @stable ICU 4.8
+     * @draft ICU 4.8
+     * @provisional This API might change or be removed in a future release.
      */
     public double getUniqueKeywordValue(String keyword) {
         Collection<Double> values = getAllKeywordValues(keyword);
@@ -881,7 +882,8 @@ public class PluralRules implements Serializable {
      * @param keyword the keyword
      * @return the values that trigger this keyword, or null.  The returned collection
      * is immutable. It will be empty if the keyword is not defined.
-     * @stable ICU 4.8
+     * @draft ICU 4.8
+     * @provisional This API might change or be removed in a future release.
      */
     public Collection<Double> getAllKeywordValues(String keyword) {
         if (!keywords.contains(keyword)) {
@@ -909,7 +911,8 @@ public class PluralRules implements Serializable {
      *
      * @param keyword the keyword to test
      * @return a list of values matching the keyword.
-     * @stable ICU 4.8
+     * @draft ICU 4.8
+     * @provisional This API might change or be removed in a future release.
      */
     public Collection<Double> getSamples(String keyword) {
         if (!keywords.contains(keyword)) {
@@ -978,8 +981,8 @@ public class PluralRules implements Serializable {
             }
 
             // Make lists immutable so we can return them directly
-            for (Entry<String, List<Double>> entry : sampleMap.entrySet()) {
-                sampleMap.put(entry.getKey(), Collections.unmodifiableList(entry.getValue()));
+            for (String key : sampleMap.keySet()) {
+                sampleMap.put(key, Collections.unmodifiableList(sampleMap.get(key)));
             }
             _keySamplesMap = sampleMap;
         }

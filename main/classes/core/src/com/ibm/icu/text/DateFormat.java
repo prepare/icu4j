@@ -1,5 +1,5 @@
 /*
- *   Copyright (C) 1996-2012, International Business Machines
+ *   Copyright (C) 1996-2011, International Business Machines
  *   Corporation and others.  All Rights Reserved.
  */
 
@@ -370,19 +370,11 @@ public abstract class DateFormat extends UFormat {
     public final static int TIMEZONE_SPECIAL_FIELD = 29;
 
     /**
-     * {@icu} FieldPosition selector for 'U' field alignment,
-     * corresponding to the {@link Calendar#YEAR} field.
-     * This displays the cyclic year name, if available.
-     * @draft ICU 49
-     */
-    public final static int YEAR_NAME_FIELD = 30;
-
-    /**
      * {@icu} Number of FieldPosition selectors for DateFormat.
      * Valid selectors range from 0 to FIELD_COUNT-1.
      * @stable ICU 3.0
      */
-    public final static int FIELD_COUNT = 31; // must == DateFormatSymbols.patternChars.length()
+    public final static int FIELD_COUNT = 30; // must == DateFormatSymbols.patternChars.length()
 
     // Proclaim serial compatibility with 1.1 FCS
     private static final long serialVersionUID = 7218322306649953788L;
@@ -499,29 +491,7 @@ public abstract class DateFormat extends UFormat {
     }
 
     /**
-     * Parses a date/time string. For example, a time text "07/10/96 4:5 PM, PDT"
-     * will be parsed into a Date that is equivalent to Date(837039928046).
-     * Parsing begins at the beginning of the string and proceeds as far as
-     * possible.  Assuming no parse errors were encountered, this function
-     * doesn't return any information about how much of the string was consumed
-     * by the parsing.  If you need that information, use a version of
-     * parse() that takes a ParsePosition.
-     *
-     * <p> By default, parsing is lenient: If the input is not in the form used
-     * by this object's format method but can still be parsed as a date, then
-     * the parse succeeds.  Clients may insist on strict adherence to the
-     * format by calling setLenient(false).
-     *
-     * <p> Note that the normal date formats associated with some calendars - such
-     * as the Chinese lunar calendar - do not specify enough fields to enable
-     * dates to be parsed unambiguously. In the case of the Chinese lunar
-     * calendar, while the year within the current 60-year cycle is specified,
-     * the number of such cycles since the start date of the calendar (in the
-     * ERA field of the Calendar object) is not normally part of the format,
-     * and parsing may assume the wrong era. For cases such as this it is
-     * recommended that clients parse using the parse method that takes a Calendar
-     * with the Calendar passed in set to the current date, or to a date
-     * within the era/cycle that should be assumed if absent in the format.
+     * Parses a date/time string.
      *
      * @param text  The date/time string to be parsed
      *
@@ -545,15 +515,9 @@ public abstract class DateFormat extends UFormat {
     /**
      * Parses a date/time string according to the given parse position.
      * For example, a time text "07/10/96 4:5 PM, PDT" will be parsed
-     * into a Calendar that is equivalent to Date(837039928046). Before
-     * calling this method the caller should initialize the calendar
-     * in one of two ways (unless existing field information is to be kept):
-     * (1) clear the calendar, or (2) set the calendar to the current date
-     * (or to any date whose fields should be used to supply values that
-     * are missing in the parsed date). For example, Chinese calendar dates
-     * do not normally provide an era/cycle; in this case the calendar that
-     * is passed in should be set to a date within the era that should be
-     * assumed, normally the current era.
+     * into a Calendar that is equivalent to Date(837039928046).  The
+     * caller should clear the calendar before calling this method,
+     * unless existing field information is to be kept.
      *
      * <p> By default, parsing is lenient: If the input is not in the form used
      * by this object's format method but can still be parsed as a date, then
@@ -564,13 +528,10 @@ public abstract class DateFormat extends UFormat {
      *
      * @param text  The date/time string to be parsed
      *
-     * @param cal   The calendar set on input to the date and time to be used
-     *              for missing values in the date/time string being parsed,
-     *              and set on output to the parsed date/time. In general, this
-     *              should be initialized before calling this method - either
-     *              cleared or set to the current date, depending on desired
-     *              behavior. If this parse fails, the calendar may still
-     *              have been modified. When the calendar type is different
+     * @param cal   The calendar into which parsed data will be stored.
+     *              In general, this should be cleared before calling this
+     *              method.  If this parse fails, the calendar may still
+     *              have been modified.  When the calendar type is different
      *              from the internal calendar held by this DateFormat
      *              instance, calendar field values will be parsed based
      *              on the internal calendar initialized with the time and
@@ -594,17 +555,6 @@ public abstract class DateFormat extends UFormat {
      * by this object's format method but can still be parsed as a date, then
      * the parse succeeds.  Clients may insist on strict adherence to the
      * format by calling setLenient(false).
-     *
-     * <p> Note that the normal date formats associated with some calendars - such
-     * as the Chinese lunar calendar - do not specify enough fields to enable
-     * dates to be parsed unambiguously. In the case of the Chinese lunar
-     * calendar, while the year within the current 60-year cycle is specified,
-     * the number of such cycles since the start date of the calendar (in the
-     * ERA field of the Calendar object) is not normally part of the format,
-     * and parsing may assume the wrong era. For cases such as this it is
-     * recommended that clients parse using the parse method that takes a Calendar
-     * with the Calendar passed in set to the current date, or to a date
-     * within the era/cycle that should be assumed if absent in the format.
      *
      * @see #setLenient(boolean)
      *

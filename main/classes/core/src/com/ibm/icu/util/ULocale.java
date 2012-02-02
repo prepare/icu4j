@@ -1,6 +1,6 @@
 /*
 ******************************************************************************
-* Copyright (C) 2003-2012, International Business Machines Corporation and   *
+* Copyright (C) 2003-2011, International Business Machines Corporation and   *
 * others. All Rights Reserved.                                               *
 ******************************************************************************
 */
@@ -10,9 +10,6 @@ package com.ibm.icu.util;
 import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.security.AccessControlException;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.text.ParseException;
 import java.util.Iterator;
 import java.util.List;
@@ -531,76 +528,21 @@ public final class ULocale implements Serializable {
      * Keep our own default ULocale.
      */
     private static Locale defaultLocale = Locale.getDefault();
-    private static ULocale defaultULocale;
+    private static ULocale defaultULocale = forLocale(defaultLocale);
 
     private static Locale[] defaultCategoryLocales = new Locale[Category.values().length];
     private static ULocale[] defaultCategoryULocales = new ULocale[Category.values().length];
 
     static {
-        defaultULocale = forLocale(defaultLocale);
-
-        // For Java 6 or older JRE, ICU initializes the default script from
-        // "user.script" system property. The system property was added
-        // in Java 7. On JRE 7, Locale.getDefault() should reflect the
-        // property value to the Locale's default. So ICU just relies on
-        // Locale.getDefault().
-        
-        // Note: The "user.script" property is only used by initialization.
-        // 
-        if (JDKLocaleHelper.isJava7orNewer()) {
-            for (Category cat: Category.values()) {
-                int idx = cat.ordinal();
-                defaultCategoryLocales[idx] = JDKLocaleHelper.getDefault(cat);
-                defaultCategoryULocales[idx] = forLocale(defaultCategoryLocales[idx]);
-            }
-        } else {
-            // Make sure the current default Locale is original.
-            // If not, it means that someone updated the default Locale.
-            // In this case, user.XXX properties are already out of date
-            // and we should not use user.script.
-            if (JDKLocaleHelper.isOriginalDefaultLocale(defaultLocale)) {
-                // Use "user.script" if available
-                String userScript = JDKLocaleHelper.getSystemProperty("user.script");
-                if (userScript != null && LanguageTag.isScript(userScript)) {
-                    // Note: Builder or forLanguageTag cannot be used here
-                    // when one of Locale fields is not well-formed.
-                    BaseLocale base = defaultULocale.base();
-                    BaseLocale newBase = BaseLocale.getInstance(base.getLanguage(), userScript,
-                            base.getRegion(), base.getVariant());
-                    defaultULocale = getInstance(newBase, defaultULocale.extensions());
-                }
-            }
-
-            // Java 6 or older does not have separated category locales,
-            // use the non-category default for all
-            for (Category cat: Category.values()) {
-                int idx = cat.ordinal();
-                defaultCategoryLocales[idx] = defaultLocale;
-                defaultCategoryULocales[idx] = defaultULocale;
-            }
+        for (Category cat: Category.values()) {
+            int idx = cat.ordinal();
+            defaultCategoryLocales[idx] = JDKLocaleHelper.getDefault(cat);
+            defaultCategoryULocales[idx] = forLocale(defaultCategoryLocales[idx]);
         }
     }
 
     /**
      * Returns the current default ULocale.
-     * <p>
-     * The default ULocale is synchronized to the default Java Locale. This method checks
-     * the current default Java Locale and returns an equivalent ULocale.
-     * <p>
-     * <b>Note:</b> Before Java 7, the JDK Locale was not able to represent a locale's script.
-     * Therefore, the script field in the default ULocale is always empty unless
-     * a ULocale with non-empty script is explicitly set by {@link #setDefault(ULocale)}
-     * on Java 6 or older systems.
-     * <p>
-     * <b>Note for ICU 49 or later:</b> Some JRE implementations allow users to override the default
-     * JDK Locale using system properties - <code>user.language</code>, <code>user.country</code>
-     * and <code>user.variant</code>. In addition to these system properties, some Java 7
-     * implementations support <code>user.script</code> for overriding the default Locale's script.
-     * ICU 49 and later versions use the <code>user.script</code> system property on Java 6
-     * or older systems supporting other <code>user.*</code> system properties to initialize
-     * the default ULocale. The <code>user.script</code> override for default ULocale is not
-     * used on Java 7, or if the current Java default Locale is changed after start up.
-     * 
      * @return the default ULocale.
      * @stable ICU 2.8
      */
@@ -1356,17 +1298,6 @@ public final class ULocale implements Serializable {
     }
 
     /**
-     * {@icu} Returns this locale's script localized for display in the default <code>DISPLAY</code> locale.
-     * @return the localized script name.
-     * @see Category#DISPLAY
-     * @internal ICU 49
-     * @deprecated This API is ICU internal only.
-     */
-    public String getDisplayScriptInContext() {
-        return getDisplayScriptInContextInternal(this, getDefault(Category.DISPLAY));
-    }
-
-    /**
      * {@icu} Returns this locale's script localized for display in the provided locale.
      * @param displayLocale the locale in which to display the name.
      * @return the localized script name.
@@ -1374,17 +1305,6 @@ public final class ULocale implements Serializable {
      */
     public String getDisplayScript(ULocale displayLocale) {
         return getDisplayScriptInternal(this, displayLocale);
-    }
-
-    /**
-     * {@icu} Returns this locale's script localized for display in the provided locale.
-     * @param displayLocale the locale in which to display the name.
-     * @return the localized script name.
-     * @internal ICU 49
-     * @deprecated This API is ICU internal only.
-     */
-    public String getDisplayScriptInContext(ULocale displayLocale) {
-        return getDisplayScriptInContextInternal(this, displayLocale);
     }
 
     /**
@@ -1398,18 +1318,6 @@ public final class ULocale implements Serializable {
     public static String getDisplayScript(String localeID, String displayLocaleID) {
         return getDisplayScriptInternal(new ULocale(localeID), new ULocale(displayLocaleID));
     }
-    /**
-     * {@icu} Returns a locale's script localized for display in the provided locale.
-     * This is a cover for the ICU4C API.
-     * @param localeID the id of the locale whose script will be displayed
-     * @param displayLocaleID the id of the locale in which to display the name.
-     * @return the localized script name.
-     * @internal ICU 49
-     * @deprecated This API is ICU internal only.
-     */
-    public static String getDisplayScriptInContext(String localeID, String displayLocaleID) {
-        return getDisplayScriptInContextInternal(new ULocale(localeID), new ULocale(displayLocaleID));
-    }
 
     /**
      * {@icu} Returns a locale's script localized for display in the provided locale.
@@ -1421,27 +1329,11 @@ public final class ULocale implements Serializable {
     public static String getDisplayScript(String localeID, ULocale displayLocale) {
         return getDisplayScriptInternal(new ULocale(localeID), displayLocale);
     }
-    /**
-     * {@icu} Returns a locale's script localized for display in the provided locale.
-     * @param localeID the id of the locale whose script will be displayed.
-     * @param displayLocale the locale in which to display the name.
-     * @return the localized script name.
-     * @internal ICU 49
-     * @deprecated This API is ICU internal only.
-     */
-    public static String getDisplayScriptInContext(String localeID, ULocale displayLocale) {
-        return getDisplayScriptInContextInternal(new ULocale(localeID), displayLocale);
-    }
 
     // displayLocaleID is canonical, localeID need not be since parsing will fix this.
     private static String getDisplayScriptInternal(ULocale locale, ULocale displayLocale) {
         return LocaleDisplayNames.getInstance(displayLocale)
             .scriptDisplayName(locale.getScript());
-    }
-
-    private static String getDisplayScriptInContextInternal(ULocale locale, ULocale displayLocale) {
-        return LocaleDisplayNames.getInstance(displayLocale)
-            .scriptDisplayNameInContext(locale.getScript());
     }
 
     /**
@@ -2799,7 +2691,8 @@ public final class ULocale implements Serializable {
      * @see #getExtension(char)
      * @see Builder#setExtension(char, String)
      *
-     * @stable ICU 4.2
+     * @draft ICU 4.2
+     * @provisional This API might change or be removed in a future release.
      */
     public static final char PRIVATE_USE_EXTENSION = 'x';
 
@@ -2809,7 +2702,8 @@ public final class ULocale implements Serializable {
      * @see #getExtension(char)
      * @see Builder#setExtension(char, String)
      *
-     * @stable ICU 4.2
+     * @draft ICU 4.2
+     * @provisional This API might change or be removed in a future release.
      */
     public static final char UNICODE_LOCALE_EXTENSION = 'u';
 
@@ -2827,7 +2721,8 @@ public final class ULocale implements Serializable {
      * @see #PRIVATE_USE_EXTENSION
      * @see #UNICODE_LOCALE_EXTENSION
      *
-     * @stable ICU 4.2
+     * @draft ICU 4.2
+     * @provisional This API might change or be removed in a future release.
      */
     public String getExtension(char key) {
         if (!LocaleExtensions.isValidKey(key)) {
@@ -2843,7 +2738,8 @@ public final class ULocale implements Serializable {
      *
      * @return the set of extension keys, or the empty set if this locale has
      * no extensions
-     * @stable ICU 4.2
+     * @draft ICU 4.2
+     * @provisional This API might change or be removed in a future release.
      */
     public Set<Character> getExtensionKeys() {
         return extensions().getKeys();
@@ -2855,7 +2751,8 @@ public final class ULocale implements Serializable {
      * returned set is unmodifiable.
      *
      * @return The set of attributes.
-     * @stable ICU 4.6
+     * @draft ICU 4.6
+     * @provisional This API might change or be removed in a future release.
      */
     public Set<String> getUnicodeLocaleAttributes() {
         return extensions().getUnicodeLocaleAttributes();
@@ -2874,7 +2771,8 @@ public final class ULocale implements Serializable {
      * @throws IllegalArgumentException if the key is not well-formed
      * @throws NullPointerException if <code>key</code> is null
      * 
-     * @stable ICU 4.4
+     * @draft ICU 4.4
+     * @provisional This API might change or be removed in a future release.
      */
     public String getUnicodeLocaleType(String key) {
         if (!LocaleExtensions.isValidUnicodeLocaleKey(key)) {
@@ -2890,7 +2788,8 @@ public final class ULocale implements Serializable {
      * @return The set of Unicode locale keys, or the empty set if this locale has
      * no Unicode locale keywords.
      * 
-     * @stable ICU 4.4
+     * @draft ICU 4.4
+     * @provisional This API might change or be removed in a future release.
      */
     public Set<String> getUnicodeLocaleKeys() {
         return extensions().getUnicodeLocaleKeys();
@@ -2949,7 +2848,8 @@ public final class ULocale implements Serializable {
      * @return a BCP47 language tag representing the locale
      * @see #forLanguageTag(String)
      *
-     * @stable ICU 4.2
+     * @draft ICU 4.2
+     * @provisional This API might change or be removed in a future release.
      */
     public String toLanguageTag() {
         BaseLocale base = base();
@@ -3119,7 +3019,8 @@ public final class ULocale implements Serializable {
      * @see #toLanguageTag()
      * @see ULocale.Builder#setLanguageTag(String)
      *
-     * @stable ICU 4.2
+     * @draft ICU 4.2
+     * @provisional This API might change or be removed in a future release.
      */
     public static ULocale forLanguageTag(String languageTag) {
         LanguageTag tag = LanguageTag.parse(languageTag, null);
@@ -3161,7 +3062,8 @@ public final class ULocale implements Serializable {
      *
      * @see ULocale#toLanguageTag()
      *
-     * @stable ICU 4.2
+     * @draft ICU 4.2
+     * @provisional This API might change or be removed in a future release.
      */
     public static final class Builder {
 
@@ -3172,7 +3074,8 @@ public final class ULocale implements Serializable {
          * fields, extensions, and private use information is the
          * empty string.
          *
-         * @stable ICU 4.2
+         * @draft ICU 4.2
+         * @provisional This API might change or be removed in a future release.
          */
         public Builder() {
             _locbld = new InternalLocaleBuilder();
@@ -3193,7 +3096,8 @@ public final class ULocale implements Serializable {
          * any ill-formed fields.
          * @throws NullPointerException if <code>locale</code> is null.
          *
-         * @stable ICU 4.2
+         * @draft ICU 4.2
+         * @provisional This API might change or be removed in a future release.
          */
         public Builder setLocale(ULocale locale) {
             try {
@@ -3221,7 +3125,8 @@ public final class ULocale implements Serializable {
          * @throws IllformedLocaleException if <code>languageTag</code> is ill-formed
          * @see ULocale#forLanguageTag(String)
          *
-         * @stable ICU 4.2
+         * @draft ICU 4.2
+         * @provisional This API might change or be removed in a future release.
          */
         public Builder setLanguageTag(String languageTag) {
             ParseStatus sts = new ParseStatus();
@@ -3247,7 +3152,8 @@ public final class ULocale implements Serializable {
          * @return This builder.
          * @throws IllformedLocaleException if <code>language</code> is ill-formed
          *
-         * @stable ICU 4.2
+         * @draft ICU 4.2
+         * @provisional This API might change or be removed in a future release.
          */
         public Builder setLanguage(String language) {
             try {
@@ -3269,7 +3175,8 @@ public final class ULocale implements Serializable {
          * @return This builder.
          * @throws IllformedLocaleException if <code>script</code> is ill-formed
          *
-         * @stable ICU 4.2
+         * @draft ICU 4.2
+         * @provisional This API might change or be removed in a future release.
          */
         public Builder setScript(String script) {
             try {
@@ -3295,7 +3202,8 @@ public final class ULocale implements Serializable {
          * @return This builder.
          * @throws IllformedLocaleException if <code>region</code> is ill-formed
          *
-         * @stable ICU 4.2
+         * @draft ICU 4.2
+         * @provisional This API might change or be removed in a future release.
          */
         public Builder setRegion(String region) {
             try {
@@ -3322,7 +3230,8 @@ public final class ULocale implements Serializable {
          * @return This builder.
          * @throws IllformedLocaleException if <code>variant</code> is ill-formed
          *
-         * @stable ICU 4.2
+         * @draft ICU 4.2
+         * @provisional This API might change or be removed in a future release.
          */
         public Builder setVariant(String variant) {
             try {
@@ -3355,7 +3264,8 @@ public final class ULocale implements Serializable {
          * or <code>value</code> is ill-formed
          * @see #setUnicodeLocaleKeyword(String, String)
          *
-         * @stable ICU 4.2
+         * @draft ICU 4.2
+         * @provisional This API might change or be removed in a future release.
          */
         public Builder setExtension(char key, String value) {
             try {
@@ -3386,7 +3296,8 @@ public final class ULocale implements Serializable {
          * @throws NullPointerException if <code>key</code> is null
          * @see #setExtension(char, String)
          *
-         * @stable ICU 4.4
+         * @draft ICU 4.4
+         * @provisional This API might change or be removed in a future release.
          */
         public Builder setUnicodeLocaleKeyword(String key, String type) {
             try {
@@ -3408,7 +3319,8 @@ public final class ULocale implements Serializable {
          * @throws IllformedLocaleException if <code>attribute</code> is ill-formed
          * @see #setExtension(char, String)
          *
-         * @stable ICU 4.6
+         * @draft ICU 4.6
+         * @provisional This API might change or be removed in a future release.
          */
         public Builder addUnicodeLocaleAttribute(String attribute) {
             try {
@@ -3432,7 +3344,8 @@ public final class ULocale implements Serializable {
          * @throws IllformedLocaleException if <code>attribute</code> is ill-formed
          * @see #setExtension(char, String)
          *
-         * @stable ICU 4.6
+         * @draft ICU 4.6
+         * @provisional This API might change or be removed in a future release.
          */
         public Builder removeUnicodeLocaleAttribute(String attribute) {
             try {
@@ -3448,7 +3361,8 @@ public final class ULocale implements Serializable {
          *
          * @return this builder
          *
-         * @stable ICU 4.2
+         * @draft ICU 4.2
+         * @provisional This API might change or be removed in a future release.
          */
         public Builder clear() {
             _locbld.clear();
@@ -3462,7 +3376,8 @@ public final class ULocale implements Serializable {
          * @return this builder
          * @see #setExtension(char, String)
          *
-         * @stable ICU 4.2
+         * @draft ICU 4.2
+         * @provisional This API might change or be removed in a future release.
          */
         public Builder clearExtensions() {
             _locbld.clearExtensions();
@@ -3475,7 +3390,8 @@ public final class ULocale implements Serializable {
          *
          * @return a new Locale
          *
-         * @stable ICU 4.4
+         * @draft ICU 4.4
+         * @provisional This API might change or be removed in a future release.
          */
         public ULocale build() {
             return getInstance(_locbld.getBaseLocale(), _locbld.getLocaleExtensions());
@@ -4105,48 +4021,6 @@ public final class ULocale implements Serializable {
                     }
                 }
             }
-        }
-
-        // Returns true if the given Locale matches the original
-        // default locale initialized by JVM by checking user.XXX
-        // system properties. When the system properties are not accessible,
-        // this method returns false.
-        public static boolean isOriginalDefaultLocale(Locale loc) {
-            if (isJava7orNewer) {
-                String script = "";
-                try {
-                    script = (String) mGetScript.invoke(loc, (Object[]) null);
-                } catch (Exception e) {
-                    return false;
-                }
-
-                return loc.getLanguage().equals(getSystemProperty("user.language"))
-                        && loc.getCountry().equals(getSystemProperty("user.country"))
-                        && loc.getVariant().equals(getSystemProperty("user.variant"))
-                        && script.equals(getSystemProperty("user.script"));
-            }
-            return loc.getLanguage().equals(getSystemProperty("user.language"))
-                    && loc.getCountry().equals(getSystemProperty("user.country"))
-                    && loc.getVariant().equals(getSystemProperty("user.variant"));
-        }
-
-        public static String getSystemProperty(String key) {
-            String val = null;
-            final String fkey = key;
-            if (System.getSecurityManager() != null) {
-                try {
-                    val = AccessController.doPrivileged(new PrivilegedAction<String>() {
-                        public String run() {
-                            return System.getProperty(fkey);
-                        }
-                    });
-                } catch (AccessControlException e) {
-                    // ignore
-                }
-            } else {
-                val = System.getProperty(fkey);
-            }
-            return val;
         }
     }
 }

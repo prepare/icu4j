@@ -1,6 +1,6 @@
 /**
  *******************************************************************************
- * Copyright (C) 2001-2012, International Business Machines Corporation and    *
+ * Copyright (C) 2001-2011, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -220,7 +220,7 @@ public class Currency extends MeasureUnit implements Serializable {
             throw new IllegalArgumentException(
                     "The input currency code is not 3-letter alphabetic code.");
         }
-        return new Currency(theISOCode.toUpperCase(Locale.ENGLISH));
+        return new Currency(theISOCode.toUpperCase(Locale.US));
     }
 
     private static boolean isAlpha3Code(String code) {
@@ -763,7 +763,7 @@ public class Currency extends MeasureUnit implements Serializable {
             CurrencyMetaInfo info = CurrencyMetaInfo.getInstance();
             // Filter out non-tender currencies which have "from" date set to 9999-12-31
             // CurrencyFilter has "to" value set to 9998-12-31 in order to exclude them
-            CurrencyFilter filter = CurrencyFilter.onDateRange(null, new Date(253373299200000L));
+            CurrencyFilter filter = CurrencyFilter.onRange(null, new Date(253373299200000L));
             all = Collections.unmodifiableList(info.currencies(filter));
             ALL_CODES = new SoftReference<List<String>>(all);
         }
@@ -788,7 +788,8 @@ public class Currency extends MeasureUnit implements Serializable {
      * @return true if the given ISO 4217 3-letter code is supported on the specified date range.
      * @throws IllegalArgumentException when <code>to</code> is before <code>from</code>.
      * 
-     * @stable ICU 4.6
+     * @draft ICU 4.6
+     * @provisional This API might change or be removed in a future release.
      */
     public static boolean isAvailable(String code, Date from, Date to) {
         if (!isAlpha3Code(code)) {
@@ -810,7 +811,7 @@ public class Currency extends MeasureUnit implements Serializable {
         // When asActiveOnly is true, check if the currency is currently
         // active or not.
         CurrencyMetaInfo info = CurrencyMetaInfo.getInstance();
-        List<String> allActive = info.currencies(CurrencyFilter.onDateRange(from, to));
+        List<String> allActive = info.currencies(CurrencyFilter.onRange(from, to));
         return allActive.contains(code);
     }
 }

@@ -311,11 +311,6 @@ final class NFRuleSet {
             return true;
         }
     }
-    
-    public int hashCode() {
-        assert false : "hashCode not designed";
-        return 42;
-    }
 
 
     /**
@@ -534,7 +529,7 @@ final class NFRuleSet {
         int hi = rules.length;
     if (hi > 0) {
         while (lo < hi) {
-        int mid = (lo + hi) >>> 1;
+        int mid = (lo + hi) / 2;
         if (rules[mid].getBaseValue() == number) {
             return rules[mid];
         }
@@ -721,7 +716,7 @@ final class NFRuleSet {
         // that determines the value we return.
 
         ParsePosition highWaterMark = new ParsePosition(0);
-        Number result = Long.valueOf(0);
+        Number result = new Long(0);
         Number tempResult = null;
 
         // dump out if there's no text to parse

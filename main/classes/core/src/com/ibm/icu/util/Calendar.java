@@ -1695,7 +1695,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
     private static int getCalendarTypeForLocale(ULocale l) {
         String s = CalendarUtil.getCalendarType(l);
         if (s != null) {
-            s = s.toLowerCase(Locale.ENGLISH);
+            s = s.toLowerCase();
             for (int i = 0; i < calTypes.length; ++i) {
                 if (s.equals(calTypes[i])) {
                     return i;
@@ -1733,7 +1733,6 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
     }
 
     // ==== Factory Stuff ====
-    ///CLOVER:OFF
     /**
      * A CalendarFactory is used to register new calendar implementation.
      * The factory should be able to create a calendar instance for the
@@ -1755,7 +1754,6 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
         protected CalendarFactory() {
         }
     }
-    ///CLOVER:ON
 
     //  shim so we can build without service code
     static abstract class CalendarShim {
@@ -2222,9 +2220,6 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      * @stable ICU 2.0
      */
     public boolean equals(Object obj) {
-        if (obj == null) {
-            return false;
-        }
         if (this == obj) {
             return true;
         }
@@ -2709,7 +2704,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
                 if (newHour < 0) {
                     newHour += max + 1;
                 }
-                setTimeInMillis(start + ONE_HOUR * ((long)newHour - oldHour));
+                setTimeInMillis(start + ONE_HOUR * (newHour - oldHour));
                 return;
             }
 
@@ -3000,8 +2995,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
 
         // We handle most fields in the same way.  The algorithm is to add
         // a computed amount of millis to the current millis.  The only
-        // wrinkle is with DST (and/or a change to the zone's UTC offset, which
-        // we'll include with DST) -- for some fields, like the DAY_OF_MONTH,
+        // wrinkle is with DST -- for some fields, like the DAY_OF_MONTH,
         // we don't want the HOUR to shift due to changes in DST.  If the
         // result of the add operation is to move from DST to Standard, or
         // vice versa, we need to adjust by an hour forward or back,
@@ -3081,30 +3075,30 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
         }
 
         // In order to keep the hour invariant (for fields where this is
-        // appropriate), check the combined DST & ZONE offset before and
-        // after the add() operation. If it changes, then adjust the millis
-        // to compensate.
-        int prevOffset = 0;
+        // appropriate), record the DST_OFFSET before and after the add()
+        // operation.  If it has changed, then adjust the millis to
+        // compensate.
+        int dst = 0;
         int hour = 0;
         if (keepHourInvariant) {
-            prevOffset = get(DST_OFFSET) + get(ZONE_OFFSET);
+            dst = get(DST_OFFSET);
             hour = internalGet(HOUR_OF_DAY);
         }
 
         setTimeInMillis(getTimeInMillis() + delta);
 
         if (keepHourInvariant) {
-            int newOffset = get(DST_OFFSET) + get(ZONE_OFFSET);
-            if (newOffset != prevOffset) {
+            dst -= get(DST_OFFSET);
+            if (dst != 0) {
                 // We have done an hour-invariant adjustment but the
-                // combined offset has changed. We adjust millis to keep
-                // the hour constant. In cases such as midnight after
+                // DST offset has altered.  We adjust millis to keep
+                // the hour constant.  In cases such as midnight after
                 // a DST change which occurs at midnight, there is the
-                // danger of adjusting into a different day. To avoid
+                // danger of adjusting into a different day.  To avoid
                 // this we make the adjustment only if it actually
                 // maintains the hour.
                 long t = time;
-                setTimeInMillis(time + prevOffset - newOffset);
+                setTimeInMillis(time + dst);
                 if (get(HOUR_OF_DAY) != hour) {
                     setTimeInMillis(t);
                 }
@@ -5500,7 +5494,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
             return (int)(numerator / denominator);
         }
         int quotient = (int)(((numerator + 1) / denominator) - 1);
-        remainder[0] = (int)(numerator - ((long)quotient * denominator));
+        remainder[0] = (int)(numerator - (quotient * denominator));
         return quotient;
     }
 

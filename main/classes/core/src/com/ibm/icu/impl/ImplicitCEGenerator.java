@@ -1,6 +1,6 @@
 /**
  *******************************************************************************
- * Copyright (C) 2004-2011, International Business Machines Corporation and         *
+ * Copyright (C) 2004-2010, International Business Machines Corporation and         *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -44,9 +44,9 @@ public class ImplicitCEGenerator {
     
     public static final int 
     // 4E00;<CJK Ideograph, First>;Lo;0;L;;;;;N;;;;;
-    // 9FCC;<CJK Ideograph, Last>;Lo;0;L;;;;;N;;;;;  (Unicode 6.1)
+    // 9FCB;<CJK Ideograph, Last>;Lo;0;L;;;;;N;;;;;
     CJK_BASE = 0x4E00,
-    CJK_LIMIT = 0x9FCC+1,
+    CJK_LIMIT = 0x9FCB+1,
 
     CJK_COMPAT_USED_BASE = 0xFA0E,
     CJK_COMPAT_USED_LIMIT = 0xFA2F+1,

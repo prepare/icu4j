@@ -1,6 +1,6 @@
 /*
 *******************************************************************************
-*   Copyright (C) 2010-2012, International Business Machines
+*   Copyright (C) 2010-2011, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 *******************************************************************************
 *   created on: 2010nov23
@@ -21,7 +21,8 @@ import java.util.NoSuchElementException;
  *
  * <p>This class is not intended for public subclassing.
  *
- * @stable ICU 4.8
+ * @draft ICU 4.8
+ * @provisional This API might change or be removed in a future release.
  * @author Markus W. Scherer
  */
 public final class BytesTrie implements Cloneable, Iterable<BytesTrie.Entry> {
@@ -38,7 +39,8 @@ public final class BytesTrie implements Cloneable, Iterable<BytesTrie.Entry> {
      *
      * @param trieBytes Bytes array that contains the serialized trie.
      * @param offset Root offset of the trie in the array.
-     * @stable ICU 4.8
+     * @draft ICU 4.8
+     * @provisional This API might change or be removed in a future release.
      */
     public BytesTrie(byte[] trieBytes, int offset) {
         bytes_=trieBytes;
@@ -50,7 +52,8 @@ public final class BytesTrie implements Cloneable, Iterable<BytesTrie.Entry> {
      * Clones this trie reader object and its state,
      * but not the byte array which will be shared.
      * @return A shallow clone of this trie.
-     * @stable ICU 4.8
+     * @draft ICU 4.8
+     * @provisional This API might change or be removed in a future release.
      */
     @Override
     public Object clone() throws CloneNotSupportedException {
@@ -60,7 +63,8 @@ public final class BytesTrie implements Cloneable, Iterable<BytesTrie.Entry> {
     /**
      * Resets this trie to its initial state.
      * @return this
-     * @stable ICU 4.8
+     * @draft ICU 4.8
+     * @provisional This API might change or be removed in a future release.
      */
     public BytesTrie reset() {
         pos_=root_;
@@ -71,12 +75,14 @@ public final class BytesTrie implements Cloneable, Iterable<BytesTrie.Entry> {
     /**
      * BytesTrie state object, for saving a trie's current state
      * and resetting the trie back to this state later.
-     * @stable ICU 4.8
+     * @draft ICU 4.8
+     * @provisional This API might change or be removed in a future release.
      */
     public static final class State {
         /**
          * Constructs an empty State.
-         * @stable ICU 4.8
+         * @draft ICU 4.8
+         * @provisional This API might change or be removed in a future release.
          */
         public State() {}
         private byte[] bytes;
@@ -90,7 +96,8 @@ public final class BytesTrie implements Cloneable, Iterable<BytesTrie.Entry> {
      * @param state The State object to hold the trie's state.
      * @return this
      * @see #resetToState
-     * @stable ICU 4.8
+     * @draft ICU 4.8
+     * @provisional This API might change or be removed in a future release.
      */
     public BytesTrie saveState(State state) /*const*/ {
         state.bytes=bytes_;
@@ -108,7 +115,8 @@ public final class BytesTrie implements Cloneable, Iterable<BytesTrie.Entry> {
      *         or the state of a different trie
      * @see #saveState
      * @see #reset
-     * @stable ICU 4.8
+     * @draft ICU 4.8
+     * @provisional This API might change or be removed in a future release.
      */
     public BytesTrie resetToState(State state) {
         if(bytes_==state.bytes && bytes_!=null && root_==state.root) {
@@ -122,7 +130,8 @@ public final class BytesTrie implements Cloneable, Iterable<BytesTrie.Entry> {
 
     /**
      * Return values for BytesTrie.next(), CharsTrie.next() and similar methods.
-     * @stable ICU 4.8
+     * @draft ICU 4.8
+     * @provisional This API might change or be removed in a future release.
      */
     public enum Result {
         /**
@@ -130,14 +139,16 @@ public final class BytesTrie implements Cloneable, Iterable<BytesTrie.Entry> {
          * Once current()/next() return NO_MATCH,
          * all further calls to current()/next() will also return NO_MATCH,
          * until the trie is reset to its original state or to a saved state.
-         * @stable ICU 4.8
+         * @draft ICU 4.8
+         * @provisional This API might change or be removed in a future release.
          */
         NO_MATCH,
         /**
          * The input unit(s) continued a matching string
          * but there is no value for the string so far.
          * (It is a prefix of a longer string.)
-         * @stable ICU 4.8
+         * @draft ICU 4.8
+         * @provisional This API might change or be removed in a future release.
          */
         NO_VALUE,
         /**
@@ -145,7 +156,8 @@ public final class BytesTrie implements Cloneable, Iterable<BytesTrie.Entry> {
          * and there is a value for the string so far.
          * This value will be returned by getValue().
          * No further input byte/unit can continue a matching string.
-         * @stable ICU 4.8
+         * @draft ICU 4.8
+         * @provisional This API might change or be removed in a future release.
          */
         FINAL_VALUE,
         /**
@@ -153,7 +165,8 @@ public final class BytesTrie implements Cloneable, Iterable<BytesTrie.Entry> {
          * and there is a value for the string so far.
          * This value will be returned by getValue().
          * Another input byte/unit can continue a matching string.
-         * @stable ICU 4.8
+         * @draft ICU 4.8
+         * @provisional This API might change or be removed in a future release.
          */
         INTERMEDIATE_VALUE;
 
@@ -164,7 +177,8 @@ public final class BytesTrie implements Cloneable, Iterable<BytesTrie.Entry> {
         /**
          * Same as (result!=NO_MATCH).
          * @return true if the input bytes/units so far are part of a matching string/byte sequence.
-         * @stable ICU 4.8
+         * @draft ICU 4.8
+         * @provisional This API might change or be removed in a future release.
          */
         public boolean matches() { return this!=NO_MATCH; }
 
@@ -172,14 +186,16 @@ public final class BytesTrie implements Cloneable, Iterable<BytesTrie.Entry> {
          * Equivalent to (result==INTERMEDIATE_VALUE || result==FINAL_VALUE).
          * @return true if there is a value for the input bytes/units so far.
          * @see #getValue
-         * @stable ICU 4.8
+         * @draft ICU 4.8
+         * @provisional This API might change or be removed in a future release.
          */
         public boolean hasValue() { return ordinal()>=2; }
 
         /**
          * Equivalent to (result==NO_VALUE || result==INTERMEDIATE_VALUE).
          * @return true if another input byte/unit can continue a matching string.
-         * @stable ICU 4.8
+         * @draft ICU 4.8
+         * @provisional This API might change or be removed in a future release.
          */
         public boolean hasNext() { return (ordinal()&1)!=0; }
     }
@@ -188,7 +204,8 @@ public final class BytesTrie implements Cloneable, Iterable<BytesTrie.Entry> {
      * Determines whether the byte sequence so far matches, whether it has a value,
      * and whether another input byte can continue a matching byte sequence.
      * @return The match/value Result.
-     * @stable ICU 4.8
+     * @draft ICU 4.8
+     * @provisional This API might change or be removed in a future release.
      */
     public Result current() /*const*/ {
         int pos=pos_;
@@ -207,7 +224,8 @@ public final class BytesTrie implements Cloneable, Iterable<BytesTrie.Entry> {
      * @param inByte Input byte value. Values -0x100..-1 are treated like 0..0xff.
      *               Values below -0x100 and above 0xff will never match.
      * @return The match/value Result.
-     * @stable ICU 4.8
+     * @draft ICU 4.8
+     * @provisional This API might change or be removed in a future release.
      */
     public Result first(int inByte) {
         remainingMatchLength_=-1;
@@ -222,7 +240,8 @@ public final class BytesTrie implements Cloneable, Iterable<BytesTrie.Entry> {
      * @param inByte Input byte value. Values -0x100..-1 are treated like 0..0xff.
      *               Values below -0x100 and above 0xff will never match.
      * @return The match/value Result.
-     * @stable ICU 4.8
+     * @draft ICU 4.8
+     * @provisional This API might change or be removed in a future release.
      */
     public Result next(int inByte) {
         int pos=pos_;
@@ -263,7 +282,8 @@ public final class BytesTrie implements Cloneable, Iterable<BytesTrie.Entry> {
      * @param sIndex The start index of the byte sequence in s.
      * @param sLimit The (exclusive) end index of the byte sequence in s.
      * @return The match/value Result.
-     * @stable ICU 4.8
+     * @draft ICU 4.8
+     * @provisional This API might change or be removed in a future release.
      */
     public Result next(byte[] s, int sIndex, int sLimit) {
         if(sIndex>=sLimit) {
@@ -348,7 +368,8 @@ public final class BytesTrie implements Cloneable, Iterable<BytesTrie.Entry> {
      *
      * Do not call getValue() after Result.NO_MATCH or Result.NO_VALUE!
      * @return The value for the byte sequence so far.
-     * @stable ICU 4.8
+     * @draft ICU 4.8
+     * @provisional This API might change or be removed in a future release.
      */
     public int getValue() /*const*/ {
         int pos=pos_;
@@ -363,7 +384,8 @@ public final class BytesTrie implements Cloneable, Iterable<BytesTrie.Entry> {
      * @return The unique value in bits 32..1 with bit 0 set,
      *         if all byte sequences reachable from the current state
      *         map to the same value; otherwise returns 0.
-     * @stable ICU 4.8
+     * @draft ICU 4.8
+     * @provisional This API might change or be removed in a future release.
      */
     public long getUniqueValue() /*const*/ {
         int pos=pos_;
@@ -382,7 +404,8 @@ public final class BytesTrie implements Cloneable, Iterable<BytesTrie.Entry> {
      * @param out Each next byte is 0-extended to a char and appended to this object.
      *            (Only uses the out.append(c) method.)
      * @return The number of bytes which continue the byte sequence from here.
-     * @stable ICU 4.8
+     * @draft ICU 4.8
+     * @provisional This API might change or be removed in a future release.
      */
     public int getNextBytes(Appendable out) /*const*/ {
         int pos=pos_;
@@ -419,7 +442,8 @@ public final class BytesTrie implements Cloneable, Iterable<BytesTrie.Entry> {
     /**
      * Iterates from the current state of this trie.
      * @return A new BytesTrie.Iterator.
-     * @stable ICU 4.8
+     * @draft ICU 4.8
+     * @provisional This API might change or be removed in a future release.
      */
     public Iterator iterator() {
         return new Iterator(bytes_, pos_, remainingMatchLength_, 0);
@@ -430,7 +454,8 @@ public final class BytesTrie implements Cloneable, Iterable<BytesTrie.Entry> {
      * @param maxStringLength If 0, the iterator returns full strings/byte sequences.
      *                        Otherwise, the iterator returns strings with this maximum length.
      * @return A new BytesTrie.Iterator.
-     * @stable ICU 4.8
+     * @draft ICU 4.8
+     * @provisional This API might change or be removed in a future release.
      */
     public Iterator iterator(int maxStringLength) {
         return new Iterator(bytes_, pos_, remainingMatchLength_, maxStringLength);
@@ -443,7 +468,8 @@ public final class BytesTrie implements Cloneable, Iterable<BytesTrie.Entry> {
      * @param maxStringLength If 0, the iterator returns full strings/byte sequences.
      *                        Otherwise, the iterator returns strings with this maximum length.
      * @return A new BytesTrie.Iterator.
-     * @stable ICU 4.8
+     * @draft ICU 4.8
+     * @provisional This API might change or be removed in a future release.
      */
     public static Iterator iterator(byte[] trieBytes, int offset, int maxStringLength) {
         return new Iterator(trieBytes, offset, -1, maxStringLength);
@@ -451,7 +477,8 @@ public final class BytesTrie implements Cloneable, Iterable<BytesTrie.Entry> {
 
     /**
      * Return value type for the Iterator.
-     * @stable ICU 4.8
+     * @draft ICU 4.8
+     * @provisional This API might change or be removed in a future release.
      */
     public static final class Entry {
         private Entry(int capacity) {
@@ -460,28 +487,32 @@ public final class BytesTrie implements Cloneable, Iterable<BytesTrie.Entry> {
 
         /**
          * @return The length of the byte sequence.
-         * @stable ICU 4.8
+         * @draft ICU 4.8
+         * @provisional This API might change or be removed in a future release.
          */
         public int bytesLength() { return length; }
         /**
          * Returns a byte of the byte sequence.
          * @param index An index into the byte sequence.
          * @return The index-th byte sequence byte.
-         * @stable ICU 4.8
+         * @draft ICU 4.8
+         * @provisional This API might change or be removed in a future release.
          */
         public byte byteAt(int index) { return bytes[index]; }
         /**
          * Copies the byte sequence into a byte array.
          * @param dest Destination byte array.
          * @param destOffset Starting offset to where in dest the byte sequence is copied.
-         * @stable ICU 4.8
+         * @draft ICU 4.8
+         * @provisional This API might change or be removed in a future release.
          */
         public void copyBytesTo(byte[] dest, int destOffset) {
             System.arraycopy(bytes, 0, dest, destOffset, length);
         }
         /**
          * @return The byte sequence as a read-only ByteBuffer.
-         * @stable ICU 4.8
+         * @draft ICU 4.8
+         * @provisional This API might change or be removed in a future release.
          */
         public ByteBuffer bytesAsByteBuffer() {
             return ByteBuffer.wrap(bytes, 0, length).asReadOnlyBuffer();
@@ -489,7 +520,8 @@ public final class BytesTrie implements Cloneable, Iterable<BytesTrie.Entry> {
 
         /**
          * The value associated with the byte sequence.
-         * @stable ICU 4.8
+         * @draft ICU 4.8
+         * @provisional This API might change or be removed in a future release.
          */
         public int value;
 
@@ -517,7 +549,8 @@ public final class BytesTrie implements Cloneable, Iterable<BytesTrie.Entry> {
 
     /**
      * Iterator for all of the (byte sequence, value) pairs in a BytesTrie.
-     * @stable ICU 4.8
+     * @draft ICU 4.8
+     * @provisional This API might change or be removed in a future release.
      */
     public static final class Iterator implements java.util.Iterator<Entry> {
         private Iterator(byte[] trieBytes, int offset, int remainingMatchLength, int maxStringLength) {
@@ -542,7 +575,8 @@ public final class BytesTrie implements Cloneable, Iterable<BytesTrie.Entry> {
         /**
          * Resets this iterator to its initial state.
          * @return this
-         * @stable ICU 4.8
+         * @draft ICU 4.8
+         * @provisional This API might change or be removed in a future release.
          */
         public Iterator reset() {
             pos_=initialPos_;
@@ -560,7 +594,8 @@ public final class BytesTrie implements Cloneable, Iterable<BytesTrie.Entry> {
 
         /**
          * @return true if there are more elements.
-         * @stable ICU 4.8
+         * @draft ICU 4.8
+         * @provisional This API might change or be removed in a future release.
          */
         public boolean hasNext() /*const*/ { return pos_>=0 || !stack_.isEmpty(); }
 
@@ -573,7 +608,8 @@ public final class BytesTrie implements Cloneable, Iterable<BytesTrie.Entry> {
          * a real value of -1.
          * @return An Entry with the string and value of the next element.
          * @throws NoSuchElementException - iteration has no more elements.
-         * @stable ICU 4.8
+         * @draft ICU 4.8
+         * @provisional This API might change or be removed in a future release.
          */
         public Entry next() {
             int pos=pos_;
@@ -642,7 +678,8 @@ public final class BytesTrie implements Cloneable, Iterable<BytesTrie.Entry> {
         /**
          * Iterator.remove() is not supported.
          * @throws UnsupportedOperationException (always)
-         * @stable ICU 4.8
+         * @draft ICU 4.8
+         * @provisional This API might change or be removed in a future release.
          */
         public void remove() {
             throw new UnsupportedOperationException();

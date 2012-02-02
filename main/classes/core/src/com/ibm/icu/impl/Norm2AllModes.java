@@ -1,6 +1,6 @@
 /*
 *******************************************************************************
-*   Copyright (C) 2009-2011, International Business Machines
+*   Copyright (C) 2009-2010, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 *******************************************************************************
 */
@@ -58,7 +58,6 @@ public final class Norm2AllModes {
         public String getDecomposition(int c) {
             return null;
         }
-        // No need to override the default getRawDecomposition().
         @Override
         public boolean isNormalized(CharSequence s) { return true; }
         @Override
@@ -128,19 +127,6 @@ public final class Norm2AllModes {
         @Override
         public String getDecomposition(int c) {
             return impl.getDecomposition(c);
-        }
-        @Override
-        public String getRawDecomposition(int c) {
-            return impl.getRawDecomposition(c);
-        }
-        @Override
-        public int composePair(int a, int b) {
-            return impl.composePair(a, b);
-        }
-
-        @Override
-        public int getCombiningClass(int c) {
-            return impl.getCC(impl.getNorm16(c));
         }
 
         // quick checks
@@ -357,7 +343,9 @@ public final class Norm2AllModes {
      * @return FCD normalizer
      */
     public static Normalizer2 getFCDNormalizer2() {
-        return getNFCInstance().fcd;
+        Norm2AllModes allModes=getNFCInstance();
+        allModes.impl.getFCDTrie();
+        return allModes.fcd;
     }
 
     private static final class Norm2AllModesSingleton {

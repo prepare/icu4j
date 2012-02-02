@@ -1,7 +1,7 @@
 /*
  **************************************************************************
  * Copyright (C) 2008-2011, Google, International Business Machines
- * Corporation and others. All Rights Reserved.
+ * Corporationand others. All Rights Reserved.
  **************************************************************************
  */
 package com.ibm.icu.text;
@@ -11,7 +11,6 @@ import java.text.ParsePosition;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.MissingResourceException;
 import java.util.Set;
 import java.util.TreeMap;
@@ -194,8 +193,10 @@ public class TimeUnitFormat extends MeasureFormat {
         if (isReady == false) {
             return this;
         }
-        for (Map<String, Object[]> countToPattern : timeUnitToCountToPatterns.values()) {
-            for (Object[] pair : countToPattern.values()) {
+        for (TimeUnit timeUnit : timeUnitToCountToPatterns.keySet()) {
+            Map<String, Object[]> countToPattern = timeUnitToCountToPatterns.get(timeUnit);
+            for (String count : countToPattern.keySet()) {
+                Object[] pair = countToPattern.get(count);
                 MessageFormat pattern = (MessageFormat)pair[FULL_NAME];
                 pattern.setFormatByArgumentIndex(0, format);
                 pattern = (MessageFormat)pair[ABBREVIATED_NAME];
@@ -248,10 +249,9 @@ public class TimeUnitFormat extends MeasureFormat {
         // and looking for the longest match.
         for (TimeUnit timeUnit : timeUnitToCountToPatterns.keySet()) {
             Map<String, Object[]> countToPattern = timeUnitToCountToPatterns.get(timeUnit);
-            for (Entry<String, Object[]> patternEntry : countToPattern.entrySet()) {
-              String count = patternEntry.getKey();
+            for (String count : countToPattern.keySet()) {
               for (int styl = FULL_NAME; styl < TOTAL_STYLES; ++styl) {
-                MessageFormat pattern = (MessageFormat)(patternEntry.getValue())[styl];
+                MessageFormat pattern = (MessageFormat)(countToPattern.get(count))[styl];
                 pos.setErrorIndex(-1);
                 pos.setIndex(oldPos);
                 // see if we can parse
@@ -290,15 +290,15 @@ public class TimeUnitFormat extends MeasureFormat {
         if (resultNumber == null && longestParseDistance != 0) {
             // set the number using plurrual count
             if ( countOfLongestMatch.equals("zero") ) {
-                resultNumber = Integer.valueOf(0);
+                resultNumber = new Integer(0);
             } else if ( countOfLongestMatch.equals("one") ) {
-                resultNumber = Integer.valueOf(1);
+                resultNumber = new Integer(1);
             } else if ( countOfLongestMatch.equals("two") ) {
-                resultNumber = Integer.valueOf(2);
+                resultNumber = new Integer(2);
             } else {
                 // should not happen.
                 // TODO: how to handle?
-                resultNumber = Integer.valueOf(3);
+                resultNumber = new Integer(3);
             }
         }
         if (longestParseDistance == 0) {

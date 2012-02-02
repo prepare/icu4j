@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2010-2012, International Business Machines Corporation and         *
+ * Copyright (C) 2010, International Business Machines Corporation and         *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -150,12 +150,15 @@ class CharsetCompoundText extends CharsetICU {
     }
     
     private static boolean isIBM912(int codepoint) {
-        return ((codepoint >= 0x0102  && codepoint <= 0x0107)  || (codepoint >= 0x010C && codepoint <= 0x0111)    || (codepoint >= 0x0118 && codepoint <= 0x011B) ||
-                (codepoint == 0x0139) || (codepoint == 0x013A) || (codepoint == 0x013D) || (codepoint == 0x013E)  || (codepoint >= 0x0141 && codepoint <= 0x0144) ||
-                (codepoint == 0x0147) || (codepoint == 0x0150) || (codepoint == 0x0151) || (codepoint == 0x0154)  || (codepoint == 0x0155)                        ||
-                (codepoint >= 0x0158  && codepoint <= 0x015B)  || (codepoint == 0x015E) || (codepoint == 0x015F)  || (codepoint >= 0x0160 && codepoint <= 0x0165) ||
+        if ((codepoint >= 0x0102 && codepoint <= 0x0107) || (codepoint >= 0x010C && codepoint <= 0x0111) || (codepoint >= 0x0118 && codepoint <= 0x011B) ||
+                (codepoint == 0x0139) || (codepoint == 0x013A) || (codepoint == 0x013D) || (codepoint == 0x013E) || (codepoint >= 0x0141 && codepoint <= 0x0144) ||
+                (codepoint == 0x0147) || (codepoint == 0x0147) || (codepoint == 0x0150) || (codepoint == 0x0151) || (codepoint == 0x0154) || (codepoint == 0x0155) || 
+                (codepoint >= 0x0158 && codepoint <= 0x015B) || (codepoint == 0x015E) || (codepoint == 0x015F) || (codepoint >= 0x0160 && codepoint <= 0x0165) ||
                 (codepoint == 0x016E) || (codepoint == 0x016F) || (codepoint == 0x0170) || (codepoint ==  0x0171) || (codepoint >= 0x0179 && codepoint <= 0x017E) ||
-                (codepoint == 0x02C7) || (codepoint == 0x02D8) || (codepoint == 0x02D9) || (codepoint == 0x02DB)  || (codepoint == 0x02DD));
+                (codepoint == 0x02C7) || (codepoint == 0x02D8) || (codepoint == 0x02D9) || (codepoint == 0x02DB) || (codepoint == 0x02DD)) {
+            return true;
+        }
+        return false;
     }
     
     private static boolean isIBM913(int codepoint) {
@@ -197,12 +200,12 @@ class CharsetCompoundText extends CharsetICU {
     
     private static int findNextEsc(ByteBuffer source) {
         int sourceLimit = source.limit();
-        for (int i = (source.position() + 1); i < sourceLimit; i++) {
+        for (int i = source.position(); i < sourceLimit; i++) {
             if (source.get(i) == 0x1B) {
                 return i;
             }
         }
-        return sourceLimit;
+        return source.limit();
     }
     
     private static byte getState(int codepoint) {
@@ -535,9 +538,6 @@ class CharsetCompoundText extends CharsetICU {
                         }
                         if (tmpState < 0) {
                             err = CoderResult.malformedForLength(1);
-                            if (this.toULength == 0) {
-                                source.get(); /* skip over the 0x1b byte */
-                            }
                             break;
                         }
                         

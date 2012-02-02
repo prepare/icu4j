@@ -47,6 +47,7 @@ final class CollationParsedRuleBuilder {
      *                thrown when argument rules have an invalid syntax
      */
     CollationParsedRuleBuilder(String rules) throws ParseException {
+        m_nfcImpl_.getFCDTrie();  // initialize the optional FCD trie
         m_parser_ = new CollationRuleParser(rules);
         m_parser_.assembleTokenList();
         m_utilColEIter_ = RuleBasedCollator.UCA_
@@ -563,6 +564,7 @@ final class CollationParsedRuleBuilder {
         }
 
         m_utilElement_.clear();
+        StringBuilder str = new StringBuilder();
 
         // add latin-1 stuff
         copyRangeFromUCA(t, 0, 0xFF);
@@ -578,24 +580,16 @@ final class CollationParsedRuleBuilder {
 
         // copy contractions from the UCA - this is felt mostly for cyrillic
         char conts[] = RuleBasedCollator.UCA_CONTRACTIONS_;
-        int maxUCAContractionLength = RuleBasedCollator.MAX_UCA_CONTRACTION_LENGTH;
         int offset = 0;
         while (conts[offset] != 0) {
-            // A continuation is NUL-terminated and NUL-padded
-            // except if it has the maximum length.
-            int contractionLength = maxUCAContractionLength;
-            while (contractionLength > 0 && conts[offset + contractionLength - 1] == 0) {
-                --contractionLength;
-            }
-            int first = Character.codePointAt(conts, offset);
-            int firstLength = Character.charCount(first);
-            int tailoredCE = t.m_mapping_.getValue(first);
+            // tailoredCE = ucmpe32_get(t.m_mapping, *conts);
+            int tailoredCE = t.m_mapping_.getValue(conts[offset]);
             Elements prefixElm = null;
             if (tailoredCE != CE_NOT_FOUND_) {
                 boolean needToAdd = true;
                 if (isContractionTableElement(tailoredCE)) {
                     if (isTailored(t.m_contractions_, tailoredCE, conts,
-                            offset + firstLength) == true) {
+                            offset + 1) == true) {
                         needToAdd = false;
                     }
                 }
@@ -605,10 +599,10 @@ final class CollationParsedRuleBuilder {
                     // The format for pre-context character is
                     // conts[0]: baseCP conts[1]:0 conts[2]:pre-context CP
                     Elements elm = new Elements();
-                    elm.m_CELength_ = 0;
-                    elm.m_uchars_ = Character.toString(conts[offset]);
                     elm.m_cPoints_ = m_utilElement_.m_uchars_;
-                    elm.m_prefixChars_ = Character.toString(conts[offset + 2]);
+                    elm.m_CELength_ = 0;
+                    elm.m_uchars_ = UCharacter.toString(conts[offset]);
+                    elm.m_prefixChars_ = UCharacter.toString(conts[offset + 2]);
                     elm.m_prefix_ = 0; // TODO(claireho) : confirm!
                     prefixElm = t.m_prefixLookup_.get(elm);
                     if ((prefixElm == null)
@@ -617,7 +611,7 @@ final class CollationParsedRuleBuilder {
                     }
                 }
                 if (m_parser_.m_removeSet_ != null
-                        && m_parser_.m_removeSet_.contains(first)) {
+                        && m_parser_.m_removeSet_.contains(conts[offset])) {
                     needToAdd = false;
                 }
 
@@ -626,16 +620,26 @@ final class CollationParsedRuleBuilder {
                     if (conts[offset + 1] != 0) { // not precontext
                         m_utilElement_.m_prefix_ = 0;
                         m_utilElement_.m_prefixChars_ = null;
-                        m_utilElement_.m_uchars_ = new String(conts, offset, contractionLength);
                         m_utilElement_.m_cPoints_ = m_utilElement_.m_uchars_;
+                        str.delete(0, str.length());
+                        str.append(conts[offset]);
+                        str.append(conts[offset + 1]);
+                        if (conts[offset + 2] != 0) {
+                            str.append(conts[offset + 2]);
+                        }
+                        m_utilElement_.m_uchars_ = str.toString();
                         m_utilElement_.m_CELength_ = 0;
                         m_utilColEIter_.setText(m_utilElement_.m_uchars_);
                     } else { // add a pre-context element
                         int preKeyLen = 0;
-                        m_utilElement_.m_uchars_ = Character.toString(conts[offset]);
-                        m_utilElement_.m_cPoints_ = m_utilElement_.m_uchars_;
+                        str.delete(0, str.length()); // clean up
+                        m_utilElement_.m_cPoints_ = UCharacter
+                                .toString(conts[offset]);
                         m_utilElement_.m_CELength_ = 0;
-                        m_utilElement_.m_prefixChars_ = Character.toString(conts[offset + 2]);
+                        m_utilElement_.m_uchars_ = UCharacter
+                                .toString(conts[offset]);
+                        m_utilElement_.m_prefixChars_ = UCharacter
+                                .toString(conts[offset + 2]);
                         if (prefixElm == null) {
                             m_utilElement_.m_prefix_ = 0;
                         } else { // TODO (claireho): confirm!
@@ -647,7 +651,9 @@ final class CollationParsedRuleBuilder {
                             // count number of keys for pre-context char.
                             preKeyLen++;
                         }
-                        m_utilColEIter_.setText(m_utilElement_.m_prefixChars_ + m_utilElement_.m_uchars_);
+                        str.append(conts[offset + 2]);
+                        str.append(conts[offset]);
+                        m_utilColEIter_.setText(str.toString());
                         // Skip the keys for prefix character, then copy the
                         // rest to el.
                         while ((preKeyLen-- > 0)
@@ -667,11 +673,11 @@ final class CollationParsedRuleBuilder {
                     addAnElement(t, m_utilElement_);
                 }
             } else if (m_parser_.m_removeSet_ != null
-                    && m_parser_.m_removeSet_.contains(first)) {
-                copyRangeFromUCA(t, first, first);
+                    && m_parser_.m_removeSet_.contains(conts[offset])) {
+                copyRangeFromUCA(t, conts[offset], conts[offset]);
             }
 
-            offset += maxUCAContractionLength;
+            offset += 3;
         }
 
         // Add completely ignorable elements
@@ -783,7 +789,7 @@ final class CollationParsedRuleBuilder {
         MaxJamoExpansionTable() {
             m_endExpansionCE_ = new ArrayList<Integer>();
             m_isV_ = new ArrayList<Boolean>();
-            m_endExpansionCE_.add(Integer.valueOf(0));
+            m_endExpansionCE_.add(new Integer(0));
             m_isV_.add(Boolean.FALSE);
             m_maxLSize_ = 1;
             m_maxVSize_ = 1;
@@ -805,8 +811,8 @@ final class CollationParsedRuleBuilder {
         MaxExpansionTable() {
             m_endExpansionCE_ = new ArrayList<Integer>();
             m_expansionCESize_ = new ArrayList<Byte>();
-            m_endExpansionCE_.add(Integer.valueOf(0));
-            m_expansionCESize_.add(Byte.valueOf((byte) 0));
+            m_endExpansionCE_.add(new Integer(0));
+            m_expansionCESize_.add(new Byte((byte) 0));
         }
 
         MaxExpansionTable(MaxExpansionTable table) {
@@ -1024,9 +1030,9 @@ final class CollationParsedRuleBuilder {
             m_maxExpansions_ = maxet;
             // adding an extra initial value for easier manipulation
             for (int i = 0; i < RuleBasedCollator.UCA_.m_expansionEndCE_.length; i++) {
-                maxet.m_endExpansionCE_.add(Integer.valueOf(
+                maxet.m_endExpansionCE_.add(new Integer(
                         RuleBasedCollator.UCA_.m_expansionEndCE_[i]));
-                maxet.m_expansionCESize_.add(Byte.valueOf(
+                maxet.m_expansionCESize_.add(new Byte(
                         RuleBasedCollator.UCA_.m_expansionEndCEMaxSize_[i]));
             }
             m_maxJamoExpansions_ = maxjet;
@@ -1809,7 +1815,7 @@ final class CollationParsedRuleBuilder {
                 }
                 if (!buildCMTabFlag) {
                     // check combining class
-                    int fcd = m_nfcImpl_.getFCD16(m_utilElement_.m_cPoints_.charAt(i));  // TODO: review for handling supplementary characters
+                    int fcd = m_nfcImpl_.getFCD16FromSingleLead(m_utilElement_.m_cPoints_.charAt(i));  // TODO: review for handling supplementary characters
                     if ((fcd & 0xff) == 0) {
                         // reset flag when current char is not combining mark.
                         containCombinMarks = false;
@@ -2164,7 +2170,7 @@ final class CollationParsedRuleBuilder {
      * @return the current position of the new element
      */
     private static final int addExpansion(List<Integer> expansions, int value) {
-        expansions.add(Integer.valueOf(value));
+        expansions.add(new Integer(value));
         return expansions.size() - 1;
     }
 
@@ -2213,14 +2219,14 @@ final class CollationParsedRuleBuilder {
             // is smaller
             Object currentsize = maxexpansion.m_expansionCESize_.get(result);
             if (((Byte) currentsize).byteValue() < expansionsize) {
-                maxexpansion.m_expansionCESize_.set(result, Byte.valueOf(
-                            expansionsize));
+                maxexpansion.m_expansionCESize_.set(result, new Byte(
+                        expansionsize));
             }
         } else {
             // we'll need to squeeze the value into the array. initial
             // implementation. shifting the subarray down by 1
-            maxexpansion.m_endExpansionCE_.add(start + 1, Integer.valueOf(endexpansion));
-            maxexpansion.m_expansionCESize_.add(start + 1, Byte.valueOf(expansionsize));
+            maxexpansion.m_endExpansionCE_.add(start + 1, new Integer(endexpansion));
+            maxexpansion.m_expansionCESize_.add(start + 1, new Byte(expansionsize));
         }
         return maxexpansion.m_endExpansionCE_.size();
     }
@@ -2274,7 +2280,7 @@ final class CollationParsedRuleBuilder {
                 return maxexpansion.m_endExpansionCE_.size();
             }
         }
-        maxexpansion.m_endExpansionCE_.add(Integer.valueOf(endexpansion));
+        maxexpansion.m_endExpansionCE_.add(new Integer(endexpansion));
         maxexpansion.m_isV_.add(isV ? Boolean.TRUE : Boolean.FALSE);
 
         return maxexpansion.m_endExpansionCE_.size();
@@ -2513,7 +2519,7 @@ final class CollationParsedRuleBuilder {
             element = table.m_elements_.size() - 1;
         }
 
-        tbl.m_CEs_.add(Integer.valueOf(value));
+        tbl.m_CEs_.add(new Integer(value));
         tbl.m_codePoints_.append(codePoint);
         return constructSpecialCE(table.m_currentTag_, element);
     }
@@ -2708,7 +2714,7 @@ final class CollationParsedRuleBuilder {
             }
         }
         if (codePoint == tbl.m_codePoints_.charAt(position)) {
-            tbl.m_CEs_.set(position, Integer.valueOf(newCE));
+            tbl.m_CEs_.set(position, new Integer(newCE));
             return element & 0xFFFFFF;
         } else {
             return CE_NOT_FOUND_;
@@ -2739,7 +2745,7 @@ final class CollationParsedRuleBuilder {
             element = table.m_elements_.size() - 1;
         }
 
-        tbl.m_CEs_.set(offset, Integer.valueOf(value));
+        tbl.m_CEs_.set(offset, new Integer(value));
         tbl.m_codePoints_.setCharAt(offset, codePoint);
         return constructSpecialCE(table.m_currentTag_, element);
     }
@@ -2773,7 +2779,7 @@ final class CollationParsedRuleBuilder {
             offset++;
         }
 
-        tbl.m_CEs_.add(offset, Integer.valueOf(value));
+        tbl.m_CEs_.add(offset, new Integer(value));
         tbl.m_codePoints_.insert(offset, codePoint);
 
         return constructSpecialCE(table.m_currentTag_, element);
@@ -2972,7 +2978,7 @@ final class CollationParsedRuleBuilder {
             return 0;
         }
 
-        tbl.m_CEs_.set(tbl.m_CEs_.size() - 1, Integer.valueOf(value));
+        tbl.m_CEs_.set(tbl.m_CEs_.size() - 1, new Integer(value));
         return constructSpecialCE(table.m_currentTag_, element & 0xFFFFFF);
     }
 
@@ -3661,7 +3667,7 @@ final class CollationParsedRuleBuilder {
         table.m_offsets_.clear();
         int position = 0;
         for (int i = 0; i < tsize; i++) {
-            table.m_offsets_.add(Integer.valueOf(position));
+            table.m_offsets_.add(new Integer(position));
             position += table.m_elements_.get(i).m_CEs_
                     .size();
         }
@@ -3695,7 +3701,7 @@ final class CollationParsedRuleBuilder {
                 if (isContractionTableElement(CEPointer.get(offset + j).intValue())) {
                     int ce = CEPointer.get(offset + j).intValue();
                     CEPointer.set(offset + j,
-                            Integer.valueOf(constructSpecialCE(getCETag(ce),
+                            new Integer(constructSpecialCE(getCETag(ce),
                                     table.m_offsets_.get(getContractionOffset(ce))
                                     .intValue())));
                 }
@@ -3803,25 +3809,12 @@ final class CollationParsedRuleBuilder {
             cm = new char[0x10000];
         }
         for (char c = 0; c < 0xffff; c++) {
-            int fcd;
-            if (UTF16.isLeadSurrogate(c)) {
-                fcd = 0;
-                if (m_nfcImpl_.singleLeadMightHaveNonZeroFCD16(c)) {
-                    int supp = Character.toCodePoint(c, (char)0xdc00);
-                    int suppLimit = supp + 0x400;
-                    while (supp < suppLimit) {
-                        fcd |= m_nfcImpl_.getFCD16FromNormData(supp++);
-                    }
-                }
-            } else {
-                fcd = m_nfcImpl_.getFCD16(c);
-            }
-            // TODO: review for handling supplementary characters
+            int fcd = m_nfcImpl_.getFCD16FromSingleLead(c);  // TODO: review for handling supplementary characters
             if (fcd >= 0x100 || // if the leading combining class(c) > 0 ||
                     (UTF16.isLeadSurrogate(c) && fcd != 0)) {
                 // c is a leading surrogate with some FCD data
                 unsafeCPSet(t.m_unsafeCP_, c);
-                if (buildCMTable) {
+                if (buildCMTable && (fcd != 0)) {
                     int cc = (fcd & 0xff);
                     int pos = (cc << 8) + index[cc];
                     cm[pos] = c;
@@ -3986,7 +3979,7 @@ final class CollationParsedRuleBuilder {
                 for (int j = 0; j < m_utilElement_.m_cPoints_.length()
                         - m_utilElement_.m_cPointsOffset_; j++) {
 
-                    int fcd = m_nfcImpl_.getFCD16(m_utilElement_.m_cPoints_.charAt(j));  // TODO: review for handling supplementary characters
+                    int fcd = m_nfcImpl_.getFCD16FromSingleLead(m_utilElement_.m_cPoints_.charAt(j));  // TODO: review for handling supplementary characters
                     if ((fcd & 0xff) == 0) {
                         baseChar = m_utilElement_.m_cPoints_.charAt(j);
                     } else {
@@ -4015,7 +4008,7 @@ final class CollationParsedRuleBuilder {
         }
         CombinClassTable cmLookup = t.cmLookup;
         int[] index = cmLookup.index;
-        int cClass = m_nfcImpl_.getFCD16(cMark) & 0xff;  // TODO: review for handling supplementary characters
+        int cClass = m_nfcImpl_.getFCD16FromSingleLead(cMark) & 0xff;  // TODO: review for handling supplementary characters
         int maxIndex = 0;
         char[] precompCh = new char[256];
         int[] precompClass = new int[256];
@@ -4031,7 +4024,7 @@ final class CollationParsedRuleBuilder {
             String comp = Normalizer.compose(decompBuf.toString(), false);
             if (comp.length() == 1) {
                 precompCh[precompLen] = comp.charAt(0);
-                precompClass[precompLen] = m_nfcImpl_.getFCD16(cmLookup.cPoints[i]) & 0xff;  // TODO: review for handling supplementary characters
+                precompClass[precompLen] = (m_nfcImpl_.getFCD16FromSingleLead(cmLookup.cPoints[i]) & 0xff);  // TODO: review for handling supplementary characters
                 precompLen++;
                 StringBuilder decomp = new StringBuilder();
                 for (int j = 0; j < m_utilElement_.m_cPoints_.length(); j++) {

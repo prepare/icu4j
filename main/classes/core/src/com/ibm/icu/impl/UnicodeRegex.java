@@ -1,6 +1,6 @@
 /*
  ********************************************************************************
- * Copyright (C) 2009-2011, Google, International Business Machines Corporation *
+ * Copyright (C) 2009-2010, Google, International Business Machines Corporation *
  * and others. All Rights Reserved.                                             *
  ********************************************************************************
  */
@@ -15,16 +15,15 @@ import java.io.UnsupportedEncodingException;
 import java.text.ParsePosition;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.regex.Pattern;
 
 import com.ibm.icu.text.StringTransform;
-import com.ibm.icu.text.SymbolTable;
 import com.ibm.icu.text.UnicodeSet;
 import com.ibm.icu.util.Freezable;
 
@@ -37,25 +36,6 @@ import com.ibm.icu.util.Freezable;
 public class UnicodeRegex implements Cloneable, Freezable<UnicodeRegex>, StringTransform {
     // Note: we don't currently have any state, but intend to in the future,
     // particularly for the regex style supported.
-
-    private SymbolTable symbolTable;
-
-    /**
-     * Set the symbol table for internal processing
-     * @internal
-     */
-    public SymbolTable getSymbolTable() {
-        return symbolTable;
-    }
-
-    /**
-     * Get the symbol table for internal processing
-     * @internal
-     */
-    public UnicodeRegex setSymbolTable(SymbolTable symbolTable) {
-        this.symbolTable = symbolTable;
-        return this;
-    }
 
     /**
      * Adds full Unicode property support, with the latest version of Unicode,
@@ -205,16 +185,13 @@ public class UnicodeRegex implements Cloneable, Freezable<UnicodeRegex>, StringT
         // brute force replacement; do twice to allow for different order
         // later on can optimize
         for (int i = 0; i < 2; ++i) {
-            for (Entry<String, String> entry : variables.entrySet()) {
-                String variable   = entry.getKey(),
-                       definition = entry.getValue();
-                
-                for (Entry<String, String> entry2 : variables.entrySet()) {
-                    String variable2 = entry2.getKey(),
-                           definition2 = entry2.getValue();
-                    if (variable.equals(variable2)) {
-                        continue;
-                    }
+            for (Iterator<String> it = variables.keySet().iterator(); it.hasNext();) {
+                String variable = it.next();
+                String definition = variables.get(variable);
+                for (Iterator<String> it2 = variables.keySet().iterator(); it2.hasNext();) {
+                    String variable2 = it2.next();
+                    if (variable.equals(variable2)) continue;
+                    String definition2 = variables.get(variable2);
                     String altered2 = definition2.replace(variable, definition);
                     if (!altered2.equals(definition2)) {
                         unused.remove(variable);
@@ -326,7 +303,7 @@ public class UnicodeRegex implements Cloneable, Freezable<UnicodeRegex>, StringT
     private int processSet(String regex, int i, StringBuilder result, UnicodeSet temp, ParsePosition pos) {
         try {
             pos.setIndex(i);
-            UnicodeSet x = temp.clear().applyPattern(regex, pos, symbolTable, 0);
+            UnicodeSet x = temp.clear().applyPattern(regex, pos, null, 0);
             x.complement().complement(); // hack to fix toPattern
             result.append(x.toPattern(false));
             i = pos.getIndex() - 1; // allow for the loop increment
@@ -358,7 +335,8 @@ public class UnicodeRegex implements Cloneable, Freezable<UnicodeRegex>, StringT
         String variable = null;
         StringBuffer definition = new StringBuffer();
         int count = 0;
-        for (String line : lines) {
+        for (Iterator<String> it = lines.iterator(); it.hasNext();) {
+            String line = it.next();
             ++count;
             // remove initial bom, comments
             if (line.length() == 0) continue;

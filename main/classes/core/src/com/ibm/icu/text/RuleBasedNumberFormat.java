@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2012, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2011, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -869,16 +869,6 @@ public class RuleBasedNumberFormat extends NumberFormat {
             return true;
         }
     }
-    
-    /**
-     * Mock implementation of hashCode(). This implementation always returns a constant
-     * value. When Java assertion is enabled, this method triggers an assertion failure.
-     * @internal
-     * @deprecated This API is ICU internal only.
-     */
-    public int hashCode() {
-        return super.hashCode();
-    }
 
     /**
      * Generates a textual description of this formatter.
@@ -1193,7 +1183,7 @@ public class RuleBasedNumberFormat extends NumberFormat {
         //TODO: We need a real fix.  See #6895 / #6896
         if (noParse) {
             // skip parsing
-            return Long.valueOf(0);
+            return new Long(0);
         }
 
         // parsePosition tells us where to start parsing.  We copy the
@@ -1206,7 +1196,7 @@ public class RuleBasedNumberFormat extends NumberFormat {
 
         // keep track of the largest number of characters consumed in
         // the various trials, and the result that corresponds to it
-        Number result = Long.valueOf(0);
+        Number result = new Long(0);
         ParsePosition highWaterMark = new ParsePosition(workingPos.getIndex());
 
         // iterate over the public rule sets (beginning with the default one)
@@ -1288,7 +1278,8 @@ public class RuleBasedNumberFormat extends NumberFormat {
      * @param scannerProvider the provider
      * @see #setLenientParseMode
      * @see #getLenientScannerProvider
-     * @stable ICU 4.4
+     * @draft ICU 4.4
+     * @provisional This API might change or be removed in a future release.
      */
     public void setLenientScannerProvider(RbnfLenientScannerProvider scannerProvider) {
         this.scannerProvider = scannerProvider;
@@ -1300,7 +1291,8 @@ public class RuleBasedNumberFormat extends NumberFormat {
      * it was successful.  Otherwise this returns false.
      *
      * @see #setLenientScannerProvider
-     * @stable ICU 4.4
+     * @draft ICU 4.4
+     * @provisional This API might change or be removed in a future release.
      */
     public RbnfLenientScannerProvider getLenientScannerProvider() {
         // there's a potential race condition if two threads try to set/get the scanner at
@@ -1373,18 +1365,6 @@ public class RuleBasedNumberFormat extends NumberFormat {
             return defaultRuleSet.getName();
         }
         return "";
-    }
-    
-    /**
-     * Sets the decimal format symbols used by this formatter. The formatter uses a copy of the
-     * provided symbols.
-     * 
-     * @param newSymbols desired DecimalFormatSymbols
-     * @see DecimalFormatSymbols
-     * @draft ICU 49
-     */
-    public void setDecimalFormatSymbols(DecimalFormatSymbols newSymbols) {
-        decimalFormatSymbols = (DecimalFormatSymbols) newSymbols.clone();
     }
 
     //-----------------------------------------------------------------------

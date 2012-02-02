@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2007-2011, International Business Machines Corporation and    *
+ * Copyright (C) 2007-2010, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -33,8 +33,7 @@ public abstract class BasicTimeZone extends TimeZone {
 
     /**
      * {@icu} Returns the first time zone transition after the base time.
-     * <p>Example code:{@.jcite com.ibm.icu.samples.util.timezone.BasicTimeZoneExample:---getNextTransitionExample}
-     * 
+     *
      * @param base      The base time.
      * @param inclusive Whether the base time is inclusive or not.
      *
@@ -48,7 +47,6 @@ public abstract class BasicTimeZone extends TimeZone {
 
     /**
      * {@icu} Returns the last time zone transition before the base time.
-     * <p>Example code:{@.jcite com.ibm.icu.samples.util.timezone.BasicTimeZoneExample:---getPreviousTransitionExample}
      *
      * @param base      The base time.
      * @param inclusive Whether the base time is inclusive or not.
@@ -66,7 +64,6 @@ public abstract class BasicTimeZone extends TimeZone {
      * This method returns true when all of transition times, from/to standard
      * offsets and DST savings used by this time zone match the other in the
      * time range.
-     * <p>Example code:{@.jcite com.ibm.icu.samples.util.timezone.BasicTimeZoneExample:---hasEquivalentTransitionsExample}
      *
      * @param tz    The instance of <code>TimeZone</code>
      * @param start The start time of the evaluated time range (inclusive)
@@ -105,10 +102,9 @@ public abstract class BasicTimeZone extends TimeZone {
      */
     public boolean hasEquivalentTransitions(TimeZone tz, long start, long end, 
                                             boolean ignoreDstAmount) {
-        if (this == tz) {
+        if (hasSameRules(tz)) {
             return true;
         }
-
         if (!(tz instanceof BasicTimeZone)) {
             return false;
         }
@@ -225,7 +221,6 @@ public abstract class BasicTimeZone extends TimeZone {
      * instance for the initial rule.  The rest will be either
      * <code>AnnualTimeZoneRule</code> or <code>TimeArrayTimeZoneRule</code>
      * instances representing transitions.
-     * <p>Example code:{@.jcite com.ibm.icu.samples.util.timezone.BasicTimeZoneExample:---getTimeZoneRulesExample}
      *
      * @param start The start time (inclusive).
      * @return  The array of <code>TimeZoneRule</code> which represents this
@@ -596,15 +591,5 @@ public abstract class BasicTimeZone extends TimeZone {
      * @stable ICU 3.8
      */
     protected BasicTimeZone() {
-    }
-
-    /**
-     * Constructing a BasicTimeZone with the given time zone ID.
-     * @param ID the time zone ID.
-     * @internal
-     * @deprecated This API is ICU internal only.
-     */
-    protected BasicTimeZone(String ID) {
-        super(ID);
     }
 }

@@ -1,6 +1,6 @@
 /*
 *******************************************************************************
-*   Copyright (C) 2009-2012, International Business Machines
+*   Copyright (C) 2009-2010, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 *******************************************************************************
 */
@@ -50,7 +50,8 @@ public class FilteredNormalizer2 extends Normalizer2 {
     }
     /**
      * {@inheritDoc}
-     * @stable ICU 4.6
+     * @draft ICU 4.6
+     * @provisional This API might change or be removed in a future release.
      */
     @Override
     public Appendable normalize(CharSequence src, Appendable dest) {
@@ -80,41 +81,12 @@ public class FilteredNormalizer2 extends Normalizer2 {
 
     /**
      * {@inheritDoc}
-     * @stable ICU 4.6
+     * @draft ICU 4.6
+     * @provisional This API might change or be removed in a future release.
      */
     @Override
     public String getDecomposition(int c) {
         return set.contains(c) ? norm2.getDecomposition(c) : null;
-    }
-
-    /**
-     * {@inheritDoc}
-     * @draft ICU 49
-     * @provisional This API might change or be removed in a future release.
-     */
-    @Override
-    public String getRawDecomposition(int c) {
-        return set.contains(c) ? norm2.getRawDecomposition(c) : null;
-    }
-
-    /**
-     * {@inheritDoc}
-     * @draft ICU 49
-     * @provisional This API might change or be removed in a future release.
-     */
-    @Override
-    public int composePair(int a, int b) {
-        return (set.contains(a) && set.contains(b)) ? norm2.composePair(a, b) : -1;
-    }
-
-    /**
-     * {@inheritDoc}
-     * @draft ICU 49
-     * @provisional This API might change or be removed in a future release.
-     */
-    @Override
-    public int getCombiningClass(int c) {
-        return set.contains(c) ? norm2.getCombiningClass(c) : 0;
     }
 
     /**

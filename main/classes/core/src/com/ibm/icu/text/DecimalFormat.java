@@ -1756,10 +1756,10 @@ public class DecimalFormat extends NumberFormat {
                             l = -l;
                         }
                     }
-                    n = Long.valueOf(l);
+                    n = new Long(l);
                 } else {
                     BigInteger big = digitList.getBigInteger(status[STATUS_POSITIVE]);
-                    n = (big.bitLength() < 64) ? (Number) Long.valueOf(big.longValue()) : (Number) big;
+                    n = (big.bitLength() < 64) ? (Number) new Long(big.longValue()) : (Number) big;
                 }
             }
             // Handle non-integral values or the case where parseBigDecimal is set
@@ -3908,8 +3908,6 @@ public class DecimalFormat extends NumberFormat {
             text = format(number.doubleValue(), new StringBuffer(), new FieldPosition(0), true);
         } else if (obj instanceof Integer || obj instanceof Long) {
             text = format(number.longValue(), new StringBuffer(), new FieldPosition(0), true);
-        } else {
-            throw new IllegalArgumentException();
         }
 
         AttributedString as = new AttributedString(text.toString());

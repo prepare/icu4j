@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 2004-2012, International Business Machines Corporation and    *
+* Copyright (C) 2004-2010, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 */
@@ -48,8 +48,7 @@ public class ReportAPI {
 
     TreeSet<APIInfo> added;
     TreeSet<APIInfo> removed;
-    TreeSet<APIInfo> promotedStable;
-    TreeSet<APIInfo> promotedDraft;
+    TreeSet<APIInfo> promoted;
     TreeSet<APIInfo> obsoleted;
     ArrayList<DeltaInfo> changed;
 
@@ -206,8 +205,7 @@ public class ReportAPI {
         TreeSet<APIInfo> changedRemoved = new TreeSet<APIInfo>(APIInfo.defaultComparator());
         changedRemoved.addAll(tempRemoved);
 
-        promotedStable = new TreeSet<APIInfo>(APIInfo.defaultComparator());
-        promotedDraft = new TreeSet<APIInfo>(APIInfo.defaultComparator());
+        promoted = new TreeSet<APIInfo>(APIInfo.defaultComparator());
         obsoleted = new TreeSet<APIInfo>(APIInfo.defaultComparator());
         ai = changedAdded.iterator();
         ri = changedRemoved.iterator();
@@ -223,11 +221,7 @@ public class ReportAPI {
             } else {
                 int change = statusChange(a, r);
                 if (change > 0) {
-                    if (a.isStable()) {
-                        promotedStable.add(a);
-                    } else {
-                        promotedDraft.add(a);
-                    }
+                    promoted.add(a);
                 } else if (change < 0) {
                     obsoleted.add(a);
                 }
@@ -238,8 +232,7 @@ public class ReportAPI {
 
         added = stripAndResort(added);
         removed = stripAndResort(removed);
-        promotedStable = stripAndResort(promotedStable);
-        promotedDraft = stripAndResort(promotedDraft);
+        promoted = stripAndResort(promoted);
         obsoleted = stripAndResort(obsoleted);
     }
 
@@ -332,23 +325,10 @@ public class ReportAPI {
             pw.println();
             pw.println("<hr/>");
             pw.println("<h2>Promoted to stable in " + newData.name + "</h2>");
-            if (promotedStable.size() > 0) {
-                printResults(promotedStable, pw, true, false);
+            if (promoted.size() > 0) {
+                printResults(promoted, pw, true, false);
             } else {
-                pw.println("<p>(no API promoted to stable)</p>");
-            }
-
-            if (internal) {
-                // APIs promoted from internal to draft is reported only when
-                // internal API check is enabled
-                pw.println();
-                pw.println("<hr/>");
-                pw.println("<h2>Promoted to draft in " + newData.name + "</h2>");
-                if (promotedDraft.size() > 0) {
-                    printResults(promotedDraft, pw, true, false);
-                } else {
-                    pw.println("<p>(no API promoted to draft)</p>");
-                }
+                pw.println("<p>(no API promoted)</p>");
             }
 
             pw.println();
@@ -401,21 +381,10 @@ public class ReportAPI {
             pw.println();
             pw.println();
             pw.println("=== Promoted to stable in " + newData.name + " ===");
-            if (promotedStable.size() > 0) {
-                printResults(promotedStable, pw, false, false);
+            if (promoted.size() > 0) {
+                printResults(promoted, pw, false, false);
             } else {
-                pw.println("(no API promoted to stable)");
-            }
-
-            if (internal) {
-                pw.println();
-                pw.println();
-                pw.println("=== Promoted to draft in " + newData.name + " ===");
-                if (promotedDraft.size() > 0) {
-                    printResults(promotedDraft, pw, false, false);
-                } else {
-                    pw.println("(no API promoted to draft)");
-                }
+                pw.println("(no API promoted)");
             }
 
             pw.println();

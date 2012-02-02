@@ -1,6 +1,6 @@
 /*
 **********************************************************************
-* Copyright (c) 2004-2012, International Business Machines
+* Copyright (c) 2004-2011, International Business Machines
 * Corporation and others.  All Rights Reserved.
 **********************************************************************
 * Author: Alan Liu
@@ -137,10 +137,6 @@ import com.ibm.icu.util.ULocale.Category;
  * human-readable text, and use the ASCII apostrophe (\u0027 ' )
  * only in program syntax, like quoting in MessageFormat.
  * See the annotations for U+0027 Apostrophe in The Unicode Standard.
- *
- * <p>The <code>choice</code> argument type is deprecated.
- * Use <code>plural</code> arguments for proper plural selection,
- * and <code>select</code> arguments for simple selection among a fixed set of choices.
  *
  * <p>The <code>argType</code> and <code>argStyle</code> values are used to create
  * a <code>Format</code> instance for the format element. The following
@@ -469,7 +465,8 @@ public class MessageFormat extends UFormat {
      * @param aposMode the new ApostropheMode
      * @throws IllegalArgumentException if the pattern is invalid
      * @see MessagePattern.ApostropheMode
-     * @stable ICU 4.8
+     * @draft ICU 4.8
+     * @provisional This API might change or be removed in a future release.
      */
     public void applyPattern(String pattern, MessagePattern.ApostropheMode aposMode) {
         if (msgPattern == null) {
@@ -483,7 +480,8 @@ public class MessageFormat extends UFormat {
     /**
      * {@icu}
      * @return this instance's ApostropheMode.
-     * @stable ICU 4.8
+     * @draft ICU 4.8
+     * @provisional This API might change or be removed in a future release.
      */
     public MessagePattern.ApostropheMode getApostropheMode() {
         if (msgPattern == null) {
@@ -828,7 +826,8 @@ public class MessageFormat extends UFormat {
      * {@icu} Returns the top-level argument names. For more details, see
      * {@link #setFormatByArgumentName(String, Format)}.
      * @return a Set of argument names
-     * @stable ICU 4.8
+     * @draft ICU 4.8
+     * @provisional This API might change or be removed in a future release.
      */
     public Set<String> getArgumentNames() {
         Set<String> result = new HashSet<String>();
@@ -843,7 +842,8 @@ public class MessageFormat extends UFormat {
      * For more details, see {@link #setFormatByArgumentName(String, Format)}.
      * @param argumentName The name of the desired argument.
      * @return the Format associated with the name, or null if there isn't one.
-     * @stable ICU 4.8
+     * @draft ICU 4.8
+     * @provisional This API might change or be removed in a future release.
      */
     public Format getFormatByArgumentName(String argumentName) {
         if (cachedFormatters == null) {
@@ -1268,7 +1268,7 @@ public class MessageFormat extends UFormat {
             String key = null;
             if(args!=null) {
                 argNumber=part.getValue();  // ARG_NUMBER
-                argId = Integer.valueOf(argNumber);
+                argId = new Integer(argNumber);
             } else {
                 if(part.getType()==MessagePattern.Part.Type.ARG_NAME) {
                     key=msgPattern.getSubstring(part);
@@ -1613,7 +1613,7 @@ public class MessageFormat extends UFormat {
                 int argNumber=part.getValue();  // ARG_NUMBER
                 if (dest.attributes != null) {
                     // We only need argId if we add it into the attributes.
-                    argId = Integer.valueOf(argNumber);
+                    argId = new Integer(argNumber);
                 }
                 if(0<=argNumber && argNumber<args.length) {
                     arg=args[argNumber];

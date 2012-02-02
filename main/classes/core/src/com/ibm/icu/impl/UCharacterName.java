@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 1996-2011, International Business Machines Corporation and    *
+* Copyright (C) 1996-2010, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 */
@@ -9,7 +9,6 @@ package com.ibm.icu.impl;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Locale;
 import java.util.MissingResourceException;
 
 import com.ibm.icu.lang.UCharacter;
@@ -115,12 +114,12 @@ public final class UCharacterName
         }
 
         // try extended names first
-        int result = getExtendedChar(name.toLowerCase(Locale.ENGLISH), choice);
+        int result = getExtendedChar(name.toLowerCase(), choice);
         if (result >= -1) {
             return result;
         }
 
-        String upperCaseName = name.toUpperCase(Locale.ENGLISH);
+        String upperCaseName = name.toUpperCase();
         // try algorithmic names first, if fails then try group names
         // int result = getAlgorithmChar(choice, uppercasename);
 
@@ -142,6 +141,10 @@ public final class UCharacterName
         if (choice == UCharacterNameChoice.EXTENDED_CHAR_NAME) {
             result = getGroupChar(upperCaseName,
                                   UCharacterNameChoice.UNICODE_CHAR_NAME);
+            if (result == -1) {
+                result = getGroupChar(upperCaseName,
+                                      UCharacterNameChoice.UNICODE_10_CHAR_NAME);
+            }
             if (result == -1) {
                 result = getGroupChar(upperCaseName,
                                       UCharacterNameChoice.CHAR_NAME_ALIAS);
@@ -315,7 +318,10 @@ public final class UCharacterName
     {
         String result = getName(ch, UCharacterNameChoice.UNICODE_CHAR_NAME);
         if (result == null) {
-            // TODO: Return Name_Alias/control names for control codes 0..1F & 7F..9F.
+            if (getType(ch) == UCharacterCategory.CONTROL) {
+                result = getName(ch,
+                                 UCharacterNameChoice.UNICODE_10_CHAR_NAME);
+            }
             if (result == null) {
                 result = getExtendedOr10Name(ch);
             }
@@ -357,7 +363,10 @@ public final class UCharacterName
     public String getExtendedOr10Name(int ch)
     {
         String result = null;
-        // TODO: Return Name_Alias/control names for control codes 0..1F & 7F..9F.
+        if (getType(ch) == UCharacterCategory.CONTROL) {
+            result = getName(ch,
+                             UCharacterNameChoice.UNICODE_10_CHAR_NAME);
+        }
         if (result == null) {
             int type = getType(ch);
             // Return unknown if the table of names above is not up to
@@ -373,7 +382,7 @@ public final class UCharacterName
                 m_utilStringBuffer_.append('<');
                 m_utilStringBuffer_.append(result);
                 m_utilStringBuffer_.append('-');
-                String chStr = Integer.toHexString(ch).toUpperCase(Locale.ENGLISH);
+                String chStr = Integer.toHexString(ch).toUpperCase();
                 int zeros = 4 - chStr.length();
                 while (zeros > 0) {
                     m_utilStringBuffer_.append('0');

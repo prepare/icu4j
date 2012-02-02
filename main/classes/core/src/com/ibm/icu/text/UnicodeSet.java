@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2012, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2011, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -275,16 +275,16 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
 
     /**
      * Constant for the empty set.
-     * @stable ICU 4.8
+     * @draft 4.8
+     * @provisional This API might change or be removed in a future release.
      */
     public static final UnicodeSet EMPTY = new UnicodeSet().freeze();
     /**
      * Constant for the set of all code points. (Since UnicodeSets can include strings, does not include everything that a UnicodeSet can.)
-     * @stable ICU 4.8
+     * @draft 4.8
+     * @provisional This API might change or be removed in a future release.
      */
     public static final UnicodeSet ALL_CODE_POINTS = new UnicodeSet(0, 0x10FFFF).freeze();
-    
-    private static XSymbolTable XSYMBOL_TABLE = null; // for overriding the the function processing
 
     private static final int LOW = 0x000000; // LOW <= all valid values. ZERO for codepoints
     private static final int HIGH = 0x110000; // HIGH > all valid values. 10000 for code units.
@@ -664,7 +664,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
                     // number of backslashes, then it has been escaped.
                     // Before unescaping it, we delete the final
                     // backslash.
-                    if (backslashCount % 2 != 0) {
+                    if ((backslashCount % 2) == 1) {
                         result.setLength(result.length() - 1);
                     }
                     Utility.escapeUnprintable(result, c);
@@ -1596,12 +1596,6 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
         if (c < MIN_VALUE || c > MAX_VALUE) {
             throw new IllegalArgumentException("Invalid code point U+" + Utility.hex(c, 6));
         }
-        if (bmpSet != null) {
-            return bmpSet.contains(c);
-        }
-        if (stringSpan != null) {
-            return stringSpan.contains(c);
-        }
 
         /*
         // Set i to the index of the start item greater than ch
@@ -2256,12 +2250,6 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
      * @stable ICU 2.0
      */
     public boolean equals(Object o) {
-        if (o == null) {
-            return false;
-        }
-        if (this == o) {
-            return true;
-        }
         try {
             UnicodeSet that = (UnicodeSet) o;
             if (len != that.len) return false;
@@ -3294,7 +3282,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
     public UnicodeSet applyPropertyAlias(String propertyAlias, String valueAlias) {
         return applyPropertyAlias(propertyAlias, valueAlias, null);
     }
-    
+
     /**
      * Modifies this set to contain those code points which have the
      * given value for the given property.  Prior contents of this
@@ -3317,12 +3305,6 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
                 && (symbols instanceof XSymbolTable)
                 && ((XSymbolTable)symbols).applyPropertyAlias(propertyAlias, valueAlias, this)) {
             return this;
-        }
-        
-        if (XSYMBOL_TABLE != null) {
-            if (XSYMBOL_TABLE.applyPropertyAlias(propertyAlias, valueAlias, this)) {
-                return this;
-            }
         }
 
         if (valueAlias.length() > 0) {
@@ -3364,12 +3346,16 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
                     return this;
                 }
                 case UProperty.NAME:
+                case UProperty.UNICODE_1_NAME:
                 {
                     // Must munge name, since
                     // UCharacter.charFromName() does not do
                     // 'loose' matching.
                     String buf = mungeCharName(valueAlias);
-                    int ch = UCharacter.getCharFromExtendedName(buf);
+                    int ch =
+                        (p == UProperty.NAME) ?
+                            UCharacter.getCharFromExtendedName(buf) :
+                            UCharacter.getCharFromName1_0(buf);
                     if (ch == -1) {
                         throw new IllegalArgumentException("Invalid character name");
                     }
@@ -3377,9 +3363,6 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
                     add_unchecked(ch);
                     return this;
                 }
-                case UProperty.UNICODE_1_NAME:
-                    // ICU 49 deprecates the Unicode_1_Name property APIs.
-                    throw new IllegalArgumentException("Unicode_1_Name (na1) not supported");
                 case UProperty.AGE:
                 {
                     // Must munge name, since
@@ -4556,31 +4539,6 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
          * @stable ICU 4.4
          */
         CONDITION_COUNT
-    }
-
-    /**
-     * Get the default symbol table. Null means ordinary processing. For internal use only.
-     * @return the symbol table
-     * @internal
-     */
-    public static XSymbolTable getDefaultXSymbolTable() {
-        return XSYMBOL_TABLE;
-    }
-
-    /**
-     * Set the default symbol table. Null means ordinary processing. For internal use only. Will affect all subsequent parsing
-     * of UnicodeSets.
- * <p>
- * WARNING: If this function is used with a UnicodeProperty, and the
- * Unassigned characters (gc=Cn) are different than in ICU other than in ICU, you MUST call
- * {@code UnicodeProperty.ResetCacheProperties} afterwards. If you then call {@code UnicodeSet.setDefaultXSymbolTable}
- * with null to clear the value, you MUST also call {@code UnicodeProperty.ResetCacheProperties}.
- * 
-     * @param xSymbolTable the new default symbol table.
-     * @internal
-     */
-    public static void setDefaultXSymbolTable(XSymbolTable xSymbolTable) {
-        XSYMBOL_TABLE = xSymbolTable;
     }
 }
 //eof

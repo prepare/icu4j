@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2012, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2011, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -125,55 +125,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      */
     public static final int DT_WIDTH_COUNT = 3;
 
-     /**
-     * {@icu} Somewhat temporary constant for leap month pattern type, adequate for Chinese calendar.
-     * @internal
-     */
-    static final int DT_LEAP_MONTH_PATTERN_FORMAT_WIDE = 0;
-
-     /**
-     * {@icu} Somewhat temporary constant for leap month pattern type, adequate for Chinese calendar.
-     * @internal
-     */
-    static final int DT_LEAP_MONTH_PATTERN_FORMAT_ABBREV = 1;
-
-     /**
-     * {@icu} Somewhat temporary constant for leap month pattern type, adequate for Chinese calendar.
-     * @internal
-     */
-    static final int DT_LEAP_MONTH_PATTERN_FORMAT_NARROW = 2;
-
-     /**
-     * {@icu} Somewhat temporary constant for leap month pattern type, adequate for Chinese calendar.
-     * @internal
-     */
-    static final int DT_LEAP_MONTH_PATTERN_STANDALONE_WIDE = 3;
-
-     /**
-     * {@icu} Somewhat temporary constant for leap month pattern type, adequate for Chinese calendar.
-     * @internal
-     */
-    static final int DT_LEAP_MONTH_PATTERN_STANDALONE_ABBREV = 4;
-
-     /**
-     * {@icu} Somewhat temporary constant for leap month pattern type, adequate for Chinese calendar.
-     * @internal
-     */
-    static final int DT_LEAP_MONTH_PATTERN_STANDALONE_NARROW = 5;
-
-     /**
-     * {@icu} Somewhat temporary constant for leap month pattern type, adequate for Chinese calendar.
-     * @internal
-     */
-    static final int DT_LEAP_MONTH_PATTERN_NUMERIC = 6;
-
-     /**
-     * {@icu} Somewhat temporary constant for month pattern count, adequate for Chinese calendar.
-     * @internal
-     */
-    static final int DT_MONTH_PATTERN_COUNT = 7;
-
-   /**
+    /**
      * Constructs a DateFormatSymbols object by loading format data from
      * resources for the default <code>FORMAT</code> locale.
      *
@@ -459,20 +411,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
     String standaloneQuarters[] = null;
 
     /**
-     * All leap month patterns, for example "{0}bis".
-     * An array of DT_MONTH_PATTERN_COUNT strings, indexed by the DT_LEAP_MONTH_PATTERN_XXX value.
-     * @serial
-     */
-    String leapMonthPatterns[] = null;
-
-     /**
-     * (Format) Short cyclic year names, for example: "jia-zi", "yi-chou", ... "gui-hai".
-     * An array of (normally) 60 strings, corresponding to cyclic years 1-60 (in Calendar YEAR field).
-     * @serial
-     */
-    String shortYearNames[] = null;
-
-   /**
      * Localized names of time zones in this locale.  This is a
      * two-dimensional array of strings of size <em>n</em> by <em>m</em>,
      * where <em>m</em> is at least 5 and up to 7.  Each of the <em>n</em> rows is an
@@ -511,7 +449,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * Unlocalized date-time pattern characters. For example: 'y', 'd', etc.
      * All locales use the same unlocalized pattern characters.
      */
-    static final String  patternChars = "GyMdkHmsSEDFwWahKzYeugAZvcLQqVU";
+    static final String  patternChars = "GyMdkHmsSEDFwWahKzYeugAZvcLQqV";
 
     /**
      * Localized date-time pattern characters. For example, a locale may
@@ -527,21 +465,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
 
     /* use serialVersionUID from JDK 1.1.4 for interoperability */
     private static final long serialVersionUID = -5987973545549424702L;
-
-    private static final String[][] CALENDAR_CLASSES = {
-        {"GregorianCalendar", "gregorian"},
-        {"JapaneseCalendar", "japanese"},
-        {"BuddhistCalendar", "buddhist"},
-        {"TaiwanCalendar", "roc"},
-        {"PersianCalendar", "persian"},
-        {"IslamicCalendar", "islamic"},
-        {"HebrewCalendar", "hebrew"},
-        {"ChineseCalendar", "chinese"},
-        {"IndianCalendar", "indian"},
-        {"CopticCalendar", "coptic"},
-        {"EthiopicCalendar", "ethiopic"},
-    };
-
 
     /**
      * Returns era strings. For example: "AD" and "BC".
@@ -1129,8 +1052,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
         this.quarters = dfs.quarters;
         this.standaloneShortQuarters = dfs.standaloneShortQuarters;
         this.standaloneQuarters = dfs.standaloneQuarters;
-        this.leapMonthPatterns = dfs.leapMonthPatterns;
-        this.shortYearNames = dfs.shortYearNames;
 
         this.zoneStrings = dfs.zoneStrings; // always null at initialization time for now
         this.localPatternChars = dfs.localPatternChars;
@@ -1218,37 +1139,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
 
         standaloneQuarters = calData.getStringArray("quarters", "stand-alone", "wide");
         standaloneShortQuarters = calData.getStringArray("quarters", "stand-alone", "abbreviated");
-
-        // The code for getting individual symbols in the leapMonthSymbols array is here
-        // rather than in CalendarData because it depends on DateFormatSymbols constants...
-        ICUResourceBundle monthPatternsBundle = null;
-        try {
-           monthPatternsBundle = calData.get("monthPatterns");
-        }
-        catch (MissingResourceException e) {
-            monthPatternsBundle = null; // probably redundant
-        }
-        if (monthPatternsBundle != null) {
-            leapMonthPatterns = new String[DT_MONTH_PATTERN_COUNT];
-            leapMonthPatterns[DT_LEAP_MONTH_PATTERN_FORMAT_WIDE] = calData.get("monthPatterns", "wide").get("leap").getString();
-            leapMonthPatterns[DT_LEAP_MONTH_PATTERN_FORMAT_ABBREV] = calData.get("monthPatterns", "abbreviated").get("leap").getString();
-            leapMonthPatterns[DT_LEAP_MONTH_PATTERN_FORMAT_NARROW] = calData.get("monthPatterns", "narrow").get("leap").getString();
-            leapMonthPatterns[DT_LEAP_MONTH_PATTERN_STANDALONE_WIDE] = calData.get("monthPatterns", "stand-alone", "wide").get("leap").getString();
-            leapMonthPatterns[DT_LEAP_MONTH_PATTERN_STANDALONE_ABBREV] = calData.get("monthPatterns", "stand-alone", "abbreviated").get("leap").getString();
-            leapMonthPatterns[DT_LEAP_MONTH_PATTERN_STANDALONE_NARROW] = calData.get("monthPatterns", "stand-alone", "narrow").get("leap").getString();
-            leapMonthPatterns[DT_LEAP_MONTH_PATTERN_NUMERIC] = calData.get("monthPatterns", "numeric", "all").get("leap").getString();
-        }
-        
-        ICUResourceBundle cyclicNameSetsBundle = null;
-        try {
-           cyclicNameSetsBundle = calData.get("cyclicNameSets");
-        }
-        catch (MissingResourceException e) {
-            cyclicNameSetsBundle = null; // probably redundant
-        }
-        if (cyclicNameSetsBundle != null) {
-            shortYearNames = calData.get("cyclicNameSets", "years", "format", "abbreviated").getStringArray();
-        }
 
         requestedLocale = desiredLocale;
 
@@ -1458,7 +1348,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
 
     /**
      * Variant of DateFormatSymbols(Calendar, Locale) that takes the Calendar class
-     * instead of a Calendar instance.
+     * instead of a Calandar instance.
      * @see #DateFormatSymbols(Calendar, Locale)
      * @stable ICU 2.2
      */
@@ -1468,7 +1358,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
 
     /**
      * Variant of DateFormatSymbols(Calendar, ULocale) that takes the Calendar class
-     * instead of a Calendar instance.
+     * instead of a Calandar instance.
      * @see #DateFormatSymbols(Calendar, Locale)
      * @stable ICU 3.2
      */
@@ -1476,16 +1366,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
         String fullName = calendarClass.getName();
         int lastDot = fullName.lastIndexOf('.');
         String className = fullName.substring(lastDot+1);
-        String calType = null;
-        for (String[] calClassInfo : CALENDAR_CLASSES) {
-            if (calClassInfo[0].equals(className)) {
-                calType = calClassInfo[1];
-                break;
-            }
-        }
-        if (calType == null) {
-            calType = className.replaceAll("Calendar", "").toLowerCase(Locale.ENGLISH);
-        }
+        String calType = className.replaceAll("Calendar", "").toLowerCase();
 
         initializeData(locale, calType);
     }

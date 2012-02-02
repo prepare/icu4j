@@ -1,8 +1,8 @@
 /*
- *******************************************************************************
- * Copyright (C) 2010-2011, Google, Inc.; International Business Machines      *
- * Corporation and others. All Rights Reserved.                                *
- *******************************************************************************
+ ****************************************************************************************
+ * Copyright (C) 2010, Google, Inc.; International Business Machines Corporation and    *
+ * others. All Rights Reserved.                                                         *
+ ****************************************************************************************
  */
 
 package com.ibm.icu.util;
@@ -13,7 +13,6 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.regex.Matcher;
@@ -166,12 +165,6 @@ public class LocalePriorityList implements Iterable<ULocale> {
      */
     @Override
     public boolean equals(final Object o) {
-        if (o == null) {
-            return false;
-        }
-        if (this == o) {
-            return true;
-        }
         try {
             final LocalePriorityList that = (LocalePriorityList) o;
             return languagesAndWeights.equals(that.languagesAndWeights);
@@ -248,9 +241,8 @@ public class LocalePriorityList implements Iterable<ULocale> {
             // We now have a bunch of items sorted by weight, then chronologically.
             // We can now create a list in the right order
             final Map<ULocale, Double> temp = new LinkedHashMap<ULocale, Double>();
-            for (Entry<Double, Set<ULocale>> langEntry : doubleCheck.entrySet()) {
-                final Double weight = langEntry.getKey();
-                for (final ULocale lang : langEntry.getValue()) {
+            for (final Double weight : doubleCheck.keySet()) {
+                for (final ULocale lang : doubleCheck.get(weight)) {
                     temp.put(lang, preserveWeights ? weight : D1);
                 }
             }
