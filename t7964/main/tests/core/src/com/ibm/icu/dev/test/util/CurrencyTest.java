@@ -523,6 +523,7 @@ public class CurrencyTest extends TestFmwk {
     public void TestGetNumericCode() {
         final Object[][] NUMCODE_TESTDATA = {
             {"USD", 840},
+            {"Usd", 840},   /* mixed casing */
             {"EUR", 978},
             {"JPY", 392},
             {"XFU", 0},     /* XFU: no numeric code */
