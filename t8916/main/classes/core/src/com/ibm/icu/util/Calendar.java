@@ -1146,6 +1146,42 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
     public static final int WEEKEND_CEASE = 3;
 
     /**
+     * {@icu}Option used by {@link #setRepeatedWallTimeOption(int)} and
+     * {@link #setSkippedWallTimeOption(int)} specifying an ambiguous wall time
+     * to be interpreted as the latest.
+     * @see #setRepeatedWallTimeOption(int)
+     * @see #getRepeatedWallTimeOption()
+     * @see #setSkippedWallTimeOption(int)
+     * @see #getSkippedWallTimeOption()
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
+     */
+    public static final int WALLTIME_LAST = 0;
+
+    /**
+     * {@icu}Option used by {@link #setRepeatedWallTimeOption(int)} and
+     * {@link #setSkippedWallTimeOption(int)} specifying an ambiguous wall time
+     * to be interpreted as the earliest.
+     * @see #setRepeatedWallTimeOption(int)
+     * @see #getRepeatedWallTimeOption()
+     * @see #setSkippedWallTimeOption(int)
+     * @see #getSkippedWallTimeOption()
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
+     */
+    public static final int WALLTIME_FIRST = 1;
+
+    /**
+     * {@icu}Option used by {@link #setSkippedWallTimeOption(int)} specifying an
+     * ambiguous wall time to be interpreted as the next valid wall time.
+     * @see #setSkippedWallTimeOption(int)
+     * @see #getSkippedWallTimeOption()
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
+     */
+    public static final int WALLTIME_NEXT_AVAILABLE = 2;
+
+    /**
      * The number of milliseconds in one second.
      * @stable ICU 2.0
      */
@@ -1371,6 +1407,16 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      * is taken from locale resource data.
      */
     private int weekendCeaseMillis;
+
+    /**
+     * Option used when the specified wall time occurs multiple times.
+     */
+    private int repeatedWallTime = WALLTIME_LAST;
+
+    /**
+     * Option used when the specified wall time does not exist.
+     */
+    private int skippedWallTime = WALLTIME_LAST;
 
     /**
      * Cache to hold the firstDayOfWeek and minimalDaysInFirstWeek
@@ -3817,6 +3863,107 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
     public boolean isLenient()
     {
         return lenient;
+    }
+
+    /**
+     * {@icu}Sets the behavior for handling wall time repeating multiple times
+     * at negative time zone offset transitions. For example, 1:30 AM on
+     * November 6, 2011 in US Eastern time (Ameirca/New_York) occurs twice;
+     * 1:30 AM EDT, then 1:30 AM EST one hour later. When <code>WALLTIME_FIRST</code>
+     * is used, the wall time 1:30AM in this example will be interpreted as 1:30 AM EDT
+     * (first occurrence). When <code>WALLTIME_LAST</code> is used, it will be
+     * interpreted as 1:30 AM EST (last occurrence). The default value is
+     * <code>WALLTIME_LAST</code>.
+     * 
+     * @param option the behavior for handling repeating wall time, either
+     * <code>WALLTIME_FIRST</code> or <code>WALLTIME_LAST</code>.
+     * @throws IllegalArgumentException when <code>option</code> is neither
+     * <code>WALLTIME_FIRST</code> nor <code>WALLTIME_LAST</code>.
+     * 
+     * @see #getRepeatedWallTimeOption()
+     * @see #WALLTIME_FIRST
+     * @see #WALLTIME_LAST
+     * 
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
+     */
+    public void setRepeatedWallTimeOption(int option) {
+        if (option != WALLTIME_LAST && option != WALLTIME_FIRST) {
+            throw new IllegalArgumentException("Illegal repeated wall time option - " + option);
+        }
+        repeatedWallTime = option;
+    }
+
+    /**
+     * {@icu}Gets the behavior for handling wall time repeating multiple times
+     * at negative time zone offset transitions.
+     * 
+     * @return the behavior for handling repeating wall time, either
+     * <code>WALLTIME_FIRST</code> or <code>WALLTIME_LAST</code>.
+     * 
+     * @see #setRepeatedWallTimeOption(int)
+     * @see #WALLTIME_FIRST
+     * @see #WALLTIME_LAST
+     * 
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
+     */
+    public int getRepeatedWallTimeOption() {
+        return repeatedWallTime;
+    }
+
+    /**
+     * {@icu}Sets the behavior for handling skipped wall time at positive time zone offset
+     * transitions. For example, 2:30 AM on March 13, 2011 in US Eastern time (America/New_York)
+     * does not exist because the wall time jump from 1:59 AM EST to 3:00 AM EDT. When
+     * <code>WALLTIME_FIRST</code> is used, 2:30 AM is interpreted as 30 minutes before 3:00 AM
+     * EDT, therefore, it will be resolved as 1:30 AM EST. When <code>WALLTIME_LAST</code>
+     * is used, 2:30 AM is interpreted as 31 minutes after 1:59 AM EST, therefore, it will be
+     * resolved as 3:30 AM EDT. When <code>WALLTIME_NEXT_AVAILABLE</code> is used, 2:30 AM will
+     * be resolved as next available wall time, that is 3:00 AM EDT. The default value is
+     * <code>WALLTIME_LAST</code>.
+     * <p>
+     * <b>Note:</b>This option is effective only when this calendar is {@link #isLenient() lenient}.
+     * When the calendar is strict, such non-existing wall time will cause an exception.
+     * 
+     * @param option the behavior for handling skipped wall time at positive time zone
+     * offset transitions, one of <code>WALLTIME_FIRST</code>, <code>WALLTIME_LAST</code> and
+     * <code>WALLTIME_NEXT_AVAILABLE</code>.
+     * @throws IllegalArgumentException when <code>option</code> is not any of
+     * <code>WALLTIME_FIRST</code>, <code>WALLTIME_LAST</code> and <code>WALLTIME_NEXT_AVAILABLE</code>.
+     * 
+     * @see #getSkippedWallTimeOption()
+     * @see #WALLTIME_FIRST
+     * @see #WALLTIME_LAST
+     * @see #WALLTIME_NEXT_AVAILABLE
+     * 
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
+     */
+    public void setSkippedWallTimeOption(int option) {
+        if (option != WALLTIME_LAST && option != WALLTIME_FIRST && option != WALLTIME_NEXT_AVAILABLE) {
+            throw new IllegalArgumentException("Illegal skipped wall time option - " + option);
+        }
+        skippedWallTime = option;
+    }
+
+    /**
+     * {@icu}Gets the behavior for handling skipped wall time at positive time zone offset
+     * transitions.
+     * 
+     * @return the behavior for handling skipped wall time, one of
+     * <code>WALLTIME_FIRST</code>, <code>WALLTIME_LAST</code> and <code>WALLTIME_NEXT_AVAILABLE</code>.
+     * 
+     * @see #setSkippedWallTimeOption(int)
+     * @see #WALLTIME_FIRST
+     * @see #WALLTIME_LAST
+     * @see #WALLTIME_NEXT_AVAILABLE
+     * 
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
+     */
+    public int getSkippedWallTimeOption() {
+        return skippedWallTime;
     }
 
     /**
