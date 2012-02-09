@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2000-2011, International Business Machines Corporation and
+ * Copyright (C) 2000-2012, International Business Machines Corporation and
  * others. All Rights Reserved.
  *******************************************************************************
  */
@@ -1137,15 +1137,51 @@ public class IBMCalendarTest extends CalendarTest {
         }
     }
 
+    public void TestAmbiguousWallTimeAPIs() {
+        Calendar cal = Calendar.getInstance();
+
+        assertEquals("Default repeated wall time option", cal.getRepeatedWallTimeOption(), Calendar.WALLTIME_LAST);
+        assertEquals("Default skipped wall time option", cal.getSkippedWallTimeOption(), Calendar.WALLTIME_LAST);
+
+        Calendar cal2 = (Calendar)cal.clone();
+
+        assertTrue("Equality", cal2.equals(cal));
+        assertTrue("Hash code", cal.hashCode() == cal2.hashCode());
+
+        cal2.setRepeatedWallTimeOption(Calendar.WALLTIME_FIRST);
+        cal2.setSkippedWallTimeOption(Calendar.WALLTIME_FIRST);
+
+        assertFalse("Equality after mod", cal2.equals(cal));
+        assertFalse("Hash code after mod", cal.hashCode() == cal2.hashCode());
+
+        assertEquals("getRepeatedWallTimeOption after mod", cal2.getRepeatedWallTimeOption(), Calendar.WALLTIME_FIRST);
+        assertEquals("getSkippedWallTimeOption after mod", cal2.getSkippedWallTimeOption(), Calendar.WALLTIME_FIRST);
+
+        try {
+            cal.setRepeatedWallTimeOption(Calendar.WALLTIME_NEXT_AVAILABLE);
+            errln("IAE expected on setRepeatedWallTimeOption(WALLTIME_NEXT_AVAILABLE");
+        } catch (IllegalArgumentException e) {
+            // expected
+        }
+    }
+
     public void TestRepeatedWallTime() {
         final Object[][] TESTDATA = {
             // Time zone            Input wall time                     WALLTIME_LAST in GMT                WALLTIME_FIRST in GMT
             {"America/New_York",    new CalFields(2011,11,6,0,59,59),   new CalFields(2011,11,6,4,59,59),   new CalFields(2011,11,6,4,59,59)},
             {"America/New_York",    new CalFields(2011,11,6,1,0,0),     new CalFields(2011,11,6,6,0,0),     new CalFields(2011,11,6,5,0,0)},
-            {"America/New_York",    new CalFields(2011,11,6,1,1,0),     new CalFields(2011,11,6,6,1,0),     new CalFields(2011,11,6,5,1,0)},
+            {"America/New_York",    new CalFields(2011,11,6,1,0,1),     new CalFields(2011,11,6,6,0,1),     new CalFields(2011,11,6,5,0,1)},
             {"America/New_York",    new CalFields(2011,11,6,1,30,0),    new CalFields(2011,11,6,6,30,0),    new CalFields(2011,11,6,5,30,0)},
             {"America/New_York",    new CalFields(2011,11,6,1,59,59),   new CalFields(2011,11,6,6,59,59),   new CalFields(2011,11,6,5,59,59)},
             {"America/New_York",    new CalFields(2011,11,6,2,0,0),     new CalFields(2011,11,6,7,0,0),     new CalFields(2011,11,6,7,0,0)},
+            {"America/New_York",    new CalFields(2011,11,6,2,0,1),     new CalFields(2011,11,6,7,0,1),     new CalFields(2011,11,6,7,0,1)},
+
+            {"Australia/Lord_Howe", new CalFields(2011,4,3,1,29,59),    new CalFields(2011,4,2,14,29,59),   new CalFields(2011,4,2,14,29,59)},
+            {"Australia/Lord_Howe", new CalFields(2011,4,3,1,30,0),     new CalFields(2011,4,2,15,0,0),     new CalFields(2011,4,2,14,30,0)},
+            {"Australia/Lord_Howe", new CalFields(2011,4,3,1,45,0),     new CalFields(2011,4,2,15,15,0),    new CalFields(2011,4,2,14,45,0)},
+            {"Australia/Lord_Howe", new CalFields(2011,4,3,1,59,59),    new CalFields(2011,4,2,15,29,59),   new CalFields(2011,4,2,14,59,59)},
+            {"Australia/Lord_Howe", new CalFields(2011,4,3,2,0,0),      new CalFields(2011,4,2,15,30,0),    new CalFields(2011,4,2,15,30,0)},
+            {"Australia/Lord_Howe", new CalFields(2011,4,3,2,0,1),      new CalFields(2011,4,2,15,30,1),    new CalFields(2011,4,2,15,30,1)},
         };
 
         Calendar calGMT = Calendar.getInstance(TimeZone.GMT_ZONE);
@@ -1158,7 +1194,8 @@ public class IBMCalendarTest extends CalendarTest {
         calLast.setRepeatedWallTimeOption(Calendar.WALLTIME_LAST);
 
         for (Object[] test : TESTDATA) {
-            TimeZone tz = TimeZone.getTimeZone((String)test[0]);
+            String tzid = (String)test[0];
+            TimeZone tz = TimeZone.getTimeZone(tzid);
             CalFields in = (CalFields)test[1];
             CalFields expLastGMT = (CalFields)test[2];
             CalFields expFirstGMT = (CalFields)test[3];
@@ -1169,7 +1206,7 @@ public class IBMCalendarTest extends CalendarTest {
             calGMT.setTimeInMillis(calLast.getTimeInMillis());
             CalFields outLastGMT = CalFields.createFrom(calGMT);
             if (!outLastGMT.equals(expLastGMT)) {
-                errln("Fail: WALLTIME_LAST " + in + "[" + tz.getID() + "] is parsed as " + outLastGMT + "[GMT]. Expected: " + expLastGMT + "[GMT]");
+                errln("Fail: WALLTIME_LAST " + in + "[" + tzid + "] is parsed as " + outLastGMT + "[GMT]. Expected: " + expLastGMT + "[GMT]");
             }
 
             // default
@@ -1178,7 +1215,7 @@ public class IBMCalendarTest extends CalendarTest {
             calGMT.setTimeInMillis(calDefault.getTimeInMillis());
             CalFields outDefGMT = CalFields.createFrom(calGMT);
             if (!outDefGMT.equals(expLastGMT)) {
-                errln("Fail: (default) " + in + "[" + tz.getID() + "] is parsed as " + outDefGMT + "[GMT]. Expected: " + expLastGMT + "[GMT]");
+                errln("Fail: (default) " + in + "[" + tzid + "] is parsed as " + outDefGMT + "[GMT]. Expected: " + expLastGMT + "[GMT]");
             }
 
             // WALLTIME_FIRST
@@ -1187,7 +1224,7 @@ public class IBMCalendarTest extends CalendarTest {
             calGMT.setTimeInMillis(calFirst.getTimeInMillis());
             CalFields outFirstGMT = CalFields.createFrom(calGMT);
             if (!outFirstGMT.equals(expFirstGMT)) {
-                errln("Fail: WALLTIME_FIRST " + in + "[" + tz.getID() + "] is parsed as " + outFirstGMT + "[GMT]. Expected: " + expFirstGMT + "[GMT]");
+                errln("Fail: WALLTIME_FIRST " + in + "[" + tzid + "] is parsed as " + outFirstGMT + "[GMT]. Expected: " + expFirstGMT + "[GMT]");
             }
         }
     }
@@ -1213,6 +1250,21 @@ public class IBMCalendarTest extends CalendarTest {
 
             {"America/New_York",    new CalFields(2011,3,13,3,0,0),     true,
                 new CalFields(2011,3,13,7,0,0),     new CalFields(2011,3,13,7,0,0),     new CalFields(2011,3,13,7,0,0)},
+
+            {"Pacific/Apia",        new CalFields(2011,12,29,23,59,59), true,
+                new CalFields(2011,12,30,9,59,59),  new CalFields(2011,12,30,9,59,59),  new CalFields(2011,12,30,9,59,59)},
+
+            {"Pacific/Apia",        new CalFields(2011,12,30,0,0,0),    false,
+                new CalFields(2011,12,30,10,0,0),  new CalFields(2011,12,29,10,0,0),  new CalFields(2011,12,30,10,0,0)},
+
+            {"Pacific/Apia",        new CalFields(2011,12,30,12,0,0),   false,
+                new CalFields(2011,12,30,22,0,0),  new CalFields(2011,12,29,22,0,0),  new CalFields(2011,12,30,10,0,0)},
+
+            {"Pacific/Apia",        new CalFields(2011,12,30,23,59,59), false,
+                new CalFields(2011,12,31,9,59,59), new CalFields(2011,12,30,9,59,59), new CalFields(2011,12,30,10,0,0)},
+
+            {"Pacific/Apia",        new CalFields(2011,12,31,0,0,0),    true,
+                new CalFields(2011,12,30,10,0,0),  new CalFields(2011,12,30,10,0,0),  new CalFields(2011,12,30,10,0,0)},
         };
 
         Calendar calGMT = Calendar.getInstance(TimeZone.GMT_ZONE);
@@ -1227,47 +1279,88 @@ public class IBMCalendarTest extends CalendarTest {
         calNextAvail.setSkippedWallTimeOption(Calendar.WALLTIME_NEXT_AVAILABLE);
 
         for (Object[] test : TESTDATA) {
-            TimeZone tz = TimeZone.getTimeZone((String)test[0]);
+            String tzid = (String)test[0];
+            TimeZone tz = TimeZone.getTimeZone(tzid);
             CalFields in = (CalFields)test[1];
             boolean isValid = (Boolean)test[2];
             CalFields expLastGMT = (CalFields)test[3];
             CalFields expFirstGMT = (CalFields)test[4];
             CalFields expNextAvailGMT = (CalFields)test[5];
 
-            // WALLTIME_LAST
-            calLast.setTimeZone(tz);
-            in.setTo(calLast);
-            calGMT.setTimeInMillis(calLast.getTimeInMillis());
-            CalFields outLastGMT = CalFields.createFrom(calGMT);
-            if (!outLastGMT.equals(expLastGMT)) {
-                errln("Fail: WALLTIME_LAST " + in + "[" + tz.getID() + "] is parsed as " + outLastGMT + "[GMT]. Expected: " + expLastGMT + "[GMT]");
-            }
+            for (int i = 0; i < 2; i++) {
+                boolean bLenient = (i == 0);
 
-            // default
-            calDefault.setTimeZone(tz);
-            in.setTo(calDefault);
-            calGMT.setTimeInMillis(calDefault.getTimeInMillis());
-            CalFields outDefGMT = CalFields.createFrom(calGMT);
-            if (!outDefGMT.equals(expLastGMT)) {
-                errln("Fail: (default) " + in + "[" + tz.getID() + "] is parsed as " + outDefGMT + "[GMT]. Expected: " + expLastGMT + "[GMT]");
-            }
+                // WALLTIME_LAST
+                calLast.setLenient(bLenient);
+                calLast.setTimeZone(tz);
+                try {
+                    in.setTo(calLast);
+                    calGMT.setTimeInMillis(calLast.getTimeInMillis());
+                    CalFields outLastGMT = CalFields.createFrom(calGMT);
+                    if (!bLenient && !isValid) {
+                        errln("Fail: IllegalArgumentException expected - " + in + "[" + tzid + "] (WALLTIME_LAST)");
+                    } else if (!outLastGMT.equals(expLastGMT)) {
+                        errln("Fail: WALLTIME_LAST " + in + "[" + tzid + "] is parsed as " + outLastGMT + "[GMT]. Expected: " + expLastGMT + "[GMT]");
+                    }
+                } catch (IllegalArgumentException e) {
+                    if (bLenient || isValid) {
+                        errln("Fail: Unexpected IllegalArgumentException - " + in + "[" + tzid + "] (WALLTIME_LAST)");
+                    }
+                }
 
-            // WALLTIME_FIRST
-            calFirst.setTimeZone(tz);
-            in.setTo(calFirst);
-            calGMT.setTimeInMillis(calFirst.getTimeInMillis());
-            CalFields outFirstGMT = CalFields.createFrom(calGMT);
-            if (!outFirstGMT.equals(expFirstGMT)) {
-                errln("Fail: WALLTIME_FIRST " + in + "[" + tz.getID() + "] is parsed as " + outFirstGMT + "[GMT]. Expected: " + expFirstGMT + "[GMT]");
-            }
+                // default
+                calDefault.setLenient(bLenient);
+                calDefault.setTimeZone(tz);
+                try {
+                    in.setTo(calDefault);
+                    calGMT.setTimeInMillis(calDefault.getTimeInMillis());
+                    CalFields outDefGMT = CalFields.createFrom(calGMT);
+                    if (!bLenient && !isValid) {
+                        errln("Fail: IllegalArgumentException expected - " + in + "[" + tzid + "] (default)");
+                    } else if (!outDefGMT.equals(expLastGMT)) {
+                        errln("Fail: (default) " + in + "[" + tzid + "] is parsed as " + outDefGMT + "[GMT]. Expected: " + expLastGMT + "[GMT]");
+                    }
+                } catch (IllegalArgumentException e) {
+                    if (bLenient || isValid) {
+                        errln("Fail: Unexpected IllegalArgumentException - " + in + "[" + tzid + "] (default)");
+                    }
+                }
 
-            // WALLTIME_NEXT_AVAILABLE
-            calNextAvail.setTimeZone(tz);
-            in.setTo(calNextAvail);
-            calGMT.setTimeInMillis(calNextAvail.getTimeInMillis());
-            CalFields outNextAvailGMT = CalFields.createFrom(calGMT);
-            if (!outNextAvailGMT.equals(expNextAvailGMT)) {
-                errln("Fail: WALLTIME_NEXT_AVAILABLE " + in + "[" + tz.getID() + "] is parsed as " + outNextAvailGMT + "[GMT]. Expected: " + expNextAvailGMT + "[GMT]");
+                // WALLTIME_FIRST
+                calFirst.setLenient(bLenient);
+                calFirst.setTimeZone(tz);
+                try {
+                    in.setTo(calFirst);
+                    calGMT.setTimeInMillis(calFirst.getTimeInMillis());
+                    CalFields outFirstGMT = CalFields.createFrom(calGMT);
+                    if (!bLenient && !isValid) {
+                        errln("Fail: IllegalArgumentException expected - " + in + "[" + tzid + "] (WALLTIME_FIRST)");
+                    } else if (!outFirstGMT.equals(expFirstGMT)) {
+                        errln("Fail: WALLTIME_FIRST " + in + "[" + tzid + "] is parsed as " + outFirstGMT + "[GMT]. Expected: " + expFirstGMT + "[GMT]");
+                    }
+                } catch (IllegalArgumentException e) {
+                    if (bLenient || isValid) {
+                        errln("Fail: Unexpected IllegalArgumentException - " + in + "[" + tzid + "] (WALLTIME_FIRST)");
+                    }
+                }
+
+                // WALLTIME_NEXT_AVAILABLE
+                calNextAvail.setLenient(bLenient);
+                calNextAvail.setTimeZone(tz);
+                try {
+                    in.setTo(calNextAvail);
+                    calGMT.setTimeInMillis(calNextAvail.getTimeInMillis());
+                    CalFields outNextAvailGMT = CalFields.createFrom(calGMT);
+                    if (!bLenient && !isValid) {
+                        errln("Fail: IllegalArgumentException expected - " + in + "[" + tzid + "] (WALLTIME_NEXT_AVAILABLE)");
+                    } else if (!outNextAvailGMT.equals(expNextAvailGMT)) {
+                        errln("Fail: WALLTIME_NEXT_AVAILABLE " + in + "[" + tzid + "] is parsed as " + outNextAvailGMT + "[GMT]. Expected: " + expNextAvailGMT + "[GMT]");
+                    }
+                } catch (IllegalArgumentException e) {
+                    if (bLenient || isValid) {
+                        errln("Fail: Unexpected IllegalArgumentException - " + in + "[" + tzid + "] (WALLTIME_NEXT_AVAILABLE)");
+                    }
+                }
             }
         }
     }
