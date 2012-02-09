@@ -1,5 +1,5 @@
 /*
-*   Copyright (C) 1996-2011, International Business Machines
+*   Copyright (C) 1996-2012, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 */
 
@@ -2299,7 +2299,9 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
             isLenient() == other.isLenient() &&
             getFirstDayOfWeek() == other.getFirstDayOfWeek() &&
             getMinimalDaysInFirstWeek() == other.getMinimalDaysInFirstWeek() &&
-            getTimeZone().equals(other.getTimeZone());
+            getTimeZone().equals(other.getTimeZone()) &&
+            getRepeatedWallTimeOption() == other.getRepeatedWallTimeOption() &&
+            getSkippedWallTimeOption() == other.getSkippedWallTimeOption();
     }
 
     /**
@@ -2316,7 +2318,9 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
         return (lenient ? 1 : 0)
             | (firstDayOfWeek << 1)
             | (minimalDaysInFirstWeek << 4)
-            | (zone.hashCode() << 7);
+            | (repeatedWallTime << 7)
+            | (skippedWallTime << 9)
+            | (zone.hashCode() << 11);
     }
 
     /**
@@ -4396,6 +4400,10 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
         buffer.append(firstDayOfWeek);
         buffer.append(",minimalDaysInFirstWeek=");
         buffer.append(minimalDaysInFirstWeek);
+        buffer.append(",repeatedWallTime=");
+        buffer.append(repeatedWallTime);
+        buffer.append(",skippedWallTime=");
+        buffer.append(skippedWallTime);
         for (int i=0; i<fields.length; ++i) {
             buffer.append(',').append(fieldName(i)).append('=');
             buffer.append(isSet(i) ? String.valueOf(fields[i]) : "?");
@@ -5005,19 +5013,34 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
             stamp[DST_OFFSET] >= MINIMUM_USER_STAMP) {
             time = millis + millisInDay - (internalGet(ZONE_OFFSET) + internalGet(DST_OFFSET));
         } else {
-            // TODO: Update the comments below -
-
             // Compute the time zone offset and DST offset.  There are two potential
             // ambiguities here.  We'll assume a 2:00 am (wall time) switchover time
             // for discussion purposes here.
-            // 1. The transition into DST.  Here, a designated time of 2:00 am - 2:59 am
-            //    can be in standard or in DST depending.  However, 2:00 am is an invalid
-            //    representation (the representation jumps from 1:59:59 am Std to 3:00:00 am DST).
-            //    We assume standard time, that is, 2:30 am is interpreted as 3:30 am DST.
-            // 2. The transition out of DST.  Here, a designated time of 1:00 am - 1:59 am
-            //    can be in standard or DST.  Both are valid representations (the rep
-            //    jumps from 1:59:59 DST to 1:00:00 Std).
-            //    Again, we assume standard time, that is, 1:30 am is interpreted as 1:30 am Std.
+            //
+            // 1. The positive offset change such as transition into DST.
+            //    Here, a designated time of 2:00 am - 2:59 am does not actually exist.
+            //    For this case, skippedWallTime option specifies the behavior.
+            //    For example, 2:30 am is interpreted as;
+            //      - WALLTIME_LAST(default): 3:30 am (DST) (interpreting 2:30 am as 31 minutes after 1:59 am (STD))
+            //      - WALLTIME_FIRST: 1:30 am (STD) (interpreting 2:30 am as 30 minutes before 3:00 am (DST))
+            //      - WALLTIME_NEXT_AVAILABLE: 3:00 am (DST) (next valid time after 2:30 am on a wall clock)
+            // 2. The negative offset change such as transition out of DST.
+            //    Here, a designated time of 1:00 am - 1:59 am can be in standard or DST.  Both are valid
+            //    representations (the rep jumps from 1:59:59 DST to 1:00:00 Std).
+            //    For this case, repeatedWallTime option specifies the behavior.
+            //    For example, 1:30 am is interpreted as;
+            //      - WALLTIME_LAST(default): 1:30 am (STD) - latter occurrence
+            //      - WALLTIME_FIRST: 1:30 am (DST) - former occurrence
+            //
+            // In addition to above, when calendar is strict (not default), wall time falls into
+            // the skipped time range will be processed as an error case.
+            //
+            // These special cases are mostly handled in #computeZoneOffset(long), except WALLTIME_NEXT_AVAILABLE
+            // at positive offset change. The protected method computeZoneOffset(long) is exposed to Calendar
+            // subclass implementations and marked as @stable. Strictly speaking, WALLTIME_NEXT_AVAILABLE
+            // should be also handled in the same place, but we cannot change the code flow without deprecating
+            // the protected method.
+            //
             // We use the TimeZone object, unless the user has explicitly set the ZONE_OFFSET
             // or DST_OFFSET fields; then we use those fields.
 
