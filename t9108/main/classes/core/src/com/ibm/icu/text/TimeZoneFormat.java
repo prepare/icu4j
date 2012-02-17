@@ -1262,7 +1262,7 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
         tmpPos.setErrorIndex(-1);
 
         // ISO 8601
-        if ((evaluated & Style.ISO8601.flag) != 0) {
+        if ((evaluated & Style.ISO8601.flag) == 0) {
             Output<Boolean> hasDigitOffset = new Output<Boolean>(false);
             offset = parseOffsetISO8601(text, tmpPos, false, hasDigitOffset);
             if (tmpPos.getErrorIndex() == -1) {
@@ -1287,7 +1287,7 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
         // Note: ISO 8601 parser supports RFC 822 format. So we do not need to parse
         // it as RFC 822 here. This might be changed in future when we support
         // strict format option for ISO 8601 or RFC 822. 
-//        if ((evaluated & Style.RFC822.flag) != 0) {
+//        if ((evaluated & Style.RFC822.flag) == 0) {
 //            offset = parseOffsetRFC822(text, tmpPos);
 //            if (tmpPos.getErrorIndex() == -1) {
 //                pos.setIndex(tmpPos.getIndex());
@@ -1298,7 +1298,7 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
 //        }
 
         // Localized GMT format
-        if ((evaluated & Style.LOCALIZED_GMT.flag) != 0) {
+        if ((evaluated & Style.LOCALIZED_GMT.flag) == 0) {
             Output<Boolean> hasDigitOffset = new Output<Boolean>(false);
             offset = parseOffsetLocalizedGMT(text, tmpPos, hasDigitOffset);
             if (tmpPos.getErrorIndex() == -1) {
@@ -2308,6 +2308,9 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
      * time zone string.
      */
     private int parseOffsetISO8601(String text, ParsePosition pos, boolean extendedOnly, Output<Boolean> hasDigitOffset) {
+        if (hasDigitOffset != null) {
+            hasDigitOffset.value = false;
+        }
         int start = pos.getIndex();
         if (start >= text.length()) {
             pos.setErrorIndex(start);
@@ -2318,14 +2321,9 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
         if (Character.toUpperCase(firstChar) == ISO8601_UTC.charAt(0)) {
             // "Z" - indicates UTC
             pos.setIndex(start + 1);
-            if (hasDigitOffset != null) {
-                hasDigitOffset.value = true;
-            }
             return 0;
         }
-        if (hasDigitOffset != null) {
-            hasDigitOffset.value = false;
-        }
+
         int sign;
         if (firstChar == '+') {
             sign = 1;
@@ -2356,6 +2354,9 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
         }
 
         pos.setIndex(posOffset.getIndex());
+        if (hasDigitOffset != null) {
+            hasDigitOffset.value = true;
+        }
         return sign * offset;
     }
 
