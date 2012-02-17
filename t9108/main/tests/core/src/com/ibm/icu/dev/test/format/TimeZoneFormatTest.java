@@ -144,15 +144,20 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                                 }
                             }
                         } else {
-                            // Check if localized GMT format or RFC format is used.
-                            int numDigits = 0;
-                            for (int n = 0; n < tzstr.length(); n++) {
-                                if (UCharacter.isDigit(tzstr.charAt(n))) {
-                                    numDigits++;
+                            boolean isOffsetFormat = (PATTERNS[patidx].charAt(0) == 'Z');
+
+                            if (!isOffsetFormat) {
+                                // Check if localized GMT format is used as a fallback of name styles
+                                int numDigits = 0;
+                                for (int n = 0; n < tzstr.length(); n++) {
+                                    if (UCharacter.isDigit(tzstr.charAt(n))) {
+                                        numDigits++;
+                                    }
                                 }
+                                isOffsetFormat = (numDigits >= 3);
                             }
 
-                            if (tzstr.equals(localGMTString) || numDigits >= 3) {
+                            if (isOffsetFormat || tzstr.equals(localGMTString)) {
                                 // Localized GMT or RFC: total offset (raw + dst) must be preserved.
                                 int inOffset = inOffsets[0] + inOffsets[1];
                                 int outOffset = outOffsets[0] + outOffsets[1];
