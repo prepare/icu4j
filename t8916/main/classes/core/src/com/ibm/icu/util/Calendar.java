@@ -1179,7 +1179,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      * @draft ICU 49
      * @provisional This API might change or be removed in a future release.
      */
-    public static final int WALLTIME_NEXT_AVAILABLE = 2;
+    public static final int WALLTIME_NEXT_VALID = 2;
 
     /**
      * The number of milliseconds in one second.
@@ -3923,8 +3923,8 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      * <code>WALLTIME_FIRST</code> is used, 2:30 AM is interpreted as 30 minutes before 3:00 AM
      * EDT, therefore, it will be resolved as 1:30 AM EST. When <code>WALLTIME_LAST</code>
      * is used, 2:30 AM is interpreted as 31 minutes after 1:59 AM EST, therefore, it will be
-     * resolved as 3:30 AM EDT. When <code>WALLTIME_NEXT_AVAILABLE</code> is used, 2:30 AM will
-     * be resolved as next available wall time, that is 3:00 AM EDT. The default value is
+     * resolved as 3:30 AM EDT. When <code>WALLTIME_NEXT_VALID</code> is used, 2:30 AM will
+     * be resolved as next valid wall time, that is 3:00 AM EDT. The default value is
      * <code>WALLTIME_LAST</code>.
      * <p>
      * <b>Note:</b>This option is effective only when this calendar is {@link #isLenient() lenient}.
@@ -3932,20 +3932,20 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      * 
      * @param option the behavior for handling skipped wall time at positive time zone
      * offset transitions, one of <code>WALLTIME_FIRST</code>, <code>WALLTIME_LAST</code> and
-     * <code>WALLTIME_NEXT_AVAILABLE</code>.
+     * <code>WALLTIME_NEXT_VALID</code>.
      * @throws IllegalArgumentException when <code>option</code> is not any of
-     * <code>WALLTIME_FIRST</code>, <code>WALLTIME_LAST</code> and <code>WALLTIME_NEXT_AVAILABLE</code>.
+     * <code>WALLTIME_FIRST</code>, <code>WALLTIME_LAST</code> and <code>WALLTIME_NEXT_VALID</code>.
      * 
      * @see #getSkippedWallTimeOption()
      * @see #WALLTIME_FIRST
      * @see #WALLTIME_LAST
-     * @see #WALLTIME_NEXT_AVAILABLE
+     * @see #WALLTIME_NEXT_VALID
      * 
      * @draft ICU 49
      * @provisional This API might change or be removed in a future release.
      */
     public void setSkippedWallTimeOption(int option) {
-        if (option != WALLTIME_LAST && option != WALLTIME_FIRST && option != WALLTIME_NEXT_AVAILABLE) {
+        if (option != WALLTIME_LAST && option != WALLTIME_FIRST && option != WALLTIME_NEXT_VALID) {
             throw new IllegalArgumentException("Illegal skipped wall time option - " + option);
         }
         skippedWallTime = option;
@@ -3956,12 +3956,12 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      * transitions.
      * 
      * @return the behavior for handling skipped wall time, one of
-     * <code>WALLTIME_FIRST</code>, <code>WALLTIME_LAST</code> and <code>WALLTIME_NEXT_AVAILABLE</code>.
+     * <code>WALLTIME_FIRST</code>, <code>WALLTIME_LAST</code> and <code>WALLTIME_NEXT_VALID</code>.
      * 
      * @see #setSkippedWallTimeOption(int)
      * @see #WALLTIME_FIRST
      * @see #WALLTIME_LAST
-     * @see #WALLTIME_NEXT_AVAILABLE
+     * @see #WALLTIME_NEXT_VALID
      * 
      * @draft ICU 49
      * @provisional This API might change or be removed in a future release.
@@ -5023,7 +5023,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
             //    For example, 2:30 am is interpreted as;
             //      - WALLTIME_LAST(default): 3:30 am (DST) (interpreting 2:30 am as 31 minutes after 1:59 am (STD))
             //      - WALLTIME_FIRST: 1:30 am (STD) (interpreting 2:30 am as 30 minutes before 3:00 am (DST))
-            //      - WALLTIME_NEXT_AVAILABLE: 3:00 am (DST) (next valid time after 2:30 am on a wall clock)
+            //      - WALLTIME_NEXT_VALID: 3:00 am (DST) (next valid time after 2:30 am on a wall clock)
             // 2. The negative offset change such as transition out of DST.
             //    Here, a designated time of 1:00 am - 1:59 am can be in standard or DST.  Both are valid
             //    representations (the rep jumps from 1:59:59 DST to 1:00:00 Std).
@@ -5035,19 +5035,19 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
             // In addition to above, when calendar is strict (not default), wall time falls into
             // the skipped time range will be processed as an error case.
             //
-            // These special cases are mostly handled in #computeZoneOffset(long), except WALLTIME_NEXT_AVAILABLE
+            // These special cases are mostly handled in #computeZoneOffset(long), except WALLTIME_NEXT_VALID
             // at positive offset change. The protected method computeZoneOffset(long) is exposed to Calendar
-            // subclass implementations and marked as @stable. Strictly speaking, WALLTIME_NEXT_AVAILABLE
+            // subclass implementations and marked as @stable. Strictly speaking, WALLTIME_NEXT_VALID
             // should be also handled in the same place, but we cannot change the code flow without deprecating
             // the protected method.
             //
             // We use the TimeZone object, unless the user has explicitly set the ZONE_OFFSET
             // or DST_OFFSET fields; then we use those fields.
 
-            if (!lenient || skippedWallTime == WALLTIME_NEXT_AVAILABLE) {
+            if (!lenient || skippedWallTime == WALLTIME_NEXT_VALID) {
                 // When strict, invalidate a wall time falls into a skipped wall time range.
-                // When lenient and skipped wall time option is WALLTIME_NEXT_AVAILABLE,
-                // the result time will be adjusted to the next available valid time (on wall clock).
+                // When lenient and skipped wall time option is WALLTIME_NEXT_VALID,
+                // the result time will be adjusted to the next valid time (on wall clock).
                 int zoneOffset = computeZoneOffset(millis, millisInDay);
                 long tmpTime = millis + millisInDay - zoneOffset;
 
@@ -5060,8 +5060,8 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
                         throw new IllegalArgumentException("The specified wall time does not exist due to time zone offset transition.");
                     }
 
-                    assert skippedWallTime == WALLTIME_NEXT_AVAILABLE : skippedWallTime;
-                    // Adjust time to the next available wall clock time.
+                    assert skippedWallTime == WALLTIME_NEXT_VALID : skippedWallTime;
+                    // Adjust time to the next valid wall clock time.
                     // At this point, tmpTime is on or after the zone offset transition causing
                     // the skipped time range.
                     if (zone instanceof BasicTimeZone) {

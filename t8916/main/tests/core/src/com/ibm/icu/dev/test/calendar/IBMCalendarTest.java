@@ -1158,8 +1158,8 @@ public class IBMCalendarTest extends CalendarTest {
         assertEquals("getSkippedWallTimeOption after mod", cal2.getSkippedWallTimeOption(), Calendar.WALLTIME_FIRST);
 
         try {
-            cal.setRepeatedWallTimeOption(Calendar.WALLTIME_NEXT_AVAILABLE);
-            errln("IAE expected on setRepeatedWallTimeOption(WALLTIME_NEXT_AVAILABLE");
+            cal.setRepeatedWallTimeOption(Calendar.WALLTIME_NEXT_VALID);
+            errln("IAE expected on setRepeatedWallTimeOption(WALLTIME_NEXT_VALID");
         } catch (IllegalArgumentException e) {
             // expected
         }
@@ -1233,7 +1233,7 @@ public class IBMCalendarTest extends CalendarTest {
         final Object[][] TESTDATA = {
             // Time zone            Input wall time                     Valid wall time?
             {"America/New_York",    new CalFields(2011,3,13,1,59,59),   true,
-                //  WALLTIME_LAST in GMT                WALLTIME_FIRST in GMT           WALLTIME_NEXT_AVAILABLE in GMT
+                //  WALLTIME_LAST in GMT                WALLTIME_FIRST in GMT           WALLTIME_NEXT_VALID in GMT
                 new CalFields(2011,3,13,6,59,59),   new CalFields(2011,3,13,6,59,59),   new CalFields(2011,3,13,6,59,59)},
 
             {"America/New_York",    new CalFields(2011,3,13,2,0,0),     false,
@@ -1276,7 +1276,7 @@ public class IBMCalendarTest extends CalendarTest {
 
         calLast.setSkippedWallTimeOption(Calendar.WALLTIME_LAST);
         calFirst.setSkippedWallTimeOption(Calendar.WALLTIME_FIRST);
-        calNextAvail.setSkippedWallTimeOption(Calendar.WALLTIME_NEXT_AVAILABLE);
+        calNextAvail.setSkippedWallTimeOption(Calendar.WALLTIME_NEXT_VALID);
 
         for (Object[] test : TESTDATA) {
             String tzid = (String)test[0];
@@ -1344,7 +1344,7 @@ public class IBMCalendarTest extends CalendarTest {
                     }
                 }
 
-                // WALLTIME_NEXT_AVAILABLE
+                // WALLTIME_NEXT_VALID
                 calNextAvail.setLenient(bLenient);
                 calNextAvail.setTimeZone(tz);
                 try {
@@ -1352,13 +1352,13 @@ public class IBMCalendarTest extends CalendarTest {
                     calGMT.setTimeInMillis(calNextAvail.getTimeInMillis());
                     CalFields outNextAvailGMT = CalFields.createFrom(calGMT);
                     if (!bLenient && !isValid) {
-                        errln("Fail: IllegalArgumentException expected - " + in + "[" + tzid + "] (WALLTIME_NEXT_AVAILABLE)");
+                        errln("Fail: IllegalArgumentException expected - " + in + "[" + tzid + "] (WALLTIME_NEXT_VALID)");
                     } else if (!outNextAvailGMT.equals(expNextAvailGMT)) {
-                        errln("Fail: WALLTIME_NEXT_AVAILABLE " + in + "[" + tzid + "] is parsed as " + outNextAvailGMT + "[GMT]. Expected: " + expNextAvailGMT + "[GMT]");
+                        errln("Fail: WALLTIME_NEXT_VALID " + in + "[" + tzid + "] is parsed as " + outNextAvailGMT + "[GMT]. Expected: " + expNextAvailGMT + "[GMT]");
                     }
                 } catch (IllegalArgumentException e) {
                     if (bLenient || isValid) {
-                        errln("Fail: Unexpected IllegalArgumentException - " + in + "[" + tzid + "] (WALLTIME_NEXT_AVAILABLE)");
+                        errln("Fail: Unexpected IllegalArgumentException - " + in + "[" + tzid + "] (WALLTIME_NEXT_VALID)");
                     }
                 }
             }
