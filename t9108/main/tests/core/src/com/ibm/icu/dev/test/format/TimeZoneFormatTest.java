@@ -29,7 +29,7 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         new TimeZoneFormatTest().run(args);
     }
 
-    private static final String[] PATTERNS = {"z", "zzzz", "Z", "ZZZZ", "v", "vvvv", "V", "VVVV"};
+    private static final String[] PATTERNS = {"z", "zzzz", "Z", "ZZZZ", "ZZZZZ", "v", "vvvv", "V", "VVVV"};
     boolean REALLY_VERBOSE_LOG = false;
 
     /*
@@ -219,9 +219,9 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         final long END_TIME = cal.getTimeInMillis();
 
         // Whether each pattern is ambiguous at DST->STD local time overlap
-        final boolean[] AMBIGUOUS_DST_DECESSION = {false, false, false, false, true, true, false, true};
+        final boolean[] AMBIGUOUS_DST_DECESSION = {false, false, false, false, false, true, true, false, true};
         // Whether each pattern is ambiguous at STD->STD/DST->DST local time overlap
-        final boolean[] AMBIGUOUS_NEGATIVE_SHIFT = {true, true, false, false, true, true, true, true};
+        final boolean[] AMBIGUOUS_NEGATIVE_SHIFT = {true, true, false, false, false, true, true, true, true};
 
         final String BASEPATTERN = "yyyy-MM-dd'T'HH:mm:ss.SSS";
 
