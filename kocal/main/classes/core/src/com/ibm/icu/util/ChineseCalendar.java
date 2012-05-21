@@ -19,20 +19,30 @@ import com.ibm.icu.util.ULocale.Category;
 
 /**
  * <code>ChineseCalendar</code> is a concrete subclass of {@link Calendar}
- * that implements a traditional Chinese calendar.  The traditional Chinese
- * calendar is a lunisolar calendar: Each month starts on a new moon, and
- * the months are numbered according to solar events, specifically, to
+ * that implements a traditional Chinese calendar used throughout East Asia.
+ * The this calendar is a lunisolar calendar: Each month starts on a new moon,
+ * and the months are numbered according to solar events, specifically, to
  * guarantee that month 11 always contains the winter solstice.  In order
  * to accomplish this, leap months are inserted in certain years.  Leap
  * months are numbered the same as the month they follow.  The decision of
  * which month is a leap month depends on the relative movements of the sun
  * and moon.
  *
- * <p>All astronomical computations are performed with respect to a time
- * zone of GMT+8:00 and a longitude of 120 degrees east.  Although some
- * calendars implement a historically more accurate convention of using
- * Beijing's local longitude (116 degrees 25 minutes east) and time zone
- * (GMT+7:45:40) for dates before 1929, we do not implement this here.
+ * <p>All astronomical computations are performed with respect to a
+ * corresponding timezone(s).  For example, GMT+8:00 and a longitude of 120
+ * degrees east for Chinese and GMT+9:00 for Japanese.  For some countries, the
+ * timezones used for the calendar calculation have changed historically.  For
+ * example, Korea's timezone has changed in the following way:</a>
+ * <pre>
+ *            - 1908/04/01: GMT+8
+ * 1908/04/01 - 1911/12/31: GMT+8.5 (not used in official lunar calendar calculation)
+ * 1912/01/01 - 1954/03/20: GMT+9 
+ * 1954/03/21 - 1961/08/09: GMT+8.5 (GMT+9 results in the same calculation during this period)
+ * 1961/08/10 -           : GMT+9
+ * </pre>
+ * Also, Chinese calendars also used Beijing's local longitude (116 degrees 25
+ * minutes east) and time zone (GMT+7:45:40) for dates before 1929.  Locale
+ * data will be used to specify the timezone(s) for each country.
  *
  * <p>Years are counted in two different ways in the Chinese calendar.  The
  * first method is by sequential numbering from the 61st year of the reign
@@ -43,12 +53,16 @@ import com.ibm.icu.util.ULocale.Category;
  * The <code>ERA</code> field contains the cycle number, and the
  * <code>YEAR</code> field contains the year of the cycle, a value between
  * 1 and 60.
- *
+ * 
  * <p>There is some variation in what is considered the starting point of
  * the calendar, with some sources starting in the first year of the reign
  * of Huang Di, rather than the 61st.  This gives continuous year numbers
  * 60 years greater and cycle numbers one greater than what this class
  * implements.
+ *
+ * <p>The sequential numbering also varies country by country.  For example,
+ * Korean lunar calendar's epoch year is 2333 BCE which is the foundation of
+ * Korea (Dan-gun Jo-seon).  Locale data will also be used for this.
  *
  * <p>Because <code>ChineseCalendar</code> defines an additional field and
  * redefines the way the <code>ERA</code> field is used, it requires a new
@@ -68,6 +82,11 @@ import com.ibm.icu.util.ULocale.Category;
  * <li>The <a href="http://www.tondering.dk/claus/calendar.html">
  * Calendar FAQ</a></li>
  *
+ * <li>The <a href="http://manse.kisti.re.kr/">Korean standard calendar</a>.
+ * </li>
+ * 
+ * <li><a href="http://www.math.snu.ac.kr/~kye/others/lunar.html">Historical
+ * timezone changes in Korea (in Korean language).</a></li>
  * </ul>
  *
  * <p>
@@ -80,6 +99,7 @@ import com.ibm.icu.util.ULocale.Category;
  * @see com.ibm.icu.text.ChineseDateFormat
  * @see com.ibm.icu.util.Calendar
  * @author Alan Liu
+ * @author Zu Kim
  * @stable ICU 2.8
  */
 public class ChineseCalendar extends Calendar {
@@ -93,11 +113,12 @@ public class ChineseCalendar extends Calendar {
     // the usual UTC epoch millis, that is, milliseconds after January 1,
     // 1970 Gregorian, 0:00:00.000 UTC.  The other is in terms of 'local
     // days.'  This is the number of days after January 1, 1970 Gregorian,
-    // local to Beijing, China (since all computations of the Chinese
-    // calendar are done in Beijing).  That is, 0 represents January 1,
-    // 1970 0:00 Asia/Shanghai.  Conversion of local days to and from
-    // standard epoch milliseconds is accomplished by the daysToMillis()
-    // and millisToDays() methods.
+    // "local" time.  That is, 0 represents January 1, 1970 0:00 Asia/Shanghai
+    // for Chinese lunar calendar and January 1, 1970 0:00 Asia/Seoul for
+    // Korean lunar calendar (in fact, more complicated in Korean lunar
+    // calendar because the timezone has been changed historically).
+    // Conversion of local days to and from standard epoch milliseconds is
+    // accomplished by the daysToMillis() and millisToDays() methods. 
     // 
     // Several methods use caches to improve performance.  Caches are at
     // the object, not class level, under the assumption that typical
@@ -116,7 +137,7 @@ public class ChineseCalendar extends Calendar {
     private transient CalendarCache winterSolsticeCache = new CalendarCache();
 
     /**
-     * Cache that maps Gregorian year to local days of Chinese new year.
+     * Cache that maps Gregorian year to local days of lunar new year.
      * @see #newYear
      */
     private transient CalendarCache newYearCache = new CalendarCache();
@@ -128,6 +149,14 @@ public class ChineseCalendar extends Calendar {
      */
     private transient boolean isLeapYear;
 
+    /**
+     * Locale which determines the types of the Calendar. For example,
+     * if {@code locale} is {@link ULocale.KOREAN}, this class will compute
+     * Korean lunar calendar. The locale information is given in the
+     * constructor.
+     */
+    private ULocale locale;
+
     //------------------------------------------------------------------
     // Constructors
     //------------------------------------------------------------------
@@ -138,7 +167,7 @@ public class ChineseCalendar extends Calendar {
      */
     public ChineseCalendar() {
         super();
-        setTimeInMillis(System.currentTimeMillis());
+        initialize(ULocale.getDefault(Category.FORMAT));
     }
 
     /**
@@ -149,7 +178,7 @@ public class ChineseCalendar extends Calendar {
      */
     public ChineseCalendar(Date date) {
         super();
-        setTime(date);
+        initialize(ULocale.getDefault(Category.FORMAT), date.getTime());
     }
 
     /**
@@ -167,10 +196,8 @@ public class ChineseCalendar extends Calendar {
      */
     public ChineseCalendar(int year, int month, int isLeapMonth, int date) {
         super(TimeZone.getDefault(), ULocale.getDefault(Category.FORMAT));
+        initialize(ULocale.getDefault(Category.FORMAT));
 
-        // We need to set the current time once to initialize the ChineseCalendar's
-        // ERA field to be the current era.
-        setTimeInMillis(System.currentTimeMillis());
         // Then we need to clean up time fields
         this.set(MILLISECONDS_IN_DAY, 0);
 
@@ -204,10 +231,8 @@ public class ChineseCalendar extends Calendar {
                              int minute, int second)
     {
         super(TimeZone.getDefault(), ULocale.getDefault(Category.FORMAT));
+        initialize(ULocale.getDefault(Category.FORMAT));
 
-        // We need to set the current time once to initialize the ChineseCalendar's
-        // ERA field to be the current era.
-        setTimeInMillis(System.currentTimeMillis());
         // Then set 0 to millisecond field
         this.set(MILLISECOND, 0);
 
@@ -238,10 +263,7 @@ public class ChineseCalendar extends Calendar {
     public ChineseCalendar(int era, int year, int month, int isLeapMonth, int date) 
     { 
         super(TimeZone.getDefault(), ULocale.getDefault(Category.FORMAT)); 
-
-        // We need to set the current time once to initialize the ChineseCalendar's 
-        // ERA field to be the current era. 
-        setTimeInMillis(System.currentTimeMillis()); 
+        initialize(ULocale.getDefault(Category.FORMAT));
 
         // Then we need to clean up time fields 
         this.set(MILLISECONDS_IN_DAY, 0); 
@@ -278,10 +300,7 @@ public class ChineseCalendar extends Calendar {
                            int minute, int second) 
     { 
         super(TimeZone.getDefault(), ULocale.getDefault(Category.FORMAT)); 
-
-        // We need to set the current time once to initialize the ChineseCalendar's 
-        // ERA field to be the current era. 
-        setTimeInMillis(System.currentTimeMillis()); 
+        initialize(ULocale.getDefault(Category.FORMAT));
 
         // Then set 0 to millisecond field 
         this.set(MILLISECOND, 0); 
@@ -305,7 +324,7 @@ public class ChineseCalendar extends Calendar {
      */
     public ChineseCalendar(Locale aLocale) {
         this(TimeZone.getDefault(), aLocale);
-        setTimeInMillis(System.currentTimeMillis());
+        initialize(ULocale.forLocale(aLocale));
     }
 
     /**
@@ -317,7 +336,7 @@ public class ChineseCalendar extends Calendar {
      */
     public ChineseCalendar(TimeZone zone) {
         super(zone, ULocale.getDefault(Category.FORMAT));
-        setTimeInMillis(System.currentTimeMillis());
+        initialize(ULocale.getDefault(Category.FORMAT));
     }
 
     /**
@@ -329,7 +348,7 @@ public class ChineseCalendar extends Calendar {
      */
     public ChineseCalendar(TimeZone zone, Locale aLocale) {
         super(zone, aLocale);
-        setTimeInMillis(System.currentTimeMillis());
+        initialize(ULocale.forLocale(aLocale));
     }
 
     /**
@@ -341,7 +360,7 @@ public class ChineseCalendar extends Calendar {
      */
     public ChineseCalendar(ULocale locale) {
         this(TimeZone.getDefault(), locale);
-        setTimeInMillis(System.currentTimeMillis());
+        initialize(locale);
     }
 
     /**
@@ -353,7 +372,18 @@ public class ChineseCalendar extends Calendar {
      */
     public ChineseCalendar(TimeZone zone, ULocale locale) {
         super(zone, locale);
-        setTimeInMillis(System.currentTimeMillis());
+        initialize(locale);
+    }
+
+    public void initialize(ULocale locale) {
+        initialize(locale, System.currentTimeMillis());
+    }
+
+    // We need to set the current time once to initialize the
+    // ChineseCalendar's ERA field to be the current era. 
+    private void initialize(ULocale locale, long millis) {
+        this.locale = locale;
+        setTimeInMillis(millis);
     }
 
     //------------------------------------------------------------------
@@ -457,7 +487,8 @@ public class ChineseCalendar extends Calendar {
             year = internalGet(EXTENDED_YEAR, 1); // Default to year 1
         } else {
             int cycle = internalGet(ERA, 1) - 1; // 0-based cycle
-            year = cycle * 60 + internalGet(YEAR, 1);
+            int chinese_year = cycle * 60 + internalGet(YEAR, 1);
+            year = chinese_year - (getEpochYear() - CHINESE_EPOCH_YEAR);
         }
         return year;
     }
@@ -536,7 +567,7 @@ public class ChineseCalendar extends Calendar {
      * position is given as a local days number for the start of the month
      * and a day-of-month.  Used by add() and roll().
      * @param newMoon the local days of the first day of the month of the
-     * start position (days after January 1, 1970 0:00 Asia/Shanghai)
+     * start position (days after January 1, 1970 0:00 in reference timezone)
      * @param dom the 1-based day-of-month of the start position
      * @param delta the number of months to move forward or backward from
      * the start position
@@ -657,14 +688,7 @@ public class ChineseCalendar extends Calendar {
      * values one greater.
      */
     private static final int CHINESE_EPOCH_YEAR = -2636; // Gregorian year
-
-    /**
-     * The offset from GMT in milliseconds at which we perform astronomical
-     * computations.  Some sources use a different historically accurate
-     * offset of GMT+7:45:40 for years before 1929; we do not do this.
-     */
-    private static final long CHINA_OFFSET = 8*ONE_HOUR;
-
+    
     /**
      * Value to be added or subtracted from the local days of a new moon to
      * get close to the next or prior new moon, but not cross it.  Must be
@@ -674,21 +698,97 @@ public class ChineseCalendar extends Calendar {
 
     /**
      * Convert local days to UTC epoch milliseconds.
-     * @param days days after January 1, 1970 0:00 Asia/Shanghai
+     * This is not an accurate conversion in terms that getTimezoneOffset
+     * takes the milliseconds in GMT (not local time).  In theory, more
+     * accurate algorithm can be implemented but practically we do not need
+     * to go through that complication as long as the historically timezone
+     * changes did not happen around the 'tricky' new moon (new moon around
+     * the midnight).
+     * 
+     * @param days days after January 1, 1970 0:00 Local Time
      * @return milliseconds after January 1, 1970 0:00 GMT
      */
-    private static final long daysToMillis(int days) {
-        return (days * ONE_DAY) - CHINA_OFFSET;
+    private final long daysToMillis(int days) {
+        return (days * ONE_DAY) - getTimezoneOffset(days * ONE_DAY);
     }
 
     /**
      * Convert UTC epoch milliseconds to local days.
      * @param millis milliseconds after January 1, 1970 0:00 GMT
-     * @return days after January 1, 1970 0:00 Asia/Shanghai
+     * @return days after January 1, 1970 0:00 Local Time
      */
-    private static final int millisToDays(long millis) {
-        return (int) floorDivide(millis + CHINA_OFFSET, ONE_DAY);
+    private final int millisToDays(long millis) {
+        return (int) floorDivide(millis + getTimezoneOffset(millis), ONE_DAY);
     }
+
+    //------------------------------------------------------------------
+    // Locale-specific information: currently hard-coded but will be
+    // retrieved from CLDR.
+    //------------------------------------------------------------------
+   
+    private final int getEpochYear() {
+        if (locale != ULocale.KOREA) {
+            return CHINESE_EPOCH_YEAR;
+        } else {
+            /**
+             * The start year of the Korean lunar calendar (Dan-gi) is the
+             * inaugural year of Dan-gun (BC 2333).
+             */
+            return -2332;
+        }
+    }
+
+    private final long getTimezoneOffset(long millis) {
+        if (locale != ULocale.KOREA) {
+            /**
+             * The offset from GMT in milliseconds at which we perform astronomical
+             * computations.  Some sources use a different historically accurate
+             * offset of GMT+7:45:40 for years before 1929; we do not do this.
+             */
+            return 8*ONE_HOUR;
+        } else {
+            /**
+             * The offset from GMT in milliseconds at which we perform astronomical
+             * computations. In Korea various timezones have been used historically
+             * (cf. http://www.math.snu.ac.kr/~kye/others/lunar.html):
+             * 
+             *            - 1908/04/01: GMT+8
+             * 1908/04/01 - 1911/12/31: GMT+8.5
+             * 1912/01/01 - 1954/03/20: GMT+9
+             * 1954/03/21 - 1961/08/09: GMT+8.5
+             * 1961/08/10 -           : GMT+9
+             * 
+             * Note that, in 1908-1911, the government did not apply the timezone change
+             * but used GMT+8. In addition, 1954-1961's timezone change does not affect
+             * the lunar date calculation. Therefore, the following simpler rule works:
+             *  
+             * -1911: GMT+8
+             * 1912-: GMT+9
+             * 
+             * Unfortunately, our astronomer's approximation doesn't agree with the
+             * references (http://www.math.snu.ac.kr/~kye/others/lunar.html and
+             * http://astro.kasi.re.kr/Life/ConvertSolarLunarForm.aspx?MenuID=115)
+             * in 1897/7/30. So the following ad hoc fix is used here:
+             * 
+             *     -1896: GMT+8
+             *      1897: GMT+7
+             * 1898-1911: GMT+8
+             * 1912-    : GMT+9
+             */
+            if (millis < MILLIS_1897) return TIMEZONE_OFFSET_120;
+            else if (millis < MILLIS_1898) return TIMEZONE_OFFSET_105;
+            else if (millis < MILLIS_1912) return TIMEZONE_OFFSET_120;
+            else return TIMEZONE_OFFSET_135;
+        }
+    }
+
+    // Constants for Korean calendars
+    static final long TIMEZONE_OFFSET_105 = 7L*ONE_HOUR;
+    static final long TIMEZONE_OFFSET_120 = 8L*ONE_HOUR;
+    static final long TIMEZONE_OFFSET_135 = 9L*ONE_HOUR;
+    static final long MILLIS_1897 = (1897-1970)*365L*ONE_DAY; // some days of error is not a problem here
+    static final long MILLIS_1898 = (1898-1970)*365L*ONE_DAY; // some days of error is not a problem here
+    static final long MILLIS_1912 = (1912-1970)*365L*ONE_DAY; // this doesn't create an issue for 1911/12/20
 
     //------------------------------------------------------------------
     // Astronomical computations
@@ -697,9 +797,9 @@ public class ChineseCalendar extends Calendar {
     /**
      * Return the major solar term on or after December 15 of the given
      * Gregorian year, that is, the winter solstice of the given year.
-     * Computations are relative to Asia/Shanghai time zone.
+     * Computations are relative to local time zone.
      * @param gyear a Gregorian year
-     * @return days after January 1, 1970 0:00 Asia/Shanghai of the
+     * @return days after January 1, 1970 0:00 Local Time of the
      * winter solstice of the given year
      */
     private int winterSolstice(int gyear) {
@@ -727,10 +827,10 @@ public class ChineseCalendar extends Calendar {
     /**
      * Return the closest new moon to the given date, searching either
      * forward or backward in time.
-     * @param days days after January 1, 1970 0:00 Asia/Shanghai
+     * @param days days after January 1, 1970 0:00 Local Time
      * @param after if true, search for a new moon on or after the given
      * date; otherwise, search for a new moon before it
-     * @return days after January 1, 1970 0:00 Asia/Shanghai of the nearest
+     * @return days after January 1, 1970 0:00 Local Time of the nearest
      * new moon after or before <code>days</code>
      */
     private int newMoonNear(int days, boolean after) {
@@ -744,8 +844,8 @@ public class ChineseCalendar extends Calendar {
     /**
      * Return the nearest integer number of synodic months between
      * two dates.
-     * @param day1 days after January 1, 1970 0:00 Asia/Shanghai
-     * @param day2 days after January 1, 1970 0:00 Asia/Shanghai
+     * @param day1 days after January 1, 1970 0:00 Local Time
+     * @param day2 days after January 1, 1970 0:00 Local Time
      * @return the nearest integer number of months between day1 and day2
      */
     private int synodicMonthsBetween(int day1, int day2) {
@@ -756,7 +856,7 @@ public class ChineseCalendar extends Calendar {
      * Return the major solar term on or before a given date.  This
      * will be an integer from 1..12, with 1 corresponding to 330 degrees,
      * 2 to 0 degrees, 3 to 30 degrees,..., and 12 to 300 degrees.
-     * @param days days after January 1, 1970 0:00 Asia/Shanghai
+     * @param days days after January 1, 1970 0:00 Local Time
      */
     private int majorSolarTerm(int days) {
         
@@ -772,7 +872,7 @@ public class ChineseCalendar extends Calendar {
 
     /**
      * Return true if the given month lacks a major solar term.
-     * @param newMoon days after January 1, 1970 0:00 Asia/Shanghai of a new
+     * @param newMoon days after January 1, 1970 0:00 Local Time of a new
      * moon
      */
     private boolean hasNoMajorSolarTerm(int newMoon) {
@@ -794,9 +894,9 @@ public class ChineseCalendar extends Calendar {
     /**
      * Return true if there is a leap month on or after month newMoon1 and
      * at or before month newMoon2.
-     * @param newMoon1 days after January 1, 1970 0:00 Asia/Shanghai of a
+     * @param newMoon1 days after January 1, 1970 0:00 Local Time of a
      * new moon
-     * @param newMoon2 days after January 1, 1970 0:00 Asia/Shanghai of a
+     * @param newMoon2 days after January 1, 1970 0:00 Local Time of a
      * new moon
      */
     private boolean isLeapMonthBetween(int newMoon1, int newMoon2) {
@@ -848,7 +948,7 @@ public class ChineseCalendar extends Calendar {
      * <code>handleComputeMonthStart()</code>.
      *
      * <p>As a side effect, this method sets {@link #isLeapYear}.
-     * @param days days after January 1, 1970 0:00 Asia/Shanghai of the
+     * @param days days after January 1, 1970 0:00 Local Time of the
      * date to compute fields for
      * @param gyear the Gregorian year of the given date
      * @param gmonth the Gregorian month of the given date
@@ -898,18 +998,22 @@ public class ChineseCalendar extends Calendar {
 
         if (setAllFields) {
 
-            int year = gyear - CHINESE_EPOCH_YEAR;
+            // Extended year and cycle year can be different from each other
+            // for non-Chinese calendars (eg. Korean calendar)
+            int extended_year = gyear - getEpochYear();
+            int cycle_year = gyear - CHINESE_EPOCH_YEAR;
             if (month < 11 ||
                 gmonth >= JULY) {
-                year++;
+                extended_year++;
+                cycle_year++;
             }
             int dayOfMonth = days - thisMoon + 1;
 
-            internalSet(EXTENDED_YEAR, year);
+            internalSet(EXTENDED_YEAR, extended_year);
 
             // 0->0,60  1->1,1  60->1,60  61->2,1  etc.
             int[] yearOfCycle = new int[1];
-            int cycle = floorDivide(year-1, 60, yearOfCycle);
+            int cycle = floorDivide(cycle_year-1, 60, yearOfCycle);
             internalSet(ERA, cycle+1);
             internalSet(YEAR, yearOfCycle[0]+1);
 
@@ -932,10 +1036,10 @@ public class ChineseCalendar extends Calendar {
     //------------------------------------------------------------------
     
     /**
-     * Return the Chinese new year of the given Gregorian year.
+     * Return the lunar new year of the given Gregorian year.
      * @param gyear a Gregorian year
-     * @return days after January 1, 1970 0:00 Asia/Shanghai of the
-     * Chinese new year of the given year (this will be a new moon)
+     * @return days after January 1, 1970 0:00 of the corresponding time zone
+     * of the lunar new year of the given year (this will be a new moon)
      */
     private int newYear(int gyear) {
 
@@ -984,7 +1088,7 @@ public class ChineseCalendar extends Calendar {
             month = rem[0];
         }
 
-        int gyear = eyear + CHINESE_EPOCH_YEAR - 1; // Gregorian year
+        int gyear = eyear + getEpochYear() - 1; // Gregorian year
         int newYear = newYear(gyear);
         int newMoon = newMoonNear(newYear + month * 29, true);
         
