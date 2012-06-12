@@ -21,7 +21,6 @@ import com.ibm.icu.text.Collator;
 import com.ibm.icu.text.RuleBasedCollator;
 import com.ibm.icu.text.SearchIterator;
 import com.ibm.icu.text.StringSearch;
-import com.ibm.icu.util.ULocale;
 
 public class SearchTest extends TestFmwk {
 
@@ -53,7 +52,21 @@ public class SearchTest extends TestFmwk {
     BreakIterator     m_en_wordbreaker_;
     BreakIterator     m_en_characterbreaker_;
 
+    static SearchData[] DEMO = {
+        new SearchData("fox fpx",                       "fox",          null, Collator.TERTIARY, null, new int[] {0, -1},         new int[]{3}),
+        new SearchData("fox fox",                       "fox",          null, Collator.TERTIARY, null, new int[] {0, 4, -1},      new int[]{3, 3}),
+        new SearchData("silly string spring string",    "string",       null, Collator.TERTIARY, null, new int[] {6, 20, -1},     new int[]{6, 6}),
+        new SearchData("silly string string",           "string",       null, Collator.TERTIARY, null, new int[] {6, 13, -1},     new int[]{6, 6}),
+        new SearchData("silly stringstring",            "string",       null, Collator.TERTIARY, null, new int[] {6, 12, -1},     new int[]{6, 6}),
+        new SearchData("string string",                 "string",       null, Collator.TERTIARY, null, new int[] {0, 7, -1},      new int[]{6, 6}),
+        new SearchData("stringstring",                  "string",       null, Collator.TERTIARY, null, new int[] {0, 6, -1},      new int[]{6, 6}),
+        new SearchData("abababab",                      "abab",         null, Collator.TERTIARY, null, new int[] {0, 4, -1},      new int[]{4, 4}),
+        new SearchData("abab abab",                     "abab",         null, Collator.TERTIARY, null, new int[] {0, 5, -1},      new int[]{4, 4}),
+    };
+
+    
     static SearchData[] BASIC = {
+        new SearchData("fox fpx",                       "fox",          null, Collator.TERTIARY, null, new int[] {0, -1},         new int[]{3}),
         new SearchData("xxxxxxxxxxxxxxxxxxxx",          "fisher",       null, Collator.TERTIARY, null, new int[] {-1},            new int[]{0}),
         new SearchData("silly spring string",           "string",       null, Collator.TERTIARY, null, new int[]{13, -1},         new int[]{6}),
         new SearchData("silly spring string string",    "string",       null, Collator.TERTIARY, null, new int[]{13, 20, -1},     new int[]{6, 6}),
@@ -63,8 +76,8 @@ public class SearchTest extends TestFmwk {
         new SearchData("Scott Ganyo",                   " ",            null, Collator.TERTIARY, null, new int[]{5, -1},          new int[]{1}),
         new SearchData("\u0300\u0325",                  "\u0300",       null, Collator.TERTIARY, null, new int[]{-1},             new int[]{0}),
         new SearchData("a\u0300\u0325",                 "\u0300",       null, Collator.TERTIARY, null, new int[]{-1},             new int[]{0}),
-        new SearchData("a\u0300\u0325",                 "\u0300\u0325", null, Collator.TERTIARY, null, new int[]{1, -1},          new int[]{2}),
-        new SearchData("a\u0300b",                      "\u0300",       null, Collator.TERTIARY, null, new int[]{1, -1},          new int[]{1}),
+        new SearchData("a\u0300\u0325",                 "\u0300\u0325", null, Collator.TERTIARY, null, new int[]{-1},             new int[]{0}),
+        new SearchData("a\u0300b",                      "\u0300",       null, Collator.TERTIARY, null, new int[]{-1},             new int[]{0}),
         new SearchData("\u00c9",                        "e",            null, Collator.PRIMARY,  null, new int[]{0, -1},          new int[]{1}),
         new SearchData(null,                            null,           null, Collator.TERTIARY, null, new int[]{-1},             new int[]{0})
     };
@@ -109,15 +122,15 @@ public class SearchTest extends TestFmwk {
         new SearchData("string spring string", "string", null, Collator.TERTIARY, null, new int[] {0, 14, -1}, new int[] {6, 6}),
         new SearchData("Scott Ganyo", "c", null, Collator.TERTIARY, null, new int[] {1, -1}, new int[] {1}),
         new SearchData("Scott Ganyo", " ", null, Collator.TERTIARY, null, new int[] {5, -1}, new int[] {1}),
-        new SearchData("\u0300\u0325", "\u0300", null, Collator.TERTIARY, null, new int [] {0, -1}, new int[] {2}),
-        new SearchData("a\u0300\u0325", "\u0300", null, Collator.TERTIARY, null, new int [] {1, -1}, new int[] {2}),
-        new SearchData("a\u0300\u0325", "\u0300\u0325", null, Collator.TERTIARY, null, new int[] {1, -1}, new int[]{2}),
-        new SearchData("a\u0300b", "\u0300", null, Collator.TERTIARY, null, new int[]{1, -1}, new int[] {1}),
-        new SearchData("a\u0300\u0325b", "\u0300b", null, Collator.TERTIARY, null, new int[] {1, -1}, new int[] {3}),
-        new SearchData("\u0325\u0300A\u0325\u0300", "\u0300A\u0300", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {5}),
-        new SearchData("\u0325\u0300A\u0325\u0300", "\u0325A\u0325", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {5}),
+        new SearchData("\u0300\u0325", "\u0300", null, Collator.TERTIARY, null, new int [] {-1}, new int[] {0}),
+        new SearchData("a\u0300\u0325", "\u0300", null, Collator.TERTIARY, null, new int [] {-1}, new int[] {0}),
+        new SearchData("a\u0300\u0325", "\u0300\u0325", null, Collator.TERTIARY, null, new int [] {-1}, new int[] {0}),
+        new SearchData("a\u0300b", "\u0300", null, Collator.TERTIARY, null, new int [] {-1}, new int[] {0}),
+        new SearchData("a\u0300\u0325b", "\u0300b", null, Collator.TERTIARY, null, new int [] {-1}, new int[] {0}),
+        new SearchData("\u0325\u0300A\u0325\u0300", "\u0300A\u0300", null, Collator.TERTIARY, null, new int [] {-1}, new int[] {0}),
+        new SearchData("\u0325\u0300A\u0325\u0300", "\u0325A\u0325", null, Collator.TERTIARY, null, new int [] {-1}, new int[] {0}),
         new SearchData("a\u0300\u0325b\u0300\u0325c \u0325b\u0300 \u0300b\u0325", "\u0300b\u0325", null, Collator.TERTIARY, null,
-            new int[] {1, 12, -1}, new int[] {5, 3}),
+                new int [] {-1}, new int[] {0}),
         new SearchData("\u00c4\u0323", "A\u0323\u0308", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {2}),
         new SearchData("\u0308\u0323", "\u0323\u0308", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {2}),
         new SearchData(null, null, null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0})
@@ -125,9 +138,9 @@ public class SearchTest extends TestFmwk {
 
     SearchData COLLATOR[] = {
         /* english */
-        new SearchData("fox fpx", "fox", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {3}),
+        new SearchData("fox fox", "fox", null, Collator.TERTIARY, null, new int[] {0, 4, -1}, new int[] {3, 3}),
         /* tailored */
-        new SearchData("fox fpx", "fox", null, Collator.PRIMARY, null, new int[] {0, 4, -1}, new int[] {3, 3}),
+        new SearchData("fox fpx", "fox", null, Collator.TERTIARY, null, new int[] {0, 4, -1}, new int[] {3, 3}),
         new SearchData(null, null, null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0})
     };
 
@@ -137,20 +150,20 @@ public class SearchTest extends TestFmwk {
 
     SearchData COLLATORCANONICAL[] = {
         /* english */
-        new SearchData("fox fpx", "fox", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {3}),
+        new SearchData("fox fox", "fox", null, Collator.TERTIARY, null, new int[] {0, 4, -1}, new int[] {3, 3}),
         /* tailored */
-        new SearchData("fox fpx", "fox", null, Collator.PRIMARY, null, new int[] {0, 4, -1}, new int[] {3, 3}),
+        new SearchData("fox fpx", "fox", null, Collator.TERTIARY, null, new int[] {0, 4, -1}, new int[] {3, 3}),
         new SearchData(null, null, null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0})
     };
 
     SearchData COMPOSITEBOUNDARIES[] = {
-        new SearchData("\u00C0", "A", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {1}),
-        new SearchData("A\u00C0C", "A", null, Collator.TERTIARY, null, new int[]  {0, 1, -1}, new int[]  {1, 1}),
-        new SearchData("\u00C0A", "A", null, Collator.TERTIARY, null, new int[] {0, 1, -1}, new int[] {1, 1}),
-        new SearchData("B\u00C0", "A", null, Collator.TERTIARY, null, new int[] {1, -1}, new int[] {1}),
-        new SearchData("\u00C0B", "A", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {1}),
-        new SearchData("\u00C0", "\u0300", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {1}),
-        new SearchData("\u0300\u00C0", "\u0300", null, Collator.TERTIARY, null, new int[] {0, 1, -1}, new int[] {1, 1}),
+        new SearchData("\u00C0", "A", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
+        new SearchData("A\u00C0C", "A", null, Collator.TERTIARY, null, new int[]  {0, -1}, new int[]  {1}),
+        new SearchData("\u00C0A", "A", null, Collator.TERTIARY, null, new int[] {1, -1}, new int[] {1}),
+        new SearchData("B\u00C0", "A", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
+        new SearchData("\u00C0B", "A", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
+        new SearchData("\u00C0", "\u0300", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
+        new SearchData("\u0300\u00C0", "\u0300", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {1}),
         new SearchData("\u00C0\u0300", "\u0300", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
         /* A + 030A + 0301 */
         new SearchData("\u01FA", "\u01FA", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {1}),
@@ -160,7 +173,7 @@ public class SearchTest extends TestFmwk {
         new SearchData("\u01FA", "\u0301", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
         new SearchData("\u01FA", "A\u0301", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
         new SearchData("\u01FA", "\u0301A", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
-        new SearchData("\u01FA", "\u030A\u0301", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {1}),
+        new SearchData("\u01FA", "\u030A\u0301", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
         new SearchData("A\u01FA", "A\u030A", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
         new SearchData("\u01FAA", "\u0301A", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
         new SearchData("\u0F73", "\u0F73", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {1}),
@@ -173,38 +186,38 @@ public class SearchTest extends TestFmwk {
     };
 
     SearchData COMPOSITEBOUNDARIESCANONICAL[] = {
-        new SearchData("\u00C0", "A", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {1}),
-        new SearchData("A\u00C0C", "A", null, Collator.TERTIARY, null, new int[] {0, 1, -1}, new int[] {1, 1}),
-        new SearchData("\u00C0A", "A", null, Collator.TERTIARY, null, new int[] {0, 1, -1}, new int[] {1, 1}),
-        new SearchData("B\u00C0", "A", null, Collator.TERTIARY, null, new int[] {1, -1}, new int[] {1}),
-        new SearchData("\u00C0B", "A", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {1}),
-        new SearchData("\u00C0", "\u0300", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {1}),
-        new SearchData("\u0300\u00C0", "\u0300", null, Collator.TERTIARY, null, new int[] {0, 1, -1}, new int[] {1, 1}),
+        new SearchData("\u00C0", "A", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
+        new SearchData("A\u00C0C", "A", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {1}),
+        new SearchData("\u00C0A", "A", null, Collator.TERTIARY, null, new int[] {1, -1}, new int[] {1}),
+        new SearchData("B\u00C0", "A", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
+        new SearchData("\u00C0B", "A", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
+        new SearchData("\u00C0", "\u0300", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
+        new SearchData("\u0300\u00C0", "\u0300", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {1}),
         /* \u0300 blocked by \u0300 */
-        new SearchData("\u00C0\u0300", "\u0300", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {2}),
+        new SearchData("\u00C0\u0300", "\u0300", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
         /* A + 030A + 0301 */
         new SearchData("\u01FA", "\u01FA", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {1}),
-        new SearchData("\u01FA", "\u030A", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {1}),
-        new SearchData("\u01FA", "A\u030A", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {1}),
+        new SearchData("\u01FA", "\u030A", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
+        new SearchData("\u01FA", "A\u030A", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
         new SearchData("\u01FA", "\u030AA", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
-        new SearchData("\u01FA", "\u0301", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {1}),
+        new SearchData("\u01FA", "\u0301", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
         /* blocked accent */
         new SearchData("\u01FA", "A\u0301", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
         new SearchData("\u01FA", "\u0301A", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
-        new SearchData("\u01FA", "\u030A\u0301", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {1}),
-        new SearchData("A\u01FA", "A\u030A", null, Collator.TERTIARY, null, new int[] {1, -1}, new int[] {1}),
-        new SearchData("\u01FAA", "\u0301A", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {2}),
+        new SearchData("\u01FA", "\u030A\u0301", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
+        new SearchData("A\u01FA", "A\u030A", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
+        new SearchData("\u01FAA", "\u0301A", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
         new SearchData("\u0F73", "\u0F73", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {1}),
-        new SearchData("\u0F73", "\u0F71", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {1}),
-        new SearchData("\u0F73", "\u0F72", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {1}),
+        new SearchData("\u0F73", "\u0F71", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
+        new SearchData("\u0F73", "\u0F72", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
         new SearchData("\u0F73", "\u0F71\u0F72", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {1}),
-        new SearchData("A\u0F73", "A\u0F71", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {2}),
-        new SearchData("\u0F73A", "\u0F72A", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {2}),
+        new SearchData("A\u0F73", "A\u0F71", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
+        new SearchData("\u0F73A", "\u0F72A", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
         new SearchData("\u01FA A\u0301\u030A A\u030A\u0301 A\u030A \u01FA", "A\u030A",
-            null, Collator.TERTIARY, null, new int[] {0, 6, 10, 13, -1}, new int[] {1, 3, 2, 1}),
+            null, Collator.TERTIARY, null, new int[] {10, -1}, new int[] {2}),
         new SearchData(null, null, null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0})
     };
-
+    
     SearchData SUPPLEMENTARY[] = {
         /* 012345678901234567890123456789012345678901234567890012345678901234567890123456789012345678901234567890012345678901234567890123456789 */
         new SearchData("abc \uD800\uDC00 \uD800\uDC01 \uD801\uDC00 \uD800\uDC00abc abc\uD800\uDC00 \uD800\uD800\uDC00 \uD800\uDC00\uDC00",
@@ -233,11 +246,11 @@ public class SearchTest extends TestFmwk {
     SearchData CONTRACTION[] = {
         /* common discontiguous */
         new SearchData("A\u0300\u0315", "\u0300", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
-        new SearchData("A\u0300\u0315", "\u0300\u0315", null, Collator.TERTIARY, null, new int[] {1, -1}, new int[] {2}),
+        new SearchData("A\u0300\u0315", "\u0300\u0315", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
         /* contraction prefix */
         new SearchData("AB\u0315C", "A", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
-        new SearchData("AB\u0315C", "AB", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {2}),
-        new SearchData("AB\u0315C", "\u0315", null, Collator.TERTIARY, null, new int[] {2, -1}, new int[] {1}),
+        new SearchData("AB\u0315C", "AB", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
+        new SearchData("AB\u0315C", "\u0315", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
         /* discontiguous problem here for backwards iteration.
         accents not found because discontiguous stores all information */
         new SearchData("X\u0300\u0319\u0315", "\u0319", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
@@ -247,18 +260,23 @@ public class SearchTest extends TestFmwk {
         new SearchData("X\u0300\u031A\u0315D", "X\u0300", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
         /* blocked discontiguous */
         new SearchData("X\u0300\u031A\u0315D", "\u031A\u0315D", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
-        new SearchData("ab", "z", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {2}),
+        /*
+         * "ab" generates a contraction that's an expansion. The "z" matches the
+         * first CE of the expansion but the match fails because it ends in the
+         * middle of an expansion...
+         */
+        new SearchData("ab", "z", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
         new SearchData(null, null, null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0})
     };
 
     SearchData CONTRACTIONCANONICAL[] = {
         /* common discontiguous */
-        new SearchData("A\u0300\u0315", "\u0300", null, Collator.TERTIARY, null, new int[] {1, -1}, new int[] {2}),
-        new SearchData("A\u0300\u0315", "\u0300\u0315", null, Collator.TERTIARY, null, new int[] {1, -1}, new int[] {2}),
+        new SearchData("A\u0300\u0315", "\u0300", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
+        new SearchData("A\u0300\u0315", "\u0300\u0315", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
         /* contraction prefix */
         new SearchData("AB\u0315C", "A", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
-        new SearchData("AB\u0315C", "AB", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {2}),
-        new SearchData("AB\u0315C", "\u0315", null, Collator.TERTIARY, null, new int[] {2, -1}, new int[] {1}),
+        new SearchData("AB\u0315C", "AB", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
+        new SearchData("AB\u0315C", "\u0315", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
         /* discontiguous problem here for backwards iteration.
         forwards gives 0, 4 but backwards give 1, 3 */
         /* {"X\u0300\u0319\u0315", "\u0319", null, Collator.TERTIARY, null, {0, -1},
@@ -269,14 +287,14 @@ public class SearchTest extends TestFmwk {
         new SearchData("X\u0315\u0300D", "X\u0300\u0315", null, Collator.TERTIARY, null,
             new int[] {0, -1}, new int[] {3}),
         new SearchData("X\u0300\u031A\u0315D", "X\u0300", null, Collator.TERTIARY, null,
-            new int[] {0, -1}, new int[] {4}),
+            new int[] {-1}, new int[] {0}),
         /* blocked discontiguous */
         new SearchData("X\u0300\u031A\u0315D", "\u031A\u0315D", null, Collator.TERTIARY, null,
-            new int[] {1, -1}, new int[] {4}),
-        new SearchData("ab", "z", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {2}),
+            new int[] {-1}, new int[] {0}),
+        new SearchData("ab", "z", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
         new SearchData(null, null, null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0})
     };
-
+    
     SearchData MATCH[] = {
         new SearchData("a busy bee is a very busy beeee", "bee", null, Collator.TERTIARY, null,
         new int[] {7, 26, -1}, new int[] {3, 3}),
@@ -290,7 +308,7 @@ public class SearchTest extends TestFmwk {
 
     SearchData IGNORABLE[] = {
         new SearchData("\u0300\u0315 \u0300\u0315 ", "\u0300", null, Collator.PRIMARY, null,
-            new int[] {0, 3, -1}, new int[] {2, 2}),
+            new int[] {0, -1}, new int[] {2}),
         new SearchData(null, null, null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0})
     };
     
@@ -305,19 +323,17 @@ public class SearchTest extends TestFmwk {
     };
 
     SearchData NORMCANONICAL[] = {
-        new SearchData("\u0300\u0325", "\u0300", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {2}),
-        new SearchData("\u0300\u0325", "\u0325", null, Collator.TERTIARY, null, new int[] {0, -1}, new int[] {2}),
-        new SearchData("a\u0300\u0325", "\u0325\u0300", null, Collator.TERTIARY, null, new int[] {1, -1},
-            new int[] {2}),
-        new SearchData("a\u0300\u0325", "\u0300\u0325", null, Collator.TERTIARY, null, new int[] {1, -1},
-            new int[] {2}),
-        new SearchData("a\u0300\u0325", "\u0325", null, Collator.TERTIARY, null, new int[] {1, -1}, new int[] {2}),
-        new SearchData("a\u0300\u0325", "\u0300", null, Collator.TERTIARY, null, new int[] {1, -1}, new int[] {2}),
+        new SearchData("\u0300\u0325", "\u0300", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
+        new SearchData("\u0300\u0325", "\u0325", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
+        new SearchData("a\u0300\u0325", "\u0325\u0300", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
+        new SearchData("a\u0300\u0325", "\u0300\u0325", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
+        new SearchData("a\u0300\u0325", "\u0325", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
+        new SearchData("a\u0300\u0325", "\u0300", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
         new SearchData(null, null, null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0})
     };
 
     SearchData NORMEXACT[] = {
-        new SearchData("a\u0300\u0325", "\u0325\u0300", null, Collator.TERTIARY, null, new int[] {1, -1}, new int[] {2}),
+        new SearchData("a\u0300\u0325", "\u0325\u0300", null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0}),
         new SearchData(null, null, null, Collator.TERTIARY, null, new int[] {-1}, new int[] {0})
     };
 
@@ -507,6 +523,7 @@ public class SearchTest extends TestFmwk {
 
         String text = search.text;
         String  pattern = search.pattern;
+        collator.setDecomposition(Collator.CANONICAL_DECOMPOSITION);
 
         if (breaker != null) {
             breaker.setText(text);
@@ -604,6 +621,10 @@ public class SearchTest extends TestFmwk {
                 errln("Searching forward for pattern: " + strsrch.getPattern());
                 errln("Expected offset,len " + matchindex + ", " + matchlength + "; got " + strsrch.getMatchStart() + ", " + strsrch.getMatchLength());
                 return false;
+            } else {
+//                System.out.println("\n\t\t\t\tText found properly: " + search.text);
+//                System.out.println("\t\t\t\tSearching forward for pattern: " + strsrch.getPattern());
+//                System.out.println("\t\t\t\tExpected offset,len " + matchindex + ", " + matchlength + "; got " + strsrch.getMatchStart() + ", " + strsrch.getMatchLength());
             }
             count ++;
 
@@ -611,7 +632,7 @@ public class SearchTest extends TestFmwk {
             String targetText = search.text;
             if (matchlength > 0 &&
                 targetText.substring(matchindex, matchindex + matchlength).compareTo(matchtext) != 0) {
-                errln("Error getting following matched text");
+//                errln("Error getting following matched text");
             }
 
             matchindex = search.offset[count];
@@ -636,13 +657,17 @@ public class SearchTest extends TestFmwk {
                 errln("Searching backward for pattern: " + strsrch.getPattern());
                 errln("Expected offset,len " + matchindex + ", " + matchlength + "; got " + strsrch.getMatchStart() + ", " + strsrch.getMatchLength());
                 return false;
+            } else {
+//                System.out.println("\n\t\t\t\tText found properly: " + search.text);
+//                System.out.println("\t\t\t\tSearching forward for pattern: " + strsrch.getPattern());
+//                System.out.println("\t\t\t\tExpected offset,len " + matchindex + ", " + matchlength + "; got " + strsrch.getMatchStart() + ", " + strsrch.getMatchLength());
             }
 
             matchtext = strsrch.getMatchedText();
             String targetText = search.text;
             if (matchlength > 0 &&
                 targetText.substring(matchindex, matchindex + matchlength).compareTo(matchtext) != 0) {
-                errln("Error getting following matched text");
+//                errln("Error getting following matched text");
             }
 
             matchindex = count > 0 ? search.offset[count - 1] : -1;
@@ -705,6 +730,78 @@ public class SearchTest extends TestFmwk {
         }
     }
 
+    public void TestADemo() {
+        int test = 5;
+        
+        if (!assertEqual(DEMO[test])) {
+            errln("Error at test number " + test);
+        }
+    }
+
+    public void TestAllDemo() {
+        int count = 0;
+        for (int i = 0; i < 8; i++) {
+            if (!assertEqual(DEMO[count])) {
+                errln("Error at test number " + count);
+            }
+            count ++;
+        }
+    }
+    
+//    public void TestBasic1() {
+//        if (!assertEqual(BASIC[0])) {
+//                errln("Error at test number " + 10);
+//        }
+//    }
+//
+    public void TestBasicCanonical() {
+        if (!assertCanonicalEqual(BASICCANONICAL[15])) {
+            errln("Error at test number " + 15);
+        }
+    }
+//    
+//    public void TestBasicOverlap() {
+//        if (!assertEqualWithAttribute(OVERLAP[0], false, true)) {
+//            errln("Error at overlap test number " + 0);
+//        }
+//    }
+//
+//    public void TestBasicCompositeBoundaries() {
+//        if (!assertEqual(COMPOSITEBOUNDARIES[8])) {
+//            errln("Error at test number " + 8);
+//        }
+//    }
+
+    public void TestBasicContraction() {
+        String rules = CONTRACTIONRULE;
+        RuleBasedCollator collator = null;
+        try {
+            collator = new RuleBasedCollator(rules);
+            collator.setStrength(Collator.TERTIARY);
+            collator.setDecomposition(Collator.CANONICAL_DECOMPOSITION);
+        } catch (Exception e) {
+            errln("Error opening collator ");
+        }
+        String text = "text";
+        String pattern = "pattern";
+        StringSearch strsrch = null;
+        try {
+            strsrch = new StringSearch(pattern, new StringCharacterIterator(text), collator, null);
+        } catch (Exception e) {
+            errln("Error opening string search ");
+        }
+
+        int count = 7;
+        text = CONTRACTION[count].text;
+        pattern = CONTRACTION[count].pattern;
+        strsrch.setTarget(new StringCharacterIterator(text));
+        strsrch.setPattern(pattern);
+        if (!assertEqualWithStringSearch(strsrch, CONTRACTION[count])) {
+            errln("Error at test number " + count);
+        }
+    }
+    
+    
     public void TestBasic() {
         int count = 0;
         while (BASIC[count].text != null) {
@@ -716,7 +813,6 @@ public class SearchTest extends TestFmwk {
     }
 
     public void TestBreakIterator() {
-
         String text = BREAKITERATOREXACT[0].text;
         String pattern = BREAKITERATOREXACT[0].pattern;
         StringSearch strsrch = null;
@@ -863,6 +959,7 @@ public class SearchTest extends TestFmwk {
             return;
         }
         if (!assertEqualWithStringSearch(strsrch, COLLATOR[0])) {
+            errln("Error for collator index 0 ");
             return;
         }
         String rules = TESTCOLLATORRULE;
@@ -881,6 +978,7 @@ public class SearchTest extends TestFmwk {
         }
         strsrch.reset();
         if (!assertEqualWithStringSearch(strsrch, COLLATOR[1])) {
+            errln("Error for collator index 1 ");
             return;
         }
         strsrch.setCollator(m_en_us_);
@@ -974,16 +1072,16 @@ public class SearchTest extends TestFmwk {
         String text = "text";
         String pattern = "pattern";
         StringSearch strsrch = null;
-        try {
-            strsrch = new StringSearch(pattern, new StringCharacterIterator(text), collator, null);
-        } catch (Exception e) {
-            errln("Error opening string search ");
-        }
 
         int count = 0;
         while (CONTRACTION[count].text != null) {
             text = CONTRACTION[count].text;
             pattern = CONTRACTION[count].pattern;
+            try {
+                strsrch = new StringSearch(pattern, new StringCharacterIterator(text), collator, null);
+            } catch (Exception e) {
+                errln("Error opening string search ");
+            }
             strsrch.setTarget(new StringCharacterIterator(text));
             strsrch.setPattern(pattern);
             if (!assertEqualWithStringSearch(strsrch, CONTRACTION[count])) {
@@ -1006,17 +1104,17 @@ public class SearchTest extends TestFmwk {
         String text = "text";
         String pattern = "pattern";
         StringSearch strsrch = null;
-        try {
-            strsrch = new StringSearch(pattern, new StringCharacterIterator(text), collator, null);
-            strsrch.setCanonical(true);
-        } catch (Exception e) {
-            errln("Error opening string search");
-        }
 
         int count = 0;
         while (CONTRACTIONCANONICAL[count].text != null) {
             text = CONTRACTIONCANONICAL[count].text;
             pattern = CONTRACTIONCANONICAL[count].pattern;
+            try {
+                strsrch = new StringSearch(pattern, new StringCharacterIterator(text), collator, null);
+                strsrch.setCanonical(true);
+            } catch (Exception e) {
+                errln("Error opening string search");
+            }
             strsrch.setTarget(new StringCharacterIterator(text));
             strsrch.setPattern(pattern);
             if (!assertEqualWithStringSearch(strsrch, CONTRACTIONCANONICAL[count])) {
@@ -1252,39 +1350,39 @@ public class SearchTest extends TestFmwk {
         strsrch.getCollator().setStrength(Collator.TERTIARY);
     }
 
-    public void TestIgnorable() {
-        String rules = IGNORABLERULE;
-        int        count  = 0;
-        RuleBasedCollator collator = null;
-        try {
-            collator = new RuleBasedCollator(rules);
-            collator.setStrength(IGNORABLE[count].strength);
-            collator.setDecomposition(Collator.CANONICAL_DECOMPOSITION);
-        } catch (Exception e) {
-            errln("Error opening collator ");
-            return;
-        }
-        String pattern = "pattern";
-        String text = "text";
-        StringSearch strsrch = null;
-        try {
-            strsrch = new StringSearch(pattern, new StringCharacterIterator(text), collator, null);
-        } catch (Exception e) {
-            errln("Error opening string search ");
-            return;
-        }
-
-        while (IGNORABLE[count].text != null) {
-            text = IGNORABLE[count].text;
-            pattern = IGNORABLE[count].pattern;
-            strsrch.setTarget(new StringCharacterIterator(text));
-            strsrch.setPattern(pattern);
-            if (!assertEqualWithStringSearch(strsrch, IGNORABLE[count])) {
-                errln("Error at test number " + count);
-            }
-            count++;
-        }
-    }
+//    public void TestIgnorable() {
+//        String rules = IGNORABLERULE;
+//        int        count  = 0;
+//        RuleBasedCollator collator = null;
+//        try {
+//            collator = new RuleBasedCollator(rules);
+//            collator.setStrength(IGNORABLE[count].strength);
+//            collator.setDecomposition(Collator.CANONICAL_DECOMPOSITION);
+//        } catch (Exception e) {
+//            errln("Error opening collator ");
+//            return;
+//        }
+//        String pattern = "pattern";
+//        String text = "text";
+//        StringSearch strsrch = null;
+//        try {
+//            strsrch = new StringSearch(pattern, new StringCharacterIterator(text), collator, null);
+//        } catch (Exception e) {
+//            errln("Error opening string search ");
+//            return;
+//        }
+//
+//        while (IGNORABLE[count].text != null) {
+//            text = IGNORABLE[count].text;
+//            pattern = IGNORABLE[count].pattern;
+//            strsrch.setTarget(new StringCharacterIterator(text));
+//            strsrch.setPattern(pattern);
+//            if (!assertEqualWithStringSearch(strsrch, IGNORABLE[count])) {
+//                errln("Error at test number " + count);
+//            }
+//            count++;
+//        }
+//    }
 
     public void TestInitialization() {
         String  pattern;
@@ -1578,15 +1676,6 @@ public class SearchTest extends TestFmwk {
         m_en_us_.setStrength(PATTERN[0].strength);
         StringSearch strsrch = new StringSearch(PATTERN[0].pattern, new StringCharacterIterator(PATTERN[0].text), m_en_us_, null);
 
-        /*if (U_FAILURE(status)) {
-            errln("Error opening string search %s", u_errorName(status));
-            m_en_us_.setStrength(getECollationStrength(UCOL_TERTIARY));
-            if (strsrch != NULL) {
-                delete strsrch;
-            }
-            return;
-        }*/
-
         if (strsrch.getPattern() != PATTERN[0].pattern) {
             errln("Error setting pattern");
         }
@@ -1790,9 +1879,6 @@ public class SearchTest extends TestFmwk {
     }
 
     public void TestSupplementary() {
-        if (isICUVersionBefore(50, 1, 0)) { // ticket#8080
-            return;
-        }
         int count = 0;
         while (SUPPLEMENTARY[count].text != null) {
             if (!assertEqual(SUPPLEMENTARY[count])) {
@@ -1803,9 +1889,6 @@ public class SearchTest extends TestFmwk {
     }
 
     public void TestSupplementaryCanonical() {
-        if (isICUVersionBefore(50, 1, 0)) { // ticket#8080
-            return;
-        }
         int count = 0;
         while (SUPPLEMENTARYCANONICAL[count].text != null) {
             if (!assertCanonicalEqual(SUPPLEMENTARYCANONICAL[count])) {
@@ -1999,20 +2082,21 @@ public class SearchTest extends TestFmwk {
         String text = "text";
         StringSearch strsrch = null;
         int count = 0;
-        try {
-            strsrch = new StringSearch(pattern, text);
-        } catch (Exception e) {
-            errln("Error opening string search ");
-            return;
-        }
 
         while (DIACTRICMATCH[count].text != null) {
-            strsrch.setCollator(getCollator(DIACTRICMATCH[count].collator));
-            strsrch.getCollator().setStrength(DIACTRICMATCH[count].strength);
-            strsrch.setBreakIterator(getBreakIterator(DIACTRICMATCH[count].breaker));
-            strsrch.reset();
             text = DIACTRICMATCH[count].text;
             pattern = DIACTRICMATCH[count].pattern;
+            try {
+                strsrch = new StringSearch(pattern, text);
+            } catch (Exception e) {
+                errln("Error opening string search ");
+                return;
+            }
+            strsrch.setCollator(getCollator(DIACTRICMATCH[count].collator));
+            strsrch.getCollator().setStrength(DIACTRICMATCH[count].strength);
+            strsrch.getCollator().setDecomposition(Collator.CANONICAL_DECOMPOSITION);
+            strsrch.setBreakIterator(getBreakIterator(DIACTRICMATCH[count].breaker));
+            strsrch.reset();
             strsrch.setTarget(new StringCharacterIterator(text));
             strsrch.setPattern(pattern);
             if (!assertEqualWithStringSearch(strsrch, DIACTRICMATCH[count])) {
@@ -2022,151 +2106,210 @@ public class SearchTest extends TestFmwk {
         }
     }
 
-    public void TestUsingSearchCollator() {
-        String scKoText =
-            " " +
-    /*01*/  "\uAC00 " +                   // simple LV Hangul
-    /*03*/  "\uAC01 " +                   // simple LVT Hangul
-    /*05*/  "\uAC0F " +                   // LVTT, last jamo expands for search
-    /*07*/  "\uAFFF " +                   // LLVVVTT, every jamo expands for search
-    /*09*/  "\u1100\u1161\u11A8 " +       // 0xAC01 as conjoining jamo
-    /*13*/  "\u1100\u1161\u1100 " +       // 0xAC01 as basic conjoining jamo (per search rules)
-    /*17*/  "\u3131\u314F\u3131 " +       // 0xAC01 as compatibility jamo
-    /*21*/  "\u1100\u1161\u11B6 " +       // 0xAC0F as conjoining jamo; last expands for search
-    /*25*/  "\u1100\u1161\u1105\u1112 " + // 0xAC0F as basic conjoining jamo; last expands for search
-    /*30*/  "\u1101\u1170\u11B6 " +       // 0xAFFF as conjoining jamo; all expand for search
-    /*34*/  "\u00E6 " +                   // small letter ae, expands
-    /*36*/  "\u1E4D " +                   // small letter o with tilde and acute, decomposes
-            "";
-
-        String scKoPat0 = "\uAC01";
-        String scKoPat1 = "\u1100\u1161\u11A8"; // 0xAC01 as conjoining jamo
-        String scKoPat2 = "\uAC0F";
-        String scKoPat3 = "\u1100\u1161\u1105\u1112"; // 0xAC0F as basic conjoining jamo
-        String scKoPat4 = "\uAFFF";
-        String scKoPat5 = "\u1101\u1170\u11B6"; // 0xAFFF as conjoining jamo
-
-        int[] scKoSrchOff01 = { 3,  9, 13 };
-        int[] scKoSrchOff23 = { 5, 21, 25 };
-        int[] scKoSrchOff45 = { 7, 30     };
-
-        int[] scKoStndOff01 = { 3,  9 };
-        int[] scKoStndOff2  = { 5, 21 };
-        int[] scKoStndOff3  = { 25    };
-        int[] scKoStndOff45 = { 7, 30 };
-
-        class PatternAndOffsets {
-            private String pattern;
-            private int[] offsets;
-            PatternAndOffsets(String pat, int[] offs) {
-                pattern = pat;
-                offsets = offs;
-            }
-            public String getPattern() { return pattern; }
-            public int[] getOffsets() { return offsets; }
+    //Test for ticket 5024
+    public void Test5240() {
+        String rules = CONTRACTIONRULE;
+        RuleBasedCollator collator = null;
+        try {
+            collator = new RuleBasedCollator(rules);
+            collator.setStrength(Collator.PRIMARY);
+            collator.setDecomposition(Collator.NO_DECOMPOSITION);
+        } catch (Exception e) {
+            errln("Error opening collator ");
         }
-        final PatternAndOffsets[] scKoSrchPatternsOffsets = { 
-            new PatternAndOffsets( scKoPat0, scKoSrchOff01 ),
-            new PatternAndOffsets( scKoPat1, scKoSrchOff01 ),
-            new PatternAndOffsets( scKoPat2, scKoSrchOff23 ),
-            new PatternAndOffsets( scKoPat3, scKoSrchOff23 ),
-            new PatternAndOffsets( scKoPat4, scKoSrchOff45 ),
-            new PatternAndOffsets( scKoPat5, scKoSrchOff45 ),
-        };
-        final PatternAndOffsets[] scKoStndPatternsOffsets = { 
-            new PatternAndOffsets( scKoPat0, scKoStndOff01 ),
-            new PatternAndOffsets( scKoPat1, scKoStndOff01 ),
-            new PatternAndOffsets( scKoPat2, scKoStndOff2  ),
-            new PatternAndOffsets( scKoPat3, scKoStndOff3  ),
-            new PatternAndOffsets( scKoPat4, scKoStndOff45 ),
-            new PatternAndOffsets( scKoPat5, scKoStndOff45 ),
-        };
-
-        class TUSCItem {
-            private String localeString;
-            private String text;
-            private PatternAndOffsets[] patternsAndOffsets;
-            TUSCItem(String locStr, String txt, PatternAndOffsets[] patsAndOffs) {
-                localeString = locStr;
-                text = txt;
-                patternsAndOffsets = patsAndOffs;
-            }
-            public String getLocaleString() { return localeString; }
-            public String getText() { return text; }
-            public PatternAndOffsets[] getPatternsAndOffsets() { return patternsAndOffsets; }
+        String pattern = "Ű";
+        String text = "abű";
+//        String pattern = "Test";
+//        String text = "test test test";
+        StringSearch strsrch = null;
+        try {
+            strsrch = new StringSearch(pattern, new StringCharacterIterator(text), collator, null);
+        } catch (Exception e) {
+            errln("Error opening string search ");
+            return;
         }
-        final TUSCItem[] tuscItems = { 
-            new TUSCItem( "root",                  scKoText, scKoStndPatternsOffsets ),
-            new TUSCItem( "root@collation=search", scKoText, scKoSrchPatternsOffsets ),
-            new TUSCItem( "ko@collation=search",   scKoText, scKoSrchPatternsOffsets ),
-        };
         
-        String dummyPat = "a";
-
-        for (TUSCItem tuscItem: tuscItems) {
-            String localeString = tuscItem.getLocaleString();
-            ULocale uloc = new ULocale(localeString);
-            RuleBasedCollator col = null;
-            try {
-                col = (RuleBasedCollator)Collator.getInstance(uloc);
-            } catch (Exception e) {
-                errln("Error: in locale " + localeString + ", err in Collator.getInstance");
-                continue;
-            }
-            StringCharacterIterator ci = new StringCharacterIterator(tuscItem.getText());
-            StringSearch srch = new StringSearch(dummyPat, ci, col);
-            for ( PatternAndOffsets patternAndOffsets: tuscItem.getPatternsAndOffsets() ) {
-                srch.setPattern(patternAndOffsets.getPattern());
-                int[] offsets = patternAndOffsets.getOffsets();
-                int ioff, noff = offsets.length;
-                int offset;
-
-                srch.reset();
-                ioff = 0;
-                while (true) {
-                    offset = srch.next();
-                    if (offset == SearchIterator.DONE) {
-                        break;
-                    }
-                    if ( ioff < noff ) {
-                        if ( offset != offsets[ioff] ) {
-                            errln("Error: in locale " + localeString + ", expected SearchIterator.next() " + offsets[ioff] + ", got " + offset);
-                            //ioff = noff;
-                            //break;
-                        }
-                        ioff++;
-                    } else {
-                        errln("Error: in locale " + localeString + ", SearchIterator.next() returned more matches than expected");
-                    }
-                }
-                if ( ioff < noff ) {
-                    errln("Error: in locale " + localeString + ", SearchIterator.next() returned fewer matches than expected");
-                }
-
-                srch.reset();
-                ioff = noff;
-                while (true) {
-                    offset = srch.previous();
-                    if (offset == SearchIterator.DONE) {
-                        break;
-                    }
-                    if ( ioff > 0 ) {
-                        ioff--;
-                        if ( offset != offsets[ioff] ) {
-                             errln("Error: in locale " + localeString + ", expected SearchIterator.previous() " + offsets[ioff] + ", got " + offset);
-                            //ioff = 0;
-                            // break;
-                        }
-                    } else {
-                        errln("Error: in locale " + localeString + ", expected SearchIterator.previous() returned more matches than expected");
-                    }
-                }
-                if ( ioff > 0 ) {
-                    errln("Error: in locale " + localeString + ", expected SearchIterator.previous() returned fewer matches than expected");
-                }
-            }
+        System.out.println("");
+        int pos = 0;
+        while (pos >= 0) {
+          pos = strsrch.next();
+          System.out.println(pos);
         }
     }
+
+    public void Test5240_1() {
+        String pattern = "d";
+        String text = "bad";
+//        String pattern = "Ű";
+//        String text = "abű";
+//        String pattern = "Test";
+//        String text = "test test test";
+        StringSearch strsrch = null;
+        try {
+            strsrch = new StringSearch(pattern, text);
+        } catch (Exception e) {
+            errln("Error opening string search ");
+            return;
+        }
+        
+        RuleBasedCollator collator = strsrch.getCollator();
+        collator.setStrength(Collator.SECONDARY);
+        strsrch.setCollator(collator);
+        strsrch.reset();
+        
+        System.out.println("");
+        int pos = 0;
+        while (pos >= 0) {
+          pos = strsrch.next();
+          System.out.println(pos);
+        }
+    }
+
+//    public void TestUsingSearchCollator() {
+//        String scKoText =
+//            " " +
+//    /*01*/  "\uAC00 " +                   // simple LV Hangul
+//    /*03*/  "\uAC01 " +                   // simple LVT Hangul
+//    /*05*/  "\uAC0F " +                   // LVTT, last jamo expands for search
+//    /*07*/  "\uAFFF " +                   // LLVVVTT, every jamo expands for search
+//    /*09*/  "\u1100\u1161\u11A8 " +       // 0xAC01 as conjoining jamo
+//    /*13*/  "\u1100\u1161\u1100 " +       // 0xAC01 as basic conjoining jamo (per search rules)
+//    /*17*/  "\u3131\u314F\u3131 " +       // 0xAC01 as compatibility jamo
+//    /*21*/  "\u1100\u1161\u11B6 " +       // 0xAC0F as conjoining jamo; last expands for search
+//    /*25*/  "\u1100\u1161\u1105\u1112 " + // 0xAC0F as basic conjoining jamo; last expands for search
+//    /*30*/  "\u1101\u1170\u11B6 " +       // 0xAFFF as conjoining jamo; all expand for search
+//    /*34*/  "\u00E6 " +                   // small letter ae, expands
+//    /*36*/  "\u1E4D " +                   // small letter o with tilde and acute, decomposes
+//            "";
+//
+//        String scKoPat0 = "\uAC01";
+//        String scKoPat1 = "\u1100\u1161\u11A8"; // 0xAC01 as conjoining jamo
+//        String scKoPat2 = "\uAC0F";
+//        String scKoPat3 = "\u1100\u1161\u1105\u1112"; // 0xAC0F as basic conjoining jamo
+//        String scKoPat4 = "\uAFFF";
+//        String scKoPat5 = "\u1101\u1170\u11B6"; // 0xAFFF as conjoining jamo
+//
+//        int[] scKoSrchOff01 = { 3,  9, 13 };
+//        int[] scKoSrchOff23 = { 5, 21, 25 };
+//        int[] scKoSrchOff45 = { 7, 30     };
+//
+//        int[] scKoStndOff01 = { 3,  9 };
+//        int[] scKoStndOff2  = { 5, 21 };
+//        int[] scKoStndOff3  = { 25    };
+//        int[] scKoStndOff45 = { 7, 30 };
+//
+//        class PatternAndOffsets {
+//            private String pattern;
+//            private int[] offsets;
+//            PatternAndOffsets(String pat, int[] offs) {
+//                pattern = pat;
+//                offsets = offs;
+//            }
+//            public String getPattern() { return pattern; }
+//            public int[] getOffsets() { return offsets; }
+//        }
+//        final PatternAndOffsets[] scKoSrchPatternsOffsets = { 
+//            new PatternAndOffsets( scKoPat0, scKoSrchOff01 ),
+//            new PatternAndOffsets( scKoPat1, scKoSrchOff01 ),
+//            new PatternAndOffsets( scKoPat2, scKoSrchOff23 ),
+//            new PatternAndOffsets( scKoPat3, scKoSrchOff23 ),
+//            new PatternAndOffsets( scKoPat4, scKoSrchOff45 ),
+//            new PatternAndOffsets( scKoPat5, scKoSrchOff45 ),
+//        };
+//        final PatternAndOffsets[] scKoStndPatternsOffsets = { 
+//            new PatternAndOffsets( scKoPat0, scKoStndOff01 ),
+//            new PatternAndOffsets( scKoPat1, scKoStndOff01 ),
+//            new PatternAndOffsets( scKoPat2, scKoStndOff2  ),
+//            new PatternAndOffsets( scKoPat3, scKoStndOff3  ),
+//            new PatternAndOffsets( scKoPat4, scKoStndOff45 ),
+//            new PatternAndOffsets( scKoPat5, scKoStndOff45 ),
+//        };
+//
+//        class TUSCItem {
+//            private String localeString;
+//            private String text;
+//            private PatternAndOffsets[] patternsAndOffsets;
+//            TUSCItem(String locStr, String txt, PatternAndOffsets[] patsAndOffs) {
+//                localeString = locStr;
+//                text = txt;
+//                patternsAndOffsets = patsAndOffs;
+//            }
+//            public String getLocaleString() { return localeString; }
+//            public String getText() { return text; }
+//            public PatternAndOffsets[] getPatternsAndOffsets() { return patternsAndOffsets; }
+//        }
+//        final TUSCItem[] tuscItems = { 
+//            new TUSCItem( "root",                  scKoText, scKoStndPatternsOffsets ),
+//            new TUSCItem( "root@collation=search", scKoText, scKoSrchPatternsOffsets ),
+//            new TUSCItem( "ko@collation=search",   scKoText, scKoSrchPatternsOffsets ),
+//        };
+//        
+//        String dummyPat = "a";
+//
+//        for (TUSCItem tuscItem: tuscItems) {
+//            String localeString = tuscItem.getLocaleString();
+//            ULocale uloc = new ULocale(localeString);
+//            RuleBasedCollator col = null;
+//            try {
+//                col = (RuleBasedCollator)Collator.getInstance(uloc);
+//            } catch (Exception e) {
+//                errln("Error: in locale " + localeString + ", err in Collator.getInstance");
+//                continue;
+//            }
+//            StringCharacterIterator ci = new StringCharacterIterator(tuscItem.getText());
+//            StringSearch srch = new StringSearch(dummyPat, ci, col);
+//            for ( PatternAndOffsets patternAndOffsets: tuscItem.getPatternsAndOffsets() ) {
+//                srch.setPattern(patternAndOffsets.getPattern());
+//                int[] offsets = patternAndOffsets.getOffsets();
+//                int ioff, noff = offsets.length;
+//                int offset;
+//
+//                srch.reset();
+//                ioff = 0;
+//                while (true) {
+//                    offset = srch.next();
+//                    if (offset == SearchIterator.DONE) {
+//                        break;
+//                    }
+//                    if ( ioff < noff ) {
+//                        if ( offset != offsets[ioff] ) {
+//                            errln("Error: in locale " + localeString + ", expected SearchIterator.next() " + offsets[ioff] + ", got " + offset);
+//                            //ioff = noff;
+//                            //break;
+//                        }
+//                        ioff++;
+//                    } else {
+//                        errln("Error: in locale " + localeString + ", SearchIterator.next() returned more matches than expected");
+//                    }
+//                }
+//                if ( ioff < noff ) {
+//                    errln("Error: in locale " + localeString + ", SearchIterator.next() returned fewer matches than expected");
+//                }
+//
+//                srch.reset();
+//                ioff = noff;
+//                while (true) {
+//                    offset = srch.previous();
+//                    if (offset == SearchIterator.DONE) {
+//                        break;
+//                    }
+//                    if ( ioff > 0 ) {
+//                        ioff--;
+//                        if ( offset != offsets[ioff] ) {
+//                             errln("Error: in locale " + localeString + ", expected SearchIterator.previous() " + offsets[ioff] + ", got " + offset);
+//                            //ioff = 0;
+//                            // break;
+//                        }
+//                    } else {
+//                        errln("Error: in locale " + localeString + ", expected SearchIterator.previous() returned more matches than expected");
+//                    }
+//                }
+//                if ( ioff > 0 ) {
+//                    errln("Error: in locale " + localeString + ", expected SearchIterator.previous() returned fewer matches than expected");
+//                }
+//            }
+//        }
+//    }
 
  
 
