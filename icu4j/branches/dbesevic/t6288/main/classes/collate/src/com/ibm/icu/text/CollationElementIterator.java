@@ -15,6 +15,7 @@ package com.ibm.icu.text;
  */
 import java.text.CharacterIterator;
 import java.util.MissingResourceException;
+import java.util.Stack;
 
 import com.ibm.icu.impl.CharacterIteratorWrapper;
 import com.ibm.icu.impl.ICUDebug;
@@ -23,6 +24,10 @@ import com.ibm.icu.impl.Normalizer2Impl;
 import com.ibm.icu.impl.StringUCharacterIterator;
 import com.ibm.icu.impl.UCharacterProperty;
 import com.ibm.icu.lang.UCharacter;
+import com.ibm.icu.text.CollationElementBuffer.CEI;
+import com.ibm.icu.text.CollationPCE.PCEI;
+import com.ibm.icu.text.CollationPCE.RCEBuffer;
+import com.ibm.icu.text.CollationPCE.RCEI;
 
 /**
  * <p><code>CollationElementIterator</code> is an iterator created by
@@ -117,7 +122,14 @@ public final class CollationElementIterator
      * @see #next
      * @see #previous */
     public final static int NULLORDER = 0xffffffff;
-
+    /**
+     * This indicates an error has occurred during processing or there are no more CEs 
+     * to be returned.
+     *
+     * @internal
+     */
+    public final static long PROCESSED_NULLORDER = 9223372036854775807L;
+    
     /**
      * <p>This constant is returned by the iterator in the methods
      * next() and previous() when a collation element result is to be
@@ -162,6 +174,14 @@ public final class CollationElementIterator
      */
     public int getOffset()
     {
+        if (m_offsetRepeatCount > 0 && m_offsetRepeatValue != 0) {
+            return m_offsetRepeatValue;
+        }
+
+        if (m_bUseOffsetReturn) {
+            return m_offsetReturn ;
+        }
+
         if (m_bufferOffset_ != -1) {
             if (m_isForwards_) {
                 return m_FCDLimit_;
@@ -266,6 +286,8 @@ public final class CollationElementIterator
  
         int result = NULLORDER;
         char ch = 0;
+        m_bUseOffsetReturn = false;
+        m_offsetReturn = -1;
         do {
             int ch_int = nextChar();
             if (ch_int == UCharacterIterator.DONE) {
@@ -320,6 +342,135 @@ public final class CollationElementIterator
     }
 
     /**
+     * Get the processed ordering priority of the next collation element in the text.
+     * A single character may contain more than one collation element.
+     *
+     * @return The next collation elements ordering, otherwise returns UCOL_PROCESSED_NULLORDER 
+     *         if an error has occured or if the end of string has been reached
+     *
+     * @internal
+     */
+    protected CEI nextProcessed()
+    {
+        int low = 0, high = 0;
+        long result = IGNORABLE;
+        CEI retValue = m_CollationElementBuffer.createCEI();
+
+        if (m_PCE_ == null) {
+            m_PCE_ = new CollationPCE(this);
+        } else {
+            m_PCE_.getPceBuffer().reset();
+        }
+
+        m_reset_ = false;
+
+        do {
+            low = getOffset();
+            int ce = next();
+            high = getOffset();
+
+            if (ce == NULLORDER) {
+                 result = PROCESSED_NULLORDER;
+                 break;
+            }
+
+            result = processCE(ce);
+        } while (result == IGNORABLE);
+
+        retValue.lowIndex = low;
+        retValue.highIndex = high;
+        retValue.ce = result;
+
+        return retValue;
+    }
+
+    /**
+     * Get the processed ordering priority of the previous collation element in the text.
+     * A single character may contain more than one collation element.
+     * Note that internally a stack is used to store buffered collation elements. 
+     * It is very rare that the stack will overflow, however if such a case is 
+     * encountered, the problem can be solved by increasing the size 
+     * UCOL_EXPAND_CE_BUFFER_SIZE in ucol_imp.h.
+     *
+     * @return The previous collation elements ordering, otherwise returns 
+     *         UCOL_PROCESSED_NULLORDER if an error has occured or if the start of
+     *         string has been reached.
+     *
+     * @internal
+     */
+    protected CEI previousProcessed()
+    {
+        int low = 0, high = 0;
+        long result = IGNORABLE;
+        CEI retValue = m_CollationElementBuffer.createCEI();
+
+        if (m_PCE_ == null) {
+            m_PCE_ = new CollationPCE(this);
+        } else {
+            //m_PCE_.getPceBuffer().reset();
+        }
+        
+        m_reset_ = false;
+
+        while (m_PCE_.getPceBuffer().empty()) {
+            // buffer raw CEs up to non-ignorable primary
+            RCEBuffer rceb = m_PCE_.getRceBuffer();
+            int ce;
+            boolean isNullOrder = false;
+            rceb.reset();
+            
+            // **** do we need to reset rceb, or will it always be empty at this point ****
+            do {
+                high = getOffset();
+                ce   = getPrevCE();
+                low  = getOffset();
+
+                if (ce == NULLORDER) {
+                    if (!rceb.empty()) {
+                        break;
+                    }
+
+                    isNullOrder = true;
+                    break;
+                }
+
+                rceb.put(ce, low, high);
+            } while ((ce & RuleBasedCollator.CE_PRIMARY_MASK_) == 0);
+            
+            if (isNullOrder) {
+                break;
+            }
+
+            // process the raw CEs
+            while (!rceb.empty()) {
+                RCEI rcei = rceb.get();
+
+                result = processCE(rcei.ce);
+
+                if (result != IGNORABLE) {
+                    m_PCE_.getPceBuffer().put(result, rcei.low, rcei.high);
+                }
+            }
+        }
+
+        if (m_PCE_.getPceBuffer().empty()) {
+            // **** Is -1 the right value for ixLow, ixHigh? ****
+            retValue.lowIndex  = -1;
+            retValue.highIndex = -1;
+            retValue.ce = PROCESSED_NULLORDER;
+            return retValue;
+        }
+
+        PCEI pcei = m_PCE_.getPceBuffer().get();
+
+        retValue.lowIndex = pcei.low;
+        retValue.highIndex = pcei.high;
+        retValue.ce = pcei.ce;
+        
+        return retValue;
+    }
+
+    /**
      * <p>Get the previous collation element in the source string.</p>
      *
      * <p>This iterator iterates over a sequence of collation elements
@@ -350,6 +501,26 @@ public final class CollationElementIterator
             updateInternalState();
         }
         m_isForwards_ = false;
+        return getPrevCE();
+    }
+    
+    private int getPrevCE()
+    {
+        int result = NULLORDER;
+        char ch = 0;
+        if (m_bUseOffsetReturn) {
+            if (m_offsetRepeatCount > 0) {
+                m_offsetRepeatCount -= 1;
+            } else {
+                // DB - check this
+                if (m_offsetStore.isEmpty()) {
+                    m_bUseOffsetReturn = false;
+                    m_offsetReturn = -1;
+                } else {
+                    m_offsetReturn -= 1;
+                }
+            }
+        }
         if (m_CEBufferSize_ > 0) {
             if (m_CEBufferOffset_ > 0) {
                 return m_CEBuffer_[-- m_CEBufferOffset_];
@@ -357,9 +528,6 @@ public final class CollationElementIterator
             m_CEBufferSize_ = 0;
             m_CEBufferOffset_ = 0;
         }
-
-        int result = NULLORDER;
-        char ch = 0;
         do {
             int ch_int = previousChar();
             if (ch_int == UCharacterIterator.DONE) {
@@ -405,8 +573,68 @@ public final class CollationElementIterator
             result = previousImplicit(ch);
         }
         return result;
+        
     }
 
+    public long processCE(int ce)
+    {
+        long primary = 0, secondary = 0, tertiary = 0, quaternary = 0;
+
+        // This is clean, but somewhat slow...
+        // We could apply the mask to ce and then
+        // just get all three orders...
+        switch(m_PCE_.getStrength()) {
+        default:
+            tertiary =  tertiaryOrder(ce);
+            // $FALL-THROUGH$
+
+        case Collator.SECONDARY:
+            secondary = secondaryOrder(ce);
+            // $FALL-THROUGH$
+
+        case Collator.PRIMARY:
+            primary = primaryOrder(ce);
+        }
+
+        // **** This should probably handle continuations too.  ****
+        // **** That means that we need 24 bits for the primary ****
+        // **** instead of the 16 that we're currently using.   ****
+        // **** So we can lay out the 64 bits as: 24.12.12.16.  ****
+        // **** Another complication with continuations is that ****
+        // **** the *second* CE is marked as a continuation, so ****
+        // **** we always have to peek ahead to know how long   ****
+        // **** the primary is...                               ****
+        if ( (m_PCE_.toShift() && m_PCE_.getVariableTop() > ce && primary != 0) || 
+             (m_PCE_.isShifted() && primary == 0) ) {
+
+            if (primary == 0) {
+                return IGNORABLE;
+            }
+
+            if (m_PCE_.getStrength() >= Collator.QUATERNARY) {
+                quaternary = primary;
+            }
+
+            primary = secondary = tertiary = 0;
+            m_PCE_.setShifted(true);
+        } else {
+            if (m_PCE_.getStrength() >= Collator.QUATERNARY) {
+                quaternary = 0xFFFF;
+            }
+
+            m_PCE_.setShifted(false);
+        }
+
+        return primary << 48 | secondary << 32 | tertiary << 16 | quaternary;
+    }
+    
+    public void initPCE()
+    {
+        if (m_PCE_ != null) {
+            m_PCE_.init(m_collator_);
+        }
+    }
+    
     /**
      * Return the primary order of the specified collation element,
      * i.e. the first 16 bits.  This value is unsigned.
@@ -587,17 +815,6 @@ public final class CollationElementIterator
         }
         return false;
     }
-    
-    /**
-     * Mock implementation of hashCode(). This implementation always returns a constant
-     * value. When Java assertion is enabled, this method triggers an assertion failure.
-     * @internal
-     * @deprecated This API is ICU internal only.
-     */
-    public int hashCode() {
-        assert false : "hashCode not designed";
-        return 42;
-    }
 
     // package private constructors ------------------------------------------
 
@@ -605,8 +822,16 @@ public final class CollationElementIterator
         m_utilStringBuffer_ = new StringBuilder();
         m_collator_ = collator;
         m_CEBuffer_ = new int[CE_BUFFER_INIT_SIZE_];
+        m_PCE_ = new CollationPCE(this);
         m_buffer_ = new StringBuilder();
         m_utilSpecialBackUp_ = new Backup();
+        m_CollationElementBuffer = new CollationElementBuffer();
+        m_offsetStore = new Stack<Integer>();
+        m_bUseOffsetReturn = false;
+        m_offsetReturn = -1;
+        m_offsetRepeatCount = 0;
+        m_offsetRepeatValue = 0;
+        m_inNormBuf = false;
     }
 
     /**
@@ -855,6 +1080,18 @@ public final class CollationElementIterator
      */
     private static final int CE_BUFFER_INIT_SIZE_ = 512;
     /**
+     * PCE buffer
+     */
+    private CollationPCE m_PCE_;
+    /**
+     * Collation Element Buffer 
+     */
+    private CollationElementBuffer m_CollationElementBuffer;
+    /**
+     * Indicates if this data has been reset.
+     */
+    private boolean m_reset_;
+    /**
      * Backup storage for special processing inner cases
      */
     private Backup m_utilSpecialBackUp_;
@@ -876,6 +1113,19 @@ public final class CollationElementIterator
     private static final Normalizer2Impl m_nfcImpl_ = Norm2AllModes.getNFCInstance().impl;
     private StringBuilder m_unnormalized_;
     private Normalizer2Impl.ReorderingBuffer m_n2Buffer_;
+    /**
+     * Fields for linear search
+     */
+    private boolean m_bUseOffsetReturn;
+    private int m_offsetReturn; /* This is the offset to return, if non-NULL */
+    private Stack<Integer> m_offsetStore;  /* This is the pointer for storing offsets */
+    private int m_offsetRepeatCount;  /* Repeat stored offset if non-zero */
+    private int m_offsetRepeatValue;  /* offset value to repeat */
+    private boolean m_inNormBuf;    /* TODO: this flag is used in C, but not in Java - figure out how to set it */
+
+//    private int[] m_offsetBuffer;    /* A dynamic buffer to hold offsets */
+//    private int m_offsetBufferSize; /* The size of the offset buffer */
+
     /**
      * The first non-zero combining class character
      */
@@ -979,6 +1229,12 @@ public final class CollationElementIterator
         m_FCDStart_ = m_source_.getLength();
         //m_isHiragana4_ = m_collator_.m_isHiragana4_;
         m_isForwards_ = true;
+        m_bUseOffsetReturn = false;
+        m_offsetReturn = -1;
+        m_offsetStore.clear();
+        m_offsetRepeatCount = 0;
+        m_offsetRepeatValue = 0;
+        m_PCE_.reset();
     }
 
     /**
@@ -1800,6 +2056,7 @@ public final class CollationElementIterator
         m_CEBufferSize_ = 2;
         m_CEBuffer_[0] = ((ce & 0xFFFF00) << 8) | (CE_BYTE_COMMON_ << 8) |
             CE_BYTE_COMMON_;
+        m_offsetRepeatCount += 1;
         return m_CEBuffer_[0];
     }
 
@@ -1833,6 +2090,7 @@ public final class CollationElementIterator
             // if there are less than 16 elements in expansion
             for (int i = 1; i < m_CEBufferSize_; i ++) {
                 m_CEBuffer_[i] = collator.m_expansion_[offset + i];
+                m_offsetRepeatCount += 1;
             }
         }
         else {
@@ -1841,6 +2099,7 @@ public final class CollationElementIterator
             while (collator.m_expansion_[offset] != 0) {
                 m_CEBuffer_[m_CEBufferSize_ ++] =
                     collator.m_expansion_[++ offset];
+                m_offsetRepeatCount += 1;
             }
         }
         // in case of one element expansion, we 
@@ -1910,7 +2169,7 @@ public final class CollationElementIterator
                     // and add 5 (to avoid overlapping magic CE byte 
                     // values). The last byte we subtract 1 to ensure it is 
                     // less than all the other bytes.
-                    if (digIndx % 2 != 0) {
+                    if (digIndx % 2 == 1) {
                         collateVal += digVal;  
                         // This removes trailing zeroes.
                         if (collateVal == 0 && trailingZeroIndex == 0) {
@@ -2052,6 +2311,7 @@ public final class CollationElementIterator
         m_CEBuffer_[1] = ((result & 0x0000FFFF) << 16) | 0x000000C0;
         m_CEBufferOffset_ = 1;
         m_CEBufferSize_ = 2;
+        m_offsetRepeatCount += 1;
         return m_CEBuffer_[0];
     }
 
@@ -2329,11 +2589,13 @@ public final class CollationElementIterator
         // processing) we can't use peekCharacter() here.
         char prevch = (char)previousChar();
         boolean atStart = false;
+        int noChars = 0;
         // TODO: address the comment above - maybe now we *can* use peekCharacter
         //while (collator.isUnsafe(ch) || isThaiPreVowel(prevch)) {
         while (collator.isUnsafe(ch)) {
             m_utilStringBuffer_.insert(0, ch);
             ch = prevch;
+            noChars++;
             if (isBackwardsStart()) {
                 atStart = true;
                 break;
@@ -2343,10 +2605,23 @@ public final class CollationElementIterator
         if (!atStart) {
             // undo the previousChar() if we didn't reach the beginning 
             nextChar();
+            noChars--;
         }
         // adds the initial base character to the string
         m_utilStringBuffer_.insert(0, ch);
+        noChars++;
 
+        int offsetBias;
+
+        // **** doesn't work if using iterator ****
+        m_inNormBuf = true;
+        if (m_inNormBuf) {
+            offsetBias = -1;
+        } else {
+            offsetBias = m_source_.getIndex();
+        }
+        m_inNormBuf = false;
+        
         // a new collation element iterator is used to simply things, since
         // using the current collation element iterator will mean that the
         // forward and backwards iteration will share and change the same
@@ -2365,6 +2640,7 @@ public final class CollationElementIterator
         }
         ce = m_utilColEIter_.next();
         m_CEBufferSize_ = 0;
+        int rawOffset = 0;
         while (ce != NULLORDER) {
             if (m_CEBufferSize_ == m_CEBuffer_.length) {
                 try {
@@ -2386,9 +2662,31 @@ public final class CollationElementIterator
                 }
             }
             m_CEBuffer_[m_CEBufferSize_ ++] = ce;
+            if (offsetBias >= 0) {
+                m_offsetStore.push(rawOffset + offsetBias);
+            }
+            if (m_inNormBuf) {
+                rawOffset = m_FCDLimit_ - m_FCDStart_;
+            } else {
+                rawOffset = m_source_.getIndex();
+            }
             ce = m_utilColEIter_.next();
         }
         collator.setDecomposition(originaldecomp);
+        m_offsetRepeatValue = 1;
+        if (m_offsetRepeatValue != 0) {
+            if (m_CEBufferSize_ > noChars) {
+                m_offsetRepeatCount += m_utilColEIter_.m_offsetRepeatCount;
+            } else {
+                // **** does this really skip the right offsets? ****
+                m_bUseOffsetReturn = true;
+                m_offsetReturn -= (noChars - m_CEBufferSize_);
+            }
+        }
+        if (offsetBias >= 0) {
+            m_bUseOffsetReturn = true;
+            m_offsetReturn = m_offsetStore.peek();
+        }
         m_CEBufferOffset_ = m_CEBufferSize_ - 1;
         return m_CEBuffer_[m_CEBufferOffset_];
     }
@@ -2406,6 +2704,17 @@ public final class CollationElementIterator
         m_CEBuffer_[m_CEBufferSize_ ++] = ((ce & 0xFF) << 24)
             | RuleBasedCollator.CE_CONTINUATION_MARKER_;
         m_CEBufferOffset_ = m_CEBufferSize_ - 1;
+        if (m_inNormBuf) {
+            m_offsetRepeatCount = 1;
+        } else {
+            int firstOffset = m_source_.getIndex();
+            
+            m_offsetStore.push(firstOffset);
+            m_offsetStore.push(firstOffset + 1);
+
+            m_bUseOffsetReturn = true;
+            m_offsetReturn = m_offsetStore.peek();
+        }
         return m_CEBuffer_[m_CEBufferOffset_];
     }
 
@@ -2417,6 +2726,12 @@ public final class CollationElementIterator
      */
     private int previousExpansion(RuleBasedCollator collator, int ce)
     {
+        int firstOffset = m_source_.getIndex();
+        if (m_bUseOffsetReturn) {
+            if (m_inNormBuf) {
+              firstOffset = -1;
+            }
+        }
         // find the offset to expansion table
         int offset = getExpansionOffset(collator, ce);
         m_CEBufferSize_ = getExpansionCount(ce);
@@ -2424,6 +2739,9 @@ public final class CollationElementIterator
             // less than 16 elements in expansion
             for (int i = 0; i < m_CEBufferSize_; i ++) {
                 m_CEBuffer_[i] = collator.m_expansion_[offset + i];
+                if (firstOffset >= 0) {
+                    m_offsetStore.push(firstOffset + 1);
+                }
             }
 
         }
@@ -2433,7 +2751,16 @@ public final class CollationElementIterator
                 m_CEBuffer_[m_CEBufferSize_] =
                     collator.m_expansion_[offset + m_CEBufferSize_];
                 m_CEBufferSize_ ++;
+                if (firstOffset >= 0) {
+                    m_offsetStore.push(firstOffset + 1);
+                }
             }
+        }
+        if (firstOffset >= 0) {
+            m_offsetReturn = m_offsetStore.peek();
+            m_bUseOffsetReturn = true;
+        } else {
+            m_offsetRepeatCount += m_CEBufferSize_ - 1;
         }
         m_CEBufferOffset_ = m_CEBufferSize_ - 1;
         return m_CEBuffer_[m_CEBufferOffset_];
@@ -2502,7 +2829,7 @@ public final class CollationElementIterator
                     // first digit encountered into the ones place and the 
                     // second digit encountered into the tens place.
                 
-                    if (digIndx % 2 != 0){
+                    if (digIndx % 2 == 1){
                         collateVal += digVal * 10;
                     
                         // This removes leading zeroes.
@@ -2638,31 +2965,55 @@ public final class CollationElementIterator
         V += HANGUL_VBASE_;
         T += HANGUL_TBASE_;
 
+        int firstOffset = m_source_.getIndex();
+        m_offsetStore.push(firstOffset);
         m_CEBufferSize_ = 0;
         if (!m_collator_.m_isJamoSpecial_) {
             m_CEBuffer_[m_CEBufferSize_ ++] =
                 collator.m_trie_.getLeadValue(L);
             m_CEBuffer_[m_CEBufferSize_ ++] =
                 collator.m_trie_.getLeadValue(V);
+            m_offsetStore.push(firstOffset + 1);
             if (T != HANGUL_TBASE_) {
                 m_CEBuffer_[m_CEBufferSize_ ++] =
                     collator.m_trie_.getLeadValue(T);
+                m_offsetStore.push(firstOffset + 1);
             }
             m_CEBufferOffset_ = m_CEBufferSize_ - 1;
+            m_bUseOffsetReturn = true;
+            m_offsetReturn = m_offsetStore.peek();
             return m_CEBuffer_[m_CEBufferOffset_];
         }
         else {
             // Since Hanguls pass the FCD check, it is guaranteed that we won't
             // be in the normalization buffer if something like this happens
             // Move Jamos into normalization buffer
+            int tempbufferLength, jamoOffset;
             m_buffer_.append(L);
             m_buffer_.append(V);
             if (T != HANGUL_TBASE_) {
                 m_buffer_.append(T);
+                tempbufferLength = 4;
+            } else {
+                tempbufferLength = 3;
             }
+            
             m_bufferOffset_ = m_buffer_.length();
             m_FCDStart_ = m_source_.getIndex();
             m_FCDLimit_ = m_FCDStart_ + 1;
+            // Append offsets for the additional chars
+            // (not the 0, and not the L whose offsets match the original Hangul)
+            int jamoRemaining = tempbufferLength - 2;
+            jamoOffset = m_bufferOffset_ + 1; // appended offsets should match end of original Hangul
+            while (jamoRemaining-- > 0) {
+                m_offsetStore.push(jamoOffset);
+            }
+
+            m_offsetRepeatValue = jamoOffset;
+
+            m_bUseOffsetReturn = true;
+            m_offsetReturn = m_offsetStore.peek();
+
             return IGNORABLE;
         }
     }
@@ -2680,6 +3031,18 @@ public final class CollationElementIterator
         m_CEBuffer_[0] = (result & RuleBasedCollator.CE_PRIMARY_MASK_)
                          | 0x00000505;
         m_CEBuffer_[1] = ((result & 0x0000FFFF) << 16) | 0x000000C0;
+        // **** doesn't work if using iterator ****
+        if (m_inNormBuf) {
+            m_offsetRepeatCount = 1;
+        } else {
+            int firstOffset = m_source_.getIndex();
+            
+            m_offsetStore.push(firstOffset);
+            m_offsetStore.push(firstOffset + 1);
+
+            m_bUseOffsetReturn = true;
+            m_offsetReturn = m_offsetStore.peek();
+        }
         return m_CEBuffer_[1];
     }
 
@@ -2828,5 +3191,13 @@ public final class CollationElementIterator
             // we are in the buffer, buffer offset will never be 0 here
             m_bufferOffset_ ++;
         }
+    }
+
+
+    /**
+     * @return the m_collator_
+     */
+    public RuleBasedCollator getCollator() {
+        return m_collator_;
     }
 }
