@@ -3458,85 +3458,9 @@ public final class StringSearch extends SearchIterator
      */
     private void handleNextExact(int start)
     {
-//        int textoffset = shiftForward(start, 
-//                                         CollationElementIterator.NULLORDER,
-//                                         m_pattern_.m_CELength_);
-//        int targetce = CollationElementIterator.IGNORABLE;
-//        while (textoffset <= m_textLimitOffset_) {
-//            m_colEIter_.setExactOffset(textoffset);
-//            int patternceindex = m_pattern_.m_CELength_ - 1;
-//            boolean found = false;
-//            int lastce = CollationElementIterator.NULLORDER;
-//            
-//            while (true) {
-//                // finding the last pattern ce match, imagine composite 
-//                // characters. for example: search for pattern A in text \u00C0
-//                // we'll have to skip \u0300 the grave first before we get to A
-//                targetce = m_colEIter_.previous();
-//                if (targetce == CollationElementIterator.NULLORDER) {
-//                    found = false;
-//                    break;
-//                }
-//                targetce = getCE(targetce);
-//                if (targetce == CollationElementIterator.IGNORABLE && 
-//                    m_colEIter_.isInBuffer()) { 
-//                    // this is for the text \u0315\u0300 that requires 
-//                    // normalization and pattern \u0300, where \u0315 is ignorable
-//                    continue;
-//                }
-//                if (lastce == CollationElementIterator.NULLORDER 
-//                    || lastce == CollationElementIterator.IGNORABLE) {
-//                    lastce = targetce;
-//                }
-//                if (targetce == m_pattern_.m_CE_[patternceindex]) {
-//                    // the first ce can be a contraction
-//                    found = true;
-//                    break;
-//                }
-//                if (m_colEIter_.m_CEBufferOffset_ <= 0) {
-//                    found = false;
-//                    break;
-//                }
-//            }
-//    
-//            while (found && patternceindex > 0) {
-//                lastce = targetce;
-//                targetce = m_colEIter_.previous();
-//                if (targetce == CollationElementIterator.NULLORDER) {
-//                    found = false;
-//                    break;
-//                }
-//                targetce = getCE(targetce);
-//                if (targetce == CollationElementIterator.IGNORABLE) {
-//                    continue;
-//                }
-//    
-//                patternceindex --;
-//                found = found && targetce == m_pattern_.m_CE_[patternceindex]; 
-//            }
-//            
-//            targetce = lastce;
-//    
-//            if (!found) {
-//                textoffset = shiftForward(textoffset, lastce, patternceindex);
-//                // status checked at loop.
-//                patternceindex = m_pattern_.m_CELength_;
-//                continue;
-//            }
-//            
-//            if (checkNextExactMatch(textoffset)) {
-//                // status checked in ucol_setOffset
-//                return;
-//            }
-//            textoffset = m_utilBuffer_[0];
-//        }
-//        setMatchNotFound();
-        int textOffset = m_colEIter_.getOffset();
-
         if (!search(start)) {
             setMatchNotFound();
         }
-
     }
 
     /**
@@ -3546,92 +3470,9 @@ public final class StringSearch extends SearchIterator
      */
     private void handleNextCanonical(int start)
     {
-//        boolean hasPatternAccents = 
-//           m_pattern_.m_hasSuffixAccents_ || m_pattern_.m_hasPrefixAccents_;
-//              
-//        // shifting it check for setting offset
-//        // if setOffset is called previously or there was no previous match, we
-//        // leave the offset as it is.
-//        int textoffset = shiftForward(start, CollationElementIterator.NULLORDER, 
-//                                        m_pattern_.m_CELength_);
-//        m_canonicalPrefixAccents_.delete(0, m_canonicalPrefixAccents_.length());
-//        m_canonicalSuffixAccents_.delete(0, m_canonicalSuffixAccents_.length());
-//        int targetce = CollationElementIterator.IGNORABLE;
-//        
-//        while (textoffset <= m_textLimitOffset_)
-//        {
-//            m_colEIter_.setExactOffset(textoffset);
-//            int patternceindex = m_pattern_.m_CELength_ - 1;
-//            boolean found = false;
-//            int lastce = CollationElementIterator.NULLORDER;
-//            
-//            while (true) {
-//                // finding the last pattern ce match, imagine composite characters
-//                // for example: search for pattern A in text \u00C0
-//                // we'll have to skip \u0300 the grave first before we get to A
-//                targetce = m_colEIter_.previous();
-//                if (targetce == CollationElementIterator.NULLORDER) {
-//                    found = false;
-//                    break;
-//                }
-//                targetce = getCE(targetce);
-//                if (lastce == CollationElementIterator.NULLORDER 
-//                            || lastce == CollationElementIterator.IGNORABLE) {
-//                    lastce = targetce;
-//                }
-//                if (targetce == m_pattern_.m_CE_[patternceindex]) {
-//                    // the first ce can be a contraction
-//                    found = true;
-//                    break;
-//                }
-//                if (m_colEIter_.m_CEBufferOffset_ <= 0) {
-//                    found = false;
-//                    break;
-//                }
-//            }
-//            
-//            while (found && patternceindex > 0) {
-//                targetce    = m_colEIter_.previous();
-//                if (targetce == CollationElementIterator.NULLORDER) {
-//                    found = false;
-//                    break;
-//                }
-//                targetce    = getCE(targetce);
-//                if (targetce == CollationElementIterator.IGNORABLE) {
-//                    continue;
-//                }
-//    
-//                patternceindex --;
-//                found = found && targetce == m_pattern_.m_CE_[patternceindex]; 
-//            }
-//    
-//            // initializing the rearranged accent array
-//            if (hasPatternAccents && !found) {
-//                found = doNextCanonicalMatch(textoffset);
-//            }
-//    
-//            if (!found) {
-//                textoffset = shiftForward(textoffset, lastce, patternceindex);
-//                // status checked at loop
-//                patternceindex = m_pattern_.m_CELength_;
-//                continue;
-//            }
-//            
-//            if (checkNextCanonicalMatch(textoffset)) {
-//                return;
-//            }
-//            textoffset = m_utilBuffer_[0];
-//        }
-//        setMatchNotFound();
-        
-//        ** NEW **
-        
-      int textOffset = m_colEIter_.getOffset();
-
-                if (!search(start)) {
-                    setMatchNotFound();
-                }
-
+        if (!search(start)) {
+            setMatchNotFound();
+        }
     }
     
     /**
@@ -3641,80 +3482,6 @@ public final class StringSearch extends SearchIterator
      */
     private void handlePreviousExact(int start)
     {
-//        int textoffset = reverseShift(start, CollationElementIterator.NULLORDER, 
-//                                      m_pattern_.m_CELength_);
-//        while (textoffset >= m_textBeginOffset_)
-//        {
-//            m_colEIter_.setExactOffset(textoffset);
-//            int patternceindex = 1;
-//            int targetce = CollationElementIterator.IGNORABLE;
-//            boolean found = false;
-//            int firstce = CollationElementIterator.NULLORDER;
-//            
-//            while (true) {
-//                // finding the first pattern ce match, imagine composite 
-//                // characters. for example: search for pattern \u0300 in text 
-//                // \u00C0, we'll have to skip A first before we get to 
-//                // \u0300 the grave accent
-//                targetce = m_colEIter_.next();
-//                if (targetce == CollationElementIterator.NULLORDER) {
-//                    found = false;
-//                    break;
-//                }
-//                targetce = getCE(targetce);
-//                if (firstce == CollationElementIterator.NULLORDER 
-//                    || firstce == CollationElementIterator.IGNORABLE) {
-//                    firstce = targetce;
-//                }
-//                if (targetce == CollationElementIterator.IGNORABLE && m_collator_.getStrength() != Collator.PRIMARY) {
-//                    continue;
-//                }         
-//                if (targetce == m_pattern_.m_CE_[0]) {
-//                    found = true;
-//                    break;
-//                }
-//                if (m_colEIter_.m_CEBufferOffset_ == -1 
-//                    || m_colEIter_.m_CEBufferOffset_ 
-//                                            == m_colEIter_.m_CEBufferSize_) {
-//                    // checking for accents in composite character
-//                    found = false;
-//                    break;
-//                }
-//            }
-//    
-//            //targetce = firstce;
-//            
-//            while (found && patternceindex < m_pattern_.m_CELength_) {
-//                firstce = targetce;
-//                targetce = m_colEIter_.next();
-//                if (targetce == CollationElementIterator.NULLORDER) {
-//                    found = false;
-//                    break;
-//                }
-//                targetce = getCE(targetce);
-//                if (targetce == CollationElementIterator.IGNORABLE) {
-//                    continue;
-//                }
-//    
-//                found = found && targetce == m_pattern_.m_CE_[patternceindex]; 
-//                patternceindex ++;
-//            }
-//            
-//            targetce = firstce;
-//    
-//            if (!found) {
-//                textoffset = reverseShift(textoffset, targetce, patternceindex);
-//                patternceindex = 0;
-//                continue;
-//            }
-//            
-//            if (checkPreviousExactMatch(textoffset)) {
-//                return;
-//            }
-//            textoffset = m_utilBuffer_[0];
-//        }
-//        setMatchNotFound();
-        
         int textOffset;
 
         if (isOverlapping()) {
@@ -3749,113 +3516,30 @@ public final class StringSearch extends SearchIterator
      */
     private void handlePreviousCanonical(int start)
     {
-//        boolean hasPatternAccents = 
-//           m_pattern_.m_hasSuffixAccents_ || m_pattern_.m_hasPrefixAccents_;
-//              
-//        // shifting it check for setting offset
-//        // if setOffset is called previously or there was no previous match, we
-//        // leave the offset as it is.
-//        int textoffset = reverseShift(start, CollationElementIterator.NULLORDER, 
-//                                          m_pattern_.m_CELength_);
-//        m_canonicalPrefixAccents_.delete(0, m_canonicalPrefixAccents_.length());
-//        m_canonicalSuffixAccents_.delete(0, m_canonicalSuffixAccents_.length());
-//        
-//        while (textoffset >= m_textBeginOffset_)
-//        {
-//            m_colEIter_.setExactOffset(textoffset);
-//            int patternceindex = 1;
-//            int targetce = CollationElementIterator.IGNORABLE;
-//            boolean found = false;
-//            int firstce = CollationElementIterator.NULLORDER;
-//            
-//            while (true) {
-//                // finding the first pattern ce match, imagine composite 
-//                // characters. for example: search for pattern \u0300 in text 
-//                // \u00C0, we'll have to skip A first before we get to 
-//                // \u0300 the grave accent
-//                targetce = m_colEIter_.next();
-//                if (targetce == CollationElementIterator.NULLORDER) {
-//                    found = false;
-//                    break;
-//                }
-//                targetce = getCE(targetce);
-//                if (firstce == CollationElementIterator.NULLORDER 
-//                    || firstce == CollationElementIterator.IGNORABLE) {
-//                    firstce = targetce;
-//                }
-//                
-//                if (targetce == m_pattern_.m_CE_[0]) {
-//                    // the first ce can be a contraction
-//                    found = true;
-//                    break;
-//                }
-//                if (m_colEIter_.m_CEBufferOffset_ == -1 
-//                    || m_colEIter_.m_CEBufferOffset_ 
-//                                            == m_colEIter_.m_CEBufferSize_) {
-//                    // checking for accents in composite character
-//                    found = false;
-//                    break;
-//                }
-//            }
-//    
-//            targetce = firstce;
-//            
-//            while (found && patternceindex < m_pattern_.m_CELength_) {
-//                targetce = m_colEIter_.next();
-//                if (targetce == CollationElementIterator.NULLORDER) {
-//                    found = false;
-//                    break;
-//                }
-//                targetce = getCE(targetce);
-//                if (targetce == CollationElementIterator.IGNORABLE) {
-//                    continue;
-//                }
-//    
-//                found = found && targetce == m_pattern_.m_CE_[patternceindex]; 
-//                patternceindex ++;
-//            }
-//    
-//            // initializing the rearranged accent array
-//            if (hasPatternAccents && !found) {
-//                found = doPreviousCanonicalMatch(textoffset);
-//            }
-//    
-//            if (!found) {
-//                textoffset = reverseShift(textoffset, targetce, patternceindex);
-//                patternceindex = 0;
-//                continue;
-//            }
-//    
-//            if (checkPreviousCanonicalMatch(textoffset)) {
-//                return;
-//            }
-//            textoffset = m_utilBuffer_[0];
-//        }
-//        setMatchNotFound();
-      int textOffset;
+        int textOffset;
 
-                if (isOverlapping()) {
-                    if (m_matchedIndex_ != DONE) {
-                        textOffset = m_matchedIndex_ + matchLength - 1;
-                    } else {
-                        // move the start position at the end of possible match
-                        initializePatternPCETable();
-                        for (int nPCEs = 0; nPCEs < m_pattern_.m_PCELength_ - 1; nPCEs++) {
-                            long pce = m_colEIter_.nextProcessed().getCE();
-                            if (pce == CollationElementIterator.PROCESSED_NULLORDER) {
-                                // at the end of the text
-                                break;
-                            }
-                        }
-                        textOffset = m_colEIter_.getOffset();
+        if (isOverlapping()) {
+            if (m_matchedIndex_ != DONE) {
+                textOffset = m_matchedIndex_ + matchLength - 1;
+            } else {
+                // move the start position at the end of possible match
+                initializePatternPCETable();
+                for (int nPCEs = 0; nPCEs < m_pattern_.m_PCELength_ - 1; nPCEs++) {
+                    long pce = m_colEIter_.nextProcessed().getCE();
+                    if (pce == CollationElementIterator.PROCESSED_NULLORDER) {
+                        // at the end of the text
+                        break;
                     }
-                } else {
-                    textOffset = m_colEIter_.getOffset();
                 }
+                textOffset = m_colEIter_.getOffset();
+            }
+        } else {
+            textOffset = m_colEIter_.getOffset();
+        }
 
-                if (!searchBackwards(textOffset)) {
-                    setMatchNotFound();
-                }
+        if (!searchBackwards(textOffset)) {
+            setMatchNotFound();
+        }
     }
     
     /**
