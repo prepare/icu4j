@@ -1,0 +1,26 @@
+<FindBugsFilter>
+     <Match>
+       <Bug code="ES,FE,Eq" />
+     </Match>
+
+	<Match>
+	  <Class name="com.ibm.icu.text.CollationParsedRuleBuilder" />
+	  <Bug code="SA" />
+	</Match>
+
+	<Match>
+      <Class name="com.ibm.icu.text.DateFormatSymbols" />
+       <Bug code="NP" />
+      </Match>
+
+	<Match>
+      <Class name="com.ibm.icu.text.ChineseDateFormatSymbols" />
+       <Bug code="NP" />
+      </Match>
+
+	<Match>
+      <Class name="com.ibm.icu.impl.duration.BasicDurationFormat" />
+       <Bug code="ST" />
+      </Match>
+
+</FindBugsFilter>
