@@ -16,6 +16,7 @@ import java.util.Stack;
 
 import com.ibm.icu.impl.Assert;
 
+import static com.ibm.icu.impl.CharacterIteration.*;
 
 /**
  * A subclass of RuleBasedBreakIterator that adds the ability to use a dictionary

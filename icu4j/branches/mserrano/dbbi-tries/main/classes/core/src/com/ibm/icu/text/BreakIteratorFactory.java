@@ -137,6 +137,7 @@ final class BreakIteratorFactory extends BreakIterator.BreakIteratorServiceShim 
                     String dictFileName = rb.getStringWithFallback("dictionaries/" + dictType);
                     dictFileName = ICUResourceBundle.ICU_BUNDLE +ICUResourceBundle.ICU_BRKITR_NAME+ "/" + dictFileName;
                     InputStream is = ICUData.getStream(dictFileName);
+                    
                     iter = new ThaiBreakIterator(ruleStream, is);
                 }
             } catch (MissingResourceException e) {
