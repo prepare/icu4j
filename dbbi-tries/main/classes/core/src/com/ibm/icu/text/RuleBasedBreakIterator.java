@@ -16,6 +16,7 @@ import java.text.CharacterIterator;
 import com.ibm.icu.impl.Assert;
 import com.ibm.icu.impl.ICUDebug;
 
+import static com.ibm.icu.impl.CharacterIteration.*;
 
 /**
  * Rule Based Break Iterator 
@@ -24,8 +25,6 @@ import com.ibm.icu.impl.ICUDebug;
  * @stable ICU 2.0
  */
 public class RuleBasedBreakIterator extends BreakIterator {
-
-    
     //=======================================================================
     // Constructors & Factories
     //=======================================================================
@@ -57,14 +56,6 @@ public class RuleBasedBreakIterator extends BreakIterator {
         This.fRData = RBBIDataWrapper.get(is);
         return This;   
     }
-    
-    /*private RuleBasedBreakIterator(RuleBasedBreakIterator other) {
-        // TODO: check types.
-        fRData = other.fRData;
-        if (fText != null) {
-            fText = (CharacterIterator)(other.fText.clone());   
-        }
-    }*/
 
     /**
      * Construct a RuleBasedBreakIterator from a set of rules supplied as a string.
@@ -89,12 +80,11 @@ public class RuleBasedBreakIterator extends BreakIterator {
             ///CLOVER:ON
         }
     }
-    
-    
+
     //=======================================================================
     // Boilerplate
     //=======================================================================
-    
+
     /**
      * Clones this iterator.
      * @return A newly-constructed RuleBasedBreakIterator with the same
@@ -167,7 +157,6 @@ public class RuleBasedBreakIterator extends BreakIterator {
         return fRData.fRuleSource.hashCode(); 
     }
 
-    
     /** 
      * Tag value for "words" that do not fit into any of other categories. 
      * Includes spaces and most punctuation. 
@@ -240,9 +229,6 @@ public class RuleBasedBreakIterator extends BreakIterator {
      */
     public static final int WORD_IDEO_LIMIT     = 500;
 
-   
-    
-    
     private static final int  START_STATE = 1;     // The state number of the starting state
     private static final int  STOP_STATE  = 0;     // The state-transition value indicating "stop"
     
@@ -362,7 +348,6 @@ public class RuleBasedBreakIterator extends BreakIterator {
         return fText.getIndex();
     }
     
-    
     /**
      * Sets the current iteration position to the end of the text.
      * (i.e., the CharacterIterator's ending offset).
@@ -376,19 +361,15 @@ public class RuleBasedBreakIterator extends BreakIterator {
             return BreakIterator.DONE;
         }
 
-        // I'm not sure why, but t.last() returns the offset of the last character,
+        // t.last() returns the offset of the last character,
         // rather than the past-the-end offset
-        //
-        //   (It's so a loop like for(p=it.last(); p!=DONE; p=it.previous()) ...
-        //     will work correctly.)
-
-
+        // so a loop like for(p=it.last(); p!=DONE; p=it.previous()) ...
+        // will work correctly.
         fLastStatusIndexValid = false;
         int pos = fText.getEndIndex();
         fText.setIndex(pos);
         return pos;
     }
-    
     
     /**
      * Advances the iterator either forward or backward the specified number of steps.
@@ -412,7 +393,6 @@ public class RuleBasedBreakIterator extends BreakIterator {
         }
         return result;
     }
-    
     
     /**
      * Advances the iterator to the next boundary position.
@@ -657,161 +637,154 @@ public class RuleBasedBreakIterator extends BreakIterator {
     }
 
 
-/**
- * Returns true if the specfied position is a boundary position.  As a side
- * effect, leaves the iterator pointing to the first boundary position at
- * or after "offset".
- * @param offset the offset to check.
- * @return True if "offset" is a boundary position.
- * @stable ICU 2.0
- */
-public boolean isBoundary(int offset) {
-    checkOffset(offset, fText);
-    
-    // the beginning index of the iterator is always a boundary position by definition
-    if (offset == fText.getBeginIndex()) {
-        first();       // For side effects on current position, tag values.
-        return true;
-    }
+    /**
+     * Returns true if the specfied position is a boundary position.  As a side
+     * effect, leaves the iterator pointing to the first boundary position at
+     * or after "offset".
+     * @param offset the offset to check.
+     * @return True if "offset" is a boundary position.
+     * @stable ICU 2.0
+     */
+    public boolean isBoundary(int offset) {
+        checkOffset(offset, fText);
 
-    if (offset == fText.getEndIndex()) {
-        last();       // For side effects on current position, tag values.
-        return true;
-    }
-
-    // otherwise, we can use following() on the position before the specified
-    // one and return true if the position we get back is the one the user
-    // specified
-    
-    // return following(offset - 1) == offset;
-    // TODO:  check whether it is safe to revert to the simpler offset-1 code
-    //         The safe rules may take care of unpaired surrogates ok.
-    fText.setIndex(offset);
-    CIPrevious32(fText);
-    int  pos = fText.getIndex();
-    boolean result = following(pos) == offset;
-    return result;
-}
-
-/**
- * Returns the current iteration position.
- * @return The current iteration position.
- * @stable ICU 2.0
- */
-public int current() {
-    return (fText != null) ? fText.getIndex() : BreakIterator.DONE;
-    }
-
-
-
-private void makeRuleStatusValid() {
-    if (fLastStatusIndexValid == false) {
-        //  No cached status is available.
-        if (fText == null || current() == fText.getBeginIndex()) {
-            //  At start of text, or there is no text.  Status is always zero.
-            fLastRuleStatusIndex = 0;
-            fLastStatusIndexValid = true;
-        } else {
-            //  Not at start of text.  Find status the tedious way.
-            int pa = current();
-            previous();
-            int pb = next();
-            Assert.assrt (pa == pb);
+        // the beginning index of the iterator is always a boundary position by definition
+        if (offset == fText.getBeginIndex()) {
+            first();       // For side effects on current position, tag values.
+            return true;
         }
-        Assert.assrt(fLastStatusIndexValid == true);
-        Assert.assrt(fLastRuleStatusIndex >= 0  &&  fLastRuleStatusIndex < fRData.fStatusTable.length);
+
+        if (offset == fText.getEndIndex()) {
+            last();       // For side effects on current position, tag values.
+            return true;
+        }
+
+        // otherwise, we can use following() on the position before the specified
+        // one and return true if the position we get back is the one the user
+        // specified
+
+        // return following(offset - 1) == offset;
+        // TODO:  check whether it is safe to revert to the simpler offset-1 code
+        //         The safe rules may take care of unpaired surrogates ok.
+        fText.setIndex(offset);
+        CIPrevious32(fText);
+        int  pos = fText.getIndex();
+        boolean result = following(pos) == offset;
+        return result;
     }
-}
 
+    /**
+     * Returns the current iteration position.
+     * @return The current iteration position.
+     * @stable ICU 2.0
+     */
+    public int current() {
+        return (fText != null) ? fText.getIndex() : BreakIterator.DONE;
+    }
 
-/**
- * Return the status tag from the break rule that determined the most recently
- * returned break position.  The values appear in the rule source
- * within brackets, {123}, for example.  For rules that do not specify a
- * status, a default value of 0 is returned.  If more than one rule applies,
- * the numerically largest of the possible status values is returned.
- * <p>
- * Of the standard types of ICU break iterators, only the word break
- * iterator provides status values.  The values are defined in
- * class RuleBasedBreakIterator, and allow distinguishing between words
- * that contain alphabetic letters, "words" that appear to be numbers,
- * punctuation and spaces, words containing ideographic characters, and
- * more.  Call <code>getRuleStatus</code> after obtaining a boundary
- * position from <code>next()<code>, <code>previous()</code>, or 
- * any other break iterator functions that returns a boundary position.
- * <p>
- * @return the status from the break rule that determined the most recently
- * returned break position.
- *
- * @draft ICU 3.0
- * @provisional This is a draft API and might change in a future release of ICU.
- */
-
-public int  getRuleStatus() {
-    makeRuleStatusValid();
-    //   Status records have this form:
-    //           Count N         <--  fLastRuleStatusIndex points here.
-    //           Status val 0
-    //           Status val 1
-    //              ...
-    //           Status val N-1  <--  the value we need to return
-    //   The status values are sorted in ascending order.
-    //   This function returns the last (largest) of the array of status values.
-    int  idx = fLastRuleStatusIndex + fRData.fStatusTable[fLastRuleStatusIndex];
-    int  tagVal = fRData.fStatusTable[idx];
-
-    return tagVal;
-}
-
-
-
-/**
- * Get the status (tag) values from the break rule(s) that determined the most 
- * recently returned break position.  The values appear in the rule source
- * within brackets, {123}, for example.  The default status value for rules
- * that do not explicitly provide one is zero.
- * <p>
- * The status values used by the standard ICU break rules are defined
- * as public constants in class RuleBasedBreakIterator.
- * <p>
- * If the size  of the output array is insufficient to hold the data,
- *  the output will be truncated to the available length.  No exception
- *  will be thrown.
- *
- * @param fillInArray an array to be filled in with the status values.  
- * @return          The number of rule status values from rules that determined 
- *                  the most recent boundary returned by the break iterator.
- *                  In the event that the array is too small, the return value
- *                  is the total number of status values that were available,
- *                  not the reduced number that were actually returned.
- * @draft ICU 3.0
- * @provisional This is a draft API and might change in a future release of ICU.
- */
-public int getRuleStatusVec(int[] fillInArray) {
-    makeRuleStatusValid();
-    int numStatusVals = fRData.fStatusTable[fLastRuleStatusIndex];
-    if (fillInArray != null) {  
-        int numToCopy = Math.min(numStatusVals, fillInArray.length);
-        for (int i=0; i<numToCopy; i++) {
-            fillInArray[i] = fRData.fStatusTable[fLastRuleStatusIndex + i + 1];
+    private void makeRuleStatusValid() {
+        if (fLastStatusIndexValid == false) {
+            //  No cached status is available.
+            if (fText == null || current() == fText.getBeginIndex()) {
+                //  At start of text, or there is no text.  Status is always zero.
+                fLastRuleStatusIndex = 0;
+                fLastStatusIndexValid = true;
+            } else {
+                //  Not at start of text.  Find status the tedious way.
+                int pa = current();
+                previous();
+                int pb = next();
+                Assert.assrt (pa == pb);
+            }
+            Assert.assrt(fLastStatusIndexValid == true);
+            Assert.assrt(fLastRuleStatusIndex >= 0  &&  fLastRuleStatusIndex < fRData.fStatusTable.length);
         }
     }
-    return numStatusVals;
- }
 
+    /**
+     * Return the status tag from the break rule that determined the most recently
+     * returned break position.  The values appear in the rule source
+     * within brackets, {123}, for example.  For rules that do not specify a
+     * status, a default value of 0 is returned.  If more than one rule applies,
+     * the numerically largest of the possible status values is returned.
+     * <p>
+     * Of the standard types of ICU break iterators, only the word break
+     * iterator provides status values.  The values are defined in
+     * class RuleBasedBreakIterator, and allow distinguishing between words
+     * that contain alphabetic letters, "words" that appear to be numbers,
+     * punctuation and spaces, words containing ideographic characters, and
+     * more.  Call <code>getRuleStatus</code> after obtaining a boundary
+     * position from <code>next()<code>, <code>previous()</code>, or 
+     * any other break iterator functions that returns a boundary position.
+     * <p>
+     * @return the status from the break rule that determined the most recently
+     * returned break position.
+     *
+     * @draft ICU 3.0
+     * @provisional This is a draft API and might change in a future release of ICU.
+     */
 
-/**
- * Return a CharacterIterator over the text being analyzed.  This version
- * of this method returns the actual CharacterIterator we're using internally.
- * Changing the state of this iterator can have undefined consequences.  If
- * you need to change it, clone it first.
- * @return An iterator over the text being analyzed.
- * @stable ICU 2.0
- */
+    public int  getRuleStatus() {
+        makeRuleStatusValid();
+        //   Status records have this form:
+        //           Count N         <--  fLastRuleStatusIndex points here.
+        //           Status val 0
+        //           Status val 1
+        //              ...
+        //           Status val N-1  <--  the value we need to return
+        //   The status values are sorted in ascending order.
+        //   This function returns the last (largest) of the array of status values.
+        int  idx = fLastRuleStatusIndex + fRData.fStatusTable[fLastRuleStatusIndex];
+        int  tagVal = fRData.fStatusTable[idx];
+
+        return tagVal;
+    }
+
+    /**
+     * Get the status (tag) values from the break rule(s) that determined the most 
+     * recently returned break position.  The values appear in the rule source
+     * within brackets, {123}, for example.  The default status value for rules
+     * that do not explicitly provide one is zero.
+     * <p>
+     * The status values used by the standard ICU break rules are defined
+     * as public constants in class RuleBasedBreakIterator.
+     * <p>
+     * If the size  of the output array is insufficient to hold the data,
+     *  the output will be truncated to the available length.  No exception
+     *  will be thrown.
+     *
+     * @param fillInArray an array to be filled in with the status values.  
+     * @return          The number of rule status values from rules that determined 
+     *                  the most recent boundary returned by the break iterator.
+     *                  In the event that the array is too small, the return value
+     *                  is the total number of status values that were available,
+     *                  not the reduced number that were actually returned.
+     * @draft ICU 3.0
+     * @provisional This is a draft API and might change in a future release of ICU.
+     */
+    public int getRuleStatusVec(int[] fillInArray) {
+        makeRuleStatusValid();
+        int numStatusVals = fRData.fStatusTable[fLastRuleStatusIndex];
+        if (fillInArray != null) {  
+            int numToCopy = Math.min(numStatusVals, fillInArray.length);
+            for (int i=0; i<numToCopy; i++) {
+                fillInArray[i] = fRData.fStatusTable[fLastRuleStatusIndex + i + 1];
+            }
+        }
+        return numStatusVals;
+    }
+
+    /**
+     * Return a CharacterIterator over the text being analyzed.  This version
+     * of this method returns the actual CharacterIterator we're using internally.
+     * Changing the state of this iterator can have undefined consequences.  If
+     * you need to change it, clone it first.
+     * @return An iterator over the text being analyzed.
+     * @stable ICU 2.0
+     */
     public CharacterIterator getText() {
         return fText;
     }
-
 
     /**
      * Set the iterator to analyze a new piece of text.  This function resets
@@ -823,7 +796,7 @@ public int getRuleStatusVec(int[] fillInArray) {
         fText = newText;
         this.first();
     }
-    
+
     /**
      * Control debug, trace and dump options.
      * @internal
@@ -831,118 +804,6 @@ public int getRuleStatusVec(int[] fillInArray) {
      */
     protected static String fDebugEnv = ICUDebug.enabled(RBBI_DEBUG_ARG) ?
                                         ICUDebug.value(RBBI_DEBUG_ARG) : null;
-
-    
-    // 32 bit Char value returned from when an iterator has run out of range.
-    //     Positive value so fast case (not end, not surrogate) can be checked
-    //     with a single test.
-    private static int CI_DONE32 = 0x7fffffff;
-    
-    /**
-     * Move the iterator forward to the next code point, and return that code point,
-     *   leaving the iterator positioned at char returned.
-     *   For Supplementary chars, the iterator is left positioned at the lead surrogate.
-     * @param ci  The character iterator
-     * @return    The next code point.
-     */
-     static int CINext32(CharacterIterator ci) {
-        // If the current position is at a surrogate pair, move to the trail surrogate
-        //   which leaves it in positon for underlying iterator's next() to work.
-        int c= ci.current();
-        if (c >= UTF16.LEAD_SURROGATE_MIN_VALUE && c<=UTF16.LEAD_SURROGATE_MAX_VALUE) {
-            c = ci.next();   
-            if (c<UTF16.TRAIL_SURROGATE_MIN_VALUE || c>UTF16.TRAIL_SURROGATE_MAX_VALUE) {
-               c = ci.previous();   
-            }
-        }
-
-        // For BMP chars, this next() is the real deal.
-        c = ci.next();
-        
-        // If we might have a lead surrogate, we need to peak ahead to get the trail 
-        //  even though we don't want to really be positioned there.
-        if (c >= UTF16.LEAD_SURROGATE_MIN_VALUE) {
-            c = CINextTrail32(ci, c);   
-        }
-        
-        if (c >= UTF16.SUPPLEMENTARY_MIN_VALUE && c != CI_DONE32) {
-            // We got a supplementary char.  Back the iterator up to the postion
-            // of the lead surrogate.
-            ci.previous();   
-        }
-        return c;
-   }
-
-    
-    // Out-of-line portion of the in-line Next32 code.
-    // The call site does an initial ci.next() and calls this function
-    //    if the 16 bit value it gets is >= LEAD_SURROGATE_MIN_VALUE.
-    // NOTE:  we leave the underlying char iterator positioned in the
-    //        middle of a surroage pair.  ci.next() will work correctly
-    //        from there, but the ci.getIndex() will be wrong, and needs
-    //        adjustment.
-    private static int CINextTrail32(CharacterIterator ci, int lead) {
-        int retVal = lead;
-        if (lead <= UTF16.LEAD_SURROGATE_MAX_VALUE) {
-            char  cTrail = ci.next();
-            if (UTF16.isTrailSurrogate(cTrail)) {
-                retVal = ((lead  - UTF16.LEAD_SURROGATE_MIN_VALUE) << 10) +
-                            (cTrail - UTF16.TRAIL_SURROGATE_MIN_VALUE) +
-                            UTF16.SUPPLEMENTARY_MIN_VALUE;
-            } else {
-                ci.previous();
-            }
-        } else {
-            if (lead == CharacterIterator.DONE && ci.getIndex() >= ci.getEndIndex()) {
-                retVal = CI_DONE32;
-            }
-        }
-        return retVal;
-    }
-       
-    private static int CIPrevious32(CharacterIterator ci) {
-        if (ci.getIndex() <= ci.getBeginIndex()) {
-            return CI_DONE32;   
-        }
-        char trail = ci.previous();
-        int retVal = trail;
-        if (UTF16.isTrailSurrogate(trail) && ci.getIndex()>ci.getBeginIndex()) {
-            char lead = ci.previous();
-            if (UTF16.isLeadSurrogate(lead)) {
-                retVal = (((int)lead  - UTF16.LEAD_SURROGATE_MIN_VALUE) << 10) +
-                          ((int)trail - UTF16.TRAIL_SURROGATE_MIN_VALUE) +
-                          UTF16.SUPPLEMENTARY_MIN_VALUE;
-            } else {
-                ci.next();
-            }           
-        }
-        return retVal;
-    }
-   
-    static int CICurrent32(CharacterIterator ci) {
-        char  lead   = ci.current();
-        int   retVal = lead;
-        if (retVal < UTF16.LEAD_SURROGATE_MIN_VALUE) {
-            return retVal;   
-        }
-        if (UTF16.isLeadSurrogate(lead)) {
-            int  trail = (int)ci.next();
-            ci.previous();
-            if (UTF16.isTrailSurrogate((char)trail)) {
-                retVal = ((lead  - UTF16.LEAD_SURROGATE_MIN_VALUE) << 10) +
-                         (trail - UTF16.TRAIL_SURROGATE_MIN_VALUE) +
-                         UTF16.SUPPLEMENTARY_MIN_VALUE;
-            }
-         } else {
-            if (lead == CharacterIterator.DONE) {
-                if (ci.getIndex() >= ci.getEndIndex())   {
-                    retVal = CI_DONE32;   
-                }
-            }
-         }
-        return retVal;
-    }
-    
 
     //-----------------------------------------------------------------------------------
     //
@@ -1174,8 +1035,6 @@ public int getRuleStatusVec(int[] fillInArray) {
         return result;
     }
 
-    
-    
     private int handlePrevious(short stateTable[]) {
         if (fText == null || stateTable == null) {
             return 0;
@@ -1297,7 +1156,7 @@ public int getRuleStatusVec(int[] fillInArray) {
                         // time.
                         result = lookaheadResult;
                         lookaheadStatus = 0;
-                        // TODO: make a standalone hard break in a rule work.
+                        // TODO: make a stand-alone hard break in a rule work.
                         
                         if (lookAheadHardBreak) {
                             break mainLoop;
@@ -1369,37 +1228,19 @@ public int getRuleStatusVec(int[] fillInArray) {
         return result;
     }
 
-
-
-
-
     //-------------------------------------------------------------------------------
-    
     //
-    
     //  isDictionaryChar      Return true if the category lookup for this char
-    
     //                        indicates that it is in the set of dictionary lookup
-    
     //                        chars.
-    
     //
-    
     //                        This function is intended for use by dictionary based
-    
     //                        break iterators.
-    
     //
-    
     //-------------------------------------------------------------------------------
-    
-    boolean isDictionaryChar(int c) {
-    
+    protected boolean isDictionaryChar(int c) {
         short  category = (short) fRData.fTrie.getCodePointValue(c);
-    
         return (category & 0x4000) != 0;
-    
     }
-
 }
 //eof
