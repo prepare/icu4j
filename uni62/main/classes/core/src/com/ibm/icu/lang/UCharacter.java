@@ -1,8 +1,8 @@
 //##header
 /**
 *******************************************************************************
-* Copyright (C) 1996-2011, International Business Machines Corporation and    *
-* others. All Rights Reserved.                                                *
+* Copyright (C) 1996-2012, International Business Machines Corporation and
+* others. All Rights Reserved.
 *******************************************************************************
 */
 
@@ -2756,10 +2756,14 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
          * @stable ICU 4.0
          */
         public static final int PREPEND = 11;
+        /** @stable ICU 50 */
+        public static final int AFTER_JOINER = 12;  /*[AJ]*/ /* new in Unicode 6.2/ICU 50 */
+        /** @stable ICU 50 */
+        public static final int JOINER = 13;  /*[J]*/ /* new in Unicode 6.2/ICU 50 */
         /**
          * @stable ICU 3.4
          */
-        public static final int COUNT = 12;
+        public static final int COUNT = 14;
     }
 
     /**
@@ -2820,10 +2824,14 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
          * @stable ICU 4.0
          */
         public static final int NEWLINE = 12;
+        /** @stable ICU 50 */
+        public static final int AFTER_JOINER = 13;  /*[AJ]*/ /* new in Unicode 6.2/ICU 50 */
+        /** @stable ICU 50 */
+        public static final int JOINER = 14;  /*[J]*/ /* new in Unicode 6.2/ICU 50 */
         /**
          * @stable ICU 4.0
          */
-        public static final int COUNT = 13;
+        public static final int COUNT = 15;
     }
 
     /**
@@ -3061,10 +3069,12 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
         public static final int CONDITIONAL_JAPANESE_STARTER = 37;  /*[CJ]*/ /* new in Unicode 6.1/ICU 49 */
         /** @stable ICU 49 */
         public static final int HEBREW_LETTER = 38;  /*[HL]*/ /* new in Unicode 6.1/ICU 49 */
+        /** @stable ICU 50 */
+        public static final int ZERO_WIDTH_JOINER = 39;  /*[ZJ]*/ /* new in Unicode 6.2/ICU 50 */
         /**
          * @stable ICU 2.4
          */
-        public static final int COUNT = 39;
+        public static final int COUNT = 40;
     }
 
     /**

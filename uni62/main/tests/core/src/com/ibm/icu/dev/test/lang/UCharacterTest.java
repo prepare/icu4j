@@ -1,7 +1,7 @@
 /**
 *******************************************************************************
-* Copyright (C) 1996-2011, International Business Machines Corporation and    *
-* others. All Rights Reserved.                                                *
+* Copyright (C) 1996-2012, International Business Machines Corporation and
+* others. All Rights Reserved.
 *******************************************************************************
 */
 
@@ -46,7 +46,7 @@ public final class UCharacterTest extends TestFmwk
     /**
     * ICU4J data version number
     */
-    private final VersionInfo VERSION_ = VersionInfo.getInstance("6.1.0.0");
+    private final VersionInfo VERSION_ = VersionInfo.getInstance("6.2.0.0");
 
     // constructor ===================================================
 
