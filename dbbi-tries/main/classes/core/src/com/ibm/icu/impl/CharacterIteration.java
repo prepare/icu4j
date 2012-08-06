@@ -11,10 +11,13 @@ import java.text.CharacterIterator;
 import com.ibm.icu.text.UTF16;
 
 public final class CharacterIteration {
+    // disallow instantiation
+    private CharacterIteration() { }
+
     // 32 bit Char value returned from when an iterator has run out of range.
     //     Positive value so fast case (not end, not surrogate) can be checked
     //     with a single test.
-    public static int CI_DONE32 = 0x7fffffff;
+    public static int DONE32 = 0x7fffffff;
 
     /**
      * Move the iterator forward to the next code point, and return that code point,
@@ -23,7 +26,7 @@ public final class CharacterIteration {
      * @param ci  The character iterator
      * @return    The next code point.
      */
-    public static int CINext32(CharacterIterator ci) {
+    public static int next32(CharacterIterator ci) {
         // If the current position is at a surrogate pair, move to the trail surrogate
         //   which leaves it in positon for underlying iterator's next() to work.
         int c= ci.current();
@@ -40,10 +43,10 @@ public final class CharacterIteration {
         // If we might have a lead surrogate, we need to peak ahead to get the trail 
         //  even though we don't want to really be positioned there.
         if (c >= UTF16.LEAD_SURROGATE_MIN_VALUE) {
-            c = CINextTrail32(ci, c);   
+            c = nextTrail32(ci, c);   
         }
         
-        if (c >= UTF16.SUPPLEMENTARY_MIN_VALUE && c != CI_DONE32) {
+        if (c >= UTF16.SUPPLEMENTARY_MIN_VALUE && c != DONE32) {
             // We got a supplementary char.  Back the iterator up to the postion
             // of the lead surrogate.
             ci.previous();   
@@ -59,7 +62,7 @@ public final class CharacterIteration {
     //        middle of a surroage pair.  ci.next() will work correctly
     //        from there, but the ci.getIndex() will be wrong, and needs
     //        adjustment.
-    public static int CINextTrail32(CharacterIterator ci, int lead) {
+    public static int nextTrail32(CharacterIterator ci, int lead) {
         int retVal = lead;
         if (lead <= UTF16.LEAD_SURROGATE_MAX_VALUE) {
             char  cTrail = ci.next();
@@ -72,15 +75,15 @@ public final class CharacterIteration {
             }
         } else {
             if (lead == CharacterIterator.DONE && ci.getIndex() >= ci.getEndIndex()) {
-                retVal = CI_DONE32;
+                retVal = DONE32;
             }
         }
         return retVal;
     }
        
-    public static int CIPrevious32(CharacterIterator ci) {
+    public static int previous32(CharacterIterator ci) {
         if (ci.getIndex() <= ci.getBeginIndex()) {
-            return CI_DONE32;   
+            return DONE32;   
         }
         char trail = ci.previous();
         int retVal = trail;
@@ -97,7 +100,7 @@ public final class CharacterIteration {
         return retVal;
     }
    
-    public static int CICurrent32(CharacterIterator ci) {
+    public static int current32(CharacterIterator ci) {
         char  lead   = ci.current();
         int   retVal = lead;
         if (retVal < UTF16.LEAD_SURROGATE_MIN_VALUE) {
@@ -114,7 +117,7 @@ public final class CharacterIteration {
          } else {
             if (lead == CharacterIterator.DONE) {
                 if (ci.getIndex() >= ci.getEndIndex())   {
-                    retVal = CI_DONE32;   
+                    retVal = DONE32;   
                 }
             }
          }

@@ -11,7 +11,8 @@ import java.util.Stack;
 
 import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.lang.UProperty;
-import com.ibm.icu.lang.UScript;
+
+import static com.ibm.icu.impl.CharacterIteration.*;
 
 public final class UnhandledBreakEngine implements LanguageBreakEngine {
     private final UnicodeSet[] fHandled = new UnicodeSet[BreakIterator.KIND_TITLE + 1];
@@ -26,37 +27,20 @@ public final class UnhandledBreakEngine implements LanguageBreakEngine {
                 (fHandled[breakType].contains(c));
     }
 
-    public int findBreaks(CharacterIterator text_, int startPos, int endPos,
+    public int findBreaks(CharacterIterator text, int startPos, int endPos,
             boolean reverse, int breakType, Stack<Integer> foundBreaks) {
-        UCharacterIterator text = UCharacterIterator.getInstance(text_);
-        if (breakType >= 0 && breakType < fHandled.length) {
-            UnicodeSet handled = fHandled[breakType];
-            int c = text.current();
-            if (reverse) {
-                while (text.getIndex() > startPos && handled.contains(c)) {
-                    c = text.previous();
-                }
-            } else {
-                while (text.getIndex() < endPos && handled.contains(c)) {
-                    c = text.next();
-                }
-            }
-        }
-        text_.setIndex(text.getIndex());
+        // TODO: modify later
+        text.setIndex(endPos);
         return 0;
     }
 
     public void handleChar(int c, int breakType) {
-        if (breakType >= 0 && breakType < fHandled.length) {
-            int script = UCharacter.getIntPropertyValue(c, UProperty.SCRIPT);
-            if (script != UScript.COMMON &&
-                script != UScript.INHERITED &&
-                script != UScript.UNKNOWN) {
-                if (!fHandled[breakType].contains(c)) {
-                    fHandled[breakType].applyIntPropertyValue(UProperty.SCRIPT,
-                            script);
-                }
+        if (breakType >= 0 && breakType < fHandled.length && c != DONE32) {
+            if (!fHandled[breakType].contains(c)) {
+                int script = UCharacter.getIntPropertyValue(c, UProperty.SCRIPT);
+                fHandled[breakType].applyIntPropertyValue(UProperty.SCRIPT, script);
             }
         }
+        return;
     }
 }
