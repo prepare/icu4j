@@ -12,7 +12,7 @@ import java.text.CharacterIterator;
  * The DictionaryMatcher interface is used to allow arbitrary "types" of
  * back-end data structures to be used with the break iteration code.
  */
-interface DictionaryMatcher {
+abstract class DictionaryMatcher {
     /**
      * Find dictionary words that match the text.
      * 
@@ -25,11 +25,16 @@ interface DictionaryMatcher {
      * @param values Filled with the weight values associated with the various words.
      * @return The number of characters in text that were matched.
      */
-    public int matches(CharacterIterator text, int maxLength, int[] lengths,
+    public abstract int matches(CharacterIterator text, int maxLength, int[] lengths,
             int[] count, int limit, int[] values);
+    
+    public int matches(CharacterIterator text, int maxLength, int[] lengths, 
+            int[] count, int limit) {
+        return matches(text, maxLength, lengths, count, limit, null);
+    }
 
     /**
      * @return the kind of dictionary that this matcher is using
      */
-    public int getType();
+    public abstract int getType();
 }

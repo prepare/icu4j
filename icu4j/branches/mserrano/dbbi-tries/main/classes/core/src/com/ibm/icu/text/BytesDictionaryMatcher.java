@@ -12,7 +12,7 @@ import com.ibm.icu.impl.Assert;
 import com.ibm.icu.util.BytesTrie;
 import com.ibm.icu.util.BytesTrie.Result;
 
-class BytesDictionaryMatcher implements DictionaryMatcher {
+class BytesDictionaryMatcher extends DictionaryMatcher {
     private final byte[] characters;
     private final int transform;
     

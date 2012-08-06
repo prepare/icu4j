@@ -11,7 +11,7 @@ import java.text.CharacterIterator;
 import com.ibm.icu.util.BytesTrie.Result;
 import com.ibm.icu.util.CharsTrie;
 
-class CharsDictionaryMatcher implements DictionaryMatcher {
+class CharsDictionaryMatcher extends DictionaryMatcher {
     private CharSequence characters;
     
     public CharsDictionaryMatcher(CharSequence chars) {

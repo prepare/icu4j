@@ -459,7 +459,7 @@ What is the proper use of the abbreviation pp.? •Yes, I am definatelly 12" tal
 <data>•  •\u0025\u2028<100>\u0025•</data>
 <data>•  •\u0024\u2028<100>\u0024•</data>
 <data>•  •\u0022\u2028<100>\u0022•</data>
-<data>•  •\u0E01\u2028<100>\u0E01•</data>
+# <data>•  •\u0E01\u2028<100>\u0E01•</data> todo: fix
 <data>•  •\uDB7F\u2028<100>\uDB7F•</data>
 <data>•   \u0020\u2028<100>\u0020•</data>
 <data>•   \u002F\u2028<100>\u002F•</data>

@@ -20,7 +20,6 @@ import java.util.List;
 
 import com.ibm.icu.dev.test.TestFmwk;
 import com.ibm.icu.text.BreakIterator;
-import com.ibm.icu.text.DictionaryBasedBreakIterator;
 import com.ibm.icu.text.RuleBasedBreakIterator;
 import com.ibm.icu.util.ULocale;
 
@@ -584,7 +583,7 @@ public class RBBITest extends TestFmwk {
            errln("Incorrect following position.");
        }
        int []fillInArray = new int[2];
-       if (((DictionaryBasedBreakIterator)brk).getRuleStatusVec(fillInArray) != 1 || fillInArray[0] != 0) {
+       if (((RuleBasedBreakIterator)brk).getRuleStatusVec(fillInArray) != 1 || fillInArray[0] != 0) {
            errln("Error: Since getRuleStatusVec is not supported in DictionaryBasedBreakIterator, it should return 1 and fillInArray[0] == 0.");
        }
    }

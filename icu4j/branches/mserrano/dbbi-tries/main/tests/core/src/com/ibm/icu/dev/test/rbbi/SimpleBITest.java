@@ -13,7 +13,6 @@ import java.util.MissingResourceException;
 
 import com.ibm.icu.dev.test.TestFmwk;
 import com.ibm.icu.text.BreakIterator;
-import com.ibm.icu.text.DictionaryBasedBreakIterator;
 import com.ibm.icu.text.RuleBasedBreakIterator;
 
 // TODO: {dlf} this test currently doesn't test anything!
@@ -160,29 +159,11 @@ public class SimpleBITest extends TestFmwk{
             "Character", "Word", "Line", "Sentence"
         };
         String rulesName = kindNames[kind] + "BreakRules";
-        String dictionaryName = kindNames[kind] + "BreakDictionary";
         
         String[] classNames = bundle.getStringArray("BreakIteratorClasses");
         String rules = bundle.getString(rulesName);
         if (classNames[kind].equals("RuleBasedBreakIterator")) {
             iter = new RuleBasedBreakIterator(rules);
-        }
-        else if (classNames[kind].equals("DictionaryBasedBreakIterator")) {
-            try {
-                String dictionaryPath = bundle.getString(dictionaryName);
-                InputStream dictionary = bundle.getClass().getResourceAsStream(dictionaryPath);
-                System.out.println("looking for " + dictionaryPath + " from " + bundle.getClass() + " returned " + dictionary);
-                iter = new DictionaryBasedBreakIterator(rules, dictionary);
-            }
-            catch(IOException e) {
-                e.printStackTrace();
-                errln(e.getMessage());
-                System.out.println(e); // debug
-            }
-            catch(MissingResourceException e) {
-                errln(e.getMessage());
-                System.out.println(e); // debug
-            }
         }
         if (iter == null) {
             errln("could not create iterator");
