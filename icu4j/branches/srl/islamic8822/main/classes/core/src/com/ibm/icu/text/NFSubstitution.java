@@ -254,6 +254,12 @@ abstract class NFSubstitution {
     public boolean equals(Object that) {
         // compare class and all of the fields all substitutions have
         // in common
+        if (that == null) {
+            return false;
+        }
+        if (this == that) {
+            return true;
+        }
         if (this.getClass() == that.getClass()) {
             NFSubstitution that2 = (NFSubstitution)that;
 
@@ -262,6 +268,11 @@ abstract class NFSubstitution {
                 && (numberFormat == null ? (that2.numberFormat == null) : numberFormat.equals(that2.numberFormat));
         }
         return false;
+    }
+    
+    public int hashCode() {
+        assert false : "hashCode not designed";
+        return 42;
     }
 
     /**
@@ -465,7 +476,7 @@ abstract class NFSubstitution {
             // the result.
             result = composeRuleValue(result, baseValue);
             if (result == (long)result) {
-                return new Long((long)result);
+                return Long.valueOf((long)result);
             } else {
                 return new Double(result);
             }
@@ -709,6 +720,11 @@ class MultiplierSubstitution extends NFSubstitution {
             return false;
         }
     }
+    
+    public int hashCode() {
+        assert false : "hashCode not designed";
+        return 42;
+    }
 
     //-----------------------------------------------------------------------
     // formatting
@@ -884,6 +900,11 @@ class ModulusSubstitution extends NFSubstitution {
             return false;
         }
     }
+    
+    public int hashCode() {
+        assert false : "hashCode not designed";
+        return 42;
+    }
 
     //-----------------------------------------------------------------------
     // formatting
@@ -987,7 +1008,7 @@ class ModulusSubstitution extends NFSubstitution {
 
                 result = composeRuleValue(result, baseValue);
                 if (result == (long)result) {
-                    return new Long((long)result);
+                    return Long.valueOf((long)result);
                 } else {
                     return new Double(result);
                 }
@@ -1560,6 +1581,11 @@ class NumeratorSubstitution extends NFSubstitution {
             return false;
         }
     }
+    
+    public int hashCode() {
+        assert false : "hashCode not designed";
+        return 42;
+    }
 
     //-----------------------------------------------------------------------
     // formatting
@@ -1764,6 +1790,11 @@ class NullSubstitution extends NFSubstitution {
     public boolean equals(Object that) {
         return super.equals(that);
     }
+    
+    public int hashCode() {
+        assert false : "hashCode not designed";
+        return 42;
+    }
 
     /**
      * NullSubstitutions don't show up in the textual representation
@@ -1817,7 +1848,7 @@ class NullSubstitution extends NFSubstitution {
     public Number doParse(String text, ParsePosition parsePosition, double baseValue,
                         double upperBound, boolean lenientParse) {
         if (baseValue == (long)baseValue) {
-            return new Long((long)baseValue);
+            return Long.valueOf((long)baseValue);
         } else {
             return new Double(baseValue);
         }

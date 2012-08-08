@@ -2015,7 +2015,7 @@ public class BasicTest extends TestFmwk {
         }
 
         // test all of these precomposed characters
-        Normalizer2 nfcNorm2 = Normalizer2.getInstance(null, "nfc", Normalizer2.Mode.COMPOSE);
+        Normalizer2 nfcNorm2 = Normalizer2.getNFCInstance();
         UnicodeSetIterator it = new UnicodeSetIterator(set);
         int c;
         while(it.next() && (c=it.codepoint)!=UnicodeSetIterator.IS_STRING) {
@@ -2061,11 +2061,40 @@ public class BasicTest extends TestFmwk {
             errln("NFC.getDecomposition() returns TRUE for characters which do not have decompositions");
         }
 
+        // test getRawDecomposition() for some characters that do not decompose
+        if( nfcNorm2.getRawDecomposition(0x20)!=null ||
+            nfcNorm2.getRawDecomposition(0x4e00)!=null ||
+            nfcNorm2.getRawDecomposition(0x20002)!=null
+        ) {
+            errln("getRawDecomposition() returns TRUE for characters which do not have decompositions");
+        }
+
+        // test composePair() for some pairs of characters that do not compose
+        if( nfcNorm2.composePair(0x20, 0x301)>=0 ||
+            nfcNorm2.composePair(0x61, 0x305)>=0 ||
+            nfcNorm2.composePair(0x1100, 0x1160)>=0 ||
+            nfcNorm2.composePair(0xac00, 0x11a7)>=0
+        ) {
+            errln("NFC.composePair() incorrectly composes some pairs of characters");
+        }
+
         // test FilteredNormalizer2.getDecomposition()
         UnicodeSet filter=new UnicodeSet("[^\u00a0-\u00ff]");
         FilteredNormalizer2 fn2=new FilteredNormalizer2(nfcNorm2, filter);
         if(fn2.getDecomposition(0xe4)!=null || !"A\u0304".equals(fn2.getDecomposition(0x100))) {
             errln("FilteredNormalizer2(NFC, ^A0-FF).getDecomposition() failed");
+        }
+
+        // test FilteredNormalizer2.getRawDecomposition()
+        if(fn2.getRawDecomposition(0xe4)!=null || !"A\u0304".equals(fn2.getRawDecomposition(0x100))) {
+            errln("FilteredNormalizer2(NFC, ^A0-FF).getRawDecomposition() failed");
+        }
+
+        // test FilteredNormalizer2::composePair()
+        if( 0x100!=fn2.composePair(0x41, 0x304) ||
+            fn2.composePair(0xc7, 0x301)>=0 // unfiltered result: U+1E08
+        ) {
+            errln("FilteredNormalizer2(NFC, ^A0-FF).composePair() failed");
         }
     }
 
@@ -2293,7 +2322,7 @@ public class BasicTest extends TestFmwk {
 
         // For each character about which we are unsure, see if it changes when we add
         // one of the back-combining characters.
-        Normalizer2 norm2=Normalizer2.getInstance(null, "nfc", Normalizer2.Mode.COMPOSE);
+        Normalizer2 norm2=Normalizer2.getNFCInstance();
         StringBuilder s=new StringBuilder();
         iter.reset(unsure);
         while(iter.next()) {
@@ -2486,6 +2515,40 @@ public class BasicTest extends TestFmwk {
         }
     }
 
+    public void TestGetDecomposition() {
+        Normalizer2 n2=Normalizer2.getInstance(null, "nfc", Normalizer2.Mode.COMPOSE_CONTIGUOUS);
+        String decomp=n2.getDecomposition(0x20);
+        assertEquals("fcc.getDecomposition(space) failed", null, decomp);
+        decomp=n2.getDecomposition(0xe4);
+        assertEquals("fcc.getDecomposition(a-umlaut) failed", "a\u0308", decomp);
+        decomp=n2.getDecomposition(0xac01);
+        assertEquals("fcc.getDecomposition(Hangul syllable U+AC01) failed", "\u1100\u1161\u11a8", decomp);
+    }
+
+    public void TestGetRawDecomposition() {
+        Normalizer2 n2=Normalizer2.getNFKCInstance();
+        /*
+         * Raw decompositions from NFKC data are the Unicode Decomposition_Mapping values,
+         * without recursive decomposition.
+         */
+
+        String decomp=n2.getRawDecomposition(0x20);
+        assertEquals("nfkc.getRawDecomposition(space) failed", null, decomp);
+        decomp=n2.getRawDecomposition(0xe4);
+        assertEquals("nfkc.getRawDecomposition(a-umlaut) failed", "a\u0308", decomp);
+        /* U+1E08 LATIN CAPITAL LETTER C WITH CEDILLA AND ACUTE */
+        decomp=n2.getRawDecomposition(0x1e08);
+        assertEquals("nfkc.getRawDecomposition(c-cedilla-acute) failed", "\u00c7\u0301", decomp);
+        /* U+212B ANGSTROM SIGN */
+        decomp=n2.getRawDecomposition(0x212b);
+        assertEquals("nfkc.getRawDecomposition(angstrom sign) failed", "\u00c5", decomp);
+        decomp=n2.getRawDecomposition(0xac00);
+        assertEquals("nfkc.getRawDecomposition(Hangul syllable U+AC00) failed", "\u1100\u1161", decomp);
+        /* A Hangul LVT syllable has a raw decomposition of an LV syllable + T. */
+        decomp=n2.getRawDecomposition(0xac01);
+        assertEquals("nfkc.getRawDecomposition(Hangul syllable U+AC01) failed", "\uac00\u11a8", decomp);
+    }
+
     public void TestCustomComp() {
         String [][] pairs={
             { "\\uD801\\uE000\\uDFFE", "" },
@@ -2574,7 +2637,7 @@ public class BasicTest extends TestFmwk {
     }
 
     public void TestFilteredNormalizer2() {
-        Normalizer2 nfcNorm2=Normalizer2.getInstance(null, "nfc", Normalizer2.Mode.COMPOSE);
+        Normalizer2 nfcNorm2=Normalizer2.getNFCInstance();
         UnicodeSet filter=new UnicodeSet("[^\u00a0-\u00ff\u0310-\u031f]");
         FilteredNormalizer2 fn2=new FilteredNormalizer2(nfcNorm2, filter);
         int c;
@@ -2586,5 +2649,46 @@ public class BasicTest extends TestFmwk {
                     ")==filtered NFC.getCC()",
                     expectedCC, cc);
         }
+    }
+
+    public void TestGetEasyToUseInstance() {
+        // Test input string:
+        // U+00A0 -> <noBreak> 0020
+        // U+00C7 0301 = 1E08 = 0043 0327 0301
+        String in="\u00A0\u00C7\u0301";
+        Normalizer2 n2=Normalizer2.getNFCInstance();
+        String out=n2.normalize(in);
+        assertEquals(
+                "getNFCInstance() did not return an NFC instance " +
+                "(normalizes to " + prettify(out) + ')',
+                "\u00A0\u1E08", out);
+
+        n2=Normalizer2.getNFDInstance();
+        out=n2.normalize(in);
+        assertEquals(
+                "getNFDInstance() did not return an NFD instance " +
+                "(normalizes to " + prettify(out) + ')',
+                "\u00A0C\u0327\u0301", out);
+
+        n2=Normalizer2.getNFKCInstance();
+        out=n2.normalize(in);
+        assertEquals(
+                "getNFKCInstance() did not return an NFKC instance " +
+                "(normalizes to " + prettify(out) + ')',
+                " \u1E08", out);
+
+        n2=Normalizer2.getNFKDInstance();
+        out=n2.normalize(in);
+        assertEquals(
+                "getNFKDInstance() did not return an NFKD instance " +
+                "(normalizes to " + prettify(out) + ')',
+                " C\u0327\u0301", out);
+
+        n2=Normalizer2.getNFKCCasefoldInstance();
+        out=n2.normalize(in);
+        assertEquals(
+                "getNFKCCasefoldInstance() did not return an NFKC_Casefold instance " +
+                "(normalizes to " + prettify(out) + ')',
+                " \u1E09", out);
     }
 }

@@ -21,14 +21,10 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.regex.Pattern;
 
-import com.ibm.icu.dev.test.util.BagFormatter;
-import com.ibm.icu.dev.test.util.UnicodeLabel;
-import com.ibm.icu.dev.test.util.UnicodeMap;
 import com.ibm.icu.dev.test.util.CollectionUtilities.InverseMatcher;
 import com.ibm.icu.dev.test.util.CollectionUtilities.ObjectMatcher;
 import com.ibm.icu.impl.Utility;
 import com.ibm.icu.text.SymbolTable;
-import com.ibm.icu.text.Transform;
 import com.ibm.icu.text.UFormat;
 import com.ibm.icu.text.UTF16;
 import com.ibm.icu.text.UnicodeMatcher;
@@ -66,6 +62,13 @@ public abstract class UnicodeProperty extends UnicodeLabel {
         if (UNASSIGNED == null) {
             UNASSIGNED = new UnicodeSet("[:gc=unassigned:]").freeze();
         }
+        return UNASSIGNED;
+    }
+
+    public static synchronized UnicodeSet contractUNASSIGNED(UnicodeSet toBeUnassigned) {
+        UnicodeSet temp = UNASSIGNED;
+        ResetCacheProperties();
+        UNASSIGNED = temp == null ? toBeUnassigned.freeze() : new UnicodeSet(temp).retainAll(toBeUnassigned).freeze();
         return UNASSIGNED;
     }
 
@@ -1150,6 +1153,8 @@ public abstract class UnicodeProperty extends UnicodeLabel {
         }
     }
 
+    public enum AliasAddAction {IGNORE_IF_MISSING, REQUIRE_MAIN_ALIAS, ADD_MAIN_ALIAS}
+
     public static abstract class BaseProperty extends UnicodeProperty {
         private static final String[] NO_VALUES = {"No", "N", "F", "False"};
 
@@ -1173,7 +1178,7 @@ public abstract class UnicodeProperty extends UnicodeLabel {
             propertyAliases.add(shortAlias);
             propertyAliases.add(alias);
             if (propertyType == BINARY) {
-                addValueAliases(YES_NO_ALIASES, false);
+                addValueAliases(YES_NO_ALIASES, AliasAddAction.ADD_MAIN_ALIAS);
             }
             this.version = version;
             return this;
@@ -1189,23 +1194,30 @@ public abstract class UnicodeProperty extends UnicodeLabel {
         }
 
         public BaseProperty addValueAliases(String[][] valueAndAlternates,
-                boolean errorIfCant) {
+                AliasAddAction aliasAddAction) {
             if (toValueAliases == null)
                 _fixValueAliases();
             for (int i = 0; i < valueAndAlternates.length; ++i) {
                 for (int j = 1; j < valueAndAlternates[0].length; ++j) {
                     addValueAlias(valueAndAlternates[i][0],
-                            valueAndAlternates[i][j], errorIfCant);
+                            valueAndAlternates[i][j], aliasAddAction);
                 }
             }
             return this;
         }
 
         public void addValueAlias(String value, String valueAlias,
-                boolean errorIfCant) {
+                AliasAddAction aliasAddAction) {
             List result = (List) toValueAliases.get(value);
-            if (result == null && !errorIfCant)
-                return;
+            if (result == null) {
+                switch(aliasAddAction) {
+                case IGNORE_IF_MISSING: return;
+                case REQUIRE_MAIN_ALIAS: throw new IllegalArgumentException("Can't add alias for mising value: " + value);
+                case ADD_MAIN_ALIAS: 
+                    toValueAliases.put(value, result = new ArrayList(0));
+                    break;
+                }
+            }
             addUnique(value, result);
             addUnique(valueAlias, result);
         }
@@ -1318,7 +1330,7 @@ public abstract class UnicodeProperty extends UnicodeLabel {
                 _fixValueAliases();
             addUnique(item, values);
             _ensureValueInAliases(item);
-            addValueAlias(item, alias, true);
+            addValueAlias(item, alias, AliasAddAction.REQUIRE_MAIN_ALIAS);
         }
         /*        public String _getVersion() {
          return version;
@@ -1356,8 +1368,12 @@ public abstract class UnicodeProperty extends UnicodeLabel {
          */
         protected UnicodeMap unicodeMap;
 
+        protected UnicodeMap _getUnicodeMap() {
+            return unicodeMap;
+        }
+
         public UnicodeMapProperty set(UnicodeMap map) {
-            unicodeMap = map;
+            unicodeMap = map.freeze();
             return this;
         }
 
@@ -1371,7 +1387,15 @@ public abstract class UnicodeProperty extends UnicodeLabel {
          return result; // no other aliases
          }
          */protected List _getAvailableValues(List result) {
-             return (List) unicodeMap.getAvailableValues(result);
+             unicodeMap.getAvailableValues(result);
+             if (toValueAliases != null) {
+                 for (Object s : toValueAliases.keySet()) {
+                     if (!result.contains(s)) {
+                         result.add(s);
+                     }
+                 }
+             }
+             return result;
          }
     }
 
@@ -1411,7 +1435,7 @@ public abstract class UnicodeProperty extends UnicodeLabel {
         if (uniformUnassigned && result.contains(UnicodeProperty.getSAMPLE_UNASSIGNED())) {
             result.addAll(UnicodeProperty.getUNASSIGNED());
         }
-        
+
         if (result.contains(UnicodeProperty.SAMPLE_HIGH_SURROGATE)) {
             result.addAll(UnicodeProperty.HIGH_SURROGATES);
         }
@@ -1421,7 +1445,7 @@ public abstract class UnicodeProperty extends UnicodeLabel {
         if (result.contains(UnicodeProperty.SAMPLE_LOW_SURROGATE)) {
             result.addAll(UnicodeProperty.LOW_SURROGATES);
         }
-        
+
         if (result.contains(UnicodeProperty.SAMPLE_PRIVATE_USE_AREA)) {
             result.addAll(UnicodeProperty.PRIVATE_USE_AREA);
         }
@@ -1479,7 +1503,7 @@ public abstract class UnicodeProperty extends UnicodeLabel {
         this.hasUniformUnassigned = hasUniformUnassigned;
         return this;
     }
-    
+
     public static class UnicodeSetProperty extends BaseProperty {
         protected UnicodeSet unicodeSet;
         private static final String[] YESNO_ARRAY = new String[]{"Yes", "No"};
@@ -1503,29 +1527,29 @@ public abstract class UnicodeProperty extends UnicodeLabel {
             return YESNO;
         }
     }
-    
-    private static class StringTransformProperty extends SimpleProperty {
-        Transform<String,String> transform;
 
-        public StringTransformProperty(Transform<String,String> transform, boolean hasUniformUnassigned) {
-            this.transform = transform;
-            setUniformUnassigned(hasUniformUnassigned);
-        }
-        protected String _getValue(int codepoint) {
-            return transform.transform(UTF16.valueOf(codepoint));
-        }
-    }
-
-    private static class CodepointTransformProperty extends SimpleProperty {
-        Transform<Integer,String> transform;
-
-        public CodepointTransformProperty(Transform<Integer,String> transform, boolean hasUniformUnassigned) {
-            this.transform = transform;
-            setUniformUnassigned(hasUniformUnassigned);
-        }
-        protected String _getValue(int codepoint) {
-            return transform.transform(codepoint);
-        }
-    }
+    //    private static class StringTransformProperty extends SimpleProperty {
+    //        Transform<String,String> transform;
+    //
+    //        public StringTransformProperty(Transform<String,String> transform, boolean hasUniformUnassigned) {
+    //            this.transform = transform;
+    //            setUniformUnassigned(hasUniformUnassigned);
+    //        }
+    //        protected String _getValue(int codepoint) {
+    //            return transform.transform(UTF16.valueOf(codepoint));
+    //        }
+    //    }
+    //
+    //    private static class CodepointTransformProperty extends SimpleProperty {
+    //        Transform<Integer,String> transform;
+    //
+    //        public CodepointTransformProperty(Transform<Integer,String> transform, boolean hasUniformUnassigned) {
+    //            this.transform = transform;
+    //            setUniformUnassigned(hasUniformUnassigned);
+    //        }
+    //        protected String _getValue(int codepoint) {
+    //            return transform.transform(codepoint);
+    //        }
+    //    }
 }
 

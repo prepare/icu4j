@@ -1,6 +1,6 @@
 /**
  *******************************************************************************
- * Copyright (C) 1996-2011, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2012, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -31,6 +31,7 @@ import com.ibm.icu.impl.TrieIterator;
 import com.ibm.icu.impl.Utility;
 import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.lang.UScript;
+import com.ibm.icu.util.Output;
 import com.ibm.icu.util.RangeValueIterator;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.UResourceBundle;
@@ -288,7 +289,7 @@ public final class RuleBasedCollator extends Collator {
 
     /**
      * Determines whether the object has been frozen or not.
-     * @draft ICU 4.8
+     * @stable ICU 4.8
      */
     public boolean isFrozen() {
         return frozenLock != null;
@@ -297,7 +298,7 @@ public final class RuleBasedCollator extends Collator {
     /**
      * Freezes the collator.
      * @return the collator itself.
-     * @draft ICU 4.8
+     * @stable ICU 4.8
      */
     public Collator freeze() {
         if (!isFrozen()) {
@@ -308,7 +309,7 @@ public final class RuleBasedCollator extends Collator {
 
     /**
      * Provides for the clone operation. Any clone is initially unfrozen.
-     * @draft ICU 4.8
+     * @stable ICU 4.8
      */
     public RuleBasedCollator cloneAsThawed() {
         RuleBasedCollator clone = null;
@@ -786,7 +787,7 @@ public final class RuleBasedCollator extends Collator {
      * @throws IllegalArgumentException if the reordering codes are malformed in any way (e.g. duplicates, multiple reset codes, overlapping equivalent scripts)
      * @see #getReorderCodes
      * @see #getEquivalentReorderCodes
-     * @draft ICU 4.8
+     * @stable ICU 4.8
      */ 
     public void setReorderCodes(int... order) {
         if (isFrozen()) {
@@ -849,7 +850,7 @@ public final class RuleBasedCollator extends Collator {
         }
     }
 
-    private class contContext {
+    private static class contContext {
         RuleBasedCollator coll;
         UnicodeSet contractions;
         UnicodeSet expansions;
@@ -1227,7 +1228,7 @@ public final class RuleBasedCollator extends Collator {
      * if none are set then returns an empty array
      * @see #setReorderCodes
      * @see #getEquivalentReorderCodes
-     * @draft ICU 4.8
+     * @stable ICU 4.8
      */ 
     public int[] getReorderCodes() {
         if (m_reorderCodes_ != null) {
@@ -1245,7 +1246,7 @@ public final class RuleBasedCollator extends Collator {
      * @return the set of all reorder codes in the same group as the given reorder code.
      * @see #setReorderCodes
      * @see #getReorderCodes
-     * @draft ICU 4.8
+     * @stable ICU 4.8
      */
     public static int[] getEquivalentReorderCodes(int reorderCode) {
         Set<Integer> equivalentCodesSet = new HashSet<Integer>();
@@ -1952,6 +1953,7 @@ public final class RuleBasedCollator extends Collator {
      * Table for UCA and builder use
      */
     static final char UCA_CONTRACTIONS_[];
+    static final int MAX_UCA_CONTRACTION_LENGTH;
 
     private static boolean UCA_INIT_COMPLETE;
 
@@ -1980,6 +1982,7 @@ public final class RuleBasedCollator extends Collator {
         UCAConstants iUCA_CONSTANTS_ = null;
         LeadByteConstants iLEADBYTE_CONSTANTS = null;
         char iUCA_CONTRACTIONS_[] = null;
+        Output<Integer> maxUCAContractionLength = new Output<Integer>();
         ImplicitCEGenerator iimpCEGen_ = null;
         try {
             // !!! note what's going on here...
@@ -1990,7 +1993,7 @@ public final class RuleBasedCollator extends Collator {
             iUCA_ = new RuleBasedCollator();
             iUCA_CONSTANTS_ = new UCAConstants();
             iLEADBYTE_CONSTANTS = new LeadByteConstants();
-            iUCA_CONTRACTIONS_ = CollatorReader.read(iUCA_, iUCA_CONSTANTS_, iLEADBYTE_CONSTANTS);
+            iUCA_CONTRACTIONS_ = CollatorReader.read(iUCA_, iUCA_CONSTANTS_, iLEADBYTE_CONSTANTS, maxUCAContractionLength);
 
             // called before doing canonical closure for the UCA.
             iimpCEGen_ = new ImplicitCEGenerator(minImplicitPrimary, maxImplicitPrimary);
@@ -2011,6 +2014,7 @@ public final class RuleBasedCollator extends Collator {
         UCA_CONSTANTS_ = iUCA_CONSTANTS_;
         LEADBYTE_CONSTANTS_ = iLEADBYTE_CONSTANTS;
         UCA_CONTRACTIONS_ = iUCA_CONTRACTIONS_;
+        MAX_UCA_CONTRACTION_LENGTH = maxUCAContractionLength.value;
         impCEGen_ = iimpCEGen_;
 
         UCA_INIT_COMPLETE = true;
@@ -2739,7 +2743,7 @@ public final class RuleBasedCollator extends Collator {
      * @param buffer collation buffer temporary state
      */
     private final void doSecondaryBytes(int ce, boolean notIsContinuation, boolean doFrench, CollationBuffer buffer) {
-        int s = (ce >>= 8) & LAST_BYTE_MASK_; // int for comparison
+        int s = (ce >> 8) & LAST_BYTE_MASK_; // int for comparison
         if (s != 0) {
             if (!doFrench) {
                 // This is compression code.
@@ -4221,7 +4225,7 @@ public final class RuleBasedCollator extends Collator {
      * Generate latin-1 tables
      */
 
-    private class shiftValues {
+    private static class shiftValues {
         int primShift = 24;
         int secShift = 24;
         int terShift = 24;
@@ -4438,7 +4442,7 @@ public final class RuleBasedCollator extends Collator {
         return true;
     }
 
-    private class ContractionInfo {
+    private static class ContractionInfo {
         int index;
     }
 

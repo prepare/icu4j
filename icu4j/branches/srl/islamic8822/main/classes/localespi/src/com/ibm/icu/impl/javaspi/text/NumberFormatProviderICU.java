@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2008, International Business Machines Corporation and         *
+ * Copyright (C) 2008-2012, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -13,13 +13,14 @@ import java.util.Locale;
 import com.ibm.icu.impl.javaspi.ICULocaleServiceProvider;
 import com.ibm.icu.impl.jdkadapter.DecimalFormatICU;
 import com.ibm.icu.impl.jdkadapter.NumberFormatICU;
+import com.ibm.icu.util.ULocale;
 
 public class NumberFormatProviderICU extends NumberFormatProvider {
 
-    private final int NUMBER = 0;
-    private final int INTEGER = 1;
-    private final int CURRENCY = 2;
-    private final int PERCENT = 3;
+    private final static int NUMBER   = 0;
+    private final static int INTEGER  = 1;
+    private final static int CURRENCY = 2;
+    private final static int PERCENT  = 3;
 
     @Override
     public NumberFormat getCurrencyInstance(Locale locale) {
@@ -48,7 +49,7 @@ public class NumberFormatProviderICU extends NumberFormatProvider {
 
     private NumberFormat getInstance(int type, Locale locale) {
         com.ibm.icu.text.NumberFormat icuNfmt;
-        Locale actual = ICULocaleServiceProvider.canonicalize(locale);
+        ULocale actual = ICULocaleServiceProvider.toULocaleNoSpecialVariant(locale);
         switch (type) {
         case NUMBER:
             icuNfmt = com.ibm.icu.text.NumberFormat.getNumberInstance(actual);
@@ -76,11 +77,6 @@ public class NumberFormatProviderICU extends NumberFormatProvider {
             nf = DecimalFormatICU.wrap((com.ibm.icu.text.DecimalFormat)icuNfmt);
         } else {
             nf = NumberFormatICU.wrap(icuNfmt);
-        }
-
-        com.ibm.icu.text.DecimalFormatSymbols decfs = ICULocaleServiceProvider.getDecimalFormatSymbolsForLocale(actual);
-        if (decfs != null) {
-            ((com.ibm.icu.text.DecimalFormat)icuNfmt).setDecimalFormatSymbols(decfs);
         }
 
         return nf;

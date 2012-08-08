@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 2005-2011, International Business Machines Corporation and    *
+* Copyright (C) 2005-2012, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 */
@@ -131,59 +131,6 @@ public class CharsetMatch implements Comparable<CharsetMatch> {
     public int getConfidence() {
         return fConfidence;
     }
-    
-
-    /**
-     * Bit flag indicating the match is based on the the encoding scheme.
-     *
-     * @see #getMatchType
-     * @stable ICU 3.4
-     */
-    static public final int ENCODING_SCHEME    = 1;
-    
-    /**
-     * Bit flag indicating the match is based on the presence of a BOM.
-     * 
-     * @see #getMatchType
-     * @stable ICU 3.4
-     */
-    static public final int BOM                = 2;
-    
-    /**
-     * Bit flag indicating he match is based on the declared encoding.
-     * 
-     * @see #getMatchType
-     * @stable ICU 3.4
-     */
-    static public final int DECLARED_ENCODING  = 4;
-    
-    /**
-     * Bit flag indicating the match is based on language statistics.
-     *
-     * @see #getMatchType
-     * @stable ICU 3.4
-     */
-    static public final int LANG_STATISTICS    = 8;
-    
-    /**
-     * Return flags indicating what it was about the input data 
-     * that caused this charset to be considered as a possible match.
-     * The result is a bitfield containing zero or more of the flags
-     * ENCODING_SCHEME, BOM, DECLARED_ENCODING, and LANG_STATISTICS.
-     * A result of zero means no information is available.
-     * <p>
-     * Note: currently, this method always returns zero.
-     * <p>
-     *
-     * @return the type of match found for this charset.
-     *
-     * @draft ICU 3.4
-     * @provisional This API might change or be removed in a future release.
-     */
-    public int getMatchType() {
-//      TODO: create a list of enum-like constants for common combinations of types of matches.
-        return 0;
-    }
 
     /**
      * Get the name of the detected charset.  
@@ -201,7 +148,7 @@ public class CharsetMatch implements Comparable<CharsetMatch> {
      * @stable ICU 3.4
      */
     public String getName() {
-        return fRecognizer.getName();
+        return fCharsetName;
     }
     
     /**
@@ -212,7 +159,7 @@ public class CharsetMatch implements Comparable<CharsetMatch> {
      * @stable ICU 3.4
      */
     public String getLanguage() {
-        return fRecognizer.getLanguage();
+        return fLang;
     }
 
     /**
@@ -242,10 +189,9 @@ public class CharsetMatch implements Comparable<CharsetMatch> {
      *  Constructor.  Implementation internal
      */
     CharsetMatch(CharsetDetector det, CharsetRecognizer rec, int conf) {
-        fRecognizer = rec;
         fConfidence = conf;
         
-        // The references to the original aplication input data must be copied out
+        // The references to the original application input data must be copied out
         //   of the charset recognizer to here, in case the application resets the
         //   recognizer before using this CharsetMatch.
         if (det.fInputStream == null) {
@@ -255,6 +201,28 @@ public class CharsetMatch implements Comparable<CharsetMatch> {
             fRawLength   = det.fRawLength;
         }
         fInputStream = det.fInputStream;
+        fCharsetName = rec.getName();
+        fLang = rec.getLanguage();
+    }
+
+    /*
+     *  Constructor.  Implementation internal
+     */
+    CharsetMatch(CharsetDetector det, CharsetRecognizer rec, int conf, String csName, String lang) {
+        fConfidence = conf;
+        
+        // The references to the original application input data must be copied out
+        //   of the charset recognizer to here, in case the application resets the
+        //   recognizer before using this CharsetMatch.
+        if (det.fInputStream == null) {
+            // We only want the existing input byte data if it came straight from the user,
+            //   not if is just the head of a stream.
+            fRawInput    = det.fRawInput;
+            fRawLength   = det.fRawLength;
+        }
+        fInputStream = det.fInputStream;
+        fCharsetName = csName;
+        fLang = lang;
     }
 
     
@@ -262,11 +230,15 @@ public class CharsetMatch implements Comparable<CharsetMatch> {
     //   Private Data
     //
     private int                 fConfidence;
-    private CharsetRecognizer   fRecognizer;
     private byte[]              fRawInput = null;     // Original, untouched input bytes.
                                                       //  If user gave us a byte array, this is it.
     private int                 fRawLength;           // Length of data in fRawInput array.
 
     private InputStream         fInputStream = null;  // User's input stream, or null if the user
                                                       //   gave us a byte array.
+    
+    private String              fCharsetName;         // The name of the charset this CharsetMatch
+                                                      //   represents.  Filled in by the recognizer.
+    private String              fLang;                // The language, if one was determined by
+                                                      //   the recognizer during the detect operation.
 }

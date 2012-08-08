@@ -1,6 +1,6 @@
 /**
  *******************************************************************************
- * Copyright (C) 2006-2011, International Business Machines Corporation and    *
+ * Copyright (C) 2006-2012, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  *
@@ -123,16 +123,21 @@ public abstract class CharsetEncoderICU extends CharsetEncoder {
      * @param c A codepoint
      */
     final boolean isFromUUseFallback(int c) {
-        return (useFallback)
-                || (UCharacter.getType(c) == UCharacter.PRIVATE_USE);
+        return (useFallback) || isUnicodePrivateUse(c);
     }
 
     /**
      * Use fallbacks from Unicode to codepage when useFallback or for private-use code points
      */
     static final boolean isFromUUseFallback(boolean iUseFallback, int c) {
-        return (iUseFallback)
-                || (UCharacter.getType(c) == UCharacter.PRIVATE_USE);
+        return (iUseFallback) || isUnicodePrivateUse(c);
+    }
+
+    private static final boolean isUnicodePrivateUse(int c) {
+        // First test for U+E000 to optimize for the most common characters.
+        return c >= 0xE000 && (c <= 0xF8FF ||
+                c >= 0xF0000 && (c <= 0xFFFFD ||
+                (c >= 0x100000 && c <= 0x10FFFD)));
     }
 
     /**
@@ -581,8 +586,6 @@ public abstract class CharsetEncoderICU extends CharsetEncoder {
                                 source.get(preFromUArray, 0, length);
                                 preFromULength = (byte) -length;
                             }
-                            source = realSource;
-                            flush = realFlush;
                         }
                         return cr;
                     }
@@ -921,8 +924,7 @@ public abstract class CharsetEncoderICU extends CharsetEncoder {
     /**
      * Returns the maxCharsPerByte value for the Charset that created this encoder.
      * @return maxCharsPerByte
-     * @draft ICU 4.8
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 4.8
      */
     public final float maxCharsPerByte() {
         return ((CharsetICU)(this.charset())).maxCharsPerByte;
@@ -944,6 +946,7 @@ public abstract class CharsetEncoderICU extends CharsetEncoder {
      * @return Size of a buffer that will be large enough to hold the output of bytes
      *
      * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
      */
     public static int getMaxBytesForString(int length, int maxCharSize) {
         return ((length + 10) * maxCharSize);

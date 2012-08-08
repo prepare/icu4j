@@ -58,6 +58,7 @@ public final class Norm2AllModes {
         public String getDecomposition(int c) {
             return null;
         }
+        // No need to override the default getRawDecomposition().
         @Override
         public boolean isNormalized(CharSequence s) { return true; }
         @Override
@@ -127,6 +128,14 @@ public final class Norm2AllModes {
         @Override
         public String getDecomposition(int c) {
             return impl.getDecomposition(c);
+        }
+        @Override
+        public String getRawDecomposition(int c) {
+            return impl.getRawDecomposition(c);
+        }
+        @Override
+        public int composePair(int a, int b) {
+            return impl.composePair(a, b);
         }
 
         @Override
@@ -348,9 +357,7 @@ public final class Norm2AllModes {
      * @return FCD normalizer
      */
     public static Normalizer2 getFCDNormalizer2() {
-        Norm2AllModes allModes=getNFCInstance();
-        allModes.impl.getFCDTrie();
-        return allModes.fcd;
+        return getNFCInstance().fcd;
     }
 
     private static final class Norm2AllModesSingleton {

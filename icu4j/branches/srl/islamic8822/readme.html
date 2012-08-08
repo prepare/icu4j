@@ -4,7 +4,7 @@
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
   <meta http-equiv="Content-Style-Type" content="text/css2">
   <title>ReadMe for ICU4J</title>
-  <meta name="COPYRIGHT" content="Copyright 2000-2011, International Business Machines Corporation and others. All Rights Reserved.">
+  <meta name="COPYRIGHT" content="Copyright 2000-2012, International Business Machines Corporation and others. All Rights Reserved.">
   <style type="text/css">
 h3.doc { background: #CCCCFF }
 h4.doc { text-decoration: underline }
@@ -13,12 +13,15 @@ h4.doc { text-decoration: underline }
 <body style="background-color: rgb(255, 255, 255);" lang="EN-US"
  link="#0000ff" vlink="#800080">
 <h2>International Components for Unicode for Java (ICU4J)</h2>
-<h3>Read Me for ICU4J 4.8</h3>
-(Last Update: May 19, 2011)
+<h3>Read Me for ICU4J 50 Milestone 2</h3>
+(Last Update: July 25, 2012)
 <hr size="2" width="100%">
 
-<p><b>Note:</b>This is major release of ICU4J. It contains bug fixes and adds implementations
-of inherited API and introduces new API or functionality. 
+<p><b>Note:</b> This is a development milestone release of ICU4J 50.
+The contents of this document may not reflect the recent changes done
+for ICU 50 development. This milestone is intended for those wishing
+to get an early look at ICU 50 new features and API changes. It is not
+recommended for production use.
 </p>
 <p>For the most recent release, see the <a
  href="http://www.icu-project.org/download/"> ICU4J
@@ -124,22 +127,19 @@ found in ICU4J.</p>
 
 <h3 class="doc"><a name="changes"></a>Changes In This Release</h3>
 <h4>New features and changes</h4>
+<p>We changed the numeric value of
+  <code>static final Collator.ReorderCodes.DEFAULT</code> from +1 to -1
+  so that it does not collide with a valid UScript code (<code>UScript.INHERITED</code>),
+  and to make it match <code>UScript.INVALID_CODE</code> and C/C++ <code>UCOL_REORDER_CODE_DEFAULT</code>,
+  as had been intended.
+  Programs using <code>Collator.ReorderCodes.DEFAULT</code> must be recompiled.</p>
+
 <p>
-See the <a href="http://sites.google.com/site/icusite/download/48">ICU 4.8 download page</a> about
-new features in this release.  The list of API changes since the previous ICU4J release
-is available
-<a href="http://source.icu-project.org/repos/icu/icu4j/tags/release-4-8/APIChangeReport.html">here</a>.
+See the <a href="http://sites.google.com/site/icusite/download/50milestone">ICU 50 milestone download page</a>
+about new features in this release.  The list of API changes since the previous ICU4J release is available
+<a href="http://source.icu-project.org/repos/icu/icu4j/tags/milestone-50-0-1/APIChangeReport.html">here</a>.
 </p>
-<h5>MessageFormat Changes</h5>
-<p>MessageFormat and related classes (choice/plural/select) have been reimplemented,
-with several improvements and some incompatible changes.
-See the <a href="http://site.icu-project.org/download/48">ICU 4.8 download</a> page for details.</p>
-<h5>Unknown system time zone - Etc/Unknown</h5>
-The behavior of the time zone factory method TimeZone.getTimeZone(String) has changed in this release.
-When an unknown time zone ID is specified in the method, previous versions return a TimeZone instance
-with ID "GMT" (offset 0 and no daylight saving time). In ICU 4.8, the method uses "Etc/Unknown" as the
-time zone ID (but still offset 0 and no daylight saving time) for the case. Existing software checking
-the returned time zone ID to validate the input ID may need to be updated to support the new behavior.
+
 <h3 class="doc"><a name="license"></a>License Information</h3>
 <p>
 The ICU projects (ICU4C and ICU4J) use the X license. The X
@@ -167,7 +167,7 @@ package.
 </p>
 <h3 class="doc"><a name="PlatformDependencies"></a>Platform Dependencies</h3>
 <p>
-ICU4J 4.8 depends on J2SE 5.0 functionality.  Therefore, ICU4J only runs on
+ICU4J 50 depends on J2SE 5.0 functionality.  Therefore, ICU4J only runs on
 JRE version 5.0 or later.
 The table below shows the operating systems and JRE/VM versions currently
 used by the ICU development team to test ICU4J.
@@ -175,10 +175,13 @@ used by the ICU development team to test ICU4J.
 <table border="1">
 <tr>
   <th rowspan="2">Operating System</th>
+  <th colspan="2">JRE 7</th>
   <th colspan="2">JRE 6</th>
   <th colspan="2">JRE 5</th>
 </tr>
 <tr>
+  <th>32bit</th>
+  <th>64bit</th>
   <th>32bit</th>
   <th>64bit</th>
   <th>32bit</th>
@@ -190,11 +193,15 @@ used by the ICU development team to test ICU4J.
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
   <td align="center">-</td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
+  <td align="center">-</td>
+  <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
 </tr>
 <tr>
   <th>AIX 7.1</th>
   <td align="center">-</td>
   <td align="center" bgcolor="#CCCCFF"><em><b>Reference platform</b></em></td>
+  <td align="center">-</td>
+  <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
   <td align="center">-</td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
 </tr>
@@ -204,10 +211,14 @@ used by the ICU development team to test ICU4J.
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
   <td align="center">-</td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
+  <td align="center">-</td>
+  <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
 </tr>
 <tr>
   <th>Mac OS X 10.6</th>
-  <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
+  <td align="center">-</td>
+  <td align="center">-</td>
+  <td align="center">-</td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
   <td align="center">-</td>
   <td align="center">-</td>
@@ -218,30 +229,40 @@ used by the ICU development team to test ICU4J.
   <td align="center">-</td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
   <td align="center">-</td>
+  <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
+  <td align="center">-</td>
 </tr>
 <tr>
   <th>Redhat Enterprise Linux 6 (x86_64)</th>
   <td align="center">-</td>
-  <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
-  <td align="center">-</td>
-  <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
-</tr>
-<tr>
-  <th>Solaris 9 (SPARC)</th>
-  <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
-  <td align="center">-</td>
-  <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
-  <td align="center">-</td>
-</tr>
-<tr>
-  <th>Solaris 10 (SPARC)</th>
   <td align="center" bgcolor="#CCCCFF"><em><b>Reference platform</b></em></td>
+  <td align="center">-</td>
+  <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
+  <td align="center">-</td>
+  <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
+</tr>
+<tr>
+<th>Solaris 10 (SPARC)</th>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
+  <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
+  <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
+  <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
+  <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
+</tr>
+<tr>
+  <th>Solaris 11 (SPARC)</th>
+  <td align="center">-</td>
+  <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
+  <td align="center">-</td>
+  <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
+  <td align="center">-</td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
 </tr>
 <tr>
   <th>Windows XP</th>
+  <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
+  <td align="center">-</td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
   <td align="center">-</td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
@@ -253,6 +274,8 @@ used by the ICU development team to test ICU4J.
   <td align="center">-</td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
   <td align="center">-</td>
+  <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
+  <td align="center">-</td>
 </tr>
 <tr>
   <th>Windows 7</th>
@@ -260,9 +283,13 @@ used by the ICU development team to test ICU4J.
   <td align="center">-</td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
   <td align="center">-</td>
+  <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
+  <td align="center">-</td>
 </tr>
 <tr>
   <th>Windows 2008 Server</th>
+  <td align="center">-</td>
+  <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
   <td align="center">-</td>
   <td align="center" bgcolor="#DDDDFF">Regularly tested</td>
   <td align="center">-</td>
@@ -582,7 +609,7 @@ version 1.7 or later. It's recommended to install both the J2SE SDK and Ant
 somewhere <em>outside</em>the ICU4J directory. For example, on Linux you might install
 these in <code>/usr/local</code>.</p>
 <ul>
-  <li>Install J2SE SDK 6.0.</li>
+  <li>Install J2SE SDK 7.</li>
   <li>Install the <a href="http://ant.apache.org/"><strong>Ant</strong></a>
   build system. Ant is a portable, Java-based build system similar to
   make. ICU4J uses Ant because it introduces no other dependencies, it's
@@ -594,7 +621,7 @@ these in <code>/usr/local</code>.</p>
 extract it onto your system, set some environment variables, and add
 its bin directory to your path. For example: </p>
     <pre>
-        set JAVA_HOME=C:\jdk1.6.0
+        set JAVA_HOME=C:\jdk1.7.0
         set ANT_HOME=C:\ant
         set PATH=%PATH%;%ANT_HOME%\bin</pre>
     <p>See the current Ant documentation for details.</p>
@@ -608,19 +635,16 @@ root directory. You can give Ant options like -verbose, and you can specify
 other targets.  For example:</p>
 <blockquote>
 <pre>C:\icu4j>ant
-Buildfile: build.xml
-
 Buildfile: C:\icu4j\build.xml
 
 info:
      [echo] ----- Build Environment Information -------------------
-     [echo] Java Home:    C:\jdk1.6.0
-     [echo] Java Version: 1.6.0
+     [echo] Java Home:    C:\jdk1.7.0
+     [echo] Java Version: 1.7.0
      [echo] Ant Home:     C:\ant
-     [echo] Ant Version:  Apache Ant(TM) version 1.8.2 compiled on December 20 2
-010
+     [echo] Ant Version:  Apache Ant(TM) version 1.8.3 compiled on February 26 2012
      [echo] OS:           Windows 7
-     [echo] OS Version:   6.1 build 7601 Service Pack 1
+     [echo] OS Version:   6.1
      [echo] OS Arch:      x86
      [echo] Host:         ICUDEV
      [echo] -------------------------------------------------------
@@ -631,15 +655,15 @@ core:
      [echo] --- java compiler arguments ------------------------
      [echo] source dir:     C:\icu4j\main\classes\core/src
      [echo] output dir:     C:\icu4j\main\classes\core/out/bin
-     [echo] classpath:
+     [echo] classpath:      
      [echo] source:         1.5
      [echo] target:         1.5
      [echo] debug:          on
      [echo] encoding:       UTF-8
-     [echo] compiler arg:   -Xlint:all,-deprecation,-dep-ann
+     [echo] compiler arg:   -Xlint:all,-deprecation,-dep-ann,-options
      [echo] ----------------------------------------------------
     [mkdir] Created dir: C:\icu4j\main\classes\core\out\bin
-    [javac] Compiling 331 source files to C:\icu4j\main\classes\core\out\bin
+    [javac] Compiling 336 source files to C:\icu4j\main\classes\core\out\bin
     [javac] Note: Some input files use or override a deprecated API.
     [javac] Note: Recompile with -Xlint:deprecation for details.
 
@@ -649,14 +673,12 @@ compile:
      [copy] Copying 23 files to C:\icu4j\main\classes\core\out\bin
 
 copy-data:
-    [unjar] Expanding: C:\icu4j\main\shared\data\icudata.jar into C:\icu4j\main\
-classes\core\out\bin
+    [unjar] Expanding: C:\icu4j\main\shared\data\icudata.jar into C:\icu4j\main\classes\core\out\bin
+    [unjar] Expanding: C:\icu4j\main\shared\data\icutzdata.jar into C:\icu4j\main\classes\core\out\bin
 
 ...
 ...
 ...
-
-build:
 
 _build-localespi:
 
@@ -664,17 +686,15 @@ _build-localespi:
      [echo] --- java compiler arguments ------------------------
      [echo] source dir:     C:\icu4j\main\classes\localespi/src
      [echo] output dir:     C:\icu4j\main\classes\localespi/out/bin
-     [echo] classpath:      C:\icu4j\main\classes\core\out\lib\icu4j-core.jar;C:
-\icu4j\main\classes\collate\out\lib\icu4j-collate.jar
+     [echo] classpath:      C:\icu4j\main\classes\core\out\lib\icu4j-core.jar;C:\icu4j\main\classes\collate\out\lib\icu4j-collate.jar
      [echo] source:         1.6
      [echo] target:         1.6
      [echo] debug:          on
      [echo] encoding:       UTF-8
-     [echo] compiler arg:   -Xlint:all,-deprecation,-dep-ann
+     [echo] compiler arg:   -Xlint:all,-deprecation,-dep-ann,-options
      [echo] ----------------------------------------------------
     [mkdir] Created dir: C:\icu4j\main\classes\localespi\out\bin
     [javac] Compiling 22 source files to C:\icu4j\main\classes\localespi\out\bin
-
 
 compile:
 
@@ -686,14 +706,12 @@ copy:
 @jar:
     [mkdir] Created dir: C:\icu4j\main\classes\localespi\out\lib
      [copy] Copying 1 file to C:\icu4j\main\classes\localespi\out
-      [jar] Building jar: C:\icu4j\main\classes\localespi\out\lib\icu4j-localesp
-i.jar
+      [jar] Building jar: C:\icu4j\main\classes\localespi\out\lib\icu4j-localespi.jar
 
 jar:
 
 @src-jar:
-      [jar] Building jar: C:\icu4j\main\classes\localespi\out\lib\icu4j-localesp
-i-src.jar
+      [jar] Building jar: C:\icu4j\main\classes\localespi\out\lib\icu4j-localespi-src.jar
 
 src-jar:
 
@@ -704,7 +722,7 @@ jar:
      [copy] Copying 1 file to C:\icu4j
 
 BUILD SUCCESSFUL
-Total time: 53 seconds</pre>
+Total time: 1 minute 38 seconds</pre>
 </blockquote>
 <I>Note: The above output is an example. The numbers are likely to be different with the current version ICU4J.</I>
 <p>The following are some targets that you can provide to <b>ant</b>.
@@ -814,54 +832,54 @@ from release to release, so clients should not depend on the exact
 organization
 of the data in ICU4J.</p>
 <ul>
-  <li>The primary <b>locale data</b> is under the directory <tt>icudt48b</tt>,
+  <li>The primary <b>locale data</b> is under the directory <tt>icudt50b</tt>,
   as a set of <tt>".res"</tt> files whose names are the locale identifiers. 
   Locale naming is documented the <code>com.ibm.icu.util.ULocale</code>
   class, and the use of these names in searching for resources is documented 
   in <code>com.ibm.icu.util.UResourceBundle</code>.</li>
 
-  <li>The <b>collation data</b> is under the directory <tt>icudt48b/coll</tt>,
+  <li>The <b>collation data</b> is under the directory <tt>icudt50b/coll</tt>,
   as a set of <tt>".res"</tt> files.</li>
 
-  <li>The <b>currency display name data</b> is under the directory <tt>icudt48b/curr</tt>,
+  <li>The <b>currency display name data</b> is under the directory <tt>icudt50b/curr</tt>,
   as a set of <tt>".res"</tt> files.</li>
 
-  <li>The <b>language display name data</b> is under the directory <tt>icudt48b/lang</tt>,
+  <li>The <b>language display name data</b> is under the directory <tt>icudt50b/lang</tt>,
   as a set of <tt>".res"</tt> files.</li>
 
-  <li>The <b>region display name data</b> is under the directory <tt>icudt48b/region</tt>,
+  <li>The <b>region display name data</b> is under the directory <tt>icudt50b/region</tt>,
   as a set of <tt>".res"</tt> files.</li>
 
   <li>The <b>rule-based transliterator data</b> is under the directory
-  <tt>icudt48b/translit</tt>, as a set of <tt>".res"</tt> files.</li>
+  <tt>icudt50b/translit</tt>, as a set of <tt>".res"</tt> files.</li>
 
   <li>The <b>rule-based number format data</b> is under the directory
-  <tt>icudt48b/rbnf</tt>, as a set of <tt>".res"</tt> files.
+  <tt>icudt50b/rbnf</tt>, as a set of <tt>".res"</tt> files.
 
   <li>The <b>break iterator data</b> is directly under the
-  directory <tt>icudt48b</tt>, as a set of <tt>".brk"</tt> files, named according to the
+  directory <tt>icudt50b</tt>, as a set of <tt>".brk"</tt> files, named according to the
   type of break and the locale where there are locale-specific versions.</li>
 
-  <li>The <b>holiday data</b> is under the directory <tt>icudt48b</tt>,
+  <li>The <b>holiday data</b> is under the directory <tt>icudt50b</tt>,
   as a set of <tt>".class"</tt> files, named <tt>"HolidayBundle_"</tt>
   followed by the locale ID.</li>
 
   <li>The <b>character property data</b> and default <b>unicode collation algorithm
-  (UCA) data</b> is found under the directory <tt>icudt48b</tt>, as a set of
+  (UCA) data</b> is found under the directory <tt>icudt50b</tt>, as a set of
   <tt>".icu"</tt> files. </li>
 
-  <li>The <b>normalization data</b> is found under the directory <tt>icudt48b</tt>,
+  <li>The <b>normalization data</b> is found under the directory <tt>icudt50b</tt>,
   as a set of <tt>".nrm"</tt> files. </li>
 
   <li>The <b>character set converter data</b> is under the directory
-  <tt>icudt48b</tt>, as a set of <tt>".cnv"</tt> files.  These files are
+  <tt>icudt50b</tt>, as a set of <tt>".cnv"</tt> files.  These files are
   currently included only in icu-charset.jar.</li>
 
   <li>The <b>time zone rule data</b> is under the directory 
-  <tt>icudt48b</tt>, as <tt>zoneinfo64.res</tt>.</li>
+  <tt>icudt50b</tt>, as <tt>zoneinfo64.res</tt>.</li>
 
   <li>The <b>time zone display name data</b> is under the directory
-  <tt>icudt48b/zone</tt>, as a set of <tt>".res"</tt> files.</li>
+  <tt>icudt50b/zone</tt>, as a set of <tt>".res"</tt> files.</li>
 </ul>
 <p>
 Some of the data files alias or otherwise reference data from other
@@ -956,9 +974,9 @@ ICU4J data is built by ICU4C tools. Please see "icu4j-readme.txt" in <I>$icu4c_r
 <h5> Generating Data from CLDR </h5>
 <I> Note: This procedure assumes that all 3 sources are present</I>
 <ol>
-    <li>Checkout or download CLDR version 'release-2-0'</li>
-    <li>Checkout ICU4C with tag 'release-4-8'</li>
-    <li>Checkout ICU4J with tag 'release-4-8'</li>
+    <li>Checkout or download CLDR version 'release-21-0-1'</li>
+    <li>Checkout ICU4C with tag 'milestone-50-0-1'</li>
+    <li>Checkout ICU4J with tag 'milestone-50-0-1'</li>
     <li>cd to <I>$icu4c_root</I>/source/data directory</li>
     <li>Follow the instructions in <I>$icu4c_root</I>/source/data/cldr-icu-readme.txt</li>
     <li>Rebuild ICU4C with the newly generated data.</li>
@@ -970,7 +988,7 @@ ICU4J data is built by ICU4C tools. Please see "icu4j-readme.txt" in <I>$icu4c_r
 </ol>
 
 <h3 class="doc"><a name="timezone"></a>About ICU4J Time Zone</h3>
-<p>ICU4J 4.8 includes time zone data version 2011g, which is the latest one as of
+<p>ICU4J 50M1 includes time zone data version 2012c, which is the latest one as of
 the release date.  However, time zone data is frequently updated in response
 to changes made by local governments around the world.  If you need to update
 the time zone data, please refer the ICU user guide topic
@@ -1008,7 +1026,7 @@ review all comments.</p>
 <h2>Thank you for your interest in ICU4J!</h2>
 <br>
 <hr align="center" size="2" width="100%">
-<p><I><font size="-1">Copyright &copy; 2002-2011 International Business
+<p><I><font size="-1">Copyright &copy; 2002-2012 International Business
 Machines Corporation and others. All Rights
 Reserved.<br>
 4400 North First Street, San Jos&eacute;, CA 95193, USA

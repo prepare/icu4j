@@ -1,6 +1,6 @@
 /*
 **********************************************************************
-* Copyright (c) 2004-2011, International Business Machines
+* Copyright (c) 2004-2012, International Business Machines
 * Corporation and others.  All Rights Reserved.
 **********************************************************************
 * Author: Alan Liu
@@ -25,6 +25,8 @@ import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.text.BreakIterator;
 import com.ibm.icu.text.DateFormat;
 import com.ibm.icu.text.DecimalFormat;
+import com.ibm.icu.text.LocaleDisplayNames;
+import com.ibm.icu.text.LocaleDisplayNames.DialectHandling;
 import com.ibm.icu.text.NumberFormat;
 import com.ibm.icu.text.NumberFormat.SimpleNumberFormatFactory;
 import com.ibm.icu.text.SimpleDateFormat;
@@ -653,6 +655,7 @@ public class ULocaleTest extends TestFmwk {
             {"i-hakka", "", "MX", "", "I-hakka_MX", "i-hakka_MX", null},
             {"x-klingon", "", "US", "SANJOSE", "X-KLINGON_us_SANJOSE", "x-klingon_US_SANJOSE", null},
 
+            {"de", "", "", "1901", "de-1901", "de__1901", null},
             {"mr", "", "", "", "mr.utf8", "mr.utf8", "mr"},
             {"de", "", "TV", "", "de-tv.koi8r", "de_TV.koi8r", "de_TV"},
             {"x-piglatin", "", "ML", "", "x-piglatin_ML.MBE", "x-piglatin_ML.MBE", "x-piglatin_ML"},  /* Multibyte English */
@@ -669,7 +672,7 @@ public class ULocaleTest extends TestFmwk {
             {"zh", "Hant", "TW", "PINYIN", "zh-hant_TW_PINYIN", "zh_Hant_TW_PINYIN", "zh_Hant_TW@collation=pinyin"},
             {"qq", "Qqqq", "QQ", "QQ", "qq_Qqqq_QQ_QQ", "qq_Qqqq_QQ_QQ", null},
             {"qq", "Qqqq", "", "QQ", "qq_Qqqq__QQ", "qq_Qqqq__QQ", null},
-            {"12", "3456", "78", "90", "12_3456_78_90", "12_3456_78_90", null}, /* total garbage */
+            {"ab", "Cdef", "GH", "IJ", "ab_cdef_gh_ij", "ab_Cdef_GH_IJ", null}, /* total garbage */
 
             // odd cases
             {"", "", "", "", "@FOO=bar", "@foo=bar", null},
@@ -874,6 +877,7 @@ public class ULocaleTest extends TestFmwk {
             { "nl_NL_PREEURO", "nl_NL_PREEURO", "nl_NL@currency=NLG" },
             { "pt_PT_PREEURO", "pt_PT_PREEURO", "pt_PT@currency=PTE" },
             { "de__PHONEBOOK", "de__PHONEBOOK", "de@collation=phonebook" },
+            { "de_PHONEBOOK", "de__PHONEBOOK", "de@collation=phonebook" },
             { "en_GB_EURO", "en_GB_EURO", "en_GB@currency=EUR" },
             { "en_GB@EURO", null, "en_GB@currency=EUR" }, /* POSIX ID */
             { "es__TRADITIONAL", "es__TRADITIONAL", "es@collation=traditional" },
@@ -892,8 +896,8 @@ public class ULocaleTest extends TestFmwk {
             { "no-no.utf32@B", null, "no_NO_B" /* not: "nb_NO_B" [alan ICU3.0] */ }, /* POSIX ID */
             { "qz-qz@Euro", null, "qz_QZ@currency=EUR" }, /* qz-qz uses private use iso codes */
             { "en-BOONT", "en__BOONT", "en__BOONT" }, /* registered name */
-            { "de-1901", "de_1901", "de__1901" }, /* registered name */
-            { "de-1906", "de_1906", "de__1906" }, /* registered name */
+            { "de-1901", "de__1901", "de__1901" }, /* registered name */
+            { "de-1906", "de__1906", "de__1906" }, /* registered name */
             { "sr-SP-Cyrl", "sr_SP_CYRL", "sr_Cyrl_RS" }, /* .NET name */
             { "sr-SP-Latn", "sr_SP_LATN", "sr_Latn_RS" }, /* .NET name */
             { "sr_YU_CYRILLIC", "sr_YU_CYRILLIC", "sr_Cyrl_RS" }, /* Linux name */
@@ -1224,6 +1228,49 @@ public class ULocaleTest extends TestFmwk {
             }
         }
     }
+    
+    public void TestDisplayWithKeyword() {
+        // Note, this test depends on locale display data for the U.S. and Taiwan.
+        // If the data changes (in particular, the keyTypePattern may change for Taiwan),
+        // this test will break.
+        LocaleDisplayNames dn = LocaleDisplayNames.getInstance(ULocale.US,
+                DialectHandling.DIALECT_NAMES);
+        LocaleDisplayNames tdn = LocaleDisplayNames.getInstance(ULocale.TAIWAN,
+                DialectHandling.DIALECT_NAMES);
+        String name = dn.localeDisplayName("de@collation=phonebook");
+        String target = "German (Phonebook Sort Order)";
+        assertEquals("collation", target, name);
+        
+        name = tdn.localeDisplayName("de@collation=phonebook");
+        target = "德文（電話簿排序）"; // \u5FB7\u6587\uFF08\u96FB\u8A71\u7C3F\u6392\u5E8F\uFF09
+        assertEquals("collation", target, name);
+
+        name = dn.localeDisplayName("de@currency=XYZ");
+        target = "German (Currency: XYZ)";
+        assertEquals("currency", target, name);
+        
+        name = tdn.localeDisplayName("de@currency=XYZ");
+        target = "德文（貨幣: XYZ）";  // \u5FB7\u6587\uFF08\u8CA8\u5E63: XYZ\uFF09
+        assertEquals("currency", target, name);
+        
+        name = dn.localeDisplayName("de@foo=bar");
+        target = "German (foo=bar)";
+        assertEquals("foo", target, name);
+        
+        name = tdn.localeDisplayName("de@foo=bar");
+        target = "德文（foo=bar）"; // \u5FB7\u6587\uFF08foo=bar\uFF09
+        assertEquals("foo", target, name);
+        
+        ULocale locale = ULocale.forLanguageTag("de-x-foobar");
+        name = dn.localeDisplayName(locale);
+        target = "German (Private-Use: foobar)";
+        assertEquals("foobar", target, name);
+
+        name = tdn.localeDisplayName(locale);
+        target = "德文（私人使用: foobar）"; // \u5FB7\u6587\uFF08\u79C1\u4EBA\u4F7F\u7528: foobar\uFF09
+        assertEquals("foobar", target, name);
+}
+    
     private void initHashtable() {
         h[0] = new HashMap<String, String>();
         h[1] = new HashMap<String, String>();
@@ -1236,7 +1283,7 @@ public class ULocaleTest extends TestFmwk {
         h[0].put("pinyin", "Pinyin Sort Order");
         h[0].put("traditional", "Traditional Sort Order");
         h[0].put("stroke", "Stroke Order");
-        h[0].put("direct", "Direct Sort Order");
+        h[0].put("direct", "direct"); // Direct sort order is deprecated in CLDR
         h[0].put("japanese", "Japanese Calendar");
         h[0].put("buddhist", "Buddhist Calendar");
         h[0].put("islamic", "Islamic Calendar");
@@ -1249,7 +1296,7 @@ public class ULocaleTest extends TestFmwk {
         h[1].put("collation", "\u5BF9\u7167");
         h[1].put("calendar", "\u65E5\u5386");
         h[1].put("currency", "\u8D27\u5E01");
-        h[1].put("direct", "\u76F4\u63A5\u6392\u5E8F\u987A\u5E8F");
+        h[1].put("direct", "direct"); // Direct sort order is deprecated in CLDR
         h[1].put("phonebook", "\u7535\u8BDD\u7C3F\u987A\u5E8F");
         h[1].put("pinyin", "\u62FC\u97F3\u987a\u5e8f");
         h[1].put("stroke", "\u7B14\u5212\u987A\u5E8F");
@@ -1855,7 +1902,7 @@ public class ULocaleTest extends TestFmwk {
                 "kpe"
             }, {
                 "ku",
-                "ku_Arab_IQ",
+                "ku_Latn_TR",
                 "ku"
             }, {
                 "ky",
@@ -3822,13 +3869,22 @@ public class ULocaleTest extends TestFmwk {
             {"ar-x-1-2-3",          "ar@x=1-2-3",           NOERROR},
             {"fr-u-nu-latn-cu-eur", "fr@currency=eur;numbers=latn", NOERROR},
             {"de-k-kext-u-co-phonebk-nu-latn",  "de@collation=phonebook;k=kext;numbers=latn",   NOERROR},
-            {"ja-u-cu-jpy-ca-jp",   "ja@calendar=true;currency=jpy;jp=true",  NOERROR},
+            {"ja-u-cu-jpy-ca-jp",   "ja@calendar=yes;currency=jpy;jp=yes",  NOERROR},
             {"en-us-u-tz-usnyc",    "en_US@timezone=America/New_York",      NOERROR},
             {"und-a-abc-def",       "@a=abc-def",           NOERROR},
             {"zh-u-ca-chinese-x-u-ca-chinese",  "zh@calendar=chinese;x=u-ca-chinese",   NOERROR},
             {"fr--FR",              "fr",                   Integer.valueOf(3)},
             {"fr-",                 "fr",                   Integer.valueOf(3)},
             {"x-elmer",             "@x=elmer",             NOERROR},
+            {"en-US-u-attr1-attr2-ca-gregory", "en_US@attribute=attr1-attr2;calendar=gregorian",    NOERROR},
+            {"sr-u-kn",             "sr@colnumeric=yes",    NOERROR},
+            {"de-u-kn-co-phonebk",  "de@collation=phonebook;colnumeric=yes",    NOERROR},
+            {"en-u-attr2-attr1-kn-kb",  "en@attribute=attr1-attr2;colbackwards=yes;colnumeric=yes", NOERROR},
+            {"ja-u-ijkl-efgh-abcd-ca-japanese-xx-yyy-zzz-kn",   "ja@attribute=abcd-efgh-ijkl;calendar=japanese;colnumeric=yes;xx=yyy-zzz",  NOERROR},
+
+            {"de-u-xc-xphonebk-co-phonebk-ca-buddhist-mo-very-lo-extensi-xd-that-de-should-vc-probably-xz-killthebuffer",
+             "de@calendar=buddhist;collation=phonebook;de=should;lo=extensi;mo=very;vc=probably;xc=xphonebk;xd=that;xz=yes", Integer.valueOf(92)},
+
         };
 
         for (int i = 0; i < langtag_to_locale.length; i++) {

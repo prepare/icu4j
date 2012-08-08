@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2011, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2012, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -132,6 +132,12 @@ public final class VersionInfo implements Comparable<VersionInfo>
     public static final VersionInfo UNICODE_6_0;
 
     /**
+     * Unicode 6.1 version
+     * @stable ICU 49
+     */
+    public static final VersionInfo UNICODE_6_1;
+
+    /**
      * ICU4J current release version
      * @stable ICU 2.8
      */
@@ -143,7 +149,7 @@ public final class VersionInfo implements Comparable<VersionInfo>
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    public static final String ICU_DATA_VERSION_PATH = "49b";
+    public static final String ICU_DATA_VERSION_PATH = "50b";
     
     /**
      * Data version in ICU4J.
@@ -246,7 +252,7 @@ public final class VersionInfo implements Comparable<VersionInfo>
             throw new IllegalArgumentException(INVALID_VERSION_NUMBER_);
         }
         int     version = getInt(major, minor, milli, micro);
-        Integer key     = new Integer(version);
+        Integer key     = Integer.valueOf(version);
         VersionInfo  result  = MAP_.get(key);
         if (result == null) {
             result = new VersionInfo(version);
@@ -487,10 +493,11 @@ public final class VersionInfo implements Comparable<VersionInfo>
         UNICODE_5_1   = getInstance(5, 1, 0, 0);
         UNICODE_5_2   = getInstance(5, 2, 0, 0);
         UNICODE_6_0   = getInstance(6, 0, 0, 0);
+        UNICODE_6_1   = getInstance(6, 1, 0, 0);
 
-        ICU_VERSION   = getInstance(49, 0, 1, 0);
-        ICU_DATA_VERSION = getInstance(49, 0, 1, 0);
-        UNICODE_VERSION = UNICODE_6_0;
+        ICU_VERSION   = getInstance(50, 0, 1, 0);
+        ICU_DATA_VERSION = getInstance(50, 0, 1, 0);
+        UNICODE_VERSION = UNICODE_6_1;
 
         UCOL_RUNTIME_VERSION = getInstance(7);
         UCOL_BUILDER_VERSION = getInstance(8);
@@ -523,26 +530,35 @@ public final class VersionInfo implements Comparable<VersionInfo>
     /**
      * Main method prints out ICU version information
      * @param args arguments (currently not used)
-     * @draft ICU 4.6
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 4.6
      */
     public static void main(String[] args) {
         String icuApiVer;
 
-        if (ICU_VERSION.getMinor() % 2 != 0) {
-            // Development mile stone
-            int major = ICU_VERSION.getMajor();
-            int minor = ICU_VERSION.getMinor() + 1;
-            if (minor >= 10) {
-                minor -= 10;
-                major++;
+        if (ICU_VERSION.getMajor() <= 4) {
+            if (ICU_VERSION.getMinor() % 2 != 0) {
+                // Development mile stone
+                int major = ICU_VERSION.getMajor();
+                int minor = ICU_VERSION.getMinor() + 1;
+                if (minor >= 10) {
+                    minor -= 10;
+                    major++;
+                }
+                icuApiVer = "" + major + "." + minor + "M" + ICU_VERSION.getMilli();
+            } else {
+                icuApiVer = ICU_VERSION.getVersionString(2, 2);
             }
-            icuApiVer = "" + major + "." + minor + "M" + ICU_VERSION.getMilli();
         } else {
-            icuApiVer = ICU_VERSION.getVersionString(2, 2);
+            if (ICU_VERSION.getMinor() == 0) {
+                // Development mile stone
+                icuApiVer = "" + ICU_VERSION.getMajor() + "M" + ICU_VERSION.getMilli();
+            } else {
+                icuApiVer = ICU_VERSION.getVersionString(2, 2);
+            }
         }
 
-        System.out.println("International Component for Unicode for Java " + icuApiVer);
+
+        System.out.println("International Components for Unicode for Java " + icuApiVer);
 
         System.out.println("");
         System.out.println("Implementation Version: " + ICU_VERSION.getVersionString(2, 4));

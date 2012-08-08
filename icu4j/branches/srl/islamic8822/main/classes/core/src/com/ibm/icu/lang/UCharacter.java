@@ -1025,10 +1025,35 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
         /** @stable ICU 4.6 */
         public static final int CJK_UNIFIED_IDEOGRAPHS_EXTENSION_D_ID = 209; /*[2B740]*/
 
+        /* New blocks in Unicode 6.1 */
+
+        /** @stable ICU 49 */
+        public static final int ARABIC_EXTENDED_A_ID = 210; /*[08A0]*/
+        /** @stable ICU 49 */
+        public static final int ARABIC_MATHEMATICAL_ALPHABETIC_SYMBOLS_ID = 211; /*[1EE00]*/
+        /** @stable ICU 49 */
+        public static final int CHAKMA_ID = 212; /*[11100]*/
+        /** @stable ICU 49 */
+        public static final int MEETEI_MAYEK_EXTENSIONS_ID = 213; /*[AAE0]*/
+        /** @stable ICU 49 */
+        public static final int MEROITIC_CURSIVE_ID = 214; /*[109A0]*/
+        /** @stable ICU 49 */
+        public static final int MEROITIC_HIEROGLYPHS_ID = 215; /*[10980]*/
+        /** @stable ICU 49 */
+        public static final int MIAO_ID = 216; /*[16F00]*/
+        /** @stable ICU 49 */
+        public static final int SHARADA_ID = 217; /*[11180]*/
+        /** @stable ICU 49 */
+        public static final int SORA_SOMPENG_ID = 218; /*[110D0]*/
+        /** @stable ICU 49 */
+        public static final int SUNDANESE_SUPPLEMENT_ID = 219; /*[1CC0]*/
+        /** @stable ICU 49 */
+        public static final int TAKRI_ID = 220; /*[11680]*/
+
         /**
          * @stable ICU 2.4
          */
-        public static final int COUNT = 210;
+        public static final int COUNT = 221;
 
         // blocks objects ---------------------------------------------------
 
@@ -2112,6 +2137,38 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
             new UnicodeBlock("CJK_UNIFIED_IDEOGRAPHS_EXTENSION_D",
                              CJK_UNIFIED_IDEOGRAPHS_EXTENSION_D_ID); /*[2B740]*/
 
+        /* New blocks in Unicode 6.1 */
+
+        /** @stable ICU 49 */
+        public static final UnicodeBlock ARABIC_EXTENDED_A =
+            new UnicodeBlock("ARABIC_EXTENDED_A", ARABIC_EXTENDED_A_ID); /*[08A0]*/
+        /** @stable ICU 49 */
+        public static final UnicodeBlock ARABIC_MATHEMATICAL_ALPHABETIC_SYMBOLS =
+            new UnicodeBlock("ARABIC_MATHEMATICAL_ALPHABETIC_SYMBOLS", ARABIC_MATHEMATICAL_ALPHABETIC_SYMBOLS_ID); /*[1EE00]*/
+        /** @stable ICU 49 */
+        public static final UnicodeBlock CHAKMA = new UnicodeBlock("CHAKMA", CHAKMA_ID); /*[11100]*/
+        /** @stable ICU 49 */
+        public static final UnicodeBlock MEETEI_MAYEK_EXTENSIONS =
+            new UnicodeBlock("MEETEI_MAYEK_EXTENSIONS", MEETEI_MAYEK_EXTENSIONS_ID); /*[AAE0]*/
+        /** @stable ICU 49 */
+        public static final UnicodeBlock MEROITIC_CURSIVE =
+            new UnicodeBlock("MEROITIC_CURSIVE", MEROITIC_CURSIVE_ID); /*[109A0]*/
+        /** @stable ICU 49 */
+        public static final UnicodeBlock MEROITIC_HIEROGLYPHS =
+            new UnicodeBlock("MEROITIC_HIEROGLYPHS", MEROITIC_HIEROGLYPHS_ID); /*[10980]*/
+        /** @stable ICU 49 */
+        public static final UnicodeBlock MIAO = new UnicodeBlock("MIAO", MIAO_ID); /*[16F00]*/
+        /** @stable ICU 49 */
+        public static final UnicodeBlock SHARADA = new UnicodeBlock("SHARADA", SHARADA_ID); /*[11180]*/
+        /** @stable ICU 49 */
+        public static final UnicodeBlock SORA_SOMPENG =
+            new UnicodeBlock("SORA_SOMPENG", SORA_SOMPENG_ID); /*[110D0]*/
+        /** @stable ICU 49 */
+        public static final UnicodeBlock SUNDANESE_SUPPLEMENT =
+            new UnicodeBlock("SUNDANESE_SUPPLEMENT", SUNDANESE_SUPPLEMENT_ID); /*[1CC0]*/
+        /** @stable ICU 49 */
+        public static final UnicodeBlock TAKRI = new UnicodeBlock("TAKRI", TAKRI_ID); /*[11680]*/
+
         /**
          * @stable ICU 2.4
          */
@@ -2637,10 +2694,12 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
         public static final int FARSI_YEH = 55;
         /** @stable ICU 4.4 */
         public static final int NYA = 56;
+        /** @stable ICU 49 */
+        public static final int ROHINGYA_YEH = 57;
         /**
          * @stable ICU 2.4
          */
-        public static final int COUNT = 57;
+        public static final int COUNT = 58;
     }
 
     /**
@@ -2968,50 +3027,44 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
          * @stable ICU 2.4
          */
         public static final int ZWSPACE = 28;
-
         /**
          * @stable ICU 2.6
          */
-        public static final int NEXT_LINE = 29;       /*[NL]*/
-
-        /* from here on: new in Unicode 4/ICU 2.6 */
-
+        public static final int NEXT_LINE = 29;  /*[NL]*/ /* from here on: new in Unicode 4/ICU 2.6 */
         /**
          * @stable ICU 2.6
          */
-        public static final int  WORD_JOINER = 30;      /*[WJ]*/
-
-        /* from here on: new in Unicode 4.1/ICU 3.4 */
-
+        public static final int WORD_JOINER = 30;      /*[WJ]*/
         /**
          * @stable ICU 3.4
          */
-        public static final int  H2 = 31;
+        public static final int H2 = 31;  /* from here on: new in Unicode 4.1/ICU 3.4 */
         /**
          * @stable ICU 3.4
          */
-        public static final int  H3 = 32;
+        public static final int H3 = 32;
         /**
          * @stable ICU 3.4
          */
-        public static final int  JL = 33;
+        public static final int JL = 33;
         /**
          * @stable ICU 3.4
          */
-        public static final int  JT = 34;
+        public static final int JT = 34;
         /**
          * @stable ICU 3.4
          */
-        public static final int  JV = 35;
+        public static final int JV = 35;
         /** @stable ICU 4.4 */
-        public static final int  CLOSE_PARENTHESIS = 36; /*[CP]*/
-
-        /* new in Unicode 5.2/ICU 4.4 */
-
+        public static final int CLOSE_PARENTHESIS = 36; /*[CP]*/ /* new in Unicode 5.2/ICU 4.4 */
+        /** @stable ICU 49 */
+        public static final int CONDITIONAL_JAPANESE_STARTER = 37;  /*[CJ]*/ /* new in Unicode 6.1/ICU 49 */
+        /** @stable ICU 49 */
+        public static final int HEBREW_LETTER = 38;  /*[HL]*/ /* new in Unicode 6.1/ICU 49 */
         /**
          * @stable ICU 2.4
          */
-        public static final int COUNT = 37;
+        public static final int COUNT = 39;
     }
 
     /**
@@ -3249,7 +3302,8 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
      * <p>A "double" return type is necessary because some numeric values are
      * fractions, negative, or too large for int.</p>
      * <p>For characters without any numeric values in the Unicode Character
-     * Database, this function will return NO_NUMERIC_VALUE.</p>
+     * Database, this function will return NO_NUMERIC_VALUE.
+     * Note: This is different from the Unicode Standard which specifies NaN as the default value.</p>
      * <p><em>API Change:</em> In release 2.2 and prior, this API has a
      * return type int and returns -1 when the argument ch does not have a
      * corresponding numeric value. This has been changed to synch with ICU4C
@@ -3996,20 +4050,15 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
     }
 
     /**
-     * {@icu} Returns the earlier version 1.0 Unicode name of the argument code
-     * point, or null if the character is unassigned or outside the range
-     * UCharacter.MIN_VALUE and UCharacter.MAX_VALUE or does not have a name.
-     * <br>
-     * Note calling any methods related to code point names, e.g. get*Name*()
-     * incurs a one-time initialisation cost to construct the name tables.
+     * {@icu} Returns null.
+     * Used to return the Unicode_1_Name property value which was of little practical value.
      * @param ch the code point for which to get the name
-     * @return version 1.0 Unicode name
-     * @stable ICU 2.1
+     * @return null
+     * @deprecated ICU 49
      */
     public static String getName1_0(int ch)
     {
-        return UCharacterName.INSTANCE.getName(ch,
-                             UCharacterNameChoice.UNICODE_10_CHAR_NAME);
+        return null;
     }
 
     /**
@@ -4022,7 +4071,7 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
      * <li> Most current Unicode name if there is any
      * <li> Unicode 1.0 name if there is any
      * <li> Extended name in the form of
-     *      "<codepoint_type-codepoint_hex_digits>". E.g. <noncharacter-fffe>
+     *      "&lt;codepoint_type-codepoint_hex_digits&gt;". E.g., &lt;noncharacter-fffe&gt;
      * </ul>
      * Note calling any methods related to code point names, e.g. get*Name*()
      * incurs a one-time initialisation cost to construct the name tables.
@@ -4051,28 +4100,18 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
     }
 
     /**
-     * {@icu} Returns the ISO 10646 comment for a character.
-     * The ISO 10646 comment is an informative field in the Unicode Character
-     * Database (UnicodeData.txt field 11) and is from the ISO 10646 names list.
-     *
-     * Note: Unicode 5.2 removes all ISO comment data, resulting in empty strings
-     * returned for all characters.
+     * {@icu} Returns null.
+     * Used to return the ISO 10646 comment for a character.
+     * The Unicode ISO_Comment property is deprecated and has no values.
      *
      * @param ch The code point for which to get the ISO comment.
      *           It must be the case that {@code 0 <= ch <= 0x10ffff}.
-     * @return The ISO comment, or null if there is no comment for this
-     *         character.
-     * @stable ICU 2.4
+     * @return null
+     * @deprecated ICU 49
      */
     public static String getISOComment(int ch)
     {
-        if (ch < UCharacter.MIN_VALUE || ch > UCharacter.MAX_VALUE) {
-            return null;
-        }
-
-        String result = UCharacterName.INSTANCE.getGroupName(ch,
-                                           UCharacterNameChoice.ISO_COMMENT_);
-        return result;
+        return null;
     }
 
     /**
@@ -4091,18 +4130,17 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
     }
 
     /**
-     * {@icu} <p>Find a Unicode character by its version 1.0 Unicode name and return
-     * its code point value. All Unicode names are in uppercase.</p>
-     * Note calling any methods related to code point names, e.g. get*Name*()
-     * incurs a one-time initialisation cost to construct the name tables.
-     * @param name Unicode 1.0 code point name whose code point is to
+     * {@icu} Returns -1.
+     * <p>Used to find a Unicode character by its version 1.0 Unicode name and return
+     * its code point value.</p>
+     * @param name Unicode 1.0 code point name whose code point is to be
      *             returned
-     * @return code point or -1 if name is not found
-     * @stable ICU 2.1
+     * @return -1
+     * @deprecated ICU 49
+     * @see #getName1_0(int)
      */
     public static int getCharFromName1_0(String name){
-        return UCharacterName.INSTANCE.getCharFromName(
-                     UCharacterNameChoice.UNICODE_10_CHAR_NAME, name);
+        return -1;
     }
 
     /**
@@ -4956,20 +4994,27 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
     }
 
     /**
-     * {@icu} Return numeric value of Han code points.
-     * <br> This returns the value of Han 'numeric' code points,
+     * {@icu} Returns the numeric value of a Han character.
+     *
+     * <p>This returns the value of Han 'numeric' code points,
      * including those for zero, ten, hundred, thousand, ten thousand,
      * and hundred million.
      * This includes both the standard and 'checkwriting'
      * characters, the 'big circle' zero character, and the standard
      * zero character.
+     *
+     * <p>Note: The Unicode Standard has numeric values for more
+     * Han characters recognized by this method
+     * (see {@link #getNumericValue(int)} and the UCD file DerivedNumericValues.txt),
+     * and a {@link com.ibm.icu.text.NumberFormat} can be used with
+     * a Chinese {@link com.ibm.icu.text.NumberingSystem}.
+     *
      * @param ch code point to query
      * @return value if it is a Han 'numeric character,' otherwise return -1.
      * @stable ICU 2.4
      */
     public static int getHanNumericValue(int ch)
     {
-        // TODO: Are these all covered by Unicode numeric value data?
         switch(ch)
         {
         case IDEOGRAPHIC_NUMBER_ZERO_ :
@@ -5102,27 +5147,20 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
     }
 
     /**
-     * {@icu} <p>Returns an iterator for character names, iterating over codepoints.</p>
-     * <p>This API only gets the iterator for the older 1.0 Unicode names.
-     * For modern, most up-to-date Unicode names use getNameIterator() or
-     * for extended names use getExtendedNameIterator().</p>
-     * Example of use:<br>
-     * <pre>
-     * ValueIterator iterator = UCharacter.get1_0NameIterator();
-     * ValueIterator.Element element = new ValueIterator.Element();
-     * while (iterator.next(element)) {
-     *     System.out.println("Codepoint \\u" +
-     *                        Integer.toHexString(element.codepoint) +
-     *                        " has the name " + (String)element.value);
-     * }
-     * </pre>
-     * <p>The maximal range which the name iterator iterates is from
-     * @return an iterator
-     * @stable ICU 2.6
+     * {@icu} Returns an empty iterator.
+     * <p>Used to return an iterator for the older 1.0 Unicode character names, iterating over codepoints.</p>
+     * @return an empty iterator
+     * @deprecated ICU 49
+     * @see #getName1_0(int)
      */
     public static ValueIterator getName1_0Iterator(){
-        return new UCharacterNameIterator(UCharacterName.INSTANCE,
-                      UCharacterNameChoice.UNICODE_10_CHAR_NAME);
+        return new DummyValueIterator();
+    }
+
+    private static final class DummyValueIterator implements ValueIterator {
+        public boolean next(Element element) { return false; }
+        public void reset() {}
+        public void setRange(int start, int limit) {}
     }
 
     /**
@@ -5994,7 +6032,7 @@ public final class UCharacter implements ECharacterCategory, ECharacterDirection
     /**
      * CJK Ideograph, Fourth code point
      */
-    private static final int CJK_IDEOGRAPH_FOURTH_ = 0x56d8;
+    private static final int CJK_IDEOGRAPH_FOURTH_ = 0x56db;
 
     /**
      * CJK Ideograph, FIFTH code point

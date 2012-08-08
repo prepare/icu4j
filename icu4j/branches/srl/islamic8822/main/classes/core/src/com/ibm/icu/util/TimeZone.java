@@ -1,7 +1,7 @@
 /*
  * @(#)TimeZone.java    1.51 00/01/19
  *
- * Copyright (C) 1996-2011, International Business Machines
+ * Copyright (C) 1996-2012, International Business Machines
  * Corporation and others.  All Rights Reserved.
  */
 
@@ -48,7 +48,8 @@ import com.ibm.icu.util.ULocale.Category;
  * </pre>
  * </blockquote>
  * You can use the {@link #getAvailableIDs()} method to iterate through
- * all the supported time zone IDs. You can then choose a
+ * all the supported time zone IDs, or getCanonicalID method to check
+ * if a time zone ID is supported or not. You can then choose a
  * supported ID to get a <code>TimeZone</code>.
  * If the time zone you want is not represented by one of the
  * supported IDs, then you can create a custom time zone ID with
@@ -62,8 +63,13 @@ import com.ibm.icu.util.ULocale.Category;
  *
  * For example, you might specify GMT+14:00 as a custom
  * time zone ID.  The <code>TimeZone</code> that is returned
- * when you specify a custom time zone ID does not include
- * daylight savings time.
+ * when you specify a custom time zone ID uses the specified
+ * offset from GMT(=UTC) and does not observe daylight saving
+ * time. For example, you might specify GMT+14:00 as a custom
+ * time zone ID to create a TimeZone representing 14 hours ahead
+ * of GMT (with no daylight saving time). In addition, 
+ * <code>getCanonicalID</code> can also be used to
+ * normalize a custom time zone ID.
  *
  * <p>For compatibility with JDK 1.1.x, some other three-letter time zone IDs
  * (such as "PST", "CTT", "AST") are also supported. However, <strong>their
@@ -104,7 +110,7 @@ import com.ibm.icu.util.ULocale.Category;
  * @author       Mark Davis, David Goldsmith, Chen-Lieh Huang, Alan Liu
  * @stable ICU 2.0
  */
-abstract public class TimeZone implements Serializable, Cloneable {
+abstract public class TimeZone implements Serializable, Cloneable, Freezable<TimeZone> {
     /**
      * {@icu} A logger for TimeZone. Will be null if logging is not on by way of system
      * property: "icu4j.debug.logging"
@@ -122,6 +128,19 @@ abstract public class TimeZone implements Serializable, Cloneable {
      * @stable ICU 2.8
      */
     public TimeZone() {
+    }
+
+    /**
+     * Constructing a TimeZone with the given time zone ID.
+     * @param ID the time zone ID.
+     * @internal
+     * @deprecated This API is ICU internal only.
+     */
+    protected TimeZone(String ID) {
+        if (ID == null) {
+            throw new NullPointerException();
+        }
+        this.ID = ID;
     }
 
     /**
@@ -208,36 +227,61 @@ abstract public class TimeZone implements Serializable, Cloneable {
      * {@icu} The time zone ID reserved for unknown time zone.
      * @see #getTimeZone(String)
      * 
-     * @draft ICU 4.8
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 4.8
      */
     public static final String UNKNOWN_ZONE_ID = "Etc/Unknown";
+
+    /**
+     * The canonical ID for GMT(UTC) time zone.
+     */
+    static final String GMT_ZONE_ID = "Etc/GMT";
+
+    /**
+     * {@icu} The immutable (frozen) "unknown" time zone.
+     * It behaves like the GMT/UTC time zone but has the UNKNOWN_ZONE_ID = "Etc/Unknown".
+     * {@link TimeZone#getTimeZone(String)} returns a mutable clone of this
+     * time zone if the input ID is not recognized.
+     *
+     * @see #UNKNOWN_ZONE_ID
+     * @see #getTimeZone(String)
+     * 
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
+     */
+    public static final TimeZone UNKNOWN_ZONE = new SimpleTimeZone(0, UNKNOWN_ZONE_ID).freeze();
+
+    /**
+     * {@icu} The immutable GMT (=UTC) time zone. Its ID is "Etc/GMT".
+     *
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
+     */
+    public static final TimeZone GMT_ZONE = new SimpleTimeZone(0, GMT_ZONE_ID).freeze();
 
     /**
      * {@icu} System time zone type constants used by filtering zones in
      * {@link TimeZone#getAvailableIDs(SystemTimeZoneType, String, Integer)}
      *
-     * @draft ICU 4.8
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 4.8
      */
     public enum SystemTimeZoneType {
         /**
          * Any system zones.
-         * @draft ICU 4.8
+         * @stable ICU 4.8
          * @provisional This API might change or be removed in a future release.
          */
         ANY,
 
         /**
          * Canonical system zones.
-         * @draft ICU 4.8
+         * @stable ICU 4.8
          * @provisional This API might change or be removed in a future release.
          */
         CANONICAL,
 
         /**
          * Canonical system zones associated with actual locations.
-         * @draft ICU 4.8
+         * @stable ICU 4.8
          * @provisional This API might change or be removed in a future release.
          */
         CANONICAL_LOCATION,
@@ -368,6 +412,9 @@ abstract public class TimeZone implements Serializable, Cloneable {
     public void setID(String ID) {
         if (ID == null) {
             throw new NullPointerException();
+        }
+        if (isFrozen()) {
+            throw new UnsupportedOperationException("Attempt to modify a frozen TimeZone instance.");
         }
         this.ID = ID;
     }
@@ -603,6 +650,35 @@ abstract public class TimeZone implements Serializable, Cloneable {
     abstract public boolean useDaylightTime();
 
     /**
+     * Queries if this time zone is in daylight saving time or will observe
+     * daylight saving time at any future time.
+     * <p>The default implementation in this class returns <code>true</code> if {@link #useDaylightTime()}
+     * or {@link #inDaylightTime(Date) inDaylightTime(new Date())} returns <code>true</code>.
+     * <p>
+     * <strong>Note:</strong> This method was added for JDK compatibility support.
+     * The JDK's <code>useDaylightTime()</code> only checks the last known rule(s), therefore
+     * it may return false even the zone observes daylight saving time currently. JDK added
+     * <code>observesDaylightTime()</code> to resolve the issue. In ICU, {@link #useDaylightTime()}
+     * works differently. The ICU implementation checks if the zone uses daylight saving time
+     * in the current calendar year. Therefore, it will never return <code>false</code> if
+     * daylight saving time is currently used.
+     * <p>
+     * ICU's TimeZone subclass implementations override this method to support the same behavior
+     * with JDK's <code>observesDaylightSavingTime()</code>. Unlike {@link #useDaylightTime()},
+     * the implementation does not take past daylight saving time into account, so
+     * that this method may return <code>false</code> even when {@link #useDaylightTime()} returns
+     * <code>true</code>.
+     * 
+     * @return <code>true</code> if this time zone is in daylight saving time or will observe
+     * daylight saving time at any future time.
+     * @see #useDaylightTime
+     * @stable ICU 49
+     */
+    public boolean observesDaylightTime() {
+        return useDaylightTime() || inDaylightTime(new Date());
+    }
+
+    /**
      * Queries if the given date is in daylight savings time in
      * this time zone.
      * @param date the given Date.
@@ -619,13 +695,33 @@ abstract public class TimeZone implements Serializable, Cloneable {
      * or a custom ID such as "GMT-8:00". Note that the support of abbreviations,
      * such as "PST", is for JDK 1.1.x compatibility only and full names should be used.
      *
-     * @return the specified <code>TimeZone</code>, or the GMT zone with ID "Etc/Unknown"
-     * if the given ID cannot be understood.
-     * @see #UNKNOWN_ZONE_ID
+     * @return the specified <code>TimeZone</code>, or a mutable clone of the UNKNOWN_ZONE
+     * if the given ID cannot be understood or if the given ID is "Etc/Unknown".
+     * @see #UNKNOWN_ZONE
      * @stable ICU 2.0
      */
-    public static synchronized TimeZone getTimeZone(String ID) {
-        return getTimeZone(ID, TZ_IMPL);
+    public static TimeZone getTimeZone(String ID) {
+        return getTimeZone(ID, TZ_IMPL, false);
+    }
+
+    /**
+     * Gets the <code>TimeZone</code> for the given ID. The instance of <code>TimeZone</code>
+     * returned by this method is immutable. Any methods mutate the instance({@link #setID(String)},
+     * {@link #setRawOffset(int)}) will throw <code>UnsupportedOperationException</code> upon its
+     * invocation.
+     *
+     * @param ID the ID for a <code>TimeZone</code>, such as "America/Los_Angeles",
+     * or a custom ID such as "GMT-8:00". Note that the support of abbreviations,
+     * such as "PST", is for JDK 1.1.x compatibility only and full names should be used.
+     *
+     * @return the specified <code>TimeZone</code>, or the UNKNOWN_ZONE
+     * if the given ID cannot be understood.
+     * @see #UNKNOWN_ZONE
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
+     */
+    public static TimeZone getFrozenTimeZone(String ID) {
+        return getTimeZone(ID, TZ_IMPL, true);
     }
 
     /**
@@ -635,14 +731,30 @@ abstract public class TimeZone implements Serializable, Cloneable {
      * "PST", is for JDK 1.1.x compatibility only and full names should be used.
      * @param type Time zone type, either <code>TIMEZONE_ICU</code> or
      * <code>TIMEZONE_JDK</code>.
-     * @return the specified <code>TimeZone</code>, or the GMT zone if the given ID
-     * cannot be understood.
+     * @return the specified <code>TimeZone</code>, or a mutable clone of the UNKNOWN_ZONE if the given ID
+     * cannot be understood or if the given ID is "Etc/Unknown".
+     * @see #UNKNOWN_ZONE
      * @stable ICU 4.0
      */
-    public static synchronized TimeZone getTimeZone(String ID, int type) {
+    public static TimeZone getTimeZone(String ID, int type) {
+        return getTimeZone(ID, type, false);
+    }
+
+    /**
+     * Gets the <code>TimeZone</code> for the given ID and the timezone type.
+     * @param ID time zone ID
+     * @param type time zone implementation type, TIMEZONE_JDK or TIMEZONE_ICU 
+     * @param frozen specify if the returned object can be frozen
+     * @return the specified <code>TimeZone</code> or UNKNOWN_ZONE if the given ID
+     * cannot be understood.
+     */
+    private static synchronized TimeZone getTimeZone(String ID, int type, boolean frozen) {
         TimeZone result;
         if (type == TIMEZONE_JDK) {
-            result = new JavaTimeZone(ID);
+            result = JavaTimeZone.createTimeZone(ID);
+            if (result != null) {
+                return frozen ? result.freeze() : result;
+            }
         } else {
             /* We first try to lookup the zone ID in our system list.  If this
              * fails, we try to parse it as a custom string GMT[+-]HH:mm.  If
@@ -656,20 +768,22 @@ abstract public class TimeZone implements Serializable, Cloneable {
                 throw new NullPointerException();
             }
             result = ZoneMeta.getSystemTimeZone(ID);
-
-            if (result == null) {
-                result = ZoneMeta.getCustomTimeZone(ID);
-            }
-            if (result == null) {
-                /* Log that timezone is using GMT if logging is on. */
-                if (TimeZoneLogger != null && TimeZoneLogger.isLoggingOn()) {
-                    TimeZoneLogger.warning(
-                        "\"" +ID + "\" is a bogus id so timezone is falling back to Etc/Unknown(GMT).");
-                }
-                result = new SimpleTimeZone(0, UNKNOWN_ZONE_ID);
-            }
         }
-        return result;
+
+        if (result == null) {
+            result = ZoneMeta.getCustomTimeZone(ID);
+        }
+
+        if (result == null) {
+            /* Log that timezone is using GMT if logging is on. */
+            if (TimeZoneLogger != null && TimeZoneLogger.isLoggingOn()) {
+                TimeZoneLogger.warning(
+                    "\"" +ID + "\" is a bogus id so timezone is falling back to Etc/Unknown(GMT).");
+            }
+            result = UNKNOWN_ZONE;
+        }
+
+        return frozen ? result : result.cloneAsThawed();
     }
 
     /**
@@ -707,8 +821,7 @@ abstract public class TimeZone implements Serializable, Cloneable {
      * @return an immutable set of system time zone IDs.
      * @see SystemTimeZoneType
      * 
-     * @draft ICU 4.8
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 4.8
      */ 
     public static Set<String> getAvailableIDs(SystemTimeZoneType zoneType,
             String region, Integer rawOffset) {
@@ -819,10 +932,10 @@ abstract public class TimeZone implements Serializable, Cloneable {
                 defaultZone = new JavaTimeZone();
             } else {
                 java.util.TimeZone temp = java.util.TimeZone.getDefault();
-                defaultZone = getTimeZone(temp.getID());
+                defaultZone = getFrozenTimeZone(temp.getID());
             }
         }
-        return (TimeZone) defaultZone.clone();
+        return defaultZone.cloneAsThawed();
     }
 
     /**
@@ -887,13 +1000,10 @@ abstract public class TimeZone implements Serializable, Cloneable {
      * @stable ICU 2.0
      */
     public Object clone() {
-        try {
-            TimeZone other = (TimeZone) super.clone();
-            other.ID = ID;
-            return other;
-        } catch (CloneNotSupportedException e) {
-            throw new IllegalStateException();
+        if (isFrozen()) {
+            return this;
         }
+        return cloneAsThawed();
     }
 
     /**
@@ -994,8 +1104,7 @@ abstract public class TimeZone implements Serializable, Cloneable {
      * @throws IllegalArgumentException if <code>id</code> is not a known system ID. 
      * @see #getAvailableIDs(String) 
      * 
-     * @draft ICU 4.8
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 4.8
      */ 
     public static String getRegion(String id) {
         String region = null;
@@ -1009,6 +1118,40 @@ abstract public class TimeZone implements Serializable, Cloneable {
             throw new IllegalArgumentException("Unknown system zone id: " + id);
         }
         return region;
+    }
+
+    // Freezable stuffs
+
+    /**
+     * {@inheritDoc}
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
+     */
+    public boolean isFrozen() {
+        return false;
+    }
+
+    /**
+     * {@inheritDoc}
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
+     */
+    public TimeZone freeze() {
+        throw new UnsupportedOperationException("Needs to be implemented by the subclass.");
+    }
+
+    /**
+     * {@inheritDoc}
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
+     */
+    public TimeZone cloneAsThawed() {
+        try {
+            TimeZone other = (TimeZone) super.clone();
+            return other;
+        } catch (CloneNotSupportedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     // =======================privates===============================

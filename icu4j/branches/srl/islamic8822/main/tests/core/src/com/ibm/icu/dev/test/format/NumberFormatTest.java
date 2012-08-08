@@ -1,7 +1,7 @@
 //##header
 /*
  *******************************************************************************
- * Copyright (C) 2001-2011, International Business Machines Corporation and    *
+ * Copyright (C) 2001-2012, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -14,6 +14,7 @@
 package com.ibm.icu.dev.test.format;
 
 import java.math.BigInteger;
+import java.text.AttributedCharacterIterator;
 import java.text.FieldPosition;
 import java.text.ParseException;
 import java.text.ParsePosition;
@@ -1352,31 +1353,48 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
      * Test alternate numbering systems
      */
     public void TestNumberingSystems() {
+        class TestNumberingSystemItem {
+            private String localeName;
+            private double value;
+            private boolean isRBNF;
+            private String expectedResult;
+ 
+            TestNumberingSystemItem(String loc, double val, boolean rbnf, String exp) {
+                localeName  = loc;
+                value = val;
+                isRBNF = rbnf;
+                expectedResult = exp;
+            }
+       }        
 
-        ULocale loc1 = new ULocale("en_US@numbers=thai");
-        ULocale loc2 = new ULocale("en_US@numbers=hebr");
-        ULocale loc3 = new ULocale("en_US@numbers=arabext");
-        ULocale loc4 = new ULocale("hi_IN@numbers=foobar");
-        ULocale loc5 = new ULocale("ar_EG"); // ar_EG uses arab numbering system
-        ULocale loc6 = new ULocale("ar_MA"); // ar_MA users latn numbering system
-        ULocale loc7 = new ULocale("en_US@numbers=hanidec"); // hanidec is a non-contiguous ns
+        final TestNumberingSystemItem[] DATA = { 
+                new TestNumberingSystemItem( "en_US@numbers=thai",        1234.567, false, "\u0e51,\u0e52\u0e53\u0e54.\u0e55\u0e56\u0e57" ),
+                new TestNumberingSystemItem( "en_US@numbers=thai",        1234.567, false, "\u0E51,\u0E52\u0E53\u0E54.\u0E55\u0E56\u0E57" ),
+                new TestNumberingSystemItem( "en_US@numbers=hebr",        5678.0,   true,  "\u05D4\u05F3\u05EA\u05E8\u05E2\u05F4\u05D7" ),
+                new TestNumberingSystemItem( "en_US@numbers=arabext",     1234.567, false, "\u06F1\u066c\u06F2\u06F3\u06F4\u066b\u06F5\u06F6\u06F7" ),
+                new TestNumberingSystemItem( "de_DE@numbers=foobar",      1234.567, false, "1.234,567" ),
+                new TestNumberingSystemItem( "ar_EG",                     1234.567, false, "\u0661\u0662\u0663\u0664\u066b\u0665\u0666\u0667" ),
+                new TestNumberingSystemItem( "th_TH@numbers=traditional", 1234.567, false, "\u0E51,\u0E52\u0E53\u0E54.\u0E55\u0E56\u0E57" ), // fall back to native per TR35
+                new TestNumberingSystemItem( "ar_MA",                     1234.567, false, "1.234,567" ),
+                new TestNumberingSystemItem( "en_US@numbers=hanidec",     1234.567, false, "\u4e00,\u4e8c\u4e09\u56db.\u4e94\u516d\u4e03" ),
+                new TestNumberingSystemItem( "ta_IN@numbers=native",      1234.567, false, "\u0BE7,\u0BE8\u0BE9\u0BEA.\u0BEB\u0BEC\u0BED" ),
+                new TestNumberingSystemItem( "ta_IN@numbers=traditional", 1235.0,   true,  "\u0BF2\u0BE8\u0BF1\u0BE9\u0BF0\u0BEB" ),
+                new TestNumberingSystemItem( "ta_IN@numbers=finance",     1234.567, false, "1,234.567" ), // fall back to default per TR35
+                new TestNumberingSystemItem( "zh_TW@numbers=native",      1234.567, false, "\u4e00,\u4e8c\u4e09\u56db.\u4e94\u516d\u4e03" ),
+                new TestNumberingSystemItem( "zh_TW@numbers=traditional", 1234.567, true,  "\u4E00\u5343\u4E8C\u767E\u4E09\u5341\u56DB\u9EDE\u4E94\u516D\u4E03" ),
+                new TestNumberingSystemItem( "zh_TW@numbers=finance",     1234.567, true,  "\u58F9\u4EDF\u8CB3\u4F70\u53C4\u62FE\u8086\u9EDE\u4F0D\u9678\u67D2" )
+        };
         
-        NumberFormat fmt1 = NumberFormat.getInstance(loc1);
-        NumberFormat fmt2 = NumberFormat.getInstance(loc2);
-        NumberFormat fmt3 = NumberFormat.getInstance(loc3);
-        NumberFormat fmt4 = NumberFormat.getInstance(loc4);
-        NumberFormat fmt5 = NumberFormat.getInstance(loc5);
-        NumberFormat fmt6 = NumberFormat.getInstance(loc6);
-        NumberFormat fmt7 = NumberFormat.getInstance(loc7);
         
-        expect2(fmt1,1234.567,"\u0e51,\u0e52\u0e53\u0e54.\u0e55\u0e56\u0e57");
-        expect3(fmt2,5678.0,"\u05d4\u05f3\u05ea\u05e8\u05e2\u05f4\u05d7");
-        expect2(fmt3,1234.567,"\u06f1\u066c\u06f2\u06f3\u06f4\u066b\u06f5\u06f6\u06f7");
-        expect2(fmt4,1234.567,"\u0967,\u0968\u0969\u096a.\u096b\u096c\u096d");
-        expect2(fmt5,1234.567,"\u0661\u066c\u0662\u0663\u0664\u066b\u0665\u0666\u0667");
-        expect2(fmt6,1234.567,"1.234,567");
-        expect2(fmt7,1234.567, "\u4e00,\u4e8c\u4e09\u56db.\u4e94\u516d\u4e03");
-
+        for (TestNumberingSystemItem item : DATA) {
+            ULocale loc = new ULocale(item.localeName);
+            NumberFormat fmt = NumberFormat.getInstance(loc);
+            if (item.isRBNF) {
+                expect3(fmt,item.value,item.expectedResult);
+            } else {
+                expect2(fmt,item.value,item.expectedResult);               
+            }
+        }
     }
 
     public void Test6816() {
@@ -1736,6 +1754,50 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             }
         }
     }
+    
+    public void TestRoundingPattern() {
+        class TestRoundingPatternItem {
+            String     pattern;
+            double     roundingIncrement;
+            double     testCase;
+            String     expected;
+            
+            TestRoundingPatternItem(String pattern, double roundingIncrement, double testCase, String expected) {
+                this.pattern = pattern;
+                this.roundingIncrement = roundingIncrement;
+                this.testCase = testCase;
+                this.expected = expected;
+            }
+        };
+        
+        TestRoundingPatternItem []tests = {
+                new TestRoundingPatternItem("##0.65", 0.65, 1.234, "1.30"),
+                new TestRoundingPatternItem("#50", 50.0, 1230, "1250")
+        };
+        
+        DecimalFormat df = (DecimalFormat) com.ibm.icu.text.NumberFormat.getInstance(ULocale.ENGLISH);
+        String result;
+        BigDecimal bd;
+        for (int i = 0; i < tests.length; i++) {
+            df.applyPattern(tests[i].pattern);
+            
+            result = df.format(tests[i].testCase);
+            
+            if (!tests[i].expected.equals(result)) {
+                errln("String Pattern Rounding Test Failed: Pattern: \"" + tests[i].pattern + "\" Number: " + tests[i].testCase + " - Got: " + result + " Expected: " + tests[i].expected);
+            }
+            
+            bd = new BigDecimal(tests[i].roundingIncrement);
+            
+            df.setRoundingIncrement(bd);
+            
+            result = df.format(tests[i].testCase);
+            
+            if (!tests[i].expected.equals(result)) {
+                errln("BigDecimal Rounding Test Failed: Pattern: \"" + tests[i].pattern + "\" Number: " + tests[i].testCase + " - Got: " + result + " Expected: " + tests[i].expected);
+            }
+        }
+    }
 
     public void TestBigDecimalRounding() {
 	String figure = "50.000000004"; 
@@ -1889,18 +1951,18 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                     StringBuffer saw2 = new StringBuffer();
                     fmt.format(n2, saw2, pos);
                     if (!saw2.toString().equals(exp)) {
-                        errln("FAIL \"" + exp + "\" => " + n2 +
-                              " => \"" + saw2 + '"');
+                        errln("expect() format test rt, locale " + fmt.getLocale(ULocale.VALID_LOCALE) +
+                              ", FAIL \"" + exp + "\" => " + n2 + " => \"" + saw2 + '"');
                     }
                 } catch (ParseException e) {
-                    errln(e.getMessage());
+                    errln("expect() format test rt, locale " + fmt.getLocale(ULocale.VALID_LOCALE) +
+                          ", " + e.getMessage());
                     return;
                 }
             }
         } else {
-            errln("FAIL " + n + " x " +
-                  pat + " = \"" +
-                  saw + "\", expected \"" + exp + "\"");
+            errln("expect() format test, locale " + fmt.getLocale(ULocale.VALID_LOCALE) +
+                  ", FAIL " + n + " x " + pat + " = \"" + saw + "\", expected \"" + exp + "\"");
         }
     }
     // Format test
@@ -1920,17 +1982,18 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                     StringBuffer saw2 = new StringBuffer();
                     fmt.format(n2, saw2, pos);
                     if (!saw2.toString().equals(exp)) {
-                        errln("FAIL \"" + exp + "\" => " + n2 +
-                              " => \"" + saw2 + '"');
+                        errln("expect_rbnf() format test rt, locale " + fmt.getLocale(ULocale.VALID_LOCALE) +
+                              ", FAIL \"" + exp + "\" => " + n2 + " => \"" + saw2 + '"');
                     }
                 } catch (ParseException e) {
-                    errln(e.getMessage());
+                    errln("expect_rbnf() format test rt, locale " + fmt.getLocale(ULocale.VALID_LOCALE) +
+                          ", " + e.getMessage());
                     return;
                 }
             }
         } else {
-            errln("FAIL " + n + " = \"" +
-                  saw + "\", expected \"" + exp + "\"");
+            errln("expect_rbnf() format test, locale " + fmt.getLocale(ULocale.VALID_LOCALE) +
+                  ", FAIL " + n + " = \"" + saw + "\", expected \"" + exp + "\"");
         }
     }
 
@@ -1966,9 +2029,8 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                   pat + " = " +
                   num);
         } else {
-            errln("FAIL \"" + str + "\" x " +
-                  pat + " = " +
-                  num + ", expected " + n);
+            errln("expect() parse test, locale " + fmt.getLocale(ULocale.VALID_LOCALE) +
+                  ", FAIL \"" + str + "\" x " + pat + " = " + num + ", expected " + n);
         }
     }
 
@@ -1987,8 +2049,8 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             logln("Ok   \"" + str + " = " +
                   num);
         } else {
-            errln("FAIL \"" + str + " = " +
-                  num + ", expected " + n);
+            errln("expect_rbnf() parse test, locale " + fmt.getLocale(ULocale.VALID_LOCALE) +
+                  ", FAIL \"" + str + " = " + num + ", expected " + n);
         }
     }
 
@@ -2866,6 +2928,68 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             } else {
                 errln("FAIL: 1250.75 x " + locale + " => " + s +
                       ", expected " + DATA[i+3]);
+            }
+        }
+    }
+
+    /*
+     * Test case for #9240
+     * ICU4J 49.1 DecimalFormat did not clone the internal object holding
+     * formatted text attribute information properly. Therefore, DecimalFormat
+     * created by cloning may return incorrect results or may throw an exception
+     * when formatToCharacterIterator is invoked from multiple threads.
+     */
+    public void TestFormatToCharacterIteratorThread() {
+        final int COUNT = 10;
+
+        DecimalFormat fmt1 = new DecimalFormat("#0");
+        DecimalFormat fmt2 = (DecimalFormat)fmt1.clone();
+
+        int[] res1 = new int[COUNT];
+        int[] res2 = new int[COUNT];
+
+        Thread t1 = new Thread(new FormatCharItrTestThread(fmt1, 1, res1));
+        Thread t2 = new Thread(new FormatCharItrTestThread(fmt2, 100, res2));
+
+        t1.start();
+        t2.start();
+
+        try {
+            t1.join();
+            t2.join();
+        } catch (InterruptedException e) {
+            //TODO
+        }
+
+        int val1 = res1[0];
+        int val2 = res2[0];
+
+        for (int i = 0; i < COUNT; i++) {
+            if (res1[i] != val1) {
+                errln("Inconsistent first run limit in test thread 1");
+            }
+            if (res2[i] != val2) {
+                errln("Inconsistent first run limit in test thread 2");
+            }
+        }
+    }
+
+    private static class FormatCharItrTestThread implements Runnable {
+        private NumberFormat fmt;
+        private int num;
+        private int[] result;
+
+        FormatCharItrTestThread(NumberFormat fmt, int num, int[] result) {
+            this.fmt = fmt;
+            this.num = num;
+            this.result = result;
+        }
+
+        public void run() {
+            for (int i = 0; i < result.length; i++) {
+                AttributedCharacterIterator acitr = fmt.formatToCharacterIterator(num);
+                acitr.first();
+                result[i] = acitr.getRunLimit();
             }
         }
     }

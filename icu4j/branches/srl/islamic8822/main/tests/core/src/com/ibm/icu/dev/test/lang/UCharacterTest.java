@@ -46,7 +46,7 @@ public final class UCharacterTest extends TestFmwk
     /**
     * ICU4J data version number
     */
-    private final VersionInfo VERSION_ = VersionInfo.getInstance("6.0.0.0");
+    private final VersionInfo VERSION_ = VersionInfo.getInstance("6.1.0.0");
 
     // constructor ===================================================
 
@@ -678,70 +678,36 @@ public final class UCharacterTest extends TestFmwk
         final String DIR =
             "L   R   EN  ES  ET  AN  CS  B   S   WS  ON  LRE LRO AL  RLE RLO PDF NSM BN  ";
 
-        final int LASTUNICODECHAR = 0xFFFD;
-        int ch = 0,
-            index = 0,
-            type = 0,
-            dir = 0;
-
-        Normalizer2 nfkc = Normalizer2.getInstance(null, "nfkc", Normalizer2.Mode.COMPOSE);
+        Normalizer2 nfc = Normalizer2.getNFCInstance();
+        Normalizer2 nfkc = Normalizer2.getNFKCInstance();
 
         try
         {
-            BufferedReader input = TestUtil.getDataReader(
-                                                "unicode/UnicodeData.txt");
+            BufferedReader input = TestUtil.getDataReader("unicode/UnicodeData.txt");
             int numErrors = 0;
 
-            while (ch != LASTUNICODECHAR)
-            {
+            for (;;) {
                 String s = input.readLine();
+                if(s == null) {
+                    break;
+                }
                 if(s.length()<4 || s.startsWith("#")) {
                     continue;
                 }
-                // geting the unicode character, its type and its direction
-                ch = Integer.parseInt(s.substring(0, 4), 16);
-                index = s.indexOf(';', 5);
-                String t = s.substring(index + 1, index + 3);
-                index += 4;
-                int oldindex = index;
-                index = s.indexOf(';', index);
-                int cc = Integer.parseInt(s.substring(oldindex, index));
-                oldindex = index + 1;
-                index = s.indexOf(';', oldindex);
-                String d = s.substring(oldindex, index);
+                String[] fields = s.split(";", -1);
+                assert (fields.length == 15 ) : "Number of fields is " + fields.length + ": " + s;
 
-                for (int i = 0; i < 6; i ++) {
-                    index = s.indexOf(';', index + 1);
-                    // skipping to the 11th field
-                }
-                // iso comment
-                oldindex = index + 1;
-                index = s.indexOf(';', oldindex);
-                String isocomment = s.substring(oldindex, index);
-                // uppercase
-                oldindex = index + 1;
-                index = s.indexOf(';', oldindex);
-                String upper = s.substring(oldindex, index);
-                // lowercase
-                oldindex = index + 1;
-                index = s.indexOf(';', oldindex);
-                String lower = s.substring(oldindex, index);
-                // titlecase last element
-                oldindex = index + 1;
-                String title = s.substring(oldindex);
+                int ch = Integer.parseInt(fields[0], 16);
 
-                // testing the category
-                // we override the general category of some control
-                // characters
-                type = TYPE.indexOf(t);
+                // testing the general category
+                int type = TYPE.indexOf(fields[2]);
                 if (type < 0)
                     type = 0;
                 else
                     type = (type >> 1) + 1;
                 if (UCharacter.getType(ch) != type)
                 {
-                    errln("FAIL \\u" + hex(ch) + " expected type " +
-                            type);
+                    errln("FAIL \\u" + hex(ch) + " expected type " + type);
                     break;
                 }
 
@@ -754,6 +720,7 @@ public final class UCharacterTest extends TestFmwk
                 }
 
                 // testing combining class
+                int cc = Integer.parseInt(fields[3]);
                 if (UCharacter.getCombiningClass(ch) != cc)
                 {
                     errln("FAIL \\u" + hex(ch) + " expected combining " +
@@ -768,15 +735,15 @@ public final class UCharacterTest extends TestFmwk
                 }
 
                 // testing the direction
+                String d = fields[4];
                 if (d.length() == 1)
                     d = d + "   ";
 
-                dir = DIR.indexOf(d) >> 2;
+                int dir = DIR.indexOf(d) >> 2;
                 if (UCharacter.getDirection(ch) != dir)
                 {
                     errln("FAIL \\u" + hex(ch) +
-                        " expected direction " + dir + " but got " +
-              UCharacter.getDirection(ch));
+                        " expected direction " + dir + " but got " + UCharacter.getDirection(ch));
                     break;
                 }
 
@@ -785,12 +752,92 @@ public final class UCharacterTest extends TestFmwk
                 {
                     errln("FAIL \\u" + hex(ch) +
                         " expected directionality " + bdir + " but got " +
-              UCharacter.getDirectionality(ch));
+                        UCharacter.getDirectionality(ch));
                     break;
+                }
+
+                /* get Decomposition_Type & Decomposition_Mapping, field 5 */
+                int dt;
+                if(fields[5].length()==0) {
+                    /* no decomposition, except UnicodeData.txt omits Hangul syllable decompositions */
+                    if(ch==0xac00 || ch==0xd7a3) {
+                        dt=UCharacter.DecompositionType.CANONICAL;
+                    } else {
+                        dt=UCharacter.DecompositionType.NONE;
+                    }
+                } else {
+                    d=fields[5];
+                    dt=-1;
+                    if(d.charAt(0)=='<') {
+                        int end=d.indexOf('>', 1);
+                        if(end>=0) {
+                            dt=UCharacter.getPropertyValueEnum(UProperty.DECOMPOSITION_TYPE, d.substring(1, end));
+                            while(d.charAt(++end)==' ') {}  // skip spaces
+                            d=d.substring(end);
+                        }
+                    } else {
+                        dt=UCharacter.DecompositionType.CANONICAL;
+                    }
+                }
+                String dm;
+                if(dt>UCharacter.DecompositionType.NONE) {
+                    if(ch==0xac00) {
+                        dm="\u1100\u1161";
+                    } else if(ch==0xd7a3) {
+                        dm="\ud788\u11c2";
+                    } else {
+                        String[] dmChars=d.split(" +");
+                        StringBuilder dmb=new StringBuilder(dmChars.length);
+                        for(String dmc : dmChars) {
+                            dmb.appendCodePoint(Integer.parseInt(dmc, 16));
+                        }
+                        dm=dmb.toString();
+                    }
+                } else {
+                    dm=null;
+                }
+                if(dt<0) {
+                    errln(String.format("error in UnicodeData.txt: syntax error in U+%04lX decomposition field", ch));
+                    return;
+                }
+                int i=UCharacter.getIntPropertyValue(ch, UProperty.DECOMPOSITION_TYPE);
+                assertEquals(
+                        String.format("error: u_getIntPropertyValue(U+%04x, UCHAR_DECOMPOSITION_TYPE) is wrong", ch),
+                        dt, i);
+                /* Expect Decomposition_Mapping=nfkc.getRawDecomposition(c). */
+                String mapping=nfkc.getRawDecomposition(ch);
+                assertEquals(
+                        String.format("error: nfkc.getRawDecomposition(U+%04x) is wrong", ch),
+                        dm, mapping);
+                /* For canonical decompositions only, expect Decomposition_Mapping=nfc.getRawDecomposition(c). */
+                if(dt!=UCharacter.DecompositionType.CANONICAL) {
+                    dm=null;
+                }
+                mapping=nfc.getRawDecomposition(ch);
+                assertEquals(
+                        String.format("error: nfc.getRawDecomposition(U+%04x) is wrong", ch),
+                        dm, mapping);
+                /* recompose */
+                if(dt==UCharacter.DecompositionType.CANONICAL
+                        && !UCharacter.hasBinaryProperty(ch, UProperty.FULL_COMPOSITION_EXCLUSION)) {
+                    int a=dm.codePointAt(0);
+                    int b=dm.codePointBefore(dm.length());
+                    int composite=nfc.composePair(a, b);
+                    assertEquals(
+                            String.format(
+                                    "error: nfc U+%04X decomposes to U+%04X+U+%04X "+
+                                    "but does not compose back (instead U+%04X)",
+                                    ch, a, b, composite),
+                            ch, composite);
+                    /*
+                     * Note: NFKC has fewer round-trip mappings than NFC,
+                     * so we can't just test nfkc.composePair(a, b) here without further data.
+                     */
                 }
 
                 // testing iso comment
                 try{
+                    String isocomment = fields[11];
                     String comment = UCharacter.getISOComment(ch);
                     if (comment == null) {
                         comment = "";
@@ -808,16 +855,22 @@ public final class UCharacterTest extends TestFmwk
                     }
                 }
 
+                String upper = fields[12];
                 int tempchar = ch;
                 if (upper.length() > 0) {
                     tempchar = Integer.parseInt(upper, 16);
                 }
-                if (UCharacter.toUpperCase(ch) != tempchar) {
+                int resultCp = UCharacter.toUpperCase(ch);
+                if (resultCp != tempchar) {
                     errln("FAIL \\u" + Utility.hex(ch, 4)
                             + " expected uppercase \\u"
-                            + Utility.hex(tempchar, 4));
+                            + Utility.hex(tempchar, 4)
+                            + " but got \\u"
+                            + Utility.hex(resultCp, 4));
                     break;
                 }
+
+                String lower = fields[13];
                 tempchar = ch;
                 if (lower.length() > 0) {
                     tempchar = Integer.parseInt(lower, 16);
@@ -828,6 +881,10 @@ public final class UCharacterTest extends TestFmwk
                             + Utility.hex(tempchar, 4));
                     break;
                 }
+
+                
+
+                String title = fields[14];
                 tempchar = ch;
                 if (title.length() > 0) {
                     tempchar = Integer.parseInt(title, 16);
@@ -861,8 +918,8 @@ public final class UCharacterTest extends TestFmwk
         }
 
         // sanity check on repeated properties
-        for (ch = 0xfffe; ch <= 0x10ffff;) {
-            type = UCharacter.getType(ch);
+        for (int ch = 0xfffe; ch <= 0x10ffff;) {
+            int type = UCharacter.getType(ch);
             if (UCharacter.getIntPropertyValue(ch,
                                                UProperty.GENERAL_CATEGORY_MASK)
                 != (1 << type)) {
@@ -886,8 +943,8 @@ public final class UCharacterTest extends TestFmwk
         }
 
         // test that PUA is not "unassigned"
-        for(ch = 0xe000; ch <= 0x10fffd;) {
-            type = UCharacter.getType(ch);
+        for(int ch = 0xe000; ch <= 0x10fffd;) {
+            int type = UCharacter.getType(ch);
             if (UCharacter.getIntPropertyValue(ch,
                                                UProperty.GENERAL_CATEGORY_MASK)
                 != (1 << type)) {
@@ -929,7 +986,6 @@ public final class UCharacterTest extends TestFmwk
             if (length < 83) { // Unicode 3.2 max char name length
                errln("getMaxCharNameLength()=" + length + " is too short");
             }
-            // ### TODO same tests for max ISO comment length as for max name length
 
             int c[] = {0x0061,                //LATIN SMALL LETTER A
                        0x000284,              //LATIN SMALL LETTER DOTLESS J WITH STROKE AND HOOK
@@ -957,9 +1013,9 @@ public final class UCharacterTest extends TestFmwk
                              "",
                              "CJK UNIFIED IDEOGRAPH-23456"
                              };
-            String oldname[] = {"", "LATIN SMALL LETTER DOTLESS J BAR HOOK", "",
+            String oldname[] = {"", "", "",
                             "",
-                            "", "", "", "", "FULLWIDTH OPENING PARENTHESIS", "",
+                            "", "", "", "", "", "",
                             "", ""};
             String extendedname[] = {"LATIN SMALL LETTER A",
                                  "LATIN SMALL LETTER DOTLESS J WITH STROKE AND HOOK",
@@ -1429,12 +1485,13 @@ public final class UCharacterTest extends TestFmwk
                         {0xe0041, UCharacterCategory.FORMAT},
                         {0xeffff, UCharacterCategory.UNASSIGNED}};
 
-        // default Bidi classes for unassigned code points
+        // default Bidi classes for unassigned code points, from the DerivedBidiClass.txt header
         int defaultBidi[][]={
             { 0x0590, UCharacterDirection.LEFT_TO_RIGHT },
             { 0x0600, UCharacterDirection.RIGHT_TO_LEFT },
             { 0x07C0, UCharacterDirection.RIGHT_TO_LEFT_ARABIC },
-            { 0x0900, UCharacterDirection.RIGHT_TO_LEFT },
+            { 0x08A0, UCharacterDirection.RIGHT_TO_LEFT },
+            { 0x0900, UCharacterDirection.RIGHT_TO_LEFT_ARABIC },  /* Unicode 6.1 changes U+08A0..U+08FF from R to AL */
             { 0xFB1D, UCharacterDirection.LEFT_TO_RIGHT },
             { 0xFB50, UCharacterDirection.RIGHT_TO_LEFT },
             { 0xFE00, UCharacterDirection.RIGHT_TO_LEFT_ARABIC },
@@ -1443,6 +1500,8 @@ public final class UCharacterTest extends TestFmwk
             { 0x10800, UCharacterDirection.LEFT_TO_RIGHT },
             { 0x11000, UCharacterDirection.RIGHT_TO_LEFT },
             { 0x1E800, UCharacterDirection.LEFT_TO_RIGHT },  /* new default-R range in Unicode 5.2: U+1E800 - U+1EFFF */
+            { 0x1EE00, UCharacterDirection.RIGHT_TO_LEFT },
+            { 0x1EF00, UCharacterDirection.RIGHT_TO_LEFT_ARABIC },  /* Unicode 6.1 changes U+1EE00..U+1EEFF from R to AL */
             { 0x1F000, UCharacterDirection.RIGHT_TO_LEFT },
             { 0x110000, UCharacterDirection.LEFT_TO_RIGHT }
         };
@@ -1793,7 +1852,7 @@ public final class UCharacterTest extends TestFmwk
             { 0x05ed, UProperty.BIDI_CLASS, UCharacterDirection.RIGHT_TO_LEFT },
             { 0x07f2, UProperty.BIDI_CLASS, UCharacterDirection.DIR_NON_SPACING_MARK }, /* Nko, new in Unicode 5.0 */
             { 0x07fe, UProperty.BIDI_CLASS, UCharacterDirection.RIGHT_TO_LEFT }, /* unassigned R */
-            { 0x08ba, UProperty.BIDI_CLASS, UCharacterDirection.RIGHT_TO_LEFT },
+            { 0x089f, UProperty.BIDI_CLASS, UCharacterDirection.RIGHT_TO_LEFT },
             { 0xfb37, UProperty.BIDI_CLASS, UCharacterDirection.RIGHT_TO_LEFT },
             { 0xfb42, UProperty.BIDI_CLASS, UCharacterDirection.RIGHT_TO_LEFT },
             { 0x10806, UProperty.BIDI_CLASS, UCharacterDirection.RIGHT_TO_LEFT },
@@ -1988,6 +2047,10 @@ public final class UCharacterTest extends TestFmwk
 
             { -1, 0x520, 0 }, /* version break for Unicode 5.2 */
 
+            /* unassigned code points in new default Bidi R blocks */
+            { 0x1ede4, UProperty.BIDI_CLASS, UCharacterDirection.RIGHT_TO_LEFT },
+            { 0x1efe4, UProperty.BIDI_CLASS, UCharacterDirection.RIGHT_TO_LEFT },
+
             /* test some script codes >127 */
             { 0xa6e6,  UProperty.SCRIPT, UScript.BAMUM },
             { 0xa4d0,  UProperty.SCRIPT, UScript.LISU },
@@ -1997,6 +2060,12 @@ public final class UCharacterTest extends TestFmwk
 
             /* value changed in Unicode 6.0 */
             { 0x06C3, UProperty.JOINING_GROUP, UCharacter.JoiningGroup.TEH_MARBUTA_GOAL },
+
+            { -1, 0x610, 0 }, /* version break for Unicode 6.1 */
+
+            /* unassigned code points in new/changed default Bidi AL blocks */
+            { 0x08ba, UProperty.BIDI_CLASS, UCharacterDirection.RIGHT_TO_LEFT_ARABIC },
+            { 0x1eee4, UProperty.BIDI_CLASS, UCharacterDirection.RIGHT_TO_LEFT_ARABIC },
 
             /* undefined UProperty values */
             { 0x61, 0x4a7, 0 },
@@ -2438,7 +2507,7 @@ public final class UCharacterTest extends TestFmwk
         * In general, the set for the middle such character should be a subset
         * of the set for the first.
         */
-       Normalizer2 norm2=Normalizer2.getInstance(null, "nfc", Normalizer2.Mode.DECOMPOSE);
+       Normalizer2 norm2=Normalizer2.getNFDInstance();
        set1=new UnicodeSet();
        Norm2AllModes.getNFCInstance().impl.
            ensureCanonIterData().getCanonStartSet(0x49, set1);
@@ -2801,7 +2870,7 @@ public final class UCharacterTest extends TestFmwk
                 0x8cb3, //CJK_IDEOGRAPH_COMPLEX_TWO_
                 0x4e09, //CJK_IDEOGRAPH_THIRD_
                 0x53c3, //CJK_IDEOGRAPH_COMPLEX_THREE_
-                0x56d8, //CJK_IDEOGRAPH_FOURTH_
+                0x56db, //CJK_IDEOGRAPH_FOURTH_
                 0x8086, //CJK_IDEOGRAPH_COMPLEX_FOUR_
                 0x4e94, //CJK_IDEOGRAPH_FIFTH_
                 0x4f0d, //CJK_IDEOGRAPH_COMPLEX_FIVE_
@@ -2996,7 +3065,7 @@ public final class UCharacterTest extends TestFmwk
                 UCharacter.codePointAt(reg_text, 100, limitCases[i]);
                 errln("UCharacter.codePointAt was suppose to return an exception " +
                         "but got " + UCharacter.codePointAt(reg_text, 100, limitCases[i]) +
-                        ". The following passed parameters were Text: " + reg_text.toString() + ", Start: " + 
+                        ". The following passed parameters were Text: " + String.valueOf(reg_text) + ", Start: " +
                         100 + ", Limit: " + limitCases[i] + ".");
             } catch(Exception e){
             }
@@ -3008,7 +3077,7 @@ public final class UCharacterTest extends TestFmwk
                 UCharacter.codePointAt(empty_text, 0, limitCases[i]);
                 errln("UCharacter.codePointAt was suppose to return an exception " +
                         "but got " + UCharacter.codePointAt(empty_text, 0, limitCases[i]) +
-                        ". The following passed parameters were Text: " + empty_text.toString() + ", Start: " + 
+                        ". The following passed parameters were Text: " + String.valueOf(empty_text) + ", Start: " +
                         0 + ", Limit: " + limitCases[i] + ".");
             } catch(Exception e){
             }
@@ -3017,7 +3086,7 @@ public final class UCharacterTest extends TestFmwk
                 UCharacter.codePointCount(one_char_text, 0, limitCases[i]);
                 errln("UCharacter.codePointCount was suppose to return an exception " +
                         "but got " + UCharacter.codePointCount(one_char_text, 0, limitCases[i]) +
-                        ". The following passed parameters were Text: " + one_char_text.toString() + ", Start: " + 
+                        ". The following passed parameters were Text: " + String.valueOf(one_char_text) + ", Start: " +
                         0 + ", Limit: " + limitCases[i] + ".");
             } catch(Exception e){
             }
@@ -3181,7 +3250,7 @@ public final class UCharacterTest extends TestFmwk
                 UCharacter.codePointCount(reg_text, 100, limitCases[i]);
                 errln("UCharacter.codePointCount was suppose to return an exception " +
                         "but got " + UCharacter.codePointCount(reg_text, 100, limitCases[i]) +
-                        ". The following passed parameters were Text: " + reg_text.toString() + ", Start: " + 
+                        ". The following passed parameters were Text: " + String.valueOf(reg_text) + ", Start: " +
                         100 + ", Limit: " + limitCases[i] + ".");
             } catch(Exception e){
             }
@@ -3193,7 +3262,7 @@ public final class UCharacterTest extends TestFmwk
                 UCharacter.codePointCount(empty_text, 0, limitCases[i]);
                 errln("UCharacter.codePointCount was suppose to return an exception " +
                         "but got " + UCharacter.codePointCount(empty_text, 0, limitCases[i]) +
-                        ". The following passed parameters were Text: " + empty_text.toString() + ", Start: " + 
+                        ". The following passed parameters were Text: " + String.valueOf(empty_text) + ", Start: " +
                         0 + ", Limit: " + limitCases[i] + ".");
             } catch(Exception e){
             }
@@ -3202,7 +3271,7 @@ public final class UCharacterTest extends TestFmwk
                 UCharacter.codePointCount(one_char_text, 0, limitCases[i]);
                 errln("UCharacter.codePointCount was suppose to return an exception " +
                         "but got " + UCharacter.codePointCount(one_char_text, 0, limitCases[i]) +
-                        ". The following passed parameters were Text: " + one_char_text.toString() + ", Start: " + 
+                        ". The following passed parameters were Text: " + String.valueOf(one_char_text) + ", Start: " +
                         0 + ", Limit: " + limitCases[i] + ".");
             } catch(Exception e){
             }

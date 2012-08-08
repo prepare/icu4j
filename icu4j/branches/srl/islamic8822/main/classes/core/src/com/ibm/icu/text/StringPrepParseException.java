@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2003-2010, International Business Machines Corporation and    *
+ * Copyright (C) 2003-2011, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -136,6 +136,18 @@ public class StringPrepParseException extends ParseException {
         return ((StringPrepParseException)other).error == this.error;
         
     }
+    
+    /**
+     * Mock implementation of hashCode(). This implementation always returns a constant
+     * value. When Java assertion is enabled, this method triggers an assertion failure.
+     * @internal
+     * @deprecated This API is ICU internal only.
+     */
+    public int hashCode() {
+        assert false : "hashCode not designed";
+        return 42;
+    }
+    
     /**
      * Returns the position of error in the rules string
      * 

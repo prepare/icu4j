@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2008-2009, International Business Machines Corporation and    *
+ * Copyright (C) 2008-2012, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -106,10 +106,10 @@ class CharsetISCII extends CharsetICU {
         static final short ZERO = 0x00;
     }
     
-    private final String ISCII_CNV_PREFIX = "ISCII,version=";
+    private final static String ISCII_CNV_PREFIX = "ISCII,version=";
     
     @SuppressWarnings("unused")
-    private final class UConverterDataISCII {
+    private static final class UConverterDataISCII {
         int option;
         int contextCharToUnicode;      /* previous Unicode codepoint for contextual analysis */
         int contextCharFromUnicode;    /* previous Unicode codepoint for contextual analysis */
@@ -766,7 +766,7 @@ class CharsetISCII extends CharsetICU {
         
         extraInfo = new UConverterDataISCII( 
                             option,
-                            new String(ISCII_CNV_PREFIX + (option & UCNV_OPTIONS_VERSION_MASK))  /* name */
+                            ISCII_CNV_PREFIX + (option & UCNV_OPTIONS_VERSION_MASK)  /* name */
                         );
         
         initializePNJSets();
@@ -1177,7 +1177,7 @@ class CharsetISCII extends CharsetICU {
             targetUniChar = toUnicodeTable[sourceChar];
             /* is the code point valid in current script? */
             if (sourceChar > ASCII_END &&
-                    (validityTable[(short)targetUniChar & UConverterConstants.UNSIGNED_BYTE_MASK] & data.currentMaskToUnicode) == 0) {
+                    (validityTable[targetUniChar & 0x7F] & data.currentMaskToUnicode) == 0) {
                 /* Vocallic RR is assigne in ISCII Telugu and Unicode */
                 if (data.currentDeltaToUnicode != (TELUGU_DELTA) || targetUniChar != VOCALLIC_RR) {
                     targetUniChar = UConverterConstants.missingCharMarker;
@@ -1234,7 +1234,7 @@ class CharsetISCII extends CharsetICU {
                 /* Write the language code following LF only if LF is not the last character. */
                 if (fromUnicodeStatus == LF) {
                     targetByteUnit = ATR << 8;
-                    targetByteUnit += (byte)lookupInitialData[range].isciiLang;
+                    targetByteUnit += 0xff & (byte)lookupInitialData[range].isciiLang;
                     fromUnicodeStatus = 0x0000;
                     /* now append ATR and language code */
                     cr = WriteToTargetFromU(offsets, source, target, targetByteUnit);

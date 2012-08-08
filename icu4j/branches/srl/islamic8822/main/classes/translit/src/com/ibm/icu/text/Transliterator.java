@@ -23,8 +23,8 @@ import com.ibm.icu.text.RuleBasedTransliterator.Data;
 import com.ibm.icu.text.TransliteratorIDParser.SingleID;
 import com.ibm.icu.util.CaseInsensitiveString;
 import com.ibm.icu.util.ULocale;
-import com.ibm.icu.util.UResourceBundle;
 import com.ibm.icu.util.ULocale.Category;
+import com.ibm.icu.util.UResourceBundle;
 
 /**
  * <code>Transliterator</code> is an abstract class that transliterates text from one format to another. The most common
@@ -368,6 +368,17 @@ public abstract class Transliterator implements StringTransform  {
                     limit == pos.limit;
             }
             return false;
+        }
+        
+        /**
+         * Mock implementation of hashCode(). This implementation always returns a constant
+         * value. When Java assertion is enabled, this method triggers an assertion failure.
+         * @internal
+         * @deprecated This API is ICU internal only.
+         */
+        public int hashCode() {
+            assert false : "hashCode not designed";
+            return 42;
         }
 
         /**
@@ -1245,7 +1256,7 @@ public abstract class Transliterator implements StringTransform  {
             MessageFormat format = new MessageFormat(
                     bundle.getString(RB_DISPLAY_NAME_PATTERN));
             // Construct the argument array
-            Object[] args = new Object[] { new Integer(2), stv[0], stv[1] };
+            Object[] args = new Object[] { Integer.valueOf(2), stv[0], stv[1] };
 
             // Use display names for the scripts, if they exist
             for (int j=1; j<=2; ++j) {

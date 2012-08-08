@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2006-2011, Google, International Business Machines Corporation *
+ * Copyright (C) 2006-2012, Google, International Business Machines Corporation *
  * and others. All Rights Reserved.                                            *
  *******************************************************************************
  */
@@ -79,7 +79,7 @@ public class DateTimeGeneratorTest extends TestFmwk {
         // modify it to change the zone.
         String newPattern = gen.replaceFieldTypes(pattern, "vvvv");
         format.applyPattern(newPattern);
-        assertEquals("full-date: modified zone", "Donnerstag, 14. Oktober 1999 08:58:59 Frankreich Zeit", format.format(sampleDate));
+        assertEquals("full-date: modified zone", "Donnerstag, 14. Oktober 1999 08:58:59 Mitteleurop\u00E4ische Zeit", format.format(sampleDate));
         
         // add test of basic cases
 
@@ -275,6 +275,7 @@ public class DateTimeGeneratorTest extends TestFmwk {
         new String[] {"yMMMd", "Jan 13, 1999"},
         new String[] {"Md", "1/13"},
         new String[] {"MMMd", "Jan 13"},
+        new String[] {"MMMMd", "January 13"},
         new String[] {"yQQQ", "Q1 1999"},
         new String[] {"hhmm", "11:58 PM"},
         new String[] {"HHmm", "23:58"},
@@ -291,6 +292,7 @@ public class DateTimeGeneratorTest extends TestFmwk {
         new String[] {"yMMMd", "Jan 13, 11 Heisei"},
         new String[] {"Md", "1/13"},
         new String[] {"MMMd", "Jan 13"},
+        new String[] {"MMMMd", "January 13"},
         new String[] {"yQQQ", "Q1 11 Heisei"},
         new String[] {"hhmm", "11:58 PM"},
         new String[] {"HHmm", "23:58"},
@@ -307,6 +309,7 @@ public class DateTimeGeneratorTest extends TestFmwk {
         new String[] {"yMMMd", "13. Jan 1999"},
         new String[] {"Md", "13.1."},   // 13.1
         new String[] {"MMMd", "13. Jan"},
+        new String[] {"MMMMd", "13. Januar"},
         new String[] {"yQQQ", "Q1 1999"},
         new String[] {"hhmm", "11:58 nachm."},
         new String[] {"HHmm", "23:58"},
@@ -314,7 +317,7 @@ public class DateTimeGeneratorTest extends TestFmwk {
         new String[] {"mmss", "58:59"},
         new String[] {"yyyyMMMM", "Januar 1999"}, // (new item for testing 6872<-5702)
         new String[] {"MMMEd", "Mi., 13. Jan"},
-        new String[] {"Ed", "Mi. 13."},
+        new String[] {"Ed", "Mi., 13."},
         new String[] {"jmmssSSS", "23:58:59,123"},
         new ULocale("fi"),
         new String[] {"yM", "1.1999"}, // (fixed expected result per ticket 6872<-6626)
@@ -323,6 +326,7 @@ public class DateTimeGeneratorTest extends TestFmwk {
         new String[] {"yMMMd", "13. tammikuuta 1999"},
         new String[] {"Md", "13.1."},
         new String[] {"MMMd", "13. tammikuuta"},
+        new String[] {"MMMMd", "13. tammikuuta"},
         new String[] {"yQQQ", "1. nelj./1999"}, // 1. nelj. 1999 // *** get "expected result" but it seems incorrect, needs investigation
         new String[] {"hhmm", "11.58 ip."},
         new String[] {"HHmm", "23.58"},
@@ -332,6 +336,23 @@ public class DateTimeGeneratorTest extends TestFmwk {
         new String[] {"MMMEd", "ke 13. tammikuuta"},
         new String[] {"Ed", "ke 13."},
         new String[] {"jmmssSSS", "23.58.59,123"},
+        new ULocale("es"),
+        new String[] {"yM", "1/1999"},
+        new String[] {"yMMM", "ene 1999"},
+        new String[] {"yMd", "13/1/1999"},
+        new String[] {"yMMMd", "13 ene 1999"},
+        new String[] {"Md", "13/1"},
+        new String[] {"MMMd", "13 ene"},
+        new String[] {"MMMMd", "13 de enero"},
+        new String[] {"yQQQ", "T1 1999"},
+        new String[] {"hhmm", "11:58 p.m."},
+        new String[] {"HHmm", "23:58"},
+        new String[] {"jjmm", "23:58"},
+        new String[] {"mmss", "58:59"},
+        new String[] {"yyyyMMMM", "enero de 1999"},
+        new String[] {"MMMEd", "mi\u00E9 13 ene"},
+        new String[] {"Ed", "mi\u00E9 13"},
+        new String[] {"jmmssSSS", "23:58:59,123"},
         new ULocale("ja"), // (new locale for testing ticket 6872<-6626)
         new String[] {"yM", "1999/1"},
         new String[] {"yMMM", "1999\u5E741\u6708"},
@@ -339,6 +360,7 @@ public class DateTimeGeneratorTest extends TestFmwk {
         new String[] {"yMMMd", "1999\u5E741\u670813\u65E5"},
         new String[] {"Md", "1/13"},
         new String[] {"MMMd", "1\u670813\u65E5"},
+        new String[] {"MMMMd", "1\u670813\u65E5"},
         new String[] {"yQQQ", "1999/Q1"}, // *** expected result should be "1999Q1" with current data, changed test temporarily to match current result, needs investigation
         new String[] {"hhmm", "\u5348\u5F8C11:58"},
         new String[] {"HHmm", "23:58"},
@@ -355,6 +377,7 @@ public class DateTimeGeneratorTest extends TestFmwk {
         new String[] {"yMMMd", "\u5E73\u621011\u5E741\u670813\u65E5"},
         new String[] {"Md", "1/13"},
         new String[] {"MMMd", "1\u670813\u65E5"},
+        new String[] {"MMMMd", "1\u670813\u65E5"},
         new String[] {"yQQQ", "\u5E73\u621011/Q1"},
         new String[] {"hhmm", "\u5348\u5F8C11:58"},
         new String[] {"HHmm", "23:58"},
@@ -371,6 +394,7 @@ public class DateTimeGeneratorTest extends TestFmwk {
         new String[] {"yMMMd", "1999\u5E741\u670813\u65E5"}, // (fixed expected result per ticket 6872<-6626)
         new String[] {"Md", "1-13"},
         new String[] {"MMMd", "1\u670813\u65E5"}, // (fixed expected result per ticket 6872<-6626)
+        new String[] {"MMMMd", "1\u670813\u65E5"},
         new String[] {"yQQQ", "1999\u5E741\u5B63"},
         new String[] {"hhmm", "\u4E0B\u534811:58"},
         new String[] {"HHmm", "23:58"},
@@ -387,6 +411,7 @@ public class DateTimeGeneratorTest extends TestFmwk {
         new String[] {"yMMMd", "\u6C11\u570B88\u5E741\u670813\u65E5"},
         new String[] {"Md", "1/13"},
         new String[] {"MMMd", "1\u670813\u65E5"},
+        new String[] {"MMMMd", "1\u670813\u65E5"},
         new String[] {"yQQQ", "\u6C11\u570B88 1\u5B63"},
         new String[] {"hhmm", "\u4E0B\u534811:58"},
         new String[] {"HHmm", "23:58"},
@@ -394,24 +419,43 @@ public class DateTimeGeneratorTest extends TestFmwk {
         new String[] {"mmss", "58:59"},
         new String[] {"yyyyMMMM", "\u6C11\u570B88\u5E741\u6708"},
         new String[] {"MMMEd", "1\u670813\u65E5\u9031\u4E09"},
-        new String[] {"Ed", "13\u65E5(\u9031\u4E09)"},
+        new String[] {"Ed", "13\u65E5\uFF08\u9031\u4E09\uFF09"},
         new String[] {"jmmssSSS", "\u4E0B\u534811:58:59.123"},
         new ULocale("ru"),
-        new String[] {"yM", "1.1999"},
+        new String[] {"yM", "01.1999"},
         new String[] {"yMMM", "\u042F\u043D\u0432. 1999"},
-        new String[] {"yMd", "13.1.1999"},
-        new String[] {"yMMMd", "13 \u044F\u043D\u0432 1999\u00A0\u0433."},
+        new String[] {"yMd", "13.01.1999"},
+        new String[] {"yMMMd", "13 \u044F\u043D\u0432. 1999\u00A0\u0433."},
         new String[] {"Md", "13.1"},
-        new String[] {"MMMd", "13 \u044F\u043D\u0432"},
+        new String[] {"MMMd", "13 \u044F\u043D\u0432."},
+        new String[] {"MMMMd", "13 \u044F\u043D\u0432\u0430\u0440\u044F"},
         new String[] {"yQQQ", "1-\u0439 \u043A\u0432. 1999 \u0433."},
         new String[] {"hhmm", "11:58 \u043F\u043E\u0441\u043B\u0435 \u043F\u043E\u043B\u0443\u0434\u043D\u044F"},
         new String[] {"HHmm", "23:58"},
         new String[] {"jjmm", "23:58"},
         new String[] {"mmss", "58:59"},
         new String[] {"yyyyMMMM", "\u042F\u043D\u0432\u0430\u0440\u044C 1999"},
-        new String[] {"MMMEd", "\u0421\u0440, 13 \u044F\u043D\u0432"},
+        new String[] {"MMMEd", "\u0421\u0440, 13 \u044F\u043D\u0432."},
         new String[] {"Ed", "\u0421\u0440, 13"},
         new String[] {"jmmssSSS", "23:58:59,123"},
+
+        new ULocale("zh@calendar=chinese"),
+        new String[] {"yM", "\u620A\u5BC5\u5E7411\u6708"},
+        new String[] {"yMMM", "\u620A\u5BC5\u5E74\u5341\u4E00\u6708"},
+        new String[] {"yMd", "\u620A\u5BC5\u5E7411\u670826\u65E5"},
+        new String[] {"yMMMd", "\u620A\u5BC5\u5E74\u5341\u4E00\u670826\u65E5"},
+        new String[] {"Md", "11-26"},
+        new String[] {"MMMd", "\u5341\u4E00\u670826\u65E5"},
+        new String[] {"MMMMd", "\u5341\u4E00\u670826\u65E5"},
+        new String[] {"yQQQ", "\u620A\u5BC5\u5E744\u5B63"},
+        new String[] {"hhmm", "\u4E0B\u534811:58"},
+        new String[] {"HHmm", "23:58"},
+        new String[] {"jjmm", "\u4E0B\u534811:58"},
+        new String[] {"mmss", "58:59"},
+        new String[] {"yyyyMMMM", "\u620A\u5BC5\u5E74\u5341\u4E00\u6708"},
+        new String[] {"MMMEd", "\u5341\u4E00\u670826\u65E5\u5468\u4E09"},
+        new String[] {"Ed", "26\u65E5\u5468\u4E09"},
+        new String[] {"jmmssSSS", "\u4E0B\u534811:58:59.123"},
     };
     
     public void DayMonthTest() {
@@ -436,7 +480,7 @@ public class DateTimeGeneratorTest extends TestFmwk {
         for (int i = 0; i < locales.length; ++i) {
             for (int style1 = DateFormat.FULL; style1 <= DateFormat.SHORT; ++style1) {
                 for (int style2 = DateFormat.FULL; style2 < style1; ++style2) {
-                    checkCompatible(style1, style2, locales[i]);                    
+                    checkCompatible(style1, style2, locales[i]);
                 }
             }
         }
@@ -494,7 +538,7 @@ public class DateTimeGeneratorTest extends TestFmwk {
     }
     
     public void TestVariableCharacters() {
-        UnicodeSet valid = new UnicodeSet("[G   y   Y   u   Q   q   M   L  l  w   W   d   D   F   g   E   e   c   a   h   H   K   k   m   s   S   A   z   Z   v   V]");
+        UnicodeSet valid = new UnicodeSet("[G   y   Y   u   Q   q   M   L  l  w   W   d   D   F   g   E   e   c   a   h   H   K   k   m   s   S   A   z   Z   v   V   U]");
         for (char c = 0; c < 0xFF; ++c) {
             boolean works = false;
             try {
@@ -525,7 +569,7 @@ public class DateTimeGeneratorTest extends TestFmwk {
         DateOrder order2 = getOrdering(style2, uLocale);
         if (!order1.hasSameOrderAs(order2)) {
             if (order1.monthLength == order2.monthLength) { // error if have same month length, different ordering
-                if (skipIfBeforeICU(49,0,2)) { // ticket#6806
+                if (isICUVersionBefore(50, 1, 0)) { // ticket#6806
                     logln(showOrderComparison(uLocale, style1, style2, order1, order2));
                 } else {
                     errln(showOrderComparison(uLocale, style1, style2, order1, order2));
@@ -706,8 +750,8 @@ public class DateTimeGeneratorTest extends TestFmwk {
        */
       public void TestGetSkeleton(){
           DateTimePatternGenerator dtpg = DateTimePatternGenerator.getInstance();
-          String[] cases = {"MMDD","MMMDD","MMM-DD","DD/MMM","ddM"};
-          String[] results = {"MMDD","MMMDD","MMMDD","MMMDD","Mdd"};
+          String[] cases = {"MMDD","MMMDD","MMM-DD","DD/MMM","ddM","MMMMd"};
+          String[] results = {"MMDD","MMMDD","MMMDD","MMMDD","Mdd","MMMMd"};
           for(int i=0; i<cases.length; i++){
               if(!dtpg.getSkeleton(cases[i]).equals(results[i])){
                   errln("DateTimePatternGenerator.getSkeleton(String) did " +
@@ -723,8 +767,8 @@ public class DateTimeGeneratorTest extends TestFmwk {
        */
       public void TestGetBaseSkeleton(){
           DateTimePatternGenerator dtpg = DateTimePatternGenerator.getInstance();
-          String[] cases = {"MMDD","MMMDD","MMM-DD","DD/MMM","ddM"};
-          String[] results = {"MD","MMMD","MMMD","MMMD","Md"};
+          String[] cases = {"MMDD","MMMDD","MMM-DD","DD/MMM","ddM","MMMMd"};
+          String[] results = {"MD","MMMD","MMMD","MMMD","Md","MMMMd"};
           for(int i=0; i<cases.length; i++){
               if(!dtpg.getBaseSkeleton(cases[i]).equals(results[i])){
                   errln("DateTimePatternGenerator.getSkeleton(String) did " +

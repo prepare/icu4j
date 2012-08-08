@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2008-2010, International Business Machines Corporation and    *
+ * Copyright (C) 2008-2012, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -8,10 +8,15 @@
 package com.ibm.icu.text;
 
 import java.io.Serializable;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.MissingResourceException;
+import java.util.Set;
 
 import com.ibm.icu.impl.ICUCache;
 import com.ibm.icu.impl.ICUResourceBundle;
@@ -19,9 +24,9 @@ import com.ibm.icu.impl.SimpleCache;
 import com.ibm.icu.impl.Utility;
 import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.Freezable;
+import com.ibm.icu.util.Region;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.UResourceBundle;
-
 
 /**
  * DateIntervalInfo is a public class for encapsulating localizable
@@ -363,7 +368,7 @@ public class DateIntervalInfo implements Cloneable, Freezable<DateIntervalInfo>,
         try {
             // loop through all locales to get all available skeletons'
             // interval format
-            ULocale parentLocale = locale;
+            ULocale currentLocale = locale;
             // Get the correct calendar type
             String calendarTypeToUse = locale.getKeywordValue("calendar");
             if ( calendarTypeToUse == null ) {
@@ -374,21 +379,17 @@ public class DateIntervalInfo implements Cloneable, Freezable<DateIntervalInfo>,
                 calendarTypeToUse = "gregorian"; // fallback
             }
             do {
-                String name = parentLocale.getName();
+                String name = currentLocale.getName();
                 if ( name.length() == 0 ) {
                     break;
                 }
 
-                ICUResourceBundle rb = (ICUResourceBundle) UResourceBundle.
-                  getBundleInstance(ICUResourceBundle.ICU_BASE_NAME,locale);
-                rb = rb.getWithFallback("calendar");
-                ICUResourceBundle calTypeBundle = rb.getWithFallback(
-                                                              calendarTypeToUse);
-                ICUResourceBundle itvDtPtnResource =calTypeBundle.
-                                      getWithFallback("intervalFormats");
+                ICUResourceBundle rb = (ICUResourceBundle) UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME,currentLocale);
+                ICUResourceBundle calBundle = rb.getWithFallback("calendar");
+                ICUResourceBundle calTypeBundle = calBundle.getWithFallback(calendarTypeToUse);
+                ICUResourceBundle itvDtPtnResource =calTypeBundle.getWithFallback("intervalFormats");
                 // look for fallback first, since it establishes the default order
-                String fallback = itvDtPtnResource.getStringWithFallback(
-                                                          FALLBACK_STRING);
+                String fallback = itvDtPtnResource.getStringWithFallback(FALLBACK_STRING);
                 setFallbackIntervalPattern(fallback);
                 int size = itvDtPtnResource.getSize();
                 for ( int index = 0; index < size; ++index ) {
@@ -400,8 +401,7 @@ public class DateIntervalInfo implements Cloneable, Freezable<DateIntervalInfo>,
                     if ( skeleton.compareTo(FALLBACK_STRING) == 0 ) {
                         continue;
                     }
-                    ICUResourceBundle intervalPatterns =
-                        itvDtPtnResource.getWithFallback(skeleton);
+                    ICUResourceBundle intervalPatterns =itvDtPtnResource.getWithFallback(skeleton);
                     int ptnNum = intervalPatterns.getSize();
                     for ( int ptnIndex = 0; ptnIndex < ptnNum; ++ptnIndex) {
                         String key = intervalPatterns.get(ptnIndex).getKey();
@@ -427,8 +427,13 @@ public class DateIntervalInfo implements Cloneable, Freezable<DateIntervalInfo>,
                         }
                     }
                 }
-                parentLocale = parentLocale.getFallback();
-            } while (parentLocale != null && !parentLocale.equals(ULocale.ROOT));
+                try {
+                    UResourceBundle parentNameBundle = rb.get("%%Parent");
+                    currentLocale = new ULocale(parentNameBundle.getString());
+                } catch (MissingResourceException e) {
+                    currentLocale = currentLocale.getFallback();
+                }
+            } while (currentLocale != null && !currentLocale.getBaseName().equals("root"));
         } catch ( MissingResourceException e) {
             // ok, will fallback to {data0} - {date1}
         }
@@ -760,8 +765,9 @@ public class DateIntervalInfo implements Cloneable, Freezable<DateIntervalInfo>,
             for (String skeleton : fIntervalPatterns.keySet()) {
                 Map<String, PatternInfo> patternsOfOneSkeleton = fIntervalPatterns.get(skeleton);
                 Map<String, PatternInfo> oneSetPtn = new HashMap<String, PatternInfo>();
-                for (String calField : patternsOfOneSkeleton.keySet()) {
-                    PatternInfo value = patternsOfOneSkeleton.get(calField);
+                for (Entry<String, PatternInfo> calEntry : patternsOfOneSkeleton.entrySet()) {
+                    String calField = calEntry.getKey();
+                    PatternInfo value = calEntry.getValue();
                     oneSetPtn.put(calField, value);
                 }
                 other.fIntervalPatterns.put(skeleton, oneSetPtn);
@@ -944,5 +950,17 @@ public class DateIntervalInfo implements Cloneable, Freezable<DateIntervalInfo>,
      */
     public int hashCode() {
         return fIntervalPatterns.hashCode();
+    }
+    
+    /**
+     * @internal CLDR
+     * @deprecated This API is ICU internal only.
+     */
+    public Map<String,Set<String>> getPatterns() {
+        LinkedHashMap<String,Set<String>> result = new LinkedHashMap<String,Set<String>>();
+        for (Entry<String, Map<String, PatternInfo>> entry : fIntervalPatterns.entrySet()) {
+            result.put(entry.getKey(), new LinkedHashSet<String>(entry.getValue().keySet()));
+        }
+        return result;
     }
 }// end class DateIntervalInfo

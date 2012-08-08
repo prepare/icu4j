@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2011, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2012, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -21,9 +21,9 @@ import com.ibm.icu.impl.ICUDebug;
 import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.impl.PatternProps;
 import com.ibm.icu.util.ULocale;
+import com.ibm.icu.util.ULocale.Category;
 import com.ibm.icu.util.UResourceBundle;
 import com.ibm.icu.util.UResourceBundleIterator;
-import com.ibm.icu.util.ULocale.Category;
 
 
 /**
@@ -522,7 +522,12 @@ public class RuleBasedNumberFormat extends NumberFormat {
      * The formatter's rule sets.
      */
     private transient NFRuleSet[] ruleSets = null;
-
+    
+    /**
+     * The formatter's rule sets' descriptions.
+     */
+    private transient String[] ruleSetDescriptions = null;
+    
     /**
      * A pointer to the formatter's default rule set.  This is always included
      * in ruleSets.
@@ -596,11 +601,6 @@ public class RuleBasedNumberFormat extends NumberFormat {
     private String[] publicRuleSetNames;
 
     private static final boolean DEBUG  =  ICUDebug.enabled("rbnf");
-
-    // Temporary workaround - when noParse is true, do noting in parse.
-    // TODO: We need a real fix - see #6895/#6896
-    private boolean noParse;
-    private static final String[] NO_SPELLOUT_PARSE_LANGUAGES = { "ga" };
 
     //-----------------------------------------------------------------------
     // constructors
@@ -786,17 +786,6 @@ public class RuleBasedNumberFormat extends NumberFormat {
 
         init(description, localizations);
 
-        //TODO: we need a real fix - see #6895 / #6896
-        noParse = false;
-        if (locnames[format-1].equals("SpelloutLocalizations")) {
-            String lang = locale.getLanguage();
-            for (int i = 0; i < NO_SPELLOUT_PARSE_LANGUAGES.length; i++) {
-                if (NO_SPELLOUT_PARSE_LANGUAGES[i].equals(lang)) {
-                    noParse = true;
-                    break;
-                }
-            }
-        }
     }
 
     private static final String[] rulenames = {
@@ -868,6 +857,16 @@ public class RuleBasedNumberFormat extends NumberFormat {
 
             return true;
         }
+    }
+    
+    /**
+     * Mock implementation of hashCode(). This implementation always returns a constant
+     * value. When Java assertion is enabled, this method triggers an assertion failure.
+     * @internal
+     * @deprecated This API is ICU internal only.
+     */
+    public int hashCode() {
+        return super.hashCode();
     }
 
     /**
@@ -1180,12 +1179,6 @@ public class RuleBasedNumberFormat extends NumberFormat {
      */
     public Number parse(String text, ParsePosition parsePosition) {
 
-        //TODO: We need a real fix.  See #6895 / #6896
-        if (noParse) {
-            // skip parsing
-            return new Long(0);
-        }
-
         // parsePosition tells us where to start parsing.  We copy the
         // text in the string from here to the end inro a new string,
         // and create a new ParsePosition and result variable to use
@@ -1196,7 +1189,7 @@ public class RuleBasedNumberFormat extends NumberFormat {
 
         // keep track of the largest number of characters consumed in
         // the various trials, and the result that corresponds to it
-        Number result = new Long(0);
+        Number result = Long.valueOf(0);
         ParsePosition highWaterMark = new ParsePosition(workingPos.getIndex());
 
         // iterate over the public rule sets (beginning with the default one)
@@ -1204,7 +1197,7 @@ public class RuleBasedNumberFormat extends NumberFormat {
         // one consumes the most characters: that's the one that determines
         // the result we return
         for (int i = ruleSets.length - 1; i >= 0; i--) {
-            // skip private rule sets
+            // skip private or unparseable rule sets
             if (!ruleSets[i].isPublic() || !ruleSets[i].isParseable()) {
                 continue;
             }
@@ -1278,8 +1271,7 @@ public class RuleBasedNumberFormat extends NumberFormat {
      * @param scannerProvider the provider
      * @see #setLenientParseMode
      * @see #getLenientScannerProvider
-     * @draft ICU 4.4
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 4.4
      */
     public void setLenientScannerProvider(RbnfLenientScannerProvider scannerProvider) {
         this.scannerProvider = scannerProvider;
@@ -1291,8 +1283,7 @@ public class RuleBasedNumberFormat extends NumberFormat {
      * it was successful.  Otherwise this returns false.
      *
      * @see #setLenientScannerProvider
-     * @draft ICU 4.4
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 4.4
      */
     public RbnfLenientScannerProvider getLenientScannerProvider() {
         // there's a potential race condition if two threads try to set/get the scanner at
@@ -1366,6 +1357,29 @@ public class RuleBasedNumberFormat extends NumberFormat {
         }
         return "";
     }
+    
+    /**
+     * Sets the decimal format symbols used by this formatter. The formatter uses a copy of the
+     * provided symbols.
+     * 
+     * @param newSymbols desired DecimalFormatSymbols
+     * @see DecimalFormatSymbols
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
+     */
+    public void setDecimalFormatSymbols(DecimalFormatSymbols newSymbols) {
+        if (newSymbols != null) {
+            decimalFormatSymbols = (DecimalFormatSymbols) newSymbols.clone();
+            if (decimalFormat != null) {
+                decimalFormat.setDecimalFormatSymbols(decimalFormatSymbols);
+            }
+            
+            // Apply the new decimalFormatSymbols by reparsing the rulesets
+            for (int i = 0; i < ruleSets.length; i++) {
+                ruleSets[i].parseRules(ruleSetDescriptions[i], this);
+            }
+        }
+    }
 
     //-----------------------------------------------------------------------
     // package-internal API
@@ -1417,6 +1431,10 @@ public class RuleBasedNumberFormat extends NumberFormat {
     DecimalFormat getDecimalFormat() {
         if (decimalFormat == null) {
             decimalFormat = (DecimalFormat)NumberFormat.getInstance(locale);
+            
+            if (decimalFormatSymbols != null) {
+                decimalFormat.setDecimalFormatSymbols(decimalFormatSymbols);
+            }
         }
         return decimalFormat;
     }
@@ -1514,7 +1532,7 @@ public class RuleBasedNumberFormat extends NumberFormat {
         // the rest of the descriptions and finish initializing everything
         // because we have to know the names and locations of all the rule
         // sets before we can actually set everything up
-        String[] ruleSetDescriptions = new String[numRuleSets];
+        ruleSetDescriptions = new String[numRuleSets];
 
         int curRuleSet = 0;
         int start = 0;
@@ -1563,11 +1581,9 @@ public class RuleBasedNumberFormat extends NumberFormat {
         }
 
         // finally, we can go back through the temporary descriptions
-        // list and finish seting up the substructure (and we throw
-        // away the temporary descriptions as we go)
+        // list and finish seting up the substructure
         for (int i = 0; i < ruleSets.length; i++) {
             ruleSets[i].parseRules(ruleSetDescriptions[i], this);
-            ruleSetDescriptions[i] = null;
         }
 
         // Now that the rules are initialized, the 'real' default rule

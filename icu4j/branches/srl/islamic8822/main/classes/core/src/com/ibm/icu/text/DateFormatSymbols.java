@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2011, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2012, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -10,7 +10,9 @@ package com.ibm.icu.text;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 
@@ -24,8 +26,9 @@ import com.ibm.icu.text.TimeZoneNames.NameType;
 import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.TimeZone;
 import com.ibm.icu.util.ULocale;
-import com.ibm.icu.util.UResourceBundle;
 import com.ibm.icu.util.ULocale.Category;
+import com.ibm.icu.util.UResourceBundle;
+import com.ibm.icu.util.UResourceBundleIterator;
 
 /**
  * {@icuenhanced java.text.DateFormatSymbols}.{@icu _usage_}
@@ -125,7 +128,55 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      */
     public static final int DT_WIDTH_COUNT = 3;
 
-    /**
+     /**
+     * {@icu} Somewhat temporary constant for leap month pattern type, adequate for Chinese calendar.
+     * @internal
+     */
+    static final int DT_LEAP_MONTH_PATTERN_FORMAT_WIDE = 0;
+
+     /**
+     * {@icu} Somewhat temporary constant for leap month pattern type, adequate for Chinese calendar.
+     * @internal
+     */
+    static final int DT_LEAP_MONTH_PATTERN_FORMAT_ABBREV = 1;
+
+     /**
+     * {@icu} Somewhat temporary constant for leap month pattern type, adequate for Chinese calendar.
+     * @internal
+     */
+    static final int DT_LEAP_MONTH_PATTERN_FORMAT_NARROW = 2;
+
+     /**
+     * {@icu} Somewhat temporary constant for leap month pattern type, adequate for Chinese calendar.
+     * @internal
+     */
+    static final int DT_LEAP_MONTH_PATTERN_STANDALONE_WIDE = 3;
+
+     /**
+     * {@icu} Somewhat temporary constant for leap month pattern type, adequate for Chinese calendar.
+     * @internal
+     */
+    static final int DT_LEAP_MONTH_PATTERN_STANDALONE_ABBREV = 4;
+
+     /**
+     * {@icu} Somewhat temporary constant for leap month pattern type, adequate for Chinese calendar.
+     * @internal
+     */
+    static final int DT_LEAP_MONTH_PATTERN_STANDALONE_NARROW = 5;
+
+     /**
+     * {@icu} Somewhat temporary constant for leap month pattern type, adequate for Chinese calendar.
+     * @internal
+     */
+    static final int DT_LEAP_MONTH_PATTERN_NUMERIC = 6;
+
+     /**
+     * {@icu} Somewhat temporary constant for month pattern count, adequate for Chinese calendar.
+     * @internal
+     */
+    static final int DT_MONTH_PATTERN_COUNT = 7;
+
+   /**
      * Constructs a DateFormatSymbols object by loading format data from
      * resources for the default <code>FORMAT</code> locale.
      *
@@ -411,6 +462,20 @@ public class DateFormatSymbols implements Serializable, Cloneable {
     String standaloneQuarters[] = null;
 
     /**
+     * All leap month patterns, for example "{0}bis".
+     * An array of DT_MONTH_PATTERN_COUNT strings, indexed by the DT_LEAP_MONTH_PATTERN_XXX value.
+     * @serial
+     */
+    String leapMonthPatterns[] = null;
+
+     /**
+     * (Format) Short cyclic year names, for example: "jia-zi", "yi-chou", ... "gui-hai".
+     * An array of (normally) 60 strings, corresponding to cyclic years 1-60 (in Calendar YEAR field).
+     * @serial
+     */
+    String shortYearNames[] = null;
+
+   /**
      * Localized names of time zones in this locale.  This is a
      * two-dimensional array of strings of size <em>n</em> by <em>m</em>,
      * where <em>m</em> is at least 5 and up to 7.  Each of the <em>n</em> rows is an
@@ -449,7 +514,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * Unlocalized date-time pattern characters. For example: 'y', 'd', etc.
      * All locales use the same unlocalized pattern characters.
      */
-    static final String  patternChars = "GyMdkHmsSEDFwWahKzYeugAZvcLQqV";
+    static final String  patternChars = "GyMdkHmsSEDFwWahKzYeugAZvcLQqVU";
 
     /**
      * Localized date-time pattern characters. For example, a locale may
@@ -480,6 +545,55 @@ public class DateFormatSymbols implements Serializable, Cloneable {
         {"EthiopicCalendar", "ethiopic"},
     };
 
+    /**
+     * {@icu} Constants for capitalization context usage types
+     * related to date formatting.
+     * @internal
+     */
+    enum CapitalizationContextUsage {
+        OTHER, 
+        MONTH_FORMAT,     /* except narrow */ 
+        MONTH_STANDALONE, /* except narrow */ 
+        MONTH_NARROW, 
+        DAY_FORMAT,     /* except narrow */ 
+        DAY_STANDALONE, /* except narrow */ 
+        DAY_NARROW, 
+        ERA_WIDE, 
+        ERA_ABBREV, 
+        ERA_NARROW, 
+        ZONE_LONG, 
+        ZONE_SHORT, 
+        METAZONE_LONG, 
+        METAZONE_SHORT
+    }
+
+    /** Map from resource key to CapitalizationContextUsage value
+     */
+    private static final Map<String, CapitalizationContextUsage> contextUsageTypeMap;
+    static {
+        contextUsageTypeMap=new HashMap<String, CapitalizationContextUsage>();
+        contextUsageTypeMap.put("month-format-except-narrow", CapitalizationContextUsage.MONTH_FORMAT);
+        contextUsageTypeMap.put("month-standalone-except-narrow", CapitalizationContextUsage.MONTH_STANDALONE);
+        contextUsageTypeMap.put("month-narrow",   CapitalizationContextUsage.MONTH_NARROW);
+        contextUsageTypeMap.put("day-format-except-narrow", CapitalizationContextUsage.DAY_FORMAT);
+        contextUsageTypeMap.put("day-standalone-except-narrow", CapitalizationContextUsage.DAY_STANDALONE);
+        contextUsageTypeMap.put("day-narrow",     CapitalizationContextUsage.DAY_NARROW);
+        contextUsageTypeMap.put("era-name",       CapitalizationContextUsage.ERA_WIDE);
+        contextUsageTypeMap.put("era-abbr",       CapitalizationContextUsage.ERA_ABBREV);
+        contextUsageTypeMap.put("era-narrow",     CapitalizationContextUsage.ERA_NARROW);
+        contextUsageTypeMap.put("zone-long",      CapitalizationContextUsage.ZONE_LONG);
+        contextUsageTypeMap.put("zone-short",     CapitalizationContextUsage.ZONE_SHORT);
+        contextUsageTypeMap.put("metazone-long",  CapitalizationContextUsage.METAZONE_LONG);
+        contextUsageTypeMap.put("metazone-short", CapitalizationContextUsage.METAZONE_SHORT);
+    }
+
+     /**
+     * Capitalization transforms. For each usage type, the first array element indicates
+     * whether to titlecase for uiListOrMenu context, the second indicates whether to
+     * titlecase for stand-alone context.
+     * @serial
+     */
+    Map<CapitalizationContextUsage,boolean[]> capitalization = null;
 
     /**
      * Returns era strings. For example: "AD" and "BC".
@@ -1034,8 +1148,11 @@ public class DateFormatSymbols implements Serializable, Cloneable {
             // Initialize data from scratch put a clone of this instance into the cache
             CalendarData calData = new CalendarData(desiredLocale, type);
             initializeData(desiredLocale, calData);
-            dfs = (DateFormatSymbols)this.clone();
-            DFSCACHE.put(key, dfs);
+            // Do not cache subclass instances
+            if (this.getClass().getName().equals("com.ibm.icu.text.DateFormatSymbols")) {
+                dfs = (DateFormatSymbols)this.clone();
+                DFSCACHE.put(key, dfs);
+            }
         } else {
             initializeData(dfs);
         }
@@ -1067,9 +1184,13 @@ public class DateFormatSymbols implements Serializable, Cloneable {
         this.quarters = dfs.quarters;
         this.standaloneShortQuarters = dfs.standaloneShortQuarters;
         this.standaloneQuarters = dfs.standaloneQuarters;
+        this.leapMonthPatterns = dfs.leapMonthPatterns;
+        this.shortYearNames = dfs.shortYearNames;
 
         this.zoneStrings = dfs.zoneStrings; // always null at initialization time for now
         this.localPatternChars = dfs.localPatternChars;
+        
+        this.capitalization = dfs.capitalization;
 
         this.actualLocale = dfs.actualLocale;
         this.validLocale = dfs.validLocale;
@@ -1155,6 +1276,37 @@ public class DateFormatSymbols implements Serializable, Cloneable {
         standaloneQuarters = calData.getStringArray("quarters", "stand-alone", "wide");
         standaloneShortQuarters = calData.getStringArray("quarters", "stand-alone", "abbreviated");
 
+        // The code for getting individual symbols in the leapMonthSymbols array is here
+        // rather than in CalendarData because it depends on DateFormatSymbols constants...
+        ICUResourceBundle monthPatternsBundle = null;
+        try {
+           monthPatternsBundle = calData.get("monthPatterns");
+        }
+        catch (MissingResourceException e) {
+            monthPatternsBundle = null; // probably redundant
+        }
+        if (monthPatternsBundle != null) {
+            leapMonthPatterns = new String[DT_MONTH_PATTERN_COUNT];
+            leapMonthPatterns[DT_LEAP_MONTH_PATTERN_FORMAT_WIDE] = calData.get("monthPatterns", "wide").get("leap").getString();
+            leapMonthPatterns[DT_LEAP_MONTH_PATTERN_FORMAT_ABBREV] = calData.get("monthPatterns", "abbreviated").get("leap").getString();
+            leapMonthPatterns[DT_LEAP_MONTH_PATTERN_FORMAT_NARROW] = calData.get("monthPatterns", "narrow").get("leap").getString();
+            leapMonthPatterns[DT_LEAP_MONTH_PATTERN_STANDALONE_WIDE] = calData.get("monthPatterns", "stand-alone", "wide").get("leap").getString();
+            leapMonthPatterns[DT_LEAP_MONTH_PATTERN_STANDALONE_ABBREV] = calData.get("monthPatterns", "stand-alone", "abbreviated").get("leap").getString();
+            leapMonthPatterns[DT_LEAP_MONTH_PATTERN_STANDALONE_NARROW] = calData.get("monthPatterns", "stand-alone", "narrow").get("leap").getString();
+            leapMonthPatterns[DT_LEAP_MONTH_PATTERN_NUMERIC] = calData.get("monthPatterns", "numeric", "all").get("leap").getString();
+        }
+        
+        ICUResourceBundle cyclicNameSetsBundle = null;
+        try {
+           cyclicNameSetsBundle = calData.get("cyclicNameSets");
+        }
+        catch (MissingResourceException e) {
+            cyclicNameSetsBundle = null; // probably redundant
+        }
+        if (cyclicNameSetsBundle != null) {
+            shortYearNames = calData.get("cyclicNameSets", "years", "format", "abbreviated").getStringArray();
+        }
+ 
         requestedLocale = desiredLocale;
 
         ICUResourceBundle rb =
@@ -1171,6 +1323,39 @@ public class DateFormatSymbols implements Serializable, Cloneable {
         // TODO: obtain correct actual/valid locale later
         ULocale uloc = rb.getULocale();
         setLocale(uloc, uloc);
+        
+        capitalization = new HashMap<CapitalizationContextUsage,boolean[]>();
+        boolean[] noTransforms = new boolean[2];
+        noTransforms[0] = false;
+        noTransforms[1] = false;
+        CapitalizationContextUsage allUsages[] = CapitalizationContextUsage.values();
+        for (CapitalizationContextUsage usage: allUsages) {
+            capitalization.put(usage, noTransforms);
+        }
+        UResourceBundle contextTransformsBundle = null;
+        try {
+           contextTransformsBundle = (UResourceBundle)rb.getWithFallback("contextTransforms");
+        }
+        catch (MissingResourceException e) {
+            contextTransformsBundle = null; // probably redundant
+        }
+        if (contextTransformsBundle != null) {
+            UResourceBundleIterator ctIterator = contextTransformsBundle.getIterator();
+            while ( ctIterator.hasNext() ) {
+                UResourceBundle contextTransformUsage = ctIterator.next();
+                int[] intVector = contextTransformUsage.getIntVector();
+                if (intVector.length >= 2) {
+                    String usageKey = contextTransformUsage.getKey();
+                    CapitalizationContextUsage usage = contextUsageTypeMap.get(usageKey);
+                    if (usage != null) {
+                        boolean[] transforms = new boolean[2];
+                        transforms[0] = (intVector[0] != 0);
+                        transforms[1] = (intVector[1] != 0);
+                        capitalization.put(usage, transforms);
+                    }
+                }
+            }
+        }
     }
 
     private static final boolean arrayOfArrayEquals(Object[][] aa1, Object[][]aa2) {
@@ -1363,7 +1548,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
 
     /**
      * Variant of DateFormatSymbols(Calendar, Locale) that takes the Calendar class
-     * instead of a Calandar instance.
+     * instead of a Calendar instance.
      * @see #DateFormatSymbols(Calendar, Locale)
      * @stable ICU 2.2
      */

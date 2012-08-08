@@ -1,7 +1,7 @@
 /*
  **************************************************************************
- * Copyright (C) 2008-2011, Google, International Business Machines
- * Corporationand others. All Rights Reserved.
+ * Copyright (C) 2008-2012, Google, International Business Machines
+ * Corporation and others. All Rights Reserved.
  **************************************************************************
  */
 package com.ibm.icu.text;
@@ -11,6 +11,7 @@ import java.text.ParsePosition;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.MissingResourceException;
 import java.util.Set;
 import java.util.TreeMap;
@@ -19,8 +20,8 @@ import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.util.TimeUnit;
 import com.ibm.icu.util.TimeUnitAmount;
 import com.ibm.icu.util.ULocale;
-import com.ibm.icu.util.UResourceBundle;
 import com.ibm.icu.util.ULocale.Category;
+import com.ibm.icu.util.UResourceBundle;
 
 
 /**
@@ -193,10 +194,8 @@ public class TimeUnitFormat extends MeasureFormat {
         if (isReady == false) {
             return this;
         }
-        for (TimeUnit timeUnit : timeUnitToCountToPatterns.keySet()) {
-            Map<String, Object[]> countToPattern = timeUnitToCountToPatterns.get(timeUnit);
-            for (String count : countToPattern.keySet()) {
-                Object[] pair = countToPattern.get(count);
+        for (Map<String, Object[]> countToPattern : timeUnitToCountToPatterns.values()) {
+            for (Object[] pair : countToPattern.values()) {
                 MessageFormat pattern = (MessageFormat)pair[FULL_NAME];
                 pattern.setFormatByArgumentIndex(0, format);
                 pattern = (MessageFormat)pair[ABBREVIATED_NAME];
@@ -249,9 +248,10 @@ public class TimeUnitFormat extends MeasureFormat {
         // and looking for the longest match.
         for (TimeUnit timeUnit : timeUnitToCountToPatterns.keySet()) {
             Map<String, Object[]> countToPattern = timeUnitToCountToPatterns.get(timeUnit);
-            for (String count : countToPattern.keySet()) {
+            for (Entry<String, Object[]> patternEntry : countToPattern.entrySet()) {
+              String count = patternEntry.getKey();
               for (int styl = FULL_NAME; styl < TOTAL_STYLES; ++styl) {
-                MessageFormat pattern = (MessageFormat)(countToPattern.get(count))[styl];
+                MessageFormat pattern = (MessageFormat)(patternEntry.getValue())[styl];
                 pos.setErrorIndex(-1);
                 pos.setIndex(oldPos);
                 // see if we can parse
@@ -290,15 +290,15 @@ public class TimeUnitFormat extends MeasureFormat {
         if (resultNumber == null && longestParseDistance != 0) {
             // set the number using plurrual count
             if ( countOfLongestMatch.equals("zero") ) {
-                resultNumber = new Integer(0);
+                resultNumber = Integer.valueOf(0);
             } else if ( countOfLongestMatch.equals("one") ) {
-                resultNumber = new Integer(1);
+                resultNumber = Integer.valueOf(1);
             } else if ( countOfLongestMatch.equals("two") ) {
-                resultNumber = new Integer(2);
+                resultNumber = Integer.valueOf(2);
             } else {
                 // should not happen.
                 // TODO: how to handle?
-                resultNumber = new Integer(3);
+                resultNumber = Integer.valueOf(3);
             }
         }
         if (longestParseDistance == 0) {
@@ -333,14 +333,15 @@ public class TimeUnitFormat extends MeasureFormat {
         pluralRules = PluralRules.forLocale(locale);
         timeUnitToCountToPatterns = new HashMap<TimeUnit, Map<String, Object[]>>();
 
-        setup("units", timeUnitToCountToPatterns, FULL_NAME);
-        setup("unitsShort", timeUnitToCountToPatterns, ABBREVIATED_NAME);
+        Set<String> pluralKeywords = pluralRules.getKeywords();
+        setup("units", timeUnitToCountToPatterns, FULL_NAME, pluralKeywords);
+        setup("unitsShort", timeUnitToCountToPatterns, ABBREVIATED_NAME, pluralKeywords);
         isReady = true;
     }
 
 
     private void setup(String resourceKey, Map<TimeUnit, Map<String, Object[]>> timeUnitToCountToPatterns,
-                       int style) {
+                       int style, Set<String> pluralKeywords) {
         // fill timeUnitToCountToPatterns from resource file
         try {
             ICUResourceBundle resource = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, locale);
@@ -375,6 +376,8 @@ public class TimeUnitFormat extends MeasureFormat {
                 } 
                 for ( int pluralIndex = 0; pluralIndex < count; ++pluralIndex) {
                     String pluralCount = oneUnitRes.get(pluralIndex).getKey();
+                    if (!pluralKeywords.contains(pluralCount))
+                        continue;
                     String pattern = oneUnitRes.get(pluralIndex).getString();
                     final MessageFormat messageFormat = new MessageFormat(pattern, locale);
                     if (format != null) {

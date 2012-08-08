@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (c) 2004-2011, International Business Machines
+ * Copyright (c) 2004-2012, International Business Machines
  * Corporation and others.  All Rights Reserved.
  *******************************************************************************
  *
@@ -18,6 +18,7 @@ import com.ibm.icu.impl.TimeZoneGenericNames.GenericNameType;
 import com.ibm.icu.impl.Utility;
 import com.ibm.icu.text.ChineseDateFormat;
 import com.ibm.icu.text.ChineseDateFormatSymbols;
+import com.ibm.icu.text.CompactDecimalFormat;
 import com.ibm.icu.text.CurrencyPluralInfo;
 import com.ibm.icu.text.DateFormat;
 import com.ibm.icu.text.DateFormatSymbols;
@@ -1717,6 +1718,12 @@ public class FormatTests
         }
     }
     
+    public static class CompactDecimalFormatHandler extends NumberFormatHandler {
+        public Object[] getTestObjects() {
+            return new CompactDecimalFormat[0];
+        }
+    }
+    
     public static class MessageFormatHandler implements SerializableTest.Handler
     {
         public Object[] getTestObjects()
@@ -1817,6 +1824,8 @@ public class FormatTests
                 DateFormatSymbols dfsa = ((SimpleDateFormat)dfa).getDateFormatSymbols();
                 DateFormatSymbols tmp = (DateFormatSymbols)((SimpleDateFormat)dfb).getDateFormatSymbols().clone();
 
+                TimeZoneFormat tmptzf = (TimeZoneFormat)((SimpleDateFormat)dfb).getTimeZoneFormat().clone();
+
                 tmp.setMonths(dfsa.getMonths());
                 tmp.setShortMonths(dfsa.getShortMonths());
                 tmp.setWeekdays(dfsa.getWeekdays());
@@ -1824,10 +1833,11 @@ public class FormatTests
                 tmp.setAmPmStrings(dfsa.getAmPmStrings());
 
                 ((SimpleDateFormat)dfa).setDateFormatSymbols(tmp);
+                ((SimpleDateFormat)dfa).setTimeZoneFormat(tmptzf);
 
                 sfa = dfa.format(fixedDate);
             }
-
+            
             return sfa.equals(sfb);
         }
         
@@ -2048,8 +2058,18 @@ public class FormatTests
             ChineseDateFormatSymbols cdfs_a = (ChineseDateFormatSymbols) a;
             ChineseDateFormatSymbols cdfs_b = (ChineseDateFormatSymbols) b;
             
+            // The old test did this, which tested that the leap month marker never
+            // changed from one ICU version to the next; this is not a valid test.
+            //return cdfs_a.getLeapMonth(0).equals(cdfs_b.getLeapMonth(0)) &&
+            //     cdfs_a.getLeapMonth(1).equals(cdfs_b.getLeapMonth(1));
+            //
+            // A more valid test is that from one version to the next, the
+            // marker for getLeapMonth(0) does not change and is empty, while
+            // the marker for getLeapMonth(1) is non-empty in both versions:
             return cdfs_a.getLeapMonth(0).equals(cdfs_b.getLeapMonth(0)) &&
-                   cdfs_a.getLeapMonth(1).equals(cdfs_b.getLeapMonth(1));
+                   cdfs_a.getLeapMonth(0).length() == 0 &&
+                   cdfs_a.getLeapMonth(1).length() > 0 &&
+                   cdfs_b.getLeapMonth(1).length() > 0;
         }
     }
 

@@ -1,6 +1,6 @@
 /*
 **********************************************************************
-* Copyright (c) 2004-2011, International Business Machines
+* Copyright (c) 2004-2012, International Business Machines
 * Corporation and others.  All Rights Reserved.
 **********************************************************************
 * Author: Alan Liu
@@ -36,6 +36,8 @@ import com.ibm.icu.impl.PatternProps;
 import com.ibm.icu.impl.Utility;
 import com.ibm.icu.text.MessagePattern.ArgType;
 import com.ibm.icu.text.MessagePattern.Part;
+import com.ibm.icu.text.PluralFormat.PluralSelector;
+import com.ibm.icu.text.PluralRules.PluralType;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.ULocale.Category;
 
@@ -99,13 +101,14 @@ import com.ibm.icu.util.ULocale.Category;
  * <blockquote><pre>
  * message = messageText (argument messageText)*
  * argument = noneArg | simpleArg | complexArg
- * complexArg = choiceArg | pluralArg | selectArg
+ * complexArg = choiceArg | pluralArg | selectArg | selectordinalArg
  *
  * noneArg = '{' argNameOrNumber '}'
  * simpleArg = '{' argNameOrNumber ',' argType [',' argStyle] '}'
  * choiceArg = '{' argNameOrNumber ',' "choice" ',' choiceStyle '}'
  * pluralArg = '{' argNameOrNumber ',' "plural" ',' pluralStyle '}'
  * selectArg = '{' argNameOrNumber ',' "select" ',' selectStyle '}'
+ * selectordinalArg = '{' argNameOrNumber ',' "selectordinal" ',' pluralStyle '}'
  *
  * choiceStyle: see {@link ChoiceFormat}
  * pluralStyle: see {@link PluralFormat}
@@ -408,6 +411,7 @@ public class MessageFormat extends UFormat {
         // the locale has changed.
         stockNumberFormatter = stockDateFormatter = null;
         pluralProvider = null;
+        ordinalProvider = null;
         applyPattern(existingPattern);                              /*ibm.3550*/
     }
 
@@ -469,8 +473,7 @@ public class MessageFormat extends UFormat {
      * @param aposMode the new ApostropheMode
      * @throws IllegalArgumentException if the pattern is invalid
      * @see MessagePattern.ApostropheMode
-     * @draft ICU 4.8
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 4.8
      */
     public void applyPattern(String pattern, MessagePattern.ApostropheMode aposMode) {
         if (msgPattern == null) {
@@ -484,8 +487,7 @@ public class MessageFormat extends UFormat {
     /**
      * {@icu}
      * @return this instance's ApostropheMode.
-     * @draft ICU 4.8
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 4.8
      */
     public MessagePattern.ApostropheMode getApostropheMode() {
         if (msgPattern == null) {
@@ -830,8 +832,7 @@ public class MessageFormat extends UFormat {
      * {@icu} Returns the top-level argument names. For more details, see
      * {@link #setFormatByArgumentName(String, Format)}.
      * @return a Set of argument names
-     * @draft ICU 4.8
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 4.8
      */
     public Set<String> getArgumentNames() {
         Set<String> result = new HashSet<String>();
@@ -846,8 +847,7 @@ public class MessageFormat extends UFormat {
      * For more details, see {@link #setFormatByArgumentName(String, Format)}.
      * @param argumentName The name of the desired argument.
      * @return the Format associated with the name, or null if there isn't one.
-     * @draft ICU 4.8
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 4.8
      */
     public Format getFormatByArgumentName(String argumentName) {
         if (cachedFormatters == null) {
@@ -1272,7 +1272,7 @@ public class MessageFormat extends UFormat {
             String key = null;
             if(args!=null) {
                 argNumber=part.getValue();  // ARG_NUMBER
-                argId = new Integer(argNumber);
+                argId = Integer.valueOf(argNumber);
             } else {
                 if(part.getType()==MessagePattern.Part.Type.ARG_NAME) {
                     key=msgPattern.getSubstring(part);
@@ -1331,11 +1331,10 @@ public class MessageFormat extends UFormat {
                 argResult = choiceResult;
                 haveArgResult = true;
                 sourceOffset = tempStatus.getIndex();
-            } else if(argType==ArgType.PLURAL || argType==ArgType.SELECT) {
+            } else if(argType.hasPluralStyle() || argType==ArgType.SELECT) {
                 // No can do!
-                throw new UnsupportedOperationException(argType==ArgType.PLURAL ?
-                        "Parsing of PluralFormat is not supported." :
-                        "Parsing of SelectFormat is not supported.");
+                throw new UnsupportedOperationException(
+                        "Parsing of plural/select/selectordinal argument is not supported.");
             } else {
                 // This should never happen.
                 throw new IllegalStateException("unexpected argType "+argType);
@@ -1445,6 +1444,7 @@ public class MessageFormat extends UFormat {
         other.stockNumberFormatter = stockNumberFormatter == null ? null : (Format) stockNumberFormatter.clone();
 
         other.pluralProvider = null;
+        other.ordinalProvider = null;
         return other;
     }
 
@@ -1564,6 +1564,7 @@ public class MessageFormat extends UFormat {
     private transient Format stockNumberFormatter;
 
     private transient PluralSelectorProvider pluralProvider;
+    private transient PluralSelectorProvider ordinalProvider;
 
     // *Important*: All fields must be declared *transient*.
     // See the longer comment above ulocale.
@@ -1617,7 +1618,7 @@ public class MessageFormat extends UFormat {
                 int argNumber=part.getValue();  // ARG_NUMBER
                 if (dest.attributes != null) {
                     // We only need argId if we add it into the attributes.
-                    argId = new Integer(argNumber);
+                    argId = Integer.valueOf(argNumber);
                 }
                 if(0<=argNumber && argNumber<args.length) {
                     arg=args[argNumber];
@@ -1701,15 +1702,24 @@ public class MessageFormat extends UFormat {
                 double number = ((Number)arg).doubleValue();
                 int subMsgStart=findChoiceSubMessage(msgPattern, i, number);
                 formatComplexSubMessage(subMsgStart, 0, args, argsMap, dest);
-            } else if(argType==ArgType.PLURAL) {
+            } else if(argType.hasPluralStyle()) {
                 if (!(arg instanceof Number)) {
                     throw new IllegalArgumentException("'" + arg + "' is not a Number");
                 }
                 double number = ((Number)arg).doubleValue();
-                if (pluralProvider == null) {
-                    pluralProvider = new PluralSelectorProvider(ulocale);
+                PluralSelector selector;
+                if(argType == ArgType.PLURAL) {
+                    if (pluralProvider == null) {
+                        pluralProvider = new PluralSelectorProvider(ulocale, PluralType.CARDINAL);
+                    }
+                    selector = pluralProvider;
+                } else {
+                    if (ordinalProvider == null) {
+                        ordinalProvider = new PluralSelectorProvider(ulocale, PluralType.ORDINAL);
+                    }
+                    selector = ordinalProvider;
                 }
-                int subMsgStart=PluralFormat.findSubMessage(msgPattern, i, pluralProvider, number);
+                int subMsgStart=PluralFormat.findSubMessage(msgPattern, i, selector, number);
                 double offset=msgPattern.getPluralOffset(i);
                 formatComplexSubMessage(subMsgStart, number-offset, args, argsMap, dest);
             } else if(argType==ArgType.SELECT) {
@@ -1944,17 +1954,19 @@ public class MessageFormat extends UFormat {
      * we do not need any PluralRules.
      */
     private static final class PluralSelectorProvider implements PluralFormat.PluralSelector {
-        public PluralSelectorProvider(ULocale loc) {
+        public PluralSelectorProvider(ULocale loc, PluralType type) {
             locale=loc;
+            this.type=type;
         }
         public String select(double number) {
             if(rules == null) {
-                rules = PluralRules.forLocale(locale);
+                rules = PluralRules.forLocale(locale, type);
             }
             return rules.select(number);
         }
         private ULocale locale;
         private PluralRules rules;
+        private PluralType type;
     }
 
     @SuppressWarnings("unchecked")

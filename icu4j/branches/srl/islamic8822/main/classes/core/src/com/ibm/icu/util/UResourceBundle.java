@@ -389,6 +389,9 @@ public abstract class UResourceBundle extends ResourceBundle {
         private int hashCodeCache;
         ///CLOVER:OFF
         public boolean equals(Object other) {
+            if (other == null) {
+                return false;
+            }
             if (this == other) {
                 return true;
             }
@@ -511,7 +514,9 @@ public abstract class UResourceBundle extends ResourceBundle {
 
         if (ROOT_CACHE != null) {
             m = ROOT_CACHE.get();
-        } else {
+        }
+
+        if (m == null) {
             m = new HashMap<String, Integer>();
             ROOT_CACHE = new SoftReference<Map<String, Integer>>(m);
         }

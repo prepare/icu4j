@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2011, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2012, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -275,14 +275,12 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
 
     /**
      * Constant for the empty set.
-     * @draft 4.8
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 4.8
      */
     public static final UnicodeSet EMPTY = new UnicodeSet().freeze();
     /**
      * Constant for the set of all code points. (Since UnicodeSets can include strings, does not include everything that a UnicodeSet can.)
-     * @draft 4.8
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 4.8
      */
     public static final UnicodeSet ALL_CODE_POINTS = new UnicodeSet(0, 0x10FFFF).freeze();
     
@@ -666,7 +664,7 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
                     // number of backslashes, then it has been escaped.
                     // Before unescaping it, we delete the final
                     // backslash.
-                    if ((backslashCount % 2) == 1) {
+                    if (backslashCount % 2 != 0) {
                         result.setLength(result.length() - 1);
                     }
                     Utility.escapeUnprintable(result, c);
@@ -2258,6 +2256,12 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
      * @stable ICU 2.0
      */
     public boolean equals(Object o) {
+        if (o == null) {
+            return false;
+        }
+        if (this == o) {
+            return true;
+        }
         try {
             UnicodeSet that = (UnicodeSet) o;
             if (len != that.len) return false;
@@ -3360,16 +3364,12 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
                     return this;
                 }
                 case UProperty.NAME:
-                case UProperty.UNICODE_1_NAME:
                 {
                     // Must munge name, since
                     // UCharacter.charFromName() does not do
                     // 'loose' matching.
                     String buf = mungeCharName(valueAlias);
-                    int ch =
-                        (p == UProperty.NAME) ?
-                            UCharacter.getCharFromExtendedName(buf) :
-                            UCharacter.getCharFromName1_0(buf);
+                    int ch = UCharacter.getCharFromExtendedName(buf);
                     if (ch == -1) {
                         throw new IllegalArgumentException("Invalid character name");
                     }
@@ -3377,6 +3377,9 @@ public class UnicodeSet extends UnicodeFilter implements Iterable<String>, Compa
                     add_unchecked(ch);
                     return this;
                 }
+                case UProperty.UNICODE_1_NAME:
+                    // ICU 49 deprecates the Unicode_1_Name property APIs.
+                    throw new IllegalArgumentException("Unicode_1_Name (na1) not supported");
                 case UProperty.AGE:
                 {
                     // Must munge name, since

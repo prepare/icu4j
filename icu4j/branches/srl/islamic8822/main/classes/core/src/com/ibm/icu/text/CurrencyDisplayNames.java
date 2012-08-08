@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2009-2010, International Business Machines Corporation and    *
+ * Copyright (C) 2009-2012, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -13,13 +13,21 @@ import com.ibm.icu.util.ULocale;
 
 /**
  * Returns currency names localized for a locale.
+ * 
+ * This class is not intended for public subclassing.
+ * 
  * @draft ICU 4.4
  * @provisional This API might change or be removed in a future release.
  */
 public abstract class CurrencyDisplayNames {
     /**
      * Return an instance of CurrencyDisplayNames that provides information
-     * localized for display in the provided locale.
+     * localized for display in the provided locale.  If there is no data for the
+     * provided locale, this falls back to the current default locale; if there
+     * is no data for that either, it falls back to the root locale.  Substitute
+     * values are returned from APIs when there is no data for the requested ISO 
+     * code.
+     * 
      * @param locale the locale into which to localize the names
      * @return a CurrencyDisplayNames
      * @draft ICU 4.4
@@ -30,10 +38,29 @@ public abstract class CurrencyDisplayNames {
     }
 
     /**
+     * Return an instance of CurrencyDisplayNames that provides information
+     * localized for display in the provided locale.  If noSubstitute is false,
+     * this behaves like {@link #getInstance(ULocale)}.  Otherwise, 1) if there
+     * is no supporting data for the locale at all, there is no fallback through
+     * the default locale or root, and null is returned, and 2) if there is data
+     * for the locale, but not data for the requested ISO code, null is returned
+     * from those APIs instead of a substitute value.
+     * 
+     * @param locale the locale into which to localize the names
+     * @param noSubstitute if true, do not return substitute values.
+     * @return a CurrencyDisplayNames
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
+     */
+    public static CurrencyDisplayNames getInstance(ULocale locale, boolean noSubstitute) {
+        return CurrencyData.provider.getInstance(locale, !noSubstitute);
+    }
+
+    /**
      * Returns true if currency display name data is available.
      * @return true if currency display name data is available
-     * @draft ICU 4.4
-     * @provisional This API might change or be removed in a future release.
+     * @internal
+     * @deprecated This API is ICU internal only.
      */
     public static boolean hasData() {
         return CurrencyData.provider.hasData();
@@ -42,16 +69,16 @@ public abstract class CurrencyDisplayNames {
     /**
      * Returns the locale used to determine how to translate the currency names.
      * This is not necessarily the same locale passed to {@link #getInstance(ULocale)}.
-     * If hasData is false, returns {@link com.ibm.icu.util.ULocale#ROOT}.
      * @return the display locale
-     * @draft ICU 4.4
+     * @draft ICU 49
      * @provisional This API might change or be removed in a future release.
      */
-    public abstract ULocale getLocale();
+    public abstract ULocale getULocale();
 
     /**
-     * Returns the symbol for the currency with the provided ISO code.
-     * If hasData is false, returns the provided ISO code.
+     * Returns the symbol for the currency with the provided ISO code.  If
+     * there is no data for the ISO code, substitutes isoCode or returns null.
+     * 
      * @param isoCode the three-letter ISO code.
      * @return the display name.
      * @draft ICU 4.4
@@ -61,7 +88,8 @@ public abstract class CurrencyDisplayNames {
 
     /**
      * Returns the 'long name' for the currency with the provided ISO code.
-     * If hasData is false, returns the provided ISO code.
+     * If there is no data for the ISO code, substitutes isoCode or returns null.
+     * 
      * @param isoCode the three-letter ISO code
      * @return the display name
      * @draft ICU 4.4
@@ -71,7 +99,10 @@ public abstract class CurrencyDisplayNames {
 
     /**
      * Returns a 'plural name' for the currency with the provided ISO code corresponding to
-     * the pluralKey. If hasData is false, returns the provided ISO code.
+     * the pluralKey.  If there is no data for the ISO code, substitutes isoCode or
+     * returns null.  If there is data for the ISO code but no data for the plural key, 
+     * substitutes the 'other' value (and failing that the isoCode) or returns null.
+     * 
      * @param isoCode the three-letter ISO code
      * @param pluralKey the plural key, for example "one", "other"
      * @return the display name
@@ -83,7 +114,6 @@ public abstract class CurrencyDisplayNames {
 
     /**
      * Returns a mapping from localized symbols and currency codes to currency codes.
-     * If hasData is false, returns an empty map.
      * The returned map is unmodifiable.
      * @return the map
      * @draft ICU 4.4
@@ -93,7 +123,6 @@ public abstract class CurrencyDisplayNames {
 
     /**
      * Returns a mapping from localized names (standard and plural) to currency codes.
-     * If hasData is false, returns an empty map.
      * The returned map is unmodifiable.
      * @return the map
      * @draft ICU 4.4

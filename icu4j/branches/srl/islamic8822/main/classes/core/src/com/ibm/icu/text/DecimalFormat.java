@@ -1,7 +1,7 @@
 //##header
 /*
  *******************************************************************************
- * Copyright (C) 1996-2011, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2012, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -1639,7 +1639,7 @@ public class DecimalFormat extends NumberFormat {
      * @stable ICU 2.0
      */
     public Number parse(String text, ParsePosition parsePosition) {
-        return (Number) parse(text, parsePosition, false);
+        return (Number) parse(text, parsePosition, null);
     }
 
     /**
@@ -1649,15 +1649,17 @@ public class DecimalFormat extends NumberFormat {
      * code. This method will fail if this format is not a currency format, that is, if it
      * does not contain the currency pattern symbol (U+00A4) in its prefix or suffix.
      *
-     * @param text the string to parse
+     * @param text the text to parse
      * @param pos input-output position; on input, the position within text to match; must
      *  have 0 <= pos.getIndex() < text.length(); on output, the position after the last
      *  matched character. If the parse fails, the position in unchanged upon output.
      * @return a CurrencyAmount, or null upon failure
-     * @internal
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
      */
-    public CurrencyAmount parseCurrency(String text, ParsePosition pos) {
-        return (CurrencyAmount) parse(text, pos, true);
+    public CurrencyAmount parseCurrency(CharSequence text, ParsePosition pos) {
+        Currency[] currency = new Currency[1];
+        return (CurrencyAmount) parse(text.toString(), pos, currency);
     }
 
     /**
@@ -1668,11 +1670,11 @@ public class DecimalFormat extends NumberFormat {
      * match; must have 0 <= pos.getIndex() < text.length(); on output, the position after
      * the last matched character. If the parse fails, the position in unchanged upon
      * output.
-     * @param parseCurrency if true, a CurrencyAmount is parsed and returned; otherwise a
+     * @param currency if non-null, a CurrencyAmount is parsed and returned; otherwise a
      * Number is parsed and returned
      * @return a Number or CurrencyAmount or null
      */
-    private Object parse(String text, ParsePosition parsePosition, boolean parseCurrency) {
+    private Object parse(String text, ParsePosition parsePosition, Currency[] currency) {
         int backup;
         int i = backup = parsePosition.getIndex();
 
@@ -1698,9 +1700,8 @@ public class DecimalFormat extends NumberFormat {
         i = backup;
 
         boolean[] status = new boolean[STATUS_LENGTH];
-        Currency[] currency = parseCurrency ? new Currency[1] : null;
         if (currencySignCount > 0) {
-            if (!parseForCurrency(text, parsePosition, parseCurrency, currency, status)) {
+            if (!parseForCurrency(text, parsePosition, currency, status)) {
                 return null;
             }
         } else {
@@ -1756,10 +1757,10 @@ public class DecimalFormat extends NumberFormat {
                             l = -l;
                         }
                     }
-                    n = new Long(l);
+                    n = Long.valueOf(l);
                 } else {
                     BigInteger big = digitList.getBigInteger(status[STATUS_POSITIVE]);
-                    n = (big.bitLength() < 64) ? (Number) new Long(big.longValue()) : (Number) big;
+                    n = (big.bitLength() < 64) ? (Number) Long.valueOf(big.longValue()) : (Number) big;
                 }
             }
             // Handle non-integral values or the case where parseBigDecimal is set
@@ -1773,10 +1774,10 @@ public class DecimalFormat extends NumberFormat {
         }
 
         // Assemble into CurrencyAmount if necessary
-        return parseCurrency ? (Object) new CurrencyAmount(n, currency[0]) : (Object) n;
+        return (currency != null) ? (Object) new CurrencyAmount(n, currency[0]) : (Object) n;
     }
 
-    private boolean parseForCurrency(String text, ParsePosition parsePosition, boolean parseCurrency,
+    private boolean parseForCurrency(String text, ParsePosition parsePosition,
             Currency[] currency, boolean[] status) {
         int origPos = parsePosition.getIndex();
         if (!isReadyForParsing) {
@@ -2138,6 +2139,7 @@ public class DecimalFormat extends NumberFormat {
             boolean strictParse = isParseStrict();
             boolean strictFail = false; // did we exit with a strict parse failure?
             int lastGroup = -1; // where did we last see a grouping separator?
+            int digitStart = position; // where did the digit start?
             int gs2 = groupingSize2 == 0 ? groupingSize : groupingSize2;
 
             // equivalent grouping and decimal support
@@ -2188,8 +2190,8 @@ public class DecimalFormat extends NumberFormat {
                         // group. If there was a group separator before that, the group
                         // must == the secondary group length, else it can be <= the the
                         // secondary group length.
-                        if ((lastGroup != -1 && countCodePoints(text,lastGroup,backup) - 1 != gs2)
-                                || (lastGroup == -1 && countCodePoints(text,oldStart,position) - 1 > gs2)) {
+                        if ((lastGroup != -1 && countCodePoints(text, lastGroup, backup) - 1 != gs2)
+                                || (lastGroup == -1 && countCodePoints(text, digitStart, position) - 1 > gs2)) {
                             strictFail = true;
                             break;
                         }
@@ -2217,8 +2219,8 @@ public class DecimalFormat extends NumberFormat {
                 {
                     if (strictParse) {
                         if (backup != -1) {
-                            if ((lastGroup != -1 && countCodePoints(text,lastGroup,backup) - 1 != gs2)
-                                    || (lastGroup == -1 && countCodePoints(text,oldStart,position) - 1 > gs2)) {
+                            if ((lastGroup != -1 && countCodePoints(text, lastGroup, backup) - 1 != gs2)
+                                    || (lastGroup == -1 && countCodePoints(text, digitStart, position) - 1 > gs2)) {
                                 strictFail = true;
                                 break;
                             }
@@ -3507,6 +3509,7 @@ public class DecimalFormat extends NumberFormat {
             if (currencyPluralInfo != null) {
                 other.currencyPluralInfo = (CurrencyPluralInfo) currencyPluralInfo.clone();
             }
+            other.attributes = new ArrayList<FieldPosition>(); // #9240
 
             // TODO: We need to figure out whether we share a single copy of DigitList by
             // multiple cloned copies.  format/subformat are designed to use a single
@@ -3908,6 +3911,8 @@ public class DecimalFormat extends NumberFormat {
             text = format(number.doubleValue(), new StringBuffer(), new FieldPosition(0), true);
         } else if (obj instanceof Integer || obj instanceof Long) {
             text = format(number.longValue(), new StringBuffer(), new FieldPosition(0), true);
+        } else {
+            throw new IllegalArgumentException();
         }
 
         AttributedString as = new AttributedString(text.toString());
@@ -4718,9 +4723,7 @@ public class DecimalFormat extends NumberFormat {
             roundingDoubleReciprocal = 0.0d;
         } else {
             roundingDouble = roundingIncrementICU.doubleValue();
-            setRoundingDoubleReciprocal(
-                BigDecimal.ONE.divide(roundingIncrementICU, BigDecimal.ROUND_HALF_EVEN)
-                    .doubleValue());
+            setRoundingDoubleReciprocal(1.0d / roundingDouble);
         }
     }
 

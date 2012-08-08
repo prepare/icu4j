@@ -1,5 +1,5 @@
 /*
-*   Copyright (C) 1996-2011, International Business Machines
+*   Copyright (C) 1996-2012, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 */
 
@@ -100,11 +100,12 @@ import com.ibm.icu.util.ULocale.Category;
  * designate the week before week 1 of a year as week <em>n</em> of the previous
  * year.
  *
- * <p> When computing a <code>Date</code> from time fields, two special
+ * <p> When computing a <code>Date</code> from time fields, some special
  * circumstances may arise: there may be insufficient information to compute the
- * <code>Date</code> (such as only year and month but no day in the month), or
+ * <code>Date</code> (such as only year and month but no day in the month),
  * there may be inconsistent information (such as "Tuesday, July 15, 1996" --
- * July 15, 1996 is actually a Monday).
+ * July 15, 1996 is actually a Monday), or the input time might be ambiguous
+ * because of time zone transition.
  *
  * <p><strong>Insufficient information.</strong> The calendar will use default
  * information to specify the missing fields. This may vary by calendar; for
@@ -133,6 +134,25 @@ import com.ibm.icu.util.ULocale.Category;
  * HOUR_OF_DAY
  * AM_PM + HOUR</pre>
  * </blockquote>
+ * 
+ * <p><strong>Ambiguous Wall Clock Time.</strong> When time offset from UTC has
+ * changed, it produces ambiguous time slot around the transition. For example,
+ * many US locations observe daylight saving time. On the date switching to daylight
+ * saving time in US, wall clock time jumps from 1:00 AM (standard) to 2:00 AM
+ * (daylight). Therefore, wall clock time from 1:00 AM to 1:59 AM do not exist on
+ * the date. When the input wall time fall into this missing time slot, the ICU
+ * Calendar resolves the time using the UTC offset before the transition by default.
+ * In this example, 1:30 AM is interpreted as 1:30 AM standard time (non-exist),
+ * so the final result will be 2:30 AM daylight time.
+ * 
+ * <p>On the date switching back to standard time, wall clock time is moved back one
+ * hour at 2:00 AM. So wall clock time from 1:00 AM to 1:59 AM occur twice. In this
+ * case, the ICU Calendar resolves the time using the UTC offset after the transition
+ * by default. For example, 1:30 AM on the date is resolved as 1:30 AM standard time.
+ * 
+ * <p>Ambiguous wall clock time resolution behaviors can be customized by Calendar APIs
+ * {@link #setRepeatedWallTimeOption(int)} and {@link #setSkippedWallTimeOption(int)}.
+ * These methods are available in ICU 49 or later versions.
  *
  * <p><strong>Note:</strong> for some non-Gregorian calendars, different
  * fields may be necessary for complete disambiguation. For example, a full
@@ -1146,6 +1166,42 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
     public static final int WEEKEND_CEASE = 3;
 
     /**
+     * {@icu}Option used by {@link #setRepeatedWallTimeOption(int)} and
+     * {@link #setSkippedWallTimeOption(int)} specifying an ambiguous wall time
+     * to be interpreted as the latest.
+     * @see #setRepeatedWallTimeOption(int)
+     * @see #getRepeatedWallTimeOption()
+     * @see #setSkippedWallTimeOption(int)
+     * @see #getSkippedWallTimeOption()
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
+     */
+    public static final int WALLTIME_LAST = 0;
+
+    /**
+     * {@icu}Option used by {@link #setRepeatedWallTimeOption(int)} and
+     * {@link #setSkippedWallTimeOption(int)} specifying an ambiguous wall time
+     * to be interpreted as the earliest.
+     * @see #setRepeatedWallTimeOption(int)
+     * @see #getRepeatedWallTimeOption()
+     * @see #setSkippedWallTimeOption(int)
+     * @see #getSkippedWallTimeOption()
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
+     */
+    public static final int WALLTIME_FIRST = 1;
+
+    /**
+     * {@icu}Option used by {@link #setSkippedWallTimeOption(int)} specifying an
+     * ambiguous wall time to be interpreted as the next valid wall time.
+     * @see #setSkippedWallTimeOption(int)
+     * @see #getSkippedWallTimeOption()
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
+     */
+    public static final int WALLTIME_NEXT_VALID = 2;
+
+    /**
      * The number of milliseconds in one second.
      * @stable ICU 2.0
      */
@@ -1371,6 +1427,16 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      * is taken from locale resource data.
      */
     private int weekendCeaseMillis;
+
+    /**
+     * Option used when the specified wall time occurs multiple times.
+     */
+    private int repeatedWallTime = WALLTIME_LAST;
+
+    /**
+     * Option used when the specified wall time does not exist.
+     */
+    private int skippedWallTime = WALLTIME_LAST;
 
     /**
      * Cache to hold the firstDayOfWeek and minimalDaysInFirstWeek
@@ -1733,6 +1799,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
     }
 
     // ==== Factory Stuff ====
+    ///CLOVER:OFF
     /**
      * A CalendarFactory is used to register new calendar implementation.
      * The factory should be able to create a calendar instance for the
@@ -1754,6 +1821,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
         protected CalendarFactory() {
         }
     }
+    ///CLOVER:ON
 
     //  shim so we can build without service code
     static abstract class CalendarShim {
@@ -2220,6 +2288,9 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      * @stable ICU 2.0
      */
     public boolean equals(Object obj) {
+        if (obj == null) {
+            return false;
+        }
         if (this == obj) {
             return true;
         }
@@ -2248,7 +2319,9 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
             isLenient() == other.isLenient() &&
             getFirstDayOfWeek() == other.getFirstDayOfWeek() &&
             getMinimalDaysInFirstWeek() == other.getMinimalDaysInFirstWeek() &&
-            getTimeZone().equals(other.getTimeZone());
+            getTimeZone().equals(other.getTimeZone()) &&
+            getRepeatedWallTimeOption() == other.getRepeatedWallTimeOption() &&
+            getSkippedWallTimeOption() == other.getSkippedWallTimeOption();
     }
 
     /**
@@ -2265,7 +2338,9 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
         return (lenient ? 1 : 0)
             | (firstDayOfWeek << 1)
             | (minimalDaysInFirstWeek << 4)
-            | (zone.hashCode() << 7);
+            | (repeatedWallTime << 7)
+            | (skippedWallTime << 9)
+            | (zone.hashCode() << 11);
     }
 
     /**
@@ -2562,6 +2637,18 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      * must be adjusted so that the result is 2/29/96 rather than the invalid
      * 2/31/96.
      * <p>
+     * Rolling up always means rolling forward in time (unless
+     * the limit of the field is reached, in which case it may pin or wrap), so for the
+     * Gregorian calendar, starting with 100 BC and rolling the year up results in 99 BC.
+     * When eras have a definite beginning and end (as in the Chinese calendar, or as in
+     * most eras in the Japanese calendar) then rolling the year past either limit of the
+     * era will cause the year to wrap around. When eras only have a limit at one end,
+     * then attempting to roll the year past that limit will result in pinning the year
+     * at that limit. Note that for most calendars in which era 0 years move forward in
+     * time (such as Buddhist, Hebrew, or Islamic), it is possible for add or roll to
+     * result in negative years for era 0 (that is the only way to represent years before
+     * the calendar epoch in such calendars).
+     * <p>
      * <b>Note:</b> Calling <tt>roll(field, true)</tt> N times is <em>not</em>
      * necessarily equivalent to calling <tt>roll(field, N)</tt>.  For example,
      * imagine that you start with the date Gregorian date January 31, 1995.  If you call
@@ -2609,6 +2696,18 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      * for the Gregorian date 1/31/96 by +1, the {@link #DAY_OF_MONTH DAY_OF_MONTH} field
      * must be adjusted so that the result is 2/29/96 rather than the invalid
      * 2/31/96.
+     * <p>
+     * Rolling by a positive value always means rolling forward in time (unless
+     * the limit of the field is reached, in which case it may pin or wrap), so for the
+     * Gregorian calendar, starting with 100 BC and rolling the year by + 1 results in 99 BC.
+     * When eras have a definite beginning and end (as in the Chinese calendar, or as in
+     * most eras in the Japanese calendar) then rolling the year past either limit of the
+     * era will cause the year to wrap around. When eras only have a limit at one end,
+     * then attempting to roll the year past that limit will result in pinning the year
+     * at that limit. Note that for most calendars in which era 0 years move forward in
+     * time (such as Buddhist, Hebrew, or Islamic), it is possible for add or roll to
+     * result in negative years for era 0 (that is the only way to represent years before
+     * the calendar epoch in such calendars).
      * <p>
      * {@icunote} the ICU implementation of this method is able to roll
      * all fields except for {@link #ERA ERA}, {@link #DST_OFFSET DST_OFFSET},
@@ -2704,7 +2803,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
                 if (newHour < 0) {
                     newHour += max + 1;
                 }
-                setTimeInMillis(start + ONE_HOUR * (newHour - oldHour));
+                setTimeInMillis(start + ONE_HOUR * ((long)newHour - oldHour));
                 return;
             }
 
@@ -2731,6 +2830,44 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
 
         case YEAR:
         case YEAR_WOY:
+            // * If era==0 and years go backwards in time, change sign of amount.
+            // * Until we have new API per #9393, we temporarily hardcode knowledge of
+            //   which calendars have era 0 years that go backwards.
+            {
+                boolean era0WithYearsThatGoBackwards = false;
+                int era = get(ERA);
+                if (era == 0) {
+                    String calType = getType();
+                    if (calType.equals("gregorian") || calType.equals("roc") || calType.equals("coptic")) {
+                        amount = -amount;
+                        era0WithYearsThatGoBackwards = true;
+                    }
+                }
+                int newYear = internalGet(field) + amount;
+                if (era > 0 || newYear >= 1) {
+                    int maxYear = getActualMaximum(field);
+                    if (maxYear < 32768) {
+                        // this era has real bounds, roll should wrap years
+                        if (newYear < 1) {
+                            newYear = maxYear - ((-newYear) % maxYear);
+                        } else if (newYear > maxYear) {
+                            newYear = ((newYear - 1) % maxYear) + 1;
+                        }
+                    // else era is unbounded, just pin low year instead of wrapping
+                    } else if (newYear < 1) {
+                        newYear = 1;
+                    }
+                // else we are in era 0 with newYear < 1;
+                // calendars with years that go backwards must pin the year value at 0,
+                // other calendars can have years < 0 in era 0
+                } else if (era0WithYearsThatGoBackwards) {
+                    newYear = 1;
+                }
+                set(field, newYear);
+                pinField(MONTH);
+                pinField(DAY_OF_MONTH);
+                return;
+            }
         case EXTENDED_YEAR:
             // Rolling the year can involve pinning the DAY_OF_MONTH.
             set(field, internalGet(field) + amount);
@@ -2949,6 +3086,10 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      * must be adjusted so that the result is 2/29/96 rather than the invalid
      * 2/31/96.
      * <p>
+     * Adding a positive value always means moving forward in time, so for the Gregorian
+     * calendar, starting with 100 BC and adding +1 to year results in 99 BC (even though
+     * this actually reduces the numeric value of the field itself).
+     * <p>
      * {@icunote} The ICU implementation of this method is able to add to
      * all fields except for {@link #ERA ERA}, {@link #DST_OFFSET DST_OFFSET},
      * and {@link #ZONE_OFFSET ZONE_OFFSET}.  Subclasses may, of course, add support for
@@ -2987,6 +3128,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      * @see #roll(int, int)
      * @stable ICU 2.0
      */
+    @SuppressWarnings("fallthrough")
     public void add(int field, int amount) {
 
         if (amount == 0) {
@@ -3024,11 +3166,36 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
             return;
 
         case YEAR:
-        case EXTENDED_YEAR:
         case YEAR_WOY:
+            // * If era=0 and years go backwards in time, change sign of amount.
+            // * Until we have new API per #9393, we temporarily hardcode knowledge of
+            //   which calendars have era 0 years that go backwards.
+            // * Note that for YEAR (but not YEAR_WOY) we could instead handle
+            //   this by applying the amount to the EXTENDED_YEAR field; but since
+            //   we would still need to handle YEAR_WOY as below, might as well
+            //   also handle YEAR the same way.
+            {
+                int era = get(ERA);
+                if (era == 0) {
+                    String calType = getType();
+                    if (calType.equals("gregorian") || calType.equals("roc") || calType.equals("coptic")) {
+                        amount = -amount;
+                    }
+                }
+            }
+            // Fall through into standard handling
+        case EXTENDED_YEAR:
         case MONTH:
-            set(field, get(field) + amount);
-            pinField(DAY_OF_MONTH);
+            {
+                boolean oldLenient = isLenient();
+                setLenient(true);
+                set(field, get(field) + amount);
+                pinField(DAY_OF_MONTH);
+                if(oldLenient==false) {
+                    complete();
+                    setLenient(oldLenient);
+                }
+            }
             return;
 
         case WEEK_OF_YEAR:
@@ -3076,30 +3243,30 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
         }
 
         // In order to keep the hour invariant (for fields where this is
-        // appropriate), record the DST_OFFSET before and after the add()
-        // operation.  If it has changed, then adjust the millis to
-        // compensate.
-        int dst = 0;
+        // appropriate), check the combined DST & ZONE offset before and
+        // after the add() operation. If it changes, then adjust the millis
+        // to compensate.
+        int prevOffset = 0;
         int hour = 0;
         if (keepHourInvariant) {
-            dst = get(DST_OFFSET) + get(ZONE_OFFSET);
+            prevOffset = get(DST_OFFSET) + get(ZONE_OFFSET);
             hour = internalGet(HOUR_OF_DAY);
         }
 
         setTimeInMillis(getTimeInMillis() + delta);
 
         if (keepHourInvariant) {
-            dst -= get(DST_OFFSET) + get(ZONE_OFFSET);
-            if (dst != 0) {
+            int newOffset = get(DST_OFFSET) + get(ZONE_OFFSET);
+            if (newOffset != prevOffset) {
                 // We have done an hour-invariant adjustment but the
-                // DST offset has altered.  We adjust millis to keep
-                // the hour constant.  In cases such as midnight after
+                // combined offset has changed. We adjust millis to keep
+                // the hour constant. In cases such as midnight after
                 // a DST change which occurs at midnight, there is the
-                // danger of adjusting into a different day.  To avoid
+                // danger of adjusting into a different day. To avoid
                 // this we make the adjustment only if it actually
                 // maintains the hour.
                 long t = time;
-                setTimeInMillis(time + dst);
+                setTimeInMillis(time + prevOffset - newOffset);
                 if (get(HOUR_OF_DAY) != hour) {
                     setTimeInMillis(t);
                 }
@@ -3815,6 +3982,107 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
     }
 
     /**
+     * {@icu}Sets the behavior for handling wall time repeating multiple times
+     * at negative time zone offset transitions. For example, 1:30 AM on
+     * November 6, 2011 in US Eastern time (Ameirca/New_York) occurs twice;
+     * 1:30 AM EDT, then 1:30 AM EST one hour later. When <code>WALLTIME_FIRST</code>
+     * is used, the wall time 1:30AM in this example will be interpreted as 1:30 AM EDT
+     * (first occurrence). When <code>WALLTIME_LAST</code> is used, it will be
+     * interpreted as 1:30 AM EST (last occurrence). The default value is
+     * <code>WALLTIME_LAST</code>.
+     * 
+     * @param option the behavior for handling repeating wall time, either
+     * <code>WALLTIME_FIRST</code> or <code>WALLTIME_LAST</code>.
+     * @throws IllegalArgumentException when <code>option</code> is neither
+     * <code>WALLTIME_FIRST</code> nor <code>WALLTIME_LAST</code>.
+     * 
+     * @see #getRepeatedWallTimeOption()
+     * @see #WALLTIME_FIRST
+     * @see #WALLTIME_LAST
+     * 
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
+     */
+    public void setRepeatedWallTimeOption(int option) {
+        if (option != WALLTIME_LAST && option != WALLTIME_FIRST) {
+            throw new IllegalArgumentException("Illegal repeated wall time option - " + option);
+        }
+        repeatedWallTime = option;
+    }
+
+    /**
+     * {@icu}Gets the behavior for handling wall time repeating multiple times
+     * at negative time zone offset transitions.
+     * 
+     * @return the behavior for handling repeating wall time, either
+     * <code>WALLTIME_FIRST</code> or <code>WALLTIME_LAST</code>.
+     * 
+     * @see #setRepeatedWallTimeOption(int)
+     * @see #WALLTIME_FIRST
+     * @see #WALLTIME_LAST
+     * 
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
+     */
+    public int getRepeatedWallTimeOption() {
+        return repeatedWallTime;
+    }
+
+    /**
+     * {@icu}Sets the behavior for handling skipped wall time at positive time zone offset
+     * transitions. For example, 2:30 AM on March 13, 2011 in US Eastern time (America/New_York)
+     * does not exist because the wall time jump from 1:59 AM EST to 3:00 AM EDT. When
+     * <code>WALLTIME_FIRST</code> is used, 2:30 AM is interpreted as 30 minutes before 3:00 AM
+     * EDT, therefore, it will be resolved as 1:30 AM EST. When <code>WALLTIME_LAST</code>
+     * is used, 2:30 AM is interpreted as 31 minutes after 1:59 AM EST, therefore, it will be
+     * resolved as 3:30 AM EDT. When <code>WALLTIME_NEXT_VALID</code> is used, 2:30 AM will
+     * be resolved as next valid wall time, that is 3:00 AM EDT. The default value is
+     * <code>WALLTIME_LAST</code>.
+     * <p>
+     * <b>Note:</b>This option is effective only when this calendar is {@link #isLenient() lenient}.
+     * When the calendar is strict, such non-existing wall time will cause an exception.
+     * 
+     * @param option the behavior for handling skipped wall time at positive time zone
+     * offset transitions, one of <code>WALLTIME_FIRST</code>, <code>WALLTIME_LAST</code> and
+     * <code>WALLTIME_NEXT_VALID</code>.
+     * @throws IllegalArgumentException when <code>option</code> is not any of
+     * <code>WALLTIME_FIRST</code>, <code>WALLTIME_LAST</code> and <code>WALLTIME_NEXT_VALID</code>.
+     * 
+     * @see #getSkippedWallTimeOption()
+     * @see #WALLTIME_FIRST
+     * @see #WALLTIME_LAST
+     * @see #WALLTIME_NEXT_VALID
+     * 
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
+     */
+    public void setSkippedWallTimeOption(int option) {
+        if (option != WALLTIME_LAST && option != WALLTIME_FIRST && option != WALLTIME_NEXT_VALID) {
+            throw new IllegalArgumentException("Illegal skipped wall time option - " + option);
+        }
+        skippedWallTime = option;
+    }
+
+    /**
+     * {@icu}Gets the behavior for handling skipped wall time at positive time zone offset
+     * transitions.
+     * 
+     * @return the behavior for handling skipped wall time, one of
+     * <code>WALLTIME_FIRST</code>, <code>WALLTIME_LAST</code> and <code>WALLTIME_NEXT_VALID</code>.
+     * 
+     * @see #setSkippedWallTimeOption(int)
+     * @see #WALLTIME_FIRST
+     * @see #WALLTIME_LAST
+     * @see #WALLTIME_NEXT_VALID
+     * 
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
+     */
+    public int getSkippedWallTimeOption() {
+        return skippedWallTime;
+    }
+
+    /**
      * Sets what the first day of the week is; e.g., Sunday in US,
      * Monday in France.
      * @param value the given first day of the week.
@@ -4244,6 +4512,10 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
         buffer.append(firstDayOfWeek);
         buffer.append(",minimalDaysInFirstWeek=");
         buffer.append(minimalDaysInFirstWeek);
+        buffer.append(",repeatedWallTime=");
+        buffer.append(repeatedWallTime);
+        buffer.append(",skippedWallTime=");
+        buffer.append(skippedWallTime);
         for (int i=0; i<fields.length; ++i) {
             buffer.append(',').append(fieldName(i)).append('=');
             buffer.append(isSet(i) ? String.valueOf(fields[i]) : "?");
@@ -4649,6 +4921,8 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
             { WEEK_OF_MONTH, DOW_LOCAL },
             { DAY_OF_WEEK_IN_MONTH, DOW_LOCAL },
             { DAY_OF_YEAR },
+            { RESOLVE_REMAP | DAY_OF_MONTH, YEAR },  // if YEAR is set over YEAR_WOY use DAY_OF_MONTH
+            { RESOLVE_REMAP | WEEK_OF_YEAR, YEAR_WOY },  // if YEAR_WOY is set,  calc based on WEEK_OF_YEAR
         },
         {
             { WEEK_OF_YEAR },
@@ -4695,6 +4969,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      */
     protected int resolveFields(int[][][] precedenceTable) {
         int bestField = -1;
+        int tempBestField;
         for (int g=0; g<precedenceTable.length && bestField < 0; ++g) {
             int[][] group = precedenceTable[g];
             int bestStamp = UNSET;
@@ -4714,8 +4989,20 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
                 }
                 // Record new maximum stamp & field no.
                 if (lineStamp > bestStamp) {
-                    bestStamp = lineStamp;
-                    bestField = line[0]; // First field refers to entire line
+                    tempBestField = line[0]; // First field refers to entire line
+                    if (tempBestField >= RESOLVE_REMAP) {
+                        tempBestField &= (RESOLVE_REMAP-1);
+                        // This check is needed to resolve some issues with UCAL_YEAR precedence mapping
+                        if (tempBestField != DATE || (stamp[WEEK_OF_MONTH] < stamp[tempBestField])) {
+                            bestField = tempBestField;
+                        }
+                    } else {
+                        bestField = tempBestField;
+                    }
+
+                    if (bestField == tempBestField) {
+                        bestStamp = lineStamp;
+                    }
                 }
             }
         }
@@ -4849,30 +5136,178 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
             millisInDay = computeMillisInDay();
         }
 
-        // Compute the time zone offset and DST offset.  There are two potential
-        // ambiguities here.  We'll assume a 2:00 am (wall time) switchover time
-        // for discussion purposes here.
-        // 1. The transition into DST.  Here, a designated time of 2:00 am - 2:59 am
-        //    can be in standard or in DST depending.  However, 2:00 am is an invalid
-        //    representation (the representation jumps from 1:59:59 am Std to 3:00:00 am DST).
-        //    We assume standard time, that is, 2:30 am is interpreted as 3:30 am DST.
-        // 2. The transition out of DST.  Here, a designated time of 1:00 am - 1:59 am
-        //    can be in standard or DST.  Both are valid representations (the rep
-        //    jumps from 1:59:59 DST to 1:00:00 Std).
-        //    Again, we assume standard time, that is, 1:30 am is interpreted as 1:30 am Std.
-        // We use the TimeZone object, unless the user has explicitly set the ZONE_OFFSET
-        // or DST_OFFSET fields; then we use those fields.
         if (stamp[ZONE_OFFSET] >= MINIMUM_USER_STAMP ||
             stamp[DST_OFFSET] >= MINIMUM_USER_STAMP) {
-            millisInDay -= internalGet(ZONE_OFFSET) + internalGet(DST_OFFSET);
+            time = millis + millisInDay - (internalGet(ZONE_OFFSET) + internalGet(DST_OFFSET));
         } else {
-            millisInDay -= computeZoneOffset(millis, millisInDay);
-        }
+            // Compute the time zone offset and DST offset.  There are two potential
+            // ambiguities here.  We'll assume a 2:00 am (wall time) switchover time
+            // for discussion purposes here.
+            //
+            // 1. The positive offset change such as transition into DST.
+            //    Here, a designated time of 2:00 am - 2:59 am does not actually exist.
+            //    For this case, skippedWallTime option specifies the behavior.
+            //    For example, 2:30 am is interpreted as;
+            //      - WALLTIME_LAST(default): 3:30 am (DST) (interpreting 2:30 am as 31 minutes after 1:59 am (STD))
+            //      - WALLTIME_FIRST: 1:30 am (STD) (interpreting 2:30 am as 30 minutes before 3:00 am (DST))
+            //      - WALLTIME_NEXT_VALID: 3:00 am (DST) (next valid time after 2:30 am on a wall clock)
+            // 2. The negative offset change such as transition out of DST.
+            //    Here, a designated time of 1:00 am - 1:59 am can be in standard or DST.  Both are valid
+            //    representations (the rep jumps from 1:59:59 DST to 1:00:00 Std).
+            //    For this case, repeatedWallTime option specifies the behavior.
+            //    For example, 1:30 am is interpreted as;
+            //      - WALLTIME_LAST(default): 1:30 am (STD) - latter occurrence
+            //      - WALLTIME_FIRST: 1:30 am (DST) - former occurrence
+            //
+            // In addition to above, when calendar is strict (not default), wall time falls into
+            // the skipped time range will be processed as an error case.
+            //
+            // These special cases are mostly handled in #computeZoneOffset(long), except WALLTIME_NEXT_VALID
+            // at positive offset change. The protected method computeZoneOffset(long) is exposed to Calendar
+            // subclass implementations and marked as @stable. Strictly speaking, WALLTIME_NEXT_VALID
+            // should be also handled in the same place, but we cannot change the code flow without deprecating
+            // the protected method.
+            //
+            // We use the TimeZone object, unless the user has explicitly set the ZONE_OFFSET
+            // or DST_OFFSET fields; then we use those fields.
 
-        time = millis + millisInDay;
+            if (!lenient || skippedWallTime == WALLTIME_NEXT_VALID) {
+                // When strict, invalidate a wall time falls into a skipped wall time range.
+                // When lenient and skipped wall time option is WALLTIME_NEXT_VALID,
+                // the result time will be adjusted to the next valid time (on wall clock).
+                int zoneOffset = computeZoneOffset(millis, millisInDay);
+                long tmpTime = millis + millisInDay - zoneOffset;
+
+                int zoneOffset1 = zone.getOffset(tmpTime);
+
+                // zoneOffset != zoneOffset1 only when the given wall time fall into
+                // a skipped wall time range caused by positive zone offset transition.
+                if (zoneOffset != zoneOffset1) {
+                    if (!lenient) {
+                        throw new IllegalArgumentException("The specified wall time does not exist due to time zone offset transition.");
+                    }
+
+                    assert skippedWallTime == WALLTIME_NEXT_VALID : skippedWallTime;
+                    // Adjust time to the next valid wall clock time.
+                    // At this point, tmpTime is on or after the zone offset transition causing
+                    // the skipped time range.
+                    if (zone instanceof BasicTimeZone) {
+                        TimeZoneTransition transition = ((BasicTimeZone)zone).getPreviousTransition(tmpTime, true);
+                        if (transition == null) {
+                            // Could not find any transitions
+                            throw new RuntimeException("Could not locate previous zone transition");
+                        }
+                        time = transition.getTime();
+                    } else {
+                        // Usually, it is enough to check past one hour because such transition is most
+                        // likely +1 hour shift. However, there is an example jumped +24 hour in the tz database.
+                        Long transitionT = getPreviousZoneTransitionTime(zone, tmpTime, 2*60*60*1000); // check last 2 hours
+                        if (transitionT == null) {
+                            transitionT = getPreviousZoneTransitionTime(zone, tmpTime, 30*60*60*1000); // try last 30 hours
+                            if (transitionT == null) {
+                                // Could not find any transitions in last 30 hours...
+                                throw new RuntimeException("Could not locate previous zone transition within 30 hours from " + tmpTime);
+                            }
+                        }
+                        time = transitionT.longValue();
+                    }
+                } else {
+                    time = tmpTime;
+                }
+            } else {
+                time = millis + millisInDay - computeZoneOffset(millis, millisInDay);
+            }
+        }
     }
 
-    /**
+   /**
+    * Find the previous zone transition within the specified duration.
+    * Note: This method should not be used when TimeZone is a BasicTimeZone.
+    * {@link BasicTimeZone#getPreviousTransition(long, boolean)} is much more efficient.
+    * @param tz The time zone.
+    * @param base The base time, inclusive.
+    * @param duration The range of time evaluated.
+    * @return The time of the previous zone transition, or null if not available.
+    */
+   private Long getPreviousZoneTransitionTime(TimeZone tz, long base, long duration) {
+       assert duration > 0;
+
+       long upper = base;
+       long lower = base - duration - 1;
+       int offsetU = tz.getOffset(upper);
+       int offsetL = tz.getOffset(lower);
+       if (offsetU == offsetL) {
+           return null;
+       }
+       return findPreviousZoneTransitionTime(tz, offsetU, upper, lower);
+   }
+
+   /**
+    * The time units used by {@link #findPreviousZoneTransitionTime(TimeZone, int, long, long)}
+    * for optimizing transition time binary search.
+    */
+   private static final int[] FIND_ZONE_TRANSITION_TIME_UNITS = {
+       60*60*1000, // 1 hour
+       30*60*1000, // 30 minutes
+       60*1000,    // 1 minute
+       1000,       // 1 second
+   };
+
+   /**
+    * Implementing binary search for zone transtion detection, used by {@link #getPreviousZoneTransitionTime(TimeZone, long, long)}
+    * @param tz The time zone.
+    * @param upperOffset The zone offset at <code>upper</code>
+    * @param upper The upper bound, inclusive.
+    * @param lower The lower bound, exclusive.
+    * @return The time of the previous zone transition, or null if not available.
+    */
+   private Long findPreviousZoneTransitionTime(TimeZone tz, int upperOffset, long upper, long lower) {
+       boolean onUnitTime = false;
+       long mid = 0;
+
+       for (int unit : FIND_ZONE_TRANSITION_TIME_UNITS) {
+           long lunits = lower/unit;
+           long uunits = upper/unit;
+           if (uunits > lunits) {
+               mid = ((lunits + uunits + 1) >>> 1) * unit;
+               onUnitTime = true;
+               break;
+           }
+       }
+
+       int midOffset;
+       if (!onUnitTime) {
+           mid = (upper + lower) >>> 1;
+       }
+
+       if (onUnitTime) {
+           if (mid != upper) {
+               midOffset  = tz.getOffset(mid);
+               if (midOffset != upperOffset) {
+                   return findPreviousZoneTransitionTime(tz, upperOffset, upper, mid);
+               }
+               upper = mid;
+           }
+           // check mid-1
+           mid--;
+       } else {
+           mid = (upper + lower) >>> 1;
+       }
+
+       if (mid == lower) {
+           return Long.valueOf(upper);
+       }
+       midOffset = tz.getOffset(mid);
+       if (midOffset != upperOffset) {
+           if (onUnitTime) {
+               return Long.valueOf(upper);
+           }
+           return findPreviousZoneTransitionTime(tz, upperOffset, upper, mid);
+       }
+       return findPreviousZoneTransitionTime(tz, upperOffset, mid, lower);
+   }
+
+   /**
      * Compute the milliseconds in the day from the fields.  This is a
      * value from 0 to 23:59:59.999 inclusive, unless fields are out of
      * range, in which case it can be an arbitrary value.  This value
@@ -4926,14 +5361,47 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      * @stable ICU 2.0
      */
     protected int computeZoneOffset(long millis, int millisInDay) {
-        int offsets[] = new int[2];
-        zone.getOffset(millis + millisInDay, true, offsets);
-        return offsets[0] + offsets[1];
+        int[] offsets = new int[2];
+        long wall = millis + millisInDay;
+        if (zone instanceof BasicTimeZone) {
+            int duplicatedTimeOpt = (repeatedWallTime == WALLTIME_FIRST) ? BasicTimeZone.LOCAL_FORMER : BasicTimeZone.LOCAL_LATTER;
+            int nonExistingTimeOpt = (skippedWallTime == WALLTIME_FIRST) ? BasicTimeZone.LOCAL_LATTER : BasicTimeZone.LOCAL_FORMER;
+            ((BasicTimeZone)zone).getOffsetFromLocal(wall, nonExistingTimeOpt, duplicatedTimeOpt, offsets);
+        } else {
+            // By default, TimeZone#getOffset behaves WALLTIME_LAST for both.
+            zone.getOffset(wall, true, offsets);
 
-        // Note: Because we pass in wall millisInDay, rather than
-        // standard millisInDay, we interpret "1:00 am" on the day
-        // of cessation of DST as "1:00 am Std" (assuming the time
-        // of cessation is 2:00 am).
+            boolean sawRecentNegativeShift = false;
+            if (repeatedWallTime == WALLTIME_FIRST) {
+                // Check if the given wall time falls into repeated time range
+                long tgmt = wall - (offsets[0] + offsets[1]);
+
+                // Any negative zone transition within last 6 hours?
+                // Note: The maximum historic negative zone transition is -3 hours in the tz database.
+                // 6 hour window would be sufficient for this purpose.
+                int offsetBefore6 = zone.getOffset(tgmt - 6*60*60*1000);
+                int offsetDelta = (offsets[0] + offsets[1]) - offsetBefore6;
+
+                assert offsetDelta < -6*60*60*1000 : offsetDelta;
+                if (offsetDelta < 0) {
+                    sawRecentNegativeShift = true;
+                    // Negative shift within last 6 hours. When WALLTIME_FIRST is used and the given wall time falls
+                    // into the repeated time range, use offsets before the transition.
+                    // Note: If it does not fall into the repeated time range, offsets remain unchanged below.
+                    zone.getOffset(wall + offsetDelta, true, offsets);
+                }
+            }
+            if (!sawRecentNegativeShift && skippedWallTime == WALLTIME_FIRST) {
+                // When skipped wall time option is WALLTIME_FIRST,
+                // recalculate offsets from the resolved time (non-wall).
+                // When the given wall time falls into skipped wall time,
+                // the offsets will be based on the zone offsets AFTER
+                // the transition (which means, earliest possibe interpretation).
+                long tgmt = wall - (offsets[0] + offsets[1]);
+                zone.getOffset(tgmt, false, offsets);
+            }
+        }
+        return offsets[0] + offsets[1];
     }
 
     /**
@@ -5495,7 +5963,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
             return (int)(numerator / denominator);
         }
         int quotient = (int)(((numerator + 1) / denominator) - 1);
-        remainder[0] = (int)(numerator - (quotient * denominator));
+        remainder[0] = (int)(numerator - ((long)quotient * denominator));
         return quotient;
     }
 
@@ -5563,9 +6031,14 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
     }
 
     /**
-     * {@icu} Returns the current Calendar type.  Note, in 3.0 this function will return
-     * 'gregorian' in Calendar to emulate legacy behavior
-     * @return type of calendar (gregorian, etc)
+     * {@icu} Returns the calendar type name string for this Calendar object.
+     * The returned string is the legacy ICU calendar attribute value,
+     * for example, "gregorian" or "japanese".
+     *
+     * <p>See type="old type name" for the calendar attribute of locale IDs
+     * at http://www.unicode.org/reports/tr35/#Key_Type_Definitions
+     *
+     * @return legacy calendar type name string
      * @stable ICU 3.8
      */
     public String getType() {

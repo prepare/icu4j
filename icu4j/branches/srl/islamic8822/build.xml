@@ -1,6 +1,6 @@
 <!--
 *******************************************************************************
-* Copyright (C) 1997-2011, International Business Machines Corporation and    *
+* Copyright (C) 1997-2012, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 -->
@@ -35,6 +35,10 @@
 
     <property name="icu4jdocs.jar.file" value="icu4j-${release.file.ver}-docs.jar"/>
 
+    <!-- API doc title -->
+    <property name="icu4j.api.doc.title" value="ICU4J ${api.doc.version} API Specification"/>
+    <property name="icu4j.api.window.title" value="ICU4J ${api.doc.version}"/>
+
     <!-- directories -->
     <property name="release.dir" value="release"/>
     <property name="doc.dir" value="doc"/>
@@ -44,6 +48,7 @@
         <or>
             <contains string="${java.version}" substring="1.6."/>
             <contains string="${java.version}" substring="1.7."/>
+            <contains string="${java.version}" substring="1.8."/>
         </or>
     </condition>
     <condition property="is.java5">
@@ -59,6 +64,12 @@
              </not>
         </condition>
     </fail>
+    <condition property="is.java7.plus">
+        <or>
+            <contains string="${java.version}" substring="1.7."/>
+            <contains string="${java.version}" substring="1.8."/>
+        </or>
+    </condition>
 
     <!-- Build environment info -->
     <property name="env.COMPUTERNAME" value="${env.HOSTNAME}"/>
@@ -94,6 +105,7 @@
         <ant dir="${icu4j.build-tools.dir}" target="clean" inheritAll="false"/>
         <ant dir="${icu4j.tools.dir}" target="clean" inheritAll="false"/>
         <ant dir="${icu4j.demos.dir}" target="clean" inheritAll="false"/>
+        <ant dir="${icu4j.samples.dir}" target="clean" inheritAll="false"/>
         <ant dir="${icu4j.perf.dir}" target="clean" inheritAll="false"/>
 
         <!-- delete all .jar files root directory -->
@@ -106,14 +118,20 @@
         <delete dir="${out.dir}"/>
         <delete dir="${module.dir}"/>
 
+        <available file="eclipse-build" type="dir" property="eclipse-build.dir.present"/>
+        <antcall target="_clean.eclipse-build"/>
+    </target>
+
+    <target name="_clean.eclipse-build" if="eclipse-build.dir.present">
         <ant dir="eclipse-build" target="clean" inheritAll="false"/>
     </target>
 
     <!-- meta build targets -->
-    <target name="all" depends="info, main, tests, build-tools, tools, demos, perf, jar, docs" description="Build all primary targets"/>
+    <target name="all" depends="info, main, tests, build-tools, tools, demos, samples, perf, jar, docs" description="Build all primary targets"/>
     <target name="main" depends="info, core, collate, charset, currdata, langdata, regiondata, translit, localespi" description="Build ICU4J runtime library classes"/>
     <target name="tests" depends="info, core-tests, charset-tests, collate-tests, packaging-tests, translit-tests, localespi-tests" description="Build ICU4J test classes"/>
-    <target name="release" depends="info, releaseBinaries, releaseSrcJars, releaseDocs, releaseSourceArchiveTgz" description="Build all ICU4J release files for distribution"/>
+
+    <target name="findbugs" depends="charset-findbugs, collate-findbugs, core-findbugs, currdata-findbugs, langdata-findbugs, localespi-findbugs, regiondata-findbugs, translit-findbugs" description="Run FindBugs on all projects." />
 
     <target name="secure" depends="icu4jJar" description="(Deprecated)Build ICU4J API and test classes for running the ICU4J test suite with Java security manager enabled"/>
     
@@ -172,7 +190,16 @@
         </java>
     </target>
 
-    <target name="runTest" description="Run a ICU4J test case, without calling any other build targets">
+    <target name="_runTestArgCheck" unless="testarg">
+        <echo message="No test arguments are supplied. Using the default argument '-n'."/>
+        <echo message="For specifying test arguments, use '-Dtestarg=[test args]' as"/>
+        <echo message="ant command line argument. For example:"/>
+        <echo message="  &#x3E;ant runTest -Dtestarg=&#x22;Core/Format -e10&#x22;"/>
+        <echo message="for running ICU4J core format test suite in exhaustive mode."/>
+        <property name="testarg" value="-n"/>
+    </target>
+
+    <target name="runTest" depends="_runTestArgCheck" description="Run a ICU4J test case, without calling any other build targets">
         <echo message="JVM argument:   ${jvm_options} -Djava.awt.headless=true"/>
         <echo message="Test argument:   ${testarg}"/>
 
@@ -361,7 +388,26 @@
     </target>
 
 
-    <!-- release targests -->
+    <!-- release targets -->
+    <target name="release" depends="info, releaseBinaries, releaseSrcJars, releaseDocs, releaseSourceArchiveTgz" description="Build all ICU4J release files for distribution">
+        <mkdir dir="${out.dir}/checksum"/>
+        <delete dir="${out.dir}/checksum" includes="**/*"/>
+
+        <checksum todir="${out.dir}/checksum" format="MD5SUM">
+            <fileset dir="${release.dir}">
+                <include name="*.jar"/>
+                <include name="*.tgz"/>
+            </fileset>
+        </checksum>
+
+        <concat destfile="${release.dir}/icu4j-${release.file.ver}.md5">
+            <fileset dir="${out.dir}/checksum" includes="*"/>
+            <filterchain>
+                <fixcrlf eol="lf"/>
+            </filterchain>
+        </concat>
+    </target>
+
     <target name="releaseBinaries" depends="icu4jJar, charset, localespi" description="Build ICU4J binary files for distribution">
         <mkdir dir="${release.dir}"/>
         <copy file="${icu4j.jar.file}" tofile="${release.dir}/${icu4j.jar.versioned.file}"/>
@@ -412,14 +458,19 @@
                 destdir="${src.release.wrk.dir}"
                 encoding="UTF-8"
                 eol="crlf">
-            <include name="main/**/*"/>
             <include name="demos/**/*"/>
+            <include name="main/**/*"/>
+            <include name="perf-tests/**/*"/>
+            <include name="samples/**/*"/>
             <include name="tools/**/*"/>
             <include name="*.html"/>
             <include name="*.xml"/>
             <include name="*.properties"/>
+            <include name="*.css"/>
+            <include name="*.stub"/>
             <exclude name="**/out/**/*"/>
             <exclude name="**/*.jar"/>
+            <exclude name="**/build-local.properties"/>
             <exclude name="main/tests/core/src/com/ibm/icu/dev/data/rbbi/english.dict"/>
             <exclude name="main/tests/core/src/com/ibm/icu/dev/test/serializable/data/**/*.dat"/>
             <exclude name="main/tests/core/src/com/ibm/icu/dev/test/util/Trie2Test.*.tri2"/>
@@ -451,14 +502,19 @@
                 destdir="${src.release.wrk.dir}"
                 encoding="UTF-8"
                 eol="lf">
-            <include name="main/**/*"/>
             <include name="demos/**/*"/>
+            <include name="main/**/*"/>
+            <include name="perf-tests/**/*"/>
+            <include name="samples/**/*"/>
             <include name="tools/**/*"/>
             <include name="*.html"/>
             <include name="*.xml"/>
             <include name="*.properties"/>
+            <include name="*.css"/>
+            <include name="*.stub"/>
             <exclude name="**/out/**/*"/>
             <exclude name="**/*.jar"/>
+            <exclude name="**/build-local.properties"/>
             <exclude name="main/tests/core/src/com/ibm/icu/dev/data/rbbi/english.dict"/>
             <exclude name="main/tests/core/src/com/ibm/icu/dev/test/serializable/data/**/*.dat"/>
             <exclude name="main/tests/core/src/com/ibm/icu/dev/test/util/Trie2Test.*.tri2"/>
@@ -483,6 +539,40 @@
 
         <delete dir="${src.release.wrk.dir}"/>
         <delete file="${icu4jsrc.tar}"/>
+    </target>
+
+    <!-- findbugs targets -->
+
+    <target name="core-findbugs" description="Find bugs in core">
+        <ant dir="${icu4j.core.dir}" inheritAll="false" target="findbugs" />
+    </target>
+
+    <target name="collate-findbugs" description="Find bugs in collate">
+        <ant dir="${icu4j.collate.dir}" inheritAll="false" target="findbugs" />
+    </target>
+
+    <target name="charset-findbugs" description="Find bugs in charset">
+        <ant dir="${icu4j.charset.dir}" inheritAll="false" target="findbugs" />
+    </target>
+
+    <target name="currdata-findbugs" description="Find bugs in currdata">
+        <ant dir="${icu4j.currdata.dir}" inheritAll="false" target="findbugs" />
+    </target>
+
+    <target name="langdata-findbugs" description="Find bugs in langdata">
+        <ant dir="${icu4j.langdata.dir}" inheritAll="false" target="findbugs" />
+    </target>
+
+    <target name="localespi-findbugs" description="Find bugs in localespi">
+        <ant dir="${icu4j.localespi.dir}" inheritAll="false" target="findbugs" />
+    </target>
+
+    <target name="regiondata-findbugs" description="Find bugs in regiondata">
+        <ant dir="${icu4j.regiondata.dir}" inheritAll="false" target="findbugs" />
+    </target>
+
+    <target name="translit-findbugs" description="Find bugs in translit">
+        <ant dir="${icu4j.translit.dir}" inheritAll="false" target="findbugs" />
     </target>
 
     <!-- compile targets -->
@@ -558,6 +648,10 @@
         <ant dir="${icu4j.demos.dir}" inheritAll="false"/>
     </target>
 
+    <target name="samples" depends="core, charset, collate, translit" description="Build sample classes">
+        <ant dir="${icu4j.samples.dir}" inheritAll="false"/>
+    </target>
+
     <target name="build-tools" description="Build build-tool classes">
         <ant dir="${icu4j.build-tools.dir}" inheritAll="false"/>
     </target>
@@ -570,17 +664,102 @@
     </target>
 
     <!-- doc targets -->
-    <target name="docs" depends="info, build-tools" description="Build API documents">
+    <target name="docs" depends="info, build-tools, _docsJava5or6, _docsJava7plus" description="Build API documents"/>
+
+    <target name="_docsJava5or6" depends="_checkJCite" unless="is.java7.plus">
+        <antcall target="_docsWithJCite"/>
+        <antcall target="_docsWithoutJCite"/>
+    </target>
+
+    <target name="_checkJCite" if="env.JCITE_DIR">
+        <fileset dir="${env.JCITE_DIR}" id="jcite.files">
+            <include name="build/*.jar"/>
+            <include name="lib/*.jar"/>
+        </fileset>
+        <pathconvert property="jcite.libs" refid="jcite.files"/>
+
+        <dirset dir="${basedir}" id="jcite.src.dirs">
+            <include name="samples/src"/>
+            <include name="demos/src"/>
+            <include name="main/tests/*/src"/>
+        </dirset>
+        <pathconvert property="jcite.addl.src" refid="jcite.src.dirs"/>
+    </target>
+
+    <target name="_docsWithJCite" if="jcite.libs" unless="is.java7.plus">
+        <echo message="JCite library path:             ${jcite.libs}"/>
+        <echo message="JCite additional source path:   ${jcite.addl.src}"/>
         <javadoc
                 destdir="${doc.dir}"
                 nodeprecatedlist="true"
-                windowtitle="icu4j"
-                doctitle="icu4j"
+                windowtitle="${icu4j.api.window.title}"
+                doctitle="${icu4j.api.doc.title}"
+                encoding="${java.src.encoding}"
+                docencoding="UTF-8"
+                bottom="&lt;font size=-1&gt;Copyright (c) ${current.year} IBM Corporation and others.&lt;/font&gt;"
+                additionalparam="-breakiterator -use -tagletpath ${icu4j.build-tools.jar}${path.separator}${jcite.libs} -taglet com.ibm.icu.dev.tool.docs.ICUTaglet -taglet ch.arrenbrecht.jcite.JCiteTaglet -J-Djcitesourcepath=${jcite.addl.src}"
+                link="http://docs.oracle.com/javase/7/docs/api/"
+                source="1.5"
+                stylesheetfile="stylesheet.css">
+            <packageset dir="${icu4j.core.dir}/src">
+                <include name="com/ibm/icu/lang/**"/>
+                <include name="com/ibm/icu/math/**"/>
+                <include name="com/ibm/icu/text/**"/>
+                <include name="com/ibm/icu/util/**"/>
+            </packageset>
+            <packageset dir="${icu4j.collate.dir}/src">
+                <include name="com/ibm/icu/text/**"/>
+            </packageset>
+            <packageset dir="${icu4j.translit.dir}/src">
+                <include name="com/ibm/icu/text/**"/>
+            </packageset>
+            <packageset dir="${icu4j.charset.dir}/src">
+                <include name="com/ibm/icu/charset/**"/>
+            </packageset>
+        </javadoc>
+    </target>
+
+    <target name="_docsWithoutJCite" unless="jcite.libs">
+        <javadoc
+                destdir="${doc.dir}"
+                nodeprecatedlist="true"
+                windowtitle="${icu4j.api.window.title}"
+                doctitle="${icu4j.api.doc.title}"
                 encoding="${java.src.encoding}"
                 docencoding="UTF-8"
                 bottom="&lt;font size=-1&gt;Copyright (c) ${current.year} IBM Corporation and others.&lt;/font&gt;"
                 additionalparam="-breakiterator -use -tagletpath ${icu4j.build-tools.jar} -taglet com.ibm.icu.dev.tool.docs.ICUTaglet"
-                link="http://java.sun.com/javase/6/docs/api/"
+                link="http://docs.oracle.com/javase/7/docs/api/"
+                source="1.5">
+            <packageset dir="${icu4j.core.dir}/src">
+                <include name="com/ibm/icu/lang/**"/>
+                <include name="com/ibm/icu/math/**"/>
+                <include name="com/ibm/icu/text/**"/>
+                <include name="com/ibm/icu/util/**"/>
+            </packageset>
+            <packageset dir="${icu4j.collate.dir}/src">
+                <include name="com/ibm/icu/text/**"/>
+            </packageset>
+            <packageset dir="${icu4j.translit.dir}/src">
+                <include name="com/ibm/icu/text/**"/>
+            </packageset>
+            <packageset dir="${icu4j.charset.dir}/src">
+                <include name="com/ibm/icu/charset/**"/>
+            </packageset>
+        </javadoc>
+    </target>
+
+    <target name="_docsJava7plus" if="is.java7.plus">
+        <javadoc
+                destdir="${doc.dir}"
+                nodeprecatedlist="true"
+                windowtitle="${icu4j.api.window.title}"
+                doctitle="${icu4j.api.doc.title}"
+                encoding="${java.src.encoding}"
+                docencoding="UTF-8"
+                bottom="&lt;font size=-1&gt;Copyright (c) ${current.year} IBM Corporation and others.&lt;/font&gt;"
+                additionalparam="-breakiterator -use -tagletpath ${icu4j.build-tools.jar} -taglet com.ibm.icu.dev.tool.docs.ICUTaglet"
+                link="http://docs.oracle.com/javase/7/docs/api/"
                 source="1.5">
             <packageset dir="${icu4j.core.dir}/src">
                 <include name="com/ibm/icu/lang/**"/>
@@ -674,7 +853,12 @@
         </java>
 
         <!-- Generate HTML coverage report -->
-        <clover-html-report outdir="${clover.out.dir}/html" title="ICU4J Code Coverage"/>
+        <!-- <clover-html-report outdir="${clover.out.dir}/html" title="ICU4J Code Coverage"/> -->
+        <clover-report>
+            <current outfile="${clover.out.dir}/html" title="ICU4J Code Coverage">
+                <format type="html" filter="assert" />
+            </current>
+        </clover-report>
     </target>
 
     <!-- Release management targets -->
@@ -1099,6 +1283,11 @@
                 <exclude name="**/translit/*.res" />
             </patternset>
         </unjar>
+        <unjar src="${icu4j.tzdata.jar}" dest="${module.bin.dir}">
+            <patternset>
+                <include name="**/*.res" />
+            </patternset>
+        </unjar>
     </target>
 
     <target name="calendarTests" depends="calendar" description="Modular build of calendar test suite">
@@ -1236,6 +1425,7 @@
                 debug="on" deprecation="off">
             <include name="com/ibm/icu/impl/TimeZoneNames*.java"/>
             <include name="com/ibm/icu/lang/UCharacter.java"/>
+            <include name="com/ibm/icu/text/BreakIteratorFactory.java"/>
             <include name="com/ibm/icu/text/*Collator*.java"/>
             <include name="com/ibm/icu/text/*Format*.java"/>
             <include name="com/ibm/icu/text/UnicodeSetIterator.java"/>
@@ -1256,12 +1446,17 @@
                 encoding="${java.src.encoding}"
                 debug="on" deprecation="off"/>
 
-        <!-- Format does not require BreakIterator data -->
         <unjar src="${icu4j.data.jar}" dest="${module.bin.dir}">
             <patternset>
                 <include name="**/*.icu"/>
+                <include name="**/*.brk"/>
                 <include name="**/*.res"/>
                 <exclude name="**/translit/*.res"/>
+            </patternset>
+        </unjar>
+        <unjar src="${icu4j.tzdata.jar}" dest="${module.bin.dir}">
+            <patternset>
+                <include name="**/*.res" />
             </patternset>
         </unjar>
     </target>
@@ -1393,6 +1588,11 @@
                 <exclude name="**/coll/*.res"/>
                 <exclude name="**/translit/*.res"/>
                 <exclude name="**/rbnf/*.res"/>
+            </patternset>
+        </unjar>
+        <unjar src="${icu4j.tzdata.jar}" dest="${module.bin.dir}">
+            <patternset>
+                <include name="**/*.res" />
             </patternset>
         </unjar>
     </target>
@@ -1560,7 +1760,7 @@
                 todir="${module.tests.dir}/com/ibm/icu/dev/data"/>
     </target>
 
-    <target name="publishToMavenRepo" depends="releaseBinaries, releaseSrcJars, releaseDocs">
+    <target name="publishToMavenRepo" depends="release">
         <!--
             Publish libraries to Maven repositories, snapshot or release depending on current
             version in pom.xml.
@@ -1656,4 +1856,5 @@
             <attach file="${maven.release.dir}/${maven.icu4jdocs.jar.file}.asc" classifier="javadoc" type="jar.asc"/>
         </deploy>
     </target>
+
 </project>

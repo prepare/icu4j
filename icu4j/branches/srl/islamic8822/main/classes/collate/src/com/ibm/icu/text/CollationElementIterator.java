@@ -587,6 +587,17 @@ public final class CollationElementIterator
         }
         return false;
     }
+    
+    /**
+     * Mock implementation of hashCode(). This implementation always returns a constant
+     * value. When Java assertion is enabled, this method triggers an assertion failure.
+     * @internal
+     * @deprecated This API is ICU internal only.
+     */
+    public int hashCode() {
+        assert false : "hashCode not designed";
+        return 42;
+    }
 
     // package private constructors ------------------------------------------
 
@@ -596,9 +607,6 @@ public final class CollationElementIterator
         m_CEBuffer_ = new int[CE_BUFFER_INIT_SIZE_];
         m_buffer_ = new StringBuilder();
         m_utilSpecialBackUp_ = new Backup();
-        if (collator.getDecomposition() != Collator.NO_DECOMPOSITION) {
-            m_nfcImpl_.getFCDTrie();  // ensure the FCD data is initialized
-        }
     }
 
     /**
@@ -1072,17 +1080,25 @@ public final class CollationElementIterator
         m_FCDStart_ = offset - 1;
         m_source_.setIndex(offset);
         // trie access
-        int fcd = m_nfcImpl_.getFCD16FromSingleLead((char)ch);
-        if (fcd != 0 && Character.isHighSurrogate((char)ch)) {
-            int c2 = m_source_.next(); 
-            if (c2 < 0) {
-                fcd = 0;  // end of input
-            } else if (Character.isLowSurrogate((char)c2)) {
-                fcd = m_nfcImpl_.getFCD16(Character.toCodePoint((char)ch, (char)c2));
+        int fcd;
+        if (ch < 0x180) {
+            fcd = m_nfcImpl_.getFCD16FromBelow180(ch);
+        } else if (m_nfcImpl_.singleLeadMightHaveNonZeroFCD16(ch)) {
+            if (Character.isHighSurrogate((char)ch)) {
+                int c2 = m_source_.next(); 
+                if (c2 < 0) {
+                    fcd = 0;  // end of input
+                } else if (Character.isLowSurrogate((char)c2)) {
+                    fcd = m_nfcImpl_.getFCD16FromNormData(Character.toCodePoint((char)ch, (char)c2));
+                } else {
+                    m_source_.moveIndex(-1);
+                    fcd = 0;
+                }
             } else {
-                m_source_.moveIndex(-1);
-                fcd = 0;
+                fcd = m_nfcImpl_.getFCD16FromNormData(ch);
             }
+        } else {
+            fcd = 0;
         }
 
         int prevTrailCC = fcd & LAST_BYTE_MASK_;
@@ -1211,21 +1227,25 @@ public final class CollationElementIterator
         int fcd;
         m_FCDLimit_ = offset + 1;
         m_source_.setIndex(offset);
-        if (!UTF16.isSurrogate((char)ch)) {
-            fcd = m_nfcImpl_.getFCD16FromSingleLead((char)ch);
+        if (ch < 0x180) {
+            fcd = m_nfcImpl_.getFCD16FromBelow180(ch);
+        } else if (!Character.isLowSurrogate((char)ch)) {
+            if (m_nfcImpl_.singleLeadMightHaveNonZeroFCD16(ch)) {
+                fcd = m_nfcImpl_.getFCD16FromNormData(ch);
+            } else {
+                fcd = 0;
+            }
         } else {
-            fcd = 0;
-            if (!Normalizer2Impl.UTF16Plus.isSurrogateLead(ch)) {
-                int c2 = m_source_.previous();
-                if (c2 < 0) {
-                    // start of input
-                } else if (Character.isHighSurrogate((char)c2)) {
-                    ch = Character.toCodePoint((char)c2, (char)ch);
-                    fcd = m_nfcImpl_.getFCD16(ch);
-                    --offset;
-                } else {
-                    m_source_.moveIndex(1);
-                }
+            int c2 = m_source_.previous();
+            if (c2 < 0) {
+                fcd = 0;  // start of input
+            } else if (Character.isHighSurrogate((char)c2)) {
+                ch = Character.toCodePoint((char)c2, (char)ch);
+                fcd = m_nfcImpl_.getFCD16FromNormData(ch);
+                --offset;
+            } else {
+                m_source_.moveIndex(1);
+                fcd = 0;
             }
         }
 
@@ -1890,7 +1910,7 @@ public final class CollationElementIterator
                     // and add 5 (to avoid overlapping magic CE byte 
                     // values). The last byte we subtract 1 to ensure it is 
                     // less than all the other bytes.
-                    if (digIndx % 2 == 1) {
+                    if (digIndx % 2 != 0) {
                         collateVal += digVal;  
                         // This removes trailing zeroes.
                         if (collateVal == 0 && trailingZeroIndex == 0) {
@@ -2482,7 +2502,7 @@ public final class CollationElementIterator
                     // first digit encountered into the ones place and the 
                     // second digit encountered into the tens place.
                 
-                    if (digIndx % 2 == 1){
+                    if (digIndx % 2 != 0){
                         collateVal += digVal * 10;
                     
                         // This removes leading zeroes.

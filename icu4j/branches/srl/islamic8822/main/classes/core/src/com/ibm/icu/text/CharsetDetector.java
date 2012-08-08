@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 2005-2009, International Business Machines Corporation and    *
+* Copyright (C) 2005-2012, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 */
@@ -36,7 +36,7 @@ import java.util.Collections;
  */
 public class CharsetDetector {
 
-//   Question: Should we have getters corresponding to the setters for inut text
+//   Question: Should we have getters corresponding to the setters for input text
 //   and declared encoding?
 
 //   A thought: If we were to create our own type of Java Reader, we could defer
@@ -88,8 +88,6 @@ public class CharsetDetector {
         fRawInput  = in;
         fRawLength = in.length;
         
-        MungeInput();
-        
         return this;
     }
     
@@ -130,7 +128,6 @@ public class CharsetDetector {
         }
         fInputStream.reset();
         
-        MungeInput();                     // Strip html markup, collect byte stats.
         return this;
     }
 
@@ -184,20 +181,15 @@ public class CharsetDetector {
      * @stable ICU 3.4
      */
     public CharsetMatch[] detectAll() {
-        CharsetRecognizer csr;
-        int               i;
-        int               detectResults;
-        int               confidence;
         ArrayList<CharsetMatch>         matches = new ArrayList<CharsetMatch>();
+        
+        MungeInput();  // Strip html markup, collect byte stats.
         
         //  Iterate over all possible charsets, remember all that
         //    give a match quality > 0.
-        for (i=0; i<fCSRecognizers.size(); i++) {
-            csr = fCSRecognizers.get(i);
-            detectResults = csr.match(this);
-            confidence = detectResults & 0x000000ff;
-            if (confidence > 0) {
-                CharsetMatch  m = new CharsetMatch(this, csr, confidence);
+        for (CharsetRecognizer csr: fCSRecognizers) {
+            CharsetMatch m = csr.match(this);
+            if (m != null) {
                 matches.add(m);
             }
         }
@@ -418,7 +410,7 @@ public class CharsetDetector {
     byte[]      fInputBytes =       // The text to be checked.  Markup will have been
                    new byte[kBufSize];  //   removed if appropriate.
     
-    int         fInputLen;          // Length of the byte data in fInputText.
+    int         fInputLen;          // Length of the byte data in fInputBytes.
     
     short       fByteStats[] =      // byte frequency statistics for the input text.
                    new short[256];  //   Value is percent, not absolute.
@@ -475,20 +467,8 @@ public class CharsetDetector {
         recognizers.add(new CharsetRecog_mbcs.CharsetRecog_euc.CharsetRecog_euc_kr());
         recognizers.add(new CharsetRecog_mbcs.CharsetRecog_big5());
         
-        recognizers.add(new CharsetRecog_sbcs.CharsetRecog_8859_1_da());
-        recognizers.add(new CharsetRecog_sbcs.CharsetRecog_8859_1_de());
-        recognizers.add(new CharsetRecog_sbcs.CharsetRecog_8859_1_en());
-        recognizers.add(new CharsetRecog_sbcs.CharsetRecog_8859_1_es());
-        recognizers.add(new CharsetRecog_sbcs.CharsetRecog_8859_1_fr());
-        recognizers.add(new CharsetRecog_sbcs.CharsetRecog_8859_1_it());
-        recognizers.add(new CharsetRecog_sbcs.CharsetRecog_8859_1_nl());
-        recognizers.add(new CharsetRecog_sbcs.CharsetRecog_8859_1_no());
-        recognizers.add(new CharsetRecog_sbcs.CharsetRecog_8859_1_pt());
-        recognizers.add(new CharsetRecog_sbcs.CharsetRecog_8859_1_sv());
-        recognizers.add(new CharsetRecog_sbcs.CharsetRecog_8859_2_cs());
-        recognizers.add(new CharsetRecog_sbcs.CharsetRecog_8859_2_hu());
-        recognizers.add(new CharsetRecog_sbcs.CharsetRecog_8859_2_pl());
-        recognizers.add(new CharsetRecog_sbcs.CharsetRecog_8859_2_ro());
+        recognizers.add(new CharsetRecog_sbcs.CharsetRecog_8859_1());
+        recognizers.add(new CharsetRecog_sbcs.CharsetRecog_8859_2());
         recognizers.add(new CharsetRecog_sbcs.CharsetRecog_8859_5_ru());
         recognizers.add(new CharsetRecog_sbcs.CharsetRecog_8859_6_ar());
         recognizers.add(new CharsetRecog_sbcs.CharsetRecog_8859_7_el());

@@ -1,6 +1,6 @@
 /*
  ******************************************************************************
- * Copyright (C) 2005-2010, International Business Machines Corporation and   *
+ * Copyright (C) 2005-2011, International Business Machines Corporation and   *
  * others. All Rights Reserved.                                               *
  ******************************************************************************
  */
@@ -80,6 +80,7 @@ public abstract class URLHandler {
                         if (DEBUG) System.err.println(e);
                     }
                 }
+                br.close();
             }
         } catch (Throwable t) {
             if (DEBUG) System.err.println(t);
@@ -183,7 +184,7 @@ public abstract class URLHandler {
             try {
                 prefix = url.getPath();
                 
-                int ix = prefix.indexOf("!/");
+                int ix = prefix.lastIndexOf("!/");
                 
                 if (ix >= 0) {
                     prefix = prefix.substring(ix + 2); // truncate after "!/"

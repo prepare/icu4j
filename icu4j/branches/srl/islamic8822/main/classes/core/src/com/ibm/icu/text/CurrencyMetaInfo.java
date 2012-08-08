@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2009-2011, International Business Machines Corporation and    *
+ * Copyright (C) 2009-2012, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -13,9 +13,19 @@ import java.util.List;
 
 import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.GregorianCalendar;
+import com.ibm.icu.util.TimeZone;
 
 /**
  * Provides information about currencies that is not specific to a locale.
+ * 
+ * A note about currency dates.  The CLDR data provides data to the day,
+ * inclusive.  The date information used by CurrencyInfo and CurrencyFilter
+ * is represented by milliseconds, which is overly precise.  These times are 
+ * in GMT, so queries involving dates should use GMT times, but more generally
+ * you should avoid relying on time of day in queries.
+ * 
+ * This class is not intended for public subclassing.
+ * 
  * @draft ICU 4.4
  * @provisional This API might change or be removed in a future release.
  */
@@ -34,10 +44,22 @@ public class CurrencyMetaInfo {
     }
 
     /**
+     * Returns the unique instance of the currency meta info, or null if 
+     * noSubstitute is true and there is no data to support this API.
+     * @param noSubstitute true if no substitute data should be used
+     * @return the meta info, or null
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
+     */
+    public static CurrencyMetaInfo getInstance(boolean noSubstitute) {
+        return hasData ? impl : null;
+    }
+
+    /**
      * Returns true if there is data for the currency meta info.
      * @return true if there is actual data
-     * @draft ICU 4.4
-     * @provisional This API might change or be removed in a future release.
+     * @internal
+     * @deprecated This API is ICU internal only.
      */
     public static boolean hasData() {
         return hasData;
@@ -72,14 +94,14 @@ public class CurrencyMetaInfo {
         public final String currency;
 
         /**
-         * The from date to filter on (milliseconds).  Accepts any currency on or after this date.
+         * The from date to filter on (as milliseconds).  Accepts any currency on or after this date.
          * @draft ICU 4.4
          * @provisional This API might change or be removed in a future release.
          */
         public final long from;
 
         /**
-         * The to date to filter on (milliseconds).  Accepts any currency on or before this date.
+         * The to date to filter on (as milliseconds).  Accepts any currency on or before this date.
          * @draft ICU 4.4
          * @provisional This API might change or be removed in a future release.
          */
@@ -165,12 +187,12 @@ public class CurrencyMetaInfo {
          * @param to date before which a currency must have been in use, or if equal to from,
          * the date on which a currency must have been in use
          * @return a filter
-         * @see #withRange(Date, Date)
-         * @draft ICU 4.4
+         * @see #withDateRange(Date, Date)
+         * @draft ICU 49
          * @provisional This API might change or be removed in a future release.
          */
-        public static CurrencyFilter onRange(Date from, Date to) {
-            return ALL.withRange(from, to);
+        public static CurrencyFilter onDateRange(Date from, Date to) {
+            return ALL.withDateRange(from, to);
         }
 
         /**
@@ -216,11 +238,11 @@ public class CurrencyMetaInfo {
          * @param from date on or after which the currency must have been in use
          * @param to date before which the currency must have been in use
          * @return the filter
-         * @see #onRange(Date, Date)
-         * @draft ICU 4.4
+         * @see #onDateRange(Date, Date)
+         * @draft ICU 49
          * @provisional This API might change or be removed in a future release.
          */
-        public CurrencyFilter withRange(Date from, Date to) {
+        public CurrencyFilter withDateRange(Date from, Date to) {
             return new CurrencyFilter(this.region, this.currency, from, to);
         }
 
@@ -294,16 +316,16 @@ public class CurrencyMetaInfo {
     public static final class CurrencyDigits {
         /**
          * Number of fraction digits used to display this currency.
-         * @draft ICU 4.4
+         * @draft ICU 49
          * @provisional This API might change or be removed in a future release.
          */
-        public final byte fractionDigits;
+        public final int fractionDigits;
         /**
          * Rounding increment used when displaying this currency.
-         * @draft ICU 4.4
+         * @draft ICU 49
          * @provisional This API might change or be removed in a future release.
          */
-        public final byte roundingIncrement;
+        public final int roundingIncrement;
 
         /**
          * Constructor for CurrencyDigits.
@@ -313,8 +335,8 @@ public class CurrencyMetaInfo {
          * @provisional This API might change or be removed in a future release.
          */
         public CurrencyDigits(int fractionDigits, int roundingIncrement) {
-            this.fractionDigits = (byte) fractionDigits;
-            this.roundingIncrement = (byte) roundingIncrement;
+            this.fractionDigits = fractionDigits;
+            this.roundingIncrement = roundingIncrement;
         }
 
         /**
@@ -350,16 +372,19 @@ public class CurrencyMetaInfo {
         public final String code;
 
         /**
-         * Date on which the currency was first officially used in the region.  If there is no
-         * date, this is Long.MIN_VALUE;
+         * Date on which the currency was first officially used in the region.  
+         * This is midnight at the start of the first day on which the currency was used, GMT. 
+         * If there is no date, this is Long.MIN_VALUE;
          * @draft ICU 4.4
          * @provisional This API might change or be removed in a future release.
          */
         public final long from;
 
         /**
-         * Date at which the currency stopped being officially used in the region.  If there is
-         * no date, this is Long.MAX_VALUE;
+         * Date at which the currency stopped being officially used in the region.
+         * This is one millisecond before midnight at the end of the last day on which the currency was used, GMT.
+         * If there is no date, this is Long.MAX_VALUE.
+         * 
          * @draft ICU 4.4
          * @provisional This API might change or be removed in a future release.
          */
@@ -369,17 +394,18 @@ public class CurrencyMetaInfo {
          * Preference order of currencies being used at the same time in the region.  Lower
          * values are preferred (generally, this is a transition from an older to a newer
          * currency).  Priorities within a single country are unique.
-         * @draft ICU 4.4
+         * @draft ICU 49
          * @provisional This API might change or be removed in a future release.
          */
-        public final short priority;
+        public final int priority;
 
         /**
          * Constructs a currency info.
+         * 
          * @param region region code
          * @param code currency code
-         * @param from start date in milliseconds
-         * @param to end date in milliseconds
+         * @param from start date in milliseconds.  This is midnight at the start of the first day on which the currency was used, GMT.
+         * @param to end date in milliseconds.  This is one second before midnight at the end of the last day on which the currency was used, GMT.
          * @param priority priority value, 0 is highest priority, increasing values are lower
          * @draft ICU 4.4
          * @provisional This API might change or be removed in a future release.
@@ -389,7 +415,7 @@ public class CurrencyMetaInfo {
             this.code = code;
             this.from = from;
             this.to = to;
-            this.priority = (short) priority;
+            this.priority = priority;
         }
 
         /**
@@ -406,7 +432,7 @@ public class CurrencyMetaInfo {
 ///CLOVER:OFF
     /**
      * Returns the list of CurrencyInfos matching the provided filter.  Results
-     * are ordered by country code,  then by highest to lowest priority (0 is highest).
+     * are ordered by country code, then by highest to lowest priority (0 is highest).
      * The returned list is unmodifiable.
      * @param filter the filter to control which currency info to return
      * @return the matching information
@@ -429,7 +455,7 @@ public class CurrencyMetaInfo {
      */
     public List<String> currencies(CurrencyFilter filter) {
         return Collections.emptyList();
-   }
+    }
 
     /**
      * Returns the list of region codes matching the provided filter.
@@ -482,6 +508,7 @@ public class CurrencyMetaInfo {
             return null;
         }
         GregorianCalendar gc = new GregorianCalendar();
+        gc.setTimeZone(TimeZone.getTimeZone("GMT"));
         gc.setTimeInMillis(date);
         return "" + gc.get(Calendar.YEAR) + '-' + (gc.get(Calendar.MONTH) + 1) + '-' +
                 gc.get(Calendar.DAY_OF_MONTH);

@@ -1,7 +1,7 @@
 /*
  ******************************************************************************
  *
- *   Copyright (C) 2009-2010, International Business Machines
+ *   Copyright (C) 2009-2011, International Business Machines
  *   Corporation and others.  All Rights Reserved.
  *
  ******************************************************************************
@@ -316,8 +316,8 @@ public final class BMPSet {
      */
     private static void set32x64Bits(int[] table, int start, int limit) {
         assert (64 == table.length);
-        int lead = start >> 6;
-        int trail = start & 0x3f;
+        int lead = start >> 6;  // Named for UTF-8 2-byte lead byte with upper 5 bits.
+        int trail = start & 0x3f;  // Named for UTF-8 2-byte trail byte with lower 6 bits.
 
         // Set one bit indicating an all-one block.
         int bits = 1 << lead;
@@ -353,6 +353,10 @@ public final class BMPSet {
                     table[trail] |= bits;
                 }
             }
+            // limit<=0x800. If limit==0x800 then limitLead=32 and limitTrail=0.
+            // In that case, bits=1<<limitLead == 1<<0 == 1
+            // (because Java << uses only the lower 5 bits of the shift operand)
+            // but the bits value is not used because trail<limitTrail is already false.
             bits = 1 << limitLead;
             for (trail = 0; trail < limitTrail; ++trail) {
                 table[trail] |= bits;
@@ -481,7 +485,7 @@ public final class BMPSet {
         // invariant: c >= list[lo]
         // invariant: c < list[hi]
         for (;;) {
-            int i = (lo + hi) >> 1;
+            int i = (lo + hi) >>> 1;
             if (i == lo) {
                 break; // Found!
             } else if (c < list[i]) {

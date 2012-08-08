@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2004-2010, International Business Machines Corporation and    *
+ * Copyright (C) 2004-2011, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -150,7 +150,7 @@ class ICUResourceBundleImpl extends ICUResourceBundle {
                 index[0] = i;
             }
             if (i < 0) {
-                throw new UResourceTypeMismatchException("Could not get the correct value for index: "+ index);
+                throw new UResourceTypeMismatchException("Could not get the correct value for index: "+ indexStr);
             }
             return createBundleObject(i, indexStr, table, requested, isAlias);
         }

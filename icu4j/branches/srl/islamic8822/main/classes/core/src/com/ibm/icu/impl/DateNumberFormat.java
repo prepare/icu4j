@@ -226,7 +226,7 @@ public final class DateNumberFormat extends NumberFormat {
         Number result = null;
         if (sawNumber) {
             num = negative ? num * (-1) : num;
-            result = new Long(num);
+            result = Long.valueOf(num);
             parsePosition.setIndex(base + offset);
         }
         return result;
@@ -242,6 +242,10 @@ public final class DateNumberFormat extends NumberFormat {
                 && this.minusSign == other.minusSign
                 && this.positiveOnly == other.positiveOnly
                 && Arrays.equals(this.digits, other.digits));
+    }
+    
+    public int hashCode() {
+        return super.hashCode();
     }
 
     private void readObject(ObjectInputStream stream) throws IOException, ClassNotFoundException {

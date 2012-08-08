@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2009-2010, International Business Machines Corporation and    *
+ * Copyright (C) 2009-2012, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -31,7 +31,7 @@ public class ICUCurrencyDisplayInfoProvider implements CurrencyDisplayInfoProvid
         if (!withFallback) {
             int status = rb.getLoadingStatus();
             if (status == ICUResourceBundle.FROM_DEFAULT || status == ICUResourceBundle.FROM_ROOT) {
-                return CurrencyData.DefaultInfo.getWithFallback(false);
+                return null;
             }
         }
         return new ICUCurrencyDisplayInfo(rb, withFallback);
@@ -57,7 +57,7 @@ public class ICUCurrencyDisplayInfoProvider implements CurrencyDisplayInfoProvid
        }
 
         @Override
-        public ULocale getLocale() {
+        public ULocale getULocale() {
             return rb.getULocale();
         }
 
@@ -185,7 +185,7 @@ public class ICUCurrencyDisplayInfoProvider implements CurrencyDisplayInfoProvid
             if (srb != null) {
                 ICUResourceBundle brb = srb.findWithFallback("beforeCurrency");
                 ICUResourceBundle arb = srb.findWithFallback("afterCurrency");
-                if (brb != null && brb != null) {
+                if (arb != null && brb != null) {
                     String beforeCurrencyMatch = brb.findWithFallback("currencyMatch").getString();
                     String beforeContextMatch = brb.findWithFallback("surroundingMatch").getString();
                     String beforeInsert = brb.findWithFallback("insertBetween").getString();

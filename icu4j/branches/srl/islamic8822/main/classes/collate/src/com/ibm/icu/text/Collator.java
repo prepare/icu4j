@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 1996-2011, International Business Machines Corporation and    *
+* Copyright (C) 1996-2012, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 */
@@ -20,9 +20,9 @@ import com.ibm.icu.impl.Norm2AllModes;
 import com.ibm.icu.lang.UScript;
 import com.ibm.icu.util.Freezable;
 import com.ibm.icu.util.ULocale;
+import com.ibm.icu.util.ULocale.Category;
 import com.ibm.icu.util.UResourceBundle;
 import com.ibm.icu.util.VersionInfo;
-import com.ibm.icu.util.ULocale.Category;
 
 /**
 * {@icuenhanced java.text.Collator}.{@icu _usage_}
@@ -234,58 +234,65 @@ public abstract class Collator implements Comparator<Object>, Freezable<Collator
      * @see #getReorderCodes
      * @see #setReorderCodes
      * @see #getEquivalentReorderCodes
-     * @draft ICU 4.8
+     * @stable ICU 4.8
      */
     public static interface ReorderCodes {
         /**
          * A special reordering code that is used to specify the default reordering codes for a locale.
-         * @draft ICU 4.8
+         * @stable ICU 4.8
          */
-        public final static int DEFAULT          = 1;
+        public final static int DEFAULT          = -1;  // == UScript.INVALID_CODE
         /**
-         * A speical reordering code that is used to specify no reordering codes.
-         * @draft ICU 4.8
+         * A special reordering code that is used to specify no reordering codes.
+         * @stable ICU 4.8
          */
         public final static int NONE          = UScript.UNKNOWN;
         /**
          * A special reordering code that is used to specify all other codes used for reordering except 
          * for the codes listed as ReorderingCodes and those listed explicitly in a reordering.
-         * @draft ICU 4.8
+         * @stable ICU 4.8
          */
         public final static int OTHERS          = UScript.UNKNOWN;
         /**
          * Characters with the space property.
-         * @draft ICU 4.8
+         * This is equivalent to the rule value "space".
+         * @stable ICU 4.8
          */
         public final static int SPACE          = 0x1000;
         /**
-         * The first entry in the enumeration.
-         * @draft ICU 4.8
+         * The first entry in the enumeration of reordering groups. This is intended for use in
+         * range checking and enumeration of the reorder codes.
+         * @stable ICU 4.8
          */
         public final static int FIRST          = SPACE;
         /**
          * Characters with the punctuation property.
-         * @draft ICU 4.8
+         * This is equivalent to the rule value "punct".
+         * @stable ICU 4.8
          */
         public final static int PUNCTUATION    = 0x1001;
         /**
          * Characters with the symbol property.
-         * @draft ICU 4.8
+         * This is equivalent to the rule value "symbol".
+         * @stable ICU 4.8
          */
         public final static int SYMBOL         = 0x1002;
         /**
          * Characters with the currency property.
-         * @draft ICU 4.8
+         * This is equivalent to the rule value "currency".
+         * @stable ICU 4.8
          */
         public final static int CURRENCY       = 0x1003;
         /**
          * Characters with the digit property.
-         * @draft ICU 4.8
+         * This is equivalent to the rule value "digit".
+         * @stable ICU 4.8
          */
         public final static int DIGIT          = 0x1004;
         /**
-         * The limit of the reorder codes..
-         * @draft ICU 4.8
+         * The limit of the reorder codes. This is intended for use in range checking 
+         * and enumeration of the reorder codes.
+         * @stable ICU 4.8
          */
         public final static int LIMIT          = 0x1005;        
     }
@@ -402,14 +409,34 @@ public abstract class Collator implements Comparator<Object>, Freezable<Collator
 
     /** 
      * Sets the reordering codes for this collator.
-     * Reordering codes allow the collation ordering for groups of characters to be changed.
-     * The reordering codes are a combination of UScript  codes and ReorderCodes.
-     * These allow the ordering of characters belonging to these groups to be changed as a group.  
+     * <p>Collation reordering allows scripts and some other defined blocks of characters 
+     * to be moved relative to each other as a block. This reordering is done on top of 
+     * the DUCET/CLDR standard collation order. Reordering can specify groups to be placed 
+     * at the start and/or the end of the collation order. These groups are specified using
+     * UScript codes and UColReorderCode entries.
+     * <p>By default, reordering codes specified for the start of the order are placed in the 
+     * order given after a group of "special" non-script blocks. These special groups of characters 
+     * are space, punctuation, symbol, currency, and digit. These special groups are represented with
+     * UColReorderCode entries. Script groups can be intermingled with 
+     * these special non-script blocks if those special blocks are explicitly specified in the reordering.
+     * <p>The special code OTHERS stands for any script that is not explicitly 
+     * mentioned in the list of reordering codes given. Anything that is after OTHERS
+     * will go at the very end of the reordering in the order given.
+     * <p>The special reorder code DEFAULT will reset the reordering for this collator
+     * to the default for this collator. The default reordering may be the DUCET/CLDR order or may be a reordering that
+     * was specified when this collator was created from resource data or from rules. The 
+     * DEFAULT code <b>must</b> be the sole code supplied when it used. If not
+     * that will result in an U_ILLEGAL_ARGUMENT_ERROR being set.
+     * <p>The special reorder code NONE will remove any reordering for this collator.
+     * The result of setting no reordering will be to have the DUCET/CLDR ordering used. The 
+     * NONE code <b>must</b> be the sole code supplied when it used.
      * @param order the reordering codes to apply to this collator; if this is null or an empty array
      * then this clears any existing reordering
      * @see #getReorderCodes
      * @see #getEquivalentReorderCodes
-     * @draft ICU 4.8
+     * @see Collator.ReorderCodes
+     * @see UScript
+     * @stable ICU 4.8
      */ 
     public void setReorderCodes(int... order) 
     { 
@@ -1101,7 +1128,9 @@ public abstract class Collator implements Comparator<Object>, Freezable<Collator
      * if none are set then returns an empty array
      * @see #setReorderCodes
      * @see #getEquivalentReorderCodes
-     * @draft ICU 4.8
+     * @see Collator.ReorderCodes
+     * @see UScript
+     * @stable ICU 4.8
      */ 
     public int[] getReorderCodes() 
     { 
@@ -1116,7 +1145,9 @@ public abstract class Collator implements Comparator<Object>, Freezable<Collator
      * @return the set of all reorder codes in the same group as the given reorder code.
      * @see #setReorderCodes
      * @see #getReorderCodes
-     * @draft ICU 4.8
+     * @see Collator.ReorderCodes
+     * @see UScript
+     * @stable ICU 4.8
      */
     public static int[] getEquivalentReorderCodes(int reorderCode)
     { 
@@ -1128,7 +1159,7 @@ public abstract class Collator implements Comparator<Object>, Freezable<Collator
     
     /**
      * Determines whether the object has been frozen or not.
-     * @draft ICU 4.8
+     * @stable ICU 4.8
      */
     public boolean isFrozen() {
         return false;
@@ -1137,7 +1168,7 @@ public abstract class Collator implements Comparator<Object>, Freezable<Collator
     /**
      * Freezes the collaotr.
      * @return the collator itself.
-     * @draft ICU 4.8
+     * @stable ICU 4.8
      */
     public Collator freeze() {
         throw new UnsupportedOperationException("Needs to be implemented by the subclass.");
@@ -1145,7 +1176,7 @@ public abstract class Collator implements Comparator<Object>, Freezable<Collator
 
     /**
      * Provides for the clone operation. Any clone is initially unfrozen.
-     * @draft ICU 4.8
+     * @stable ICU 4.8
      */
     public Collator cloneAsThawed() {
         throw new UnsupportedOperationException("Needs to be implemented by the subclass.");

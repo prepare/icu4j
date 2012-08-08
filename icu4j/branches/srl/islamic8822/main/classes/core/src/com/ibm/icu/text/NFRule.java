@@ -549,6 +549,11 @@ final class NFRule {
         }
         return false;
     }
+    
+    public int hashCode() {
+        assert false : "hashCode not designed";
+        return 42;
+    }
 
     /**
      * Returns a textual representation of the rule.  This won't
@@ -748,7 +753,7 @@ final class NFRule {
         if (pp.getIndex() == 0 && sub1.getPos() != 0) {
             // commented out because ParsePosition doesn't have error index in 1.1.x
             //                parsePosition.setErrorIndex(pp.getErrorIndex());
-            return new Long(0);
+            return Long.valueOf(0);
         }
 
         // this is the fun part.  The basic guts of the rule-matching
@@ -865,7 +870,7 @@ final class NFRule {
 
         // return the result as a Long if possible, or as a Double
         if (result == (long)result) {
-            return new Long((long)result);
+            return Long.valueOf((long)result);
         } else {
             return new Double(result);
         }
@@ -993,7 +998,7 @@ final class NFRule {
             // if we make it here, this was an unsuccessful match, and we
             // leave pp unchanged and return 0
             pp.setIndex(0);
-            return new Long(0);
+            return Long.valueOf(0);
 
             // if "delimiter" is empty, or consists only of ignorable characters
             // (i.e., is semantically empty), thwe we obviously can't search
@@ -1001,7 +1006,7 @@ final class NFRule {
             // "text" as possible.
         } else {
             ParsePosition tempPP = new ParsePosition(0);
-            Number result = new Long(0);
+            Number result = Long.valueOf(0);
             Number tempResult;
 
             // try to match the whole string against the substitution

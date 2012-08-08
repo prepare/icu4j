@@ -1,6 +1,6 @@
 /*
 *******************************************************************************
-*   Copyright (C) 2011, International Business Machines
+*   Copyright (C) 2011-2012, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 *******************************************************************************
 *   created on: 2011jul14
@@ -8,8 +8,6 @@
 */
 
 package com.ibm.icu.text;
-
-import com.ibm.icu.text.MessagePattern;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -29,6 +27,11 @@ import java.util.List;
  * @author Markus Scherer
  */
 public final class MessagePatternUtil {
+
+    // Private constructor preventing object instantiation
+    private MessagePatternUtil() {
+    }
+
     /**
      * Factory method, builds and returns a MessageNode from a MessageFormat pattern string.
      * @param patternString a MessageFormat pattern string
@@ -544,11 +547,15 @@ public final class MessagePatternUtil {
             break;
         case PLURAL:
             node.typeName = "plural";
-            node.complexStyle = buildPluralStyleNode(pattern, start, limit);
+            node.complexStyle = buildPluralStyleNode(pattern, start, limit, argType);
             break;
         case SELECT:
             node.typeName = "select";
             node.complexStyle = buildSelectStyleNode(pattern, start, limit);
+            break;
+        case SELECTORDINAL:
+            node.typeName = "selectordinal";
+            node.complexStyle = buildPluralStyleNode(pattern, start, limit, argType);
             break;
         default:
             // NONE type, nothing else to do
@@ -577,8 +584,9 @@ public final class MessagePatternUtil {
     }
 
     private static ComplexArgStyleNode buildPluralStyleNode(MessagePattern pattern,
-                                                            int start, int limit) {
-        ComplexArgStyleNode node = new ComplexArgStyleNode(MessagePattern.ArgType.PLURAL);
+                                                            int start, int limit,
+                                                            MessagePattern.ArgType argType) {
+        ComplexArgStyleNode node = new ComplexArgStyleNode(argType);
         MessagePattern.Part offset = pattern.getPart(start);
         if (offset.getType().hasNumericValue()) {
             node.explicitOffset = true;

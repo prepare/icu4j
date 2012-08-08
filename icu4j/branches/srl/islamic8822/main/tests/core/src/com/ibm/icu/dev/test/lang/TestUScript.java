@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 1996-2011, International Business Machines Corporation and    *
+* Copyright (C) 1996-2012, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 */
@@ -338,31 +338,31 @@ public class TestUScript extends TestFmwk {
             !UScript.hasScript(0x063f, UScript.SYRIAC) &&
             !UScript.hasScript(0x063f, UScript.THAANA))
         ) {
-            errln("UScript.hasScript(U+063F, ...) is wrong\n");
+            errln("UScript.hasScript(U+063F, ...) is wrong");
         }
         if(!(
-            UScript.hasScript(0x0640, UScript.COMMON) &&  /* main Script value */
+            !UScript.hasScript(0x0640, UScript.COMMON) &&  /* main Script value */
             UScript.hasScript(0x0640, UScript.ARABIC) &&
             UScript.hasScript(0x0640, UScript.SYRIAC) &&
             !UScript.hasScript(0x0640, UScript.THAANA))
         ) {
-            errln("UScript.hasScript(U+0640, ...) is wrong\n");
+            errln("UScript.hasScript(U+0640, ...) is wrong");
         }
         if(!(
-            UScript.hasScript(0x0650, UScript.INHERITED) &&  /* main Script value */
+            !UScript.hasScript(0x0650, UScript.INHERITED) &&  /* main Script value */
             UScript.hasScript(0x0650, UScript.ARABIC) &&
             UScript.hasScript(0x0650, UScript.SYRIAC) &&
             !UScript.hasScript(0x0650, UScript.THAANA))
         ) {
-            errln("UScript.hasScript(U+0650, ...) is wrong\n");
+            errln("UScript.hasScript(U+0650, ...) is wrong");
         }
         if(!(
-            UScript.hasScript(0x0660, UScript.COMMON) &&  /* main Script value */
+            !UScript.hasScript(0x0660, UScript.COMMON) &&  /* main Script value */
             UScript.hasScript(0x0660, UScript.ARABIC) &&
             !UScript.hasScript(0x0660, UScript.SYRIAC) &&
             UScript.hasScript(0x0660, UScript.THAANA))
         ) {
-            errln("UScript.hasScript(U+0660, ...) is wrong\n");
+            errln("UScript.hasScript(U+0660, ...) is wrong");
         }
         if(!(
             !UScript.hasScript(0xfdf2, UScript.COMMON) &&
@@ -370,26 +370,43 @@ public class TestUScript extends TestFmwk {
             !UScript.hasScript(0xfdf2, UScript.SYRIAC) &&
             UScript.hasScript(0xfdf2, UScript.THAANA))
         ) {
-            errln("UScript.hasScript(U+FDF2, ...) is wrong\n");
+            errln("UScript.hasScript(U+FDF2, ...) is wrong");
+        }
+        if(UScript.hasScript(0x0640, 0xaffe)) {
+            // An unguarded implementation might go into an infinite loop.
+            errln("UScript.hasScript(U+0640, bogus 0xaffe) is wrong");
         }
     }
 
     public void TestGetScriptExtensions() {
         BitSet scripts=new BitSet(UScript.CODE_LIMIT);
 
-        /* normal usage */
-        if(!UScript.getScriptExtensions(0x063f, scripts).isEmpty()) {
-            errln("UScript.getScriptExtensions(U+063F) is not empty");
+        /* invalid code points */
+        if(UScript.getScriptExtensions(-1, scripts)!=UScript.UNKNOWN || scripts.cardinality()!=1 ||
+                !scripts.get(UScript.UNKNOWN)) {
+            errln("UScript.getScriptExtensions(-1) is not {UNKNOWN}");
         }
-        if(UScript.getScriptExtensions(0x0640, scripts).cardinality()!=2 || !scripts.get(UScript.ARABIC) || !scripts.get(UScript.SYRIAC)) {
+        if(UScript.getScriptExtensions(0x110000, scripts)!=UScript.UNKNOWN || scripts.cardinality()!=1 ||
+                !scripts.get(UScript.UNKNOWN)) {
+            errln("UScript.getScriptExtensions(0x110000) is not {UNKNOWN}");
+        }
+
+        /* normal usage */
+        if(UScript.getScriptExtensions(0x063f, scripts)!=UScript.ARABIC || scripts.cardinality()!=1 ||
+                !scripts.get(UScript.ARABIC)) {
+            errln("UScript.getScriptExtensions(U+063F) is not {ARABIC}");
+        }
+        if(UScript.getScriptExtensions(0x0640, scripts)!=-3 || scripts.cardinality()!=3 ||
+           !scripts.get(UScript.ARABIC) || !scripts.get(UScript.SYRIAC) || !scripts.get(UScript.MANDAIC)
+        ) {
             errln("UScript.getScriptExtensions(U+0640) failed");
         }
-        UScript.getScriptExtensions(0xfdf2, scripts);
-        if(scripts.cardinality()!=2 || !scripts.get(UScript.ARABIC) || !scripts.get(UScript.THAANA)) {
+        if(UScript.getScriptExtensions(0xfdf2, scripts)!=-2 || scripts.cardinality()!=2 ||
+                !scripts.get(UScript.ARABIC) || !scripts.get(UScript.THAANA)) {
             errln("UScript.getScriptExtensions(U+FDF2) failed");
         }
-        UScript.getScriptExtensions(0xff65, scripts);
-        if(scripts.cardinality()!=6 || !scripts.get(UScript.BOPOMOFO) || !scripts.get(UScript.YI)) {
+        if(UScript.getScriptExtensions(0xff65, scripts)!=-6 || scripts.cardinality()!=6 ||
+                !scripts.get(UScript.BOPOMOFO) || !scripts.get(UScript.YI)) {
             errln("UScript.getScriptExtensions(U+FF65) failed");
         }
     }
@@ -438,23 +455,25 @@ public class TestUScript extends TestFmwk {
         String[] expectedLong = new String[]{
             "Balinese", "Batak", "Blis", "Brahmi", "Cham", "Cirt", "Cyrs", "Egyd", "Egyh", "Egyptian_Hieroglyphs", 
             "Geok", "Hans", "Hant", "Hmng", "Hung", "Inds", "Javanese", "Kayah_Li", "Latf", "Latg", 
-            "Lepcha", "Lina", "Mandaic", "Maya", "Mero", "Nko", "Old_Turkic", "Perm", "Phags_Pa", "Phoenician", 
-            "Plrd", "Roro", "Sara", "Syre", "Syrj", "Syrn", "Teng", "Vai", "Visp", "Cuneiform", 
+            "Lepcha", "Lina", "Mandaic", "Maya", "Meroitic_Hieroglyphs", "Nko", "Old_Turkic", "Perm", "Phags_Pa", "Phoenician", 
+            "Miao", "Roro", "Sara", "Syre", "Syrj", "Syrn", "Teng", "Vai", "Visp", "Cuneiform", 
             "Zxxx", "Unknown",
             "Carian", "Jpan", "Tai_Tham", "Lycian", "Lydian", "Ol_Chiki", "Rejang", "Saurashtra", "Sgnw", "Sundanese",
             "Moon", "Meetei_Mayek",
 
             // ICU 4.0
-            "Imperial_Aramaic", "Avestan", "Cakm", "Kore",
+            "Imperial_Aramaic", "Avestan", "Chakma", "Kore",
             "Kaithi", "Mani", "Inscriptional_Pahlavi", "Phlp", "Phlv", "Inscriptional_Parthian", "Samaritan", "Tai_Viet",
             "Zmth", "Zsym",
             /* new in ICU 4.4 */
             "Bamum", "Lisu", "Nkgb", "Old_South_Arabian",
             /* new in ICU 4.6 */
-            "Bass", "Dupl", "Elba", "Gran", "Kpel", "Loma", "Mend", "Merc",
+            "Bass", "Dupl", "Elba", "Gran", "Kpel", "Loma", "Mend", "Meroitic_Cursive",
             "Narb", "Nbat", "Palm", "Sind", "Wara",
             /* new in ICU 4.8 */
-            "Afak", "Jurc", "Mroo", "Nshu", "Shrd", "Sora", "Takr", "Tang", "Wole",
+            "Afak", "Jurc", "Mroo", "Nshu", "Sharada", "Sora_Sompeng", "Takri", "Tang", "Wole",
+            /* new in ICU 49 */
+            "Hluw", "Khoj", "Tirh",
         };
         String[] expectedShort = new String[]{
             "Bali", "Batk", "Blis", "Brah", "Cham", "Cirt", "Cyrs", "Egyd", "Egyh", "Egyp", 
@@ -475,6 +494,8 @@ public class TestUScript extends TestFmwk {
             "Narb", "Nbat", "Palm", "Sind", "Wara",
             /* new in ICU 4.8 */
             "Afak", "Jurc", "Mroo", "Nshu", "Shrd", "Sora", "Takr", "Tang", "Wole",
+            /* new in ICU 49 */
+            "Hluw", "Khoj", "Tirh",
         };
         if(expectedLong.length!=(UScript.CODE_LIMIT-UScript.BALINESE)) {
             errln("need to add new script codes in lang.TestUScript.java!");

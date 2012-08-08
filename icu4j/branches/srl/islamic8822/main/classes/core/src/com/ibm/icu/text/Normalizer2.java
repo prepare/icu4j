@@ -1,6 +1,6 @@
 /*
 *******************************************************************************
-*   Copyright (C) 2009-2011, International Business Machines
+*   Copyright (C) 2009-2012, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 *******************************************************************************
 */
@@ -106,6 +106,66 @@ public abstract class Normalizer2 {
     };
 
     /**
+     * Returns a Normalizer2 instance for Unicode NFC normalization.
+     * Same as getInstance(null, "nfc", Mode.COMPOSE).
+     * Returns an unmodifiable singleton instance.
+     * @return the requested Normalizer2, if successful
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
+     */
+    public static Normalizer2 getNFCInstance() {
+        return Norm2AllModes.getNFCInstance().comp;
+    }
+
+    /**
+     * Returns a Normalizer2 instance for Unicode NFD normalization.
+     * Same as getInstance(null, "nfc", Mode.DECOMPOSE).
+     * Returns an unmodifiable singleton instance.
+     * @return the requested Normalizer2, if successful
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
+     */
+    public static Normalizer2 getNFDInstance() {
+        return Norm2AllModes.getNFCInstance().decomp;
+    }
+
+    /**
+     * Returns a Normalizer2 instance for Unicode NFKC normalization.
+     * Same as getInstance(null, "nfkc", Mode.COMPOSE).
+     * Returns an unmodifiable singleton instance.
+     * @return the requested Normalizer2, if successful
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
+     */
+    public static Normalizer2 getNFKCInstance() {
+        return Norm2AllModes.getNFKCInstance().comp;
+    }
+
+    /**
+     * Returns a Normalizer2 instance for Unicode NFKD normalization.
+     * Same as getInstance(null, "nfkc", Mode.DECOMPOSE).
+     * Returns an unmodifiable singleton instance.
+     * @return the requested Normalizer2, if successful
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
+     */
+    public static Normalizer2 getNFKDInstance() {
+        return Norm2AllModes.getNFKCInstance().decomp;
+    }
+
+    /**
+     * Returns a Normalizer2 instance for Unicode NFKC_Casefold normalization.
+     * Same as getInstance(null, "nfkc_cf", Mode.COMPOSE).
+     * Returns an unmodifiable singleton instance.
+     * @return the requested Normalizer2, if successful
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
+     */
+    public static Normalizer2 getNFKCCasefoldInstance() {
+        return Norm2AllModes.getNFKC_CFInstance().comp;
+    }
+
+    /**
      * Returns a Normalizer2 instance which uses the specified data file
      * (an ICU data file if data=null, or else custom binary data)
      * and which composes or decomposes text according to the specified mode.
@@ -165,8 +225,7 @@ public abstract class Normalizer2 {
      * @param src source string
      * @param dest destination Appendable; gets normalized src appended
      * @return dest
-     * @draft ICU 4.6
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 4.6
      */
     public abstract Appendable normalize(CharSequence src, Appendable dest);
 
@@ -203,10 +262,52 @@ public abstract class Normalizer2 {
      * This function is independent of the mode of the Normalizer2.
      * @param c code point
      * @return c's decomposition mapping, if any; otherwise null
-     * @draft ICU 4.6
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 4.6
      */
     public abstract String getDecomposition(int c);
+
+    /**
+     * Gets the raw decomposition mapping of c.
+     *
+     * <p>This is similar to the getDecomposition() method but returns the
+     * raw decomposition mapping as specified in UnicodeData.txt or
+     * (for custom data) in the mapping files processed by the gennorm2 tool.
+     * By contrast, getDecomposition() returns the processed,
+     * recursively-decomposed version of this mapping.
+     *
+     * <p>When used on a standard NFKC Normalizer2 instance,
+     * getRawDecomposition() returns the Unicode Decomposition_Mapping (dm) property.
+     *
+     * <p>When used on a standard NFC Normalizer2 instance,
+     * it returns the Decomposition_Mapping only if the Decomposition_Type (dt) is Canonical (Can);
+     * in this case, the result contains either one or two code points (=1..4 Java chars).
+     *
+     * <p>This function is independent of the mode of the Normalizer2.
+     * The default implementation returns null.
+     * @param c code point
+     * @return c's raw decomposition mapping, if any; otherwise null
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
+     */
+    public String getRawDecomposition(int c) { return null; }
+
+    /**
+     * Performs pairwise composition of a & b and returns the composite if there is one.
+     *
+     * <p>Returns a composite code point c only if c has a two-way mapping to a+b.
+     * In standard Unicode normalization, this means that
+     * c has a canonical decomposition to a+b
+     * and c does not have the Full_Composition_Exclusion property.
+     *
+     * <p>This function is independent of the mode of the Normalizer2.
+     * The default implementation returns a negative value.
+     * @param a A (normalization starter) code point.
+     * @param b Another code point.
+     * @return The non-negative composite code point if there is one; otherwise a negative value.
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
+     */
+    public int composePair(int a, int b) { return -1; }
 
     /**
      * Gets the combining class of c.

@@ -1,11 +1,13 @@
 /*
 ******************************************************************************
-* Copyright (C) 2009-2010, International Business Machines Corporation and   *
+* Copyright (C) 2009-2011, International Business Machines Corporation and   *
 * others. All Rights Reserved.                                               *
 ******************************************************************************
 */
 
 package com.ibm.icu.impl.duration.impl;
+
+import java.util.Arrays;
 
 import com.ibm.icu.impl.duration.TimeUnit;
 import com.ibm.icu.impl.duration.impl.DataRecord.ECountVariant;
@@ -206,7 +208,7 @@ public class PeriodFormatterData {
       try {
         name = dr.pluralNames[px][form];
       } catch (NullPointerException e) {
-        System.out.println("Null Pointer in PeriodFormatterData["+localeName+"].au px: " + px + " form: " + form + " pn: " + dr.pluralNames);
+        System.out.println("Null Pointer in PeriodFormatterData["+localeName+"].au px: " + px + " form: " + form + " pn: " + Arrays.toString(dr.pluralNames));
         throw e;
       }
     }

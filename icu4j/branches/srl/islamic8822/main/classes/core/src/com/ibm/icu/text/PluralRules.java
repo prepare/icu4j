@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2007-2011, International Business Machines Corporation and    *
+ * Copyright (C) 2007-2012, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -18,6 +18,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import com.ibm.icu.impl.PatternProps;
@@ -143,10 +144,29 @@ public class PluralRules implements Serializable {
     /**
      * Value returned by {@link #getUniqueKeywordValue} when there is no
      * unique value to return.
-     * @draft ICU 4.8
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 4.8
      */
     public static final double NO_UNIQUE_VALUE = -0.00123456777;
+
+    /**
+     * Type of plurals and PluralRules.
+     * @draft ICU 50
+     * @provisional This API might change or be removed in a future release.
+     */
+    public enum PluralType {
+        /**
+         * Plural rules for cardinal numbers: 1 file vs. 2 files.
+         * @draft ICU 50
+         * @provisional This API might change or be removed in a future release.
+         */
+        CARDINAL,
+        /**
+         * Plural rules for ordinal numbers: 1st file, 2nd file, 3rd file, 4th file, etc.
+         * @draft ICU 50
+         * @provisional This API might change or be removed in a future release.
+         */
+        ORDINAL
+    };
 
     /*
      * The default constraint that is always satisfied.
@@ -798,9 +818,11 @@ public class PluralRules implements Serializable {
     // -------------------------------------------------------------------------
 
     /**
-     * Provides access to the predefined <code>PluralRules</code> for a given
+     * Provides access to the predefined cardinal-number <code>PluralRules</code> for a given
      * locale.
-     * ICU defines plural rules for many locales based on CLDR <i>Language Plural Rules</i>.
+     * Same as forLocale(locale, PluralType.CARDINAL).
+     *
+     * <p>ICU defines plural rules for many locales based on CLDR <i>Language Plural Rules</i>.
      * For these predefined rules, see CLDR page at
      * http://unicode.org/repos/cldr-tmp/trunk/diff/supplemental/language_plural_rules.html
      *
@@ -814,7 +836,30 @@ public class PluralRules implements Serializable {
      * @stable ICU 3.8
      */
     public static PluralRules forLocale(ULocale locale) {
-      return PluralRulesLoader.loader.forLocale(locale);
+      return PluralRulesLoader.loader.forLocale(locale, PluralType.CARDINAL);
+    }
+
+    /**
+     * Provides access to the predefined <code>PluralRules</code> for a given
+     * locale and the plural type.
+     *
+     * <p>ICU defines plural rules for many locales based on CLDR <i>Language Plural Rules</i>.
+     * For these predefined rules, see CLDR page at
+     * http://unicode.org/repos/cldr-tmp/trunk/diff/supplemental/language_plural_rules.html
+     *
+     * @param locale The locale for which a <code>PluralRules</code> object is
+     *   returned.
+     * @param type The plural type (e.g., cardinal or ordinal).
+     * @return The predefined <code>PluralRules</code> object for this locale.
+     *   If there's no predefined rules for this locale, the rules
+     *   for the closest parent in the locale hierarchy that has one will
+     *   be returned.  The final fallback always returns the default
+     *   rules.
+     * @draft ICU 50
+     * @provisional This API might change or be removed in a future release.
+     */
+    public static PluralRules forLocale(ULocale locale, PluralType type) {
+      return PluralRulesLoader.loader.forLocale(locale, type);
     }
 
     /*
@@ -864,8 +909,7 @@ public class PluralRules implements Serializable {
      *
      * @param keyword the keyword to check for a unique value
      * @return The unique value for the keyword, or NO_UNIQUE_VALUE.
-     * @draft ICU 4.8
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 4.8
      */
     public double getUniqueKeywordValue(String keyword) {
         Collection<Double> values = getAllKeywordValues(keyword);
@@ -882,8 +926,7 @@ public class PluralRules implements Serializable {
      * @param keyword the keyword
      * @return the values that trigger this keyword, or null.  The returned collection
      * is immutable. It will be empty if the keyword is not defined.
-     * @draft ICU 4.8
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 4.8
      */
     public Collection<Double> getAllKeywordValues(String keyword) {
         if (!keywords.contains(keyword)) {
@@ -911,8 +954,7 @@ public class PluralRules implements Serializable {
      *
      * @param keyword the keyword to test
      * @return a list of values matching the keyword.
-     * @draft ICU 4.8
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 4.8
      */
     public Collection<Double> getSamples(String keyword) {
         if (!keywords.contains(keyword)) {
@@ -981,8 +1023,8 @@ public class PluralRules implements Serializable {
             }
 
             // Make lists immutable so we can return them directly
-            for (String key : sampleMap.keySet()) {
-                sampleMap.put(key, Collections.unmodifiableList(sampleMap.get(key)));
+            for (Entry<String, List<Double>> entry : sampleMap.entrySet()) {
+                sampleMap.put(entry.getKey(), Collections.unmodifiableList(entry.getValue()));
             }
             _keySamplesMap = sampleMap;
         }

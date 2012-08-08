@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2011, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2012, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -22,12 +22,11 @@ import java.util.MissingResourceException;
 import java.util.Set;
 
 import com.ibm.icu.impl.ICUResourceBundle;
-import com.ibm.icu.text.NumberingSystem;
 import com.ibm.icu.util.Currency;
 import com.ibm.icu.util.CurrencyAmount;
 import com.ibm.icu.util.ULocale;
-import com.ibm.icu.util.UResourceBundle;
 import com.ibm.icu.util.ULocale.Category;
+import com.ibm.icu.util.UResourceBundle;
 
 /**
  * {@icuenhanced java.text.NumberFormat}.{@icu _usage_}
@@ -425,18 +424,19 @@ public abstract class NumberFormat extends UFormat {
      * that is, if it does not contain the currency pattern symbol
      * (U+00A4) in its prefix or suffix.
      *
-     * @param text the string to parse
+     * @param text the text to parse
      * @param pos input-output position; on input, the position within
      * text to match; must have 0 <= pos.getIndex() < text.length();
      * on output, the position after the last matched character. If
      * the parse fails, the position in unchanged upon output.
      * @return a CurrencyAmount, or null upon failure
-     * @internal
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
      */
-    public CurrencyAmount parseCurrency(String text, ParsePosition pos) {
+    public CurrencyAmount parseCurrency(CharSequence text, ParsePosition pos) {
         ///CLOVER:OFF
         // Default implementation only -- subclasses should override
-        Number n = parse(text, pos);
+        Number n = parse(text.toString(), pos);
         return n == null ? null : new CurrencyAmount(n, getEffectiveCurrency());
         ///CLOVER:ON
     }
@@ -713,6 +713,53 @@ public abstract class NumberFormat extends UFormat {
     public static NumberFormat getScientificInstance(ULocale inLocale) {
         return getInstance(inLocale, SCIENTIFICSTYLE);
     }
+
+    /**
+     * Style parameter for CompactDecimalFormat.
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
+     */
+    public enum CompactStyle {
+        /**
+         * Short version, like "1.2T"
+         * @draft ICU 49
+         * @provisional This API might change or be removed in a future release.
+         */
+        SHORT, 
+        /**
+         * Longer version, like "1.2 trillion", if available. May return same result as SHORT if not.
+         * @draft ICU 49
+         * @provisional This API might change or be removed in a future release.
+         */
+        LONG
+    }
+
+    /**
+     * Create a CompactDecimalFormat appropriate for a locale. The result may
+     * be affected by the number system in the locale, such as ar-u-nu-latn.
+     * 
+     * @param locale the desired locale
+     * @param style the compact style 
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
+     */
+    public static final CompactDecimalFormat getCompactDecimalInstance(ULocale locale, CompactStyle style) {
+        return new CompactDecimalFormat(locale, style);
+    }
+
+    /**
+     * Create a CompactDecimalFormat appropriate for a locale. The result may
+     * be affected by the number system in the locale, such as ar-u-nu-latn.
+     * 
+     * @param locale the desired locale
+     * @param style the compact style 
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
+     */
+    public static final CompactDecimalFormat getCompactDecimalInstance(Locale locale, CompactStyle style) {
+        return new CompactDecimalFormat(ULocale.forLocale(locale), style);
+    }
+
 
     // ===== Factory stuff =====
     /**

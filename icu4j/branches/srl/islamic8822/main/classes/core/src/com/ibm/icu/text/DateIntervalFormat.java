@@ -1,5 +1,5 @@
 /*
-*   Copyright (C) 2008-2011, International Business Machines
+*   Copyright (C) 2008-2012, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 */
 
@@ -313,12 +313,13 @@ public class DateIntervalFormat extends UFormat {
     
    
     /*
-     * default constructor 
+     * default constructor; private because we don't want anyone to use 
      */
+    @SuppressWarnings("unused")
     private DateIntervalFormat() {
     }
 
-    /*
+    /**
      * Construct a DateIntervalFormat from DateFormat,
      * a DateIntervalInfo, and skeleton.
      * DateFormat provides the timezone, calendar,
@@ -327,26 +328,31 @@ public class DateIntervalFormat extends UFormat {
      * has a pattern in it.
      * the DateIntervalInfo provides the interval patterns.
      *
-     * @param locale    the locale of this date interval formatter.
-     * @param dtitvinf  the DateIntervalInfo object to be adopted.
      * @param skeleton  the skeleton of the date formatter
+     * @param dtItvInfo  the DateIntervalInfo object to be adopted.
+     * @param generator  will be used for matching
+     * @param simpleDateFormat will be used for formatting
+     * 
+     * @internal
+     * @deprecated This API is ICU internal only.
      */
-    private DateIntervalFormat(ULocale locale, DateIntervalInfo dtItvInfo,
-                               String skeleton)
+    public DateIntervalFormat(String skeleton, DateIntervalInfo dtItvInfo,
+                               DateTimePatternGenerator generator, 
+                               SimpleDateFormat simpleDateFormat)
     {
+        SimpleDateFormat dateFormat = simpleDateFormat;
+        fDateFormat = dateFormat;
         // freeze date interval info
         dtItvInfo.freeze();
         fSkeleton = skeleton;
         fInfo = dtItvInfo;
 
-        DateTimePatternGenerator generator = DateTimePatternGenerator.getInstance(locale);
-        final String bestPattern = generator.getBestPattern(skeleton);
-        fDateFormat = new SimpleDateFormat(bestPattern, locale);
         fFromCalendar = (Calendar) fDateFormat.getCalendar().clone();
         fToCalendar = (Calendar) fDateFormat.getCalendar().clone();
         initializePattern();
     }
 
+    
 
     /**
      * Construct a DateIntervalFormat from skeleton and  the default <code>FORMAT</code> locale.
@@ -419,7 +425,8 @@ public class DateIntervalFormat extends UFormat {
         getInstance(String skeleton, ULocale locale)  
     {
         DateIntervalInfo dtitvinf = new DateIntervalInfo(locale);
-        return new DateIntervalFormat(locale, dtitvinf, skeleton);
+        DateTimePatternGenerator generator = DateTimePatternGenerator.getInstance(locale);
+        return new DateIntervalFormat(skeleton, dtitvinf, generator, new SimpleDateFormat(generator.getBestPattern(skeleton), locale));
     }
 
 
@@ -512,7 +519,8 @@ public class DateIntervalFormat extends UFormat {
         // clone. If it is frozen, clone returns itself, otherwise, clone
         // returns a copy.
         dtitvinf = (DateIntervalInfo)dtitvinf.clone(); 
-        return new DateIntervalFormat(locale, dtitvinf, skeleton);
+        DateTimePatternGenerator generator = DateTimePatternGenerator.getInstance(locale);
+        return new DateIntervalFormat(skeleton, dtitvinf, generator, new SimpleDateFormat(generator.getBestPattern(skeleton), locale));
     }
 
 
