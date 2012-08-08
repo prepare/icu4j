@@ -9,7 +9,14 @@ use XML::LibXML;
 # Assume we are running within the icu4j root directory
 use lib 'src/com/ibm/icu/dev/test/perf';
 use Dataset;
-my $CLASSPATH="../icu4j.jar:../tools/misc/out/lib/icu4j-tools.jar:out/bin";
+my $OS=$^O;
+
+my $CLASSPATH;
+if ($OS eq "linux" || $OS eq "darwin") {
+	$CLASSPATH="../icu4j.jar:../tools/misc/out/lib/icu4j-tools.jar:out/bin";
+} else {
+	$CLASSPATH="../icu4j.jar;../tools/misc/out/lib/icu4j-tools.jar;out/bin";
+}
 #---------------------------------------------------------------------
 
 # Methods to be tested.  Each pair represents a test method and
@@ -121,8 +128,7 @@ sub main {
 	
 
         for my $pat (@OPTIONS) {
-	    my $pat0 = $pat->[0];
-	    my $patternName = $pat0->[0]; 
+	       my $patternName = $pat->[0]; 
 
             # measure the test method
             my $t = measure2($testclass, $testMethod, $pat, -$DURATION);
@@ -194,10 +200,10 @@ sub main {
           #
           # Run ICU Test for this (locale, data file) pair.
           #
-           $iStrCol = `java -classpath $CLASSPATH com.ibm.icu.dev.test.perf.CollationPerformanceTest -terse -file src/com/ibm/icu/dev/test/perf/data/collation/$data -locale $locale -loop 1000 -binsearch`;
-print "java -classpath $CLASSPATH com.ibm.icu.dev.test.perf.CollationPerformanceTest -terse -file src/com/ibm/icu/dev/test/perf/data/collation/$data -locale $locale -loop 1000 -binsearch\n";
+           $iStrCol = `java -classpath $CLASSPATH com.ibm.icu.dev.test.perf.CollationPerformanceTest -terse -file data/collation/$data -locale $locale -loop 1000 -binsearch`;
+print "java -classpath $CLASSPATH com.ibm.icu.dev.test.perf.CollationPerformanceTest -terse -file data/collation/$data -locale $locale -loop 1000 -binsearch\n";
   $iStrCol =~s/[,\s]*//g;  # whack off the leading "  ," in the returned result.
-          doKeyTimes("java -classpath $CLASSPATH com.ibm.icu.dev.test.perf.CollationPerformanceTest -terse -file src/com/ibm/icu/dev/test/perf/data/collation/$data -locale $locale -loop 1000 -keygen",
+          doKeyTimes("java -classpath $CLASSPATH com.ibm.icu.dev.test.perf.CollationPerformanceTest -terse -file data/collation/$data -locale $locale -loop 1000 -keygen",
                     my $iKeyGen, my $iKeyLen);
 
           #
@@ -206,9 +212,9 @@ print "java -classpath $CLASSPATH com.ibm.icu.dev.test.perf.CollationPerformance
           #    for the locale.
           #
            $wStrCol =  $wKeyGen =  $wKeyLen = 0;
-          my $wStrCol = `java -classpath $CLASSPATH com.ibm.icu.dev.test.perf.CollationPerformanceTest -terse -file src/com/ibm/icu/dev/test/perf/data/collation/$data -locale $locale -loop 1000 -binsearch -java`;
+          my $wStrCol = `java -classpath $CLASSPATH com.ibm.icu.dev.test.perf.CollationPerformanceTest -terse -file data/collation/$data -locale $locale -loop 1000 -binsearch -java`;
           $wStrCol =~s/[,\s]*//g;  # whack off the leading "  ," in the returned result.
-          doKeyTimes("java -classpath $CLASSPATH com.ibm.icu.dev.test.perf.CollationPerformanceTest -terse -file src/com/ibm/icu/dev/test/perf/data/collation/$data -locale $locale -loop 1000 -keygen -java",
+          doKeyTimes("java -classpath $CLASSPATH com.ibm.icu.dev.test.perf.CollationPerformanceTest -terse -file data/collation/$data -locale $locale -loop 1000 -keygen -java",
                      $wKeyGen, $wKeyLen);
                      
            $collDiff =  $keyGenDiff =  $keyLenDiff = 0;
