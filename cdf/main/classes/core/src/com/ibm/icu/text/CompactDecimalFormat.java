@@ -70,6 +70,7 @@ public class CompactDecimalFormat extends DecimalFormat {
         this.prefix = data.prefixes;
         this.suffix = data.suffixes;
         this.divisor = data.divisors;
+        // TODO fix to consider plural form when choosing a prefix or suffix.
         applyPattern(format.toPattern());
         setDecimalFormatSymbols(format.getDecimalFormatSymbols());
         setMaximumSignificantDigits(2); // default significant digits
