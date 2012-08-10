@@ -70,8 +70,6 @@ final class DictionaryData {
                 data[i] = s.readByte();
             }
             Assert.assrt(i == totalSize);
-            s.close();
-            is.close();
             m = new BytesDictionaryMatcher(data, transform);
         } else if (trieType == TRIE_TYPE_UCHARS) {
             Assert.assrt(totalSize % 2 == 0);
@@ -80,8 +78,6 @@ final class DictionaryData {
             for (int i = 0; i < num; i++) {
                 data[i] = s.readChar();
             }
-            s.close();
-            is.close();
             m = new CharsDictionaryMatcher(new String(data));
         } else {
             m = null;
