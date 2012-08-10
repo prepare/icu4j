@@ -45,7 +45,6 @@ class CharsDictionaryMatcher extends DictionaryMatcher {
             if (numChars >= maxLength) {
                 break;
             }
-
             c = text.next();
             ++numChars;
             result = uct.next(c);

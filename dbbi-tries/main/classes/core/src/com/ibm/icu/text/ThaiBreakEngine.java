@@ -7,16 +7,12 @@
 package com.ibm.icu.text;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.text.CharacterIterator;
 import java.util.Stack;
 
-import com.ibm.icu.impl.ICUData;
-import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.lang.UProperty;
 import com.ibm.icu.lang.UScript;
-import com.ibm.icu.util.UResourceBundle;
 
 public class ThaiBreakEngine implements LanguageBreakEngine {
     /* Helper class for improving readability of the Thai word break
@@ -42,7 +38,7 @@ public class ThaiBreakEngine implements LanguageBreakEngine {
         }
 
         // Fill the list of candidates if needed, select the longest, and return the number found
-        public int candidates(CharacterIterator fIter, BreakCTDictionary dict, int rangeEnd) {
+        public int candidates(CharacterIterator fIter, DictionaryMatcher dict, int rangeEnd) {
             int start = fIter.getIndex();
             if (start != offset) {
                 offset = start;
@@ -102,7 +98,7 @@ public class ThaiBreakEngine implements LanguageBreakEngine {
     // Minimum word size
     private static final byte THAI_MIN_WORD = 2;
     
-    private BreakCTDictionary fDictionary;
+    private DictionaryMatcher fDictionary;
     private static UnicodeSet fThaiWordSet;
     private static UnicodeSet fEndWordSet;
     private static UnicodeSet fBeginWordSet;
@@ -145,14 +141,8 @@ public class ThaiBreakEngine implements LanguageBreakEngine {
     }
     
     public ThaiBreakEngine() throws IOException {
-     // Initialize dictionary
-        ICUResourceBundle rb = (ICUResourceBundle)UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BRKITR_BASE_NAME);
-        String dictType = "Thai";
-        String dictFileName = rb.getStringWithFallback("dictionaries/" + dictType);
-        dictFileName = ICUResourceBundle.ICU_BUNDLE +ICUResourceBundle.ICU_BRKITR_NAME+ "/" + dictFileName;
-        InputStream is = ICUData.getStream(dictFileName);
-        fDictionary = new BreakCTDictionary(is);
-        //fDictionary = DictionaryData.loadDictionaryFor("Thai");
+        // Initialize dictionary
+        fDictionary = DictionaryData.loadDictionaryFor("Thai");
     }
 
     public boolean handles(int c, int breakType) {
@@ -184,12 +174,8 @@ public class ThaiBreakEngine implements LanguageBreakEngine {
 
             //Look for candidate words at the current position
             int candidates = words[wordsFound%THAI_LOOKAHEAD].candidates(fIter, fDictionary, rangeEnd);
-            // If we found exactly one, use that
-            /* if (candidates == 0) {
-                foundBreaks.push(fIter.getIndex());
-                return wordsFound;
-            } */
 
+            // If we found exactly one, use that
             if (candidates == 1) {
                 wordLength = words[wordsFound%THAI_LOOKAHEAD].acceptMarked(fIter);
                 wordsFound += 1;

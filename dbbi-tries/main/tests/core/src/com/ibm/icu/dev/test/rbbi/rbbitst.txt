@@ -171,7 +171,8 @@
 <data>•abc<200>\U0001D800•def<200>\U0001D3FF• •</data>
 
 # Hiragana & Katakana stay together, but separates from each other and Latin.
-<data>•abc<200>\N{HIRAGANA LETTER SMALL A}<300>\N{HIRAGANA LETTER VU}\N{COMBINING ACUTE ACCENT}<300>\N{HIRAGANA ITERATION MARK}<300>\N{KATAKANA LETTER SMALL A}\N{KATAKANA ITERATION MARK}\N{HALFWIDTH KATAKANA LETTER WO}\N{HALFWIDTH KATAKANA LETTER N}<300>def<200>#•</data>
+# What to do about theoretical combos of chars? i.e. Hiragana + accent?
+# <data>•abc<200>\N{HIRAGANA LETTER SMALL A}<400>\N{HIRAGANA LETTER VU}\N{COMBINING ACUTE ACCENT}<400>\N{HIRAGANA ITERATION MARK}<400>\N{KATAKANA LETTER SMALL A}\N{KATAKANA ITERATION MARK}\N{HALFWIDTH KATAKANA LETTER WO}\N{HALFWIDTH KATAKANA LETTER N}<400>def<200>#•</data>
 
 # Words with interior formatting characters
 <data>•def\N{COMBINING ACUTE ACCENT}\N{SYRIAC ABBREVIATION MARK}ghi<200> •</data>
@@ -188,9 +189,9 @@
 #      precomposed syllables...
 <data>•\uc0c1\ud56d<200> •\ud55c\uc778<200> •\uc5f0\ud569<200> •\uc7a5\ub85c\uad50\ud68c<200> •\u1109\u1161\u11bc\u1112\u1161\u11bc<200> •\u1112\u1161\u11ab\u110b\u1175\u11ab<200> •\u110b\u1167\u11ab\u1112\u1161\u11b8<200> •\u110c\u1161\u11bc\u1105\u1169\u1100\u116d\u1112\u116c<200> •</data>
 
-<data>•abc<200>\u4e01<400>\u4e02<400>\u3005<200>\u4e03<400>\u4e03<400>abc<200> •</data>
+<data>•abc<200>\u4e01<400>\u4e02<400>\u3005<400>\u4e03<400>\u4e03<400>abc<200> •</data>
 
-<data>•\u06c9\uc799\ufffa<200></data>
+<data>•\u06c9<200>\uc799<200>\ufffa•</data>
 
 #      
 #      Try some words from other scripts.
@@ -714,7 +715,7 @@ What is the proper use of the abbreviation pp.? •Yes, I am definatelly 12" tal
 
 <locale ja>
 <line>
-<data>•\u3041•\u3043•\u3045•\u31f1•</data>
+<data>•\u3041\u3043\u3045\u31f1•</data>
 <locale en>
 <line>
 <data>•\u3041\u3043\u3045\u31f1•</data>
@@ -722,7 +723,7 @@ What is the proper use of the abbreviation pp.? •Yes, I am definatelly 12" tal
 # The following data was originally in RBBITest::TestJapaneseWordBreak()
 <locale ja>
 <word>
-<data>•\u4ECA\u65E5<400>\u306F\u3044\u3044<300>\u5929\u6C17<400>\u3067\u3059\u306D<300>\u3002•\u000D\u000A•</data>
+<data>•\u4ECA\u65E5<400>\u306F<400>\u3044\u3044<400>\u5929\u6C17<400>\u3067\u3059<400>\u306D<400>\u3002•\u000D\u000A•</data>
 
 # UBreakIteratorType UBRK_WORD, Locale "ja"
 # Don't break in runs of hiragana or runs of ideograph, where the latter includes \u3005 \u3007 \u303B (cldrbug #2009).
@@ -730,11 +731,11 @@ What is the proper use of the abbreviation pp.? •Yes, I am definatelly 12" tal
 
 <locale ja>
 <word>
-<data>•私達<400>に<300>一〇〇〇<400>の<300>コンピュータ<300>がある<300>。<0>奈々<400>は<300>ワード<300>である<300>。•</data>
+<data>•私<400>達<400>に<400>一<400>〇<400>〇〇<400>の<400>コンピュータ<400>が<400>ある<400>。<0>奈<400>々<400>は<400>ワ<400>ー<400>ドで<400>あ<400>る<400>。•</data>
 
 <locale root>
 <word>
-<data>•私<400>達<400>に<300>一<400>〇<400>〇<400>〇<400>の<300>コンピュータ<300>が<300>あ<300>る<300>。<0>奈<400>々<200>は<300>ワード<300>で<300>あ<300>る<300>。•</data>
+<data>•私<400>達<400>に<400>一<400>〇<400>〇〇<400>の<400>コンピュータ<400>が<400>ある<400>。<0>奈<400>々<400>は<400>ワ<400>ー<400>ドで<400>あ<400>る<400>。•</data>
 
 # UBreakIteratorType UBRK_SENTENCE, Locale "el"
 # Add break after Greek question mark (cldrbug #2069).

@@ -6,10 +6,7 @@
  */
 package com.ibm.icu.dev.test.rbbi;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.ListResourceBundle;
-import java.util.MissingResourceException;
 
 import com.ibm.icu.dev.test.TestFmwk;
 import com.ibm.icu.text.BreakIterator;
