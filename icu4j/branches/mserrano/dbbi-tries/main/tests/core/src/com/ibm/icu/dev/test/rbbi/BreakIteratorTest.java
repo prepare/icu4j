@@ -6,11 +6,6 @@
  */
 package com.ibm.icu.dev.test.rbbi;
 
-import java.io.DataInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.text.StringCharacterIterator;
 import java.util.ArrayList;
 import java.util.List;

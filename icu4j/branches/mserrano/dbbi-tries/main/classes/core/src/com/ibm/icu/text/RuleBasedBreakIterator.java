@@ -13,7 +13,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.text.CharacterIterator;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.Stack;
 import java.util.concurrent.ConcurrentHashMap;
@@ -289,10 +288,10 @@ public class RuleBasedBreakIterator extends BreakIterator {
     public static boolean       fTrace;
 
     /**
-     * What kind of break iterator this is. Set to KIND_WORD by default, 
+     * What kind of break iterator this is. Set to KIND_LINE by default, 
      * since this produces sensible output.
      */
-    private int fBreakType = KIND_WORD;
+    private int fBreakType = KIND_LINE;
     
     /**
      * The "default" break engine - just skips over ranges of dictionary words,
@@ -465,6 +464,8 @@ public class RuleBasedBreakIterator extends BreakIterator {
     public int previous() {
         CharacterIterator text = getText();
 
+        fLastStatusIndexValid = false;
+
         // if we have cached break positions and we're still in the range
         // covered by them, just move one step backward in the cache
         if (fCachedBreakPositions != null && fPositionInCache > 0) {
@@ -480,8 +481,13 @@ public class RuleBasedBreakIterator extends BreakIterator {
         // the cache.
         else {
             fCachedBreakPositions = null;
+            
             int offset = current();
             int result = rulesPrevious();
+            if (result == BreakIterator.DONE) {
+                return result;
+            }
+
             if (fDictionaryCharCount == 0) {
                 return result;
             }
@@ -493,11 +499,10 @@ public class RuleBasedBreakIterator extends BreakIterator {
             
             while (result < offset) {
                 int nextResult = handleNext();
-                
                 if (nextResult >= offset) {
                     break;
                 }
-                
+
                 result = nextResult;
             }
             
@@ -510,9 +515,13 @@ public class RuleBasedBreakIterator extends BreakIterator {
                 }
             }
             
-            if (result != BreakIterator.DONE) {
-                text.setIndex(result);
-            }
+            // prepare for the user asking for our status
+            // our status will have been marked as valid by the next() 
+            // calls but isn't at the right place, so mark it as invalid 
+            // and recompute it when the user asks
+            fLastStatusIndexValid = false;
+            text.setIndex(result);
+            
             return result;
         }
     }
@@ -847,17 +856,19 @@ public class RuleBasedBreakIterator extends BreakIterator {
     private void makeRuleStatusValid() {
         if (fLastStatusIndexValid == false) {
             //  No cached status is available.
-            if (fText == null || current() == fText.getBeginIndex()) {
+            int curr = current();
+            if (curr == BreakIterator.DONE || curr == fText.getBeginIndex()) {
                 //  At start of text, or there is no text.  Status is always zero.
                 fLastRuleStatusIndex = 0;
                 fLastStatusIndexValid = true;
             } else {
                 //  Not at start of text.  Find status the tedious way.
-                int pa = current();
-                fCachedBreakPositions = null;
-                previous();
-                fCachedBreakPositions = null;
-                int pb = next();
+                int pa = fText.getIndex();
+                first();
+                int pb = current();
+                while (fText.getIndex() < pa) {
+                    pb = next();
+                }
                 Assert.assrt(pa == pb);
             }
             Assert.assrt(fLastStatusIndexValid == true);
@@ -900,7 +911,6 @@ public class RuleBasedBreakIterator extends BreakIterator {
         //   This function returns the last (largest) of the array of status values.
         int  idx = fLastRuleStatusIndex + fRData.fStatusTable[fLastRuleStatusIndex];
         int  tagVal = fRData.fStatusTable[idx];
-
         return tagVal;
     }
 
@@ -999,8 +1009,17 @@ public class RuleBasedBreakIterator extends BreakIterator {
     protected static String fDebugEnv = ICUDebug.enabled(RBBI_DEBUG_ARG) ?
                                         ICUDebug.value(RBBI_DEBUG_ARG) : null;
     
+    /**
+     * Finds an appropriate LanguageBreakEngine for this character and 
+     * break type.
+     * @internal
+     * @deprecated This API is ICU internal only.
+     */
     protected LanguageBreakEngine getEngineFor(int c) { 
-        if (c == DONE32) return null;
+        if (c == DONE32 || !fUseDictionary) {
+            return null;
+        }
+
         for (LanguageBreakEngine candidate : fBreakEngines) {
             if (candidate.handles(c, fBreakType)) {
                 return candidate;
@@ -1008,20 +1027,30 @@ public class RuleBasedBreakIterator extends BreakIterator {
         }
 
         // if we don't have an existing engine, build one.
-        if (!fUseDictionary) return null;
         int script = UCharacter.getIntPropertyValue(c, UProperty.SCRIPT);
         LanguageBreakEngine eng = null;
-        switch (script) {
-        case UScript.THAI:
-            try {
+        try {
+            switch (script) {
+            case UScript.THAI:
                 eng = new ThaiBreakEngine();
-            } catch (IOException e) {
-                eng = null;
+                break;
+            case UScript.KATAKANA:
+            case UScript.HIRAGANA:
+            case UScript.HAN:
+                if (getBreakType() == KIND_WORD)
+                    eng = new CjkBreakEngine(false);
+                break;
+            case UScript.HANGUL:
+                if (getBreakType() == KIND_WORD)
+                    eng = new CjkBreakEngine(true);
+                break;
+            default:
+                fUnhandledBreakEngine.handleChar(c, getBreakType());
+                eng = fUnhandledBreakEngine;
+                break;
             }
-            break;
-        default:
-            fUnhandledBreakEngine.handleChar(c, getBreakType());
-            eng = fUnhandledBreakEngine;
+        } catch (IOException e) {
+            eng = null;
         }
 
         if (eng != null) {
@@ -1061,27 +1090,27 @@ public class RuleBasedBreakIterator extends BreakIterator {
                 text.setIndex(startPos);
                 LanguageBreakEngine e = getEngineFor(current32(text));
                 if (e != null) {
+                    // we have an engine! use it to produce breaks
                     Stack<Integer> breaks = new Stack<Integer>();
                     e.findBreaks(text, startPos, result, false, getBreakType(), breaks);
 
                     fCachedBreakPositions = new int[breaks.size() + 2];
                     fCachedBreakPositions[0] = startPos;
-
                     for (int i = 0; i < breaks.size(); i++) {
                         fCachedBreakPositions[i + 1] = breaks.elementAt(i).intValue();
                     }
-
                     fCachedBreakPositions[breaks.size() + 1] = result;
 
                     fPositionInCache = 0;
                 } else {
+                    // we don't have an engine; just use the rules
                     text.setIndex(result);
                     return result;
                 }
             }
-            // otherwise, the value we got back from the inherited function
-            // is our return value, and we can dump the cache
             else {
+                // otherwise, the value we got back from the inherited function
+                // is our return value, and we can dump the cache
                 fCachedBreakPositions = null;
                 return result;
             }
@@ -1098,7 +1127,7 @@ public class RuleBasedBreakIterator extends BreakIterator {
 
         ///CLOVER:OFF
         Assert.assrt(false);
-        return -9999;   // SHOULD NEVER GET HERE!
+        return -9999;   // WE SHOULD NEVER GET HERE!
         ///CLOVER:ON
     }
 
