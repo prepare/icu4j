@@ -1856,4 +1856,5 @@
             <attach file="${maven.release.dir}/${maven.icu4jdocs.jar.file}.asc" classifier="javadoc" type="jar.asc"/>
         </deploy>
     </target>
+
 </project>
