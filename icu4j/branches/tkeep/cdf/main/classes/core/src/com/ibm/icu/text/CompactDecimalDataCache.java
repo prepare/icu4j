@@ -158,12 +158,10 @@ class CompactDecimalDataCache {
                 result.suffixes[i] = lastSuffix;
             } else if (result.prefixes[i].equals(lastPrefix) && result.suffixes[i].equals(lastSuffix)) {
                 result.divisors[i] = lastDivisor;
+            } else {
+                lastDivisor = result.divisors[i];
                 lastPrefix = result.prefixes[i];
                 lastSuffix = result.suffixes[i];
-            } else {
-              lastDivisor = result.divisors[i];
-              lastPrefix = result.prefixes[i];
-              lastSuffix = result.suffixes[i];
             }
         }
     }
