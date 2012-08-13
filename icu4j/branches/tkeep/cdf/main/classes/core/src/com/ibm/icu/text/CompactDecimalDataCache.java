@@ -16,7 +16,6 @@ import com.ibm.icu.util.UResourceBundle;
  * A cache containing data by locale for {@link CompactDecimalFormat}
  *
  * @author Travis Keep
- * @draft ICU 50
  */
 class CompactDecimalDataCache {
 
@@ -36,8 +35,7 @@ class CompactDecimalDataCache {
      * Each array in data is 15 in length, and every index is filled.
      *
      * @author Travis Keep
-     * @draft ICU 50
-     *
+     *      *
      */
     static class Data {
         long[] divisors;
@@ -81,19 +79,19 @@ class CompactDecimalDataCache {
     /**
      * Populates Data object with data for a particular divisor from resource bundle.
      */
-    private static void populateData(ICUResourceBundle divisor, Data result) {
-        long divisorValue = Long.parseLong(divisor.getKey());
-        int thisIndex = (int) Math.log10(divisorValue);
+    private static void populateData(ICUResourceBundle divisorData, Data result) {
+        long divisor = Long.parseLong(divisorData.getKey());
+        int thisIndex = (int) Math.log10(divisor);
         // Silently ignore divisors that are too big.
         if (thisIndex >= MAX_DIGITS) {
             return;
         }
-        ICUResourceBundle other = (ICUResourceBundle) divisor.get(0);
+        ICUResourceBundle other = (ICUResourceBundle) divisorData.get(0);
         if (!other.getKey().equals("other")) {
             throw new IllegalStateException("Expect other block, got: " + other.getKey());
         }
         populatePrefixSuffix(other.getString(), thisIndex, result);
-        result.divisors[thisIndex] = divisorValue;
+        result.divisors[thisIndex] = divisor;
     }
 
     /**
@@ -160,10 +158,13 @@ class CompactDecimalDataCache {
                 result.suffixes[i] = lastSuffix;
             } else if (result.prefixes[i].equals(lastPrefix) && result.suffixes[i].equals(lastSuffix)) {
                 result.divisors[i] = lastDivisor;
+                lastPrefix = result.prefixes[i];
+                lastSuffix = result.suffixes[i];
+            } else {
+              lastDivisor = result.divisors[i];
+              lastPrefix = result.prefixes[i];
+              lastSuffix = result.suffixes[i];
             }
-            lastDivisor = result.divisors[i];
-            lastPrefix = result.prefixes[i];
-            lastSuffix = result.suffixes[i];
         }
     }
 }
