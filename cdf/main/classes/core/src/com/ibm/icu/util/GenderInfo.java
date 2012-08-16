@@ -174,8 +174,8 @@ public class GenderInfo {
                     // and find no resource assume that list gender style is NEUTRAL.
                     result = fallback == null ? neutral : get(fallback);
                 }
+                cache.put(locale, result);
             }
-            cache.put(locale, result);
             return result;
         }
 
