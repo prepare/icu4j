@@ -27,7 +27,8 @@ public interface ICULoadingCache<K, V> {
      * thread blocks until the value is available.
      * 
      * @param key the cache key
-     * @return the non-null cache value
+     * @return the cache value. May return null if no cache value could be
+     * loaded for given key.
      */
     V get(K key);
     
