@@ -1,6 +1,6 @@
 /********************************************************************
  * COPYRIGHT: 
- * Copyright (c) 2002-2011, International Business Machines Corporation and
+ * Copyright (c) 2002-2012, International Business Machines Corporation and
  * others. All Rights Reserved.
  ********************************************************************/
 
@@ -17,10 +17,12 @@ import java.util.Locale;
 
 import com.ibm.icu.dev.test.TestFmwk;
 import com.ibm.icu.dev.test.TestUtil;
+import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.text.CollationKey;
 import com.ibm.icu.text.Collator;
 import com.ibm.icu.text.RuleBasedCollator;
 import com.ibm.icu.text.UTF16;
+import com.ibm.icu.util.VersionInfo;
 
 public class UCAConformanceTest extends TestFmwk {
 
@@ -39,9 +41,11 @@ public class UCAConformanceTest extends TestFmwk {
 
         comparer = new UTF16.StringComparator(true, false, UTF16.StringComparator.FOLD_CASE_DEFAULT);
     }
-    RuleBasedCollator UCA;
-    RuleBasedCollator rbUCA;
-    UTF16.StringComparator comparer;
+    private RuleBasedCollator UCA;
+    // TODO: see comment in TestRulesNonIgnorable() -- private RuleBasedCollator rbUCA;
+    private UTF16.StringComparator comparer;
+    private boolean isAtLeastUCA62 =
+        UCharacter.getUnicodeVersion().compareTo(VersionInfo.UNICODE_6_2) >= 0;
 
     public void TestTableNonIgnorable() {
         setCollNonIgnorable(UCA);
@@ -116,10 +120,10 @@ public class UCAConformanceTest extends TestFmwk {
     private void setCollNonIgnorable(RuleBasedCollator coll) 
     {
         if(coll != null) {
-            coll.setDecomposition(RuleBasedCollator.CANONICAL_DECOMPOSITION);
+            coll.setDecomposition(Collator.CANONICAL_DECOMPOSITION);
             coll.setLowerCaseFirst(false);
             coll.setCaseLevel(false);
-            coll.setStrength(RuleBasedCollator.TERTIARY);
+            coll.setStrength(isAtLeastUCA62 ? Collator.IDENTICAL : Collator.TERTIARY);
             coll.setAlternateHandlingShifted(false);
         }
     }
@@ -127,10 +131,10 @@ public class UCAConformanceTest extends TestFmwk {
     private void setCollShifted(RuleBasedCollator coll) 
     {
         if(coll != null) {
-            coll.setDecomposition(RuleBasedCollator.CANONICAL_DECOMPOSITION);
+            coll.setDecomposition(Collator.CANONICAL_DECOMPOSITION);
             coll.setLowerCaseFirst(false);
             coll.setCaseLevel(false);
-            coll.setStrength(RuleBasedCollator.QUATERNARY);
+            coll.setStrength(isAtLeastUCA62 ? Collator.IDENTICAL : Collator.QUATERNARY);
             coll.setAlternateHandlingShifted(true);
         }
     }
@@ -173,57 +177,83 @@ public class UCAConformanceTest extends TestFmwk {
         }
 
     }
+
+    private static boolean skipLineBecauseOfBug(String s, boolean isShifted) {
+        // TODO: Fix ICU ticket #8052
+        if(s.length() >= 3 &&
+                (s.charAt(0) == 0xfb2 || s.charAt(0) == 0xfb3) &&
+                s.charAt(1) == 0x334 &&
+                (s.charAt(2) == 0xf73 || s.charAt(2) == 0xf75 || s.charAt(2) == 0xf81)) {
+            return true;
+        }
+        // TODO: Fix ICU ticket #9361
+        if(isShifted && s.length() >= 2 && s.charAt(0) == 0xfffe) {
+            return true;
+        }
+        // TODO: Fix ICU ticket #9494
+        int c;
+        if(s.length() >= 2 && 0xe0100 <= (c = s.codePointAt(0)) && c <= 0xe01ef) {
+            return true;
+        }
+        return false;
+    }
+
+    private static int normalizeResult(int result) {
+        return result < 0 ? -1 : result == 0 ? 0 : 1;
+    }
+
     private void conformanceTest(RuleBasedCollator coll) {
         if(in == null || coll == null) {
             return;
         }
+        boolean isShifted = coll.isAlternateHandlingShifted();
 
         int lineNo = 0;
 
         String line = null, oldLine = null, buffer = null, oldB = null;
         CollationKey oldSk = null, newSk = null;
 
-        int res = 0, cmpres = 0, cmpres2 = 0;
-
         try {
             while ((line = in.readLine()) != null) {
                 lineNo++;
-                if(line.length() < 3 || line.charAt(0) == '#') {
+                if(line.length() == 0 || line.charAt(0) == '#') {
                     continue;
                 }
                 buffer = parseString(line);
 
+                if(skipLineBecauseOfBug(buffer, isShifted)) {
+                    logln("Skipping line " + lineNo + " because of a known bug");
+                    continue;
+                }
+
                 newSk = coll.getCollationKey(buffer);
                 if(oldSk != null) {
-                    res = oldSk.compareTo(newSk);
-                    cmpres = coll.compare(oldB, buffer);
-                    cmpres2 = coll.compare(buffer, oldB);
+                    int skres = oldSk.compareTo(newSk);
+                    int cmpres = coll.compare(oldB, buffer);
+                    int cmpres2 = coll.compare(buffer, oldB);
 
                     if(cmpres != -cmpres2) {
                         errln("Compare result not symmetrical on line "+lineNo);
                     }
-                    if(((res&0x80000000) != (cmpres&0x80000000)) || (res == 0 && cmpres != 0) || (res != 0 && cmpres == 0)) {
-                        errln("Difference between ucol_strcoll and sortkey compare on line " + lineNo);
-                        logln(oldLine);
-                        logln(line);
+                    if(normalizeResult(cmpres) != normalizeResult(skres)) {
+                        errln("Difference between coll.compare (" + cmpres + ") and sortkey compare (" + skres + ") on line " + lineNo);
+                        errln(oldLine);
+                        errln(line);
                     }
 
+                    int res = cmpres;
+                    if(res == 0 && !isAtLeastUCA62) {
+                        // Up to UCA 6.1, the collation test files use a custom tie-breaker,
+                        // comparing the raw input strings.
+                        res = comparer.compare(oldB, buffer);
+                        // Starting with UCA 6.2, the collation test files use the standard UCA tie-breaker,
+                        // comparing the NFD versions of the input strings,
+                        // which we do via setting strength=identical.
+                    }
                     if(res > 0) {
                         errln("Line " + lineNo + " is not greater or equal than previous line");
-                        logln(oldLine);
-                        logln(line);
-                        cmpres = coll.compare(oldB, buffer);
-                    } else if(res == 0) {  // equal 
-                        res = comparer.compare(oldB, buffer);
-                        if (res == 0) {
-                            errln("Probable error in test file on line " + lineNo +" (comparing identical strings)");
-                            logln(oldLine);
-                            logln(line);
-                        } else if (res > 0) {
-                            errln("Sortkeys are identical, but code point comapare gives >0 on line " + lineNo);
-                            logln(oldLine);
-                            logln(line);
-                        }
+                        errln(oldLine);
+                        errln(line);
                     }
                 }
 
@@ -235,5 +265,4 @@ public class UCAConformanceTest extends TestFmwk {
             errln("Unexpected exception "+e);
         }
     }
-
 }
