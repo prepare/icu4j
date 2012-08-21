@@ -31,10 +31,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author Travis Keep
  */
 public abstract class SimpleLoadingCache<K, V> implements ICULoadingCache<K, V> {
-    
-    // Number of times to attempt to load a value in the cache before giving up
-    private static final int MAX_TRIES = 5;
-    
+     
     // Maximum number of reclaimed entries to remove from the cache with each call
     // to get() or getIfPresent()
     private static final int MAX_TO_CLEAN_UP = 10;
@@ -48,15 +45,13 @@ public abstract class SimpleLoadingCache<K, V> implements ICULoadingCache<K, V> 
     }
 
     public V get(K key) {
-        int numTries = 0;
-        V result;
-        for (result = getIfPresent(key); result == null; result = getIfPresent(key)) {
+        V result = getIfPresent(key);
+        if (result == null) {
             V value = load(key);
-            if (numTries == MAX_TRIES || value == null) {
-                return value;
+            if (value == null) {
+                return null;
             }
-            map.putIfAbsent(key, new HashValueReference<K, V>(key, value, queue));
-            numTries++;
+            return map.putIfAbsent(key, new HashValueReference<K, V>(key, value, queue)).get();
         }
         return result;
     }
