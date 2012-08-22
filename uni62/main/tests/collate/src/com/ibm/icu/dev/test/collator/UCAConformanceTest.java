@@ -42,7 +42,7 @@ public class UCAConformanceTest extends TestFmwk {
         comparer = new UTF16.StringComparator(true, false, UTF16.StringComparator.FOLD_CASE_DEFAULT);
     }
     private RuleBasedCollator UCA;
-    // TODO: see comment in TestRulesNonIgnorable() -- private RuleBasedCollator rbUCA;
+    private RuleBasedCollator rbUCA;
     private UTF16.StringComparator comparer;
     private boolean isAtLeastUCA62 =
         UCharacter.getUnicodeVersion().compareTo(VersionInfo.UNICODE_6_2) >= 0;
@@ -60,30 +60,26 @@ public class UCAConformanceTest extends TestFmwk {
     }
 
     public void TestRulesNonIgnorable() {
-        logln("This test is disabled because it fails here in Java " +
-              "although it passes in C++. TODO: Fix ICU ticket #8923");
-        return;
-        /*
         initRbUCA();
+        if(rbUCA == null) { return; }
 
         setCollNonIgnorable(rbUCA);
         openTestFile("NON_IGNORABLE");
         conformanceTest(rbUCA);
-        */
     }
 
     public void TestRulesShifted() {
         logln("This test is currently disabled, as it is impossible to "+
         "wholly represent fractional UCA using tailoring rules.");
         return;
-        /*        initRbUCA();
+        /*
+        initRbUCA();
+        if(rbUCA == null) { return; }
 
-         if(U_SUCCESS(status)) {
-         setCollShifted(rbUCA);
-         openTestFile("SHIFTED");
-         testConformance(rbUCA);
-         }
-         */
+        setCollShifted(rbUCA);
+        openTestFile("SHIFTED");
+        testConformance(rbUCA);
+        */
     }
     BufferedReader in;
     private void openTestFile(String type)
@@ -141,17 +137,17 @@ public class UCAConformanceTest extends TestFmwk {
 
 
 
-//    private void initRbUCA() 
-//    {
-//        if(rbUCA == null) {
-//            String ucarules = UCA.getRules(true);
-//            try {
-//                rbUCA = new RuleBasedCollator(ucarules);
-//            } catch(Exception e) {
-//                errln("Failure creating UCA rule-based collator: " + e);
-//            }
-//        }
-//    }
+    private void initRbUCA() 
+    {
+        if(rbUCA == null) {
+            String ucarules = UCA.getRules(true);
+            try {
+                rbUCA = new RuleBasedCollator(ucarules);
+            } catch(Exception e) {
+                errln("Failure creating UCA rule-based collator: " + e);
+            }
+        }
+    }
 
     private String parseString(String line) {
         int i = 0, value;
@@ -178,7 +174,7 @@ public class UCAConformanceTest extends TestFmwk {
 
     }
 
-    private static boolean skipLineBecauseOfBug(String s, boolean isShifted) {
+    private static boolean skipLineBecauseOfBug(String s, boolean fromRules, boolean isShifted) {
         // TODO: Fix ICU ticket #8052
         if(s.length() >= 3 &&
                 (s.charAt(0) == 0xfb2 || s.charAt(0) == 0xfb3) &&
@@ -195,6 +191,10 @@ public class UCAConformanceTest extends TestFmwk {
         if(s.length() >= 2 && 0xe0100 <= (c = s.codePointAt(0)) && c <= 0xe01ef) {
             return true;
         }
+        // TODO: Fix ICU ticket #8923
+        if(fromRules && 0xac00 <= (c = s.charAt(0)) && c <= 0xd7a3) {
+            return true;
+        }
         return false;
     }
 
@@ -206,6 +206,7 @@ public class UCAConformanceTest extends TestFmwk {
         if(in == null || coll == null) {
             return;
         }
+        boolean fromRules = coll == rbUCA;
         boolean isShifted = coll.isAlternateHandlingShifted();
 
         int lineNo = 0;
@@ -221,7 +222,7 @@ public class UCAConformanceTest extends TestFmwk {
                 }
                 buffer = parseString(line);
 
-                if(skipLineBecauseOfBug(buffer, isShifted)) {
+                if(skipLineBecauseOfBug(buffer, fromRules, isShifted)) {
                     logln("Skipping line " + lineNo + " because of a known bug");
                     continue;
                 }
