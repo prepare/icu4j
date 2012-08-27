@@ -86,10 +86,7 @@ class CompactDecimalDataCache {
         if (thisIndex >= MAX_DIGITS) {
             return;
         }
-        ICUResourceBundle other = (ICUResourceBundle) divisorData.get(0);
-        if (!other.getKey().equals("other")) {
-            throw new IllegalStateException("Expect other block, got: " + other.getKey());
-        }
+        ICUResourceBundle other = (ICUResourceBundle) divisorData.get("other");
         populatePrefixSuffix(other.getString(), thisIndex, result);
         result.divisors[thisIndex] = divisor;
     }
