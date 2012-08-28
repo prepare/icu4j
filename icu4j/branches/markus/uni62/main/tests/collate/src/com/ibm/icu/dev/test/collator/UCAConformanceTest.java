@@ -174,7 +174,10 @@ public class UCAConformanceTest extends TestFmwk {
 
     }
 
-    private static boolean skipLineBecauseOfBug(String s, boolean fromRules, boolean isShifted) {
+    private static final int IS_SHIFTED = 1;
+    private static final int FROM_RULES = 2;
+
+    private static boolean skipLineBecauseOfBug(String s, int flags) {
         // TODO: Fix ICU ticket #8052
         if(s.length() >= 3 &&
                 (s.charAt(0) == 0xfb2 || s.charAt(0) == 0xfb3) &&
@@ -183,7 +186,7 @@ public class UCAConformanceTest extends TestFmwk {
             return true;
         }
         // TODO: Fix ICU ticket #9361
-        if(isShifted && s.length() >= 2 && s.charAt(0) == 0xfffe) {
+        if((flags & IS_SHIFTED) != 0 && s.length() >= 2 && s.charAt(0) == 0xfffe) {
             return true;
         }
         // TODO: Fix ICU ticket #9494
@@ -192,7 +195,11 @@ public class UCAConformanceTest extends TestFmwk {
             return true;
         }
         // TODO: Fix ICU ticket #8923
-        if(fromRules && 0xac00 <= (c = s.charAt(0)) && c <= 0xd7a3) {
+        if((flags & FROM_RULES) != 0 && 0xac00 <= (c = s.charAt(0)) && c <= 0xd7a3) {
+            return true;
+        }
+        // TODO: Fix UCARules.txt.
+        if((flags & FROM_RULES) != 0 && s.length() >= 2 && 0xec0 <= (c = s.charAt(0)) && c <= 0xec4) {
             return true;
         }
         return false;
@@ -206,8 +213,13 @@ public class UCAConformanceTest extends TestFmwk {
         if(in == null || coll == null) {
             return;
         }
-        boolean fromRules = coll == rbUCA;
-        boolean isShifted = coll.isAlternateHandlingShifted();
+        int skipFlags = 0;
+        if(coll.isAlternateHandlingShifted()) {
+            skipFlags |= IS_SHIFTED;
+        }
+        if(coll == rbUCA) {
+            skipFlags |= FROM_RULES;
+        }
 
         int lineNo = 0;
 
@@ -222,7 +234,7 @@ public class UCAConformanceTest extends TestFmwk {
                 }
                 buffer = parseString(line);
 
-                if(skipLineBecauseOfBug(buffer, fromRules, isShifted)) {
+                if(skipLineBecauseOfBug(buffer, skipFlags)) {
                     logln("Skipping line " + lineNo + " because of a known bug");
                     continue;
                 }
