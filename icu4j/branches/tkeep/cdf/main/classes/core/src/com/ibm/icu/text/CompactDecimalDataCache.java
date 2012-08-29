@@ -315,9 +315,8 @@ class CompactDecimalDataCache {
          * @param template e.g "00K"
          * @param prefixes Found prefix stored in appropriate index of this array.
          * @param suffixes Found suffix stored in appropriate index of this array.
-         * @return Number of zeros found in template variable. Note that this function
-         * finds the first and last zero and assumes that all the characters in
-         * between are also zero.
+         * @return Number of zeros found in template variable before first decimal
+         * point character.
          */
         private int populatePrefixSuffix(
             String pluralVariant, String template, String[] prefixes, String[] suffixes) {
@@ -339,7 +338,13 @@ class CompactDecimalDataCache {
             }
             prefixes[pluralFormIdx] = template.substring(0, firstIdx);
             suffixes[pluralFormIdx] = template.substring(lastIdx + 1);
-            return lastIdx - firstIdx + 1;
+
+            // Calculate number of zeros before decimal point.
+            int i = firstIdx + 1;
+            while (i <= lastIdx && template.charAt(i) == '0') {
+                i++;
+            }
+            return i - firstIdx;
         }
 
         /**
