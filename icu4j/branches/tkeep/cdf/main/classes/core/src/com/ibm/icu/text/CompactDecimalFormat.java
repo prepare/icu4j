@@ -19,6 +19,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.ibm.icu.text.CompactDecimalDataCache.Data;
 import com.ibm.icu.util.ULocale;
 
 /**
@@ -45,16 +46,19 @@ import com.ibm.icu.util.ULocale;
  * @provisional This API might change or be removed in a future release.
  */
 public class CompactDecimalFormat extends DecimalFormat {
+
     private static final long serialVersionUID = 4716293295276629682L;
 
-    private static final int MINIMUM_ARRAY_LENGTH = 15;
     private static final int POSITIVE_PREFIX = 0, POSITIVE_SUFFIX = 1, AFFIX_SIZE = 2;
     private static final CompactDecimalDataCache cache = new CompactDecimalDataCache();
 
-    private final String[] prefix;
-    private final String[] suffix;
+    private final String[][] prefix;
+    private final String[][] suffix;
     private final long[] divisor;
     private final String[] currencyAffixes;
+
+    // null if created internally using explicit prefixes and suffixes.
+    private final PluralRules pluralRules;
 
     /**
      * The public mechanism is NumberFormat.getCompactDecimalInstance().
@@ -66,16 +70,16 @@ public class CompactDecimalFormat extends DecimalFormat {
      */
     CompactDecimalFormat(ULocale locale, CompactStyle style) {
         DecimalFormat format = (DecimalFormat) NumberFormat.getInstance(locale);
-        CompactDecimalDataCache.Data data = cache.get(locale);
+        CompactDecimalDataCache.Data data = getData(locale, style);
         this.prefix = data.prefixes;
         this.suffix = data.suffixes;
         this.divisor = data.divisors;
-        // TODO fix to consider plural form when choosing a prefix or suffix.
         applyPattern(format.toPattern());
         setDecimalFormatSymbols(format.getDecimalFormatSymbols());
         setMaximumSignificantDigits(2); // default significant digits
         setSignificantDigitsUsed(true);
         setGroupingUsed(false);
+        this.pluralRules = PluralRules.forLocale(locale);
 
         DecimalFormat currencyFormat = (DecimalFormat) NumberFormat.getCurrencyInstance(locale);
         currencyAffixes = new String[AFFIX_SIZE];
@@ -108,8 +112,8 @@ public class CompactDecimalFormat extends DecimalFormat {
      */
     public CompactDecimalFormat(String pattern, DecimalFormatSymbols formatSymbols, String[] prefix, String[] suffix,
             long[] divisor, Collection<String> debugCreationErrors, CompactStyle style, String[] currencyAffixes) {
-        if (prefix.length < MINIMUM_ARRAY_LENGTH) {
-            recordError(debugCreationErrors, "Must have at least " + MINIMUM_ARRAY_LENGTH + " prefix items.");
+        if (prefix.length < CompactDecimalDataCache.MAX_DIGITS) {
+            recordError(debugCreationErrors, "Must have at least " + CompactDecimalDataCache.MAX_DIGITS + " prefix items.");
         }
         if (prefix.length != suffix.length || prefix.length != divisor.length) {
             recordError(debugCreationErrors, "Prefix, suffix, and divisor arrays must have the same length.");
@@ -148,8 +152,8 @@ public class CompactDecimalFormat extends DecimalFormat {
             oldDivisor = divisor[i];
         }
 
-        this.prefix = prefix.clone();
-        this.suffix = suffix.clone();
+        this.prefix = allPluralVariantsHaveSameValue(prefix);
+        this.suffix = allPluralVariantsHaveSameValue(suffix);
         this.divisor = divisor.clone();
         applyPattern(pattern);
         setDecimalFormatSymbols(formatSymbols);
@@ -157,6 +161,7 @@ public class CompactDecimalFormat extends DecimalFormat {
         setSignificantDigitsUsed(true);
         setGroupingUsed(false);
         this.currencyAffixes = currencyAffixes.clone();
+        this.pluralRules = null;
     }
 
     /**
@@ -169,12 +174,24 @@ public class CompactDecimalFormat extends DecimalFormat {
         if (number < 0.0d) {
             throw new UnsupportedOperationException("CompactDecimalFormat doesn't handle negative numbers yet.");
         }
+        // We do this here so that the prefix or suffix we choose is always consistent
+        // with the rounding we do. This way, 999999 -> 1M instead of 1000K.
+        number = formatForCompactDecimal(number);
         int integerCount = number <= 1.0d ? 0 : (int) Math.log10(number);
         int base = integerCount > 14 ? 14 : integerCount;
         number = number / divisor[base];
-        setPositivePrefix(prefix[base]);
-        setPositiveSuffix(suffix[base]);
+        int pluralVariantIndex = 0;
+
+        // Because the plural variant arrays for a given index are always the same
+        // size, it is enough just to check prefix. If it is a single element array
+        // we can skip calculating the plural variant as they are all the same anyway.
+        if (prefix[base].length != 1) {
+            pluralVariantIndex = getPluralFormIndex(number);
+        }
+        setPositivePrefix(prefix[base][pluralVariantIndex]);
+        setPositiveSuffix(suffix[base][pluralVariantIndex]);
         setCurrency(null);
+
         return super.format(number, toAppendTo, pos);
     }
 
@@ -248,4 +265,41 @@ public class CompactDecimalFormat extends DecimalFormat {
         }
         creationErrors.add(errorMessage);
     }
+
+    private String[][] allPluralVariantsHaveSameValue(String[] prefixOrSuffix) {
+        String[][] result =
+            new String[prefixOrSuffix.length][1];
+        for (int i = 0; i < prefixOrSuffix.length; i++) {
+            result[i][CompactDecimalDataCache.OTHER] = prefixOrSuffix[i];
+        }
+        return result;
+    }
+
+    private int getPluralFormIndex(double number) {
+        if (pluralRules == null) {
+            return CompactDecimalDataCache.OTHER;
+        }
+        return CompactDecimalDataCache.PLURAL_FORM_TO_INDEX.get(
+             pluralRules.select(number)).intValue();
+    }
+
+    /**
+     * Gets the data for a particular locale and style. If style is unrecognized,
+     * we just return data for CompactStyle.SHORT.
+     * @param locale The locale.
+     * @param style The style.
+     * @return The data which must not be modified.
+     */
+    private Data getData(ULocale locale, CompactStyle style) {
+        CompactDecimalDataCache.DataBundle bundle = cache.get(locale);
+        switch (style) {
+        case SHORT:
+            return bundle.shortData;
+        case LONG:
+            return bundle.longData;
+        default:
+            return bundle.shortData;
+        }
+    }
+
 }
