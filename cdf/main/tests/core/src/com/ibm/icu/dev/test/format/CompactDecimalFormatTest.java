@@ -52,6 +52,7 @@ public class CompactDecimalFormatTest extends TestFmwk {
             {1234567890123f, "1,2 бил"},
             {12345678901234f, "12 бил"},
             {123456789012345f, "120 бил"},
+            {1234567890123456f, "1200 бил"},
     };
 
     Object[][] SerbianTestDataLong = {
@@ -71,6 +72,7 @@ public class CompactDecimalFormatTest extends TestFmwk {
             {1234567890123f, "1,2 трилиона"},
             {12345678901234f, "12 трилиона"},
             {123456789012345f, "120 трилиона"},
+            {1234567890123456f, "1200 трилиона"},
     };
 
     Object[][] SwahiliTestData = {
