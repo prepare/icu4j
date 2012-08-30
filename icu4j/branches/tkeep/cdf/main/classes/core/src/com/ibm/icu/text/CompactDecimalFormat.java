@@ -52,8 +52,8 @@ public class CompactDecimalFormat extends DecimalFormat {
     private static final int POSITIVE_PREFIX = 0, POSITIVE_SUFFIX = 1, AFFIX_SIZE = 2;
     private static final CompactDecimalDataCache cache = new CompactDecimalDataCache();
 
-    private final String[][] prefix;
-    private final String[][] suffix;
+    private final Map<String, String[]> prefix;
+    private final Map<String, String[]> suffix;
     private final long[] divisor;
     private final String[] currencyAffixes;
 
@@ -152,8 +152,8 @@ public class CompactDecimalFormat extends DecimalFormat {
             oldDivisor = divisor[i];
         }
 
-        this.prefix = allPluralVariantsHaveSameValue(prefix);
-        this.suffix = allPluralVariantsHaveSameValue(suffix);
+        this.prefix = otherPluralVariant(prefix);
+        this.suffix = otherPluralVariant(suffix);
         this.divisor = divisor.clone();
         applyPattern(pattern);
         setDecimalFormatSymbols(formatSymbols);
@@ -176,20 +176,15 @@ public class CompactDecimalFormat extends DecimalFormat {
         }
         // We do this here so that the prefix or suffix we choose is always consistent
         // with the rounding we do. This way, 999999 -> 1M instead of 1000K.
-        number = formatForCompactDecimal(number);
-        int integerCount = number <= 1.0d ? 0 : (int) Math.log10(number);
-        int base = integerCount > 14 ? 14 : integerCount;
-        number = number / divisor[base];
-        int pluralVariantIndex = 0;
-
-        // Because the plural variant arrays for a given index are always the same
-        // size, it is enough just to check prefix. If it is a single element array
-        // we can skip calculating the plural variant as they are all the same anyway.
-        if (prefix[base].length != 1) {
-            pluralVariantIndex = getPluralFormIndex(number);
+        number = adjustNumberAsInFormatting(number);
+        int base = number <= 1.0d ? 0 : (int) Math.log10(number);
+        if (base >= CompactDecimalDataCache.MAX_DIGITS) {
+            base = CompactDecimalDataCache.MAX_DIGITS - 1;
         }
-        setPositivePrefix(prefix[base][pluralVariantIndex]);
-        setPositiveSuffix(suffix[base][pluralVariantIndex]);
+        number = number / divisor[base];
+        String pluralVariant = getPluralForm(number);
+        setPositivePrefix(CompactDecimalDataCache.getPrefixOrSuffix(prefix, pluralVariant, base));
+        setPositiveSuffix(CompactDecimalDataCache.getPrefixOrSuffix(suffix, pluralVariant, base));
         setCurrency(null);
 
         return super.format(number, toAppendTo, pos);
@@ -266,21 +261,17 @@ public class CompactDecimalFormat extends DecimalFormat {
         creationErrors.add(errorMessage);
     }
 
-    private String[][] allPluralVariantsHaveSameValue(String[] prefixOrSuffix) {
-        String[][] result =
-            new String[prefixOrSuffix.length][1];
-        for (int i = 0; i < prefixOrSuffix.length; i++) {
-            result[i][CompactDecimalDataCache.OTHER] = prefixOrSuffix[i];
-        }
+    private Map<String, String[]> otherPluralVariant(String[] prefixOrSuffix) {
+        Map<String, String[]> result = new HashMap<String, String[]>();
+        result.put(CompactDecimalDataCache.OTHER, prefixOrSuffix.clone());
         return result;
     }
 
-    private int getPluralFormIndex(double number) {
+    private String getPluralForm(double number) {
         if (pluralRules == null) {
             return CompactDecimalDataCache.OTHER;
         }
-        return CompactDecimalDataCache.PLURAL_FORM_TO_INDEX.get(
-             pluralRules.select(number)).intValue();
+        return pluralRules.select(number);
     }
 
     /**

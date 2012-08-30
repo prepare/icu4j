@@ -22,61 +22,30 @@ import com.ibm.icu.util.UResourceBundle;
  */
 class CompactDecimalDataCache {
 
-    // These constants map plural variants to indexes in plural variant arrays
-    // which are found in the prefixes and suffixes arrays.
-    static final int ZERO = 1;
-    static final int ONE = 2;
-    static final int TWO = 3;
-    static final int FEW = 4;
-    static final int MANY = 5;
-
-    // This OTHER constant must always be 0 as OTHER is always required, and
-    // plural variant arrays length may be 1 if all plural variants are the same.
-    static final int OTHER = 0;
+    static final String OTHER = "other";
 
     /**
-     * We can specify prefixes or suffixes for values < 10^15.
+     * We can specify prefixes or suffixes for values with up to 15 digits,
+     * less than 10^15.
      */
     static final int MAX_DIGITS = 15;
-
-    /**
-     * Six plural variants in all.
-     */
-    static final int NUM_PLURAL_VARIANTS = 6;
-
-    /**
-     * Maps plural variant strings, e.g "one", "other" to their index.
-     */
-    static final Map<String, Integer> PLURAL_FORM_TO_INDEX =
-            new HashMap<String, Integer>();
-
-    /**
-     * This plural variant array specifies empty string for all plural variants.
-     * Note that its length is 1, signifying that all plural variants are the same.
-     */
-    private static final String[] EMPTY_TERM = new String[]{""};
 
     private final ICUCache<ULocale, DataBundle> cache =
             new SimpleCache<ULocale, DataBundle>();
 
     /**
      * Data contains the compact decimal data for a particular locale. Data consists
-     * of three arrays. The index of each array corresponds to log10 of the number
-     * being formatted, so when formatting 12,345, the 4th index of the arrays should
-     * be used. Divisors contain the number to divide by before doing formatting.
-     * In the case of english, <code>divisors[4]</code> is 1000.  So to format
-     * 12,345, divide by 1000 to get 12. Then use PluralRules with the current
-     * locale to figure out which of the 6 plural forms 12 matches: ZERO, ONE, TWO,
-     * FEW, MANY, or OTHER. In Serbian, 12 matches MANY. Each element of prefixes and
-     * suffixes is a plural variants array where each of those elements correspond
-     * to ZERO, ONE, TWO, FEW, MANY or OTHER. Even though most languages do not
-     * use all 6 plural forms, any unspecified plural form is set to be the same
-     * as OTHER. For optimization, if all plural variants are the same, we may use
-     * a single element plural variant array. If CompactDecimalFormat sees that
-     * all the plural forms are the same, it can skip the call to PluralRules to
-     * determine the correct plural rule to use. For any index, the plural
-     * variant arrays for prefix and suffix will always be the same size (either 1
-     * or NUM_PLURAL_VARIANTS).
+     * of one array and two hashmaps. The index of the divisors array as well
+     * as the arrays stored in the values of the two hashmaps correspond
+     * to log10 of the number being formatted, so when formatting 12,345, the 4th
+     * index of the arrays should be used. Divisors contain the number to divide
+     * by before doing formatting. In the case of english, <code>divisors[4]</code>
+     * is 1000.  So to format 12,345, divide by 1000 to get 12. Then use
+     * PluralRules with the current locale to figure out which of the 6 plural variants
+     * 12 matches: "zero", "one", "two", "few", "many", or "other." Prefixes and
+     * suffixes are maps whose key is the plural variant and whose values are
+     * arrays of strings with indexes corresponding to log10 of the original number.
+     * these arrays contain the prefix or suffix to use.
      *
      * Each array in data is 15 in length, and every index is filled.
      *
@@ -85,10 +54,10 @@ class CompactDecimalDataCache {
      */
     static class Data {
         long[] divisors;
-        String[][] prefixes;
-        String[][] suffixes;
+        Map<String, String[]> prefixes;
+        Map<String, String[]> suffixes;
 
-        Data(long[] divisors, String[][] prefixes, String[][] suffixes) {
+        Data(long[] divisors, Map<String, String[]> prefixes, Map<String, String[]> suffixes) {
             this.divisors = divisors;
             this.prefixes = prefixes;
             this.suffixes = suffixes;
@@ -136,8 +105,12 @@ class CompactDecimalDataCache {
      * @return The returned data, never null.
      */
     private static DataBundle load(ULocale ulocale) {
-        Data shortData = new DataLoader(ulocale, "patternsShort").loadWithStyle(false);
-        Data longData = new DataLoader(ulocale, "patternsLong").loadWithStyle(true);
+        NumberingSystem ns = NumberingSystem.getInstance(ulocale);
+        ICUResourceBundle r = (ICUResourceBundle)UResourceBundle.
+                getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, ulocale);
+        String nameSpace = ns.getName();
+        Data shortData = new DataLoader(ulocale, "patternsShort").loadWithStyle(r, nameSpace, false);
+        Data longData = new DataLoader(ulocale, "patternsLong").loadWithStyle(r, nameSpace, true);
         if (longData == null) {
             longData = shortData;
         }
@@ -165,17 +138,16 @@ class CompactDecimalDataCache {
 
         /**
          * Loads the data
+         * @param r the main resource bundle.
+         * @param nameSpace The namespace name.
          * @param allowNullResult If true, returns null if no data can be found
          * for particular locale and style. If false, throws a runtime exception
          * if data cannot be found.
          * @return The loaded data or possibly null if allowNullResult is true.
          */
-        public Data loadWithStyle(boolean allowNullResult) {
-            NumberingSystem ns = NumberingSystem.getInstance(locale);
-            ICUResourceBundle r = (ICUResourceBundle)UResourceBundle.
-                    getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, locale);
+        public Data loadWithStyle(ICUResourceBundle r, String nameSpace, boolean allowNullResult) {
             String resourcePath =
-                "NumberElements/" + ns.getName() + "/" + style + "/decimalFormat";
+                "NumberElements/" + nameSpace + "/" + style + "/decimalFormat";
             if (allowNullResult) {
                 r = r.findWithFallback(resourcePath);
             } else {
@@ -184,8 +156,8 @@ class CompactDecimalDataCache {
             int size = r.getSize();
             Data result = new Data(
                     new long[MAX_DIGITS],
-                    new String[MAX_DIGITS][],
-                    new String[MAX_DIGITS][]);
+                    new HashMap<String, String[]>(),
+                    new HashMap<String, String[]>());
             for (int i = 0; i < size; i++) {
                 populateData(r.get(i), result);
             }
@@ -205,7 +177,7 @@ class CompactDecimalDataCache {
          *       other{"00 xnb"}
          *   }
          * </pre>
-         * @param result rule stored in appropriate index in data arrays.
+         * @param result rule stored here.
          *
          */
         private void populateData(UResourceBundle divisorData, Data result) {
@@ -218,9 +190,6 @@ class CompactDecimalDataCache {
                 return;
             }
 
-            // Create plural variant arrays for prefix and suffix.
-            String[] newPrefix = new String[NUM_PLURAL_VARIANTS];
-            String[] newSuffix = new String[NUM_PLURAL_VARIANTS];
             int size = divisorData.getSize();
 
             // keep track of how many zeros are used in the plural variants.
@@ -228,12 +197,22 @@ class CompactDecimalDataCache {
             // plural variants. If they differ, we throw a runtime exception as
             // such an anomaly is unrecoverable. We expect at least one zero.
             int numZeros = 0;
-            // Loop over all the plural variants. e.g one, other
+
+            // Keep track if this block defines "other" variant. If a block
+            // fails to define the "other" variant, we must immediately throw
+            // an exception as it is assumed that "other" variants are always
+            // defined.
+            boolean otherVariantDefined = false;
+
+            // Loop over all the plural variants. e.g one, other.
             for (int i = 0; i < size; i++) {
                 UResourceBundle pluralVariantData = divisorData.get(i);
                 String pluralVariant = pluralVariantData.getKey();
                 String template = pluralVariantData.getString();
-                int nz = populatePrefixSuffix(pluralVariant, template, newPrefix, newSuffix);
+                if (pluralVariant.equals(OTHER)) {
+                    otherVariantDefined = true;
+                }
+                int nz = populatePrefixSuffix(pluralVariant, thisIndex, template, result);
                 if (nz != numZeros) {
                     if (numZeros != 0) {
                         throw new IllegalArgumentException(
@@ -244,17 +223,13 @@ class CompactDecimalDataCache {
                     numZeros = nz;
                 }
             }
-            if (numZeros == 0) {
-                // Silently skip divisors with no variants.
-                return;
+
+            if (!otherVariantDefined) {
+                throw new IllegalArgumentException(
+                        "No 'other' plural variant defined for 10^" + thisIndex +
+                        "in " +localeAndStyle());
             }
 
-            // The OTHER variant must be defined.
-            if (newPrefix[OTHER] == null || newSuffix[OTHER] == null) {
-                throw new IllegalArgumentException(
-                    "No 'other' form defined for 10^" + thisIndex + " in "
-                    + localeAndStyle());
-            }
             // We craft our divisor such that when we divide by it, we get a
             // number with the same number of digits as zeros found in the
             // plural variant templates. If our magnitude is 10000 and we have
@@ -266,78 +241,31 @@ class CompactDecimalDataCache {
                 divisor /= 10;
             }
             result.divisors[thisIndex] = divisor;
-
-            // Fill in missing plural variants with OTHER variant while checking
-            // to see if all variants are the same. Note that the prefixes and
-            // suffixes arrays are always the same size (either both 1 or both
-            // NUM_PLURAL_VARIANTS).
-            boolean differentVariantValues = false;
-            differentVariantValues |= fillInMissingVariantsWithOther(newPrefix);
-            differentVariantValues |= fillInMissingVariantsWithOther(newSuffix);
-            if (differentVariantValues) {
-                result.prefixes[thisIndex] = newPrefix;
-                result.suffixes[thisIndex] = newSuffix;
-            } else {
-                // If all variants are the same, optimize by using single
-                // element arrays with just the OTHER variant.
-                result.prefixes[thisIndex] = new String[] {newPrefix[OTHER]};
-                result.suffixes[thisIndex] = new String[] {newSuffix[OTHER]};
-            }
         }
 
-        /**
-         * Fills in any null values in the given pluralVariant array with the
-         * value for the OTHER variant. This function expects that OTHER has
-         * a non-null value already.
-         * @return true if values for variants differ; false otherwise.
-         */
-        private static boolean fillInMissingVariantsWithOther(
-                String[] pluralVariantArray) {
-            String otherValue = pluralVariantArray[OTHER];
-            boolean differentVariantValues = false;
-            for (int i = 0; i < pluralVariantArray.length; i++) {
-                if (i == OTHER) {
-                    continue;
-                }
-                if (pluralVariantArray[i] == null) {
-                    pluralVariantArray[i] = otherValue;
-                } else if (!pluralVariantArray[i].equals(otherValue)) {
-                    differentVariantValues = true;
-                }
-            }
-            return differentVariantValues;
-        }
 
         /**
-         * Populates prefix and suffix information in the prefixes and suffixes
-         * plural variant arrays.
+         * Populates prefix and suffix information for a particular plural variant
+         * and index (log10 value).
          * @param pluralVariant e.g "one", "other"
+         * @param idx the index (log10 value of the number) 0 <= idx < MAX_DIGITS
          * @param template e.g "00K"
-         * @param prefixes Found prefix stored in appropriate index of this array.
-         * @param suffixes Found suffix stored in appropriate index of this array.
-         * @return Number of zeros found in template variable before first decimal
-         * point character.
+         * @param result Extracted prefix and suffix stored here.
          */
         private int populatePrefixSuffix(
-            String pluralVariant, String template, String[] prefixes, String[] suffixes) {
-            Integer pluralFormIdxObj = PLURAL_FORM_TO_INDEX.get(pluralVariant);
-
-            // pluralVariant argument must be a valid plural variant string.
-            if (pluralFormIdxObj == null) {
-                throw new IllegalArgumentException(
-                    "Plural variant '" + pluralVariant + "' not recognized in "
-                    + localeAndStyle());
-            }
-            int pluralFormIdx = pluralFormIdxObj.intValue();
+                String pluralVariant, int idx, String template, Data result) {
             int firstIdx = template.indexOf("0");
             int lastIdx = template.lastIndexOf("0");
             if (firstIdx == -1) {
                 throw new IllegalArgumentException(
                     "Expect at least one zero in template '" + template +
-                    "' for variant '" +pluralVariant + "' in " + localeAndStyle());
+                    "' for variant '" +pluralVariant + "' for 10^" + idx +
+                    " in " + localeAndStyle());
             }
-            prefixes[pluralFormIdx] = template.substring(0, firstIdx);
-            suffixes[pluralFormIdx] = template.substring(lastIdx + 1);
+            savePrefixOrSuffix(
+                    template.substring(0, firstIdx), pluralVariant, idx, result.prefixes);
+            savePrefixOrSuffix(
+                    template.substring(lastIdx + 1), pluralVariant, idx, result.suffixes);
 
             // Calculate number of zeros before decimal point.
             int i = firstIdx + 1;
@@ -347,35 +275,6 @@ class CompactDecimalDataCache {
             return i - firstIdx;
         }
 
-        /**
-         * After reading information from resource bundle into a Data object, there
-         * is no guarantee that every index of the arrays will be filled.
-         *
-         * This function walks through the arrays filling in indexes with missing
-         * data from the previous index. If the first indexes are missing data,
-         * they are assumed to have no prefixes or suffixes for any plural variant
-         * and have a divisor of 1. We assume an index has missing data if the
-         * corresponding element in the prefixes array is null.
-         *
-         * @param result this instance is fixed in-place.
-         */
-        private static void fillInMissing(Data result) {
-            // Initially we assume that previous divisor is 1 with no prefix or suffix.
-            long lastDivisor = 1L;
-            String[] lastPrefixes = EMPTY_TERM;
-            String[] lastSuffixes = EMPTY_TERM;
-            for (int i = 0; i < result.divisors.length; i++) {
-                if (result.prefixes[i] == null) {
-                    result.divisors[i] = lastDivisor;
-                    result.prefixes[i] = lastPrefixes;
-                    result.suffixes[i] = lastSuffixes;
-                } else {
-                    lastDivisor = result.divisors[i];
-                    lastPrefixes = result.prefixes[i];
-                    lastSuffixes = result.suffixes[i];
-                }
-            }
-        }
 
         /**
          * Returns locale and style. Used to form useful messages in thrown
@@ -386,12 +285,86 @@ class CompactDecimalDataCache {
         }
     }
 
-    static {
-        PLURAL_FORM_TO_INDEX.put("other", OTHER);
-        PLURAL_FORM_TO_INDEX.put("zero", ZERO);
-        PLURAL_FORM_TO_INDEX.put("one", ONE);
-        PLURAL_FORM_TO_INDEX.put("two", TWO);
-        PLURAL_FORM_TO_INDEX.put("few", FEW);
-        PLURAL_FORM_TO_INDEX.put("many", MANY);
+    /**
+     * After reading information from resource bundle into a Data object, there
+     * is guarantee that it is complete.
+     *
+     * This method fixes any incomplete data it finds within <code>result</code>.
+     * It looks at each log10 value applying the two rules.
+     *   <p>
+     *   If no prefix is defined for the "other" variant, use the divisor, prefixes and
+     *   suffixes for all defined variants from the previous log10. For log10 = 0,
+     *   use all empty prefixes and suffixes and a divisor of 1.
+     *   </p><p>
+     *   Otherwise, examine each plural variant defined for the given log10 value.
+     *   If it has no prefix and suffix for a particular variant, use the one from the
+     *   "other" variant.
+     *   </p>
+     *
+     * @param result this instance is fixed in-place.
+     */
+    private static void fillInMissing(Data result) {
+        // Initially we assume that previous divisor is 1 with no prefix or suffix.
+        long lastDivisor = 1L;
+        for (int i = 0; i < result.divisors.length; i++) {
+            if (result.prefixes.get(OTHER)[i] == null) {
+                result.divisors[i] = lastDivisor;
+                copyFromPreviousIndex(i, result.prefixes);
+                copyFromPreviousIndex(i, result.suffixes);
+            } else {
+                lastDivisor = result.divisors[i];
+                propagateOtherToMissing(i, result.prefixes);
+                propagateOtherToMissing(i, result.suffixes);
+            }
+        }
+    }
+
+    private static void propagateOtherToMissing(
+            int idx, Map<String, String[]> prefixesOrSuffixes) {
+        String otherVariantValue = prefixesOrSuffixes.get(OTHER)[idx];
+        for (String[] byBase : prefixesOrSuffixes.values()) {
+            if (byBase[idx] == null) {
+                byBase[idx] = otherVariantValue;
+            }
+        }
+    }
+
+    private static void copyFromPreviousIndex(int idx, Map<String, String[]> prefixesOrSuffixes) {
+        for (String[] byBase : prefixesOrSuffixes.values()) {
+            if (idx == 0) {
+                byBase[idx] = "";
+            } else {
+                byBase[idx] = byBase[idx - 1];
+            }
+        }
+    }
+
+    private static void savePrefixOrSuffix(
+            String value, String pluralVariant, int idx,
+            Map<String, String[]> prefixesOrSuffixes) {
+        String[] byBase = prefixesOrSuffixes.get(pluralVariant);
+        if (byBase == null) {
+            byBase = new String[MAX_DIGITS];
+            prefixesOrSuffixes.put(pluralVariant, byBase);
+        }
+        byBase[idx] = value;
+
+    }
+
+    /**
+     * Fetches a prefix or suffix given a plural variant and log10 value. If it
+     * can't find the given variant, it falls back to "other".
+     * @param prefixOrSuffix the prefix or suffix map
+     * @param variant the plural variant
+     * @param base log10 value. 0 <= base < MAX_DIGITS.
+     * @return the prefix or suffix.
+     */
+    static String getPrefixOrSuffix(
+            Map<String, String[]> prefixOrSuffix, String variant, int base) {
+        String[] byBase = prefixOrSuffix.get(variant);
+        if (byBase == null) {
+            byBase = prefixOrSuffix.get(CompactDecimalDataCache.OTHER);
+        }
+        return byBase[base];
     }
 }

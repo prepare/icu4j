@@ -898,8 +898,9 @@ public class DecimalFormat extends NumberFormat {
      * @param number The number to format.
      * @return The number rounded to the correct number of significant digits
      * with negative sign stripped off.
+     * @internal
      */
-    double formatForCompactDecimal(double number) {
+    double adjustNumberAsInFormatting(double number) {
         if (Double.isNaN(number)) {
             return number;
         }
