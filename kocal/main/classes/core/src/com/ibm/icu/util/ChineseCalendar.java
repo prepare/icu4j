@@ -155,7 +155,14 @@ public class ChineseCalendar extends Calendar {
      * Korean lunar calendar. The locale information is given in the
      * constructor.
      */
-    private ULocale locale;
+    private int epochYear = CHINESE_EPOCH_YEAR;
+    
+    /**
+     * Default timezone is GMT+08 which is used for the Chinese calendar. Some
+     * Chinese calendars use a different historically accurate offset of
+     * GMT+7:45:40 for years before 1929; we do not do this.
+     */
+    private TimeZone historicalTimeZone = TimeZone.getTimeZone("GMT+08");;
 
     //------------------------------------------------------------------
     // Constructors
@@ -382,7 +389,10 @@ public class ChineseCalendar extends Calendar {
     // We need to set the current time once to initialize the
     // ChineseCalendar's ERA field to be the current era. 
     private void initialize(ULocale locale, long millis) {
-        this.locale = locale;
+        if (locale.getCountry().equals("KR")) {
+            this.epochYear = KOREAN_EPOCH_YEAR;
+            this.historicalTimeZone = KOREAN_HISTORICAL_TIMEZONE;
+        }
         setTimeInMillis(millis);
     }
 
@@ -488,7 +498,7 @@ public class ChineseCalendar extends Calendar {
         } else {
             int cycle = internalGet(ERA, 1) - 1; // 0-based cycle
             int chinese_year = cycle * 60 + internalGet(YEAR, 1);
-            year = chinese_year - (getEpochYear() - CHINESE_EPOCH_YEAR);
+            year = chinese_year - (epochYear - CHINESE_EPOCH_YEAR);
         }
         return year;
     }
@@ -709,7 +719,7 @@ public class ChineseCalendar extends Calendar {
      * @return milliseconds after January 1, 1970 0:00 GMT
      */
     private final long daysToMillis(int days) {
-        return (days * ONE_DAY) - getTimezoneOffset(days * ONE_DAY);
+        return (days * ONE_DAY) - historicalTimeZone.getOffset(days * ONE_DAY);
     }
 
     /**
@@ -718,77 +728,70 @@ public class ChineseCalendar extends Calendar {
      * @return days after January 1, 1970 0:00 Local Time
      */
     private final int millisToDays(long millis) {
-        return (int) floorDivide(millis + getTimezoneOffset(millis), ONE_DAY);
+        return (int) floorDivide(millis + historicalTimeZone.getOffset(millis), ONE_DAY);
     }
 
-    //------------------------------------------------------------------
-    // Locale-specific information: currently hard-coded but will be
-    // retrieved from CLDR.
-    //------------------------------------------------------------------
+    //------------------------------------------------------------------------
+    // Locale-specific information: currently hard-coded but will be retrieved
+    // from CLDR once CLDR support is added.
+    //------------------------------------------------------------------------
    
-    private final int getEpochYear() {
-        if (locale != ULocale.KOREA) {
-            return CHINESE_EPOCH_YEAR;
-        } else {
-            /**
-             * The start year of the Korean lunar calendar (Dan-gi) is the
-             * inaugural year of Dan-gun (BC 2333).
-             */
-            return -2332;
-        }
+    /**
+     * The offset from GMT in milliseconds at which we perform astronomical
+     * computations. In Korea various timezones have been used historically
+     * (cf. http://www.math.snu.ac.kr/~kye/others/lunar.html):
+     * 
+     *            - 1908/04/01: GMT+8
+     * 1908/04/01 - 1911/12/31: GMT+8.5
+     * 1912/01/01 - 1954/03/20: GMT+9
+     * 1954/03/21 - 1961/08/09: GMT+8.5
+     * 1961/08/10 -           : GMT+9
+     * 
+     * Note that, in 1908-1911, the government did not apply the timezone change
+     * but used GMT+8. In addition, 1954-1961's timezone change does not affect
+     * the lunar date calculation. Therefore, the following simpler rule works:
+     *  
+     * -1911: GMT+8
+     * 1912-: GMT+9
+     * 
+     * Unfortunately, our astronomer's approximation doesn't agree with the
+     * references (http://www.math.snu.ac.kr/~kye/others/lunar.html and
+     * http://astro.kasi.re.kr/Life/ConvertSolarLunarForm.aspx?MenuID=115)
+     * in 1897/7/30. So the following ad hoc fix is used here:
+     * 
+     *     -1896: GMT+8
+     *      1897: GMT+7
+     * 1898-1911: GMT+8
+     * 1912-    : GMT+9
+     */
+    private static final RuleBasedTimeZone buildKoreanTimeZone() {
+        InitialTimeZoneRule initialTimeZone =
+            new InitialTimeZoneRule("GMT+8", 8*ONE_HOUR, 0); 
+        long[] millis1897 = { (1897-1970)*365L*ONE_DAY }; // some days of error is not a problem here
+        long[] millis1898 = { (1898-1970)*365L*ONE_DAY }; // some days of error is not a problem here
+        long[] millis1912 = { (1912-1970)*365L*ONE_DAY }; // this doesn't create an issue for 1911/12/20
+        TimeZoneRule rule1897 = new TimeArrayTimeZoneRule("Korean 1897",
+                7*ONE_HOUR, 0, millis1897, DateTimeRule.STANDARD_TIME);
+        TimeZoneRule rule1898to1911 = new TimeArrayTimeZoneRule("Korean 1898-1911",
+                8*ONE_HOUR, 0, millis1898, DateTimeRule.STANDARD_TIME);
+        TimeZoneRule ruleFrom1912 = new TimeArrayTimeZoneRule("Korean 1912-",
+                9*ONE_HOUR, 0, millis1912, DateTimeRule.STANDARD_TIME);
+
+        RuleBasedTimeZone tz =
+            new RuleBasedTimeZone("Korean Lunar Calendar", initialTimeZone);
+        tz.addTransitionRule(rule1897);
+        tz.addTransitionRule(rule1898to1911);
+        tz.addTransitionRule(ruleFrom1912);
+        return tz;
     }
 
-    private final long getTimezoneOffset(long millis) {
-        if (locale != ULocale.KOREA) {
-            /**
-             * The offset from GMT in milliseconds at which we perform astronomical
-             * computations.  Some sources use a different historically accurate
-             * offset of GMT+7:45:40 for years before 1929; we do not do this.
-             */
-            return 8*ONE_HOUR;
-        } else {
-            /**
-             * The offset from GMT in milliseconds at which we perform astronomical
-             * computations. In Korea various timezones have been used historically
-             * (cf. http://www.math.snu.ac.kr/~kye/others/lunar.html):
-             * 
-             *            - 1908/04/01: GMT+8
-             * 1908/04/01 - 1911/12/31: GMT+8.5
-             * 1912/01/01 - 1954/03/20: GMT+9
-             * 1954/03/21 - 1961/08/09: GMT+8.5
-             * 1961/08/10 -           : GMT+9
-             * 
-             * Note that, in 1908-1911, the government did not apply the timezone change
-             * but used GMT+8. In addition, 1954-1961's timezone change does not affect
-             * the lunar date calculation. Therefore, the following simpler rule works:
-             *  
-             * -1911: GMT+8
-             * 1912-: GMT+9
-             * 
-             * Unfortunately, our astronomer's approximation doesn't agree with the
-             * references (http://www.math.snu.ac.kr/~kye/others/lunar.html and
-             * http://astro.kasi.re.kr/Life/ConvertSolarLunarForm.aspx?MenuID=115)
-             * in 1897/7/30. So the following ad hoc fix is used here:
-             * 
-             *     -1896: GMT+8
-             *      1897: GMT+7
-             * 1898-1911: GMT+8
-             * 1912-    : GMT+9
-             */
-            if (millis < MILLIS_1897) return TIMEZONE_OFFSET_120;
-            else if (millis < MILLIS_1898) return TIMEZONE_OFFSET_105;
-            else if (millis < MILLIS_1912) return TIMEZONE_OFFSET_120;
-            else return TIMEZONE_OFFSET_135;
-        }
-    }
+    private static final TimeZone KOREAN_HISTORICAL_TIMEZONE = buildKoreanTimeZone();
 
-    // Constants for Korean calendars
-    static final long TIMEZONE_OFFSET_105 = 7L*ONE_HOUR;
-    static final long TIMEZONE_OFFSET_120 = 8L*ONE_HOUR;
-    static final long TIMEZONE_OFFSET_135 = 9L*ONE_HOUR;
-    static final long MILLIS_1897 = (1897-1970)*365L*ONE_DAY; // some days of error is not a problem here
-    static final long MILLIS_1898 = (1898-1970)*365L*ONE_DAY; // some days of error is not a problem here
-    static final long MILLIS_1912 = (1912-1970)*365L*ONE_DAY; // this doesn't create an issue for 1911/12/20
+    /**
+     * The start year of the Korean lunar calendar (Dan-gi) is the inaugural
+     * year of Dan-gun (BC 2333).
+     */
+    private static final int KOREAN_EPOCH_YEAR = -2332;
 
     //------------------------------------------------------------------
     // Astronomical computations
@@ -1000,7 +1003,7 @@ public class ChineseCalendar extends Calendar {
 
             // Extended year and cycle year can be different from each other
             // for non-Chinese calendars (eg. Korean calendar)
-            int extended_year = gyear - getEpochYear();
+            int extended_year = gyear - epochYear;
             int cycle_year = gyear - CHINESE_EPOCH_YEAR;
             if (month < 11 ||
                 gmonth >= JULY) {
@@ -1088,7 +1091,7 @@ public class ChineseCalendar extends Calendar {
             month = rem[0];
         }
 
-        int gyear = eyear + getEpochYear() - 1; // Gregorian year
+        int gyear = eyear + epochYear - 1; // Gregorian year
         int newYear = newYear(gyear);
         int newMoon = newMoonNear(newYear + month * 29, true);
         
