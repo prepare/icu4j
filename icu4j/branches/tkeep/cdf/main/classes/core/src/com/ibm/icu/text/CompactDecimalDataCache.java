@@ -109,10 +109,8 @@ class CompactDecimalDataCache {
         ICUResourceBundle r = (ICUResourceBundle)UResourceBundle.
                 getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, ulocale);
         String numberingSystemName = ns.getName();
-        Data shortData = new DataLoader(ulocale, "patternsShort")
-            .loadWithStyle(r, numberingSystemName, false);
-        Data longData = new DataLoader(ulocale, "patternsLong")
-            .loadWithStyle(r, numberingSystemName, true);
+        Data shortData = loadWithStyle(r, numberingSystemName, ulocale, "patternsShort", false);
+        Data longData = loadWithStyle(r, numberingSystemName, ulocale, "patternsLong", true);
         if (longData == null) {
             longData = shortData;
         }
@@ -120,172 +118,162 @@ class CompactDecimalDataCache {
     }
 
     /**
-     * This class is responsible for loading data for a particular locale and
-     * style.
-     *
-     * @author Travis Keep
+     * Loads the data
+     * @param r the main resource bundle.
+     * @param numberingSystemName The namespace name.
+     * @param allowNullResult If true, returns null if no data can be found
+     * for particular locale and style. If false, throws a runtime exception
+     * if data cannot be found.
+     * @return The loaded data or possibly null if allowNullResult is true.
      */
-    static class DataLoader {
-        private final ULocale locale;
-        private final String style;
+    private static Data loadWithStyle(
+            ICUResourceBundle r, String numberingSystemName, ULocale locale, String style,
+            boolean allowNullResult) {
+        String resourcePath =
+            "NumberElements/" + numberingSystemName + "/" + style + "/decimalFormat";
+        if (allowNullResult) {
+            r = r.findWithFallback(resourcePath);
+        } else {
+            r = r.getWithFallback(resourcePath);
+        }
+        int size = r.getSize();
+        Data result = new Data(
+                new long[MAX_DIGITS],
+                new HashMap<String, String[]>(),
+                new HashMap<String, String[]>());
+        for (int i = 0; i < size; i++) {
+            populateData(r.get(i), locale, style, result);
+        }
+        fillInMissing(result);
+        return result;
+    }
 
-        /**
-         * @param locale The locale
-         * @param style Either "patternsShort" or "patternsLong"
-         */
-        public DataLoader(ULocale locale, String style) {
-            this.locale = locale;
-            this.style = style;
+    /**
+     * Populates Data object with data for a particular divisor from resource bundle.
+     * @param divisorData represents the rules for numbers of a particular size.
+     * This may look like:
+     * <pre>
+     *   10000{
+     *       few{"00K"}
+     *       many{"00K"}
+     *       one{"00 xnb"}
+     *       other{"00 xnb"}
+     *   }
+     * </pre>
+     * @param locale the locale
+     * @param style the style
+     * @param result rule stored here.
+     *
+     */
+    private static void populateData(
+            UResourceBundle divisorData, ULocale locale, String style, Data result) {
+        // This value will always be some even pwoer of 10. e.g 10000.
+        long magnitude = Long.parseLong(divisorData.getKey());
+        int thisIndex = (int) Math.log10(magnitude);
+
+        // Silently ignore divisors that are too big.
+        if (thisIndex >= MAX_DIGITS) {
+            return;
         }
 
-        /**
-         * Loads the data
-         * @param r the main resource bundle.
-         * @param numberingSystemName The namespace name.
-         * @param allowNullResult If true, returns null if no data can be found
-         * for particular locale and style. If false, throws a runtime exception
-         * if data cannot be found.
-         * @return The loaded data or possibly null if allowNullResult is true.
-         */
-        public Data loadWithStyle(
-                ICUResourceBundle r, String numberingSystemName, boolean allowNullResult) {
-            String resourcePath =
-                "NumberElements/" + numberingSystemName + "/" + style + "/decimalFormat";
-            if (allowNullResult) {
-                r = r.findWithFallback(resourcePath);
-            } else {
-                r = r.getWithFallback(resourcePath);
+        int size = divisorData.getSize();
+
+        // keep track of how many zeros are used in the plural variants.
+        // For "00K" this would be 2. This number must be the same for all
+        // plural variants. If they differ, we throw a runtime exception as
+        // such an anomaly is unrecoverable. We expect at least one zero.
+        int numZeros = 0;
+
+        // Keep track if this block defines "other" variant. If a block
+        // fails to define the "other" variant, we must immediately throw
+        // an exception as it is assumed that "other" variants are always
+        // defined.
+        boolean otherVariantDefined = false;
+
+        // Loop over all the plural variants. e.g one, other.
+        for (int i = 0; i < size; i++) {
+            UResourceBundle pluralVariantData = divisorData.get(i);
+            String pluralVariant = pluralVariantData.getKey();
+            String template = pluralVariantData.getString();
+            if (pluralVariant.equals(OTHER)) {
+                otherVariantDefined = true;
             }
-            int size = r.getSize();
-            Data result = new Data(
-                    new long[MAX_DIGITS],
-                    new HashMap<String, String[]>(),
-                    new HashMap<String, String[]>());
-            for (int i = 0; i < size; i++) {
-                populateData(r.get(i), result);
-            }
-            fillInMissing(result);
-            return result;
-        }
-
-        /**
-         * Populates Data object with data for a particular divisor from resource bundle.
-         * @param divisorData represents the rules for numbers of a particular size.
-         * This may look like:
-         * <pre>
-         *   10000{
-         *       few{"00K"}
-         *       many{"00K"}
-         *       one{"00 xnb"}
-         *       other{"00 xnb"}
-         *   }
-         * </pre>
-         * @param result rule stored here.
-         *
-         */
-        private void populateData(UResourceBundle divisorData, Data result) {
-            // This value will always be some even pwoer of 10. e.g 10000.
-            long magnitude = Long.parseLong(divisorData.getKey());
-            int thisIndex = (int) Math.log10(magnitude);
-
-            // Silently ignore divisors that are too big.
-            if (thisIndex >= MAX_DIGITS) {
-                return;
-            }
-
-            int size = divisorData.getSize();
-
-            // keep track of how many zeros are used in the plural variants.
-            // For "00K" this would be 2. This number must be the same for all
-            // plural variants. If they differ, we throw a runtime exception as
-            // such an anomaly is unrecoverable. We expect at least one zero.
-            int numZeros = 0;
-
-            // Keep track if this block defines "other" variant. If a block
-            // fails to define the "other" variant, we must immediately throw
-            // an exception as it is assumed that "other" variants are always
-            // defined.
-            boolean otherVariantDefined = false;
-
-            // Loop over all the plural variants. e.g one, other.
-            for (int i = 0; i < size; i++) {
-                UResourceBundle pluralVariantData = divisorData.get(i);
-                String pluralVariant = pluralVariantData.getKey();
-                String template = pluralVariantData.getString();
-                if (pluralVariant.equals(OTHER)) {
-                    otherVariantDefined = true;
+            int nz = populatePrefixSuffix(
+                    pluralVariant, thisIndex, template, locale, style, result);
+            if (nz != numZeros) {
+                if (numZeros != 0) {
+                    throw new IllegalArgumentException(
+                        "Plural variant '" + pluralVariant + "' template '" +
+                        template + "' for 10^" + thisIndex +
+                        " has wrong number of zeros in " + localeAndStyle(locale, style));
                 }
-                int nz = populatePrefixSuffix(pluralVariant, thisIndex, template, result);
-                if (nz != numZeros) {
-                    if (numZeros != 0) {
-                        throw new IllegalArgumentException(
-                            "Plural variant '" + pluralVariant + "' template '" +
-                            template + "' for 10^" + thisIndex +
-                            " has wrong number of zeros in " + localeAndStyle());
-                    }
-                    numZeros = nz;
-                }
+                numZeros = nz;
             }
-
-            if (!otherVariantDefined) {
-                throw new IllegalArgumentException(
-                        "No 'other' plural variant defined for 10^" + thisIndex +
-                        "in " +localeAndStyle());
-            }
-
-            // We craft our divisor such that when we divide by it, we get a
-            // number with the same number of digits as zeros found in the
-            // plural variant templates. If our magnitude is 10000 and we have
-            // two 0's in our plural variants, then we want a divisor of 1000.
-            // Note that if we have 43560 which is of same magnitude as 10000.
-            // When we divide by 1000 we a quotient which rounds to 44 (2 digits)
-            long divisor = magnitude;
-            for (int i = 1; i < numZeros; i++) {
-                divisor /= 10;
-            }
-            result.divisors[thisIndex] = divisor;
         }
 
-
-        /**
-         * Populates prefix and suffix information for a particular plural variant
-         * and index (log10 value).
-         * @param pluralVariant e.g "one", "other"
-         * @param idx the index (log10 value of the number) 0 <= idx < MAX_DIGITS
-         * @param template e.g "00K"
-         * @param result Extracted prefix and suffix stored here.
-         */
-        private int populatePrefixSuffix(
-                String pluralVariant, int idx, String template, Data result) {
-            int firstIdx = template.indexOf("0");
-            int lastIdx = template.lastIndexOf("0");
-            if (firstIdx == -1) {
-                throw new IllegalArgumentException(
-                    "Expect at least one zero in template '" + template +
-                    "' for variant '" +pluralVariant + "' for 10^" + idx +
-                    " in " + localeAndStyle());
-            }
-            savePrefixOrSuffix(
-                    template.substring(0, firstIdx), pluralVariant, idx, result.prefixes);
-            savePrefixOrSuffix(
-                    template.substring(lastIdx + 1), pluralVariant, idx, result.suffixes);
-
-            // Calculate number of zeros before decimal point.
-            int i = firstIdx + 1;
-            while (i <= lastIdx && template.charAt(i) == '0') {
-                i++;
-            }
-            return i - firstIdx;
+        if (!otherVariantDefined) {
+            throw new IllegalArgumentException(
+                    "No 'other' plural variant defined for 10^" + thisIndex +
+                    "in " +localeAndStyle(locale, style));
         }
 
-
-        /**
-         * Returns locale and style. Used to form useful messages in thrown
-         * exceptions.
-         */
-        private String localeAndStyle() {
-            return "locale '" + locale + "' style '" + style + "'";
+        // We craft our divisor such that when we divide by it, we get a
+        // number with the same number of digits as zeros found in the
+        // plural variant templates. If our magnitude is 10000 and we have
+        // two 0's in our plural variants, then we want a divisor of 1000.
+        // Note that if we have 43560 which is of same magnitude as 10000.
+        // When we divide by 1000 we a quotient which rounds to 44 (2 digits)
+        long divisor = magnitude;
+        for (int i = 1; i < numZeros; i++) {
+            divisor /= 10;
         }
+        result.divisors[thisIndex] = divisor;
+    }
+
+
+    /**
+     * Populates prefix and suffix information for a particular plural variant
+     * and index (log10 value).
+     * @param pluralVariant e.g "one", "other"
+     * @param idx the index (log10 value of the number) 0 <= idx < MAX_DIGITS
+     * @param template e.g "00K"
+     * @param locale the locale
+     * @param style the style
+     * @param result Extracted prefix and suffix stored here.
+     */
+    private static int populatePrefixSuffix(
+            String pluralVariant, int idx, String template, ULocale locale, String style,
+            Data result) {
+        int firstIdx = template.indexOf("0");
+        int lastIdx = template.lastIndexOf("0");
+        if (firstIdx == -1) {
+            throw new IllegalArgumentException(
+                "Expect at least one zero in template '" + template +
+                "' for variant '" +pluralVariant + "' for 10^" + idx +
+                " in " + localeAndStyle(locale, style));
+        }
+        savePrefixOrSuffix(
+                template.substring(0, firstIdx), pluralVariant, idx, result.prefixes);
+        savePrefixOrSuffix(
+                template.substring(lastIdx + 1), pluralVariant, idx, result.suffixes);
+
+        // Calculate number of zeros before decimal point.
+        int i = firstIdx + 1;
+        while (i <= lastIdx && template.charAt(i) == '0') {
+            i++;
+        }
+        return i - firstIdx;
+    }
+
+
+    /**
+     * Returns locale and style. Used to form useful messages in thrown
+     * exceptions.
+     * @param locale the locale
+     * @param style the style
+     */
+    private static String localeAndStyle(ULocale locale, String style) {
+        return "locale '" + locale + "' style '" + style + "'";
     }
 
     /**
