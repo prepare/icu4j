@@ -108,9 +108,11 @@ class CompactDecimalDataCache {
         NumberingSystem ns = NumberingSystem.getInstance(ulocale);
         ICUResourceBundle r = (ICUResourceBundle)UResourceBundle.
                 getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, ulocale);
-        String nameSpace = ns.getName();
-        Data shortData = new DataLoader(ulocale, "patternsShort").loadWithStyle(r, nameSpace, false);
-        Data longData = new DataLoader(ulocale, "patternsLong").loadWithStyle(r, nameSpace, true);
+        String numberingSystemName = ns.getName();
+        Data shortData = new DataLoader(ulocale, "patternsShort")
+            .loadWithStyle(r, numberingSystemName, false);
+        Data longData = new DataLoader(ulocale, "patternsLong")
+            .loadWithStyle(r, numberingSystemName, true);
         if (longData == null) {
             longData = shortData;
         }
@@ -139,15 +141,16 @@ class CompactDecimalDataCache {
         /**
          * Loads the data
          * @param r the main resource bundle.
-         * @param nameSpace The namespace name.
+         * @param numberingSystemName The namespace name.
          * @param allowNullResult If true, returns null if no data can be found
          * for particular locale and style. If false, throws a runtime exception
          * if data cannot be found.
          * @return The loaded data or possibly null if allowNullResult is true.
          */
-        public Data loadWithStyle(ICUResourceBundle r, String nameSpace, boolean allowNullResult) {
+        public Data loadWithStyle(
+                ICUResourceBundle r, String numberingSystemName, boolean allowNullResult) {
             String resourcePath =
-                "NumberElements/" + nameSpace + "/" + style + "/decimalFormat";
+                "NumberElements/" + numberingSystemName + "/" + style + "/decimalFormat";
             if (allowNullResult) {
                 r = r.findWithFallback(resourcePath);
             } else {
