@@ -123,7 +123,7 @@ class CompactDecimalDataCache {
      * This class is responsible for loading data for a particular locale and
      * style.
      *
-     * @author rocketman
+     * @author Travis Keep
      */
     static class DataLoader {
         private final ULocale locale;
