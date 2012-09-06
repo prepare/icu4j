@@ -899,7 +899,9 @@ public class DecimalFormat extends NumberFormat {
      * @return The number rounded to the correct number of significant digits
      * with negative sign stripped off.
      * @internal
+     * @deprecated
      */
+    @Deprecated
     double adjustNumberAsInFormatting(double number) {
         if (Double.isNaN(number)) {
             return number;
