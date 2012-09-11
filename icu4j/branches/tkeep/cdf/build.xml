@@ -21,7 +21,19 @@
 
     <property name="icu4jdemos.jar.file" value="icu4jdemos.jar"/>
 
-    <!-- icu4j release files -->
+    <!-- icu4j API doc jar file -->
+    <property name="icu4jdocs.jar.file" value="icu4j-docs.jar"/>
+
+    <!-- icu4j src jar files -->
+    <property name="icu4j-src.jar.file" value="icu4j-src.jar"/>
+    <property name="icu4j-charset-src.jar.file" value="icu4j-charset-src.jar"/>
+    <property name="icu4j-localespi-src.jar.file" value="icu4j-localespi-src.jar"/>
+
+    <!-- icu4j source package archive files -->
+    <property name="icu4jsrc.zip.file" value="icu4j.zip"/>
+    <property name="icu4jsrc.tgz.file" value="icu4j.tgz"/>
+
+    <!-- icu4j versioned release files -->
     <property name="icu4j.jar.versioned.file" value="icu4j-${release.file.ver}.jar"/>
     <property name="icu4j-charset.jar.versioned.file" value="icu4j-charset-${release.file.ver}.jar"/>
     <property name="icu4j-localespi.jar.versioned.file" value="icu4j-localespi-${release.file.ver}.jar"/>
@@ -30,14 +42,18 @@
     <property name="icu4j-charset-src.jar.versioned.file" value="icu4j-charset-${release.file.ver}-src.jar"/>
     <property name="icu4j-localespi-src.jar.versioned.file" value="icu4j-localespi-${release.file.ver}-src.jar"/>
 
-    <property name="icu4jsrc.zip.file" value="icu4j-${release.file.ver}.zip"/>
-    <property name="icu4jsrc.tgz.file" value="icu4j-${release.file.ver}.tgz"/>
+    <property name="icu4jdocs.jar.versioned.file" value="icu4j-${release.file.ver}-docs.jar"/>
+
+    <!-- <property name="icu4jsrc.zip.versioned.file" value="icu4j-${release.file.ver}.zip"/> -->
+    <property name="icu4jsrc.tgz.versioned.file" value="icu4j-${release.file.ver}.tgz"/>
 
     <property name="icu4jdocs.jar.file" value="icu4j-${release.file.ver}-docs.jar"/>
 
-    <!-- API doc title -->
+    <!-- API doc -->
     <property name="icu4j.api.doc.title" value="ICU4J ${api.doc.version} API Specification"/>
-    <property name="icu4j.api.window.title" value="ICU4J ${api.doc.version}"/>
+    <property name="icu4j.api.doc.window.title" value="ICU4J ${api.doc.version}"/>
+    <property name="icu4j.api.doc.header" value="ICU4J ${api.doc.version}"/>
+    <property name="icu4j.api.doc.jdk.link" value="http://docs.oracle.com/javase/7/docs/api/"/>
 
     <!-- directories -->
     <property name="release.dir" value="release"/>
@@ -64,6 +80,7 @@
              </not>
         </condition>
     </fail>
+
     <condition property="is.java7.plus">
         <or>
             <contains string="${java.version}" substring="1.7."/>
@@ -389,7 +406,25 @@
 
 
     <!-- release targets -->
-    <target name="release" depends="info, releaseBinaries, releaseSrcJars, releaseDocs, releaseSourceArchiveTgz" description="Build all ICU4J release files for distribution">
+    <target name="releaseVer" depends="info, releaseBinaries, releaseSrcJars, releaseDocs, releaseSourceArchiveTgz"
+            description="Build all ICU4J release files for distribution with versioned file names">
+        <!-- binaries -->
+        <move file="${release.dir}/${icu4j.jar.file}" tofile="${release.dir}/${icu4j.jar.versioned.file}"/>
+        <move file="${release.dir}/${icu4j-charset.jar.file}" tofile="${release.dir}/${icu4j-charset.jar.versioned.file}"/>
+        <move file="${release.dir}/${icu4j-localespi.jar.file}" tofile="${release.dir}/${icu4j-localespi.jar.versioned.file}"/>
+
+        <!-- source jars -->
+        <move file="${release.dir}/${icu4j-src.jar.file}" tofile="${release.dir}/${icu4j-src.jar.versioned.file}"/>
+        <move file="${release.dir}/${icu4j-charset-src.jar.file}" tofile="${release.dir}/${icu4j-charset-src.jar.versioned.file}"/>
+        <move file="${release.dir}/${icu4j-localespi-src.jar.file}" tofile="${release.dir}/${icu4j-localespi-src.jar.versioned.file}"/>
+
+        <!-- docs -->
+        <move file="${release.dir}/${icu4jdocs.jar.file}" tofile="${release.dir}/${icu4jdocs.jar.versioned.file}"/>
+
+        <!-- package archive -->
+        <move file="${release.dir}/${icu4jsrc.tgz.file}" tofile="${release.dir}/${icu4jsrc.tgz.versioned.file}"/>
+
+        <!-- md5 checksum file -->
         <mkdir dir="${out.dir}/checksum"/>
         <delete dir="${out.dir}/checksum" includes="**/*"/>
 
@@ -408,17 +443,36 @@
         </concat>
     </target>
 
+    <target name="release" depends="info, releaseBinaries, releaseSrcJars, releaseDocs, releaseSourceArchiveTgz" description="Build all ICU4J release files for distribution">
+        <mkdir dir="${out.dir}/checksum"/>
+        <delete dir="${out.dir}/checksum" includes="**/*"/>
+
+        <checksum todir="${out.dir}/checksum" format="MD5SUM">
+            <fileset dir="${release.dir}">
+                <include name="*.jar"/>
+                <include name="*.tgz"/>
+            </fileset>
+        </checksum>
+
+        <concat destfile="${release.dir}/icu4j.md5">
+            <fileset dir="${out.dir}/checksum" includes="*"/>
+            <filterchain>
+                <fixcrlf eol="lf"/>
+            </filterchain>
+        </concat>
+    </target>
+
     <target name="releaseBinaries" depends="icu4jJar, charset, localespi" description="Build ICU4J binary files for distribution">
         <mkdir dir="${release.dir}"/>
-        <copy file="${icu4j.jar.file}" tofile="${release.dir}/${icu4j.jar.versioned.file}"/>
-        <copy file="${icu4j.charset.jar}" tofile="${release.dir}/${icu4j-charset.jar.versioned.file}"/>
-        <copy file="${icu4j.localespi.jar}" tofile="${release.dir}/${icu4j-localespi.jar.versioned.file}"/>
+        <copy file="${icu4j.jar.file}" tofile="${release.dir}/${icu4j.jar.file}"/>
+        <copy file="${icu4j.charset.jar}" tofile="${release.dir}/${icu4j-charset.jar.file}"/>
+        <copy file="${icu4j.localespi.jar}" tofile="${release.dir}/${icu4j-localespi.jar.file}"/>
     </target>
 
     <target name="releaseSrcJars" description="Build ICU4J src jar files for distribution">
         <!-- icu4j src-jar -->
         <mkdir dir="${release.dir}"/>
-        <jar jarfile="${release.dir}/${icu4j-src.jar.versioned.file}"
+        <jar jarfile="${release.dir}/${icu4j-src.jar.file}"
                 compress="true">
             <fileset dir="${icu4j.core.dir}/${src.dir}" includes="**/*.java"/>
             <fileset dir="${icu4j.collate.dir}/${src.dir}" includes="**/*.java"/>
@@ -436,8 +490,8 @@
         <ant dir="${icu4j.charset.dir}" target="src-jar" inheritAll="false"/>
         <ant dir="${icu4j.localespi.dir}" target="src-jar" inheritAll="false"/>
 
-        <copy file="${icu4j.charset.dir}/${out.dir}/lib/icu4j-charset-src.jar" tofile="${release.dir}/${icu4j-charset-src.jar.versioned.file}"/>
-        <copy file="${icu4j.localespi.dir}/${out.dir}/lib/icu4j-localespi-src.jar" tofile="${release.dir}/${icu4j-localespi-src.jar.versioned.file}"/>
+        <copy file="${icu4j.charset.dir}/${out.dir}/lib/${icu4j-charset-src.jar.file}" tofile="${release.dir}/${icu4j-charset-src.jar.file}"/>
+        <copy file="${icu4j.localespi.dir}/${out.dir}/lib/${icu4j-localespi-src.jar.file}" tofile="${release.dir}/${icu4j-localespi-src.jar.file}"/>
     </target>
 
 
@@ -664,12 +718,7 @@
     </target>
 
     <!-- doc targets -->
-    <target name="docs" depends="info, build-tools, _docsJava5or6, _docsJava7plus" description="Build API documents"/>
-
-    <target name="_docsJava5or6" depends="_checkJCite" unless="is.java7.plus">
-        <antcall target="_docsWithJCite"/>
-        <antcall target="_docsWithoutJCite"/>
-    </target>
+    <target name="docs" depends="info, build-tools, _checkJCite, _docsWithJCite, _docsWithoutJCite" description="Build API documents"/>
 
     <target name="_checkJCite" if="env.JCITE_DIR">
         <fileset dir="${env.JCITE_DIR}" id="jcite.files">
@@ -686,21 +735,29 @@
         <pathconvert property="jcite.addl.src" refid="jcite.src.dirs"/>
     </target>
 
-    <target name="_docsWithJCite" if="jcite.libs" unless="is.java7.plus">
+    <target name="_docsStyleSheet">
+        <condition property="docs.style.sheet" value="stylesheet7.css" else="stylesheet.css">
+            <isset property="is.java7.plus"/>
+        </condition>
+    </target>
+
+    <target name="_docsWithJCite" depends="_docsStyleSheet" if="jcite.libs">
         <echo message="JCite library path:             ${jcite.libs}"/>
         <echo message="JCite additional source path:   ${jcite.addl.src}"/>
+        <echo message="Custom stylesheet:              ${docs.style.sheet}"/>
         <javadoc
                 destdir="${doc.dir}"
                 nodeprecatedlist="true"
-                windowtitle="${icu4j.api.window.title}"
+                windowtitle="${icu4j.api.doc.window.title}"
                 doctitle="${icu4j.api.doc.title}"
+                header="${icu4j.api.doc.header}"
                 encoding="${java.src.encoding}"
                 docencoding="UTF-8"
                 bottom="&lt;font size=-1&gt;Copyright (c) ${current.year} IBM Corporation and others.&lt;/font&gt;"
                 additionalparam="-breakiterator -use -tagletpath ${icu4j.build-tools.jar}${path.separator}${jcite.libs} -taglet com.ibm.icu.dev.tool.docs.ICUTaglet -taglet ch.arrenbrecht.jcite.JCiteTaglet -J-Djcitesourcepath=${jcite.addl.src}"
-                link="http://docs.oracle.com/javase/7/docs/api/"
+                link="${icu4j.api.doc.jdk.link}"
                 source="1.5"
-                stylesheetfile="stylesheet.css">
+                stylesheetfile="${docs.style.sheet}">
             <packageset dir="${icu4j.core.dir}/src">
                 <include name="com/ibm/icu/lang/**"/>
                 <include name="com/ibm/icu/math/**"/>
@@ -723,43 +780,14 @@
         <javadoc
                 destdir="${doc.dir}"
                 nodeprecatedlist="true"
-                windowtitle="${icu4j.api.window.title}"
+                windowtitle="${icu4j.api.doc.window.title}"
                 doctitle="${icu4j.api.doc.title}"
+                header="${icu4j.api.doc.header}"
                 encoding="${java.src.encoding}"
                 docencoding="UTF-8"
                 bottom="&lt;font size=-1&gt;Copyright (c) ${current.year} IBM Corporation and others.&lt;/font&gt;"
                 additionalparam="-breakiterator -use -tagletpath ${icu4j.build-tools.jar} -taglet com.ibm.icu.dev.tool.docs.ICUTaglet"
-                link="http://docs.oracle.com/javase/7/docs/api/"
-                source="1.5">
-            <packageset dir="${icu4j.core.dir}/src">
-                <include name="com/ibm/icu/lang/**"/>
-                <include name="com/ibm/icu/math/**"/>
-                <include name="com/ibm/icu/text/**"/>
-                <include name="com/ibm/icu/util/**"/>
-            </packageset>
-            <packageset dir="${icu4j.collate.dir}/src">
-                <include name="com/ibm/icu/text/**"/>
-            </packageset>
-            <packageset dir="${icu4j.translit.dir}/src">
-                <include name="com/ibm/icu/text/**"/>
-            </packageset>
-            <packageset dir="${icu4j.charset.dir}/src">
-                <include name="com/ibm/icu/charset/**"/>
-            </packageset>
-        </javadoc>
-    </target>
-
-    <target name="_docsJava7plus" if="is.java7.plus">
-        <javadoc
-                destdir="${doc.dir}"
-                nodeprecatedlist="true"
-                windowtitle="${icu4j.api.window.title}"
-                doctitle="${icu4j.api.doc.title}"
-                encoding="${java.src.encoding}"
-                docencoding="UTF-8"
-                bottom="&lt;font size=-1&gt;Copyright (c) ${current.year} IBM Corporation and others.&lt;/font&gt;"
-                additionalparam="-breakiterator -use -tagletpath ${icu4j.build-tools.jar} -taglet com.ibm.icu.dev.tool.docs.ICUTaglet"
-                link="http://docs.oracle.com/javase/7/docs/api/"
+                link="${icu4j.api.doc.jdk.link}"
                 source="1.5">
             <packageset dir="${icu4j.core.dir}/src">
                 <include name="com/ibm/icu/lang/**"/>
