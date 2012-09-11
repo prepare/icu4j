@@ -240,6 +240,7 @@ class CompactDecimalDataCache {
      * @param locale the locale
      * @param style the style
      * @param result Extracted prefix and suffix stored here.
+     * @return number of zeros found before any decimal point in template.
      */
     private static int populatePrefixSuffix(
             String pluralVariant, int idx, String template, ULocale locale, String style,
