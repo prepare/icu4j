@@ -117,11 +117,17 @@ public class CompactDecimalFormatTest extends TestFmwk {
         assertEquals("Attributes", iter.getAttribute(NumberFormat.Field.INTEGER), NumberFormat.Field.INTEGER);
         assertEquals("Attributes", 0, iter.getRunStart());
         assertEquals("Attributes", 2, iter.getRunLimit());
-
     }
 
     public void TestEnglishShort() {
         checkLocale(ULocale.ENGLISH, CompactStyle.SHORT, EnglishTestData);
+    }
+
+    public void TestNoLongStyleInCLDR() {
+        NumberFormat cdf =
+                NumberFormat.getCompactDecimalInstance(
+                        ULocale.forLanguageTag("ar_EG"), CompactStyle.LONG);
+        assertEquals("Missing PatternsLong", "5K", cdf.format(5000));
     }
 
     public void TestSerbianShort() {
