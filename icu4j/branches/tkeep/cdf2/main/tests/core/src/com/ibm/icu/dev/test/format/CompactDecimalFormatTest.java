@@ -8,6 +8,7 @@ package com.ibm.icu.dev.test.format;
 
 import java.text.AttributedCharacterIterator;
 import java.text.CharacterIterator;
+import java.text.FieldPosition;
 
 import com.ibm.icu.dev.test.TestFmwk;
 import com.ibm.icu.text.CompactDecimalFormat;
@@ -143,15 +144,15 @@ public class CompactDecimalFormatTest extends TestFmwk {
             {-12345678901234567890f, "T-12000000"},
     };
 
-
     public void TestCharacterIterator() {
         CompactDecimalFormat cdf =
-                NumberFormat.getCompactDecimalInstance(ULocale.ENGLISH, CompactStyle.SHORT);
-        AttributedCharacterIterator iter = cdf.formatToCharacterIterator(12346);
-        assertEquals("CharacterIterator", "12K", iterToString(iter));
-        iter = cdf.formatToCharacterIterator(12346);
-        assertEquals("Attributes", iter.getAttribute(NumberFormat.Field.INTEGER), NumberFormat.Field.INTEGER);
-        assertEquals("Attributes", 0, iter.getRunStart());
+                NumberFormat.getCompactDecimalInstance(ULocale.forLanguageTag("sw"), CompactStyle.SHORT);
+        AttributedCharacterIterator iter = cdf.formatToCharacterIterator(1234567);
+        assertEquals("CharacterIterator", "M1.2", iterToString(iter));
+        iter = cdf.formatToCharacterIterator(1234567);
+        iter.setIndex(1);
+        assertEquals("Attributes", NumberFormat.Field.INTEGER, iter.getAttribute(NumberFormat.Field.INTEGER));
+        assertEquals("Attributes", 1, iter.getRunStart());
         assertEquals("Attributes", 2, iter.getRunLimit());
     }
 
@@ -178,7 +179,6 @@ public class CompactDecimalFormatTest extends TestFmwk {
         checkLocale(ULocale.forLanguageTag("sr"), CompactStyle.LONG, SerbianTestDataLongNegative);
     }
 
-
     public void TestJapaneseShort() {
          checkLocale(ULocale.JAPANESE, CompactStyle.SHORT, JapaneseTestData);
     }
@@ -189,6 +189,16 @@ public class CompactDecimalFormatTest extends TestFmwk {
 
     public void TestSwahiliShortNegative() {
         checkLocale(ULocale.forLanguageTag("sw"), CompactStyle.SHORT, SwahiliTestDataNegative);
+    }
+
+    public void TestFieldPosition() {
+        CompactDecimalFormat cdf = NumberFormat.getCompactDecimalInstance(ULocale.forLanguageTag("sw"), CompactStyle.SHORT);
+        FieldPosition fp = new FieldPosition(0);
+        StringBuffer sb = new StringBuffer();
+        cdf.format(1234567f, sb, fp);
+        assertEquals("fp string", "M1.2", sb.toString());
+        assertEquals("fp start", 1, fp.getBeginIndex());
+        assertEquals("fp end", 2, fp.getEndIndex());
     }
 
     public void checkLocale(ULocale locale, CompactStyle style, Object[][] testData) {
