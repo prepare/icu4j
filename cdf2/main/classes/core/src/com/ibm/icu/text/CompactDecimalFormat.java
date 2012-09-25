@@ -86,6 +86,7 @@ public class CompactDecimalFormat extends DecimalFormat {
         currencyAffixes = new String[AFFIX_SIZE];
         currencyAffixes[CompactDecimalFormat.POSITIVE_PREFIX] = currencyFormat.getPositivePrefix();
         currencyAffixes[CompactDecimalFormat.POSITIVE_SUFFIX] = currencyFormat.getPositiveSuffix();
+        setCurrency(null);
         // TODO fix to get right symbol for the count
     }
 
@@ -163,6 +164,7 @@ public class CompactDecimalFormat extends DecimalFormat {
         setGroupingUsed(false);
         this.currencyAffixes = currencyAffixes.clone();
         this.pluralRules = null;
+        setCurrency(null);
     }
 
     /**
@@ -172,8 +174,12 @@ public class CompactDecimalFormat extends DecimalFormat {
      */
     @Override
     public StringBuffer format(double number, StringBuffer toAppendTo, FieldPosition pos) {
-        number = configure(number);
-        return super.format(number, toAppendTo, pos);
+        Amount amount = toAmount(number);
+        Unit unit = amount.getUnit();
+        unit.writePrefix(toAppendTo);
+        super.format(amount.getQty(), toAppendTo, pos);
+        unit.writeSuffix(toAppendTo);
+        return toAppendTo;
     }
 
     /**
@@ -187,8 +193,8 @@ public class CompactDecimalFormat extends DecimalFormat {
             throw new IllegalArgumentException();
         }
         Number number = (Number) obj;
-        double newNumber = configure(number.doubleValue());
-        return super.formatToCharacterIterator(newNumber);
+        Amount amount = toAmount(number.doubleValue());
+        return super.formatToCharacterIterator(amount.getQty(), amount.getUnit());
     }
 
     /**
@@ -253,12 +259,11 @@ public class CompactDecimalFormat extends DecimalFormat {
 
     /* INTERNALS */
 
-    private double configure(double number) {
-        if (number < 0.0d) {
-            throw new UnsupportedOperationException("CompactDecimalFormat doesn't handle negative numbers yet.");
-        }
+
+    private Amount toAmount(double number) {
         // We do this here so that the prefix or suffix we choose is always consistent
         // with the rounding we do. This way, 999999 -> 1M instead of 1000K.
+        boolean negative = isNumberNegative(number);
         number = adjustNumberAsInFormatting(number);
         int base = number <= 1.0d ? 0 : (int) Math.log10(number);
         if (base >= CompactDecimalDataCache.MAX_DIGITS) {
@@ -266,10 +271,14 @@ public class CompactDecimalFormat extends DecimalFormat {
         }
         number /= divisor[base];
         String pluralVariant = getPluralForm(number);
-        setPositivePrefix(CompactDecimalDataCache.getPrefixOrSuffix(prefix, pluralVariant, base));
-        setPositiveSuffix(CompactDecimalDataCache.getPrefixOrSuffix(suffix, pluralVariant, base));
-        setCurrency(null);
-        return number;
+        if (negative) {
+            number = -number;
+        }
+        return new Amount(
+                number,
+                new Unit(
+                        CompactDecimalDataCache.getPrefixOrSuffix(prefix, pluralVariant, base),
+                        CompactDecimalDataCache.getPrefixOrSuffix(suffix, pluralVariant, base)));
     }
 
     private void recordError(Collection<String> creationErrors, String errorMessage) {
@@ -311,4 +320,21 @@ public class CompactDecimalFormat extends DecimalFormat {
         }
     }
 
+    private static class Amount {
+        private final double qty;
+        private final Unit unit;
+
+        public Amount(double qty, Unit unit) {
+            this.qty = qty;
+            this.unit = unit;
+        }
+
+        public double getQty() {
+            return qty;
+        }
+
+        public Unit getUnit() {
+            return unit;
+        }
+    }
 }
