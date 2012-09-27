@@ -54,13 +54,11 @@ class CompactDecimalDataCache {
      */
     static class Data {
         long[] divisors;
-        Map<String, String[]> prefixes;
-        Map<String, String[]> suffixes;
+        Map<String, DecimalFormat.Unit[]> units;
 
-        Data(long[] divisors, Map<String, String[]> prefixes, Map<String, String[]> suffixes) {
+        Data(long[] divisors, Map<String, DecimalFormat.Unit[]> units) {
             this.divisors = divisors;
-            this.prefixes = prefixes;
-            this.suffixes = suffixes;
+            this.units = units;
         }
     }
 
@@ -142,8 +140,7 @@ class CompactDecimalDataCache {
         int size = r.getSize();
         Data result = new Data(
                 new long[MAX_DIGITS],
-                new HashMap<String, String[]>(),
-                new HashMap<String, String[]>());
+                new HashMap<String, DecimalFormat.Unit[]>());
         for (int i = 0; i < size; i++) {
             populateData(r.get(i), locale, style, result);
         }
@@ -256,10 +253,11 @@ class CompactDecimalDataCache {
                 "' for variant '" +pluralVariant + "' for 10^" + idx +
                 " in " + localeAndStyle(locale, style));
         }
-        savePrefixOrSuffix(
-                template.substring(0, firstIdx), pluralVariant, idx, result.prefixes);
-        savePrefixOrSuffix(
-                template.substring(lastIdx + 1), pluralVariant, idx, result.suffixes);
+        saveUnit(
+                new DecimalFormat.Unit(
+                        template.substring(0, firstIdx),
+                        template.substring(lastIdx + 1)),
+                pluralVariant, idx, result.units);
 
         // Calculate number of zeros before decimal point.
         int i = firstIdx + 1;
@@ -302,47 +300,45 @@ class CompactDecimalDataCache {
         // Initially we assume that previous divisor is 1 with no prefix or suffix.
         long lastDivisor = 1L;
         for (int i = 0; i < result.divisors.length; i++) {
-            if (result.prefixes.get(OTHER)[i] == null) {
+            if (result.units.get(OTHER)[i] == null) {
                 result.divisors[i] = lastDivisor;
-                copyFromPreviousIndex(i, result.prefixes);
-                copyFromPreviousIndex(i, result.suffixes);
+                copyFromPreviousIndex(i, result.units);
             } else {
                 lastDivisor = result.divisors[i];
-                propagateOtherToMissing(i, result.prefixes);
-                propagateOtherToMissing(i, result.suffixes);
+                propagateOtherToMissing(i, result.units);
             }
         }
     }
 
     private static void propagateOtherToMissing(
-            int idx, Map<String, String[]> prefixesOrSuffixes) {
-        String otherVariantValue = prefixesOrSuffixes.get(OTHER)[idx];
-        for (String[] byBase : prefixesOrSuffixes.values()) {
+            int idx, Map<String, DecimalFormat.Unit[]> units) {
+        DecimalFormat.Unit otherVariantValue = units.get(OTHER)[idx];
+        for (DecimalFormat.Unit[] byBase : units.values()) {
             if (byBase[idx] == null) {
                 byBase[idx] = otherVariantValue;
             }
         }
     }
 
-    private static void copyFromPreviousIndex(int idx, Map<String, String[]> prefixesOrSuffixes) {
-        for (String[] byBase : prefixesOrSuffixes.values()) {
+    private static void copyFromPreviousIndex(int idx, Map<String, DecimalFormat.Unit[]> units) {
+        for (DecimalFormat.Unit[] byBase : units.values()) {
             if (idx == 0) {
-                byBase[idx] = "";
+                byBase[idx] = DecimalFormat.NULL_UNIT;
             } else {
                 byBase[idx] = byBase[idx - 1];
             }
         }
     }
 
-    private static void savePrefixOrSuffix(
-            String value, String pluralVariant, int idx,
-            Map<String, String[]> prefixesOrSuffixes) {
-        String[] byBase = prefixesOrSuffixes.get(pluralVariant);
+    private static void saveUnit(
+            DecimalFormat.Unit unit, String pluralVariant, int idx,
+            Map<String, DecimalFormat.Unit[]> units) {
+        DecimalFormat.Unit[] byBase = units.get(pluralVariant);
         if (byBase == null) {
-            byBase = new String[MAX_DIGITS];
-            prefixesOrSuffixes.put(pluralVariant, byBase);
+            byBase = new DecimalFormat.Unit[MAX_DIGITS];
+            units.put(pluralVariant, byBase);
         }
-        byBase[idx] = value;
+        byBase[idx] = unit;
 
     }
 
@@ -354,11 +350,11 @@ class CompactDecimalDataCache {
      * @param base log10 value. 0 <= base < MAX_DIGITS.
      * @return the prefix or suffix.
      */
-    static String getPrefixOrSuffix(
-            Map<String, String[]> prefixOrSuffix, String variant, int base) {
-        String[] byBase = prefixOrSuffix.get(variant);
+    static DecimalFormat.Unit getUnit(
+            Map<String, DecimalFormat.Unit[]> units, String variant, int base) {
+        DecimalFormat.Unit[] byBase = units.get(variant);
         if (byBase == null) {
-            byBase = prefixOrSuffix.get(CompactDecimalDataCache.OTHER);
+            byBase = units.get(CompactDecimalDataCache.OTHER);
         }
         return byBase[base];
     }

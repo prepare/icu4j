@@ -5673,7 +5673,7 @@ public class DecimalFormat extends NumberFormat {
         }
     }
 
-    private static final Unit NULL_UNIT = new Unit("", "");
+    static final Unit NULL_UNIT = new Unit("", "");
 }
 
 // eof

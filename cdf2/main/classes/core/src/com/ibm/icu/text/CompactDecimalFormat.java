@@ -53,8 +53,7 @@ public class CompactDecimalFormat extends DecimalFormat {
     private static final int POSITIVE_PREFIX = 0, POSITIVE_SUFFIX = 1, AFFIX_SIZE = 2;
     private static final CompactDecimalDataCache cache = new CompactDecimalDataCache();
 
-    private final Map<String, String[]> prefix;
-    private final Map<String, String[]> suffix;
+    private final Map<String, DecimalFormat.Unit[]> units;
     private final long[] divisor;
     private final String[] currencyAffixes;
 
@@ -72,8 +71,7 @@ public class CompactDecimalFormat extends DecimalFormat {
     CompactDecimalFormat(ULocale locale, CompactStyle style) {
         DecimalFormat format = (DecimalFormat) NumberFormat.getInstance(locale);
         CompactDecimalDataCache.Data data = getData(locale, style);
-        this.prefix = data.prefixes;
-        this.suffix = data.suffixes;
+        this.units = data.units;
         this.divisor = data.divisors;
         applyPattern(format.toPattern());
         setDecimalFormatSymbols(format.getDecimalFormatSymbols());
@@ -154,8 +152,7 @@ public class CompactDecimalFormat extends DecimalFormat {
             oldDivisor = divisor[i];
         }
 
-        this.prefix = otherPluralVariant(prefix);
-        this.suffix = otherPluralVariant(suffix);
+        this.units = otherPluralVariant(prefix, suffix);
         this.divisor = divisor.clone();
         applyPattern(pattern);
         setDecimalFormatSymbols(formatSymbols);
@@ -276,9 +273,8 @@ public class CompactDecimalFormat extends DecimalFormat {
         }
         return new Amount(
                 number,
-                new Unit(
-                        CompactDecimalDataCache.getPrefixOrSuffix(prefix, pluralVariant, base),
-                        CompactDecimalDataCache.getPrefixOrSuffix(suffix, pluralVariant, base)));
+                CompactDecimalDataCache.getUnit(units, pluralVariant, base));
+
     }
 
     private void recordError(Collection<String> creationErrors, String errorMessage) {
@@ -288,9 +284,13 @@ public class CompactDecimalFormat extends DecimalFormat {
         creationErrors.add(errorMessage);
     }
 
-    private Map<String, String[]> otherPluralVariant(String[] prefixOrSuffix) {
-        Map<String, String[]> result = new HashMap<String, String[]>();
-        result.put(CompactDecimalDataCache.OTHER, prefixOrSuffix.clone());
+    private Map<String, DecimalFormat.Unit[]> otherPluralVariant(String[] prefix, String[] suffix) {
+        Map<String, DecimalFormat.Unit[]> result = new HashMap<String, DecimalFormat.Unit[]>();
+        DecimalFormat.Unit[] units = new DecimalFormat.Unit[prefix.length];
+        for (int i = 0; i < units.length; i++) {
+            units[i] = new DecimalFormat.Unit(prefix[i], suffix[i]);
+        }
+        result.put(CompactDecimalDataCache.OTHER, units);
         return result;
     }
 
