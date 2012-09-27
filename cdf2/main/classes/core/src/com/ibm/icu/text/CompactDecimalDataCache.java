@@ -267,8 +267,8 @@ class CompactDecimalDataCache {
         }
         saveUnit(
                 new DecimalFormat.Unit(
-                        template.substring(0, firstIdx),
-                        template.substring(lastIdx + 1)),
+                        fixQuotes(template.substring(0, firstIdx)),
+                        fixQuotes(template.substring(lastIdx + 1))),
                 pluralVariant, idx, result.units);
 
         // Calculate number of zeros before decimal point.
@@ -279,6 +279,9 @@ class CompactDecimalDataCache {
         return i - firstIdx;
     }
 
+    private static String fixQuotes(String prefixOrSuffix) {
+        return prefixOrSuffix.replace("'.'", ".");
+    }
 
     /**
      * Returns locale and style. Used to form useful messages in thrown
