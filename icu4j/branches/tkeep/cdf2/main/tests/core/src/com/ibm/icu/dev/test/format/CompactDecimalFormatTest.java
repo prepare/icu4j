@@ -144,6 +144,8 @@ public class CompactDecimalFormatTest extends TestFmwk {
             {-12345678901234567890f, "T-12000000"},
     };
 
+    // TODO: Write a test for negative numbers in arabic.
+
     public void TestCharacterIterator() {
         CompactDecimalFormat cdf =
                 NumberFormat.getCompactDecimalInstance(ULocale.forLanguageTag("sw"), CompactStyle.SHORT);
