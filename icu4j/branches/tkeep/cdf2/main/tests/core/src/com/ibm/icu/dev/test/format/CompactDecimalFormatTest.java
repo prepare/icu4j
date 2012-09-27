@@ -148,7 +148,7 @@ public class CompactDecimalFormatTest extends TestFmwk {
 
     public void TestCharacterIterator() {
         CompactDecimalFormat cdf =
-            CompactDecimalFormat.getCompactDecimalInstance(ULocale.forLanguageTag("sw"), CompactStyle.SHORT);
+            CompactDecimalFormat.getInstance(ULocale.forLanguageTag("sw"), CompactStyle.SHORT);
         AttributedCharacterIterator iter = cdf.formatToCharacterIterator(1234567);
         assertEquals("CharacterIterator", "M1.2", iterToString(iter));
         iter = cdf.formatToCharacterIterator(1234567);
@@ -164,7 +164,7 @@ public class CompactDecimalFormatTest extends TestFmwk {
 
     public void TestArabicLongStyle() {
         NumberFormat cdf =
-                CompactDecimalFormat.getCompactDecimalInstance(
+                CompactDecimalFormat.getInstance(
                         ULocale.forLanguageTag("ar"), CompactStyle.LONG);
         assertEquals("Arabic Long", "٥٫٣ ألف", cdf.format(5300));
     }
@@ -194,7 +194,7 @@ public class CompactDecimalFormatTest extends TestFmwk {
     }
 
     public void TestFieldPosition() {
-        CompactDecimalFormat cdf = CompactDecimalFormat.getCompactDecimalInstance(
+        CompactDecimalFormat cdf = CompactDecimalFormat.getInstance(
                 ULocale.forLanguageTag("sw"), CompactStyle.SHORT);
         FieldPosition fp = new FieldPosition(0);
         StringBuffer sb = new StringBuffer();
@@ -205,7 +205,7 @@ public class CompactDecimalFormatTest extends TestFmwk {
     }
 
     public void checkLocale(ULocale locale, CompactStyle style, Object[][] testData) {
-        CompactDecimalFormat cdf = CompactDecimalFormat.getCompactDecimalInstance(locale, style);
+        CompactDecimalFormat cdf = CompactDecimalFormat.getInstance(locale, style);
         for (Object[] row : testData) {
             assertEquals(locale + " (" + locale.getDisplayName(locale) + ")", row[1], cdf.format(row[0]));
         }
