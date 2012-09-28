@@ -11,8 +11,8 @@ import java.text.CharacterIterator;
 
 import com.ibm.icu.dev.test.TestFmwk;
 import com.ibm.icu.text.CompactDecimalFormat;
+import com.ibm.icu.text.CompactDecimalFormat.CompactStyle;
 import com.ibm.icu.text.NumberFormat;
-import com.ibm.icu.text.NumberFormat.CompactStyle;
 import com.ibm.icu.util.ULocale;
 
 public class CompactDecimalFormatTest extends TestFmwk {
@@ -107,10 +107,33 @@ public class CompactDecimalFormatTest extends TestFmwk {
             {12345678901234f, "T12"},
             {12345678901234567890f, "T12000000"},
     };
+    
+    Object[][] CsTestDataShort = {
+            {1000, "1\u00a0tis."},
+            {1500, "1,5\u00a0tis."},
+            {5000, "5\u00a0tis."},
+            {23000, "23\u00a0tis."},
+            {127123, "130\u00a0tis."},
+            {1271234, "1,3\u00a0mil."},
+            {12712345, "13\u00a0mil."},
+            {127123456, "130\u00a0mil."},
+            {1271234567f, "1,3\u00a0mld."},
+            {12712345678f, "13\u00a0mld."},
+            {127123456789f, "130\u00a0mld."},
+            {1271234567890f, "1,3\u00a0bil."},
+            {12712345678901f, "13\u00a0bil."},
+            {127123456789012f, "130\u00a0bil."},
+    };
+  
+    Object[][] SkTestDataLong = {
+            {1000, "1000"},
+            {1572, "1600"},
+            {5184, "5200"},
+    };
 
     public void TestCharacterIterator() {
         CompactDecimalFormat cdf =
-                NumberFormat.getCompactDecimalInstance(ULocale.ENGLISH, CompactStyle.SHORT);
+                CompactDecimalFormat.getInstance(ULocale.ENGLISH, CompactStyle.SHORT);
         AttributedCharacterIterator iter = cdf.formatToCharacterIterator(12346);
         assertEquals("CharacterIterator", "12K", iterToString(iter));
         iter = cdf.formatToCharacterIterator(12346);
@@ -123,11 +146,24 @@ public class CompactDecimalFormatTest extends TestFmwk {
         checkLocale(ULocale.ENGLISH, CompactStyle.SHORT, EnglishTestData);
     }
 
-    public void TestNoLongStyleInCLDR() {
+    public void TestArabicLongStyle() {
         NumberFormat cdf =
-                NumberFormat.getCompactDecimalInstance(
-                        ULocale.forLanguageTag("ar_EG"), CompactStyle.LONG);
-        assertEquals("Missing PatternsLong", "5K", cdf.format(5000));
+                CompactDecimalFormat.getInstance(
+                        ULocale.forLanguageTag("ar"), CompactStyle.LONG);
+        assertEquals("Arabic Long", "٥٫٣ ألف", cdf.format(5300));
+    }
+    
+    public void TestCsShort() {
+        checkLocale(ULocale.forLanguageTag("cs"), CompactStyle.SHORT, CsTestDataShort);
+    }
+    
+    public void TestSkLong() {
+        // For this Locale, we have
+        // 1000 {
+        //    few{"0"}
+        //    one{"0"}
+        //    other{"0"}
+        checkLocale(ULocale.forLanguageTag("sk"), CompactStyle.LONG, SkTestDataLong);
     }
 
     public void TestSerbianShort() {
@@ -147,7 +183,7 @@ public class CompactDecimalFormatTest extends TestFmwk {
     }
 
     public void checkLocale(ULocale locale, CompactStyle style, Object[][] testData) {
-        CompactDecimalFormat cdf = NumberFormat.getCompactDecimalInstance(locale, style);
+        CompactDecimalFormat cdf = CompactDecimalFormat.getInstance(locale, style);
         for (Object[] row : testData) {
             assertEquals(locale + " (" + locale.getDisplayName(locale) + ")", row[1], cdf.format(row[0]));
         }
