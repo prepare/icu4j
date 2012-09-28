@@ -145,6 +145,12 @@ public class CompactDecimalFormatTest extends TestFmwk {
             {12712345678901f, "13\u00a0bil."},
             {127123456789012f, "130\u00a0bil."},
     };
+  
+    Object[][] SkTestDataLong = {
+            {1000, "1000"},
+            {1572, "1600"},
+            {5184, "5200"},
+    };
 
     Object[][] SwahiliTestDataNegative = {
             {-1234f, "elfu\u00a0-1.2"},
@@ -188,6 +194,15 @@ public class CompactDecimalFormatTest extends TestFmwk {
     
     public void TestCsShort() {
         checkLocale(ULocale.forLanguageTag("cs"), CompactStyle.SHORT, CsTestDataShort);
+    }
+    
+    public void TestSkLong() {
+        // For this Locale, we have
+        // 1000 {
+        //    few{"0"}
+        //    one{"0"}
+        //    other{"0"}
+        checkLocale(ULocale.forLanguageTag("sk"), CompactStyle.LONG, SkTestDataLong);
     }
 
     public void TestSerbianShort() {
