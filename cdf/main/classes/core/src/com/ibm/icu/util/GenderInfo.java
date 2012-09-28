@@ -183,7 +183,7 @@ public class GenderInfo {
             UResourceBundle rb = UResourceBundle.getBundleInstance(
                     ICUResourceBundle.ICU_BASE_NAME,
                     "genderList",
-                    ICUResourceBundle.ICU_DATA_CLASS_LOADER);
+                    ICUResourceBundle.ICU_DATA_CLASS_LOADER, true);
             UResourceBundle genderList = rb.get("genderList");
             try {
                 return new GenderInfo(
