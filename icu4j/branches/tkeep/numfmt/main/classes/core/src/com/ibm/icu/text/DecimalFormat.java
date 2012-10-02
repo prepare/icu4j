@@ -1416,7 +1416,13 @@ public class DecimalFormat extends NumberFormat {
         }
         // Output the decimal separator if we always do so.
         if (decimalSeparatorAlwaysShown || fractionPresent) {
+            if (fieldPosition.getFieldAttribute() == Field.DECIMAL_SEPARATOR) {
+                fieldPosition.setBeginIndex(result.length());
+            }
             result.append(decimal);
+            if (fieldPosition.getFieldAttribute() == Field.DECIMAL_SEPARATOR) {
+                fieldPosition.setEndIndex(result.length());
+            }
             // [Spark/CDL] Add attribute for decimal separator
             if (parseAttr) {
                 addAttribute(Field.DECIMAL_SEPARATOR, result.length() - 1, result.length());
