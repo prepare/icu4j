@@ -1293,10 +1293,7 @@ public class DecimalFormat extends NumberFormat {
         if (useExponentialNotation) {
             subformatExponential(result, fieldPosition, parseAttr);
         } else {
-            subformatFixed(result,
-                    fieldPosition,
-                    isInteger,
-                    parseAttr);
+            subformatFixed(result, fieldPosition, isInteger, parseAttr);
         }
 
         int suffixLen = appendAffix(result, isNegative, false, parseAttr);
@@ -1305,18 +1302,6 @@ public class DecimalFormat extends NumberFormat {
         return result;
     }
 
-    /**
-     * @param result
-     * @param fieldPosition
-     * @param isInteger
-     * @param parseAttr
-     * @param digits
-     * @param grouping
-     * @param decimal
-     * @param useSigDig
-     * @param maxIntDig
-     * @param minIntDig
-     */
     private void subformatFixed(StringBuffer result,
             FieldPosition fieldPosition,
             boolean isInteger,
@@ -1493,16 +1478,6 @@ public class DecimalFormat extends NumberFormat {
         }
     }
 
-    /**
-     * @param result
-     * @param fieldPosition
-     * @param parseAttr
-     * @param digits
-     * @param decimal
-     * @param useSigDig
-     * @param maxIntDig
-     * @param minIntDig
-     */
     private void subformatExponential(StringBuffer result,
             FieldPosition fieldPosition,
             boolean parseAttr) {
