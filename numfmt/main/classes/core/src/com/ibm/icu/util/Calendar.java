@@ -592,7 +592,7 @@ import com.ibm.icu.util.ULocale.Category;
  * boundaries. The new <code>Calendar</code> protocol specifies the
  * maximum range of supportable dates as those having Julian day numbers
  * of <code>-0x7F000000</code> to <code>+0x7F000000</code>. This
- * corresponds to years from ~5,000,000 BCE to ~5,000,000 CE. Programmers
+ * corresponds to years from ~5,800,000 BCE to ~5,800,000 CE. Programmers
  * should use the protected constants in <code>Calendar</code> to
  * specify an extremely early or extremely late date.</p>
  *
@@ -1747,7 +1747,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
     private static final int CALTYPE_JAPANESE = 1;
     private static final int CALTYPE_BUDDHIST = 2;
     private static final int CALTYPE_ROC = 3;
-    private static final int CALTYPE_PERSIAN = 4;  // not yet implemented
+    private static final int CALTYPE_PERSIAN = 4;
     private static final int CALTYPE_ISLAMIC_CIVIL = 5;
     private static final int CALTYPE_ISLAMIC = 6;
     private static final int CALTYPE_HEBREW = 7;
@@ -1874,8 +1874,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
             cal = new TaiwanCalendar(zone, locale);
             break;
         case CALTYPE_PERSIAN:
-            // Not yet implemented in ICU4J
-            cal = new GregorianCalendar(zone, locale);
+            cal = new PersianCalendar(zone, locale);
             break;
         case CALTYPE_ISLAMIC_CIVIL:
             cal = new IslamicCalendar(zone, locale);
@@ -2092,14 +2091,25 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
 
     /**
      * Sets this Calendar's current time from the given long value.
+     * An IllegalIcuArgumentException is thrown when millis is outside the range permitted
+     * by a Calendar object when in strict mode.
+     * When in lenient mode the out of range values are pinned to their respective min/max.
      * @param millis the new time in UTC milliseconds from the epoch.
      * @stable ICU 2.0
      */
     public void setTimeInMillis( long millis ) {
         if (millis > MAX_MILLIS) {
-            millis = MAX_MILLIS;
+            if(isLenient()) {
+                millis = MAX_MILLIS;
+            } else {
+                throw new IllegalArgumentException("millis value greater than upper bounds for a Calendar : " + millis);
+            }
         } else if (millis < MIN_MILLIS) {
-            millis = MIN_MILLIS;
+            if(isLenient()) {
+                millis = MIN_MILLIS;
+            } else {
+                throw new IllegalArgumentException("millis value less than lower bounds for a Calendar : " + millis);
+            }
         }
         time = millis;
         areFieldsSet = areAllFieldsSet = false;
