@@ -17,6 +17,7 @@ import java.text.CharacterIterator;
 import java.text.FieldPosition;
 import java.text.ParseException;
 import java.text.ParsePosition;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -32,6 +33,7 @@ import com.ibm.icu.text.ChineseDateFormat.Field;
 import com.ibm.icu.text.ChineseDateFormatSymbols;
 import com.ibm.icu.text.DateFormat;
 import com.ibm.icu.text.DateFormatSymbols;
+import com.ibm.icu.text.DisplayContext;
 import com.ibm.icu.text.NumberFormat;
 import com.ibm.icu.text.SimpleDateFormat;
 import com.ibm.icu.text.TimeZoneFormat;
@@ -60,32 +62,61 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
      */
     public void TestPatterns() {
         final String[][] EXPECTED = {
-                {DateFormat.MINUTE_SECOND, "ms", "en", "mm:ss"}, // (fixed expected result per ticket 6872<-6626)
-                {DateFormat.HOUR24_MINUTE, "Hm", "en", "HH:mm"}, // (fixed expected result per ticket 6872<-6626)
-                {DateFormat.HOUR24_MINUTE_SECOND, "Hms","en","HH:mm:ss"}, // (fixed expected result per ticket 6872<-6626)
-                {DateFormat.HOUR_MINUTE, "hm","en","h:mm a"}, // (fixed expected result per ticket 6872<-7180)
-                {DateFormat.HOUR_MINUTE_SECOND, "hms","en","h:mm:ss a"}, // (fixed expected result per ticket 6872<-7180)
-                {DateFormat.DAY, "d","en","d"},
-                {DateFormat.STANDALONE_MONTH, "LLLL","en","LLLL"},
-                {DateFormat.ABBR_STANDALONE_MONTH, "LLL","en","LLL"},
                 {DateFormat.YEAR, "y","en","y"},
-                {DateFormat.MONTH_DAY, "MMMMd","en","MMMM d"},
-                {DateFormat.ABBR_MONTH_DAY, "MMMd","en","MMM d"},
-                {DateFormat.NUM_MONTH_DAY, "Md","en","M/d"},
-                {DateFormat.MONTH_WEEKDAY_DAY, "MMMMEEEEd","en","EEEE, MMMM d"},
-                {DateFormat.ABBR_MONTH_WEEKDAY_DAY, "MMMEd","en","EEE, MMM d"},
-                {DateFormat.NUM_MONTH_WEEKDAY_DAY, "MEd","en","EEE, M/d"},
-                {DateFormat.YEAR_MONTH, "yMMMM","en","MMMM y"},
-                {DateFormat.YEAR_ABBR_MONTH, "yMMM","en","MMM y"},
+                
+                {DateFormat.QUARTER, "QQQQ", "en", "QQQQ"},
+                {DateFormat.ABBR_QUARTER, "QQQ", "en", "QQQ"},
+                {DateFormat.YEAR_QUARTER, "yQQQQ", "en", "QQQQ y"}, 
+                {DateFormat.YEAR_ABBR_QUARTER, "yQQQ", "en", "QQQ y"},
+                
+                {DateFormat.NUM_MONTH, "M", "en", "L"},
+                {DateFormat.ABBR_MONTH, "MMM", "en", "LLL"},
+                {DateFormat.MONTH, "MMMM", "en", "LLLL"},
                 {DateFormat.YEAR_NUM_MONTH, "yM","en","M/y"}, 
-                {DateFormat.YEAR_ABBR_MONTH_WEEKDAY_DAY, "yMMMEd", "en", "EEE, MMM d, y"},
+                {DateFormat.YEAR_ABBR_MONTH, "yMMM","en","MMM y"},
+                {DateFormat.YEAR_MONTH, "yMMMM","en","MMMM y"},
+                
+                {DateFormat.DAY, "d","en","d"},
+                {DateFormat.YEAR_NUM_MONTH_DAY, "yMd", "en", "M/d/y"}, 
+                {DateFormat.YEAR_ABBR_MONTH_DAY, "yMMMd", "en", "MMM d, y"},
+                {DateFormat.YEAR_MONTH_DAY, "yMMMMd", "en", "MMMM d, y"},
                 {DateFormat.YEAR_NUM_MONTH_WEEKDAY_DAY, "yMEd", "en", "EEE, M/d/y"}, 
-                {DateFormat.YEAR_QUARTER, "yQQQ", "en", "QQQ y"}, 
-                {DateFormat.YEAR_ABBR_QUARTER, "yQ", "en", "Q y"} 
+                {DateFormat.YEAR_ABBR_MONTH_WEEKDAY_DAY, "yMMMEd", "en", "EEE, MMM d, y"},
+                {DateFormat.YEAR_MONTH_WEEKDAY_DAY, "yMMMMEEEEd", "en", "EEEE, MMMM d, y"},
+                
+                {DateFormat.NUM_MONTH_DAY, "Md","en","M/d"},
+                {DateFormat.ABBR_MONTH_DAY, "MMMd","en","MMM d"},
+                {DateFormat.MONTH_DAY, "MMMMd","en","MMMM d"},
+                {DateFormat.NUM_MONTH_WEEKDAY_DAY, "MEd","en","EEE, M/d"},
+                {DateFormat.ABBR_MONTH_WEEKDAY_DAY, "MMMEd","en","EEE, MMM d"},
+                {DateFormat.MONTH_WEEKDAY_DAY, "MMMMEEEEd","en","EEEE, MMMM d"},
+
+                {DateFormat.HOUR, "j", "en", "h a"}, // (fixed expected result per ticket 6872<-6626)
+                {DateFormat.HOUR24, "H", "en", "HH"}, // (fixed expected result per ticket 6872<-6626
+                
+                {DateFormat.MINUTE, "m", "en", "m"},
+                {DateFormat.HOUR_MINUTE, "jm","en","h:mm a"}, // (fixed expected result per ticket 6872<-7180)
+                {DateFormat.HOUR24_MINUTE, "Hm", "en", "HH:mm"}, // (fixed expected result per ticket 6872<-6626)
+                
+                {DateFormat.SECOND, "s", "en", "s"},
+                {DateFormat.HOUR_MINUTE_SECOND, "jms","en","h:mm:ss a"}, // (fixed expected result per ticket 6872<-7180)
+                {DateFormat.HOUR24_MINUTE_SECOND, "Hms","en","HH:mm:ss"}, // (fixed expected result per ticket 6872<-6626)
+                {DateFormat.MINUTE_SECOND, "ms", "en", "mm:ss"}, // (fixed expected result per ticket 6872<-6626)
+
+                {DateFormat.LOCATION_TZ, "VVVV", "en", "VVVV"},
+                {DateFormat.GENERIC_TZ, "vvvv", "en", "vvvv"},
+                {DateFormat.ABBR_GENERIC_TZ, "v", "en", "v"},
+                {DateFormat.SPECIFIC_TZ, "zzzz", "en", "zzzz"},
+                {DateFormat.ABBR_SPECIFIC_TZ, "z", "en", "z"},
+                {DateFormat.ABBR_UTC_TZ, "ZZZZ", "en", "ZZZZ"},
+
+                {DateFormat.YEAR_NUM_MONTH_DAY + DateFormat.ABBR_UTC_TZ, "yMdZZZZ", "en", "M/d/y, ZZZZ"},
+                {DateFormat.MONTH_DAY + DateFormat.LOCATION_TZ, "MMMMdVVVV", "en", "MMMM d, VVVV"},
         };
-        
+        Date testDate = new Date(2012-1900, 6, 1, 14, 58, 59); // just for verbose log
+
         for (int i = 0; i < EXPECTED.length; i++) {
-            
+            boolean ok = true;
             // Verify that patterns have the correct values
             String actualPattern = EXPECTED[i][0];
             String expectedPattern = EXPECTED[i][1];
@@ -93,6 +124,7 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             if (!actualPattern.equals(expectedPattern)) {
                 errln("FAILURE! Expected pattern: " + expectedPattern + 
                         " but was: " + actualPattern);
+                ok=false;
             }
             
             // Verify that DataFormat instances produced contain the correct 
@@ -108,11 +140,16 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             if (!actualLocalPattern1.equals(expectedLocalPattern)) {
                 errln("FAILURE! Expected local pattern: " + expectedLocalPattern 
                         + " but was: " + actualLocalPattern1);
+                ok=false;
             }       
             if (!actualLocalPattern2.equals(expectedLocalPattern)) {
                 errln("FAILURE! Expected local pattern: " + expectedLocalPattern 
                         + " but was: " + actualLocalPattern2);
-            }      
+                ok=false;
+            }
+            if (ok && isVerbose()) {
+                logln(date1.format(testDate) + "\t\t" + Arrays.asList(EXPECTED[i]));
+            }
         }
     }
 
@@ -4101,10 +4138,10 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         class TestContextItem {
             public String locale;
             public String pattern;
-            public SimpleDateFormat.ContextValue capitalizationContext;
+            public DisplayContext capitalizationContext;
             public String expectedFormat;
              // Simple constructor
-            public TestContextItem(String loc, String pat, SimpleDateFormat.ContextValue capCtxt, String expFmt) {
+            public TestContextItem(String loc, String pat, DisplayContext capCtxt, String expFmt) {
                 locale = loc;
                 pattern = pat;
                 capitalizationContext = capCtxt;
@@ -4112,36 +4149,24 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             }
         };
         final TestContextItem[] items = {
-            new TestContextItem( "fr", "MMMM y", SimpleDateFormat.ContextValue.UNKNOWN,                             "juillet 2008" ),
-            new TestContextItem( "fr", "MMMM y", SimpleDateFormat.ContextValue.CAPITALIZATION_FOR_MIDDLE_OF_SENTENCE, "juillet 2008" ),
-            new TestContextItem( "fr", "MMMM y", SimpleDateFormat.ContextValue.CAPITALIZATION_FOR_BEGINNING_OF_SENTENCE, "Juillet 2008" ),
-            new TestContextItem( "fr", "MMMM y", SimpleDateFormat.ContextValue.CAPITALIZATION_FOR_UI_LIST_OR_MENU,  "juillet 2008" ),
-            new TestContextItem( "fr", "MMMM y", SimpleDateFormat.ContextValue.CAPITALIZATION_FOR_STANDALONE,       "Juillet 2008" ),
-            new TestContextItem( "cs", "LLLL y", SimpleDateFormat.ContextValue.UNKNOWN,                             "\u010Dervenec 2008" ),
-            new TestContextItem( "cs", "LLLL y", SimpleDateFormat.ContextValue.CAPITALIZATION_FOR_MIDDLE_OF_SENTENCE, "\u010Dervenec 2008" ),
-            new TestContextItem( "cs", "LLLL y", SimpleDateFormat.ContextValue.CAPITALIZATION_FOR_BEGINNING_OF_SENTENCE, "\u010Cervenec 2008" ),
-            new TestContextItem( "cs", "LLLL y", SimpleDateFormat.ContextValue.CAPITALIZATION_FOR_UI_LIST_OR_MENU,  "\u010Cervenec 2008" ),
-            new TestContextItem( "cs", "LLLL y", SimpleDateFormat.ContextValue.CAPITALIZATION_FOR_STANDALONE,       "\u010Dervenec 2008" ),
+            new TestContextItem( "fr", "MMMM y", DisplayContext.CAPITALIZATION_NONE,                    "juillet 2008" ),
+            new TestContextItem( "fr", "MMMM y", DisplayContext.CAPITALIZATION_FOR_MIDDLE_OF_SENTENCE,  "juillet 2008" ),
+            new TestContextItem( "fr", "MMMM y", DisplayContext.CAPITALIZATION_FOR_BEGINNING_OF_SENTENCE, "Juillet 2008" ),
+            new TestContextItem( "fr", "MMMM y", DisplayContext.CAPITALIZATION_FOR_UI_LIST_OR_MENU,     "juillet 2008" ),
+            new TestContextItem( "fr", "MMMM y", DisplayContext.CAPITALIZATION_FOR_STANDALONE,          "Juillet 2008" ),
+            new TestContextItem( "cs", "LLLL y", DisplayContext.CAPITALIZATION_NONE,                    "\u010Dervenec 2008" ),
+            new TestContextItem( "cs", "LLLL y", DisplayContext.CAPITALIZATION_FOR_MIDDLE_OF_SENTENCE,  "\u010Dervenec 2008" ),
+            new TestContextItem( "cs", "LLLL y", DisplayContext.CAPITALIZATION_FOR_BEGINNING_OF_SENTENCE, "\u010Cervenec 2008" ),
+            new TestContextItem( "cs", "LLLL y", DisplayContext.CAPITALIZATION_FOR_UI_LIST_OR_MENU,     "\u010Cervenec 2008" ),
+            new TestContextItem( "cs", "LLLL y", DisplayContext.CAPITALIZATION_FOR_STANDALONE,          "\u010Dervenec 2008" ),
         };
         Calendar cal = new GregorianCalendar(2008, Calendar.JULY, 2);
         for (TestContextItem item: items) {
             ULocale locale = new ULocale(item.locale);
             SimpleDateFormat sdfmt = new SimpleDateFormat(item.pattern, locale);
 
-            // first try with the format method that uses per-call values
-            Map<SimpleDateFormat.ContextType,SimpleDateFormat.ContextValue> contextValues =
-                    new HashMap<SimpleDateFormat.ContextType,SimpleDateFormat.ContextValue>();
-            contextValues.put(SimpleDateFormat.ContextType.CAPITALIZATION, item.capitalizationContext);
-            StringBuffer result1 = new StringBuffer();
-            FieldPosition fpos1 = new FieldPosition(0);
-            sdfmt.format(cal, contextValues, result1, fpos1);
-            if (result1.toString().compareTo(item.expectedFormat) != 0) {
-                errln("FAIL: format (per-call context) for locale " + item.locale +  ", capitalizationContext " + item.capitalizationContext +
-                        ", expected \"" + item.expectedFormat + "\", got \"" + result1 + "\"");
-            }
-
-            // now try setting default context & standard format call
-            sdfmt.setDefaultContext(SimpleDateFormat.ContextType.CAPITALIZATION, item.capitalizationContext);
+            // now try context & standard format call
+            sdfmt.setContext(item.capitalizationContext);
             StringBuffer result2 = new StringBuffer();
             FieldPosition fpos2 = new FieldPosition(0);
             sdfmt.format(cal, result2, fpos2);
@@ -4150,8 +4175,8 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                         ", expected \"" + item.expectedFormat + "\", got \"" + result2 + "\"");
             }
 
-            // now read back default context, make sure it is what we set
-            SimpleDateFormat.ContextValue capitalizationContext = sdfmt.getDefaultContext(SimpleDateFormat.ContextType.CAPITALIZATION);
+            // now read back context, make sure it is what we set
+            DisplayContext capitalizationContext = sdfmt.getContext(DisplayContext.Type.CAPITALIZATION);
             if (capitalizationContext != item.capitalizationContext) {
                 errln("FAIL: getDefaultContext for locale " + item.locale +  ", capitalizationContext " + item.capitalizationContext +
                         ", but got context " + capitalizationContext);
