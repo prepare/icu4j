@@ -23,6 +23,12 @@ import com.ibm.icu.util.UResourceBundle;
  */
 class CompactDecimalDataCache {
 
+    private static final String SHORT_STYLE = "short";
+    private static final String LONG_STYLE = "long";
+    private static final String NUMBER_ELEMENTS = "NumberElements";
+    private static final String PATTERN_LONG_PATH = "patternsLong/decimalFormat";
+    private static final String PATTERNS_SHORT_PATH = "patternsShort/decimalFormat";
+
     static final String OTHER = "other";
 
     /**
@@ -94,8 +100,8 @@ class CompactDecimalDataCache {
     }
 
     private static enum UResFlags {
-        ANY,
-        NOT_ROOT
+        ANY,  // Any locale will do.
+        NOT_ROOT  // Locale cannot be root.
     }
 
 
@@ -115,10 +121,12 @@ class CompactDecimalDataCache {
 
     /**
      * Loads the "patternsShort" and "patternsLong" data for a particular locale.
-     * We assume that "patternsShort" data can be found for any locale. If we can't
-     * find it we throw an exception. However, we allow "patternsLong" data to be
-     * missing for a locale. In this case, we assume that the "patternsLong" data
-     * is identical to the "paternsShort" data.
+     * For "patternsShort" we look in 3 places in this order:
+     * local numbering system no ROOT fallback;
+     * latin numbering system no ROOT fallback; latin numbering system ROOT locale.
+     * We look for patterns long in the same 3 places but quit when we get to
+     * where we found patternsShort data. If no patternsLong data found, we fall
+     * back to patternsShortData.
      * @param ulocale the locale for which we are loading the data.
      * @return The returned data, never null.
      */
@@ -126,45 +134,57 @@ class CompactDecimalDataCache {
         NumberingSystem ns = NumberingSystem.getInstance(ulocale);
         ICUResourceBundle r = (ICUResourceBundle)UResourceBundle.
                 getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, ulocale);
-        r = r.getWithFallback("NumberElements");
+        r = r.getWithFallback(NUMBER_ELEMENTS);
         String numberingSystemName = ns.getName();
 
         ICUResourceBundle localBundle = null;
         ICUResourceBundle latnBundle = null;
         ICUResourceBundle data = null;
+        // Look in local numbering system for patternsShort
         DataLocation shortDataLocation = DataLocation.LOCAL;
         if (!LATIN_NUMBERING_SYSTEM.equals(numberingSystemName)) {
             localBundle = findWithFallback(r, numberingSystemName, UResFlags.NOT_ROOT);
-            data = findWithFallback(localBundle, "patternsShort/decimalFormat", UResFlags.NOT_ROOT);
+            data = findWithFallback(localBundle, PATTERNS_SHORT_PATH, UResFlags.NOT_ROOT);
         }
+
+        // If we haven't found, look in latin numbering system.
         if (data == null) {
             latnBundle = getWithFallback(r, LATIN_NUMBERING_SYSTEM, UResFlags.NOT_ROOT);
-            data = getWithFallback(latnBundle, "patternsShort/decimalFormat", UResFlags.ANY);
-            if (data != null) {
-                shortDataLocation = assertRoot(data) ? DataLocation.ROOT : DataLocation.LATIN;
-            }
+            data = getWithFallback(latnBundle, PATTERNS_SHORT_PATH, UResFlags.ANY);
+            shortDataLocation = isRoot(data) ? DataLocation.ROOT : DataLocation.LATIN;
         }
-        Data shortData = loadStyle(data, ulocale, "short");
+        Data shortData = loadStyle(data, ulocale, SHORT_STYLE);
+
+        // Now look for patternsLong data in the same places but don't go past
+        // where we found patternsShort.
         data = null;
-        data = findWithFallback(localBundle, "patternsLong/decimalFormat", UResFlags.NOT_ROOT);
+        data = findWithFallback(localBundle, PATTERN_LONG_PATH, UResFlags.NOT_ROOT);
         if (data == null && shortDataLocation != DataLocation.LOCAL) {
-            data = findWithFallback(latnBundle, "patternsLong/decimalFormat", UResFlags.ANY);
+            data = findWithFallback(latnBundle, PATTERN_LONG_PATH, UResFlags.ANY);
             if (data != null) {
-                if (shortDataLocation == DataLocation.LATIN && assertRoot(data)) {
+                if (shortDataLocation == DataLocation.LATIN && isRoot(data)) {
                     data = null;
                 }
             }
         }
         Data longData;
+        // If we didn't find patternsLong data, make it be the same as patternsShort.
         if (data == null) {
             longData = shortData;
         } else {
-            longData = loadStyle(data, ulocale, "long");
+            longData = loadStyle(data, ulocale, LONG_STYLE);
         }
         return new DataBundle(shortData, longData);
     }
 
-
+    /**
+     * findWithFallback finds a sub-resource bundle within r.
+     * @param r a resource bundle. It may be null in which case sub-resource bundle
+     *   won't be found.
+     * @param path the path relative to r
+     * @param flags ANY or NOT_ROOT for locale of found sub-resource bundle.
+     * @return The sub-resource bundle or NULL if none found.
+     */
     private static ICUResourceBundle findWithFallback(
             ICUResourceBundle r, String path, UResFlags flags) {
         if (r == null) {
@@ -176,7 +196,7 @@ class CompactDecimalDataCache {
         }
         switch (flags) {
         case NOT_ROOT:
-            return assertRoot(result) ? null : result;
+            return isRoot(result) ? null : result;
         case ANY:
             return result;
         default:
@@ -184,6 +204,10 @@ class CompactDecimalDataCache {
         }
     }
 
+    /**
+     * Like findWithFallback but throws MissingResourceException if no
+     * resource found instead of returning null.
+     */
     private static ICUResourceBundle getWithFallback(
             ICUResourceBundle r, String path, UResFlags flags) {
         ICUResourceBundle result = findWithFallback(r, path, flags);
@@ -196,7 +220,10 @@ class CompactDecimalDataCache {
         return result;
     }
 
-    private static boolean assertRoot(ICUResourceBundle r) {
+    /**
+     * isRoot returns true if r is in root locale or false otherwise.
+     */
+    private static boolean isRoot(ICUResourceBundle r) {
         return r.getLocale().equals("root");
     }
 
