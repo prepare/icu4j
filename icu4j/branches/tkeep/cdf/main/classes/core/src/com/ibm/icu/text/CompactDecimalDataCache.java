@@ -8,6 +8,7 @@ package com.ibm.icu.text;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.MissingResourceException;
 
 import com.ibm.icu.impl.ICUCache;
 import com.ibm.icu.impl.ICUResourceBundle;
@@ -29,7 +30,7 @@ class CompactDecimalDataCache {
      * less than 10^15.
      */
     static final int MAX_DIGITS = 15;
-    
+
     private static final String LATIN_NUMBERING_SYSTEM = "latn";
 
     private final ICUCache<ULocale, DataBundle> cache =
@@ -79,11 +80,22 @@ class CompactDecimalDataCache {
             this.longData = longData;
         }
     }
-    
+
     private static enum QuoteState {
         OUTSIDE,   // Outside single quote
         INSIDE_EMPTY,  // Just inside single quote
         INSIDE_FULL   // Inside single quote along with characters
+    }
+
+    private static enum DataLocation { // Don't change order
+        LOCAL,  // In local numbering system
+        LATIN,  // In latin numbering system
+        ROOT    // In root locale
+    }
+
+    private static enum UResFlags {
+        ANY,
+        NOT_ROOT
     }
 
 
@@ -114,23 +126,78 @@ class CompactDecimalDataCache {
         NumberingSystem ns = NumberingSystem.getInstance(ulocale);
         ICUResourceBundle r = (ICUResourceBundle)UResourceBundle.
                 getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, ulocale);
+        r = r.getWithFallback("NumberElements");
         String numberingSystemName = ns.getName();
-        Data shortData = null;
-        Data longData = null;
+
+        ICUResourceBundle localBundle = null;
+        ICUResourceBundle latnBundle = null;
+        ICUResourceBundle data = null;
+        DataLocation shortDataLocation = DataLocation.LOCAL;
         if (!LATIN_NUMBERING_SYSTEM.equals(numberingSystemName)) {
-            shortData = loadWithStyle(r, numberingSystemName, ulocale, "patternsShort", true);
-            longData = loadWithStyle(r, numberingSystemName, ulocale, "patternsLong", true);
+            localBundle = findWithFallback(r, numberingSystemName, UResFlags.NOT_ROOT);
+            data = findWithFallback(localBundle, "patternsShort/decimalFormat", UResFlags.NOT_ROOT);
         }
-        if (shortData == null) {
-          shortData = loadWithStyle(r, LATIN_NUMBERING_SYSTEM, ulocale, "patternsShort", false);
+        if (data == null) {
+            latnBundle = getWithFallback(r, LATIN_NUMBERING_SYSTEM, UResFlags.NOT_ROOT);
+            data = getWithFallback(latnBundle, "patternsShort/decimalFormat", UResFlags.ANY);
+            if (data != null) {
+                shortDataLocation = assertRoot(data) ? DataLocation.ROOT : DataLocation.LATIN;
+            }
         }
-        if (longData == null) {
-          longData = loadWithStyle(r, LATIN_NUMBERING_SYSTEM, ulocale, "patternsLong", true);
+        Data shortData = loadStyle(data, ulocale, "short");
+        data = null;
+        data = findWithFallback(localBundle, "patternsLong/decimalFormat", UResFlags.NOT_ROOT);
+        if (data == null && shortDataLocation != DataLocation.LOCAL) {
+            data = findWithFallback(latnBundle, "patternsLong/decimalFormat", UResFlags.ANY);
+            if (data != null) {
+                if (shortDataLocation == DataLocation.LATIN && assertRoot(data)) {
+                    data = null;
+                }
+            }
         }
-        if (longData == null) {
+        Data longData;
+        if (data == null) {
             longData = shortData;
+        } else {
+            longData = loadStyle(data, ulocale, "long");
         }
         return new DataBundle(shortData, longData);
+    }
+
+
+    private static ICUResourceBundle findWithFallback(
+            ICUResourceBundle r, String path, UResFlags flags) {
+        if (r == null) {
+            return null;
+        }
+        ICUResourceBundle result = r.findWithFallback(path);
+        if (result == null) {
+            return null;
+        }
+        switch (flags) {
+        case NOT_ROOT:
+            return assertRoot(result) ? null : result;
+        case ANY:
+            return result;
+        default:
+            throw new IllegalArgumentException();
+        }
+    }
+
+    private static ICUResourceBundle getWithFallback(
+            ICUResourceBundle r, String path, UResFlags flags) {
+        ICUResourceBundle result = findWithFallback(r, path, flags);
+        if (result == null) {
+            throw new MissingResourceException(
+                    "Cannot find " + path,
+                    ICUResourceBundle.class.getName(), path);
+
+        }
+        return result;
+    }
+
+    private static boolean assertRoot(ICUResourceBundle r) {
+        return r.getLocale().equals("root");
     }
 
     /**
@@ -142,19 +209,7 @@ class CompactDecimalDataCache {
      * if data cannot be found.
      * @return The loaded data or possibly null if allowNullResult is true.
      */
-    private static Data loadWithStyle(
-            ICUResourceBundle r, String numberingSystemName, ULocale locale, String style,
-            boolean allowNullResult) {
-        String resourcePath =
-            "NumberElements/" + numberingSystemName + "/" + style + "/decimalFormat";
-        if (allowNullResult) {
-            r = r.findWithFallback(resourcePath);
-        } else {
-            r = r.getWithFallback(resourcePath);
-        }
-        if (r == null) {
-            return null;
-        }
+    private static Data loadStyle(ICUResourceBundle r, ULocale locale, String style) {
         int size = r.getSize();
         Data result = new Data(
                 new long[MAX_DIGITS],
@@ -303,7 +358,7 @@ class CompactDecimalDataCache {
             } else {
                 result.append(ch);
             }
-            
+
             // Update state
             switch (state) {
             case OUTSIDE:
@@ -317,7 +372,7 @@ class CompactDecimalDataCache {
                 throw new IllegalStateException();
             }
         }
-        return result.toString();  
+        return result.toString();
     }
 
     /**
