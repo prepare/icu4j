@@ -167,11 +167,16 @@ public class CompactDecimalFormatTest extends TestFmwk {
             {-12345678901234567890f, "T-12000000"},
     };
 
-    // TODO: Write a test for negative numbers in arabic.
+    public void TestDefaultSignificantDigits() {
+        // We are expecting three significant digits as default.
+        CompactDecimalFormat cdf =
+                CompactDecimalFormat.getInstance(ULocale.ENGLISH, CompactStyle.SHORT);
+        assertEquals("Default significant digits", "12.3K", cdf.format(12345));
+    }
 
     public void TestCharacterIterator() {
         CompactDecimalFormat cdf =
-            CompactDecimalFormat.getInstance(ULocale.forLanguageTag("sw"), CompactStyle.SHORT);
+            getCDFInstance(ULocale.forLanguageTag("sw"), CompactStyle.SHORT);
         AttributedCharacterIterator iter = cdf.formatToCharacterIterator(1234567);
         assertEquals("CharacterIterator", "M1.2", iterToString(iter));
         iter = cdf.formatToCharacterIterator(1234567);
@@ -225,7 +230,7 @@ public class CompactDecimalFormatTest extends TestFmwk {
     }
 
     public void TestFieldPosition() {
-        CompactDecimalFormat cdf = CompactDecimalFormat.getInstance(
+        CompactDecimalFormat cdf = getCDFInstance(
                 ULocale.forLanguageTag("sw"), CompactStyle.SHORT);
         FieldPosition fp = new FieldPosition(0);
         StringBuffer sb = new StringBuffer();
@@ -248,7 +253,7 @@ public class CompactDecimalFormatTest extends TestFmwk {
     }
 
     public void checkLocale(ULocale locale, CompactStyle style, Object[][] testData) {
-        CompactDecimalFormat cdf = CompactDecimalFormat.getInstance(locale, style);
+        CompactDecimalFormat cdf = getCDFInstance(locale, style);
         for (Object[] row : testData) {
             assertEquals(locale + " (" + locale.getDisplayName(locale) + ")", row[1], cdf.format(row[0]));
         }
@@ -260,5 +265,13 @@ public class CompactDecimalFormatTest extends TestFmwk {
             builder.append(c);
         }
         return builder.toString();
+    }
+
+    private static CompactDecimalFormat getCDFInstance(ULocale locale, CompactStyle style) {
+        CompactDecimalFormat result = CompactDecimalFormat.getInstance(locale, style);
+        // Our tests are written for two significant digits. We set explicitly here
+        // because default significant digits may change.
+        result.setMaximumSignificantDigits(2);
+        return result;
     }
 }

@@ -123,7 +123,7 @@ public class CompactDecimalFormat extends DecimalFormat {
         this.divisor = data.divisors;
         applyPattern(format.toPattern());
         setDecimalFormatSymbols(format.getDecimalFormatSymbols());
-        setMaximumSignificantDigits(2); // default significant digits
+        setMaximumSignificantDigits(3); // default significant digits
         setSignificantDigitsUsed(true);
         setGroupingUsed(false);
         this.pluralRules = PluralRules.forLocale(locale);
