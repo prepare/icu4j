@@ -17,7 +17,7 @@ public final class CharacterIteration {
     // 32 bit Char value returned from when an iterator has run out of range.
     //     Positive value so fast case (not end, not surrogate) can be checked
     //     with a single test.
-    public static int DONE32 = 0x7fffffff;
+    public static final int DONE32 = 0x7fffffff;
 
     /**
      * Move the iterator forward to the next code point, and return that code point,
@@ -63,6 +63,9 @@ public final class CharacterIteration {
     //        from there, but the ci.getIndex() will be wrong, and needs
     //        adjustment.
     public static int nextTrail32(CharacterIterator ci, int lead) {
+        if (lead == CharacterIterator.DONE && ci.getIndex() >= ci.getEndIndex()) {
+            return DONE32;
+        }
         int retVal = lead;
         if (lead <= UTF16.LEAD_SURROGATE_MAX_VALUE) {
             char  cTrail = ci.next();
@@ -72,10 +75,6 @@ public final class CharacterIteration {
                             UTF16.SUPPLEMENTARY_MIN_VALUE;
             } else {
                 ci.previous();
-            }
-        } else {
-            if (lead == CharacterIterator.DONE && ci.getIndex() >= ci.getEndIndex()) {
-                retVal = DONE32;
             }
         }
         return retVal;
