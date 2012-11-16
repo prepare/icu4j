@@ -121,12 +121,13 @@ class CompactDecimalDataCache {
 
     /**
      * Loads the "patternsShort" and "patternsLong" data for a particular locale.
-     * For "patternsShort" we look in 3 places in this order:
-     * local numbering system no ROOT fallback;
-     * latin numbering system no ROOT fallback; latin numbering system ROOT locale.
-     * We look for patterns long in the same 3 places but quit when we get to
-     * where we found patternsShort data. If no patternsLong data found, we fall
-     * back to patternsShortData.
+     * We look for both of them in 3 places in this order:<ol>
+     * <li>local numbering system no ROOT fallback</li>
+     * <li>latin numbering system no ROOT fallback</li>
+     * <li>latin numbering system ROOT locale.</li>
+     * </ol>
+     * If we find "patternsShort" data before finding "patternsLong" data, we
+     * make the "patternsLong" data be the same as "patternsShort."
      * @param ulocale the locale for which we are loading the data.
      * @return The returned data, never null.
      */
@@ -137,42 +138,31 @@ class CompactDecimalDataCache {
         r = r.getWithFallback(NUMBER_ELEMENTS);
         String numberingSystemName = ns.getName();
 
-        ICUResourceBundle localBundle = null;
-        ICUResourceBundle latnBundle = null;
-        ICUResourceBundle data = null;
-        // Look in local numbering system for patternsShort
-        DataLocation shortDataLocation = DataLocation.LOCAL;
+        ICUResourceBundle shortDataBundle = null;
+        ICUResourceBundle longDataBundle = null;
         if (!LATIN_NUMBERING_SYSTEM.equals(numberingSystemName)) {
-            localBundle = findWithFallback(r, numberingSystemName, UResFlags.NOT_ROOT);
-            data = findWithFallback(localBundle, PATTERNS_SHORT_PATH, UResFlags.NOT_ROOT);
+            ICUResourceBundle bundle = findWithFallback(r, numberingSystemName, UResFlags.NOT_ROOT);
+            shortDataBundle = findWithFallback(bundle, PATTERNS_SHORT_PATH, UResFlags.NOT_ROOT);
+            longDataBundle = findWithFallback(bundle, PATTERN_LONG_PATH, UResFlags.NOT_ROOT);
         }
 
         // If we haven't found, look in latin numbering system.
-        if (data == null) {
-            latnBundle = getWithFallback(r, LATIN_NUMBERING_SYSTEM, UResFlags.NOT_ROOT);
-            data = getWithFallback(latnBundle, PATTERNS_SHORT_PATH, UResFlags.ANY);
-            shortDataLocation = isRoot(data) ? DataLocation.ROOT : DataLocation.LATIN;
-        }
-        Data shortData = loadStyle(data, ulocale, SHORT_STYLE);
-
-        // Now look for patternsLong data in the same places but don't go past
-        // where we found patternsShort.
-        data = null;
-        data = findWithFallback(localBundle, PATTERN_LONG_PATH, UResFlags.NOT_ROOT);
-        if (data == null && shortDataLocation != DataLocation.LOCAL) {
-            data = findWithFallback(latnBundle, PATTERN_LONG_PATH, UResFlags.ANY);
-            if (data != null) {
-                if (shortDataLocation == DataLocation.LATIN && isRoot(data)) {
-                    data = null;
+        if (shortDataBundle == null) {
+            ICUResourceBundle bundle = getWithFallback(r, LATIN_NUMBERING_SYSTEM, UResFlags.ANY);
+            shortDataBundle = getWithFallback(bundle, PATTERNS_SHORT_PATH, UResFlags.ANY);
+            if (longDataBundle == null) {
+                longDataBundle = findWithFallback(bundle, PATTERN_LONG_PATH, UResFlags.ANY);
+                if (longDataBundle != null && isRoot(longDataBundle) && !isRoot(shortDataBundle)) {
+                    longDataBundle = null;
                 }
             }
         }
+        Data shortData = loadStyle(shortDataBundle, ulocale, SHORT_STYLE);
         Data longData;
-        // If we didn't find patternsLong data, make it be the same as patternsShort.
-        if (data == null) {
+        if (longDataBundle == null) {
             longData = shortData;
         } else {
-            longData = loadStyle(data, ulocale, LONG_STYLE);
+            longData = loadStyle(longDataBundle, ulocale, LONG_STYLE);
         }
         return new DataBundle(shortData, longData);
     }
