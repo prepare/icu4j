@@ -182,6 +182,45 @@ public class CurrencyMetaInfo {
         public static CurrencyFilter onDateRange(Date from, Date to) {
             return ALL.withDateRange(from, to);
         }
+        
+        /**
+         * Returns a filter that accepts all currencies in use on the given date.
+         * CurrencyFilter.onDate(date) is equivalent to
+         * CurrencyFilter.onDate(date).withTender().
+         * @param date the date as milliseconds after Jan 1, 1970
+         * @draft ICU 51
+         */
+        public static CurrencyFilter onDate(long date) {
+            // TODO: implement
+            return ALL;
+        }
+
+        /**
+         * Returns a filter that accepts all currencies that were in use at some
+         * point between the given dates, or if dates are equal, currencies in
+         * use on that date.
+         * CurrencyFilter.onDate(from, to) is equivalanet to
+         * CurrencyFilter.onDate(from, to).withTender()
+         * @param from The date on or after a currency must have been in use.
+         *   Measured in milliseconds since Jan 1, 1970 GMT.
+         * @param to The date before which a currency must have been in use.
+         *   Measured in milliseconds since Jan 1, 1970 GMT.
+         * @draft ICU 51
+         */
+        public static CurrencyFilter onDateRange(long from, long to) {
+            // TODO: implement
+            return ALL;
+        }
+        
+        /**
+         * Returns a CurrencyFilter for finding currencies that were either once used,
+         * are used, or will be used as tender.
+         * @draft ICU 51
+         */
+        public static CurrencyFilter onTender() {
+            // TODO: implement
+            return ALL;
+        }
 
         /**
          * Returns a copy of this filter, with the specified region.  Region can be null to
@@ -229,6 +268,44 @@ public class CurrencyMetaInfo {
          */
         public CurrencyFilter withDateRange(Date from, Date to) {
             return new CurrencyFilter(this.region, this.currency, from, to);
+        }
+        
+        /**
+         * Returns a copy of this filter that accepts all currencies in use on
+         * the given date. filter.withDate(date) is equivalent to
+         * filter.withDate(date).withTender().
+         * @param date the date as milliseconds after Jan 1, 1970
+         * @draft ICU 51
+         */
+        public CurrencyFilter withDate(long date) {
+            // TODO: implement
+            return withDate(new java.util.Date(date));
+        }
+
+        /**
+         * Returns a copy of this filter that accepts all currencies that were
+         * in use at some point between the given dates, or if dates are equal,
+         * currencies in use on that date. filter.withDate(from, to) is
+         * equivalent to filter.withDate(from, to).withTender()
+         * @param from The date on or after a currency must have been in use.
+         *   Measured in milliseconds since Jan 1, 1970 GMT.
+         * @param to The date before which a currency must have been in use.
+         *   Measured in milliseconds since Jan 1, 1970 GMT.
+         * @draft ICU 51
+         */
+        public CurrencyFilter withDateRange(long from, long to) {
+            // TODO: implement
+            return withDateRange(new java.util.Date(from), new java.util.Date(to));
+        }
+        
+        /**
+         * Returns a copy of this filter that filters for currencies that were
+         * either once used, are used, or will be used as tender.
+         * @draft ICU 51
+         */
+        public CurrencyFilter withTender() {
+            // TODO: implement
+            return this;
         }
 
         /**
@@ -400,6 +477,16 @@ public class CurrencyMetaInfo {
         @Override
         public String toString() {
             return debugString(this);
+        }
+        
+        /**
+         * Determine whether or not this currency was once used, is used,
+         * or will be used as tender in this region.
+         * @draft ICU 51
+         */
+        public boolean isTender() {
+            // TODO: implement
+            return true;
         }
     }
 
