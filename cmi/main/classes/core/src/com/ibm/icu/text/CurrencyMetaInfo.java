@@ -107,14 +107,7 @@ public class CurrencyMetaInfo {
             this.to = to;
         }
 
-        private CurrencyFilter(String region, String currency, Date dateFrom, Date dateTo) {
-            this.region = region;
-            this.currency = currency;
-            this.from = dateFrom == null ? Long.MIN_VALUE : dateFrom.getTime();
-            this.to = dateTo == null ? Long.MAX_VALUE : dateTo.getTime();
-        }
-
-        private static final CurrencyFilter ALL = new CurrencyFilter(null, null, null, null);
+        private static final CurrencyFilter ALL = new CurrencyFilter(null, null, Long.MIN_VALUE, Long.MAX_VALUE);
 
         /**
          * Returns a filter that accepts all currency data.
@@ -185,22 +178,18 @@ public class CurrencyMetaInfo {
         
         /**
          * Returns a filter that accepts all currencies in use on the given date.
-         * CurrencyFilter.onDate(date) is equivalent to
-         * CurrencyFilter.onDate(date).withTender().
          * @param date the date as milliseconds after Jan 1, 1970
          * @draft ICU 51
          */
         public static CurrencyFilter onDate(long date) {
             // TODO: implement
-            return ALL;
+            return ALL.withDate(date);
         }
 
         /**
          * Returns a filter that accepts all currencies that were in use at some
          * point between the given dates, or if dates are equal, currencies in
          * use on that date.
-         * CurrencyFilter.onDate(from, to) is equivalanet to
-         * CurrencyFilter.onDate(from, to).withTender()
          * @param from The date on or after a currency must have been in use.
          *   Measured in milliseconds since Jan 1, 1970 GMT.
          * @param to The date before which a currency must have been in use.
@@ -209,7 +198,7 @@ public class CurrencyMetaInfo {
          */
         public static CurrencyFilter onDateRange(long from, long to) {
             // TODO: implement
-            return ALL;
+            return ALL.withDateRange(from, to);
         }
         
         /**
@@ -254,7 +243,7 @@ public class CurrencyMetaInfo {
          * @stable ICU 4.4
          */
         public CurrencyFilter withDate(Date date) {
-            return new CurrencyFilter(this.region, this.currency, date, date);
+            return new CurrencyFilter(this.region, this.currency, date.getTime(), date.getTime());
         }
 
         /**
@@ -267,26 +256,26 @@ public class CurrencyMetaInfo {
          * @provisional This API might change or be removed in a future release.
          */
         public CurrencyFilter withDateRange(Date from, Date to) {
-            return new CurrencyFilter(this.region, this.currency, from, to);
+            long fromLong = from == null ? Long.MIN_VALUE : from.getTime();
+            long toLong = to == null ? Long.MAX_VALUE : to.getTime();
+            return new CurrencyFilter(this.region, this.currency, fromLong, toLong);
         }
         
         /**
          * Returns a copy of this filter that accepts all currencies in use on
-         * the given date. filter.withDate(date) is equivalent to
-         * filter.withDate(date).withTender().
+         * the given date.
          * @param date the date as milliseconds after Jan 1, 1970
          * @draft ICU 51
          */
         public CurrencyFilter withDate(long date) {
             // TODO: implement
-            return withDate(new java.util.Date(date));
+            return new CurrencyFilter(this.region, this.currency, date, Long.MAX_VALUE);
         }
 
         /**
          * Returns a copy of this filter that accepts all currencies that were
          * in use at some point between the given dates, or if dates are equal,
-         * currencies in use on that date. filter.withDate(from, to) is
-         * equivalent to filter.withDate(from, to).withTender()
+         * currencies in use on that date.
          * @param from The date on or after a currency must have been in use.
          *   Measured in milliseconds since Jan 1, 1970 GMT.
          * @param to The date before which a currency must have been in use.
@@ -295,7 +284,7 @@ public class CurrencyMetaInfo {
          */
         public CurrencyFilter withDateRange(long from, long to) {
             // TODO: implement
-            return withDateRange(new java.util.Date(from), new java.util.Date(to));
+            return new CurrencyFilter(this.region, this.currency, from, to);
         }
         
         /**
