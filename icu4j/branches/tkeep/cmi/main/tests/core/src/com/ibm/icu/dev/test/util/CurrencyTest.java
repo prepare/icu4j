@@ -387,23 +387,16 @@ public class CurrencyTest extends TestFmwk {
         CurrencyMetaInfo.CurrencyFilter filter =
                 CurrencyMetaInfo.CurrencyFilter.onRegion("CH");
         List<CurrencyInfo> currencyInfos = metainfo.currencyInfo(filter);
-        if (currencyInfos.size() <= 1) {
-            errln("Need more than one currency in CH region to complete test.");
-        }
+        assertEquals("Number of currencies for switzerland", 3, currencyInfos.size());
         currencyInfos = metainfo.currencyInfo(filter.withCurrency("CHF"));
         assertEquals("One CHF", 1, currencyInfos.size());
         CurrencyInfo swissFranc = currencyInfos.get(0);
-        // Note that withDate implies withTender.
         assertEquals(
                 "With Date",
                 Arrays.asList(new String[] {"CHF"}),
-                metainfo.currencies(filter.withDate(swissFranc.from)));
-        assertEquals(
-                "With tender",
-                Arrays.asList(new String[] {"CHF"}),
-                metainfo.currencies(filter.withTender()));
+                metainfo.currencies(filter.withTender().withDate(swissFranc.from)));
     }
-    
+   
     // Coverage-only test of the CurrencyMetaInfo class
     public void TestCurrencyMetaInfo() {
         CurrencyMetaInfo metainfo = CurrencyMetaInfo.getInstance();
