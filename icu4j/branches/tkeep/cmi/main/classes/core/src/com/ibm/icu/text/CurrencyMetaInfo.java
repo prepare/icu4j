@@ -192,7 +192,7 @@ public class CurrencyMetaInfo {
          * use on that date.
          * @param from The date on or after a currency must have been in use.
          *   Measured in milliseconds since Jan 1, 1970 GMT.
-         * @param to The date before which a currency must have been in use.
+         * @param to The date on or before which a currency must have been in use.
          *   Measured in milliseconds since Jan 1, 1970 GMT.
          * @draft ICU 51
          */
@@ -278,7 +278,7 @@ public class CurrencyMetaInfo {
          * currencies in use on that date.
          * @param from The date on or after a currency must have been in use.
          *   Measured in milliseconds since Jan 1, 1970 GMT.
-         * @param to The date before which a currency must have been in use.
+         * @param to The date on or before which a currency must have been in use.
          *   Measured in milliseconds since Jan 1, 1970 GMT.
          * @draft ICU 51
          */
