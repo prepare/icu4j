@@ -444,7 +444,7 @@ public class CurrencyTest extends TestFmwk {
         }
             
         { // CurrencyInfo
-            info = new CurrencyMetaInfo.CurrencyInfo("region", "code", 0, 1, 1);
+            info = new CurrencyMetaInfo.CurrencyInfo("region", "code", 0, 1, 1, false);
             if (info == null) {
                 errln("Error creating CurrencyInfo.");
                 return;
