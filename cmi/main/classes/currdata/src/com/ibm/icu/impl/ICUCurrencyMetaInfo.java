@@ -13,9 +13,6 @@ import java.util.List;
 import java.util.Set;
 
 import com.ibm.icu.text.CurrencyMetaInfo;
-import com.ibm.icu.util.Calendar;
-import com.ibm.icu.util.GregorianCalendar;
-import com.ibm.icu.util.TimeZone;
 
 /**
  * ICU's currency meta info data.
