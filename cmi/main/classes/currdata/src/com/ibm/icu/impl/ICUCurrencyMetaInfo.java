@@ -138,7 +138,7 @@ public class ICUCurrencyMetaInfo extends CurrencyMetaInfo {
             }
             if ((needed & Tender) != 0) {
                 ICUResourceBundle tenderBundle = r.at("tender");
-                tender = tenderBundle == null || "false".equals(tenderBundle.getString());
+                tender = tenderBundle == null || "true".equals(tenderBundle.getString());
                 if (filter.tenderOnly && !tender) {
                     continue;
                 }
