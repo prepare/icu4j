@@ -100,31 +100,120 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
          * @draft ICU 49
          * @provisional This API might change or be removed in a future release.
          */
-        SPECIFIC_SHORT (0x0010),
-        /**
-         * RFC822 format, such as "-0500"
-         * @draft ICU 49
-         * @provisional This API might change or be removed in a future release.
-         */
-        RFC822 (0x0020),
-        /**
-         * Localized GMT offset format, such as "GMT-05:00", "UTC+0100"
-         * @draft ICU 49
-         * @provisional This API might change or be removed in a future release.
-         */
-        LOCALIZED_GMT (0x0040),
-        /**
-         * ISO 8601 format (extended), such as "-05:00", "Z"(UTC)
-         * @draft ICU 49
-         * @provisional This API might change or be removed in a future release.
-         */
-        ISO8601 (0x0080);
+        SPECIFIC_SHORT (0x0010);
 
         final int flag;
     
         private Style(int flag) {
             this.flag = flag;
         }
+    }
+
+    public enum OffsetStyle {
+        /**
+         * Short localized GMT offset format, such as "GMT-5", "UTC+05.30".
+         * This style is equivalent to the date format pattern "O" in the LDML specification.
+         * @draft ICU 51
+         * @provisional This API might change or be removed in a future release.
+         */
+        LOCALIZED_SHORT,
+        /**
+         * Long localized GMT offset format, such as "GMT-05:00", "UTC+05.30".
+         * This style is equivalent to the date format pattern "OOOO" in the LDML specification.
+         * @draft ICU 51
+         * @provisional This API might change or be removed in a future release.
+         */
+        LOCALIZED_LONG,
+
+        /**
+         * Short ISO 8601 local time difference (basic format) or the UTC indicator.
+         * For example, "-05", "+0530", and "Z"(UTC).
+         * This style is equivalent to the date format pattern "X" in the LDML specification.
+         * @draft ICU 51
+         * @provisional This API might change or be removed in a future release.
+         */
+        ISO_BASIC_SHORT,
+
+        /**
+         * Short ISO 8601 locale time difference (basic format).
+         * For example, "-05", and "+0530".
+         * This style is equivalent to the date format pattern "x" in the LDML specification.
+         * @draft ICU 51
+         * @provisional This API might change or be removed in a future release.
+         */
+        ISO_BASIC_LOCAL_SHORT,
+
+        /**
+         * Fixed width ISO 8601 local time difference (basic format) or the UTC indicator.
+         * For example, "-0500", "+0530", and "Z"(UTC).
+         * This style is equivalent to the date format pattern "XX" in the LDML specification.
+         * @draft ICU 51
+         * @provisional This API might change or be removed in a future release.
+         */
+        ISO_BASIC_FIXED,
+
+        /**
+         * Fixed width ISO 8601 local time difference (basic format).
+         * For example, "-0500", and "+0530".
+         * This style is equivalent to the date format pattern "xx" in the LDML specification.
+         * @draft ICU 51
+         * @provisional This API might change or be removed in a future release.
+         */
+        ISO_BASIC_LOCAL_FIXED,
+
+        /**
+         * ISO 8601 local time difference (basic format) with optional seconds field, or the UTC indicator.
+         * For example, "-0500", "+052538", and "Z"(UTC).
+         * This style is equivalent to the date format pattern "XXXX" in the LDML specification.
+         * @draft ICU 51
+         * @provisional This API might change or be removed in a future release.
+         */
+        ISO_BASIC_FULL,
+
+        /**
+         * ISO 8601 local time difference (basic format) with optional seconds field.
+         * For example, "-0500", and "+052538".
+         * This style is equivalent to the date format pattern "xxxx" in the LDML specification.
+         * @draft ICU 51
+         * @provisional This API might change or be removed in a future release.
+         */
+        ISO_BASIC_LOCAL_FULL,
+
+        /**
+         * Fixed width ISO 8601 local time difference (extended format) or the UTC indicator.
+         * For example, "-05:00", "+05:30", and "Z"(UTC).
+         * This style is equivalent to the date format pattern "XXX" in the LDML specification.
+         * @draft ICU 51
+         * @provisional This API might change or be removed in a future release.
+         */
+        ISO_EXTENDED_FIXED,
+
+        /**
+         * Fixed width ISO 8601 local time difference (extended format).
+         * For example, "-05:00" and "+05:30".
+         * This style is equivalent to the date format pattern "xxx" in the LDML specification.
+         * @draft ICU 51
+         * @provisional This API might change or be removed in a future release.
+         */
+        ISO_EXTENDED_LOCAL_FIXED,
+
+        /**
+         * ISO 8601 local time difference (extended format) with optional seconds field, or the UTC indicator.
+         * For example, "-05:00", "+05:25:38", and "Z"(UTC).
+         * This style is equivalent to the date format pattern "XXXXX" in the LDML specification.
+         * @draft ICU 51
+         * @provisional This API might change or be removed in a future release.
+         */
+        ISO_EXTENDED_FULL,
+
+        /**
+         * ISO 8601 local time difference (extended format) with optional seconds field.
+         * For example, "-05:00" and "+05:25:38".
+         * This style is equivalent to the date format pattern "xxxxx" in the LDML specification.
+         * @draft ICU 51
+         * @provisional This API might change or be removed in a future release.
+         */
+        ISO_EXTENDED_LOCAL_FULL;
     }
 
     /**
@@ -137,6 +226,12 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
      */
     public enum GMTOffsetPatternType {
         /**
+         * Positive offset with hour field
+         * @draft ICU 51
+         * @provisional This API might change or be removed in a future release.
+         */
+        POSITIVE_H ("+HH", "H", true),
+        /**
          * Positive offset with hour and minute fields
          * @draft ICU 49
          * @provisional This API might change or be removed in a future release.
@@ -148,6 +243,12 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
          * @provisional This API might change or be removed in a future release.
          */
         POSITIVE_HMS ("+HH:mm:ss", "Hms", true),
+        /**
+         * Negative offset with hour field
+         * @draft ICU 51
+         * @provisional This API might change or be removed in a future release.
+         */
+        NEGATIVE_H ("-HH", "H", true),
         /**
          * Negative offset with hour and minute fields
          * @draft ICU 49
@@ -266,12 +367,14 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
     private static final char DEFAULT_GMT_OFFSET_SEP = ':';
     private static final String ASCII_DIGITS = "0123456789";
     private static final String ISO8601_UTC = "Z";
+    private static final Character ISO8601_EXTENDED_SEP = ':';
 
     // Order of GMT offset pattern parsing, *_HMS must be evaluated first
     // because *_HM is most likely a substring of *_HMS 
     private static final GMTOffsetPatternType[] PARSE_GMT_OFFSET_TYPES = {
         GMTOffsetPatternType.POSITIVE_HMS, GMTOffsetPatternType.NEGATIVE_HMS,
         GMTOffsetPatternType.POSITIVE_HM, GMTOffsetPatternType.NEGATIVE_HM,
+        GMTOffsetPatternType.POSITIVE_H, GMTOffsetPatternType.NEGATIVE_H,
     };
 
     private static final int MILLIS_PER_HOUR = 60 * 60 * 1000;
@@ -619,42 +722,73 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
     }
 
     /**
-     * Returns the RFC822 style time zone string for the given offset.
-     * For example, "-0800".
-     * 
-     * @param offset the offset from GMT(UTC) in milliseconds.
-     * @return the RFC822 style GMT(UTC) offset format.
-     * @see #parseOffsetRFC822(String, ParsePosition)
-     * @throws IllegalArgumentException if the specified offset is out of supported range
-     * (-24 hours &lt; offset &lt; +24 hours).
-     * @draft ICU 49
+     * TODO
+     * @param style
+     * @param offset
+     * @return
+     * @draft ICU 51
      * @provisional This API might change or be removed in a future release.
      */
-    public final String formatOffsetRFC822(int offset) {
-        // Note: OffsetFields.HMS as maxFields is an ICU extension. RFC822 specification
-        // defines exactly 4 digits for the offset field in HHss format.
-        return formatOffsetWithAsciiDigits(offset, null, OffsetFields.HM, OffsetFields.HMS);
-    }
+    public final String formatOffset(OffsetStyle style, int offset) {
+        if (style == OffsetStyle.LOCALIZED_SHORT) {
+            // TODO
+            return "";
+        } else if (style == OffsetStyle.LOCALIZED_LONG) {
+            // TODO
+            return "";
+        }
 
-    /**
-     * Returns the ISO 8601 style (extended format) time zone string for the given offset.
-     * For example, "-08:00" and "Z"
-     * 
-     * @param offset the offset from GMT(UTC) in milliseconds.
-     * @return the ISO 8601 style GMT(UTC) offset format.
-     * @see #parseOffsetISO8601(String, ParsePosition)
-     * @throws IllegalArgumentException if the specified offset is out of supported range
-     * (-24 hours &lt; offset &lt; +24 hours).
-     * @draft ICU 49
-     * @provisional This API might change or be removed in a future release.
-     */
-    public final String formatOffsetISO8601(int offset) {
-        if (offset == 0) {
+        // ISO style formats
+        if (offset == 0 &&
+                (style == OffsetStyle.ISO_BASIC_SHORT ||
+                 style == OffsetStyle.ISO_BASIC_FIXED ||
+                 style == OffsetStyle.ISO_BASIC_FULL ||
+                 style == OffsetStyle.ISO_EXTENDED_FIXED ||
+                 style == OffsetStyle.ISO_EXTENDED_FULL)) {
             return ISO8601_UTC;
         }
-        // Note: OffsetFields.HMS as maxFields is an ICU extension. ISO 8601 specification does
-        // not support second field.
-        return formatOffsetWithAsciiDigits(offset, ':', OffsetFields.HM, OffsetFields.HMS);
+
+        Character sep = null;
+        OffsetFields min = null;
+        OffsetFields max = null;
+
+        switch (style) {
+        case ISO_BASIC_SHORT:
+        case ISO_BASIC_LOCAL_SHORT:
+            min = OffsetFields.H;
+            max = OffsetFields.HM;
+            break;
+
+        case ISO_BASIC_FIXED:
+        case ISO_BASIC_LOCAL_FIXED:
+            min = OffsetFields.HM;
+            max = OffsetFields.HM;
+            break;
+
+        case ISO_BASIC_FULL:
+        case ISO_BASIC_LOCAL_FULL:
+            min = OffsetFields.HM;
+            max = OffsetFields.HMS;
+            break;
+
+        case ISO_EXTENDED_FIXED:
+        case ISO_EXTENDED_LOCAL_FIXED:
+            sep = ISO8601_EXTENDED_SEP;
+            min = OffsetFields.HM;
+            max = OffsetFields.HM;
+            break;
+
+        case ISO_EXTENDED_FULL:
+        case ISO_EXTENDED_LOCAL_FULL:
+            sep = ISO8601_EXTENDED_SEP;
+            min = OffsetFields.HM;
+            max = OffsetFields.HMS;
+            break;
+        }
+
+        assert(min != null && max != null);
+
+        return formatOffsetWithAsciiDigits(offset, sep, min, max);
     }
 
     /**
@@ -800,25 +934,20 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
         case SPECIFIC_SHORT:
             result = formatSpecific(tz, NameType.SHORT_STANDARD, NameType.SHORT_DAYLIGHT, date, timeType);
             break;
-        case RFC822:
-        case ISO8601:
-        case LOCALIZED_GMT:
-            // will be handled below
-            break;
         }
 
         if (result == null) {
             int[] offsets = {0, 0};
             tz.getOffset(date, false, offsets);
             switch (style) {
-            case RFC822:
-                result = formatOffsetRFC822(offsets[0] + offsets[1]);
+            case GENERIC_LOCATION:
+            case GENERIC_LONG:
+            case SPECIFIC_LONG:
+                result = formatOffset(OffsetStyle.LOCALIZED_LONG, offsets[0] + offsets[1]);
                 break;
-            case ISO8601:
-                result = formatOffsetISO8601(offsets[0] + offsets[1]);
-                break;
-            default: // Other than RFC822/ISO8601, including fallback from SPECIFIC_XXX/GENERIC_XXX
-                result = formatOffsetLocalizedGMT(offsets[0] + offsets[1]);
+            case GENERIC_SHORT:
+            case SPECIFIC_SHORT:
+                result = formatOffset(OffsetStyle.LOCALIZED_SHORT, offsets[0] + offsets[1]);
                 break;
             }
             // time type
@@ -830,6 +959,11 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
         assert(result != null);
 
         return result;
+    }
+
+    public final int parseOffset(OffsetStyle style, String text, ParsePosition pos) {
+        //TODO
+        return 0;
     }
 
     /**
