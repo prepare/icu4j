@@ -72,77 +72,134 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
      */
     public enum Style {
         /**
-         * Generic location format, such as "United States Time (New York)", "Italy Time"
+         * Generic location format, such as "United States Time (New York)" and "Italy Time".
+         * This style is equivalent to the LDML date format pattern "VVVV".
          * @draft ICU 49
          * @provisional This API might change or be removed in a future release.
          */
         GENERIC_LOCATION (0x0001),
         /**
          * Generic long non-location format, such as "Eastern Time".
+         * This style is equivalent to the LDML date format pattern "vvvv".
          * @draft ICU 49
          * @provisional This API might change or be removed in a future release.
          */
         GENERIC_LONG (0x0002),
         /**
          * Generic short non-location format, such as "ET".
+         * This style is equivalent to the LDML date format pattern "v".
          * @draft ICU 49
          * @provisional This API might change or be removed in a future release.
          */
         GENERIC_SHORT (0x0004),
         /**
          * Specific long format, such as "Eastern Standard Time".
+         * This style is equivalent to the LDML date format pattern "zzzz".
          * @draft ICU 49
          * @provisional This API might change or be removed in a future release.
          */
         SPECIFIC_LONG (0x0008),
         /**
          * Specific short format, such as "EST", "PDT".
+         * This style is equivalent to the LDML date format pattern "z".
          * @draft ICU 49
          * @provisional This API might change or be removed in a future release.
          */
         SPECIFIC_SHORT (0x0010),
         /**
          * Localized GMT offset format, such as "GMT-05:00", "UTC+0100"
+         * This style is equivalent to the LDML date format pattern "OOOO" and "ZZZZ"
          * @draft ICU 49
          * @provisional This API might change or be removed in a future release.
          */
         LOCALIZED_GMT (0x0020),
         /**
          * Short localized GMT offset format, such as "GMT-5", "UTC+1:30"
+         * This style is equivalent to the LDML date format pattern "O".
          * @draft ICU 51
          * @provisional This API might change or be removed in a future release.
          */
         LOCALIZED_GMT_SHORT (0x0040),
         /**
+         * Short ISO 8601 local time difference (basic format) or the UTC indicator.
+         * For example, "-05", "+0530", and "Z"(UTC).
+         * This style is equivalent to the LDML date format pattern "X".
          * @draft ICU 51
          * @provisional This API might change or be removed in a future release.
          */
         ISO_BASIC_SHORT (0x0080),
         /**
+         * Short ISO 8601 locale time difference (basic format).
+         * For example, "-05" and "+0530".
+         * This style is equivalent to the LDML date format pattern "x".
          * @draft ICU 51
          * @provisional This API might change or be removed in a future release.
          */
-        ISO_BASIC_FIXED (0x0100),
+        ISO_BASIC_LOCAL_SHORT (0x0100),
         /**
+         * Fixed width ISO 8601 local time difference (basic format) or the UTC indicator.
+         * For example, "-0500", "+0530", and "Z"(UTC).
+         * This style is equivalent to the LDML date format pattern "XX".
          * @draft ICU 51
          * @provisional This API might change or be removed in a future release.
          */
-        ISO_BASIC_FULL (0x0200),
+        ISO_BASIC_FIXED (0x0200),
         /**
+         * Fixed width ISO 8601 local time difference (basic format).
+         * For example, "-0500" and "+0530".
+         * This style is equivalent to the LDML date format pattern "xx".
          * @draft ICU 51
          * @provisional This API might change or be removed in a future release.
          */
-        ISO_EXTENDED_SHORT (0x0400),
+        ISO_BASIC_LOCAL_FIXED (0x0400),
         /**
+         * ISO 8601 local time difference (basic format) with optional seconds field, or the UTC indicator.
+         * For example, "-0500", "+052538", and "Z"(UTC).
+         * This style is equivalent to the LDML date format pattern "XXXX".
          * @draft ICU 51
          * @provisional This API might change or be removed in a future release.
          */
-        ISO_EXTENDED_FIXED (0x0800),
+        ISO_BASIC_FULL (0x0800),
         /**
+         * ISO 8601 local time difference (basic format) with optional seconds field.
+         * For example, "-0500" and "+052538".
+         * This style is equivalent to the LDML date format pattern "xxxx".
          * @draft ICU 51
          * @provisional This API might change or be removed in a future release.
          */
-        ISO_EXTENDED_FULL (0x1000);
+        ISO_BASIC_LOCAL_FULL (0x1000),
+        /**
+         * Fixed width ISO 8601 local time difference (extended format) or the UTC indicator.
+         * For example, "-05:00", "+05:30", and "Z"(UTC).
+         * This style is equivalent to the LDML date format pattern "XXX".
+         * @draft ICU 51
+         * @provisional This API might change or be removed in a future release.
+         */
+        ISO_EXTENDED_FIXED (0x2000),
+        /**
+         * Fixed width ISO 8601 local time difference (extended format).
+         * For example, "-05:00" and "+05:30".
+         * This style is equivalent to the LDML date format pattern "xxx" and "ZZZZZ".
+         * @draft ICU 51
+         * @provisional This API might change or be removed in a future release.
+         */
+        ISO_EXTENDED_LOCAL_FIXED (0x4000),
+        /**
+         * ISO 8601 local time difference (extended format) with optional seconds field, or the UTC indicator.
+         * For example, "-05:00", "+05:25:38", and "Z"(UTC).
+         * This style is equivalent to the LDML date format pattern "XXXXX".
+         * @draft ICU 51
+         * @provisional This API might change or be removed in a future release.
+         */
+        ISO_EXTENDED_FULL (0x8000),
+        /**
+         * ISO 8601 local time difference (extended format) with optional seconds field.
+         * For example, "-05:00" and "+05:25:38".
+         * This style is equivalent to the LDML date format pattern "xxxxx".
+         * @draft ICU 51
+         * @provisional This API might change or be removed in a future release.
+         */
+        ISO_EXTENDED_LOCAL_FULL (0x10000);
 
         final int flag;
     
@@ -161,29 +218,41 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
      */
     public enum GMTOffsetPatternType {
         /**
+         * Positive offset with hour field
+         * @draft ICU 51
+         * @provisional This API might change or be removed in a future release.
+         */
+        POSITIVE_H ("+H", "H", true),
+        /**
          * Positive offset with hour and minute fields
          * @draft ICU 49
          * @provisional This API might change or be removed in a future release.
          */
-        POSITIVE_HM ("+HH:mm", "Hm", true),
+        POSITIVE_HM ("+H:mm", "Hm", true),
         /**
          * Positive offset with hour, minute and second fields
          * @draft ICU 49
          * @provisional This API might change or be removed in a future release.
          */
-        POSITIVE_HMS ("+HH:mm:ss", "Hms", true),
+        POSITIVE_HMS ("+H:mm:ss", "Hms", true),
+        /**
+         * Positive offset with hour field
+         * @draft ICU 51
+         * @provisional This API might change or be removed in a future release.
+         */
+        NEGATIVE_H ("-H", "Hm", true),
         /**
          * Negative offset with hour and minute fields
          * @draft ICU 49
          * @provisional This API might change or be removed in a future release.
          */
-        NEGATIVE_HM ("-HH:mm", "Hm", false),
+        NEGATIVE_HM ("-H:mm", "Hm", false),
         /**
          * Negative offset with hour, minute and second fields
          * @draft ICU 49
          * @provisional This API might change or be removed in a future release.
          */
-        NEGATIVE_HMS ("-HH:mm:ss", "Hms", false);
+        NEGATIVE_HMS ("-H:mm:ss", "Hms", false);
 
         private String _defaultPattern;
         private String _required;
@@ -643,42 +712,43 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
     }
 
     /**
-     * Returns the RFC822 style time zone string for the given offset.
-     * For example, "-0800".
+     * Returns the ISO 8601 basic time zone string for the given offset.
+     * For example, "-08", "-0830" and "Z"
      * 
      * @param offset the offset from GMT(UTC) in milliseconds.
-     * @return the RFC822 style GMT(UTC) offset format.
-     * @see #parseOffsetRFC822(String, ParsePosition)
+     * @param useUtcIndicator true if ISO 8601 UTC indicator "Z" is used when the offset is 0.
+     * @param isShort true if shortest form is used.
+     * @param ignoreSeconds true if non-zero offset seconds is appended.
+     * @return the ISO 8601 basic format.
      * @throws IllegalArgumentException if the specified offset is out of supported range
      * (-24 hours &lt; offset &lt; +24 hours).
-     * @draft ICU 49
+     * @see #formatOffsetISO8601Extended(int, boolean, boolean, boolean)
+     * @see #parseOffsetISO8601(String, ParsePosition)
+     * @draft ICU 51
      * @provisional This API might change or be removed in a future release.
      */
-    public final String formatOffsetRFC822(int offset) {
-        // Note: OffsetFields.HMS as maxFields is an ICU extension. RFC822 specification
-        // defines exactly 4 digits for the offset field in HHss format.
-        return formatOffsetWithAsciiDigits(offset, null, OffsetFields.HM, OffsetFields.HMS);
+    public final String formatOffsetISO8601Basic(int offset, boolean useUtcIndicator, boolean isShort, boolean ignoreSeconds) {
+        return formatOffsetISO8601(offset, true, useUtcIndicator, isShort, ignoreSeconds);
     }
 
     /**
-     * Returns the ISO 8601 style (extended format) time zone string for the given offset.
-     * For example, "-08:00" and "Z"
+     * Returns the ISO 8601 extended time zone string for the given offset.
+     * For example, "-08:00", "-08:30" and "Z"
      * 
      * @param offset the offset from GMT(UTC) in milliseconds.
-     * @return the ISO 8601 style GMT(UTC) offset format.
-     * @see #parseOffsetISO8601(String, ParsePosition)
+     * @param useUtcIndicator true if ISO 8601 UTC indicator "Z" is used when the offset is 0.
+     * @param isShort true if shortest form is used.
+     * @param ignoreSeconds true if non-zero offset seconds is appended.
+     * @return the ISO 8601 extended format.
      * @throws IllegalArgumentException if the specified offset is out of supported range
      * (-24 hours &lt; offset &lt; +24 hours).
-     * @draft ICU 49
+     * @see #formatOffsetISO8601Basic(int, boolean, boolean, boolean)
+     * @see #parseOffsetISO8601(String, ParsePosition)
+     * @draft ICU 51
      * @provisional This API might change or be removed in a future release.
      */
-    public final String formatOffsetISO8601(int offset) {
-        if (offset == 0) {
-            return ISO8601_UTC;
-        }
-        // Note: OffsetFields.HMS as maxFields is an ICU extension. ISO 8601 specification does
-        // not support second field.
-        return formatOffsetWithAsciiDigits(offset, ':', OffsetFields.HM, OffsetFields.HMS);
+    public final String formatOffsetISO8601Extended(int offset, boolean useUtcIndicator, boolean isShort, boolean ignoreSeconds) {
+        return formatOffsetISO8601(offset, false, useUtcIndicator, isShort, ignoreSeconds);
     }
 
     /**
@@ -690,6 +760,9 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
      * <li>Offset digits (e.g. "0123456789" - see {@link #getGMTOffsetDigits()})
      * <li>GMT zero format (e.g. "GMT" - see {@link #getGMTZeroFormat()})
      * </ul>
+     * This format always includes 2 digit hours and minutes. When the given offset has non-zero
+     * seconds field, 2 digit seconds field will be appended. For example,
+     * GMT+05:00 and GMT+05:28:06.
      * @param offset the offset from GMT(UTC) in milliseconds.
      * @return the localized GMT format string
      * @see #parseOffsetLocalizedGMT(String, ParsePosition)
@@ -699,63 +772,31 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
      * @provisional This API might change or be removed in a future release.
      */
     public String formatOffsetLocalizedGMT(int offset) {
-        if (offset == 0) {
-            return _gmtZeroFormat;
-        }
+        return formatOffsetLocalizedGMT(offset, false);
+    }
 
-        StringBuilder buf = new StringBuilder();
-        boolean positive = true;
-        if (offset < 0) {
-            offset = -offset;
-            positive = false;
-        }
-
-        int offsetH = offset / MILLIS_PER_HOUR;
-        offset = offset % MILLIS_PER_HOUR;
-        int offsetM = offset / MILLIS_PER_MINUTE;
-        offset = offset % MILLIS_PER_MINUTE;
-        int offsetS = offset / MILLIS_PER_SECOND;
-
-        if (offsetH > MAX_OFFSET_HOUR || offsetM > MAX_OFFSET_MINUTE || offsetS > MAX_OFFSET_SECOND) {
-            throw new IllegalArgumentException("Offset out of range :" + offset);
-        }
-
-        Object[] offsetPatternItems;
-        if (positive) {
-            offsetPatternItems = (offsetS == 0) ?
-                    _gmtOffsetPatternItems[GMTOffsetPatternType.POSITIVE_HM.ordinal()] :
-                    _gmtOffsetPatternItems[GMTOffsetPatternType.POSITIVE_HMS.ordinal()];
-        } else {
-            offsetPatternItems = (offsetS == 0) ?
-                    _gmtOffsetPatternItems[GMTOffsetPatternType.NEGATIVE_HM.ordinal()] :
-                    _gmtOffsetPatternItems[GMTOffsetPatternType.NEGATIVE_HMS.ordinal()];
-        }
-
-        // Building the GMT format string
-        buf.append(_gmtPatternPrefix);
-
-        for (Object item : offsetPatternItems) {
-            if (item instanceof String) {
-                // pattern literal
-                buf.append((String)item);
-            } else if (item instanceof GMTOffsetField) {
-                // Hour/minute/second field
-                GMTOffsetField field = (GMTOffsetField)item;
-                switch (field.getType()) {
-                case 'H':
-                    appendOffsetDigits(buf, offsetH, field.getWidth());
-                    break;
-                case 'm':
-                    appendOffsetDigits(buf, offsetM, field.getWidth());
-                    break;
-                case 's':
-                    appendOffsetDigits(buf, offsetS, field.getWidth());
-                    break;
-                }
-            }
-        }
-        buf.append(_gmtPatternSuffix);
-        return buf.toString();
+    /**
+     * Returns the short localized GMT(UTC) offset format for the given offset.
+     * The short localized GMT offset is defined by;
+     * <ul>
+     * <li>GMT format pattern (e.g. "GMT {0}" - see {@link #getGMTPattern()})
+     * <li>Offset time pattern (e.g. "+HH:mm" - see {@link #getGMTOffsetPattern(GMTOffsetPatternType)})
+     * <li>Offset digits (e.g. "0123456789" - see {@link #getGMTOffsetDigits()})
+     * <li>GMT zero format (e.g. "GMT" - see {@link #getGMTZeroFormat()})
+     * </ul>
+     * This format uses the shortest representation of offset. The hour field does not
+     * have leading zero and lower fields with zero will be truncated. For example,
+     * GMT+5 and GMT+530.
+     * @param offset the offset from GMT(UTC) in milliseconds.
+     * @return the short localized GMT format string
+     * @see #parseOffsetLocalizedGMT(String, ParsePosition)
+     * @throws IllegalArgumentException if the specified offset is out of supported range
+     * (-24 hours &lt; offset &lt; +24 hours).
+     * @draft ICU 51
+     * @provisional This API might change or be removed in a future release.
+     */
+    public String formatOffsetShortLocalizedGMT(int offset) {
+        return formatOffsetLocalizedGMT(offset, true);
     }
 
     /**
@@ -824,9 +865,7 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
         case SPECIFIC_SHORT:
             result = formatSpecific(tz, NameType.SHORT_STANDARD, NameType.SHORT_DAYLIGHT, date, timeType);
             break;
-        case RFC822:
-        case ISO8601:
-        case LOCALIZED_GMT:
+        default:
             // will be handled below
             break;
         }
@@ -834,15 +873,60 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
         if (result == null) {
             int[] offsets = {0, 0};
             tz.getOffset(date, false, offsets);
+            int offset = offsets[0] + offsets[1];
+
             switch (style) {
-            case RFC822:
-                result = formatOffsetRFC822(offsets[0] + offsets[1]);
+            case GENERIC_LOCATION:
+            case GENERIC_LONG:
+            case SPECIFIC_LONG:
+            case LOCALIZED_GMT:
+                result = formatOffsetLocalizedGMT(offset);
                 break;
-            case ISO8601:
-                result = formatOffsetISO8601(offsets[0] + offsets[1]);
+
+            case GENERIC_SHORT:
+            case SPECIFIC_SHORT:
+            case LOCALIZED_GMT_SHORT:
+                result = formatOffsetShortLocalizedGMT(offset);
                 break;
-            default: // Other than RFC822/ISO8601, including fallback from SPECIFIC_XXX/GENERIC_XXX
-                result = formatOffsetLocalizedGMT(offsets[0] + offsets[1]);
+
+            case ISO_BASIC_SHORT:
+                result = formatOffsetISO8601Basic(offset, true, true, true);
+                break;
+
+            case ISO_BASIC_LOCAL_SHORT:
+                result = formatOffsetISO8601Basic(offset, false, true, true);
+                break;
+
+            case ISO_BASIC_FIXED:
+                result = formatOffsetISO8601Basic(offset, true, false, true);
+                break;
+
+            case ISO_BASIC_LOCAL_FIXED:
+                result = formatOffsetISO8601Basic(offset, false, false, true);
+                break;
+
+            case ISO_BASIC_FULL:
+                result = formatOffsetISO8601Basic(offset, true, false, false);
+                break;
+
+            case ISO_BASIC_LOCAL_FULL:
+                result = formatOffsetISO8601Basic(offset, false, false, false);
+                break;
+
+            case ISO_EXTENDED_FIXED:
+                result = formatOffsetISO8601Extended(offset, true, false, true);
+                break;
+
+            case ISO_EXTENDED_LOCAL_FIXED:
+                result = formatOffsetISO8601Extended(offset, false, false, true);
+                break;
+
+            case ISO_EXTENDED_FULL:
+                result = formatOffsetISO8601Extended(offset, true, false, false);
+                break;
+
+            case ISO_EXTENDED_LOCAL_FULL:
+                result = formatOffsetISO8601Extended(offset, false, false, false);
                 break;
             }
             // time type
@@ -857,64 +941,18 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
     }
 
     /**
-     * Returns offset from GMT(UTC) in milliseconds for the given RFC822
-     * style time zone string. When the given string is not an RFC822 time zone
-     * string, this method sets the current position as the error index
-     * to <code>ParsePosition pos</code> and returns 0.
-     * 
-     * @param text the text contains RFC822 style time zone string (e.g. "-0800")
-     * at the position.
-     * @param pos the position.
-     * @return the offset from GMT(UTC) in milliseconds for the given RFC822 style
-     * time zone string.
-     * @see #formatOffsetRFC822(int)
-     * @draft ICU 49
-     * @provisional This API might change or be removed in a future release.
-     */
-    public final int parseOffsetRFC822(String text, ParsePosition pos) {
-        int start = pos.getIndex();
-        if (start >= text.length()) {
-            pos.setErrorIndex(start);
-            return 0;
-        }
-
-        int sign;
-        char signChar = text.charAt(start);
-        if (signChar == '+') {
-            sign = 1;
-        } else if (signChar == '-') {
-            sign = -1;
-        } else {
-            // Not an RFC822 offset string
-            pos.setErrorIndex(start);
-            return 0;
-        }
-
-        // Parse digits
-        pos.setIndex(start + 1);
-        int offset = parseAbuttingAsciiOffsetFields(text, pos, OffsetFields.H, OffsetFields.HMS, false);
-
-        if (pos.getErrorIndex() != -1) {
-            pos.setIndex(start);    // reset
-            pos.setErrorIndex(start);
-            return 0;
-        }
-
-        return sign * offset;
-    }
-
-    /**
-     * Returns offset from GMT(UTC) in milliseconds for the given ISO 8601 style
-     * (extended format) time zone string. When the given string is not an ISO 8601 time
+     * Returns offset from GMT(UTC) in milliseconds for the given ISO 8601
+     * basic or extended time zone string. When the given string is not an ISO 8601 time
      * zone string, this method sets the current position as the error index
      * to <code>ParsePosition pos</code> and returns 0.
      * 
-     * @param text the text contains ISO 8601 style time zone string (e.g. "-08:00", "Z")
+     * @param text the text contains ISO 8601 style time zone string (e.g. "-08", "-0800", "-08:00", and "Z")
      * at the position.
      * @param pos the position.
      * @return the offset from GMT(UTC) in milliseconds for the given ISO 8601 style
      * time zone string.
-     * @see #formatOffsetISO8601(int)
+     * @see #formatOffsetISO8601Basic(int, boolean, boolean, boolean)
+     * @see #formatOffsetISO8601Extended(int, boolean, boolean, boolean)
      * @draft ICU 49
      * @provisional This API might change or be removed in a future release.
      */
@@ -937,7 +975,25 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
      * @provisional This API might change or be removed in a future release.
      */
     public int parseOffsetLocalizedGMT(String text, ParsePosition pos) {
-        return parseOffsetLocalizedGMT(text, pos, null);
+        return parseOffsetLocalizedGMT(text, false, pos, null);
+    }
+
+    /**
+     * Returns offset from GMT(UTC) in milliseconds for the given short localized GMT
+     * offset format string. When the given string cannot be parsed, this method
+     * sets the current position as the error index to <code>ParsePosition pos</code>
+     * and returns 0.
+     * 
+     * @param text the text contains a short localized GMT offset string at the position.
+     * @param pos the position.
+     * @return the offset from GMT(UTC) in milliseconds for the given short localized GMT
+     * offset format string.
+     * @see #formatOffsetShortLocalizedGMT(int)
+     * @draft ICU 51
+     * @provisional This API might change or be removed in a future release.
+     */
+    public int parseOffsetShortLocalizedGMT(String text, ParsePosition pos) {
+        return parseOffsetLocalizedGMT(text, true, pos, null);
     }
 
     /**
@@ -1342,6 +1398,140 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
         return parse(source, pos);
     }
 
+    /**
+     * Private method used for localized GMT formatting.
+     * @param offset the zone's UTC offset
+     * @param isShort true if the short localized GMT format is desired
+     * @return the localized GMT string
+     */
+    private String formatOffsetLocalizedGMT(int offset, boolean isShort) {
+        if (offset == 0) {
+            return _gmtZeroFormat;
+        }
+
+        StringBuilder buf = new StringBuilder();
+        boolean positive = true;
+        if (offset < 0) {
+            offset = -offset;
+            positive = false;
+        }
+
+        int offsetH = offset / MILLIS_PER_HOUR;
+        offset = offset % MILLIS_PER_HOUR;
+        int offsetM = offset / MILLIS_PER_MINUTE;
+        offset = offset % MILLIS_PER_MINUTE;
+        int offsetS = offset / MILLIS_PER_SECOND;
+
+        if (offsetH > MAX_OFFSET_HOUR || offsetM > MAX_OFFSET_MINUTE || offsetS > MAX_OFFSET_SECOND) {
+            throw new IllegalArgumentException("Offset out of range :" + offset);
+        }
+
+        Object[] offsetPatternItems;
+        if (positive) {
+            if (offsetS != 0) {
+                offsetPatternItems = _gmtOffsetPatternItems[GMTOffsetPatternType.POSITIVE_HMS.ordinal()];
+            } else if (offsetM != 0 || !isShort) {
+                offsetPatternItems = _gmtOffsetPatternItems[GMTOffsetPatternType.POSITIVE_HM.ordinal()];
+            } else {
+                offsetPatternItems = _gmtOffsetPatternItems[GMTOffsetPatternType.POSITIVE_H.ordinal()];
+            }
+        } else {
+            if (offsetS != 0) {
+                offsetPatternItems = _gmtOffsetPatternItems[GMTOffsetPatternType.NEGATIVE_HMS.ordinal()];
+            } else if (offsetM != 0 || !isShort) {
+                offsetPatternItems = _gmtOffsetPatternItems[GMTOffsetPatternType.NEGATIVE_HM.ordinal()];
+            } else {
+                offsetPatternItems = _gmtOffsetPatternItems[GMTOffsetPatternType.NEGATIVE_H.ordinal()];
+            }
+        }
+
+        // Building the GMT format string
+        buf.append(_gmtPatternPrefix);
+
+        for (Object item : offsetPatternItems) {
+            if (item instanceof String) {
+                // pattern literal
+                buf.append((String)item);
+            } else if (item instanceof GMTOffsetField) {
+                // Hour/minute/second field
+                GMTOffsetField field = (GMTOffsetField)item;
+                switch (field.getType()) {
+                case 'H':
+                    appendOffsetDigits(buf, offsetH, (isShort ? 1 : 2));
+                    break;
+                case 'm':
+                    appendOffsetDigits(buf, offsetM, 2);
+                    break;
+                case 's':
+                    appendOffsetDigits(buf, offsetS, 2);
+                    break;
+                }
+            }
+        }
+        buf.append(_gmtPatternSuffix);
+        return buf.toString();
+    }
+
+    /**
+     * Numeric offset field combinations
+     */
+    private enum OffsetFields {
+        H, HM, HMS
+    }
+
+    private String formatOffsetISO8601(int offset, boolean isBasic, boolean useUtcIndicator, boolean isShort, boolean ignoreSeconds) {
+        if (useUtcIndicator && (offset < MILLIS_PER_SECOND || ignoreSeconds && offset < MILLIS_PER_MINUTE)) {
+            return ISO8601_UTC;
+        }
+        OffsetFields minFields = isShort ? OffsetFields.H : OffsetFields.HM;
+        OffsetFields maxFields = ignoreSeconds ? OffsetFields.HM : OffsetFields.HMS;
+        Character sep = isBasic ? null : ':';
+
+        // Note: OffsetFields.HMS as maxFields is an ICU extension. ISO 8601 specification does
+        // not support second field.
+
+        if (Math.abs(offset) >= MAX_OFFSET) {
+            throw new IllegalArgumentException("Offset out of range :" + offset);
+        }
+
+        StringBuilder buf = new StringBuilder();
+        char sign = '+';
+        if (offset < 0) {
+            sign = '-';
+            offset = -offset;
+        }
+        buf.append(sign);
+
+        int[] fields = new int[3];
+        fields[0] = offset / MILLIS_PER_HOUR;
+        offset = offset % MILLIS_PER_HOUR;
+        fields[1] = offset / MILLIS_PER_MINUTE;
+        offset = offset % MILLIS_PER_MINUTE;
+        fields[2] = offset / MILLIS_PER_SECOND;
+
+        assert(fields[0] >= 0 && fields[0] <= MAX_OFFSET_HOUR);
+        assert(fields[1] >= 0 && fields[1] <= MAX_OFFSET_MINUTE);
+        assert(fields[2] >= 0 && fields[2] <= MAX_OFFSET_SECOND);
+
+        int lastIdx = maxFields.ordinal();
+        while (lastIdx > minFields.ordinal()) {
+            if (fields[lastIdx] != 0) {
+                break;
+            }
+            lastIdx--;
+        }
+
+        for (int idx = 0; idx <= lastIdx; idx++) {
+            if (sep != null && idx != 0) {
+                buf.append(sep);
+            }
+            if (fields[idx] < 10) {
+                buf.append('0');
+            }
+            buf.append(fields[idx]);
+        }
+        return buf.toString();
+    }
 
     /**
      * Private method returning the time zone's specific format string.
@@ -1527,19 +1717,13 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
             return _type;
         }
 
+        @SuppressWarnings("unused")
         int getWidth() {
             return _width;
         }
 
         static boolean isValid(char type, int width) {
-            switch (type) {
-            case 'H':
-                return (width == 1 || width == 2);
-            case 'm':
-            case 's':
-                return (width == 2);
-            }
-            return false;
+            return (width == 1 ||  width == 2);
         }
     }
 
@@ -1709,60 +1893,40 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
      * and returns 0.
      * 
      * @param text the text contains a localized GMT offset string at the position.
+     * @param isShort true if this parser to try the short format first
      * @param pos the position.
      * @param hasDigitOffset receiving if the parsed zone string contains offset digits.
      * @return the offset from GMT(UTC) in milliseconds for the given localized GMT
      * offset format string.
      */
-    private int parseOffsetLocalizedGMT(String text, ParsePosition pos, Output<Boolean> hasDigitOffset) {
+    private int parseOffsetLocalizedGMT(String text, boolean isShort, ParsePosition pos, Output<Boolean> hasDigitOffset) {
         int start = pos.getIndex();
-        int idx = start;
-        boolean parsed = false;
         int offset = 0;
+        int[] parsedLength = {0};
 
         if (hasDigitOffset != null) {
             hasDigitOffset.value = false;
         }
 
-        do {
-            // Prefix part
-            int len = _gmtPatternPrefix.length();
-            if (len > 0 && !text.regionMatches(true, idx, _gmtPatternPrefix, 0, len)) {
-                // prefix match failed
-                break;
-            }
-            idx += len;
+        offset = parseOffsetLocalizedGMTPattern(text, start, isShort, parsedLength);
 
-            // Offset part
-            int[] offsetLen = new int[1];
-            offset = parseOffsetFields(text, idx, false, offsetLen);
-            if (offsetLen[0] == 0) {
-                // offset field match failed
-                break;
-            }
-            idx += offsetLen[0];
+        // For now, parseOffsetLocalizedGMTPattern handles both long and short
+        // formats, no matter isShort is true or false. This might be changed in future
+        // when strict parsing is necessary, or different set of patterns are used for
+        // short/long formats.
+//        if (parsedLength[0] == 0) {
+//            offset = parseOffsetLocalizedGMTPattern(text, start, !isShort, parsedLength);
+//        }
 
-            // Suffix part
-            len = _gmtPatternSuffix.length();
-            if (len > 0 && !text.regionMatches(true, idx, _gmtPatternSuffix, 0, len)) {
-                // no suffix match
-                break;
-            }
-            idx += len;
-            parsed = true;
-
-        } while (false);
-
-        if (parsed) {
+        if (parsedLength[0] > 0) {
             if (hasDigitOffset != null) {
                 hasDigitOffset.value = true;
             }
-            pos.setIndex(idx);
+            pos.setIndex(start + parsedLength[0]);
             return offset;
         }
 
         // Try the default patterns
-        int[] parsedLength = {0};
         offset = parseOffsetDefaultLocalizedGMT(text, start, parsedLength);
         if (parsedLength[0] > 0) {
             if (hasDigitOffset != null) {
@@ -1789,6 +1953,52 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
         // Nothing matched
         pos.setErrorIndex(start);
         return 0;
+    }
+
+    /**
+     * Parse localized GMT format generated by the pattern used by this formatter, except
+     * GMT Zero format.
+     * @param text the input text
+     * @param start the start index
+     * @param isShort true if the short localized GMT format is parsed - currently not used.
+     * @param parsedLen the parsed length, or 0 on failure.
+     * @return the parsed offset in milliseconds.
+     */
+    private int parseOffsetLocalizedGMTPattern(String text, int start, boolean isShort, int[] parsedLen) {
+        int idx = start;
+        int offset = 0;
+        boolean parsed = false;
+
+        do {
+            // Prefix part
+            int len = _gmtPatternPrefix.length();
+            if (len > 0 && !text.regionMatches(true, idx, _gmtPatternPrefix, 0, len)) {
+                // prefix match failed
+                break;
+            }
+            idx += len;
+    
+            // Offset part
+            int[] offsetLen = new int[1];
+            offset = parseOffsetFields(text, idx, false, offsetLen);
+            if (offsetLen[0] == 0) {
+                // offset field match failed
+                break;
+            }
+            idx += offsetLen[0];
+    
+            // Suffix part
+            len = _gmtPatternSuffix.length();
+            if (len > 0 && !text.regionMatches(true, idx, _gmtPatternSuffix, 0, len)) {
+                // no suffix match
+                break;
+            }
+            idx += len;
+            parsed = true;
+        } while (false);
+
+        parsedLen[0] = parsed ? idx - start : 0;
+        return offset;
     }
 
     /**
@@ -2181,12 +2391,12 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
 
 
     /**
-     * Returns offset from GMT(UTC) in milliseconds for the given ISO 8601 style
-     * (extended format) time zone string. When the given string is not an ISO 8601 time
+     * Returns offset from GMT(UTC) in milliseconds for the given ISO 8601 time zone string
+     * (basic format, extended format, or UTC indicator). When the given string is not an ISO 8601 time
      * zone string, this method sets the current position as the error index
      * to <code>ParsePosition pos</code> and returns 0.
      * 
-     * @param text the text contains ISO 8601 style time zone string (e.g. "-08:00", "Z")
+     * @param text the text contains ISO 8601 style time zone string (e.g. "-08", "-08:00", "Z")
      * at the position.
      * @param pos the position.
      * @param extendedOnly <code>true</code> if parsing the text as ISO 8601 extended offset format (e.g. "-08:00"),
@@ -2246,69 +2456,6 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
             hasDigitOffset.value = true;
         }
         return sign * offset;
-    }
-
-    /**
-     * Numeric offset field combinations
-     */
-    private enum OffsetFields {
-        H, HM, HMS
-    }
-
-    /**
-     * Formats offset using ASCII digits
-     * @param offset The offset
-     * @param sep The field separator character or null if not required
-     * @param minFields The minimum fields
-     * @param maxFields The maximum fields
-     * @return The offset string
-     * @throws IllegalArgumentException if the specified offset is out of supported range
-     * (-24 hours &lt; offset &lt; +24 hours).
-     */
-    private static String formatOffsetWithAsciiDigits(int offset, Character sep, OffsetFields minFields, OffsetFields maxFields) {
-        assert maxFields.ordinal() >= minFields.ordinal();
-
-        if (Math.abs(offset) >= MAX_OFFSET) {
-            throw new IllegalArgumentException("Offset out of range :" + offset);
-        }
-
-        StringBuilder buf = new StringBuilder();
-        char sign = '+';
-        if (offset < 0) {
-            sign = '-';
-            offset = -offset;
-        }
-        buf.append(sign);
-
-        int[] fields = new int[3];
-        fields[0] = offset / MILLIS_PER_HOUR;
-        offset = offset % MILLIS_PER_HOUR;
-        fields[1] = offset / MILLIS_PER_MINUTE;
-        offset = offset % MILLIS_PER_MINUTE;
-        fields[2] = offset / MILLIS_PER_SECOND;
-
-        assert(fields[0] >= 0 && fields[0] <= MAX_OFFSET_HOUR);
-        assert(fields[1] >= 0 && fields[1] <= MAX_OFFSET_MINUTE);
-        assert(fields[2] >= 0 && fields[2] <= MAX_OFFSET_SECOND);
-
-        int lastIdx = maxFields.ordinal();
-        while (lastIdx > minFields.ordinal()) {
-            if (fields[lastIdx] != 0) {
-                break;
-            }
-            lastIdx--;
-        }
-
-        for (int idx = 0; idx <= lastIdx; idx++) {
-            if (sep != null && idx != 0) {
-                buf.append(sep);
-            }
-            if (fields[idx] < 10) {
-                buf.append('0');
-            }
-            buf.append(fields[idx]);
-        }
-        return buf.toString();
     }
 
     /**
