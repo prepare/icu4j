@@ -573,7 +573,7 @@ abstract public class TimeZone implements Serializable, Cloneable, Freezable<Tim
                 result = tzfmt.formatOffsetLocalizedGMT(offset);
                 break;
             case SHORT_GMT:
-                result = tzfmt.formatOffsetRFC822(offset);
+                result = tzfmt.formatOffsetISO8601Basic(offset, false, false, true);
                 break;
             }
         } else {
