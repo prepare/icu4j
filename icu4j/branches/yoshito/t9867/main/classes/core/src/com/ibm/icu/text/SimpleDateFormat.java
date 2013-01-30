@@ -1129,7 +1129,7 @@ public class SimpleDateFormat extends DateFormat {
         {
             if (count < 4) {
                 // RFC822 format - equivalent to ISO 8601 local offset fixed width format
-                result = tzFormat().format(Style.ISO_BASIC_LOCAL_FIXED, tz, date);
+                result = tzFormat().format(Style.ISO_BASIC_LOCAL_FULL, tz, date);
             } else if (count == 5) {
                 // ISO 8601 extended format
                 result = tzFormat().format(Style.ISO_EXTENDED_FULL, tz, date);
@@ -2413,7 +2413,7 @@ public class SimpleDateFormat extends DateFormat {
             case 23: // 'Z' - TIMEZONE_RFC
             {
                 Output<TimeType> tzTimeType = new Output<TimeType>();
-                Style style = (count < 4) ? Style.ISO_BASIC_LOCAL_FIXED : ((count == 5) ? Style.ISO_EXTENDED_FULL : Style.LOCALIZED_GMT);
+                Style style = (count < 4) ? Style.ISO_BASIC_LOCAL_FULL : ((count == 5) ? Style.ISO_EXTENDED_FULL : Style.LOCALIZED_GMT);
                 TimeZone tz = tzFormat().parse(style, text, pos, tzTimeType);
                 if (tz != null) {
                     tztype = tzTimeType.value;
