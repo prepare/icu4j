@@ -561,7 +561,8 @@ abstract public class TimeZone implements Serializable, Cloneable, Freezable<Tim
             if (daylight && timeType.value == TimeType.STANDARD ||
                     !daylight && timeType.value == TimeType.DAYLIGHT) {
                 int offset = daylight ? getRawOffset() + getDSTSavings() : getRawOffset();
-                result = tzfmt.formatOffsetLocalizedGMT(offset);
+                result = (style == SHORT_GENERIC) ?
+                        tzfmt.formatOffsetShortLocalizedGMT(offset) : tzfmt.formatOffsetLocalizedGMT(offset);
             }
 
         } else if (style == LONG_GMT || style == SHORT_GMT) {
@@ -573,7 +574,7 @@ abstract public class TimeZone implements Serializable, Cloneable, Freezable<Tim
                 result = tzfmt.formatOffsetLocalizedGMT(offset);
                 break;
             case SHORT_GMT:
-                result = tzfmt.formatOffsetISO8601Basic(offset, false, false, true);
+                result = tzfmt.formatOffsetISO8601Basic(offset, false, false, false);
                 break;
             }
         } else {
@@ -598,7 +599,8 @@ abstract public class TimeZone implements Serializable, Cloneable, Freezable<Tim
                 // Fallback to localized GMT
                 TimeZoneFormat tzfmt = TimeZoneFormat.getInstance(locale);
                 int offset = daylight && useDaylightTime() ? getRawOffset() + getDSTSavings() : getRawOffset();
-                result = tzfmt.formatOffsetLocalizedGMT(offset);
+                result = (style == LONG) ?
+                        tzfmt.formatOffsetLocalizedGMT(offset) : tzfmt.formatOffsetShortLocalizedGMT(offset);
             }
         }
         assert(result != null);

@@ -159,7 +159,7 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                                         numDigits++;
                                     }
                                 }
-                                isOffsetFormat = (numDigits >= 3);
+                                isOffsetFormat = (numDigits > 0);
                             }
 
                             if (isOffsetFormat || tzstr.equals(localGMTString)) {
@@ -380,12 +380,12 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             {"Z",                   0,          "en_US",    Style.SPECIFIC_LONG,        false,      "Etc/GMT",          1,          TimeType.UNKNOWN},
             {"Zambia time",         0,          "en_US",    Style.ISO_EXTENDED_FULL,    true,       "Etc/GMT",          1,          TimeType.UNKNOWN},
             {"Zambia time",         0,          "en_US",    Style.GENERIC_LOCATION,     false,      "Africa/Lusaka",    11,         TimeType.UNKNOWN},
-            {"Zambia time",         0,          "en_US",    Style.ISO_BASIC_LOCAL_FIXED,true,       "Africa/Lusaka",    11,         TimeType.UNKNOWN},
+            {"Zambia time",         0,          "en_US",    Style.ISO_BASIC_LOCAL_FULL, true,       "Africa/Lusaka",    11,         TimeType.UNKNOWN},
             {"+00:00",              0,          "en_US",    Style.ISO_EXTENDED_FULL,    false,      "Etc/GMT",          6,          TimeType.UNKNOWN},
             {"-01:30:45",           0,          "en_US",    Style.ISO_EXTENDED_FULL,    false,      "GMT-01:30:45",     9,          TimeType.UNKNOWN},
-            {"-7",                  0,          "en_US",    Style.ISO_BASIC_LOCAL_FIXED,false,      "GMT-07:00",        2,          TimeType.UNKNOWN},
-            {"-2222",               0,          "en_US",    Style.ISO_BASIC_LOCAL_FIXED,false,      "GMT-22:22",        5,          TimeType.UNKNOWN},
-            {"-3333",               0,          "en_US",    Style.ISO_BASIC_LOCAL_FIXED,false,      "GMT-03:33",        4,          TimeType.UNKNOWN},
+            {"-7",                  0,          "en_US",    Style.ISO_BASIC_LOCAL_FULL, false,      "GMT-07:00",        2,          TimeType.UNKNOWN},
+            {"-2222",               0,          "en_US",    Style.ISO_BASIC_LOCAL_FULL, false,      "GMT-22:22",        5,          TimeType.UNKNOWN},
+            {"-3333",               0,          "en_US",    Style.ISO_BASIC_LOCAL_FULL, false,      "GMT-03:33",        4,          TimeType.UNKNOWN},
             {"XXX+01:30YYY",        3,          "en_US",    Style.LOCALIZED_GMT,        false,      "GMT+01:30",        9,          TimeType.UNKNOWN},
             {"GMT0",                0,          "en_US",    Style.SPECIFIC_SHORT,       false,      "Etc/GMT",          3,          TimeType.UNKNOWN},
             {"EST",                 0,          "en_US",    Style.SPECIFIC_SHORT,       false,      "America/New_York", 3,          TimeType.STANDARD},

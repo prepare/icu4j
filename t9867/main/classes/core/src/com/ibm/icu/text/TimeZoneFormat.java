@@ -255,7 +255,7 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
          * @draft ICU 51
          * @provisional This API might change or be removed in a future release.
          */
-        NEGATIVE_H ("-H", "H", true);
+        NEGATIVE_H ("-H", "H", false);
 
         private String _defaultPattern;
         private String _required;
@@ -368,6 +368,7 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
     private static final GMTOffsetPatternType[] PARSE_GMT_OFFSET_TYPES = {
         GMTOffsetPatternType.POSITIVE_HMS, GMTOffsetPatternType.NEGATIVE_HMS,
         GMTOffsetPatternType.POSITIVE_HM, GMTOffsetPatternType.NEGATIVE_HM,
+        GMTOffsetPatternType.POSITIVE_H, GMTOffsetPatternType.NEGATIVE_H,
     };
 
     private static final int MILLIS_PER_HOUR = 60 * 60 * 1000;
@@ -1499,7 +1500,8 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
     }
 
     private String formatOffsetISO8601(int offset, boolean isBasic, boolean useUtcIndicator, boolean isShort, boolean ignoreSeconds) {
-        if (useUtcIndicator && (offset < MILLIS_PER_SECOND || ignoreSeconds && offset < MILLIS_PER_MINUTE)) {
+        int absOffset = offset < 0 ? -offset : offset;
+        if (useUtcIndicator && (absOffset < MILLIS_PER_SECOND || (ignoreSeconds && absOffset < MILLIS_PER_MINUTE))) {
             return ISO8601_UTC;
         }
         OffsetFields minFields = isShort ? OffsetFields.H : OffsetFields.HM;
@@ -1509,24 +1511,20 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
         // Note: OffsetFields.HMS as maxFields is an ICU extension. ISO 8601 specification does
         // not support second field.
 
-        if (Math.abs(offset) >= MAX_OFFSET) {
+        if (absOffset >= MAX_OFFSET) {
             throw new IllegalArgumentException("Offset out of range :" + offset);
         }
 
         StringBuilder buf = new StringBuilder();
-        char sign = '+';
-        if (offset < 0) {
-            sign = '-';
-            offset = -offset;
-        }
+        char sign = offset < 0 ? '-' : '+';
         buf.append(sign);
 
         int[] fields = new int[3];
-        fields[0] = offset / MILLIS_PER_HOUR;
-        offset = offset % MILLIS_PER_HOUR;
-        fields[1] = offset / MILLIS_PER_MINUTE;
-        offset = offset % MILLIS_PER_MINUTE;
-        fields[2] = offset / MILLIS_PER_SECOND;
+        fields[0] = absOffset / MILLIS_PER_HOUR;
+        absOffset = absOffset % MILLIS_PER_HOUR;
+        fields[1] = absOffset / MILLIS_PER_MINUTE;
+        absOffset = absOffset % MILLIS_PER_MINUTE;
+        fields[2] = absOffset / MILLIS_PER_SECOND;
 
         assert(fields[0] >= 0 && fields[0] <= MAX_OFFSET_HOUR);
         assert(fields[1] >= 0 && fields[1] <= MAX_OFFSET_MINUTE);
@@ -2475,13 +2473,13 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
             return 0;
         }
         ParsePosition posOffset = new ParsePosition(start + 1);
-        int offset = parseAsciiOffsetFields(text, posOffset, ':', OffsetFields.H, OffsetFields.HMS, false);
+        int offset = parseAsciiOffsetFields(':', text, posOffset, OffsetFields.H, OffsetFields.HMS);
         if (posOffset.getErrorIndex() == -1 && !extendedOnly && (posOffset.getIndex() - start <= 3)) {
             // If the text is successfully parsed as extended format with the options above, it can be also parsed
             // as basic format. For example, "0230" can be parsed as offset 2:00 (only first digits are valid for
             // extended format), but it can be parsed as offset 2:30 with basic format. We use longer result.
             ParsePosition posBasic = new ParsePosition(start + 1);
-            int tmpOffset = parseAbuttingAsciiOffsetFields(text, posBasic, OffsetFields.H, OffsetFields.HMS, false);
+            int tmpOffset = parseAbuttingAsciiOffsetFields(text, posBasic, OffsetFields.H, OffsetFields.HMS, true);
             if (posBasic.getErrorIndex() == -1 && posBasic.getIndex() > posOffset.getIndex()) {
                 offset = tmpOffset;
                 posOffset.setIndex(posBasic.getIndex());
@@ -2598,34 +2596,39 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
      * Note: This method expects the input position is already at the start of
      * ASCII digits and does not parse sign (+/-).
      * 
+     * @param sep The separator character
      * @param text The text
      * @param pos The parse position
-     * @param sep The separator character
      * @param minFields The minimum Fields to be parsed
      * @param maxFields The maximum Fields to be parsed
-     * @param fixedHourWidth true if hour field must be width of 2
      * @return Parsed offset, 0 or positive number.
      */
-    private static int parseAsciiOffsetFields(String text, ParsePosition pos,
-            char sep, OffsetFields minFields, OffsetFields maxFields, boolean fixedHourWidth) {
+    private static int parseAsciiOffsetFields(char sep, String text, ParsePosition pos,
+            OffsetFields minFields, OffsetFields maxFields) {
         int start = pos.getIndex();
         int[] fieldVal = {0, 0, 0};
         int[] fieldLen = {0, -1, -1};
         for (int idx = start, fieldIdx = 0; idx < text.length() && fieldIdx <= maxFields.ordinal(); idx++) {
             char c = text.charAt(idx);
             if (c == sep) {
-                if (fieldLen[fieldIdx] < 0) {
-                    // next field - expected
-                    fieldLen[fieldIdx] = 0;
-                } else if (fieldIdx == 0 && !fixedHourWidth) {
+                if (fieldIdx == 0) {
+                    if (fieldLen[0] == 0) {
+                        // no hour field
+                        break;
+                    }
                     // 1 digit hour, move to next field
                     fieldIdx++;
-                    fieldLen[fieldIdx] = 0;
                 } else {
-                    // otherwise, premature field
-                    break;
+                    if (fieldLen[fieldIdx] != -1) {
+                        // premature minute or second field
+                        break;
+                    }
+                    fieldLen[fieldIdx] = 0;
                 }
                 continue;
+            } else if (fieldLen[fieldIdx] == -1) {
+                // no separator after 2 digit field
+                break;
             }
             int digit = ASCII_DIGITS.indexOf(c);
             if (digit < 0) {
@@ -2645,13 +2648,10 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
         OffsetFields parsedFields = null;
         do {
             // hour
-            if (fieldLen[0] == 0 || (fieldLen[0] == 1 && fixedHourWidth)) {
+            if (fieldLen[0] == 0) {
                 break;
             }
             if (fieldVal[0] > MAX_OFFSET_HOUR) {
-                if (fixedHourWidth) {
-                    break;
-                }
                 offset = (fieldVal[0] / 10) * MILLIS_PER_HOUR;
                 parsedFields = OffsetFields.H;
                 parsedLen = 1;
@@ -2778,7 +2778,9 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
             throw new InvalidObjectException("Missing field: gmtOffsetPatterns");
         } else if (tmpGmtOffsetPatterns.length < 4) {
             throw new InvalidObjectException("Incompatible field: gmtOffsetPatterns");
-        } else if (tmpGmtOffsetPatterns.length == 4) {
+        }
+        _gmtOffsetPatterns = new String[6];
+        if (tmpGmtOffsetPatterns.length == 4) {
             for (int i = 0; i < 4; i++) {
                 _gmtOffsetPatterns[i] = tmpGmtOffsetPatterns[i];
             }
