@@ -61,7 +61,8 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
 
     private static final long serialVersionUID = 2281246852693575022L;
 
-    private static final int ISO_STYLE_FLAG = 0x0080;
+    private static final int ISO_Z_STYLE_FLAG = 0x0080;
+    private static final int ISO_LOCAL_STYLE_FLAG = 0x0100;
 
     /**
      * Time zone display format style enum used by format/parse APIs in <code>TimeZoneFormat</code>.
@@ -129,7 +130,7 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
          * @draft ICU 51
          * @provisional This API might change or be removed in a future release.
          */
-        ISO_BASIC_SHORT (ISO_STYLE_FLAG),
+        ISO_BASIC_SHORT (ISO_Z_STYLE_FLAG),
         /**
          * Short ISO 8601 locale time difference (basic format).
          * For example, "-05" and "+0530".
@@ -137,7 +138,7 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
          * @draft ICU 51
          * @provisional This API might change or be removed in a future release.
          */
-        ISO_BASIC_LOCAL_SHORT (ISO_STYLE_FLAG),
+        ISO_BASIC_LOCAL_SHORT (ISO_LOCAL_STYLE_FLAG),
         /**
          * Fixed width ISO 8601 local time difference (basic format) or the UTC indicator.
          * For example, "-0500", "+0530", and "Z"(UTC).
@@ -145,7 +146,7 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
          * @draft ICU 51
          * @provisional This API might change or be removed in a future release.
          */
-        ISO_BASIC_FIXED (ISO_STYLE_FLAG),
+        ISO_BASIC_FIXED (ISO_Z_STYLE_FLAG),
         /**
          * Fixed width ISO 8601 local time difference (basic format).
          * For example, "-0500" and "+0530".
@@ -153,7 +154,7 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
          * @draft ICU 51
          * @provisional This API might change or be removed in a future release.
          */
-        ISO_BASIC_LOCAL_FIXED (ISO_STYLE_FLAG),
+        ISO_BASIC_LOCAL_FIXED (ISO_LOCAL_STYLE_FLAG),
         /**
          * ISO 8601 local time difference (basic format) with optional seconds field, or the UTC indicator.
          * For example, "-0500", "+052538", and "Z"(UTC).
@@ -161,7 +162,7 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
          * @draft ICU 51
          * @provisional This API might change or be removed in a future release.
          */
-        ISO_BASIC_FULL (ISO_STYLE_FLAG),
+        ISO_BASIC_FULL (ISO_Z_STYLE_FLAG),
         /**
          * ISO 8601 local time difference (basic format) with optional seconds field.
          * For example, "-0500" and "+052538".
@@ -169,7 +170,7 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
          * @draft ICU 51
          * @provisional This API might change or be removed in a future release.
          */
-        ISO_BASIC_LOCAL_FULL (ISO_STYLE_FLAG),
+        ISO_BASIC_LOCAL_FULL (ISO_LOCAL_STYLE_FLAG),
         /**
          * Fixed width ISO 8601 local time difference (extended format) or the UTC indicator.
          * For example, "-05:00", "+05:30", and "Z"(UTC).
@@ -177,7 +178,7 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
          * @draft ICU 51
          * @provisional This API might change or be removed in a future release.
          */
-        ISO_EXTENDED_FIXED (ISO_STYLE_FLAG),
+        ISO_EXTENDED_FIXED (ISO_Z_STYLE_FLAG),
         /**
          * Fixed width ISO 8601 local time difference (extended format).
          * For example, "-05:00" and "+05:30".
@@ -185,7 +186,7 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
          * @draft ICU 51
          * @provisional This API might change or be removed in a future release.
          */
-        ISO_EXTENDED_LOCAL_FIXED (ISO_STYLE_FLAG),
+        ISO_EXTENDED_LOCAL_FIXED (ISO_LOCAL_STYLE_FLAG),
         /**
          * ISO 8601 local time difference (extended format) with optional seconds field, or the UTC indicator.
          * For example, "-05:00", "+05:25:38", and "Z"(UTC).
@@ -193,7 +194,7 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
          * @draft ICU 51
          * @provisional This API might change or be removed in a future release.
          */
-        ISO_EXTENDED_FULL (ISO_STYLE_FLAG),
+        ISO_EXTENDED_FULL (ISO_Z_STYLE_FLAG),
         /**
          * ISO 8601 local time difference (extended format) with optional seconds field.
          * For example, "-05:00" and "+05:25:38".
@@ -201,7 +202,7 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
          * @draft ICU 51
          * @provisional This API might change or be removed in a future release.
          */
-        ISO_EXTENDED_LOCAL_FULL (ISO_STYLE_FLAG);
+        ISO_EXTENDED_LOCAL_FULL (ISO_LOCAL_STYLE_FLAG);
 
 
         final int flag;
@@ -1094,15 +1095,10 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
             }
 
             case ISO_BASIC_SHORT:
-            case ISO_BASIC_LOCAL_SHORT:
             case ISO_BASIC_FIXED:
-            case ISO_BASIC_LOCAL_FIXED:
             case ISO_BASIC_FULL:
-            case ISO_BASIC_LOCAL_FULL:
             case ISO_EXTENDED_FIXED:
-            case ISO_EXTENDED_LOCAL_FIXED:
             case ISO_EXTENDED_FULL:
-            case ISO_EXTENDED_LOCAL_FULL:
             {
                 offset = parseOffsetISO8601(text, tmpPos);
                 if (tmpPos.getErrorIndex() == -1) {
@@ -1111,6 +1107,23 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
                 }
                 break;
             }
+
+            case ISO_BASIC_LOCAL_SHORT:
+            case ISO_BASIC_LOCAL_FIXED:
+            case ISO_BASIC_LOCAL_FULL:
+            case ISO_EXTENDED_LOCAL_FIXED:
+            case ISO_EXTENDED_LOCAL_FULL:
+            {
+                // Exclude the case of UTC Indicator "Z" here
+                Output<Boolean> hasDigitOffset = new Output<Boolean>(false);
+                offset = parseOffsetISO8601(text, tmpPos, false, hasDigitOffset);
+                if (tmpPos.getErrorIndex() == -1 && hasDigitOffset.value) {
+                    pos.setIndex(tmpPos.getIndex());
+                    return getTimeZoneForOffset(offset);
+                }
+                break;
+            }
+
             case SPECIFIC_LONG:
             case SPECIFIC_SHORT:
             {
@@ -1187,7 +1200,7 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
         tmpPos.setErrorIndex(-1);
 
         // ISO 8601
-        if ((evaluated & ISO_STYLE_FLAG) == 0) {
+        if ((evaluated & ISO_Z_STYLE_FLAG) == 0 || (evaluated & ISO_LOCAL_STYLE_FLAG) == 0) {
             Output<Boolean> hasDigitOffset = new Output<Boolean>(false);
             offset = parseOffsetISO8601(text, tmpPos, false, hasDigitOffset);
             if (tmpPos.getErrorIndex() == -1) {
