@@ -2479,7 +2479,7 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
             // as basic format. For example, "0230" can be parsed as offset 2:00 (only first digits are valid for
             // extended format), but it can be parsed as offset 2:30 with basic format. We use longer result.
             ParsePosition posBasic = new ParsePosition(start + 1);
-            int tmpOffset = parseAbuttingAsciiOffsetFields(text, posBasic, OffsetFields.H, OffsetFields.HMS, true);
+            int tmpOffset = parseAbuttingAsciiOffsetFields(text, posBasic, OffsetFields.H, OffsetFields.HMS, false);
             if (posBasic.getErrorIndex() == -1 && posBasic.getIndex() > posOffset.getIndex()) {
                 offset = tmpOffset;
                 posOffset.setIndex(posBasic.getIndex());
