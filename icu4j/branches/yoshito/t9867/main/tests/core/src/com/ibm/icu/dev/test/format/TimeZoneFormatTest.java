@@ -429,4 +429,152 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             }
         }
     }
+
+    public void TestISOFormat() {
+        final int[] OFFSET = {
+            0,          // 0
+            999,        // 0.999s
+            -59999,     // -59.999s
+            60000,      // 1m
+            -77777,     // -1m 17.777s
+            1800000,    // 30m
+            -3600000,   // -1h
+            36000000,   // 10h
+            -37800000,  // -10h 30m
+            -37845000,  // -10h 30m 45s
+            108000000,  // 30h
+        };
+ 
+        final String[][] ISO_STR = {
+            // 0
+            {
+                "Z", "Z", "Z", "Z", "Z",
+                "+00", "+0000", "+00:00", "+0000", "+00:00",
+                "+0000"
+            },
+            // 999
+            {
+                "Z", "Z", "Z", "Z", "Z",
+                "+00", "+0000", "+00:00", "+0000", "+00:00",
+                "+0000"
+            },
+            // -59999
+            {
+                "Z", "Z", "Z", "-000059", "-00:00:59",
+                "+00", "+0000", "+00:00", "-000059", "-00:00:59",
+                "-000059"
+            },
+            // 60000
+            {
+                "+0001", "+0001", "+00:01", "+0001", "+00:01",
+                "+0001", "+0001", "+00:01", "+0001", "+00:01",
+                "+0001"
+            },
+            // -77777
+            {
+                "-0001", "-0001", "-00:01", "-000117", "-00:01:17",
+                "-0001", "-0001", "-00:01", "-000117", "-00:01:17",
+                "-000117"
+            },
+            // 1800000
+            {
+                "+0030", "+0030", "+00:30", "+0030", "+00:30",
+                "+0030", "+0030", "+00:30", "+0030", "+00:30",
+                "+0030"
+            },
+            // -3600000
+            {
+                "-01", "-0100", "-01:00", "-0100", "-01:00",
+                "-01", "-0100", "-01:00", "-0100", "-01:00",
+                "-0100"
+            },
+            // 36000000
+            {
+                "+10", "+1000", "+10:00", "+1000", "+10:00",
+                "+10", "+1000", "+10:00", "+1000", "+10:00",
+                "+1000"
+            },
+            // -37800000
+            {
+                "-1030", "-1030", "-10:30", "-1030", "-10:30",
+                "-1030", "-1030", "-10:30", "-1030", "-10:30",
+                "-1030"
+            },
+            // -37845000
+            {
+                "-1030", "-1030", "-10:30", "-103045", "-10:30:45",
+                "-1030", "-1030", "-10:30", "-103045", "-10:30:45",
+                "-103045"
+            },
+            // 108000000
+            {
+                null, null, null, null, null,
+                null, null, null, null, null,
+                null
+            }
+        };
+
+        final String[] PATTERN = {
+            "X", "XX", "XXX", "XXXX", "XXXXX", "x", "xx", "xxx", "xxxx", "xxxxx",
+            "Z", // equivalent to "xxxx"
+        };
+
+        final int[] MIN_OFFSET_UNIT = {
+            60000, 60000, 60000, 1000, 1000, 60000, 60000, 60000, 1000, 1000,
+            1000,
+        };
+
+        // Formatting
+        SimpleDateFormat sdf = new SimpleDateFormat();
+        Date d = new Date();
+
+        for (int i = 0; i < OFFSET.length; i++) {
+            SimpleTimeZone tz = new SimpleTimeZone(OFFSET[i], "Zone Offset:" + String.valueOf(OFFSET[i]) + "ms");
+            for (int j = 0; j < PATTERN.length; j++) {
+                sdf.setTimeZone(tz);
+                sdf.applyPattern(PATTERN[j]);
+                try {
+                    String result = sdf.format(d);
+                    if (!result.equals(ISO_STR[i][j])) {
+                        errln("FAIL: pattern=" + PATTERN[j] + ", offset=" + OFFSET[i] + " -> "
+                            + result + " (expected: " + ISO_STR[i][j] + ")");
+                    }
+                } catch (IllegalArgumentException e) {
+                    if (ISO_STR[i][j] != null) {
+                        errln("FAIL: IAE thrown for pattern=" + PATTERN[j] + ", offset=" + OFFSET[i]
+                                + " (expected: " + ISO_STR[i][j] + ")");
+                    }
+                }
+            }
+        }
+
+        // Parsing
+        SimpleTimeZone bogusTZ = new SimpleTimeZone(-1, "Zone Offset: -1ms");
+        for (int i = 0; i < ISO_STR.length; i++) {
+            for (int j = 0; j < ISO_STR[i].length; j++) {
+                if (ISO_STR[i][j] == null) {
+                    continue;
+                }
+                ParsePosition pos = new ParsePosition(0);
+                Calendar outcal = Calendar.getInstance(bogusTZ);
+                sdf.applyPattern(PATTERN[j]);
+
+                sdf.parse(ISO_STR[i][j], outcal, pos);
+
+                if (pos.getIndex() != ISO_STR[i][j].length()) {
+                    errln("FAIL: Failed to parse the entire input string: " + ISO_STR[i][j]);
+                    continue;
+                }
+
+                TimeZone outtz = outcal.getTimeZone();
+                int outOffset = outtz.getRawOffset();
+                int adjustedOffset = OFFSET[i] / MIN_OFFSET_UNIT[j] * MIN_OFFSET_UNIT[j];
+
+                if (outOffset != adjustedOffset) {
+                    errln("FAIL: Incorrect offset:" + outOffset + "ms for input string: " + ISO_STR[i][j]
+                            + " (expected:" + adjustedOffset + "ms)");
+                }
+            }
+        }
+    }
 }

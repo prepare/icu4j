@@ -1528,10 +1528,6 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
             throw new IllegalArgumentException("Offset out of range :" + offset);
         }
 
-        StringBuilder buf = new StringBuilder();
-        char sign = offset < 0 ? '-' : '+';
-        buf.append(sign);
-
         int[] fields = new int[3];
         fields[0] = absOffset / MILLIS_PER_HOUR;
         absOffset = absOffset % MILLIS_PER_HOUR;
@@ -1550,6 +1546,19 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
             }
             lastIdx--;
         }
+
+        StringBuilder buf = new StringBuilder();
+        char sign = '+';
+        if (offset < 0) {
+            // if all output fields are 0s, do not use negative sign
+            for (int idx = 0; idx <= lastIdx; idx++) {
+                if (fields[idx] != 0) {
+                    sign = '-';
+                    break;
+                }
+            }
+        }
+        buf.append(sign);
 
         for (int idx = 0; idx <= lastIdx; idx++) {
             if (sep != null && idx != 0) {

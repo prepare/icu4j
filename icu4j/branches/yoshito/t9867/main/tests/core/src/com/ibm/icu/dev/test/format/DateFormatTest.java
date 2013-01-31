@@ -339,18 +339,25 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         // Expected output field values for above DateFormats on aug13
         // Fields are given in order of DateFormat field number
         final String EXPECTED[] = {
-             "", "1997", "August", "13", "", "", "34", "12", "",
-            "Wednesday", "", "", "", "", "PM", "2", "", "Pacific Daylight Time", "", "", "", "", "", "", "","","","","","","",
+             "", "1997", "August", "13", "", "", "34", "12", "", "Wednesday",
+             "", "", "", "", "PM", "2", "", "Pacific Daylight Time", "", "",
+             "", "", "", "", "", "", "", "", "", "",
+             "", "", "", "",
 
-            "", "1997", "ao\u00FBt", "13", "", "14", "34", "12", "",
-            "mercredi", "", "", "", "", "", "", "", "heure avanc\u00E9e du Pacifique", "", "", "", "", "", "", "","","","","","","",
+             "", "1997", "ao\u00FBt", "13", "", "14", "34", "12", "", "mercredi",
+             "", "", "", "", "", "", "", "heure avanc\u00E9e du Pacifique", "", "",
+             "", "", "", "", "", "", "", "", "", "",
+             "", "", "", "",
 
-            "AD", "1997", "8", "13", "14", "14", "34", "12", "5",
-            "Wed", "225", "2", "33", "3", "PM", "2", "2", "PDT", "1997", "4", "1997", "2450674", "52452513", "-0700", "PT","4","8","3","3","PDT","1997",
+            "AD", "1997", "8", "13", "14", "14", "34", "12", "5", "Wed",
+            "225", "2", "33", "3", "PM", "2", "2", "PDT", "1997", "4",
+            "1997", "2450674", "52452513", "-0700", "PT", "4", "8", "3", "3", "PDT",
+            "1997", "GMT-7", "-07", "-07",
 
-            "Anno Domini", "1997", "August", "0013", "0014", "0014", "0034", "0012", "5130",
-            "Wednesday", "0225", "0002", "0033", "0003", "PM", "0002", "0002", "Pacific Daylight Time", "1997",
-            "Wednesday", "1997", "2450674", "52452513", "GMT-07:00", "Pacific Time","Wednesday","August", "3rd quarter", "3rd quarter","Los Angeles Time","1997",
+            "Anno Domini", "1997", "August", "0013", "0014", "0014", "0034", "0012", "5130", "Wednesday",
+            "0225", "0002", "0033", "0003", "PM", "0002", "0002", "Pacific Daylight Time", "1997", "Wednesday",
+            "1997", "2450674", "52452513", "GMT-07:00", "Pacific Time", "Wednesday", "August", "3rd quarter", "3rd quarter", "Los Angeles Time",
+            "1997", "GMT-07:00", "-0700", "-0700",
         };
 
         assertTrue("data size", EXPECTED.length == COUNT * DateFormat.FIELD_COUNT);
@@ -453,7 +460,7 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
     /**
      * This MUST be kept in sync with DateFormatSymbols.patternChars.
      */
-    static final String PATTERN_CHARS = "GyMdkHmsSEDFwWahKzYeugAZvcLQqVU";
+    static final String PATTERN_CHARS = "GyMdkHmsSEDFwWahKzYeugAZvcLQqVUOXx";
 
     /**
      * A list of the DateFormat.Field.
@@ -491,6 +498,9 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         DateFormat.Field.QUARTER,       // q
         DateFormat.Field.TIME_ZONE,     // V
         DateFormat.Field.YEAR,          // U
+        DateFormat.Field.TIME_ZONE,     // O
+        DateFormat.Field.TIME_ZONE,     // X
+        DateFormat.Field.TIME_ZONE,     // x
     };
 
     /**
@@ -529,6 +539,9 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         "STAND_ALONE_QUARTER_FIELD",
         "TIMEZONE_SPECIAL_FIELD",
         "YEAR_NAME_FIELD",
+        "TIMEZONE_LOCALIZED_GMT_OFFSET_FIELD",
+        "TIMEZONE_ISO_FIELD",
+        "TIMEZONE_ISO_LOCAL_FIELD",
     };
 
     /**
