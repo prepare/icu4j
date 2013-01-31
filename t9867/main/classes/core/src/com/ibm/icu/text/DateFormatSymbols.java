@@ -514,7 +514,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * Unlocalized date-time pattern characters. For example: 'y', 'd', etc.
      * All locales use the same unlocalized pattern characters.
      */
-    static final String  patternChars = "GyMdkHmsSEDFwWahKzYeugAZvcLQqVU";
+    static final String  patternChars = "GyMdkHmsSEDFwWahKzYeugAZvcLQqVUOXx";
 
     /**
      * Localized date-time pattern characters. For example, a locale may
