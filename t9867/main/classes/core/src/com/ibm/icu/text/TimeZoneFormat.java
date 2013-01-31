@@ -22,11 +22,14 @@ import java.util.BitSet;
 import java.util.Collection;
 import java.util.Date;
 import java.util.EnumSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.MissingResourceException;
+import java.util.Set;
 
 import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.impl.SoftCache;
+import com.ibm.icu.impl.TextTrieMap;
 import com.ibm.icu.impl.TimeZoneGenericNames;
 import com.ibm.icu.impl.TimeZoneGenericNames.GenericMatchInfo;
 import com.ibm.icu.impl.TimeZoneGenericNames.GenericNameType;
@@ -39,6 +42,7 @@ import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.Freezable;
 import com.ibm.icu.util.Output;
 import com.ibm.icu.util.TimeZone;
+import com.ibm.icu.util.TimeZone.SystemTimeZoneType;
 import com.ibm.icu.util.ULocale;
 
 /**
@@ -202,8 +206,25 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
          * @draft ICU 51
          * @provisional This API might change or be removed in a future release.
          */
-        ISO_EXTENDED_LOCAL_FULL (ISO_LOCAL_STYLE_FLAG);
-
+        ISO_EXTENDED_LOCAL_FULL (ISO_LOCAL_STYLE_FLAG),
+        /**
+         * Time Zone ID, such as "America/Los_Angeles".
+         * @draft ICU 51
+         * @provisional This API might change or be removed in a future release.
+         */
+        ZONE_ID (0x0200),
+        /**
+         * Short Time Zone ID (BCP 47 Unicode location extension, time zone type value), such as "uslax".
+         * @draft ICU 51
+         * @provisional This API might change or be removed in a future release.
+         */
+        ZONE_ID_SHORT (0x0400),
+        /**
+         * Exemplar location, such as "Los Angeles" and "Paris".
+         * @draft ICU 51
+         * @provisional This API might change or be removed in a future release.
+         */
+        EXEMPLAR_LOCATION (0x0800);
 
         final int flag;
     
@@ -364,6 +385,8 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
     private static final String ASCII_DIGITS = "0123456789";
     private static final String ISO8601_UTC = "Z";
 
+    private static final String UNKNOWN_ZONE_ID = "Etc/Unknown";
+
     // Order of GMT offset pattern parsing, *_HMS must be evaluated first
     // because *_HM is most likely a substring of *_HMS 
     private static final GMTOffsetPatternType[] PARSE_GMT_OFFSET_TYPES = {
@@ -398,6 +421,9 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
     private static final EnumSet<GenericNameType> ALL_GENERIC_NAME_TYPES = EnumSet.of(
         GenericNameType.LOCATION, GenericNameType.LONG, GenericNameType.SHORT
     );
+
+    private static volatile TextTrieMap<String> ZONE_ID_TRIE;
+    private static volatile TextTrieMap<String> SHORT_ZONE_ID_TRIE;
 
     /**
      * The protected constructor for subclassing.
@@ -935,6 +961,18 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
             case ISO_EXTENDED_LOCAL_FULL:
                 result = formatOffsetISO8601Extended(offset, false, false, false);
                 break;
+
+            case ZONE_ID:
+                result = tz.getID();
+                break;
+
+            case ZONE_ID_SHORT:
+                result = ZoneMeta.getShortID(tz);
+                break;
+
+            case EXEMPLAR_LOCATION:
+                result = formatExemplarLocation(tz);
+                break;
             }
             // time type
             if (timeType != null) {
@@ -1062,15 +1100,15 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
             // This might be changed in future.
 //            evaluated |= (fallbackLocalizedGMT ? Style.LOCALIZED_GMT.flag : Style.LOCALIZED_GMT_SHORT.flag);
             evaluated |= (Style.LOCALIZED_GMT.flag | Style.LOCALIZED_GMT_SHORT.flag);
-
-            tmpPos.setIndex(startIdx);
-            tmpPos.setErrorIndex(-1);
         }
 
         // Try the specified style
         switch (style) {
             case LOCALIZED_GMT:
             {
+                tmpPos.setIndex(startIdx);
+                tmpPos.setErrorIndex(-1);
+
                 offset = parseOffsetLocalizedGMT(text, tmpPos);
                 if (tmpPos.getErrorIndex() == -1) {
                     pos.setIndex(tmpPos.getIndex());
@@ -1083,6 +1121,9 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
             }
             case LOCALIZED_GMT_SHORT:
             {
+                tmpPos.setIndex(startIdx);
+                tmpPos.setErrorIndex(-1);
+
                 offset = parseOffsetShortLocalizedGMT(text, tmpPos);
                 if (tmpPos.getErrorIndex() == -1) {
                     pos.setIndex(tmpPos.getIndex());
@@ -1100,6 +1141,9 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
             case ISO_EXTENDED_FIXED:
             case ISO_EXTENDED_FULL:
             {
+                tmpPos.setIndex(startIdx);
+                tmpPos.setErrorIndex(-1);
+
                 offset = parseOffsetISO8601(text, tmpPos);
                 if (tmpPos.getErrorIndex() == -1) {
                     pos.setIndex(tmpPos.getIndex());
@@ -1114,6 +1158,9 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
             case ISO_EXTENDED_LOCAL_FIXED:
             case ISO_EXTENDED_LOCAL_FULL:
             {
+                tmpPos.setIndex(startIdx);
+                tmpPos.setErrorIndex(-1);
+
                 // Exclude the case of UTC Indicator "Z" here
                 Output<Boolean> hasDigitOffset = new Output<Boolean>(false);
                 offset = parseOffsetISO8601(text, tmpPos, false, hasDigitOffset);
@@ -1176,6 +1223,30 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
                 }
                 break;
             }
+            case ZONE_ID:
+            {
+                tmpPos.setIndex(startIdx);
+                tmpPos.setErrorIndex(-1);
+
+                String id = parseZoneID(text, tmpPos);
+                if (tmpPos.getErrorIndex() == -1) {
+                    pos.setIndex(tmpPos.getIndex());
+                    return TimeZone.getTimeZone(id);
+                }
+                break;
+            }
+            case ZONE_ID_SHORT:
+            {
+                tmpPos.setIndex(startIdx);
+                tmpPos.setErrorIndex(-1);
+
+                String id = parseShortZoneID(text, tmpPos);
+                if (tmpPos.getErrorIndex() == -1) {
+                    pos.setIndex(tmpPos.getIndex());
+                    return TimeZone.getTimeZone(id);
+                }
+                break;
+            }
         }
         evaluated |= style.flag;
 
@@ -1196,11 +1267,12 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
         // Check the longest match among other styles below.
         assert parsedPos < 0;
         assert parsedOffset == UNKNOWN_OFFSET;
-        tmpPos.setIndex(startIdx);
-        tmpPos.setErrorIndex(-1);
 
         // ISO 8601
         if ((evaluated & ISO_Z_STYLE_FLAG) == 0 || (evaluated & ISO_LOCAL_STYLE_FLAG) == 0) {
+            tmpPos.setIndex(startIdx);
+            tmpPos.setErrorIndex(-1);
+
             Output<Boolean> hasDigitOffset = new Output<Boolean>(false);
             offset = parseOffsetISO8601(text, tmpPos, false, hasDigitOffset);
             if (tmpPos.getErrorIndex() == -1) {
@@ -1211,17 +1283,20 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
                 // Note: When ISO 8601 format contains offset digits, it should not
                 // collide with other formats. However, ISO 8601 UTC format "Z" (single letter)
                 // may collide with other names. In this case, we need to evaluate other names.
-                parsedOffset = offset;
-                parsedPos = tmpPos.getIndex();
-                assert parsedPos == startIdx + 1;   // only when "Z" is used
+                if (parsedPos < tmpPos.getIndex()) {
+                    parsedOffset = offset;
+                    parsedPos = tmpPos.getIndex();
+                    assert parsedPos == startIdx + 1;   // only when "Z" is used
+                }
             }
-            tmpPos.setIndex(startIdx);
-            tmpPos.setErrorIndex(-1);
         }
 
 
         // Localized GMT format
         if ((evaluated & Style.LOCALIZED_GMT.flag) == 0) {
+            tmpPos.setIndex(startIdx);
+            tmpPos.setErrorIndex(-1);
+
             Output<Boolean> hasDigitOffset = new Output<Boolean>(false);
             offset = parseOffsetLocalizedGMT(text, false, tmpPos, hasDigitOffset);
             if (tmpPos.getErrorIndex() == -1) {
@@ -1230,12 +1305,17 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
                     return getTimeZoneForOffset(offset);
                 }
                 // Evaluate other names - see the comment earlier in this method.
-                parsedOffset = offset;
-                parsedPos = tmpPos.getIndex();
+                if (parsedPos < tmpPos.getIndex()) {
+                    parsedOffset = offset;
+                    parsedPos = tmpPos.getIndex();
+                }
             }
         }
 
         if ((evaluated & Style.LOCALIZED_GMT_SHORT.flag) == 0) {
+            tmpPos.setIndex(startIdx);
+            tmpPos.setErrorIndex(-1);
+
             Output<Boolean> hasDigitOffset = new Output<Boolean>(false);
             offset = parseOffsetLocalizedGMT(text, true, tmpPos, hasDigitOffset);
             if (tmpPos.getErrorIndex() == -1) {
@@ -1244,12 +1324,14 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
                     return getTimeZoneForOffset(offset);
                 }
                 // Evaluate other names - see the comment earlier in this method.
-                parsedOffset = offset;
-                parsedPos = tmpPos.getIndex();
+                if (parsedPos < tmpPos.getIndex()) {
+                    parsedOffset = offset;
+                    parsedPos = tmpPos.getIndex();
+                }
             }
         }
 
-        // When ParseOption.ALL_STYLES is available, we also try to look all possible display names.
+        // When ParseOption.ALL_STYLES is available, we also try to look all possible display names and IDs.
         // For example, when style is GENERIC_LONG, "EST" (SPECIFIC_SHORT) is never
         // used for America/New_York. With parseAllStyles true, this code parses "EST"
         // as America/New_York.
@@ -1263,7 +1345,7 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
                 : options.contains(ParseOption.ALL_STYLES);
 
         if (parseAllStyles) {
-            // Try all specific names first
+            // Try all specific names
             Collection<MatchInfo> specificMatches = _tznames.find(text, startIdx, ALL_SPECIFIC_NAME_TYPES);
             MatchInfo specificMatch = null;
             if (specificMatches != null) {
@@ -1281,7 +1363,7 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
                 genericMatch = getTimeZoneGenericNames().findBestMatch(text, startIdx, ALL_GENERIC_NAME_TYPES);
             }
 
-            // Pick up better match
+            // Pick up better match if any
             if (genericMatch != null && (startIdx + genericMatch.matchLength() > parsedPos)) {
                 // use this one
                 parsedPos = startIdx + genericMatch.matchLength();
@@ -1292,6 +1374,28 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
                 timeType.value = getTimeType(specificMatch.nameType());
                 pos.setIndex(parsedPos);
                 return TimeZone.getTimeZone(getTimeZoneID(specificMatch.tzID(), specificMatch.mzID()));
+            }
+
+            // Try IDs
+            if ((evaluated & Style.ZONE_ID.flag) == 0) {
+                tmpPos.setIndex(startIdx);
+                tmpPos.setErrorIndex(-1);
+
+                String id = parseZoneID(text, tmpPos);
+                if (tmpPos.getErrorIndex() == -1) {
+                    pos.setIndex(tmpPos.getIndex());
+                    return TimeZone.getTimeZone(id);
+                }
+            }
+            if ((evaluated & Style.ZONE_ID_SHORT.flag) == 0) {
+                tmpPos.setIndex(startIdx);
+                tmpPos.setErrorIndex(-1);
+
+                String id = parseShortZoneID(text, tmpPos);
+                if (tmpPos.getErrorIndex() == -1) {
+                    pos.setIndex(tmpPos.getIndex());
+                    return TimeZone.getTimeZone(id);
+                }
             }
         }
 
@@ -1595,6 +1699,23 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
             timeType.value = isDaylight ? TimeType.DAYLIGHT : TimeType.STANDARD;
         }
         return name;
+    }
+
+    /**
+     * Private method returning the time zone's exemplar location string.
+     * This method will never return null.
+     * 
+     * @param tz the time zone
+     * @return the time zone's exemplar location name.
+     */
+    private String formatExemplarLocation(TimeZone tz) {
+        String location = getTimeZoneNames().getExemplarLocationName(ZoneMeta.getCanonicalCLDRID(tz));
+        if (location == null) {
+            // Use "unknown" location
+            location = getTimeZoneNames().getExemplarLocationName(UNKNOWN_ZONE_ID);
+            assert(location != null);
+        }
+        return location;
     }
 
     /**
@@ -2467,7 +2588,7 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
      * @return the offset from GMT(UTC) in milliseconds for the given ISO 8601 style
      * time zone string.
      */
-    private int parseOffsetISO8601(String text, ParsePosition pos, boolean extendedOnly, Output<Boolean> hasDigitOffset) {
+    private static int parseOffsetISO8601(String text, ParsePosition pos, boolean extendedOnly, Output<Boolean> hasDigitOffset) {
         if (hasDigitOffset != null) {
             hasDigitOffset.value = false;
         }
@@ -2709,6 +2830,78 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
         return offset;
     }
 
+    /**
+     * Parse a zone ID.
+     * @param text the text contains a time zone ID string at the position.
+     * @param pos the position.
+     * @return The zone ID parsed.
+     */
+    private static String parseZoneID(String text, ParsePosition pos) {
+        String resolvedID = null;
+        if (ZONE_ID_TRIE == null) {
+            synchronized (TimeZoneFormat.class) {
+                if (ZONE_ID_TRIE == null) {
+                    // Build zone ID trie
+                    TextTrieMap<String> trie = new TextTrieMap<String>(true);
+                    String[] ids = TimeZone.getAvailableIDs();
+                    for (String id : ids) {
+                        trie.put(id, id);
+                    }
+                    ZONE_ID_TRIE = trie;
+                }
+            }
+        }
+
+        int[] matchLen = new int[] {0};
+        Iterator<String> itr = ZONE_ID_TRIE.get(text, pos.getIndex(), matchLen);
+        if (itr != null) {
+            resolvedID = itr.next();
+            pos.setIndex(pos.getIndex() + matchLen[0]);
+        } else {
+            // TODO - handle offset style generated IDs
+            pos.setErrorIndex(pos.getIndex());
+        }
+        return resolvedID;
+    }
+
+    /**
+     * Parse a short zone ID.
+     * @param text the text contains a time zone ID string at the position.
+     * @param pos the position.
+     * @return The zone ID for the parsed short zone ID.
+     */
+    private static String parseShortZoneID(String text, ParsePosition pos) {
+        String resolvedID = null;
+        if (SHORT_ZONE_ID_TRIE == null) {
+            synchronized (TimeZoneFormat.class) {
+                if (SHORT_ZONE_ID_TRIE == null) {
+                    // Build short zone ID trie
+                    TextTrieMap<String> trie = new TextTrieMap<String>(true);
+                    Set<String> canonicalIDs = TimeZone.getAvailableIDs(SystemTimeZoneType.CANONICAL, null, null);
+                    for (String id : canonicalIDs) {
+                        String shortID = ZoneMeta.getShortID(id);
+                        if (shortID != null) {
+                            trie.put(shortID, id);
+                        }
+                    }
+                    // Canonical list does not contain Etc/Unknown
+                    trie.put("unk", "Etc/Unknown");
+                    SHORT_ZONE_ID_TRIE = trie;
+                }
+            }
+        }
+
+        int[] matchLen = new int[] {0};
+        Iterator<String> itr = SHORT_ZONE_ID_TRIE.get(text, pos.getIndex(), matchLen);
+        if (itr != null) {
+            resolvedID = itr.next();
+            pos.setIndex(pos.getIndex() + matchLen[0]);
+        } else {
+            pos.setErrorIndex(pos.getIndex());
+        }
+
+        return resolvedID;
+    }
 
     /**
      * Implements <code>TimeZoneFormat</code> object cache
