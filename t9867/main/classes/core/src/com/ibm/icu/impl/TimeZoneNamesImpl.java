@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.MissingResourceException;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
 
 import com.ibm.icu.impl.TextTrieMap.ResultHandler;
 import com.ibm.icu.text.TimeZoneNames;
@@ -164,10 +165,7 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
         if (tzID == null || tzID.length() == 0) {
             return null;
         }
-        String locName = loadTimeZoneNames(tzID).getLocationName();
-        if (locName == null) {
-            locName = super.getExemplarLocationName(tzID);
-        }
+        String locName = loadTimeZoneNames(tzID).getName(NameType.EXEMPLAR_LOCATION);
         return locName;
     }
 
@@ -303,7 +301,7 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
     private synchronized TZNames loadTimeZoneNames(String tzID) {
         TZNames tznames = _tzNamesMap.get(tzID);
         if (tznames == null) {
-            tznames = TZNames.getInstance(_zoneStrings, tzID.replace('/', ':'));
+            tznames = TZNames.getInstance(_zoneStrings, tzID);
             // put names into the trie
             tzID = tzID.intern();
             for (NameType t : NameType.values()) {
@@ -442,6 +440,9 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
             case SHORT_DAYLIGHT:
                 name = _names[5];
                 break;
+            case EXEMPLAR_LOCATION:
+                name = null;    // implemented by subclass
+                break;
             }
 
             return name;
@@ -486,26 +487,33 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
 
         private static final TZNames EMPTY_TZNAMES = new TZNames(null, null);
 
-        public static TZNames getInstance(ICUResourceBundle zoneStrings, String key) {
-            if (zoneStrings == null || key == null || key.length() == 0) {
+        public static TZNames getInstance(ICUResourceBundle zoneStrings, String tzID) {
+            if (zoneStrings == null || tzID == null || tzID.length() == 0) {
                 return EMPTY_TZNAMES;
             }
-
+            String key = tzID.replace('/', ':');
             ICUResourceBundle table = null;
             try {
                 table = zoneStrings.getWithFallback(key);
             } catch (MissingResourceException e) {
-                return EMPTY_TZNAMES;
+                // fall through
             }
 
             String locationName = null;
-            try {
-                locationName = table.getStringWithFallback("ec");
-            } catch (MissingResourceException e) {
-                // location name is optional
+            String[] names = null;
+
+            if (table != null) {
+                try {
+                    locationName = table.getStringWithFallback("ec");
+                } catch (MissingResourceException e) {
+                    // fall through
+                }
+                names = loadData(zoneStrings, key);
             }
 
-            String[] names = loadData(zoneStrings, key);
+            if (locationName == null) {
+                locationName = getDefaultExemplarLocationName(tzID);
+            }
 
             if (locationName == null && names == null) {
                 return EMPTY_TZNAMES;
@@ -513,8 +521,11 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
             return new TZNames(names, locationName);
         }
 
-        public String getLocationName() {
-            return _locationName;
+        public String getName(NameType type) {
+            if (type == NameType.EXEMPLAR_LOCATION) {
+                return _locationName;
+            }
+            return super.getName(type);
         }
 
         private TZNames(String[] names, String locationName) {
@@ -685,5 +696,26 @@ public class TimeZoneNamesImpl extends TimeZoneNames {
             }
             return map;
         }
+    }
+
+    private static final Pattern LOC_EXCLUSION_PATTERN = Pattern.compile("Etc/.*|SystemV/.*|.*/Riyadh8[7-9]");
+
+    /**
+     * Default exemplar location name based on time zone ID
+     * @param tzID the time zone ID
+     * @return the exemplar location name or null if location is not available.
+     */
+    public static String getDefaultExemplarLocationName(String tzID) {
+        if (tzID == null || tzID.length() == 0 || LOC_EXCLUSION_PATTERN.matcher(tzID).matches()) {
+            return null;
+        }
+
+        String location = null;
+        int sep = tzID.lastIndexOf('/');
+        if (sep > 0 && sep + 1 < tzID.length()) {
+            location = tzID.substring(sep + 1).replace('_', ' ');
+        }
+
+        return location;
     }
 }

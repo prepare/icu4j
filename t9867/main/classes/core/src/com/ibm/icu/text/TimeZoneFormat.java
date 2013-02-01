@@ -1247,6 +1247,18 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
                 }
                 break;
             }
+            case EXEMPLAR_LOCATION:
+            {
+                tmpPos.setIndex(startIdx);
+                tmpPos.setErrorIndex(-1);
+
+                String id = parseExemplarLocation(text, tmpPos);
+                if (tmpPos.getErrorIndex() == -1) {
+                    pos.setIndex(tmpPos.getIndex());
+                    return TimeZone.getTimeZone(id);
+                }
+                break;
+            }
         }
         evaluated |= style.flag;
 
@@ -1397,6 +1409,19 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
                     return TimeZone.getTimeZone(id);
                 }
             }
+
+            // Try exemplar
+            if ((evaluated & Style.EXEMPLAR_LOCATION.flag) == 0) {
+                tmpPos.setIndex(startIdx);
+                tmpPos.setErrorIndex(-1);
+
+                String id = parseExemplarLocation(text, tmpPos);
+                if (tmpPos.getErrorIndex() == -1) {
+                    pos.setIndex(tmpPos.getIndex());
+                    return TimeZone.getTimeZone(id);
+                }                
+            }
+
         }
 
         if (parsedPos > startIdx) {
@@ -2901,6 +2926,40 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
         }
 
         return resolvedID;
+    }
+
+    /**
+     * Parse an exemplar location string.
+     * @param text the text contains an examplar location string at the position.
+     * @param pos the position.
+     * @return The zone ID for the parsed exemplar location.
+     */
+    private String parseExemplarLocation(String text, ParsePosition pos) {
+        int startIdx = pos.getIndex();
+        int parsedPos = -1;
+        String tzID = null;
+
+        EnumSet<NameType> nameTypes = EnumSet.of(NameType.EXEMPLAR_LOCATION);
+        Collection<MatchInfo> exemplarMatches = _tznames.find(text, startIdx, nameTypes);
+        if (exemplarMatches != null) {
+            MatchInfo exemplarMatch = null;
+            for (MatchInfo match : exemplarMatches) {
+                if (startIdx + match.matchLength() > parsedPos) {
+                    exemplarMatch = match;
+                    parsedPos = startIdx + match.matchLength();
+                }
+            }
+            if (exemplarMatch != null) {
+                pos.setIndex(parsedPos);
+                tzID = getTimeZoneID(exemplarMatch.tzID(), exemplarMatch.mzID());
+                pos.setIndex(parsedPos);
+            }
+        }
+        if (tzID == null) {
+            pos.setErrorIndex(startIdx);
+        }
+
+        return tzID;
     }
 
     /**
