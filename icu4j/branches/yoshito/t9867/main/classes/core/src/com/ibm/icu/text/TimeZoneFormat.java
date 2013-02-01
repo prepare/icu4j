@@ -386,6 +386,7 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
     private static final String ISO8601_UTC = "Z";
 
     private static final String UNKNOWN_ZONE_ID = "Etc/Unknown";
+    private static final String UNKNOWN_SHORT_ZONE_ID = "unk";
 
     // Order of GMT offset pattern parsing, *_HMS must be evaluated first
     // because *_HM is most likely a substring of *_HMS 
@@ -968,6 +969,9 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
 
             case ZONE_ID_SHORT:
                 result = ZoneMeta.getShortID(tz);
+                if (result == null) {
+                    result = UNKNOWN_SHORT_ZONE_ID;
+                }
                 break;
 
             case EXEMPLAR_LOCATION:
@@ -2883,7 +2887,11 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
             resolvedID = itr.next();
             pos.setIndex(pos.getIndex() + matchLen[0]);
         } else {
-            // TODO - handle offset style generated IDs
+            // TODO
+            // We many need to handle rule based custom zone ID (See ZoneMeta.parseCustomID),
+            // such as GM+05:00. However, the public parse method in this class also calls
+            // parseOffsetLocalizedGMT and custom zone IDs are likely supported by the parser,
+            // so we might not need to handle them here.
             pos.setErrorIndex(pos.getIndex());
         }
         return resolvedID;
@@ -2910,7 +2918,7 @@ public class TimeZoneFormat extends UFormat implements Freezable<TimeZoneFormat>
                         }
                     }
                     // Canonical list does not contain Etc/Unknown
-                    trie.put("unk", "Etc/Unknown");
+                    trie.put(UNKNOWN_SHORT_ZONE_ID, UNKNOWN_ZONE_ID);
                     SHORT_ZONE_ID_TRIE = trie;
                 }
             }

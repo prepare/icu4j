@@ -1249,8 +1249,13 @@ public class SimpleDateFormat extends DateFormat {
         case 29: // 'V' - TIMEZONE_SPECIAL
             if (count == 1) {
                 // "V"
-                result = tzFormat().format(Style.SPECIFIC_SHORT, tz, date);
-                capContextUsageType = DateFormatSymbols.CapitalizationContextUsage.METAZONE_SHORT;
+                result = tzFormat().format(Style.ZONE_ID_SHORT, tz, date);
+            } else if (count == 2) {
+                // "VV"
+                result = tzFormat().format(Style.ZONE_ID, tz, date);
+            } else if (count == 3) {
+                // "VVV"
+                result = tzFormat().format(Style.EXEMPLAR_LOCATION, tz, date);
             } else if (count == 4) {
                 // "VVVV"
                 result = tzFormat().format(Style.GENERIC_LOCATION, tz, date);
@@ -2494,8 +2499,21 @@ public class SimpleDateFormat extends DateFormat {
             case 29: // 'V' - TIMEZONE_SPECIAL
             {
                 Output<TimeType> tzTimeType = new Output<TimeType>();
-                // Note: 'v' only supports count 1 and 4
-                Style style = (count < 4) ? Style.SPECIFIC_SHORT : Style.GENERIC_LOCATION;
+                Style style = null;
+                switch (count) {
+                case 1:
+                    style = Style.ZONE_ID_SHORT;
+                    break;
+                case 2:
+                    style = Style.ZONE_ID;
+                    break;
+                case 3:
+                    style = Style.EXEMPLAR_LOCATION;
+                    break;
+                default:
+                    style = Style.GENERIC_LOCATION;
+                    break;
+                }
                 TimeZone tz = tzFormat().parse(style, text, pos, tzTimeType);
                 if (tz != null) {
                     tztype = tzTimeType.value;

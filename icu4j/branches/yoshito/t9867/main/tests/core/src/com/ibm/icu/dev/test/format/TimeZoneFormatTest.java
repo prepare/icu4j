@@ -9,10 +9,14 @@ package com.ibm.icu.dev.test.format;
 
 import java.text.ParseException;
 import java.text.ParsePosition;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
+import java.util.regex.Pattern;
 
+import com.ibm.icu.impl.ZoneMeta;
 import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.text.SimpleDateFormat;
 import com.ibm.icu.text.TimeZoneFormat;
@@ -34,7 +38,30 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         new TimeZoneFormatTest().run(args);
     }
 
-    private static final String[] PATTERNS = {"z", "zzzz", "Z", "ZZZZ", "ZZZZZ", "v", "vvvv", "V", "VVVV"};
+    private static final String[] PATTERNS = {
+        "z",
+        "zzzz",
+        "Z",        // equivalent to "xxxx"
+        "ZZZZ",     // equivalent to "OOOO"
+        "v",
+        "vvvv",
+        "O",
+        "OOOO",
+        "X",
+        "XX",
+        "XXX",
+        "XXXX",
+        "XXXXX",
+        "x",
+        "xx",
+        "xxx",
+        "xxxx",
+        "xxxxx",
+        "V",
+        "VV",
+        "VVV",
+        "VVVV"
+    };
     boolean REALLY_VERBOSE_LOG = false;
 
     /*
@@ -124,7 +151,33 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                         tz.getOffset(DATES[datidx].getTime(), false, inOffsets);
                         outtz.getOffset(DATES[datidx].getTime(), false, outOffsets);
 
-                        if (PATTERNS[patidx].equals("VVVV")) {
+                        if (PATTERNS[patidx].equals("V")) {
+                            // Short zone ID - should support roundtrip for canonical CLDR IDs
+                            String canonicalID = TimeZone.getCanonicalID(tzids[tzidx]);
+                            if (!outtz.getID().equals(canonicalID)) {
+                                if (outtz.getID().equals("Etc/Unknown")) {
+                                    // Note that some zones like Asia/Riyadh87 does not have
+                                    // short zone ID and "unk" is used as the fallback
+                                    logln("Canonical round trip failed; tz=" + tzids[tzidx]
+                                            + ", locale=" + LOCALES[locidx] + ", pattern=" + PATTERNS[patidx]
+                                            + ", time=" + DATES[datidx].getTime() + ", str=" + tzstr
+                                            + ", outtz=" + outtz.getID());
+                                } else {
+                                    errln("Canonical round trip failed; tz=" + tzids[tzidx]
+                                        + ", locale=" + LOCALES[locidx] + ", pattern=" + PATTERNS[patidx]
+                                        + ", time=" + DATES[datidx].getTime() + ", str=" + tzstr
+                                        + ", outtz=" + outtz.getID());
+                                }
+                            }
+                        } else if (PATTERNS[patidx].equals("VV")) {
+                            // Zone ID - full roundtrip support
+                            if (!outtz.getID().equals(tzids[tzidx])) {
+                                errln("Zone ID round trip failed; tz=" + tzids[tzidx]
+                                        + ", locale=" + LOCALES[locidx] + ", pattern=" + PATTERNS[patidx]
+                                        + ", time=" + DATES[datidx].getTime() + ", str=" + tzstr
+                                        + ", outtz=" + outtz.getID());
+                            }
+                        } else if (PATTERNS[patidx].equals("VVV") || PATTERNS[patidx].equals("VVVV")) {
                             // Location: time zone rule must be preserved except
                             // zones not actually associated with a specific location.
                             String canonicalID = TimeZone.getCanonicalID(tzids[tzidx]);
@@ -149,7 +202,14 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                                 }
                             }
                         } else {
-                            boolean isOffsetFormat = (PATTERNS[patidx].charAt(0) == 'Z');
+                            boolean isOffsetFormat = (PATTERNS[patidx].charAt(0) == 'Z'
+                                    || PATTERNS[patidx].charAt(0) == 'O'
+                                    || PATTERNS[patidx].charAt(0) == 'X'
+                                    || PATTERNS[patidx].charAt(0) == 'x');
+                            boolean minutesOffset = false;
+                            if (PATTERNS[patidx].charAt(0) == 'X' || PATTERNS[patidx].charAt(0) == 'x') {
+                                minutesOffset = PATTERNS[patidx].length() <= 3;
+                            }
 
                             if (!isOffsetFormat) {
                                 // Check if localized GMT format is used as a fallback of name styles
@@ -166,7 +226,7 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                                 // Localized GMT or RFC: total offset (raw + dst) must be preserved.
                                 int inOffset = inOffsets[0] + inOffsets[1];
                                 int outOffset = outOffsets[0] + outOffsets[1];
-                                if (inOffset != outOffset) {
+                                if (inOffset != outOffset && (!minutesOffset || Math.abs(inOffset - outOffset) >= 60000)) {
                                     errln("Offset round trip failed; tz=" + tzids[tzidx]
                                         + ", locale=" + LOCALES[locidx] + ", pattern=" + PATTERNS[patidx]
                                         + ", time=" + DATES[datidx].getTime() + ", str=" + tzstr
@@ -229,10 +289,17 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         cal.set(endYear, Calendar.JANUARY, 1);
         final long END_TIME = cal.getTimeInMillis();
 
-        // Whether each pattern is ambiguous at DST->STD local time overlap
-        final boolean[] AMBIGUOUS_DST_DECESSION = {false, false, false, false, false, true, true, false, true};
-        // Whether each pattern is ambiguous at STD->STD/DST->DST local time overlap
-        final boolean[] AMBIGUOUS_NEGATIVE_SHIFT = {true, true, false, false, false, true, true, true, true};
+        // These patterns are ambiguous at DST->STD local time overlap
+        List<String> AMBIGUOUS_DST_DECESSION = Arrays.asList("v", "vvvv", "V", "VV", "VVV", "VVVV");
+
+        // These patterns are ambiguous at STD->STD/DST->DST local time overlap
+        List<String> AMBIGUOUS_NEGATIVE_SHIFT = Arrays.asList("z", "zzzz", "v", "vvvv", "V", "VV", "VVV", "VVVV");
+
+        // These patterns only support integer minutes offset
+        List<String> MINUTES_OFFSET = Arrays.asList("X", "XX", "XXX", "x", "xx", "xxx");
+
+        // Regex pattern used for filtering zone IDs without exemplar location
+        final Pattern LOC_EXCLUSION_PATTERN = Pattern.compile("Etc/.*|SystemV/.*|.*/Riyadh8[7-9]");
 
         final String BASEPATTERN = "yyyy-MM-dd'T'HH:mm:ss.SSS";
 
@@ -259,8 +326,7 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             };
         } else {
             LOCALES = new ULocale[] {
-//                new ULocale("en"),
-                new ULocale("el"),
+                new ULocale("en"),
             };
         }
 
@@ -277,9 +343,27 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                 logln("    pattern: " + PATTERNS[patidx]);
                 String pattern = BASEPATTERN + " " + PATTERNS[patidx];
                 SimpleDateFormat sdf = new SimpleDateFormat(pattern, LOCALES[locidx]);
+                boolean minutesOffset = MINUTES_OFFSET.contains(PATTERNS[patidx]);
 
                 Set<String> ids = TimeZone.getAvailableIDs(SystemTimeZoneType.CANONICAL, null, null);
                 for (String id : ids) {
+                    if (PATTERNS[patidx].equals("V")) {
+                        // Some zones do not have short ID assigned, such as Asia/Riyadh87.
+                        // The time roundtrip will fail for such zones with pattern "V" (short zone ID).
+                        // This is expected behavior.
+                        String shortZoneID = ZoneMeta.getShortID(id);
+                        if (shortZoneID == null) {
+                            continue;
+                        }
+                    } else if (PATTERNS[patidx].equals("VVV")) {
+                        // Some zones are not associated with any region, such as Etc/GMT+8.
+                        // The time roundtrip will fail for such zones with pattern "VVV" (exemplar location).
+                        // This is expected behavior.
+                        if (id.indexOf('/') < 0 || LOC_EXCLUSION_PATTERN.matcher(id).matches()) {
+                            continue;
+                        }
+                    }
+
                     BasicTimeZone btz = (BasicTimeZone)TimeZone.getTimeZone(id, TimeZone.TIMEZONE_ICU);
                     TimeZone tz = TimeZone.getTimeZone(id);
                     sdf.setTimeZone(tz);
@@ -302,10 +386,12 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                                 expectedRoundTrip[0] = true;
                                 testTimes[1] = t + delta;
                                 expectedRoundTrip[1] = isDstDecession ?
-                                        !AMBIGUOUS_DST_DECESSION[patidx] : !AMBIGUOUS_NEGATIVE_SHIFT[patidx];
+                                        !AMBIGUOUS_DST_DECESSION.contains(PATTERNS[patidx]) :
+                                        !AMBIGUOUS_NEGATIVE_SHIFT.contains(PATTERNS[patidx]);
                                 testTimes[2] = t - 1;
                                 expectedRoundTrip[2] = isDstDecession ?
-                                        !AMBIGUOUS_DST_DECESSION[patidx] : !AMBIGUOUS_NEGATIVE_SHIFT[patidx];
+                                        !AMBIGUOUS_DST_DECESSION.contains(PATTERNS[patidx]) :
+                                        !AMBIGUOUS_NEGATIVE_SHIFT.contains(PATTERNS[patidx]);
                                 testTimes[3] = t;
                                 expectedRoundTrip[3] = true;
                                 testLen = 4;
@@ -324,7 +410,9 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                             try {
                                 Date parsedDate = sdf.parse(text);
                                 long restime = parsedDate.getTime();
-                                if (restime != testTimes[testidx]) {
+                                long timeDiff = restime - testTimes[testidx];
+                                boolean bTimeMatch = minutesOffset ? timeDiff < 60000 : timeDiff == 0;
+                                if (!bTimeMatch) {
                                     StringBuffer msg = new StringBuffer();
                                     msg.append("Time round trip failed for ")
                                         .append("tzid=").append(id)
@@ -334,7 +422,7 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                                         .append(", gmt=").append(sdfGMT.format(new Date(testTimes[testidx])))
                                         .append(", time=").append(testTimes[testidx])
                                         .append(", restime=").append(restime)
-                                        .append(", diff=").append(restime - testTimes[testidx]);
+                                        .append(", diff=").append(timeDiff);
                                     if (expectedRoundTrip[testidx]) {
                                         errln("FAIL: " + msg.toString());
                                     } else if (REALLY_VERBOSE_LOG) {
@@ -342,7 +430,8 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                                     }
                                 }
                             } catch (ParseException pe) {
-                                errln("FAIL: " + pe.getMessage());
+                                errln("FAIL: " + pe.getMessage() + " tzid=" + id + ", locale=" + LOCALES[locidx] +
+                                        ", pattern=" + PATTERNS[patidx] + ", text=" + text);
                             }
                             times[patidx] += System.currentTimeMillis() - timer;
                         }
