@@ -158,10 +158,12 @@ public class TimeZoneFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                                 if (outtz.getID().equals("Etc/Unknown")) {
                                     // Note that some zones like Asia/Riyadh87 does not have
                                     // short zone ID and "unk" is used as the fallback
-                                    logln("Canonical round trip failed; tz=" + tzids[tzidx]
+                                    if (REALLY_VERBOSE_LOG) {
+                                        logln("Canonical round trip failed; tz=" + tzids[tzidx]
                                             + ", locale=" + LOCALES[locidx] + ", pattern=" + PATTERNS[patidx]
                                             + ", time=" + DATES[datidx].getTime() + ", str=" + tzstr
                                             + ", outtz=" + outtz.getID());
+                                    }
                                 } else {
                                     errln("Canonical round trip failed; tz=" + tzids[tzidx]
                                         + ", locale=" + LOCALES[locidx] + ", pattern=" + PATTERNS[patidx]
