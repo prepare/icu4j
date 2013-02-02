@@ -375,7 +375,7 @@ public class SpoofChecker {
             fSpoofData = null;
             fAllowedCharsSet.set(src.fAllowedCharsSet);
             fAllowedLocales.addAll(src.fAllowedLocales);
-            restrictionLevel = src.restrictionLevel;
+            restrictionLevel = src.fRestrictionLevel;
         }
 
         /**
@@ -402,7 +402,7 @@ public class SpoofChecker {
             result.fAllowedCharsSet = (UnicodeSet) (this.fAllowedCharsSet.clone());
             result.fAllowedCharsSet.freeze();
             result.fAllowedLocales = this.fAllowedLocales;
-            result.restrictionLevel = this.restrictionLevel;
+            result.fRestrictionLevel = this.restrictionLevel;
             return result;
         }
 
@@ -1411,7 +1411,7 @@ public class SpoofChecker {
      * @internal
      */
     public RestrictionLevel getRestrictionLevel() {
-        return restrictionLevel;
+        return fRestrictionLevel;
     }
 
     /**
@@ -1457,8 +1457,7 @@ public class SpoofChecker {
 
     /**
      * A struct-like class to hold the results of a Spoof Check operation. 
-     * Tells which check(s) have failed 
-     * and the position within the string where the failure was found.
+     * Tells which check(s) have failed.
      * 
      * @stable ICU 4.6
      */
@@ -1474,7 +1473,7 @@ public class SpoofChecker {
         /**
          * The index of the first string position that failed a check.
          * 
-         * @stable ICU 4.6
+         * @deprecated ICU 51. No longer supported. Always set to zero.
          */
         public int position;
         /**
@@ -1516,19 +1515,11 @@ public class SpoofChecker {
         int length = text.length();
 
         int result = 0;
-        int failPos = Integer.MAX_VALUE;
         if (checkResult != null) {
             checkResult.position = 0;
             checkResult.numerics = null;
             checkResult.restrictionLevel = null;
         }
-
-        // A count of the number of non-Common or inherited scripts.
-        // Needed for both the SINGLE_SCRIPT and the
-        // WHOLE/MIXED_SCIRPT_CONFUSABLE tests.
-        // Share the computation when possible. scriptCount == -1 means that we
-        // haven't done it yet.
-        int scriptCount = -1;
 
         // Allocate an identifier info if needed.
         // Note: we may want to allocate one per SpoofChecker and synchronize
@@ -1540,7 +1531,7 @@ public class SpoofChecker {
 
         if (0 != ((this.fChecks) & RESTRICTION_LEVEL)) {
             RestrictionLevel textRestrictionLevel = identifierInfo.getRestrictionLevel();
-            if (textRestrictionLevel.compareTo(restrictionLevel) > 0) {
+            if (textRestrictionLevel.compareTo(fRestrictionLevel) > 0) {
                 result |= RESTRICTION_LEVEL;
             }
             if (checkResult != null) {
@@ -1558,17 +1549,6 @@ public class SpoofChecker {
             }
         }
 
-        //        if (0 != ((this.fChecks) & SINGLE_SCRIPT)) {
-        //            scriptCount = this.scriptScan(text, checkResult);
-        //            // no need to set failPos, it will be set to checkResult.position inside this.scriptScan
-        //            // printf("scriptCount (clipped to 2) = %d\n", scriptCount);
-        //            if (scriptCount >= 2) {
-        //                // Note: scriptCount == 2 covers all cases of the number of
-        //                // scripts >= 2
-        //                result |= SINGLE_SCRIPT;
-        //            }
-        //        }
-
         if (0 != (this.fChecks & CHAR_LIMIT)) {
             int i;
             int c;
@@ -1578,9 +1558,6 @@ public class SpoofChecker {
                 i = Character.offsetByCodePoints(text, i, 1);
                 if (!this.fAllowedCharsSet.contains(c)) {
                     result |= CHAR_LIMIT;
-                    if (i < failPos) {
-                        failPos = i;
-                    }
                     break;
                 }
             }
@@ -1599,7 +1576,7 @@ public class SpoofChecker {
                 int firstNonspacingMark = 0;
                 boolean haveMultipleMarks = false;
                 UnicodeSet marksSeenSoFar = new UnicodeSet(); // Set of combining marks in a
-                // single combining sequence.
+                                                              // single combining sequence.
                 for (i = 0; i < length;) {
                     // U16_NEXT(nfdText, i, nfdLength, c);
                     c = Character.codePointAt(nfdText, i);
@@ -1624,7 +1601,6 @@ public class SpoofChecker {
                         // report the error, and stop scanning.
                         // No need to find more than the first failure.
                         result |= INVISIBLE;
-                        failPos = i;
                         break;
                     }
                     marksSeenSoFar.add(c);
@@ -1632,31 +1608,25 @@ public class SpoofChecker {
             }
 
             if (0 != (this.fChecks & (WHOLE_SCRIPT_CONFUSABLE | MIXED_SCRIPT_CONFUSABLE))) {
-                // The basic test is the same for both whole and mixed script
-                // confusables.
-                // Compute the set of scripts that every input character has a
-                // confusable in.
-                // For this computation an input character is always considered
-                // to be
+                // The basic test is the same for both whole and mixed script confusables.
+                // Compute the set of scripts that every input character has a confusable in.
+                // For this computation an input character is always considered to be
                 // confusable with itself in its own script.
-                // If the number of such scripts is two or more, and the input
-                // consisted of
-                // characters all from a single script, we have a whole script
-                // confusable.
-                // (The two scripts will be the original script and the one that
-                // is confusable)
-                // If the number of such scripts >= one, and the original input
-                // contained characters from
-                // more than one script, we have a mixed script confusable. (We
-                // can transform
-                // some of the characters, and end up with a visually similar
-                // string all in
-                // one script.)
+                //
+                // If the number of such scripts is two or more, and the input consisted of
+                // characters all from a single script, we have a whole script confusable.
+                // (The two scripts will be the original script and the one that is confusable).
+                
+                // If the number of such scripts >= one, and the original input contained characters from
+                // more than one script, we have a mixed script confusable. (We can transform
+                // some of the characters, and end up with a visually similar string all in one script.)
 
-                if (scriptCount == -1) {
-                    scriptCount = this.scriptScan(text, null);
+                if (identifierInfo == null) {
+                    identifierInfo = new IdentifierInfo();
+                    identifierInfo.setIdentifier(text);
                 }
-
+                int scriptCount = identifierInfo.getScriptCount();
+                
                 ScriptSet scripts = new ScriptSet();
                 this.wholeScriptCheck(nfdText, scripts);
                 int confusableScriptCount = scripts.countMembers();
@@ -1674,9 +1644,6 @@ public class SpoofChecker {
         }
         if (checkResult != null) {
             checkResult.checks = result;
-            //            if (failPos != Integer.MAX_VALUE) {
-            //                checkResult.position = failPos;
-            //            }
         }
         return (0 != result);
     }
@@ -1715,14 +1682,11 @@ public class SpoofChecker {
      */
     public int areConfusable(String s1, String s2) {
         //
-        // See section 4 of UAX 39 for the algorithm for checking whether two
-        // strings are confusable,
-        // and for definitions of the types (single, whole, mixed-script) of
-        // confusables.
+        // See section 4 of UAX 39 for the algorithm for checking whether two strings are confusable,
+        // and for definitions of the types (single, whole, mixed-script) of confusables.
 
         // We only care about a few of the check flags. Ignore the others.
-        // If no tests relavant to this function have been specified, signal an
-        // error.
+        // If no tests relavant to this function have been specified, signal an error.
         // TODO: is this really the right thing to do? It's probably an error on
         // the caller's part, but logically we would just return 0 (no error).
         if ((this.fChecks & (SINGLE_SCRIPT_CONFUSABLE | MIXED_SCRIPT_CONFUSABLE | WHOLE_SCRIPT_CONFUSABLE)) == 0) {
@@ -1733,8 +1697,8 @@ public class SpoofChecker {
         String s2Skeleton;
 
         int result = 0;
-        int s1ScriptCount = this.scriptScan(s1, null);
-        int s2ScriptCount = this.scriptScan(s2, null);
+        int s1ScriptCount = this.scriptScan(s1);
+        int s2ScriptCount = this.scriptScan(s2);
 
         if (0 != (this.fChecks & SINGLE_SCRIPT_CONFUSABLE)) {
             // Do the Single Script compare.
@@ -1749,10 +1713,8 @@ public class SpoofChecker {
         }
 
         if (0 != (result & SINGLE_SCRIPT_CONFUSABLE)) {
-            // If the two inputs are single script confusable they cannot also
-            // be
-            // mixed or whole script confusable, according to the UAX39
-            // definitions.
+            // If the two inputs are single script confusable they cannot also be
+            // mixed or whole script confusable, according to the UAX39 definitions.
             // So we can skip those tests.
             return result;
         }
@@ -1765,8 +1727,7 @@ public class SpoofChecker {
 
         // Mixed Script Check
         if ((0 != (this.fChecks & MIXED_SCRIPT_CONFUSABLE)) || possiblyWholeScriptConfusables) {
-            // For getSkeleton(), resetting the SINGLE_SCRIPT_CONFUSABLE flag
-            // will get us
+            // For getSkeleton(), resetting the SINGLE_SCRIPT_CONFUSABLE flag will get us
             // the mixed script table skeleton, which is what we want.
             // The Any Case / Lower Case bit in the skelton flags was set at the
             // top of the function.
@@ -1963,10 +1924,7 @@ public class SpoofChecker {
         return;
     }
 
-    // WholeScript and MixedScript check implementation.
     // Implementation for Whole Script tests.
-    // Return the test bit flag to be ORed into the eventual user return value
-    // if a Spoof opportunity is detected.
     // Input text is already normalized to NFD
     // Return the set of scripts, each of which can represent something that is
     // confusable with the input text. The script of the input text
@@ -2010,7 +1968,7 @@ public class SpoofChecker {
      * @return the number of (non-common,inherited) scripts encountered, clipped to a max of two.
      * @internal
      */
-    int scriptScan(CharSequence text, CheckResult checkResult) {
+    int scriptScan(CharSequence text) {
         int inputIdx = 0;
         int c;
         int scriptCount = 0;
@@ -2036,9 +1994,6 @@ public class SpoofChecker {
                 lastScript = sc;
             }
         }
-        if (scriptCount == 2 && checkResult != null) {
-            checkResult.position = inputIdx;
-        }
         return scriptCount;
     }
 
@@ -2048,30 +2003,28 @@ public class SpoofChecker {
     private SpoofData fSpoofData;
     private Set<ULocale> fAllowedLocales; // The Set of allowed locales.
     private UnicodeSet fAllowedCharsSet; // The UnicodeSet of allowed characters.
-    private RestrictionLevel restrictionLevel;
+    private RestrictionLevel fRestrictionLevel;
 
-    // for this Spoof Checker. Defaults to all chars.
-    //
     // Confusable Mappings Data Structures
     //
     // For the confusable data, we are essentially implementing a map,
-    // key: a code point
-    // value: a string. Most commonly one char in length, but can be more.
+    //    key: a code point
+    //    value: a string. Most commonly one char in length, but can be more.
     //
     // The keys are stored as a sorted array of 32 bit ints.
-    // bits 0-23 a code point value
-    // bits 24-31 flags
-    // 24: 1 if entry applies to SL table
-    // 25: 1 if entry applies to SA table
-    // 26: 1 if entry applies to ML table
-    // 27: 1 if entry applies to MA table
-    // 28: 1 if there are multiple entries for this code point.
-    // 29-30: length of value string, in UChars.
-    // values are (1, 2, 3, other)
-    // The key table is sorted in ascending code point order. (not on the
-    // 32 bit int value, the flag bits do not participate in the sorting.)
+    //          bits 0-23    a code point value
+    //          bits 24-31   flags
+    //             24:    1 if entry applies to SL table
+    //             25:    1 if entry applies to SA table
+    //             26:    1 if entry applies to ML table
+    //             27:    1 if entry applies to MA table
+    //             28:    1 if there are multiple entries for this code point.
+    //             29-30: length of value string, in UChars.
+    //                    values are (1, 2, 3, other)
+    //     The key table is sorted in ascending code point order. (not on the
+    //     32 bit int value, the flag bits do not participate in the sorting.)
     //
-    // Lookup is done by means of a binary search in the key table.
+    //     Lookup is done by means of a binary search in the key table.
     //
     // The corresponding values are kept in a parallel array of 16 bit ints.
     // If the value string is of length 1, it is literally in the value array.
@@ -2079,27 +2032,23 @@ public class SpoofChecker {
     // table.
     //
     // String Table:
-    // The strings table contains all of the value strings (those of length two
-    // or greater)
-    // concatentated together into one long char (UTF-16) array.
+    //     The strings table contains all of the value strings (those of length two or greater)
+    //     concatentated together into one long char (UTF-16) array.
     //
-    // The array is arranged by length of the strings - all strings of the same
-    // length
-    // are stored together. The sections are ordered by length of the strings -
-    // all two char strings first, followed by all of the three Char strings,
-    // etc.
+    //     The array is arranged by length of the strings - all strings of the same length
+    //     are stored together. The sections are ordered by length of the strings -
+    //     all two char strings first, followed by all of the three Char strings, etc.
     //
-    // There is no nul character or other mark between adjacent strings.
+    //     There is no nul character or other mark between adjacent strings.
     //
     // String Lengths table
-    // The length of strings from 1 to 3 is flagged in the key table.
-    // For strings of length 4 or longer, the string length table provides a
-    // mapping between an index into the string table and the corresponding
-    // length.
-    // Strings of these lengths are rare, so lookup time is not an issue.
-    // Each entry consists of
-    // short index of the _last_ string with this length
-    // short the length
+    //     The length of strings from 1 to 3 is flagged in the key table.
+    //     For strings of length 4 or longer, the string length table provides a
+    //     mapping between an index into the string table and the corresponding length.
+    //     Strings of these lengths are rare, so lookup time is not an issue.
+    //     Each entry consists of
+    //        unsigned short      index of the _last_ string with this length
+    //        unsigned short      the length
 
     // Flag bits in the Key entries
     static final int SL_TABLE_FLAG = (1 << 24);
