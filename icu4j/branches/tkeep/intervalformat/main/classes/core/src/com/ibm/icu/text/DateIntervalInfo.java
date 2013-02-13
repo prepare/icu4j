@@ -848,27 +848,24 @@ public class DateIntervalInfo implements Cloneable, Freezable<DateIntervalInfo>,
 
 
     /*
-     * Check whether one field width is numeric while the other is string.
+     * Check whether or not a count for a particular letter is special.
+     * In our distance function, special counts are very far away from regular
+     * counts.
      *
-     * TODO (xji): make it general
-     *
-     * @param fieldWidth          one field width
-     * @param anotherFieldWidth   another field width
+     * @param fieldWidth          the field width
      * @param patternLetter       pattern letter char
-     * @return true if one field width is numeric and the other is string,
-     *         false otherwise.
+     * @return true if the field count is special.
      */
-    private static boolean stringNumeric(int fieldWidth,
-                                         int anotherFieldWidth,
-                                         char patternLetter) {
-        if ( patternLetter == 'M' ) {
-            if ( fieldWidth <= 2 && anotherFieldWidth > 2 ||
-                 fieldWidth > 2 && anotherFieldWidth <= 2 ) {
-                return true;
-            }
-        }        
+    private static boolean isSpecialCount(int fieldWidth, char patternLetter) {
+        if ( patternLetter == 'M' && fieldWidth <= 2) {
+            return true;
+        }
+        if (patternLetter == 'y' && fieldWidth == 2) {
+            return true;
+        }
         return false;
     }
+    
 
 
     /*
@@ -891,7 +888,7 @@ public class DateIntervalInfo implements Cloneable, Freezable<DateIntervalInfo>,
         int[] skeletonFieldWidth = new int[58];
 
         final int DIFFERENT_FIELD = 0x1000;
-        final int STRING_NUMERIC_DIFFERENCE = 0x100;
+        final int LARGE_NUMERIC_DIFFERENCE = 0x100;
         final int BASE = 0x41;
 
         // TODO: this is a hack for 'v' and 'z'
@@ -931,9 +928,9 @@ public class DateIntervalInfo implements Cloneable, Freezable<DateIntervalInfo>,
                 } else if ( fieldWidth == 0 ) {
                     fieldDifference = -1;
                     distance += DIFFERENT_FIELD;
-                } else if (stringNumeric(inputFieldWidth, fieldWidth, 
-                                         (char)(i+BASE) ) ) {
-                    distance += STRING_NUMERIC_DIFFERENCE;
+                } else if (isSpecialCount(inputFieldWidth, (char)(i+BASE) ) !=
+                        isSpecialCount(fieldWidth, (char)(i+BASE))) {
+                    distance += LARGE_NUMERIC_DIFFERENCE;
                 } else {
                     distance += Math.abs(inputFieldWidth - fieldWidth);
                 }
