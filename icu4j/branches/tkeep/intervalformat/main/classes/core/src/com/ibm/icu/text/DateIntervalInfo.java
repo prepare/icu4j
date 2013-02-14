@@ -866,6 +866,12 @@ public class DateIntervalInfo implements Cloneable, Freezable<DateIntervalInfo>,
         return false;
     }
     
+    private static int distanceBetweenNonSpecialAndSpecial(char patternLetter) {
+        if (patternLetter == 'y') {
+            return 64;
+        }
+        return 256;  // Default distance between special and non special counts.
+    }
 
 
     /*
@@ -888,7 +894,6 @@ public class DateIntervalInfo implements Cloneable, Freezable<DateIntervalInfo>,
         int[] skeletonFieldWidth = new int[58];
 
         final int DIFFERENT_FIELD = 0x1000;
-        final int LARGE_NUMERIC_DIFFERENCE = 0x100;
         final int BASE = 0x41;
 
         // TODO: this is a hack for 'v' and 'z'
@@ -928,11 +933,14 @@ public class DateIntervalInfo implements Cloneable, Freezable<DateIntervalInfo>,
                 } else if ( fieldWidth == 0 ) {
                     fieldDifference = -1;
                     distance += DIFFERENT_FIELD;
-                } else if (isSpecialCount(inputFieldWidth, (char)(i+BASE) ) !=
-                        isSpecialCount(fieldWidth, (char)(i+BASE))) {
-                    distance += LARGE_NUMERIC_DIFFERENCE;
                 } else {
-                    distance += Math.abs(inputFieldWidth - fieldWidth);
+                    char patternLetter = (char)(i+BASE);
+                    if (isSpecialCount(inputFieldWidth, patternLetter ) !=
+                            isSpecialCount(fieldWidth, patternLetter)) {
+                        distance += distanceBetweenNonSpecialAndSpecial(patternLetter);
+                    } else {
+                        distance += Math.abs(inputFieldWidth - fieldWidth);
+                    }
                 }
             }
             if ( distance < bestDistance ) {
