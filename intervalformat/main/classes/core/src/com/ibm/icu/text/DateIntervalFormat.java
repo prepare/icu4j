@@ -1230,8 +1230,10 @@ public class DateIntervalFormat extends UFormat {
     
         /* generate normalized form for date*/
         if ( yCount != 0 ) {
-            for (i = 0; i < yCount; ++i) {
-              normalizedDateSkeleton.append('y');
+            if (yCount == 2) {
+                normalizedDateSkeleton.append("yy");
+            } else {
+                normalizedDateSkeleton.append('y');
             }
         }
         if ( MCount != 0 ) {
