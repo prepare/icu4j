@@ -7,15 +7,13 @@
 package com.ibm.icu.util;
 
 import java.util.MissingResourceException;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.text.UnicodeSet;
 import com.ibm.icu.util.ULocale.Category;
 
 /**
- * A class for accessing miscelleneous data in the locale bundles
+ * A class for accessing miscellaneous data in the locale bundles
  * @author ram
  * @stable ICU 2.8
  */
@@ -58,8 +56,7 @@ public final class LocaleData {
 
     /**
      * EXType for {@link #getExemplarSet(int, int)}.
-     * @draft ICU 49
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 49
      */
      public static final int ES_PUNCTUATION = 4;
 

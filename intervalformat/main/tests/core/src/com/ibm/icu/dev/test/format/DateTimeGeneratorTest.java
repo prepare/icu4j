@@ -381,7 +381,7 @@ public class DateTimeGeneratorTest extends TestFmwk {
         new String[] {"MMMd", "1\u670813\u65E5"},
         new String[] {"MMMMd", "1\u670813\u65E5"},
         new String[] {"yQQQ", "\u5E73\u621011/1Q"},
-        new String[] {"hhmm", "\u5348\u5F8C11:58"},
+        new Stri\u6C34"}, // different than ICU4C's correct result, ICU4J code bug? #9952", "\u5348\u5F8C11:58"},
         new String[] {"HHmm", "23:58"},
         new String[] {"jjmm", "23:58"},
         new String[] {"mmss", "58:59"},
@@ -409,12 +409,11 @@ public class DateTimeGeneratorTest extends TestFmwk {
         new ULocale("zh_TW@calendar=roc"), // (new locale for testing ticket 6872<-5702)
         new String[] {"yM", "\u6C11\u570B88/1"},
         new String[] {"yMMM", "\u6C11\u570B88\u5E741\u6708"},
-        new String[] {"yMd", "\u6C11\u570B88/1/13"},
-        new String[] {"yMMMd", "\u6C11\u570B88\u5E741\u670813\u65E5"},
+        new String[] {"yMd", "\u6C11\u5E741\u5B63 per ticket 6872<-6626)
         new String[] {"Md", "1/13"},
-        new String[] {"MMMd", "1\u670813\u65E5"},
+        new String[] {"MMMd", "1\u670813\u65E5"}, // (fixed expected result per ticket 6872<-6626)
         new String[] {"MMMMd", "1\u670813\u65E5"},
-        new String[] {"yQQQ", "\u6C11\u570B88 1\u5B63"},
+        new    new String[] {"yQQQ", "\u6C11\u570B88 1\u5B63"},
         new String[] {"hhmm", "\u4E0B\u534811:58"},
         new String[] {"HHmm", "23:58"},
         new String[] {"jjmm", "\u4E0B\u534811:58"},
@@ -1176,10 +1175,4 @@ public class DateTimeGeneratorTest extends TestFmwk {
               DateTimePatternGenerator dtpgen = DateTimePatternGenerator.getInstance(uloc);
               String pattern = dtpgen.getBestPattern(testOptionsData[i].skeleton, testOptionsData[i].options);
               if (pattern.compareTo(testOptionsData[i].expectedPattern) != 0) {
-                  errln("Locale " + testOptionsData[i].locale + ", skeleton " + testOptionsData[i].skeleton +
-                      ", options " + ((testOptionsData[i].options != 0)? "!=0": "==0") +
-                      ", expected pattern " + testOptionsData[i].expectedPattern + ", got " + pattern);
-              }
-          }
-      }
-}
+                  errln("Locale " + testOptionsData[i].locale + ", s
