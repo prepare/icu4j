@@ -15,6 +15,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.MissingResourceException;
 import java.util.Set;
@@ -61,7 +62,7 @@ import com.ibm.icu.util.UResourceBundle;
  * 
  * // modify the generator by adding patterns
  * DateTimePatternGenerator.PatternInfo returnInfo = new DateTimePatternGenerator.PatternInfo();
- * gen.add(&quot;d'. von' MMMM&quot;, true, returnInfo);
+ * gen.addPattern(&quot;d'. von' MMMM&quot;, true, returnInfo);
  * // the returnInfo is mostly useful for debugging problem cases
  * format.applyPattern(gen.getBestPattern(&quot;MMMMddHmm&quot;));
  * assertEquals(&quot;modified format: MMMddHmm&quot;,
@@ -94,7 +95,7 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
     // TODO add hack to fix months for CJK, as per bug ticket 1099
 
     /**
-     * Create empty generator, to be constructed with add(...) etc.
+     * Create empty generator, to be constructed with addPattern(...) etc.
      * @stable ICU 3.6
      */
     public static DateTimePatternGenerator getEmptyInstance() {
@@ -188,6 +189,18 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
         // Get data for that calendar
         ICUResourceBundle calBundle = rb.getWithFallback("calendar");
         ICUResourceBundle calTypeBundle = calBundle.getWithFallback(calendarTypeToUse);
+        // Start hack to force inheriting sideways from generic before up to parent locale.
+        // This happens in ICU4C just via the aliases in root, not sure why not here.
+        // This is added per #9952, #9964 for better long-term fix. Part 2 is below.
+        if (calTypeBundle != null && !calendarTypeToUse.equals("gregorian") && !calendarTypeToUse.equals("chinese")) {
+            Locale desiredLocale = rb.getLocale();
+            Locale calDataLocale = calTypeBundle.getLocale();
+            if (!calDataLocale.equals(desiredLocale)) {
+                calTypeBundle = calBundle.getWithFallback("generic");
+            }
+        }
+        // End hack
+
         // CLDR item formats
 
 
@@ -244,8 +257,20 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
             if (pbundle == null) {
                 break;
             }
+            calBundle = pbundle.getWithFallback("calendar");
+            calTypeBundle = calBundle.getWithFallback(calendarTypeToUse);
+            // Start hack for sideways inheritance, part 2
+            // This is added per #9952, #9964 for better long-term fix.
+            if (calTypeBundle != null && !calendarTypeToUse.equals("gregorian") && !calendarTypeToUse.equals("chinese")) {
+                Locale desiredLocale = pbundle.getLocale();
+                Locale calDataLocale = calTypeBundle.getLocale();
+                if (!calDataLocale.equals(desiredLocale)) {
+                    calTypeBundle = calBundle.getWithFallback("generic");
+                }
+            }
+            // End hack part 2
             try {
-                availFormatsBundle = pbundle.getWithFallback("calendar/" + calendarTypeToUse + "/availableFormats");
+                availFormatsBundle = calTypeBundle.getWithFallback("availableFormats");
             } catch (MissingResourceException e) {
                 availFormatsBundle = null;
             }
@@ -439,7 +464,7 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
     }
 
     /**
-     * PatternInfo supplies output parameters for add(...). It is used because
+     * PatternInfo supplies output parameters for addPattern(...). It is used because
      * Java doesn't have real output parameters. It is treated like a struct (eg
      * Point), so all fields are public.
      * 
@@ -2012,15 +2037,15 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
             for (int i = 0; i < TYPE_LIMIT; ++i) {
                 if (original[i].length() != 0) {
                     // append a string of the same length using the canonical character
-                	for (int j = 0; j < types.length; ++j) {
-                	    int[] row = types[j];
-                	    if (row[1] == i) {
-                	        char originalChar = original[i].charAt(0);
-                	        char repeatChar = (originalChar=='h' || originalChar=='K')? 'h': (char)row[0];
-                	        result.append(Utility.repeat(String.valueOf(repeatChar), original[i].length()));
-                	        break;
-                	    }
-                	}
+                    for (int j = 0; j < types.length; ++j) {
+                        int[] row = types[j];
+                        if (row[1] == i) {
+                            char originalChar = original[i].charAt(0);
+                            char repeatChar = (originalChar=='h' || originalChar=='K')? 'h': (char)row[0];
+                            result.append(Utility.repeat(String.valueOf(repeatChar), original[i].length()));
+                            break;
+                        }
+                    }
                 }
             }
             return result.toString();
