@@ -15,7 +15,6 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.MissingResourceException;
 import java.util.Set;
@@ -187,26 +186,14 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
         }
 
         // Get data for that calendar
-        ICUResourceBundle calBundle = rb.getWithFallback("calendar");
-        ICUResourceBundle calTypeBundle = calBundle.getWithFallback(calendarTypeToUse);
-        // Start hack to force inheriting sideways from generic before up to parent locale.
-        // This happens in ICU4C just via the aliases in root, not sure why not here.
-        // This is added per #9952, #9964 for better long-term fix. Part 2 is below.
-        if (calTypeBundle != null && !calendarTypeToUse.equals("gregorian") && !calendarTypeToUse.equals("chinese")) {
-            Locale desiredLocale = rb.getLocale();
-            Locale calDataLocale = calTypeBundle.getLocale();
-            if (!calDataLocale.equals(desiredLocale)) {
-                calTypeBundle = calBundle.getWithFallback("generic");
-            }
-        }
-        // End hack
-
-        // CLDR item formats
-
-
-        // (hmm, do we need aliases in root for all non-gregorian calendars?)
         try {
-            ICUResourceBundle itemBundle = calTypeBundle.getWithFallback("appendItems");
+            //      ICU4J getWithFallback does not work well when
+            //      1) A nested table is an alias to /LOCALE/...
+            //      2) getWithFallback is called multiple times for going down hierarchical resource path
+            //      #9987 resolved the issue of alias table when full path is specified in getWithFallback,
+            //      but there is no easy solution when the equivalent operation is done by multiple operations.
+            //      This issue is addressed in #9964.
+            ICUResourceBundle itemBundle = rb.getWithFallback("calendar/" + calendarTypeToUse + "/appendItems");
             for (int i=0; i<itemBundle.getSize(); ++i) {
                 ICUResourceBundle formatBundle = (ICUResourceBundle)itemBundle.get(i);
                 String formatName = itemBundle.get(i).getKey();
@@ -235,11 +222,18 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
         // set the AvailableFormat in CLDR
         ICUResourceBundle availFormatsBundle = null;
         try {
-            availFormatsBundle = calTypeBundle.getWithFallback("availableFormats");
+            //      ICU4J getWithFallback does not work well when
+            //      1) A nested table is an alias to /LOCALE/...
+            //      2) getWithFallback is called multiple times for going down hierarchical resource path
+            //      #9987 resolved the issue of alias table when full path is specified in getWithFallback,
+            //      but there is no easy solution when the equivalent operation is done by multiple operations.
+            //      This issue is addressed in #9964.
+            availFormatsBundle = rb.getWithFallback("calendar/" + calendarTypeToUse + "/availableFormats");
         } catch (MissingResourceException e) {
             // fall through
         }
 
+        boolean override = true;
         while (availFormatsBundle != null) {
             for (int i = 0; i < availFormatsBundle.getSize(); i++) {
                 String formatKey = availFormatsBundle.get(i).getKey();
@@ -249,7 +243,7 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
                     // Add pattern with its associated skeleton. Override any duplicate derived from std patterns,
                     // but not a previous availableFormats entry:
                     String formatValue = availFormatsBundle.get(i).getString();
-                    result.addPatternWithSkeleton(formatValue, formatKey, true, returnInfo);
+                    result.addPatternWithSkeleton(formatValue, formatKey, override, returnInfo);
                 }
             }
 
@@ -257,22 +251,13 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
             if (pbundle == null) {
                 break;
             }
-            calBundle = pbundle.getWithFallback("calendar");
-            calTypeBundle = calBundle.getWithFallback(calendarTypeToUse);
-            // Start hack for sideways inheritance, part 2
-            // This is added per #9952, #9964 for better long-term fix.
-            if (calTypeBundle != null && !calendarTypeToUse.equals("gregorian") && !calendarTypeToUse.equals("chinese")) {
-                Locale desiredLocale = pbundle.getLocale();
-                Locale calDataLocale = calTypeBundle.getLocale();
-                if (!calDataLocale.equals(desiredLocale)) {
-                    calTypeBundle = calBundle.getWithFallback("generic");
-                }
-            }
-            // End hack part 2
             try {
-                availFormatsBundle = calTypeBundle.getWithFallback("availableFormats");
+                availFormatsBundle = pbundle.getWithFallback("calendar/" + calendarTypeToUse + "/availableFormats");
             } catch (MissingResourceException e) {
                 availFormatsBundle = null;
+            }
+            if (availFormatsBundle != null && pbundle.getULocale().getBaseName().equals("root")) {
+                override = false;
             }
         }
 
@@ -546,14 +531,25 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
             matcher = new DateTimeMatcher().set(skeletonToUse, fp, false);
         }
         String basePattern = matcher.getBasePattern();
+        // We only care about base conflicts - and replacing the pattern associated with a base - if:
+        // 1. the conflicting previous base pattern did *not* have an explicit skeleton; in that case the previous
+        // base + pattern combination was derived from either (a) a canonical item, (b) a standard format, or
+        // (c) a pattern specified programmatically with a previous call to addPattern (which would only happen
+        // if we are getting here from a subsequent call to addPattern).
+        // 2. a skeleton is specified for the current pattern, but override=false; in that case we are checking
+        // availableFormats items from root, which should not override any previous entry with the same base.
         PatternWithSkeletonFlag previousPatternWithSameBase = basePattern_pattern.get(basePattern);
-        if (previousPatternWithSameBase != null) {
+        if (previousPatternWithSameBase != null && (!previousPatternWithSameBase.skeletonWasSpecified || (skeletonToUse != null && !override))) {
             returnInfo.status = PatternInfo.BASE_CONFLICT;
             returnInfo.conflictingPattern = previousPatternWithSameBase.pattern;
-            if (!override || (skeletonToUse != null && previousPatternWithSameBase.skeletonWasSpecified)) {
+            if (!override) {
                 return this;
             }
         }
+        // The only time we get here with override=true and skeletonToUse!=null is when adding availableFormats
+        // items from CLDR data. In that case, we don't want an item from a parent locale to replace an item with
+        // same skeleton from the specified locale, so skip the current item if skeletonWasSpecified is true for
+        // the previously-specified conflicting item.
         PatternWithSkeletonFlag previousValue = skeleton2pattern.get(matcher);
         if (previousValue != null) {
             returnInfo.status = PatternInfo.CONFLICT;
