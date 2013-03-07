@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2001-2012, International Business Machines Corporation and    *
+ * Copyright (C) 2001-2013, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -3671,7 +3671,7 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         GregorianCalendar gcal = new GregorianCalendar(tz);
 
         gcal.clear();
-        gcal.set(1910, Calendar.JANUARY, 1, 12, 00);    // offset 8:05:52
+        gcal.set(1910, Calendar.JANUARY, 1, 12, 00);    // offset 8:05:57
         d1 = gcal.getTime();
 
         gcal.clear();
@@ -3681,7 +3681,7 @@ public class DateFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         gcal.clear();
         gcal.set(1970, Calendar.JANUARY, 1, 12, 00);
         dexp2 = gcal.getTime();
-        dexp1 = new Date(dexp2.getTime() - (5*60 + 52)*1000);   // subtract 5m52s
+        dexp1 = new Date(dexp2.getTime() - (5*60 + 57)*1000);   // subtract 5m57s
 
         DateFormat fmt = DateFormat.getTimeInstance(DateFormat.FULL, new ULocale("zh"));
         fmt.setTimeZone(tz);
