@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2001-2013, International Business Machines Corporation and    *
+ * Copyright (C) 2001-2012, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -43,7 +43,7 @@ public class DateIntervalFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         String[] DATA = {
             "yyyy MM dd HH:mm:ss",    
             // test root
-            "root", "2007 11 10 10:10:10", "2007 12 10 10:10:10", "yM", "2007-11 \\u2013 2007-12",
+            "root", "2007 11 10 10:10:10", "2007 12 10 10:10:10", "yM", "2007-11 \\u2013 12",
          
             // test 'H' and 'h', using availableFormat in fallback
             "en", "2007 11 10 10:10:10", "2007 11 10 15:10:10", "Hms", "10:10:10 \\u2013 15:10:10",
@@ -76,23 +76,23 @@ public class DateIntervalFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             
             "en", "2007 10 10 10:10:10", "2008 10 10 10:10:10", "EdMMM", "Wed, Oct 10, 2007 \\u2013 Fri, Oct 10, 2008", 
             
-            "en", "2007 10 10 10:10:10", "2008 10 10 10:10:10", "EdMy", "Wed, 10/10/2007 \\u2013 Fri, 10/10/2008", 
+            "en", "2007 10 10 10:10:10", "2008 10 10 10:10:10", "EdMy", "Wed, 10/10/07 \\u2013 Fri, 10/10/08", 
             
-            "en", "2007 10 10 10:10:10", "2008 10 10 10:10:10", "dMy", "10/10/2007 \\u2013 10/10/2008", 
+            "en", "2007 10 10 10:10:10", "2008 10 10 10:10:10", "dMy", "10/10/07 \\u2013 10/10/08", 
             
-            "en", "2007 10 10 10:10:10", "2008 10 10 10:10:10", "dM", "10/10/2007 \\u2013 10/10/2008", 
+            "en", "2007 10 10 10:10:10", "2008 10 10 10:10:10", "dM", "10/10/07 \\u2013 10/10/08", 
             
-            "en", "2007 10 10 10:10:10", "2008 10 10 10:10:10", "My", "10/2007 \\u2013 10/2008", 
+            "en", "2007 10 10 10:10:10", "2008 10 10 10:10:10", "My", "10/07 \\u2013 10/08", 
             
-            "en", "2007 10 10 10:10:10", "2008 10 10 10:10:10", "EdM", "Wed, 10/10/2007 \\u2013 Fri, 10/10/2008", 
+            "en", "2007 10 10 10:10:10", "2008 10 10 10:10:10", "EdM", "Wed, 10/10/07 \\u2013 Fri, 10/10/08", 
             
-            "en", "2007 10 10 10:10:10", "2008 10 10 10:10:10", "d", "10/10/2007 \\u2013 10/10/2008", 
+            "en", "2007 10 10 10:10:10", "2008 10 10 10:10:10", "d", "10/10/07 \\u2013 10/10/08", 
             
             "en", "2007 10 10 10:10:10", "2008 10 10 10:10:10", "Ed", "10 Wed \\u2013 10 Fri", 
             
             "en", "2007 10 10 10:10:10", "2008 10 10 10:10:10", "y", "2007\\u20132008", 
             
-            "en", "2007 10 10 10:10:10", "2008 10 10 10:10:10", "M", "10/2007 \\u2013 10/2008", 
+            "en", "2007 10 10 10:10:10", "2008 10 10 10:10:10", "M", "10/07 \\u2013 10/08", 
             
             "en", "2007 10 10 10:10:10", "2008 10 10 10:10:10", "MMM", "Oct 2007 \\u2013 Oct 2008", 
             
@@ -110,9 +110,9 @@ public class DateIntervalFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             
             "en", "2007 10 10 10:10:10", "2008 10 10 10:10:10", "hz", "10/10/2007, 10 AM PDT \\u2013 10/10/2008, 10 AM PDT", 
             
-            "en", "2007 10 10 10:10:10", "2008 10 10 10:10:10", "EEddMMyyyy", "Wed, 10/10/2007 \\u2013 Fri, 10/10/2008", 
+            "en", "2007 10 10 10:10:10", "2008 10 10 10:10:10", "EEddMMyyyy", "Wed, 10/10/07 \\u2013 Fri, 10/10/08", 
             
-            "en", "2007 10 10 10:10:10", "2008 10 10 10:10:10", "EddMMy", "Wed, 10/10/2007 \\u2013 Fri, 10/10/2008", 
+            "en", "2007 10 10 10:10:10", "2008 10 10 10:10:10", "EddMMy", "Wed, 10/10/07 \\u2013 Fri, 10/10/08", 
             
             "en", "2007 10 10 10:10:10", "2008 10 10 10:10:10", "hhmm", "10/10/2007, 10:10 AM \\u2013 10/10/2008, 10:10 AM", 
             
@@ -122,7 +122,7 @@ public class DateIntervalFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             
             "en", "2007 10 10 10:10:10", "2008 10 10 10:10:10", "dMMMMMy", "O 10, 2007 \\u2013 O 10, 2008", 
             
-            "en", "2007 10 10 10:10:10", "2008 10 10 10:10:10", "EEEEEdM", "W, 10/10/2007 \\u2013 F, 10/10/2008", 
+            "en", "2007 10 10 10:10:10", "2008 10 10 10:10:10", "EEEEEdM", "W, 10/10/07 \\u2013 F, 10/10/08", 
             
             "en", "2007 10 10 10:10:10", "2007 11 10 10:10:10", "EEEEdMMMMy", "Wednesday, October 10 \\u2013 Saturday, November 10, 2007", 
             
@@ -144,13 +144,13 @@ public class DateIntervalFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             
             "en", "2007 10 10 10:10:10", "2007 11 10 10:10:10", "EdMMM", "Wed, Oct 10 \\u2013 Sat, Nov 10", 
             
-            "en", "2007 10 10 10:10:10", "2007 11 10 10:10:10", "EdMy", "Wed, 10/10/2007 \\u2013 Sat, 11/10/2007", 
+            "en", "2007 10 10 10:10:10", "2007 11 10 10:10:10", "EdMy", "Wed, 10/10/07 \\u2013 Sat, 11/10/07", 
             
-            "en", "2007 10 10 10:10:10", "2007 11 10 10:10:10", "dMy", "10/10/2007 \\u2013 11/10/2007", 
+            "en", "2007 10 10 10:10:10", "2007 11 10 10:10:10", "dMy", "10/10/07 \\u2013 11/10/07", 
             
             "en", "2007 10 10 10:10:10", "2007 11 10 10:10:10", "dM", "10/10 \\u2013 11/10", 
             
-            "en", "2007 10 10 10:10:10", "2007 11 10 10:10:10", "My", "10/2007 \\u2013 11/2007", 
+            "en", "2007 10 10 10:10:10", "2007 11 10 10:10:10", "My", "10/07 \\u2013 11/07", 
             
             "en", "2007 10 10 10:10:10", "2007 11 10 10:10:10", "EdM", "Wed, 10/10 \\u2013 Sat, 11/10", 
             
@@ -178,9 +178,9 @@ public class DateIntervalFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             
             "en", "2007 10 10 10:10:10", "2007 11 10 10:10:10", "hz", "10/10/2007, 10 AM PDT \\u2013 11/10/2007, 10 AM PST", 
             
-            "en", "2007 10 10 10:10:10", "2007 11 10 10:10:10", "EEddMMyyyy", "Wed, 10/10/2007 \\u2013 Sat, 11/10/2007", 
+            "en", "2007 10 10 10:10:10", "2007 11 10 10:10:10", "EEddMMyyyy", "Wed, 10/10/07 \\u2013 Sat, 11/10/07", 
             
-            "en", "2007 10 10 10:10:10", "2007 11 10 10:10:10", "EddMMy", "Wed, 10/10/2007 \\u2013 Sat, 11/10/2007", 
+            "en", "2007 10 10 10:10:10", "2007 11 10 10:10:10", "EddMMy", "Wed, 10/10/07 \\u2013 Sat, 11/10/07", 
             
             "en", "2007 10 10 10:10:10", "2007 11 10 10:10:10", "hhmm", "10/10/2007, 10:10 AM \\u2013 11/10/2007, 10:10 AM", 
             
@@ -211,9 +211,9 @@ public class DateIntervalFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             
             "en", "2007 11 10 10:10:10", "2007 11 20 10:10:10", "EdMMM", "Sat, Nov 10 \\u2013 Tue, Nov 20", 
             
-            "en", "2007 11 10 10:10:10", "2007 11 20 10:10:10", "EdMy", "Sat, 11/10/2007 \\u2013 Tue, 11/20/2007", 
+            "en", "2007 11 10 10:10:10", "2007 11 20 10:10:10", "EdMy", "Sat, 11/10/07 \\u2013 Tue, 11/20/07", 
             
-            "en", "2007 11 10 10:10:10", "2007 11 20 10:10:10", "dMy", "11/10/2007 \\u2013 11/20/2007", 
+            "en", "2007 11 10 10:10:10", "2007 11 20 10:10:10", "dMy", "11/10/07 \\u2013 11/20/07", 
             
             "en", "2007 11 10 10:10:10", "2007 11 20 10:10:10", "dM", "11/10 \\u2013 11/20", 
             
@@ -235,9 +235,9 @@ public class DateIntervalFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             
             "en", "2007 11 10 10:10:10", "2007 11 20 10:10:10", "hz", "11/10/2007, 10 AM PST \\u2013 11/20/2007, 10 AM PST", 
             
-            "en", "2007 11 10 10:10:10", "2007 11 20 10:10:10", "EEddMMyyyy", "Sat, 11/10/2007 \\u2013 Tue, 11/20/2007", 
+            "en", "2007 11 10 10:10:10", "2007 11 20 10:10:10", "EEddMMyyyy", "Sat, 11/10/07 \\u2013 Tue, 11/20/07", 
             
-            "en", "2007 11 10 10:10:10", "2007 11 20 10:10:10", "EddMMy", "Sat, 11/10/2007 \\u2013 Tue, 11/20/2007", 
+            "en", "2007 11 10 10:10:10", "2007 11 20 10:10:10", "EddMMy", "Sat, 11/10/07 \\u2013 Tue, 11/20/07", 
             
             "en", "2007 11 10 10:10:10", "2007 11 20 10:10:10", "hhmm", "11/10/2007, 10:10 AM \\u2013 11/20/2007, 10:10 AM", 
             
@@ -430,9 +430,9 @@ public class DateIntervalFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             
             "zh", "2007 11 10 10:10:10", "2007 11 20 10:10:10", "EdMMM", "11\\u670810\\u65e5\\u5468\\u516d\\u81f320\\u65e5\\u5468\\u4e8c", 
             
-            "zh", "2007 11 10 10:10:10", "2007 11 20 10:10:10", "EdMy", "2007/11/10\\u5468\\u516d\\u81f32007/11/20\\u5468\\u4e8c",
+            "zh", "2007 11 10 10:10:10", "2007 11 20 10:10:10", "EdMy", "07/11/10\\u5468\\u516d\\u81f307/11/20\\u5468\\u4e8c",
             
-            "zh", "2007 11 10 10:10:10", "2007 11 20 10:10:10", "dMy", "2007/11/10 \\u2013 2007/11/20", 
+            "zh", "2007 11 10 10:10:10", "2007 11 20 10:10:10", "dMy", "07/11/10 \\u2013 07/11/20", 
             
             "zh", "2007 11 10 10:10:10", "2007 11 20 10:10:10", "dM", "11/10 \\u2013 11/20",
             
@@ -449,7 +449,7 @@ public class DateIntervalFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             
             "zh", "2007 11 10 10:10:10", "2007 11 20 10:10:10", "MMMM", "\\u5341\\u4E00\\u6708", // (fixed expected result per ticket 6872<-6626 and others)
             
-            "zh", "2007 11 10 10:10:10", "2007 11 20 10:10:10", "hmz", "2007/11/10 \\u4e0a\\u534810:10 GMT-8 \\u2013 2007/11/20 \\u4e0a\\u534810:10 GMT-8", 
+            "zh", "2007 11 10 10:10:10", "2007 11 20 10:10:10", "hmz", "2007/11/10 \\u4e0a\\u534810:10 GMT-0800 \\u2013 2007/11/20 \\u4e0a\\u534810:10 GMT-0800", 
             
             "zh", "2007 11 10 10:10:10", "2007 11 20 10:10:10", "h", "2007/11/10 \\u4e0a\\u534810\\u65f6 \\u2013 2007/11/20 \\u4e0a\\u534810\\u65f6", 
             
@@ -459,13 +459,13 @@ public class DateIntervalFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             
             "zh", "2007 01 10 10:00:10", "2007 01 10 14:10:10", "hmv", "\\u6D1B\\u6749\\u77F6\\u65F6\\u95F4\\u4E0A\\u534810:00\\u81F3\\u4E0B\\u53482:10", 
             
-            "zh", "2007 01 10 10:00:10", "2007 01 10 14:10:10", "hmz", "GMT-8\\u4e0a\\u534810:00\\u81f3\\u4e0b\\u53482:10", 
+            "zh", "2007 01 10 10:00:10", "2007 01 10 14:10:10", "hmz", "GMT-0800\\u4e0a\\u534810:00\\u81f3\\u4e0b\\u53482:10", 
             
             "zh", "2007 01 10 10:00:10", "2007 01 10 14:10:10", "h", "\\u4e0a\\u534810\\u65F6\\u81f3\\u4e0b\\u53482\\u65f6", 
             
             "zh", "2007 01 10 10:00:10", "2007 01 10 14:10:10", "hv", "\\u6D1B\\u6749\\u77F6\\u65F6\\u95F4\\u4E0A\\u534810\\u65F6\\u81F3\\u4E0B\\u53482\\u65F6", 
             
-            "zh", "2007 01 10 10:00:10", "2007 01 10 14:10:10", "hz", "GMT-8\\u4e0a\\u534810\\u65F6\\u81f3\\u4e0b\\u53482\\u65f6", 
+            "zh", "2007 01 10 10:00:10", "2007 01 10 14:10:10", "hz", "GMT-0800\\u4e0a\\u534810\\u65F6\\u81f3\\u4e0b\\u53482\\u65f6", 
             
             "zh", "2007 01 10 10:00:10", "2007 01 10 10:20:10", "dMMMM", "1\\u670810\\u65e5", // (fixed expected result per ticket 6872<-6626)
             
@@ -475,7 +475,7 @@ public class DateIntervalFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             
             "zh", "2007 01 10 10:00:10", "2007 01 10 10:20:10", "h", "\\u4e0a\\u534810\\u65f6", 
             
-            "zh", "2007 01 10 10:00:10", "2007 01 10 10:20:10", "hz", "\\u4e0a\\u534810\\u65f6 GMT-8", 
+            "zh", "2007 01 10 10:00:10", "2007 01 10 10:20:10", "hz", "\\u4e0a\\u534810\\u65f6 GMT-0800", 
             
             "zh", "2007 01 10 10:10:10", "2007 01 10 10:10:20", "EEEEdMMMMy", "2007\\u5e741\\u670810\\u65e5\\u661f\\u671f\\u4e09", // (fixed expected result per ticket 6872<-6626)
             
@@ -493,21 +493,21 @@ public class DateIntervalFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             
             "de", "2007 10 10 10:10:10", "2008 10 10 10:10:10", "EEEdMMM", "Mi., 10. Okt. 2007 - Fr., 10. Okt. 2008", 
             
-            "de", "2007 10 10 10:10:10", "2008 10 10 10:10:10", "EdMy", "Mi., 10.10.2007 - Fr., 10.10.2008", 
+            "de", "2007 10 10 10:10:10", "2008 10 10 10:10:10", "EdMy", "Mi., 10.10.07 - Fr., 10.10.08", 
             
-            "de", "2007 10 10 10:10:10", "2008 10 10 10:10:10", "dMy", "10.10.2007 - 10.10.2008", 
+            "de", "2007 10 10 10:10:10", "2008 10 10 10:10:10", "dMy", "10.10.07 - 10.10.08", 
             
-            "de", "2007 10 10 10:10:10", "2008 10 10 10:10:10", "dM", "10.10.2007 - 10.10.2008", 
+            "de", "2007 10 10 10:10:10", "2008 10 10 10:10:10", "dM", "10.10.07 - 10.10.08", 
             
-            "de", "2007 10 10 10:10:10", "2008 10 10 10:10:10", "My", "10.2007 - 10.2008", 
+            "de", "2007 10 10 10:10:10", "2008 10 10 10:10:10", "My", "10.07 - 10.08", 
             
-            "de", "2007 10 10 10:10:10", "2008 10 10 10:10:10", "EdM", "Mi., 10.10.2007 - Fr., 10.10.2008", 
+            "de", "2007 10 10 10:10:10", "2008 10 10 10:10:10", "EdM", "Mi., 10.10.07 - Fr., 10.10.08", 
             
-            "de", "2007 10 10 10:10:10", "2008 10 10 10:10:10", "d", "10.10.2007 - 10.10.2008", 
+            "de", "2007 10 10 10:10:10", "2008 10 10 10:10:10", "d", "10.10.07 - 10.10.08", 
             
             "de", "2007 10 10 10:10:10", "2008 10 10 10:10:10", "y", "2007-2008", 
             
-            "de", "2007 10 10 10:10:10", "2008 10 10 10:10:10", "M", "10.2007 - 10.2008", 
+            "de", "2007 10 10 10:10:10", "2008 10 10 10:10:10", "M", "10.07 - 10.08", 
             
             "de", "2007 10 10 10:10:10", "2008 10 10 10:10:10", "MMM", "Okt. 2007 - Okt. 2008", 
             
@@ -525,11 +525,11 @@ public class DateIntervalFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             
             "de", "2007 10 10 10:10:10", "2007 11 10 10:10:10", "EEEEdMMM", "Mittwoch, 10. Okt. - Samstag, 10. Nov.", 
             
-            "de", "2007 10 10 10:10:10", "2007 11 10 10:10:10", "EdMy", "Mi., 10.10.2007 - Sa., 10.11.2007", 
+            "de", "2007 10 10 10:10:10", "2007 11 10 10:10:10", "EdMy", "Mi., 10.10.07 - Sa., 10.11.07", 
             
             "de", "2007 10 10 10:10:10", "2007 11 10 10:10:10", "dM", "10.10. - 10.11.", 
             
-            "de", "2007 10 10 10:10:10", "2007 11 10 10:10:10", "My", "10.2007 - 11.2007", 
+            "de", "2007 10 10 10:10:10", "2007 11 10 10:10:10", "My", "10.07 - 11.07", 
             
             "de", "2007 10 10 10:10:10", "2007 11 10 10:10:10", "EdM", "Mi., 10.10. - Sa., 10.11.", 
             
@@ -556,9 +556,9 @@ public class DateIntervalFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             
             "de", "2007 11 10 10:10:10", "2007 11 20 10:10:10", "EEEEdMMM", "Samstag, 10. - Dienstag, 20. Nov.", 
             
-            "de", "2007 11 10 10:10:10", "2007 11 20 10:10:10", "EdMy", "Sa., 10.11.2007 - Di., 20.11.2007", 
+            "de", "2007 11 10 10:10:10", "2007 11 20 10:10:10", "EdMy", "Sa., 10.11.07 - Di., 20.11.07", 
             
-            "de", "2007 11 10 10:10:10", "2007 11 20 10:10:10", "dMy", "10.11.2007 - 20.11.2007", 
+            "de", "2007 11 10 10:10:10", "2007 11 20 10:10:10", "dMy", "10.11.07 - 20.11.07", 
             
             "de", "2007 11 10 10:10:10", "2007 11 20 10:10:10", "dM", "10.11. - 20.11.", 
             
@@ -586,7 +586,7 @@ public class DateIntervalFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             
             "de", "2007 01 10 10:00:10", "2007 01 10 14:10:10", "EEEEdMMM", "Mittwoch, 10. Jan.", 
             
-            "de", "2007 01 10 10:00:10", "2007 01 10 14:10:10", "hmz", "10:00 vorm. - 2:10 nachm. GMT-8", 
+            "de", "2007 01 10 10:00:10", "2007 01 10 14:10:10", "hmz", "10:00 vorm. - 2:10 nachm. GMT-08:00", 
             
             "de", "2007 01 10 10:00:10", "2007 01 10 14:10:10", "h", "10 vorm. - 2 nachm.", 
             
@@ -596,13 +596,13 @@ public class DateIntervalFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             
             "de", "2007 01 10 10:00:10", "2007 01 10 10:20:10", "hmv", "10:00-10:20 vorm. Los Angeles Zeit", 
             
-            "de", "2007 01 10 10:00:10", "2007 01 10 10:20:10", "hmz", "10:00-10:20 vorm. GMT-8", 
+            "de", "2007 01 10 10:00:10", "2007 01 10 10:20:10", "hmz", "10:00-10:20 vorm. GMT-08:00", 
             
             "de", "2007 01 10 10:00:10", "2007 01 10 10:20:10", "h", "10 vorm.", 
             
             "de", "2007 01 10 10:00:10", "2007 01 10 10:20:10", "hv", "10 vorm. Los Angeles Zeit", 
             
-            "de", "2007 01 10 10:00:10", "2007 01 10 10:20:10", "hz", "10 vorm. GMT-8", 
+            "de", "2007 01 10 10:00:10", "2007 01 10 10:20:10", "hz", "10 vorm. GMT-08:00", 
             
             "de", "2007 01 10 10:10:10", "2007 01 10 10:10:20", "EEEEdMMMy", "Mittwoch, 10. Jan. 2007", 
             
@@ -614,51 +614,51 @@ public class DateIntervalFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             
             "de", "2007 01 10 10:10:10", "2007 01 10 10:10:20", "jmv", "10:10 Los Angeles Zeit", 
 
-            "de", "2007 01 10 10:10:10", "2007 01 10 10:10:20", "hmz", "10:10 vorm. GMT-8", 
+            "de", "2007 01 10 10:10:10", "2007 01 10 10:10:20", "hmz", "10:10 vorm. GMT-08:00", 
             
-            "de", "2007 01 10 10:10:10", "2007 01 10 10:10:20", "jmz", "10:10 GMT-8", 
+            "de", "2007 01 10 10:10:10", "2007 01 10 10:10:20", "jmz", "10:10 GMT-08:00", 
 
             "de", "2007 01 10 10:10:10", "2007 01 10 10:10:20", "h", "10 vorm.", 
             
             "de", "2007 01 10 10:10:10", "2007 01 10 10:10:20", "hv", "10 vorm. Los Angeles Zeit", 
             
-            "de", "2007 01 10 10:10:10", "2007 01 10 10:10:20", "hz", "10 vorm. GMT-8", 
+            "de", "2007 01 10 10:10:10", "2007 01 10 10:10:20", "hz", "10 vorm. GMT-08:00", 
         
             // Thai (default calendar buddhist)
 
-            "th", "2550 10 10 10:10:10", "2551 10 10 10:10:10", "EEEEdMMMy", "\\u0E27\\u0E31\\u0E19\\u0E1E\\u0E38\\u0E18 10 \\u0E15.\\u0E04. 2550 - \\u0E27\\u0E31\\u0E19\\u0E28\\u0E38\\u0E01\\u0E23\\u0E4C 10 \\u0E15.\\u0E04. 2551", 
+            "th", "2550 10 10 10:10:10", "2551 10 10 10:10:10", "EEEEdMMMy", "\\u0E27\\u0E31\\u0E19\\u0E1E\\u0E38\\u0E18 10 \\u0E15.\\u0E04. 2550 \\u2013 \\u0E27\\u0E31\\u0E19\\u0E28\\u0E38\\u0E01\\u0E23\\u0E4C 10 \\u0E15.\\u0E04. 2551", 
         
         
-            "th", "2550 10 10 10:10:10", "2551 10 10 10:10:10", "dMMM", "10 \\u0E15.\\u0E04. 2550 - 10 \\u0E15.\\u0E04. 2551", 
+            "th", "2550 10 10 10:10:10", "2551 10 10 10:10:10", "dMMM", "10 \\u0E15.\\u0E04. 2550 \\u2013 10 \\u0E15.\\u0E04. 2551", 
         
             "th", "2550 10 10 10:10:10", "2551 10 10 10:10:10", "MMMy", "\\u0E15.\\u0E04. 2550 - \\u0E15.\\u0E04. 2551", 
         
         
-            "th", "2550 10 10 10:10:10", "2551 10 10 10:10:10", "EdMy", "\\u0E1E. 10/10/2550 - \\u0E28. 10/10/2551", 
+            "th", "2550 10 10 10:10:10", "2551 10 10 10:10:10", "EdMy", "\\u0E1E. 10/10/50 \\u2013 \\u0E28. 10/10/51", 
         
-            "th", "2550 10 10 10:10:10", "2551 10 10 10:10:10", "dMy", "10/10/2550 - 10/10/2551", 
+            "th", "2550 10 10 10:10:10", "2551 10 10 10:10:10", "dMy", "10/10/50 \\u2013 10/10/51", 
         
         
-            "th", "2550 10 10 10:10:10", "2551 10 10 10:10:10", "My", "10/2550 - 10/2551", 
+            "th", "2550 10 10 10:10:10", "2551 10 10 10:10:10", "My", "10/50 \\u2013 10/51", 
         
-            "th", "2550 10 10 10:10:10", "2551 10 10 10:10:10", "EdM", "\\u0E1E. 10/10/2550 - \\u0E28. 10/10/2551", 
+            "th", "2550 10 10 10:10:10", "2551 10 10 10:10:10", "EdM", "\\u0E1E. 10/10/50 \\u2013 \\u0E28. 10/10/51", 
         
         
             "th", "2550 10 10 10:10:10", "2551 10 10 10:10:10", "y", "2550-2551", 
         
-            "th", "2550 10 10 10:10:10", "2551 10 10 10:10:10", "M", "10/2550 - 10/2551", 
+            "th", "2550 10 10 10:10:10", "2551 10 10 10:10:10", "M", "10/50 \\u2013 10/51", 
         
         
-            "th", "2550 10 10 10:10:10", "2550 11 10 10:10:10", "EEEEdMMMy", "\\u0E27\\u0E31\\u0E19\\u0E1E\\u0E38\\u0E18 10 \\u0E15.\\u0E04. - \\u0E27\\u0E31\\u0E19\\u0E40\\u0E2A\\u0E32\\u0E23\\u0E4C 10 \\u0E1E.\\u0E22. 2550", 
+            "th", "2550 10 10 10:10:10", "2550 11 10 10:10:10", "EEEEdMMMy", "\\u0E27\\u0E31\\u0E19\\u0E1E\\u0E38\\u0E18 10 \\u0E15.\\u0E04. \\u2013 \\u0E27\\u0E31\\u0E19\\u0E40\\u0E2A\\u0E32\\u0E23\\u0E4C 10 \\u0E1E.\\u0E22. 2550", 
         
         
-            "th", "2550 10 10 10:10:10", "2550 11 10 10:10:10", "dMMM", "10 \\u0E15.\\u0E04. - 10 \\u0E1E.\\u0E22.", 
+            "th", "2550 10 10 10:10:10", "2550 11 10 10:10:10", "dMMM", "10 \\u0E15.\\u0E04. \\u2013 10 \\u0E1E.\\u0E22.", 
         
             "th", "2550 10 10 10:10:10", "2550 11 10 10:10:10", "MMMy", "\\u0E15.\\u0E04.-\\u0E1E.\\u0E22. 2550", 
         
             "th", "2550 10 10 10:10:10", "2550 11 10 10:10:10", "dM", "10/10 - 10/11", 
         
-            "th", "2550 10 10 10:10:10", "2550 11 10 10:10:10", "My", "10/2550 - 11/2550", 
+            "th", "2550 10 10 10:10:10", "2550 11 10 10:10:10", "My", "10/50 \\u2013 11/50", 
         
         
             "th", "2550 10 10 10:10:10", "2550 11 10 10:10:10", "d", "10/10 - 10/11", 
@@ -1215,19 +1215,6 @@ public class DateIntervalFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         } catch(Exception e){}
     }
     
-    public void TestSetIntervalPatternNoSideEffect() {
-        PatternInfo patternInfo = new DateIntervalInfo(ULocale.ENGLISH).getIntervalPattern("yMd", Calendar.DATE);
-        String expectedPattern = patternInfo.getFirstPart() + patternInfo.getSecondPart();
-        new DateIntervalInfo(ULocale.ENGLISH).setIntervalPattern(
-                "yMd", Calendar.DATE, "M/d/y \u2013 d");
-        patternInfo = new DateIntervalInfo(ULocale.ENGLISH).getIntervalPattern("yMd", Calendar.DATE);
-        String actualPattern = patternInfo.getFirstPart() + patternInfo.getSecondPart();
-        assertEquals(
-                "setIntervalPattern should not have side effects",
-                expectedPattern,
-                actualPattern);
-    }
-    
     /* Tests the method
      *      public int hashCode()
      */
@@ -1281,114 +1268,5 @@ public class DateIntervalFormatTest extends com.ibm.icu.dev.test.TestFmwk {
         if (di.hashCode() != 1) {
             errln("hasCode() should return 1.");
         }
-    }
-    
-    public void TestTicket9919GetInstance() {
-        // Creating a DateIntervalFormat with a custom DateIntervalInfo
-        // object used to corrupt the cache.
-        DateIntervalFormat dif = DateIntervalFormat.getInstance(
-                "yMd", ULocale.ENGLISH);
-        Calendar from = Calendar.getInstance();
-        Calendar to = Calendar.getInstance();
-        from.set(2013, 3, 26);
-        to.set(2013, 3, 28);
-        
-        // Save. This is the correct answer
-        String expected =
-                dif.format(from, to, new StringBuffer(), new FieldPosition(0))
-                .toString();
-        
-        // Now create a DateIntervalFormat with same skeleton and
-        // locale, but with a custom DateIntervalInfo. This used
-        // to corrupt the cache.
-        DateIntervalInfo dateIntervalInfo =
-                new DateIntervalInfo(ULocale.ENGLISH);
-        dateIntervalInfo.setIntervalPattern(
-                "yMd", Calendar.DATE, "M/d/y \u2013 d");
-        DateIntervalFormat.getInstance(
-                "yMd", ULocale.ENGLISH, dateIntervalInfo);
-        
-        // Now create a DateIntervalFormat with same skeleton and
-        // locale, but with default DateIntervalInfo. The cache should
-        // not be corrupted, and we should get the same answer as before.
-        dif = DateIntervalFormat.getInstance("yMd", ULocale.ENGLISH);
-        
-        assertEquals(
-                "Custom DateIntervalInfo objects should not mess up cache",
-                expected,
-                dif.format(from, to, new StringBuffer(), new FieldPosition(0))
-                .toString()); 
-                
-    }
-    
-    public void TestTicket9919Setter() {
-        
-        // Creating a DateIntervalFormat with a custom DateIntervalInfo
-        // object used to corrupt the cache.
-        DateIntervalFormat dif = DateIntervalFormat.getInstance(
-                "yMd", ULocale.ENGLISH);
-        Calendar from = Calendar.getInstance();
-        Calendar to = Calendar.getInstance();
-        from.set(2013, 3, 26);
-        to.set(2013, 3, 28);
-        
-        // Save. This is the correct answer
-        String expected =
-                dif.format(from, to, new StringBuffer(), new FieldPosition(0))
-                .toString();
-        
-        // Now create a DateIntervalFormat with same skeleton and
-        // locale, but with a custom DateIntervalInfo. This used
-        // to corrupt the cache.
-        DateIntervalInfo dateIntervalInfo =
-                new DateIntervalInfo(ULocale.ENGLISH);
-        dateIntervalInfo.setIntervalPattern(
-                "yMd", Calendar.DATE, "M/d/y \u2013 d");
-        DateIntervalFormat bad = DateIntervalFormat.getInstance(
-                "yMd", ULocale.ENGLISH);
-        bad.setDateIntervalInfo(dateIntervalInfo);
-        
-        // Now create a DateIntervalFormat with same skeleton and
-        // locale, but with default DateIntervalInfo. The cache should
-        // not be corrupted, and we should get the same answer as before.
-        dif = DateIntervalFormat.getInstance("yMd", ULocale.ENGLISH);
-        assertEquals(
-                "Custom DateIntervalInfo objects should not mess up cache",
-                expected,
-                dif.format(from, to, new StringBuffer(), new FieldPosition(0))
-                .toString()); 
-    }
-
-    public void TestTicket9914() {
-        DateIntervalInfo dateIntervalInfo =
-                new DateIntervalInfo(ULocale.ENGLISH);
-        
-        Calendar from = Calendar.getInstance();
-        Calendar to = Calendar.getInstance();
-        from.set(113, 3, 26);
-        to.set(113, 3, 28);
-        DateIntervalFormat dif = DateIntervalFormat.getInstance(
-                "yyyyMd", ULocale.ENGLISH, dateIntervalInfo);
-        assertEquals(
-                "yyyyMd skeleton.",
-                "4/26/0113 \u2013 4/28/0113",
-                dif.format(from, to, new StringBuffer(), new FieldPosition(0))
-                .toString());
-        
-        dif = DateIntervalFormat.getInstance(
-                "yyMd", ULocale.ENGLISH, dateIntervalInfo);
-        assertEquals(
-                "yyMd skeleton.",
-                "4/26/13 \u2013 4/28/13",
-                dif.format(from, to, new StringBuffer(), new FieldPosition(0))
-                .toString());
-        
-        dif = DateIntervalFormat.getInstance(
-                "yMd", ULocale.ENGLISH, dateIntervalInfo);
-        assertEquals(
-                "yMd skeleton.",
-                "4/26/113 \u2013 4/28/113",
-                dif.format(from, to, new StringBuffer(), new FieldPosition(0))
-                .toString());
     }
 }

@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2012-2013, International Business Machines Corporation and    *
+ * Copyright (C) 2012, International Business Machines Corporation and         *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -8,7 +8,6 @@ package com.ibm.icu.text;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.MissingResourceException;
 
 import com.ibm.icu.impl.ICUCache;
 import com.ibm.icu.impl.ICUResourceBundle;
@@ -23,12 +22,6 @@ import com.ibm.icu.util.UResourceBundle;
  */
 class CompactDecimalDataCache {
 
-    private static final String SHORT_STYLE = "short";
-    private static final String LONG_STYLE = "long";
-    private static final String NUMBER_ELEMENTS = "NumberElements";
-    private static final String PATTERN_LONG_PATH = "patternsLong/decimalFormat";
-    private static final String PATTERNS_SHORT_PATH = "patternsShort/decimalFormat";
-
     static final String OTHER = "other";
 
     /**
@@ -36,7 +29,7 @@ class CompactDecimalDataCache {
      * less than 10^15.
      */
     static final int MAX_DIGITS = 15;
-
+    
     private static final String LATIN_NUMBERING_SYSTEM = "latn";
 
     private final ICUCache<ULocale, DataBundle> cache =
@@ -86,22 +79,11 @@ class CompactDecimalDataCache {
             this.longData = longData;
         }
     }
-
+    
     private static enum QuoteState {
         OUTSIDE,   // Outside single quote
         INSIDE_EMPTY,  // Just inside single quote
         INSIDE_FULL   // Inside single quote along with characters
-    }
-
-//    private static enum DataLocation { // Don't change order
-//        LOCAL,  // In local numbering system
-//        LATIN,  // In latin numbering system
-//        ROOT    // In root locale
-//    }
-
-    private static enum UResFlags {
-        ANY,  // Any locale will do.
-        NOT_ROOT  // Locale cannot be root.
     }
 
 
@@ -121,13 +103,10 @@ class CompactDecimalDataCache {
 
     /**
      * Loads the "patternsShort" and "patternsLong" data for a particular locale.
-     * We look for both of them in 3 places in this order:<ol>
-     * <li>local numbering system no ROOT fallback</li>
-     * <li>latin numbering system no ROOT fallback</li>
-     * <li>latin numbering system ROOT locale.</li>
-     * </ol>
-     * If we find "patternsShort" data before finding "patternsLong" data, we
-     * make the "patternsLong" data be the same as "patternsShort."
+     * We assume that "patternsShort" data can be found for any locale. If we can't
+     * find it we throw an exception. However, we allow "patternsLong" data to be
+     * missing for a locale. In this case, we assume that the "patternsLong" data
+     * is identical to the "paternsShort" data.
      * @param ulocale the locale for which we are loading the data.
      * @return The returned data, never null.
      */
@@ -135,91 +114,23 @@ class CompactDecimalDataCache {
         NumberingSystem ns = NumberingSystem.getInstance(ulocale);
         ICUResourceBundle r = (ICUResourceBundle)UResourceBundle.
                 getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, ulocale);
-        r = r.getWithFallback(NUMBER_ELEMENTS);
         String numberingSystemName = ns.getName();
-
-        ICUResourceBundle shortDataBundle = null;
-        ICUResourceBundle longDataBundle = null;
+        Data shortData = null;
+        Data longData = null;
         if (!LATIN_NUMBERING_SYSTEM.equals(numberingSystemName)) {
-            ICUResourceBundle bundle = findWithFallback(r, numberingSystemName, UResFlags.NOT_ROOT);
-            shortDataBundle = findWithFallback(bundle, PATTERNS_SHORT_PATH, UResFlags.NOT_ROOT);
-            longDataBundle = findWithFallback(bundle, PATTERN_LONG_PATH, UResFlags.NOT_ROOT);
+            shortData = loadWithStyle(r, numberingSystemName, ulocale, "patternsShort", true);
+            longData = loadWithStyle(r, numberingSystemName, ulocale, "patternsLong", true);
         }
-
-        // If we haven't found, look in latin numbering system.
-        if (shortDataBundle == null) {
-            ICUResourceBundle bundle = getWithFallback(r, LATIN_NUMBERING_SYSTEM, UResFlags.ANY);
-            shortDataBundle = getWithFallback(bundle, PATTERNS_SHORT_PATH, UResFlags.ANY);
-            if (longDataBundle == null) {
-                longDataBundle = findWithFallback(bundle, PATTERN_LONG_PATH, UResFlags.ANY);
-                if (longDataBundle != null && isRoot(longDataBundle) && !isRoot(shortDataBundle)) {
-                    longDataBundle = null;
-                }
-            }
+        if (shortData == null) {
+          shortData = loadWithStyle(r, LATIN_NUMBERING_SYSTEM, ulocale, "patternsShort", false);
         }
-        Data shortData = loadStyle(shortDataBundle, ulocale, SHORT_STYLE);
-        Data longData;
-        if (longDataBundle == null) {
+        if (longData == null) {
+          longData = loadWithStyle(r, LATIN_NUMBERING_SYSTEM, ulocale, "patternsLong", true);
+        }
+        if (longData == null) {
             longData = shortData;
-        } else {
-            longData = loadStyle(longDataBundle, ulocale, LONG_STYLE);
         }
         return new DataBundle(shortData, longData);
-    }
-
-    /**
-     * findWithFallback finds a sub-resource bundle within r.
-     * @param r a resource bundle. It may be null in which case sub-resource bundle
-     *   won't be found.
-     * @param path the path relative to r
-     * @param flags ANY or NOT_ROOT for locale of found sub-resource bundle.
-     * @return The sub-resource bundle or NULL if none found.
-     */
-    private static ICUResourceBundle findWithFallback(
-            ICUResourceBundle r, String path, UResFlags flags) {
-        if (r == null) {
-            return null;
-        }
-        ICUResourceBundle result = r.findWithFallback(path);
-        if (result == null) {
-            return null;
-        }
-        switch (flags) {
-        case NOT_ROOT:
-            return isRoot(result) ? null : result;
-        case ANY:
-            return result;
-        default:
-            throw new IllegalArgumentException();
-        }
-    }
-
-    /**
-     * Like findWithFallback but throws MissingResourceException if no
-     * resource found instead of returning null.
-     */
-    private static ICUResourceBundle getWithFallback(
-            ICUResourceBundle r, String path, UResFlags flags) {
-        ICUResourceBundle result = findWithFallback(r, path, flags);
-        if (result == null) {
-            throw new MissingResourceException(
-                    "Cannot find " + path,
-                    ICUResourceBundle.class.getName(), path);
-
-        }
-        return result;
-    }
-
-    /**
-     * isRoot returns true if r is in root locale or false otherwise.
-     */
-    private static boolean isRoot(ICUResourceBundle r) {
-        ULocale bundleLocale = r.getULocale();
-        // Note: bundleLocale for root should be ULocale.ROOT, which is equivalent to new ULocale("").
-        // However, resource bundle might be initialized with locale ID "root", which should be
-        // actually normalized to "" in ICUResourceBundle. For now, this logic also compare to
-        // "root", not just ULocale.ROOT.
-        return bundleLocale.equals(ULocale.ROOT) || bundleLocale.toString().equals("root");
     }
 
     /**
@@ -231,7 +142,19 @@ class CompactDecimalDataCache {
      * if data cannot be found.
      * @return The loaded data or possibly null if allowNullResult is true.
      */
-    private static Data loadStyle(ICUResourceBundle r, ULocale locale, String style) {
+    private static Data loadWithStyle(
+            ICUResourceBundle r, String numberingSystemName, ULocale locale, String style,
+            boolean allowNullResult) {
+        String resourcePath =
+            "NumberElements/" + numberingSystemName + "/" + style + "/decimalFormat";
+        if (allowNullResult) {
+            r = r.findWithFallback(resourcePath);
+        } else {
+            r = r.getWithFallback(resourcePath);
+        }
+        if (r == null) {
+            return null;
+        }
         int size = r.getSize();
         Data result = new Data(
                 new long[MAX_DIGITS],
@@ -380,7 +303,7 @@ class CompactDecimalDataCache {
             } else {
                 result.append(ch);
             }
-
+            
             // Update state
             switch (state) {
             case OUTSIDE:
@@ -394,7 +317,7 @@ class CompactDecimalDataCache {
                 throw new IllegalStateException();
             }
         }
-        return result.toString();
+        return result.toString();  
     }
 
     /**

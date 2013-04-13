@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2004-2013, International Business Machines Corporation and    *
+ * Copyright (C) 2004-2012, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
 */
@@ -1175,8 +1175,8 @@ public class GlobalizationPreferencesTest extends TestFmwk {
         df = gp.getDateFormat(GlobalizationPreferences.DF_SHORT, GlobalizationPreferences.DF_NONE);
         pattern = ((SimpleDateFormat)df).toPattern();
         // root pattern must be used
-        if (!pattern.equals("y-MM-dd")) {
-            errln("FAIL: SHORT date pattern is " + pattern + " Expected: y-MM-dd");
+        if (!pattern.equals("yyyy-MM-dd")) {
+            errln("FAIL: SHORT date pattern is " + pattern + " Expected: yyyy-MM-dd");
         }
 
         // Set locale - fr, fr_CA, fr_FR
@@ -1223,8 +1223,8 @@ public class GlobalizationPreferencesTest extends TestFmwk {
         // Date - short
         df = gp.getDateFormat(GlobalizationPreferences.DF_SHORT, GlobalizationPreferences.DF_NONE);
         pattern = ((SimpleDateFormat)df).toPattern();
-        if (!pattern.equals("dd/MM/y")) {
-            errln("FAIL: SHORT date pattern is " + pattern + " Expected: dd/MM/y");
+        if (!pattern.equals("dd/MM/yyyy")) {
+            errln("FAIL: SHORT date pattern is " + pattern + " Expected: dd/MM/yyyy");
         }
 
         // Time - full

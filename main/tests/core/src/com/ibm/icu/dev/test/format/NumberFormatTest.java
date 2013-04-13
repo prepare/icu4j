@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2001-2013, International Business Machines Corporation and    *
+ * Copyright (C) 2001-2012, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -42,26 +42,6 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
 
     public static void main(String[] args) throws Exception {
         new NumberFormatTest().run(args);
-    }
-    
-    public void TestParseNegativeWithLocaleUsingNonAsciiNegative() {
-        DecimalFormat parser = (DecimalFormat) NumberFormat.getInstance(new ULocale("fa"));
-        try {
-          double value = parser.parse("-0,5").doubleValue();
-          assertEquals("Expect -0.5", -0.5, value);
-        } catch (ParseException e) {
-            this.errln("Parsing -0.5 should have succeeded.");
-        }
-    }
-    
-    public void TestParseNegativeEnglishButWithAlternativeMinusSign() {
-        DecimalFormat parser = (DecimalFormat) NumberFormat.getInstance(new ULocale("en"));
-        try {
-          double value = parser.parse("\u208B0.5").doubleValue();
-          assertEquals("Expect -0.5", -0.5, value);
-        } catch (ParseException e) {
-            this.errln("Parsing -0.5 should have succeeded.");
-        }
     }
 
     // Test various patterns
@@ -709,7 +689,7 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                        1234.56, "\u00A51,235"); // Yen
 
         expectCurrency(fmt, Currency.getInstance(new Locale("fr", "CH", "")),
-                       1234.56, "CHF1,234.56"); // no more 0.05 rounding here, see cldrbug 5548
+                       1234.56, "CHF1,234.55"); // 0.05 rounding
 
         expectCurrency(fmt, Currency.getInstance(Locale.US),
                        1234.56, "$1,234.56");
@@ -722,7 +702,7 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                        1234.56, "1 235 \u00A5JP"); // Yen
 
         expectCurrency(fmt, Currency.getInstance(new Locale("fr", "CH", "")),
-                       1234.56, "1 234,56 CHF"); // no more rounding here, see cldrbug 5548
+                       1234.56, "1 234,55 CHF"); // 0.25 rounding
 
         expectCurrency(fmt, Currency.getInstance(Locale.US),
                        1234.56, "1 234,56 $US");
@@ -3057,33 +3037,6 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             if (res2[i] != val2) {
                 errln("Inconsistent first run limit in test thread 2");
             }
-        }
-    }
-    
-    public void TestParseMaxDigits() {
-        DecimalFormat fmt = new DecimalFormat();
-        String number = "100000000000";
-        int newParseMax = number.length() - 1;
-        
-        fmt.setParseMaxDigits(-1);
-        
-        /* Default value is 1000 */
-        if (fmt.getParseMaxDigits() != 1000) {
-            errln("Fail valid value checking in setParseMaxDigits.");
-        }
-        
-        try {
-            if (fmt.parse(number).doubleValue() == Float.POSITIVE_INFINITY) {
-                errln("Got Infinity but should NOT when parsing number: " + number);
-            }
-            
-            fmt.setParseMaxDigits(newParseMax);
-            
-            if (fmt.parse(number).doubleValue() != Float.POSITIVE_INFINITY) {
-                errln("Did not get Infinity but should when parsing number: " + number);
-            }
-        } catch (ParseException ex) {
-            
         }
     }
 

@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2013, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2012, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -122,17 +122,11 @@ public class DateFormatSymbols implements Serializable, Cloneable {
     public static final int NARROW = 2;
 
     /**
-     * {@icu} Constant for width; only supported for weekdays.
-     * @draft ICU 51
-     */
-    public static final int SHORT = 3;
-
-    /**
      * {@icu} Constant for width.
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    public static final int DT_WIDTH_COUNT = 4;
+    public static final int DT_WIDTH_COUNT = 3;
 
      /**
      * {@icu} Somewhat temporary constant for leap month pattern type, adequate for Chinese calendar.
@@ -378,8 +372,8 @@ public class DateFormatSymbols implements Serializable, Cloneable {
     String standaloneNarrowMonths[] = null;
 
     /**
-     * Format wide weekday strings, for example: "Sunday", "Monday", etc.
-     * An array of 8 strings, indexed by <code>Calendar.SUNDAY</code>,
+     * Weekday strings. For example: "Sunday", "Monday", etc.  An array
+     * of 8 strings, indexed by <code>Calendar.SUNDAY</code>,
      * <code>Calendar.MONDAY</code>, etc.
      * The element <code>weekdays[0]</code> is ignored.
      * @serial
@@ -387,9 +381,8 @@ public class DateFormatSymbols implements Serializable, Cloneable {
     String weekdays[] = null;
 
     /**
-     * CLDR-style format abbreviated (not short) weekday strings,
-     * for example: "Sun", "Mon", etc.
-     * An array of 8 strings, indexed by <code>Calendar.SUNDAY</code>,
+     * Short weekday strings. For example: "Sun", "Mon", etc.  An array
+     * of 8 strings, indexed by <code>Calendar.SUNDAY</code>,
      * <code>Calendar.MONDAY</code>, etc.
      * The element <code>shortWeekdays[0]</code> is ignored.
      * @serial
@@ -397,18 +390,8 @@ public class DateFormatSymbols implements Serializable, Cloneable {
     String shortWeekdays[] = null;
 
     /**
-     * CLDR-style format short weekday strings, for example: "Su", "Mo", etc.
-     * An array of 8 strings, indexed by <code>Calendar.SUNDAY</code>,
-     * <code>Calendar.MONDAY</code>, etc.
-     * The element <code>shorterWeekdays[0]</code> is ignored.
-     * @serial
-     */
-   // Note, serialization restore from pre-ICU-51 will leave this null.
-    String shorterWeekdays[] = null;
-
-    /**
-     * CLDR-style format narrow weekday strings, for example: "S", "M", etc.
-     * An array of 8 strings, indexed by <code>Calendar.SUNDAY</code>,
+     * Narrow weekday strings. For example: "S", "M", etc.  An array
+     * of 8 strings, indexed by <code>Calendar.SUNDAY</code>,
      * <code>Calendar.MONDAY</code>, etc.
      * The element <code>narrowWeekdays[0]</code> is ignored.
      * @serial
@@ -416,8 +399,8 @@ public class DateFormatSymbols implements Serializable, Cloneable {
     String narrowWeekdays[] = null;
 
     /**
-     * Standalone wide weekday strings. For example: "Sunday", "Monday", etc.
-     * An array of 8 strings, indexed by <code>Calendar.SUNDAY</code>,
+     * Standalone weekday strings. For example: "Sunday", "Monday", etc.  An array
+     * of 8 strings, indexed by <code>Calendar.SUNDAY</code>,
      * <code>Calendar.MONDAY</code>, etc.
      * The element <code>standaloneWeekdays[0]</code> is ignored.
      * @serial
@@ -425,24 +408,13 @@ public class DateFormatSymbols implements Serializable, Cloneable {
     String standaloneWeekdays[] = null;
 
     /**
-     * CLDR-style standalone abbreviated (not short) weekday strings,
-     * for example: "Sun", "Mon", etc.
-     * An array of 8 strings, indexed by <code>Calendar.SUNDAY</code>,
+     * Standalone short weekday strings. For example: "Sun", "Mon", etc.  An array
+     * of 8 strings, indexed by <code>Calendar.SUNDAY</code>,
      * <code>Calendar.MONDAY</code>, etc.
      * The element <code>standaloneShortWeekdays[0]</code> is ignored.
      * @serial
      */
     String standaloneShortWeekdays[] = null;
-
-    /**
-     * CLDR-style standalone short weekday strings, for example: "Sun", "Mon", etc.
-     * An array of 8 strings, indexed by <code>Calendar.SUNDAY</code>,
-     * <code>Calendar.MONDAY</code>, etc.
-     * The element <code>standaloneShorterWeekdays[0]</code> is ignored.
-     * @serial
-     */
-    // Note, serialization restore from pre-ICU-51 will leave this null.
-    String standaloneShorterWeekdays[] = null;
 
     /**
      * Standalone narrow weekday strings. For example: "S", "M", etc.  An array
@@ -542,7 +514,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * Unlocalized date-time pattern characters. For example: 'y', 'd', etc.
      * All locales use the same unlocalized pattern characters.
      */
-    static final String  patternChars = "GyMdkHmsSEDFwWahKzYeugAZvcLQqVUOXx";
+    static final String  patternChars = "GyMdkHmsSEDFwWahKzYeugAZvcLQqVU";
 
     /**
      * Localized date-time pattern characters. For example, a locale may
@@ -685,7 +657,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
                     returnValue = months;
                     break;
                  case ABBREVIATED :
-                 case SHORT : // no month data for this, defaults to ABBREVIATED
                     returnValue = shortMonths;
                     break;
                  case NARROW :
@@ -699,7 +670,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
                     returnValue = standaloneMonths;
                     break;
                  case ABBREVIATED :
-                 case SHORT : // no month data for this, defaults to ABBREVIATED
                     returnValue = standaloneShortMonths;
                     break;
                  case NARROW :
@@ -707,9 +677,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
                     break;
               }
               break;
-        }
-        if (returnValue == null) {
-            throw new IllegalArgumentException("Bad context or width argument");
         }
         return duplicate(returnValue);
     }
@@ -744,8 +711,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
                  case NARROW :
                     narrowMonths = duplicate(newMonths);
                     break;
-                 default : // HANDLE SHORT, etc.
-                    break;
               }
               break;
            case STANDALONE :
@@ -758,8 +723,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
                     break;
                  case NARROW :
                     standaloneNarrowMonths = duplicate(newMonths);
-                    break;
-                 default : // HANDLE SHORT, etc.
                     break;
               }
               break;
@@ -785,7 +748,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
     }
 
     /**
-     * Returns wide weekday strings. For example: "Sunday", "Monday", etc.
+     * Returns weekday strings. For example: "Sunday", "Monday", etc.
      * @return the weekday strings. Use <code>Calendar.SUNDAY</code>,
      * <code>Calendar.MONDAY</code>, etc. to index the result array.
      * @stable ICU 2.0
@@ -800,7 +763,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * <code>Calendar.MONDAY</code>, etc. to index the result array.
      * @param context    Formatting context, either FORMAT or STANDALONE.
      * @param width      Width of strings to be returned, either
-     *                   WIDE, ABBREVIATED, SHORT, or NARROW
+     *                   WIDE, ABBREVIATED, or NARROW
      * @stable ICU 3.4
      */
     public String[] getWeekdays(int context, int width) {
@@ -813,9 +776,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
                     break;
                  case ABBREVIATED :
                     returnValue = shortWeekdays;
-                    break;
-                 case SHORT :
-                    returnValue = (shorterWeekdays != null)? shorterWeekdays: shortWeekdays;
                     break;
                  case NARROW :
                     returnValue = narrowWeekdays;
@@ -830,17 +790,11 @@ public class DateFormatSymbols implements Serializable, Cloneable {
                  case ABBREVIATED :
                     returnValue = standaloneShortWeekdays;
                     break;
-                 case SHORT :
-                    returnValue = (standaloneShorterWeekdays != null)? standaloneShorterWeekdays: standaloneShortWeekdays;
-                    break;
                  case NARROW :
                     returnValue = standaloneNarrowWeekdays;
                     break;
               }
               break;
-        }
-        if (returnValue == null) {
-            throw new IllegalArgumentException("Bad context or width argument");
         }
         return duplicate(returnValue);
     }
@@ -850,7 +804,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
      * @param newWeekdays The new weekday strings.
      * @param context     The formatting context, FORMAT or STANDALONE.
      * @param width       The width of the strings,
-     *                    either WIDE, ABBREVIATED, SHORT, or NARROW.
+     *                    either WIDE, ABBREVIATED, or NARROW.
      * @stable ICU 3.8
      */
     public void setWeekdays(String[] newWeekdays, int context, int width) {
@@ -862,9 +816,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
                     break;
                  case ABBREVIATED :
                     shortWeekdays = duplicate(newWeekdays);
-                    break;
-                 case SHORT :
-                    shorterWeekdays = duplicate(newWeekdays);
                     break;
                  case NARROW :
                     narrowWeekdays = duplicate(newWeekdays);
@@ -879,9 +830,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
                  case ABBREVIATED :
                     standaloneShortWeekdays = duplicate(newWeekdays);
                     break;
-                 case SHORT :
-                    standaloneShorterWeekdays = duplicate(newWeekdays);
-                    break;
                  case NARROW :
                     standaloneNarrowWeekdays = duplicate(newWeekdays);
                     break;
@@ -891,7 +839,7 @@ public class DateFormatSymbols implements Serializable, Cloneable {
     }
 
     /**
-     * Sets wide weekday strings. For example: "Sunday", "Monday", etc.
+     * Sets weekday strings. For example: "Sunday", "Monday", etc.
      * @param newWeekdays the new weekday strings. The array should
      * be indexed by <code>Calendar.SUNDAY</code>,
      * <code>Calendar.MONDAY</code>, etc.
@@ -902,10 +850,8 @@ public class DateFormatSymbols implements Serializable, Cloneable {
     }
 
     /**
-     * Returns abbreviated weekday strings; for example: "Sun", "Mon", etc.
-     * (Note: the method name is misleading; it does not get the CLDR-style
-     * "short" weekday strings, e.g. "Su", "Mo", etc.) 
-     * @return the abbreviated weekday strings. Use <code>Calendar.SUNDAY</code>,
+     * Returns short weekday strings. For example: "Sun", "Mon", etc.
+     * @return the short weekday strings. Use <code>Calendar.SUNDAY</code>,
      * <code>Calendar.MONDAY</code>, etc. to index the result array.
      * @stable ICU 2.0
      */
@@ -914,16 +860,14 @@ public class DateFormatSymbols implements Serializable, Cloneable {
     }
 
     /**
-     * Sets abbreviated weekday strings; for example: "Sun", "Mon", etc.
-     * (Note: the method name is misleading; it does not set the CLDR-style
-     * "short" weekday strings, e.g. "Su", "Mo", etc.) 
-     * @param newAbbrevWeekdays the new abbreviated weekday strings. The array should
+     * Sets short weekday strings. For example: "Sun", "Mon", etc.
+     * @param newShortWeekdays the new short weekday strings. The array should
      * be indexed by <code>Calendar.SUNDAY</code>,
      * <code>Calendar.MONDAY</code>, etc.
      * @stable ICU 2.0
      */
-    public void setShortWeekdays(String[] newAbbrevWeekdays) {
-        shortWeekdays = duplicate(newAbbrevWeekdays);
+    public void setShortWeekdays(String[] newShortWeekdays) {
+        shortWeekdays = duplicate(newShortWeekdays);
     }
     /**
      * {@icu} Returns quarter strings. For example: "1st Quarter", "2nd Quarter", etc.
@@ -942,7 +886,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
                     returnValue = quarters;
                     break;
                  case ABBREVIATED :
-                 case SHORT : // no quarter data for this, defaults to ABBREVIATED
                     returnValue = shortQuarters;
                     break;
                  case NARROW :
@@ -957,7 +900,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
                     returnValue = standaloneQuarters;
                     break;
                  case ABBREVIATED :
-                 case SHORT : // no quarter data for this, defaults to ABBREVIATED
                     returnValue = standaloneShortQuarters;
                     break;
                  case NARROW:
@@ -965,9 +907,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
                      break;
               }
               break;
-        }
-        if (returnValue == null) {
-            throw new IllegalArgumentException("Bad context or width argument");
         }
         return duplicate(returnValue);
     }
@@ -993,8 +932,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
                  case NARROW :
                     //narrowQuarters = duplicate(newQuarters);
                     break;
-                 default : // HANDLE SHORT, etc.
-                    break;
               }
               break;
            case STANDALONE :
@@ -1007,8 +944,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
                     break;
                  case NARROW :
                     //standaloneNarrowQuarters = duplicate(newQuarters);
-                    break;
-                 default : // HANDLE SHORT, etc.
                     break;
               }
               break;
@@ -1172,11 +1107,9 @@ public class DateFormatSymbols implements Serializable, Cloneable {
                 && Utility.arrayEquals(standaloneNarrowMonths, that.standaloneNarrowMonths)
                 && Utility.arrayEquals(weekdays, that.weekdays)
                 && Utility.arrayEquals(shortWeekdays, that.shortWeekdays)
-                && Utility.arrayEquals(shorterWeekdays, that.shorterWeekdays)
                 && Utility.arrayEquals(narrowWeekdays, that.narrowWeekdays)
                 && Utility.arrayEquals(standaloneWeekdays, that.standaloneWeekdays)
                 && Utility.arrayEquals(standaloneShortWeekdays, that.standaloneShortWeekdays)
-                && Utility.arrayEquals(standaloneShorterWeekdays, that.standaloneShorterWeekdays)
                 && Utility.arrayEquals(standaloneNarrowWeekdays, that.standaloneNarrowWeekdays)
                 && Utility.arrayEquals(ampms, that.ampms)
                 && arrayOfArrayEquals(zoneStrings, that.zoneStrings)
@@ -1242,11 +1175,9 @@ public class DateFormatSymbols implements Serializable, Cloneable {
         this.standaloneNarrowMonths = dfs.standaloneNarrowMonths;
         this.weekdays = dfs.weekdays;
         this.shortWeekdays = dfs.shortWeekdays;
-        this.shorterWeekdays = dfs.shorterWeekdays;
         this.narrowWeekdays = dfs.narrowWeekdays;
         this.standaloneWeekdays = dfs.standaloneWeekdays;
         this.standaloneShortWeekdays = dfs.standaloneShortWeekdays;
-        this.standaloneShorterWeekdays = dfs.standaloneShorterWeekdays;
         this.standaloneNarrowWeekdays = dfs.standaloneNarrowWeekdays;
         this.ampms = dfs.ampms;
         this.shortQuarters = dfs.shortQuarters;
@@ -1298,15 +1229,10 @@ public class DateFormatSymbols implements Serializable, Cloneable {
         weekdays[0] = "";  // 1-based
         System.arraycopy(lWeekdays, 0, weekdays, 1, lWeekdays.length);
 
-        String[] aWeekdays = calData.getStringArray("dayNames", "abbreviated");
+        String[] sWeekdays = calData.getStringArray("dayNames", "abbreviated");
         shortWeekdays = new String[8];
         shortWeekdays[0] = "";  // 1-based
-        System.arraycopy(aWeekdays, 0, shortWeekdays, 1, aWeekdays.length);
-
-        String[] sWeekdays = calData.getStringArray("dayNames", "short");
-        shorterWeekdays = new String[8];
-        shorterWeekdays[0] = "";  // 1-based
-        System.arraycopy(sWeekdays, 0, shorterWeekdays, 1, sWeekdays.length);
+        System.arraycopy(sWeekdays, 0, shortWeekdays, 1, sWeekdays.length);
 
         String [] nWeekdays = null;
         try {
@@ -1324,23 +1250,17 @@ public class DateFormatSymbols implements Serializable, Cloneable {
         narrowWeekdays[0] = "";  // 1-based
         System.arraycopy(nWeekdays, 0, narrowWeekdays, 1, nWeekdays.length);
 
-        String [] swWeekdays = null;
-        swWeekdays = calData.getStringArray("dayNames", "stand-alone", "wide");
+        String [] saWeekdays = null;
+        saWeekdays = calData.getStringArray("dayNames", "stand-alone", "wide");
         standaloneWeekdays = new String[8];
         standaloneWeekdays[0] = "";  // 1-based
-        System.arraycopy(swWeekdays, 0, standaloneWeekdays, 1, swWeekdays.length);
-
-        String [] saWeekdays = null;
-        saWeekdays = calData.getStringArray("dayNames", "stand-alone", "abbreviated");
-        standaloneShortWeekdays = new String[8];
-        standaloneShortWeekdays[0] = "";  // 1-based
-        System.arraycopy(saWeekdays, 0, standaloneShortWeekdays, 1, saWeekdays.length);
+        System.arraycopy(saWeekdays, 0, standaloneWeekdays, 1, saWeekdays.length);
 
         String [] ssWeekdays = null;
-        ssWeekdays = calData.getStringArray("dayNames", "stand-alone", "short");
-        standaloneShorterWeekdays = new String[8];
-        standaloneShorterWeekdays[0] = "";  // 1-based
-        System.arraycopy(ssWeekdays, 0, standaloneShorterWeekdays, 1, ssWeekdays.length);
+        ssWeekdays = calData.getStringArray("dayNames", "stand-alone", "abbreviated");
+        standaloneShortWeekdays = new String[8];
+        standaloneShortWeekdays[0] = "";  // 1-based
+        System.arraycopy(ssWeekdays, 0, standaloneShortWeekdays, 1, ssWeekdays.length);
 
         String [] snWeekdays = null;
         snWeekdays = calData.getStringArray("dayNames", "stand-alone", "narrow");

@@ -1,6 +1,6 @@
 /**
  *******************************************************************************
- * Copyright (C) 2001-2013, International Business Machines Corporation and    *
+ * Copyright (C) 2001-2012, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -92,7 +92,7 @@ public final class ICUResourceBundleTest extends TestFmwk {
         }
 
         bundle = UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, "bogus");
-        if(bundle instanceof UResourceBundle && bundle.getULocale().getName().equals("en_US")){
+        if(bundle instanceof UResourceBundle && bundle.getULocale().equals("en_US")){
             logln("wrapper mechanism works for bogus locale");
         }else{
             errln("wrapper mechanism failed for bogus locale.");
@@ -653,10 +653,12 @@ public final class ICUResourceBundleTest extends TestFmwk {
         }
         ICUResourceBundle b2 = b1.getWithFallback(defaultCal);
         ICUResourceBundle b3 = b2.getWithFallback("monthNames");
-        ICUResourceBundle b4 = b3.getWithFallback("format");
-        ICUResourceBundle b5 = b4.getWithFallback("narrow");
+        String defaultContext = b3.getStringWithFallback("default");
+        ICUResourceBundle b4 = b3.getWithFallback(defaultContext);
+        String defaultWidth  = b4.getStringWithFallback("default");
+        ICUResourceBundle b5 = b4.getWithFallback(defaultWidth);
         if(b5.getSize()!=12){
-            errln("Did not get the expected size for the monthNames");
+            errln("Did not get the expected size for the default monthNames");
         }
     }
 

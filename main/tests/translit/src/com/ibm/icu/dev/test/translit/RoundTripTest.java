@@ -1,6 +1,6 @@
 /**
  *******************************************************************************
- * Copyright (C) 2000-2013, International Business Machines Corporation and
+ * Copyright (C) 2000-2012, International Business Machines Corporation and
  * others. All Rights Reserved.
  *******************************************************************************
  */
@@ -72,6 +72,19 @@ public class RoundTripTest extends TestFmwk {
     static String HALFWIDTH_KATAKANA = "[\uFF65-\uFF9D]";
     static String KATAKANA_ITERATION = "[\u30FD\u30FE]";
     static String HIRAGANA_ITERATION = "[\u309D\u309E]";
+
+    // TODO(Mark): Fix ticket #8989, transliterate U+0970.
+    // Remove all references to beforeICU50 & minusDevAbbBefore50.
+    private boolean beforeICU50;
+    private String minusDevAbbBefore50;
+
+    @Override
+    public void init() {
+        // TODO(Mark): Fix ticket #8989 (CLDR#4375), transliterate U+0970.
+        // Remove this method?
+        beforeICU50 = isICUVersionBefore(51, 0, 1);
+        minusDevAbbBefore50 = beforeICU50 ? "-[\u0970]" : "";
+    }
 
     //------------------------------------------------------------------
     // AbbreviatedUnicodeSetIterator
@@ -161,7 +174,7 @@ public class RoundTripTest extends TestFmwk {
     public void TestHangul() throws IOException {
         long start = System.currentTimeMillis();
         Test t = new Test("Latin-Hangul", 5);
-        boolean TEST_ALL = getBooleanProperty("HangulRoundTripAll", false); 
+        boolean TEST_ALL = "true".equalsIgnoreCase(getProperty("HangulRoundTripAll")); 
         if (TEST_ALL && getInclusion() == 10) {
             t.setPairLimit(Integer.MAX_VALUE); // only go to the limit if we have TEST_ALL and getInclusion
         }
@@ -493,9 +506,8 @@ public class RoundTripTest extends TestFmwk {
         }
         logln("Warning: TestDevanagariLatin needs to be updated to remove delete the section marked [:Age=4.1:] filter");
 
-        String minusDevAbb = logKnownIssue("cldrbug:4375", null) ? "-[\u0970]" : "";
         new Test("Latin-DEVANAGARI", 50)
-        .test(latinForIndic, "[[[:Devanagari:][\u094d][\u0964\u0965]" + minusDevAbb + "]&[:Age=4.1:]]", "[\u0965\u0904]", this, new LegalIndic());
+        .test(latinForIndic, "[[[:Devanagari:][\u094d][\u0964\u0965]" + minusDevAbbBefore50 + "]&[:Age=4.1:]]", "[\u0965\u0904]", this, new LegalIndic());
         showElapsed(start, "TestDevanagariLatin");
     }
 
@@ -879,11 +891,9 @@ public class RoundTripTest extends TestFmwk {
             /* comment lines below  when transliterator is fixed */
             // start
             // TODO(Mark): Fix ticket #8989, transliterate U+0970.
-            String minusDevAbb = logKnownIssue("cldrbug:4375", null) ? "-[\u0970]" : "";
-
             new Test(interIndicArray[i][0], 50)
-            .test("[["+interIndicArray[i][1] + minusDevAbb + "] &[:Age=4.1:]]",
-                    "[["+interIndicArray[i][2] + minusDevAbb + "] &[:Age=4.1:]]",
+            .test("[["+interIndicArray[i][1] + minusDevAbbBefore50 + "] &[:Age=4.1:]]",
+                    "[["+interIndicArray[i][2] + minusDevAbbBefore50 + "] &[:Age=4.1:]]",
                     interIndicArray[i][3],
                     this, new LegalIndic());
             //end

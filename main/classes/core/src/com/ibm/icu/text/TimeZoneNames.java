@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2011-2013, International Business Machines Corporation and    *
+ * Copyright (C) 2011, International Business Machines Corporation and         *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -11,10 +11,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import com.ibm.icu.impl.ICUConfig;
 import com.ibm.icu.impl.SoftCache;
-import com.ibm.icu.impl.TimeZoneNamesImpl;
 import com.ibm.icu.util.TimeZone;
 import com.ibm.icu.util.ULocale;
 
@@ -63,13 +63,6 @@ import com.ibm.icu.util.ULocale;
  * may provide time zone names only through {@link #getTimeZoneDisplayName(String, NameType)}, or only through
  * {@link #getMetaZoneDisplayName(String, NameType)}, or both.
  * 
- * <p>
- * The default <code>TimeZoneNames</code> implementation returned by {@link #getInstance(ULocale)} uses the locale data
- * imported from CLDR. In CLDR, set of meta zone IDs and mappings between zone IDs and meta zone IDs are shared by all
- * locales. Therefore, the behavior of {@link #getAvailableMetaZoneIDs()}, {@link #getAvailableMetaZoneIDs(String)},
- * {@link #getMetaZoneID(String, long)}, and {@link #getReferenceZoneID(String, String)} won't be changed no matter
- * what locale is used for getting an instance of <code>TimeZoneNames</code>.
- *
  * @draft ICU 49
  * @provisional This API might change or be removed in a future release.
  */
@@ -126,13 +119,6 @@ public abstract class TimeZoneNames implements Serializable {
          * @provisional This API might change or be removed in a future release.
          */
         SHORT_DAYLIGHT,
-        /**
-         * Exemplar location name, such as "Los Angeles".
-         * 
-         * @draft ICU 51
-         * @provisional This API might change or be removed in a future release.
-         */
-        EXEMPLAR_LOCATION,
     }
 
     private static Cache TZNAMES_CACHE = new Cache();
@@ -140,6 +126,7 @@ public abstract class TimeZoneNames implements Serializable {
     private static final Factory TZNAMES_FACTORY;
     private static final String FACTORY_NAME_PROP = "com.ibm.icu.text.TimeZoneNames.Factory.impl";
     private static final String DEFAULT_FACTORY_CLASS = "com.ibm.icu.impl.TimeZoneNamesFactoryImpl";
+    private static final Pattern LOC_EXCLUSION_PATTERN = Pattern.compile("Etc/.*|SystemV/.*|.*/Riyadh8[7-9]");
 
     static {
         Factory factory = null;
@@ -217,11 +204,6 @@ public abstract class TimeZoneNames implements Serializable {
 
     /**
      * Returns the reference zone ID for the given meta zone ID for the region.
-     * 
-     * Note: Each meta zone must have a reference zone associated with a special region "001" (world).
-     * Some meta zones may have region specific reference zone IDs other than the special region
-     * "001". When a meta zone does not have any region specific reference zone IDs, this method
-     * return the reference zone ID for the special region "001" (world).
      * 
      * @param mzID
      *            The meta zone ID.
@@ -313,7 +295,17 @@ public abstract class TimeZoneNames implements Serializable {
      * @provisional This API might change or be removed in a future release.
      */
     public String getExemplarLocationName(String tzID) {
-        return TimeZoneNamesImpl.getDefaultExemplarLocationName(tzID);
+        if (tzID == null || tzID.length() == 0 || LOC_EXCLUSION_PATTERN.matcher(tzID).matches()) {
+            return null;
+        }
+
+        String location = null;
+        int sep = tzID.lastIndexOf('/');
+        if (sep > 0 && sep + 1 < tzID.length()) {
+            location = tzID.substring(sep + 1).replace('_', ' ');
+        }
+
+        return location;
     }
 
     /**

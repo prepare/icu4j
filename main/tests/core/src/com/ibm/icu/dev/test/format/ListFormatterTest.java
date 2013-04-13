@@ -1,12 +1,11 @@
 /*
  *******************************************************************************
- * Copyright (C) 2012-2013, Google, International Business Machines Corporation and
+ * Copyright (C) 2012-2012, Google, International Business Machines Corporation and
  * others. All Rights Reserved.
  *******************************************************************************
  */
 package com.ibm.icu.dev.test.format;
 
-import java.util.ArrayList;
 import java.util.Locale;
 
 import com.ibm.icu.dev.test.TestFmwk;
@@ -101,29 +100,6 @@ public class ListFormatterTest extends TestFmwk {
         assertEquals("3", strings[3], listFormat.format("A", "B", "C"));
         assertEquals("4", strings[4], listFormat.format("A", "B", "C", "D"));
         assertEquals("5", strings[5], listFormat.format("A", "B", "C", "D", "E"));
-    }
-    
-    public void TestFromList() {
-        ListFormatter listFormatter = ListFormatter.getInstance(ULocale.ENGLISH);
-        ArrayList<String> list = new ArrayList<String>();
-        list.add("A");
-        list.add("B");
-        list.add("C");
-        assertEquals("list", "A, B, and C", listFormatter.format(list));
-    }
-    
-    public void TestCreatePatternForNumItems() {
-        ListFormatter listFormatter = ListFormatter.getInstance(ULocale.ENGLISH);
-        assertEquals(
-                "createPatternForNumItems",
-                "{0}, {1}, and {2}",
-                listFormatter.createPatternForNumItems(3));
-        
-    }
-    
-    public void TestGetLocale() {
-        assertEquals(
-                "getLocale", ULocale.ENGLISH, ListFormatter.getInstance(ULocale.ENGLISH).getLocale());
     }
 
     private boolean isDefaultLocaleEnglishLike() {

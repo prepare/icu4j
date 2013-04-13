@@ -1,6 +1,6 @@
 /*
 *******************************************************************************
-*   Copyright (C) 2011-2013, International Business Machines
+*   Copyright (C) 2011-2012, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 *******************************************************************************
 *   created on: 2011jul14
@@ -22,7 +22,8 @@ import java.util.List;
  * Each of the nested classes is immutable and thread-safe.
  *
  * <p>This class and its nested classes are not intended for public subclassing.
- * @stable ICU 49
+ * @draft ICU 49
+ * @provisional This API might change or be removed in a future release.
  * @author Markus Scherer
  */
 public final class MessagePatternUtil {
@@ -37,7 +38,8 @@ public final class MessagePatternUtil {
      * @return a MessageNode or a ComplexArgStyleNode
      * @throws IllegalArgumentException if the MessagePattern is empty
      *         or does not represent a MessageFormat pattern
-     * @stable ICU 49
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
      */
     public static MessageNode buildMessageNode(String patternString) {
         return buildMessageNode(new MessagePattern(patternString));
@@ -49,7 +51,8 @@ public final class MessagePatternUtil {
      * @return a MessageNode or a ComplexArgStyleNode
      * @throws IllegalArgumentException if the MessagePattern is empty
      *         or does not represent a MessageFormat pattern
-     * @stable ICU 49
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
      */
     public static MessageNode buildMessageNode(MessagePattern pattern) {
         int limit = pattern.countParts() - 1;
@@ -66,7 +69,8 @@ public final class MessagePatternUtil {
      * Common base class for all elements in a tree of nodes
      * returned by {@link MessagePatternUtil#buildMessageNode(MessagePattern)}.
      * This class and all subclasses are immutable and thread-safe.
-     * @stable ICU 49
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
      */
     public static class Node {
         private Node() {}
@@ -74,19 +78,22 @@ public final class MessagePatternUtil {
 
     /**
      * A Node representing a parsed MessageFormat pattern string.
-     * @stable ICU 49
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
      */
     public static class MessageNode extends Node {
         /**
          * @return the list of MessageContentsNode nodes that this message contains
-         * @stable ICU 49
+         * @draft ICU 49
+         * @provisional This API might change or be removed in a future release.
          */
         public List<MessageContentsNode> getContents() {
             return list;
         }
         /**
          * {@inheritDoc}
-         * @stable ICU 49
+         * @draft ICU 49
+         * @provisional This API might change or be removed in a future release.
          */
         @Override
         public String toString() {
@@ -119,42 +126,49 @@ public final class MessagePatternUtil {
     /**
      * A piece of MessageNode contents.
      * Use getType() to determine the type and the actual Node subclass.
-     * @stable ICU 49
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
      */
     public static class MessageContentsNode extends Node {
         /**
          * The type of a piece of MessageNode contents.
-         * @stable ICU 49
+         * @draft ICU 49
+         * @provisional This API might change or be removed in a future release.
          */
         public enum Type {
             /**
              * This is a TextNode containing literal text (downcast and call getText()).
-             * @stable ICU 49
+             * @draft ICU 49
+             * @provisional This API might change or be removed in a future release.
              */
             TEXT,
             /**
              * This is an ArgNode representing a message argument
              * (downcast and use specific methods).
-             * @stable ICU 49
+             * @draft ICU 49
+             * @provisional This API might change or be removed in a future release.
              */
             ARG,
             /**
              * This Node represents a place in a plural argument's variant where
              * the formatted (plural-offset) value is to be put.
-             * @stable ICU 49
+             * @draft ICU 49
+             * @provisional This API might change or be removed in a future release.
              */
             REPLACE_NUMBER
         }
         /**
          * Returns the type of this piece of MessageNode contents.
-         * @stable ICU 49
+         * @draft ICU 49
+         * @provisional This API might change or be removed in a future release.
          */
         public Type getType() {
             return type;
         }
         /**
          * {@inheritDoc}
-         * @stable ICU 49
+         * @draft ICU 49
+         * @provisional This API might change or be removed in a future release.
          */
         @Override
         public String toString() {
@@ -178,19 +192,22 @@ public final class MessagePatternUtil {
 
     /**
      * Literal text, a piece of MessageNode contents.
-     * @stable ICU 49
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
      */
     public static class TextNode extends MessageContentsNode {
         /**
          * @return the literal text at this point in the message
-         * @stable ICU 49
+         * @draft ICU 49
+         * @provisional This API might change or be removed in a future release.
          */
         public String getText() {
             return text;
         }
         /**
          * {@inheritDoc}
-         * @stable ICU 49
+         * @draft ICU 49
+         * @provisional This API might change or be removed in a future release.
          */
         @Override
         public String toString() {
@@ -207,33 +224,38 @@ public final class MessagePatternUtil {
 
     /**
      * A piece of MessageNode contents representing a message argument and its details.
-     * @stable ICU 49
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
      */
     public static class ArgNode extends MessageContentsNode {
         /**
          * @return the argument type
-         * @stable ICU 49
+         * @draft ICU 49
+         * @provisional This API might change or be removed in a future release.
          */
         public MessagePattern.ArgType getArgType() {
             return argType;
         }
         /**
          * @return the argument name string (the decimal-digit string if the argument has a number)
-         * @stable ICU 49
+         * @draft ICU 49
+         * @provisional This API might change or be removed in a future release.
          */
         public String getName() {
             return name;
         }
         /**
          * @return the argument number, or -1 if none (for a named argument)
-         * @stable ICU 49
+         * @draft ICU 49
+         * @provisional This API might change or be removed in a future release.
          */
         public int getNumber() {
             return number;
         }
         /**
          * @return the argument type string, or null if none was specified
-         * @stable ICU 49
+         * @draft ICU 49
+         * @provisional This API might change or be removed in a future release.
          */
         public String getTypeName() {
             return typeName;
@@ -241,7 +263,8 @@ public final class MessagePatternUtil {
         /**
          * @return the simple-argument style string,
          *         or null if no style is specified and for other argument types
-         * @stable ICU 49
+         * @draft ICU 49
+         * @provisional This API might change or be removed in a future release.
          */
         public String getSimpleStyle() {
             return style;
@@ -249,14 +272,16 @@ public final class MessagePatternUtil {
         /**
          * @return the complex-argument-style object,
          *         or null if the argument type is NONE_ARG or SIMPLE_ARG
-         * @stable ICU 49
+         * @draft ICU 49
+         * @provisional This API might change or be removed in a future release.
          */
         public ComplexArgStyleNode getComplexStyle() {
             return complexStyle;
         }
         /**
          * {@inheritDoc}
-         * @stable ICU 49
+         * @draft ICU 49
+         * @provisional This API might change or be removed in a future release.
          */
         @Override
         public String toString() {
@@ -293,19 +318,22 @@ public final class MessagePatternUtil {
     /**
      * A Node representing details of the argument style of a complex argument.
      * (Which is a choice/plural/select argument which selects among nested messages.)
-     * @stable ICU 49
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
      */
     public static class ComplexArgStyleNode extends Node {
         /**
          * @return the argument type (same as getArgType() on the parent ArgNode)
-         * @stable ICU 49
+         * @draft ICU 49
+         * @provisional This API might change or be removed in a future release.
          */
         public MessagePattern.ArgType getArgType() {
             return argType;
         }
         /**
          * @return true if this is a plural style with an explicit offset
-         * @stable ICU 49
+         * @draft ICU 49
+         * @provisional This API might change or be removed in a future release.
          */
         public boolean hasExplicitOffset() {
             return explicitOffset;
@@ -313,14 +341,16 @@ public final class MessagePatternUtil {
         /**
          * @return the plural offset, or 0 if this is not a plural style or
          *         the offset is explicitly or implicitly 0
-         * @stable ICU 49
+         * @draft ICU 49
+         * @provisional This API might change or be removed in a future release.
          */
         public double getOffset() {
             return offset;
         }
         /**
          * @return the list of variants: the nested messages with their selection criteria
-         * @stable ICU 49
+         * @draft ICU 49
+         * @provisional This API might change or be removed in a future release.
          */
         public List<VariantNode> getVariants() {
             return list;
@@ -339,7 +369,8 @@ public final class MessagePatternUtil {
          *        and PluralRules need not be called.
          * @return the "other" variant (the first one if there are several),
          *         null if none (choice style)
-         * @stable ICU 49
+         * @draft ICU 49
+         * @provisional This API might change or be removed in a future release.
          */
         public VariantNode getVariantsByType(List<VariantNode> numericVariants,
                                              List<VariantNode> keywordVariants) {
@@ -364,7 +395,8 @@ public final class MessagePatternUtil {
         }
         /**
          * {@inheritDoc}
-         * @stable ICU 49
+         * @draft ICU 49
+         * @provisional This API might change or be removed in a future release.
          */
         @Override
         public String toString() {
@@ -397,7 +429,8 @@ public final class MessagePatternUtil {
     /**
      * A Node representing a nested message (nested inside an argument)
      * with its selection criterium.
-     * @stable ICU 49
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
      */
     public static class VariantNode extends Node {
         /**
@@ -405,35 +438,40 @@ public final class MessagePatternUtil {
          * For example: A plural/select keyword ("few"), a plural explicit value ("=1"),
          * a choice comparison operator ("#").
          * @return the selector string
-         * @stable ICU 49
+         * @draft ICU 49
+         * @provisional This API might change or be removed in a future release.
          */
         public String getSelector() {
             return selector;
         }
         /**
          * @return true for choice variants and for plural explicit values
-         * @stable ICU 49
+         * @draft ICU 49
+         * @provisional This API might change or be removed in a future release.
          */
         public boolean isSelectorNumeric() {
             return numericValue != MessagePattern.NO_NUMERIC_VALUE;
         }
         /**
          * @return the selector's numeric value, or NO_NUMERIC_VALUE if !isSelectorNumeric()
-         * @stable ICU 49
+         * @draft ICU 49
+         * @provisional This API might change or be removed in a future release.
          */
         public double getSelectorValue() {
             return numericValue;
         }
         /**
          * @return the nested message
-         * @stable ICU 49
+         * @draft ICU 49
+         * @provisional This API might change or be removed in a future release.
          */
         public MessageNode getMessage() {
             return msgNode;
         }
         /**
          * {@inheritDoc}
-         * @stable ICU 49
+         * @draft ICU 49
+         * @provisional This API might change or be removed in a future release.
          */
         @Override
         public String toString() {

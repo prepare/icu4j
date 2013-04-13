@@ -1,6 +1,6 @@
 /*
 **********************************************************************
-* Copyright (c) 2003-2013 International Business Machines
+* Copyright (c) 2003-2011 International Business Machines
 * Corporation and others.  All Rights Reserved.
 **********************************************************************
 * Author: Alan Liu
@@ -19,7 +19,6 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import com.ibm.icu.text.NumberFormat;
-import com.ibm.icu.util.Output;
 import com.ibm.icu.util.SimpleTimeZone;
 import com.ibm.icu.util.TimeZone;
 import com.ibm.icu.util.TimeZone.SystemTimeZoneType;
@@ -458,52 +457,25 @@ public final class ZoneMeta {
     }
 
     /**
-     * Return the canonical country code for this tzid.  If we have none, or if the time zone
-     * is not associated with a country or unknown, return null. When the given zone is the
-     * primary zone of the country, true is set to isPrimary.
+     * Return the country code if this is a 'single' time zone that can fallback to just
+     * the country, otherwise return null.  (Note, one must also check the locale data
+     * to see that there is a localization for the country in order to implement
+     * tr#35 appendix J step 5.)
      */
-    public static String getCanonicalCountry(String tzid, Output<Boolean> isPrimary) {
-        isPrimary.value = Boolean.FALSE;
-
-        String country = getRegion(tzid);
-        if (country != null && country.equals(kWorld)) {
-            return null;
-        }
-
-        // Check the cache
-        Boolean singleZone = SINGLE_COUNTRY_CACHE.get(tzid);
-        if (singleZone == null) {
-            Set<String> ids = TimeZone.getAvailableIDs(SystemTimeZoneType.CANONICAL_LOCATION, country, null);
-            assert(ids.size() >= 1);
-            singleZone = Boolean.valueOf(ids.size() <= 1);
-            SINGLE_COUNTRY_CACHE.put(tzid, singleZone);
-        }
-
-        if (singleZone) {
-            isPrimary.value = Boolean.TRUE;
-        } else {
-            // Note: We may cache the primary zone map in future.
-
-            // Even a country has multiple zones, one of them might be
-            // dominant and treated as a primary zone.
-            try {
-                UResourceBundle bundle = UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, "metaZones");
-                UResourceBundle primaryZones = bundle.get("primaryZones");
-                String primaryZone = primaryZones.getString(country);
-                if (tzid.equals(primaryZone)) {
-                    isPrimary.value = Boolean.TRUE;
-                } else {
-                    // The given ID might not be a canonical ID
-                    String canonicalID = getCanonicalCLDRID(tzid);
-                    if (canonicalID != null && canonicalID.equals(primaryZone)) {
-                        isPrimary.value = Boolean.TRUE;
-                    }
-                }
-            } catch (MissingResourceException e) {
-                // ignore
+    public static String getSingleCountry(String tzid) {
+        String country = getCanonicalCountry(tzid);
+        if (country != null) {
+            Boolean isSingle = SINGLE_COUNTRY_CACHE.get(tzid);
+            if (isSingle == null) {
+                Set<String> ids = TimeZone.getAvailableIDs(SystemTimeZoneType.CANONICAL_LOCATION, country, null);
+                assert(ids.size() >= 1);
+                isSingle = Boolean.valueOf(ids.size() <= 1);
+                SINGLE_COUNTRY_CACHE.put(tzid, isSingle);
+            }
+            if (!isSingle) {
+                country = null;
             }
         }
-
         return country;
     }
 
@@ -829,56 +801,4 @@ public final class ZoneMeta {
         }
         return zid.toString();
     }
-
-    /**
-     * Returns the time zone's short ID for the zone.
-     * For example, "uslax" for zone "America/Los_Angeles".
-     * @param tz the time zone
-     * @return the short ID of the time zone, or null if the short ID is not available.
-     */
-    public static String getShortID(TimeZone tz) {
-        String canonicalID = null;
-
-        if (tz instanceof OlsonTimeZone) {
-            canonicalID = ((OlsonTimeZone)tz).getCanonicalID();
-        }
-        canonicalID = getCanonicalCLDRID(tz.getID());
-        if (canonicalID == null) {
-            return null;
-        }
-        return getShortIDFromCanonical(canonicalID);
-    }
-
-    /**
-     * Returns the time zone's short ID for the zone ID.
-     * For example, "uslax" for zone ID "America/Los_Angeles".
-     * @param id the time zone ID
-     * @return the short ID of the time zone ID, or null if the short ID is not available.
-     */
-    public static String getShortID(String id) {
-        String canonicalID = getCanonicalCLDRID(id);
-        if (canonicalID == null) {
-            return null;
-        }
-        return getShortIDFromCanonical(canonicalID);
-    }
-
-    private static String getShortIDFromCanonical(String canonicalID) {
-        String shortID = null;
-        String tzidKey = canonicalID.replace('/', ':');
-
-        try {
-            // First, try check if the given ID is canonical
-            UResourceBundle keyTypeData = UResourceBundle.getBundleInstance(ICUResourceBundle.ICU_BASE_NAME,
-                    "keyTypeData", ICUResourceBundle.ICU_DATA_CLASS_LOADER);
-            UResourceBundle typeMap = keyTypeData.get("typeMap");
-            UResourceBundle typeKeys = typeMap.get("timezone");
-            shortID = typeKeys.getString(tzidKey);
-        } catch (MissingResourceException e) {
-            // fall through
-        }
-
-        return shortID;
-    }
-
 }

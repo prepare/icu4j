@@ -1,6 +1,6 @@
 /*
  **********************************************************************
- * Copyright (c) 2002-2013, International Business Machines
+ * Copyright (c) 2002-2012, International Business Machines
  * Corporation and others.  All Rights Reserved.
  **********************************************************************
  * Author: Alan Liu
@@ -378,54 +378,6 @@ public class CurrencyTest extends TestFmwk {
         assertEquals("millisecond is 0", 0, cal.get(GregorianCalendar.MILLISECOND));
     }
     
-    public void testCurrencyMetaInfoRangesWithLongs() {
-        CurrencyMetaInfo metainfo = CurrencyMetaInfo.getInstance(true);
-        assertNotNull("have metainfo", metainfo);
-    
-        CurrencyFilter filter = CurrencyFilter.onRegion("DE"); // must be capitalized
-        List<CurrencyInfo> currenciesInGermany = metainfo.currencyInfo(filter);
-        logln("currencies: " + currenciesInGermany.size());
-        long demLastDate = Long.MAX_VALUE;
-        long eurFirstDate = Long.MIN_VALUE;
-        for (CurrencyInfo info : currenciesInGermany) {
-            logln(info.toString());
-            if (info.code.equals("DEM")) {
-                demLastDate = info.to;
-            } else if (info.code.equals("EUR")) {
-                eurFirstDate = info.from;
-            }
-        }
-        // the Euro and Deutschmark overlapped for several years
-        assertEquals("DEM available at last date", 2, metainfo.currencyInfo(filter.withDate(demLastDate)).size());
-        
-        // demLastDate + 1 millisecond is not the start of the last day, we consider it the next day, so...
-        long demLastDatePlus1ms = demLastDate + 1;
-        assertEquals("DEM not available after very start of last date", 1, metainfo.currencyInfo(filter.withDate(demLastDatePlus1ms)).size());
-        
-        // both available for start of euro
-        assertEquals("EUR available on start of first date", 2, metainfo.currencyInfo(filter.withDate(eurFirstDate)).size());
-        
-        // but not one millisecond before the start of the first day
-        long eurFirstDateMinus1ms = eurFirstDate - 1;
-        assertEquals("EUR not avilable before very start of first date", 1, metainfo.currencyInfo(filter.withDate(eurFirstDateMinus1ms)).size());
-    }
-    
-    public void TestWithTender() {
-        CurrencyMetaInfo metainfo = CurrencyMetaInfo.getInstance();
-        if (metainfo == null) {
-            errln("Unable to get CurrencyMetaInfo instance.");
-            return;
-        }
-        CurrencyMetaInfo.CurrencyFilter filter =
-                CurrencyMetaInfo.CurrencyFilter.onRegion("CH");
-        List<String> currencies = metainfo.currencies(filter);
-        assertTrue("More than one currency for switzerland", currencies.size() > 1);
-        assertEquals(
-                "With tender",
-                Arrays.asList(new String[] {"CHF"}),
-                metainfo.currencies(filter.withTender()));
-    }
-   
     // Coverage-only test of the CurrencyMetaInfo class
     public void TestCurrencyMetaInfo() {
         CurrencyMetaInfo metainfo = CurrencyMetaInfo.getInstance();
@@ -473,7 +425,7 @@ public class CurrencyTest extends TestFmwk {
         }
             
         { // CurrencyInfo
-            info = new CurrencyMetaInfo.CurrencyInfo("region", "code", 0, 1, 1, false);
+            info = new CurrencyMetaInfo.CurrencyInfo("region", "code", 0, 1, 1);
             if (info == null) {
                 errln("Error creating CurrencyInfo.");
                 return;
@@ -597,7 +549,7 @@ public class CurrencyTest extends TestFmwk {
             {"de_DE",           "EUR"},
             {"de_ZZ",                },
             {"ar",              "EGP"},
-            {"ar_PS",           "ILS", "JOD"},
+            {"ar_PS",           "JOD", "ILS"},
             {"en@currency=CAD",     "USD"},
             {"fr@currency=ZZZ",     "EUR"},
             {"de_DE@currency=DEM",  "EUR"},
@@ -645,9 +597,8 @@ public class CurrencyTest extends TestFmwk {
         assertFalse("DEM after 2005", Currency.isAvailable("DEM", d2005, null));
         assertTrue("DEM on 2000-01-01", Currency.isAvailable("DEM", d2000, d2000));
         assertFalse("DEM on 2005-01-01", Currency.isAvailable("DEM", d2005, d2005));
-        assertTrue("CHE all the time", Currency.isAvailable("CHE", null, null));
 
-        assertFalse("XXY unknown code", Currency.isAvailable("XXY", null, null));
+        assertFalse("XXX unknown code", Currency.isAvailable("XXX", null, null));
 
         assertFalse("USDOLLAR invalid code", Currency.isAvailable("USDOLLAR", null, null));
 
@@ -724,9 +675,5 @@ public class CurrencyTest extends TestFmwk {
             // so the currency code itself should be returned
             assertEquals("getDisplayName() for " + data[0] + " in locale " + root, data[0], cur.getDisplayName(root));
         }
-    }
-    
-    public void TestCurrencyInfoCtor() {
-        new CurrencyMetaInfo.CurrencyInfo("region", "code", 0, 0, 1);
     }
 }

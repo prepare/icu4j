@@ -1,6 +1,6 @@
 /**
  *******************************************************************************
- * Copyright (C) 1996-2013, International Business Machines Corporation and
+ * Copyright (C) 1996-2012, International Business Machines Corporation and
  * others. All Rights Reserved.
  *******************************************************************************
  */
@@ -1423,7 +1423,7 @@ public final class RuleBasedCollator extends Collator {
      * @stable ICU 2.8
      */
     public int compare(String source, String target) {
-        if (source.equals(target)) {
+        if (source == target) {
             return 0;
         }
         CollationBuffer buffer = null;
@@ -2058,8 +2058,8 @@ public final class RuleBasedCollator extends Collator {
     }
 
     /**
-     * Constructs a RuleBasedCollator from the argument locale.
-     * If no resource bundle is associated with the locale, UCA is used instead.
+     * Constructors a RuleBasedCollator from the argument locale. If no resource bundle is associated with the locale,
+     * UCA is used instead.
      * 
      * @param locale
      */
@@ -2113,7 +2113,6 @@ public final class RuleBasedCollator extends Collator {
                         init(m_rules_);
                         return;
                     }
-                    init();
                     try {
                         UResourceBundle reorderRes = elements.get("%%ReorderCodes");
                         if (reorderRes != null) {
@@ -2124,6 +2123,7 @@ public final class RuleBasedCollator extends Collator {
                     } catch (MissingResourceException e) {
                         // ignore
                     }
+                    init();
                     return;
                 } else {
                     init(m_rules_);
@@ -4026,12 +4026,11 @@ public final class RuleBasedCollator extends Collator {
 
         if (m_reorderCodes_[0] == ReorderCodes.DEFAULT) {
             if (m_reorderCodes_.length != 1) {
-                throw new IllegalArgumentException("Illegal collation reorder codes - default reorder code must be the only code in the list.");
+                throw new IllegalArgumentException("Illegal collation reorder codes - default reorder code must be the only code in the list.");                
             }
             // swap the reorder codes for those at build of the rules
             if (m_defaultReorderCodes_ == null || m_defaultReorderCodes_.length == 0) {
-                m_leadBytePermutationTable_ = null;
-                return;
+                m_leadBytePermutationTable_ = null;                
             }
             m_reorderCodes_ = m_defaultReorderCodes_.clone();
         }

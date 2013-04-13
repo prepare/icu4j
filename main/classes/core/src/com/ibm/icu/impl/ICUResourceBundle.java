@@ -1,6 +1,6 @@
 /*
  * *****************************************************************************
- * Copyright (C) 2005-2013, International Business Machines Corporation and    *
+ * Copyright (C) 2005-2012, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  * *****************************************************************************
  */
@@ -11,6 +11,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.lang.ref.SoftReference;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -20,6 +21,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 import java.util.Set;
@@ -504,6 +506,8 @@ public  class ICUResourceBundle extends UResourceBundle {
     // Flag for enabling/disabling debugging code
     private static final boolean DEBUG = ICUDebug.enabled("localedata");
 
+    // Cache for getAvailableLocales
+    private static SoftReference<Map<String, AvailEntry>> GET_AVAILABLE_CACHE;
     private static final ULocale[] createULocaleList(String baseName,
             ClassLoader root) {
         // the canned list is a subset of all the available .res files, the idea
@@ -693,10 +697,10 @@ public  class ICUResourceBundle extends UResourceBundle {
     private static final class AvailEntry {
         private String prefix;
         private ClassLoader loader;
-        private volatile ULocale[] ulocales;
-        private volatile Locale[] locales;
-        private volatile Set<String> nameSet;
-        private volatile Set<String> fullNameSet;
+        private ULocale[] ulocales;
+        private Locale[] locales;
+        private Set<String> nameSet;
+        private Set<String> fullNameSet;
 
         AvailEntry(String prefix, ClassLoader loader) {
             this.prefix = prefix;
@@ -705,31 +709,19 @@ public  class ICUResourceBundle extends UResourceBundle {
 
         ULocale[] getULocaleList() {
             if (ulocales == null) {
-                synchronized(this) {
-                    if (ulocales == null) {
-                        ulocales = createULocaleList(prefix, loader);
-                    }
-                }
+                ulocales = createULocaleList(prefix, loader);
             }
             return ulocales;
         }
         Locale[] getLocaleList() {
             if (locales == null) {
-                synchronized(this) {
-                    if (locales == null) {
-                        locales = createLocaleList(prefix, loader);
-                    }
-                }
+              locales = createLocaleList(prefix, loader);
             }
             return locales;
         }
         Set<String> getLocaleNameSet() {
             if (nameSet == null) {
-                synchronized(this) {
-                    if (nameSet == null) {
-                        nameSet = createLocaleNameSet(prefix, loader);
-                    }
-                }
+              nameSet = createLocaleNameSet(prefix, loader);
             }
             return nameSet;
         }
@@ -744,35 +736,42 @@ public  class ICUResourceBundle extends UResourceBundle {
             // through the resources, and is cached.  So it's a good place to lock
             // access.  Locking in the URLHandler doesn't give us a common object
             // to lock.
-            if (fullNameSet == null) {
-                synchronized(this) {
-                    if (fullNameSet == null) {
-                        fullNameSet = createFullLocaleNameSet(prefix, loader);
-                    }
+            synchronized(this) {
+                if (fullNameSet == null) {
+                    fullNameSet = createFullLocaleNameSet(prefix, loader);
                 }
+                return fullNameSet;
             }
-            return fullNameSet;
         }
     }
 
-
-    /*
-     * Cache used for AvailableEntry 
-     */
-    private static CacheBase<String, AvailEntry, ClassLoader> GET_AVAILABLE_CACHE =
-        new SoftCache<String, AvailEntry, ClassLoader>()  {
-            protected AvailEntry createInstance(String key, ClassLoader loader) {
-                return new AvailEntry(key, loader);
-            }
-        };
-
     /**
      * Stores the locale information in a cache accessed by key (bundle prefix).
-     * The cached objects are AvailEntries. The cache is implemented by SoftCache
+     * The cached objects are AvailEntries. The cache is held by a SoftReference
      * so it can be GC'd.
      */
-    private static AvailEntry getAvailEntry(String key, ClassLoader loader) {
-        return GET_AVAILABLE_CACHE.getInstance(key, loader);
+  private static AvailEntry getAvailEntry(String key, ClassLoader loader) {
+        AvailEntry ae = null;
+        Map<String, AvailEntry> lcache = null;
+        if (GET_AVAILABLE_CACHE != null) {
+            lcache = GET_AVAILABLE_CACHE.get();
+            if (lcache != null) {
+                ae = lcache.get(key);
+            }
+        }
+
+        if (ae == null) {
+          ae = new AvailEntry(key, loader);
+            if (lcache == null) {
+                lcache = new HashMap<String, AvailEntry>();
+                lcache.put(key, ae);
+                GET_AVAILABLE_CACHE = new SoftReference<Map<String, AvailEntry>>(lcache);
+            } else {
+                lcache.put(key, ae);
+            }
+        }
+
+        return ae;
     }
 
     protected static final ICUResourceBundle findResourceWithFallback(String path,
@@ -781,44 +780,40 @@ public  class ICUResourceBundle extends UResourceBundle {
         if (requested == null) {
             requested = actualBundle;
         }
-
-        ICUResourceBundle base = (ICUResourceBundle) actualBundle;
-        String basePath = ((ICUResourceBundle)actualBundle).resPath.length() > 0 ?
-                ((ICUResourceBundle)actualBundle).resPath : "";
-
-        while (base != null) {
+        while (actualBundle != null) {
+            ICUResourceBundle current = (ICUResourceBundle) actualBundle;
             if (path.indexOf('/') == -1) { // skip the tokenizer
-                sub = (ICUResourceBundle) base.handleGet(path, null, requested);
+                sub = (ICUResourceBundle) current.handleGet(path, null, requested);
                 if (sub != null) {
                     break;
                 }
             } else {
-                ICUResourceBundle currentBase = base;
                 StringTokenizer st = new StringTokenizer(path, "/");
                 while (st.hasMoreTokens()) {
                     String subKey = st.nextToken();
-                    sub = ICUResourceBundle.findResourceWithFallback(subKey, currentBase, requested);
+                    sub = (ICUResourceBundle) current.handleGet(subKey, null, requested);
                     if (sub == null) {
                         break;
                     }
-                    currentBase = sub;
+                    current = sub;
                 }
                 if (sub != null) {
                     //we found it
                     break;
                 }
             }
-            // if not try the parent bundle - note, getParent() returns the bundle root
-            base = (ICUResourceBundle)base.getParent();
-            path = basePath.length() > 0 ? basePath + "/" + path : path;
-            basePath = "";
+            if (((ICUResourceBundle)actualBundle).resPath.length() != 0) {
+                path = ((ICUResourceBundle)actualBundle).resPath + "/" + path;
+            }
+            // if not try the parent bundle
+            actualBundle = ((ICUResourceBundle) actualBundle).getParent();
+
         }
         if(sub != null){
             sub.setLoadingStatus(((ICUResourceBundle)requested).getLocaleID());
         }
         return sub;
     }
-
     public boolean equals(Object other) {
         if (this == other) {
             return true;
@@ -887,7 +882,7 @@ public  class ICUResourceBundle extends UResourceBundle {
                 if (i != -1) {
                     String temp = localeName.substring(0, i);
                     b = (ICUResourceBundle)instantiateBundle(baseName, temp, root, disableFallback);
-                    if(b!=null && b.getULocale().getName().equals(temp)){
+                    if(b!=null && b.getULocale().equals(temp)){
                         b.setLoadingStatus(ICUResourceBundle.FROM_FALLBACK);
                     }
                 }else{

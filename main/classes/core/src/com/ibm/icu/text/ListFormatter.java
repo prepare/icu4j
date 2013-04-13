@@ -1,12 +1,11 @@
 /*
  *******************************************************************************
- * Copyright (C) 2012-2013, Google, International Business Machines Corporation and
+ * Copyright (C) 2012-2012, Google, International Business Machines Corporation and
  * others. All Rights Reserved.
  *******************************************************************************
  */
 package com.ibm.icu.text;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -33,7 +32,6 @@ final public class ListFormatter {
     private final String start;
     private final String middle;
     private final String end;
-    private final ULocale locale;
 
     /**
      * <b>Internal:</b> Create a ListFormatter from component strings,
@@ -54,15 +52,10 @@ final public class ListFormatter {
      * @internal
      */
     public ListFormatter(String two, String start, String middle, String end) {
-        this(two, start, middle, end, null);
-    }
-    
-    private ListFormatter(String two, String start, String middle, String end, ULocale locale) {
         this.two = two;
         this.start = start;
         this.middle = middle;
         this.end = end;
-        this.locale = locale;
     }
 
     /**
@@ -124,11 +117,11 @@ final public class ListFormatter {
      * @draft ICU 50
      * @provisional This API might change or be removed in a future release.
      */
-    public String format(Collection<?> items) {
+    public String format(Collection<Object> items) {
         // TODO optimize this for the common case that the patterns are all of the
         // form {0}<sometext>{1}.
         // We avoid MessageFormat, because there is no "sub" formatting.
-        Iterator<?> it = items.iterator();
+        Iterator<Object> it = items.iterator();
         int count = items.size();
         switch (count) {
         case 0:
@@ -144,28 +137,6 @@ final public class ListFormatter {
             result = format2(middle, result, it.next());
         }
         return format2(end, result, it.next());
-    }
-    
-    /**
-     * Returns the pattern to use for a particular item count.
-     * @param count the item count.
-     * @return the pattern with {0}, {1}, {2}, etc.
-     */
-    public String createPatternForNumItems(int count) {
-        ArrayList<String> list = new ArrayList<String>();
-        for (int i = 0; i < count; i++) {
-            list.add(String.format("{%d}", i));
-        }
-        return format(list);
-    }
-    
-    /**
-     * Returns the locale of this object.
-     * @deprecated
-     * @internal
-     */
-    public ULocale getLocale() {
-        return locale;
     }
 
     private String format2(String pattern, Object a, Object b) {
@@ -207,13 +178,11 @@ final public class ListFormatter {
         private static ListFormatter load(ULocale ulocale) {
             ICUResourceBundle r = (ICUResourceBundle)UResourceBundle.
                     getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, ulocale);
-            r = r.getWithFallback("listPattern/standard");
             return new ListFormatter(
-                r.getWithFallback("2").getString(),
-                r.getWithFallback("start").getString(),
-                r.getWithFallback("middle").getString(),
-                r.getWithFallback("end").getString(),
-                ulocale);
+                r.getWithFallback("listPattern/standard/2").getString(),
+                r.getWithFallback("listPattern/standard/start").getString(),
+                r.getWithFallback("listPattern/standard/middle").getString(),
+                r.getWithFallback("listPattern/standard/end").getString());
         }
     }
 

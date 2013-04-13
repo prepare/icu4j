@@ -1,6 +1,6 @@
 /**
  *******************************************************************************
- * Copyright (C) 2006-2013, International Business Machines Corporation and    *
+ * Copyright (C) 2006-2012, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  *
@@ -943,7 +943,8 @@ public abstract class CharsetEncoderICU extends CharsetEncoder {
      *                    that will be used.
      * @return Size of a buffer that will be large enough to hold the output of bytes
      *
-     * @stable ICU 49
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
      */
     public static int getMaxBytesForString(int length, int maxCharSize) {
         return ((length + 10) * maxCharSize);

@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2007-2013, International Business Machines Corporation and    *
+ * Copyright (C) 2007-2012, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -191,7 +191,8 @@ public class RuleBasedTimeZone extends BasicTimeZone {
 
     /**
      * {@inheritDoc}
-     * @stable ICU 49
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
      */
     @Override
     public boolean observesDaylightTime() {
@@ -763,7 +764,8 @@ public class RuleBasedTimeZone extends BasicTimeZone {
 
     /**
      * {@inheritDoc}
-     * @stable ICU 49
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
      */
     public boolean isFrozen() {
         return isFrozen;
@@ -771,7 +773,8 @@ public class RuleBasedTimeZone extends BasicTimeZone {
 
     /**
      * {@inheritDoc}
-     * @stable ICU 49
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
      */
     public TimeZone freeze() {
         complete();
@@ -781,7 +784,8 @@ public class RuleBasedTimeZone extends BasicTimeZone {
 
     /**
      * {@inheritDoc}
-     * @stable ICU 49
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
      */
     public TimeZone cloneAsThawed() {
         RuleBasedTimeZone tz = (RuleBasedTimeZone)super.cloneAsThawed();

@@ -1,6 +1,6 @@
 /*
 *******************************************************************************
-*   Copyright (C) 2009-2013, International Business Machines
+*   Copyright (C) 2009-2012, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 *******************************************************************************
 */
@@ -110,7 +110,8 @@ public abstract class Normalizer2 {
      * Same as getInstance(null, "nfc", Mode.COMPOSE).
      * Returns an unmodifiable singleton instance.
      * @return the requested Normalizer2, if successful
-     * @stable ICU 49
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
      */
     public static Normalizer2 getNFCInstance() {
         return Norm2AllModes.getNFCInstance().comp;
@@ -121,7 +122,8 @@ public abstract class Normalizer2 {
      * Same as getInstance(null, "nfc", Mode.DECOMPOSE).
      * Returns an unmodifiable singleton instance.
      * @return the requested Normalizer2, if successful
-     * @stable ICU 49
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
      */
     public static Normalizer2 getNFDInstance() {
         return Norm2AllModes.getNFCInstance().decomp;
@@ -132,7 +134,8 @@ public abstract class Normalizer2 {
      * Same as getInstance(null, "nfkc", Mode.COMPOSE).
      * Returns an unmodifiable singleton instance.
      * @return the requested Normalizer2, if successful
-     * @stable ICU 49
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
      */
     public static Normalizer2 getNFKCInstance() {
         return Norm2AllModes.getNFKCInstance().comp;
@@ -143,7 +146,8 @@ public abstract class Normalizer2 {
      * Same as getInstance(null, "nfkc", Mode.DECOMPOSE).
      * Returns an unmodifiable singleton instance.
      * @return the requested Normalizer2, if successful
-     * @stable ICU 49
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
      */
     public static Normalizer2 getNFKDInstance() {
         return Norm2AllModes.getNFKCInstance().decomp;
@@ -154,7 +158,8 @@ public abstract class Normalizer2 {
      * Same as getInstance(null, "nfkc_cf", Mode.COMPOSE).
      * Returns an unmodifiable singleton instance.
      * @return the requested Normalizer2, if successful
-     * @stable ICU 49
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
      */
     public static Normalizer2 getNFKCCasefoldInstance() {
         return Norm2AllModes.getNFKC_CFInstance().comp;
@@ -291,7 +296,8 @@ public abstract class Normalizer2 {
      * The default implementation returns null.
      * @param c code point
      * @return c's raw decomposition mapping, if any; otherwise null
-     * @stable ICU 49
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
      */
     public String getRawDecomposition(int c) { return null; }
 
@@ -308,7 +314,8 @@ public abstract class Normalizer2 {
      * @param a A (normalization starter) code point.
      * @param b Another code point.
      * @return The non-negative composite code point if there is one; otherwise a negative value.
-     * @stable ICU 49
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
      */
     public int composePair(int a, int b) { return -1; }
 
@@ -318,7 +325,8 @@ public abstract class Normalizer2 {
      * but all standard implementations return the Unicode Canonical_Combining_Class value.
      * @param c code point
      * @return c's combining class
-     * @stable ICU 49
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
      */
     public int getCombiningClass(int c) { return 0; }
 

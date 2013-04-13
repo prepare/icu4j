@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2011-2013, International Business Machines Corporation and    *
+ * Copyright (C) 2011-2012, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -27,7 +27,6 @@ import com.ibm.icu.text.TimeZoneNames.MatchInfo;
 import com.ibm.icu.text.TimeZoneNames.NameType;
 import com.ibm.icu.util.BasicTimeZone;
 import com.ibm.icu.util.Freezable;
-import com.ibm.icu.util.Output;
 import com.ibm.icu.util.TimeZone;
 import com.ibm.icu.util.TimeZone.SystemTimeZoneType;
 import com.ibm.icu.util.TimeZoneTransition;
@@ -233,12 +232,11 @@ public class TimeZoneGenericNames implements Serializable, Freezable<TimeZoneGen
             return name;
         }
 
-        Output<Boolean> isPrimary = new Output<Boolean>();
-        String countryCode = ZoneMeta.getCanonicalCountry(canonicalTzID, isPrimary);
+        String countryCode = ZoneMeta.getCanonicalCountry(canonicalTzID);
         if (countryCode != null) {
-            if (isPrimary.value) {
+            String country = getLocaleDisplayNames().regionDisplayName(countryCode);
+            if (ZoneMeta.getSingleCountry(canonicalTzID) != null) {
                 // If this is only the single zone in the country, use the country name
-                String country = getLocaleDisplayNames().regionDisplayName(countryCode);
                 name = formatPattern(Pattern.REGION_FORMAT, country);
             } else {
                 // If there are multiple zones including this in the country,

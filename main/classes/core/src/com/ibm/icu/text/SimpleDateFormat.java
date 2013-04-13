@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2013, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2012, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -59,549 +59,75 @@ import com.ibm.icu.util.ULocale.Category;
  * For more information on using these methods, see
  * {@link DateFormat}.
  *
- * <p><strong>Date and Time Patterns:</strong></p>
- *
- * <p>Date and time formats are specified by <em>date and time pattern</em> strings.
- * Within date and time pattern strings, all unquoted ASCII letters [A-Za-z] are reserved
- * as pattern letters representing calendar fields. <code>SimpleDateFormat</code> supports
- * the date and time formatting algorithm and pattern letters defined by <a href="http://www.unicode.org/reports/tr35/">UTS#35
- * Unicode Locale Data Markup Language (LDML)</a>. The following pattern letters are
- * currently available:</p>
+ * <p>
+ * <strong>Time Format Syntax:</strong>
+ * <p>
+ * To specify the time format use a <em>time pattern</em> string.
+ * In this pattern, all ASCII letters are reserved as pattern letters,
+ * which are defined as the following:
  * <blockquote>
- * <table border="1">
- *     <tr>
- *         <th>Field</th>
- *         <th style="text-align: center">Sym.</th>
- *         <th style="text-align: center">No.</th>
- *         <th>Example</th>
- *         <th>Description</th>
- *     </tr>
- *     <tr>
- *         <th rowspan="3">era</th>
- *         <td style="text-align: center" rowspan="3">G</td>
- *         <td style="text-align: center">1..3</td>
- *         <td>AD</td>
- *         <td rowspan="3">Era - Replaced with the Era string for the current date. One to three letters for the 
- *         abbreviated form, four letters for the long form, five for the narrow form.</td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">4</td>
- *         <td>Anno Domini</td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">5</td>
- *         <td>A</td>
- *     </tr>
- *     <tr>
- *         <th rowspan="6">year</th>
- *         <td style="text-align: center">y</td>
- *         <td style="text-align: center">1..n</td>
- *         <td>1996</td>
- *         <td>Year. Normally the length specifies the padding, but for two letters it also specifies the maximum
- *         length. Example:<div align="center">
- *             <center>
- *             <table border="1" cellpadding="2" cellspacing="0">
- *                 <tr>
- *                     <th>Year</th>
- *                     <th style="text-align: right">y</th>
- *                     <th style="text-align: right">yy</th>
- *                     <th style="text-align: right">yyy</th>
- *                     <th style="text-align: right">yyyy</th>
- *                     <th style="text-align: right">yyyyy</th>
- *                 </tr>
- *                 <tr>
- *                     <td>AD 1</td>
- *                     <td style="text-align: right">1</td>
- *                     <td style="text-align: right">01</td>
- *                     <td style="text-align: right">001</td>
- *                     <td style="text-align: right">0001</td>
- *                     <td style="text-align: right">00001</td>
- *                 </tr>
- *                 <tr>
- *                     <td>AD 12</td>
- *                     <td style="text-align: right">12</td>
- *                     <td style="text-align: right">12</td>
- *                     <td style="text-align: right">012</td>
- *                     <td style="text-align: right">0012</td>
- *                     <td style="text-align: right">00012</td>
- *                 </tr>
- *                 <tr>
- *                     <td>AD 123</td>
- *                     <td style="text-align: right">123</td>
- *                     <td style="text-align: right">23</td>
- *                     <td style="text-align: right">123</td>
- *                     <td style="text-align: right">0123</td>
- *                     <td style="text-align: right">00123</td>
- *                 </tr>
- *                 <tr>
- *                     <td>AD 1234</td>
- *                     <td style="text-align: right">1234</td>
- *                     <td style="text-align: right">34</td>
- *                     <td style="text-align: right">1234</td>
- *                     <td style="text-align: right">1234</td>
- *                     <td style="text-align: right">01234</td>
- *                 </tr>
- *                 <tr>
- *                     <td>AD 12345</td>
- *                     <td style="text-align: right">12345</td>
- *                     <td style="text-align: right">45</td>
- *                     <td style="text-align: right">12345</td>
- *                     <td style="text-align: right">12345</td>
- *                     <td style="text-align: right">12345</td>
- *                 </tr>
- *             </table>
- *             </center></div>
- *         </td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">Y</td>
- *         <td style="text-align: center">1..n</td>
- *         <td>1997</td>
- *         <td>Year (in "Week of Year" based calendars). Normally the length specifies the padding,
- *         but for two letters it also specifies the maximum length. This year designation is used in ISO
- *         year-week calendar as defined by ISO 8601, but can be used in non-Gregorian based calendar systems
- *         where week date processing is desired. May not always be the same value as calendar year.</td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">u</td>
- *         <td style="text-align: center">1..n</td>
- *         <td>4601</td>
- *         <td>Extended year. This is a single number designating the year of this calendar system, encompassing
- *         all supra-year fields. For example, for the Julian calendar system, year numbers are positive, with an
- *         era of BCE or CE. An extended year value for the Julian calendar system assigns positive values to CE
- *         years and negative values to BCE years, with 1 BCE being year 0.</td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center" rowspan="3">U</td>
- *         <td style="text-align: center">1..3</td>
- *         <td>甲子</td>
- *         <td rowspan="3">Cyclic year name. Calendars such as the Chinese lunar calendar (and related calendars)
- *         and the Hindu calendars use 60-year cycles of year names. Use one through three letters for the abbreviated
- *         name, four for the full name, or five for the narrow name (currently the data only provides abbreviated names,
- *         which will be used for all requested name widths). If the calendar does not provide cyclic year name data,
- *         or if the year value to be formatted is out of the range of years for which cyclic name data is provided,
- *         then numeric formatting is used (behaves like 'y').</td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">4</td>
- *         <td>(currently also 甲子)</td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">5</td>
- *         <td>(currently also 甲子)</td>
- *     </tr>
- *     <tr>
- *         <th rowspan="6">quarter</th>
- *         <td rowspan="3" style="text-align: center">Q</td>
- *         <td style="text-align: center">1..2</td>
- *         <td>02</td>
- *         <td rowspan="3">Quarter - Use one or two for the numerical quarter, three for the abbreviation, or four 
- *         for the full name.</td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">3</td>
- *         <td>Q2</td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">4</td>
- *         <td>2nd quarter</td>
- *     </tr>
- *     <tr>
- *         <td rowspan="3" style="text-align: center">q</td>
- *         <td style="text-align: center">1..2</td>
- *         <td>02</td>
- *         <td rowspan="3"><b>Stand-Alone</b> Quarter - Use one or two for the numerical quarter, three for the abbreviation, 
- *         or four for the full name.</td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">3</td>
- *         <td>Q2</td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">4</td>
- *         <td>2nd quarter</td>
- *     </tr>
- *     <tr>
- *         <th rowspan="8">month</th>
- *         <td rowspan="4" style="text-align: center">M</td>
- *         <td style="text-align: center">1..2</td>
- *         <td>09</td>
- *         <td rowspan="4">Month - Use one or two for the numerical month, three for the abbreviation, four for
- *         the full name, or five for the narrow name.</td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">3</td>
- *         <td>Sept</td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">4</td>
- *         <td>September</td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">5</td>
- *         <td>S</td>
- *     </tr>
- *     <tr>
- *         <td rowspan="4" style="text-align: center">L</td>
- *         <td style="text-align: center">1..2</td>
- *         <td>09</td>
- *         <td rowspan="4"><b>Stand-Alone</b> Month - Use one or two for the numerical month, three for the abbreviation, 
- *         or four for the full name, or 5 for the narrow name.</td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">3</td>
- *         <td>Sept</td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">4</td>
- *         <td>September</td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">5</td>
- *         <td>S</td>
- *     </tr>
- *     <tr>
- *         <th rowspan="2">week</th>
- *         <td style="text-align: center">w</td>
- *         <td style="text-align: center">1..2</td>
- *         <td>27</td>
- *         <td>Week of Year.</td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">W</td>
- *         <td style="text-align: center">1</td>
- *         <td>3</td>
- *         <td>Week of Month</td>
- *     </tr>
- *     <tr>
- *         <th rowspan="4">day</th>
- *         <td style="text-align: center">d</td>
- *         <td style="text-align: center">1..2</td>
- *         <td>1</td>
- *         <td>Date - Day of the month</td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">D</td>
- *         <td style="text-align: center">1..3</td>
- *         <td>345</td>
- *         <td>Day of year</td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">F</td>
- *         <td style="text-align: center">1</td>
- *         <td>2</td>
- *         <td>Day of Week in Month. The example is for the 2nd Wed in July</td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">g</td>
- *         <td style="text-align: center">1..n</td>
- *         <td>2451334</td>
- *         <td>Modified Julian day. This is different from the conventional Julian day number in two regards.
- *         First, it demarcates days at local zone midnight, rather than noon GMT. Second, it is a local number;
- *         that is, it depends on the local time zone. It can be thought of as a single number that encompasses 
- *         all the date-related fields.</td>
- *     </tr>
- *     <tr>
- *         <th rowspan="14">week<br>
- *         day</th>
- *         <td rowspan="4" style="text-align: center">E</td>
- *         <td style="text-align: center">1..3</td>
- *         <td>Tues</td>
- *         <td rowspan="4">Day of week - Use one through three letters for the short day, or four for the full name, 
- *         five for the narrow name, or six for the short name.</td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">4</td>
- *         <td>Tuesday</td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">5</td>
- *         <td>T</td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">6</td>
- *         <td>Tu</td>
- *     </tr>
- *     <tr>
- *         <td rowspan="5" style="text-align: center">e</td>
- *         <td style="text-align: center">1..2</td>
- *         <td>2</td>
- *         <td rowspan="5">Local day of week. Same as E except adds a numeric value that will depend on the local
- *         starting day of the week, using one or two letters. For this example, Monday is the first day of the week.</td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">3</td>
- *         <td>Tues</td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">4</td>
- *         <td>Tuesday</td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">5</td>
- *         <td>T</td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">6</td>
- *         <td>Tu</td>
- *     </tr>
- *     <tr>
- *         <td rowspan="5" style="text-align: center">c</td>
- *         <td style="text-align: center">1</td>
- *         <td>2</td>
- *         <td rowspan="5"><b>Stand-Alone</b> local day of week - Use one letter for the local numeric value (same
- *         as 'e'), three for the short day, four for the full name, five for the narrow name, or six for
- *         the short name.</td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">3</td>
- *         <td>Tues</td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">4</td>
- *         <td>Tuesday</td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">5</td>
- *         <td>T</td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">6</td>
- *         <td>Tu</td>
- *     </tr>
- *     <tr>
- *         <th>period</th>
- *         <td style="text-align: center">a</td>
- *         <td style="text-align: center">1</td>
- *         <td>AM</td>
- *         <td>AM or PM</td>
- *     </tr>
- *     <tr>
- *         <th rowspan="4">hour</th>
- *         <td style="text-align: center">h</td>
- *         <td style="text-align: center">1..2</td>
- *         <td>11</td>
- *         <td>Hour [1-12]. When used in skeleton data or in a skeleton passed in an API for flexible data pattern
- *         generation, it should match the 12-hour-cycle format preferred by the locale (h or K); it should not match
- *         a 24-hour-cycle format (H or k). Use hh for zero padding.</td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">H</td>
- *         <td style="text-align: center">1..2</td>
- *         <td>13</td>
- *         <td>Hour [0-23]. When used in skeleton data or in a skeleton passed in an API for flexible data pattern
- *         generation, it should match the 24-hour-cycle format preferred by the locale (H or k); it should not match a
- *         12-hour-cycle format (h or K). Use HH for zero padding.</td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">K</td>
- *         <td style="text-align: center">1..2</td>
- *         <td>0</td>
- *         <td>Hour [0-11]. When used in a skeleton, only matches K or h, see above. Use KK for zero padding.</td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">k</td>
- *         <td style="text-align: center">1..2</td>
- *         <td>24</td>
- *         <td>Hour [1-24]. When used in a skeleton, only matches k or H, see above. Use kk for zero padding.</td>
- *     </tr>
- *     <tr>
- *         <th>minute</th>
- *         <td style="text-align: center">m</td>
- *         <td style="text-align: center">1..2</td>
- *         <td>59</td>
- *         <td>Minute. Use one or two for zero padding.</td>
- *     </tr>
- *     <tr>
- *         <th rowspan="3">second</th>
- *         <td style="text-align: center">s</td>
- *         <td style="text-align: center">1..2</td>
- *         <td>12</td>
- *         <td>Second. Use one or two for zero padding.</td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">S</td>
- *         <td style="text-align: center">1..n</td>
- *         <td>3456</td>
- *         <td>Fractional Second - truncates (like other time fields) to the count of letters.
- *         (example shows display using pattern SSSS for seconds value 12.34567)</td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">A</td>
- *         <td style="text-align: center">1..n</td>
- *         <td>69540000</td>
- *         <td>Milliseconds in day. This field behaves <i>exactly</i> like a composite of all time-related fields,
- *         not including the zone fields. As such, it also reflects discontinuities of those fields on DST transition
- *         days. On a day of DST onset, it will jump forward. On a day of DST cessation, it will jump backward. This
- *         reflects the fact that is must be combined with the offset field to obtain a unique local time value.</td>
- *     </tr>
- *     <tr>
- *         <th rowspan="23">zone</th>
- *         <td rowspan="2" style="text-align: center">z</td>
- *         <td style="text-align: center">1..3</td>
- *         <td>PDT</td>
- *         <td>The <i>short specific non-location format</i>.
- *         Where that is unavailable, falls back to the <i>short localized GMT format</i> ("O").</td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">4</td>
- *         <td>Pacific Daylight Time</td>
- *         <td>The <i>long specific non-location format</i>.
- *         Where that is unavailable, falls back to the <i>long localized GMT format</i> ("OOOO").</td>
- *     </tr>
- *     <tr>
- *         <td rowspan="3" style="text-align: center">Z</td>
- *         <td style="text-align: center">1..3</td>
- *         <td>-0800</td>
- *         <td>The <i>ISO8601 basic format</i> with hours, minutes and optional seconds fields.
- *         The format is equivalent to RFC 822 zone format (when optional seconds field is absent).
- *         This is equivalent to the "xxxx" specifier.</td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">4</td>
- *         <td>GMT-8:00</td>
- *         <td>The <i>long localized GMT format</i>.
- *         This is equivalent to the "OOOO" specifier.</td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">5</td>
- *         <td>-08:00<br>
- *         -07:52:58</td>
- *         <td>The <i>ISO8601 extended format</i> with hours, minutes and optional seconds fields.
- *         The ISO8601 UTC indicator "Z" is used when local time offset is 0.
- *         This is equivalent to the "XXXXX" specifier.</td>
- *     </tr>
- *     <tr>
- *         <td rowspan="2" style="text-align: center">O</td>
- *         <td style="text-align: center">1</td>
- *         <td>GMT-8</td>
- *         <td>The <i>short localized GMT format</i>.</td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">4</td>
- *         <td>GMT-08:00</td>
- *         <td>The <i>long localized GMT format</i>.</td>
- *     </tr>
- *     <tr>
- *         <td rowspan="2" style="text-align: center">v</td>
- *         <td style="text-align: center">1</td>
- *         <td>PT</td>
- *         <td>The <i>short generic non-location format</i>.
- *         Where that is unavailable, falls back to the <i>generic location format</i> ("VVVV"),
- *         then the <i>short localized GMT format</i> as the final fallback.</td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">4</td>
- *         <td>Pacific Time</td>
- *         <td>The <i>long generic non-location format</i>.
- *         Where that is unavailable, falls back to <i>generic location format</i> ("VVVV").
- *     </tr>
- *     <tr>
- *         <td rowspan="4" style="text-align: center">V</td>
- *         <td style="text-align: center">1</td>
- *         <td>uslax</td>
- *         <td>The short time zone ID.
- *         Where that is unavailable, the special short time zone ID <i>unk</i> (Unknown Zone) is used.<br>
- *         <i><b>Note</b>: This specifier was originally used for a variant of the short specific non-location format,
- *         but it was deprecated in the later version of the LDML specification. In CLDR 23/ICU 51, the definition of
- *         the specifier was changed to designate a short time zone ID.</i></td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">2</td>
- *         <td>America/Los_Angeles</td>
- *         <td>The long time zone ID.</td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">3</td>
- *         <td>Los Angeles</td>
- *         <td>The exemplar city (location) for the time zone.
- *         Where that is unavailable, the localized exemplar city name for the special zone <i>Etc/Unknown</i> is used
- *         as the fallback (for example, "Unknown City"). </td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">4</td>
- *         <td>Los Angeles Time</td>
- *         <td>The <i>generic location format</i>.
- *         Where that is unavailable, falls back to the <i>long localized GMT format</i> ("OOOO";
- *         Note: Fallback is only necessary with a GMT-style Time Zone ID, like Etc/GMT-830.)<br>
- *         This is especially useful when presenting possible timezone choices for user selection, 
- *         since the naming is more uniform than the "v" format.</td>
- *     </tr>
- *     <tr>
- *         <td rowspan="5" style="text-align: center">X</td>
- *         <td style="text-align: center">1</td>
- *         <td>-08<br>
- *         +0530<br>
- *         Z</td>
- *         <td>The <i>ISO8601 basic format</i> with hours field and optional minutes field.
- *         The ISO8601 UTC indicator "Z" is used when local time offset is 0.</td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">2</td>
- *         <td>-0800<br>
- *         Z</td>
- *         <td>The <i>ISO8601 basic format</i> with hours and minutes fields.
- *         The ISO8601 UTC indicator "Z" is used when local time offset is 0.</td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">3</td>
- *         <td>-08:00<br>
- *         Z</td>
- *         <td>The <i>ISO8601 extended format</i> with hours and minutes fields.
- *         The ISO8601 UTC indicator "Z" is used when local time offset is 0.</td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">4</td>
- *         <td>-0800<br>
- *         -075258<br>
- *         Z</td>
- *         <td>The <i>ISO8601 basic format</i> with hours, minutes and optional seconds fields.
- *         (Note: The seconds field is not supported by the ISO8601 specification.)
- *         The ISO8601 UTC indicator "Z" is used when local time offset is 0.</td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">5</td>
- *         <td>-08:00<br>
- *         -07:52:58<br>
- *         Z</td>
- *         <td>The <i>ISO8601 extended format</i> with hours, minutes and optional seconds fields.
- *         (Note: The seconds field is not supported by the ISO8601 specification.)
- *         The ISO8601 UTC indicator "Z" is used when local time offset is 0.</td>
- *     </tr>
- *     <tr>
- *         <td rowspan="5" style="text-align: center">x</td>
- *         <td style="text-align: center">1</td>
- *         <td>-08<br>
- *         +0530</td>
- *         <td>The <i>ISO8601 basic format</i> with hours field and optional minutes field.</td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">2</td>
- *         <td>-0800</td>
- *         <td>The <i>ISO8601 basic format</i> with hours and minutes fields.</td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">3</td>
- *         <td>-08:00</td>
- *         <td>The <i>ISO8601 extended format</i> with hours and minutes fields.</td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">4</td>
- *         <td>-0800<br>
- *         -075258</td>
- *         <td>The <i>ISO8601 basic format</i> with hours, minutes and optional seconds fields.
- *         (Note: The seconds field is not supported by the ISO8601 specification.)</td>
- *     </tr>
- *     <tr>
- *         <td style="text-align: center">5</td>
- *         <td>-08:00<br>
- *         -07:52:58</td>
- *         <td>The <i>ISO8601 extended format</i> with hours, minutes and optional seconds fields.
- *         (Note: The seconds field is not supported by the ISO8601 specification.)</td>
- *     </tr>
- * </table>
- * 
+ * <pre>
+ * Symbol   Meaning                 Presentation        Example
+ * ------   -------                 ------------        -------
+ * G        era designator          (Text)              AD
+ * y&#x2020;       year                    (Number)            1996
+ * Y*       year (week of year)     (Number)            1997
+ * u*       extended year           (Number)            4601
+ * U*       cyclic year name        (Text,NumFallback)  ren-chen (29)
+ * M        month in year           (Text & Number)     July & 07
+ * d        day in month            (Number)            10
+ * h        hour in am/pm (1~12)    (Number)            12
+ * H        hour in day (0~23)      (Number)            0
+ * m        minute in hour          (Number)            30
+ * s        second in minute        (Number)            55
+ * S        fractional second       (Number)            978
+ *          (maximum resolution of SSS; truncated if shorter, zero-padded if longer)
+ * E        day of week             (Text)              Tuesday
+ * e*       day of week (local 1~7) (Text & Number)     Tuesday & 2
+ * D        day in year             (Number)            189
+ * F        day of week in month    (Number)            2 (2nd Wed in July)
+ * w        week in year            (Number)            27
+ * W        week in month           (Number)            2
+ * a        am/pm marker            (Text)              PM
+ * k        hour in day (1~24)      (Number)            24
+ * K        hour in am/pm (0~11)    (Number)            0
+ * z        time zone               (Text)              PST
+ * zzzz     time zone               (Text)              Pacific Standard Time
+ * Z        time zone (RFC 822)     (Number)            -0800
+ * ZZZZ     time zone (GMT offset)  (Text & Number)     GMT-08:00
+ * ZZZZZ    time zone (ISO 8601)    (Text & Number)     -08:00 & Z (UTC)
+ * v        time zone (generic)     (Text)              PT
+ * vvvv     time zone (generic)     (Text)              Pacific Time
+ * V        time zone (abreviation) (Text)              PST
+ * VVVV     time zone (location)    (Text)              United States Time (Los Angeles)
+ * g*       Julian day              (Number)            2451334
+ * A*       milliseconds in day     (Number)            69540000
+ * Q*       quarter in year         (Text & Number)     Q1 & 01
+ * c*       stand alone day of week (Text & Number)     Tuesday & 2
+ * L*       stand alone month       (Text & Number)     July & 07
+ * q*       stand alone quarter     (Text & Number)     Q1 & 01
+ * '        escape for text         (Delimiter)         'Date='
+ * ''       single quote            (Literal)           'o''clock'
+ * </pre>
  * </blockquote>
+ * <tt><b>*</b></tt> These items are not supported by Java's SimpleDateFormat.<br>
+ * <tt><b>&#x2020;</b></tt> ICU interprets a single 'y' differently than Java.</p>
+ * <p>
+ * The count of pattern letters determine the format.
+ * <p>
+ * <strong>(Text)</strong>: 4 or more pattern letters--use full form,
+ * &lt; 4--use short or abbreviated form if one exists.
+ * <p>
+ * <strong>(Number)</strong>: the minimum number of digits. Shorter
+ * numbers are zero-padded to this amount. Year is handled specially;
+ * that is, if the count of 'y' is 2, the Year will be truncated to 2 digits.
+ * (e.g., if "yyyy" produces "1997", "yy" produces "97".)
+ * Unlike other fields, fractional seconds are padded on the right with zero.
+ * <p>
+ * <strong>(Text & Number)</strong>: 3 or over, use text, otherwise use number.
+ * <p>
+ * <strong>(Text,NumFallback)</strong>: Behaves like Text if there is supporting
+ * data, like Number otherwise.
  * <p>
  * Any characters in the pattern that are not in the ranges of ['a'..'z']
  * and ['A'..'Z'] will be treated as quoted text. For instance, characters
@@ -700,7 +226,6 @@ import com.ibm.icu.util.ULocale.Category;
  * @see          DateFormat
  * @see          DateFormatSymbols
  * @see          DecimalFormat
- * @see          TimeZoneFormat
  * @author       Mark Davis, Chen-Lieh Huang, Alan Liu
  * @stable ICU 2.0
  */
@@ -749,14 +274,14 @@ public class SimpleDateFormat extends DateFormat {
      */
     private static final int[] PATTERN_CHAR_TO_LEVEL =
     {
-    //       A   B   C   D   E   F   G   H   I   J   K   L   M   N   O
-        -1, 40, -1, -1, 20, 30, 30,  0, 50, -1, -1, 50, 20, 20, -1,  0,
-    //   P   Q   R   S   T   U   V   W   X   Y   Z
-        -1, 20, -1, 80, -1, 10,  0, 30,  0, 10,  0, -1, -1, -1, -1, -1,
-    //       a   b   c   d   e   f   g   h   i   j   k   l   m   n   o
-        -1, 40, -1, 30, 30, 30, -1,  0, 50, -1, -1, 50, -1, 60, -1, -1,
-    //   p   q   r   s   t   u   v   w   x   y   z
-        -1, 20, -1, 70, -1, 10,  0, 20,  0, 10,  0, -1, -1, -1, -1, -1
+    //       A   B   C   D    E   F   G    H   I   J   K   L    M   N   O
+        -1, 40, -1, -1, 20,  30, 30,  0,  50, -1, -1, 50, 20,  20, -1, -1,
+    //   P   Q   R    S   T   U  V   W   X   Y  Z
+        -1, 20, -1,  80, -1, 10, 0, 30, -1, 10, 0, -1, -1, -1, -1, -1,
+    //       a   b   c   d    e   f  g   h   i   j    k   l    m   n   o
+        -1, 40, -1, 30,  30, 30, -1, 0, 50, -1, -1,  50, -1,  60, -1, -1,
+    //   p   q   r    s   t   u  v   w   x    y  z
+        -1, 20, -1,  70, -1, 10, 0, 20, -1,  10, 0, -1, -1, -1, -1, -1
     };
 
     // When calendar uses hebr numbering (i.e. he@calendar=hebrew),
@@ -1273,13 +798,13 @@ public class SimpleDateFormat extends DateFormat {
     private static final int[] PATTERN_CHAR_TO_INDEX =
     {
     //       A   B   C   D   E   F   G   H   I   J   K   L   M   N   O
-        -1, 22, -1, -1, 10,  9, 11,  0,  5, -1, -1, 16, 26,  2, -1, 31,
+        -1, 22, -1, -1, 10,  9, 11,  0,  5, -1, -1, 16, 26,  2, -1, -1,
     //   P   Q   R   S   T   U   V   W   X   Y   Z
-        -1, 27, -1,  8, -1, 30, 29, 13, 32, 18, 23, -1, -1, -1, -1, -1,
+        -1, 27, -1,  8, -1, 30, 29, 13, -1, 18, 23, -1, -1, -1, -1, -1,
     //       a   b   c   d   e   f   g   h   i   j   k   l   m   n   o
         -1, 14, -1, 25,  3, 19, -1, 21, 15, -1, -1,  4, -1,  6, -1, -1,
     //   p   q   r   s   t   u   v   w   x   y   z
-        -1, 28, -1,  7, -1, 20, 24, 12, 33,  1, 17, -1, -1, -1, -1, -1
+        -1, 28, -1,  7, -1, 20, 24, 12, -1,  1, 17, -1, -1, -1, -1, -1
     };
 
     // Map pattern character index to Calendar field number
@@ -1299,8 +824,6 @@ public class SimpleDateFormat extends DateFormat {
         /*Qq*/  Calendar.MONTH, Calendar.MONTH,
         /*V*/   Calendar.ZONE_OFFSET,
         /*U*/   Calendar.YEAR,
-        /*O*/   Calendar.ZONE_OFFSET,
-        /*Xx*/  Calendar.ZONE_OFFSET, Calendar.ZONE_OFFSET,
     };
 
     // Map pattern character index to DateFormat field number
@@ -1319,8 +842,6 @@ public class SimpleDateFormat extends DateFormat {
         /*Qq*/  DateFormat.QUARTER_FIELD, DateFormat.STANDALONE_QUARTER_FIELD,
         /*V*/   DateFormat.TIMEZONE_SPECIAL_FIELD,
         /*U*/   DateFormat.YEAR_NAME_FIELD,
-        /*O*/   DateFormat.TIMEZONE_LOCALIZED_GMT_OFFSET_FIELD,
-        /*Xx*/  DateFormat.TIMEZONE_ISO_FIELD, DateFormat.TIMEZONE_ISO_LOCAL_FIELD,
     };
 
     // Map pattern character index to DateFormat.Field
@@ -1339,8 +860,6 @@ public class SimpleDateFormat extends DateFormat {
         /*Qq*/  DateFormat.Field.QUARTER, DateFormat.Field.QUARTER,
         /*V*/   DateFormat.Field.TIME_ZONE,
         /*U*/   DateFormat.Field.YEAR,
-        /*O*/   DateFormat.Field.TIME_ZONE,
-        /*Xx*/  DateFormat.Field.TIME_ZONE, DateFormat.Field.TIME_ZONE,
     };
 
     /**
@@ -1578,9 +1097,6 @@ public class SimpleDateFormat extends DateFormat {
             } else if (count == 4) {
                 safeAppend(formatData.weekdays, value, buf);
                 capContextUsageType = DateFormatSymbols.CapitalizationContextUsage.DAY_FORMAT;
-            } else if (count == 6 && formatData.shorterWeekdays != null) {
-                safeAppend(formatData.shorterWeekdays, value, buf);
-                capContextUsageType = DateFormatSymbols.CapitalizationContextUsage.DAY_FORMAT;
             } else {// count <= 3, use abbreviated form if exists
                 safeAppend(formatData.shortWeekdays, value, buf);
                 capContextUsageType = DateFormatSymbols.CapitalizationContextUsage.DAY_FORMAT;
@@ -1598,8 +1114,7 @@ public class SimpleDateFormat extends DateFormat {
                 zeroPaddingNumber(currentNumberFormat,buf, value, count, maxIntCount);
             }
             break;
-
-        case 17: // 'z' - TIMEZONE_FIELD
+        case 17: // 'z' - ZONE_OFFSET
             if (count < 4) {
                 // "z", "zz", "zzz"
                 result = tzFormat().format(Style.SPECIFIC_SHORT, tz, date);
@@ -1610,20 +1125,22 @@ public class SimpleDateFormat extends DateFormat {
             }
             buf.append(result);
             break;
-        case 23: // 'Z' - TIMEZONE_RFC_FIELD
+        case 23: // 'Z' - TIMEZONE_RFC
+        {
             if (count < 4) {
-                // RFC822 format - equivalent to ISO 8601 local offset fixed width format
-                result = tzFormat().format(Style.ISO_BASIC_LOCAL_FULL, tz, date);
+                // RFC822 format
+                result = tzFormat().format(Style.RFC822, tz, date);
             } else if (count == 5) {
                 // ISO 8601 extended format
-                result = tzFormat().format(Style.ISO_EXTENDED_FULL, tz, date);
+                result = tzFormat().format(Style.ISO8601, tz, date);
             } else {
                 // long form, localized GMT pattern
                 result = tzFormat().format(Style.LOCALIZED_GMT, tz, date);
             }
                 buf.append(result);
             break;
-        case 24: // 'v' - TIMEZONE_GENERIC_FIELD
+            }
+        case 24: // 'v' - TIMEZONE_GENERIC
             if (count == 1) {
                 // "v"
                 result = tzFormat().format(Style.GENERIC_SHORT, tz, date);
@@ -1632,72 +1149,7 @@ public class SimpleDateFormat extends DateFormat {
                 // "vvvv"
                 result = tzFormat().format(Style.GENERIC_LONG, tz, date);
                 capContextUsageType = DateFormatSymbols.CapitalizationContextUsage.METAZONE_LONG;
-            }
-            buf.append(result);
-            break;
-        case 29: // 'V' - TIMEZONE_SPECIAL_FIELD
-            if (count == 1) {
-                // "V"
-                result = tzFormat().format(Style.ZONE_ID_SHORT, tz, date);
-            } else if (count == 2) {
-                // "VV"
-                result = tzFormat().format(Style.ZONE_ID, tz, date);
-            } else if (count == 3) {
-                // "VVV"
-                result = tzFormat().format(Style.EXEMPLAR_LOCATION, tz, date);
-            } else if (count == 4) {
-                // "VVVV"
-                result = tzFormat().format(Style.GENERIC_LOCATION, tz, date);
-                capContextUsageType = DateFormatSymbols.CapitalizationContextUsage.ZONE_LONG;
-            }
-            buf.append(result);
-            break;
-        case 31: // 'O' - TIMEZONE_LOCALIZED_GMT_OFFSET_FIELD
-            if (count == 1) {
-                // "O" - Short Localized GMT format
-                result = tzFormat().format(Style.LOCALIZED_GMT_SHORT, tz, date);
-            } else if (count == 4) {
-                // "OOOO" - Localized GMT format
-                result = tzFormat().format(Style.LOCALIZED_GMT, tz, date);
-            }
-            buf.append(result);
-            break;
-        case 32: // 'X' - TIMEZONE_ISO_FIELD
-            if (count == 1) {
-                // "X" - ISO Basic/Short
-                result = tzFormat().format(Style.ISO_BASIC_SHORT, tz, date);
-            } else if (count == 2) {
-                // "XX" - ISO Basic/Fixed
-                result = tzFormat().format(Style.ISO_BASIC_FIXED, tz, date);
-            } else if (count == 3) {
-                // "XXX" - ISO Extended/Fixed
-                result = tzFormat().format(Style.ISO_EXTENDED_FIXED, tz, date);
-            } else if (count == 4) {
-                // "XXXX" - ISO Basic/Optional second field
-                result = tzFormat().format(Style.ISO_BASIC_FULL, tz, date);
-            } else if (count == 5) {
-                // "XXXXX" - ISO Extended/Optional second field
-                result = tzFormat().format(Style.ISO_EXTENDED_FULL, tz, date);
-            }
-            buf.append(result);
-            break;
-        case 33: // 'x' - TIMEZONE_ISO_LOCAL_FIELD
-            if (count == 1) {
-                // "x" - ISO Local Basic/Short
-                result = tzFormat().format(Style.ISO_BASIC_LOCAL_SHORT, tz, date);
-            } else if (count == 2) {
-                // "x" - ISO Local Basic/Fixed
-                result = tzFormat().format(Style.ISO_BASIC_LOCAL_FIXED, tz, date);
-            } else if (count == 3) {
-                // "xxx" - ISO Local Extended/Fixed
-                result = tzFormat().format(Style.ISO_EXTENDED_LOCAL_FIXED, tz, date);
-            } else if (count == 4) {
-                // "xxxx" - ISO Local Basic/Optional second field
-                result = tzFormat().format(Style.ISO_BASIC_LOCAL_FULL, tz, date);
-            } else if (count == 5) {
-                // "xxxxx" - ISO Local Extended/Optional second field
-                result = tzFormat().format(Style.ISO_EXTENDED_LOCAL_FULL, tz, date);
-            }
+           }
             buf.append(result);
             break;
 
@@ -1714,9 +1166,6 @@ public class SimpleDateFormat extends DateFormat {
                 capContextUsageType = DateFormatSymbols.CapitalizationContextUsage.DAY_NARROW;
             } else if (count == 4) {
                 safeAppend(formatData.standaloneWeekdays, value, buf);
-                capContextUsageType = DateFormatSymbols.CapitalizationContextUsage.DAY_STANDALONE;
-            } else if (count == 6 && formatData.standaloneShorterWeekdays != null) {
-                safeAppend(formatData.standaloneShorterWeekdays, value, buf);
                 capContextUsageType = DateFormatSymbols.CapitalizationContextUsage.DAY_STANDALONE;
             } else { // count == 3
                 safeAppend(formatData.standaloneShortWeekdays, value, buf);
@@ -1740,6 +1189,18 @@ public class SimpleDateFormat extends DateFormat {
             } else {
                 zeroPaddingNumber(currentNumberFormat,buf, (value/3)+1, count, maxIntCount);
             }
+            break;
+        case 29: // 'V' - TIMEZONE_SPECIAL
+            if (count == 1) {
+                // "V"
+                result = tzFormat().format(Style.SPECIFIC_SHORT, tz, date);
+                capContextUsageType = DateFormatSymbols.CapitalizationContextUsage.METAZONE_SHORT;
+            } else if (count == 4) {
+                // "VVVV"
+                result = tzFormat().format(Style.GENERIC_LOCATION, tz, date);
+                capContextUsageType = DateFormatSymbols.CapitalizationContextUsage.ZONE_LONG;
+            }
+            buf.append(result);
             break;
         default:
             // case 3: // 'd' - DATE
@@ -2389,6 +1850,11 @@ public class SimpleDateFormat extends DateFormat {
      * in the text are accepted instead.</li>
      * <ul><li>we are after a non-numeric field, and the text starts with a ".", we skip it.</li>
      * </ul>
+     * @param text
+     * @param pos
+     * @param patternLiteral
+     * @param complete
+     * @return
      */
     private int matchLiteral(String text, int pos, Object[] items, int itemIndex, boolean[] complete) {
         int originalPos = pos;
@@ -2895,33 +2361,33 @@ public class SimpleDateFormat extends DateFormat {
                         a *= 10;
                         i--;
                     }
-                    value /= a;
+                    value = (value + (a>>1)) / a;
                 }
                 cal.set(Calendar.MILLISECOND, value);
                 return pos.getIndex();
             case 9: { // 'E' - DAY_OF_WEEK
-                // Want to be able to parse at least wide, abbrev, short forms.
-                int newStart = matchString(text, start, Calendar.DAY_OF_WEEK, formatData.weekdays, null, cal); // try EEEE wide
+                // Want to be able to parse both short and long forms.
+                // Try count == 4 (EEEE) first:
+                int newStart = matchString(text, start, Calendar.DAY_OF_WEEK,
+                                           formatData.weekdays, null, cal);
                 if (newStart > 0) {
                     return newStart;
-                } else if ((newStart = matchString(text, start, Calendar.DAY_OF_WEEK, formatData.shortWeekdays, null, cal)) > 0) { // try EEE abbrev
-                    return newStart;
-                } else if (formatData.shorterWeekdays != null) {
-                    return matchString(text, start, Calendar.DAY_OF_WEEK, formatData.shorterWeekdays, null, cal); // try EEEEEE short
+                } else { // EEEE failed, now try EEE
+                    return matchString(text, start, Calendar.DAY_OF_WEEK,
+                                       formatData.shortWeekdays, null, cal);
                 }
-                return newStart;
             }
             case 25: { // 'c' - STAND_ALONE_DAY_OF_WEEK
-                // Want to be able to parse at least wide, abbrev, short forms.
-                int newStart = matchString(text, start, Calendar.DAY_OF_WEEK, formatData.standaloneWeekdays, null, cal); // try cccc wide
+                // Want to be able to parse both short and long forms.
+                // Try count == 4 (cccc) first:
+                int newStart = matchString(text, start, Calendar.DAY_OF_WEEK,
+                                           formatData.standaloneWeekdays, null, cal);
                 if (newStart > 0) {
                     return newStart;
-                } else if ((newStart = matchString(text, start, Calendar.DAY_OF_WEEK, formatData.standaloneShortWeekdays, null, cal)) > 0) { // try ccc abbrev
-                    return newStart;
-                } else if (formatData.standaloneShorterWeekdays != null) {
-                    return matchString(text, start, Calendar.DAY_OF_WEEK, formatData.standaloneShorterWeekdays, null, cal); // try cccccc short
+                } else { // cccc failed, now try ccc
+                    return matchString(text, start, Calendar.DAY_OF_WEEK,
+                                       formatData.standaloneShortWeekdays, null, cal);
                 }
-                return newStart;
             }
             case 14: // 'a' - AM_PM
                 return matchString(text, start, Calendar.AM_PM, formatData.ampms, null, cal);
@@ -2943,11 +2409,11 @@ public class SimpleDateFormat extends DateFormat {
                     return pos.getIndex();
                 }
                 return -start;
-            }
+                    }
             case 23: // 'Z' - TIMEZONE_RFC
             {
                 Output<TimeType> tzTimeType = new Output<TimeType>();
-                Style style = (count < 4) ? Style.ISO_BASIC_LOCAL_FULL : ((count == 5) ? Style.ISO_EXTENDED_FULL : Style.LOCALIZED_GMT);
+                Style style = (count < 4) ? Style.RFC822 : ((count == 5) ? Style.ISO8601 : Style.LOCALIZED_GMT);
                 TimeZone tz = tzFormat().parse(style, text, pos, tzTimeType);
                 if (tz != null) {
                     tztype = tzTimeType.value;
@@ -2972,91 +2438,8 @@ public class SimpleDateFormat extends DateFormat {
             case 29: // 'V' - TIMEZONE_SPECIAL
             {
                 Output<TimeType> tzTimeType = new Output<TimeType>();
-                Style style = null;
-                switch (count) {
-                case 1:
-                    style = Style.ZONE_ID_SHORT;
-                    break;
-                case 2:
-                    style = Style.ZONE_ID;
-                    break;
-                case 3:
-                    style = Style.EXEMPLAR_LOCATION;
-                    break;
-                default:
-                    style = Style.GENERIC_LOCATION;
-                    break;
-                }
-                TimeZone tz = tzFormat().parse(style, text, pos, tzTimeType);
-                if (tz != null) {
-                    tztype = tzTimeType.value;
-                    cal.setTimeZone(tz);
-                    return pos.getIndex();
-                }
-                return -start;
-            }
-            case 31: // 'O' - TIMEZONE_LOCALIZED_GMT_OFFSET
-            {
-                Output<TimeType> tzTimeType = new Output<TimeType>();
-                Style style = (count < 4) ? Style.LOCALIZED_GMT_SHORT : Style.LOCALIZED_GMT;
-                TimeZone tz = tzFormat().parse(style, text, pos, tzTimeType);
-                if (tz != null) {
-                    tztype = tzTimeType.value;
-                    cal.setTimeZone(tz);
-                    return pos.getIndex();
-                }
-                return -start;
-            }
-            case 32: // 'X' - TIMEZONE_ISO
-            {
-                Output<TimeType> tzTimeType = new Output<TimeType>();
-                Style style;
-                switch (count) {
-                case 1:
-                    style = Style.ISO_BASIC_SHORT;
-                    break;
-                case 2:
-                    style = Style.ISO_BASIC_FIXED;
-                    break;
-                case 3:
-                    style = Style.ISO_EXTENDED_FIXED;
-                    break;
-                case 4:
-                    style = Style.ISO_BASIC_FULL;
-                    break;
-                default: // count >= 5
-                    style = Style.ISO_EXTENDED_FULL;
-                    break;
-                }
-                TimeZone tz = tzFormat().parse(style, text, pos, tzTimeType);
-                if (tz != null) {
-                    tztype = tzTimeType.value;
-                    cal.setTimeZone(tz);
-                    return pos.getIndex();
-                }
-                return -start;
-            }
-            case 33: // 'x' - TIMEZONE_ISO_LOCAL
-            {
-                Output<TimeType> tzTimeType = new Output<TimeType>();
-                Style style;
-                switch (count) {
-                case 1:
-                    style = Style.ISO_BASIC_LOCAL_SHORT;
-                    break;
-                case 2:
-                    style = Style.ISO_BASIC_LOCAL_FIXED;
-                    break;
-                case 3:
-                    style = Style.ISO_EXTENDED_LOCAL_FIXED;
-                    break;
-                case 4:
-                    style = Style.ISO_BASIC_LOCAL_FULL;
-                    break;
-                default: // count >= 5
-                    style = Style.ISO_EXTENDED_LOCAL_FULL;
-                    break;
-                }
+                // Note: 'v' only supports count 1 and 4
+                Style style = (count < 4) ? Style.SPECIFIC_SHORT : Style.GENERIC_LOCATION;
                 TimeZone tz = tzFormat().parse(style, text, pos, tzTimeType);
                 if (tz != null) {
                     tztype = tzTimeType.value;
@@ -3334,8 +2717,7 @@ public class SimpleDateFormat extends DateFormat {
      * such as CAPITALIZATION_FOR_STANDALONE. 
      * 
      * @param context The DisplayContext value to set. 
-     * @draft ICU 51
-     * @provisional This API might change or be removed in a future release.
+     * @internal ICU 50 technology preview
      */
     public void setContext(DisplayContext context) {
         if (context.type() == DisplayContext.Type.CAPITALIZATION) {
@@ -3349,8 +2731,7 @@ public class SimpleDateFormat extends DateFormat {
      * 
      * @param type the DisplayContext.Type whose value to return
      * @return the current DisplayContext setting for the specified type
-     * @draft ICU 51
-     * @provisional This API might change or be removed in a future release.
+     * @internal ICU 50 technology preview
      */
     public DisplayContext getContext(DisplayContext.Type type) {
         return (type == DisplayContext.Type.CAPITALIZATION && capitalizationSetting != null)?

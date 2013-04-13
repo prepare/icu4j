@@ -1,6 +1,6 @@
 /*
  ********************************************************************************
- * Copyright (C) 2006-2013, Google, International Business Machines Corporation *
+ * Copyright (C) 2006-2012, Google, International Business Machines Corporation *
  * and others. All Rights Reserved.                                             *
  ********************************************************************************
  */
@@ -61,7 +61,7 @@ import com.ibm.icu.util.UResourceBundle;
  * 
  * // modify the generator by adding patterns
  * DateTimePatternGenerator.PatternInfo returnInfo = new DateTimePatternGenerator.PatternInfo();
- * gen.addPattern(&quot;d'. von' MMMM&quot;, true, returnInfo);
+ * gen.add(&quot;d'. von' MMMM&quot;, true, returnInfo);
  * // the returnInfo is mostly useful for debugging problem cases
  * format.applyPattern(gen.getBestPattern(&quot;MMMMddHmm&quot;));
  * assertEquals(&quot;modified format: MMMddHmm&quot;,
@@ -94,7 +94,7 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
     // TODO add hack to fix months for CJK, as per bug ticket 1099
 
     /**
-     * Create empty generator, to be constructed with addPattern(...) etc.
+     * Create empty generator, to be constructed with add(...) etc.
      * @stable ICU 3.6
      */
     public static DateTimePatternGenerator getEmptyInstance() {
@@ -186,14 +186,14 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
         }
 
         // Get data for that calendar
+        ICUResourceBundle calBundle = rb.getWithFallback("calendar");
+        ICUResourceBundle calTypeBundle = calBundle.getWithFallback(calendarTypeToUse);
+        // CLDR item formats
+
+
+        // (hmm, do we need aliases in root for all non-gregorian calendars?)
         try {
-            //      ICU4J getWithFallback does not work well when
-            //      1) A nested table is an alias to /LOCALE/...
-            //      2) getWithFallback is called multiple times for going down hierarchical resource path
-            //      #9987 resolved the issue of alias table when full path is specified in getWithFallback,
-            //      but there is no easy solution when the equivalent operation is done by multiple operations.
-            //      This issue is addressed in #9964.
-            ICUResourceBundle itemBundle = rb.getWithFallback("calendar/" + calendarTypeToUse + "/appendItems");
+            ICUResourceBundle itemBundle = calTypeBundle.getWithFallback("appendItems");
             for (int i=0; i<itemBundle.getSize(); ++i) {
                 ICUResourceBundle formatBundle = (ICUResourceBundle)itemBundle.get(i);
                 String formatName = itemBundle.get(i).getKey();
@@ -203,9 +203,9 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
         }catch(MissingResourceException e) {
         }
 
-        // CLDR item names
+        // CLDR item names (hmm, do we need aliases in root for all non-gregorian calendars?)
         try {
-            ICUResourceBundle itemBundle = rb.getWithFallback("fields");
+            ICUResourceBundle itemBundle = calTypeBundle.getWithFallback("fields");
             ICUResourceBundle fieldBundle, dnBundle;
             for (int i=0; i<TYPE_LIMIT; ++i) {
                 if ( isCLDRFieldName(i) ) {
@@ -222,18 +222,11 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
         // set the AvailableFormat in CLDR
         ICUResourceBundle availFormatsBundle = null;
         try {
-            //      ICU4J getWithFallback does not work well when
-            //      1) A nested table is an alias to /LOCALE/...
-            //      2) getWithFallback is called multiple times for going down hierarchical resource path
-            //      #9987 resolved the issue of alias table when full path is specified in getWithFallback,
-            //      but there is no easy solution when the equivalent operation is done by multiple operations.
-            //      This issue is addressed in #9964.
-            availFormatsBundle = rb.getWithFallback("calendar/" + calendarTypeToUse + "/availableFormats");
+            availFormatsBundle = calTypeBundle.getWithFallback("availableFormats");
         } catch (MissingResourceException e) {
             // fall through
         }
 
-        boolean override = true;
         while (availFormatsBundle != null) {
             for (int i = 0; i < availFormatsBundle.getSize(); i++) {
                 String formatKey = availFormatsBundle.get(i).getKey();
@@ -243,7 +236,7 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
                     // Add pattern with its associated skeleton. Override any duplicate derived from std patterns,
                     // but not a previous availableFormats entry:
                     String formatValue = availFormatsBundle.get(i).getString();
-                    result.addPatternWithSkeleton(formatValue, formatKey, override, returnInfo);
+                    result.addPatternWithSkeleton(formatValue, formatKey, true, returnInfo);
                 }
             }
 
@@ -255,9 +248,6 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
                 availFormatsBundle = pbundle.getWithFallback("calendar/" + calendarTypeToUse + "/availableFormats");
             } catch (MissingResourceException e) {
                 availFormatsBundle = null;
-            }
-            if (availFormatsBundle != null && pbundle.getULocale().getBaseName().equals("root")) {
-                override = false;
             }
         }
 
@@ -449,7 +439,7 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
     }
 
     /**
-     * PatternInfo supplies output parameters for addPattern(...). It is used because
+     * PatternInfo supplies output parameters for add(...). It is used because
      * Java doesn't have real output parameters. It is treated like a struct (eg
      * Point), so all fields are public.
      * 
@@ -531,25 +521,14 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
             matcher = new DateTimeMatcher().set(skeletonToUse, fp, false);
         }
         String basePattern = matcher.getBasePattern();
-        // We only care about base conflicts - and replacing the pattern associated with a base - if:
-        // 1. the conflicting previous base pattern did *not* have an explicit skeleton; in that case the previous
-        // base + pattern combination was derived from either (a) a canonical item, (b) a standard format, or
-        // (c) a pattern specified programmatically with a previous call to addPattern (which would only happen
-        // if we are getting here from a subsequent call to addPattern).
-        // 2. a skeleton is specified for the current pattern, but override=false; in that case we are checking
-        // availableFormats items from root, which should not override any previous entry with the same base.
         PatternWithSkeletonFlag previousPatternWithSameBase = basePattern_pattern.get(basePattern);
-        if (previousPatternWithSameBase != null && (!previousPatternWithSameBase.skeletonWasSpecified || (skeletonToUse != null && !override))) {
+        if (previousPatternWithSameBase != null) {
             returnInfo.status = PatternInfo.BASE_CONFLICT;
             returnInfo.conflictingPattern = previousPatternWithSameBase.pattern;
-            if (!override) {
+            if (!override || (skeletonToUse != null && previousPatternWithSameBase.skeletonWasSpecified)) {
                 return this;
             }
         }
-        // The only time we get here with override=true and skeletonToUse!=null is when adding availableFormats
-        // items from CLDR data. In that case, we don't want an item from a parent locale to replace an item with
-        // same skeleton from the specified locale, so skip the current item if skeletonWasSpecified is true for
-        // the previously-specified conflicting item.
         PatternWithSkeletonFlag previousValue = skeleton2pattern.get(matcher);
         if (previousValue != null) {
             returnInfo.status = PatternInfo.CONFLICT;
@@ -2033,15 +2012,15 @@ public class DateTimePatternGenerator implements Freezable<DateTimePatternGenera
             for (int i = 0; i < TYPE_LIMIT; ++i) {
                 if (original[i].length() != 0) {
                     // append a string of the same length using the canonical character
-                    for (int j = 0; j < types.length; ++j) {
-                        int[] row = types[j];
-                        if (row[1] == i) {
-                            char originalChar = original[i].charAt(0);
-                            char repeatChar = (originalChar=='h' || originalChar=='K')? 'h': (char)row[0];
-                            result.append(Utility.repeat(String.valueOf(repeatChar), original[i].length()));
-                            break;
-                        }
-                    }
+                	for (int j = 0; j < types.length; ++j) {
+                	    int[] row = types[j];
+                	    if (row[1] == i) {
+                	        char originalChar = original[i].charAt(0);
+                	        char repeatChar = (originalChar=='h' || originalChar=='K')? 'h': (char)row[0];
+                	        result.append(Utility.repeat(String.valueOf(repeatChar), original[i].length()));
+                	        break;
+                	    }
+                	}
                 }
             }
             return result.toString();

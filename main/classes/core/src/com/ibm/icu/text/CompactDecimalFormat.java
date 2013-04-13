@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2013, Google, International Business Machines Corporation and
+ * Copyright (C) 1996-2012, Google, International Business Machines Corporation and
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -16,7 +16,6 @@ import java.math.BigInteger;
 import java.text.AttributedCharacterIterator;
 import java.text.FieldPosition;
 import java.text.ParsePosition;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Locale;
@@ -45,7 +44,8 @@ import com.ibm.icu.util.ULocale;
  * NumberFormat.
  *
  * @author markdavis
- * @stable ICU 49
+ * @draft ICU 49
+ * @provisional This API might change or be removed in a future release.
  */
 public class CompactDecimalFormat extends DecimalFormat {
 
@@ -122,11 +122,9 @@ public class CompactDecimalFormat extends DecimalFormat {
         this.divisor = data.divisors;
         applyPattern(format.toPattern());
         setDecimalFormatSymbols(format.getDecimalFormatSymbols());
-        setMaximumSignificantDigits(3); // default significant digits
+        setMaximumSignificantDigits(2); // default significant digits
         setSignificantDigitsUsed(true);
-        if (style == CompactStyle.SHORT) {
-          setGroupingUsed(false);
-        }
+        setGroupingUsed(false);
         this.pluralRules = PluralRules.forLocale(locale);
 
         DecimalFormat currencyFormat = (DecimalFormat) NumberFormat.getCurrencyInstance(locale);
@@ -158,7 +156,6 @@ public class CompactDecimalFormat extends DecimalFormat {
      *            A collection of strings for debugging. If null on input, then any errors found will be added to that
      *            collection instead of throwing exceptions.
      * @internal
-     * @deprecated This API is ICU internal only.
      */
     public CompactDecimalFormat(String pattern, DecimalFormatSymbols formatSymbols, String[] prefix, String[] suffix,
             long[] divisor, Collection<String> debugCreationErrors, CompactStyle style, String[] currencyAffixes) {
@@ -216,39 +213,8 @@ public class CompactDecimalFormat extends DecimalFormat {
 
     /**
      * {@inheritDoc}
-     * @stable ICU 49
-     */
-    @Override
-    public boolean equals(Object obj) {
-        if (obj == null)
-            return false;
-        if (!super.equals(obj))
-            return false; // super does class check
-        CompactDecimalFormat other = (CompactDecimalFormat) obj;
-        return mapsAreEqual(units, other.units)
-                && Arrays.equals(divisor, other.divisor)
-                && Arrays.equals(currencyAffixes, other.currencyAffixes)
-                && pluralRules.equals(other.pluralRules);
-    }
-
-    private boolean mapsAreEqual(
-        Map<String, DecimalFormat.Unit[]> lhs, Map<String, DecimalFormat.Unit[]> rhs) {
-        if (lhs.size() != rhs.size()) {
-            return false;
-        }
-        // For each MapEntry in lhs, see if there is a matching one in rhs.
-        for (Map.Entry<String, DecimalFormat.Unit[]> entry : lhs.entrySet()) {
-            DecimalFormat.Unit[] value = rhs.get(entry.getKey());
-            if (value == null || !Arrays.equals(entry.getValue(), value)) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    /**
-     * {@inheritDoc}
-     * @stable ICU 49
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
      */
     @Override
     public StringBuffer format(double number, StringBuffer toAppendTo, FieldPosition pos) {
@@ -277,7 +243,8 @@ public class CompactDecimalFormat extends DecimalFormat {
 
     /**
      * {@inheritDoc}
-     * @stable ICU 49
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
      */
     @Override
     public StringBuffer format(long number, StringBuffer toAppendTo, FieldPosition pos) {
@@ -286,7 +253,8 @@ public class CompactDecimalFormat extends DecimalFormat {
 
     /**
      * {@inheritDoc}
-     * @stable ICU 49
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
      */
     @Override
     public StringBuffer format(BigInteger number, StringBuffer toAppendTo, FieldPosition pos) {
@@ -295,7 +263,8 @@ public class CompactDecimalFormat extends DecimalFormat {
 
     /**
      * {@inheritDoc}
-     * @stable ICU 49
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
      */
     @Override
     public StringBuffer format(BigDecimal number, StringBuffer toAppendTo, FieldPosition pos) {
@@ -304,7 +273,8 @@ public class CompactDecimalFormat extends DecimalFormat {
 
     /**
      * {@inheritDoc}
-     * @stable ICU 49
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
      */
     @Override
     public StringBuffer format(com.ibm.icu.math.BigDecimal number, StringBuffer toAppendTo, FieldPosition pos) {
@@ -313,7 +283,8 @@ public class CompactDecimalFormat extends DecimalFormat {
 
     /**
      * Parsing is currently unsupported, and throws an UnsupportedOperationException.
-     * @stable ICU 49
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
      */
     @Override
     public Number parse(String text, ParsePosition parsePosition) {

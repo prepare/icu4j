@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2013, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2012, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -433,7 +433,8 @@ public abstract class NumberFormat extends UFormat {
      * on output, the position after the last matched character. If
      * the parse fails, the position in unchanged upon output.
      * @return a CurrencyAmount, or null upon failure
-     * @stable ICU 49
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
      */
     public CurrencyAmount parseCurrency(CharSequence text, ParsePosition pos) {
         ///CLOVER:OFF

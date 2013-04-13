@@ -1,7 +1,7 @@
 /*
  * @(#)TimeZone.java    1.51 00/01/19
  *
- * Copyright (C) 1996-2013, International Business Machines
+ * Copyright (C) 1996-2012, International Business Machines
  * Corporation and others.  All Rights Reserved.
  */
 
@@ -242,14 +242,16 @@ abstract public class TimeZone implements Serializable, Cloneable, Freezable<Tim
      * @see #UNKNOWN_ZONE_ID
      * @see #getTimeZone(String)
      * 
-     * @stable ICU 49
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
      */
     public static final TimeZone UNKNOWN_ZONE = new SimpleTimeZone(0, UNKNOWN_ZONE_ID).freeze();
 
     /**
      * {@icu} The immutable GMT (=UTC) time zone. Its ID is "Etc/GMT".
      *
-     * @stable ICU 49
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
      */
     public static final TimeZone GMT_ZONE = new SimpleTimeZone(0, GMT_ZONE_ID).freeze();
 
@@ -559,8 +561,7 @@ abstract public class TimeZone implements Serializable, Cloneable, Freezable<Tim
             if (daylight && timeType.value == TimeType.STANDARD ||
                     !daylight && timeType.value == TimeType.DAYLIGHT) {
                 int offset = daylight ? getRawOffset() + getDSTSavings() : getRawOffset();
-                result = (style == SHORT_GENERIC) ?
-                        tzfmt.formatOffsetShortLocalizedGMT(offset) : tzfmt.formatOffsetLocalizedGMT(offset);
+                result = tzfmt.formatOffsetLocalizedGMT(offset);
             }
 
         } else if (style == LONG_GMT || style == SHORT_GMT) {
@@ -572,7 +573,7 @@ abstract public class TimeZone implements Serializable, Cloneable, Freezable<Tim
                 result = tzfmt.formatOffsetLocalizedGMT(offset);
                 break;
             case SHORT_GMT:
-                result = tzfmt.formatOffsetISO8601Basic(offset, false, false, false);
+                result = tzfmt.formatOffsetRFC822(offset);
                 break;
             }
         } else {
@@ -597,8 +598,7 @@ abstract public class TimeZone implements Serializable, Cloneable, Freezable<Tim
                 // Fallback to localized GMT
                 TimeZoneFormat tzfmt = TimeZoneFormat.getInstance(locale);
                 int offset = daylight && useDaylightTime() ? getRawOffset() + getDSTSavings() : getRawOffset();
-                result = (style == LONG) ?
-                        tzfmt.formatOffsetLocalizedGMT(offset) : tzfmt.formatOffsetShortLocalizedGMT(offset);
+                result = tzfmt.formatOffsetLocalizedGMT(offset);
             }
         }
         assert(result != null);
@@ -714,7 +714,8 @@ abstract public class TimeZone implements Serializable, Cloneable, Freezable<Tim
      * @return the specified <code>TimeZone</code>, or the UNKNOWN_ZONE
      * if the given ID cannot be understood.
      * @see #UNKNOWN_ZONE
-     * @stable ICU 49
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
      */
     public static TimeZone getFrozenTimeZone(String ID) {
         return getTimeZone(ID, TZ_IMPL, true);
@@ -1116,7 +1117,8 @@ abstract public class TimeZone implements Serializable, Cloneable, Freezable<Tim
 
     /**
      * {@inheritDoc}
-     * @stable ICU 49
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
      */
     public boolean isFrozen() {
         return false;
@@ -1124,7 +1126,8 @@ abstract public class TimeZone implements Serializable, Cloneable, Freezable<Tim
 
     /**
      * {@inheritDoc}
-     * @stable ICU 49
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
      */
     public TimeZone freeze() {
         throw new UnsupportedOperationException("Needs to be implemented by the subclass.");
@@ -1132,7 +1135,8 @@ abstract public class TimeZone implements Serializable, Cloneable, Freezable<Tim
 
     /**
      * {@inheritDoc}
-     * @stable ICU 49
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
      */
     public TimeZone cloneAsThawed() {
         try {

@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2013, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2012, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -347,7 +347,7 @@ import com.ibm.icu.util.ULocale.Category;
  * <code>DecimalFormat</code> internally limits of maximum decimal digits to be 1000. Thus,
  * an input string resulting more than 1000 digits in plain decimal representation (non-exponent)
  * will be treated as either overflow (positive/negative infinite) or underflow (+0.0/-0.0).
- *
+ * 
  * <h4>Formatting</h4>
  *
  * <p>Formatting is guided by several parameters, all of which can be specified either
@@ -1757,45 +1757,13 @@ public class DecimalFormat extends NumberFormat {
      *  have 0 <= pos.getIndex() < text.length(); on output, the position after the last
      *  matched character. If the parse fails, the position in unchanged upon output.
      * @return a CurrencyAmount, or null upon failure
-     * @stable ICU 49
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
      */
     @Override
     public CurrencyAmount parseCurrency(CharSequence text, ParsePosition pos) {
         Currency[] currency = new Currency[1];
         return (CurrencyAmount) parse(text.toString(), pos, currency);
-    }
-    
-    /**
-     * NormalizePlusAndMinus substitutes any rendition of plus or minus sign in
-     * text with the plus or minus sign for the current locale and returns the
-     * new string.
-     */
-    private String normalizePlusAndMinus(String text) {
-        StringBuilder builder = null;
-        int len = text.length();
-        for (int i = 0; i < len; i++) {
-            if (minusSigns.contains(text.charAt(i)) && text.charAt(i) != symbols.getMinusSign()) {
-                builder = append(builder, text, i);
-                builder.append(symbols.getMinusSign());
-            }
-            if (plusSigns.contains(text.charAt(i)) && text.charAt(i) != symbols.getPlusSign()) {
-                builder = append(builder, text, i);
-                builder.append(symbols.getPlusSign());
-            }
-        }
-        if (builder == null) {
-            return text;
-        }
-        return append(builder, text, len).toString();
-        
-    }
-    
-    private StringBuilder append(StringBuilder builder, String text, int upToIndex) {
-        if (builder == null) {
-            builder = new StringBuilder(text.length());
-        }
-        builder.append(text.substring(builder.length(), upToIndex));
-        return builder;
     }
 
     /**
@@ -1811,14 +1779,6 @@ public class DecimalFormat extends NumberFormat {
      * @return a Number or CurrencyAmount or null
      */
     private Object parse(String text, ParsePosition parsePosition, Currency[] currency) {
-        text = normalizePlusAndMinus(text);
-        if (symbols.getMinusSign() != '-') {
-            text = text.replace('-', symbols.getMinusSign());
-        }
-        if (symbols.getPlusSign() != '+') {
-            text = text.replace('+', symbols.getPlusSign());
-        }
-       
         int backup;
         int i = backup = parsePosition.getIndex();
 
@@ -2188,34 +2148,13 @@ public class DecimalFormat extends NumberFormat {
                 0xFF0C, 0xFF0C,
                 0xFF0E, 0xFF0E,
                 0xFF61, 0xFF61).freeze();
-    
-    private static final UnicodeSet minusSigns =
-        new UnicodeSet(
-                0x002D, 0x002D,
-                0x207B, 0x207B,
-                0x208B, 0x208B,
-                0x2212, 0x2212,
-                0x2796, 0x2796,
-                0xFE63, 0xFE63,
-                0xFF0D, 0xFF0D).freeze();
-    
-    private static final UnicodeSet plusSigns =
-            new UnicodeSet(
-                0x002B, 0x002B,
-                0x207A, 0x207A,
-                0x208A, 0x208A,
-                0x2795, 0x2795,
-                0xFB29, 0xFB29,
-                0xFE62, 0xFE62,
-                0xFF0B, 0xFF0B).freeze();
-    
 
     // When parsing a number with big exponential value, it requires to transform the
     // value into a string representation to construct BigInteger instance.  We want to
     // set the maximum size because it can easily trigger OutOfMemoryException.
-    // PARSE_MAX_EXPONENT is currently set to 1000 (See getParseMaxDigits()),
-    // which is much bigger than MAX_VALUE of Double ( See the problem reported by ticket#5698
-    private int PARSE_MAX_EXPONENT = 1000;
+    // PARSE_MAX_EXPONENT is currently set to 1000, which is much bigger than MAX_VALUE of
+    // Double ( See the problem reported by ticket#5698
+    private static final int PARSE_MAX_EXPONENT = 1000;
 
     /**
      * Parses the given text into a number. The text is parsed beginning at parsePosition,
@@ -2560,9 +2499,9 @@ public class DecimalFormat extends NumberFormat {
 
             // Adjust for exponent, if any
             exponent += digits.decimalAt;
-            if (exponent < -getParseMaxDigits()) {
+            if (exponent < -PARSE_MAX_EXPONENT) {
                 status[STATUS_UNDERFLOW] = true;
-            } else if (exponent > getParseMaxDigits()) {
+            } else if (exponent > PARSE_MAX_EXPONENT) {
                 status[STATUS_INFINITE] = true;
             } else {
                 digits.decimalAt = (int) exponent;
@@ -5118,29 +5057,6 @@ public class DecimalFormat extends NumberFormat {
     public boolean isParseBigDecimal() {
         return parseBigDecimal;
     }
-    
-    /**
-    * Set the maximum number of exponent digits when parsing a number. 
-    * If the limit is set too high, an OutOfMemoryException may be triggered.
-    * The default value is 1000.
-    * @param newValue the new limit
-    * @draft ICU 51
-    */
-    public void setParseMaxDigits(int newValue) {
-        if (newValue > 0) {
-            PARSE_MAX_EXPONENT = newValue;
-        }
-    }
-    
-    /**
-    * Get the current maximum number of exponent digits when parsing a
-    * number.
-    *
-    * @draft ICU 51
-    */
-    public int getParseMaxDigits() {
-        return PARSE_MAX_EXPONENT;
-    }
 
     private void writeObject(ObjectOutputStream stream) throws IOException {
         // Ticket#6449 Format.Field instances are not serializable. When
@@ -5780,18 +5696,6 @@ public class DecimalFormat extends NumberFormat {
 
         public void writePrefix(StringBuffer toAppendTo) {
             toAppendTo.append(prefix);
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj) {
-                return true;
-            }
-            if (!(obj instanceof Unit)) {
-                return false;
-            }
-            Unit other = (Unit) obj;
-            return prefix.equals(other.prefix) && suffix.equals(other.suffix);
         }
     }
 

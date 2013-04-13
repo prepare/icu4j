@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2003-2013, Google, International Business Machines Corporation and    *
+ * Copyright (C) 2003-2012, Google, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
 */
@@ -52,29 +52,21 @@ public class GenderInfo {
 
     /**
      * Enum only meant for use in CLDR and in testing. Indicates the category for the locale.
-     * This only affects gender for lists more than one. For lists of 1 item, the gender
-     * of the list always equals the gender of that sole item.
      * @internal
      */
     public enum ListGenderStyle {
         /**
-         * For an empty list, returns OTHER;
-         * For a single item, returns its gender;
-         * Otherwise always OTHER.
+         * Always OTHER (if more than one)
          */
         NEUTRAL,
         /**
-         * For an empty list, returns OTHER;
-         * For a single item, returns its gender;
-         * Otherwise gender(all male) = male, gender(all female) = female, otherwise gender(list) = other.
-         * So any 'other' value makes the overall gender be 'other'.
+         * gender(all male) = male, gender(all female) = female, otherwise gender(list) = other.
+         * In particular, any 'other' value makes the overall gender be 'other'.
          */
         MIXED_NEUTRAL,
         /**
-         * For an empty list, returns OTHER;
-         * For a single item, returns its gender;
-         * Otherwise, gender(all female) = female, otherwise gender(list) = male.
-         * So for more than one item, any 'other' value makes the overall gender be 'male'.
+         * gender(all female) = female, otherwise gender(list) = male.
+         * In particular, any 'other' value makes the overall gender be 'male'.
          */
         MALE_TAINTS;
 
@@ -116,15 +108,13 @@ public class GenderInfo {
      * @internal
      */
     public Gender getListGender(List<Gender> genders) {
-        if (genders.size() == 0) {
+        if (genders.size() == 0 || style == ListGenderStyle.NEUTRAL) {
             return Gender.OTHER; // degenerate case
         }
         if (genders.size() == 1) {
             return genders.get(0); // degenerate case
         }
         switch(style) {
-        case NEUTRAL:
-            return Gender.OTHER;
         case MIXED_NEUTRAL:
             boolean hasFemale = false;
             boolean hasMale = false;

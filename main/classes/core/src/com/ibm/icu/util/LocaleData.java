@@ -1,19 +1,21 @@
 /*
  **************************************************************************************
- * Copyright (C) 2009-2013, Google, Inc.; International Business Machines Corporation *
+ * Copyright (C) 2009-2012, Google, Inc.; International Business Machines Corporation *
  * and others. All Rights Reserved.                                                   *
  **************************************************************************************
  */
 package com.ibm.icu.util;
 
 import java.util.MissingResourceException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.text.UnicodeSet;
 import com.ibm.icu.util.ULocale.Category;
 
 /**
- * A class for accessing miscellaneous data in the locale bundles
+ * A class for accessing miscelleneous data in the locale bundles
  * @author ram
  * @stable ICU 2.8
  */
@@ -50,13 +52,14 @@ public final class LocaleData {
    /**
     * EXType for {@link #getExemplarSet(int, int)}.
     * Note: This type is no longer supported.
-    * @deprecated ICU 51
+    * @stable ICU 4.4
     */
     public static final int ES_CURRENCY = 3;
 
     /**
      * EXType for {@link #getExemplarSet(int, int)}.
-     * @stable ICU 49
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
      */
      public static final int ES_PUNCTUATION = 4;
 
@@ -177,7 +180,10 @@ public final class LocaleData {
                return null;
     
             String unicodeSetPattern = stringBundle.getString();
+            // HACK
             if (extype == ES_PUNCTUATION) {
+                Matcher matcher = US_SYNTAX.matcher(" " + unicodeSetPattern.substring(1,unicodeSetPattern.length()-1) + " ");
+                unicodeSetPattern = '[' + matcher.replaceAll(" \\\\$1") + ']';
                 try {
                     return new UnicodeSet(unicodeSetPattern, UnicodeSet.IGNORE_SPACE | options);
                 } catch (IllegalArgumentException e) {
@@ -194,6 +200,8 @@ public final class LocaleData {
             throw ex;
         }
     }
+    
+    static final Pattern US_SYNTAX = Pattern.compile(" ([\\-\\&\\{\\}\\[\\]\\\\])");
 
     /**
      * Gets the LocaleData object associated with the ULocale specified in locale

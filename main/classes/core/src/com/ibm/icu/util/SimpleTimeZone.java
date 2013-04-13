@@ -1,5 +1,5 @@
  /*
-*   Copyright (C) 1996-2013, International Business Machines
+*   Copyright (C) 1996-2012, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 */
 
@@ -958,7 +958,8 @@ public class SimpleTimeZone extends BasicTimeZone {
 
     /**
      * {@inheritDoc}
-     * @stable ICU 49
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
      */
     public boolean observesDaylightTime() {
         return useDaylight;
@@ -1412,7 +1413,8 @@ public class SimpleTimeZone extends BasicTimeZone {
 
     /**
      * {@inheritDoc}
-     * @stable ICU 49
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
      */
     public boolean isFrozen() {
         return isFrozen;
@@ -1420,7 +1422,8 @@ public class SimpleTimeZone extends BasicTimeZone {
 
     /**
      * {@inheritDoc}
-     * @stable ICU 49
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
      */
     public TimeZone freeze() {
         isFrozen = true;
@@ -1429,7 +1432,8 @@ public class SimpleTimeZone extends BasicTimeZone {
 
     /**
      * {@inheritDoc}
-     * @stable ICU 49
+     * @draft ICU 49
+     * @provisional This API might change or be removed in a future release.
      */
     public TimeZone cloneAsThawed() {
         SimpleTimeZone tz = (SimpleTimeZone)super.cloneAsThawed();

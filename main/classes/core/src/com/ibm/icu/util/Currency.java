@@ -1,6 +1,6 @@
 /**
  *******************************************************************************
- * Copyright (C) 2001-2013, International Business Machines Corporation and    *
+ * Copyright (C) 2001-2012, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -29,6 +29,7 @@ import com.ibm.icu.text.CurrencyDisplayNames;
 import com.ibm.icu.text.CurrencyMetaInfo;
 import com.ibm.icu.text.CurrencyMetaInfo.CurrencyDigits;
 import com.ibm.icu.text.CurrencyMetaInfo.CurrencyFilter;
+import com.ibm.icu.text.CurrencyMetaInfo.CurrencyInfo;
 import com.ibm.icu.util.ULocale.Category;
 
 /**
@@ -357,7 +358,7 @@ public class Currency extends MeasureUnit implements Serializable {
         
         if (!commonlyUsed) {
             // Behavior change from 4.3.3, no longer sort the currencies
-            return getAllTenderCurrencies().toArray(new String[0]);
+            return getAvailableCurrencyCodes().toArray(new String[0]);
         }
         
         // Don't resolve region if the requested locale is 'und', it will resolve to US
@@ -741,7 +742,7 @@ public class Currency extends MeasureUnit implements Serializable {
                 int i = 0;
                 for (; i < resultList.size(); i++) {
                     CurrencyStringInfo tmp = resultList.get(i);
-                    if (item.getISOCode().equals(tmp.getISOCode())) {
+                    if (item.getISOCode() == tmp.getISOCode()) {
                         if (matchLength > tmp.getCurrencyString().length()) {
                             resultList.set(i, item);
                         }
@@ -832,31 +833,19 @@ public class Currency extends MeasureUnit implements Serializable {
     };
 
 
-    private static SoftReference<List<String>> ALL_TENDER_CODES;
-    private static SoftReference<Set<String>> ALL_CODES_AS_SET;
+    private static SoftReference<List<String>> ALL_CODES;
     /*
      * Returns an unmodifiable String list including all known tender currency codes.
      */
-    private static synchronized List<String> getAllTenderCurrencies() {
-        List<String> all = (ALL_TENDER_CODES == null) ? null : ALL_TENDER_CODES.get();
+    private static synchronized List<String> getAvailableCurrencyCodes() {
+        List<String> all = (ALL_CODES == null) ? null : ALL_CODES.get();
         if (all == null) {
             // Filter out non-tender currencies which have "from" date set to 9999-12-31
             // CurrencyFilter has "to" value set to 9998-12-31 in order to exclude them
             //CurrencyFilter filter = CurrencyFilter.onDateRange(null, new Date(253373299200000L));
             CurrencyFilter filter = CurrencyFilter.all();
             all = Collections.unmodifiableList(getTenderCurrencies(filter));
-            ALL_TENDER_CODES = new SoftReference<List<String>>(all);
-        }
-        return all;
-    }
-    
-    private static synchronized Set<String> getAllCurrenciesAsSet() {
-        Set<String> all = (ALL_CODES_AS_SET == null) ? null : ALL_CODES_AS_SET.get();
-        if (all == null) {
-            CurrencyMetaInfo info = CurrencyMetaInfo.getInstance();
-            all = Collections.unmodifiableSet(
-                    new HashSet<String>(info.currencies(CurrencyFilter.all())));
-            ALL_CODES_AS_SET = new SoftReference<Set<String>>(all);
+            ALL_CODES = new SoftReference<List<String>>(all);
         }
         return all;
     }
@@ -891,17 +880,17 @@ public class Currency extends MeasureUnit implements Serializable {
         }
 
         code = code.toUpperCase(Locale.ENGLISH);
-        boolean isKnown = getAllCurrenciesAsSet().contains(code);
+        boolean isKnown = getAvailableCurrencyCodes().contains(code);
         if (isKnown == false) {
             return false;
         } else if (from == null && to == null) {
             return true;
         }
 
-        // If caller passed a date range, we cannot rely solely on the cache
+        // When asActiveOnly is true, check if the currency is currently
+        // active or not.
         CurrencyMetaInfo info = CurrencyMetaInfo.getInstance();
-        List<String> allActive = info.currencies(
-                CurrencyFilter.onDateRange(from, to).withCurrency(code));
+        List<String> allActive = info.currencies(CurrencyFilter.onDateRange(from, to));
         return allActive.contains(code);
     }
 
@@ -912,7 +901,16 @@ public class Currency extends MeasureUnit implements Serializable {
      */
     private static List<String> getTenderCurrencies(CurrencyFilter filter) {
         CurrencyMetaInfo info = CurrencyMetaInfo.getInstance();
-        return info.currencies(filter.withTender());
+        List<CurrencyInfo> infoList = info.currencyInfo(filter);
+        List<String> list = new ArrayList<String>();
+        for (CurrencyInfo currencyInfo : infoList) {
+            // Non-tender currencies always have a from of MIN_VALUE and a to of MAX_VALUE, so
+            // exclude them.
+            if (currencyInfo.from != Long.MIN_VALUE || currencyInfo.to != Long.MAX_VALUE) {
+                list.add(currencyInfo.code);
+            }
+        }
+        return list;
     }
 }
 //eof

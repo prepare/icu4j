@@ -1,17 +1,19 @@
 /*
  *******************************************************************************
- * Copyright (C) 2008-2013, International Business Machines Corporation and
- * others. All Rights Reserved.
+ * Copyright (C) 2008-2012, International Business Machines Corporation and    *
+ * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
 package com.ibm.icu.dev.test.collator;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -26,7 +28,6 @@ import com.ibm.icu.lang.UScript;
 import com.ibm.icu.text.AlphabeticIndex;
 import com.ibm.icu.text.AlphabeticIndex.Bucket;
 import com.ibm.icu.text.AlphabeticIndex.Bucket.LabelType;
-import com.ibm.icu.text.AlphabeticIndex.ImmutableIndex;
 import com.ibm.icu.text.AlphabeticIndex.Record;
 import com.ibm.icu.text.Collator;
 import com.ibm.icu.text.Normalizer2;
@@ -36,7 +37,8 @@ import com.ibm.icu.text.UnicodeSet;
 import com.ibm.icu.util.ULocale;
 
 /**
- * @author Mark Davis
+ * @author markdavis
+ *
  */
 public class AlphabeticIndexTest extends TestFmwk {
     /**
@@ -58,7 +60,7 @@ public class AlphabeticIndexTest extends TestFmwk {
             /* Catalan*/    {"ca", "A:B:C:D:E:F:G:H:I:J:K:L:M:N:O:P:Q:R:S:T:U:V:W:X:Y:Z"},
             /* Czech*/  {"cs", "A:B:C:\u010C:D:E:F:G:H:CH:I:J:K:L:M:N:O:P:Q:R:\u0158:S:\u0160:T:U:V:W:X:Y:Z:\u017D"},
             /* Danish*/ {"da", "A:B:C:D:E:F:G:H:I:J:K:L:M:N:O:P:Q:R:S:T:U:V:W:X:Y:Z:\u00C6:\u00D8:\u00C5"},
-            /* German*/ {"de", "A:B:C:D:E:F:G:H:I:J:K:L:M:N:O:P:Q:R:S:Sch:St:T:U:V:W:X:Y:Z"},
+            /* German*/ {"de", "A:B:C:D:E:F:G:H:I:J:K:L:M:N:O:P:Q:R:S:T:U:V:W:X:Y:Z"},
             /* Greek*/  {"el", "\u0391:\u0392:\u0393:\u0394:\u0395:\u0396:\u0397:\u0398:\u0399:\u039A:\u039B:\u039C:\u039D:\u039E:\u039F:\u03A0:\u03A1:\u03A3:\u03A4:\u03A5:\u03A6:\u03A7:\u03A8:\u03A9"},
             /* English*/    {"en", "A:B:C:D:E:F:G:H:I:J:K:L:M:N:O:P:Q:R:S:T:U:V:W:X:Y:Z"},
             /* Spanish*/    {"es", "A:B:C:D:E:F:G:H:I:J:K:L:M:N:\u00D1:O:P:Q:R:S:T:U:V:W:X:Y:Z"},
@@ -71,7 +73,7 @@ public class AlphabeticIndexTest extends TestFmwk {
             /* Icelandic*/  {"is", "A:\u00C1:B:C:D:\u00D0:E:\u00C9:F:G:H:I:\u00CD:J:K:L:M:N:O:\u00D3:P:Q:R:S:T:U:\u00DA:V:W:X:Y:\u00DD:Z:\u00DE:\u00C6:\u00D6"},
             /* Italian*/    {"it", "A:B:C:D:E:F:G:H:I:J:K:L:M:N:O:P:Q:R:S:T:U:V:W:X:Y:Z"},
             /* Japanese*/   {"ja", "\u3042:\u304B:\u3055:\u305F:\u306A:\u306F:\u307E:\u3084:\u3089:\u308F"},
-            /* Korean*/ {"ko", "\u3131:\u3134:\u3137:\u3139:\u3141:\u3142:\u3145:\u3147:\u3148:\u314A:\u314B:\u314C:\u314D:\u314E"},
+            /* Korean*/ {"ko", "\u1100:\u1102:\u1103:\u1105:\u1106:\u1107:\u1109:\u110B:\u110C:\u110E:\u110F:\u1110:\u1111:\u1112"},
             /* Lithuanian*/ {"lt", "A:B:C:\u010C:D:E:F:G:H:I:J:K:L:M:N:O:P:R:S:\u0160:T:U:V:Z:\u017D"},
             // This should be the correct data.  Commented till it is fixed in CLDR collation data.
             // {"lv", "A:B:C:\u010C:D:E:F:G:\u0122:H:I:Y:J:K:\u0136:L:\u013B:M:N:\u0145:O:P:Q:R:S:\u0160:T:U:V:W:X:Z:\u017D"},
@@ -224,8 +226,7 @@ public class AlphabeticIndexTest extends TestFmwk {
             List labels = alphabeticIndex.getBucketLabels();
             logln(labels.toString());
             Bucket<Integer> bucket = find(alphabeticIndex, probe);
-            assertEquals("locale " + test[0] + " name=" + probe + " in bucket",
-                    expectedLabel, bucket.getLabel());
+            assertEquals(probe + " found in right bucket", expectedLabel, bucket.getLabel());
         }
     }
 
@@ -245,14 +246,11 @@ public class AlphabeticIndexTest extends TestFmwk {
         AlphabeticIndex alphabeticIndex = new AlphabeticIndex(Locale.ENGLISH);
         RuleBasedCollator collator = alphabeticIndex.getCollator();
         collator.setStrength(Collator.IDENTICAL);
-        Collection<String> firsts = AlphabeticIndex.getFirstCharactersInScripts();
-        // Verify that each script is represented exactly once.
+        List<String> firsts = alphabeticIndex.getFirstScriptCharacters();
+        // Verify that they are all in order, and that each script is represented exactly once.
         UnicodeSet missingScripts = new UnicodeSet("[^[:sc=inherited:][:sc=unknown:][:sc=common:][:Script=Braille:]]");
         String last = "";
         for (String index : firsts) {
-            if (index.equals("\uFFFF")) {
-                continue;
-            }
             if (collator.compare(last,index) >= 0) {
                 errln("Characters not in order: " + last + " !< " + index);
             }
@@ -304,7 +302,6 @@ public class AlphabeticIndexTest extends TestFmwk {
                 }
             } catch (Exception e) {
                 errln("Exception when creating AlphabeticIndex for:\t" + locale.toLanguageTag());
-                errln(e.toString());
             }
         }
     }
@@ -366,9 +363,6 @@ public class AlphabeticIndexTest extends TestFmwk {
             itemCount.add(item, 1);
         }
 
-        List<String> labels = index.getBucketLabels();
-        ImmutableIndex<Integer> immIndex = index.buildImmutableIndex();
-
         logln(desiredLocale + "\t" + desiredLocale.getDisplayName(ULocale.ENGLISH) + " - " + desiredLocale.getDisplayName(desiredLocale) + "\t"
                 + index.getCollator().getLocale(ULocale.ACTUAL_LOCALE));
         UI.setLength(0);
@@ -384,21 +378,7 @@ public class AlphabeticIndexTest extends TestFmwk {
         logln(UI.toString());
 
         // Show the buckets with their contents, skipping empty buckets
-        int bucketIndex = 0;
-        for (Bucket<Integer> bucket : index) {
-            assertEquals("bucket label vs. iterator",
-                    labels.get(bucketIndex), bucket.getLabel());
-            assertEquals("bucket label vs. immutable",
-                    labels.get(bucketIndex), immIndex.getBucket(bucketIndex).getLabel());
-            assertEquals("bucket label type vs. immutable",
-                    bucket.getLabelType(), immIndex.getBucket(bucketIndex).getLabelType());
-            for (Record<Integer> r : bucket) {
-                CharSequence name = r.getName();
-                assertEquals("getBucketIndex(" + name + ")",
-                        bucketIndex, index.getBucketIndex(name));
-                assertEquals("immutable getBucketIndex(" + name + ")",
-                        bucketIndex, immIndex.getBucketIndex(name));
-            }
+        for (AlphabeticIndex.Bucket<Integer> bucket : index) {
             if (bucket.getLabel().equals(testBucket)) {
                 Counter<String> keys = getKeys(bucket);
                 for (String item : items) {
@@ -419,27 +399,16 @@ public class AlphabeticIndexTest extends TestFmwk {
                 }
                 logln(UI.toString());
             }
-            ++bucketIndex;
-        }
-        assertEquals("getBucketCount()", bucketIndex, index.getBucketCount());
-        assertEquals("immutable getBucketCount()", bucketIndex, immIndex.getBucketCount());
-
-        assertNull("immutable getBucket(-1)", immIndex.getBucket(-1));
-        assertNull("immutable getBucket(count)", immIndex.getBucket(bucketIndex));
-
-        for (Bucket<Integer> bucket : immIndex) {
-            assertEquals("immutable bucket size", 0, bucket.size());
-            assertFalse("immutable bucket iterator.hasNext()", bucket.iterator().hasNext());
         }
     }
 
     public <T> void showIndex(AlphabeticIndex<T> index, boolean showEmpty) {
         logln("Actual");
         StringBuilder UI = new StringBuilder();
-        for (Bucket<T> bucket : index) {
+        for (AlphabeticIndex.Bucket<T> bucket : index) {
             if (showEmpty || bucket.size() != 0) {
                 showLabelInList(UI, bucket.getLabel());
-                for (Record<T> item : bucket) {
+                for (AlphabeticIndex.Record<T> item : bucket) {
                     showIndexedItem(UI, item.getName(), item.getData());
                 }
                 logln(UI.toString());
@@ -519,7 +488,7 @@ public class AlphabeticIndexTest extends TestFmwk {
     public void TestBasics() {
         ULocale[] list = ULocale.getAvailableLocales();
         // get keywords combinations
-        // don't bother with multiple combinations at this point
+        // don't bother with multiple combinations at this poin
         List keywords = new ArrayList();
         keywords.add("");
 
@@ -551,12 +520,40 @@ public class AlphabeticIndexTest extends TestFmwk {
                 logln(mainChars.size() + "\t" + locale + "\t" + locale.getDisplayName(ULocale.ENGLISH));
                 logln("Index:\t" + mainCharString);
                 if (mainChars.size() > 100) {
-                    errln("Index character set too large: " +
-                            locale + " [" + mainChars.size() + "]:\n    " + mainChars);
+                    errln("Index character set too large");
                 }
+                showIfNotEmpty("A sequence sorting the same is already present", alphabeticIndex.getAlreadyIn());
+                showIfNotEmpty("A sequence sorts the same as components", alphabeticIndex.getNoDistinctSorting());
+                showIfNotEmpty("A sequence has only Marks or Nonalphabetics", alphabeticIndex.getNotAlphabetic());
             }
         }
     }
+    private void showIfNotEmpty(String title, List alreadyIn) {
+        if (alreadyIn.size() != 0) {
+            logln("\t" + title + ":\t" + alreadyIn);
+        }
+    }
+    private void showIfNotEmpty(String title, Map alreadyIn) {
+        if (alreadyIn.size() != 0) {
+            logln("\t" + title + ":\t" + alreadyIn);
+        }
+    }
+
+    //    public void TestFilter() {
+    //        displayPairs(true);
+    //        logln("");
+    //        displayPairs(false);
+    //    }
+
+    //    private void displayPairs(boolean in) {
+    //        for (String[] pair : localeAndIndexCharactersLists) {
+    //            if (KEY_LOCALES.contains(pair[0]) == in) {
+    //                logln("\t"
+    //                        + "/* " + ULocale.getDisplayName(pair[0], "en") + "*/\t"
+    //                        + "{\"" + pair[0] + "\", \"" + pair[1] + "\"},");
+    //            }
+    //        }
+    //    }
 
     public void TestClientSupport() {
         for (String localeString : new String[] {"zh"}) { // KEY_LOCALES, new String[] {"zh"}
@@ -637,23 +634,27 @@ public class AlphabeticIndexTest extends TestFmwk {
     }
 
     public void TestFirstScriptCharacters() {
-        Collection<String> firstCharacters = AlphabeticIndex.getFirstCharactersInScripts();
-        Collection<String> expectedFirstCharacters = firstStringsInScript((RuleBasedCollator) Collator.getInstance(ULocale.ROOT));
-        Collection<String> diff = new TreeSet<String>(firstCharacters);
-        diff.removeAll(expectedFirstCharacters);
-        assertTrue("First Characters contains unexpected ones: " + diff, diff.isEmpty());
-        diff.clear();
-        diff.addAll(expectedFirstCharacters);
-        diff.removeAll(firstCharacters);
-        assertTrue("First Characters missing expected ones: " + diff, diff.isEmpty());
+        List<String> firstCharacters = AlphabeticIndex.getFirstCharactersInScripts();
+        List<String> expectedFirstCharacters = firstStringsInScript((RuleBasedCollator) Collator.getInstance(ULocale.ROOT));
+        assertEquals("First Characters", expectedFirstCharacters, firstCharacters);
     }
 
     private static final UnicodeSet TO_TRY = new UnicodeSet("[[:^nfcqc=no:]-[:sc=Common:]-[:sc=Inherited:]-[:sc=Unknown:]]").freeze();
 
     /**
-     * Returns a collection of all the "First" characters of scripts, according to the collation.
+     * Returns a list of all the "First" characters of scripts, according to the collation, and sorted according to the
+     * collation.
+     * 
+     * @param ruleBasedCollator
+     *            TODO
+     * @param comparator
+     * @param lowerLimit
+     * @param testScript
+     * 
+     * @return
      */
-    private static Collection<String> firstStringsInScript(RuleBasedCollator ruleBasedCollator) {
+
+    private static List<String> firstStringsInScript(RuleBasedCollator ruleBasedCollator) {
         String[] results = new String[UScript.CODE_LIMIT];
         for (String current : TO_TRY) {
             if (ruleBasedCollator.compare(current, "a") < 0) { // TODO fix; we only want "real" script characters, not
@@ -692,21 +693,19 @@ public class AlphabeticIndexTest extends TestFmwk {
         } catch (Exception e) {
         } // why have a checked exception???
 
-        results[UScript.LATIN] = "A";  // See comment about en_US_POSIX in the implementation.
-        // TODO: We should not test that we get the same strings, but that we
-        // get strings that sort primary-equal to those from the implementation.
-        // This whole test becomes obsolete when the root collator adds script-first-primary mappings
-        // and the AlphabeticIndex implementation starts using them.
-
-        Collection<String> result = new ArrayList<String>();
+        TreeSet<String> sorted = new TreeSet<String>(ruleBasedCollator);
         for (int i = 0; i < results.length; ++i) {
             if (results[i] != null) {
-                result.add(results[i]);
+                sorted.add(results[i]);
             }
         }
-        // AlphabeticIndex also has a boundary string for the ultimate overflow bucket,
-        // for unassigned code points and trailing/special primary weights.
-        result.add("\uFFFF");
+        if (false) {
+            for (String s : sorted) {
+                System.out.println("\"" + s + "\",");
+            }
+        }
+
+        List<String> result = Collections.unmodifiableList(new ArrayList<String>(sorted));
         return result;
     }
 
@@ -864,119 +863,5 @@ public class AlphabeticIndexTest extends TestFmwk {
             "\uD85A\uDDC4", "\uD85A\uDDC5", "\uD85C\uDD98", "\uD85E\uDCB1", "\uD861\uDC04", "\uD864\uDDD3",
             "\uD865\uDE63", "\uD869\uDCCA", "\uD86B\uDE9A", };
 
-    /**
-     * Test AlphabeticIndex vs. root with script reordering.
-     */
-    public void TestHaniFirst() {
-        RuleBasedCollator coll = (RuleBasedCollator) Collator.getInstance(ULocale.ROOT);
-        coll.setReorderCodes(UScript.HAN);
-        AlphabeticIndex index = new AlphabeticIndex(coll);
-        assertEquals("getBucketCount()", 1, index.getBucketCount());   // ... (underflow only)
-        index.addLabels(ULocale.ENGLISH);
-        assertEquals("getBucketCount()", 28, index.getBucketCount());  // ... A-Z ...
-        int bucketIndex = index.getBucketIndex("\u897f");
-        assertEquals("getBucketIndex(U+897F)", 0, bucketIndex);  // underflow bucket
-        bucketIndex = index.getBucketIndex("i");
-        assertEquals("getBucketIndex(i)", 9, bucketIndex);
-        bucketIndex = index.getBucketIndex("\u03B1");
-        assertEquals("getBucketIndex(Greek alpha)", 27, bucketIndex);
-        // TODO: Test with an unassigned code point (not just U+FFFF)
-        // when unassigned code points are not in the Hani reordering group any more.
-        // String unassigned = UTF16.valueOf(0x50005);
-        bucketIndex = index.getBucketIndex("\uFFFF");
-        assertEquals("getBucketIndex(U+FFFF)", 27, bucketIndex);
-    }
 
-    /**
-     * Test AlphabeticIndex vs. Pinyin with script reordering.
-     */
-    public void TestPinyinFirst() {
-        RuleBasedCollator coll = (RuleBasedCollator) Collator.getInstance(ULocale.CHINESE);
-        coll.setReorderCodes(UScript.HAN);
-        AlphabeticIndex index = new AlphabeticIndex(coll);
-        assertEquals("getBucketCount()", 1, index.getBucketCount());   // ... (underflow only)
-        index.addLabels(ULocale.CHINESE);
-        assertEquals("getBucketCount()", 28, index.getBucketCount());  // ... A-Z ...
-        int bucketIndex = index.getBucketIndex("\u897f");
-        assertEquals("getBucketIndex(U+897F)", 'X' - 'A' + 1, bucketIndex);
-        bucketIndex = index.getBucketIndex("i");
-        assertEquals("getBucketIndex(i)", 9, bucketIndex);
-        bucketIndex = index.getBucketIndex("\u03B1");
-        assertEquals("getBucketIndex(Greek alpha)", 27, bucketIndex);
-        // TODO: Test with an unassigned code point (not just U+FFFF)
-        // when unassigned code points are not in the Hani reordering group any more.
-        // String unassigned = UTF16.valueOf(0x50005);
-        bucketIndex = index.getBucketIndex("\uFFFF");
-        assertEquals("getBucketIndex(U+FFFF)", 27, bucketIndex);
-    }
-
-    /**
-     * Test labels with multiple primary weights.
-     */
-    public void TestSchSt() {
-        AlphabeticIndex index = new AlphabeticIndex(ULocale.GERMAN);
-        index.addLabels(new UnicodeSet("[Æ{Sch*}{St*}]"));
-        // ... A Æ B-R S Sch St T-Z ...
-        ImmutableIndex immIndex = index.buildImmutableIndex();
-        assertEquals("getBucketCount()", 31, index.getBucketCount());
-        assertEquals("immutable getBucketCount()", 31, immIndex.getBucketCount());
-        String[][] testCases = new String[][] {
-            // name, bucket index, bucket label
-            { "Adelbert", "1", "A" },
-            { "Afrika", "1", "A" },
-            { "Æsculap", "2", "Æ" },
-            { "Aesthet", "2", "Æ" },
-            { "Berlin", "3", "B" },
-            { "Rilke", "19", "R" },
-            { "Sacher", "20", "S" },
-            { "Seiler", "20", "S" },
-            { "Sultan", "20", "S" },
-            { "Schiller", "21", "Sch" },
-            { "Steiff", "22", "St" },
-            { "Thomas", "23", "T" }
-        };
-        List<String> labels = index.getBucketLabels();
-        for (String[] testCase : testCases) {
-            String name = testCase[0];
-            int bucketIndex = Integer.valueOf(testCase[1]);
-            String label = testCase[2];
-            String msg = "getBucketIndex(" + name + ")";
-            assertEquals(msg, bucketIndex, index.getBucketIndex(name));
-            msg = "immutable " + msg;
-            assertEquals(msg, bucketIndex, immIndex.getBucketIndex(name));
-            msg = "bucket label (" + name + ")";
-            assertEquals(msg, label, labels.get(index.getBucketIndex(name)));
-            msg = "immutable " + msg;
-            assertEquals(msg, label, immIndex.getBucket(bucketIndex).getLabel());
-        }
-    }
-
-    /**
-     * With no real labels, there should be only the underflow label.
-     */
-    public void TestNoLabels() {
-        RuleBasedCollator coll = (RuleBasedCollator) Collator.getInstance(ULocale.ROOT);
-        AlphabeticIndex<Integer> index = new AlphabeticIndex<Integer>(coll);
-        index.addRecord("\u897f", 0);
-        index.addRecord("i", 0);
-        index.addRecord("\u03B1", 0);
-        assertEquals("getBucketCount()", 1, index.getBucketCount());  // ...
-        Bucket<Integer> bucket = index.iterator().next();
-        assertEquals("underflow label type", LabelType.UNDERFLOW, bucket.getLabelType());
-        assertEquals("all records in the underflow bucket", 3, bucket.size());
-    }
-
-    /**
-     * Test with the Bopomofo-phonetic tailoring.
-     */
-    public void TestChineseZhuyin() {
-        AlphabeticIndex index = new AlphabeticIndex(ULocale.forLanguageTag("zh-u-co-zhuyin"));
-        ImmutableIndex immIndex = index.buildImmutableIndex();
-        assertEquals("getBucketCount()", 38, immIndex.getBucketCount());  // ... ㄅ ㄆ ㄇ ㄈ ㄉ -- ㄩ ...
-        assertEquals("label 1", "ㄅ", immIndex.getBucket(1).getLabel());
-        assertEquals("label 2", "ㄆ", immIndex.getBucket(2).getLabel());
-        assertEquals("label 3", "ㄇ", immIndex.getBucket(3).getLabel());
-        assertEquals("label 4", "ㄈ", immIndex.getBucket(4).getLabel());
-        assertEquals("label 5", "ㄉ", immIndex.getBucket(5).getLabel());
-    }
 }

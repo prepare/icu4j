@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2009-2013, International Business Machines Corporation and    *
+ * Copyright (C) 2009-2012, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -13,6 +13,9 @@ import java.util.List;
 import java.util.Set;
 
 import com.ibm.icu.text.CurrencyMetaInfo;
+import com.ibm.icu.util.Calendar;
+import com.ibm.icu.util.GregorianCalendar;
+import com.ibm.icu.util.TimeZone;
 
 /**
  * ICU's currency meta info data.
@@ -72,9 +75,6 @@ public class ICUCurrencyMetaInfo extends CurrencyMetaInfo {
         if (filter.from != Long.MIN_VALUE || filter.to != Long.MAX_VALUE) {
             needed |= Date;
         }
-        if (filter.tenderOnly) {
-            needed |= Tender;
-        }
 
         if (needed != 0) {
             if (filter.region != null) {
@@ -96,8 +96,8 @@ public class ICUCurrencyMetaInfo extends CurrencyMetaInfo {
             int needed, ICUResourceBundle b) {
 
         String region = b.getKey();
-        if (needed == Region) {
-            collector.collect(b.getKey(), null, 0, 0, -1, false);
+        if ((needed & nonRegion) == 0) {
+            collector.collect(b.getKey(), null, 0, 0, -1);
             return;
         }
 
@@ -112,7 +112,6 @@ public class ICUCurrencyMetaInfo extends CurrencyMetaInfo {
             String currency = null;
             long from = Long.MIN_VALUE;
             long to = Long.MAX_VALUE;
-            boolean tender = true;
 
             if ((needed & Currency) != 0) {
                 ICUResourceBundle currBundle = r.at("id");
@@ -136,16 +135,9 @@ public class ICUCurrencyMetaInfo extends CurrencyMetaInfo {
                     continue;
                 }
             }
-            if ((needed & Tender) != 0) {
-                ICUResourceBundle tenderBundle = r.at("tender");
-                tender = tenderBundle == null || "true".equals(tenderBundle.getString());
-                if (filter.tenderOnly && !tender) {
-                    continue;
-                }
-            }
 
             // data lists elements in priority order, so 'i' suffices
-            collector.collect(region, currency, from, to, i, tender);
+            collector.collect(region, currency, from, to, i);
         }
     }
 
@@ -185,8 +177,8 @@ public class ICUCurrencyMetaInfo extends CurrencyMetaInfo {
         // about duplicates.
         private List<CurrencyInfo> result = new ArrayList<CurrencyInfo>();
 
-        public void collect(String region, String currency, long from, long to, int priority, boolean tender) {
-            result.add(new CurrencyInfo(region, currency, from, to, priority, tender));
+        public void collect(String region, String currency, long from, long to, int priority) {
+            result.add(new CurrencyInfo(region, currency, from, to, priority));
         }
 
         public List<CurrencyInfo> getList() {
@@ -194,15 +186,14 @@ public class ICUCurrencyMetaInfo extends CurrencyMetaInfo {
         }
 
         public int collects() {
-            return Everything;
+            return Region | Currency | Date;
         }
     }
 
     private static class RegionCollector implements Collector<String> {
         private final UniqueList<String> result = UniqueList.create();
 
-        public void collect(
-                String region, String currency, long from, long to, int priority, boolean tender) {
+        public void collect(String region, String currency, long from, long to, int priority) {
             result.add(region);
         }
 
@@ -218,8 +209,7 @@ public class ICUCurrencyMetaInfo extends CurrencyMetaInfo {
     private static class CurrencyCollector implements Collector<String> {
         private final UniqueList<String> result = UniqueList.create();
 
-        public void collect(
-                String region, String currency, long from, long to, int priority, boolean tender) {
+        public void collect(String region, String currency, long from, long to, int priority) {
             result.add(currency);
         }
 
@@ -235,8 +225,8 @@ public class ICUCurrencyMetaInfo extends CurrencyMetaInfo {
     private static final int Region = 1;
     private static final int Currency = 2;
     private static final int Date = 4;
-    private static final int Tender = 8;
-    private static final int Everything = Integer.MAX_VALUE;
+
+    private static final int nonRegion = Currency | Date;
 
     private static interface Collector<T> {
         /**
@@ -252,9 +242,8 @@ public class ICUCurrencyMetaInfo extends CurrencyMetaInfo {
          * @param from start time (0 if ignored)
          * @param to end time (0 if ignored)
          * @param priority priority (-1 if ignored)
-         * @param tender true if currency is legal tender.
          */
-        void collect(String region, String currency, long from, long to, int priority, boolean tender);
+        void collect(String region, String currency, long from, long to, int priority);
 
         /**
          * Return the list of unique items in the order in which we encountered them for the
