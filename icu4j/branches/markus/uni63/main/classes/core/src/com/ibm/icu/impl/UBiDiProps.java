@@ -1,7 +1,7 @@
 /*
 *******************************************************************************
 *
-*   Copyright (C) 2004-2011, International Business Machines
+*   Copyright (C) 2004-2013, International Business Machines
 *   Corporation and others.  All Rights Reserved.
 *
 *******************************************************************************
@@ -198,6 +198,9 @@ public final class UBiDiProps {
         }
     }
 
+    public final int getPairedBracket(int c) {
+        return -1;  // TODO
+    }
     public final boolean isBidiControl(int c) {
         return getFlagFromProps(trie.get(c), BIDI_CONTROL_SHIFT);
     }
