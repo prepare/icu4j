@@ -47,6 +47,9 @@ public class TimeUnitTest extends TestFmwk {
             new TimeUnitAmount(0.0, TimeUnit.HOUR),
             new TimeUnitAmount(0.0, TimeUnit.MINUTE),
             new TimeUnitAmount(17.0, TimeUnit.SECOND));
+    private static final TimePeriod _6h_56_92m = TimePeriod.forAmounts(
+            new TimeUnitAmount(6.0, TimeUnit.HOUR),
+            new TimeUnitAmount(56.92, TimeUnit.MINUTE));
             
     public static void main(String[] args) throws Exception{
         new TimeUnitTest().run(args);
@@ -368,12 +371,13 @@ public class TimeUnitTest extends TestFmwk {
                 {_2y_5M_3w_4d, "2 yrs, 5 mths, 3 wks, 4 days"}};
         Object[][] numericData = {
                 {_19m, "19 mins"},
-                {_1h_23_5s, "1:00:23"},  // truncate any fractions on numeric style
+                {_1h_23_5s, "1:00:23.5"},
                 {_1h_0m_23s, "1:00:23"},
                 {_5h_17m, "5:17"},
                 {_19m_28s, "19:28"},
                 {_2y_5M_3w_4d, "2 yrs, 5 mths, 3 wks, 4 days"},
-                {_0h_0m_17s, "0:00:17"}};
+                {_0h_0m_17s, "0:00:17"},
+                {_6h_56_92m, "6:56.92"}};
         TimeUnitFormat tuf = new TimeUnitFormat(ULocale.ENGLISH, TimeUnitFormat.FULL_NAME);
         verifyFormatPeriod("en FULL", tuf, fullData);
         tuf = new TimeUnitFormat(ULocale.ENGLISH, TimeUnitFormat.ABBREVIATED_NAME);

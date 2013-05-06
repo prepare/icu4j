@@ -6,6 +6,7 @@
  */
 package com.ibm.icu.text;
 
+import java.text.AttributedCharacterIterator;
 import java.text.FieldPosition;
 import java.text.ParsePosition;
 import java.util.Date;
@@ -402,11 +403,13 @@ public class TimeUnitFormat extends MeasureFormat {
     
     private String formatPeriodAsNumeric(TimePeriod timePeriod) {
         TimeUnit biggestUnit = null, smallestUnit = null;
+        Number smallestUnitAmount = null;
         for (TimeUnitAmount tua : timePeriod) {
             if (biggestUnit == null) {
                 biggestUnit = tua.getTimeUnit();
             }
             smallestUnit = tua.getTimeUnit();
+            smallestUnitAmount = tua.getNumber();
         }
         long millis = (long) (((getAmountOrZero(timePeriod, TimeUnit.HOUR) * 60.0
                 + getAmountOrZero(timePeriod, TimeUnit.MINUTE)) * 60.0
@@ -414,18 +417,62 @@ public class TimeUnitFormat extends MeasureFormat {
         Date d = new Date(millis);
         // We have to trim the result of  MessageFormat.format() not sure why.
         if (biggestUnit == TimeUnit.HOUR && smallestUnit == TimeUnit.SECOND) {
-            return hourMinuteSecond.format(d);
+            return numericFormat(
+                    d, hourMinuteSecond, DateFormat.Field.SECOND, smallestUnitAmount);
         }
         if (biggestUnit == TimeUnit.MINUTE && smallestUnit == TimeUnit.SECOND) {
-            return minuteSecond.format(d);
-            
+            return numericFormat(
+                    d, minuteSecond, DateFormat.Field.SECOND, smallestUnitAmount);          
         }
         if (biggestUnit == TimeUnit.HOUR && smallestUnit == TimeUnit.MINUTE) {
-            return hourMinute.format(d);            
+            return numericFormat(d, hourMinute, DateFormat.Field.MINUTE, smallestUnitAmount);
         }
         return null;
     }
-    
+
+    /**
+     * numericFormat allows us to show fractional durations using numeric
+     * style e.g 12:34:56.7. This function is necessary because there is no way to express
+     * fractions of durations other than seconds with current DateFormat objects.
+     * 
+     * After formatting the duration using a DateFormat object in the usual way, it
+     * replaces the smallest field in the formatted string with the exact fractional
+     * amount of that smallest field formatted with this object's NumberFormat object.
+     * 
+     * @param duration The duration to format in milliseconds. The loss of precision here
+     * is ok because we also pass in the exact amount of the smallest field.
+     * @param formatter formats the date.
+     * @param smallestField the smallest defined field in duration to be formatted.
+     * @param smallestAmount the exact fractional value of the smallest amount. 
+     * @return
+     */
+    private String numericFormat(
+            Date duration,
+            DateFormat formatter,
+            DateFormat.Field smallestField,
+            Number smallestAmount) {
+        // Format the smallest amount ahead of time.
+        String smallestAmountFormatted = format.format(smallestAmount);
+        
+        // Format the duration using the provided DateFormat object. The smallest
+        // field in this result will be missing the fractional part.
+        AttributedCharacterIterator iterator = formatter.formatToCharacterIterator(duration);
+        StringBuilder builder = new StringBuilder();
+        
+        // iterate through formatted text. When we find the smallest field replace it
+        // with the correct formatted amount.
+        for (iterator.first(); iterator.getIndex() < iterator.getEndIndex();) {
+            if (iterator.getAttributes().containsKey(smallestField)) {
+                builder.append(smallestAmountFormatted);
+                iterator.setIndex(iterator.getRunLimit(smallestField));
+            } else {
+                builder.append(iterator.current());
+                iterator.next();
+            }
+        }
+        return builder.toString();
+    }
+
     private double getAmountOrZero(TimePeriod timePeriod, TimeUnit timeUnit) {
         TimeUnitAmount tua = timePeriod.getAmount(timeUnit);
         if (tua == null) {
