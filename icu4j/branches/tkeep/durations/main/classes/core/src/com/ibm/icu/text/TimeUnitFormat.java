@@ -8,6 +8,7 @@ package com.ibm.icu.text;
 
 import java.text.FieldPosition;
 import java.text.ParsePosition;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -20,6 +21,7 @@ import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.util.TimePeriod;
 import com.ibm.icu.util.TimeUnit;
 import com.ibm.icu.util.TimeUnitAmount;
+import com.ibm.icu.util.TimeZone;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.ULocale.Category;
 import com.ibm.icu.util.UResourceBundle;
@@ -96,9 +98,9 @@ public class TimeUnitFormat extends MeasureFormat {
     private transient Map<TimeUnit, Map<String, Object[]>> timeUnitToCountToPatterns;
     private transient PluralRules pluralRules;
     private transient ListFormatter listFormatter;
-    private transient MessageFormat hourMinute;
-    private transient MessageFormat minuteSecond;
-    private transient MessageFormat hourMinuteSecond;
+    private transient DateFormat hourMinute;
+    private transient DateFormat minuteSecond;
+    private transient DateFormat hourMinuteSecond;
     private transient boolean isReady;
     private int style;
 
@@ -372,36 +374,30 @@ public class TimeUnitFormat extends MeasureFormat {
             format = NumberFormat.getNumberInstance(locale);
         }
         pluralRules = PluralRules.forLocale(locale);
-        listFormatter = ListFormatter.getInstance(locale);
-        DateTimePatternGenerator df = DateTimePatternGenerator.getInstance(locale);
-        hourMinute = getPattern(df, "hm", locale, "{0}", "{1,number,00.###}", null);
-        minuteSecond = getPattern(df, "ms", locale, null, "{1}", "{2,number,00.###}");
-        hourMinuteSecond = getPattern(df, "hms", locale, "{0}", "{1,number,00}", "{2,number,00.###}");
+        if (style == FULL_NAME) {
+          listFormatter = ListFormatter.getInstance(locale, ListFormatter.Style.DURATION);
+        } else {
+          listFormatter = ListFormatter.getInstance(locale, ListFormatter.Style.DURATION_SHORT);
+        }
+        hourMinute = loadNumericDurationFormat(locale, "hm");
+        minuteSecond = loadNumericDurationFormat(locale, "ms");
+        hourMinuteSecond = loadNumericDurationFormat(locale, "hms");
         timeUnitToCountToPatterns = new HashMap<TimeUnit, Map<String, Object[]>>();
-
         Set<String> pluralKeywords = pluralRules.getKeywords();
         setup("units", timeUnitToCountToPatterns, FULL_NAME, pluralKeywords);
         setup("unitsShort", timeUnitToCountToPatterns, ABBREVIATED_NAME, pluralKeywords);
         isReady = true;
     }
     
-    private MessageFormat getPattern(DateTimePatternGenerator dtpg, String skeleton, ULocale locale, 
-            String h, String m, String s) {
-        String pat = dtpg.getBestPattern(skeleton);
-        StringBuilder buffer = new StringBuilder();
-        for (Object item : new DateTimePatternGenerator.FormatParser().set(pat).getItems()) {
-            if (item instanceof DateTimePatternGenerator.VariableField) {
-                DateTimePatternGenerator.VariableField fld = (DateTimePatternGenerator.VariableField)item;
-                switch (fld.getType()) {
-                case DateTimePatternGenerator.HOUR: buffer.append(h); break;
-                case DateTimePatternGenerator.MINUTE: buffer.append(m); break;
-                case DateTimePatternGenerator.SECOND: buffer.append(s); break;
-                }
-            } else {
-                buffer.append(item);
-            }
-        }
-        return new MessageFormat(buffer.toString(), locale);
+    // type is one of "hm", "ms" or "hms"
+    private static DateFormat loadNumericDurationFormat(ULocale ulocale, String type) {
+        ICUResourceBundle r = (ICUResourceBundle)UResourceBundle.
+                getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, ulocale);
+        r = r.getWithFallback(String.format("durationUnits/%s", type));
+        // We replace 'h' with 'H' because 'h' does not make sense in the context of durations.
+        DateFormat result = new SimpleDateFormat(r.getString().replace("h", "H"));
+        result.setTimeZone(TimeZone.GMT_ZONE);
+        return result;
     }
     
     private String formatPeriodAsNumeric(TimePeriod timePeriod) {
@@ -412,35 +408,30 @@ public class TimeUnitFormat extends MeasureFormat {
             }
             smallestUnit = tua.getTimeUnit();
         }
+        long millis = (long) (((getAmountOrZero(timePeriod, TimeUnit.HOUR) * 60.0
+                + getAmountOrZero(timePeriod, TimeUnit.MINUTE)) * 60.0
+                + getAmountOrZero(timePeriod, TimeUnit.SECOND)) * 1000.0 + 0.5);
+        Date d = new Date(millis);
         // We have to trim the result of  MessageFormat.format() not sure why.
         if (biggestUnit == TimeUnit.HOUR && smallestUnit == TimeUnit.SECOND) {
-            return hourMinuteSecond.format(new Object[]{
-                    getZeroedAmount(timePeriod, TimeUnit.HOUR),
-                    getZeroedAmount(timePeriod, TimeUnit.MINUTE),
-                    getZeroedAmount(timePeriod, TimeUnit.SECOND)}).trim();
-            
+            return hourMinuteSecond.format(d);
         }
         if (biggestUnit == TimeUnit.MINUTE && smallestUnit == TimeUnit.SECOND) {
-            return minuteSecond.format(new Object[]{
-                    null,
-                    getZeroedAmount(timePeriod, TimeUnit.MINUTE),
-                    getZeroedAmount(timePeriod, TimeUnit.SECOND)}).trim();
+            return minuteSecond.format(d);
             
         }
         if (biggestUnit == TimeUnit.HOUR && smallestUnit == TimeUnit.MINUTE) {
-            return hourMinute.format(new Object[]{
-                    getZeroedAmount(timePeriod, TimeUnit.HOUR),
-                    getZeroedAmount(timePeriod, TimeUnit.MINUTE)}).trim();            
+            return hourMinute.format(d);            
         }
         return null;
     }
     
-    private Number getZeroedAmount(TimePeriod timePeriod, TimeUnit timeUnit) {
+    private double getAmountOrZero(TimePeriod timePeriod, TimeUnit timeUnit) {
         TimeUnitAmount tua = timePeriod.getAmount(timeUnit);
         if (tua == null) {
-            return Double.valueOf(0);
+            return 0.0;
         }
-        return tua.getNumber();
+        return tua.getNumber().doubleValue();
     }
 
     private void setup(String resourceKey, Map<TimeUnit, Map<String, Object[]>> timeUnitToCountToPatterns,

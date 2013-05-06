@@ -43,6 +43,10 @@ public class TimeUnitTest extends TestFmwk {
             new TimeUnitAmount(5.0, TimeUnit.MONTH),
             new TimeUnitAmount(3.0, TimeUnit.WEEK),
             new TimeUnitAmount(4.0, TimeUnit.DAY));
+    private static final TimePeriod _0h_0m_17s = TimePeriod.forAmounts(
+            new TimeUnitAmount(0.0, TimeUnit.HOUR),
+            new TimeUnitAmount(0.0, TimeUnit.MINUTE),
+            new TimeUnitAmount(17.0, TimeUnit.SECOND));
             
     public static void main(String[] args) throws Exception{
         new TimeUnitTest().run(args);
@@ -359,16 +363,17 @@ public class TimeUnitTest extends TestFmwk {
                 {_2y_5M_3w_4d, "2 years, 5 months, 3 weeks, and 4 days"}};
         Object[][] abbrevData = {
                 {_19m, "19 mins"},
-                {_1h_23_5s, "1 hr and 23.5 secs"},
-                {_1h_0m_23s, "1 hr, 0 mins, and 23 secs"},
-                {_2y_5M_3w_4d, "2 yrs, 5 mths, 3 wks, and 4 days"}};
+                {_1h_23_5s, "1 hr, 23.5 secs"},
+                {_1h_0m_23s, "1 hr, 0 mins, 23 secs"},
+                {_2y_5M_3w_4d, "2 yrs, 5 mths, 3 wks, 4 days"}};
         Object[][] numericData = {
                 {_19m, "19 mins"},
-                {_1h_23_5s, "1:00:23.5"},
+                {_1h_23_5s, "1:00:23"},  // truncate any fractions on numeric style
                 {_1h_0m_23s, "1:00:23"},
                 {_5h_17m, "5:17"},
                 {_19m_28s, "19:28"},
-                {_2y_5M_3w_4d, "2 yrs, 5 mths, 3 wks, and 4 days"}};
+                {_2y_5M_3w_4d, "2 yrs, 5 mths, 3 wks, 4 days"},
+                {_0h_0m_17s, "0:00:17"}};
         TimeUnitFormat tuf = new TimeUnitFormat(ULocale.ENGLISH, TimeUnitFormat.FULL_NAME);
         verifyFormatPeriod("en FULL", tuf, fullData);
         tuf = new TimeUnitFormat(ULocale.ENGLISH, TimeUnitFormat.ABBREVIATED_NAME);
