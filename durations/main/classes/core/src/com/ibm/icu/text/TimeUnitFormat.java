@@ -135,8 +135,7 @@ public class TimeUnitFormat extends MeasureFormat {
     }
 
     /**
-     * Create TimeUnitFormat given a ULocale and a formatting style: full or
-     * abbreviated.
+     * Create TimeUnitFormat given a ULocale and a formatting style.
      * @param locale   locale of this time unit formatter.
      * @param style    format style, either FULL_NAME or ABBREVIATED_NAME style.
      * @throws IllegalArgumentException if the style is not FULL_NAME or
@@ -153,8 +152,7 @@ public class TimeUnitFormat extends MeasureFormat {
     }
 
     /**
-     * Create TimeUnitFormat given a Locale and a formatting style: full or
-     * abbreviated.
+     * Create TimeUnitFormat given a Locale and a formatting style.
      * @stable ICU 4.2
      */
     public TimeUnitFormat(Locale locale, int style) {
@@ -444,7 +442,7 @@ public class TimeUnitFormat extends MeasureFormat {
      * @param formatter formats the date.
      * @param smallestField the smallest defined field in duration to be formatted.
      * @param smallestAmount the exact fractional value of the smallest amount. 
-     * @return
+     * @return duration formatted numeric style.
      */
     private String numericFormat(
             Date duration,
@@ -457,10 +455,13 @@ public class TimeUnitFormat extends MeasureFormat {
         // Format the duration using the provided DateFormat object. The smallest
         // field in this result will be missing the fractional part.
         AttributedCharacterIterator iterator = formatter.formatToCharacterIterator(duration);
+        
+        // The final formatted duration will be written here.
         StringBuilder builder = new StringBuilder();
         
-        // iterate through formatted text. When we find the smallest field replace it
-        // with the correct formatted amount.
+        // iterate through formatted text copying to 'builder' one character at a time.
+        // When we get to the smallest amount, skip over it and copy
+        // 'smallestAmountFormatted' to the builder instead.
         for (iterator.first(); iterator.getIndex() < iterator.getEndIndex();) {
             if (iterator.getAttributes().containsKey(smallestField)) {
                 builder.append(smallestAmountFormatted);

@@ -31,6 +31,9 @@ public class TimeUnitTest extends TestFmwk {
     private static final TimePeriod _1h_23_5s = TimePeriod.forAmounts(
             new TimeUnitAmount(1.0, TimeUnit.HOUR),
             new TimeUnitAmount(23.5, TimeUnit.SECOND));
+    private static final TimePeriod _1h_23_5m = TimePeriod.forAmounts(
+            new TimeUnitAmount(1.0, TimeUnit.HOUR),
+            new TimeUnitAmount(23.5, TimeUnit.MINUTE));
     private static final TimePeriod _1h_0m_23s = TimePeriod.forAmounts(
             new TimeUnitAmount(1.0, TimeUnit.HOUR),
             new TimeUnitAmount(0.0, TimeUnit.MINUTE),
@@ -362,11 +365,13 @@ public class TimeUnitTest extends TestFmwk {
         Object[][] fullData = {
                 {_19m, "19 minutes"},
                 {_1h_23_5s, "1 hour and 23.5 seconds"},
+                {_1h_23_5m, "1 hour and 23.5 minutes"},
                 {_1h_0m_23s, "1 hour, 0 minutes, and 23 seconds"},
                 {_2y_5M_3w_4d, "2 years, 5 months, 3 weeks, and 4 days"}};
         Object[][] abbrevData = {
                 {_19m, "19 mins"},
                 {_1h_23_5s, "1 hr, 23.5 secs"},
+                {_1h_23_5m, "1 hr, 23.5 mins"},
                 {_1h_0m_23s, "1 hr, 0 mins, 23 secs"},
                 {_2y_5M_3w_4d, "2 yrs, 5 mths, 3 wks, 4 days"}};
         Object[][] numericData = {
