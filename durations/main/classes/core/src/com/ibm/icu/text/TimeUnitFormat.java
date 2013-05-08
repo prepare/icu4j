@@ -267,7 +267,10 @@ public class TimeUnitFormat extends MeasureFormat {
     }
 
     /**
-     * Parse a TimeUnitAmount.
+     * Parse a TimeUnitAmount. Parsing TimePeriod objects is not supported.
+     * Calling parseObject on a formatted TimePeriod will either
+     * fail or return a TimeUnitAmount representing just one of the components of the
+     * original TimePeriod.  
      * @see java.text.Format#parseObject(java.lang.String, java.text.ParsePosition)
      * @stable ICU 4.0
      */
