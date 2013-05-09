@@ -12,6 +12,7 @@ import java.text.ParsePosition;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -86,6 +87,13 @@ public class Currency extends MeasureUnit implements Serializable {
      * @stable ICU 4.2
      */
     public static final int PLURAL_LONG_NAME = 2;
+    
+    private static final EquivalenceRelation<String> EQUIVALENT_CURRENCY_SYMBOLS =
+            new EquivalenceRelation<String>()
+            .add("\u00a5", "\uffe5")
+            .add("$", "\ufe69", "\uff04")
+            .add("\u20a8", "\u20b9")
+            .add("\u00a3", "\u20a4");
 
     // begin registry stuff
 
@@ -654,35 +662,18 @@ public class Currency extends MeasureUnit implements Serializable {
         TextTrieMap<CurrencyStringInfo> currencyNameTrie = currencyTrieVec.get(1);
         CurrencyNameResultHandler handler = new CurrencyNameResultHandler();
         currencyNameTrie.find(text, pos.getIndex(), handler);
-        List<CurrencyStringInfo> list = handler.getMatchedCurrencyNames();
-        if (list != null && list.size() != 0) {
-            for (CurrencyStringInfo info : list) {
-                String isoCode = info.getISOCode();
-                String currencyString = info.getCurrencyString();
-                if (currencyString.length() > maxLength) {
-                    maxLength = currencyString.length();
-                    isoResult = isoCode;
-                }
-            }
-        }
+        isoResult = handler.getBestCurrencyISOCode();
+        maxLength = handler.getBestMatchLength();
 
         if (type != Currency.LONG_NAME) {  // not long name only
             TextTrieMap<CurrencyStringInfo> currencySymbolTrie = currencyTrieVec.get(0);
             handler = new CurrencyNameResultHandler();
             currencySymbolTrie.find(text, pos.getIndex(), handler);
-            list = handler.getMatchedCurrencyNames();
-            if (list != null && list.size() != 0) {
-                for (CurrencyStringInfo info : list) {
-                    String isoCode = info.getISOCode();
-                    String currencyString = info.getCurrencyString();
-                    if (currencyString.length() > maxLength) {
-                        maxLength = currencyString.length();
-                        isoResult = isoCode;
-                    }
-                }
+            if (handler.getBestMatchLength() > maxLength) {
+                isoResult = handler.getBestCurrencyISOCode();
+                maxLength = handler.getBestMatchLength();
             }
         }
-
         int start = pos.getIndex();
         pos.setIndex(start + maxLength);
         return isoResult;
@@ -698,7 +689,9 @@ public class Currency extends MeasureUnit implements Serializable {
         for (Map.Entry<String, String> e : names.symbolMap().entrySet()) {
             String symbol = e.getKey();
             String isoCode = e.getValue();
-            symTrie.put(symbol, new CurrencyStringInfo(isoCode, symbol));
+            for (String equivalentSymbol : EQUIVALENT_CURRENCY_SYMBOLS.get(symbol)) {
+                symTrie.put(equivalentSymbol, new CurrencyStringInfo(isoCode, symbol));
+            }
         }
         for (Map.Entry<String, String> e : names.nameMap().entrySet()) {
             String name = e.getKey();
@@ -727,40 +720,23 @@ public class Currency extends MeasureUnit implements Serializable {
 
     private static class CurrencyNameResultHandler 
             implements TextTrieMap.ResultHandler<CurrencyStringInfo> {
-        private ArrayList<CurrencyStringInfo> resultList;
+        private int bestMatchLength;
+        private String bestCurrencyISOCode;
     
         public boolean handlePrefixMatch(int matchLength, Iterator<CurrencyStringInfo> values) {
-            if (resultList == null) {
-                resultList = new ArrayList<CurrencyStringInfo>();
-            }
-            while (values.hasNext()) {
-                CurrencyStringInfo item = values.next();
-                if (item == null) {
-                    break;
-                }
-                int i = 0;
-                for (; i < resultList.size(); i++) {
-                    CurrencyStringInfo tmp = resultList.get(i);
-                    if (item.getISOCode().equals(tmp.getISOCode())) {
-                        if (matchLength > tmp.getCurrencyString().length()) {
-                            resultList.set(i, item);
-                        }
-                        break;
-                    }
-                }
-                if (i == resultList.size()) {
-                    // not found in the current list
-                    resultList.add(item);
-                }
+            if (values.hasNext()) {
+                bestCurrencyISOCode = values.next().getISOCode();
+                bestMatchLength = matchLength;
             }
             return true;
         }
 
-        List<CurrencyStringInfo> getMatchedCurrencyNames() {
-            if (resultList == null || resultList.size() == 0) {
-                return null;
-            }
-            return resultList;
+        public String getBestCurrencyISOCode() {
+            return bestCurrencyISOCode;
+        }
+        
+        public int getBestMatchLength() {
+            return bestMatchLength;
         }
     }
 
@@ -913,6 +889,33 @@ public class Currency extends MeasureUnit implements Serializable {
     private static List<String> getTenderCurrencies(CurrencyFilter filter) {
         CurrencyMetaInfo info = CurrencyMetaInfo.getInstance();
         return info.currencies(filter.withTender());
+    }
+    
+    private static final class EquivalenceRelation<T> {
+        
+        private Map<T, Set<T>> data = new HashMap<T, Set<T>>();
+        
+        public EquivalenceRelation<T> add(T... items) {
+            Set<T> group = new HashSet<T>();
+            for (T item : items) {
+                if (data.containsKey(item)) {
+                    throw new IllegalArgumentException("All groups passed to add must be disjoint.");
+                }
+                group.add(item);
+            }
+            for (T item : items) {
+                data.put(item, group);
+            }
+            return this;
+        }
+        
+        public Set<T> get(T item) {
+            Set<T> result = data.get(item);
+            if (result == null) {
+                return Collections.singleton(item);
+            }
+            return Collections.unmodifiableSet(result);
+        }
     }
 }
 //eof
