@@ -436,7 +436,7 @@ public class TimeUnitTest extends TestFmwk {
         StringBuilder builder = new StringBuilder();
         boolean failure = false;
         for (Object[] testCase : testData) {
-            String actual = tuf.formatTimePeriod((TimePeriod) testCase[0]);
+            String actual = tuf.format(testCase[0]);
             if (!testCase[1].equals(actual)) {
                 builder.append(String.format("%s: Expected: '%s', got: '%s'\n", desc, testCase[1], actual));
                 failure = true;

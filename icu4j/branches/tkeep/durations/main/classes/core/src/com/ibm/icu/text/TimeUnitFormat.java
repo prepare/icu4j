@@ -226,11 +226,17 @@ public class TimeUnitFormat extends MeasureFormat {
      */
     public StringBuffer format(Object obj, StringBuffer toAppendTo,
             FieldPosition pos) {
-        if ( !(obj instanceof TimeUnitAmount) ) {
-            throw new IllegalArgumentException("can not format non TimeUnitAmount object");
+        if ( !(obj instanceof TimeUnitAmount) && !(obj instanceof TimePeriod)) {
+            throw new IllegalArgumentException(
+                    "can only format TimeUnitAmount or TimePeriod objects");
         }
         if (!isReady) {
             setup();
+        }
+        if (obj instanceof TimePeriod) {
+            // TODO: set FieldPosition, see ICU tickets 10156 and 10157.
+            toAppendTo.append(formatTimePeriod((TimePeriod) obj));
+            return toAppendTo;
         }
         TimeUnitAmount amount = (TimeUnitAmount) obj;
         Map<String, Object[]> countToPattern = timeUnitToCountToPatterns.get(amount.getTimeUnit());
@@ -242,13 +248,7 @@ public class TimeUnitFormat extends MeasureFormat {
         return pattern.format(new Object[]{amount.getNumber()}, toAppendTo, pos);
     }
     
-    /**
-     * Formats a TimePeriod. Currently there is no way to parse a formatted TimePeriod.
-     * @param timePeriod the TimePeriod to format.
-     * @return the formatted string.
-     * @draft ICU 52
-     */
-    public String formatTimePeriod(TimePeriod timePeriod) {
+    private String formatTimePeriod(TimePeriod timePeriod) {
         if (!isReady) {
             setup();
         }
