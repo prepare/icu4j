@@ -1114,9 +1114,10 @@ abstract public class TimeZone implements Serializable, Cloneable, Freezable<Tim
     }
 
     /**
-     * {@icu} Converts a system time zone ID to a Windows time zone ID. For example,
+     * {@icu} Converts a system time zone ID to an equivalent Windows time zone ID. For example,
      * Windows time zone ID "Pacific Standard Time" is returned for input "America/Los_Angeles".
-     * There are system time zones that cannot be mapped to Windows zones. When the input
+     * 
+     * <p>There are system time zones that cannot be mapped to Windows zones. When the input
      * system time zone ID is unknown or unmappable to a Windows time zone, then this
      * method returns <code>null</code>.
      * 
@@ -1176,6 +1177,10 @@ abstract public class TimeZone implements Serializable, Cloneable, Freezable<Tim
      * "America/Vancouver" is returned for the same Windows ID "Pacific Standard Time" and
      * region "CA".
      * 
+     * <p>Not all Windows time zones can be mapped to system time zones. When the input
+     * Windows time zone ID is unknown or unmappable to a system time zone, then this
+     * method returns <code>null</code>.
+     *
      * <p>This implementation utilizes <a href="http://unicode.org/cldr/charts/supplemental/zone_tzid.html">
      * Zone-Tzid mapping data<a>. The mapping data is updated time to time. To get the latest changes,
      * please read the ICU user guide section <a href="http://userguide.icu-project.org/datetime/timezone#TOC-Updating-the-Time-Zone-Data">
