@@ -53,6 +53,9 @@ public class TimeUnitTest extends TestFmwk {
     private static final TimePeriod _6h_56_92m = TimePeriod.forAmounts(
             new TimeUnitAmount(6.0, TimeUnit.HOUR),
             new TimeUnitAmount(56.92, TimeUnit.MINUTE));
+    private static final TimePeriod _1m_59_9996s = TimePeriod.forAmounts(
+            new TimeUnitAmount(1.0, TimeUnit.MINUTE),
+            new TimeUnitAmount(59.9996, TimeUnit.SECOND));
             
     public static void main(String[] args) throws Exception{
         new TimeUnitTest().run(args);
@@ -365,6 +368,7 @@ public class TimeUnitTest extends TestFmwk {
         Object[][] fullData = {
                 {_19m, "19 minutes"},
                 {_1h_23_5s, "1 hour and 23.5 seconds"},
+                {_1m_59_9996s, "1 minute and 59.9996 seconds"},
                 {_1h_23_5m, "1 hour and 23.5 minutes"},
                 {_1h_0m_23s, "1 hour, 0 minutes, and 23 seconds"},
                 {_2y_5M_3w_4d, "2 years, 5 months, 3 weeks, and 4 days"}};

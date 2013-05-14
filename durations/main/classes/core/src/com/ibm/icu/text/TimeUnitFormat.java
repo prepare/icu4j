@@ -414,9 +414,8 @@ public class TimeUnitFormat extends MeasureFormat {
         }
         long millis = (long) (((getAmountOrZero(timePeriod, TimeUnit.HOUR) * 60.0
                 + getAmountOrZero(timePeriod, TimeUnit.MINUTE)) * 60.0
-                + getAmountOrZero(timePeriod, TimeUnit.SECOND)) * 1000.0 + 0.5);
+                + getAmountOrZero(timePeriod, TimeUnit.SECOND)) * 1000.0);
         Date d = new Date(millis);
-        // We have to trim the result of  MessageFormat.format() not sure why.
         if (biggestUnit == TimeUnit.HOUR && smallestUnit == TimeUnit.SECOND) {
             return numericFormat(
                     d, hourMinuteSecond, DateFormat.Field.SECOND, smallestUnitAmount);
@@ -477,7 +476,7 @@ public class TimeUnitFormat extends MeasureFormat {
         return builder.toString();
     }
 
-    private double getAmountOrZero(TimePeriod timePeriod, TimeUnit timeUnit) {
+    private static double getAmountOrZero(TimePeriod timePeriod, TimeUnit timeUnit) {
         TimeUnitAmount tua = timePeriod.getAmount(timeUnit);
         if (tua == null) {
             return 0.0;
