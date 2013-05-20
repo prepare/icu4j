@@ -1138,7 +1138,7 @@ abstract public class TimeZone implements Serializable, Cloneable, Freezable<Tim
         boolean[] isSystemID = {false};
         id = getCanonicalID(id, isSystemID);
         if (!isSystemID[0]) {
-            // mapping data is only applicable to tz databased IDs
+            // mapping data is only applicable to tz database IDs
             return null; 
         }
 
