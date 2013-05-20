@@ -366,32 +366,40 @@ public class TimeUnitTest extends TestFmwk {
     
     public void TestFormatPeriodEn() {
         Object[][] fullData = {
+                {_1m_59_9996s, "1 minute and 59.9996 seconds"},
                 {_19m, "19 minutes"},
                 {_1h_23_5s, "1 hour and 23.5 seconds"},
-                {_1m_59_9996s, "1 minute and 59.9996 seconds"},
                 {_1h_23_5m, "1 hour and 23.5 minutes"},
                 {_1h_0m_23s, "1 hour, 0 minutes, and 23 seconds"},
                 {_2y_5M_3w_4d, "2 years, 5 months, 3 weeks, and 4 days"}};
         Object[][] abbrevData = {
+                {_1m_59_9996s, "1 min, 59.9996 secs"},
                 {_19m, "19 mins"},
                 {_1h_23_5s, "1 hr, 23.5 secs"},
                 {_1h_23_5m, "1 hr, 23.5 mins"},
                 {_1h_0m_23s, "1 hr, 0 mins, 23 secs"},
                 {_2y_5M_3w_4d, "2 yrs, 5 mths, 3 wks, 4 days"}};
         Object[][] numericData = {
+                {_1m_59_9996s, "1:59.9996"},
                 {_19m, "19 mins"},
                 {_1h_23_5s, "1:00:23.5"},
                 {_1h_0m_23s, "1:00:23"},
+                {_1h_23_5m, "1:23.5"},
                 {_5h_17m, "5:17"},
                 {_19m_28s, "19:28"},
                 {_2y_5M_3w_4d, "2 yrs, 5 mths, 3 wks, 4 days"},
                 {_0h_0m_17s, "0:00:17"},
                 {_6h_56_92m, "6:56.92"}};
         TimeUnitFormat tuf = new TimeUnitFormat(ULocale.ENGLISH, TimeUnitFormat.FULL_NAME);
+        NumberFormat nf = NumberFormat.getNumberInstance(ULocale.ENGLISH);
+        nf.setMaximumFractionDigits(4);
+        tuf.setNumberFormat(nf);
         verifyFormatPeriod("en FULL", tuf, fullData);
         tuf = new TimeUnitFormat(ULocale.ENGLISH, TimeUnitFormat.ABBREVIATED_NAME);
+        tuf.setNumberFormat(nf);
         verifyFormatPeriod("en ABBREV", tuf, abbrevData);       
         tuf = new TimeUnitFormat(ULocale.ENGLISH, TimeUnitFormat.NUMERIC);
+        tuf.setNumberFormat(nf);
         verifyFormatPeriod("en NUMERIC", tuf, numericData);
     }
     
