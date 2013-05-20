@@ -2171,6 +2171,7 @@ public class TimeZoneTest extends TestFmwk
             {"America/Indianapolis",    "US Eastern Standard Time"},            // CLDR canonical name
             {"America/Indiana/Indianapolis",    "US Eastern Standard Time"},    // tzdb canonical name
             {"Asia/Khandyga",           "Yakutsk Standard Time"},
+            {"Australia/Eucla",         null}, // No Windows ID mapping
             {"Bogus",                   null},
         };
 
@@ -2189,6 +2190,7 @@ public class TimeZoneTest extends TestFmwk
             {"China Standard Time",     null,   "Asia/Shanghai"},
             {"China Standard Time",     "CN",   "Asia/Shanghai"},
             {"China Standard Time",     "HK",   "Asia/Hong_Kong"},
+            {"Mid-Atlantic Standard Time",  null,   null}, // No tz database mapping
             {"Bogus",                   null,   null},
         };
 
