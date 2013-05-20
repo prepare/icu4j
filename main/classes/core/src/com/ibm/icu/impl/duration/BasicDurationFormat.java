@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2007-2013, International Business Machines Corporation and    *
+ * Copyright (C) 2007-2009, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -30,6 +30,8 @@ public class BasicDurationFormat extends DurationFormat {
         return new BasicDurationFormat(locale);
     }
 
+    private static boolean checkXMLDuration = true; 
+
     public StringBuffer format(Object object, StringBuffer toAppend, FieldPosition pos) {
         if(object instanceof Long) {
             String res = formatDurationFromNow(((Long)object).longValue());
@@ -37,9 +39,15 @@ public class BasicDurationFormat extends DurationFormat {
         } else if(object instanceof Date) {
             String res = formatDurationFromNowTo(((Date)object));
             return toAppend.append(res);
-        } else if (object instanceof javax.xml.datatype.Duration) {
-            String res = formatDuration(object);
-            return toAppend.append(res);
+        }
+        if(checkXMLDuration) try {
+            if(object instanceof javax.xml.datatype.Duration) {
+                String res = formatDuration(object);
+                return toAppend.append(res);
+            }
+        } catch ( NoClassDefFoundError ncdfe ) {
+            System.err.println("Skipping XML capability");
+            checkXMLDuration = false; // don't try again
         }
         throw new IllegalArgumentException("Cannot format given Object as a Duration");
 

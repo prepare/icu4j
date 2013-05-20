@@ -708,9 +708,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
               }
               break;
         }
-        if (returnValue == null) {
-            throw new IllegalArgumentException("Bad context or width argument");
-        }
         return duplicate(returnValue);
     }
 
@@ -839,9 +836,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
               }
               break;
         }
-        if (returnValue == null) {
-            throw new IllegalArgumentException("Bad context or width argument");
-        }
         return duplicate(returnValue);
     }
 
@@ -965,9 +959,6 @@ public class DateFormatSymbols implements Serializable, Cloneable {
                      break;
               }
               break;
-        }
-        if (returnValue == null) {
-            throw new IllegalArgumentException("Bad context or width argument");
         }
         return duplicate(returnValue);
     }

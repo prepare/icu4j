@@ -12,7 +12,6 @@ import java.text.ParsePosition;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -87,13 +86,6 @@ public class Currency extends MeasureUnit implements Serializable {
      * @stable ICU 4.2
      */
     public static final int PLURAL_LONG_NAME = 2;
-    
-    private static final EquivalenceRelation<String> EQUIVALENT_CURRENCY_SYMBOLS =
-            new EquivalenceRelation<String>()
-            .add("\u00a5", "\uffe5")
-            .add("$", "\ufe69", "\uff04")
-            .add("\u20a8", "\u20b9")
-            .add("\u00a3", "\u20a4");
 
     // begin registry stuff
 
@@ -662,18 +654,35 @@ public class Currency extends MeasureUnit implements Serializable {
         TextTrieMap<CurrencyStringInfo> currencyNameTrie = currencyTrieVec.get(1);
         CurrencyNameResultHandler handler = new CurrencyNameResultHandler();
         currencyNameTrie.find(text, pos.getIndex(), handler);
-        isoResult = handler.getBestCurrencyISOCode();
-        maxLength = handler.getBestMatchLength();
+        List<CurrencyStringInfo> list = handler.getMatchedCurrencyNames();
+        if (list != null && list.size() != 0) {
+            for (CurrencyStringInfo info : list) {
+                String isoCode = info.getISOCode();
+                String currencyString = info.getCurrencyString();
+                if (currencyString.length() > maxLength) {
+                    maxLength = currencyString.length();
+                    isoResult = isoCode;
+                }
+            }
+        }
 
         if (type != Currency.LONG_NAME) {  // not long name only
             TextTrieMap<CurrencyStringInfo> currencySymbolTrie = currencyTrieVec.get(0);
             handler = new CurrencyNameResultHandler();
             currencySymbolTrie.find(text, pos.getIndex(), handler);
-            if (handler.getBestMatchLength() > maxLength) {
-                isoResult = handler.getBestCurrencyISOCode();
-                maxLength = handler.getBestMatchLength();
+            list = handler.getMatchedCurrencyNames();
+            if (list != null && list.size() != 0) {
+                for (CurrencyStringInfo info : list) {
+                    String isoCode = info.getISOCode();
+                    String currencyString = info.getCurrencyString();
+                    if (currencyString.length() > maxLength) {
+                        maxLength = currencyString.length();
+                        isoResult = isoCode;
+                    }
+                }
             }
         }
+
         int start = pos.getIndex();
         pos.setIndex(start + maxLength);
         return isoResult;
@@ -689,11 +698,7 @@ public class Currency extends MeasureUnit implements Serializable {
         for (Map.Entry<String, String> e : names.symbolMap().entrySet()) {
             String symbol = e.getKey();
             String isoCode = e.getValue();
-            // Register under not just symbol, but under every equivalent symbol as well
-            // e.g short width yen and long width yen.
-            for (String equivalentSymbol : EQUIVALENT_CURRENCY_SYMBOLS.get(symbol)) {
-                symTrie.put(equivalentSymbol, new CurrencyStringInfo(isoCode, symbol));
-            }
+            symTrie.put(symbol, new CurrencyStringInfo(isoCode, symbol));
         }
         for (Map.Entry<String, String> e : names.nameMap().entrySet()) {
             String name = e.getKey();
@@ -722,30 +727,40 @@ public class Currency extends MeasureUnit implements Serializable {
 
     private static class CurrencyNameResultHandler 
             implements TextTrieMap.ResultHandler<CurrencyStringInfo> {
-        // The length of longest matching key
-        private int bestMatchLength;
-        // The currency ISO code of longest matching key
-        private String bestCurrencyISOCode;
+        private ArrayList<CurrencyStringInfo> resultList;
     
-        // As the trie is traversed, handlePrefixMatch is called at each node. matchLength is the
-        // length length of the key at the current node; values is the list of all the values mapped to
-        // that key. matchLength increases with each call as trie is traversed.
         public boolean handlePrefixMatch(int matchLength, Iterator<CurrencyStringInfo> values) {
-            if (values.hasNext()) {
-                // Since the best match criteria is only based on length of key in trie and since all the
-                // values are mapped to the same key, we only need to examine the first value.
-                bestCurrencyISOCode = values.next().getISOCode();
-                bestMatchLength = matchLength;
+            if (resultList == null) {
+                resultList = new ArrayList<CurrencyStringInfo>();
+            }
+            while (values.hasNext()) {
+                CurrencyStringInfo item = values.next();
+                if (item == null) {
+                    break;
+                }
+                int i = 0;
+                for (; i < resultList.size(); i++) {
+                    CurrencyStringInfo tmp = resultList.get(i);
+                    if (item.getISOCode().equals(tmp.getISOCode())) {
+                        if (matchLength > tmp.getCurrencyString().length()) {
+                            resultList.set(i, item);
+                        }
+                        break;
+                    }
+                }
+                if (i == resultList.size()) {
+                    // not found in the current list
+                    resultList.add(item);
+                }
             }
             return true;
         }
 
-        public String getBestCurrencyISOCode() {
-            return bestCurrencyISOCode;
-        }
-        
-        public int getBestMatchLength() {
-            return bestMatchLength;
+        List<CurrencyStringInfo> getMatchedCurrencyNames() {
+            if (resultList == null || resultList.size() == 0) {
+                return null;
+            }
+            return resultList;
         }
     }
 
@@ -898,33 +913,6 @@ public class Currency extends MeasureUnit implements Serializable {
     private static List<String> getTenderCurrencies(CurrencyFilter filter) {
         CurrencyMetaInfo info = CurrencyMetaInfo.getInstance();
         return info.currencies(filter.withTender());
-    }
-    
-    private static final class EquivalenceRelation<T> {
-        
-        private Map<T, Set<T>> data = new HashMap<T, Set<T>>();
-        
-        public EquivalenceRelation<T> add(T... items) {
-            Set<T> group = new HashSet<T>();
-            for (T item : items) {
-                if (data.containsKey(item)) {
-                    throw new IllegalArgumentException("All groups passed to add must be disjoint.");
-                }
-                group.add(item);
-            }
-            for (T item : items) {
-                data.put(item, group);
-            }
-            return this;
-        }
-        
-        public Set<T> get(T item) {
-            Set<T> result = data.get(item);
-            if (result == null) {
-                return Collections.singleton(item);
-            }
-            return Collections.unmodifiableSet(result);
-        }
     }
 }
 //eof

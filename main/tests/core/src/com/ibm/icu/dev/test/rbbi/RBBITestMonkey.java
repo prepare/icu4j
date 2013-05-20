@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2003-2013 International Business Machines Corporation and
+ * Copyright (C) 2003-2012 International Business Machines Corporation and
  * others. All Rights Reserved.
  *******************************************************************************
  */
@@ -262,12 +262,8 @@ public class RBBITestMonkey extends TestFmwk {
         UnicodeSet                fCRSet;
         UnicodeSet                fLFSet;
         UnicodeSet                fNewlineSet;
-        UnicodeSet                fRegionalIndicatorSet;
         UnicodeSet                fKatakanaSet;
-        UnicodeSet                fHebrew_LetterSet;
         UnicodeSet                fALetterSet;
-        UnicodeSet                fSingle_QuoteSet;
-        UnicodeSet                fDouble_QuoteSet;
         UnicodeSet                fMidNumLetSet;
         UnicodeSet                fMidLetterSet;
         UnicodeSet                fMidNumSet;
@@ -275,7 +271,9 @@ public class RBBITestMonkey extends TestFmwk {
         UnicodeSet                fFormatSet;
         UnicodeSet                fExtendSet;
         UnicodeSet                fExtendNumLetSet;
-        UnicodeSet                fOtherSet;        
+        UnicodeSet                fRegionalIndicatorSet;
+        UnicodeSet                fOtherSet;
+        
         UnicodeSet                fDictionaryCjkSet;
 
         
@@ -286,13 +284,9 @@ public class RBBITestMonkey extends TestFmwk {
             fCRSet           = new UnicodeSet("[\\p{Word_Break = CR}]");
             fLFSet           = new UnicodeSet("[\\p{Word_Break = LF}]");
             fNewlineSet      = new UnicodeSet("[\\p{Word_Break = Newline}]");
-            fRegionalIndicatorSet = new UnicodeSet("[\\p{Word_Break = Regional_Indicator}]");            
-            fKatakanaSet     = new UnicodeSet("[\\p{Word_Break = Katakana}]");
-            fHebrew_LetterSet = new UnicodeSet("[\\p{Word_Break = Hebrew_Letter}]");            
             fALetterSet      = new UnicodeSet("[\\p{Word_Break = ALetter}]");
             fALetterSet.removeAll(fDictionaryCjkSet);
-            fSingle_QuoteSet = new UnicodeSet("[\\p{Word_Break = Single_Quote}]");
-            fDouble_QuoteSet = new UnicodeSet("[\\p{Word_Break = Double_Quote}]");           
+            fKatakanaSet     = new UnicodeSet("[\\p{Word_Break = Katakana}]");
             fMidNumLetSet    = new UnicodeSet("[\\p{Word_Break = MidNumLet}]");
             fMidLetterSet    = new UnicodeSet("[\\p{Word_Break = MidLetter}]");
             fMidNumSet       = new UnicodeSet("[\\p{Word_Break = MidNum}]");
@@ -300,6 +294,7 @@ public class RBBITestMonkey extends TestFmwk {
             fFormatSet       = new UnicodeSet("[\\p{Word_Break = Format}]");
             fExtendNumLetSet = new UnicodeSet("[\\p{Word_Break = ExtendNumLet}]");
             fExtendSet       = new UnicodeSet("[\\p{Word_Break = Extend}]");
+            fRegionalIndicatorSet = new UnicodeSet("[\\p{Word_Break = Regional_Indicator}]");
 
             fOtherSet        = new UnicodeSet();
             fOtherSet.complement();
@@ -307,10 +302,7 @@ public class RBBITestMonkey extends TestFmwk {
             fOtherSet.removeAll(fLFSet);
             fOtherSet.removeAll(fNewlineSet);
             fOtherSet.removeAll(fALetterSet);
-            fOtherSet.removeAll(fSingle_QuoteSet);
-            fOtherSet.removeAll(fDouble_QuoteSet);
             fOtherSet.removeAll(fKatakanaSet);
-            fOtherSet.removeAll(fHebrew_LetterSet);
             fOtherSet.removeAll(fMidLetterSet);
             fOtherSet.removeAll(fMidNumSet);
             fOtherSet.removeAll(fNumericSet);
@@ -327,12 +319,8 @@ public class RBBITestMonkey extends TestFmwk {
             fSets.add(fCRSet);
             fSets.add(fLFSet);
             fSets.add(fNewlineSet);
-            fSets.add(fRegionalIndicatorSet);
-            fSets.add(fHebrew_LetterSet);
             fSets.add(fALetterSet);
             //fSets.add(fKatakanaSet); // TODO: work out how to test katakana
-            fSets.add(fSingle_QuoteSet);
-            fSets.add(fDouble_QuoteSet);
             fSets.add(fMidLetterSet);
             fSets.add(fMidNumLetSet);
             fSets.add(fMidNumSet);
@@ -340,6 +328,7 @@ public class RBBITestMonkey extends TestFmwk {
             fSets.add(fFormatSet);
             fSets.add(fExtendSet);
             fSets.add(fExtendNumLetSet);
+            fSets.add(fRegionalIndicatorSet);
             fSets.add(fOtherSet);
         }
         
@@ -418,39 +407,25 @@ public class RBBITestMonkey extends TestFmwk {
                     break;
                 }
 
-                // Rule (5).   (ALetter | Hebrew_Letter) x (ALetter | Hebrew_Letter)
-                if ((fALetterSet.contains(c1) || fHebrew_LetterSet.contains(c1)) &&
-                    (fALetterSet.contains(c2) || fHebrew_LetterSet.contains(c2)))  {
+                // Rule (5).   ALetter x ALetter
+                if (fALetterSet.contains(c1) &&
+                        fALetterSet.contains(c2))  {
                     continue;
                 }
-               
-                // Rule (6)  (ALetter | Hebrew_Letter)  x  (MidLetter | MidNumLet | Single_Quote) (ALetter | Hebrew_Letter)
+                
+                // Rule (6)  ALetter  x  (MidLetter | MidNumLet)  ALetter
                 //
-                if ( (fALetterSet.contains(c1) || fHebrew_LetterSet.contains(c1))   &&
-                     (fMidLetterSet.contains(c2) || fMidNumLetSet.contains(c2) || fSingle_QuoteSet.contains(c2)) &&
-                     (setContains(fALetterSet, c3) || setContains(fHebrew_LetterSet, c3))) {
+                if ( fALetterSet.contains(c1) &&
+                        (fMidLetterSet.contains(c2) || fMidNumLetSet.contains(c2)) &&
+                        setContains(fALetterSet, c3)) {
                     continue;
                 }
-
-                // Rule (7)  (ALetter | Hebrew_Letter) (MidLetter | MidNumLet | Single_Quote)  x  (ALetter | Hebrew_Letter)
-                if ((fALetterSet.contains(c0) || fHebrew_LetterSet.contains(c0)) &&
-                    (fMidLetterSet.contains(c1) || fMidNumLetSet.contains(c1) || fSingle_QuoteSet.contains(c1)) &&
-                    (fALetterSet.contains(c2) || fHebrew_LetterSet.contains(c2))) {
-                    continue;
-                }
-
-                // Rule (7a)     Hebrew_Letter x Single_Quote
-                if (fHebrew_LetterSet.contains(c1) && fSingle_QuoteSet.contains(c2)) {
-                    continue;
-                }
-
-                // Rule (7b)    Hebrew_Letter x Double_Quote Hebrew_Letter
-                if (fHebrew_LetterSet.contains(c1) && fDouble_QuoteSet.contains(c2) && setContains(fHebrew_LetterSet,c3)) {
-                    continue;
-                }
-
-                // Rule (7c)    Hebrew_Letter Double_Quote x Hebrew_Letter
-                if (fHebrew_LetterSet.contains(c0) && fDouble_QuoteSet.contains(c1) && fHebrew_LetterSet.contains(c2)) {
+                
+                
+                // Rule (7)  ALetter (MidLetter | MidNumLet)   x  ALetter
+                if (fALetterSet.contains(c0) &&
+                        (fMidLetterSet.contains(c1) ||  fMidNumLetSet.contains(c1))  &&
+                        fALetterSet.contains(c2)) {
                     continue;
                 }
                 
@@ -460,29 +435,29 @@ public class RBBITestMonkey extends TestFmwk {
                     continue;
                 }
                 
-                // Rule (9)    (ALetter | Hebrew_Letter) x Numeric
-                if ((fALetterSet.contains(c1) || fHebrew_LetterSet.contains(c1)) &&
-                    fNumericSet.contains(c2))  {
+                // Rule (9)    ALetter x Numeric
+                if (fALetterSet.contains(c1) &&
+                        fNumericSet.contains(c2))  {
                     continue;
                 }
 
-                // Rule (10)    Numeric x (ALetter | Hebrew_Letter)
+                // Rule (10)    Numeric x ALetter
                 if (fNumericSet.contains(c1) &&
-                    (fALetterSet.contains(c2) || fHebrew_LetterSet.contains(c2)))  {
+                        fALetterSet.contains(c2))  {
                     continue;
                 }
-
-                // Rule (11)   Numeric (MidNum | MidNumLet | Single_Quote)  x  Numeric
-                if (fNumericSet.contains(c0) &&
-                        (fMidNumSet.contains(c1) || fMidNumLetSet.contains(c1) || fSingle_QuoteSet.contains(c1))  &&
+                
+                // Rule (11)   Numeric (MidNum | MidNumLet)  x  Numeric
+                if ( fNumericSet.contains(c0) &&
+                        (fMidNumSet.contains(c1) || fMidNumLetSet.contains(c1))  && 
                         fNumericSet.contains(c2)) {
                     continue;
                 }
                 
-                // Rule (12)  Numeric x (MidNum | MidNumLet | SingleQuote) Numeric
+                // Rule (12)  Numeric x (MidNum | MidNumLet) Numeric
                 if (fNumericSet.contains(c1) &&
-                    (fMidNumSet.contains(c2) || fMidNumLetSet.contains(c2) || fSingle_QuoteSet.contains(c2))  &&
-                    setContains(fNumericSet, c3)) {
+                        (fMidNumSet.contains(c2) || fMidNumLetSet.contains(c2)) &&
+                        setContains(fNumericSet, c3)) {
                     continue;
                 }
                 
@@ -491,21 +466,19 @@ public class RBBITestMonkey extends TestFmwk {
                         fKatakanaSet.contains(c2))  {
                     continue;
                 }
-
-                // Rule 13a    (ALetter | Hebrew_Letter | Numeric | KataKana | ExtendNumLet) x ExtendNumLet
-                if ((fALetterSet.contains(c1) || fHebrew_LetterSet.contains(c1) ||fNumericSet.contains(c1) ||
+                
+                // Rule 13a  (ALetter | Numeric | Katakana | ExtendNumLet) x ExtendNumLet
+                if ((fALetterSet.contains(c1) || fNumericSet.contains(c1) ||
                         fKatakanaSet.contains(c1) || fExtendNumLetSet.contains(c1)) &&
                         fExtendNumLetSet.contains(c2)) {
                     continue;
                 }
-                
-                // Rule 13b   ExtendNumLet x (ALetter | Hebrew_Letter | Numeric | Katakana)
+                // Rule 13b   ExtendNumLet x (ALetter | Numeric | Katakana | ExtendNumLet)
                 if (fExtendNumLetSet.contains(c1) &&
-                        (fALetterSet.contains(c2) || fHebrew_LetterSet.contains(c2) ||
-                         fNumericSet.contains(c2) || fKatakanaSet.contains(c2)))  {
+                        (fALetterSet.contains(c2) || fNumericSet.contains(c2) ||
+                        fKatakanaSet.contains(c2) || fExtendNumLetSet.contains(c2))) {
                     continue;
                 }
-
                 
                 // Rule 13c   Do not break between Regional Indicators. 
                 //            Regional_Indicator  ×   Regional_Indicator
@@ -2003,6 +1976,7 @@ public void TestRTWordMonkey() {
     if (params.inclusion >= 9) {
         loopCount = 2000;
     }
+    
     logln("Word Break Monkey Test");
     RBBIWordMonkey  m = new RBBIWordMonkey();
     BreakIterator   bi = BreakIterator.getWordInstance(Locale.US);

@@ -1,6 +1,6 @@
 /*
  **************************************************************************
- * Copyright (C) 2008-2013, Google, International Business Machines
+ * Copyright (C) 2008-2009, Google, International Business Machines
  * Corporation and others. All Rights Reserved.
  **************************************************************************
  */
@@ -17,34 +17,27 @@ public class TimeUnit extends MeasureUnit {
     /** 
      * Supports selected time duration units
      */
-    private final String name;
-    private final int index;
+    private String name;
 
-    // Total number of time units. Adjust as necessary.
-    static final int TIME_UNIT_COUNT = 7;
-    
-    private static TimeUnit[] values = new TimeUnit[TIME_UNIT_COUNT];
+    private static TimeUnit[] values = new TimeUnit[7]; // adjust count if new items are added
+    private static int valueCount = 0;
 
     /** 
      * Constant value for supported time unit.
      * @stable ICU 4.0
      */
     public static TimeUnit
-    SECOND = new TimeUnit("second", 6),
-    MINUTE = new TimeUnit("minute", 5),
-    HOUR = new TimeUnit("hour", 4),
-    DAY = new TimeUnit("day", 3),
-    WEEK = new TimeUnit("week", 2),
-    MONTH = new TimeUnit("month", 1),
-    YEAR = new TimeUnit("year", 0);
-    
+    SECOND = new TimeUnit("second"),
+    MINUTE = new TimeUnit("minute"),
+    HOUR = new TimeUnit("hour"),
+    DAY = new TimeUnit("day"),
+    WEEK = new TimeUnit("week"),
+    MONTH = new TimeUnit("month"),
+    YEAR = new TimeUnit("year");
 
-    // idx must be sequential and must order time units from largest to smallest.
-    // e.g YEAR is 0; MONTH is 1; ...; SECOND is 6.
-    private TimeUnit(String name, int idx) {
+    private TimeUnit(String name) {
         this.name = name;
-        this.index = idx;
-        values[idx] = this; // store in values array
+        values[valueCount++] = this; // store in values array
     }
 
     /**
@@ -63,11 +56,5 @@ public class TimeUnit extends MeasureUnit {
      */
     public String toString() {
         return name;
-    }
-    
-    // Returns the index for this TimeUnit. Something between 0 inclusive and
-    // number of time units exclusive. Smaller time units have larger indexes.
-    int getIndex() {
-        return index;
     }
 }

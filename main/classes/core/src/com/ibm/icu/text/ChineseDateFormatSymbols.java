@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (C) 2000-2013, International Business Machines Corporation and
+ * Copyright (C) 2000-2012, International Business Machines Corporation and
  * others. All Rights Reserved.
  ****************************************************************************
  */
@@ -68,8 +68,7 @@ public class ChineseDateFormatSymbols extends DateFormatSymbols {
      * @deprecated ICU 50
      */
     public ChineseDateFormatSymbols(Calendar cal, Locale locale) {
-        // NPE is thrown here when cal is null, like the super class does
-        super(cal.getClass(), locale);
+        super(cal==null?null:cal.getClass(), locale);
     }
 
     /**
@@ -79,8 +78,7 @@ public class ChineseDateFormatSymbols extends DateFormatSymbols {
      * @deprecated ICU 50
      */
     public ChineseDateFormatSymbols(Calendar cal, ULocale locale) {
-        // NPE is thrown here when cal is null, like the super class does
-        super(cal.getClass(), locale);
+        super(cal == null ? null : cal.getClass(), locale);
     }
 
     // New API

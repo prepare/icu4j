@@ -43,26 +43,6 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
     public static void main(String[] args) throws Exception {
         new NumberFormatTest().run(args);
     }
-    
-    public void TestParseNegativeWithFaLocale() {
-        DecimalFormat parser = (DecimalFormat) NumberFormat.getInstance(new ULocale("fa"));
-        try {
-          double value = parser.parse("-0,5").doubleValue();
-          assertEquals("Expect -0.5", -0.5, value);
-        } catch (ParseException e) {
-            this.errln("Parsing -0.5 should have succeeded.");
-        }
-    }
-    
-    public void TestParseNegativeWithAlternativeMinusSign() {
-        DecimalFormat parser = (DecimalFormat) NumberFormat.getInstance(new ULocale("en"));
-        try {
-          double value = parser.parse("\u208B0.5").doubleValue();
-          assertEquals("Expect -0.5", -0.5, value);
-        } catch (ParseException e) {
-            this.errln("Parsing -0.5 should have succeeded.");
-        }
-    }
 
     // Test various patterns
     public void TestPatterns() {
@@ -729,13 +709,6 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
 
         expectCurrency(fmt, Currency.getInstance(Locale.FRANCE),
                        1234.56, "1 234,56 \u20AC"); // Euro
-    }
-    
-    public void TestCompatibleCurrencies() {
-        NumberFormat fmt =
-                NumberFormat.getCurrencyInstance(Locale.US);
-        expectParseCurrency(fmt, Currency.getInstance(Locale.JAPAN), "\u00A51,235"); // Yen half-width        
-        expectParseCurrency(fmt, Currency.getInstance(Locale.JAPAN), "\uFFE51,235"); // Yen full-wdith
     }
 
     public void TestCurrencyPatterns() {
@@ -2192,14 +2165,6 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
             errln("FAIL \"" + pat + "\", expected \"" + exp + "\"");
         }
     }
-    
-  
-    private void expectParseCurrency(NumberFormat fmt, Currency expected, String text) {
-        ParsePosition pos = new ParsePosition(0);
-        CurrencyAmount currencyAmount = fmt.parseCurrency(text, pos);
-        assertTrue("Parse of " + text + " should have succeeded.", pos.getIndex() > 0);
-        assertEquals("Currency should be correct.", expected, currencyAmount.getCurrency());      
-    }
 
     public void TestJB3832(){
         ULocale locale = new ULocale("pt_PT@currency=PTE");
@@ -3119,97 +3084,6 @@ public class NumberFormatTest extends com.ibm.icu.dev.test.TestFmwk {
                 acitr.first();
                 result[i] = acitr.getRunLimit();
             }
-        }
-    }
-
-    public void TestRoundingBehavior() {
-        final Object[][] TEST_CASES = {
-            {
-                ULocale.US,                             // ULocale - null for default locale
-                "#.##",                                 // Pattern
-                Integer.valueOf(BigDecimal.ROUND_DOWN), // Rounding Mode or null (implicit)
-                Double.valueOf(0.0d),                   // Rounding increment, Double or BigDecimal, or null (implicit)
-                Double.valueOf(123.4567d),              // Input value, Long, Double, BigInteger or BigDecimal
-                "123.45"                                // Expected result, null for exception
-            },
-            {
-                ULocale.US,
-                "#.##",
-                null,
-                Double.valueOf(0.1d),
-                Double.valueOf(123.4567d),
-                "123.5"
-            },
-            {
-                ULocale.US,
-                "#.##",
-                Integer.valueOf(BigDecimal.ROUND_DOWN),
-                Double.valueOf(0.1d),
-                Double.valueOf(123.4567d),
-                "123.4"
-            },
-            {
-                ULocale.US,
-                "#.##",
-                Integer.valueOf(BigDecimal.ROUND_UNNECESSARY),
-                null,
-                Double.valueOf(123.4567d),
-                null
-            },
-        };
-
-        int testNum = 1;
-
-        for (Object[] testCase : TEST_CASES) {
-            // 0: locale
-            // 1: pattern
-            ULocale locale = testCase[0] == null ? ULocale.getDefault() : (ULocale)testCase[0];
-            String pattern = (String)testCase[1];
-
-            DecimalFormat fmt = new DecimalFormat(pattern, DecimalFormatSymbols.getInstance(locale));
-
-            // 2: rounding mode
-            Integer roundingMode = null;
-            if (testCase[2] != null) {
-                roundingMode = (Integer)testCase[2];
-                fmt.setRoundingMode(roundingMode);
-            }
-
-            // 3: rounding increment
-            if (testCase[3] != null) {
-                if (testCase[3] instanceof Double) {
-                    fmt.setRoundingIncrement((Double)testCase[3]);
-                } else if (testCase[3] instanceof BigDecimal) {
-                    fmt.setRoundingIncrement((BigDecimal)testCase[3]);
-                } else if (testCase[3] instanceof java.math.BigDecimal) {
-                    fmt.setRoundingIncrement((java.math.BigDecimal)testCase[3]);
-                }
-            }
-
-            // 4: input number
-            String s = null;
-            boolean bException = false;
-            try {
-                s = fmt.format(testCase[4]);
-            } catch (ArithmeticException e) {
-                bException = true;
-            }
-
-            if (bException) {
-                if (testCase[5] != null) {
-                    errln("Test case #" + testNum + ": ArithmeticException was thrown.");
-                }
-            } else {
-                if (testCase[5] == null) {
-                    errln("Test case #" + testNum +
-                            ": ArithmeticException must be thrown, but got formatted result: " +
-                            s);
-                } else {
-                    assertEquals("Test case #" + testNum, (String)testCase[5], s);
-                }
-            }
-
-            testNum++;
         }
     }
 }

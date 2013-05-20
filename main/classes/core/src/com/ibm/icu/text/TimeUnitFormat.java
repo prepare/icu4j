@@ -1,6 +1,6 @@
 /*
  **************************************************************************
- * Copyright (C) 2008-2013, Google, International Business Machines
+ * Copyright (C) 2008-2012, Google, International Business Machines
  * Corporation and others. All Rights Reserved.
  **************************************************************************
  */
@@ -17,7 +17,6 @@ import java.util.Set;
 import java.util.TreeMap;
 
 import com.ibm.icu.impl.ICUResourceBundle;
-import com.ibm.icu.util.TimePeriod;
 import com.ibm.icu.util.TimeUnit;
 import com.ibm.icu.util.TimeUnitAmount;
 import com.ibm.icu.util.ULocale;
@@ -71,15 +70,8 @@ public class TimeUnitFormat extends MeasureFormat {
      * @stable ICU 4.2
      */
     public static final int ABBREVIATED_NAME = 1;
-    
-    /**
-     * Constant for numeric style format. 
-     * NUMERIC strives to be as brief as possible. For example: 3:05:47.
-     * @draft ICU 52
-     */
-    public static final int NUMERIC = 2;
 
-    private static final int TOTAL_STYLES = 3;
+    private static final int TOTAL_STYLES = 2;
 
     private static final long serialVersionUID = -3707773153184971529L;
   
@@ -95,10 +87,6 @@ public class TimeUnitFormat extends MeasureFormat {
     private ULocale locale;
     private transient Map<TimeUnit, Map<String, Object[]>> timeUnitToCountToPatterns;
     private transient PluralRules pluralRules;
-    private transient ListFormatter listFormatter;
-    private transient MessageFormat hourMinute;
-    private transient MessageFormat minuteSecond;
-    private transient MessageFormat hourMinuteSecond;
     private transient boolean isReady;
     private int style;
 
@@ -235,35 +223,10 @@ public class TimeUnitFormat extends MeasureFormat {
         Map<String, Object[]> countToPattern = timeUnitToCountToPatterns.get(amount.getTimeUnit());
         double number = amount.getNumber().doubleValue();
         String count = pluralRules.select(number);
-        // A hack since NUMERIC really isn't a full fledged style
-        int effectiveStyle = (style == NUMERIC) ? ABBREVIATED_NAME : style;
-        MessageFormat pattern = (MessageFormat)(countToPattern.get(count))[effectiveStyle];
+        MessageFormat pattern = (MessageFormat)(countToPattern.get(count))[style];
         return pattern.format(new Object[]{amount.getNumber()}, toAppendTo, pos);
     }
-    
-    /**
-     * Formats a TimePeriod. Currently there is no way to parse a formatted TimePeriod.
-     * @param timePeriod the TimePeriod to format.
-     * @return the formatted string.
-     * @draft ICU 52
-     */
-    public String formatTimePeriod(TimePeriod timePeriod) {
-        if (!isReady) {
-            setup();
-        }
-        if (style == NUMERIC) {
-            String result = formatPeriodAsNumeric(timePeriod);
-            if (result != null) {
-                return result;
-            }
-        }
-        String[] items = new String[timePeriod.size()];
-        int idx = 0;
-        for (TimeUnitAmount amount : timePeriod) {
-            items[idx++] = format(amount);
-        }
-        return listFormatter.format((Object[]) items);   
-    }
+
 
     /**
      * Parse a TimeUnitAmount.
@@ -288,10 +251,6 @@ public class TimeUnitFormat extends MeasureFormat {
             for (Entry<String, Object[]> patternEntry : countToPattern.entrySet()) {
               String count = patternEntry.getKey();
               for (int styl = FULL_NAME; styl < TOTAL_STYLES; ++styl) {
-                  if (styl == NUMERIC) {
-                      // Numeric isn't a real style, so skip it.
-                      continue;
-                  }
                 MessageFormat pattern = (MessageFormat)(patternEntry.getValue())[styl];
                 pos.setErrorIndex(-1);
                 pos.setIndex(oldPos);
@@ -372,11 +331,6 @@ public class TimeUnitFormat extends MeasureFormat {
             format = NumberFormat.getNumberInstance(locale);
         }
         pluralRules = PluralRules.forLocale(locale);
-        listFormatter = ListFormatter.getInstance(locale);
-        DateTimePatternGenerator df = DateTimePatternGenerator.getInstance(locale);
-        hourMinute = getPattern(df, "hm", locale, "{0}", "{1,number,00.###}", null);
-        minuteSecond = getPattern(df, "ms", locale, null, "{1}", "{2,number,00.###}");
-        hourMinuteSecond = getPattern(df, "hms", locale, "{0}", "{1,number,00}", "{2,number,00.###}");
         timeUnitToCountToPatterns = new HashMap<TimeUnit, Map<String, Object[]>>();
 
         Set<String> pluralKeywords = pluralRules.getKeywords();
@@ -384,64 +338,7 @@ public class TimeUnitFormat extends MeasureFormat {
         setup("unitsShort", timeUnitToCountToPatterns, ABBREVIATED_NAME, pluralKeywords);
         isReady = true;
     }
-    
-    private MessageFormat getPattern(DateTimePatternGenerator dtpg, String skeleton, ULocale locale, 
-            String h, String m, String s) {
-        String pat = dtpg.getBestPattern(skeleton);
-        StringBuilder buffer = new StringBuilder();
-        for (Object item : new DateTimePatternGenerator.FormatParser().set(pat).getItems()) {
-            if (item instanceof DateTimePatternGenerator.VariableField) {
-                DateTimePatternGenerator.VariableField fld = (DateTimePatternGenerator.VariableField)item;
-                switch (fld.getType()) {
-                case DateTimePatternGenerator.HOUR: buffer.append(h); break;
-                case DateTimePatternGenerator.MINUTE: buffer.append(m); break;
-                case DateTimePatternGenerator.SECOND: buffer.append(s); break;
-                }
-            } else {
-                buffer.append(item);
-            }
-        }
-        return new MessageFormat(buffer.toString(), locale);
-    }
-    
-    private String formatPeriodAsNumeric(TimePeriod timePeriod) {
-        TimeUnit biggestUnit = null, smallestUnit = null;
-        for (TimeUnitAmount tua : timePeriod) {
-            if (biggestUnit == null) {
-                biggestUnit = tua.getTimeUnit();
-            }
-            smallestUnit = tua.getTimeUnit();
-        }
-        // We have to trim the result of  MessageFormat.format() not sure why.
-        if (biggestUnit == TimeUnit.HOUR && smallestUnit == TimeUnit.SECOND) {
-            return hourMinuteSecond.format(new Object[]{
-                    getZeroedAmount(timePeriod, TimeUnit.HOUR),
-                    getZeroedAmount(timePeriod, TimeUnit.MINUTE),
-                    getZeroedAmount(timePeriod, TimeUnit.SECOND)}).trim();
-            
-        }
-        if (biggestUnit == TimeUnit.MINUTE && smallestUnit == TimeUnit.SECOND) {
-            return minuteSecond.format(new Object[]{
-                    null,
-                    getZeroedAmount(timePeriod, TimeUnit.MINUTE),
-                    getZeroedAmount(timePeriod, TimeUnit.SECOND)}).trim();
-            
-        }
-        if (biggestUnit == TimeUnit.HOUR && smallestUnit == TimeUnit.MINUTE) {
-            return hourMinute.format(new Object[]{
-                    getZeroedAmount(timePeriod, TimeUnit.HOUR),
-                    getZeroedAmount(timePeriod, TimeUnit.MINUTE)}).trim();            
-        }
-        return null;
-    }
-    
-    private Number getZeroedAmount(TimePeriod timePeriod, TimeUnit timeUnit) {
-        TimeUnitAmount tua = timePeriod.getAmount(timeUnit);
-        if (tua == null) {
-            return Double.valueOf(0);
-        }
-        return tua.getNumber();
-    }
+
 
     private void setup(String resourceKey, Map<TimeUnit, Map<String, Object[]>> timeUnitToCountToPatterns,
                        int style, Set<String> pluralKeywords) {

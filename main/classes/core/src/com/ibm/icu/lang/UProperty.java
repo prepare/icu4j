@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 1996-2013, International Business Machines Corporation and
+* Copyright (C) 1996-2012, International Business Machines Corporation and
 * others. All Rights Reserved.
 *******************************************************************************
 */
@@ -605,7 +605,7 @@ public interface UProperty
     
     /** 
      * Enumerated property Hangul_Syllable_Type, new in Unicode 4.
-     * Returns UCharacter.HangulSyllableType values. 
+     * Returns HangulSyllableType values. 
      * @stable ICU 2.6 
      */
     public static final int HANGUL_SYLLABLE_TYPE = 0x100B;
@@ -664,7 +664,7 @@ public interface UProperty
      * Enumerated property Grapheme_Cluster_Break (new in Unicode 4.1).
      * Used in UAX #29: Text Boundaries
      * (http://www.unicode.org/reports/tr29/)
-     * Returns UCharacter.GraphemeClusterBreak values.
+     * Returns UGraphemeClusterBreak values.
      * @stable ICU 3.4
      */
     public static final int GRAPHEME_CLUSTER_BREAK = 0x1012;
@@ -673,7 +673,7 @@ public interface UProperty
      * Enumerated property Sentence_Break (new in Unicode 4.1).
      * Used in UAX #29: Text Boundaries
      * (http://www.unicode.org/reports/tr29/)
-     * Returns UCharacter.SentenceBreak values.
+     * Returns USentenceBreak values.
      * @stable ICU 3.4
      */
     public static final int SENTENCE_BREAK = 0x1013;
@@ -682,26 +682,17 @@ public interface UProperty
      * Enumerated property Word_Break (new in Unicode 4.1).
      * Used in UAX #29: Text Boundaries
      * (http://www.unicode.org/reports/tr29/)
-     * Returns UCharacter.WordBreak values.
+     * Returns UWordBreakValues values.
      * @stable ICU 3.4
      */
     public static final int WORD_BREAK = 0x1014;
-
-    /**
-     * Enumerated property Bidi_Paired_Bracket_Type (new in Unicode 6.3).
-     * Used in UAX #9: Unicode Bidirectional Algorithm
-     * (http://www.unicode.org/reports/tr9/)
-     * Returns UCharacter.BidiPairedBracketType values.
-     * @stable ICU 52
-     */
-    public static final int BIDI_PAIRED_BRACKET_TYPE = 0x1015;
 
     /** 
      * One more than the last constant for enumerated/integer Unicode 
      * properties. 
      * @stable ICU 2.4 
      */
-    public static final int INT_LIMIT = 0x1016;
+    public static final int INT_LIMIT = 0x1015;
 
     /** 
      * Bitmask property General_Category_Mask.
@@ -845,20 +836,15 @@ public interface UProperty
     public static final int UPPERCASE_MAPPING = 0x400C;
 
     /**
-     * String property Bidi_Paired_Bracket (new in Unicode 6.3).
-     * Corresponds to UCharacter.getBidiPairedBracket.
-     * @stable ICU 52
-     */
-    public static final int BIDI_PAIRED_BRACKET = 0x400D;
-
-    /**
      * One more than the last constant for string Unicode properties.
      * @stable ICU 2.4
      */
-    public static final int STRING_LIMIT = 0x400E;
+    public static final int STRING_LIMIT = 0x400D;
 
     /**
-     * Miscellaneous property Script_Extensions (new in Unicode 6.0).
+     * Provisional property Script_Extensions (new in Unicode 6.0).
+     * As a provisional property, it may be modified or removed
+     * in future versions of the Unicode Standard, and thus in ICU.
      * Some characters are commonly used in multiple scripts.
      * For more information, see UAX #24: http://www.unicode.org/reports/tr24/.
      * Corresponds to UScript.hasScript and UScript.getScriptExtensions.

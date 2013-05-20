@@ -1,6 +1,6 @@
 /**
 *******************************************************************************
-* Copyright (C) 1996-2013, International Business Machines Corporation and    *
+* Copyright (C) 1996-2011, International Business Machines Corporation and    *
 * others. All Rights Reserved.                                                *
 *******************************************************************************
 */
@@ -316,7 +316,9 @@ public final class UCharacterName
         String result = getName(ch, UCharacterNameChoice.UNICODE_CHAR_NAME);
         if (result == null) {
             // TODO: Return Name_Alias/control names for control codes 0..1F & 7F..9F.
-            result = getExtendedOr10Name(ch);
+            if (result == null) {
+                result = getExtendedOr10Name(ch);
+            }
         }
         return result;
     }

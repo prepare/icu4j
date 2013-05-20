@@ -20,7 +20,6 @@ import com.ibm.icu.impl.SimpleCache;
 import com.ibm.icu.text.DateIntervalInfo.PatternInfo;
 import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.DateInterval;
-import com.ibm.icu.util.Output;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.ULocale.Category;
 
@@ -398,7 +397,6 @@ public class DateIntervalFormat extends UFormat {
      * This is a convenient override of 
      * getInstance(String skeleton, ULocale locale)  
      *
-     * <p>Example code:{@.jcite com.ibm.icu.samples.text.dateintervalformat.DateIntervalFormatSample:---dtitvfmtPreDefinedExample}
      * @param skeleton  the skeleton on which interval format based.
      * @param locale    the given locale
      * @return          a date time interval formatter.
@@ -477,8 +475,7 @@ public class DateIntervalFormat extends UFormat {
      *
      * This is a convenient override of
      * getInstance(String skeleton, ULocale locale, DateIntervalInfo dtitvinf)
-     * 
-     * <p>Example code:{@.jcite com.ibm.icu.samples.text.dateintervalformat.DateIntervalFormatSample:---dtitvfmtCustomizedExample}
+     *
      * @param skeleton  the skeleton on which interval format based.
      * @param locale    the given locale
      * @param dtitvinf  the DateIntervalInfo object to be adopted.
@@ -606,43 +603,7 @@ public class DateIntervalFormat extends UFormat {
         return format(fFromCalendar, fToCalendar, appendTo, fieldPosition);
     }
 
-    /**
-     * @internal
-     * @deprecated This API is ICU internal only.
-     */
-    public String getPatterns(Calendar fromCalendar,
-            Calendar toCalendar, 
-            Output<String> part2) {
-        // First, find the largest different calendar field.
-        int field;
-        if ( fromCalendar.get(Calendar.ERA) != toCalendar.get(Calendar.ERA) ) {
-            field = Calendar.ERA;
-        } else if ( fromCalendar.get(Calendar.YEAR) != 
-                    toCalendar.get(Calendar.YEAR) ) {
-            field = Calendar.YEAR;
-        } else if ( fromCalendar.get(Calendar.MONTH) !=
-                    toCalendar.get(Calendar.MONTH) ) {
-            field = Calendar.MONTH;
-        } else if ( fromCalendar.get(Calendar.DATE) !=
-                    toCalendar.get(Calendar.DATE) ) {
-            field = Calendar.DATE;
-        } else if ( fromCalendar.get(Calendar.AM_PM) !=
-                    toCalendar.get(Calendar.AM_PM) ) {
-            field = Calendar.AM_PM;
-        } else if ( fromCalendar.get(Calendar.HOUR) !=
-                    toCalendar.get(Calendar.HOUR) ) {
-            field = Calendar.HOUR;
-        } else if ( fromCalendar.get(Calendar.MINUTE) !=
-                    toCalendar.get(Calendar.MINUTE) ) {
-            field = Calendar.MINUTE;
-        } else {
-            return null;
-        }
-        PatternInfo intervalPattern = fIntervalPatterns.get(
-                DateIntervalInfo.CALENDAR_FIELD_TO_PATTERN_LETTER[field]);
-        part2.value = intervalPattern.getSecondPart();
-        return intervalPattern.getFirstPart();
-    }
+
     /**
      * Format 2 Calendars to produce a string. 
      *
@@ -1268,9 +1229,7 @@ public class DateIntervalFormat extends UFormat {
     
         /* generate normalized form for date*/
         if ( yCount != 0 ) {
-            for (i = 0; i < yCount; i++) {
-                normalizedDateSkeleton.append('y');
-            }
+            normalizedDateSkeleton.append('y');
         }
         if ( MCount != 0 ) {
             if ( MCount < 3 ) {

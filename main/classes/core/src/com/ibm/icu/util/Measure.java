@@ -1,6 +1,6 @@
 /*
 **********************************************************************
-* Copyright (c) 2004-2013, International Business Machines
+* Copyright (c) 2004-2010, International Business Machines
 * Corporation and others.  All Rights Reserved.
 **********************************************************************
 * Author: Alan Liu
@@ -30,9 +30,9 @@ package com.ibm.icu.util;
  */
 public abstract class Measure {
     
-    private final Number number;
+    private Number number;
 
-    private final MeasureUnit unit;
+    private MeasureUnit unit;
 
     /**
      * Constructs a new object given a number and a unit.
