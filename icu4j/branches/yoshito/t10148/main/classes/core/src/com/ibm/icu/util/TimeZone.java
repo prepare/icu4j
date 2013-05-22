@@ -1129,7 +1129,8 @@ abstract public class TimeZone implements Serializable, Cloneable, Freezable<Tim
      * @param id A system time zone ID
      * @return A Windows time zone ID mapped from the input system time zone ID,
      * or <code>null</code> when the input ID is unknown or unmappable.
-     *
+     * @see #getIDForWindowsID(String, String)
+     * 
      * @draft ICU 52
      * @provisional This API might change or be removed in a future release.
      */
@@ -1190,11 +1191,12 @@ abstract public class TimeZone implements Serializable, Cloneable, Freezable<Tim
      * @param region A region code, or <code>null</code> if no regional preference.
      * @return A system time zone ID mapped from the input Windows time zone ID,
      * or <code>null</code> when the input ID is unknown or unmappable.
+     * @see #getWindowsID(String)
      * 
      * @draft ICU 52
      * @provisional This API might change or be removed in a future release.
      */
-    public static String getIDByWindowsID(String winid, String region) {
+    public static String getIDForWindowsID(String winid, String region) {
         String id = null;
 
         UResourceBundle top = UResourceBundle.getBundleInstance(

@@ -2181,7 +2181,7 @@ public class TimeZoneTest extends TestFmwk
         }
     }
 
-    public void TestGetIDByWindowsID() {
+    public void TestGetIDForWindowsID() {
         final String[][] TESTDATA = {
             {"Eastern Standard Time",   null,   "America/New_York"},
             {"Eastern Standard Time",   "US",   "America/New_York"},
@@ -2195,7 +2195,7 @@ public class TimeZoneTest extends TestFmwk
         };
 
         for (String[] data : TESTDATA) {
-            String id = TimeZone.getIDByWindowsID(data[0], data[1]);
+            String id = TimeZone.getIDForWindowsID(data[0], data[1]);
             assertEquals("Fail: Windows ID=" + data[0] + ", Region=" + data[1],
                     data[2], id);
         }
