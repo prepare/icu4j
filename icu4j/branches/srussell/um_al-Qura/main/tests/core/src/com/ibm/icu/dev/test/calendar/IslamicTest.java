@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 1996-2012, International Business Machines Corporation and    *
+ * Copyright (C) 1996-2013, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
@@ -11,12 +11,16 @@ import java.util.Locale;
 
 import com.ibm.icu.impl.LocaleUtility;
 import com.ibm.icu.text.DateFormat;
+import com.ibm.icu.text.SimpleDateFormat;
 import com.ibm.icu.util.Calendar;
+import com.ibm.icu.util.GregorianCalendar;
 import com.ibm.icu.util.IslamicCalendar;
+import com.ibm.icu.util.IslamicCalendar.CalculationType;
+
 import com.ibm.icu.util.TimeZone;
 import com.ibm.icu.util.ULocale;
 
-/**
+/** 
  * Tests for the <code>IslamicCalendar</code> class.
  */
 public class IslamicTest extends CalendarTest {
@@ -149,7 +153,7 @@ public class IslamicTest extends CalendarTest {
         // rounding errors after year AH3954 - about 2500 years out.
 
         IslamicCalendar islamic2 = new IslamicCalendar();
-        islamic2.setCivil(false);
+        islamic2.setType(CalculationType.ISLAMIC);
         int testTime = getInclusion() <= 5 ? 20000 : 800000;
         doLimitsTest(islamic2, null, cal.getTime(), testTime);
         doTheoreticalLimitsTest(islamic2, true);
@@ -273,12 +277,18 @@ public class IslamicTest extends CalendarTest {
 
     private static IslamicCalendar newCivil() {
         IslamicCalendar civilCalendar = new IslamicCalendar();
-        civilCalendar.setCivil(true);
+        civilCalendar.setType(CalculationType.ISLAMIC_CIVIL);
         return civilCalendar;
     }
     private static IslamicCalendar newIslamic() {
         IslamicCalendar civilCalendar = new IslamicCalendar();
-        civilCalendar.setCivil(false);
+        civilCalendar.setType(CalculationType.ISLAMIC);
+        return civilCalendar;
+    }
+    
+    private static IslamicCalendar newIslamicUmalqura() {
+        IslamicCalendar civilCalendar = new IslamicCalendar();
+        civilCalendar.setType(CalculationType.ISLAMIC_UMALQURA);
         return civilCalendar;
     }
 
@@ -292,5 +302,6 @@ public class IslamicTest extends CalendarTest {
     public void Test8822() {
         verifyType(newIslamic(),"islamic");
         verifyType(newCivil(),"islamic-civil");
-    }
+        verifyType(newIslamicUmalqura(), "islamic-um-alqura");
+    } 
 }
