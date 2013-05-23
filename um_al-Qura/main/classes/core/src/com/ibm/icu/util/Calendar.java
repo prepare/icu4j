@@ -5,7 +5,7 @@
 
 package com.ibm.icu.util;
 
-import java.io.IOException;
+import java.io.IOException; 
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
@@ -25,6 +25,7 @@ import com.ibm.icu.text.DateFormat;
 import com.ibm.icu.text.DateFormatSymbols;
 import com.ibm.icu.text.MessageFormat;
 import com.ibm.icu.text.SimpleDateFormat;
+import com.ibm.icu.util.IslamicCalendar.CalculationType;
 import com.ibm.icu.util.ULocale.Category;
 
 /**
@@ -1737,6 +1738,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
         "ethiopic-amete-alem",
         "iso8601",
         "dangi",
+        "islamic-um-alqura"
     };
 
     // must be in the order of calTypes above
@@ -1755,6 +1757,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
     private static final int CALTYPE_ETHIOPIC_AMETE_ALEM = 12;
     private static final int CALTYPE_ISO8601 = 13;
     private static final int CALTYPE_DANGI = 14;
+    private static final int CALTYPE_ISLAMIC_UM_ALQURA = 15; 
     private static final int CALTYPE_UNKNOWN = -1;
 
     private static int getCalendarTypeForLocale(ULocale l) {
@@ -1876,9 +1879,13 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
         case CALTYPE_ISLAMIC_CIVIL:
             cal = new IslamicCalendar(zone, locale);
             break;
+        case CALTYPE_ISLAMIC_UM_ALQURA :
+        	cal=new IslamicCalendar (zone,locale);
+        	((IslamicCalendar)cal).setType(CalculationType.ISLAMIC_UMALQURA);
+        	break;
         case CALTYPE_ISLAMIC:
             cal = new IslamicCalendar(zone, locale);
-            ((IslamicCalendar)cal).setCivil(false);
+            ((IslamicCalendar)cal).setType(CalculationType.ISLAMIC);
             break;
         case CALTYPE_HEBREW:
             cal = new HebrewCalendar(zone, locale);
