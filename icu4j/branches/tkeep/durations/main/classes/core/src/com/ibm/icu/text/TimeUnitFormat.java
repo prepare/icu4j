@@ -259,7 +259,7 @@ public class TimeUnitFormat extends MeasureFormat {
                 return result;
             }
         }
-        String[] items = new String[timePeriod.size()];
+        String[] items = new String[timePeriod.length()];
         int idx = 0;
         for (TimeUnitAmount amount : timePeriod) {
             items[idx++] = format(amount);

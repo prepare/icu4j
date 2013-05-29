@@ -23,37 +23,37 @@ import com.ibm.icu.util.ULocale;
  *
  */
 public class TimeUnitTest extends TestFmwk {
-    private static final TimePeriod _19m = TimePeriod.forAmounts(
+    private static final TimePeriod _19m = new TimePeriod(
             new TimeUnitAmount(19.0, TimeUnit.MINUTE));
-    private static final TimePeriod _19m_28s = TimePeriod.forAmounts(
+    private static final TimePeriod _19m_28s = new TimePeriod(
             new TimeUnitAmount(19.0, TimeUnit.MINUTE),
             new TimeUnitAmount(28.0, TimeUnit.SECOND));
-    private static final TimePeriod _1h_23_5s = TimePeriod.forAmounts(
+    private static final TimePeriod _1h_23_5s = new TimePeriod(
             new TimeUnitAmount(1.0, TimeUnit.HOUR),
             new TimeUnitAmount(23.5, TimeUnit.SECOND));
-    private static final TimePeriod _1h_23_5m = TimePeriod.forAmounts(
+    private static final TimePeriod _1h_23_5m = new TimePeriod(
             new TimeUnitAmount(1.0, TimeUnit.HOUR),
             new TimeUnitAmount(23.5, TimeUnit.MINUTE));
-    private static final TimePeriod _1h_0m_23s = TimePeriod.forAmounts(
+    private static final TimePeriod _1h_0m_23s = new TimePeriod(
             new TimeUnitAmount(1.0, TimeUnit.HOUR),
             new TimeUnitAmount(0.0, TimeUnit.MINUTE),
             new TimeUnitAmount(23.0, TimeUnit.SECOND));
-    private static final TimePeriod _5h_17m = TimePeriod.forAmounts(
+    private static final TimePeriod _5h_17m = new TimePeriod(
             new TimeUnitAmount(5.0, TimeUnit.HOUR),
             new TimeUnitAmount(17.0, TimeUnit.MINUTE));
-    private static final TimePeriod _2y_5M_3w_4d = TimePeriod.forAmounts(
+    private static final TimePeriod _2y_5M_3w_4d = new TimePeriod(
             new TimeUnitAmount(2.0, TimeUnit.YEAR),
             new TimeUnitAmount(5.0, TimeUnit.MONTH),
             new TimeUnitAmount(3.0, TimeUnit.WEEK),
             new TimeUnitAmount(4.0, TimeUnit.DAY));
-    private static final TimePeriod _0h_0m_17s = TimePeriod.forAmounts(
+    private static final TimePeriod _0h_0m_17s = new TimePeriod(
             new TimeUnitAmount(0.0, TimeUnit.HOUR),
             new TimeUnitAmount(0.0, TimeUnit.MINUTE),
             new TimeUnitAmount(17.0, TimeUnit.SECOND));
-    private static final TimePeriod _6h_56_92m = TimePeriod.forAmounts(
+    private static final TimePeriod _6h_56_92m = new TimePeriod(
             new TimeUnitAmount(6.0, TimeUnit.HOUR),
             new TimeUnitAmount(56.92, TimeUnit.MINUTE));
-    private static final TimePeriod _1m_59_9996s = TimePeriod.forAmounts(
+    private static final TimePeriod _1m_59_9996s = new TimePeriod(
             new TimeUnitAmount(1.0, TimeUnit.MINUTE),
             new TimeUnitAmount(59.9996, TimeUnit.SECOND));
             
@@ -403,9 +403,15 @@ public class TimeUnitTest extends TestFmwk {
         verifyFormatPeriod("en NUMERIC", tuf, numericData);
     }
     
+    public void TestTimePeriodLength() {
+        assertEquals("length", 2, new TimePeriod(
+                new TimeUnitAmount(3.0, TimeUnit.HOUR),
+                new TimeUnitAmount(5.0, TimeUnit.MINUTE)).length()); 
+    }
+    
     public void TestTimePeriodForAmounts() {
         try {
-            TimePeriod.forAmounts(
+            new TimePeriod(
                     new TimeUnitAmount(3.0, TimeUnit.HOUR),
                     new TimeUnitAmount(5.0, TimeUnit.HOUR));
             errln("Expected IllegalArgumentException on duplicate TimeUnits.");
@@ -413,13 +419,13 @@ public class TimeUnitTest extends TestFmwk {
             // expected
         }
         try {
-            TimePeriod.forAmounts();
+            new TimePeriod();
             errln("Expected IllegalArgumentException on missing TimeUnitAmounts.");
         } catch (IllegalArgumentException e) {
             // expected
         }
         try {
-            TimePeriod.forAmounts(
+            new TimePeriod(
                     new TimeUnitAmount(3.5, TimeUnit.HOUR),
                     new TimeUnitAmount(5.0, TimeUnit.MINUTE));
             errln("Expected IllegalArgumentException. Only smallest time unit can have a fractional amount.");
@@ -429,12 +435,12 @@ public class TimeUnitTest extends TestFmwk {
     }
     
     public void TestTimePeriodEqualsHashCode() {
-        TimePeriod our_19m_28s = TimePeriod.forAmounts(
+        TimePeriod our_19m_28s = new TimePeriod(
                 new TimeUnitAmount(28.0, TimeUnit.SECOND),
                 new TimeUnitAmount(19.0, TimeUnit.MINUTE));
         assertEquals("TimePeriod equals", _19m_28s, our_19m_28s);
         assertEquals("Hash code", _19m_28s.hashCode(), our_19m_28s.hashCode());
-        TimePeriod our_19m_29s = TimePeriod.forAmounts(
+        TimePeriod our_19m_29s = new TimePeriod(
                 new TimeUnitAmount(29.0, TimeUnit.SECOND),
                 new TimeUnitAmount(19.0, TimeUnit.MINUTE));
         assertNotEquals("TimePeriod not equals", _19m_28s, our_19m_29s);
