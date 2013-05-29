@@ -9,11 +9,18 @@ package com.ibm.icu.dev.test.format;
 import java.text.AttributedCharacterIterator;
 import java.text.CharacterIterator;
 import java.text.FieldPosition;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
 
 import com.ibm.icu.dev.test.TestFmwk;
 import com.ibm.icu.text.CompactDecimalFormat;
 import com.ibm.icu.text.CompactDecimalFormat.CompactStyle;
+import com.ibm.icu.text.DecimalFormatSymbols;
 import com.ibm.icu.text.NumberFormat;
+import com.ibm.icu.text.PluralRules;
 import com.ibm.icu.util.ULocale;
 
 public class CompactDecimalFormatTest extends TestFmwk {
@@ -24,10 +31,15 @@ public class CompactDecimalFormatTest extends TestFmwk {
 
     Object[][] EnglishTestData = {
             // default is 2 digits of accuracy
-            {0.0d, "0.0"},
+            {0.0d, "0"},
+            {0.01d, "0.01"},
             {0.1d, "0.1"},
             {1d, "1"},
+            {12, "12"},
+            {123, "120"},
             {1234, "1.2K"},
+            {1000, "1K"},
+            {1049, "1K"},
             {12345, "12K"},
             {123456, "120K"},
             {1234567, "1.2M"},
@@ -99,7 +111,7 @@ public class CompactDecimalFormatTest extends TestFmwk {
             {-1234567890123456f, "-1.200 трилиона"},
     };
 
-   Object[][] JapaneseTestData = {
+    Object[][] JapaneseTestData = {
             {1234f, "1.2千"},
             {12345f, "1.2万"},
             {123456f, "12万"},
@@ -167,16 +179,81 @@ public class CompactDecimalFormatTest extends TestFmwk {
             {-12345678901234567890f, "T-12000000"},
     };
 
+    Object[][] TestACoreCompactFormatList = {
+            {1000, "1K"},
+            {1100, "1,1K"},
+            {1200, "1,2Ks"},
+            {2000, "2Ks"},
+    };
+
+    Object[][] TestACoreCompactFormatListCurrency = {
+            {1000, "1K$"},
+            {1100, "1,1K$"},
+            {1200, "1,2Ks$s"},
+            {2000, "2Ks$s"},
+    };
+
+    public void TestACoreCompactFormat() {
+        Map<String,String[][]> affixes = new HashMap();
+        affixes.put("one", new String[][] {
+                {"","",}, {"","",}, {"","",}, 
+                {"","K"}, {"","K"}, {"","K"},
+                {"","M"}, {"","M"}, {"","M"},
+                {"","B"}, {"","B"}, {"","B"}, 
+                {"","T"}, {"","T"}, {"","T"}, 
+        });
+        affixes.put("other", new String[][] {
+                {"","",}, {"","",}, {"","",}, 
+                {"","Ks"}, {"","Ks"}, {"","Ks"},
+                {"","Ms"}, {"","Ms"}, {"","Ms"},
+                {"","Bs"}, {"","Bs"}, {"","Bs"}, 
+                {"","Ts"}, {"","Ts"}, {"","Ts"}, 
+        });
+
+        Map<String,String[]> currencyAffixes = new HashMap();
+        currencyAffixes.put("one", new String[] {"", "$"});
+        currencyAffixes.put("other", new String[] {"", "$s"});
+
+        long[] divisors = new long[] {
+                0,0,0, 
+                1000, 1000, 1000, 
+                1000000, 1000000, 1000000, 
+                1000000000L, 1000000000L, 1000000000L, 
+                1000000000000L, 1000000000000L, 1000000000000L};
+        checkCore(affixes, null, divisors, TestACoreCompactFormatList);
+        checkCore(affixes, currencyAffixes, divisors, TestACoreCompactFormatListCurrency);
+    }
+
+    private void checkCore(Map<String, String[][]> affixes, Map<String, String[]> currencyAffixes, long[] divisors, Object[][] testItems) {
+        Collection<String> debugCreationErrors = new LinkedHashSet();
+        CompactDecimalFormat cdf = new CompactDecimalFormat(
+                "#,###.00", 
+                DecimalFormatSymbols.getInstance(new ULocale("fr")),
+                CompactStyle.SHORT, PluralRules.createRules("one: j is 1 or f is 1"),
+                divisors, affixes, currencyAffixes,
+                debugCreationErrors
+                );
+        if (debugCreationErrors.size() != 0) {
+            for (String s : debugCreationErrors) {
+                errln("Creation error: " + s);
+            }
+        } else {
+            checkCdf("special cdf ", cdf, testItems);
+        }
+    }
+
     public void TestDefaultSignificantDigits() {
-        // We are expecting three significant digits as default.
+        // We are expecting two significant digits as default.
         CompactDecimalFormat cdf =
                 CompactDecimalFormat.getInstance(ULocale.ENGLISH, CompactStyle.SHORT);
-        assertEquals("Default significant digits", "12.3K", cdf.format(12345));
+        assertEquals("Default significant digits", "12K", cdf.format(12345));
+        assertEquals("Default significant digits", "1.2K", cdf.format(1234));
+        assertEquals("Default significant digits", "120", cdf.format(123));
     }
 
     public void TestCharacterIterator() {
         CompactDecimalFormat cdf =
-            getCDFInstance(ULocale.forLanguageTag("sw"), CompactStyle.SHORT);
+                getCDFInstance(ULocale.forLanguageTag("sw"), CompactStyle.SHORT);
         AttributedCharacterIterator iter = cdf.formatToCharacterIterator(1234567);
         assertEquals("CharacterIterator", "M1.2", iterToString(iter));
         iter = cdf.formatToCharacterIterator(1234567);
@@ -218,7 +295,7 @@ public class CompactDecimalFormatTest extends TestFmwk {
     }
 
     public void TestJapaneseShort() {
-         checkLocale(ULocale.JAPANESE, CompactStyle.SHORT, JapaneseTestData);
+        checkLocale(ULocale.JAPANESE, CompactStyle.SHORT, JapaneseTestData);
     }
 
     public void TestSwahiliShort() {
@@ -254,8 +331,15 @@ public class CompactDecimalFormatTest extends TestFmwk {
 
     public void checkLocale(ULocale locale, CompactStyle style, Object[][] testData) {
         CompactDecimalFormat cdf = getCDFInstance(locale, style);
+        checkCdf(locale + " (" + locale.getDisplayName(locale) + ") for ", cdf, testData);
+    }
+
+    private void checkCdf(String title, CompactDecimalFormat cdf, Object[][] testData) {
         for (Object[] row : testData) {
-            assertEquals(locale + " (" + locale.getDisplayName(locale) + ")", row[1], cdf.format(row[0]));
+            Object source = row[0];
+            Object expected = row[1];
+            assertEquals(title + source, expected, 
+                    cdf.format(source));
         }
     }
 
