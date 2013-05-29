@@ -21,8 +21,12 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 import com.ibm.icu.text.CompactDecimalDataCache.Data;
+import com.ibm.icu.text.PluralRules.NumberInfo;
+import com.ibm.icu.util.Output;
 import com.ibm.icu.util.ULocale;
 
 /**
@@ -56,7 +60,7 @@ public class CompactDecimalFormat extends DecimalFormat {
 
     private final Map<String, DecimalFormat.Unit[]> units;
     private final long[] divisor;
-    private final String[] currencyAffixes;
+    private final Map<String, Unit> pluralToCurrencyAffixes;
 
     // null if created internally using explicit prefixes and suffixes.
     private final PluralRules pluralRules;
@@ -116,25 +120,23 @@ public class CompactDecimalFormat extends DecimalFormat {
      *            the compact style
      */
     CompactDecimalFormat(ULocale locale, CompactStyle style) {
+        this.pluralRules = PluralRules.forLocale(locale);
         DecimalFormat format = (DecimalFormat) NumberFormat.getInstance(locale);
         CompactDecimalDataCache.Data data = getData(locale, style);
         this.units = data.units;
         this.divisor = data.divisors;
-        applyPattern(format.toPattern());
-        setDecimalFormatSymbols(format.getDecimalFormatSymbols());
-        setMaximumSignificantDigits(3); // default significant digits
-        setSignificantDigitsUsed(true);
-        if (style == CompactStyle.SHORT) {
-          setGroupingUsed(false);
-        }
-        this.pluralRules = PluralRules.forLocale(locale);
-
-        DecimalFormat currencyFormat = (DecimalFormat) NumberFormat.getCurrencyInstance(locale);
-        currencyAffixes = new String[AFFIX_SIZE];
-        currencyAffixes[CompactDecimalFormat.POSITIVE_PREFIX] = currencyFormat.getPositivePrefix();
-        currencyAffixes[CompactDecimalFormat.POSITIVE_SUFFIX] = currencyFormat.getPositiveSuffix();
-        setCurrency(null);
-        // TODO fix to get right symbol for the count
+        pluralToCurrencyAffixes = null;
+        
+//        DecimalFormat currencyFormat = (DecimalFormat) NumberFormat.getCurrencyInstance(locale);
+//        // TODO fix to use plural-dependent affixes
+//        Unit currency = new Unit(currencyFormat.getPositivePrefix(), currencyFormat.getPositiveSuffix());
+//        pluralToCurrencyAffixes = new HashMap<String,Unit>();
+//        for (String key : pluralRules.getKeywords()) {
+//            pluralToCurrencyAffixes.put(key, currency);
+//        }
+//        // TODO fix to get right symbol for the count
+        
+        finishInit(style, format.toPattern(), format.getDecimalFormatSymbols());
     }
 
     /**
@@ -160,57 +162,37 @@ public class CompactDecimalFormat extends DecimalFormat {
      * @internal
      * @deprecated This API is ICU internal only.
      */
-    public CompactDecimalFormat(String pattern, DecimalFormatSymbols formatSymbols, String[] prefix, String[] suffix,
-            long[] divisor, Collection<String> debugCreationErrors, CompactStyle style, String[] currencyAffixes) {
-        if (prefix.length < CompactDecimalDataCache.MAX_DIGITS) {
-            recordError(debugCreationErrors, "Must have at least " + CompactDecimalDataCache.MAX_DIGITS + " prefix items.");
+    public CompactDecimalFormat(String pattern, DecimalFormatSymbols formatSymbols, 
+            CompactStyle style, PluralRules pluralRules,
+            long[] divisor, Map<String,String[][]> pluralAffixes, Map<String, String[]> currencyAffixes, 
+            Collection<String> debugCreationErrors) {
+        
+        this.pluralRules = pluralRules;
+        this.units = otherPluralVariant(pluralAffixes, divisor, debugCreationErrors);
+        if (!pluralRules.getKeywords().equals(this.units.keySet())) {
+            debugCreationErrors.add("Missmatch in pluralCategories, should be: " + pluralRules.getKeywords() + ", was actually " + this.units.keySet());
         }
-        if (prefix.length != suffix.length || prefix.length != divisor.length) {
-            recordError(debugCreationErrors, "Prefix, suffix, and divisor arrays must have the same length.");
-        }
-        long oldDivisor = 0;
-        Map<String, Integer> seen = new HashMap<String, Integer>();
-        for (int i = 0; i < prefix.length; ++i) {
-            if (prefix[i] == null || suffix[i] == null) {
-                recordError(debugCreationErrors, "Prefix or suffix is null for " + i);
-            }
-
-            // divisor must be a power of 10, and must be less than or equal to 10^i
-            int log = (int) Math.log10(divisor[i]);
-            if (log > i) {
-                recordError(debugCreationErrors, "Divisor[" + i + "] must be less than or equal to 10^" + i
-                        + ", but is: " + divisor[i]);
-            }
-            long roundTrip = (long) Math.pow(10.0d, log);
-            if (roundTrip != divisor[i]) {
-                recordError(debugCreationErrors, "Divisor[" + i + "] must be a power of 10, but is: " + divisor[i]);
-            }
-
-            // we can't have two different indexes with the same display
-            String key = prefix[i] + "\uFFFF" + suffix[i] + "\uFFFF" + (i - log);
-            Integer old = seen.get(key);
-            if (old != null) {
-                recordError(debugCreationErrors, "Collision between values for " + i + " and " + old
-                        + " for [prefix/suffix/index-log(divisor)" + key.replace('\uFFFF', ';'));
-            } else {
-                seen.put(key, i);
-            }
-            if (divisor[i] < oldDivisor) {
-                recordError(debugCreationErrors, "Bad divisor, the divisor for 10E" + i + "(" + divisor[i]
-                        + ") is less than the divisor for the divisor for 10E" + (i - 1) + "(" + oldDivisor + ")");
-            }
-            oldDivisor = divisor[i];
-        }
-
-        this.units = otherPluralVariant(prefix, suffix);
         this.divisor = divisor.clone();
+        if (currencyAffixes == null) {
+            pluralToCurrencyAffixes = null;
+        } else {
+            pluralToCurrencyAffixes = new HashMap<String,Unit>();
+            for (Entry<String, String[]> s : currencyAffixes.entrySet()) {
+                String[] pair = s.getValue();
+                pluralToCurrencyAffixes.put(s.getKey(), new Unit(pair[0], pair[1]));
+            }
+        }
+        finishInit(style, pattern, formatSymbols);
+    }
+
+    private void finishInit(CompactStyle style, String pattern, DecimalFormatSymbols formatSymbols) {
         applyPattern(pattern);
         setDecimalFormatSymbols(formatSymbols);
         setMaximumSignificantDigits(2); // default significant digits
         setSignificantDigitsUsed(true);
-        setGroupingUsed(false);
-        this.currencyAffixes = currencyAffixes.clone();
-        this.pluralRules = null;
+        if (style == CompactStyle.SHORT) {
+            setGroupingUsed(false);
+        }
         setCurrency(null);
     }
 
@@ -227,12 +209,13 @@ public class CompactDecimalFormat extends DecimalFormat {
         CompactDecimalFormat other = (CompactDecimalFormat) obj;
         return mapsAreEqual(units, other.units)
                 && Arrays.equals(divisor, other.divisor)
-                && Arrays.equals(currencyAffixes, other.currencyAffixes)
+                && (pluralToCurrencyAffixes == other.pluralToCurrencyAffixes 
+                || pluralToCurrencyAffixes != null && pluralToCurrencyAffixes.equals(other.pluralToCurrencyAffixes)) 
                 && pluralRules.equals(other.pluralRules);
     }
 
     private boolean mapsAreEqual(
-        Map<String, DecimalFormat.Unit[]> lhs, Map<String, DecimalFormat.Unit[]> rhs) {
+            Map<String, DecimalFormat.Unit[]> lhs, Map<String, DecimalFormat.Unit[]> rhs) {
         if (lhs.size() != rhs.size()) {
             return false;
         }
@@ -252,11 +235,18 @@ public class CompactDecimalFormat extends DecimalFormat {
      */
     @Override
     public StringBuffer format(double number, StringBuffer toAppendTo, FieldPosition pos) {
-        Amount amount = toAmount(number);
+        Output<Unit> currencyUnit = new Output<Unit>();
+        Amount amount = toAmount(number, currencyUnit);
+        if (currencyUnit.value != null) {
+            currencyUnit.value.writePrefix(toAppendTo);
+        }
         Unit unit = amount.getUnit();
         unit.writePrefix(toAppendTo);
         super.format(amount.getQty(), toAppendTo, pos);
         unit.writeSuffix(toAppendTo);
+        if (currencyUnit.value != null) {
+            currencyUnit.value.writeSuffix(toAppendTo);
+        }
         return toAppendTo;
     }
 
@@ -271,7 +261,7 @@ public class CompactDecimalFormat extends DecimalFormat {
             throw new IllegalArgumentException();
         }
         Number number = (Number) obj;
-        Amount amount = toAmount(number.doubleValue());
+        Amount amount = toAmount(number.doubleValue(), null);
         return super.formatToCharacterIterator(amount.getQty(), amount.getUnit());
     }
 
@@ -333,7 +323,7 @@ public class CompactDecimalFormat extends DecimalFormat {
     /* INTERNALS */
 
 
-    private Amount toAmount(double number) {
+    private Amount toAmount(double number, Output<Unit> currencyUnit) {
         // We do this here so that the prefix or suffix we choose is always consistent
         // with the rounding we do. This way, 999999 -> 1M instead of 1000K.
         boolean negative = isNumberNegative(number);
@@ -344,6 +334,9 @@ public class CompactDecimalFormat extends DecimalFormat {
         }
         number /= divisor[base];
         String pluralVariant = getPluralForm(number);
+        if (pluralToCurrencyAffixes != null && currencyUnit != null) {
+            currencyUnit.value = pluralToCurrencyAffixes.get(pluralVariant);
+        }
         if (negative) {
             number = -number;
         }
@@ -360,13 +353,82 @@ public class CompactDecimalFormat extends DecimalFormat {
         creationErrors.add(errorMessage);
     }
 
-    private Map<String, DecimalFormat.Unit[]> otherPluralVariant(String[] prefix, String[] suffix) {
-        Map<String, DecimalFormat.Unit[]> result = new HashMap<String, DecimalFormat.Unit[]>();
-        DecimalFormat.Unit[] units = new DecimalFormat.Unit[prefix.length];
-        for (int i = 0; i < units.length; i++) {
-            units[i] = new DecimalFormat.Unit(prefix[i], suffix[i]);
+    /**
+     * Manufacture the unit list from arrays
+     * @param pluralCategoryToPower10ToAffix
+     * @param divisor
+     * @param debugCreationErrors
+     * @return
+     */
+    private Map<String, DecimalFormat.Unit[]> otherPluralVariant(Map<String, String[][]> pluralCategoryToPower10ToAffix, 
+            long[] divisor, Collection<String> debugCreationErrors) {
+
+        // check for bad divisors
+        if (divisor.length < CompactDecimalDataCache.MAX_DIGITS) {
+            recordError(debugCreationErrors, "Must have at least " + CompactDecimalDataCache.MAX_DIGITS + " prefix items.");
         }
-        result.put(CompactDecimalDataCache.OTHER, units);
+        long oldDivisor = 0;
+        for (int i = 0; i < divisor.length; ++i) {
+
+            // divisor must be a power of 10, and must be less than or equal to 10^i
+            int log = (int) Math.log10(divisor[i]);
+            if (log > i) {
+                recordError(debugCreationErrors, "Divisor[" + i + "] must be less than or equal to 10^" + i
+                        + ", but is: " + divisor[i]);
+            }
+            long roundTrip = (long) Math.pow(10.0d, log);
+            if (roundTrip != divisor[i]) {
+                recordError(debugCreationErrors, "Divisor[" + i + "] must be a power of 10, but is: " + divisor[i]);
+            }
+
+            if (divisor[i] < oldDivisor) {
+                recordError(debugCreationErrors, "Bad divisor, the divisor for 10E" + i + "(" + divisor[i]
+                        + ") is less than the divisor for the divisor for 10E" + (i - 1) + "(" + oldDivisor + ")");
+            }
+            oldDivisor = divisor[i];
+        }
+
+        Map<String, DecimalFormat.Unit[]> result = new HashMap<String, DecimalFormat.Unit[]>();
+        Map<String,Integer> seen = new HashMap<String,Integer>();
+        
+        String[][] defaultPower10ToAffix = pluralCategoryToPower10ToAffix.get("other");
+
+        for (Entry<String, String[][]> pluralCategoryAndPower10ToAffix : pluralCategoryToPower10ToAffix.entrySet()) {
+            String pluralCategory = pluralCategoryAndPower10ToAffix.getKey();
+            String[][] power10ToAffix = pluralCategoryAndPower10ToAffix.getValue();
+
+            // we can't have one of the arrays be of different length
+            if (power10ToAffix.length != divisor.length) {
+                recordError(debugCreationErrors, "Prefixes & suffixes must be present for all divisors " + pluralCategory);
+            }
+            DecimalFormat.Unit[] units = new DecimalFormat.Unit[power10ToAffix.length];
+            for (int i = 0; i < power10ToAffix.length; i++) {
+                String[] pair = power10ToAffix[i];
+                if (pair == null) {
+                    pair = defaultPower10ToAffix[i];
+                }
+
+                // we can't have bad pair
+                if (pair.length != 2 || pair[0] == null || pair[1] == null) {
+                    recordError(debugCreationErrors, "Prefix or suffix is null for " + pluralCategory + ", " + i + ", " + Arrays.asList(pair));
+                    continue;
+                }
+
+                // we can't have two different indexes with the same display
+                int log = (int) Math.log10(divisor[i]);
+                String key = pair[0] + "\uFFFF" + pair[1] + "\uFFFF" + (i - log);
+                Integer old = seen.get(key);
+                if (old == null) {
+                    seen.put(key, i);
+                } else if (old != i) {
+                    recordError(debugCreationErrors, "Collision between values for " + i + " and " + old
+                            + " for [prefix/suffix/index-log(divisor)" + key.replace('\uFFFF', ';'));
+                }
+
+                units[i] = new Unit(pair[0], pair[1]);
+            }
+            result.put(pluralCategory, units);
+        }
         return result;
     }
 
@@ -374,7 +436,7 @@ public class CompactDecimalFormat extends DecimalFormat {
         if (pluralRules == null) {
             return CompactDecimalDataCache.OTHER;
         }
-        return pluralRules.select(number);
+        return pluralRules.select(getNumberInfo(number));
     }
 
     /**
@@ -412,5 +474,23 @@ public class CompactDecimalFormat extends DecimalFormat {
         public Unit getUnit() {
             return unit;
         }
+    }
+
+    /**
+     * Return the NumberInfo for the number, given this formatter's settings.
+     * @param number
+     * @return
+     * @internal
+     * @deprecated
+     */
+    public NumberInfo getNumberInfo(double number) {
+        if (getMaximumFractionDigits() == 0 && !areSignificantDigitsUsed()) {
+            return new NumberInfo(number, 0, 0); 
+        }
+        // TODO Fix hack, where we are formatting just to get the fraction digits
+        StringBuffer temp = new StringBuffer();
+        UFieldPosition pos = new UFieldPosition();
+        super.format(number, temp, pos);
+        return new NumberInfo(number, pos.getCountVisibleFractionDigits(), pos.getFractionDigits());
     }
 }
