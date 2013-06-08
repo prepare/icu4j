@@ -93,13 +93,20 @@ public class SpoofCheckerTest extends TestFmwk {
             fileName = "unicode/confusablesWholeScript.txt";
             confusablesWholeScript = TestUtil.getDataReader(fileName, "UTF-8");
 
-            SpoofChecker rsc = new SpoofChecker.Builder().setData(confusables, confusablesWholeScript).build();
+            SpoofChecker rsc = new SpoofChecker.Builder().setData(confusables, confusablesWholeScript)
+               .build();
             if (rsc == null) {
                 errln("FAIL: null SpoofChecker");
                 return;
             }            
             // Check that newly built-from-rules SpoofChecker is able to function.
             checkSkeleton(rsc, "TestOpenFromSourceRules");
+            
+            SpoofChecker.CheckResult result = new SpoofChecker.CheckResult();
+            rsc.failsChecks("Hello", result);
+            
+            // TODO: add more tests, including comparison w default.
+            
         } catch (java.io.IOException e) {
             errln(e.toString());
         } catch (ParseException e) {
@@ -337,20 +344,7 @@ public class SpoofCheckerTest extends TestFmwk {
         int MA = SpoofChecker.ANY_CASE;
         int SA = SpoofChecker.SINGLE_SCRIPT_CONFUSABLE | SpoofChecker.ANY_CASE;
 
-        // A long "identifier" that will overflow implementation stack buffers, forcing heap allocations.
-        //    (in the C implementation)
-        checkSkeleton(
-                sc,
-                SL,
-                " A 1ong \\u02b9identifier' that will overflow implementation stack buffers, forcing heap allocations."
-                        + " A 1ong 'identifier' that will overflow implementation stack buffers, forcing heap allocations."
-                        + " A 1ong 'identifier' that will overflow implementation stack buffers, forcing heap allocations."
-                        + " A 1ong 'identifier' that will overflow implementation stack buffers, forcing heap allocations.",
-                        " A long 'identifier' that vvill overflovv irnplernentation stack buffers, forcing heap allocations."
-                                + " A long 'identifier' that vvill overflovv irnplernentation stack buffers, forcing heap allocations."
-                                + " A long 'identifier' that vvill overflovv irnplernentation stack buffers, forcing heap allocations."
-                                + " A long 'identifier' that vvill overflovv irnplernentation stack buffers, forcing heap allocations.",
-                                testName);
+        checkSkeleton(sc, SL, "\\u02b9identifier'",  "'identifier'",  testName);
 
         checkSkeleton(sc, SL, "nochange", "nochange", testName);
         checkSkeleton(sc, MA, "love", "love", testName);
@@ -391,6 +385,22 @@ public class SpoofCheckerTest extends TestFmwk {
         checkSkeleton(sc, SA, "\"", "\\u0027\\u0027", testName);
         checkSkeleton(sc, ML, "\"", "\\u0027\\u0027", testName);
         checkSkeleton(sc, MA, "\"", "\\u0027\\u0027", testName);
+        
+        // A long "identifier" that will overflow implementation stack buffers, forcing heap allocations.
+        //    (in the C implementation)
+        checkSkeleton(
+                sc,
+                SL,
+                " A 1ong \\u02b9identifier' that will overflow implementation stack buffers, forcing heap allocations."
+                        + " A 1ong 'identifier' that will overflow implementation stack buffers, forcing heap allocations."
+                        + " A 1ong 'identifier' that will overflow implementation stack buffers, forcing heap allocations."
+                        + " A 1ong 'identifier' that will overflow implementation stack buffers, forcing heap allocations.",
+                        " A long 'identifier' that vvill overflovv irnplernentation stack buffers, forcing heap allocations."
+                                + " A long 'identifier' that vvill overflovv irnplernentation stack buffers, forcing heap allocations."
+                                + " A long 'identifier' that vvill overflovv irnplernentation stack buffers, forcing heap allocations."
+                                + " A long 'identifier' that vvill overflovv irnplernentation stack buffers, forcing heap allocations.",
+                                testName);
+
     }
 
     // Internal function to run a single skeleton test case.
@@ -402,7 +412,7 @@ public class SpoofCheckerTest extends TestFmwk {
         String uExpected = Utility.unescape(expected);
         String actual;
         actual = sc.getSkeleton(type, uInput);
-        assertEquals(testName + "Expected (escaped): " + expected, uExpected, actual);
+        assertEquals(testName + ":  Expected (escaped): " + expected, uExpected, actual);
     }
 
     public void TestAreConfusable() {
