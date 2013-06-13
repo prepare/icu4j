@@ -9,6 +9,7 @@ package com.ibm.icu.dev.test.text;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.Reader;
+import java.io.StringReader;
 import java.text.ParseException;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -105,7 +106,45 @@ public class SpoofCheckerTest extends TestFmwk {
             SpoofChecker.CheckResult result = new SpoofChecker.CheckResult();
             rsc.failsChecks("Hello", result);
             
-            // TODO: add more tests, including comparison w default.
+            // The checker we just built from source rules should be equivalent to the
+            //  default checker created from prebuilt rules baked into the ICU data.            
+            SpoofChecker defaultChecker = new SpoofChecker.Builder().build();
+            assertTrue("Checker built from rules equals default", defaultChecker.equals(rsc));
+            
+            SpoofChecker optionChecker = new SpoofChecker.Builder().
+                                    setRestrictionLevel(RestrictionLevel.UNRESTRICTIVE).build();
+            assertFalse("", optionChecker.equals(rsc));
+            
+            // Stub source data to build into a test SpoofChecker
+            String stubWSConfusables =
+                "# Stub Whole Script Confusable data\n" +
+                "0561          ; Armn; Cyrl; L #      (ա)  ARMENIAN SMALL LETTER AYB\n";
+                
+            String stubConfusables =
+                "# Stub confusables data\n" +
+                "05AD ; 0596 ;  SL  # ( ֭ → ֖ ) HEBREW ACCENT DEHI → HEBREW ACCENT TIPEHA   #\n";
+            
+            // Verify that re-using a builder doesn't alter SpoofCheckers that were
+            //  previously created by that builder. (The builder could modify data
+            //  being used by the existing checker)
+            
+            SpoofChecker.Builder builder = new SpoofChecker.Builder();
+            SpoofChecker testChecker1 = builder.build();
+            assertTrue("", testChecker1.equals(defaultChecker));
+            
+            builder.setData(new StringReader(stubConfusables), new StringReader(stubWSConfusables));
+            builder.setRestrictionLevel(RestrictionLevel.UNRESTRICTIVE);
+            builder.setChecks(SpoofChecker.SINGLE_SCRIPT_CONFUSABLE);
+            Set<ULocale>allowedLocales = new HashSet<ULocale>();
+            allowedLocales.add(ULocale.JAPANESE);
+            allowedLocales.add(ULocale.FRENCH);
+            builder.setAllowedLocales(allowedLocales);
+            SpoofChecker testChecker2 = builder.build();
+            SpoofChecker testChecker3 = builder.build();
+            
+            assertTrue("", testChecker1.equals(defaultChecker));
+            assertFalse("", testChecker2.equals(defaultChecker));
+            assertTrue("", testChecker2.equals(testChecker3));           
             
         } catch (java.io.IOException e) {
             errln(e.toString());
