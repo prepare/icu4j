@@ -17,8 +17,10 @@ import java.io.LineNumberReader;
 import java.io.Reader;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -368,7 +370,10 @@ public class SpoofChecker {
          */
         public Builder(SpoofChecker src) {
             fChecks = src.fChecks;
-            fSpoofData = null;
+            fSpoofData = src.fSpoofData;      // For the data, we will either use the source data
+                                              //   as-is, or drop the builder's reference to it
+                                              //   and generate new data, depending on what our
+                                              //   caller does with the builder.
             fAllowedCharsSet.set(src.fAllowedCharsSet);
             fAllowedLocales.addAll(src.fAllowedLocales);
             fRestrictionLevel = src.fRestrictionLevel;
@@ -382,21 +387,25 @@ public class SpoofChecker {
          */
         public SpoofChecker build() {
             if (fSpoofData == null) { // read binary file
-                try {
-                    fSpoofData = SpoofData.getDefault();
-                } catch (java.io.IOException e) {
-                    return null;
-                }
+                fSpoofData = SpoofData.getDefault();
             }
-            if (!SpoofData.validateDataVersion(fSpoofData.fRawData)) {
-                return null;
-            }
+            
+            // Copy all state from the builder to the new SpoofChecker.
+            //  Make sure that everything is either cloned or copied, so
+            //  that subsequent re-use of the builder won't modify the built
+            //  SpoofChecker.
+            //
+            //  One exception to this: the SpoofData is just assigned.
+            //  If the builder subsequently needs to modify fSpoofData
+            //  it will create a new SpoofData object first.
+            
+
             SpoofChecker result = new SpoofChecker();
             result.fChecks = this.fChecks;
             result.fSpoofData = this.fSpoofData;
             result.fAllowedCharsSet = (UnicodeSet) (this.fAllowedCharsSet.clone());
             result.fAllowedCharsSet.freeze();
-            result.fAllowedLocales = this.fAllowedLocales;
+            result.fAllowedLocales = new HashSet<ULocale>(this.fAllowedLocales);
             result.fRestrictionLevel = this.fRestrictionLevel;
             return result;
         }
@@ -420,10 +429,12 @@ public class SpoofChecker {
         java.io.IOException {
 
             // Compile the binary data from the source (text) format.
+            //   Drop the builder's reference to any pre-existing data, which may
+            //   be in use in an already-built checker.
+            
             fSpoofData = new SpoofData();
             ConfusabledataBuilder.buildConfusableData(confusables, fSpoofData);
-            WSConfusableDataBuilder.buildWSConfusableData(confusablesWholeScript, fSpoofData);
-            
+            WSConfusableDataBuilder.buildWSConfusableData(confusablesWholeScript, fSpoofData);            
             return this;
         }
 
@@ -501,6 +512,7 @@ public class SpoofChecker {
             fAllowedCharsSet.addAll(tempSet);
 
             // Store the updated spoof checker state.
+            fAllowedLocales.clear();
             fAllowedLocales.addAll(locales);
             fChecks |= CHAR_LIMIT;
             return this;
@@ -812,7 +824,8 @@ public class SpoofChecker {
                 dest.fAnyCaseTrie   = anyCaseTrie.toTrie2_16();
                 dest.fLowerCaseTrie = lowerCaseTrie.toTrie2_16();
                 dest.fScriptSets = new ScriptSet[rtScriptSetsCount];
-
+                dest.fScriptSets[0] = new ScriptSet();
+                dest.fScriptSets[1] = new ScriptSet();
 
                 int rindex = 2;
                 for (int i = 2; i < scriptSets.size(); i++) {
@@ -830,7 +843,7 @@ public class SpoofChecker {
             // class BuilderScriptSet. Represents the set of scripts (Script Codes)
             // containing characters that are confusable with one specific
             // code point.
-            private static class BuilderScriptSet {
+            static class BuilderScriptSet {
                 int codePoint;           // The source code point.
                 Trie2Writable trie;      // Any-case or Lower-case Trie.
                                          // These Trie tables are the final result of the
@@ -839,7 +852,6 @@ public class SpoofChecker {
                 
                 ScriptSet sset;          // The set of scripts itself.
 
-                // Vectors of all B
                 int index;               // Index of this set in the Build Time vector
                                          // of script sets.
                 
@@ -900,8 +912,8 @@ public class SpoofChecker {
             private UnicodeSet fKeySet; // A set of all keys (UChar32s) that go into the
                                         // four mapping tables.
 
-            // The binary data is first assembled into the following four collections,
-            // then output to the ByteBuffer out.
+            // The compiled data is first assembled into the following four collections,
+            // then output to the builder's SpoofData object.
             private StringBuffer fStringTable;
             private ArrayList<Integer> fKeyVec;
             private ArrayList<Integer> fValueVec;
@@ -1007,8 +1019,8 @@ public class SpoofChecker {
                 // Now create the run-time binary form of the data.
                 //
                 // This is done in two steps. First the data is assembled into vectors and strings,
-                // for ease of construction, then the contents of these collections are dumped
-                // into the actual raw-bytes data storage.
+                // for ease of construction, then the contents of these collections are copied
+                // into the actual SpoofData object.
 
                 // Build up the string array, and record the index of each string therein
                 // in the (build time only) string pool.
@@ -1075,7 +1087,7 @@ public class SpoofChecker {
                     addKeyEntry(keyChar, fMATable, SpoofChecker.MA_TABLE_FLAG);
                 }
 
-                // Put the assembled data into the Runtime data structures (fSpoofData)
+                // Put the assembled data into the destination SpoofData object.
                 
                 // The Key Table
                 //     While copying the keys to the output array,
@@ -1091,7 +1103,6 @@ public class SpoofChecker {
                     dest.fCFUKeys[i] = key;
                     previousKey = key;
                 }
-                dest.fRawData.fCFUKeysSize = numKeys;  // TODO: refactor
                                 
                 // The Value Table, parallels the key table
                 int numValues = fValueVec.size();
@@ -1106,8 +1117,7 @@ public class SpoofChecker {
                 // The Strings Table.
 
                 dest.fCFUStrings = fStringTable.toString();
-                dest.fRawData.fCFUStringTableLen = dest.fCFUStrings.length(); // TODO: refactor
-       
+      
                 
                 // The String Lengths Table.
                 
@@ -1135,7 +1145,6 @@ public class SpoofChecker {
                     dest.fCFUStringLengths[i].fStrLength  = length;
                     previousLength = length;                    
                 }                
-                dest.fRawData.fCFUStringLengthsSize = stringLengthsSize; // TODO: refactor
              }
 
             // Add an entry to the key and value tables being built
@@ -1735,9 +1744,45 @@ public class SpoofChecker {
         return skelStr;
     }
 
+    
+    /**
+     *   Equality function. Return true if the two SpoofChecker objects
+     *   incorporate the same confusable data and have enabled the same
+     *   set of checks.
+     *   
+     *   @param other the SpoofChecker being compared with.
+     *   @return true if the two SpoofCheckers are equal.
+     *   @internal
+     */
+    public boolean equals(Object other) {
+        if (!(other instanceof SpoofChecker)) {return false; }
+        SpoofChecker otherSC = (SpoofChecker)other;
+        if (fSpoofData != otherSC.fSpoofData &&
+                fSpoofData != null &&
+                !fSpoofData.equals(otherSC.fSpoofData)) {
+            return false;
+        }
+        if (fChecks != otherSC.fChecks) {return false; }
+        if (fAllowedLocales != otherSC.fAllowedLocales &&
+                fAllowedLocales != null &&
+                !fAllowedLocales.equals(otherSC.fAllowedLocales)) {
+            return false;
+        }
+        if (fAllowedCharsSet != otherSC.fAllowedCharsSet &&
+                fAllowedCharsSet != null &&
+                !fAllowedCharsSet.equals(otherSC.fAllowedCharsSet)) {
+            return false;
+        }
+        if (fRestrictionLevel != otherSC.fRestrictionLevel) {
+            return false;
+        }
+        return true;
+     }
+    
+    
     /*
-     * Append the confusable skeleton transform for a single code point to a StringBuilder. The string to be appended
-     * will between 1 and 18 characters.
+     * Append the confusable skeleton transform for a single code point to a StringBuilder. 
+     * The string to be appended will between 1 and 18 characters.
      * 
      * This is the heart of the confusable skeleton generation implementation.
      * 
@@ -1761,8 +1806,7 @@ public class SpoofChecker {
             } else if (inChar < midc) {
                 limit = mid; // limit is exclusive
             } else {
-                // we have checked mid is not the char we looking for, the next
-                // char
+                // we have checked mid is not the char we looking for, the next char
                 // we want to check is (mid + 1)
                 low = mid + 1; // low is inclusive
             }
@@ -1821,10 +1865,8 @@ public class SpoofChecker {
         // length >= 4.
         // For these, get the real length from the string lengths table,
         // which maps string table indexes to lengths.
-        // All strings of the same length are stored contiguously in the string
-        // table.
-        // 'value' from the lookup above is the starting index for the desired
-        // string.
+        // All strings of the same length are stored contiguously in the string table.
+        // 'value' from the lookup above is the starting index for the desired string.
 
         if (stringLen == 4) {
             boolean dataOK = false;
@@ -1834,7 +1876,7 @@ public class SpoofChecker {
                     dataOK = true;
                     break;
                 }
-            };
+            }
             assert(dataOK);
         }
 
@@ -1848,7 +1890,7 @@ public class SpoofChecker {
     // confusable with the input text. The script of the input text
     // is included; input consisting of characters from a single script will
     // always produce a result consisting of a set containing that script.
-    void wholeScriptCheck(CharSequence text, ScriptSet result) {
+    private void wholeScriptCheck(CharSequence text, ScriptSet result) {
         int inputIdx = 0;
         int c;
 
@@ -1971,240 +2013,198 @@ public class SpoofChecker {
         return (((x) >> 29) & 3);
     }
 
-    // ---------------------------------------------------------------------------------------
-    //
-    // Raw Binary Data Formats, as loaded from the ICU data file,
-    // or as built by the builder.
-    //
-    // ---------------------------------------------------------------------------------------
-    private static class SpoofDataHeader {
-        int fMagic; // (0x8345fdef)
-        byte[] fFormatVersion = new byte[4]; // Data Format. Same as the value in
-        // class UDataInfo
-        // if there is one associated with this data.
-        int fLength; // Total lenght in bytes of this spoof data,
-        // including all sections, not just the header.
-
-        // The following four sections refer to data representing the confusable
-        // data
-        // from the Unicode.org data from "confusables.txt"
-
-        int fCFUKeys; // byte offset to Keys table (from SpoofDataHeader *)
-        int fCFUKeysSize; // number of entries in keys table (32 bits each)
-
-        // TODO: change name to fCFUValues, for consistency.
-        int fCFUStringIndex; // byte offset to String Indexes table
-        int fCFUStringIndexSize; // number of entries in String Indexes table (16 bits each)
-        // (number of entries must be same as in Keys table
-
-        int fCFUStringTable; // byte offset of String table
-        int fCFUStringTableLen; // length of string table (in 16 bit UChars)
-
-        int fCFUStringLengths; // byte offset to String Lengths table
-        int fCFUStringLengthsSize; // number of entries in lengths table. (2 x 16 bits each)
-
-        // The following sections are for data from confusablesWholeScript.txt
-        int fAnyCaseTrie; // byte offset to the serialized Any Case Trie
-        int fAnyCaseTrieLength; // Length (bytes) of the serialized Any Case Trie
-
-        int fLowerCaseTrie; // byte offset to the serialized Lower Case Trie
-        int fLowerCaseTrieLength; // Length (bytes) of the serialized Lower Case Trie
-
-        int fScriptSets; // byte offset to array of ScriptSets
-        int fScriptSetsLength; // Number of ScriptSets (24 bytes each)
-
-        // The following sections are for data from xidmodifications.txt
-        int[] unused = new int[15]; // Padding, Room for Expansion
-
-        public SpoofDataHeader() {
-        }
-
-        public SpoofDataHeader(DataInputStream dis) throws IOException {
-            int i;
-            fMagic = dis.readInt();
-            for (i = 0; i < fFormatVersion.length; i++) {
-                fFormatVersion[i] = dis.readByte();
-            }
-            fLength = dis.readInt();
-            fCFUKeys = dis.readInt();
-            fCFUKeysSize = dis.readInt();
-            fCFUStringIndex = dis.readInt();
-            fCFUStringIndexSize = dis.readInt();
-            fCFUStringTable = dis.readInt();
-            fCFUStringTableLen = dis.readInt();
-            fCFUStringLengths = dis.readInt();
-            fCFUStringLengthsSize = dis.readInt();
-            fAnyCaseTrie = dis.readInt();
-            fAnyCaseTrieLength = dis.readInt();
-            fLowerCaseTrie = dis.readInt();
-            fLowerCaseTrieLength = dis.readInt();
-            fScriptSets = dis.readInt();
-            fScriptSetsLength = dis.readInt();
-            for (i = 0; i < unused.length; i++) {
-                unused[i] = dis.readInt();
-            }
-        }
-
- 
-    }
 
     // -------------------------------------------------------------------------------------
+    //
     // SpoofData
     //
-    //   A small class that wraps the raw (was memory mapped in the C world) spoof data.
-    //   Nothing in this class includes state that is specific to any particular
-    //   SpoofDetector object.
+    //   This class corresonds to the ICU SpoofCheck data.
+    //
+    //   The data can originate with the Binary ICU data that is generated in ICU4C,
+    //   or it can originate from source rules that are compiled in ICU4J.
+    //
+    //   This class does not include the set of checks to be performed, but only
+    //     data that is serialized into the ICU binary data.
+    //   
+    //   Because Java cannot easily wrap binaray data like ICU4C, the binary data is
+    //     copied into Java structures that are convenient for use by the run time code.
+    //
     // ---------------------------------------------------------------------------------------
     private static class SpoofData {
-        // getDefault() - return a wrapper around the spoof data that is
-        // baked into the default ICU data.
-        // Load standard ICU spoof data.
-        public static SpoofData getDefault() throws java.io.IOException {
+
+        // The Confusable data, Java data structures for.        
+        int[]                       fCFUKeys;
+        short[]                     fCFUValues;
+        SpoofStringLengthsElement[] fCFUStringLengths;
+        String                      fCFUStrings;
+
+        // Whole Script Confusable Data
+        Trie2                       fAnyCaseTrie;
+        Trie2                       fLowerCaseTrie;
+        ScriptSet[]                 fScriptSets;
+
+        static class SpoofStringLengthsElement {
+            int fLastString;  // index in string table of last string with this length
+            int fStrLength;   // Length of strings
+            public boolean equals(Object other) {
+                if (!(other instanceof SpoofStringLengthsElement)) {
+                    return false;
+                }
+                SpoofStringLengthsElement otherEl = (SpoofStringLengthsElement)other;
+                return fLastString == otherEl.fLastString &&
+                       fStrLength  == otherEl.fStrLength;
+            }
+        }
+
+
+        
+        // getDefault() - Create a SpoofData instance that is built from
+        //                the data baked into the default ICU data.
+
+        static SpoofData getDefault() {
             // TODO: Cache it. Lazy create, keep until cleanup.
-            InputStream is = com.ibm.icu.impl.ICUData.getRequiredStream(com.ibm.icu.impl.ICUResourceBundle.ICU_BUNDLE
-                    + "/confusables.cfu");
-            SpoofData This = new SpoofData(is);
+            SpoofData This = null;
+            try {
+                InputStream is = com.ibm.icu.impl.ICUData.getRequiredStream(com.ibm.icu.impl.ICUResourceBundle.ICU_BUNDLE
+                        + "/confusables.cfu");
+                This = new SpoofData(is);
+                is.close();
+            }
+            catch (IOException e) {
+                // Return null in this case.
+            }
             return This;
         }
 
         // SpoofChecker Data constructor for use from data builder.
         // Initializes a new, empty data area that will be populated later.
-        public SpoofData() {
-            // The spoof header should already be sized to be a multiple of 16
-            // bytes.
-            // Just in case it's not, round it up.
-
-            fRawData = new SpoofDataHeader();
-
-            fRawData.fMagic = SpoofChecker.MAGIC;
-            fRawData.fFormatVersion[0] = 1;
-            fRawData.fFormatVersion[1] = 0;
-            fRawData.fFormatVersion[2] = 0;
-            fRawData.fFormatVersion[3] = 0;
+        SpoofData() {
         }
 
         // Constructor for use when creating from prebuilt default data.
         // A InputStream is what the ICU internal data loading functions provide.
-        public SpoofData(InputStream is) throws java.io.IOException {
+        SpoofData(InputStream is) throws java.io.IOException {
             // Seek past the ICU data header.
             // TODO: verify that the header looks good.
             DataInputStream dis = new DataInputStream(new BufferedInputStream(is));
             dis.skip(0x80);
             assert (dis.markSupported());
             dis.mark(Integer.MAX_VALUE);
-
-            fRawData = new SpoofDataHeader(dis);
-            initPtrs(dis);
+            readData(dis);
         }
-
-        // Check raw SpoofChecker Data Version compatibility.
-        // Return true it looks good.
-        static boolean validateDataVersion(SpoofDataHeader rawData) {
-            if (rawData == null || rawData.fMagic != SpoofChecker.MAGIC || rawData.fFormatVersion[0] > 1
-                    || rawData.fFormatVersion[1] > 0) {
+        
+        public boolean equals(Object other) {
+            if (!(other instanceof SpoofData)) {
                 return false;
             }
+            SpoofData otherData = (SpoofData)other;
+            if (!Arrays.equals(fCFUKeys, otherData.fCFUKeys)) return false;
+            if (!Arrays.equals(fCFUValues, otherData.fCFUValues)) return false;
+            if (!Arrays.deepEquals(fCFUStringLengths, otherData.fCFUStringLengths)) return false;
+            if (fCFUStrings != otherData.fCFUStrings &&
+                    fCFUStrings != null && 
+                    !fCFUStrings.equals(otherData.fCFUStrings)) return false;
+            if (fAnyCaseTrie != otherData.fAnyCaseTrie && 
+                    fAnyCaseTrie != null &&
+                    !fAnyCaseTrie.equals(otherData.fAnyCaseTrie)) return false;
+            if (fLowerCaseTrie != otherData.fLowerCaseTrie && 
+                    fLowerCaseTrie != null &&
+                    !fLowerCaseTrie.equals(otherData.fLowerCaseTrie)) return false;
+            if (!Arrays.deepEquals(fScriptSets, otherData.fScriptSets)) return false;
             return true;
         }
 
-        // build SpoofChecker from DataInputStream
-        // read from binay data input stream
-        // initialize the pointers from this object to the raw data.
-        // Initialize the pointers to the various sections of the raw data.
+        // Set the SpoofChecker data from pre-built binary data on a DataInputStream.
+        // The binary data format is as described for ICU4C spoof data.
         //
-        // This function is used both during the Trie building process (multiple
-        // times, as the individual data sections are added), and
-        // during the opening of a SpoofChecker Checker from prebuilt data.
-        //
-        // The pointers for non-existent data sections (identified by an offset of
-        // 0) are set to null.
-        void initPtrs(DataInputStream dis) throws java.io.IOException {
+        void readData(DataInputStream dis) throws java.io.IOException {
+            int magic = dis.readInt();
+            if (magic != 0x3845fdef) {
+                throw new IllegalArgumentException("Bad Spoof Check Data.");
+            }
+            @SuppressWarnings("unused")
+            int dataFormatVersion      = dis.readInt();
+            @SuppressWarnings("unused")
+            int dataLength             = dis.readInt();
+            
+            int CFUKeysOffset          = dis.readInt();
+            int CFUKeysSize            = dis.readInt();
+            
+            int CFUValuesOffset        = dis.readInt();
+            int CFUValuesSize          = dis.readInt();
+            
+            int CFUStringTableOffset   = dis.readInt();
+            int CFUStringTableSize     = dis.readInt();
+            
+            int CFUStringLengthsOffset = dis.readInt();
+            int CFUStringLengthsSize   = dis.readInt();
+            
+            int anyCaseTrieOffset      = dis.readInt();
+            @SuppressWarnings("unused")
+            int anyCaseTrieSize        = dis.readInt();
+            
+            int lowerCaseTrieOffset    = dis.readInt();
+            @SuppressWarnings("unused")
+            int lowerCaseTrieLength    = dis.readInt();
+            
+            int scriptSetsOffset       = dis.readInt();
+            int scriptSetslength       = dis.readInt();
+                        
             int i;
             fCFUKeys = null;
             fCFUValues = null;
             fCFUStringLengths = null;
             fCFUStrings = null;
 
-            // the binary file from C world is memory-mapped, each section of data
-            // is align-ed to 16-bytes boundary, to make the code more robust we call
-            // reset()/skip() which essensially seek() to the correct offset.
+            // We have now read the file header, and obtained the position for each
+            // of the data items. Now read each in turn, first seeking the
+            // input stream to the position of the data item.
+            
             dis.reset();
-            dis.skip(fRawData.fCFUKeys);
-            if (fRawData.fCFUKeys != 0) {
-                fCFUKeys = new int[fRawData.fCFUKeysSize];
-                for (i = 0; i < fRawData.fCFUKeysSize; i++) {
-                    fCFUKeys[i] = dis.readInt();
-                }
+            dis.skip(CFUKeysOffset);
+            fCFUKeys = new int[CFUKeysSize];
+            for (i = 0; i < CFUKeysSize; i++) {
+                fCFUKeys[i] = dis.readInt();
             }
 
             dis.reset();
-            dis.skip(fRawData.fCFUStringIndex);
-            if (fRawData.fCFUStringIndex != 0) {
-                fCFUValues = new short[fRawData.fCFUStringIndexSize];
-                for (i = 0; i < fRawData.fCFUStringIndexSize; i++) {
-                    fCFUValues[i] = dis.readShort();
-                }
+            dis.skip(CFUValuesOffset);
+            fCFUValues = new short[CFUValuesSize];
+            for (i = 0; i < CFUValuesSize; i++) {
+                fCFUValues[i] = dis.readShort();
             }
 
             dis.reset();
-            dis.skip(fRawData.fCFUStringTable);
+            dis.skip(CFUStringTableOffset);
             StringBuffer CFUStringB = new StringBuffer();
-            if (fRawData.fCFUStringTable != 0) {
-                for (i = 0; i < fRawData.fCFUStringTableLen; i++) {
-                    CFUStringB.append(dis.readChar());
-                }
+            for (i = 0; i < CFUStringTableSize; i++) {
+                CFUStringB.append(dis.readChar());
             }
             fCFUStrings = CFUStringB.toString();
 
             dis.reset();
-            dis.skip(fRawData.fCFUStringLengths);
-            if (fRawData.fCFUStringLengths != 0) {
-                fCFUStringLengths = new SpoofStringLengthsElement[fRawData.fCFUStringLengthsSize];
-                for (i = 0; i < fRawData.fCFUStringLengthsSize; i++) {
-                    fCFUStringLengths[i] = new SpoofStringLengthsElement();
-                    fCFUStringLengths[i].fLastString = dis.readShort();
-                    fCFUStringLengths[i].fStrLength = dis.readShort();
-                }
+            dis.skip(CFUStringLengthsOffset);
+            fCFUStringLengths = new SpoofStringLengthsElement[CFUStringLengthsSize];
+            for (i = 0; i < CFUStringLengthsSize; i++) {
+                fCFUStringLengths[i] = new SpoofStringLengthsElement();
+                fCFUStringLengths[i].fLastString = dis.readShort();
+                fCFUStringLengths[i].fStrLength = dis.readShort();
             }
 
             dis.reset();
-            dis.skip(fRawData.fAnyCaseTrie);
-            if (fAnyCaseTrie == null && fRawData.fAnyCaseTrie != 0) {
-                fAnyCaseTrie = Trie2.createFromSerialized(dis);
-            }
-            dis.reset();
-            dis.skip(fRawData.fLowerCaseTrie);
-            if (fLowerCaseTrie == null && fRawData.fLowerCaseTrie != 0) {
-                fLowerCaseTrie = Trie2.createFromSerialized(dis);
-            }
+            dis.skip(anyCaseTrieOffset);
+            fAnyCaseTrie = Trie2.createFromSerialized(dis);
 
             dis.reset();
-            dis.skip(fRawData.fScriptSets);
-            if (fRawData.fScriptSets != 0) {
-                fScriptSets = new ScriptSet[fRawData.fScriptSetsLength];
-                for (i = 0; i < fRawData.fScriptSetsLength; i++) {
-                    fScriptSets[i] = new ScriptSet(dis);
-                }
+            dis.skip(lowerCaseTrieOffset);
+            fLowerCaseTrie = Trie2.createFromSerialized(dis);
+
+            dis.reset();
+            dis.skip(scriptSetsOffset);
+            fScriptSets = new ScriptSet[scriptSetslength];
+            for (i = 0; i < scriptSetslength; i++) {
+                fScriptSets[i] = new ScriptSet(dis);
             }
-        }
-
-        SpoofDataHeader fRawData;
-
-        // Confusable data
-        
-        int[] fCFUKeys;
-        short[] fCFUValues;
-        SpoofStringLengthsElement[] fCFUStringLengths;
-        String fCFUStrings;
-
-        // Whole Script Confusable Data
-        Trie2 fAnyCaseTrie;
-        Trie2 fLowerCaseTrie;
-        ScriptSet[] fScriptSets;
-
-        private static class SpoofStringLengthsElement {
-            int fLastString;  // index in string table of last string with this length
-            int fStrLength;   // Length of strings
         }
 
     }
@@ -2217,7 +2217,7 @@ public class SpoofChecker {
     // be awkward.
     //
     // -------------------------------------------------------------------------------
-    private static class ScriptSet {
+    static class ScriptSet {
         public ScriptSet() {
         }
 
@@ -2233,13 +2233,12 @@ public class SpoofChecker {
             }
         }
 
-        public boolean equals(ScriptSet other) {
-            for (int i = 0; i < bits.length; i++) {
-                if (bits[i] != other.bits[i]) {
-                    return false;
-                }
+        public boolean equals(Object other) {
+            if (!(other instanceof ScriptSet)) {
+                return false;
             }
-            return true;
+            ScriptSet otherSet = (ScriptSet)other;
+            return Arrays.equals(bits, otherSet.bits);
         }
 
         public void Union(int script) {
