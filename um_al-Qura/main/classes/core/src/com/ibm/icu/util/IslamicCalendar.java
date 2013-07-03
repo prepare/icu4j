@@ -12,7 +12,7 @@ import com.ibm.icu.impl.CalendarAstronomer;
 import com.ibm.icu.impl.CalendarCache;
 import com.ibm.icu.util.ULocale.Category;
 
-/** 
+/**
  * <code>IslamicCalendar</code> is a subclass of <code>Calendar</code>
  * that that implements the Islamic civil and religious calendars.  It
  * is used as the civil calendar in most of the Arab world and the
@@ -33,7 +33,7 @@ import com.ibm.icu.util.ULocale.Category;
  * we treat days and months as beginning at midnight,
  * roughly 6 hours after the corresponding sunset.
  * <p>
- * There are two main variants of the Islamic calendar in existence.  The first
+ * There are three main variants of the Islamic calendar in existence.  The first
  * is the <em>civil</em> calendar, which uses a fixed cycle of alternating 29-
  * and 30-day months, with a leap day added to the last month of 11 out of
  * every 30 years.  This calendar is easily calculated and thus predictable in
@@ -41,8 +41,9 @@ import com.ibm.icu.util.ULocale.Category;
  * This is the default behavior of a newly-created <code>IslamicCalendar</code>
  * object.
  * <p>
- * The Islamic <em>religious</em> calendar, however, is based on the <em>observation</em>
- * of the crescent moon.  It is thus affected by the position at which the
+ * The Islamic <em>religious</em> calendar and Saudi Arabia's <em>Umm al-Qura</em> 
+ * calendar, however, are based on the <em>observation</em> of the crescent moon.  
+ * It is thus affected by the position at which the
  * observations are made, seasonal variations in the time of sunset, the
  * eccentricities of the moon's orbit, and even the weather at the observation
  * site.  This makes it impossible to calculate in advance, and it causes the
@@ -53,20 +54,26 @@ import com.ibm.icu.util.ULocale.Category;
  * moon's illumination, and other factors, it is possible to determine the start
  * of a lunar month with a fairly high degree of certainty.  However, these
  * calculations are extremely complicated and thus slow, so most algorithms,
- * including the one used here, are only approximations of the true astronical
+ * including the one used here, are only approximations of the true astronomical
  * calculations.  At present, the approximations used in this class are fairly
  * simplistic; they will be improved in later versions of the code.
  * <p>
- * The {@link #setCivil setCivil} method determines
+ * Like the Islamic religious calendar, <em>Umm al-Qura</em> is also based 
+ * on the sighting method of the crescent moon but is standardized by Saudi Arabia.
+ * <p>  
+ * The {@link #setType setType} method determines
  * which approach is used to determine the start of a month.  By default, the
- * fixed-cycle civil calendar is used.  However, if <code>setCivil(false)</code>
+ * fixed-cycle <em>civil</em> calendar is used.  However, if <code>setType(ISLAMIC)</code>
  * is called, an approximation of the true lunar calendar will be used.
+ * Similarly, if <code>setType(ISLAMIC_UMALQURA)</code> is called, an approximation 
+ * of the Umm al-Qura lunar calendar will be used.
  * <p>
  * This class should not be subclassed.</p>
  * <p>
  * IslamicCalendar usually should be instantiated using 
  * {@link com.ibm.icu.util.Calendar#getInstance(ULocale)} passing in a <code>ULocale</code>
- * with the tag <code>"@calendar=islamic"</code> or <code>"@calendar=islamic-civil"</code>.</p>
+ * with the tag <code>"@calendar=islamic"</code> or <code>"@calendar=islamic-civil"</code> 
+ * or <code>"@calendar=islamic-umalqura"</code>.</p>
  *
  * @see com.ibm.icu.util.GregorianCalendar
  * @see com.ibm.icu.util.Calendar
@@ -331,6 +338,7 @@ public class IslamicCalendar extends Calendar {
      * calendar, or <code>false</code> if using the religious, astronomical
      * calendar.
      * @stable ICU 2.8
+     * 
      */
     @Deprecated
     public boolean isCivil() {
@@ -374,84 +382,82 @@ public class IslamicCalendar extends Calendar {
         {/*                                   */}, // MILLISECONDS_IN_DAY
     };
     
-    private static final String[] UMALQURA_MONTHLENGTH ={
-    	    	
-    	/* 1318 -1322 */ "010101110100", "100101110110", "010010110111", "001001010111", "010100101011", 
-    	/* 1323 -1327 */ "011010010101", "011011001010", "101011010101", "010101011011", "001001011101", 
-    	/* 1328 -1332 */ "100100101101", "110010010101", "110101001010", "111010100101", "011011010010", 
-    	/* 1333 -1337 */ "101011010101", "010101011010", "101010101011", "010001001011", "011010100101", 
-    	/* 1338 -1342 */ "011101010010", "101110101001", "001101110100", "101010110110", "010101010110", 
-    	/* 1343 -1347 */ "101010101010", "110101010010", "110110101001", "010111010100", "101011101010", 
-    	/* 1348 -1352 */ "010011011101", "001001101110", "100100101110", "101010100110", "110101010100", 
-    	/* 1353 -1357 */ "010110101010", "010110110101", "001010110100", "100100110111", "010010011011", 
-    	/* 1358 -1362 */ "101001001011", "101100100101", "101101010100", "101101101010", "010101101101", 
-    	/* 1363 -1367 */ "010010101101", "101001010101", "110100100101", "111010010010", "111011001001", 
-    	/* 1368 -1372 */ "011011010100", "101011101010", "010101101011", "010010101011", "011010000101", 
-    	/* 1373 -1377 */ "101101001001", "101110100100", "101110110010", "010110110101", "001010111010", 
-    	/* 1378 -1382 */ "100101011011", "010010101011", "010101010101", "011010110010", "011011011001", 
-    	/* 1383 -1387 */ "001011101100", "100101101110", "010010101110", "101001010110", "110100101010", 
-    	/* 1388 -1392 */ "110101010101", "010110101010", "101010110101", "010010111011", "000001011011", 
-    	/* 1393 -1397 */ "100100101011", "101010010101", "001101001010", "101110100101", "010110101010", 
-    	/* 1398 -1402 */ "101010110101", "010101010110", "101010010110", "110101001010", "111010100101", 
-    	/* 1403 -1407 */ "011101010010", "011011101001", "001101101010", "101010101101", "010101010101", 
-    	/* 1408 -1412 */ "101010100101", "101101010010", "101110101001", "010110110100", "100110111010", 
-    	/* 1413 -1417 */ "010011011011", "001001011101", "010100101101", "101010100101", "101011010100", 
-    	/* 1418 -1422 */ "101011101010", "010101101101", "010010111101", "001000111101", "100100011101", 
-    	/* 1423 -1427 */ "101010010101", "101101001010", "101101011010", "010101101101", "001010110110", 
-    	/* 1428 -1432 */ "100100111011", "010010011011", "011001010101", "011010101001", "011101010100", 
-    	/* 1433 -1437 */ "101101101010", "010101101100", "101010101101", "010101010101", "101100101001", 
-    	/* 1438 -1442 */ "101110010010", "101110101001", "010111010100", "101011011010", "010101011010", 
-    	/* 1443 -1447 */ "101010101011", "010110010101", "011101001001", "011101100100", "101110101010", 
-    	/* 1448 -1452 */ "010110110101", "001010110110", "101001010110", "111001001101","101100100101",
-    	/* 1453 -1457 */ "101101010010","101101101010","010110101101","001010101110","100100101111",
-    	/* 1458 -1462 */ "010010010111","011001001011","011010100101","011010101100","101011010110",
-    	/* 1463 -1467 */ "010101011101","010010011101","101001001101","110100010110","110110010101",
-    	/* 1468 -1472 */ "010110101010","010110110101","001010011010","100101011011","010010101100",
-    	/* 1473 -1477 */ "010110010101","011011001010","011011100100","101011101010","010011110101",
-    	/* 1478 -1480 */ "001010110110","100101010110","101010101010"	
+    /*
+     * bit map array where a bit turned on represents a month with 30 days. 
+     */
+    private static final int[] UMALQURA_MONTHLENGTH ={
+        //* 1318 -1322 */ "0101 0111 0100", "1001 0111 0110", "0100 1011 0111", "0010 0101 0111", "0101 0010 1011",
+                               0x0574,           0x0975,           0x06A7,           0x0257,           0x052B,            
+        //* 1323 -1327 */ "0110 1001 0101", "0110 1100 1010", "1010 1101 0101", "0101 0101 1011", "0010 0101 1101",                 
+                               0x0695,           0x06CA,           0x0AD5,           0x055B,           0x025B,                  
+        //* 1328 -1332 */ "1001 0010 1101", "1100 1001 0101", "1101 0100 1010", "1110 1010 0101", "0110 1101 0010",                 
+                               0x092D,           0x0C95,           0x0D4A,           0x0E5B,           0x025B,                  
+        //* 1333 -1337 */ "1010 1101 0101", "0101 0101 1010", "1010 1010 1011", "0100 0100 1011", "0110 1010 0101",                 
+                               0x0AD5,           0x055A,           0x0AAB,           0x044B,           0x06A5,                  
+        //* 1338 -1342 */ "0111 0101 0010", "1011 1010 1001", "0011 0111 0100", "1010 1011 0110", "0101 0101 0110",                  
+                               0x0752,           0x0BA9,           0x0374,           0x0AB6,           0x0556,                  
+        //* 1343 -1347 */ "1010 1010 1010", "1101 0101 0010", "1101 1010 1001", "0101 1101 0100", "1010 1110 1010", 
+                               0x0AAA,           0x0D52,           0x0DA9,           0x05D4,           0x0AEA,                  
+        //* 1348 -1352 */ "0100 1101 1101", "0010 0110 1110", "1001 0010 1110", "1010 1010 0110", "1101 0101 0100", 
+                               0x04DD,           0x026E,           0x092E,           0x0AA6,           0x0D54,                  
+        //* 1353 -1357 */ "0101 1010 1010", "0101 1011 0101", "0010 1011 0100", "1001 0011 0111", "0100 1001 1011", 
+                               0x05AA,           0x05B5,           0x02B4,           0x0937,           0x049B,                  
+        //* 1358 -1362 */ "1010 0100 1011", "1011 0010 0101", "1011 0101 0100", "1011 0110 1010", "0101 0110 1101", 
+                               0x0A4B,           0x0B25,           0x0B54,           0x0B6A,           0x056D,                  
+        //* 1363 -1367 */ "0100 1010 1101", "1010 0101 0101", "1101 0010 0101", "1110 1001 0010", "1110 1100 1001", 
+                               0x04AD,           0x0A55,           0x0D25,           0x0E92,           0x0EC9,                  
+        //* 1368 -1372 */ "0110 1101 0100", "1010 1110 1010", "0101 0110 1011", "0100 1010 1011", "0110 1000 0101", 
+                               0x06D4,           0x0ADA,           0x056B,           0x04AB,           0x0685,                  
+        //* 1373 -1377 */ "1011 0100 1001", "1011 1010 0100", "1011 1011 0010", "0101 1011 0101", "0010 1011 1010", 
+                               0x0B49,           0x0BA4,           0x0BB2,           0x05B5,           0x02BA,                  
+        //* 1378 -1382 */ "1001 0101 1011", "0100 1010 1011", "0101 0101 0101", "0110 1011 0010", "0110 1101 1001", 
+                               0x095B,           0x04AB,           0x0555,           0x06B2,           0x06D9,                  
+        //* 1383 -1387 */ "0010 1110 1100", "1001 0110 1110", "0100 1010 1110", "1010 0101 0110", "1101 0010 1010", 
+                               0x02EC,           0x096E,           0x04AE,           0x0A56,           0x0D2A,                  
+        //* 1388 -1392 */ "1101 0101 0101", "0101 1010 1010", "1010 1011 0101", "0100 1011 1011", "0000 0101 1011", 
+                               0x0D55,           0x05AA,           0x0AB5,           0x04BB,           0x005B,                  
+        //* 1393 -1397 */ "1001 0010 1011", "1010 1001 0101", "0011 0100 1010", "1011 1010 0101", "0101 1010 1010", 
+                               0x092B,           0x0A95,           0x034A,           0x0BA5,           0x05AA,                  
+        //* 1398 -1402 */ "1010 1011 0101", "0101 0101 0110", "1010 1001 0110", "1101 0100 1010", "1110 1010 0101", 
+                               0x0AB5,           0x0556,           0x0A96,           0x0B4A,           0x0EA5,                  
+        //* 1403 -1407 */ "0111 0101 0010", "0110 1110 1001", "0011 0110 1010", "1010 1010 1101", "0101 0101 0101", 
+                               0x0752,           0x06E9,           0x036A,           0x0AAD,           0x0555,                  
+        //* 1408 -1412 */ "1010 1010 0101", "1011 0101 0010", "1011 1010 1001", "0101 1011 0100", "1001 1011 1010", 
+                               0x0AA5,           0x0B52,           0x0BA9,           0x05B4,           0x09BA,                  
+        //* 1413 -1417 */ "0100 1101 1011", "0010 0101 1101", "0101 0010 1101", "1010 1010 0101", "1010 1101 0100", 
+                               0x04DB,           0x025D,           0x052D,           0x0AA5,           0x0AD4,              
+        //* 1418 -1422 */ "1010 1110 1010", "0101 0110 1101", "0100 1011 1101", "0010 0011 1101", "1001 0001 1101", 
+                               0x0AEA,           0x056D,           0x04BD,           0x023D,           0x091D,                  
+        //* 1423 -1427 */ "1010 1001 0101", "1011 0100 1010", "1011 0101 1010", "0101 0110 1101", "0010 1011 0110", 
+                               0x0A95,           0x0B4A,           0x0B5A,           0x056D,           0x02B6,                  
+        //* 1428 -1432 */ "1001 0011 1011", "0100 1001 1011", "0110 0101 0101", "0110 1010 1001", "0111 0101 0100", 
+                               0x093B,           0x049B,           0x0655,           0x06A9,           0x0754,                  
+        //* 1433 -1437 */ "1011 0110 1010", "0101 0110 1100", "1010 1010 1101", "0101 0101 0101", "1011 0010 1001", 
+                               0x0B6A,           0x056C,           0x0AAD,           0x0555,           0x0B29,                  
+        //* 1438 -1442 */ "1011 1001 0010", "1011 1010 1001", "0101 1101 0100", "1010 1101 1010", "0101 0101 1010", 
+                               0x0B92,           0x0BA9,           0x05D4,           0x0ADA,           0x055A,                  
+        //* 1443 -1447 */ "1010 1010 1011", "0101 1001 0101", "0111 0100 1001", "0111 0110 0100", "1011 1010 1010", 
+                               0x0AAB,           0x0595,           0x0749,           0x0764,           0x0BAA,                  
+        //* 1448 -1452 */ "0101 1011 0101", "0010 1011 0110", "1010 0101 0110", "1110 0100 1101", "1011 0010 0101",
+                               0x05B5,           0x02B6,           0x0A56,           0x0E4D,           0x0B25,                  
+        //* 1453 -1457 */ "1011 0101 0010", "1011 0110 1010", "0101 1010 1101", "0010 1010 1110", "1001 0010 1111",
+                               0x0B52,           0x0B6A,           0x05AD,           0x02AE,           0x092F,                  
+        //* 1458 -1462 */ "0100 1001 0111", "0110 0100 1011", "0110 1010 0101", "0110 1010 1100", "1010 1101 0110",
+                               0x0497,           0x064B,           0x06A5,           0x06AC,           0x0AD6,                  
+        //* 1463 -1467 */ "0101 0101 1101", "0100 1001 1101", "1010 0100 1101", "1101 0001 0110", "1101 1001 0101",
+                               0x055D,           0x049D,           0x0A4D,           0x0D16,           0x0D95,                  
+        //* 1468 -1472 */ "0101 1010 1010", "0101 1011 0101", "0010 1001 1010", "1001 0101 1011", "0100 1010 1100",
+                               0x05AA,           0x05B5,           0x029A,           0x095B,           0x04AC,                  
+        //* 1473 -1477 */ "0101 1001 0101", "0110 1100 1010", "0110 1110 0100", "1010 1110 1010", "0100 1111 0101",
+                               0x0595,           0x06CA,           0x06E4,           0x0AEA,           0x04F5,                  
+        //* 1478 -1480 */ "0010 1011 0110", "1001 0101 0110", "1010 1010 1010"   
+                               0x02B6,           0x0956,           0x0AAA                  
     };
     
     private static final int UMALQURA_YEAR_START = 1318;
     private static final int UMALQURA_YEAR_END = 1480;
     
-    private static final GregorianCalendar[] UMALQURA_GREGORIAN_REF = { 
-            new GregorianCalendar(1900,3,30,0,0,0),
-            new GregorianCalendar(1905,2,7,0,0,0),
-            new GregorianCalendar(1910,0,12,0,0,0),
-            new GregorianCalendar(1914,10,18,0,0,0),
-            new GregorianCalendar(1919,8,25,0,0,0),
-            new GregorianCalendar(1924,7,1,0,0,0),
-            new GregorianCalendar(1929,5,8,0,0,0),
-            new GregorianCalendar(1934,3,14,0,0,0),
-            new GregorianCalendar(1939,1,20,0,0,0),
-            new GregorianCalendar(1943,11,28,0,0,0),
-            new GregorianCalendar(1948,10,2,0,0,0),
-            new GregorianCalendar(1953,8,9,0,0,0),
-            new GregorianCalendar(1958,6,17,0,0,0),
-            new GregorianCalendar(1963,4,24,0,0,0),
-            new GregorianCalendar(1968,2,29,0,0,0),
-            new GregorianCalendar(1973,1,4,0,0,0),
-            new GregorianCalendar(1977,11,11,0,0,0),
-            new GregorianCalendar(1982,9,18,0,0,0),
-            new GregorianCalendar(1987,7,25,0,0,0),
-            new GregorianCalendar(1992,6,1,0,0,0),
-            new GregorianCalendar(1997,4,7,0,0,0),
-            new GregorianCalendar(2002,2,15,0,0,0),
-            new GregorianCalendar(2007,0,20,0,0,0),
-            new GregorianCalendar(2011,10,26,0,0,0),
-            new GregorianCalendar(2016,9,2,0,0,0),
-            new GregorianCalendar(2021,7,9,0,0,0),
-            new GregorianCalendar(2026,5,16,0,0,0),
-            new GregorianCalendar(2031,3,23,0,0,0),
-            new GregorianCalendar(2036,1,29,0,0,0),
-            new GregorianCalendar(2041,0,4,0,0,0),
-            new GregorianCalendar(2045,10,11,0,0,0),
-            new GregorianCalendar(2050,8,18,0,0,0),
-            new GregorianCalendar(2055,6,26,0,0,0)
-    };
-    
-    private static final GregorianCalendar UMALQURA_GREGORIAN_REF_LASTDATE = new GregorianCalendar(2058,5,21,0,0,0);
-
+  
     /**
      * @stable ICU 2.8
      */
@@ -503,9 +509,10 @@ public class IslamicCalendar extends Calendar {
             ys = trueMonthStart(12*(year-1));
         }else if(cType == CalculationType.ISLAMIC_UMALQURA){
         	ys = yearStart(UMALQURA_YEAR_START -1);  
-        	for(int i=UMALQURA_YEAR_START-1; i< year; i++){  
+        	ys += handleGetYearLength(UMALQURA_YEAR_START -1);
+        	for(int i=UMALQURA_YEAR_START; i< year; i++){  
         		ys+= handleGetYearLength(i);
-        	}  	
+        	}
         }    	
     	return ys;
     }
@@ -621,8 +628,9 @@ public class IslamicCalendar extends Calendar {
      * astronomical calculations for the time of the new moon.
      *
      * @serial
+     * @deprecated
      */
-    //private boolean civil = true;
+   private boolean civil = true;
     
     private CalculationType cType = CalculationType.ISLAMIC_CIVIL;
 
@@ -650,8 +658,11 @@ public class IslamicCalendar extends Calendar {
         } else if (cType == CalculationType.ISLAMIC){
             month = 12*(extendedYear-1) + month;
             length = (int)( trueMonthStart(month+1) - trueMonthStart(month) );
-        }else if (cType == CalculationType.ISLAMIC_UMALQURA){
-        	if(UMALQURA_MONTHLENGTH[extendedYear - UMALQURA_YEAR_START].charAt(month) == '0')
+        }else if (cType == CalculationType.ISLAMIC_UMALQURA){            
+            int idx = (extendedYear - UMALQURA_YEAR_START);     // calculate year offset into bit map array
+            int mask = (int) (0x01 << (11 - month));            // set mask for bit corresponding to month
+            //if(UMALQURA_MONTHLENGTH[extendedYear - UMALQURA_YEAR_START].charAt(month) == '0')
+            if((UMALQURA_MONTHLENGTH[idx] & mask) == 0 )    
         		return 29;
         	else
         		return 30;
@@ -727,8 +738,6 @@ public class IslamicCalendar extends Calendar {
     	int year =0, month=0, dayOfMonth=0, dayOfYear=0;
     	long monthStart;
         long days = julianDay - 1948440;
-        
-        boolean umalquraRange = false;
 
         if (cType == CalculationType.ISLAMIC_CIVIL) {
             // Use the civil calendar approximation, which is just arithmetic
@@ -755,28 +764,44 @@ public class IslamicCalendar extends Calendar {
 
             year = months / 12 + 1;
             month = months % 12;
-        } else if (cType == CalculationType.ISLAMIC_UMALQURA){
-        	computeGregorianFields(julianDay);
-        	year=getGregorianYear();
-            month =getGregorianMonth();
-            dayOfMonth =getGregorianDayOfMonth();
-            int [] fields = convertGregorianToUmalqura(year, month, dayOfMonth, days);
-            year = fields[0];
-            month = fields[1];
-            dayOfMonth = fields[2];
-            dayOfYear = fields[3];  
-            if (fields[4]==1){ 
-            	umalquraRange = true;
-            }
+        } else if (cType == CalculationType.ISLAMIC_UMALQURA){        	
+        	long umalquraStartdays = yearStart(UMALQURA_YEAR_START)  ; 
+        	if( days < umalquraStartdays){
+        		//Use Civil calculation
+        		year  = (int)Math.floor( (30 * days + 10646) / 10631.0 );
+                month = (int)Math.ceil((days - 29 - yearStart(year)) / 29.5 );
+                month = Math.min(month, 11);
+        	}else{
+        		int y =UMALQURA_YEAR_START-1, m =0;
+        		long d = 1;
+        		while(d > 0){ 
+        			y++; 
+        			d = days - yearStart(y) +1;
+        			if(d == handleGetYearLength(y)){
+        				m=11;
+        				break;
+        			}else if(d < handleGetYearLength(y) ){
+    					int monthLen = handleGetMonthLength(y, m); 
+    					m=0;
+    					while(d > monthLen){
+    						d -= monthLen;
+    						m++;
+    						monthLen = handleGetMonthLength(y, m);    						
+    					}
+    					break;
+        			}        			       			
+        		}        		
+        		year = y;
+				month = m;
+        	}
         }
 
-        if(cType == CalculationType.ISLAMIC_CIVIL || cType == CalculationType.ISLAMIC ||
-        		(cType == CalculationType.ISLAMIC_UMALQURA && !umalquraRange) ){
-	        dayOfMonth = (int)(days - monthStart(year, month)) + 1;
-	
-	        // Now figure out the day of the year.
-	        dayOfYear = (int)(days - monthStart(year, 0) + 1);
-        }
+       
+        dayOfMonth = (int)(days - monthStart(year, month)) + 1;
+
+        // Now figure out the day of the year.
+        dayOfYear = (int)(days - monthStart(year, 0) + 1);
+        
 
         internalSet(ERA, 0);
         internalSet(YEAR, year);
@@ -785,122 +810,13 @@ public class IslamicCalendar extends Calendar {
         internalSet(DAY_OF_MONTH, dayOfMonth);
         internalSet(DAY_OF_YEAR, dayOfYear);       
     }    
-
-    
-    private int[] convertGregorianToUmalqura(int year,int month,int day,long days) {
-                 
-        GregorianCalendar inputGregorianCal = new GregorianCalendar(year,month,day,0,0,0);
-        TimeZone inputTimeZone = inputGregorianCal.getTimeZone();
-        int grLen = UMALQURA_GREGORIAN_REF.length;
-        GregorianCalendar startUmAlqura  = UMALQURA_GREGORIAN_REF[0];
-        GregorianCalendar endUmAlqura  = UMALQURA_GREGORIAN_REF_LASTDATE;
-        
-        startUmAlqura.setTimeZone(inputTimeZone);
-        endUmAlqura.setTimeZone(inputTimeZone); 
-        
-        for (int i=0; i<grLen; i++){
-        	UMALQURA_GREGORIAN_REF[i].setTimeZone(inputTimeZone);
-        }
-        
-        Date[] reference_umalqura = new Date[grLen];
-        
-        for (int i=0; i<grLen; i++){
-            reference_umalqura[i] = UMALQURA_GREGORIAN_REF[i].getTime();
-        }
-          
-        Date bdate = startUmAlqura.getTime();
-        Date adate = endUmAlqura.getTime();
-        Date gDate = inputGregorianCal.getTime();
-        
-        int umalquraRange =0;
-                 
-        int referenceIndex = 0, dayOfYear = 0; 
-        double dif = 0;
-        int[] output= new int [5];
-        if (gDate.before(bdate)|| gDate.after(adate)){
-        	// Use the civil calendar approximation, which is just arithmetic
-            year  = (int)Math.floor( (30 * days + 10646) / 10631.0 );
-            month = (int)Math.ceil((days - 29 - yearStart(year)) / 29.5 );
-            month = Math.min(month, 11);
-        }else{  
-        	umalquraRange =1;
-            for (referenceIndex = 0; referenceIndex < reference_umalqura.length; referenceIndex++) { 
-            	if(gDate.equals(reference_umalqura[referenceIndex])){
-            		year=  referenceIndex * 5;
-            		month= 0;
-                    day= 1;
-                    dayOfYear= 1;
-                    break;
-            	}else if( (referenceIndex == reference_umalqura.length - 1) ||
-            			   (gDate.after(reference_umalqura[referenceIndex]) && gDate.before(reference_umalqura[referenceIndex + 1])) ){
-	                
-            		dif = getDateDifference(gDate,reference_umalqura[referenceIndex]);
-	                if(dif > 0){
-	                	boolean done = false;
-	                	int pos = referenceIndex * 5, monthLength = 0;
-		                for(int i=pos; (i < pos + 5) && i + UMALQURA_YEAR_START <=UMALQURA_YEAR_END; i++){
-		                	dayOfYear = 1 + (int) dif;
-		                	for (int j = 0; j <= 11; j++){
-		                		monthLength = handleGetMonthLength(UMALQURA_YEAR_START + i, j);
-		                		if ( dif > monthLength){ 
-		                			dif-= monthLength;
-		                		}else{
-		                			year = i;
-		                			month = j;
-		                			day = (int) dif;
-		                			if(day == monthLength){
-		                				day = 1;
-		                				if(month == 11){
-		                					month = 0;
-		                					year++;
-		                				}else
-		                					month++;
-		                			}else{
-		                				day++;
-		                			}
-		                			
-		                			done = true;
-		                			break;
-		                		}	
-		                	}
-		                	if(done){
-		                		break;
-		                	}
-		                }
-	                }	                
-	                break;	                
-	            } 
-            }
-        }
-        
-        if(umalquraRange == 1){
-	        if(dayOfYear == 355){ 
-	        	dayOfYear = 1;      	   
-	        }
-	        output[0]= UMALQURA_YEAR_START + year;
-	        
-        }else{
-        	output[0]=  year;
-        }
-        
-        output[1]= month;
-        output[2]= day;
-        output[3]= dayOfYear;
-        output[4]= umalquraRange;
-        
-        return output ;
-    }
-    
-    private static long getDateDifference(Date InputDate, Date ReferenceDate) {        
-        long x1 = InputDate.getTime()/86400000;
-        long y1 = ReferenceDate.getTime()/86400000;
-        long dif = x1 - y1;
-        return dif;
-    }
-    
     
     public enum CalculationType {ISLAMIC, ISLAMIC_CIVIL, ISLAMIC_UMALQURA};
     
+    /**
+     * sets the calculation type for this calendar.
+     * @see #cType
+     */
     public void setType(CalculationType type){
     	cType = type;   	
     }
@@ -915,7 +831,7 @@ public class IslamicCalendar extends Calendar {
         } else if (cType == CalculationType.ISLAMIC){
             return "islamic";
         }else {
-        	return "islamic-um-alqura";
+        	return "islamic-umalqura";
         }
     }
 

@@ -13,14 +13,12 @@ import com.ibm.icu.impl.LocaleUtility;
 import com.ibm.icu.text.DateFormat;
 import com.ibm.icu.text.SimpleDateFormat;
 import com.ibm.icu.util.Calendar;
-import com.ibm.icu.util.GregorianCalendar;
 import com.ibm.icu.util.IslamicCalendar;
 import com.ibm.icu.util.IslamicCalendar.CalculationType;
-
 import com.ibm.icu.util.TimeZone;
 import com.ibm.icu.util.ULocale;
 
-/** 
+/**
  * Tests for the <code>IslamicCalendar</code> class.
  */
 public class IslamicTest extends CalendarTest {
@@ -62,7 +60,9 @@ public class IslamicTest extends CalendarTest {
         };
        
         IslamicCalendar cal = newCivil();
-
+        doRollAdd(ROLL, cal, tests);
+        
+        cal = newIslamicUmalqura();
         doRollAdd(ROLL, cal, tests);
     }
 
@@ -230,6 +230,14 @@ public class IslamicTest extends CalendarTest {
         errln("islamic calendar is civil");
         }
 
+        // since setCivil/isCivil are now deprecated, make sure same test works for setType
+        // operations on non-civil calendar
+        cal = new IslamicCalendar(800, IslamicCalendar.RAMADAN, 1, 1, 1, 1);
+        cal.setType(CalculationType.ISLAMIC);
+        if (cal.isCivil()) {
+        errln("islamic calendar is civil");
+        }
+
         Date now = new Date();
         cal.setTime(now);
 
@@ -302,6 +310,110 @@ public class IslamicTest extends CalendarTest {
     public void Test8822() {
         verifyType(newIslamic(),"islamic");
         verifyType(newCivil(),"islamic-civil");
-        verifyType(newIslamicUmalqura(), "islamic-um-alqura");
+        verifyType(newIslamicUmalqura(), "islamic-umalqura");
     } 
+    
+    private void setAndTestCalendar(IslamicCalendar cal, int initMonth, int initDay, int initYear) {
+        cal.clear();
+        cal.setLenient(false);
+        cal.set(initYear, initMonth, initDay);
+        int day = cal.get(Calendar.DAY_OF_MONTH);
+        int month = cal.get(Calendar.MONTH);
+        int year = cal.get(Calendar.YEAR);
+        if(initDay != day || initMonth != month || initYear != year)
+        {
+            errln("year init values:\tmonth "+initMonth+"\tday "+initDay+"\tyear "+initYear);
+            errln("values post set():\tmonth "+month+"\tday "+day+"\tyear "+year);
+        }
+    }
+
+    private void setAndTestWholeYear(IslamicCalendar cal, int startYear) {
+        for(int startMonth = 0; startMonth < 12; startMonth++) {
+            for(int startDay = 1; startDay < 31; startDay++ ) {                
+                try {
+                    setAndTestCalendar(cal, startMonth, startDay, startYear);
+                } catch(IllegalArgumentException iae) {
+                    if(startDay != 30) {
+                        errln("unexpected exception that wasn't for trying to set a date to '30'. errmsg - " + iae.getLocalizedMessage());
+                    }                    
+                }                
+            }
+        }
+    }
+    
+    
+    public void Test8449() {
+        int firstYear = 1318;
+        int lastYear = 1480;
+        
+        IslamicCalendar tstCal = newIslamicUmalqura();
+        tstCal.clear();
+        tstCal.setLenient(false);
+        
+        int day=0, month=0, year=0, initDay = 27, initMonth = IslamicCalendar.RAJAB, initYear = 1434;
+
+        try {
+            for( int startYear = firstYear; startYear <= lastYear; startYear++) {
+                setAndTestWholeYear(tstCal, startYear);
+            }
+        } catch(Throwable t) {
+            errln("unexpected exception thrown - message=" +t.getLocalizedMessage());
+        }
+
+        try {
+            initMonth = IslamicCalendar.RABI_2;
+            initDay = 5;
+            int loopCnt = 25;
+            tstCal.clear();
+            setAndTestCalendar( tstCal, initMonth, initDay, initYear);
+            for(int x=1; x<=loopCnt; x++) {
+                day = tstCal.get(Calendar.DAY_OF_MONTH);
+                month = tstCal.get(Calendar.MONTH);
+                year = tstCal.get(Calendar.YEAR);
+                tstCal.roll(Calendar.DAY_OF_MONTH, true);
+            }
+            if(day != (initDay + loopCnt - 1) || month != IslamicCalendar.RABI_2 || year != 1434)
+                errln("invalid values for RABI_2 date after roll of " + loopCnt);
+        } catch(IllegalArgumentException iae) {
+            errln("unexpected exception received!!!");
+        }
+        
+        try {
+            tstCal.clear();
+            initMonth = 2;
+            initDay = 30;
+            setAndTestCalendar( tstCal, initMonth, initDay, initYear);
+            errln("expected exception NOT thrown");
+        } catch(IllegalArgumentException iae) {
+            // expected this
+        }
+        
+        try {
+            tstCal.clear();
+            initMonth = 3;
+            initDay = 30;
+            setAndTestCalendar( tstCal, initMonth, initDay, initYear);
+        } catch(IllegalArgumentException iae) {
+            errln("unexpected exception received!!!");
+        }
+        
+        try {
+            SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");            
+            Date date = formatter.parse("1975-05-02");
+            ULocale islamicLoc = new ULocale("ar_SA@calendar=islamic"); 
+            IslamicCalendar is_cal = new IslamicCalendar(date);
+            SimpleDateFormat formatterIslamic = (SimpleDateFormat) is_cal.getDateTimeFormat(0,0,islamicLoc);
+            formatterIslamic.applyPattern("yyyy-MMMM-dd");
+            String str = formatterIslamic.format(is_cal.getTime());
+            
+            String expectedResult = "١٣٩٥-ربيع الآخر-٢٠";
+            if(!str.equals(expectedResult))
+                errln("unexpected formatted result");
+            
+        }catch(Exception e){
+            errln(e.getLocalizedMessage());
+        }
+        
+    }
+    
 }
