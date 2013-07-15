@@ -27,11 +27,6 @@ public class BiDiConformanceTest extends TestFmwk {
     public BiDiConformanceTest() {}
 
     public void TestBidiTest() throws IOException {
-        if(logKnownIssue("10142",
-                "Update the ICU BiDi code to implement the additions in the " +
-                "Unicode 6.3 BiDi Algorithm, and reenable the BiDi conformance test.")) {
-            return;
-        }
         BufferedReader bidiTestFile=TestUtil.getDataReader("unicode/BidiTest.txt");
         Bidi ubidi=new Bidi();
         ubidi.setCustomClassifier(new ConfTestBidiClassifier());
@@ -99,7 +94,7 @@ outerLoop:
             String[] levelStrings=line.substring(lineIndex).split("[ \t]+");
             for(String levelString: levelStrings) {
                 if(levelString.equals("x")) {
-                    levels[levelsCount++]=Bidi.LEVEL_DEFAULT_LTR;
+                    levels[levelsCount++]=-1;
                 } else {
                     int value=Integer.parseInt(levelString);
                     if(value<0 || value>(Bidi.MAX_EXPLICIT_LEVEL+1)) {
@@ -186,9 +181,10 @@ outerLoop:
             // a complete, short BiDi class name.
             if(c0=='L') {
                 if((lineIndex+2)<line.length() && line.charAt(lineIndex+1)=='R') {
-                    if((c2=line.charAt(lineIndex+2))=='E') {
+                    c2=line.charAt(lineIndex+2);
+                    if(c2=='E') {
                         biDiClass=UCharacterDirection.LEFT_TO_RIGHT_EMBEDDING;
-                    } else if(line.charAt(lineIndex+2)=='I') {
+                    } else if(c2=='I') {
                         biDiClass=UCharacterDirection.LEFT_TO_RIGHT_ISOLATE;
                     } else if(c2=='O') {
                         biDiClass=UCharacterDirection.LEFT_TO_RIGHT_OVERRIDE;
@@ -198,9 +194,10 @@ outerLoop:
                 }
             } else if(c0=='R') {
                 if((lineIndex+2)<line.length() && line.charAt(lineIndex+1)=='L') {
-                    if((c2=line.charAt(lineIndex+2))=='E') {
+                    c2=line.charAt(lineIndex+2);
+                    if(c2=='E') {
                         biDiClass=UCharacterDirection.RIGHT_TO_LEFT_EMBEDDING;
-                    } else if(line.charAt(lineIndex+2)=='I') {
+                    } else if(c2=='I') {
                         biDiClass=UCharacterDirection.RIGHT_TO_LEFT_ISOLATE;
                     } else if(c2=='O') {
                         biDiClass=UCharacterDirection.RIGHT_TO_LEFT_OVERRIDE;
@@ -272,10 +269,10 @@ outerLoop:
     }
 
     private static char printLevel(byte level) {
-        if(level<Bidi.DIRECTION_DEFAULT_LEFT_TO_RIGHT) {
-            return (char)('0'+level);
-        } else {
+        if(level<0) {
             return 'x';
+        } else {
+            return (char)('0'+level);
         }
     }
 
@@ -293,7 +290,7 @@ outerLoop:
             isOk=false;
         } else {
             for(int i=0; i<actualLevels.length; ++i) {
-                if(levels[i]!=actualLevels[i] && levels[i]<Bidi.LEVEL_DEFAULT_LTR) {
+                if(levels[i]!=actualLevels[i] && levels[i]>=0) {
                     if(directionBits!=3 && directionBits==getDirectionBits(actualLevels)) {
                         // ICU used a shortcut:
                         // Since the text is unidirectional, it did not store the resolved
@@ -301,7 +298,7 @@ outerLoop:
                         // The reordering result is the same, so this is fine.
                         break;
                     } else {
-                        errln("Wrong level value at index "+i+"; expected levels[i] actual "+actualLevels[i]);
+                        errln("Wrong level value at index "+i+"; expected "+levels[i]+" actual "+actualLevels[i]);
                         isOk=false;
                         break;
                     }
@@ -338,7 +335,7 @@ outerLoop:
         // and loop over each run's indexes, but that seems unnecessary for this test code.
         for(i=visualIndex=0; i<resultLength; ++i) {
             int logicalIndex=ubidi.getLogicalIndex(i);
-            if(levels[logicalIndex]>=Bidi.LEVEL_DEFAULT_LTR) {
+            if(levels[logicalIndex]<0) {
                 continue;  // BiDi control, omitted from expected ordering.
             }
             if(visualIndex<orderingCount && logicalIndex!=ordering[visualIndex]) {

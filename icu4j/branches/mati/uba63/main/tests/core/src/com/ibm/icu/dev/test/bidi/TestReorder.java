@@ -36,8 +36,8 @@ public class TestReorder extends BidiTest {
     private static final String[] visualOrder = {
         "del(CK)add(&.C.K)",
         "del(TVDQ) add(LDVB)",
-        "del(QP)add(&.U(T(.S.R",
-        "del(VL)add(&.V.L (.V.L",
+        "del(QP)add(S.R.)&.U(T",        /* updated for ICU 52 matching brackets */
+        "del(VL)add(V.L.) &.V.L",       /* updated for ICU 52 matching brackets */
         "day  0  RVRHDPD  R dayabbr",
         "day  1  ADHDPHPD  H dayabbr",
         "day  2   ADNELBPD  L dayabbr",
@@ -51,8 +51,8 @@ public class TestReorder extends BidiTest {
     private static final String[] visualOrder1 = {
         ")K.C.&(dda)KC(led",
         ")BVDL(dda )QDVT(led",
-        "R.S.(T(U.&(dda)PQ(led",
-        "L.V.( L.V.&(dda)LV(led",
+        "T(U.&).R.S(dda)PQ(led",        /* updated for ICU 52 matching brackets */
+        "L.V.& ).L.V(dda)LV(led",       /* updated for ICU 52 matching brackets */
         "rbbayad R  DPDHRVR  0  yad",
         "rbbayad H  DPHPDHDA  1  yad",
         "rbbayad L  DPBLENDA   2  yad",
