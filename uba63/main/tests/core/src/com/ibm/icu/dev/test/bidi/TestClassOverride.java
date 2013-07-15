@@ -79,7 +79,7 @@ public class TestClassOverride extends BidiTest {
                 errln("Bidi classifier is not yet set, but reported as not null");
             }
         } else {
-            Class expectedClass = this.classifier.getClass();
+            Class<?> expectedClass = this.classifier.getClass();
             assertTrue("null Bidi classifier", actualClassifier != null);
             if (actualClassifier == null) {
                 return;

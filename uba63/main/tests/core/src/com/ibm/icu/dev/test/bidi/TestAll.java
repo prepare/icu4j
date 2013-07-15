@@ -34,7 +34,8 @@ public class TestAll extends TestGroup {
                   "com.ibm.icu.dev.test.bidi.TestClassOverride",
                   "com.ibm.icu.dev.test.bidi.TestCompatibility",
                   "com.ibm.icu.dev.test.bidi.TestContext",
-                  "com.ibm.icu.dev.test.bidi.BiDiConformanceTest"
+                  "com.ibm.icu.dev.test.bidi.BiDiConformanceTest",
+                  "com.ibm.icu.dev.test.bidi.BiDiConformanceTest2"
               },
               "Bidi tests");
     }
