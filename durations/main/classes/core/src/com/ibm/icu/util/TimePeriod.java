@@ -21,6 +21,7 @@ import java.util.NoSuchElementException;
  *       new TimeUnitAmount (TimeUnit.SECOND, 8));
  * </pre>
  * @draft ICU 52
+ * @provisional This API might change or be removed in a future release.
  */
 public final class TimePeriod implements Iterable<TimeUnitAmount> {
     
@@ -38,6 +39,7 @@ public final class TimePeriod implements Iterable<TimeUnitAmount> {
      * the same time unit or if any but the smallest TimeUnit has a fractional value
      * Or if amounts is empty.
      * @draft ICU 52
+     * @provisional This API might change or be removed in a future release.
      */
     public TimePeriod(TimeUnitAmount ...amounts) {
         fields = new TimeUnitAmount[TimeUnit.TIME_UNIT_COUNT];
@@ -76,6 +78,7 @@ public final class TimePeriod implements Iterable<TimeUnitAmount> {
      * @return the TimeUnitAmount or null if no value is present for given TimeUnit.
      *  A non-existing value and a zero value are two different things.
      * @draft ICU 52
+     * @provisional This API might change or be removed in a future release.
      */
     public TimeUnitAmount getAmount(TimeUnit timeUnit) {
         return fields[timeUnit.getIndex()];
@@ -87,6 +90,7 @@ public final class TimePeriod implements Iterable<TimeUnitAmount> {
      * smallest TimeUnit. Remove method on returned iterator throws an
      * UnsupportedOperationException.
      * @draft ICU 52
+     * @provisional This API might change or be removed in a future release.
      */
     public Iterator<TimeUnitAmount> iterator() {
       return new TPIterator();
@@ -102,6 +106,8 @@ public final class TimePeriod implements Iterable<TimeUnitAmount> {
     
     /**
      * Two TimePeriod objects are equal if they contain equal TimeUnitAmount objects.
+     * @draft ICU 52
+     * @provisional This API might change or be removed in a future release.
      */
     @Override
     public boolean equals(Object o) {
@@ -117,7 +123,12 @@ public final class TimePeriod implements Iterable<TimeUnitAmount> {
         }
         return Arrays.equals(fields, rhs.fields);
     }
-    
+
+    /**
+     * Overrides hashCode().
+     * @draft ICU 52
+     * @provisional This API might change or be removed in a future release.
+     */
     @Override
     public int hashCode() {
         return hash;

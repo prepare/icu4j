@@ -9,7 +9,6 @@ package com.ibm.icu.dev.test.format;
 import java.text.AttributedCharacterIterator;
 import java.text.CharacterIterator;
 import java.text.FieldPosition;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -56,7 +55,7 @@ public class CompactDecimalFormatTest extends TestFmwk {
 
     Object[][] SerbianTestDataShort = {
             {1234, "1200"},
-            {12345, "12K"},
+            {12345, "12\u00a0хиљ"},
             {20789, "21\u00a0хиљ"},
             {123456, "120\u00a0хиљ"},
             {1234567, "1,2\u00a0мил"},
@@ -72,7 +71,7 @@ public class CompactDecimalFormatTest extends TestFmwk {
     };
 
     Object[][] SerbianTestDataLong = {
-            {1234, "1,2 хиљада"},
+            {1234, "1,2 хиљаде"},
             {12345, "12 хиљада"},
             {21789, "22 хиљаде"},
             {123456, "120 хиљада"},
@@ -80,7 +79,7 @@ public class CompactDecimalFormatTest extends TestFmwk {
             {1234567, "1,2 милиона"},
             {12345678, "12 милиона"},
             {123456789, "120 милиона"},
-            {1234567890, "1,2 милијарди"},
+            {1234567890, "1,2 милијарде"},
             {12345678901f, "12 милијарди"},
             {20890123456f, "21 милијарда"},
             {21890123456f, "22 милијарде"},
@@ -92,7 +91,7 @@ public class CompactDecimalFormatTest extends TestFmwk {
     };
 
     Object[][] SerbianTestDataLongNegative = {
-            {-1234, "-1,2 хиљада"},
+            {-1234, "-1,2 хиљаде"},
             {-12345, "-12 хиљада"},
             {-21789, "-22 хиљаде"},
             {-123456, "-120 хиљада"},
@@ -100,7 +99,7 @@ public class CompactDecimalFormatTest extends TestFmwk {
             {-1234567, "-1,2 милиона"},
             {-12345678, "-12 милиона"},
             {-123456789, "-120 милиона"},
-            {-1234567890, "-1,2 милијарди"},
+            {-1234567890, "-1,2 милијарде"},
             {-12345678901f, "-12 милијарди"},
             {-20890123456f, "-21 милијарда"},
             {-21890123456f, "-22 милијарде"},

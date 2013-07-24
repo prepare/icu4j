@@ -1737,6 +1737,9 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
         "ethiopic-amete-alem",
         "iso8601",
         "dangi",
+        "islamic-umalqura",
+        "islamic-tbla",
+        "islamic-rgsa",
     };
 
     // must be in the order of calTypes above
@@ -1755,6 +1758,9 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
     private static final int CALTYPE_ETHIOPIC_AMETE_ALEM = 12;
     private static final int CALTYPE_ISO8601 = 13;
     private static final int CALTYPE_DANGI = 14;
+    private static final int CALTYPE_ISLAMIC_UMALQURA = 15;
+    private static final int CALTYPE_ISLAMIC_TBLA = 16;
+    private static final int CALTYPE_ISLAMIC_RGSA = 17;
     private static final int CALTYPE_UNKNOWN = -1;
 
     private static int getCalendarTypeForLocale(ULocale l) {
@@ -1908,6 +1914,10 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
             cal.setFirstDayOfWeek(MONDAY);
             cal.setMinimalDaysInFirstWeek(4);
             break;
+        case CALTYPE_ISLAMIC_UMALQURA:
+        case CALTYPE_ISLAMIC_TBLA:
+        case CALTYPE_ISLAMIC_RGSA:
+            // Need to add handling for these, meanwhile fall through to default
         default:
             // we must not get here, because unknown type is mapped to
             // Gregorian at the beginning of this method.
@@ -4360,9 +4370,10 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
 
     /**
      * {@icu} Returns whether the given day of the week is a weekday, a
-     * weekend day, or a day that transitions from one to the other,
-     * in this calendar system.  If a transition occurs at midnight,
-     * then the days before and after the transition will have the
+     * weekend day, or a day that transitions from one to the other, for the
+     * locale and calendar system associated with this Calendar (the locale's
+     * region is often the most determinant factor). If a transition occurs at
+     * midnight, then the days before and after the transition will have the
      * type WEEKDAY or WEEKEND.  If a transition occurs at a time
      * other than midnight, then the day of the transition will have
      * the type WEEKEND_ONSET or WEEKEND_CEASE.  In this case, the
@@ -4387,6 +4398,11 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
         if (dayOfWeek < SUNDAY || dayOfWeek > SATURDAY) {
             throw new IllegalArgumentException("Invalid day of week");
         }
+        if (weekendOnset == weekendCease) {
+            if (dayOfWeek != weekendOnset)
+                return WEEKDAY;
+            return (weekendOnsetMillis == 0) ? WEEKEND : WEEKEND_ONSET;
+        }
         if (weekendOnset < weekendCease) {
             if (dayOfWeek < weekendOnset || dayOfWeek > weekendCease) {
                 return WEEKDAY;
@@ -4400,7 +4416,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
             return (weekendOnsetMillis == 0) ? WEEKEND : WEEKEND_ONSET;
         }
         if (dayOfWeek == weekendCease) {
-            return (weekendCeaseMillis == 0) ? WEEKDAY : WEEKEND_CEASE;
+            return (weekendCeaseMillis >= 86400000) ? WEEKEND : WEEKEND_CEASE;
         }
         return WEEKEND;
     }

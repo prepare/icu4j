@@ -148,62 +148,63 @@ public class TimeUnitTest extends TestFmwk {
         int[] styles = new int[] {TimeUnitFormat.FULL_NAME, TimeUnitFormat.ABBREVIATED_NAME};
         int[] numbers = new int[] {1, 7};
 
-        String[] expected = {"1 \u03B4\u03B5\u03C5\u03C4\u03B5\u03C1\u03CC\u03BB\u03B5\u03C0\u03C4\u03BF",
-                             "1 \u03BB\u03B5\u03C0\u03C4\u03CC",
-                             "1 \u03CE\u03C1\u03B1",
-                             "1 \u03B7\u03BC\u03AD\u03C1\u03B1",
-                             "1 \u03B5\u03B2\u03B4\u03BF\u03BC\u03AC\u03B4\u03B1",
-                             "1 \u03BC\u03AE\u03BD\u03B1\u03C2",
-                             "1 \u03AD\u03C4\u03BF\u03C2",
-                             "1 \u03B4\u03B5\u03C5\u03C4\u03B5\u03C1\u03CC\u03BB\u03B5\u03C0\u03C4\u03BF",
-                             "1 \u03BB\u03B5\u03C0\u03C4\u03CC",
-                             "1 \u03CE\u03C1\u03B1",
-                             "1 \u03B7\u03BC\u03AD\u03C1\u03B1",
-                             "1 \u03B5\u03B2\u03B4\u03BF\u03BC\u03AC\u03B4\u03B1",
-                             "1 \u03BC\u03AE\u03BD\u03B1\u03C2",
-                             "1 \u03AD\u03C4\u03BF\u03C2",
-                             "7 \u03B4\u03B5\u03C5\u03C4\u03B5\u03C1\u03CC\u03BB\u03B5\u03C0\u03C4\u03B1",
-                             "7 \u03BB\u03B5\u03C0\u03C4\u03AC",
-                             "7 \u03CE\u03C1\u03B5\u03C2",
-                             "7 \u03B7\u03BC\u03AD\u03C1\u03B5\u03C2",
-                             "7 \u03B5\u03B2\u03B4\u03BF\u03BC\u03AC\u03B4\u03B5\u03C2",
-                             "7 \u03BC\u03AE\u03BD\u03B5\u03C2",
-                             "7 \u03AD\u03C4\u03B7",
-                             "7 \u03B4\u03B5\u03C5\u03C4\u03B5\u03C1\u03CC\u03BB\u03B5\u03C0\u03C4\u03B1",
-                             "7 \u03BB\u03B5\u03C0\u03C4\u03AC",
-                             "7 \u03CE\u03C1\u03B5\u03C2",
-                             "7 \u03B7\u03BC\u03AD\u03C1\u03B5\u03C2",
-                             "7 \u03B5\u03B2\u03B4\u03BF\u03BC\u03AC\u03B4\u03B5\u03C2",
-                             "7 \u03BC\u03AE\u03BD\u03B5\u03C2",
-                             "7 \u03AD\u03C4\u03B7",
-                             "1 \u03B4\u03B5\u03C5\u03C4\u03B5\u03C1\u03CC\u03BB\u03B5\u03C0\u03C4\u03BF",
-                             "1 \u03BB\u03B5\u03C0\u03C4\u03CC",
-                             "1 \u03CE\u03C1\u03B1",
-                             "1 \u03B7\u03BC\u03AD\u03C1\u03B1",
-                             "1 \u03B5\u03B2\u03B4\u03BF\u03BC\u03AC\u03B4\u03B1",
-                             "1 \u03BC\u03AE\u03BD\u03B1\u03C2",
-                             "1 \u03AD\u03C4\u03BF\u03C2",
-                             "1 \u03B4\u03B5\u03C5\u03C4\u03B5\u03C1\u03CC\u03BB\u03B5\u03C0\u03C4\u03BF",
-                             "1 \u03BB\u03B5\u03C0\u03C4\u03CC",
-                             "1 \u03CE\u03C1\u03B1",
-                             "1 \u03B7\u03BC\u03AD\u03C1\u03B1",
-                             "1 \u03B5\u03B2\u03B4\u03BF\u03BC\u03AC\u03B4\u03B1",
-                             "1 \u03BC\u03AE\u03BD\u03B1\u03C2",
-                             "1 \u03AD\u03C4\u03BF\u03C2",
-                             "7 \u03B4\u03B5\u03C5\u03C4\u03B5\u03C1\u03CC\u03BB\u03B5\u03C0\u03C4\u03B1",
-                             "7 \u03BB\u03B5\u03C0\u03C4\u03AC",
-                             "7 \u03CE\u03C1\u03B5\u03C2",
-                             "7 \u03B7\u03BC\u03AD\u03C1\u03B5\u03C2",
-                             "7 \u03B5\u03B2\u03B4\u03BF\u03BC\u03AC\u03B4\u03B5\u03C2",
-                             "7 \u03BC\u03AE\u03BD\u03B5\u03C2",
-                             "7 \u03AD\u03C4\u03B7",
-                             "7 \u03B4\u03B5\u03C5\u03C4\u03B5\u03C1\u03CC\u03BB\u03B5\u03C0\u03C4\u03B1",
-                             "7 \u03BB\u03B5\u03C0\u03C4\u03AC",
-                             "7 \u03CE\u03C1\u03B5\u03C2",
-                             "7 \u03B7\u03BC\u03AD\u03C1\u03B5\u03C2",
-                             "7 \u03B5\u03B2\u03B4\u03BF\u03BC\u03AC\u03B4\u03B5\u03C2",
-                             "7 \u03BC\u03AE\u03BD\u03B5\u03C2",
-                             "7 \u03AD\u03C4\u03B7"};
+        String[] expected = {
+                "1 δευτερόλεπτο", 
+                "1 λεπτό", 
+                "1 ώρα", 
+                "1 ημέρα", 
+                "1 εβδομάδα", 
+                "1 μήνας", 
+                "1 έτος", 
+                "1 δευτερόλεπτο", 
+                "1 λεπτό", 
+                "1 ώρα", 
+                "1 ημέρα", 
+                "1 εβδομάδα", 
+                "1 μήνας", 
+                "1 έτος", 
+                "7 δευτερόλεπτα", 
+                "7 λεπτά", 
+                "7 ώρες", 
+                "7 ημέρες", 
+                "7 εβδομάδες", 
+                "7 μήνες", 
+                "7 έτη", 
+                "7 δευτερόλεπτα", 
+                "7 λεπτά", 
+                "7 ώρες", 
+                "7 ημέρες", 
+                "7 εβδομάδες", 
+                "7 μήνες", 
+                "7 έτη", 
+                "1 δευτερόλεπτο", 
+                "1 λεπτό", 
+                "1 ώρα", 
+                "1 ημέρα", 
+                "1 εβδομάδα", 
+                "1 μήνας", 
+                "1 έτος", 
+                "1 δευτερόλεπτο", 
+                "1 λεπτό", 
+                "1 ώρα", 
+                "1 ημέρα", 
+                "1 εβδομάδα", 
+                "1 μήνας", 
+                "1 έτος", 
+                "7 δευτερόλεπτα", 
+                "7 λεπτά", 
+                "7 ώρες", 
+                "7 ημέρες", 
+                "7 εβδομάδες", 
+                "7 μήνες", 
+                "7 έτη", 
+                "7 δευτερόλεπτα", 
+                "7 λεπτά", 
+                "7 ώρες", 
+                "7 ημέρες", 
+                "7 εβδομάδες", 
+                "7 μήνες", 
+                "7 έτη"}; 
 
         int counter = 0;
         TimeUnitFormat timeUnitFormat;
@@ -219,8 +220,12 @@ public class TimeUnitTest extends TestFmwk {
                         timeUnitFormat = new TimeUnitFormat(new ULocale(locales[locIndex]), styles[styleIndex]);
                         formatted = timeUnitFormat.format(timeUnitAmount);
 
-                        assertEquals("formatted time string is not expected, locale: " + locales[locIndex] +
-                                " style: " + styles[styleIndex] + " units: " + units[unitIndex], expected[counter], formatted);
+                        assertEquals(
+                                "locale: " + locales[locIndex]
+                                        + ", style: " + styles[styleIndex] 
+                                                + ", units: " + units[unitIndex]
+                                                        + ", value: " + numbers[numIndex], 
+                                                expected[counter], formatted);
                         ++counter;
                     }
                 }
@@ -366,12 +371,12 @@ public class TimeUnitTest extends TestFmwk {
     
     public void TestFormatPeriodEn() {
         Object[][] fullData = {
-                {_1m_59_9996s, "1 minute and 59.9996 seconds"},
+                {_1m_59_9996s, "1 minute, 59.9996 seconds"},
                 {_19m, "19 minutes"},
-                {_1h_23_5s, "1 hour and 23.5 seconds"},
-                {_1h_23_5m, "1 hour and 23.5 minutes"},
-                {_1h_0m_23s, "1 hour, 0 minutes, and 23 seconds"},
-                {_2y_5M_3w_4d, "2 years, 5 months, 3 weeks, and 4 days"}};
+                {_1h_23_5s, "1 hour, 23.5 seconds"},
+                {_1h_23_5m, "1 hour, 23.5 minutes"},
+                {_1h_0m_23s, "1 hour, 0 minutes, 23 seconds"},
+                {_2y_5M_3w_4d, "2 years, 5 months, 3 weeks, 4 days"}};
         Object[][] abbrevData = {
                 {_1m_59_9996s, "1 min, 59.9996 secs"},
                 {_19m, "19 mins"},
