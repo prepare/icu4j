@@ -27,6 +27,7 @@ import com.ibm.icu.impl.Utility;
 import com.ibm.icu.lang.UCharacter;
 import com.ibm.icu.math.BigDecimal;
 import com.ibm.icu.math.MathContext;
+import com.ibm.icu.text.PluralRules.NumberInfo;
 import com.ibm.icu.util.Currency;
 import com.ibm.icu.util.CurrencyAmount;
 import com.ibm.icu.util.ULocale;
@@ -1216,18 +1217,62 @@ public class DecimalFormat extends NumberFormat {
     private StringBuffer subformat(int number, StringBuffer result, FieldPosition fieldPosition,
                                    boolean isNegative, boolean isInteger, boolean parseAttr) {
         if (currencySignCount == CURRENCY_SIGN_COUNT_IN_PLURAL_FORMAT) {
-            return subformat(currencyPluralInfo.select(number), result, fieldPosition, isNegative,
+            // compute the plural category from the digitList plus other settings
+            return subformat(getPluralCategory(number), result, fieldPosition, isNegative,
                              isInteger, parseAttr);
         } else {
             return subformat(result, fieldPosition, isNegative, isInteger, parseAttr);
         }
     }
 
+    /**
+     * This is ugly, but don't see a better way to do it without major restructuring of the code.
+     */
+    private String getPluralCategory(double number) {
+        // get the visible fractions and the number of fraction digits.
+        int fractionalDigitsInDigitList = digitList.count - digitList.decimalAt;
+        int v;
+        long f;
+        int maxFractionalDigits;
+        int minFractionalDigits;
+        if (useSignificantDigits) {
+            maxFractionalDigits = maxSignificantDigits - digitList.decimalAt;
+            minFractionalDigits = minSignificantDigits - digitList.decimalAt;
+            if (minFractionalDigits < 0) {
+                minFractionalDigits = 0;
+            }
+            if (maxFractionalDigits < 0) {
+                maxFractionalDigits = 0;
+            }
+        } else {
+            maxFractionalDigits = getMaximumFractionDigits();
+            minFractionalDigits = getMinimumFractionDigits();
+        }
+        v = fractionalDigitsInDigitList;
+        if (v < minFractionalDigits) {
+            v = minFractionalDigits;
+        } else if (v > maxFractionalDigits) {
+            v = maxFractionalDigits;
+        }
+        f = 0;
+        if (v > 0) {
+            for (int i = digitList.decimalAt; i < digitList.count; ++i) {
+                f *= 10;
+                f += digitList.digits[i];
+            }
+            for (int i = v; i < fractionalDigitsInDigitList; ++i) {
+                f *= 10;
+            }
+        }
+        return currencyPluralInfo.select(new NumberInfo(number, v, f));
+    }
+
     private StringBuffer subformat(double number, StringBuffer result, FieldPosition fieldPosition,
                                    boolean isNegative,
             boolean isInteger, boolean parseAttr) {
         if (currencySignCount == CURRENCY_SIGN_COUNT_IN_PLURAL_FORMAT) {
-            return subformat(currencyPluralInfo.select(number), result, fieldPosition, isNegative,
+            // compute the plural category from the digitList plus other settings
+            return subformat(getPluralCategory(number), result, fieldPosition, isNegative,
                              isInteger, parseAttr);
         } else {
             return subformat(result, fieldPosition, isNegative, isInteger, parseAttr);
@@ -3128,8 +3173,8 @@ public class DecimalFormat extends NumberFormat {
     /**
      * {@icu} Returns the rounding increment.
      *
-     * @return A positive rounding increment, or <code>null</code> if rounding is not in
-     * effect.
+     * @return A positive rounding increment, or <code>null</code> if a custom rounding
+     * increment is not in effect.
      * @see #setRoundingIncrement
      * @see #getRoundingMode
      * @see #setRoundingMode
@@ -3142,11 +3187,11 @@ public class DecimalFormat extends NumberFormat {
     }
 
     /**
-     * {@icu} Sets the rounding increment. This method also controls whether rounding is
-     * enabled.
+     * {@icu} Sets the rounding increment. In the absence of a rounding increment, numbers
+     * will be rounded to the number of digits displayed.
      *
      * @param newValue A positive rounding increment, or <code>null</code> or
-     * <code>BigDecimal(0.0)</code> to disable rounding.
+     * <code>BigDecimal(0.0)</code> to use the default rounding increment.
      * @throws IllegalArgumentException if <code>newValue</code> is < 0.0
      * @see #getRoundingIncrement
      * @see #getRoundingMode
@@ -3162,11 +3207,11 @@ public class DecimalFormat extends NumberFormat {
     }
 
     /**
-     * {@icu} Sets the rounding increment. This method also controls whether rounding is
-     * enabled.
+     * {@icu} Sets the rounding increment. In the absence of a rounding increment, numbers
+     * will be rounded to the number of digits displayed.
      *
      * @param newValue A positive rounding increment, or <code>null</code> or
-     * <code>BigDecimal(0.0)</code> to disable rounding.
+     * <code>BigDecimal(0.0)</code> to use the default rounding increment.
      * @throws IllegalArgumentException if <code>newValue</code> is < 0.0
      * @see #getRoundingIncrement
      * @see #getRoundingMode
@@ -3187,10 +3232,11 @@ public class DecimalFormat extends NumberFormat {
     }
 
     /**
-     * {@icu} Sets the rounding increment. This method also controls whether rounding is
-     * enabled.
+     * {@icu} Sets the rounding increment. In the absence of a rounding increment, numbers
+     * will be rounded to the number of digits displayed.
      *
-     * @param newValue A positive rounding increment, or 0.0 to disable rounding.
+     * @param newValue A positive rounding increment, or 0.0 to use the default
+     * rounding increment.
      * @throws IllegalArgumentException if <code>newValue</code> is < 0.0
      * @see #getRoundingIncrement
      * @see #getRoundingMode
@@ -4935,9 +4981,9 @@ public class DecimalFormat extends NumberFormat {
     /**
      * {@icu} Sets the minimum number of significant digits that will be displayed. If
      * <code>min</code> is less than one then it is set to one. If the maximum significant
-     * digits count is less than <code>min</code>, then it is set to
-     * <code>min</code>. This value has no effect unless {@link #areSignificantDigitsUsed()}
-     * returns true.
+     * digits count is less than <code>min</code>, then it is set to <code>min</code>. 
+     * This function also enables the use of significant digits by this formatter - 
+     * {@link #areSignificantDigitsUsed()} will return true.
      *
      * @param min the fewest significant digits to be shown
      * @stable ICU 3.0
@@ -4950,14 +4996,15 @@ public class DecimalFormat extends NumberFormat {
         int max = Math.max(maxSignificantDigits, min);
         minSignificantDigits = min;
         maxSignificantDigits = max;
+        setSignificantDigitsUsed(true);
     }
 
     /**
      * {@icu} Sets the maximum number of significant digits that will be displayed. If
      * <code>max</code> is less than one then it is set to one. If the minimum significant
-     * digits count is greater than <code>max</code>, then it is set to
-     * <code>max</code>. This value has no effect unless {@link #areSignificantDigitsUsed()}
-     * returns true.
+     * digits count is greater than <code>max</code>, then it is set to <code>max</code>.
+     * This function also enables the use of significant digits by this formatter - 
+     * {@link #areSignificantDigitsUsed()} will return true.
      *
      * @param max the most significant digits to be shown
      * @stable ICU 3.0
@@ -4970,6 +5017,7 @@ public class DecimalFormat extends NumberFormat {
         int min = Math.min(minSignificantDigits, max);
         minSignificantDigits = min;
         maxSignificantDigits = max;
+        setSignificantDigitsUsed(true);
     }
 
     /**

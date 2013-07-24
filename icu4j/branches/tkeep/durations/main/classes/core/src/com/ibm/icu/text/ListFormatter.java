@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
+import java.util.MissingResourceException;
 
 import javax.management.StandardEmitterMBean;
 
@@ -201,9 +202,16 @@ final public class ListFormatter {
     /**
      * Returns the pattern to use for a particular item count.
      * @param count the item count.
-     * @return the pattern with {0}, {1}, {2}, etc.
+     * @return the pattern with {0}, {1}, {2}, etc. For English,
+     * getPatternForNumItems(3) == "{0}, {1}, and {2}"
+     * @throws IllegalArgumentException when count is 0 or negative.
+     * @draft ICU 52
+     * @provisional This API might change or be removed in a future release.
      */
-    public String createPatternForNumItems(int count) {
+    public String getPatternForNumItems(int count) {
+        if (count <= 0) {
+            throw new IllegalArgumentException("count must be > 0");
+        }
         ArrayList<String> list = new ArrayList<String>();
         for (int i = 0; i < count; i++) {
             list.add(String.format("{%d}", i));
@@ -213,8 +221,8 @@ final public class ListFormatter {
     
     /**
      * Returns the locale of this object.
-     * @deprecated
      * @internal
+     * @deprecated This API is ICU internal only.
      */
     public ULocale getLocale() {
         return locale;
@@ -260,12 +268,23 @@ final public class ListFormatter {
         private static ListFormatter load(ULocale ulocale, String style) {
             ICUResourceBundle r = (ICUResourceBundle)UResourceBundle.
                     getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, ulocale);
-            return new ListFormatter(
-                r.getWithFallback("listPattern/" + style + "/2").getString(),
-                r.getWithFallback("listPattern/" + style + "/start").getString(),
-                r.getWithFallback("listPattern/" + style + "/middle").getString(),
-                r.getWithFallback("listPattern/" + style + "/end").getString(),
-                ulocale);
+            // TODO(Travis Keep): This try-catch is a hack to cover missing aliases
+            // for listPattern/duration and listPattern/duration-narrow in root.txt.
+            try {
+                return new ListFormatter(
+                    r.getWithFallback("listPattern/" + style + "/2").getString(),
+                    r.getWithFallback("listPattern/" + style + "/start").getString(),
+                    r.getWithFallback("listPattern/" + style + "/middle").getString(),
+                    r.getWithFallback("listPattern/" + style + "/end").getString(),
+                    ulocale);
+            } catch (MissingResourceException e) {
+                return new ListFormatter(
+                        r.getWithFallback("listPattern/standard/2").getString(),
+                        r.getWithFallback("listPattern/standard/start").getString(),
+                        r.getWithFallback("listPattern/standard/middle").getString(),
+                        r.getWithFallback("listPattern/standard/end").getString(),
+                        ulocale);
+            }
         }
     }
 

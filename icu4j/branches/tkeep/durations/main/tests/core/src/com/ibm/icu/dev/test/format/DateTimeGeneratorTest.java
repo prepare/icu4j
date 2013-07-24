@@ -361,7 +361,7 @@ public class DateTimeGeneratorTest extends TestFmwk {
         new String[] {"Md", "1/13"},
         new String[] {"MMMd", "1\u670813\u65E5"},
         new String[] {"MMMMd", "1\u670813\u65E5"},
-        new String[] {"yQQQ", "1999/1Q"}, // now current data produces y/QQQ => 1999/1Q
+        new String[] {"yQQQ", "1999\u5E741Q"},
         new String[] {"hhmm", "\u5348\u5F8C11:58"},
         new String[] {"HHmm", "23:58"},
         new String[] {"jjmm", "23:58"},
@@ -378,7 +378,7 @@ public class DateTimeGeneratorTest extends TestFmwk {
         new String[] {"Md", "1/13"},
         new String[] {"MMMd", "1\u670813\u65E5"},
         new String[] {"MMMMd", "1\u670813\u65E5"},
-        new String[] {"yQQQ", "\u5E73\u621011/1Q"},
+        new String[] {"yQQQ", "\u5E73\u6210 11 1Q"}, // (probably a CLDR error)
         new String[] {"hhmm", "\u5348\u5F8C11:58"},
         new String[] {"HHmm", "23:58"},
         new String[] {"jjmm", "23:58"},
@@ -883,7 +883,24 @@ public class DateTimeGeneratorTest extends TestFmwk {
       /* Tests the method
        *    public String getAppendItemName(int field)
        */
+      private final class AppendItemName {
+          public int field;
+          public String name;
+          public AppendItemName(int f, String n) {
+              field = f;
+              name = n;
+          }
+      }
+
       public void TestGetAppendItemName(){
+          final AppendItemName[] appendItemNames = {
+              new AppendItemName( DateTimePatternGenerator.YEAR,    "vuosi" ),
+              new AppendItemName( DateTimePatternGenerator.MONTH,   "kuukausi" ),
+              new AppendItemName( DateTimePatternGenerator.WEEKDAY, "viikonp\u00E4iv\u00E4" ),
+              new AppendItemName( DateTimePatternGenerator.DAY,     "p\u00E4iv\u00E4" ),
+              new AppendItemName( DateTimePatternGenerator.HOUR,    "tunti" ),
+          };
+
           DateTimePatternGenerator dtpg = DateTimePatternGenerator.getInstance();
           String[] cases = {"d","u","m","m","y"};
           for(int i=0; i<cases.length; i++){
@@ -892,6 +909,14 @@ public class DateTimeGeneratorTest extends TestFmwk {
                   errln("DateTimePatternGenerator.getAppendItemFormat(int field) " +
                           "did not return as expected. Value set at " + i + " was " +
                           cases[i] + " but got back " + dtpg.getAppendItemName(i));
+              }
+          }
+          
+          DateTimePatternGenerator dtpgfi = DateTimePatternGenerator.getInstance(ULocale.forLanguageTag("fi"));
+          for (AppendItemName appendItemName: appendItemNames) {
+              String name = dtpgfi.getAppendItemName(appendItemName.field);
+              if (!name.equals(appendItemName.name)) {
+                  errln("DateTimePatternGenerator.getAppendItemName returns invalid name for field " + appendItemName.field);
               }
           }
       }
@@ -1167,6 +1192,16 @@ public class DateTimeGeneratorTest extends TestFmwk {
               new TestOptionsItem( "be", "Hmm",  "H.mm",    DateTimePatternGenerator.MATCH_HOUR_FIELD_LENGTH ),
               new TestOptionsItem( "be", "HHmm", "HH.mm",   DateTimePatternGenerator.MATCH_HOUR_FIELD_LENGTH ),
               new TestOptionsItem( "be", "hhmm", "hh.mm a", DateTimePatternGenerator.MATCH_HOUR_FIELD_LENGTH ),
+              //
+              new TestOptionsItem( "en",                   "yyyy", "yyyy", DateTimePatternGenerator.MATCH_NO_OPTIONS ),
+              new TestOptionsItem( "en",                   "YYYY", "YYYY", DateTimePatternGenerator.MATCH_NO_OPTIONS ),
+              new TestOptionsItem( "en",                   "U",    "y",    DateTimePatternGenerator.MATCH_NO_OPTIONS ),
+              new TestOptionsItem( "en@calendar=japanese", "yyyy", "y G",  DateTimePatternGenerator.MATCH_NO_OPTIONS ),
+              new TestOptionsItem( "en@calendar=japanese", "YYYY", "Y G",  DateTimePatternGenerator.MATCH_NO_OPTIONS ),
+              new TestOptionsItem( "en@calendar=japanese", "U",    "y G",  DateTimePatternGenerator.MATCH_NO_OPTIONS ),
+              new TestOptionsItem( "en@calendar=chinese",  "yyyy", "U",    DateTimePatternGenerator.MATCH_NO_OPTIONS ),
+              new TestOptionsItem( "en@calendar=chinese",  "YYYY", "Y",    DateTimePatternGenerator.MATCH_NO_OPTIONS ),
+              new TestOptionsItem( "en@calendar=chinese",  "U",    "U",    DateTimePatternGenerator.MATCH_NO_OPTIONS ),
           };
 
           for (int i = 0; i < testOptionsData.length; ++i) {
