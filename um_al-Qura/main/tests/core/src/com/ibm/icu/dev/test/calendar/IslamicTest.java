@@ -344,7 +344,11 @@ public class IslamicTest extends CalendarTest {
     
     public void Test8449() {
         int firstYear = 1318;
-        int lastYear = 1480;
+        //*  use either 1 or 2 leading slashes to toggle
+        int lastYear = 1368;    // just enough to be pretty sure
+        /*/
+        int lastYear = 1480;    // the whole shootin' match
+        //*/
         
         IslamicCalendar tstCal = newIslamicUmalqura();
         tstCal.clear();
@@ -400,7 +404,7 @@ public class IslamicTest extends CalendarTest {
         try {
             SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");            
             Date date = formatter.parse("1975-05-02");
-            ULocale islamicLoc = new ULocale("ar_SA@calendar=islamic"); 
+            ULocale islamicLoc = new ULocale("ar_SA@calendar=islamic-umalqura"); 
             IslamicCalendar is_cal = new IslamicCalendar(date);
             SimpleDateFormat formatterIslamic = (SimpleDateFormat) is_cal.getDateTimeFormat(0,0,islamicLoc);
             formatterIslamic.applyPattern("yyyy-MMMM-dd");
