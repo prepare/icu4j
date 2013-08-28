@@ -20,6 +20,7 @@ import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.impl.RelativeDateFormat;
 import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.GregorianCalendar;
+import com.ibm.icu.util.Leniency;
 import com.ibm.icu.util.TimeZone;
 import com.ibm.icu.util.ULocale;
 import com.ibm.icu.util.ULocale.Category;
@@ -1442,6 +1443,19 @@ public abstract class DateFormat extends UFormat {
     {
         calendar.setLenient(lenient);
     }
+    
+    /**
+     * Specify the exact bit map of leniency indicators desired
+     *
+     * @see #setLenient(boolean)
+     * @see #Calendar.setLenient(long)
+     */
+    public void setLenientFlags(long leniencyBits)
+    {
+        calendar.setLenientFlags(leniencyBits);
+    }
+
+
 
     /**
      * Returns whether date/time parsing is lenient.
@@ -1452,6 +1466,14 @@ public abstract class DateFormat extends UFormat {
         return calendar.isLenient();
     }
 
+    /**
+	 * Returns whether a particular aspect of leniency as defined by mask is lenient. 
+     */
+    public boolean isLenient(Leniency.Bit mask)
+    {
+        return calendar.isLenient(mask);
+    }
+    
     /**
      * Overrides hashCode.
      * @stable ICU 2.0

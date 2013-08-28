@@ -23,6 +23,7 @@ import com.ibm.icu.text.NumberFormat;
 import com.ibm.icu.text.SimpleDateFormat;
 import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.GregorianCalendar;
+import com.ibm.icu.util.Leniency;
 import com.ibm.icu.util.SimpleTimeZone;
 import com.ibm.icu.util.TimeZone;
 import com.ibm.icu.util.ULocale;
@@ -2358,6 +2359,66 @@ public class CalendarRegression extends com.ibm.icu.dev.test.TestFmwk {
         logln("sdf2: " + pos2.getErrorIndex() + "/" + pos2.getIndex());
         assertTrue("Fail: failed to detect bad parse", pos2.getErrorIndex() == 0);
     }
+    
+    public void TestT10261() {
+        Calendar myCal = Calendar.getInstance();
+        long dateBit1, testMillis = 0L;
+        boolean exceptionTriggered = false;
+        long noLeniency = 0;
+        long fieldValidationLeniency = Leniency.Bit.FIELD_VALIDATION.ordinal();
+
+        testMillis = -184303902611600999L;
+
+        logln("Testing invalid setMillis value in lienent mode - using millis: " + testMillis);
+        try {
+            myCal.setLenient(true);
+            myCal.setTimeInMillis(testMillis);
+        } catch (Throwable e) {
+            logln("Fail: detected lenient calendar as bad millis ["+e.getClass().getCanonicalName()+"]");
+            exceptionTriggered = true;  
+        }
+        assertFalse("Fail: out of bound millis did not trigger exception!", exceptionTriggered);
+        dateBit1 = myCal.get(Calendar.MILLISECOND);
+        assertNotEquals("Fail: millis not changed to MIN_MILLIS", testMillis, dateBit1);
+        
+        logln("Testing invalid setMillis value in strict mode - using millis: " + testMillis);
+        myCal.setLenient(false);
+        exceptionTriggered = false;
+        try {
+            myCal.setTimeInMillis(testMillis);
+        } catch (Throwable e) {
+            logln("Pass: correctly detected bad millis ["+e.getClass().getCanonicalName()+"]");
+            exceptionTriggered = true;  
+        }
+        assertTrue("Fail: out of bound millis did not trigger exception!", exceptionTriggered);
+        
+        logln("Testing invalid setMillis value in custom lenient mode - using millis: " + testMillis + " - leninecy: " + fieldValidationLeniency);
+        myCal.setLenientFlags(fieldValidationLeniency);
+        exceptionTriggered = false;
+        try {
+            myCal.setTimeInMillis(testMillis);
+        } catch (Throwable e) {
+            logln("pass: correctly detected bad millis ["+e.getClass().getCanonicalName()+"]");
+            exceptionTriggered = true;  
+        }  
+        assertFalse("Fail: out of bound millis did not trigger exception!", exceptionTriggered);
+        dateBit1 = myCal.get(Calendar.MILLISECOND);
+        assertNotEquals("Fail: millis not changed to MIN_MILLIS", testMillis, dateBit1);
+        
+        logln("Testing invalid setMillis value in custom lenient mode - using millis: " + testMillis + " - leninecy: " + noLeniency);
+        myCal.setLenientFlags(noLeniency);
+        try {
+            myCal.setTimeInMillis(testMillis);
+        } 
+        catch (Throwable e) {
+            logln("pass: correctly detected bad millis ["+e.getClass().getCanonicalName()+"]");
+            exceptionTriggered = true;  
+        }  
+        assertTrue("Fail: out of bound millis did not trigger exception!", exceptionTriggered);
+        
+    }
+    
+    
 }
 
 //eof

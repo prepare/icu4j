@@ -1365,9 +1365,18 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      * True if this calendar allows out-of-range field values during computation
      * of <code>time</code> from <code>fields[]</code>.
      * @see #setLenient
+     * @deprecated 5.2
      * @serial
      */
     private boolean         lenient = true;
+
+    /**
+     * Bit map of aspects of leniency. Bit is on if that aspect is to be considered lenient
+     * during processing.
+     * @see #setLenient
+     * @serial
+     */
+    private Leniency        leniency = null;
 
     /**
      * The {@link TimeZone} used by this calendar. {@link Calendar}
@@ -2106,13 +2115,13 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      */
     public void setTimeInMillis( long millis ) {
         if (millis > MAX_MILLIS) {
-            if(isLenient()) {
+            if(isLenient(Leniency.Bit.FIELD_VALIDATION)) { 
                 millis = MAX_MILLIS;
             } else {
                 throw new IllegalArgumentException("millis value greater than upper bounds for a Calendar : " + millis);
             }
         } else if (millis < MIN_MILLIS) {
-            if(isLenient()) {
+            if(isLenient(Leniency.Bit.FIELD_VALIDATION)) {
                 millis = MIN_MILLIS;
             } else {
                 throw new IllegalArgumentException("millis value less than lower bounds for a Calendar : " + millis);
@@ -2357,7 +2366,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
          * (b) we don't want to trigger a time computation just to get a hash.
          * Note that it is not necessary for unequal objects to always have
          * unequal hashes, but equal objects must have equal hashes.  */
-        return (lenient ? 1 : 0)
+        return (isLenient() ? 1 : 0)
             | (firstDayOfWeek << 1)
             | (minimalDaysInFirstWeek << 4)
             | (repeatedWallTime << 7)
@@ -4006,7 +4015,18 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      */
     public void setLenient(boolean lenient)
     {
-        this.lenient = lenient;
+    	getLeniency().setLenient(lenient);
+    }
+    
+    /**
+     * Specify the exact bit map of leniency indicators
+     *
+     * @see DateFormat#setLenient
+     * @see #setLenient(boolean)
+     */
+    public void setLenientFlags(long leniencyBits)
+    {
+    	getLeniency().setLenientFlags(leniencyBits);
     }
 
     /**
@@ -4015,9 +4035,31 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      */
     public boolean isLenient()
     {
-        return lenient;
+    	return getLeniency().isLenient();
     }
 
+    /**
+     * Tell if something specific is lenient.
+     * 
+     * @see #setLenient(long)
+     */
+    public boolean isLenient(Leniency.Bit lenientFieldValidation)
+    {
+        return getLeniency().isLenient(lenientFieldValidation);
+    }
+    
+    /**
+     * lazy initializer for Leniency
+     */
+    private Leniency getLeniency()
+    {
+        if(leniency == null)       
+            leniency = new Leniency();
+        
+        return leniency;
+    }
+    
+    
     /**
      * {@icu}Sets the behavior for handling wall time repeating multiple times
      * at negative time zone offset transitions. For example, 1:30 AM on
@@ -4544,7 +4586,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
         buffer.append(",areAllFieldsSet=");
         buffer.append(areAllFieldsSet);
         buffer.append(",lenient=");
-        buffer.append(lenient);
+        buffer.append(isLenient());
         buffer.append(",zone=");
         buffer.append(zone);
         buffer.append(",firstDayOfWeek=");
@@ -5210,7 +5252,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
             // We use the TimeZone object, unless the user has explicitly set the ZONE_OFFSET
             // or DST_OFFSET fields; then we use those fields.
 
-            if (!lenient || skippedWallTime == WALLTIME_NEXT_VALID) {
+            if (!isLenient() || skippedWallTime == WALLTIME_NEXT_VALID) {
                 // When strict, invalidate a wall time falls into a skipped wall time range.
                 // When lenient and skipped wall time option is WALLTIME_NEXT_VALID,
                 // the result time will be adjusted to the next valid time (on wall clock).
@@ -5222,7 +5264,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
                 // zoneOffset != zoneOffset1 only when the given wall time fall into
                 // a skipped wall time range caused by positive zone offset transition.
                 if (zoneOffset != zoneOffset1) {
-                    if (!lenient) {
+                    if (!isLenient()) {
                         throw new IllegalArgumentException("The specified wall time does not exist due to time zone offset transition.");
                     }
 
