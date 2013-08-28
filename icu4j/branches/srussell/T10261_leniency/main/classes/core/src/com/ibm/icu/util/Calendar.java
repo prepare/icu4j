@@ -4024,9 +4024,9 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      * @see DateFormat#setLenient
      * @see #setLenient(boolean)
      */
-    public void setLenientFlags(long leniencyBits)
+    public void setLenientFlags(Set<Leniency.Bit> leniencySet)
     {
-    	getLeniency().setLenientFlags(leniencyBits);
+    	getLeniency().setLenientFlags(leniencySet);
     }
 
     /**

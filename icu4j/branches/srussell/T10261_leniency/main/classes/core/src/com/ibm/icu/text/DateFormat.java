@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.MissingResourceException;
+import java.util.Set;
 
 import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.impl.RelativeDateFormat;
@@ -1450,7 +1451,7 @@ public abstract class DateFormat extends UFormat {
      * @see #setLenient(boolean)
      * @see #Calendar.setLenient(long)
      */
-    public void setLenientFlags(long leniencyBits)
+    public void setLenientFlags(Set<Leniency.Bit> leniencyBits)
     {
         calendar.setLenientFlags(leniencyBits);
     }
