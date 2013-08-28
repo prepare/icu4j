@@ -14,9 +14,11 @@ import java.io.ObjectOutputStream;
 import java.text.ParsePosition;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.MissingResourceException;
+import java.util.Set;
 
 import com.ibm.icu.text.DateFormat;
 import com.ibm.icu.text.NumberFormat;
@@ -2364,8 +2366,8 @@ public class CalendarRegression extends com.ibm.icu.dev.test.TestFmwk {
         Calendar myCal = Calendar.getInstance();
         long dateBit1, testMillis = 0L;
         boolean exceptionTriggered = false;
-        long noLeniency = 0;
-        long fieldValidationLeniency = Leniency.Bit.FIELD_VALIDATION.ordinal();
+        Set<Leniency.Bit> testLeniencySet = EnumSet.of(Leniency.Bit.FIELD_VALIDATION);
+        Set<Leniency.Bit> emptyLeniencySet = EnumSet.noneOf(Leniency.Bit.class);
 
         testMillis = -184303902611600999L;
 
@@ -2392,8 +2394,8 @@ public class CalendarRegression extends com.ibm.icu.dev.test.TestFmwk {
         }
         assertTrue("Fail: out of bound millis did not trigger exception!", exceptionTriggered);
         
-        logln("Testing invalid setMillis value in custom lenient mode - using millis: " + testMillis + " - leninecy: " + fieldValidationLeniency);
-        myCal.setLenientFlags(fieldValidationLeniency);
+        logln("Testing invalid setMillis value in custom lenient mode - using millis: " + testMillis + " - leninecy: " + testLeniencySet);
+        myCal.setLenientFlags(testLeniencySet);
         exceptionTriggered = false;
         try {
             myCal.setTimeInMillis(testMillis);
@@ -2405,8 +2407,8 @@ public class CalendarRegression extends com.ibm.icu.dev.test.TestFmwk {
         dateBit1 = myCal.get(Calendar.MILLISECOND);
         assertNotEquals("Fail: millis not changed to MIN_MILLIS", testMillis, dateBit1);
         
-        logln("Testing invalid setMillis value in custom lenient mode - using millis: " + testMillis + " - leninecy: " + noLeniency);
-        myCal.setLenientFlags(noLeniency);
+        logln("Testing invalid setMillis value in custom lenient mode - using millis: " + testMillis);
+        myCal.setLenientFlags(emptyLeniencySet);
         try {
             myCal.setTimeInMillis(testMillis);
         } 

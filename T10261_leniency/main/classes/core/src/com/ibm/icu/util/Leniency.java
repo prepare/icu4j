@@ -7,6 +7,8 @@
 package com.ibm.icu.util;
 
 import java.io.Serializable;
+import java.util.EnumSet;
+import java.util.Set;
 
 import com.ibm.icu.impl.ICUConfig;
 
@@ -41,92 +43,100 @@ public class Leniency implements Serializable {
     };
 
     /**
-     * valid list of leniency bits
-     */
-    static private long validLeniency = 0; 
-    static {
-       Bit[] allBits = Bit.values();
-       for (int i = 0; i < allBits.length; i++) {
-           validLeniency |= allBits[i].ordinal();
-       }
-    }
-    
-    /**
      * class variable that holds the configured leniency defaults. The configured defaults will be obtained once and referenced as needed. 
      */
-    private static volatile long defaults = -1;
+    private static volatile Set<Bit> defaults = EnumSet.noneOf(Leniency.Bit.class);
+    private static volatile boolean defaultsObtained = false; 
     private static Object defaultsLock = new Object();
     
     /**
      * the currently leniency settings for this instance
      */
-    private long bitMap = -1;
+    private Set<Bit> bitMap = null;
+    private static Object bitMapLock = new Object();
 
     /**
      * returns True if leniency has been set to true or still in it's default state. False if set to 
      * false explictly. 
      */
     public boolean isLenient() {
-        if(getBitMap() == 0)
-            return false;
+        if(getBitMap() == null || getBitMap().contains(Bit.LENIENT))
+            return true;
             
-        return true;
+        return false;
     }
     
     /**
-     * True if the lenient bit specified by the supplied mask is turned on. Otherwise, false.
+     * True if the lenient bit specified by the mask is turned on. Otherwise, false.
      */ 
     public boolean isLenient(Bit mask) {
-        if( (getBitMap() & mask.ordinal()) == 0)
-            return false;
+        normalizeBitMap();
+        if( getBitMap().contains(mask) )
+            return true;
             
-        return true;
+        return false;
     }
 
+
+    /**
+     * this method ensures that if we're in a default state (leniency == true) that we force defaults processing because we need to actually know the bits at this point
+     */
+    private void normalizeBitMap() {
+        if(getBitMap() == null) {
+            synchronized(bitMapLock) {
+                if(bitMap == null) {
+                    bitMap = getDefaults();
+                } 
+            }            
+        }
+    }
 
     /**
      * sets this instances leniency bit map. If being set to true, the configured defaults are used. If being 
      * set to false the bit map is cleared.
      */
     public void setLenient(boolean flag) {
-        if(flag == true)
-            setLenientFlags(getDefaults() | Bit.LENIENT.ordinal());
-        else
-            setLenientFlags(0);
+        if(flag == true) 
+            setLenientFlags(getDefaults());
+        else {
+            setLenientFlags(EnumSet.noneOf(Leniency.Bit.class));
+        }
     }
 
     /**
      * set the leniency bit map to the supplied bit map  
      */
-    public void setLenientFlags(long leniencyBits) {
-        //TODO decide if this should be done with an OR of Leniency.LENIENT ?!?
-        setBitMap(leniencyBits);        
+    public void setLenientFlags(Set<Bit> newLeniencySet) {
+        if(newLeniencySet.size() > 0)
+            newLeniencySet.add(Bit.LENIENT);
+        setBitMap(newLeniencySet);        
     }
 
     /**
      * returns the configured defaults for leniency as configured in ICUConfig.properties 
      */
-    private long getDefaults() {
+    private Set<Bit> getDefaults() {
         boolean bitOn;
-        int results = 0;
-
-        if(defaults != -1)
+        Set<Bit> results = EnumSet.noneOf(Leniency.Bit.class);
+        
+        if(defaultsObtained) 
             return defaults;
-
+        
         bitOn = ICUConfig.get(LENIENCY_FIELD_VALIDATION_PROPERTY, "true").equals("true");
-        if(bitOn) results |= Bit.FIELD_VALIDATION.ordinal();
+        if(bitOn) results.add(Bit.FIELD_VALIDATION);
         
         bitOn = ICUConfig.get(LENIENCY_ALLOW_WHITESPACE__PROPERTY, "true").equals("true");
-        if(bitOn) results |= Bit.ALLOW_WHITESPACE.ordinal();
+        if(bitOn) results.add(Bit.ALLOW_WHITESPACE);
         
         bitOn = ICUConfig.get(LENIENCY_ALLOW_NUMERIC_PROPERTY, "true").equals("true");
-        if(bitOn) results |= Bit.ALLOW_NUMERIC.ordinal();
+        if(bitOn) results.add(Bit.ALLOW_NUMERIC);
         
         synchronized(defaultsLock) {        
-            if(defaults != -1)
+            if(defaultsObtained)
                 return defaults;
             
-            defaults = results;
+            defaultsObtained = true;
+            defaults = results;            
         }
         
         return results;
@@ -135,15 +145,21 @@ public class Leniency implements Serializable {
     /**
      * @return the bitMap
      */
-    protected long getBitMap() {
-        return bitMap;
+    protected Set<Bit> getBitMap() {
+        Set<Bit> results;
+        synchronized(bitMapLock) {
+            results = bitMap;
+        }
+        return results;
     }
 
     /**
      * @param bitMap the bitMap to set
      */
-    protected void setBitMap(long newBitMap) {
-        bitMap = newBitMap & validLeniency;
+    protected void setBitMap(Set<Bit> newBitMap) {
+        synchronized(bitMapLock) {
+            bitMap = newBitMap;
+        }
     }
     
 }
