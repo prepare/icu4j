@@ -25,6 +25,7 @@ import com.ibm.icu.util.DateInterval;
 import com.ibm.icu.util.DateTimeRule;
 import com.ibm.icu.util.GregorianCalendar;
 import com.ibm.icu.util.InitialTimeZoneRule;
+import com.ibm.icu.util.Leniency;
 import com.ibm.icu.util.RuleBasedTimeZone;
 import com.ibm.icu.util.SimpleTimeZone;
 import com.ibm.icu.util.TimeArrayTimeZoneRule;
@@ -425,6 +426,34 @@ public class SerializableTest extends TestFmwk.TestGroup
         }
     }
 
+
+    private static class LeniencyHandler implements Handler
+    {
+        public Object[] getTestObjects()
+        {
+            Leniency leniencies[] = new Leniency[3];
+            
+            leniencies[0] = new Leniency();
+            
+            leniencies[1] = new Leniency();
+            leniencies[1].setLenient(false);
+            
+            leniencies[2] = new Leniency();
+            leniencies[2].setLenient(true);
+            
+            return leniencies;
+        }
+        
+        public boolean hasSameBehavior(Object a, Object b)
+        {
+            Leniency lenient_a = (Leniency) a;
+            Leniency lenient_b = (Leniency) b;
+            
+            return lenient_a.isLenient() == lenient_b.isLenient();
+            
+        }
+    }
+    
     private static String zoneIDs[] = {
         "Pacific/Honolulu", "America/Anchorage", "America/Los_Angeles", "America/Denver",
         "America/Chicago", "America/New_York", "Africa/Cairo", "Africa/Addis_Ababa", "Africa/Dar_es_Salaam",
@@ -647,6 +676,7 @@ public class SerializableTest extends TestFmwk.TestGroup
         map.put("com.ibm.icu.util.TimeArrayTimeZoneRule", new TimeArrayTimeZoneRuleHandler());
         map.put("com.ibm.icu.util.ULocale", new ULocaleHandler());
         map.put("com.ibm.icu.util.Currency", new CurrencyHandler());
+        map.put("com.ibm.icu.util.Leniency", new LeniencyHandler());
         map.put("com.ibm.icu.impl.JavaTimeZone", new JavaTimeZoneHandler());
         map.put("com.ibm.icu.impl.OlsonTimeZone", new OlsonTimeZoneHandler());
         map.put("com.ibm.icu.impl.TimeZoneAdapter", new TimeZoneAdapterHandler());
