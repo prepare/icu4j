@@ -5194,7 +5194,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      * @stable ICU 2.0
      */
    protected void computeTime() {
-        if (!isLenient()) {
+        if (!isLenient(Leniency.Bit.FIELD_VALIDATION)) {
             validateFields();
         }
 
