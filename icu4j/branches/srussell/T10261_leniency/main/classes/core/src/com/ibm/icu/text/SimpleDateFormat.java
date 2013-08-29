@@ -2427,7 +2427,7 @@ public class SimpleDateFormat extends DateFormat {
                      ++pos;
                 }
             } else if (pch != ich) {
-                if (ich == '.' && pos == originalPos && 0 < itemIndex && isLenient()) {
+                if (ich == '.' && pos == originalPos && 0 < itemIndex && isLenient(Leniency.Bit.ALLOW_WHITESPACE)) {
                     Object before = items[itemIndex-1];
                     if (before instanceof PatternItem) {
                         boolean isNumeric = ((PatternItem) before).isNumeric;
