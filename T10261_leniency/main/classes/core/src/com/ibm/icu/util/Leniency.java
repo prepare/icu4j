@@ -31,7 +31,8 @@ public class Leniency implements Serializable {
     private static final String LENIENCY_ALLOW_NUMERIC_PROPERTY         = "com.ibm.icu.util.leniency.AllowNumeric";
     
     public enum Bit { 
-        // general leniency indicator for instances where specific leniency is not {yet} defined
+        // general leniency indicator and for instances where specific leniency is not {yet} defined. Enables knowing that Leniency 
+        // is selected even if no individual bits are selected for controlling lenient-like behavior.  
         LENIENT,
         // lenient field validation indicates that the code will do it's best not to fail. Examples would be to pin a value
         // to the fields min/max or adjust other fields in the object to enable a given field to be recalculated into a valid range. 
@@ -110,6 +111,14 @@ public class Leniency implements Serializable {
         if(newLeniencySet.size() > 0)
             newLeniencySet.add(Bit.LENIENT);
         setBitMap(newLeniencySet);        
+    }
+    
+    /**
+     * get the current bit map
+     */
+    public Set<Bit> getLenientFlags() {
+        normalizeBitMap();
+        return getBitMap();
     }
 
     /**

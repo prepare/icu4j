@@ -12,6 +12,7 @@ import java.io.Serializable;
 import java.text.StringCharacterIterator;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.EnumSet;
 import java.util.Locale;
 import java.util.MissingResourceException;
 import java.util.Set;
@@ -2347,7 +2348,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
      */
     public boolean isEquivalentTo(Calendar other) {
         return this.getClass() == other.getClass() &&
-            isLenient() == other.isLenient() &&
+            getLeniency().getLenientFlags() == other.getLeniency().getLenientFlags() &&
             getFirstDayOfWeek() == other.getFirstDayOfWeek() &&
             getMinimalDaysInFirstWeek() == other.getMinimalDaysInFirstWeek() &&
             getTimeZone().equals(other.getTimeZone()) &&
@@ -3218,13 +3219,13 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
         case EXTENDED_YEAR:
         case MONTH:
             {
-                boolean oldLenient = isLenient();
-                setLenient(true);
+                Set<Leniency.Bit> oldLenient = getLeniency().getLenientFlags();
+                setLenientFlags(EnumSet.allOf(Leniency.Bit.class));
                 set(field, get(field) + amount);
                 pinField(DAY_OF_MONTH);
-                if(oldLenient==false) {
+                if(oldLenient.isEmpty()) {
                     complete();
-                    setLenient(oldLenient);
+                    setLenientFlags(oldLenient);
                 }
             }
             return;
@@ -5252,7 +5253,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
             // We use the TimeZone object, unless the user has explicitly set the ZONE_OFFSET
             // or DST_OFFSET fields; then we use those fields.
 
-            if (!isLenient() || skippedWallTime == WALLTIME_NEXT_VALID) {
+            if (!isLenient(Leniency.Bit.FIELD_VALIDATION) || skippedWallTime == WALLTIME_NEXT_VALID) {
                 // When strict, invalidate a wall time falls into a skipped wall time range.
                 // When lenient and skipped wall time option is WALLTIME_NEXT_VALID,
                 // the result time will be adjusted to the next valid time (on wall clock).
@@ -5264,7 +5265,7 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
                 // zoneOffset != zoneOffset1 only when the given wall time fall into
                 // a skipped wall time range caused by positive zone offset transition.
                 if (zoneOffset != zoneOffset1) {
-                    if (!isLenient()) {
+                    if (!isLenient(Leniency.Bit.FIELD_VALIDATION)) {
                         throw new IllegalArgumentException("The specified wall time does not exist due to time zone offset transition.");
                     }
 
