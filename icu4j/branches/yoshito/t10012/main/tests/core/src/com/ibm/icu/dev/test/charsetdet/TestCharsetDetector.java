@@ -484,6 +484,10 @@ public class TestCharsetDetector extends TestFmwk
         "\u0627\u062C\u062A\u0645\u0627\u0639\u064A\u0629.";
 
         CharsetDetector det = new CharsetDetector();
+        det.setDetectableCharset("IBM424_rtl", true);
+        det.setDetectableCharset("IBM424_ltr", true);
+        det.setDetectableCharset("IBM420_rtl", true);
+        det.setDetectableCharset("IBM420_ltr", true);
         CharsetMatch m;
         String charsetMatch;
         byte[] bytes;
@@ -654,6 +658,10 @@ public class TestCharsetDetector extends TestFmwk
     private CharsetMatch _testIBM424_he_rtl(String s) throws Exception {
         byte [] bytes = s.getBytes("IBM424");
         CharsetDetector det = new CharsetDetector();
+        det.setDetectableCharset("IBM424_rtl", true);
+        det.setDetectableCharset("IBM424_ltr", true);
+        det.setDetectableCharset("IBM420_rtl", true);
+        det.setDetectableCharset("IBM420_ltr", true);
         det.setText(bytes);
         CharsetMatch m = det.detect();
         return m;
@@ -669,6 +677,10 @@ public class TestCharsetDetector extends TestFmwk
         byte [] bytes = ltrStrBuf.toString().getBytes("IBM424");
         
         CharsetDetector det = new CharsetDetector();
+        det.setDetectableCharset("IBM424_rtl", true);
+        det.setDetectableCharset("IBM424_ltr", true);
+        det.setDetectableCharset("IBM420_rtl", true);
+        det.setDetectableCharset("IBM420_ltr", true);
         det.setText(bytes);
         CharsetMatch m = det.detect();
         return m;
