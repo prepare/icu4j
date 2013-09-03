@@ -52,6 +52,7 @@ public class CharsetDetector {
      * @stable ICU 3.4
      */
     public CharsetDetector() {
+        initializeCharsetRecogStatus();
     }
 
     /**
@@ -187,11 +188,15 @@ public class CharsetDetector {
         
         //  Iterate over all possible charsets, remember all that
         //    give a match quality > 0.
+        int i=0;
         for (CharsetRecognizer csr: fCSRecognizers) {
-            CharsetMatch m = csr.match(this);
-            if (m != null) {
-                matches.add(m);
+            if ((CharsetRecogStatus[i][0].equals(csr.getName())) && Boolean.valueOf(CharsetRecogStatus[i][1])){
+                CharsetMatch m = csr.match(this);
+                if (m != null) {
+                    matches.add(m);
+                }
             }
+            i++;
         }
         Collections.sort(matches);      // CharsetMatch compares on confidence
         Collections.reverse(matches);   //  Put best match first.
@@ -287,8 +292,8 @@ public class CharsetDetector {
      */
     public static String[] getAllDetectableCharsets() {
         return fCharsetNames;
-    }
-    
+    }   
+       
     /**
      * Test whether or not input filtering is enabled.
      * 
@@ -442,10 +447,11 @@ public class CharsetDetector {
     /*
      * List of recognizers for all charsets known to the implementation.
      */
+ 
     private static ArrayList<CharsetRecognizer> fCSRecognizers = createRecognizers();
     private static String [] fCharsetNames;
-    
-    /*
+
+     /*
      * Create the singleton instances of the CharsetRecognizer classes
      */
     private static ArrayList<CharsetRecognizer> createRecognizers() {
@@ -499,7 +505,66 @@ public class CharsetDetector {
         
         fCharsetNames = new String[out];
         System.arraycopy(charsetNames, 0, fCharsetNames, 0, out);
-        
+             
         return recognizers;
     }
+
+/* for Ticket #10012   Charset Detector: US-ASCII being detected as IBM420_ltr */
+    private String [] curfCharsetNames;
+    private String [][] CharsetRecogStatus;
+    private void initializeCharsetRecogStatus() {
+        CharsetRecogStatus = new String [fCSRecognizers.size()][2];
+        for (int i = 0; i < fCSRecognizers.size(); i++) {
+            CharsetRecogStatus[i][0] = fCSRecognizers.get(i).getName();    
+            if (fCSRecognizers.get(i).getName().equals("IBM424_rtl")||fCSRecognizers.get(i).getName().equals("IBM424_ltr")||fCSRecognizers.get(i).getName().equals("IBM420_rtl")||fCSRecognizers.get(i).getName().equals("IBM420_ltr")) 
+            {
+                CharsetRecogStatus[i][1] = "false";
+            }
+            else
+                CharsetRecogStatus[i][1] = "true";
+        }
+    }
+    
+    public String[] getDetectableCharsets() {
+        String[] charsetNames = new String [fCSRecognizers.size()];
+        int out =0;
+        for (int i = 0; i < fCSRecognizers.size(); i++) {
+            if ((CharsetRecogStatus[i][0].equals(fCSRecognizers.get(i).getName())) && Boolean.valueOf(CharsetRecogStatus[i][1]))
+            {
+                String name = fCSRecognizers.get(i).getName();
+                if (out == 0 || ! name.equals(charsetNames[out - 1])){
+                    charsetNames[out++] = name;
+                }
+            }
+        }
+        curfCharsetNames = new String[out];
+        System.arraycopy(charsetNames, 0, curfCharsetNames, 0, out);
+        return curfCharsetNames;
+}
+
+
+    public CharsetDetector setDetectableCharset(String encoding, boolean enabled) {
+
+        // to check if argument "encoding" is a valid encoding. Throw IllegalArgumentException if encoding is invalid
+        boolean ValidEncodingFlag = false;
+        if (!ValidEncodingFlag) {
+            for (CharsetRecognizer csr:fCSRecognizers){
+                if (csr.getName().equals(encoding)){ 
+                    ValidEncodingFlag = true;
+                    break;
+                }
+            }
+        }
+        if (!ValidEncodingFlag)
+           throw new IllegalArgumentException("Invalid encoding:" + "\""+encoding+"\"");
+        // set the value of enabled
+        for (int i=0;i<CharsetRecogStatus.length;i++){
+            if(CharsetRecogStatus[i][0].equals(encoding)){
+                CharsetRecogStatus[i][1] = String.valueOf(enabled);
+                }
+             }
+ 
+        return this;
+  }
+
 }
