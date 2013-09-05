@@ -114,59 +114,30 @@ public class CompatibilityTest extends TestFmwk
                 }catch (MissingResourceException e){
                     warnln("Could not load the data. "+e.getMessage());
                 } catch (Exception e) {
-                  e.printStackTrace();
+                    e.printStackTrace();
                     errln("Exception: " + e.toString());
-                    
                 }
             }
         }
     }
 
     private static final String[][] SKIP_CASES = {
-        {"ICU_3.8.1",   "com.ibm.icu.text.PluralFormat.dat"},
-        {"ICU_3.8.1",   "com.ibm.icu.text.PluralRules.dat"},
-        // ICU 52 is not serialization-compatible with previous versions. 
-        {"ICU_3.8.1",   "com.ibm.icu.text.PluralFormat.dat"},
-        {"ICU_3.8.1",   "com.ibm.icu.text.PluralRules.dat"},
-        {"ICU_4.0",   "com.ibm.icu.text.PluralFormat.dat"},
-        {"ICU_4.0",   "com.ibm.icu.text.PluralRules.dat"},
-        {"ICU_4.2.1",   "com.ibm.icu.text.PluralFormat.dat"},
-        {"ICU_4.2.1",   "com.ibm.icu.text.PluralRules.dat"},
-        {"ICU_4.4",   "com.ibm.icu.text.PluralFormat.dat"},
-        {"ICU_4.4",   "com.ibm.icu.text.PluralRules.dat"},
-        {"ICU_4.4", "com.ibm.icu.text.CurrencyPluralInfo.dat"},
-        {"ICU_4.6",   "com.ibm.icu.text.PluralFormat.dat"},
-        {"ICU_4.6",   "com.ibm.icu.text.PluralRules.dat"},
-        {"ICU_4.6", "com.ibm.icu.text.CurrencyPluralInfo.dat"},
-        {"ICU_4.8",   "com.ibm.icu.text.PluralFormat.dat"},
-        {"ICU_4.8",   "com.ibm.icu.text.PluralRules.dat"},
-        {"ICU_4.8", "com.ibm.icu.text.CurrencyPluralInfo.dat"},
-        {"ICU_49.1", "com.ibm.icu.text.CurrencyPluralInfo.dat"},
-        {"ICU_49.1", "com.ibm.icu.text.PluralFormat.dat"},
-        {"ICU_49.1", "com.ibm.icu.text.PluralRules.dat"},
+        // ICU 52+ PluralRules/PluralFormat/CurrencyPluralInfo are not
+        // serialization-compatible with previous versions. 
         {"ICU_50.1", "com.ibm.icu.text.CurrencyPluralInfo.dat"},
-        {"ICU_50.1", "com.ibm.icu.text.PluralFormat.dat"},
-        {"ICU_50.1", "com.ibm.icu.text.PluralRules.dat"},
         {"ICU_51.1", "com.ibm.icu.text.CurrencyPluralInfo.dat"},
+
+        {"ICU_50.1", "com.ibm.icu.text.PluralFormat.dat"},
         {"ICU_51.1", "com.ibm.icu.text.PluralFormat.dat"},
+
+        {"ICU_50.1", "com.ibm.icu.text.PluralRules.dat"},
         {"ICU_51.1", "com.ibm.icu.text.PluralRules.dat"},
-        
+
+        // RuleBasedNumberFormat
         {"ICU_3.6",     "com.ibm.icu.text.RuleBasedNumberFormat.dat"},
-        {"ICU_3.8.1",   "com.ibm.icu.text.RuleBasedNumberFormat.dat"},
-        {"ICU_4.0",     "com.ibm.icu.text.RuleBasedNumberFormat.dat"},
-        {"ICU_4.2.1",   "com.ibm.icu.text.CurrencyPluralInfo.dat"},
-        // ICU 4.8 MessageFormat is not serialization-compatible with previous versions.
+
+        // ICU 4.8+ MessageFormat is not serialization-compatible with previous versions.
         {"ICU_3.6",     "com.ibm.icu.text.MessageFormat.dat"},
-        {"ICU_3.8.1",   "com.ibm.icu.text.MessageFormat.dat"},
-        {"ICU_4.0",     "com.ibm.icu.text.MessageFormat.dat"},
-        {"ICU_4.2.1",   "com.ibm.icu.text.MessageFormat.dat"},
-        {"ICU_4.4",     "com.ibm.icu.text.MessageFormat.dat"},
-        {"ICU_4.6",     "com.ibm.icu.text.MessageFormat.dat"},
-        // RelativeDateFormat apparently uses and serializes a MessageFormat.
-        {"ICU_4.0",     "com.ibm.icu.impl.RelativeDateFormat.dat"},
-        {"ICU_4.2.1",   "com.ibm.icu.impl.RelativeDateFormat.dat"},
-        {"ICU_4.4",     "com.ibm.icu.impl.RelativeDateFormat.dat"},
-        {"ICU_4.6",     "com.ibm.icu.impl.RelativeDateFormat.dat"},
     };
 
     private Target getFileTargets(URL fileURL)

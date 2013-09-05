@@ -1,6 +1,6 @@
 /*
  *******************************************************************************
- * Copyright (C) 2005-2012, International Business Machines Corporation and    *
+ * Copyright (C) 2005-2013, International Business Machines Corporation and    *
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  *
@@ -110,7 +110,7 @@ public class CoverageTest extends CompatibilityTest implements URLHandler.URLVis
             try {
                 /*Field uid = */c.getDeclaredField("serialVersionUID");
             } catch (Exception e) {
-                errln("No serialVersionUID");
+                errln("No serialVersionUID for " + name);
             }
             
             if (inputStream == null) {
@@ -159,6 +159,10 @@ public class CoverageTest extends CompatibilityTest implements URLHandler.URLVis
                                 out.close();
                                 byteOut.close();
                             } catch (IOException e) {
+                                if (str.equals("/text/PluralRules$FixedDecimal.class")
+                                        && logKnownIssue("10268", "Serializable interface is not implemented in PluralRules$FixedDecimal")) {
+                                    return;
+                                }
                                 warnln("Error writing test objects: " + e.toString());
                                 return;
                             }
