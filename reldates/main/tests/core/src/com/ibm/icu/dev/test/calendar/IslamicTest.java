@@ -6,6 +6,11 @@
  */
 package com.ibm.icu.dev.test.calendar;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.Date;
 import java.util.Locale;
 
@@ -428,4 +433,117 @@ public class IslamicTest extends CalendarTest {
         }
     }
     
+    public void TestSerialization8449() {
+        try {
+            ByteArrayOutputStream icuStream = new ByteArrayOutputStream();
+    
+            IslamicCalendar tstCalendar = new IslamicCalendar();
+            tstCalendar.setCivil(false);
+            
+            long expectMillis = 1187912520931L; // with seconds (not ms) cleared.
+            tstCalendar.setTimeInMillis(expectMillis);
+            
+            logln("instantiated: "+tstCalendar);
+            logln("getMillis: "+tstCalendar.getTimeInMillis());
+            tstCalendar.set(IslamicCalendar.SECOND, 0);
+            logln("setSecond=0: "+tstCalendar);
+            {
+                long gotMillis = tstCalendar.getTimeInMillis();
+                if(gotMillis != expectMillis) {
+                    errln("expect millis "+expectMillis+" but got "+gotMillis);
+                } else {
+                    logln("getMillis: "+gotMillis);
+                }
+            }
+            ObjectOutputStream icuOut = new ObjectOutputStream(icuStream);
+            icuOut.writeObject(tstCalendar);
+            icuOut.flush();
+            icuOut.close();
+            
+            ObjectInputStream icuIn = new ObjectInputStream(new ByteArrayInputStream(icuStream.toByteArray()));
+            tstCalendar = null;
+            tstCalendar = (IslamicCalendar)icuIn.readObject();
+            
+            logln("serialized back in: "+tstCalendar);
+            {
+                long gotMillis = tstCalendar.getTimeInMillis();
+                if(gotMillis != expectMillis) {
+                    errln("expect millis "+expectMillis+" but got "+gotMillis);
+                } else {
+                    logln("getMillis: "+gotMillis);
+                }
+            }
+            
+            tstCalendar.set(IslamicCalendar.SECOND, 0);
+                    
+            logln("setSecond=0: "+tstCalendar);
+            {
+                long gotMillis = tstCalendar.getTimeInMillis();
+                if(gotMillis != expectMillis) {
+                    errln("expect millis "+expectMillis+" after stream and setSecond but got "+gotMillis);
+                } else {
+                    logln("getMillis after stream and setSecond: "+gotMillis);
+                }
+            }
+        } catch(IOException e) {
+            errln(e.toString());
+            e.printStackTrace();
+        } catch(ClassNotFoundException cnf) {
+            errln(cnf.toString());
+            cnf.printStackTrace();
+        }
+    }
+    
+    public void Test10249() {
+        try {
+            SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");            
+            Date date = formatter.parse("1975-05-06");
+            IslamicCalendar is_cal = new IslamicCalendar();
+            is_cal.setType(CalculationType.ISLAMIC_CIVIL);
+            is_cal.setTime(date);
+            IslamicCalendar is_cal2 = new IslamicCalendar();
+            is_cal2.setType(CalculationType.ISLAMIC_TBLA);
+            is_cal2.setTime(date);
+            
+            int is_day = is_cal.get(Calendar.DAY_OF_MONTH);
+            int is_day2 = is_cal2.get(Calendar.DAY_OF_MONTH);
+            if(is_day2 - is_day != 1)
+                errln("unexpected difference between civil and tbla: "+is_day2+" : "+is_day);
+
+        }catch(Exception e){
+            errln(e.getLocalizedMessage());
+        }
+    }
+
+    public void TestCreationByLocale() {
+        ULocale islamicLoc = new ULocale("ar_SA@calendar=islamic-umalqura"); 
+        IslamicCalendar is_cal = new IslamicCalendar(islamicLoc);
+        String thisCalcType = is_cal.getType(); 
+        if(!"islamic-umalqura".equalsIgnoreCase(thisCalcType)) {
+            errln("non umalqura calc type generated - " + thisCalcType);
+        }
+
+        islamicLoc = new ULocale("ar_SA@calendar=islamic-civil"); 
+        is_cal = new IslamicCalendar(islamicLoc);
+        thisCalcType = is_cal.getType(); 
+        if(!"islamic-civil".equalsIgnoreCase(thisCalcType)) {
+            errln("non civil calc type generated - " + thisCalcType);
+        }
+
+        islamicLoc = new ULocale("ar_SA@calendar=islamic-tbla"); 
+        is_cal = new IslamicCalendar(islamicLoc);
+        thisCalcType = is_cal.getType(); 
+        if(!"islamic-tbla".equalsIgnoreCase(thisCalcType)) {
+            errln("non tbla calc type generated - " + thisCalcType);
+        }
+
+        islamicLoc = new ULocale("ar_SA@calendar=islamic-xyzzy"); 
+        is_cal = new IslamicCalendar(islamicLoc);
+        thisCalcType = is_cal.getType(); 
+        if(!"islamic".equalsIgnoreCase(thisCalcType)) {
+            errln("incorrect default calc type generated - " + thisCalcType);
+        }
+
+    }
+
 }
