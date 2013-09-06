@@ -10,6 +10,7 @@ import com.ibm.icu.text.DateFormat;
 import com.ibm.icu.text.DecimalFormat;
 import com.ibm.icu.text.RelativeFormatter;
 import com.ibm.icu.util.Calendar;
+import com.ibm.icu.util.TimeZone;
 
 public class AndroidTest {
     
@@ -173,6 +174,7 @@ public class AndroidTest {
         } else {
             df = DateFormat.getPatternInstance("yMd");
         }
+        df.setTimeZone(TimeZone.GMT_ZONE);
         return df.format(new java.util.Date(startTime));
         
     }
@@ -190,7 +192,7 @@ public class AndroidTest {
       for (long offset: offsets) {
           for (long res: resArr) {
               System.out.println(offset+"\t"+res+"\t"+getRelativeTimeSpanString(
-                      NOW + offset, NOW, res, 0));
+                      NOW + offset, NOW, res, FORMAT_NUMERIC_DATE));
           }
       }
 

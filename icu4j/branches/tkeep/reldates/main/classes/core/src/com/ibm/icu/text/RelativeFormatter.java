@@ -105,7 +105,7 @@ public class RelativeFormatter {
                 qb.add("one", "in {0} minute").add("other", "in {0} minutes").build()});
         timeUnitCache.put(TimeUnit.SECONDS, new QuantityFormatter[] {
                 qb.add("one", "{0} second ago").add("other", "{0} seconds ago").build(),
-                qb.add("one", "in {0} seconds").add("other", "in {0} seconds").build()});
+                qb.add("one", "in {0} second").add("other", "in {0} seconds").build()});
     }
     
 
