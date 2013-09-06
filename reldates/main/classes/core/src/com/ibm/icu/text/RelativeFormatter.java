@@ -8,6 +8,7 @@ package com.ibm.icu.text;
 
 import java.util.EnumMap;
 
+import com.ibm.icu.impl.CalendarData;
 import com.ibm.icu.util.ULocale;
 
 
@@ -69,76 +70,136 @@ public class RelativeFormatter {
         // Others have LAST..NEXT
       }
       
+      /**
+       * Represents the style. Not yet supported because we don't have CLDR data for this.
+       * @draft ICU 53
+       * @provisional
+       *
+       */
       public static enum Style {
           NARROW,
           SHORT,
           FULL,
       }
 
-    private static final EnumMap<RelativeOffset, String> offsetMap =
-            new EnumMap<RelativeFormatter.RelativeOffset, String>(RelativeOffset.class);
-
-
-    private static final EnumMap<RelativeUnit, String> unitMap = 
-            new EnumMap<RelativeFormatter.RelativeUnit, String>(RelativeUnit.class);
-
-
-    private static final EnumMap<TimeUnit, String> timeUnitMap = 
-            new EnumMap<RelativeFormatter.TimeUnit, String>(TimeUnit.class);
+    private static final EnumMap<RelativeUnit, EnumMap<RelativeOffset, String>> relativeUnitCache =
+            new EnumMap<RelativeUnit, EnumMap<RelativeOffset, String>>(RelativeUnit.class);
+    
+    private static final EnumMap<TimeUnit, QuantityFormatter[]> timeUnitCache =
+            new EnumMap<TimeUnit, QuantityFormatter[]>(TimeUnit.class);
     
     static {
-        offsetMap.put(RelativeOffset.LAST, "last");
-        offsetMap.put(RelativeOffset.THIS, "this");
-        offsetMap.put(RelativeOffset.NEXT, "next");
-        offsetMap.put(RelativeOffset.PLAIN, "");
+        addRelativeUnit(relativeUnitCache, RelativeUnit.DAY, "yesterday", "today", "tomorrow");
+        addRelativeUnit(relativeUnitCache, RelativeUnit.MONDAY, "last Monday", "this Monday", "next Monday");
+        addRelativeUnit(relativeUnitCache, RelativeUnit.NOW, "now");
         
-        unitMap.put(RelativeUnit.SUNDAY, "Sunday");
-        unitMap.put(RelativeUnit.MONDAY, "Monday");
-        unitMap.put(RelativeUnit.TUESDAY, "Tuesday");
-        unitMap.put(RelativeUnit.WEDNESDAY, "Wednesday");
-        unitMap.put(RelativeUnit.THURSDAY, "Thursday");
-        unitMap.put(RelativeUnit.FRIDAY, "Friday");
-        unitMap.put(RelativeUnit.SATURDAY, "Saturday");
-        unitMap.put(RelativeUnit.WEEK, "day");
-        unitMap.put(RelativeUnit.MONTH, "month");
-        unitMap.put(RelativeUnit.YEAR, "year");
-        
-        timeUnitMap.put(TimeUnit.SECONDS, "Sunday");
-        timeUnitMap.put(TimeUnit.MINUTES, "Monday");
-        timeUnitMap.put(TimeUnit.HOURS, "Tuesday");
-        timeUnitMap.put(TimeUnit.DAYS, "Wednesday");
-        timeUnitMap.put(TimeUnit.WEEKS, "Thursday");
-        timeUnitMap.put(TimeUnit.MONTHS, "Friday");
-        timeUnitMap.put(TimeUnit.YEARS, "Saturday");
-        
+        QuantityFormatter.Builder qb = new QuantityFormatter.Builder();
+        timeUnitCache.put(TimeUnit.DAYS, new QuantityFormatter[] {
+                qb.add("one", "{0} day ago").add("other", "{0} days ago").build(),
+                qb.add("one", "in {0} day").add("other", "in {0} days").build()});
+        timeUnitCache.put(TimeUnit.HOURS, new QuantityFormatter[] {
+                qb.add("one", "{0} hour ago").add("other", "{0} hours ago").build(),
+                qb.add("one", "in {0} hour").add("other", "in {0} hours").build()});
+        timeUnitCache.put(TimeUnit.MINUTES, new QuantityFormatter[] {
+                qb.add("one", "{0} minute ago").add("other", "{0} minutes ago").build(),
+                qb.add("one", "in {0} minute").add("other", "in {0} minutes").build()});
+        timeUnitCache.put(TimeUnit.SECONDS, new QuantityFormatter[] {
+                qb.add("one", "{0} second ago").add("other", "{0} seconds ago").build(),
+                qb.add("one", "in {0} seconds").add("other", "in {0} seconds").build()});
     }
     
-    private DecimalFormat decimalFormat;  
-      
+
+    private final EnumMap<RelativeUnit, EnumMap<RelativeOffset, String>> relativeUnitMap;
+    private final EnumMap<TimeUnit, QuantityFormatter[]> timeUnitMap;
+    private final MessageFormat combinedDateAndTime;
+    private final PluralRules pluralRules;
+    private NumberFormat numberFormat;
+    
     /**
-     * Creates a RelativeFormat for the default locale and FULL style.  
+     * Returns a RelativeFormatter for the default locale.
+     * @draft ICU 53
+     * @provisional
      */
-    public RelativeFormatter() {      
-        decimalFormat = new DecimalFormat();
+    public static RelativeFormatter getInstance() {
+        CalendarData calData = new CalendarData(ULocale.getDefault(), null);
+        // TODO: Pull from resource bundles/cache
+        return new RelativeFormatter(
+                relativeUnitCache,
+                timeUnitCache,
+                new MessageFormat(calData.getDateTimePattern()),
+                PluralRules.forLocale(ULocale.getDefault()),
+                NumberFormat.getInstance());
     }
     
     /**
-     * Creates a RelativeFormat for the given locale and FULL style.  
+     * Returns a RelativeFormatter for a particular locale.
+     * @draft ICU 53
+     * @provisional
      */
-    public RelativeFormatter(ULocale locale) {     
-        this();
+    public static RelativeFormatter getInstance(ULocale locale) {
+        CalendarData calData = new CalendarData(locale, null);
+        // TODO: Pull from resource bundles/cache
+        return new RelativeFormatter(
+                relativeUnitCache,
+                timeUnitCache,
+                new MessageFormat(calData.getDateTimePattern()),
+                PluralRules.forLocale(locale),
+                NumberFormat.getInstance(locale));
     }
     
     /**
-     * Creates a RelativeFormat for the given locale and style.  
+     * Returns a RelativeFormatter for a particular locale and style.
+     * This is currently not supported because of lack of CLDR data.
+     * @draft ICU 53
+     * @provisional
      */
-    public RelativeFormatter(ULocale locale, Style style) {
-        this();
+    public static RelativeFormatter getInstance(ULocale locale, Style style) {
+        throw new UnsupportedOperationException("Missing CLDR data.");
+    }
+         
+    private static void addRelativeUnit(
+            EnumMap<RelativeUnit, EnumMap<RelativeOffset, String>> relativeUnits,
+            RelativeUnit unit,
+            String current) {
+        EnumMap<RelativeOffset, String> unitStrings =
+                new EnumMap<RelativeOffset, String>(RelativeOffset.class);
+        unitStrings.put(RelativeOffset.LAST, current);
+        unitStrings.put(RelativeOffset.THIS, current);
+        unitStrings.put(RelativeOffset.NEXT, current);
+        unitStrings.put(RelativeOffset.PLAIN, current);
+        relativeUnits.put(unit,  unitStrings);       
+    }
+
+    private static void addRelativeUnit(
+            EnumMap<RelativeUnit, EnumMap<RelativeOffset, String>> relativeUnits,
+            RelativeUnit unit, String last, String current, String next) {
+        EnumMap<RelativeOffset, String> unitStrings =
+                new EnumMap<RelativeOffset, String>(RelativeOffset.class);
+        unitStrings.put(RelativeOffset.LAST, last);
+        unitStrings.put(RelativeOffset.THIS, current);
+        unitStrings.put(RelativeOffset.NEXT, next);
+        unitStrings.put(RelativeOffset.PLAIN, current);
+        relativeUnits.put(unit,  unitStrings);
+    }
+
+    
+    private RelativeFormatter(
+            EnumMap<RelativeUnit, EnumMap<RelativeOffset, String>> relativeUnitMap,
+            EnumMap<TimeUnit, QuantityFormatter[]> timeUnitMap,
+            MessageFormat combinedDateAndTime,
+            PluralRules pluralRules,
+            NumberFormat numberFormat) {
+        this.relativeUnitMap = relativeUnitMap;
+        this.timeUnitMap = timeUnitMap;
+        this.combinedDateAndTime = combinedDateAndTime;
+        this.pluralRules = pluralRules;
+        this.numberFormat = numberFormat;
     }
     
     /**
      * Formats a quantitative relative date e.g 5 hours ago; in 3 days.
-     * @param distance The numerical amount e.g 5.
+     * @param distance The numerical amount e.g 5. This value is formatted according to this
+     *   object's {@link NumberFormat} object.
      * @param unit The time unit. e.g DAYS
      * @param isFuture True if relative date is in future.
      * @return the formatted string
@@ -146,12 +207,12 @@ public class RelativeFormatter {
      * @provisional
      */
     public String format(double distance, TimeUnit unit, boolean isFuture) {
-        String unitStr = timeUnitMap.get(unit);
-        if (isFuture) {
-            return MessageFormat.format("{0, plural, one{in # "+unitStr+"}, other{in # "+unitStr+"s}}", distance);
-        } else {
-            return MessageFormat.format("{0, plural, one{# "+unitStr+" ago}, other{# "+unitStr+"s ago}}", distance);
-        }
+        return getQuantity(unit, isFuture).format(distance, numberFormat, pluralRules);
+    }
+    
+    private QuantityFormatter getQuantity(TimeUnit unit, boolean isFuture) {
+        QuantityFormatter[] quantities = timeUnitMap.get(unit);
+        return isFuture ? quantities[1] : quantities[0];
     }
 
     /**
@@ -163,36 +224,33 @@ public class RelativeFormatter {
      * @provisional
      */
     public String format(RelativeOffset offset, RelativeUnit unit) {
-        switch (unit) {
-        case NOW:
-            return "now";
-        case DAY:
-            switch (offset) {
-            case LAST:
-                return "yesterday";
-            case THIS:
-                return "today";
-            case NEXT:
-                return "tomorrow";
-            default:
-                return "today";
-            }
-        default:
-            return offsetMap.get(offset) + " " + unitMap.get(unit);
-        }
+        return this.relativeUnitMap.get(unit).get(offset);
     }
     
     /**
-     * Sets the NumberFormat object for this formatter to use. If not called,
-     * RelativeFormat objects lazily create a default NumberFormat object based on the
-     * locale.
+     * Sets the NumberFormat object for this formatter to use.
      * @param nf the NumberFormat object to use.
+     * @see #format(double, TimeUnit, boolean)
+     * @draft ICU 53
+     * @provisional
      */
     public void setNumberFormat(NumberFormat nf) {
-        
+        this.numberFormat = nf;
     }
 
-    public String combineDateAndTime(String dateClause, String timeClause) {
-        return MessageFormat.format("{1} {0}", dateClause, timeClause);
+    /**
+     * Combines a relative date string and a time string in this object's locale. This is
+     * done with the same date-time separator used for the Gregorian calendar in this
+     * locale.
+     * @param relativeDateString the relative date e.g 'yesterday'
+     * @param timeString the time e.g '3:45'
+     * @return the date and time concatenated according to the Gregorian calendar in this
+     *   locale e.g 'yesterday, 3:45'
+     * @draft ICU 53
+     * @provisional
+     */
+    public String combineDateAndTime(String relativeDateString, String timeString) {
+        return this.combinedDateAndTime.format(
+            new Object[]{timeString, relativeDateString}, new StringBuffer(), null).toString();
     }
 }

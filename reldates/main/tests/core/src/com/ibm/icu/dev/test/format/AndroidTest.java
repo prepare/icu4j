@@ -7,6 +7,7 @@
 package com.ibm.icu.dev.test.format;
 
 import com.ibm.icu.text.DateFormat;
+import com.ibm.icu.text.DecimalFormat;
 import com.ibm.icu.text.RelativeFormatter;
 import com.ibm.icu.util.Calendar;
 
@@ -45,6 +46,7 @@ public class AndroidTest {
     public static final int FORMAT_ABBREV_WEEKDAY = 0x08000;
     public static final int FORMAT_ABBREV_MONTH = 0x10000;
     public static final int FORMAT_NUMERIC_DATE = 0x20000;
+    private static final long NOW = 1300000000000L;
 
     public static CharSequence getRelativeTimeSpanString(long time, long now, long minResolution, int flags) {
         RelativeFormatter rf = getRelativeFormat((flags & (FORMAT_ABBREV_RELATIVE | FORMAT_ABBREV_ALL)) != 0);
@@ -178,12 +180,19 @@ public class AndroidTest {
 
     private static RelativeFormatter getRelativeFormat(boolean abbrev) {
         // TODO: support abbreviated style
-        return new RelativeFormatter();
+        return RelativeFormatter.getInstance();
     }
-
-
+    
     public static void main(String[] args) {
-      
+      long[] offsets = {0L, 1700L, 123000L, 10801000L, 431000000L, 1000000000L,
+              -1700L, -123000L, -10801000L, -431000000L, -1000000000L};
+      long[] resArr = {0L, 1000L, 60000L, 3600000L, 86400000L, 7 * 86400000L};
+      for (long offset: offsets) {
+          for (long res: resArr) {
+              System.out.println(offset+"\t"+res+"\t"+getRelativeTimeSpanString(
+                      NOW + offset, NOW, res, 0));
+          }
+      }
 
     }
 
