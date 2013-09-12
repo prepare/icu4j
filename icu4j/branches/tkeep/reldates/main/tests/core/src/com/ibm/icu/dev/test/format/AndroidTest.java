@@ -100,6 +100,8 @@ public class AndroidTest {
         
         Calendar nowCal = Calendar.getInstance();
         Calendar thenCal = Calendar.getInstance();
+        nowCal.setTimeZone(TimeZone.GMT_ZONE);
+        thenCal.setTimeZone(TimeZone.GMT_ZONE);
         
         nowCal.setTimeInMillis(now);
         thenCal.setTimeInMillis(millis);
@@ -121,10 +123,6 @@ public class AndroidTest {
     }
     
     public static CharSequence getRelativeDateTimeString(Object context, long time, long minRes, long transitionRes, int flags) {
-        // Need CLDR data to join relative and aboslute time. e.g yesterday, 12:20.
-        // CLDR path: dateTimeFormats/dateTimeFormatLength[@type='full']/dateTimeFormat/pattern.
-        // {1} = the date and {0} = the time.
-        // ICU path:  calendar/$1/DateTimePatterns
         RelativeFormatter rf = getRelativeFormat((flags & (FORMAT_ABBREV_RELATIVE | FORMAT_ABBREV_ALL)) != 0);
         long now = System.currentTimeMillis();
         long duration = Math.abs(now - time);
@@ -152,6 +150,8 @@ public class AndroidTest {
     private static int dayDiff(long start, long end) {
        Calendar startCal = Calendar.getInstance();
        Calendar endCal = Calendar.getInstance();
+       startCal.setTimeZone(TimeZone.GMT_ZONE);
+       endCal.setTimeZone(TimeZone.GMT_ZONE);
        startCal.setTimeInMillis(start);
        endCal.setTimeInMillis(end);
        startCal.set(Calendar.MILLISECONDS_IN_DAY, 0);
@@ -166,7 +166,7 @@ public class AndroidTest {
         }
         DateFormat df;
         if (flags == FORMAT_SHOW_TIME) {
-           df = DateFormat.getPatternInstance("jms"); 
+           df = DateFormat.getPatternInstance("jm"); 
         } else if (flags == (FORMAT_SHOW_DATE | FORMAT_ABBREV_MONTH)) {
             df = DateFormat.getPatternInstance("MMMd");
         } else if (flags == (FORMAT_SHOW_DATE | FORMAT_SHOW_YEAR | FORMAT_NUMERIC_DATE)) {
@@ -185,6 +185,7 @@ public class AndroidTest {
         return RelativeFormatter.getInstance();
     }
     
+    /*
     public static void main(String[] args) {
       long[] offsets = {0L, 1700L, 123000L, 10801000L, 431000000L, 1000000000L,
               -1700L, -123000L, -10801000L, -431000000L, -1000000000L};
@@ -197,5 +198,23 @@ public class AndroidTest {
       }
 
     }
+    */
+    
+    public static void main(String[] args) {
+        long[] offsets = {0L, 1700L, 123000L, 10801000L, 431000000L, 1000000000L,
+                -1700L, -123000L, -10801000L, -431000000L, -1000000000L};
+        long[] resArr = {0L, 1000L, 60000L, 3600000L, 86400000L, 7 * 86400000L};
+        for (long offset: offsets) {
+            long now = System.currentTimeMillis();
+            for (long res: resArr) {
+                System.out.println(
+                        offset+"\t"+res+"\t86400000\t"+getRelativeDateTimeString(null, now + offset, res, 86400000L, FORMAT_NUMERIC_DATE));
+                System.out.println(
+                        offset+"\t"+res+"\t604800000\t"+getRelativeDateTimeString(null, now + offset, res, 604800000L, FORMAT_NUMERIC_DATE));
+       
+            }
+        }
+
+      }
 
 }
