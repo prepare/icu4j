@@ -29,12 +29,12 @@ public class RelativeFormatter {
      */
     public static enum TimeUnit {
         SECONDS, // eg, 3 seconds ago, or in 3 seconds
-        MINUTES, // 3 seconds ago
-        HOURS, // 3 seconds ago
+        MINUTES, // 3 minutes ago, or in 3 minutes
+        HOURS, // 3 hours ago, or in 3 hours
         DAYS, // 3 days ago, or in 3 days
         WEEKS, // 3 weeks ago, or in 3 weeks
-        MONTHS, // 3 months ago
-        YEARS, // 3 years ago
+        MONTHS, // 3 months ago, or in 3 months
+        YEARS, // 3 years ago, or in 3 years
     }
     
     /**
@@ -45,17 +45,17 @@ public class RelativeFormatter {
      */
     public static enum RelativeUnit {
         SUNDAY, // Last Sunday, This Sunday, Next Sunday, Sunday
-        MONDAY, // Last ...
-        TUESDAY, // Last ...
-        WEDNESDAY, // Last ...
-        THURSDAY, // Last ...
-        FRIDAY, // Last ...
-        SATURDAY, // Last ...
+        MONDAY,
+        TUESDAY,
+        WEDNESDAY,
+        THURSDAY,
+        FRIDAY,
+        SATURDAY,
         DAY,  // Yesterday, Today, Tomorrow
-        WEEK, // Last week,..
-        MONTH, // Next month
-        YEAR, // Next year
-        NOW, // comes from CLDR relative seconds=0
+        WEEK,
+        MONTH,
+        YEAR,
+        NOW,
       }
 
       /**
