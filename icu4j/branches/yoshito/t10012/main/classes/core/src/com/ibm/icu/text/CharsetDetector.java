@@ -188,9 +188,9 @@ public class CharsetDetector {
         
         //  Iterate over all possible charsets, remember all that
         //    give a match quality > 0.
-        for (int i = 0; i < ALL_RECOGNIZERS.size(); i++) {
-            RecognizerInfo rcinfo = ALL_RECOGNIZERS.get(i);
-            boolean active = (fEnabled != null) ? fEnabled[i] : rcinfo.isDefaultEnabled;
+        for (int i = 0; i < ALL_CS_RECOGNIZERS.size(); i++) {
+            CSRecognizerInfo rcinfo = ALL_CS_RECOGNIZERS.get(i);
+            boolean active = (fEnabledRecognizers != null) ? fEnabledRecognizers[i] : rcinfo.isDefaultEnabled;
             if (active) {
                 CharsetMatch m = rcinfo.recognizer.match(this);
                 if (m != null) {
@@ -298,9 +298,9 @@ public class CharsetDetector {
      * @stable ICU 3.4
      */
     public static String[] getAllDetectableCharsets() {
-        String[] allCharsetNames = new String[ALL_RECOGNIZERS.size()];
+        String[] allCharsetNames = new String[ALL_CS_RECOGNIZERS.size()];
         for (int i = 0; i < allCharsetNames.length; i++) {
-            allCharsetNames[i] = ALL_RECOGNIZERS.get(i).recognizer.getName();
+            allCharsetNames[i] = ALL_CS_RECOGNIZERS.get(i).recognizer.getName();
         }
         return allCharsetNames;
     }   
@@ -453,15 +453,15 @@ public class CharsetDetector {
     private boolean      fStripTags =   // If true, setText() will strip tags from input text.
                            false;
 
-    private boolean[]    fEnabled;      // If not null, active set of charset recognizers had
-                                        // been changed from the default. The array index is
-                                        // corresponding to ALL_RECOGNIZER. See setDetectableCharset().
+    private boolean[]    fEnabledRecognizers;   // If not null, active set of charset recognizers had
+                                                // been changed from the default. The array index is
+                                                // corresponding to ALL_RECOGNIZER. See setDetectableCharset().
 
-    private static class RecognizerInfo {
+    private static class CSRecognizerInfo {
         CharsetRecognizer recognizer;
         boolean isDefaultEnabled;
 
-        RecognizerInfo(CharsetRecognizer recognizer, boolean isDefaultEnabled) {
+        CSRecognizerInfo(CharsetRecognizer recognizer, boolean isDefaultEnabled) {
             this.recognizer = recognizer;
             this.isDefaultEnabled = isDefaultEnabled;
         }
@@ -470,45 +470,45 @@ public class CharsetDetector {
     /*
      * List of recognizers for all charsets known to the implementation.
      */
-    private static final List<RecognizerInfo> ALL_RECOGNIZERS;
+    private static final List<CSRecognizerInfo> ALL_CS_RECOGNIZERS;
 
     static {
-        List<RecognizerInfo> list = new ArrayList<RecognizerInfo>();
+        List<CSRecognizerInfo> list = new ArrayList<CSRecognizerInfo>();
 
-        list.add(new RecognizerInfo(new CharsetRecog_UTF8(), true));
-        list.add(new RecognizerInfo(new CharsetRecog_Unicode.CharsetRecog_UTF_16_BE(), true));
-        list.add(new RecognizerInfo(new CharsetRecog_Unicode.CharsetRecog_UTF_16_LE(), true));
-        list.add(new RecognizerInfo(new CharsetRecog_Unicode.CharsetRecog_UTF_32_BE(), true));
-        list.add(new RecognizerInfo(new CharsetRecog_Unicode.CharsetRecog_UTF_32_LE(), true));
+        list.add(new CSRecognizerInfo(new CharsetRecog_UTF8(), true));
+        list.add(new CSRecognizerInfo(new CharsetRecog_Unicode.CharsetRecog_UTF_16_BE(), true));
+        list.add(new CSRecognizerInfo(new CharsetRecog_Unicode.CharsetRecog_UTF_16_LE(), true));
+        list.add(new CSRecognizerInfo(new CharsetRecog_Unicode.CharsetRecog_UTF_32_BE(), true));
+        list.add(new CSRecognizerInfo(new CharsetRecog_Unicode.CharsetRecog_UTF_32_LE(), true));
 
-        list.add(new RecognizerInfo(new CharsetRecog_mbcs.CharsetRecog_sjis(), true));
-        list.add(new RecognizerInfo(new CharsetRecog_2022.CharsetRecog_2022JP(), true));
-        list.add(new RecognizerInfo(new CharsetRecog_2022.CharsetRecog_2022CN(), true));
-        list.add(new RecognizerInfo(new CharsetRecog_2022.CharsetRecog_2022KR(), true));
-        list.add(new RecognizerInfo(new CharsetRecog_mbcs.CharsetRecog_euc.CharsetRecog_gb_18030(), true));
-        list.add(new RecognizerInfo(new CharsetRecog_mbcs.CharsetRecog_euc.CharsetRecog_euc_jp(), true));
-        list.add(new RecognizerInfo(new CharsetRecog_mbcs.CharsetRecog_euc.CharsetRecog_euc_kr(), true));
-        list.add(new RecognizerInfo(new CharsetRecog_mbcs.CharsetRecog_big5(), true));
+        list.add(new CSRecognizerInfo(new CharsetRecog_mbcs.CharsetRecog_sjis(), true));
+        list.add(new CSRecognizerInfo(new CharsetRecog_2022.CharsetRecog_2022JP(), true));
+        list.add(new CSRecognizerInfo(new CharsetRecog_2022.CharsetRecog_2022CN(), true));
+        list.add(new CSRecognizerInfo(new CharsetRecog_2022.CharsetRecog_2022KR(), true));
+        list.add(new CSRecognizerInfo(new CharsetRecog_mbcs.CharsetRecog_euc.CharsetRecog_gb_18030(), true));
+        list.add(new CSRecognizerInfo(new CharsetRecog_mbcs.CharsetRecog_euc.CharsetRecog_euc_jp(), true));
+        list.add(new CSRecognizerInfo(new CharsetRecog_mbcs.CharsetRecog_euc.CharsetRecog_euc_kr(), true));
+        list.add(new CSRecognizerInfo(new CharsetRecog_mbcs.CharsetRecog_big5(), true));
 
-        list.add(new RecognizerInfo(new CharsetRecog_sbcs.CharsetRecog_8859_1(), true));
-        list.add(new RecognizerInfo(new CharsetRecog_sbcs.CharsetRecog_8859_2(), true));
-        list.add(new RecognizerInfo(new CharsetRecog_sbcs.CharsetRecog_8859_5_ru(), true));
-        list.add(new RecognizerInfo(new CharsetRecog_sbcs.CharsetRecog_8859_6_ar(), true));
-        list.add(new RecognizerInfo(new CharsetRecog_sbcs.CharsetRecog_8859_7_el(), true));
-        list.add(new RecognizerInfo(new CharsetRecog_sbcs.CharsetRecog_8859_8_I_he(), true));
-        list.add(new RecognizerInfo(new CharsetRecog_sbcs.CharsetRecog_8859_8_he(), true));
-        list.add(new RecognizerInfo(new CharsetRecog_sbcs.CharsetRecog_windows_1251(), true));
-        list.add(new RecognizerInfo(new CharsetRecog_sbcs.CharsetRecog_windows_1256(), true));
-        list.add(new RecognizerInfo(new CharsetRecog_sbcs.CharsetRecog_KOI8_R(), true));
-        list.add(new RecognizerInfo(new CharsetRecog_sbcs.CharsetRecog_8859_9_tr(), true));
+        list.add(new CSRecognizerInfo(new CharsetRecog_sbcs.CharsetRecog_8859_1(), true));
+        list.add(new CSRecognizerInfo(new CharsetRecog_sbcs.CharsetRecog_8859_2(), true));
+        list.add(new CSRecognizerInfo(new CharsetRecog_sbcs.CharsetRecog_8859_5_ru(), true));
+        list.add(new CSRecognizerInfo(new CharsetRecog_sbcs.CharsetRecog_8859_6_ar(), true));
+        list.add(new CSRecognizerInfo(new CharsetRecog_sbcs.CharsetRecog_8859_7_el(), true));
+        list.add(new CSRecognizerInfo(new CharsetRecog_sbcs.CharsetRecog_8859_8_I_he(), true));
+        list.add(new CSRecognizerInfo(new CharsetRecog_sbcs.CharsetRecog_8859_8_he(), true));
+        list.add(new CSRecognizerInfo(new CharsetRecog_sbcs.CharsetRecog_windows_1251(), true));
+        list.add(new CSRecognizerInfo(new CharsetRecog_sbcs.CharsetRecog_windows_1256(), true));
+        list.add(new CSRecognizerInfo(new CharsetRecog_sbcs.CharsetRecog_KOI8_R(), true));
+        list.add(new CSRecognizerInfo(new CharsetRecog_sbcs.CharsetRecog_8859_9_tr(), true));
 
         // IBM 420/424 recognizers are disabled by default
-        list.add(new RecognizerInfo(new CharsetRecog_sbcs.CharsetRecog_IBM424_he_rtl(), false));
-        list.add(new RecognizerInfo(new CharsetRecog_sbcs.CharsetRecog_IBM424_he_ltr(), false));
-        list.add(new RecognizerInfo(new CharsetRecog_sbcs.CharsetRecog_IBM420_ar_rtl(), false));
-        list.add(new RecognizerInfo(new CharsetRecog_sbcs.CharsetRecog_IBM420_ar_ltr(), false));
+        list.add(new CSRecognizerInfo(new CharsetRecog_sbcs.CharsetRecog_IBM424_he_rtl(), false));
+        list.add(new CSRecognizerInfo(new CharsetRecog_sbcs.CharsetRecog_IBM424_he_ltr(), false));
+        list.add(new CSRecognizerInfo(new CharsetRecog_sbcs.CharsetRecog_IBM420_ar_rtl(), false));
+        list.add(new CSRecognizerInfo(new CharsetRecog_sbcs.CharsetRecog_IBM420_ar_ltr(), false));
 
-        ALL_RECOGNIZERS = Collections.unmodifiableList(list);
+        ALL_CS_RECOGNIZERS = Collections.unmodifiableList(list);
     }
 
     /**
@@ -521,10 +521,10 @@ public class CharsetDetector {
      * @deprecated This API is ICU internal only.
      */
     public String[] getDetectableCharsets() {
-        List<String> csnames = new ArrayList<String>(ALL_RECOGNIZERS.size());
-        for (int i = 0; i < ALL_RECOGNIZERS.size(); i++) {
-            RecognizerInfo rcinfo = ALL_RECOGNIZERS.get(i);
-            boolean active = (fEnabled == null) ? rcinfo.isDefaultEnabled : fEnabled[i];
+        List<String> csnames = new ArrayList<String>(ALL_CS_RECOGNIZERS.size());
+        for (int i = 0; i < ALL_CS_RECOGNIZERS.size(); i++) {
+            CSRecognizerInfo rcinfo = ALL_CS_RECOGNIZERS.get(i);
+            boolean active = (fEnabledRecognizers == null) ? rcinfo.isDefaultEnabled : fEnabledRecognizers[i];
             if (active) {
                 csnames.add(rcinfo.recognizer.getName());
             }
@@ -550,11 +550,11 @@ public class CharsetDetector {
     public CharsetDetector setDetectableCharset(String encoding, boolean enabled) {
         int modIdx = -1;
         boolean isDefaultVal = false;
-        for (int i = 0; i < ALL_RECOGNIZERS.size(); i++) {
-            RecognizerInfo rcinfo = ALL_RECOGNIZERS.get(i);
-            if (rcinfo.recognizer.getName().equals(encoding)) {
+        for (int i = 0; i < ALL_CS_RECOGNIZERS.size(); i++) {
+            CSRecognizerInfo csrinfo = ALL_CS_RECOGNIZERS.get(i);
+            if (csrinfo.recognizer.getName().equals(encoding)) {
                 modIdx = i;
-                isDefaultVal = (rcinfo.isDefaultEnabled == enabled);
+                isDefaultVal = (csrinfo.isDefaultEnabled == enabled);
                 break;
             }
         }
@@ -563,18 +563,18 @@ public class CharsetDetector {
             throw new IllegalArgumentException("Invalid encoding: " + "\"" + encoding + "\"");
         }
 
-        if (fEnabled == null && !isDefaultVal) {
+        if (fEnabledRecognizers == null && !isDefaultVal) {
             // Create an array storing the non default setting
-            fEnabled = new boolean[ALL_RECOGNIZERS.size()];
+            fEnabledRecognizers = new boolean[ALL_CS_RECOGNIZERS.size()];
 
             // Initialize the array with default info
-            for (int i = 0; i < ALL_RECOGNIZERS.size(); i++) {
-                fEnabled[i] = ALL_RECOGNIZERS.get(i).isDefaultEnabled;
+            for (int i = 0; i < ALL_CS_RECOGNIZERS.size(); i++) {
+                fEnabledRecognizers[i] = ALL_CS_RECOGNIZERS.get(i).isDefaultEnabled;
             }
         }
  
-        if (fEnabled != null) {
-            fEnabled[modIdx] = enabled;
+        if (fEnabledRecognizers != null) {
+            fEnabledRecognizers[modIdx] = enabled;
         }
 
         return this;
