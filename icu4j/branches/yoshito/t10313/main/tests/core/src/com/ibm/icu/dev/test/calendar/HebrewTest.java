@@ -496,4 +496,29 @@ public class HebrewTest extends CalendarTest {
             }
         }       
     }
+
+    // Test case for Ticket#10313. HebrewCalendar requires
+    // special handling for validating month value, because
+    // month Adar I is only available in leap years.
+    public void TestMonthValidation() {
+        HebrewCalendar cal = new HebrewCalendar();
+        cal.setLenient(false);
+
+        // 5776 is a leap year and has month Adar I
+        cal.set(5776, ADAR_1, 1);
+        try {
+            /* Date d = */ cal.getTime();
+        } catch (IllegalArgumentException e) {
+            errln("Fail: 5776 Adar I 1 is a valid date.");
+        }
+
+        // 5777 is NOT a lear year and does not have month Adar I
+        cal.set(5777, ADAR_1, 1);
+        try {
+            /* Date d = */ cal.getTime();
+            errln("Fail: IllegalArgumentException should be thrown for input date 5777 Adar I 1.");
+        } catch (IllegalArgumentException e) {
+            logln("Info: IllegalArgumentException, because 5777 Adar I 1 is not a valid date.");
+        }
+    }
 }
