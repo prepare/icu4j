@@ -109,7 +109,8 @@ public class Region implements Comparable<Region> {
     /**
      * A constant used for unknown numeric region code.
      * @see #getNumericCode()
-     * @stable ICU 50
+     * @draft ICU 50
+     * @provisional This API might change or be removed in a future release.
      */
     public static final int UNDEFINED_NUMERIC_CODE = -1;
 

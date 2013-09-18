@@ -1919,37 +1919,43 @@ public class PluralRules implements Serializable {
     /**
      * Status of the keyword for the rules, given a set of explicit values.
      * 
-     * @stable ICU 50
+     * @draft ICU 50
+     * @provisional This API might change or be removed in a future release.
      */
     public enum KeywordStatus {
         /**
          * The keyword is not valid for the rules.
          * 
-         * @stable ICU 50
+         * @draft ICU 50
+         * @provisional This API might change or be removed in a future release.
          */
         INVALID,
         /**
          * The keyword is valid, but unused (it is covered by the explicit values, OR has no values for the given {@link SampleType}).
          * 
-         * @stable ICU 50
+         * @draft ICU 50
+         * @provisional This API might change or be removed in a future release.
          */
         SUPPRESSED,
         /**
          * The keyword is valid, used, and has a single possible value (before considering explicit values).
          * 
-         * @stable ICU 50
+         * @draft ICU 50
+         * @provisional This API might change or be removed in a future release.
          */
         UNIQUE,
         /**
          * The keyword is valid, used, not unique, and has a finite set of values.
          * 
-         * @stable ICU 50
+         * @draft ICU 50
+         * @provisional This API might change or be removed in a future release.
          */
         BOUNDED,
         /**
          * The keyword is valid but not bounded; there indefinitely many matching values.
          * 
-         * @stable ICU 50
+         * @draft ICU 50
+         * @provisional This API might change or be removed in a future release.
          */
         UNBOUNDED
     }
