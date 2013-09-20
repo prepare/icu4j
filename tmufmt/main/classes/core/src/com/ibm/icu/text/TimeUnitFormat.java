@@ -210,8 +210,8 @@ public class TimeUnitFormat extends MeasureFormat {
         }
         TimeUnitAmount amount = (TimeUnitAmount) obj;
         Map<String, Object[]> countToPattern = timeUnitToCountToPatterns.get(amount.getTimeUnit());
+        String formattedNumber = format.format(amount.getNumber());
         double doubleNumber = amount.getNumber().doubleValue();
-        String formattedNumber = format.format(doubleNumber);
         String count;
         if (format instanceof DecimalFormat) {
             count = pluralRules.select(((DecimalFormat) format).getFixedDecimal(doubleNumber));
