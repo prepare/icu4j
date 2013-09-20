@@ -889,6 +889,7 @@ public class IslamicCalendar extends Calendar {
      */
     // TODO: We should change the method name to setCalculationType, because
     // corresponding getter (not yet available) will collide with String getType().
+    // See ticket#10426.
     public void setType(CalculationType type) {
         cType = type;
         
@@ -922,6 +923,12 @@ public class IslamicCalendar extends Calendar {
      * @stable ICU 3.8
      */
     public String getType() {
+        if (cType == null) {
+            // TODO: getType() is called during Islamic calendar
+            // construction and might be null at that point. We should
+            // check the initialization sequence. See ticket#10425.
+            return "islamic";
+        }
         return cType.bcpType();
     }
 
