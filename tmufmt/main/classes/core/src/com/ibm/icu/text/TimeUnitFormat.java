@@ -271,10 +271,6 @@ public class TimeUnitFormat extends MeasureFormat {
                             continue;
                         }
                     }
-                    String select = pluralRules.select(temp.doubleValue());
-                    if (!count.equals(select)) {
-                        continue;
-                    }
                 }
                 int parseDistance = pos.getIndex() - oldPos;
                 if ( parseDistance > longestParseDistance ) {
