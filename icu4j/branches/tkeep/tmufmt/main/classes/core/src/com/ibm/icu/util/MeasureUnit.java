@@ -153,8 +153,10 @@ public class MeasureUnit implements Comparable<MeasureUnit>, Serializable {
                     String type = unitsRes.getKey();
                     int unitsSize = unitsRes.getSize();
                     for ( int index2 = 0; index2 < unitsSize; ++index2) {
-                        String unitName = unitsRes.get(index2).getKey();
-                        addUnit(type, unitName, UNIT_FACTORY);
+                        UResourceBundle unitNameRes = unitsRes.get(index2);
+                        if (unitNameRes.containsKey("other")) {
+                            addUnit(type, unitNameRes.getKey(), UNIT_FACTORY);
+                        }
                     }
                 }
             } catch ( MissingResourceException e ) {
@@ -169,7 +171,7 @@ public class MeasureUnit implements Comparable<MeasureUnit>, Serializable {
                     ICUResourceBundle.ICU_DATA_CLASS_LOADER);
             UResourceBundle codeMap = bundle.get("codeMap");
             for (Enumeration<String> it = codeMap.getKeys(); it.hasMoreElements();) {
-                MeasureUnit.addUnit("currency", it.nextElement(), Currency.CURRENCY_FACTORY);
+                MeasureUnit.addUnit("currency", it.nextElement(), CURRENCY_FACTORY);
             }
         } catch (MissingResourceException e) {
             // fall through
@@ -307,9 +309,9 @@ public class MeasureUnit implements Comparable<MeasureUnit>, Serializable {
     /** Constant for unit of angle: degree */
     DEGREE = MeasureUnit.getInstance("angle", "degree"),
     /** Constant for unit of angle: minute */
-    ARC_MINUTE = MeasureUnit.getInstance("angle", "minute"),
+    ARC_MINUTE = MeasureUnit.getInstance("angle", "arc-minute"),
     /** Constant for unit of angle: second */
-    ARC_SECOND = MeasureUnit.getInstance("angle", "second"),
+    ARC_SECOND = MeasureUnit.getInstance("angle", "arc-second"),
     /** Constant for unit of area: acre */
     ACRE = MeasureUnit.getInstance("area", "acre"),
     /** Constant for unit of area: hectare */
