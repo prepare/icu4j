@@ -10,4 +10,4 @@
  *  This package contains samples for the IUC ICU workshops.
  *
  */
-package com.ibu.icu.samples.iuc;
+package com.ibm.icu.samples.iuc;

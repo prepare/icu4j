@@ -4,7 +4,7 @@
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
-package com.ibu.icu.samples.iuc;
+package com.ibm.icu.samples.iuc;
 
 import com.ibm.icu.text.LocaleDisplayNames;
 import com.ibm.icu.util.ULocale;

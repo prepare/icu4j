@@ -4,7 +4,7 @@
  * others. All Rights Reserved.                                                *
  *******************************************************************************
  */
-package com.ibu.icu.samples.iuc;
+package com.ibm.icu.samples.iuc;
 
 import java.util.HashMap;
 import java.util.Map;
