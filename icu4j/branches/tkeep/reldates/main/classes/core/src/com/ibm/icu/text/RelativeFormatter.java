@@ -228,8 +228,10 @@ public class RelativeFormatter {
     }
     
     /**
-     * Sets the NumberFormat object for this formatter to use.
-     * @param nf the NumberFormat object to use.
+     * Specify which NumberFormat object this object should use for
+     * formatting numbers.
+     * @param nf the NumberFormat object to use. This method makes no copy,
+     * so any subsequent changes to nf will affect this object.
      * @see #format(double, TimeUnit, boolean)
      * @draft ICU 53
      * @provisional
