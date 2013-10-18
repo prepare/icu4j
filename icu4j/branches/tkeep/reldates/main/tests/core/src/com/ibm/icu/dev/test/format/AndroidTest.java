@@ -8,7 +8,7 @@ package com.ibm.icu.dev.test.format;
 
 import com.ibm.icu.text.DateFormat;
 import com.ibm.icu.text.DecimalFormat;
-import com.ibm.icu.text.RelativeFormatter;
+import com.ibm.icu.text.RelativeDateTimeFormatter;
 import com.ibm.icu.util.Calendar;
 import com.ibm.icu.util.TimeZone;
 
@@ -50,43 +50,43 @@ public class AndroidTest {
     private static final long NOW = 1300000000000L;
 
     public static CharSequence getRelativeTimeSpanString(long time, long now, long minResolution, int flags) {
-        RelativeFormatter rf = getRelativeFormat((flags & (FORMAT_ABBREV_RELATIVE | FORMAT_ABBREV_ALL)) != 0);
+        RelativeDateTimeFormatter rf = getRelativeFormat((flags & (FORMAT_ABBREV_RELATIVE | FORMAT_ABBREV_ALL)) != 0);
         boolean past = (now >= time);
         long duration = Math.abs(now - time);
         
         if (duration < MINUTE_IN_MILLIS && minResolution < MINUTE_IN_MILLIS) {
             return rf.format(
                     duration / SECOND_IN_MILLIS,
-                    RelativeFormatter.TimeUnit.SECONDS,
+                    RelativeDateTimeFormatter.TimeUnit.SECONDS,
                     !past);
         } else if (duration < HOUR_IN_MILLIS && minResolution < HOUR_IN_MILLIS) {
             return rf.format(
                     duration / MINUTE_IN_MILLIS,
-                    RelativeFormatter.TimeUnit.MINUTES,
+                    RelativeDateTimeFormatter.TimeUnit.MINUTES,
                     !past);
         } else if (duration < DAY_IN_MILLIS && minResolution < DAY_IN_MILLIS) {
             return rf.format(
                     duration / HOUR_IN_MILLIS,
-                    RelativeFormatter.TimeUnit.HOURS,
+                    RelativeDateTimeFormatter.TimeUnit.HOURS,
                     !past);
         } else if (duration < WEEK_IN_MILLIS && minResolution < WEEK_IN_MILLIS) {
             int days = dayDiff(now, time);
             if (days == 0) {
                 return rf.format(
-                        RelativeFormatter.RelativeOffset.THIS,
-                        RelativeFormatter.RelativeUnit.DAY);
+                        RelativeDateTimeFormatter.RelativeOffset.THIS,
+                        RelativeDateTimeFormatter.RelativeUnit.DAY);
             } else if (days == 1) {
                 return rf.format(
-                        RelativeFormatter.RelativeOffset.NEXT,
-                        RelativeFormatter.RelativeUnit.DAY);
+                        RelativeDateTimeFormatter.RelativeOffset.NEXT,
+                        RelativeDateTimeFormatter.RelativeUnit.DAY);
             } else if (days == -1) {
                 return rf.format(
-                        RelativeFormatter.RelativeOffset.LAST,
-                        RelativeFormatter.RelativeUnit.DAY);
+                        RelativeDateTimeFormatter.RelativeOffset.LAST,
+                        RelativeDateTimeFormatter.RelativeUnit.DAY);
             } else {
                 return rf.format(
                         Math.abs(days),
-                        RelativeFormatter.TimeUnit.DAYS,
+                        RelativeDateTimeFormatter.TimeUnit.DAYS,
                         days > 0);
             }
         } else {
@@ -123,7 +123,7 @@ public class AndroidTest {
     }
     
     public static CharSequence getRelativeDateTimeString(Object context, long time, long minRes, long transitionRes, int flags) {
-        RelativeFormatter rf = getRelativeFormat((flags & (FORMAT_ABBREV_RELATIVE | FORMAT_ABBREV_ALL)) != 0);
+        RelativeDateTimeFormatter rf = getRelativeFormat((flags & (FORMAT_ABBREV_RELATIVE | FORMAT_ABBREV_ALL)) != 0);
         long now = System.currentTimeMillis();
         long duration = Math.abs(now - time);
         
@@ -180,9 +180,9 @@ public class AndroidTest {
     }
 
 
-    private static RelativeFormatter getRelativeFormat(boolean abbrev) {
+    private static RelativeDateTimeFormatter getRelativeFormat(boolean abbrev) {
         // TODO: support abbreviated style
-        return RelativeFormatter.getInstance();
+        return RelativeDateTimeFormatter.getInstance();
     }
     
     /*
