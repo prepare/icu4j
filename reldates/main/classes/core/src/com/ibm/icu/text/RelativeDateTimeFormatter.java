@@ -18,7 +18,7 @@ import com.ibm.icu.util.ULocale;
  * @draft ICU 53
  * @provisional
  */
-public class RelativeFormatter {
+public class RelativeDateTimeFormatter {
     
     
     /**
@@ -116,14 +116,14 @@ public class RelativeFormatter {
     private NumberFormat numberFormat;
     
     /**
-     * Returns a RelativeFormatter for the default locale.
+     * Returns a RelativeDateTimeFormatter for the default locale.
      * @draft ICU 53
      * @provisional
      */
-    public static RelativeFormatter getInstance() {
+    public static RelativeDateTimeFormatter getInstance() {
         CalendarData calData = new CalendarData(ULocale.getDefault(), null);
         // TODO: Pull from resource bundles/cache
-        return new RelativeFormatter(
+        return new RelativeDateTimeFormatter(
                 relativeUnitCache,
                 timeUnitCache,
                 new MessageFormat(calData.getDateTimePattern()),
@@ -132,14 +132,14 @@ public class RelativeFormatter {
     }
     
     /**
-     * Returns a RelativeFormatter for a particular locale.
+     * Returns a RelativeDateTimeFormatter for a particular locale.
      * @draft ICU 53
      * @provisional
      */
-    public static RelativeFormatter getInstance(ULocale locale) {
+    public static RelativeDateTimeFormatter getInstance(ULocale locale) {
         CalendarData calData = new CalendarData(locale, null);
         // TODO: Pull from resource bundles/cache
-        return new RelativeFormatter(
+        return new RelativeDateTimeFormatter(
                 relativeUnitCache,
                 timeUnitCache,
                 new MessageFormat(calData.getDateTimePattern()),
@@ -148,12 +148,12 @@ public class RelativeFormatter {
     }
     
     /**
-     * Returns a RelativeFormatter for a particular locale and style.
+     * Returns a RelativeDateTimeFormatter for a particular locale and style.
      * This is currently not supported because of lack of CLDR data.
      * @draft ICU 53
      * @provisional
      */
-    public static RelativeFormatter getInstance(ULocale locale, Style style) {
+    public static RelativeDateTimeFormatter getInstance(ULocale locale, Style style) {
         throw new UnsupportedOperationException("Missing CLDR data.");
     }
          
@@ -183,7 +183,7 @@ public class RelativeFormatter {
     }
 
     
-    private RelativeFormatter(
+    private RelativeDateTimeFormatter(
             EnumMap<RelativeUnit, EnumMap<RelativeOffset, String>> relativeUnitMap,
             EnumMap<TimeUnit, QuantityFormatter[]> timeUnitMap,
             MessageFormat combinedDateAndTime,
