@@ -27,7 +27,7 @@ public class RelativeDateTimeFormatter {
      * @provisional
      *
      */
-    public static enum TimeUnit {
+    public static enum QuantitativeUnit {
         SECONDS, // eg, 3 seconds ago, or in 3 seconds
         MINUTES, // 3 minutes ago, or in 3 minutes
         HOURS, // 3 hours ago, or in 3 hours
@@ -43,7 +43,7 @@ public class RelativeDateTimeFormatter {
      * @provisional
      *
      */
-    public static enum RelativeUnit {
+    public static enum QualitativeUnit {
         SUNDAY, // Last Sunday, This Sunday, Next Sunday, Sunday
         MONDAY,
         TUESDAY,
@@ -59,11 +59,11 @@ public class RelativeDateTimeFormatter {
       }
 
       /**
-       * Represents a relative offset.
+       * Represents a qualifier for a qualitative unit e.g "Next Tuesday".
        * @draft ICU 53
        * @provisional
        */
-      public static enum RelativeOffset {
+      public static enum Qualifier {
         LAST, THIS, NEXT, PLAIN; // not all will be available for all units
         // NOW has only PLAIN
         // SUNDAY..SATURDAY have all 4
@@ -82,35 +82,35 @@ public class RelativeDateTimeFormatter {
           FULL,
       }
 
-    private static final EnumMap<RelativeUnit, EnumMap<RelativeOffset, String>> relativeUnitCache =
-            new EnumMap<RelativeUnit, EnumMap<RelativeOffset, String>>(RelativeUnit.class);
+    private static final EnumMap<QualitativeUnit, EnumMap<Qualifier, String>> qualitativeUnitCache =
+            new EnumMap<QualitativeUnit, EnumMap<Qualifier, String>>(QualitativeUnit.class);
     
-    private static final EnumMap<TimeUnit, QuantityFormatter[]> timeUnitCache =
-            new EnumMap<TimeUnit, QuantityFormatter[]>(TimeUnit.class);
+    private static final EnumMap<QuantitativeUnit, QuantityFormatter[]> quantitativeUnitCache =
+            new EnumMap<QuantitativeUnit, QuantityFormatter[]>(QuantitativeUnit.class);
     
     static {
-        addRelativeUnit(relativeUnitCache, RelativeUnit.DAY, "yesterday", "today", "tomorrow");
-        addRelativeUnit(relativeUnitCache, RelativeUnit.MONDAY, "last Monday", "this Monday", "next Monday");
-        addRelativeUnit(relativeUnitCache, RelativeUnit.NOW, "now");
+        addQualitativeUnit(qualitativeUnitCache, QualitativeUnit.DAY, "yesterday", "today", "tomorrow");
+        addQualitativeUnit(qualitativeUnitCache, QualitativeUnit.MONDAY, "last Monday", "this Monday", "next Monday");
+        addQualitativeUnit(qualitativeUnitCache, QualitativeUnit.NOW, "now");
         
         QuantityFormatter.Builder qb = new QuantityFormatter.Builder();
-        timeUnitCache.put(TimeUnit.DAYS, new QuantityFormatter[] {
+        quantitativeUnitCache.put(QuantitativeUnit.DAYS, new QuantityFormatter[] {
                 qb.add("one", "{0} day ago").add("other", "{0} days ago").build(),
                 qb.add("one", "in {0} day").add("other", "in {0} days").build()});
-        timeUnitCache.put(TimeUnit.HOURS, new QuantityFormatter[] {
+        quantitativeUnitCache.put(QuantitativeUnit.HOURS, new QuantityFormatter[] {
                 qb.add("one", "{0} hour ago").add("other", "{0} hours ago").build(),
                 qb.add("one", "in {0} hour").add("other", "in {0} hours").build()});
-        timeUnitCache.put(TimeUnit.MINUTES, new QuantityFormatter[] {
+        quantitativeUnitCache.put(QuantitativeUnit.MINUTES, new QuantityFormatter[] {
                 qb.add("one", "{0} minute ago").add("other", "{0} minutes ago").build(),
                 qb.add("one", "in {0} minute").add("other", "in {0} minutes").build()});
-        timeUnitCache.put(TimeUnit.SECONDS, new QuantityFormatter[] {
+        quantitativeUnitCache.put(QuantitativeUnit.SECONDS, new QuantityFormatter[] {
                 qb.add("one", "{0} second ago").add("other", "{0} seconds ago").build(),
                 qb.add("one", "in {0} second").add("other", "in {0} seconds").build()});
     }
     
 
-    private final EnumMap<RelativeUnit, EnumMap<RelativeOffset, String>> relativeUnitMap;
-    private final EnumMap<TimeUnit, QuantityFormatter[]> timeUnitMap;
+    private final EnumMap<QualitativeUnit, EnumMap<Qualifier, String>> qualitativeUnitMap;
+    private final EnumMap<QuantitativeUnit, QuantityFormatter[]> quantitativeUnitMap;
     private final MessageFormat combinedDateAndTime;
     private final PluralRules pluralRules;
     private NumberFormat numberFormat;
@@ -124,8 +124,8 @@ public class RelativeDateTimeFormatter {
         CalendarData calData = new CalendarData(ULocale.getDefault(), null);
         // TODO: Pull from resource bundles/cache
         return new RelativeDateTimeFormatter(
-                relativeUnitCache,
-                timeUnitCache,
+                qualitativeUnitCache,
+                quantitativeUnitCache,
                 new MessageFormat(calData.getDateTimePattern()),
                 PluralRules.forLocale(ULocale.getDefault()),
                 NumberFormat.getInstance());
@@ -140,8 +140,8 @@ public class RelativeDateTimeFormatter {
         CalendarData calData = new CalendarData(locale, null);
         // TODO: Pull from resource bundles/cache
         return new RelativeDateTimeFormatter(
-                relativeUnitCache,
-                timeUnitCache,
+                qualitativeUnitCache,
+                quantitativeUnitCache,
                 new MessageFormat(calData.getDateTimePattern()),
                 PluralRules.forLocale(locale),
                 NumberFormat.getInstance(locale));
@@ -157,40 +157,40 @@ public class RelativeDateTimeFormatter {
         throw new UnsupportedOperationException("Missing CLDR data.");
     }
          
-    private static void addRelativeUnit(
-            EnumMap<RelativeUnit, EnumMap<RelativeOffset, String>> relativeUnits,
-            RelativeUnit unit,
+    private static void addQualitativeUnit(
+            EnumMap<QualitativeUnit, EnumMap<Qualifier, String>> qualitativeUnits,
+            QualitativeUnit unit,
             String current) {
-        EnumMap<RelativeOffset, String> unitStrings =
-                new EnumMap<RelativeOffset, String>(RelativeOffset.class);
-        unitStrings.put(RelativeOffset.LAST, current);
-        unitStrings.put(RelativeOffset.THIS, current);
-        unitStrings.put(RelativeOffset.NEXT, current);
-        unitStrings.put(RelativeOffset.PLAIN, current);
-        relativeUnits.put(unit,  unitStrings);       
+        EnumMap<Qualifier, String> unitStrings =
+                new EnumMap<Qualifier, String>(Qualifier.class);
+        unitStrings.put(Qualifier.LAST, current);
+        unitStrings.put(Qualifier.THIS, current);
+        unitStrings.put(Qualifier.NEXT, current);
+        unitStrings.put(Qualifier.PLAIN, current);
+        qualitativeUnits.put(unit,  unitStrings);       
     }
 
-    private static void addRelativeUnit(
-            EnumMap<RelativeUnit, EnumMap<RelativeOffset, String>> relativeUnits,
-            RelativeUnit unit, String last, String current, String next) {
-        EnumMap<RelativeOffset, String> unitStrings =
-                new EnumMap<RelativeOffset, String>(RelativeOffset.class);
-        unitStrings.put(RelativeOffset.LAST, last);
-        unitStrings.put(RelativeOffset.THIS, current);
-        unitStrings.put(RelativeOffset.NEXT, next);
-        unitStrings.put(RelativeOffset.PLAIN, current);
-        relativeUnits.put(unit,  unitStrings);
+    private static void addQualitativeUnit(
+            EnumMap<QualitativeUnit, EnumMap<Qualifier, String>> qualitativeUnits,
+            QualitativeUnit unit, String last, String current, String next) {
+        EnumMap<Qualifier, String> unitStrings =
+                new EnumMap<Qualifier, String>(Qualifier.class);
+        unitStrings.put(Qualifier.LAST, last);
+        unitStrings.put(Qualifier.THIS, current);
+        unitStrings.put(Qualifier.NEXT, next);
+        unitStrings.put(Qualifier.PLAIN, current);
+        qualitativeUnits.put(unit,  unitStrings);
     }
 
     
     private RelativeDateTimeFormatter(
-            EnumMap<RelativeUnit, EnumMap<RelativeOffset, String>> relativeUnitMap,
-            EnumMap<TimeUnit, QuantityFormatter[]> timeUnitMap,
+            EnumMap<QualitativeUnit, EnumMap<Qualifier, String>> qualitativeUnitMap,
+            EnumMap<QuantitativeUnit, QuantityFormatter[]> quantitativeUnitMap,
             MessageFormat combinedDateAndTime,
             PluralRules pluralRules,
             NumberFormat numberFormat) {
-        this.relativeUnitMap = relativeUnitMap;
-        this.timeUnitMap = timeUnitMap;
+        this.qualitativeUnitMap = qualitativeUnitMap;
+        this.quantitativeUnitMap = quantitativeUnitMap;
         this.combinedDateAndTime = combinedDateAndTime;
         this.pluralRules = pluralRules;
         this.numberFormat = numberFormat;
@@ -206,12 +206,12 @@ public class RelativeDateTimeFormatter {
      * @draft ICU 53
      * @provisional
      */
-    public String format(double distance, TimeUnit unit, boolean isFuture) {
+    public String format(double distance, QuantitativeUnit unit, boolean isFuture) {
         return getQuantity(unit, isFuture).format(distance, numberFormat, pluralRules);
     }
     
-    private QuantityFormatter getQuantity(TimeUnit unit, boolean isFuture) {
-        QuantityFormatter[] quantities = timeUnitMap.get(unit);
+    private QuantityFormatter getQuantity(QuantitativeUnit unit, boolean isFuture) {
+        QuantityFormatter[] quantities = quantitativeUnitMap.get(unit);
         return isFuture ? quantities[1] : quantities[0];
     }
 
@@ -223,8 +223,8 @@ public class RelativeDateTimeFormatter {
      * @draft ICU 53
      * @provisional
      */
-    public String format(RelativeOffset offset, RelativeUnit unit) {
-        return this.relativeUnitMap.get(unit).get(offset);
+    public String format(Qualifier offset, QualitativeUnit unit) {
+        return this.qualitativeUnitMap.get(unit).get(offset);
     }
     
     /**
@@ -232,7 +232,7 @@ public class RelativeDateTimeFormatter {
      * formatting numbers.
      * @param nf the NumberFormat object to use. This method makes no copy,
      * so any subsequent changes to nf will affect this object.
-     * @see #format(double, TimeUnit, boolean)
+     * @see #format(double, QuantitativeUnit, boolean)
      * @draft ICU 53
      * @provisional
      */

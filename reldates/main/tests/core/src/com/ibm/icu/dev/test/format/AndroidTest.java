@@ -73,16 +73,16 @@ public class AndroidTest {
             int days = dayDiff(now, time);
             if (days == 0) {
                 return rf.format(
-                        RelativeDateTimeFormatter.RelativeOffset.THIS,
-                        RelativeDateTimeFormatter.RelativeUnit.DAY);
+                        RelativeDateTimeFormatter.Qualifier.THIS,
+                        RelativeDateTimeFormatter.QualitativeUnit.DAY);
             } else if (days == 1) {
                 return rf.format(
-                        RelativeDateTimeFormatter.RelativeOffset.NEXT,
-                        RelativeDateTimeFormatter.RelativeUnit.DAY);
+                        RelativeDateTimeFormatter.Qualifier.NEXT,
+                        RelativeDateTimeFormatter.QualitativeUnit.DAY);
             } else if (days == -1) {
                 return rf.format(
-                        RelativeDateTimeFormatter.RelativeOffset.LAST,
-                        RelativeDateTimeFormatter.RelativeUnit.DAY);
+                        RelativeDateTimeFormatter.Qualifier.LAST,
+                        RelativeDateTimeFormatter.QualitativeUnit.DAY);
             } else {
                 return rf.format(
                         Math.abs(days),
