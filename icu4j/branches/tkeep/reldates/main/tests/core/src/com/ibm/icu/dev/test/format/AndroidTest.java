@@ -51,43 +51,44 @@ public class AndroidTest {
 
     public static CharSequence getRelativeTimeSpanString(long time, long now, long minResolution, int flags) {
         RelativeDateTimeFormatter rf = getRelativeFormat((flags & (FORMAT_ABBREV_RELATIVE | FORMAT_ABBREV_ALL)) != 0);
-        boolean past = (now >= time);
+        RelativeDateTimeFormatter.Direction direction = (now >= time) ?
+                RelativeDateTimeFormatter.Direction.LAST : RelativeDateTimeFormatter.Direction.NEXT;
         long duration = Math.abs(now - time);
         
         if (duration < MINUTE_IN_MILLIS && minResolution < MINUTE_IN_MILLIS) {
             return rf.format(
                     duration / SECOND_IN_MILLIS,
-                    RelativeDateTimeFormatter.TimeUnit.SECONDS,
-                    !past);
+                    direction,
+                    RelativeDateTimeFormatter.RelativeUnit.SECONDS);
         } else if (duration < HOUR_IN_MILLIS && minResolution < HOUR_IN_MILLIS) {
             return rf.format(
                     duration / MINUTE_IN_MILLIS,
-                    RelativeDateTimeFormatter.TimeUnit.MINUTES,
-                    !past);
+                    direction,
+                    RelativeDateTimeFormatter.RelativeUnit.MINUTES);
         } else if (duration < DAY_IN_MILLIS && minResolution < DAY_IN_MILLIS) {
             return rf.format(
                     duration / HOUR_IN_MILLIS,
-                    RelativeDateTimeFormatter.TimeUnit.HOURS,
-                    !past);
+                    direction,
+                    RelativeDateTimeFormatter.RelativeUnit.HOURS);
         } else if (duration < WEEK_IN_MILLIS && minResolution < WEEK_IN_MILLIS) {
             int days = dayDiff(now, time);
             if (days == 0) {
                 return rf.format(
-                        RelativeDateTimeFormatter.Qualifier.THIS,
-                        RelativeDateTimeFormatter.QualitativeUnit.DAY);
+                        RelativeDateTimeFormatter.Direction.THIS,
+                        RelativeDateTimeFormatter.AbsoluteUnit.DAY);
             } else if (days == 1) {
                 return rf.format(
-                        RelativeDateTimeFormatter.Qualifier.NEXT,
-                        RelativeDateTimeFormatter.QualitativeUnit.DAY);
+                        RelativeDateTimeFormatter.Direction.NEXT,
+                        RelativeDateTimeFormatter.AbsoluteUnit.DAY);
             } else if (days == -1) {
                 return rf.format(
-                        RelativeDateTimeFormatter.Qualifier.LAST,
-                        RelativeDateTimeFormatter.QualitativeUnit.DAY);
+                        RelativeDateTimeFormatter.Direction.LAST,
+                        RelativeDateTimeFormatter.AbsoluteUnit.DAY);
             } else {
                 return rf.format(
                         Math.abs(days),
-                        RelativeDateTimeFormatter.TimeUnit.DAYS,
-                        days > 0);
+                        direction,
+                        RelativeDateTimeFormatter.RelativeUnit.DAYS);
             }
         } else {
             return formatDateRange(null, time, time, flags);

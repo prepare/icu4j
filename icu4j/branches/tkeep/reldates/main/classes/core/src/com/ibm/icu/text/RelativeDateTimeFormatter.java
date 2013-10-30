@@ -13,107 +13,211 @@ import com.ibm.icu.util.ULocale;
 
 
 /**
- * Formats relative dates e.g In 5 days; next Sunday; etc.
+ * Formats simple relative dates. There are two types of relative dates that
+ * it handles:
+ * <ul>
+ *   <li>relative dates with a quantity e.g "in 5 days"</li>
+ *   <li>relative dates without a quantity e.g "next Tuesday"</li>
+ * </ul>
+ * This API is very basic and is intended to be a building block for more
+ * fancy APIs. This API is very basic in that the caller tells it exactly
+ * what to display in a locale independent way. It is the caller's
+ * responsibility to handle cut-off logic such as deciding between displaying
+ * "in 7 days" or "in 1 week."  This API supports relative dates involving
+ * one single unit. This API does not support relative dates involving
+ * compound units. e.g "in 5 days and 4 hours" nor does it support parsing.
  * This class is NOT thread-safe.
  * @draft ICU 53
  * @provisional
  */
-public class RelativeDateTimeFormatter {
-    
+public class RelativeDateTimeFormatter { 
     
     /**
-     * Represents a Time unit.
+     * Represents the unit for formatting a relative date. e.g "in 5 days"
+     * or "in 3 months"
      * @draft ICU 53
      * @provisional
-     *
      */
-    public static enum QuantitativeUnit {
-        SECONDS, // eg, 3 seconds ago, or in 3 seconds
-        MINUTES, // 3 minutes ago, or in 3 minutes
-        HOURS, // 3 hours ago, or in 3 hours
-        DAYS, // 3 days ago, or in 3 days
-        WEEKS, // 3 weeks ago, or in 3 weeks
-        MONTHS, // 3 months ago, or in 3 months
-        YEARS, // 3 years ago, or in 3 years
+    public static enum RelativeUnit {
+        
+        /**
+         * Seconds
+         * @draft ICU 53
+         * @provisional
+         */
+        SECONDS,
+        
+        /**
+         * Minutes
+         * @draft ICU 53
+         * @provisional
+         */
+        MINUTES,
+        
+       /**
+        * Hours
+        * @draft ICU 53
+        * @provisional
+        */
+        HOURS,
+        
+        /**
+         * Days
+         * @draft ICU 53
+         * @provisional
+         */
+        DAYS,
+        
+        /**
+         * Weeks
+         * @draft ICU 53
+         * @provisional
+         */
+        WEEKS,
+        
+        /**
+         * Months
+         * @draft ICU 53
+         * @provisional
+         */
+        MONTHS,
+        
+        /**
+         * Years
+         * @draft ICU 53
+         * @provisional
+         */
+        YEARS,
     }
     
     /**
-     * Represents a relative unit
+     * Represents an absolute unit.
      * @draft ICU 53
      * @provisional
-     *
      */
-    public static enum QualitativeUnit {
-        SUNDAY, // Last Sunday, This Sunday, Next Sunday, Sunday
+    public static enum AbsoluteUnit {
+        
+       /**
+        * Sunday
+        * @draft ICU 53
+        * @provisional
+        */
+        SUNDAY,
+        
+        /**
+         * Monday
+         * @draft ICU 53
+         * @provisional
+         */
         MONDAY,
+        
+        /**
+         * Tuesday
+         * @draft ICU 53
+         * @provisional
+         */
         TUESDAY,
+        
+        /**
+         * Wednesday
+         * @draft ICU 53
+         * @provisional
+         */
         WEDNESDAY,
+        
+        /**
+         * Thursday
+         * @draft ICU 53
+         * @provisional
+         */
         THURSDAY,
+        
+        /**
+         * Friday
+         * @draft ICU 53
+         * @provisional
+         */
         FRIDAY,
+        
+        /**
+         * Saturday
+         * @draft ICU 53
+         * @provisional
+         */
         SATURDAY,
-        DAY,  // Yesterday, Today, Tomorrow
+        
+        /**
+         * Day
+         * @draft ICU 53
+         * @provisional
+         */
+        DAY,
+        
+        /**
+         * Week
+         * @draft ICU 53
+         * @provisional
+         */
         WEEK,
+        
+        /**
+         * Month
+         * @draft ICU 53
+         * @provisional
+         */
         MONTH,
+        
+        /**
+         * Year
+         * @draft ICU 53
+         * @provisional
+         */
         YEAR,
+        
+        /**
+         * Now
+         * @draft ICU 53
+         * @provisional
+         */
         NOW,
       }
 
       /**
-       * Represents a qualifier for a qualitative unit e.g "Next Tuesday".
+       * Represents a direction for an absolute unit e.g "Next Tuesday"
+       * or "Last Tuesday"
        * @draft ICU 53
        * @provisional
        */
-      public static enum Qualifier {
-        LAST, THIS, NEXT, PLAIN; // not all will be available for all units
-        // NOW has only PLAIN
-        // SUNDAY..SATURDAY have all 4
-        // Others have LAST..NEXT
-      }
-      
-      /**
-       * Represents the style. Not yet supported because we don't have CLDR data for this.
-       * @draft ICU 53
-       * @provisional
-       *
-       */
-      public static enum Style {
-          NARROW,
-          SHORT,
-          FULL,
-      }
-
-    private static final EnumMap<QualitativeUnit, EnumMap<Qualifier, String>> qualitativeUnitCache =
-            new EnumMap<QualitativeUnit, EnumMap<Qualifier, String>>(QualitativeUnit.class);
-    
-    private static final EnumMap<QuantitativeUnit, QuantityFormatter[]> quantitativeUnitCache =
-            new EnumMap<QuantitativeUnit, QuantityFormatter[]>(QuantitativeUnit.class);
-    
-    static {
-        addQualitativeUnit(qualitativeUnitCache, QualitativeUnit.DAY, "yesterday", "today", "tomorrow");
-        addQualitativeUnit(qualitativeUnitCache, QualitativeUnit.MONDAY, "last Monday", "this Monday", "next Monday");
-        addQualitativeUnit(qualitativeUnitCache, QualitativeUnit.NOW, "now");
+      public static enum Direction {
+          
+          /**
+           * Last
+           * @draft ICU 53
+           * @provisional
+           */  
+        LAST,
         
-        QuantityFormatter.Builder qb = new QuantityFormatter.Builder();
-        quantitativeUnitCache.put(QuantitativeUnit.DAYS, new QuantityFormatter[] {
-                qb.add("one", "{0} day ago").add("other", "{0} days ago").build(),
-                qb.add("one", "in {0} day").add("other", "in {0} days").build()});
-        quantitativeUnitCache.put(QuantitativeUnit.HOURS, new QuantityFormatter[] {
-                qb.add("one", "{0} hour ago").add("other", "{0} hours ago").build(),
-                qb.add("one", "in {0} hour").add("other", "in {0} hours").build()});
-        quantitativeUnitCache.put(QuantitativeUnit.MINUTES, new QuantityFormatter[] {
-                qb.add("one", "{0} minute ago").add("other", "{0} minutes ago").build(),
-                qb.add("one", "in {0} minute").add("other", "in {0} minutes").build()});
-        quantitativeUnitCache.put(QuantitativeUnit.SECONDS, new QuantityFormatter[] {
-                qb.add("one", "{0} second ago").add("other", "{0} seconds ago").build(),
-                qb.add("one", "in {0} second").add("other", "in {0} seconds").build()});
-    }
-    
-
-    private final EnumMap<QualitativeUnit, EnumMap<Qualifier, String>> qualitativeUnitMap;
-    private final EnumMap<QuantitativeUnit, QuantityFormatter[]> quantitativeUnitMap;
-    private final MessageFormat combinedDateAndTime;
-    private final PluralRules pluralRules;
-    private NumberFormat numberFormat;
+        /**
+         * This
+         * @draft ICU 53
+         * @provisional
+         */
+        THIS,
+        
+        /**
+         * Next
+         * @draft ICU 53
+         * @provisional
+         */
+        NEXT,
+        
+        /**
+         * Plain, which means the absence of a qualifier
+         * @draft ICU 53
+         * @provisional
+         */
+        PLAIN;
+      }
     
     /**
      * Returns a RelativeDateTimeFormatter for the default locale.
@@ -147,45 +251,97 @@ public class RelativeDateTimeFormatter {
                 NumberFormat.getInstance(locale));
     }
     
+           
     /**
-     * Returns a RelativeDateTimeFormatter for a particular locale and style.
-     * This is currently not supported because of lack of CLDR data.
+     * Formats a relative date with a quantity such as "in 5 days" or
+     * "3 months ago"
+     * @param quantity The numerical amount e.g 5. This value is formatted
+     * according to this object's {@link NumberFormat} object.
+     * @param direction NEXT means a future relative date; LAST means a past
+     * relative date.
+     * @param unit the unit e.g day? month? year?
+     * @return the formatted string
+     * @throws IllegalArgumentException if direction is something other than
+     * NEXT or LAST.
      * @draft ICU 53
      * @provisional
      */
-    public static RelativeDateTimeFormatter getInstance(ULocale locale, Style style) {
-        throw new UnsupportedOperationException("Missing CLDR data.");
+    public String format(double quantity, Direction direction, RelativeUnit unit) {
+        if (direction != Direction.LAST && direction != Direction.NEXT) {
+            throw new IllegalArgumentException("direction must be NEXT or LAST");
+        }
+        return getQuantity(unit, direction == Direction.NEXT).format(quantity, numberFormat, pluralRules);
     }
-         
+    
+    /**
+     * Formats a qualitative date without a quantity.
+     * @param offset NEXT, LAST, THIS, etc.
+     * @param unit e.g SATURDAY, DAY, MONTH
+     * @return the formatted string
+     * @draft ICU 53
+     * @provisional
+     */
+    public String format(Direction offset, AbsoluteUnit unit) {
+        return this.qualitativeUnitMap.get(unit).get(offset);
+    }
+    
+    /**
+     * Specify which NumberFormat object this object should use for
+     * formatting numbers.
+     * @param nf the NumberFormat object to use. This method makes no copy,
+     * so any subsequent changes to nf will affect this object.
+     * @see #format(double, RelativeUnit, boolean)
+     * @draft ICU 53
+     * @provisional
+     */
+    public void setNumberFormat(NumberFormat nf) {
+        this.numberFormat = nf;
+    }
+
+    /**
+     * Combines a relative date string and a time string in this object's
+     * locale. This is done with the same date-time separator used for the
+     * Gregorian calendar in this locale.
+     * @param relativeDateString the relative date e.g 'yesterday'
+     * @param timeString the time e.g '3:45'
+     * @return the date and time concatenated according to the Gregorian
+     * calendar in this locale e.g 'yesterday, 3:45'
+     * @draft ICU 53
+     * @provisional
+     */
+    public String combineDateAndTime(String relativeDateString, String timeString) {
+        return this.combinedDateAndTime.format(
+            new Object[]{timeString, relativeDateString}, new StringBuffer(), null).toString();
+    }
+    
     private static void addQualitativeUnit(
-            EnumMap<QualitativeUnit, EnumMap<Qualifier, String>> qualitativeUnits,
-            QualitativeUnit unit,
+            EnumMap<AbsoluteUnit, EnumMap<Direction, String>> qualitativeUnits,
+            AbsoluteUnit unit,
             String current) {
-        EnumMap<Qualifier, String> unitStrings =
-                new EnumMap<Qualifier, String>(Qualifier.class);
-        unitStrings.put(Qualifier.LAST, current);
-        unitStrings.put(Qualifier.THIS, current);
-        unitStrings.put(Qualifier.NEXT, current);
-        unitStrings.put(Qualifier.PLAIN, current);
+        EnumMap<Direction, String> unitStrings =
+                new EnumMap<Direction, String>(Direction.class);
+        unitStrings.put(Direction.LAST, current);
+        unitStrings.put(Direction.THIS, current);
+        unitStrings.put(Direction.NEXT, current);
+        unitStrings.put(Direction.PLAIN, current);
         qualitativeUnits.put(unit,  unitStrings);       
     }
 
     private static void addQualitativeUnit(
-            EnumMap<QualitativeUnit, EnumMap<Qualifier, String>> qualitativeUnits,
-            QualitativeUnit unit, String last, String current, String next) {
-        EnumMap<Qualifier, String> unitStrings =
-                new EnumMap<Qualifier, String>(Qualifier.class);
-        unitStrings.put(Qualifier.LAST, last);
-        unitStrings.put(Qualifier.THIS, current);
-        unitStrings.put(Qualifier.NEXT, next);
-        unitStrings.put(Qualifier.PLAIN, current);
+            EnumMap<AbsoluteUnit, EnumMap<Direction, String>> qualitativeUnits,
+            AbsoluteUnit unit, String last, String current, String next) {
+        EnumMap<Direction, String> unitStrings =
+                new EnumMap<Direction, String>(Direction.class);
+        unitStrings.put(Direction.LAST, last);
+        unitStrings.put(Direction.THIS, current);
+        unitStrings.put(Direction.NEXT, next);
+        unitStrings.put(Direction.PLAIN, current);
         qualitativeUnits.put(unit,  unitStrings);
     }
-
-    
+ 
     private RelativeDateTimeFormatter(
-            EnumMap<QualitativeUnit, EnumMap<Qualifier, String>> qualitativeUnitMap,
-            EnumMap<QuantitativeUnit, QuantityFormatter[]> quantitativeUnitMap,
+            EnumMap<AbsoluteUnit, EnumMap<Direction, String>> qualitativeUnitMap,
+            EnumMap<RelativeUnit, QuantityFormatter[]> quantitativeUnitMap,
             MessageFormat combinedDateAndTime,
             PluralRules pluralRules,
             NumberFormat numberFormat) {
@@ -196,63 +352,41 @@ public class RelativeDateTimeFormatter {
         this.numberFormat = numberFormat;
     }
     
-    /**
-     * Formats a quantitative relative date e.g 5 hours ago; in 3 days.
-     * @param distance The numerical amount e.g 5. This value is formatted according to this
-     *   object's {@link NumberFormat} object.
-     * @param unit The time unit. e.g DAYS
-     * @param isFuture True if relative date is in future.
-     * @return the formatted string
-     * @draft ICU 53
-     * @provisional
-     */
-    public String format(double distance, QuantitativeUnit unit, boolean isFuture) {
-        return getQuantity(unit, isFuture).format(distance, numberFormat, pluralRules);
-    }
-    
-    private QuantityFormatter getQuantity(QuantitativeUnit unit, boolean isFuture) {
+    private QuantityFormatter getQuantity(RelativeUnit unit, boolean isFuture) {
         QuantityFormatter[] quantities = quantitativeUnitMap.get(unit);
         return isFuture ? quantities[1] : quantities[0];
     }
-
-    /**
-     * Formats a qualitative relative date e.g next week; yesterday.
-     * @param offset NEXT, LAST, THIS, etc.
-     * @param unit e.g SATURDAY, DAY, MONTH
-     * @return the formatted string
-     * @draft ICU 53
-     * @provisional
-     */
-    public String format(Qualifier offset, QualitativeUnit unit) {
-        return this.qualitativeUnitMap.get(unit).get(offset);
+    
+    private static final EnumMap<AbsoluteUnit, EnumMap<Direction, String>> qualitativeUnitCache =
+            new EnumMap<AbsoluteUnit, EnumMap<Direction, String>>(AbsoluteUnit.class);
+    
+    private static final EnumMap<RelativeUnit, QuantityFormatter[]> quantitativeUnitCache =
+            new EnumMap<RelativeUnit, QuantityFormatter[]>(RelativeUnit.class);
+    
+    static {
+        addQualitativeUnit(qualitativeUnitCache, AbsoluteUnit.DAY, "yesterday", "today", "tomorrow");
+        addQualitativeUnit(qualitativeUnitCache, AbsoluteUnit.MONDAY, "last Monday", "this Monday", "next Monday");
+        addQualitativeUnit(qualitativeUnitCache, AbsoluteUnit.NOW, "now");
+        
+        QuantityFormatter.Builder qb = new QuantityFormatter.Builder();
+        quantitativeUnitCache.put(RelativeUnit.DAYS, new QuantityFormatter[] {
+                qb.add("one", "{0} day ago").add("other", "{0} days ago").build(),
+                qb.add("one", "in {0} day").add("other", "in {0} days").build()});
+        quantitativeUnitCache.put(RelativeUnit.HOURS, new QuantityFormatter[] {
+                qb.add("one", "{0} hour ago").add("other", "{0} hours ago").build(),
+                qb.add("one", "in {0} hour").add("other", "in {0} hours").build()});
+        quantitativeUnitCache.put(RelativeUnit.MINUTES, new QuantityFormatter[] {
+                qb.add("one", "{0} minute ago").add("other", "{0} minutes ago").build(),
+                qb.add("one", "in {0} minute").add("other", "in {0} minutes").build()});
+        quantitativeUnitCache.put(RelativeUnit.SECONDS, new QuantityFormatter[] {
+                qb.add("one", "{0} second ago").add("other", "{0} seconds ago").build(),
+                qb.add("one", "in {0} second").add("other", "in {0} seconds").build()});
     }
     
-    /**
-     * Specify which NumberFormat object this object should use for
-     * formatting numbers.
-     * @param nf the NumberFormat object to use. This method makes no copy,
-     * so any subsequent changes to nf will affect this object.
-     * @see #format(double, QuantitativeUnit, boolean)
-     * @draft ICU 53
-     * @provisional
-     */
-    public void setNumberFormat(NumberFormat nf) {
-        this.numberFormat = nf;
-    }
 
-    /**
-     * Combines a relative date string and a time string in this object's locale. This is
-     * done with the same date-time separator used for the Gregorian calendar in this
-     * locale.
-     * @param relativeDateString the relative date e.g 'yesterday'
-     * @param timeString the time e.g '3:45'
-     * @return the date and time concatenated according to the Gregorian calendar in this
-     *   locale e.g 'yesterday, 3:45'
-     * @draft ICU 53
-     * @provisional
-     */
-    public String combineDateAndTime(String relativeDateString, String timeString) {
-        return this.combinedDateAndTime.format(
-            new Object[]{timeString, relativeDateString}, new StringBuffer(), null).toString();
-    }
+    private final EnumMap<AbsoluteUnit, EnumMap<Direction, String>> qualitativeUnitMap;
+    private final EnumMap<RelativeUnit, QuantityFormatter[]> quantitativeUnitMap;
+    private final MessageFormat combinedDateAndTime;
+    private final PluralRules pluralRules;
+    private NumberFormat numberFormat;
 }
