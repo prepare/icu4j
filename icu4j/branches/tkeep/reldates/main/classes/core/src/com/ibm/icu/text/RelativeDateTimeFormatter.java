@@ -19,14 +19,42 @@ import com.ibm.icu.util.ULocale;
  *   <li>relative dates with a quantity e.g "in 5 days"</li>
  *   <li>relative dates without a quantity e.g "next Tuesday"</li>
  * </ul>
+ * <p>
  * This API is very basic and is intended to be a building block for more
- * fancy APIs. This API is very basic in that the caller tells it exactly
- * what to display in a locale independent way. It is the caller's
- * responsibility to handle cut-off logic such as deciding between displaying
- * "in 7 days" or "in 1 week."  This API supports relative dates involving
- * one single unit. This API does not support relative dates involving
- * compound units. e.g "in 5 days and 4 hours" nor does it support parsing.
+ * fancy APIs. The caller tells it exactly what to display in a locale
+ * independent way. While this class automatically provides the correct plural
+ * forms, the grammatical form is otherwise as neutral as possible. It is the
+ * caller's responsibility to handle cut-off logic such as deciding between
+ * displaying "in 7 days" or "in 1 week." This API supports relative dates
+ * involving one single unit. This API does not support relative dates
+ * involving compound units.
+ * e.g "in 5 days and 4 hours" nor does it support parsing.
  * This class is NOT thread-safe.
+ * <p>
+ * Here are some examples of use:
+ * <blockquote>
+ * <pre>
+ * RelativeDateTimeFormatter fmt = RelativeDateTimeFormatter.getInstance();
+ * fmt.format(1, Direction.NEXT, RelativeUnit.DAYS); // "in 1 day"
+ * fmt.format(3, Direction.NEXT, RelativeUnit.DAYS); // "in 3 days"
+ * fmt.format(3.2, Direction.LAST, RelativeUnit.YEARS); // "3.2 years ago"
+ * 
+ * fmt.format(Direction.LAST, AbsoluteUnit.SUNDAY); // "last Sunday"
+ * fmt.format(Direction.THIS, AbsoluteUnit.SUNDAY); // "this Sunday"
+ * fmt.format(Direction.NEXT, AbsoluteUnit.SUNDAY); // "next Sunday"
+ * fmt.format(Direction.PLAIN, AbsoluteUnit.SUNDAY); // "Sunday"
+ * 
+ * fmt.format(Direction.LAST, AbsoluteUnit.DAY); // "yesterday"
+ * fmt.format(Direction.THIS, AbsoluteUnit.DAY); // "today"
+ * fmt.format(Direction.NEXT, AbsoluteUnit.DAY); // "tomorrow"
+ * 
+ * fmt.format(Direction.PLAIN, AbsoluteUnit.NOW); // "now"
+ * </pre>
+ * </blockquote>
+ * <p>
+ * In the future, we may add more forms, such as abbreviated/short forms
+ * (3 secs ago), and relative day periods ("yesterday afternoon"), etc.
+ * 
  * @draft ICU 53
  * @provisional
  */
@@ -275,27 +303,33 @@ public class RelativeDateTimeFormatter {
     
     /**
      * Formats a qualitative date without a quantity.
-     * @param offset NEXT, LAST, THIS, etc.
+     * @param direction NEXT, LAST, THIS, etc.
      * @param unit e.g SATURDAY, DAY, MONTH
      * @return the formatted string
+     * @throws IllegalArgumentException if the direction is incompatible with
+     * unit this can occur with NOW which can only take PLAIN.
      * @draft ICU 53
      * @provisional
      */
-    public String format(Direction offset, AbsoluteUnit unit) {
-        return this.qualitativeUnitMap.get(unit).get(offset);
+    public String format(Direction direction, AbsoluteUnit unit) {
+        //TODO(tkeep): Throw IllegalArgumentException if direction and unit
+        // are not compatible.
+        // TODO(tkeep): Make sure we support the PLAIN direction.
+        return this.qualitativeUnitMap.get(unit).get(direction);
     }
     
     /**
      * Specify which NumberFormat object this object should use for
      * formatting numbers.
-     * @param nf the NumberFormat object to use. This method makes no copy,
-     * so any subsequent changes to nf will affect this object.
-     * @see #format(double, RelativeUnit, boolean)
+     * @param nf the NumberFormat object to use. This method makes
+     *  its own defensive copy of nf so that subsequent
+     *  changes to nf will not affect the operation of this object.
+     * @see #format(double, Direction, RelativeUnit)
      * @draft ICU 53
      * @provisional
      */
     public void setNumberFormat(NumberFormat nf) {
-        this.numberFormat = nf;
+        this.numberFormat = (NumberFormat) nf.clone();
     }
 
     /**
