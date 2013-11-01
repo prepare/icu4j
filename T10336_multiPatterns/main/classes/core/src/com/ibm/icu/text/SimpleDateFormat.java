@@ -2681,6 +2681,7 @@ public class SimpleDateFormat extends DateFormat {
      * @internal
      * @deprecated This API is ICU internal only.
      */
+    @SuppressWarnings("fallthrough")
     private int subParse(String text, int start, char ch, int count,
                            boolean obeyCount, boolean allowNegative,
                            boolean[] ambiguousYear, Calendar cal, MessageFormat numericLeapMonthFormatter)
@@ -2876,21 +2877,27 @@ public class SimpleDateFormat extends DateFormat {
                     // count >= 3 // i.e., MMM/MMMM or LLL/LLLL
                     // Want to be able to parse both short and long forms.
                     boolean haveMonthPat = (formatData.leapMonthPatterns != null && formatData.leapMonthPatterns.length >= DateFormatSymbols.DT_MONTH_PATTERN_COUNT);
-                    // Try count == 4 first:
-                    int newStart = (patternCharIndex == 2)?
-                            matchString(text, start, Calendar.MONTH, formatData.months,
-                                    (haveMonthPat)? formatData.leapMonthPatterns[DateFormatSymbols.DT_LEAP_MONTH_PATTERN_FORMAT_WIDE]: null, cal):
-                            matchString(text, start, Calendar.MONTH, formatData.standaloneMonths,
-                                    (haveMonthPat)? formatData.leapMonthPatterns[DateFormatSymbols.DT_LEAP_MONTH_PATTERN_STANDALONE_WIDE]: null, cal);
-                    if (newStart > 0) {
-                        return newStart;
-                    } else { // count == 4 failed, now try count == 3
+                    // Try count == 4 first:, unless we're strict
+                    int newStart = 0;
+                    if(getBooleanAttribute(DateFormat.BooleanAttribute.PARSE_MULTIPLE_PATTERNS_FOR_MATCH) || count == 4) {
+                        newStart = (patternCharIndex == 2)?
+                                matchString(text, start, Calendar.MONTH, formatData.months,
+                                        (haveMonthPat)? formatData.leapMonthPatterns[DateFormatSymbols.DT_LEAP_MONTH_PATTERN_FORMAT_WIDE]: null, cal):
+                                matchString(text, start, Calendar.MONTH, formatData.standaloneMonths,
+                                        (haveMonthPat)? formatData.leapMonthPatterns[DateFormatSymbols.DT_LEAP_MONTH_PATTERN_STANDALONE_WIDE]: null, cal);
+                        if (newStart > 0) {
+                            return newStart;
+                        }
+                    } 
+                    // count == 4 failed, now try count == 3
+                    if(getBooleanAttribute(DateFormat.BooleanAttribute.PARSE_MULTIPLE_PATTERNS_FOR_MATCH) || count == 3) {
                         return (patternCharIndex == 2)?
                                 matchString(text, start, Calendar.MONTH, formatData.shortMonths,
                                         (haveMonthPat)? formatData.leapMonthPatterns[DateFormatSymbols.DT_LEAP_MONTH_PATTERN_FORMAT_ABBREV]: null, cal):
                                 matchString(text, start, Calendar.MONTH, formatData.standaloneShortMonths,
                                         (haveMonthPat)? formatData.leapMonthPatterns[DateFormatSymbols.DT_LEAP_MONTH_PATTERN_STANDALONE_ABBREV]: null, cal);
                     }
+                    return newStart;
                 }
             case 4: // 'k' - HOUR_OF_DAY (1..24)
                 // [We computed 'value' above.]
@@ -2923,37 +2930,53 @@ public class SimpleDateFormat extends DateFormat {
                     return pos.getIndex();
                 }
                 // else for eee-eeeeee, fall through to EEE-EEEEEE handling
-                //$FALL-THROUGH$ 
+              //$FALL-THROUGH$
             case 9: { // 'E' - DAY_OF_WEEK
                 // Want to be able to parse at least wide, abbrev, short, and narrow forms.
                 int newStart = 0;
-                if ((newStart = matchString(text, start, Calendar.DAY_OF_WEEK, formatData.weekdays, null, cal)) > 0) { // try EEEE wide
-                    return newStart;
-                } 
-                if ((newStart = matchString(text, start, Calendar.DAY_OF_WEEK, formatData.shortWeekdays, null, cal)) > 0) { // try EEE abbrev
-                    return newStart;
-                } 
-                if (formatData.shorterWeekdays != null) {
-                    if((newStart = matchString(text, start, Calendar.DAY_OF_WEEK, formatData.shorterWeekdays, null, cal)) > 0) { // try EEEEEE short
+                if(getBooleanAttribute(DateFormat.BooleanAttribute.PARSE_MULTIPLE_PATTERNS_FOR_MATCH) || count == 4) {
+                    if ((newStart = matchString(text, start, Calendar.DAY_OF_WEEK, formatData.weekdays, null, cal)) > 0) { // try EEEE wide
                         return newStart;
                     } 
                 }
-                if (formatData.narrowWeekdays != null) {
-                    if((newStart = matchString(text, start, Calendar.DAY_OF_WEEK, formatData.narrowWeekdays, null, cal)) > 0) { // try EEEEE narrow
+                if(getBooleanAttribute(DateFormat.BooleanAttribute.PARSE_MULTIPLE_PATTERNS_FOR_MATCH) || count == 3) {
+                    if ((newStart = matchString(text, start, Calendar.DAY_OF_WEEK, formatData.shortWeekdays, null, cal)) > 0) { // try EEE abbrev
                         return newStart;
+                    } 
+                }
+                if(getBooleanAttribute(DateFormat.BooleanAttribute.PARSE_MULTIPLE_PATTERNS_FOR_MATCH) || count == 6) {
+                    if (formatData.shorterWeekdays != null) {
+                        if((newStart = matchString(text, start, Calendar.DAY_OF_WEEK, formatData.shorterWeekdays, null, cal)) > 0) { // try EEEEEE short
+                            return newStart;
+                        } 
+                    }
+                }
+                if(getBooleanAttribute(DateFormat.BooleanAttribute.PARSE_MULTIPLE_PATTERNS_FOR_MATCH) || count == 5) {
+                    if (formatData.narrowWeekdays != null) {
+                        if((newStart = matchString(text, start, Calendar.DAY_OF_WEEK, formatData.narrowWeekdays, null, cal)) > 0) { // try EEEEE narrow
+                            return newStart;
+                        }
                     }
                 }
                 return newStart;
             }
             case 25: { // 'c' - STAND_ALONE_DAY_OF_WEEK
                 // Want to be able to parse at least wide, abbrev, short forms.
-                int newStart = matchString(text, start, Calendar.DAY_OF_WEEK, formatData.standaloneWeekdays, null, cal); // try cccc wide
-                if (newStart > 0) {
-                    return newStart;
-                } else if ((newStart = matchString(text, start, Calendar.DAY_OF_WEEK, formatData.standaloneShortWeekdays, null, cal)) > 0) { // try ccc abbrev
-                    return newStart;
-                } else if (formatData.standaloneShorterWeekdays != null) {
-                    return matchString(text, start, Calendar.DAY_OF_WEEK, formatData.standaloneShorterWeekdays, null, cal); // try cccccc short
+                int newStart = 0;
+                if(getBooleanAttribute(DateFormat.BooleanAttribute.PARSE_MULTIPLE_PATTERNS_FOR_MATCH) || count == 4) {
+                    if ((newStart = matchString(text, start, Calendar.DAY_OF_WEEK, formatData.standaloneWeekdays, null, cal)) > 0) { // try cccc wide
+                        return newStart;
+                    } 
+                }
+                if(getBooleanAttribute(DateFormat.BooleanAttribute.PARSE_MULTIPLE_PATTERNS_FOR_MATCH) || count == 3) {
+                    if ((newStart = matchString(text, start, Calendar.DAY_OF_WEEK, formatData.standaloneShortWeekdays, null, cal)) > 0) { // try ccc abbrev
+                        return newStart;
+                    }
+                }
+                if(getBooleanAttribute(DateFormat.BooleanAttribute.PARSE_MULTIPLE_PATTERNS_FOR_MATCH) || count == 6) {
+                    if (formatData.standaloneShorterWeekdays != null) {
+                        return matchString(text, start, Calendar.DAY_OF_WEEK, formatData.standaloneShorterWeekdays, null, cal); // try cccccc short
+                    }
                 }
                 return newStart;
             }
@@ -3110,14 +3133,18 @@ public class SimpleDateFormat extends DateFormat {
                     // count >= 3 // i.e., QQQ or QQQQ
                     // Want to be able to parse both short and long forms.
                     // Try count == 4 first:
-                    int newStart = matchQuarterString(text, start, Calendar.MONTH,
-                                               formatData.quarters, cal);
-                    if (newStart > 0) {
-                        return newStart;
-                    } else { // count == 4 failed, now try count == 3
+                    int newStart = 0;
+                    if(getBooleanAttribute(DateFormat.BooleanAttribute.PARSE_MULTIPLE_PATTERNS_FOR_MATCH) || count == 4) {
+                        if((newStart = matchQuarterString(text, start, Calendar.MONTH, formatData.quarters, cal)) > 0) {
+                            return newStart;
+                        }
+                    }
+                    // count == 4 failed, now try count == 3
+                    if(getBooleanAttribute(DateFormat.BooleanAttribute.PARSE_MULTIPLE_PATTERNS_FOR_MATCH) || count == 3) {
                         return matchQuarterString(text, start, Calendar.MONTH,
                                            formatData.shortQuarters, cal);
                     }
+                    return newStart;
                 }
 
             case 28: // 'q' - STANDALONE QUARTER
@@ -3131,14 +3158,18 @@ public class SimpleDateFormat extends DateFormat {
                     // count >= 3 // i.e., qqq or qqqq
                     // Want to be able to parse both short and long forms.
                     // Try count == 4 first:
-                    int newStart = matchQuarterString(text, start, Calendar.MONTH,
-                                               formatData.standaloneQuarters, cal);
-                    if (newStart > 0) {
-                        return newStart;
-                    } else { // count == 4 failed, now try count == 3
+                    int newStart = 0;
+                    if(getBooleanAttribute(DateFormat.BooleanAttribute.PARSE_MULTIPLE_PATTERNS_FOR_MATCH) || count == 4) {
+                        if((newStart = matchQuarterString(text, start, Calendar.MONTH, formatData.standaloneQuarters, cal)) > 0) {
+                            return newStart;
+                        }
+                    }
+                    // count == 4 failed, now try count == 3
+                    if(getBooleanAttribute(DateFormat.BooleanAttribute.PARSE_MULTIPLE_PATTERNS_FOR_MATCH) || count == 3) {
                         return matchQuarterString(text, start, Calendar.MONTH,
                                            formatData.standaloneShortQuarters, cal);
                     }
+                    return newStart;
                 }
 
             default:

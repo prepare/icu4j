@@ -462,10 +462,17 @@ public abstract class DateFormat extends UFormat {
          */
         PARSE_ALLOW_WHITESPACE,
         /** 
-         * indicates tolerance of numeric data when String data may be assumed. eg: YEAR_NAME_FIELD 
+         * indicates tolerance of numeric data when String data may be assumed. 
+         * e.g. YEAR_NAME_FIELD 
          * @internal ICU technology preview
          */
-        PARSE_ALLOW_NUMERIC 
+        PARSE_ALLOW_NUMERIC, 
+        /** 
+         * indicates tolerance of pattern mismatch between input data and specified format pattern.
+         * e.g. accepting "September" for a month pattern of MMM ("Sep")  
+         * @internal ICU technology preview
+         */
+        PARSE_MULTIPLE_PATTERNS_FOR_MATCH 
     };
     
     /**
