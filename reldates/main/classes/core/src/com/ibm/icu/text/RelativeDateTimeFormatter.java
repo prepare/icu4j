@@ -58,7 +58,7 @@ import com.ibm.icu.util.ULocale;
  * @draft ICU 53
  * @provisional
  */
-public class RelativeDateTimeFormatter { 
+public final class RelativeDateTimeFormatter { 
     
     /**
      * Represents the unit for formatting a relative date. e.g "in 5 days"
@@ -302,7 +302,7 @@ public class RelativeDateTimeFormatter {
     }
     
     /**
-     * Formats a qualitative date without a quantity.
+     * Formats a relative date without a quantity.
      * @param direction NEXT, LAST, THIS, etc.
      * @param unit e.g SATURDAY, DAY, MONTH
      * @return the formatted string
@@ -312,9 +312,6 @@ public class RelativeDateTimeFormatter {
      * @provisional
      */
     public String format(Direction direction, AbsoluteUnit unit) {
-        //TODO(tkeep): Throw IllegalArgumentException if direction and unit
-        // are not compatible.
-        // TODO(tkeep): Make sure we support the PLAIN direction.
         return this.qualitativeUnitMap.get(unit).get(direction);
     }
     
@@ -339,7 +336,7 @@ public class RelativeDateTimeFormatter {
      * default calendar in this locale.
      * @param relativeDateString the relative date e.g 'yesterday'
      * @param timeString the time e.g '3:45'
-     * @return the date and time concatenated according to the Gregorian
+     * @return the date and time concatenated according to the default
      * calendar in this locale e.g 'yesterday, 3:45'
      * @draft ICU 53
      * @provisional
@@ -400,10 +397,28 @@ public class RelativeDateTimeFormatter {
     
     static {
         addQualitativeUnit(qualitativeUnitCache, AbsoluteUnit.DAY, "yesterday", "today", "tomorrow");
+        addQualitativeUnit(qualitativeUnitCache, AbsoluteUnit.WEEK, "last week", "this week", "next week");
+        addQualitativeUnit(qualitativeUnitCache, AbsoluteUnit.MONTH, "last month", "this month", "next month");
+        addQualitativeUnit(qualitativeUnitCache, AbsoluteUnit.YEAR, "last year", "this year", "next year");
         addQualitativeUnit(qualitativeUnitCache, AbsoluteUnit.MONDAY, "last Monday", "this Monday", "next Monday");
+        addQualitativeUnit(qualitativeUnitCache, AbsoluteUnit.TUESDAY, "last Tuesday", "this Tuesday", "next Tuesday");
+        addQualitativeUnit(qualitativeUnitCache, AbsoluteUnit.WEDNESDAY, "last Wednesday", "this Wednesday", "next Wednesday");
+        addQualitativeUnit(qualitativeUnitCache, AbsoluteUnit.THURSDAY, "last Thursday", "this Thursday", "next Thursday");
+        addQualitativeUnit(qualitativeUnitCache, AbsoluteUnit.FRIDAY, "last Friday", "this Friday", "next Friday");
+        addQualitativeUnit(qualitativeUnitCache, AbsoluteUnit.SATURDAY, "last Saturday", "this Saturday", "next Saturday");
+        addQualitativeUnit(qualitativeUnitCache, AbsoluteUnit.SUNDAY, "last Sunday", "this Sunday", "next Sunday");
         addQualitativeUnit(qualitativeUnitCache, AbsoluteUnit.NOW, "now");
         
         QuantityFormatter.Builder qb = new QuantityFormatter.Builder();
+        quantitativeUnitCache.put(RelativeUnit.YEARS, new QuantityFormatter[] {
+                qb.add("one", "{0} year ago").add("other", "{0} years ago").build(),
+                qb.add("one", "in {0} year").add("other", "in {0} years").build()});
+        quantitativeUnitCache.put(RelativeUnit.MONTHS, new QuantityFormatter[] {
+                qb.add("one", "{0} month ago").add("other", "{0} months ago").build(),
+                qb.add("one", "in {0} month").add("other", "in {0} months").build()});
+        quantitativeUnitCache.put(RelativeUnit.WEEKS, new QuantityFormatter[] {
+                qb.add("one", "{0} week ago").add("other", "{0} weeks ago").build(),
+                qb.add("one", "in {0} week").add("other", "in {0} weeks").build()});
         quantitativeUnitCache.put(RelativeUnit.DAYS, new QuantityFormatter[] {
                 qb.add("one", "{0} day ago").add("other", "{0} days ago").build(),
                 qb.add("one", "in {0} day").add("other", "in {0} days").build()});

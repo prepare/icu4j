@@ -79,7 +79,8 @@ public class TestAll extends TestGroup {
                 "DateTimeGeneratorTest",
                 "IntlTestSimpleDateFormatAPI",
                 "DateFormatRegressionTestJ",
-                "TimeZoneFormatTest"
+                "TimeZoneFormatTest",
+                "RelativeDateTimeFormatterTest"
             });
         }
     }
