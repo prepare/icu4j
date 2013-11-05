@@ -320,7 +320,8 @@ public class RelativeDateTimeFormatter {
     
     /**
      * Specify which NumberFormat object this object should use for
-     * formatting numbers.
+     * formatting numbers. By default this object uses the default
+     * NumberFormat object for this object's locale.
      * @param nf the NumberFormat object to use. This method makes
      *  its own defensive copy of nf so that subsequent
      *  changes to nf will not affect the operation of this object.
@@ -335,7 +336,7 @@ public class RelativeDateTimeFormatter {
     /**
      * Combines a relative date string and a time string in this object's
      * locale. This is done with the same date-time separator used for the
-     * Gregorian calendar in this locale.
+     * default calendar in this locale.
      * @param relativeDateString the relative date e.g 'yesterday'
      * @param timeString the time e.g '3:45'
      * @return the date and time concatenated according to the Gregorian
