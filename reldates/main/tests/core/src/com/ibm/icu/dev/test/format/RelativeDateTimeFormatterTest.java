@@ -94,6 +94,20 @@ public class RelativeDateTimeFormatterTest extends TestFmwk {
         }
     }
     
+    public void TestRelativeDateWithQuantitySr() {
+        Object[][] data = {
+                {0.0, Direction.NEXT, RelativeUnit.MONTHS, "за 0 месеци"},
+                {1.2, Direction.NEXT, RelativeUnit.MONTHS, "за 1.2 месеца"},
+                {21.0, Direction.NEXT, RelativeUnit.MONTHS, "за {0} месец"},      
+        };
+        RelativeDateTimeFormatter fmt = RelativeDateTimeFormatter.getInstance(new ULocale("sr"));
+        for (Object[] row : data) {
+            String actual = fmt.format(
+                    ((Double) row[0]).doubleValue(), (Direction) row[1], (RelativeUnit) row[2]);
+            assertEquals("Relative date with quantity", row[3], actual);
+        }
+    }
+    
     public void TestRelativeDateWithoutQuantity() {
         Object[][] data = {
                 {Direction.NEXT, AbsoluteUnit.DAY, "tomorrow"},

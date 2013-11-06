@@ -9,7 +9,11 @@ package com.ibm.icu.text;
 import java.util.EnumMap;
 
 import com.ibm.icu.impl.CalendarData;
+import com.ibm.icu.impl.ICUCache;
+import com.ibm.icu.impl.ICUResourceBundle;
+import com.ibm.icu.impl.SimpleCache;
 import com.ibm.icu.util.ULocale;
+import com.ibm.icu.util.UResourceBundle;
 
 
 /**
@@ -58,7 +62,7 @@ import com.ibm.icu.util.ULocale;
  * @draft ICU 53
  * @provisional
  */
-public final class RelativeDateTimeFormatter { 
+public final class RelativeDateTimeFormatter {
     
     /**
      * Represents the unit for formatting a relative date. e.g "in 5 days"
@@ -253,14 +257,7 @@ public final class RelativeDateTimeFormatter {
      * @provisional
      */
     public static RelativeDateTimeFormatter getInstance() {
-        CalendarData calData = new CalendarData(ULocale.getDefault(), null);
-        // TODO: Pull from resource bundles/cache
-        return new RelativeDateTimeFormatter(
-                qualitativeUnitCache,
-                quantitativeUnitCache,
-                new MessageFormat(calData.getDateTimePattern()),
-                PluralRules.forLocale(ULocale.getDefault()),
-                NumberFormat.getInstance());
+        return getInstance(ULocale.getDefault());
     }
     
     /**
@@ -270,10 +267,10 @@ public final class RelativeDateTimeFormatter {
      */
     public static RelativeDateTimeFormatter getInstance(ULocale locale) {
         CalendarData calData = new CalendarData(locale, null);
-        // TODO: Pull from resource bundles/cache
+        RelativeDateTimeFormatterData data = cache.get(locale);
         return new RelativeDateTimeFormatter(
-                qualitativeUnitCache,
-                quantitativeUnitCache,
+                data.qualitativeUnitMap,
+                data.quantitativeUnitMap,
                 new MessageFormat(calData.getDateTimePattern()),
                 PluralRules.forLocale(locale),
                 NumberFormat.getInstance(locale));
@@ -312,6 +309,9 @@ public final class RelativeDateTimeFormatter {
      * @provisional
      */
     public String format(Direction direction, AbsoluteUnit unit) {
+        if (unit == AbsoluteUnit.NOW && direction != Direction.PLAIN) {
+            throw new IllegalArgumentException("NOW can only accept direction PLAIN.");
+        }
         return this.qualitativeUnitMap.get(unit).get(direction);
     }
     
@@ -361,13 +361,13 @@ public final class RelativeDateTimeFormatter {
 
     private static void addQualitativeUnit(
             EnumMap<AbsoluteUnit, EnumMap<Direction, String>> qualitativeUnits,
-            AbsoluteUnit unit, String last, String current, String next) {
+            AbsoluteUnit unit, String last, String current, String next, String plain) {
         EnumMap<Direction, String> unitStrings =
                 new EnumMap<Direction, String>(Direction.class);
         unitStrings.put(Direction.LAST, last);
         unitStrings.put(Direction.THIS, current);
         unitStrings.put(Direction.NEXT, next);
-        unitStrings.put(Direction.PLAIN, current);
+        unitStrings.put(Direction.PLAIN, plain);
         qualitativeUnits.put(unit,  unitStrings);
     }
  
@@ -389,54 +389,210 @@ public final class RelativeDateTimeFormatter {
         return isFuture ? quantities[1] : quantities[0];
     }
     
-    private static final EnumMap<AbsoluteUnit, EnumMap<Direction, String>> qualitativeUnitCache =
-            new EnumMap<AbsoluteUnit, EnumMap<Direction, String>>(AbsoluteUnit.class);
-    
-    private static final EnumMap<RelativeUnit, QuantityFormatter[]> quantitativeUnitCache =
-            new EnumMap<RelativeUnit, QuantityFormatter[]>(RelativeUnit.class);
-    
-    static {
-        addQualitativeUnit(qualitativeUnitCache, AbsoluteUnit.DAY, "yesterday", "today", "tomorrow");
-        addQualitativeUnit(qualitativeUnitCache, AbsoluteUnit.WEEK, "last week", "this week", "next week");
-        addQualitativeUnit(qualitativeUnitCache, AbsoluteUnit.MONTH, "last month", "this month", "next month");
-        addQualitativeUnit(qualitativeUnitCache, AbsoluteUnit.YEAR, "last year", "this year", "next year");
-        addQualitativeUnit(qualitativeUnitCache, AbsoluteUnit.MONDAY, "last Monday", "this Monday", "next Monday");
-        addQualitativeUnit(qualitativeUnitCache, AbsoluteUnit.TUESDAY, "last Tuesday", "this Tuesday", "next Tuesday");
-        addQualitativeUnit(qualitativeUnitCache, AbsoluteUnit.WEDNESDAY, "last Wednesday", "this Wednesday", "next Wednesday");
-        addQualitativeUnit(qualitativeUnitCache, AbsoluteUnit.THURSDAY, "last Thursday", "this Thursday", "next Thursday");
-        addQualitativeUnit(qualitativeUnitCache, AbsoluteUnit.FRIDAY, "last Friday", "this Friday", "next Friday");
-        addQualitativeUnit(qualitativeUnitCache, AbsoluteUnit.SATURDAY, "last Saturday", "this Saturday", "next Saturday");
-        addQualitativeUnit(qualitativeUnitCache, AbsoluteUnit.SUNDAY, "last Sunday", "this Sunday", "next Sunday");
-        addQualitativeUnit(qualitativeUnitCache, AbsoluteUnit.NOW, "now");
-        
-        QuantityFormatter.Builder qb = new QuantityFormatter.Builder();
-        quantitativeUnitCache.put(RelativeUnit.YEARS, new QuantityFormatter[] {
-                qb.add("one", "{0} year ago").add("other", "{0} years ago").build(),
-                qb.add("one", "in {0} year").add("other", "in {0} years").build()});
-        quantitativeUnitCache.put(RelativeUnit.MONTHS, new QuantityFormatter[] {
-                qb.add("one", "{0} month ago").add("other", "{0} months ago").build(),
-                qb.add("one", "in {0} month").add("other", "in {0} months").build()});
-        quantitativeUnitCache.put(RelativeUnit.WEEKS, new QuantityFormatter[] {
-                qb.add("one", "{0} week ago").add("other", "{0} weeks ago").build(),
-                qb.add("one", "in {0} week").add("other", "in {0} weeks").build()});
-        quantitativeUnitCache.put(RelativeUnit.DAYS, new QuantityFormatter[] {
-                qb.add("one", "{0} day ago").add("other", "{0} days ago").build(),
-                qb.add("one", "in {0} day").add("other", "in {0} days").build()});
-        quantitativeUnitCache.put(RelativeUnit.HOURS, new QuantityFormatter[] {
-                qb.add("one", "{0} hour ago").add("other", "{0} hours ago").build(),
-                qb.add("one", "in {0} hour").add("other", "in {0} hours").build()});
-        quantitativeUnitCache.put(RelativeUnit.MINUTES, new QuantityFormatter[] {
-                qb.add("one", "{0} minute ago").add("other", "{0} minutes ago").build(),
-                qb.add("one", "in {0} minute").add("other", "in {0} minutes").build()});
-        quantitativeUnitCache.put(RelativeUnit.SECONDS, new QuantityFormatter[] {
-                qb.add("one", "{0} second ago").add("other", "{0} seconds ago").build(),
-                qb.add("one", "in {0} second").add("other", "in {0} seconds").build()});
-    }
-    
-
     private final EnumMap<AbsoluteUnit, EnumMap<Direction, String>> qualitativeUnitMap;
     private final EnumMap<RelativeUnit, QuantityFormatter[]> quantitativeUnitMap;
     private final MessageFormat combinedDateAndTime;
     private final PluralRules pluralRules;
     private NumberFormat numberFormat;
+    
+    private static class RelativeDateTimeFormatterData {
+        public RelativeDateTimeFormatterData(
+                EnumMap<AbsoluteUnit, EnumMap<Direction, String>> qualitativeUnitMap,
+                EnumMap<RelativeUnit, QuantityFormatter[]> quantitativeUnitMap) {
+            this.qualitativeUnitMap = qualitativeUnitMap;
+            this.quantitativeUnitMap = quantitativeUnitMap;
+        }
+        
+        public final EnumMap<AbsoluteUnit, EnumMap<Direction, String>> qualitativeUnitMap;
+        public final EnumMap<RelativeUnit, QuantityFormatter[]> quantitativeUnitMap;
+    }
+    
+    private static class Cache {
+        private final ICUCache<String, RelativeDateTimeFormatterData> cache =
+            new SimpleCache<String, RelativeDateTimeFormatterData>();
+
+        public RelativeDateTimeFormatterData get(ULocale locale) {
+            String key = locale.toString();
+            RelativeDateTimeFormatterData result = cache.get(key);
+            if (result == null) {
+                result = load(locale);
+                cache.put(key, result);
+            }
+            return result;
+        }
+
+        private static RelativeDateTimeFormatterData load(ULocale ulocale) {
+            EnumMap<AbsoluteUnit, EnumMap<Direction, String>> qualitativeUnitMap = 
+                    new EnumMap<AbsoluteUnit, EnumMap<Direction, String>>(AbsoluteUnit.class);
+            
+            EnumMap<RelativeUnit, QuantityFormatter[]> quantitativeUnitMap =
+                    new EnumMap<RelativeUnit, QuantityFormatter[]>(RelativeUnit.class);
+                    
+            ICUResourceBundle r = (ICUResourceBundle)UResourceBundle.
+                    getBundleInstance(ICUResourceBundle.ICU_BASE_NAME, ulocale);
+            addTimeUnit(
+                    r.getWithFallback("fields/day"),
+                    RelativeUnit.DAYS,
+                    AbsoluteUnit.DAY,
+                    quantitativeUnitMap,
+                    qualitativeUnitMap);
+            addTimeUnit(
+                    r.getWithFallback("fields/week"),
+                    RelativeUnit.WEEKS,
+                    AbsoluteUnit.WEEK,
+                    quantitativeUnitMap,
+                    qualitativeUnitMap);
+            addTimeUnit(
+                    r.getWithFallback("fields/month"),
+                    RelativeUnit.MONTHS,
+                    AbsoluteUnit.MONTH,
+                    quantitativeUnitMap,
+                    qualitativeUnitMap);
+            addTimeUnit(
+                    r.getWithFallback("fields/year"),
+                    RelativeUnit.YEARS,
+                    AbsoluteUnit.YEAR,
+                    quantitativeUnitMap,
+                    qualitativeUnitMap);
+            addTimeUnit(
+                    r.getWithFallback("fields/second"),
+                    RelativeUnit.SECONDS,
+                    quantitativeUnitMap);
+            addTimeUnit(
+                    r.getWithFallback("fields/minute"),
+                    RelativeUnit.MINUTES,
+                    quantitativeUnitMap);
+            addTimeUnit(
+                    r.getWithFallback("fields/hour"),
+                    RelativeUnit.HOURS,
+                    quantitativeUnitMap);
+            addQualitativeUnit(
+                    qualitativeUnitMap,
+                    AbsoluteUnit.NOW,
+                    r.getStringWithFallback("fields/second/relative/0"));
+            
+            // TODO(tkeep): Do we want stand-alone or format for this?
+            EnumMap<AbsoluteUnit, String> dayOfWeekMap = readDaysOfWeek(
+                r.getWithFallback("calendar/gregorian/dayNames/stand-alone/wide")
+            );
+            
+            addWeekDay(
+                    r.getWithFallback("fields/mon"),
+                    dayOfWeekMap,
+                    AbsoluteUnit.MONDAY,
+                    qualitativeUnitMap);
+            addWeekDay(
+                    r.getWithFallback("fields/tue"),
+                    dayOfWeekMap,
+                    AbsoluteUnit.TUESDAY,
+                    qualitativeUnitMap);
+            addWeekDay(
+                    r.getWithFallback("fields/wed"),
+                    dayOfWeekMap,
+                    AbsoluteUnit.WEDNESDAY,
+                    qualitativeUnitMap);
+            addWeekDay(
+                    r.getWithFallback("fields/thu"),
+                    dayOfWeekMap,
+                    AbsoluteUnit.THURSDAY,
+                    qualitativeUnitMap);
+            addWeekDay(
+                    r.getWithFallback("fields/fri"),
+                    dayOfWeekMap,
+                    AbsoluteUnit.FRIDAY,
+                    qualitativeUnitMap);
+            addWeekDay(
+                    r.getWithFallback("fields/sat"),
+                    dayOfWeekMap,
+                    AbsoluteUnit.SATURDAY,
+                    qualitativeUnitMap);
+            addWeekDay(
+                    r.getWithFallback("fields/sun"),
+                    dayOfWeekMap,
+                    AbsoluteUnit.SUNDAY,
+                    qualitativeUnitMap);          
+            return new RelativeDateTimeFormatterData(qualitativeUnitMap, quantitativeUnitMap);
+        }
+
+        private static void addTimeUnit(
+                ICUResourceBundle timeUnitBundle,
+                RelativeUnit relativeUnit,
+                AbsoluteUnit absoluteUnit,
+                EnumMap<RelativeUnit, QuantityFormatter[]> quantitativeUnitMap,
+                EnumMap<AbsoluteUnit, EnumMap<Direction, String>> qualitativeUnitMap) {
+            addTimeUnit(timeUnitBundle, relativeUnit, quantitativeUnitMap);
+            String unitName = timeUnitBundle.getStringWithFallback("dn");
+            timeUnitBundle = timeUnitBundle.getWithFallback("relative");
+            addQualitativeUnit(
+                    qualitativeUnitMap,
+                    absoluteUnit,
+                    timeUnitBundle.getStringWithFallback("-1"),
+                    timeUnitBundle.getStringWithFallback("0"),
+                    timeUnitBundle.getStringWithFallback("1"),
+                    unitName);            
+            
+        }
+
+        private static void addTimeUnit(
+                ICUResourceBundle timeUnitBundle,
+                RelativeUnit relativeUnit,
+                EnumMap<RelativeUnit, QuantityFormatter[]> quantitativeUnitMap) {
+            QuantityFormatter.Builder future = new QuantityFormatter.Builder();
+            QuantityFormatter.Builder past = new QuantityFormatter.Builder();
+            timeUnitBundle = timeUnitBundle.getWithFallback("relativeTime");
+            addTimeUnit(
+                    timeUnitBundle.getWithFallback("future"),
+                    future);
+            addTimeUnit(
+                    timeUnitBundle.getWithFallback("past"),
+                    past);
+            quantitativeUnitMap.put(
+                    relativeUnit, new QuantityFormatter[] { past.build(), future.build() });
+        }
+
+        private static void addTimeUnit(
+                ICUResourceBundle pastOrFuture, QuantityFormatter.Builder builder) {
+            int size = pastOrFuture.getSize();
+            for (int i = 0; i < size; i++) {
+                UResourceBundle r = pastOrFuture.get(i);
+                builder.add(r.getKey(), r.getString());
+            }
+        }
+
+        private static void addWeekDay(
+                ICUResourceBundle weekdayBundle,
+                EnumMap<AbsoluteUnit, String> dayOfWeekMap,
+                AbsoluteUnit weekDay,
+                EnumMap<AbsoluteUnit, EnumMap<Direction, String>> qualitativeUnitMap) {
+            weekdayBundle = weekdayBundle.findWithFallback("relative");
+            addQualitativeUnit(
+                    qualitativeUnitMap,
+                    weekDay,
+                    weekdayBundle.getStringWithFallback("-1"),
+                    weekdayBundle.getStringWithFallback("0"),
+                    weekdayBundle.getStringWithFallback("1"),
+                    dayOfWeekMap.get(weekDay));
+        }
+
+        private static EnumMap<AbsoluteUnit, String> readDaysOfWeek(ICUResourceBundle daysOfWeekBundle) {
+            EnumMap<AbsoluteUnit, String> dayOfWeekMap = new EnumMap<AbsoluteUnit, String>(AbsoluteUnit.class);
+            if (daysOfWeekBundle.getSize() != 7) {
+                throw new IllegalStateException(String.format("Expect 7 days in a week, got %d", daysOfWeekBundle.getSize()));
+            }
+            // Assuming that days of week are always listed from Sunday.
+            // TODO(tkeep): Is this always true?
+            int idx = 0;
+            dayOfWeekMap.put(AbsoluteUnit.SUNDAY, daysOfWeekBundle.getString(idx++));
+            dayOfWeekMap.put(AbsoluteUnit.MONDAY, daysOfWeekBundle.getString(idx++));
+            dayOfWeekMap.put(AbsoluteUnit.TUESDAY, daysOfWeekBundle.getString(idx++));
+            dayOfWeekMap.put(AbsoluteUnit.WEDNESDAY, daysOfWeekBundle.getString(idx++));
+            dayOfWeekMap.put(AbsoluteUnit.THURSDAY, daysOfWeekBundle.getString(idx++));
+            dayOfWeekMap.put(AbsoluteUnit.FRIDAY, daysOfWeekBundle.getString(idx++));
+            dayOfWeekMap.put(AbsoluteUnit.SATURDAY, daysOfWeekBundle.getString(idx++));
+            return dayOfWeekMap;
+        }
+    }
+    
+
+    private static final Cache cache = new Cache();
 }
