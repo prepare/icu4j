@@ -97,8 +97,8 @@ public class RelativeDateTimeFormatterTest extends TestFmwk {
     public void TestRelativeDateWithQuantitySr() {
         Object[][] data = {
                 {0.0, Direction.NEXT, RelativeUnit.MONTHS, "за 0 месеци"},
-                {1.2, Direction.NEXT, RelativeUnit.MONTHS, "за 1.2 месеца"},
-                {21.0, Direction.NEXT, RelativeUnit.MONTHS, "за {0} месец"},      
+                {1.2, Direction.NEXT, RelativeUnit.MONTHS, "за 1,2 месеца"},
+                {21.0, Direction.NEXT, RelativeUnit.MONTHS, "за 21 месец"},      
         };
         RelativeDateTimeFormatter fmt = RelativeDateTimeFormatter.getInstance(new ULocale("sr"));
         for (Object[] row : data) {
