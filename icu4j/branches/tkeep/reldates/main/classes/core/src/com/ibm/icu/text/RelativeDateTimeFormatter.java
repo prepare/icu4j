@@ -415,13 +415,21 @@ public final class RelativeDateTimeFormatter {
             String key = locale.toString();
             RelativeDateTimeFormatterData result = cache.get(key);
             if (result == null) {
-                result = load(locale);
+                result = new Loader(locale).load();
                 cache.put(key, result);
             }
             return result;
         }
+    }
+    
+    private static class Loader {
+        private final ULocale ulocale;
+        
+        public Loader(ULocale ulocale) {
+            this.ulocale = ulocale;
+        }
 
-        private static RelativeDateTimeFormatterData load(ULocale ulocale) {
+        public RelativeDateTimeFormatterData load() {
             EnumMap<AbsoluteUnit, EnumMap<Direction, String>> qualitativeUnitMap = 
                     new EnumMap<AbsoluteUnit, EnumMap<Direction, String>>(AbsoluteUnit.class);
             
@@ -471,7 +479,6 @@ public final class RelativeDateTimeFormatter {
                     AbsoluteUnit.NOW,
                     r.getStringWithFallback("fields/second/relative/0"));
             
-            // TODO(tkeep): Do we want stand-alone or format for this?
             EnumMap<AbsoluteUnit, String> dayOfWeekMap = readDaysOfWeek(
                 r.getWithFallback("calendar/gregorian/dayNames/stand-alone/wide")
             );
@@ -514,7 +521,7 @@ public final class RelativeDateTimeFormatter {
             return new RelativeDateTimeFormatterData(qualitativeUnitMap, quantitativeUnitMap);
         }
 
-        private static void addTimeUnit(
+        private void addTimeUnit(
                 ICUResourceBundle timeUnitBundle,
                 RelativeUnit relativeUnit,
                 AbsoluteUnit absoluteUnit,
@@ -522,6 +529,10 @@ public final class RelativeDateTimeFormatter {
                 EnumMap<AbsoluteUnit, EnumMap<Direction, String>> qualitativeUnitMap) {
             addTimeUnit(timeUnitBundle, relativeUnit, quantitativeUnitMap);
             String unitName = timeUnitBundle.getStringWithFallback("dn");
+            // TODO(Travis Keep): This is a hack to get around CLDR bug 6818.
+            if (ulocale.getLanguage().equals("en")) {
+                unitName = unitName.toLowerCase();
+            }
             timeUnitBundle = timeUnitBundle.getWithFallback("relative");
             addQualitativeUnit(
                     qualitativeUnitMap,
