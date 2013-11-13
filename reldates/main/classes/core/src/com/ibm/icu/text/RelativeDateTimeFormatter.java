@@ -223,6 +223,14 @@ public final class RelativeDateTimeFormatter {
       public static enum Direction {
           
           /**
+           * Two before. Not fully supported in every locale
+           * @draft ICU 53
+           * @provisional
+           */
+          LAST_2,
+
+          
+          /**
            * Last
            * @draft ICU 53
            * @provisional
@@ -242,6 +250,13 @@ public final class RelativeDateTimeFormatter {
          * @provisional
          */
         NEXT,
+        
+        /**
+         * Two after. Not fully supported in every locale
+         * @draft ICU 53
+         * @provisional
+         */
+        NEXT_2,
         
         /**
          * Plain, which means the absence of a qualifier
@@ -302,7 +317,9 @@ public final class RelativeDateTimeFormatter {
      * Formats a relative date without a quantity.
      * @param direction NEXT, LAST, THIS, etc.
      * @param unit e.g SATURDAY, DAY, MONTH
-     * @return the formatted string
+     * @return the formatted string. If direction has a value that is documented as not being
+     *  fully supported in every locale (for example NEXT_2 or LAST_2) then this function may
+     *  return null to signal that no formatted string is available.
      * @throws IllegalArgumentException if the direction is incompatible with
      * unit this can occur with NOW which can only take PLAIN.
      * @draft ICU 53
@@ -361,16 +378,29 @@ public final class RelativeDateTimeFormatter {
 
     private static void addQualitativeUnit(
             EnumMap<AbsoluteUnit, EnumMap<Direction, String>> qualitativeUnits,
-            AbsoluteUnit unit, String last, String current, String next, String plain) {
+            AbsoluteUnit unit, ICUResourceBundle bundle, String plain) {
         EnumMap<Direction, String> unitStrings =
                 new EnumMap<Direction, String>(Direction.class);
-        unitStrings.put(Direction.LAST, last);
-        unitStrings.put(Direction.THIS, current);
-        unitStrings.put(Direction.NEXT, next);
+        unitStrings.put(Direction.LAST, bundle.getStringWithFallback("-1"));
+        unitStrings.put(Direction.THIS, bundle.getStringWithFallback("0"));
+        unitStrings.put(Direction.NEXT, bundle.getStringWithFallback("1"));
+        addOptionalDirection(unitStrings, Direction.LAST_2, bundle, "-2");
+        addOptionalDirection(unitStrings, Direction.NEXT_2, bundle, "2");
         unitStrings.put(Direction.PLAIN, plain);
         qualitativeUnits.put(unit,  unitStrings);
     }
  
+    private static void addOptionalDirection(
+            EnumMap<Direction, String> unitStrings,
+            Direction direction,
+            ICUResourceBundle bundle,
+            String key) {
+        bundle = bundle.findWithFallback(key);
+        if (bundle != null) {
+            unitStrings.put(direction, bundle.getString());
+        }
+    }
+
     private RelativeDateTimeFormatter(
             EnumMap<AbsoluteUnit, EnumMap<Direction, String>> qualitativeUnitMap,
             EnumMap<RelativeUnit, QuantityFormatter[]> quantitativeUnitMap,
@@ -537,11 +567,8 @@ public final class RelativeDateTimeFormatter {
             addQualitativeUnit(
                     qualitativeUnitMap,
                     absoluteUnit,
-                    timeUnitBundle.getStringWithFallback("-1"),
-                    timeUnitBundle.getStringWithFallback("0"),
-                    timeUnitBundle.getStringWithFallback("1"),
-                    unitName);            
-            
+                    timeUnitBundle,
+                    unitName);
         }
 
         private static void addTimeUnit(
@@ -579,9 +606,7 @@ public final class RelativeDateTimeFormatter {
             addQualitativeUnit(
                     qualitativeUnitMap,
                     weekDay,
-                    weekdayBundle.getStringWithFallback("-1"),
-                    weekdayBundle.getStringWithFallback("0"),
-                    weekdayBundle.getStringWithFallback("1"),
+                    weekdayBundle,
                     dayOfWeekMap.get(weekDay));
         }
 
