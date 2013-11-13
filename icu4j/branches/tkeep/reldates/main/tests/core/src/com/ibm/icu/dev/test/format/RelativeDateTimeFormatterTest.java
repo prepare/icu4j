@@ -110,6 +110,8 @@ public class RelativeDateTimeFormatterTest extends TestFmwk {
     
     public void TestRelativeDateWithoutQuantity() {
         Object[][] data = {
+                {Direction.NEXT_2, AbsoluteUnit.DAY, null},
+                
                 {Direction.NEXT, AbsoluteUnit.DAY, "tomorrow"},
                 {Direction.NEXT, AbsoluteUnit.WEEK, "next week"},
                 {Direction.NEXT, AbsoluteUnit.MONTH, "next month"},
@@ -121,6 +123,8 @@ public class RelativeDateTimeFormatterTest extends TestFmwk {
                 {Direction.NEXT, AbsoluteUnit.FRIDAY, "next Friday"},
                 {Direction.NEXT, AbsoluteUnit.SATURDAY, "next Saturday"},
                 {Direction.NEXT, AbsoluteUnit.SUNDAY, "next Sunday"},
+                
+                {Direction.LAST_2, AbsoluteUnit.DAY, null},
                 
                 {Direction.LAST, AbsoluteUnit.DAY, "yesterday"},
                 {Direction.LAST, AbsoluteUnit.WEEK, "last week"},
@@ -164,6 +168,18 @@ public class RelativeDateTimeFormatterTest extends TestFmwk {
         for (Object[] row : data) {
             String actual = fmt.format((Direction) row[0], (AbsoluteUnit) row[1]);
             assertEquals("Relative date without quantity", row[2], actual);
+        }
+    }
+    
+    public void TestTwoBeforeTwoAfter() {
+        Object[][] data = {
+                {Direction.NEXT_2, AbsoluteUnit.DAY, "pasado ma\u00F1ana"},
+                {Direction.LAST_2, AbsoluteUnit.DAY, "antes de ayer"},
+        };
+        RelativeDateTimeFormatter fmt = RelativeDateTimeFormatter.getInstance(new ULocale("es"));
+        for (Object[] row : data) {
+            String actual = fmt.format((Direction) row[0], (AbsoluteUnit) row[1]);
+            assertEquals("Two before two after", row[2], actual);
         }
     }
     
