@@ -886,11 +886,39 @@ public class DecimalFormat extends NumberFormat {
             addPadding(result, fieldPosition, prefixLen, suffixLen);
             return result;
         }
+        
+        int precision = precision(false);
+        
+        // This is to fix rounding for scientific notation. See ticket:10542.
+        // This code should go away when a permanent fix is done for ticket:9931.
+        //
+        // This block of code only executes for scientific notation so it will not interfere with the
+        // previous fix in {@link #resetActualRounding} for fixed decimal numbers.
+        // Moreover this code only runs when there is rounding to be done (precision > 0) and when the
+        // rounding mode is something other than ROUND_HALF_EVEN.
+        // This block of code does the correct rounding of number in advance so that it will fit into
+        // the number of digits indicated by precision. In this way, we avoid using the default
+        // ROUND_HALF_EVEN behavior of DigitList. For example, if number = 0.003016 and roundingMode =
+        // ROUND_DOWN and precision = 3 then after this code executes, number = 0.00301 (3 significant digits)
+        if (useExponentialNotation && precision > 0 && number != 0.0 && roundingMode != BigDecimal.ROUND_HALF_EVEN) {
+           int log10RoundingIncr = 1 - precision + (int) Math.floor(Math.log10(Math.abs(number)));
+           double roundingIncReciprocal = 0.0;
+           double roundingInc = 0.0;
+           if (log10RoundingIncr < 0) {
+               roundingIncReciprocal =
+                       BigDecimal.ONE.movePointRight(-log10RoundingIncr).doubleValue();
+           } else {
+               roundingInc =
+                       BigDecimal.ONE.movePointRight(log10RoundingIncr).doubleValue();
+           }
+           number = DecimalFormat.round(number, roundingInc, roundingIncReciprocal, roundingMode, isNegative);
+        }
+        // End fix for ticket:10542
 
         // At this point we are guaranteed a nonnegative finite
         // number.
         synchronized (digitList) {
-            digitList.set(number, precision(false), !useExponentialNotation &&
+            digitList.set(number, precision, !useExponentialNotation &&
                           !areSignificantDigitsUsed());
             return subformat(number, result, fieldPosition, isNegative, false, parseAttr);
         }
@@ -956,7 +984,7 @@ public class DecimalFormat extends NumberFormat {
      * @param roundingInc
      *            the rounding increment
      * @param roundingIncReciprocal
-     *            if non-zero, is the
+     *            if non-zero, is the reciprocal of rounding inc.
      * @param mode
      *            a BigDecimal rounding mode
      * @param isNegative
@@ -2770,24 +2798,31 @@ public class DecimalFormat extends NumberFormat {
     /**
      * Remove bidi marks from affix
      */
-    private static final int TRIM_BUFLEN = 32;
-    private static String trimMarksFromAffix(String affix) {
-        char[] trimBuf = new char[TRIM_BUFLEN];
-        int affixLen = affix.length();
-        int affixPos, trimLen = 0;
-        for (affixPos = 0; affixPos < affixLen; affixPos++) {
-            char c = affix.charAt(affixPos);
-            if (!isBidiMark(c)) {
-                if (trimLen < TRIM_BUFLEN) {
-                    trimBuf[trimLen++] = c;
-                } else {
-                    trimLen = 0;
-                    break;
-                }
-            }
-        }
-        return (trimLen > 0)? new String(trimBuf, 0, trimLen): affix;
-    }
+    private static String trimMarksFromAffix(String affix) { 
+        boolean hasBidiMark = false; 
+        int idx = 0; 
+        for (; idx < affix.length(); idx++) { 
+            if (isBidiMark(affix.charAt(idx))) { 
+                hasBidiMark = true; 
+                break; 
+            } 
+        } 
+        if (!hasBidiMark) { 
+            return affix; 
+        } 
+
+        StringBuilder buf = new StringBuilder(); 
+        buf.append(affix, 0, idx); 
+        idx++;  // skip the first Bidi mark 
+        for (; idx < affix.length(); idx++) { 
+            char c = affix.charAt(idx); 
+            if (!isBidiMark(c)) { 
+                buf.append(c); 
+            } 
+        } 
+
+        return buf.toString(); 
+    } 
 
     /**
      * Return the length matched by the given affix, or -1 if none. Runs of white space in
@@ -2804,7 +2839,7 @@ public class DecimalFormat extends NumberFormat {
         // Affixes here might consist of sign, currency symbol and related spacing, etc.
         // For more efficiency we should keep lazily-created trimmed affixes around in
         // instance variables instead of trimming each time they are used (the next step).
-        String trimmedAffix = trimMarksFromAffix(affix);
+        String trimmedAffix = (affix.length() > 1)? trimMarksFromAffix(affix): affix;
         for (int i = 0; i < trimmedAffix.length();) {
             int c = UTF16.charAt(trimmedAffix, i);
             int len = UTF16.getCharCount(c);
@@ -5250,6 +5285,7 @@ public class DecimalFormat extends NumberFormat {
     * The default value is 1000.
     * @param newValue the new limit
     * @draft ICU 51
+    * @provisional This API might change or be removed in a future release.
     */
     public void setParseMaxDigits(int newValue) {
         if (newValue > 0) {
@@ -5262,6 +5298,7 @@ public class DecimalFormat extends NumberFormat {
     * number.
     *
     * @draft ICU 51
+    * @provisional This API might change or be removed in a future release.
     */
     public int getParseMaxDigits() {
         return PARSE_MAX_EXPONENT;
@@ -5964,11 +6001,16 @@ public class DecimalFormat extends NumberFormat {
                 actualRoundingIncrementICU = byWidth.equals(BigDecimal.ONE) ? null : byWidth;
             }
         } else {
-            if (roundingMode == BigDecimal.ROUND_HALF_EVEN) {
+            if (roundingMode == BigDecimal.ROUND_HALF_EVEN || isScientificNotation()) {
+                // This rounding fix is irrelevant if mode is ROUND_HALF_EVEN as DigitList
+                // does ROUND_HALF_EVEN for us.  This rounding fix won't work at all for
+                // scientific notation.
                 actualRoundingIncrementICU = null;
             } else {
                 if (getMaximumFractionDigits() > 0) {
                     actualRoundingIncrementICU = BigDecimal.ONE.movePointLeft(getMaximumFractionDigits());
+                }  else {
+                    actualRoundingIncrementICU = BigDecimal.ONE;
                 }
             }
         }

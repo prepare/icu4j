@@ -453,12 +453,18 @@ public abstract class DateFormat extends UFormat {
      * <br/>
      * PARSE_ALLOW_NUMERIC - indicates tolerance of numeric data when String data may be assumed. eg: YEAR_NAME_FIELD
      * 
-     * @internal ICU 5.2 technology preview
+     * @internal ICU technology preview
      */
     public enum BooleanAttribute { 
-        /** indicates whitespace tolerance. Also included is trailing dot tolerance. */
+        /** 
+         * indicates whitespace tolerance. Also included is trailing dot tolerance. 
+         * @internal ICU technology preview
+         */
         PARSE_ALLOW_WHITESPACE,
-        /** indicates tolerance of numeric data when String data may be assumed. eg: YEAR_NAME_FIELD */
+        /** 
+         * indicates tolerance of numeric data when String data may be assumed. eg: YEAR_NAME_FIELD 
+         * @internal ICU technology preview
+         */
         PARSE_ALLOW_NUMERIC 
     };
     
@@ -818,15 +824,13 @@ public abstract class DateFormat extends UFormat {
 
     /**
      * {@icu} Constant for date skeleton with quarter.
-     * @draft ICU 50
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 50
      */
     public static final String QUARTER = "QQQQ";
 
     /**
      * {@icu} Constant for date skeleton with abbreviated quarter.
-     * @draft ICU 50
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 50
      */
     public static final String ABBR_QUARTER = "QQQ";
 
@@ -907,15 +911,13 @@ public abstract class DateFormat extends UFormat {
 
     /**
      * {@icu} Constant for date skeleton with weekday.
-     * @draft ICU 50
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 50
      */
     public static final String WEEKDAY = "EEEE";
 
     /**
      * {@icu} Constant for date skeleton with abbreviated weekday.
-     * @draft ICU 50
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 50
      */
     public static final String ABBR_WEEKDAY = "E";
 
@@ -994,15 +996,13 @@ public abstract class DateFormat extends UFormat {
 
     /**
      * {@icu} Constant for date skeleton with hour in 24-hour presentation.
-     * @draft ICU 50
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 50
      */
     public static final String HOUR24 = "H";
 
     /**
      * {@icu} Constant for date skeleton with minute.
-     * @draft ICU 50
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 50
      */
     public static final String MINUTE = "m";
 
@@ -1022,8 +1022,7 @@ public abstract class DateFormat extends UFormat {
 
     /**
      * {@icu} Constant for date skeleton with second.
-     * @draft ICU 50
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 50
      */
     public static final String SECOND = "s";
 
@@ -1059,8 +1058,7 @@ public abstract class DateFormat extends UFormat {
      * used in combinations date + time + zone, or time + zone.
      * @see <a href="http://unicode.org/reports/tr35/#Date_Format_Patterns">LDML Date Format Patterns</a>
      * @see <a href="http://unicode.org/reports/tr35/#Time_Zone_Fallback">LDML Time Zone Fallback</a>
-     * @draft ICU 50
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 50
      */
     public static final String LOCATION_TZ = "VVVV";
     
@@ -1069,8 +1067,7 @@ public abstract class DateFormat extends UFormat {
      * used in combinations date + time + zone, or time + zone.
      * @see <a href="http://unicode.org/reports/tr35/#Date_Format_Patterns">LDML Date Format Patterns</a>
      * @see <a href="http://unicode.org/reports/tr35/#Time_Zone_Fallback">LDML Time Zone Fallback</a>
-     * @draft ICU 50
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 50
      */
     public static final String GENERIC_TZ = "vvvv";
     
@@ -1079,8 +1076,7 @@ public abstract class DateFormat extends UFormat {
      * used in combinations date + time + zone, or time + zone.
      * @see <a href="http://unicode.org/reports/tr35/#Date_Format_Patterns">LDML Date Format Patterns</a>
      * @see <a href="http://unicode.org/reports/tr35/#Time_Zone_Fallback">LDML Time Zone Fallback</a>
-     * @draft ICU 50
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 50
      */
     public static final String ABBR_GENERIC_TZ = "v";
     
@@ -1089,8 +1085,7 @@ public abstract class DateFormat extends UFormat {
      * used in combinations date + time + zone, or time + zone.
      * @see <a href="http://unicode.org/reports/tr35/#Date_Format_Patterns">LDML Date Format Patterns</a>
      * @see <a href="http://unicode.org/reports/tr35/#Time_Zone_Fallback">LDML Time Zone Fallback</a>
-     * @draft ICU 50
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 50
      */
     public static final String SPECIFIC_TZ = "zzzz";
     
@@ -1099,8 +1094,7 @@ public abstract class DateFormat extends UFormat {
      * used in combinations date + time + zone, or time + zone.
      * @see <a href="http://unicode.org/reports/tr35/#Date_Format_Patterns">LDML Date Format Patterns</a>
      * @see <a href="http://unicode.org/reports/tr35/#Time_Zone_Fallback">LDML Time Zone Fallback</a>
-     * @draft ICU 50
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 50
      */
     public static final String ABBR_SPECIFIC_TZ = "z";
     
@@ -1109,8 +1103,7 @@ public abstract class DateFormat extends UFormat {
      * used in combinations date + time + zone, or time + zone.
      * @see <a href="http://unicode.org/reports/tr35/#Date_Format_Patterns">LDML Date Format Patterns</a>
      * @see <a href="http://unicode.org/reports/tr35/#Time_Zone_Fallback">LDML Time Zone Fallback</a>
-     * @draft ICU 50
-     * @provisional This API might change or be removed in a future release.
+     * @stable ICU 50
      */
     public static final String ABBR_UTC_TZ = "ZZZZ";
 
@@ -1484,7 +1477,7 @@ public abstract class DateFormat extends UFormat {
      * boolean attributes. 
      * 
      * @see BooleanAttribute
-     * @internal ICU 5.2 technology preview
+     * @internal ICU technology preview
      */
     public DateFormat setBooleanAttribute(BooleanAttribute key, boolean value) 
     {
@@ -1503,14 +1496,11 @@ public abstract class DateFormat extends UFormat {
      * if attribute is missing false is returned.
      * 
      * @see BooleanAttribute
-     * @internal ICU 5.2 technology preview
+     * @internal ICU technology preview
      */
     public boolean getBooleanAttribute(BooleanAttribute key) 
     {
-        if(booleanAttributes.contains(key))
-            return true;
-        else 
-            return false;
+        return booleanAttributes.contains(key);
     }
     
     

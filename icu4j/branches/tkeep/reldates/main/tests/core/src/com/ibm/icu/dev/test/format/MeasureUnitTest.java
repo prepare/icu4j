@@ -29,12 +29,36 @@ import com.ibm.icu.util.Currency;
 import com.ibm.icu.util.FormatWidth;
 import com.ibm.icu.util.Measure;
 import com.ibm.icu.util.MeasureUnit;
+import com.ibm.icu.util.TimeUnit;
+import com.ibm.icu.util.TimeUnitAmount;
 import com.ibm.icu.util.ULocale;
 
 /**
  * @author markdavis
  */
 public class MeasureUnitTest extends TestFmwk {
+    
+    private static final TimeUnitAmount[] _19m = {new TimeUnitAmount(19.0, TimeUnit.MINUTE)};
+    private static final TimeUnitAmount[] _1h_23_5s = {
+            new TimeUnitAmount(1.0, TimeUnit.HOUR),
+            new TimeUnitAmount(23.5, TimeUnit.SECOND)};
+    private static final TimeUnitAmount[] _1h_23_5m = {
+            new TimeUnitAmount(1.0, TimeUnit.HOUR),
+            new TimeUnitAmount(23.5, TimeUnit.MINUTE)};
+    private static final TimeUnitAmount[] _1h_0m_23s = {
+            new TimeUnitAmount(1.0, TimeUnit.HOUR),
+            new TimeUnitAmount(0.0, TimeUnit.MINUTE),
+            new TimeUnitAmount(23.0, TimeUnit.SECOND)};
+    private static final TimeUnitAmount[] _2y_5M_3w_4d = {
+            new TimeUnitAmount(2.0, TimeUnit.YEAR),
+            new TimeUnitAmount(5.0, TimeUnit.MONTH),
+            new TimeUnitAmount(3.0, TimeUnit.WEEK),
+            new TimeUnitAmount(4.0, TimeUnit.DAY)};
+    private static final TimeUnitAmount[] _1m_59_9996s = {
+            new TimeUnitAmount(1.0, TimeUnit.MINUTE),
+            new TimeUnitAmount(59.9996, TimeUnit.SECOND)};
+    
+    
     /**
      * @author markdavis
      *
@@ -42,6 +66,62 @@ public class MeasureUnitTest extends TestFmwk {
     public static void main(String[] args) {
         //generateConstants(); if (true) return;
         new MeasureUnitTest().run(args);
+    }
+    
+    public void TestFormatPeriodEn() {
+        Object[][] fullData = {
+                {_1m_59_9996s, "1 minute, 59.9996 seconds"},
+                {_19m, "19 minutes"},
+                {_1h_23_5s, "1 hour, 23.5 seconds"},
+                {_1h_23_5m, "1 hour, 23.5 minutes"},
+                {_1h_0m_23s, "1 hour, 0 minutes, 23 seconds"},
+                {_2y_5M_3w_4d, "2 years, 5 months, 3 weeks, 4 days"}};
+        Object[][] abbrevData = {
+                {_1m_59_9996s, "1 min, 59.9996 secs"},
+                {_19m, "19 mins"},
+                {_1h_23_5s, "1 hr, 23.5 secs"},
+                {_1h_23_5m, "1 hr, 23.5 mins"},
+                {_1h_0m_23s, "1 hr, 0 mins, 23 secs"},
+                {_2y_5M_3w_4d, "2 yrs, 5 mths, 3 wks, 4 days"}};
+        
+        // TODO(Travis Keep): We need to support numeric formatting. Either here or in TimeUnitFormat.
+        /*
+        Object[][] numericData = {
+                {_1m_59_9996s, "1:59.9996"},
+                {_19m, "19 mins"},
+                {_1h_23_5s, "1:00:23.5"},
+                {_1h_0m_23s, "1:00:23"},
+                {_1h_23_5m, "1:23.5"},
+                {_5h_17m, "5:17"},
+                {_19m_28s, "19:28"},
+                {_2y_5M_3w_4d, "2 yrs, 5 mths, 3 wks, 4 days"},
+                {_0h_0m_17s, "0:00:17"},
+                {_6h_56_92m, "6:56.92"}};
+       */
+        
+        NumberFormat nf = NumberFormat.getNumberInstance(ULocale.ENGLISH);
+        nf.setMaximumFractionDigits(4);
+        GeneralMeasureFormat gmf = GeneralMeasureFormat.getInstance(ULocale.ENGLISH, FormatWidth.WIDE, nf);
+        verifyFormatPeriod("en FULL", gmf, fullData);
+        gmf = GeneralMeasureFormat.getInstance(ULocale.ENGLISH, FormatWidth.SHORT, nf);
+        verifyFormatPeriod("en SHORT", gmf, abbrevData);
+       
+       
+    }
+    
+    private void verifyFormatPeriod(String desc, GeneralMeasureFormat gmf, Object[][] testData) {
+        StringBuilder builder = new StringBuilder();
+        boolean failure = false;
+        for (Object[] testCase : testData) {
+            String actual = gmf.format((Measure[]) testCase[0]);
+            if (!testCase[1].equals(actual)) {
+                builder.append(String.format("%s: Expected: '%s', got: '%s'\n", desc, testCase[1], actual));
+                failure = true;
+            }
+        }
+        if (failure) {
+            errln(builder.toString());
+        }
     }
 
     public void testAUnit() {
@@ -56,6 +136,10 @@ public class MeasureUnitTest extends TestFmwk {
             MeasureUnit actual = MeasureUnit.getInstance(type, code);
             assertSame("Identity check", expected, actual);
         }
+    }
+    
+    public void testTimePeriods() {
+        
     }
 
     public void testMultiples() {
@@ -145,10 +229,10 @@ public class MeasureUnitTest extends TestFmwk {
     public void testExamples() {
         GeneralMeasureFormat fmtFr = GeneralMeasureFormat.getInstance(ULocale.FRENCH, FormatWidth.SHORT);
         Measure measure = new Measure(23, MeasureUnit.CELSIUS);
-        assertEquals("", "23°C", fmtFr.format(measure));
+        assertEquals("", "23 °C", fmtFr.format(measure));
 
         Measure measureF = new Measure(70, MeasureUnit.FAHRENHEIT);
-        assertEquals("", "70°F", fmtFr.format(measureF));
+        assertEquals("", "70 °F", fmtFr.format(measureF));
 
         GeneralMeasureFormat fmtFrFull = GeneralMeasureFormat.getInstance(ULocale.FRENCH, FormatWidth.WIDE);
         if (!logKnownIssue("8474", "needs latest CLDR data")) {
