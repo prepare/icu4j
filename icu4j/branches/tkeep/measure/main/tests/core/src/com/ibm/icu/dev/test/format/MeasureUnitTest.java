@@ -23,10 +23,10 @@ import com.ibm.icu.dev.test.TestFmwk;
 import com.ibm.icu.dev.test.serializable.SerializableTest;
 import com.ibm.icu.impl.Utility;
 import com.ibm.icu.text.DecimalFormat;
-import com.ibm.icu.text.GeneralMeasureFormat;
+import com.ibm.icu.text.MeasureFormat;
+import com.ibm.icu.text.MeasureFormat.FormatWidth;
 import com.ibm.icu.text.NumberFormat;
 import com.ibm.icu.util.Currency;
-import com.ibm.icu.util.FormatWidth;
 import com.ibm.icu.util.Measure;
 import com.ibm.icu.util.MeasureUnit;
 import com.ibm.icu.util.TimeUnit;
@@ -57,6 +57,10 @@ public class MeasureUnitTest extends TestFmwk {
     private static final TimeUnitAmount[] _1m_59_9996s = {
             new TimeUnitAmount(1.0, TimeUnit.MINUTE),
             new TimeUnitAmount(59.9996, TimeUnit.SECOND)};
+    
+    public void TestAAA() {
+        System.out.println(TimeUnit.HOUR);
+    }
     
     
     /**
@@ -101,19 +105,19 @@ public class MeasureUnitTest extends TestFmwk {
         
         NumberFormat nf = NumberFormat.getNumberInstance(ULocale.ENGLISH);
         nf.setMaximumFractionDigits(4);
-        GeneralMeasureFormat gmf = GeneralMeasureFormat.getInstance(ULocale.ENGLISH, FormatWidth.WIDE, nf);
-        verifyFormatPeriod("en FULL", gmf, fullData);
-        gmf = GeneralMeasureFormat.getInstance(ULocale.ENGLISH, FormatWidth.SHORT, nf);
-        verifyFormatPeriod("en SHORT", gmf, abbrevData);
+        MeasureFormat mf = MeasureFormat.getInstance(ULocale.ENGLISH, FormatWidth.WIDE, nf);
+        verifyFormatPeriod("en FULL", mf, fullData);
+        mf = MeasureFormat.getInstance(ULocale.ENGLISH, FormatWidth.SHORT, nf);
+        verifyFormatPeriod("en SHORT", mf, abbrevData);
        
        
     }
     
-    private void verifyFormatPeriod(String desc, GeneralMeasureFormat gmf, Object[][] testData) {
+    private void verifyFormatPeriod(String desc, MeasureFormat mf, Object[][] testData) {
         StringBuilder builder = new StringBuilder();
         boolean failure = false;
         for (Object[] testCase : testData) {
-            String actual = gmf.format((Measure[]) testCase[0]);
+            String actual = mf.format((Measure[]) testCase[0]);
             if (!testCase[1].equals(actual)) {
                 builder.append(String.format("%s: Expected: '%s', got: '%s'\n", desc, testCase[1], actual));
                 failure = true;
@@ -128,12 +132,12 @@ public class MeasureUnitTest extends TestFmwk {
         String lastType = null;
         for (MeasureUnit expected : MeasureUnit.getAvailable()) {
             String type = expected.getType();
-            String code = expected.getCode();
+            String code = expected.getSubtype();
             if (!type.equals(lastType)) {
                 logln(type);
                 lastType = type;
             }
-            MeasureUnit actual = MeasureUnit.getInstance(type, code);
+            MeasureUnit actual = MeasureUnit.internalGetInstance(type, code);
             assertSame("Identity check", expected, actual);
         }
     }
@@ -150,8 +154,8 @@ public class MeasureUnitTest extends TestFmwk {
         }) {
 
             for (FormatWidth style : FormatWidth.values()) {
-                GeneralMeasureFormat gmlf = GeneralMeasureFormat.getInstance(locale, style);
-                String formatted = gmlf.format(
+                MeasureFormat mf = MeasureFormat.getInstance(locale, style);
+                String formatted = mf.format(
                         new Measure(2, MeasureUnit.MILE), 
                         new Measure(1, MeasureUnit.FOOT), 
                         new Measure(2.3, MeasureUnit.INCH));
@@ -197,10 +201,10 @@ public class MeasureUnitTest extends TestFmwk {
         NumberFormat nformat = NumberFormat.getInstance(locale);
         nformat.setMinimumFractionDigits(fractionalDigits);
 
-        GeneralMeasureFormat format = GeneralMeasureFormat.getInstance(locale, style, nformat);
+        MeasureFormat format = MeasureFormat.getInstance(locale, style, nformat);
         
         FieldPosition pos = new FieldPosition(DecimalFormat.FRACTION_FIELD);
-        StringBuffer b = format.format(amount, new StringBuffer(), pos);
+        StringBuffer b = format.<StringBuffer>format(amount, new StringBuffer(), pos);
         String message = header + "\t" + style
                 + "\t«" + b.substring(0, pos.getBeginIndex())
                 + "⟪" + b.substring(pos.getBeginIndex(), pos.getEndIndex())
@@ -227,14 +231,14 @@ public class MeasureUnitTest extends TestFmwk {
     }
 
     public void testExamples() {
-        GeneralMeasureFormat fmtFr = GeneralMeasureFormat.getInstance(ULocale.FRENCH, FormatWidth.SHORT);
+        MeasureFormat fmtFr = MeasureFormat.getInstance(ULocale.FRENCH, FormatWidth.SHORT);
         Measure measure = new Measure(23, MeasureUnit.CELSIUS);
         assertEquals("", "23 °C", fmtFr.format(measure));
 
         Measure measureF = new Measure(70, MeasureUnit.FAHRENHEIT);
         assertEquals("", "70 °F", fmtFr.format(measureF));
 
-        GeneralMeasureFormat fmtFrFull = GeneralMeasureFormat.getInstance(ULocale.FRENCH, FormatWidth.WIDE);
+        MeasureFormat fmtFrFull = MeasureFormat.getInstance(ULocale.FRENCH, FormatWidth.WIDE);
         if (!logKnownIssue("8474", "needs latest CLDR data")) {
             assertEquals("", "70 pieds, 5,3 pouces", fmtFrFull.format(new Measure(70, MeasureUnit.FOOT),
                     new Measure(5.3, MeasureUnit.INCH)));
@@ -242,7 +246,7 @@ public class MeasureUnitTest extends TestFmwk {
                     new Measure(1, MeasureUnit.INCH)));
         }
         // Degenerate case
-        GeneralMeasureFormat fmtEn = GeneralMeasureFormat.getInstance(ULocale.ENGLISH, FormatWidth.WIDE);
+        MeasureFormat fmtEn = MeasureFormat.getInstance(ULocale.ENGLISH, FormatWidth.WIDE);
         assertEquals("", "1 inch, 2 feet", fmtEn.format(new Measure(1, MeasureUnit.INCH),
                 new Measure(2, MeasureUnit.FOOT)));
 
@@ -268,7 +272,7 @@ public class MeasureUnitTest extends TestFmwk {
         boolean first = true;
         for (String type : new TreeSet<String>(MeasureUnit.getAvailableTypes())) {
             for (MeasureUnit unit : MeasureUnit.getAvailable(type)) {
-                String code = unit.getCode();
+                String code = unit.getSubtype();
                 String name = code.toUpperCase(Locale.ENGLISH).replace("-", "_");
 
                 if (type.equals("angle")) {
@@ -303,7 +307,7 @@ public class MeasureUnitTest extends TestFmwk {
     
     public void TestSerial() {
         checkStreamingEquality(MeasureUnit.CELSIUS);
-        checkStreamingEquality(GeneralMeasureFormat.getInstance(ULocale.FRANCE, FormatWidth.NARROW));
+        checkStreamingEquality(MeasureFormat.getInstance(ULocale.FRANCE, FormatWidth.NARROW));
         checkStreamingEquality(Currency.getInstance("EUR"));
     }
     
@@ -359,7 +363,7 @@ public class MeasureUnitTest extends TestFmwk {
             MeasureUnit a1 = (MeasureUnit) a;
             MeasureUnit b1 = (MeasureUnit) b;
             return a1.getType().equals(b1.getType()) 
-                    && a1.getCode().equals(b1.getCode());
+                    && a1.getSubtype().equals(b1.getSubtype());
         }
     }
     
@@ -367,9 +371,9 @@ public class MeasureUnitTest extends TestFmwk {
     {
         public Object[] getTestObjects()
         {
-            GeneralMeasureFormat items[] = {
-                    GeneralMeasureFormat.getInstance(ULocale.FRANCE, FormatWidth.SHORT),
-                    GeneralMeasureFormat.getInstance(ULocale.FRANCE, FormatWidth.WIDE, NumberFormat.getIntegerInstance(ULocale.CANADA_FRENCH
+            MeasureFormat items[] = {
+                    MeasureFormat.getInstance(ULocale.FRANCE, FormatWidth.SHORT),
+                    MeasureFormat.getInstance(ULocale.FRANCE, FormatWidth.WIDE, NumberFormat.getIntegerInstance(ULocale.CANADA_FRENCH
                             )),
             };
             return items;
@@ -377,10 +381,10 @@ public class MeasureUnitTest extends TestFmwk {
 
         public boolean hasSameBehavior(Object a, Object b)
         {
-            GeneralMeasureFormat a1 = (GeneralMeasureFormat) a;
-            GeneralMeasureFormat b1 = (GeneralMeasureFormat) b;
+            MeasureFormat a1 = (MeasureFormat) a;
+            MeasureFormat b1 = (MeasureFormat) b;
             return a1.getLocale().equals(b1.getLocale()) 
-                    && a1.getLength().equals(b1.getLength())
+                    && a1.getWidth().equals(b1.getWidth())
                     // && a1.getNumberFormat().equals(b1.getNumberFormat())
                     ;
         }
