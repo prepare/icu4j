@@ -25,6 +25,11 @@ public class NumberFormatTest extends TestFmwk {
     private static final int INTEGER_TYPE  = 2;
     private static final int PERCENT_TYPE = 3;
     private static final int CURRENCY_TYPE = 4;
+    
+    public void TestMine() {
+        System.out.println(new Double(3.0).hashCode());
+        System.out.println(new Integer(3).hashCode());
+    }
 
     /*
      * Check if getInstance returns the ICU implementation.
