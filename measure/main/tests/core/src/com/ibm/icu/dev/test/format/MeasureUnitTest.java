@@ -58,10 +58,6 @@ public class MeasureUnitTest extends TestFmwk {
             new TimeUnitAmount(1.0, TimeUnit.MINUTE),
             new TimeUnitAmount(59.9996, TimeUnit.SECOND)};
     
-    public void TestAAA() {
-        System.out.println(TimeUnit.HOUR);
-    }
-    
     
     /**
      * @author markdavis
@@ -101,7 +97,7 @@ public class MeasureUnitTest extends TestFmwk {
                 {_2y_5M_3w_4d, "2 yrs, 5 mths, 3 wks, 4 days"},
                 {_0h_0m_17s, "0:00:17"},
                 {_6h_56_92m, "6:56.92"}};
-       */
+        */
         
         NumberFormat nf = NumberFormat.getNumberInstance(ULocale.ENGLISH);
         nf.setMaximumFractionDigits(4);
@@ -109,9 +105,9 @@ public class MeasureUnitTest extends TestFmwk {
         verifyFormatPeriod("en FULL", mf, fullData);
         mf = MeasureFormat.getInstance(ULocale.ENGLISH, FormatWidth.SHORT, nf);
         verifyFormatPeriod("en SHORT", mf, abbrevData);
-       
-       
     }
+    
+
     
     private void verifyFormatPeriod(String desc, MeasureFormat mf, Object[][] testData) {
         StringBuilder builder = new StringBuilder();
@@ -155,7 +151,7 @@ public class MeasureUnitTest extends TestFmwk {
 
             for (FormatWidth style : FormatWidth.values()) {
                 MeasureFormat mf = MeasureFormat.getInstance(locale, style);
-                String formatted = mf.format(
+                String formatted = mf.formatMeasures(
                         new Measure(2, MeasureUnit.MILE), 
                         new Measure(1, MeasureUnit.FOOT), 
                         new Measure(2.3, MeasureUnit.INCH));
@@ -204,7 +200,7 @@ public class MeasureUnitTest extends TestFmwk {
         MeasureFormat format = MeasureFormat.getInstance(locale, style, nformat);
         
         FieldPosition pos = new FieldPosition(DecimalFormat.FRACTION_FIELD);
-        StringBuffer b = format.<StringBuffer>format(amount, new StringBuffer(), pos);
+        StringBuffer b = format.<StringBuffer>formatMeasure(amount, new StringBuffer(), pos);
         String message = header + "\t" + style
                 + "\t«" + b.substring(0, pos.getBeginIndex())
                 + "⟪" + b.substring(pos.getBeginIndex(), pos.getEndIndex())
@@ -240,14 +236,14 @@ public class MeasureUnitTest extends TestFmwk {
 
         MeasureFormat fmtFrFull = MeasureFormat.getInstance(ULocale.FRENCH, FormatWidth.WIDE);
         if (!logKnownIssue("8474", "needs latest CLDR data")) {
-            assertEquals("", "70 pieds, 5,3 pouces", fmtFrFull.format(new Measure(70, MeasureUnit.FOOT),
+            assertEquals("", "70 pieds, 5,3 pouces", fmtFrFull.formatMeasures(new Measure(70, MeasureUnit.FOOT),
                     new Measure(5.3, MeasureUnit.INCH)));
-            assertEquals("", "1 pied, 1 pouce", fmtFrFull.format(new Measure(1, MeasureUnit.FOOT),
+            assertEquals("", "1 pied, 1 pouce", fmtFrFull.formatMeasures(new Measure(1, MeasureUnit.FOOT),
                     new Measure(1, MeasureUnit.INCH)));
         }
         // Degenerate case
         MeasureFormat fmtEn = MeasureFormat.getInstance(ULocale.ENGLISH, FormatWidth.WIDE);
-        assertEquals("", "1 inch, 2 feet", fmtEn.format(new Measure(1, MeasureUnit.INCH),
+        assertEquals("", "1 inch, 2 feet", fmtEn.formatMeasures(new Measure(1, MeasureUnit.INCH),
                 new Measure(2, MeasureUnit.FOOT)));
 
         logln("Show all currently available units");

@@ -74,20 +74,20 @@ class CurrencyFormat extends MeasureFormat {
     // MeasureFormat
     
     @Override
-    public String format(Measure... measures) {
-        return mf.format(measures);
+    public String formatMeasures(Measure... measures) {
+        return mf.formatMeasures(measures);
     }
     
     @Override
-    public <T extends Appendable> T format(
+    public <T extends Appendable> T formatMeasure(
             Measure measure, T appendable, FieldPosition fieldPosition) {
-        return mf.format(measure, appendable, fieldPosition);
+        return mf.formatMeasure(measure, appendable, fieldPosition);
     }
     
     @Override
-    public <T extends Appendable> T format(
+    public <T extends Appendable> T formatMeasures(
             T appendable, FieldPosition fieldPosition, Measure... measures) {
-        return mf.format(appendable, fieldPosition, measures);
+        return mf.formatMeasures(appendable, fieldPosition, measures);
     }
     
     @Override
@@ -121,7 +121,7 @@ class CurrencyFormat extends MeasureFormat {
     // Serialization
     
     private Object writeReplace() throws ObjectStreamException {
-        return mf.toProxy(this.getClass());
+        return mf.toCurrencyProxy(new CurrencyBundles());
     }
     
     // Preserve backward serialize backward compatibility.
