@@ -130,6 +130,14 @@ public class TimeUnitFormat extends MeasureFormat {
         mf = MeasureFormat.getInstance(
                 locale, style == FULL_NAME ? FormatWidth.WIDE : FormatWidth.SHORT);
     }
+    
+    private TimeUnitFormat(ULocale locale, int style, NumberFormat numberFormat) {
+        if (style < FULL_NAME || style >= TOTAL_STYLES) {
+            throw new IllegalArgumentException("style should be either FULL_NAME or ABBREVIATED_NAME style");
+        }
+        mf = MeasureFormat.getInstance(
+                locale, style == FULL_NAME ? FormatWidth.WIDE : FormatWidth.SHORT, numberFormat);
+    }
 
     /**
      * Create TimeUnitFormat given a Locale and a formatting style.
@@ -207,20 +215,20 @@ public class TimeUnitFormat extends MeasureFormat {
     // MeasureFormat
     
     @Override
-    public String format(Measure... measures) {
-        return mf.format(measures);
+    public String formatMeasures(Measure... measures) {
+        return mf.formatMeasures(measures);
     }
     
     @Override
-    public <T extends Appendable> T format(
+    public <T extends Appendable> T formatMeasure(
             Measure measure, T appendable, FieldPosition fieldPosition) {
-        return mf.format(measure, appendable, fieldPosition);
+        return mf.formatMeasure(measure, appendable, fieldPosition);
     }
     
     @Override
-    public <T extends Appendable> T format(
+    public <T extends Appendable> T formatMeasures(
             T appendable, FieldPosition fieldPosition, Measure... measures) {
-        return mf.format(appendable, fieldPosition, measures);
+        return mf.formatMeasures(appendable, fieldPosition, measures);
     }
     
     @Override
@@ -257,11 +265,11 @@ public class TimeUnitFormat extends MeasureFormat {
     // Serialization
     
     private Object writeReplace() throws ObjectStreamException {
-        return mf.toProxy(this.getClass());
+        return mf.toTimeUnitProxy(new TimeUnitBundles());
     }
     
     // Preserve backward serialize backward compatibility.
     private Object readResolve() throws ObjectStreamException {
-        return new CurrencyFormat(locale);
+        return new TimeUnitFormat(locale, style, format);
     }
 }

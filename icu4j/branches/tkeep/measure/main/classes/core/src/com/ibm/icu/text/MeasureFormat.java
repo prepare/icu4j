@@ -10,39 +10,38 @@
 */
 package com.ibm.icu.text;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.InvalidObjectException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.io.ObjectOutputStream;
 import java.io.ObjectStreamException;
 import java.text.FieldPosition;
 import java.text.ParsePosition;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.MissingResourceException;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.Map.Entry;
 
+import com.ibm.icu.impl.Bundle;
+import com.ibm.icu.impl.BundleCollection;
+import com.ibm.icu.impl.BundleCollectionBundle;
 import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.impl.SimpleCache;
 import com.ibm.icu.util.Currency;
 import com.ibm.icu.util.Measure;
 import com.ibm.icu.util.MeasureUnit;
 import com.ibm.icu.util.ULocale;
-import com.ibm.icu.util.UResourceBundle;
 import com.ibm.icu.util.ULocale.Category;
+import com.ibm.icu.util.UResourceBundle;
 
 /**
  * A formatter for Measure objects.  This is an abstract base class.
@@ -105,8 +104,8 @@ public class MeasureFormat extends UFormat {
      * @draft ICU 53
      * @provisional
      */
-    public String format(Measure... measures) {
-        StringBuilder result = this.format(
+    public String formatMeasures(Measure... measures) {
+        StringBuilder result = this.formatMeasures(
                 new StringBuilder(), new FieldPosition(0), measures);
         return result.toString();
     }
@@ -127,11 +126,11 @@ public class MeasureFormat extends UFormat {
                 }
                 measures[idx++] = (Measure) o;
             }
-            return format(toAppendTo, pos, measures);
+            return formatMeasures(toAppendTo, pos, measures);
         } else if (obj instanceof Measure[]) {
-            return format(toAppendTo, pos, (Measure[]) obj);
+            return formatMeasures(toAppendTo, pos, (Measure[]) obj);
         } else if (obj instanceof Measure){
-            return this.<StringBuffer>format((Measure) obj, toAppendTo, pos);
+            return this.formatMeasure((Measure) obj, toAppendTo, pos);
         } else {
             throw new IllegalArgumentException(obj.toString());            
         }
@@ -162,7 +161,7 @@ public class MeasureFormat extends UFormat {
      * @draft ICU 53
      * @provisional
      */
-    public <T extends Appendable> T format(
+    public <T extends Appendable> T formatMeasure(
             Measure measure, T appendable, FieldPosition fieldPosition) {
         Number n = measure.getNumber();
         MeasureUnit unit = measure.getUnit();        
@@ -200,11 +199,11 @@ public class MeasureFormat extends UFormat {
      * @provisional
      */
     @SuppressWarnings("unchecked")
-    public <T extends Appendable> T format(
+    public <T extends Appendable> T formatMeasures(
             T appendable, FieldPosition fieldPosition, Measure... measures) {
         StringBuilder[] results = new StringBuilder[measures.length];
         for (int i = 0; i < measures.length; ++i) {
-            results[i] = format(measures[i], new StringBuilder(), fieldPosition);
+            results[i] = formatMeasure(measures[i], new StringBuilder(), fieldPosition);
         }
         ListFormatter listFormatter = ListFormatter.getInstance(locale, 
                 length == FormatWidth.WIDE ? ListFormatter.Style.DURATION : ListFormatter.Style.DURATION_SHORT);
@@ -698,99 +697,41 @@ public class MeasureFormat extends UFormat {
                 this.unitToStyleToCountToFormat);
     }
     
-    static interface BundleCreator {
-        Bundle create(int id);
-    }
-
-    static final BundleCreator DEFAULT_CREATOR = new BundleCreator() {
-
-        public Bundle create(int id) {
-            return new RawBundle(id);
-        }      
-    };
-    
-    static abstract class Bundle {
-        private int id;
-        
-        Bundle(int id) {
-            this.id = id;
-        }
-        
-        int getId() {
-            return id;
-        }
-        
-        abstract void read(ObjectInput in, int size) throws IOException;
-        
-        abstract byte[] write() throws IOException;   
+    static class TimeUnitBundles extends BundleCollection {
     }
     
-    static class RawBundle extends Bundle {
-        byte[] rawData;
-        
-        public RawBundle(int id) {
-            super(id);
-        }
-        
-        void read(ObjectInput in, int size) throws IOException {
-            rawData = new byte[size];
-            in.readFully(rawData);
-        }
-
-        @Override
-        byte[] write() throws IOException {
-            return rawData;
-        }
+    static class CurrencyBundles extends BundleCollection {
     }
     
-    static class SubclassBundle extends Bundle {
-
-        SubclassBundle(int id) {
-            super(id);
-        }
-        
-        byte[] write() throws IOException {
-            ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            ObjectOutputStream oos = new ObjectOutputStream(bos);
-            writeBundles(Collections.<Bundle>emptyList(), oos);
-            oos.close();
-            return bos.toByteArray();
-        }
-
-        @Override
-        void read(ObjectInput in, int size) throws IOException {
-            List<Bundle> bundles = new ArrayList<Bundle>();
-            readBundles(in, DEFAULT_CREATOR, bundles);
-            
-        }
+    Object toTimeUnitProxy(TimeUnitBundles bundles) {
+        MeasureBundles measureBundles = new MeasureBundles();
+        measureBundles.setTimeUnitBundles(new TimeUnitBundles());
+        return new MeasureProxy(locale, length, numberFormat, measureBundles);
     }
     
-    Object toProxy(Class<? extends MeasureFormat> clazz) {
-        if (clazz.equals(TimeUnitFormat.class)) {
-            return new MeasureProxy(
-                    locale, length, numberFormat, Collections.<Bundle>singletonList(new SubclassBundle(TIMEUNIT_TAG)));
-        } else if (clazz.equals(CurrencyFormat.class)) {
-            return new MeasureProxy(
-                    locale, length, numberFormat, Collections.<Bundle>singletonList(new SubclassBundle(CURRENCY_TAG)));            
-        } else {
-            throw new IllegalArgumentException(clazz.toString());
-        }
+    Object toCurrencyProxy(CurrencyBundles bundles) {
+        MeasureBundles measureBundles = new MeasureBundles();
+        measureBundles.setCurrencyBundles(new CurrencyBundles());
+        return new MeasureProxy(locale, length, numberFormat, measureBundles);
     }
     
     private Object writeReplace() throws ObjectStreamException {
-        return new MeasureProxy(locale, length, numberFormat, Collections.<Bundle>emptyList());
+        return new MeasureProxy(locale, length, numberFormat, new MeasureBundles());
     }
     
-    static class MeasureProxy implements Externalizable, BundleCreator {
+    static class MeasureProxy implements Externalizable {
         private static final long serialVersionUID = -6033308329886716770L;
+        
+        private static final int TIMEUNIT_TAG = 1;
+        private static final int CURRENCY_TAG = 2;
 
         private ULocale locale;
         private FormatWidth length;
         private NumberFormat numberFormat;
-        private Collection<Bundle> bundles;
+        private final MeasureBundles bundles;
 
         public MeasureProxy(
-                ULocale locale, FormatWidth length, NumberFormat numberFormat, Collection<Bundle> bundles) {
+                ULocale locale, FormatWidth length, NumberFormat numberFormat, MeasureBundles bundles) {
             this.locale = locale;
             this.length = length;
             this.numberFormat = numberFormat;
@@ -799,6 +740,7 @@ public class MeasureFormat extends UFormat {
 
         // Must have public constructor, to enable Externalizable
         public MeasureProxy() {
+            bundles = new MeasureBundles();
         }
 
         public void writeExternal(ObjectOutput out) throws IOException {
@@ -806,7 +748,7 @@ public class MeasureFormat extends UFormat {
             out.writeObject(locale);
             out.writeObject(length);
             out.writeObject(numberFormat);
-            writeBundles(bundles, out);
+            bundles.write(out);
         }
 
         public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
@@ -814,67 +756,76 @@ public class MeasureFormat extends UFormat {
             locale = (ULocale) in.readObject();
             length = (FormatWidth) in.readObject();
             numberFormat = (NumberFormat) in.readObject();
-            bundles = new ArrayList<Bundle>();
-            readBundles(in, this, bundles);      
+            bundles.read(in);     
         }
 
         private Object readResolve() throws ObjectStreamException {
-            for (Bundle b : bundles) {
-                if (b.getId() == TIMEUNIT_TAG) {
-                    int style;
-                    if (length == FormatWidth.WIDE) {
-                        style = TimeUnitFormat.FULL_NAME;
-                    } else if (length == FormatWidth.SHORT) {
-                        style = TimeUnitFormat.ABBREVIATED_NAME;
-                    } else {
-                        throw new InvalidObjectException("Bad width: " + length);
-                    }
-                    TimeUnitFormat result = new TimeUnitFormat(locale, style);
-                    result.setNumberFormat(numberFormat);
-                    return result;
-                } else if (b.getId() == CURRENCY_TAG) {
-                    return new CurrencyFormat(locale);
+            if (bundles.getTimeUnitBundles() != null) {
+                int style;
+                if (length == FormatWidth.WIDE) {
+                    style = TimeUnitFormat.FULL_NAME;
+                } else if (length == FormatWidth.SHORT) {
+                    style = TimeUnitFormat.ABBREVIATED_NAME;
+                } else {
+                    throw new InvalidObjectException("Bad width: " + length);
                 }
+                TimeUnitFormat result = new TimeUnitFormat(locale, style);
+                result.setNumberFormat(numberFormat);
+                return result;
+            } else if (bundles.getCurrencyBundles() != null) {
+                return new CurrencyFormat(locale);
+            } else {
+                return MeasureFormat.getInstance(locale, length, numberFormat);
             }
-            return MeasureFormat.getInstance(locale, length, numberFormat);
         }
+    }
+    
+    private static class MeasureBundles extends BundleCollection {
+        
+        private static final int TIMEUNIT_TAG = 1;
+        private static final int CURRENCY_TAG = 2;
 
-        public Bundle create(int id) {
-            if (id == TIMEUNIT_TAG || id == CURRENCY_TAG) {
-                return new SubclassBundle(id);
+        private BundleCollection getBundleCollection(int id) {
+            Bundle bundle = getById(id);
+            if (bundle == null) {
+                return null;
             }
-            return DEFAULT_CREATOR.create(id);
+            return ((BundleCollectionBundle) bundle).getCollection();
+        }
+        
+        private void setBundleCollection(int id, BundleCollection coll) {
+            if (coll == null) {
+                remove(id);
+            } else {
+                put(new BundleCollectionBundle(id, coll));
+            }
+        }
+        
+        public TimeUnitBundles getTimeUnitBundles() {
+            return (TimeUnitBundles) getBundleCollection(TIMEUNIT_TAG);
+        }
+        
+        public void setTimeUnitBundles(TimeUnitBundles bundles) {
+            setBundleCollection(TIMEUNIT_TAG, bundles);
+        }
+        
+        public CurrencyBundles getCurrencyBundles() {
+            return (CurrencyBundles) getBundleCollection(CURRENCY_TAG);
+        }
+        
+        public void setCurrencyBundles(CurrencyBundles bundles) {
+            setBundleCollection(CURRENCY_TAG, bundles);
+        }
+        
+        @Override
+        protected Bundle create(int id) {
+            if (id == TIMEUNIT_TAG) {
+                return new BundleCollectionBundle(id, new TimeUnitBundles());
+            } else if (id == CURRENCY_TAG) {
+                return new BundleCollectionBundle(id, new CurrencyBundles());
+            } else {
+                return Bundle.getRawBundle(id);
+            }
         }
     }
-    
-    static void writeBundles(Iterable<? extends Bundle> bundles, ObjectOutput out) throws IOException {
-        for (Bundle bundle : bundles) {
-            out.writeByte(bundle.getId());
-            byte[] b = bundle.write();
-            out.writeShort(b.length);
-            out.write(b);
-        }
-        out.writeByte(0);
-    }
-    
-    static void readBundles(
-            ObjectInput in, BundleCreator creator, Collection<Bundle> appendTo)
-            throws IOException {
-        int tagId = in.readByte() & 0xFF;
-        while (tagId != 0) {
-            Bundle bundle = creator.create(tagId);
-            
-            // Read the size of the data in the bundle.
-            int size = in.readShort() & 0xFFFF;
-            bundle.read(in, size);
-            
-            appendTo.add(bundle);
-            
-            // Read tagId of next bundle
-            tagId = in.readByte() & 0xFF;
-        }
-    }
-    
-    private static final int TIMEUNIT_TAG = 1;
-    private static final int CURRENCY_TAG = 2;
 }
