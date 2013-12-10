@@ -38,27 +38,6 @@ import com.ibm.icu.util.ULocale;
  */
 public class MeasureUnitTest extends TestFmwk {
     
-    private static final TimeUnitAmount[] _19m = {new TimeUnitAmount(19.0, TimeUnit.MINUTE)};
-    private static final TimeUnitAmount[] _1h_23_5s = {
-            new TimeUnitAmount(1.0, TimeUnit.HOUR),
-            new TimeUnitAmount(23.5, TimeUnit.SECOND)};
-    private static final TimeUnitAmount[] _1h_23_5m = {
-            new TimeUnitAmount(1.0, TimeUnit.HOUR),
-            new TimeUnitAmount(23.5, TimeUnit.MINUTE)};
-    private static final TimeUnitAmount[] _1h_0m_23s = {
-            new TimeUnitAmount(1.0, TimeUnit.HOUR),
-            new TimeUnitAmount(0.0, TimeUnit.MINUTE),
-            new TimeUnitAmount(23.0, TimeUnit.SECOND)};
-    private static final TimeUnitAmount[] _2y_5M_3w_4d = {
-            new TimeUnitAmount(2.0, TimeUnit.YEAR),
-            new TimeUnitAmount(5.0, TimeUnit.MONTH),
-            new TimeUnitAmount(3.0, TimeUnit.WEEK),
-            new TimeUnitAmount(4.0, TimeUnit.DAY)};
-    private static final TimeUnitAmount[] _1m_59_9996s = {
-            new TimeUnitAmount(1.0, TimeUnit.MINUTE),
-            new TimeUnitAmount(59.9996, TimeUnit.SECOND)};
-    
-    
     /**
      * @author markdavis
      *
@@ -69,6 +48,26 @@ public class MeasureUnitTest extends TestFmwk {
     }
     
     public void TestFormatPeriodEn() {
+        TimeUnitAmount[] _19m = {new TimeUnitAmount(19.0, TimeUnit.MINUTE)};
+        TimeUnitAmount[] _1h_23_5s = {
+                new TimeUnitAmount(1.0, TimeUnit.HOUR),
+                new TimeUnitAmount(23.5, TimeUnit.SECOND)};
+        TimeUnitAmount[] _1h_23_5m = {
+                new TimeUnitAmount(1.0, TimeUnit.HOUR),
+                new TimeUnitAmount(23.5, TimeUnit.MINUTE)};
+        TimeUnitAmount[] _1h_0m_23s = {
+                new TimeUnitAmount(1.0, TimeUnit.HOUR),
+                new TimeUnitAmount(0.0, TimeUnit.MINUTE),
+                new TimeUnitAmount(23.0, TimeUnit.SECOND)};
+        TimeUnitAmount[] _2y_5M_3w_4d = {
+                new TimeUnitAmount(2.0, TimeUnit.YEAR),
+                new TimeUnitAmount(5.0, TimeUnit.MONTH),
+                new TimeUnitAmount(3.0, TimeUnit.WEEK),
+                new TimeUnitAmount(4.0, TimeUnit.DAY)};
+        TimeUnitAmount[] _1m_59_9996s = {
+                new TimeUnitAmount(1.0, TimeUnit.MINUTE),
+                new TimeUnitAmount(59.9996, TimeUnit.SECOND)};
+        
         Object[][] fullData = {
                 {_1m_59_9996s, "1 minute, 59.9996 seconds"},
                 {_19m, "19 minutes"},
