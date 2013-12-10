@@ -48,7 +48,8 @@ public class BundleCollection {
      */
     public Object getById(int id) {
         checkId(id);
-        if (getPayloadClass(id) == null) {
+        PayloadSpec spec = getPayloadSpec(id);
+        if (getPayloadClass(spec) == null) {
             throwIllegalArgumentException(id);
         }
         SingleBundle<?> bundle = (SingleBundle<?>) bundleMap.get(id);
@@ -71,7 +72,8 @@ public class BundleCollection {
     public <T> void getCollectionById(
             int id, Collection<? super T> coll, Class<T> clazz) {
         checkId(id);
-        Class<?> payloadClass = getMultiPayloadClass(id);
+        PayloadSpec spec = getPayloadSpec(id);
+        Class<?> payloadClass = getMultiPayloadClass(spec);
         if (payloadClass == null) {
             throwIllegalArgumentException(id);
         }
@@ -97,7 +99,8 @@ public class BundleCollection {
      */
     public void setById(int id, Object payload) {
         checkId(id);
-        Class<?> payloadClass = getPayloadClass(id);
+        PayloadSpec spec = getPayloadSpec(id);
+        Class<?> payloadClass = getPayloadClass(spec);
         if (payloadClass == null) {
             throwIllegalArgumentException(id);
         }
@@ -111,7 +114,7 @@ public class BundleCollection {
         Integer key = id;
         SingleBundle<?> bundle = (SingleBundle<?>) bundleMap.get(key);
         if (bundle == null) {
-            bundle = (SingleBundle<?>) createBundle(id);
+            bundle = (SingleBundle<?>) createBundle(id, spec);
             bundleMap.put(key, bundle);
         }
         bundle.setPayload(payload);
@@ -129,7 +132,8 @@ public class BundleCollection {
     public <T> void setCollectionById(
             int id, Collection<? extends T> coll, Class<T> clazz) {
         checkId(id);
-        Class<?> payloadClass = getMultiPayloadClass(id);
+        PayloadSpec spec = getPayloadSpec(id);
+        Class<?> payloadClass = getMultiPayloadClass(spec);
         if (payloadClass == null) {
             throwIllegalArgumentException(id);
         }
@@ -143,7 +147,7 @@ public class BundleCollection {
         Integer key = id;
         ListBundle<?> bundle = (ListBundle<?>) bundleMap.get(key);
         if (bundle == null) {
-            bundle = (ListBundle<?>) createBundle(id);
+            bundle = (ListBundle<?>) createBundle(id, spec);
             bundleMap.put(key, bundle);
         }
         bundle.readFrom(coll);
@@ -170,7 +174,7 @@ public class BundleCollection {
         clear();
         int tagId = in.readByte() & 0xFF;
         while (tagId != 0) {
-            Bundle bundle = createBundle(tagId);
+            Bundle bundle = createBundle(tagId, getPayloadSpec(tagId));
            
             // Read the size of the data in the bundle.
             int size = in.readShort() & 0xFFFF;
@@ -290,8 +294,7 @@ public class BundleCollection {
         return null;       
     }
     
-    private Bundle createBundle(int id) {
-        PayloadSpec spec = getPayloadSpec(id);
+    private Bundle createBundle(int id, PayloadSpec spec) {
         if (spec == null) {
             return new RawBundle(id);
         }
@@ -522,16 +525,14 @@ public class BundleCollection {
         }
     }
     
-    private Class<?> getMultiPayloadClass(int id) {
-        PayloadSpec spec = getPayloadSpec(id);
+    private static Class<?> getMultiPayloadClass(PayloadSpec spec) {
         if (spec == null || !spec.isList()) {
             return null;
         }
         return spec.getPayloadClass();
     }
     
-    private Class<?> getPayloadClass(int id) {
-        PayloadSpec spec = getPayloadSpec(id);
+    private static Class<?> getPayloadClass(PayloadSpec spec) {
         if (spec == null || spec.isList()) {
             return null;
         }
