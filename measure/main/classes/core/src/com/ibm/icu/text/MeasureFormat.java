@@ -31,9 +31,7 @@ import java.util.MissingResourceException;
 import java.util.Set;
 import java.util.TreeMap;
 
-import com.ibm.icu.impl.Bundle;
 import com.ibm.icu.impl.BundleCollection;
-import com.ibm.icu.impl.BundleCollectionBundle;
 import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.impl.SimpleCache;
 import com.ibm.icu.util.Currency;
@@ -784,47 +782,32 @@ public class MeasureFormat extends UFormat {
         
         private static final int TIMEUNIT_TAG = 1;
         private static final int CURRENCY_TAG = 2;
-
-        private BundleCollection getBundleCollection(int id) {
-            Bundle bundle = getById(id);
-            if (bundle == null) {
-                return null;
-            }
-            return ((BundleCollectionBundle) bundle).getCollection();
-        }
-        
-        private void setBundleCollection(int id, BundleCollection coll) {
-            if (coll == null) {
-                remove(id);
-            } else {
-                put(new BundleCollectionBundle(id, coll));
-            }
-        }
         
         public TimeUnitBundles getTimeUnitBundles() {
-            return (TimeUnitBundles) getBundleCollection(TIMEUNIT_TAG);
+            return (TimeUnitBundles) getById(TIMEUNIT_TAG);
         }
         
         public void setTimeUnitBundles(TimeUnitBundles bundles) {
-            setBundleCollection(TIMEUNIT_TAG, bundles);
+            setById(TIMEUNIT_TAG, bundles);
         }
         
         public CurrencyBundles getCurrencyBundles() {
-            return (CurrencyBundles) getBundleCollection(CURRENCY_TAG);
+            return (CurrencyBundles) getById(CURRENCY_TAG);
         }
         
         public void setCurrencyBundles(CurrencyBundles bundles) {
-            setBundleCollection(CURRENCY_TAG, bundles);
+            setById(CURRENCY_TAG, bundles);
         }
         
+        
         @Override
-        protected Bundle create(int id) {
+        protected PayloadSpec getPayloadSpec(int id) {
             if (id == TIMEUNIT_TAG) {
-                return new BundleCollectionBundle(id, new TimeUnitBundles());
+                return PayloadSpec.forBundleCollection(TimeUnitBundles.class);
             } else if (id == CURRENCY_TAG) {
-                return new BundleCollectionBundle(id, new CurrencyBundles());
+                return PayloadSpec.forBundleCollection(CurrencyBundles.class);
             } else {
-                return Bundle.getRawBundle(id);
+                return null;
             }
         }
     }
