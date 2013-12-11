@@ -199,7 +199,7 @@ public class TimeUnitFormat extends MeasureFormat {
     @Override
     public TimeUnitAmount parseObject(String source, ParsePosition pos) {
         int origIndex = pos.getIndex();
-        Measure m = mf.parseObject(source, pos);
+        Measure m = mf.parseObject(source, "duration", pos);
         if (m == null) {
             return null;
         }
