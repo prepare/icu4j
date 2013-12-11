@@ -333,22 +333,8 @@ public class MeasureUnit implements Serializable {
     SQUARE_METER = MeasureUnit.internalGetInstance("area", "square-meter"),
     /** Constant for unit of area: square-mile */
     SQUARE_MILE = MeasureUnit.internalGetInstance("area", "square-mile"),
-    /** Constant for unit of duration: day */
-    DAY = MeasureUnit.internalGetInstance("duration", "day"),
-    /** Constant for unit of duration: hour */
-    HOUR = MeasureUnit.internalGetInstance("duration", "hour"),
     /** Constant for unit of duration: millisecond */
     MILLISECOND = MeasureUnit.internalGetInstance("duration", "millisecond"),
-    /** Constant for unit of duration: minute */
-    MINUTE = MeasureUnit.internalGetInstance("duration", "minute"),
-    /** Constant for unit of duration: month */
-    MONTH = MeasureUnit.internalGetInstance("duration", "month"),
-    /** Constant for unit of duration: second */
-    SECOND = MeasureUnit.internalGetInstance("duration", "second"),
-    /** Constant for unit of duration: week */
-    WEEK = MeasureUnit.internalGetInstance("duration", "week"),
-    /** Constant for unit of duration: year */
-    YEAR = MeasureUnit.internalGetInstance("duration", "year"),
     /** Constant for unit of length: centimeter */
     CENTIMETER = MeasureUnit.internalGetInstance("length", "centimeter"),
     /** Constant for unit of length: foot */
@@ -405,6 +391,22 @@ public class MeasureUnit implements Serializable {
     CUBIC_MILE = MeasureUnit.internalGetInstance("volume", "cubic-mile"),
     /** Constant for unit of volume: liter */
     LITER = MeasureUnit.internalGetInstance("volume", "liter");
+    
+    public static TimeUnit
+    /** Constant for unit of duration: year */
+    YEAR = (TimeUnit) MeasureUnit.internalGetInstance("duration", "year"),
+    /** Constant for unit of duration: month */
+    MONTH = (TimeUnit) MeasureUnit.internalGetInstance("duration", "month"),
+    /** Constant for unit of duration: week */
+    WEEK = (TimeUnit) MeasureUnit.internalGetInstance("duration", "week"),
+    /** Constant for unit of duration: day */
+    DAY = (TimeUnit) MeasureUnit.internalGetInstance("duration", "day"),
+    /** Constant for unit of duration: hour */
+    HOUR = (TimeUnit) MeasureUnit.internalGetInstance("duration", "hour"),
+    /** Constant for unit of duration: minute */
+    MINUTE = (TimeUnit) MeasureUnit.internalGetInstance("duration", "minute"),
+    /** Constant for unit of duration: second */
+    SECOND = (TimeUnit) MeasureUnit.internalGetInstance("duration", "second");
 
     /** Private **/
 

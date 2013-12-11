@@ -177,7 +177,7 @@ public class BundleCollection {
             Bundle bundle = createBundle(tagId, getPayloadSpec(tagId));
            
             // Read the size of the data in the bundle.
-            int size = in.readShort() & 0xFFFF;
+            int size = in.readInt() & 0x7FFFFFFF;
             bundle.read(in, size);
            
             bundleMap.put(bundle.getId(), bundle);
@@ -194,7 +194,7 @@ public class BundleCollection {
         for (Bundle bundle : bundleMap.values()) {
             out.writeByte(bundle.getId());
             byte[] b = bundle.write();
-            out.writeShort(b.length);
+            out.writeInt(b.length);
             out.write(b);
         }
         out.writeByte(0);
