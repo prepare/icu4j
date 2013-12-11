@@ -139,14 +139,23 @@ public class MeasureFormat extends UFormat {
      */
     @Override
     public Measure parseObject(String source, ParsePosition pos) {
-        
+        return parseObject(source, null, pos);
+    }
+
+    /**
+     * For ICU use only.
+     * @internal
+     * @deprecated
+     */
+    protected Measure parseObject(String source, String type, ParsePosition pos) {
         ParseData parseData = parseDataCache.get(locale);
         if (parseData == null) {
             parseData = new ParseData(locale, this.unitToStyleToCountToFormat);
             parseDataCache.put(locale, parseData);
         }
-        return parseData.parse(numberFormat, source, pos);
+        return parseData.parse(numberFormat, source, type, pos);
     }
+
     
     /**
      * Formats a measure and adds to appendable.
@@ -498,7 +507,20 @@ public class MeasureFormat extends UFormat {
             bs.set(unitIndex);
         }
 
-        private Measure parse(NumberFormat numberFormat, String toParse, ParsePosition parsePosition) {
+        private BitSet filterByType(BitSet bs, String type) {
+            if (type == null) {
+                return bs;
+            }
+            BitSet result = new BitSet(bs.length());
+            for (int i = bs.nextSetBit(0); i >= 0; i = bs.nextSetBit(i + 1)) {
+                if (index.getUnit(i).getType().equals(type)) {
+                    result.set(i);
+                }
+            }
+            return result;
+        }
+
+        private Measure parse(NumberFormat numberFormat, String toParse, String type, ParsePosition parsePosition) {
             // TODO optimize this as necessary
             // In particular, if we've already matched a suffix and number, store that.
             // If the same suffix turns up we can jump
@@ -510,20 +532,34 @@ public class MeasureFormat extends UFormat {
             for (Entry<String, BitSet> prefixEntry : prefixMap.entrySet()) {
                 String prefix = prefixEntry.getKey();
                 BitSet prefixSet = prefixEntry.getValue();
+                prefixSet = filterByType(prefixSet, type);
+
+                // If this prefix is not relevant to our type, skip.
+                if (prefixSet.isEmpty()) {
+                    continue;
+                }
                 for (Entry<String, BitSet> suffixEntry : suffixMap.entrySet()) {
                     String suffix = suffixEntry.getKey();
                     BitSet suffixSet = suffixEntry.getValue();
+                    suffixSet = filterByType(suffixSet, type);
+
+                    // If this suffix is not relevant to our type, skip.
+                    if (suffixSet.isEmpty()) {
+                        continue;
+                    }
                     parsePosition.setIndex(startIndex);
                     if (looseMatches(prefix, toParse, parsePosition)) {
-                        //                    if (nullSuffix.intersects(prefixSet))
-                        ////                        // can only happen with singular rule
-                        ////                        if (longestMatch < parsePosition.getIndex()) {
-                        ////                            longestMatch = parsePosition.getIndex();
-                        ////                            Collection<Double> samples = rules.getSamples(keyword);
-                        ////                            bestNumber = samples.iterator().next();
-                        ////                            bestUnit = unit;
-                        ////                        }
-                        //                    }
+                        /*
+                        if (nullSuffix.intersects(prefixSet)) {
+                        // can only happen with singular rule
+                            if (longestMatch < parsePosition.getIndex()) {
+                                longestMatch = parsePosition.getIndex();
+                                Collection<Double> samples = rules.getSamples(keyword);
+                                bestNumber = samples.iterator().next();
+                                bestUnit = unit;
+                            }
+                        }
+                        */
                         Number number = numberFormat.parse(toParse, parsePosition);
                         if (parsePosition.getErrorIndex() >= 0) {
                             if (furthestError < parsePosition.getErrorIndex()) {
