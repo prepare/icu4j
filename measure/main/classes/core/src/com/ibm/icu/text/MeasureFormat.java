@@ -738,7 +738,6 @@ public class MeasureFormat extends UFormat {
         }
 
         public void writeExternal(ObjectOutput out) throws IOException {
-            out.writeByte(0); // version
             out.writeObject(locale);
             out.writeObject(length);
             out.writeObject(numberFormat);
@@ -746,7 +745,6 @@ public class MeasureFormat extends UFormat {
         }
 
         public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-            /* byte version = */ in.readByte(); // version
             locale = (ULocale) in.readObject();
             length = (FormatWidth) in.readObject();
             numberFormat = (NumberFormat) in.readObject();
