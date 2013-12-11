@@ -24,20 +24,7 @@ public class TimeUnit extends MeasureUnit {
      * Here for serialization backward compatibility only.
      */
     private final int index;
-    
-    /** 
-     * Constant value for supported time unit.
-     * @stable ICU 4.0
-     */
-    public static TimeUnit
-    SECOND = (TimeUnit) MeasureUnit.SECOND,
-    MINUTE = (TimeUnit) MeasureUnit.MINUTE,
-    HOUR = (TimeUnit) MeasureUnit.HOUR,
-    DAY = (TimeUnit) MeasureUnit.DAY,
-    WEEK = (TimeUnit) MeasureUnit.WEEK,
-    MONTH = (TimeUnit) MeasureUnit.MONTH,
-    YEAR = (TimeUnit) MeasureUnit.YEAR;
-    
+
     TimeUnit(String type, String code) {
         super(type, code);
         index = 0;
@@ -48,7 +35,14 @@ public class TimeUnit extends MeasureUnit {
      * @stable ICU 4.0
      */
     public static TimeUnit[] values() {
-        return new TimeUnit[]{SECOND, MINUTE, HOUR, DAY, WEEK, MONTH, YEAR};
+        return new TimeUnit[] {
+                (TimeUnit) SECOND,
+                (TimeUnit) MINUTE,
+                (TimeUnit) HOUR,
+                (TimeUnit) DAY,
+                (TimeUnit) WEEK,
+                (TimeUnit) MONTH,
+                (TimeUnit) YEAR};
     }
     
     private Object writeReplace() throws ObjectStreamException {
