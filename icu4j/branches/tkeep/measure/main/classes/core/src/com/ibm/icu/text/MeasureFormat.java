@@ -720,13 +720,10 @@ public class MeasureFormat extends UFormat {
     static class MeasureProxy implements Externalizable {
         private static final long serialVersionUID = -6033308329886716770L;
         
-        private static final int TIMEUNIT_TAG = 1;
-        private static final int CURRENCY_TAG = 2;
-
         private ULocale locale;
         private FormatWidth length;
         private NumberFormat numberFormat;
-        private final MeasureBundles bundles;
+        private MeasureBundles bundles;
 
         public MeasureProxy(
                 ULocale locale, FormatWidth length, NumberFormat numberFormat, MeasureBundles bundles) {
@@ -738,7 +735,6 @@ public class MeasureFormat extends UFormat {
 
         // Must have public constructor, to enable Externalizable
         public MeasureProxy() {
-            bundles = new MeasureBundles();
         }
 
         public void writeExternal(ObjectOutput out) throws IOException {
@@ -754,6 +750,7 @@ public class MeasureFormat extends UFormat {
             locale = (ULocale) in.readObject();
             length = (FormatWidth) in.readObject();
             numberFormat = (NumberFormat) in.readObject();
+            bundles = new MeasureBundles();
             bundles.read(in);     
         }
 

@@ -7,6 +7,7 @@
 package com.ibm.icu.impl;
 
 import java.io.ByteArrayOutputStream;
+import java.io.EOFException;
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -31,9 +32,8 @@ import java.util.Map;
  * This class is designed to be subclassed. Each subclass defines the
  * fixed mapping between id and object type and quantity by overriding the 
  * {@link #getPayloadSpec} method. If data for an id is stored on the
- * wire that a subclass of BundleCollection does not know about, the
- * data is read in raw format during deserialization and is passed
- * through unchanged during serialization. 
+ * wire that a subclass of BundleCollection does not know about, that data is
+ * skipped during serialization.
  */
 public class BundleCollection {
     
@@ -174,13 +174,16 @@ public class BundleCollection {
         clear();
         int tagId = in.readByte() & 0xFF;
         while (tagId != 0) {
-            Bundle bundle = createBundle(tagId, getPayloadSpec(tagId));
+            PayloadSpec spec = getPayloadSpec(tagId);
+            Bundle bundle = createBundle(tagId, spec);
            
             // Read the size of the data in the bundle.
             int size = in.readInt() & 0x7FFFFFFF;
             bundle.read(in, size);
-           
-            bundleMap.put(bundle.getId(), bundle);
+            // TODO: Store these raw bundles once they can serialize themselves.
+            if (spec != null) {
+                bundleMap.put(bundle.getId(), bundle);
+            }
            
             // Read tagId of next bundle
             tagId = in.readByte() & 0xFF;
@@ -367,11 +370,14 @@ public class BundleCollection {
         protected T newInstance() {
             return newInstanceFromClass(payloadClass);
         }
+        
+        protected ArrayList<T> newList(int desiredSize) {
+            // Prevent DoS attacks.
+            return new ArrayList<T>(Math.min(desiredSize, 1000));
+        }
     }
    
     private static class RawBundle extends Bundle {
-        
-        private byte[] payload;
        
         public RawBundle(int id) {
             super(id);
@@ -379,13 +385,22 @@ public class BundleCollection {
        
         @Override
         public void read(ObjectInput in, int size) throws IOException {
-            payload = new byte[size];
-            in.readFully(payload);
+            // We do it this way to prevent DoS attacks.
+            byte[] buffer = new byte[8192];
+            int bytesLeft = size;
+            while (bytesLeft > 0) {
+                int numRead = in.read(buffer, 0, Math.min(buffer.length, bytesLeft));
+                if (numRead == -1) {
+                    throw new EOFException();
+                }
+                bytesLeft -= numRead;
+            }
         }
    
         @Override
         public byte[] write() throws IOException {
-            return payload;
+            // TODO: Fix to support this.
+            throw new UnsupportedOperationException();
         }
     }
    
@@ -449,7 +464,7 @@ public class BundleCollection {
         @Override
         public void read(ObjectInput in, int size) throws IOException {
             int objCount = in.readInt();
-            payload = new ArrayList<Externalizable>(objCount);
+            payload = newList(objCount);
             for (int i = 0; i < objCount; i++) {
                 Externalizable externalizable = newInstance();
                 try {
@@ -505,7 +520,7 @@ public class BundleCollection {
         @Override
         public void read(ObjectInput in, int size) throws IOException {
             int stringCount = in.readInt();
-            payload = new ArrayList<String>(stringCount);
+            payload = newList(stringCount);
             for (int i = 0; i < stringCount; i++) {
                 payload.add(in.readUTF());
             }
