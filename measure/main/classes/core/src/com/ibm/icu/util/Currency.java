@@ -244,7 +244,7 @@ public class Currency extends MeasureUnit {
             throw new IllegalArgumentException(
                     "The input currency code is not 3-letter alphabetic code.");
         }
-        return (Currency) MeasureUnit.internalGetInstance("currency", theISOCode);
+        return (Currency) MeasureUnit.internalGetInstance("currency", theISOCode.toUpperCase(Locale.ENGLISH));
     }
     
     

@@ -136,93 +136,40 @@ public class MeasureUnitTest extends TestFmwk {
             assertSame("Identity check", expected, actual);
         }
     }
-    
-    public void testTimePeriods() {
-        
-    }
 
     public void testMultiples() {
-        for (ULocale locale : new ULocale[]{
-                ULocale.ENGLISH, 
-                new ULocale("ru"), 
-                //ULocale.JAPANESE
-        }) {
-
-            for (FormatWidth style : FormatWidth.values()) {
-                MeasureFormat mf = MeasureFormat.getInstance(locale, style);
-                String formatted = mf.formatMeasures(
-                        new Measure(2, MeasureUnit.MILE), 
-                        new Measure(1, MeasureUnit.FOOT), 
-                        new Measure(2.3, MeasureUnit.INCH));
-                logln(locale + ",\t" + style + ": " + formatted);
-            }
-
+        ULocale russia = new ULocale("ru");
+        Object[][] data = new Object[][] {
+                {ULocale.ENGLISH, FormatWidth.WIDE, "2 miles, 1 foot, 2.3 inches"},
+                {ULocale.ENGLISH, FormatWidth.SHORT, "2 mi, 1 ft, 2.3 in"},
+                {ULocale.ENGLISH, FormatWidth.NARROW, "2mi, 1′, 2.3″"},
+                {russia, FormatWidth.WIDE, "2 мили, 1 фут и 2,3 дюйма"},
+                {russia, FormatWidth.SHORT, "2 мили 1 фут 2,3 дюйма"},
+                {russia, FormatWidth.NARROW, "2 мили 1 фут 2,3 дюйма"},
+        };
+        for (Object[] row : data) {
+            MeasureFormat mf = MeasureFormat.getInstance(
+                    (ULocale) row[0], (FormatWidth) row[1]);
+            assertEquals(
+                    "testMultiples",
+                    row[2],
+                    mf.formatMeasures(
+                            new Measure(2, MeasureUnit.MILE), 
+                            new Measure(1, MeasureUnit.FOOT), 
+                            new Measure(2.3, MeasureUnit.INCH)));
         }
     }
 
     public void testGram() {
-        checkRoundtrip(ULocale.ENGLISH, MeasureUnit.GRAM, 1, 0, FormatWidth.SHORT);
-        checkRoundtrip(ULocale.ENGLISH, MeasureUnit.G_FORCE, 1, 0, FormatWidth.SHORT);
-    }
-
-    public void testRoundtripFormat() {        
-        for (ULocale locale : new ULocale[]{
-                ULocale.ENGLISH, 
-                new ULocale("ru"), 
-                //ULocale.JAPANESE
-        }) {
-            for (MeasureUnit unit : MeasureUnit.getAvailable()) {
-                for (double d : new double[]{2.1, 1}) {
-                    for (int fractionalDigits : new int[]{0, 1}) {
-                        for (FormatWidth style : FormatWidth.values()) {
-                            checkRoundtrip(locale, unit, d, fractionalDigits, style);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private void checkRoundtrip(ULocale locale, MeasureUnit unit, double d, int fractionalDigits, FormatWidth style) {
-        if (unit instanceof Currency) {
-            return; // known limitation
-        }
-        Measure amount = new Measure(d, unit);
-        String header = locale
-                + "\t" + unit
-                + "\t" + d
-                + "\t" + fractionalDigits;
-        ParsePosition pex = new ParsePosition(0);
-        NumberFormat nformat = NumberFormat.getInstance(locale);
-        nformat.setMinimumFractionDigits(fractionalDigits);
-
-        MeasureFormat format = MeasureFormat.getInstance(locale, style, nformat);
-        
-        FieldPosition pos = new FieldPosition(DecimalFormat.FRACTION_FIELD);
-        StringBuffer b = format.<StringBuffer>formatMeasure(amount, new StringBuffer(), pos);
-        String message = header + "\t" + style
-                + "\t«" + b.substring(0, pos.getBeginIndex())
-                + "⟪" + b.substring(pos.getBeginIndex(), pos.getEndIndex())
-                + "⟫" + b.substring(pos.getEndIndex()) + "»";
-        pex.setIndex(0);
-        Measure unitAmount = format.parseObject(b.toString(), pex);
-        if (!assertNotNull(message, unitAmount)) {
-            logln("Parse: «" 
-                    + b.substring(0,pex.getErrorIndex())
-                    + "||" + b.substring(pex.getErrorIndex()) + "»");
-        } else if (style != FormatWidth.NARROW) { // narrow items may collide
-            if (unit.equals(MeasureUnit.GRAM)) {
-                logKnownIssue("cldrupdate", "waiting on collision fix for gram");
-                return;
-            }
-            if (unit.equals(MeasureUnit.ARC_MINUTE) || unit.equals(MeasureUnit.ARC_SECOND) || unit.equals(MeasureUnit.METER)) {
-                logKnownIssue("8474", "Waiting for CLDR data");
-            } else {
-                assertEquals(message + "\tParse Roundtrip of unit", unit, unitAmount.getUnit());
-            }
-            double actualNumber = unitAmount.getNumber().doubleValue();
-            assertEquals(message + "\tParse Roundtrip of number", d, actualNumber);
-        }
+        MeasureFormat mf = MeasureFormat.getInstance(ULocale.ENGLISH, FormatWidth.SHORT);
+        assertEquals(
+                "testGram",
+                "1 g",
+                mf.format(new Measure(1, MeasureUnit.GRAM)));
+        assertEquals(
+                "testGram",
+                "1 G",
+                mf.format(new Measure(1, MeasureUnit.G_FORCE)));
     }
 
     public void testExamples() {
@@ -245,16 +192,6 @@ public class MeasureUnitTest extends TestFmwk {
         assertEquals("", "1 inch, 2 feet", fmtEn.formatMeasures(new Measure(1, MeasureUnit.INCH),
                 new Measure(2, MeasureUnit.FOOT)));
 
-        logln("Show all currently available units");
-        String lastType = null;
-        for (MeasureUnit unit : MeasureUnit.getAvailable()) {
-            String type = unit.getType();
-            if (!type.equals(lastType)) {
-                logln(type);
-                lastType = type;
-            }
-            logln("\t" + unit);
-        }
         // TODO 
         // Add these examples (and others) to the class definition.
         // Clarify that these classes *do not* do conversion; they simply do the formatting of whatever units they
@@ -304,6 +241,8 @@ public class MeasureUnitTest extends TestFmwk {
         checkStreamingEquality(MeasureUnit.CELSIUS);
         checkStreamingEquality(MeasureFormat.getInstance(ULocale.FRANCE, FormatWidth.NARROW));
         checkStreamingEquality(Currency.getInstance("EUR"));
+        checkStreamingEquality(MeasureFormat.getInstance(ULocale.GERMAN, FormatWidth.SHORT));
+        checkStreamingEquality(MeasureFormat.getCurrencyFormat(ULocale.ITALIAN));
     }
     
     public <T extends Serializable> void checkStreamingEquality(T item) {
@@ -319,6 +258,7 @@ public class MeasureUnitTest extends TestFmwk {
           Object obj = objectInputStream.readObject();
           assertEquals("Streamed Object equals ", item, obj);
         } catch (IOException e) {
+          e.printStackTrace();
           assertNull("Test Serialization " + item.getClass(), e);
         } catch (ClassNotFoundException e) {
           assertNull("Test Serialization " + item.getClass(), e);
@@ -340,48 +280,5 @@ public class MeasureUnitTest extends TestFmwk {
         }
       }
       return b.append(']').toString();
-    }
-    
-    public static class MeasureUnitHandler implements SerializableTest.Handler
-    {
-        public Object[] getTestObjects()
-        {
-            MeasureUnit items[] = {
-                    MeasureUnit.CELSIUS,
-                    Currency.getInstance("EUR")               
-            };
-            return items;
-        }
-
-        public boolean hasSameBehavior(Object a, Object b)
-        {
-            MeasureUnit a1 = (MeasureUnit) a;
-            MeasureUnit b1 = (MeasureUnit) b;
-            return a1.getType().equals(b1.getType()) 
-                    && a1.getSubtype().equals(b1.getSubtype());
-        }
-    }
-    
-    public static class GeneralMeasureFormatHandler  implements SerializableTest.Handler
-    {
-        public Object[] getTestObjects()
-        {
-            MeasureFormat items[] = {
-                    MeasureFormat.getInstance(ULocale.FRANCE, FormatWidth.SHORT),
-                    MeasureFormat.getInstance(ULocale.FRANCE, FormatWidth.WIDE, NumberFormat.getIntegerInstance(ULocale.CANADA_FRENCH
-                            )),
-            };
-            return items;
-        }
-
-        public boolean hasSameBehavior(Object a, Object b)
-        {
-            MeasureFormat a1 = (MeasureFormat) a;
-            MeasureFormat b1 = (MeasureFormat) b;
-            return a1.getLocale().equals(b1.getLocale()) 
-                    && a1.getWidth().equals(b1.getWidth())
-                    // && a1.getNumberFormat().equals(b1.getNumberFormat())
-                    ;
-        }
     }
 }
