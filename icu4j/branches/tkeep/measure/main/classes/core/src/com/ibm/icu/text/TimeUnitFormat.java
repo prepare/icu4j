@@ -19,7 +19,6 @@ import java.util.Set;
 import java.util.TreeMap;
 
 import com.ibm.icu.impl.ICUResourceBundle;
-import com.ibm.icu.text.MeasureFormat.MeasureProxy;
 import com.ibm.icu.util.Measure;
 import com.ibm.icu.util.TimeUnit;
 import com.ibm.icu.util.TimeUnitAmount;
@@ -153,11 +152,8 @@ public class TimeUnitFormat extends MeasureFormat {
     }
     
     private TimeUnitFormat(ULocale locale, int style, NumberFormat numberFormat) {
-        if (style < FULL_NAME || style >= TOTAL_STYLES) {
-            throw new IllegalArgumentException("style should be either FULL_NAME or ABBREVIATED_NAME style");
-        }
-        mf = MeasureFormat.getInstance(
-                locale, style == FULL_NAME ? FormatWidth.WIDE : FormatWidth.SHORT, numberFormat);
+        this(locale, style);
+        setNumberFormat(numberFormat);
     }
 
     /**
@@ -561,7 +557,7 @@ if ( searchPluralCount.equals("other") ) {
     // Serialization
     
     private Object writeReplace() throws ObjectStreamException {
-        return mf.toTimeUnitProxy(new TimeUnitBundles());
+        return mf.toTimeUnitProxy();
     }
     
     // Preserve backward serialize backward compatibility.

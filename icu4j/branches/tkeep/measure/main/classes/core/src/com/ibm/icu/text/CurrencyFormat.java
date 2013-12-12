@@ -121,7 +121,7 @@ class CurrencyFormat extends MeasureFormat {
     // Serialization
     
     private Object writeReplace() throws ObjectStreamException {
-        return mf.toCurrencyProxy(new CurrencyBundles());
+        return mf.toCurrencyProxy();
     }
     
     // Preserve backward serialize backward compatibility.

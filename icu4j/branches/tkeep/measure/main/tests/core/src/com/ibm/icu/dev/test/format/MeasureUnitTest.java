@@ -281,4 +281,47 @@ public class MeasureUnitTest extends TestFmwk {
       }
       return b.append(']').toString();
     }
+    
+    public static class MeasureUnitHandler implements SerializableTest.Handler
+    {
+        public Object[] getTestObjects()
+        {
+            MeasureUnit items[] = {
+                    MeasureUnit.CELSIUS,
+                    Currency.getInstance("EUR")               
+            };
+            return items;
+        }
+        public boolean hasSameBehavior(Object a, Object b)
+        {
+            MeasureUnit a1 = (MeasureUnit) a;
+            MeasureUnit b1 = (MeasureUnit) b;
+            return a1.getType().equals(b1.getType())
+                    && a1.getSubtype().equals(b1.getSubtype());
+        }
+    }
+   
+    public static class MeasureFormatHandler  implements SerializableTest.Handler
+    {
+        public Object[] getTestObjects()
+        {
+            MeasureFormat items[] = {
+                    MeasureFormat.getInstance(ULocale.FRANCE, FormatWidth.SHORT),
+                    MeasureFormat.getInstance(
+                            ULocale.FRANCE,
+                            FormatWidth.WIDE,
+                            NumberFormat.getIntegerInstance(ULocale.CANADA_FRENCH)),
+            };
+            return items;
+        }
+        public boolean hasSameBehavior(Object a, Object b)
+        {
+            MeasureFormat a1 = (MeasureFormat) a;
+            MeasureFormat b1 = (MeasureFormat) b;
+            return a1.getLocale().equals(b1.getLocale())
+                    && a1.getWidth().equals(b1.getWidth())
+                    && a1.getNumberFormat().equals(b1.getNumberFormat())
+                    ;
+        }
+    }
 }
