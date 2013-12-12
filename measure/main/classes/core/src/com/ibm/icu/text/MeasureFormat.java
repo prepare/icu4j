@@ -70,8 +70,10 @@ public class MeasureFormat extends UFormat {
     static final SimpleCache<ULocale,Map<MeasureUnit, EnumMap<FormatWidth, Map<String, PatternData>>>> localeToUnitToStyleToCountToFormat
             = new SimpleCache<ULocale,Map<MeasureUnit, EnumMap<FormatWidth, Map<String, PatternData>>>>();
     
-    private static final String TIME_UNIT_FORMAT = "TimeUnitFormat";
-    private static final String CURRENCY_FORMAT = "CurrencyFormat";
+    // For serialization.
+    private static final int MEASURE_FORMAT = 0;
+    private static final int TIME_UNIT_FORMAT = 1;
+    private static final int CURRENCY_FORMAT = 2;
     
     /**
      * General purpose formatting width enum.
@@ -517,20 +519,16 @@ public class MeasureFormat extends UFormat {
     };
     
     Object toTimeUnitProxy() {
-        HashMap<Object, Object> map = new HashMap<Object, Object>();
-        map.put(TIME_UNIT_FORMAT, "y");
-        return new MeasureProxy(locale, length, numberFormat, map);
+        return new MeasureProxy(locale, length, numberFormat, TIME_UNIT_FORMAT);
     }
     
     Object toCurrencyProxy() {
-        HashMap<Object, Object> map = new HashMap<Object, Object>();
-        map.put(CURRENCY_FORMAT, "y");
-        return new MeasureProxy(locale, length, numberFormat, map);
+        return new MeasureProxy(locale, length, numberFormat, CURRENCY_FORMAT);
     }
     
     private Object writeReplace() throws ObjectStreamException {
         return new MeasureProxy(
-                locale, length, numberFormat, new HashMap<Object, Object>());
+                locale, length, numberFormat, MEASURE_FORMAT);
     }
     
     static class MeasureProxy implements Externalizable {
@@ -539,17 +537,19 @@ public class MeasureFormat extends UFormat {
         private ULocale locale;
         private FormatWidth length;
         private NumberFormat numberFormat;
+        private int subClass;
         private HashMap<Object, Object> keyValues;
 
         public MeasureProxy(
                 ULocale locale,
                 FormatWidth length,
                 NumberFormat numberFormat,
-                HashMap<Object, Object> keyValues) {
+                int subClass) {
             this.locale = locale;
             this.length = length;
             this.numberFormat = numberFormat;
-            this.keyValues = keyValues;
+            this.subClass = subClass;
+            this.keyValues = new HashMap<Object, Object>();
         }
 
         // Must have public constructor, to enable Externalizable
@@ -557,40 +557,63 @@ public class MeasureFormat extends UFormat {
         }
 
         public void writeExternal(ObjectOutput out) throws IOException {
+            out.writeByte(0); // version
             out.writeObject(locale);
             out.writeObject(length);
             out.writeObject(numberFormat);
+            out.writeByte(subClass);
             out.writeObject(keyValues);
         }
 
         @SuppressWarnings("unchecked")
         public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+            in.readByte(); // version.
             locale = (ULocale) in.readObject();
+            if (locale == null) {
+                throw new InvalidObjectException("Missing locale.");
+            }
             length = (FormatWidth) in.readObject();
+            if (length == null) {
+                throw new InvalidObjectException("Missing width.");
+            }
             numberFormat = (NumberFormat) in.readObject();
+            if (numberFormat == null) {
+                throw new InvalidObjectException("Missing number format.");
+            }
+            subClass = in.readByte() & 0xFF;
             
             // This cast is safe because the serialized form of hashtable can have
             // any object as the key and any object as the value.
-            keyValues = (HashMap<Object, Object>) in.readObject();     
+            keyValues = (HashMap<Object, Object>) in.readObject();
+            if (keyValues == null) {
+                throw new InvalidObjectException("Missing optional values map.");
+            }
+        }
+        
+        private TimeUnitFormat createTimeUnitFormat() throws InvalidObjectException {
+            int style;
+            if (length == FormatWidth.WIDE) {
+                style = TimeUnitFormat.FULL_NAME;
+            } else if (length == FormatWidth.SHORT) {
+                style = TimeUnitFormat.ABBREVIATED_NAME;
+            } else {
+                throw new InvalidObjectException("Bad width: " + length);
+            }
+            TimeUnitFormat result = new TimeUnitFormat(locale, style);
+            result.setNumberFormat(numberFormat);
+            return result;
         }
 
         private Object readResolve() throws ObjectStreamException {
-            if (keyValues.containsKey(TIME_UNIT_FORMAT)) {
-                int style;
-                if (length == FormatWidth.WIDE) {
-                    style = TimeUnitFormat.FULL_NAME;
-                } else if (length == FormatWidth.SHORT) {
-                    style = TimeUnitFormat.ABBREVIATED_NAME;
-                } else {
-                    throw new InvalidObjectException("Bad width: " + length);
-                }
-                TimeUnitFormat result = new TimeUnitFormat(locale, style);
-                result.setNumberFormat(numberFormat);
-                return result;
-            } else if (keyValues.containsKey(CURRENCY_FORMAT)) {
-                return new CurrencyFormat(locale);
-            } else {
+            switch (subClass) {
+            case MEASURE_FORMAT:
                 return MeasureFormat.getInstance(locale, length, numberFormat);
+            case TIME_UNIT_FORMAT:
+                return createTimeUnitFormat();
+            case CURRENCY_FORMAT:
+                return new CurrencyFormat(locale);
+            default:
+                throw new InvalidObjectException("Unknown subclass: " + subClass);
             }
         }
     }
