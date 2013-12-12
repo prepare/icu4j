@@ -19,7 +19,6 @@ import java.io.ObjectStreamException;
 import java.text.FieldPosition;
 import java.text.ParsePosition;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
@@ -37,11 +36,53 @@ import com.ibm.icu.util.ULocale.Category;
 import com.ibm.icu.util.UResourceBundle;
 
 /**
- * A formatter for Measure objects.  This is an abstract base class.
+ * A formatter for Measure objects.
  *
- * <p>To format or parse a Measure object, first create a formatter
+ * <p>To format a Measure object, first create a formatter
  * object using a MeasureFormat factory method.  Then use that
- * object's format and parse methods.
+ * object's format, formatMeasure, or formatMeasures methods.
+ * 
+ * Here is sample code:
+ * <pre>
+ *      MeasureFormat fmtFr = MeasureFormat.getInstance(
+ *              ULocale.FRENCH, FormatWidth.SHORT);
+ *      Measure measure = new Measure(23, MeasureUnit.CELSIUS);
+ *      
+ *      // Output: 23 °C
+ *      System.out.println(fmtFr.format(measure));
+ *
+ *      Measure measureF = new Measure(70, MeasureUnit.FAHRENHEIT);
+ *
+ *      // Output: 70 °F
+ *      System.out.println(fmtFr.format(measureF));
+ *     
+ *      MeasureFormat fmtFrFull = MeasureFormat.getInstance(
+ *              ULocale.FRENCH, FormatWidth.WIDE);
+ *      // Output: 70 pieds, 5,3 pouces
+ *      System.out.println(fmtFrFull.formatMeasures(
+ *              new Measure(70, MeasureUnit.FOOT),
+ *              new Measure(5.3, MeasureUnit.INCH)));
+ *              
+ *      // Output: 1 pied, 1 pouce
+ *      System.out.println(fmtFrFull.formatMeasures(
+ *              new Measure(1, MeasureUnit.FOOT),
+ *              new Measure(1, MeasureUnit.INCH)));
+ *      }
+ *      
+ *      MeasureFormat fmtEn = MeasureFormat.getInstance(ULocale.ENGLISH, FormatWidth.WIDE);
+ *      
+ *      // Output: 1 inch, 2 feet
+ *      fmtEn.formatMeasures(
+ *              new Measure(1, MeasureUnit.INCH),
+ *              new Measure(2, MeasureUnit.FOOT));
+ * </pre>
+ * <p>
+ * This class does not do conversions from one unit to another. It simply formats
+ * whatever units it is given
+ * <p>
+ * This class is immutable so long as no mutable subclass, namely TimeUnitFormat,
+ * is used. Although this class has existing subclasses, this class does not
+ * support new sub-classes.   
  *
  * @see com.ibm.icu.text.UFormat
  * @author Alan Liu
@@ -70,31 +111,38 @@ public class MeasureFormat extends UFormat {
     static final SimpleCache<ULocale,Map<MeasureUnit, EnumMap<FormatWidth, Map<String, PatternData>>>> localeToUnitToStyleToCountToFormat
             = new SimpleCache<ULocale,Map<MeasureUnit, EnumMap<FormatWidth, Map<String, PatternData>>>>();
     
-    // For serialization.
+    // For serialization: sub-class types.
     private static final int MEASURE_FORMAT = 0;
     private static final int TIME_UNIT_FORMAT = 1;
     private static final int CURRENCY_FORMAT = 2;
     
     /**
-     * General purpose formatting width enum.
+     * Formatting width enum.
+     * 
      * @draft ICU 53
      * @provisional
      */
     public static enum FormatWidth {
         
         /**
+         * Spell out everything.
+         * 
          * @draft ICU 53
          * @provisional
          */
         WIDE("units"), 
         
         /**
+         * Abbreviate when possible.
+         * 
          * @draft ICU 53
          * @provisional
          */
         SHORT("unitsShort"), 
         
         /**
+         * Brief. Use only a symbol for the unit when possible.
+         * 
          * @draft ICU 53
          * @provisional
          */
@@ -142,7 +190,7 @@ public class MeasureFormat extends UFormat {
     }
     
     /**
-     * Format a sequence of measures (type-safe). Uses the ListFormatter unit lists.
+     * Format a sequence of measures. Uses the ListFormatter unit lists.
      * So, for example, one could format “3 feet, 2 inches”.
      * Zero values are formatted (eg, “3 feet, 0 inches”). It is the caller’s
      * responsibility to have the appropriate values in appropriate order,
@@ -162,8 +210,12 @@ public class MeasureFormat extends UFormat {
     }
     
     /**
-     * Able to format Collection&lt;? extends Measure&gt;, Measure[], and Measure.
+     * Able to format Collection&lt;? extends Measure&gt;, Measure[], and Measure
+     * by delegating to formatMeasure or formatMeasures.
      * @see java.text.Format#format(java.lang.Object, java.lang.StringBuffer, java.text.FieldPosition)
+     * 
+     * @draft ICU53
+     * @provisional
      */
     @Override
     public StringBuffer format(Object obj, StringBuffer toAppendTo, FieldPosition pos) {
@@ -188,9 +240,10 @@ public class MeasureFormat extends UFormat {
     }
     
     /**
-     * Currently not supported in this base class although existing subclasses may
-     * support this.
      * @see java.text.Format#parseObject(java.lang.String, java.text.ParsePosition)
+     * @throws UnsupportedOperationException Not supported.
+     * @draft ICU 53
+     * @provisional
      */
     @Override
     public Measure parseObject(String source, ParsePosition pos) {
@@ -199,7 +252,7 @@ public class MeasureFormat extends UFormat {
 
     
     /**
-     * Formats a measure and adds to appendable.
+     * Formats a single measure and adds to appendable.
      * 
      * @param measure the measure to format
      * @param appendable the formatted string appended here.
@@ -264,8 +317,11 @@ public class MeasureFormat extends UFormat {
     }
     
     /**
-     * For two MeasureFormat objects, a and b, to be equal, they must be of the same class and
-     * a.equalsSameClass(b) must be true.
+     * For two MeasureFormat objects, a and b, to be equal, <code>a.getClass().equals(b.getClass())</code>
+     * <code>a.equalsSameClass(b)</code> must be true.
+     * 
+     * @draft ICU 53
+     * @provisional
      */
     @Override
     public final boolean equals(Object other) {
@@ -281,6 +337,10 @@ public class MeasureFormat extends UFormat {
         return equalsSameClass((MeasureFormat) other);
     }
     
+    /**
+     * @draft ICU 53
+     * @provisional
+     */
     @Override
     public int hashCode() {
         return (numberFormat.hashCode() * 31 + locale.hashCode()) * 31 + length.hashCode();
@@ -289,6 +349,9 @@ public class MeasureFormat extends UFormat {
     /**
      * Returns true if this object is equal to other. The class of this and the class of other
      * are guaranteed to be equal.
+     * 
+     * @deprecated For ICU internal use only.
+     * @internal
      */
     protected boolean equalsSameClass(MeasureFormat other) {
         return objEquals(numberFormat,other.numberFormat)
@@ -323,15 +386,6 @@ public class MeasureFormat extends UFormat {
         synchronized (numberFormat) {
             return (NumberFormat) numberFormat.clone();
         }
-    }
-    
-    /**
-     * Gets NumberFormat for subclass. No synchronization is done because
-     * subclasses aren't thread-safe anyway.
-     * @return
-     */
-    NumberFormat getNumberFormatForSubclass() {
-        return numberFormat;
     }
 
     /**
@@ -501,22 +555,6 @@ public class MeasureFormat extends UFormat {
         return lhs == null ? rhs == null : lhs.equals(rhs);
         
     }
-
-    /**
-     * LONGEST_FIRST orders strings by the longest first follwed by the shortest. On tie for
-     * length, orders lexographically.
-     */
-    static final Comparator<String> LONGEST_FIRST = new Comparator<String>() {
-        public int compare(String as, String bs) {
-            if (as.length() > bs.length()) {
-                return -1;
-            }
-            if (as.length() < bs.length()) {
-                return 1;
-            }
-            return as.compareTo(bs);
-        }
-    };
     
     Object toTimeUnitProxy() {
         return new MeasureProxy(locale, length, numberFormat, TIME_UNIT_FORMAT);
