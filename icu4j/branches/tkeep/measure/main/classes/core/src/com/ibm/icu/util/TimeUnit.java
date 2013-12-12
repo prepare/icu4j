@@ -51,6 +51,7 @@ public class TimeUnit extends MeasureUnit {
     
     // For backward compatibility only
     private Object readResolve() throws ObjectStreamException {
+        // The old index field used to uniquely identify the time unit.
         switch (index) {
         case 6:
             return SECOND;

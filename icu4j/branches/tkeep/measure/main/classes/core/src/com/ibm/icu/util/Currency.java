@@ -913,6 +913,7 @@ public class Currency extends MeasureUnit {
     private final String isoCode;
 
     private Object readResolve() throws ObjectStreamException {
+        // The old isoCode field used to determine the currency.
         return Currency.getInstance(isoCode);
     }
 }
