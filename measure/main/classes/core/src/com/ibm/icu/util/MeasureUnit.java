@@ -101,15 +101,6 @@ public class MeasureUnit implements Serializable {
      * @provisional
      */
     @Override
-    public String toString() {
-        return type + "-" + code;
-    }
-
-    /**
-     * @draft ICU 53
-     * @provisional
-     */
-    @Override
     public boolean equals(Object rhs) {
         if (rhs == this) {
             return true;
@@ -119,6 +110,15 @@ public class MeasureUnit implements Serializable {
         }
         MeasureUnit c = (MeasureUnit) rhs;
         return type.equals(c.type) && code.equals(c.code);
+    }
+    
+    /**
+     * @draft ICU 53
+     * @provisional
+     */
+    @Override
+    public String toString() {
+        return type + "-" + code;
     }
     
     /**
