@@ -146,7 +146,13 @@ public class MeasureFormat extends UFormat {
          * @draft ICU 53
          * @provisional
          */
-        NARROW("unitsNarrow");
+        NARROW("unitsNarrow"),
+        
+        /**
+         * Very brief. Omit unit entirely when possible.
+         * For example with durations, show 5:37 instead of 5m, 37s.
+         */
+        NUMERIC("unitsNarrow");
     
         final String resourceKey;
     
