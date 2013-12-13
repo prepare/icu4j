@@ -212,6 +212,13 @@ public class MeasureFormat extends UFormat {
     /**
      * Able to format Collection&lt;? extends Measure&gt;, Measure[], and Measure
      * by delegating to formatMeasure or formatMeasures.
+     * If the pos argument identifies a field used by the format
+     * then its indices are set to the beginning and end of the first such field
+     * encountered.
+     * 
+     * @param obj must be a Collection<? extends Measure>, Measure[], or Measure object.
+     * @param toAppendTo Formatted string appended here.
+     * @pram pos Identifies a field in the formatted text.
      * @see java.text.Format#format(java.lang.Object, java.lang.StringBuffer, java.text.FieldPosition)
      * 
      * @draft ICU53
@@ -253,10 +260,13 @@ public class MeasureFormat extends UFormat {
     
     /**
      * Formats a single measure and adds to appendable.
+     * If the fieldPosition argument identifies a field used by the format,
+     * then its indices are set to the beginning and end of the first such
+     * field encountered.
      * 
      * @param measure the measure to format
      * @param appendable the formatted string appended here.
-     * @param fieldPosition the field position.
+     * @param fieldPosition Identifies a field in the formatted text.
      * @return appendable.
      * @see MeasureFormat#formatMeasures(Measure...)
      * @draft ICU 53
@@ -292,9 +302,12 @@ public class MeasureFormat extends UFormat {
     
     /**
      * Formats a sequence of measures and adds to appendable.
+     * If the fieldPosition argument identifies a field used by the format,
+     * then its indices are set to the beginning and end of the first such
+     * field encountered.
      * 
      * @param appendable the formatted string appended here.
-     * @param fieldPosition the field position.
+     * @param fieldPosition Identifies a field in the formatted text.
      * @param measures the measures to format.
      * @return appendable.
      * @see MeasureFormat#formatMeasures(Measure...)
