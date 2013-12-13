@@ -277,8 +277,10 @@ public class MeasureFormat extends UFormat {
             appendable.append(messagePatternData.prefix);
             if (messagePatternData.suffix != null) { // there is a number (may not happen with, say, Arabic dual)
                 // Fix field position
-                fieldPosition.setBeginIndex(fpos.getBeginIndex() + messagePatternData.prefix.length());
-                fieldPosition.setEndIndex(fpos.getEndIndex() + messagePatternData.prefix.length());
+                if (fpos.getBeginIndex() != 0 || fpos.getEndIndex() != 0) {
+                    fieldPosition.setBeginIndex(fpos.getBeginIndex() + messagePatternData.prefix.length());
+                    fieldPosition.setEndIndex(fpos.getEndIndex() + messagePatternData.prefix.length());
+                }
                 appendable.append(formattedNumber);
                 appendable.append(messagePatternData.suffix);
             }
@@ -302,12 +304,42 @@ public class MeasureFormat extends UFormat {
     @SuppressWarnings("unchecked")
     public <T extends Appendable> T formatMeasures(
             T appendable, FieldPosition fieldPosition, Measure... measures) {
+        
+        // Zero out our field position so that we can tell when we find our field.
+        FieldPosition fpos = new FieldPosition(fieldPosition.getFieldAttribute(), fieldPosition.getField());
+        FieldPosition dummyPos = new FieldPosition(0);
+        
+        int fieldPositionFoundIndex = -1;
         StringBuilder[] results = new StringBuilder[measures.length];
         for (int i = 0; i < measures.length; ++i) {
-            results[i] = formatMeasure(measures[i], new StringBuilder(), fieldPosition);
+            if (fieldPositionFoundIndex == -1) {
+                results[i] = formatMeasure(measures[i], new StringBuilder(), fpos);
+                if (fpos.getBeginIndex() != 0 || fpos.getEndIndex() != 0) {
+                    fieldPositionFoundIndex = i;    
+                }
+            } else {
+                results[i] = formatMeasure(measures[i], new StringBuilder(), dummyPos);
+            }
         }
         ListFormatter listFormatter = ListFormatter.getInstance(locale, 
                 length == FormatWidth.WIDE ? ListFormatter.Style.DURATION : ListFormatter.Style.DURATION_SHORT);
+        
+        // Fix up FieldPosition indexes if our field is found.
+        if (fieldPositionFoundIndex != -1) {
+            String listPattern = listFormatter.getPatternForNumItems(measures.length);
+            int positionInPattern = listPattern.indexOf("{" + fieldPositionFoundIndex + "}");
+            if (positionInPattern == -1) {
+                throw new IllegalStateException("Can't find position with ListFormatter.");
+            }
+            // Now we have to adjust our position in pattern
+            // based on the previous values.
+            for (int i = 0; i < fieldPositionFoundIndex; i++) {
+                positionInPattern += (results[i].length() - ("{" + i + "}").length());
+            }
+            fieldPosition.setBeginIndex(fpos.getBeginIndex() + positionInPattern);
+            fieldPosition.setEndIndex(fpos.getEndIndex() + positionInPattern);
+        }
+            
         // This is safe because appendable is of type T.
         try {
             return (T) appendable.append(listFormatter.format((Object[]) results));

@@ -14,7 +14,9 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.text.FieldPosition;
 import java.text.ParsePosition;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TreeSet;
@@ -191,11 +193,111 @@ public class MeasureUnitTest extends TestFmwk {
         MeasureFormat fmtEn = MeasureFormat.getInstance(ULocale.ENGLISH, FormatWidth.WIDE);
         assertEquals("", "1 inch, 2 feet", fmtEn.formatMeasures(new Measure(1, MeasureUnit.INCH),
                 new Measure(2, MeasureUnit.FOOT)));
-
-        // TODO 
-        // Add these examples (and others) to the class definition.
-        // Clarify that these classes *do not* do conversion; they simply do the formatting of whatever units they
-        // are provided.
+    }
+    
+    public void testFieldPosition() {
+        MeasureFormat fmt = MeasureFormat.getInstance(
+                ULocale.ENGLISH, FormatWidth.SHORT);
+        FieldPosition pos = new FieldPosition(NumberFormat.Field.DECIMAL_SEPARATOR);
+        fmt.format(new Measure(43.5, MeasureUnit.FOOT), new StringBuffer(), pos);
+        assertEquals("beginIndex", 2, pos.getBeginIndex());
+        assertEquals("endIndex", 3, pos.getEndIndex());
+        
+        pos = new FieldPosition(NumberFormat.Field.DECIMAL_SEPARATOR);
+        fmt.format(new Measure(43, MeasureUnit.FOOT), new StringBuffer(), pos);
+        assertEquals("beginIndex", 0, pos.getBeginIndex());
+        assertEquals("endIndex", 0, pos.getEndIndex());
+    }
+    
+    public void testFieldPositionMultiple() {
+        MeasureFormat fmt = MeasureFormat.getInstance(
+                ULocale.ENGLISH, FormatWidth.SHORT);
+        FieldPosition pos = new FieldPosition(NumberFormat.Field.INTEGER);
+        String result = fmt.formatMeasures(
+                new StringBuilder(),
+                pos,
+                new Measure(354, MeasureUnit.METER),
+                new Measure(23, MeasureUnit.CENTIMETER)).toString();
+        assertEquals("result", "354 m, 23 cm", result);
+        
+        // According to javadocs for {@link Format#format} FieldPosition is set to
+        // beginning and end of first such field encountered instead of the last
+        // such field encountered.
+        assertEquals("beginIndex", 0, pos.getBeginIndex());
+        assertEquals("endIndex", 3, pos.getEndIndex());
+        
+        pos = new FieldPosition(NumberFormat.Field.DECIMAL_SEPARATOR);
+        result = fmt.formatMeasures(
+                new StringBuilder(),
+                pos,
+                new Measure(354, MeasureUnit.METER),
+                new Measure(23, MeasureUnit.CENTIMETER),
+                new Measure(5.4, MeasureUnit.MILLIMETER)).toString();
+        assertEquals("result", "354 m, 23 cm, 5.4 mm", result);
+        assertEquals("beginIndex", 15, pos.getBeginIndex());
+        assertEquals("endIndex", 16, pos.getEndIndex());
+        
+        result = fmt.formatMeasures(
+                new StringBuilder(),
+                pos,
+                new Measure(3, MeasureUnit.METER),
+                new Measure(23, MeasureUnit.CENTIMETER),
+                new Measure(5.4, MeasureUnit.MILLIMETER)).toString();
+        assertEquals("result", "3 m, 23 cm, 5.4 mm", result);
+        assertEquals("beginIndex", 13, pos.getBeginIndex());
+        assertEquals("endIndex", 14, pos.getEndIndex());
+        
+        pos = new FieldPosition(NumberFormat.Field.DECIMAL_SEPARATOR);
+        result = fmt.formatMeasures(
+                new StringBuilder(),
+                pos,
+                new Measure(3, MeasureUnit.METER),
+                new Measure(23, MeasureUnit.CENTIMETER),
+                new Measure(5, MeasureUnit.MILLIMETER)).toString();
+        assertEquals("result", "3 m, 23 cm, 5 mm", result);
+        assertEquals("beginIndex", 0, pos.getBeginIndex());
+        assertEquals("endIndex", 0, pos.getEndIndex());
+        
+    }
+    
+    public void testOldFormatWithList() {
+        List<Measure> measures = new ArrayList<Measure>(2);
+        measures.add(new Measure(5, MeasureUnit.ACRE));
+        measures.add(new Measure(3000, MeasureUnit.SQUARE_FOOT));
+        MeasureFormat fmt = MeasureFormat.getInstance(
+                ULocale.ENGLISH, FormatWidth.WIDE);
+        assertEquals("", "5 acres, 3,000 square feet", fmt.format(measures));
+        assertEquals("", "5 acres", fmt.format(measures.subList(0, 1)));
+        List<String> badList = new ArrayList<String>();
+        badList.add("be");
+        badList.add("you");
+        try {
+            fmt.format(badList);
+            fail("Expected IllegalArgumentException.");
+        } catch (IllegalArgumentException expected) {
+           // Expected 
+        }
+    }
+    
+    public void testOldFormatWithArray() {
+        Measure[] measures = new Measure[] {
+                new Measure(5, MeasureUnit.ACRE),
+                new Measure(3000, MeasureUnit.SQUARE_FOOT),  
+        };
+        MeasureFormat fmt = MeasureFormat.getInstance(
+                ULocale.ENGLISH, FormatWidth.WIDE);
+        assertEquals("", "5 acres, 3,000 square feet", fmt.format(measures));
+    }
+    
+    public void testOldFormatBadArg() {
+        MeasureFormat fmt = MeasureFormat.getInstance(
+                ULocale.ENGLISH, FormatWidth.WIDE);
+        try {
+            fmt.format("be");
+            fail("Expected IllegalArgumentExceptino.");
+        } catch (IllegalArgumentException e) {
+            // Expected
+        }
     }
 
     static void generateConstants() {
