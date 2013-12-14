@@ -82,6 +82,9 @@ public class MeasureUnitTest extends TestFmwk {
         TimeUnitAmount[] _6h_56_92m = {
                 new TimeUnitAmount(6.0, TimeUnit.HOUR),
                 new TimeUnitAmount(56.92, TimeUnit.MINUTE)};
+        TimeUnitAmount[] _3h_5h = {
+                new TimeUnitAmount(3.0, TimeUnit.HOUR),
+                new TimeUnitAmount(5.0, TimeUnit.HOUR)};
         
         Object[][] fullData = {
                 {_1m_59_9996s, "1 minute, 59.9996 seconds"},
@@ -108,15 +111,16 @@ public class MeasureUnitTest extends TestFmwk {
         
         Object[][] numericData = {
                 {_1m_59_9996s, "1:59.9996"},
-                {_19m, "19 mins"},
+                {_19m, "19m"},
                 {_1h_23_5s, "1:00:23.5"},
                 {_1h_0m_23s, "1:00:23"},
                 {_1h_23_5m, "1:23.5"},
                 {_5h_17m, "5:17"},
                 {_19m_28s, "19:28"},
-                {_2y_5M_3w_4d, "2 yrs, 5 mths, 3 wks, 4 days"},
+                {_2y_5M_3w_4d, "2y, 5m, 3w, 4d"},
                 {_0h_0m_17s, "0:00:17"},
-                {_6h_56_92m, "6:56.92"}};
+                {_6h_56_92m, "6:56.92"},
+                {_3h_5h, "3h, 5h"}};
         
         NumberFormat nf = NumberFormat.getNumberInstance(ULocale.ENGLISH);
         nf.setMaximumFractionDigits(4);
