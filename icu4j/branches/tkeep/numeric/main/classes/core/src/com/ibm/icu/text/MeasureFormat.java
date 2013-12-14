@@ -168,6 +168,9 @@ public class MeasureFormat extends UFormat {
         /**
          * Very brief. Omit unit entirely when possible.
          * For example with durations, show 5:37 instead of 5m, 37s.
+         * 
+         * @draft ICU 53
+         * @provisional
          */
         NUMERIC("unitsNarrow");
     
