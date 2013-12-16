@@ -195,31 +195,15 @@ public class MeasureFormat extends UFormat {
     }
     
     /**
-     * Format a sequence of measures. Uses the ListFormatter unit lists.
-     * So, for example, one could format “3 feet, 2 inches”.
-     * Zero values are formatted (eg, “3 feet, 0 inches”). It is the caller’s
-     * responsibility to have the appropriate values in appropriate order,
-     * and using the appropriate Number values. Typically the units should be
-     * in descending order, with all but the last Measure having integer values
-     * (eg, not “3.2 feet, 2 inches”).
-     * 
-     * @param measures a sequence of one or more measures.
-     * @return the formatted string.
-     * @draft ICU 53
-     * @provisional
-     */
-    public String formatMeasures(Measure... measures) {
-        StringBuilder result = this.formatMeasures(
-                new StringBuilder(), new FieldPosition(0), measures);
-        return result.toString();
-    }
-    
-    /**
      * Able to format Collection&lt;? extends Measure&gt;, Measure[], and Measure
      * by delegating to formatMeasure or formatMeasures.
      * If the pos argument identifies a field used by the format
      * then its indices are set to the beginning and end of the first such field
      * encountered.
+     * 
+     * Calling a <code>formatMeasure</code> or
+     * <code>formatMeasures</code> is preferred over calling
+     * this method as they give better performance.
      * 
      * @param obj must be a Collection<? extends Measure>, Measure[], or Measure object.
      * @param toAppendTo Formatted string appended here.
@@ -260,6 +244,17 @@ public class MeasureFormat extends UFormat {
     @Override
     public Measure parseObject(String source, ParsePosition pos) {
         throw new UnsupportedOperationException();
+    }
+    
+    /**
+     * Formats a single measurement. Calling this method is
+     * preferred to calling {@link java.text.Format#format(Object)}.
+     * 
+     * @param measure the measure to be formatted
+     * @return the formatted string.
+     */
+    public String formatMeasure(Measure measure) {
+        return formatMeasure(measure, new StringBuilder(), DONT_CARE).toString();
     }
 
     
@@ -306,6 +301,26 @@ public class MeasureFormat extends UFormat {
     }
     
     /**
+     * Format a sequence of measures. Uses the ListFormatter unit lists.
+     * So, for example, one could format “3 feet, 2 inches”.
+     * Zero values are formatted (eg, “3 feet, 0 inches”). It is the caller’s
+     * responsibility to have the appropriate values in appropriate order,
+     * and using the appropriate Number values. Typically the units should be
+     * in descending order, with all but the last Measure having integer values
+     * (eg, not “3.2 feet, 2 inches”).
+     * 
+     * @param measures a sequence of one or more measures.
+     * @return the formatted string.
+     * @draft ICU 53
+     * @provisional
+     */
+    public String formatMeasures(Measure... measures) {
+        StringBuilder result = this.formatMeasures(
+                new StringBuilder(), DONT_CARE, measures);
+        return result.toString();
+    }
+    
+    /**
      * Formats a sequence of measures and adds to appendable.
      * If the fieldPosition argument identifies a field used by the format,
      * then its indices are set to the beginning and end of the first such
@@ -322,49 +337,29 @@ public class MeasureFormat extends UFormat {
     @SuppressWarnings("unchecked")
     public <T extends Appendable> T formatMeasures(
             T appendable, FieldPosition fieldPosition, Measure... measures) {
-        
-        // Zero out our field position so that we can tell when we find our field.
-        FieldPosition fpos = new FieldPosition(fieldPosition.getFieldAttribute(), fieldPosition.getField());
-        FieldPosition dummyPos = new FieldPosition(0);
-        
-        int fieldPositionFoundIndex = -1;
-        StringBuilder[] results = new StringBuilder[measures.length];
-        for (int i = 0; i < measures.length; ++i) {
-            if (fieldPositionFoundIndex == -1) {
-                results[i] = formatMeasure(measures[i], new StringBuilder(), fpos);
-                if (fpos.getBeginIndex() != 0 || fpos.getEndIndex() != 0) {
-                    fieldPositionFoundIndex = i;    
-                }
-            } else {
-                results[i] = formatMeasure(measures[i], new StringBuilder(), dummyPos);
-            }
-        }
         ListFormatter listFormatter = ListFormatter.getInstance(locale, 
                 length == FormatWidth.WIDE ? ListFormatter.Style.DURATION : ListFormatter.Style.DURATION_SHORT);
-        
-        // Fix up FieldPosition indexes if our field is found.
-        if (fieldPositionFoundIndex != -1) {
-            String listPattern = listFormatter.getPatternForNumItems(measures.length);
-            int positionInPattern = listPattern.indexOf("{" + fieldPositionFoundIndex + "}");
-            if (positionInPattern == -1) {
-                throw new IllegalStateException("Can't find position with ListFormatter.");
-            }
-            // Now we have to adjust our position in pattern
-            // based on the previous values.
-            for (int i = 0; i < fieldPositionFoundIndex; i++) {
-                positionInPattern += (results[i].length() - ("{" + i + "}").length());
-            }
-            fieldPosition.setBeginIndex(fpos.getBeginIndex() + positionInPattern);
-            fieldPosition.setEndIndex(fpos.getEndIndex() + positionInPattern);
-        }
+        String[] results = null;
+        if (fieldPosition == DONT_CARE) {
             
+            // Fast track: No field position.
+            results = new String[measures.length];
+            for (int i = 0; i < measures.length; i++) {
+                results[i] = formatMeasure(measures[i]);
+            }
+        } else {
+            
+            // Slow track: Have to calculate field position.
+            results = formatMeasuresSlowTrack(listFormatter, fieldPosition, measures);            
+        }
+                 
         // This is safe because appendable is of type T.
         try {
             return (T) appendable.append(listFormatter.format((Object[]) results));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-    }
+    }   
     
     /**
      * For two MeasureFormat objects, a and b, to be equal, <code>a.getClass().equals(b.getClass())</code>
@@ -612,6 +607,43 @@ public class MeasureFormat extends UFormat {
     
     Object toCurrencyProxy() {
         return new MeasureProxy(locale, length, numberFormat, CURRENCY_FORMAT);
+    }
+    
+    private String[] formatMeasuresSlowTrack(ListFormatter listFormatter, FieldPosition fieldPosition,
+            Measure... measures) {
+        String[] results = new String[measures.length];
+        
+        // Zero out our field position so that we can tell when we find our field.
+        FieldPosition fpos = new FieldPosition(fieldPosition.getFieldAttribute(), fieldPosition.getField());
+        
+        int fieldPositionFoundIndex = -1;
+        for (int i = 0; i < measures.length; ++i) {
+            if (fieldPositionFoundIndex == -1) {
+                results[i] = formatMeasure(measures[i], new StringBuilder(), fpos).toString();
+                if (fpos.getBeginIndex() != 0 || fpos.getEndIndex() != 0) {
+                    fieldPositionFoundIndex = i;    
+                }
+            } else {
+                results[i] = formatMeasure(measures[i]);
+            }
+        }
+        
+        // Fix up FieldPosition indexes if our field is found.
+        if (fieldPositionFoundIndex != -1) {
+            String listPattern = listFormatter.getPatternForNumItems(measures.length);
+            int positionInPattern = listPattern.indexOf("{" + fieldPositionFoundIndex + "}");
+            if (positionInPattern == -1) {
+                throw new IllegalStateException("Can't find position with ListFormatter.");
+            }
+            // Now we have to adjust our position in pattern
+            // based on the previous values.
+            for (int i = 0; i < fieldPositionFoundIndex; i++) {
+                positionInPattern += (results[i].length() - ("{" + i + "}").length());
+            }
+            fieldPosition.setBeginIndex(fpos.getBeginIndex() + positionInPattern);
+            fieldPosition.setEndIndex(fpos.getEndIndex() + positionInPattern);
+        }
+        return results;
     }
     
     private Object writeReplace() throws ObjectStreamException {

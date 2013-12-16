@@ -6,6 +6,7 @@
  */
 package com.ibm.icu.text;
 
+import java.text.FieldPosition;
 import java.text.Format;
 
 import com.ibm.icu.util.ULocale;
@@ -24,6 +25,25 @@ import com.ibm.icu.util.ULocale;
 public abstract class UFormat extends Format {
     // jdk1.4.2 serialver
     private static final long serialVersionUID = -4964390515840164416L;
+    
+    /**
+     * @deprecated For ICU use only
+     * @internal
+     */
+    // Pick a random field number so that nobody tries to set
+    // begin and end index on this object.
+    protected static final FieldPosition DONT_CARE = new FieldPosition(-913028704) {
+      
+        @Override
+        public void setBeginIndex(int i) {
+            // Do nothing
+        }
+        
+        @Override
+        public void setEndIndex(int i) {
+            // Do nothing.
+        }
+    };
 
     /**
      * @draft ICU 2.8 (retain)
