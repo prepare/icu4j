@@ -139,6 +139,8 @@ public class MeasureFormat extends UFormat {
      * @draft ICU 53
      * @provisional
      */
+    // Be sure to update the toFormatWidth and fromFormatWidth() functions
+    // when adding an enum value.
     public static enum FormatWidth {
         
         /**
@@ -173,6 +175,9 @@ public class MeasureFormat extends UFormat {
          * @provisional
          */
         NUMERIC("unitsNarrow");
+        
+        // Be sure to update the toFormatWidth and fromFormatWidth() functions
+        // when adding an enum value.
     
         final String resourceKey;
     
@@ -825,7 +830,7 @@ public class MeasureFormat extends UFormat {
         public void writeExternal(ObjectOutput out) throws IOException {
             out.writeByte(0); // version
             out.writeUTF(locale.toLanguageTag());
-            out.writeObject(length);
+            out.writeByte(toFormatWidthOrdinal(length));
             out.writeObject(numberFormat);
             out.writeByte(subClass);
             out.writeObject(keyValues);
@@ -835,10 +840,7 @@ public class MeasureFormat extends UFormat {
         public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
             in.readByte(); // version.
             locale = ULocale.forLanguageTag(in.readUTF());
-            length = (FormatWidth) in.readObject();
-            if (length == null) {
-                throw new InvalidObjectException("Missing width.");
-            }
+            length = fromFormatWidthOrdinal(in.readByte() & 0xFF);
             numberFormat = (NumberFormat) in.readObject();
             if (numberFormat == null) {
                 throw new InvalidObjectException("Missing number format.");
@@ -878,6 +880,36 @@ public class MeasureFormat extends UFormat {
             default:
                 throw new InvalidObjectException("Unknown subclass: " + subClass);
             }
+        }
+    }
+    
+    private static FormatWidth fromFormatWidthOrdinal(int ordinal) {
+        switch (ordinal) {
+        case 0:
+            return FormatWidth.WIDE;
+        case 1:
+            return FormatWidth.SHORT;
+        case 2:
+            return FormatWidth.NARROW;
+        case 3:
+            return FormatWidth.NUMERIC;
+        default:
+            return FormatWidth.WIDE;
+        }
+    }
+    
+    private static int toFormatWidthOrdinal(FormatWidth fw) {
+        switch (fw) {
+        case WIDE:
+            return 0;
+        case SHORT:
+            return 1;
+        case NARROW:
+            return 2;
+        case NUMERIC:
+            return 3;
+        default:
+            throw new IllegalStateException("Unable to serialize Format Width " + fw);
         }
     }
 }
