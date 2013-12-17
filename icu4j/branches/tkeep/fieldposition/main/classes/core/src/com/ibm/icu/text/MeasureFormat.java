@@ -26,6 +26,7 @@ import java.util.Map.Entry;
 import java.util.MissingResourceException;
 import java.util.Set;
 
+import com.ibm.icu.impl.DontCareFieldPosition;
 import com.ibm.icu.impl.ICUResourceBundle;
 import com.ibm.icu.impl.SimpleCache;
 import com.ibm.icu.util.Currency;
@@ -254,7 +255,8 @@ public class MeasureFormat extends UFormat {
      * @provisional
      */
     public String formatMeasure(Measure measure) {
-        return formatMeasure(measure, new StringBuilder(), DONT_CARE).toString();
+        return formatMeasure(
+                measure, new StringBuilder(), DontCareFieldPosition.INSTANCE).toString();
     }
 
     
@@ -316,7 +318,7 @@ public class MeasureFormat extends UFormat {
      */
     public String formatMeasures(Measure... measures) {
         StringBuilder result = this.formatMeasures(
-                new StringBuilder(), DONT_CARE, measures);
+                new StringBuilder(), DontCareFieldPosition.INSTANCE, measures);
         return result.toString();
     }
     
@@ -340,7 +342,7 @@ public class MeasureFormat extends UFormat {
         ListFormatter listFormatter = ListFormatter.getInstance(getLocale(), 
                 length == FormatWidth.WIDE ? ListFormatter.Style.DURATION : ListFormatter.Style.DURATION_SHORT);
         String[] results = null;
-        if (fieldPosition == DONT_CARE) {
+        if (fieldPosition == DontCareFieldPosition.INSTANCE) {
             
             // Fast track: No field position.
             results = new String[measures.length];
