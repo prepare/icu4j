@@ -252,6 +252,8 @@ public class MeasureFormat extends UFormat {
      * 
      * @param measure the measure to be formatted
      * @return the formatted string.
+     * @draft ICU 53
+     * @provisional
      */
     public String formatMeasure(Measure measure) {
         return formatMeasure(measure, new StringBuilder(), DONT_CARE).toString();
