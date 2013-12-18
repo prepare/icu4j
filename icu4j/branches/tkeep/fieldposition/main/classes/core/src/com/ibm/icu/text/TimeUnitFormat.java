@@ -515,26 +515,7 @@ if ( searchPluralCount.equals("other") ) {
     
     // boilerplate code to make TimeUnitFormat otherwise follow the contract of
     // MeasureFormat
-    
-    /**
-     * @draft ICU 53
-     * @provisional
-     */
-    @Override
-    public String formatMeasure(Measure measure) {
-        return mf.formatMeasure(measure);
-    }
 
-    /**
-     * @draft ICU 53
-     * @provisional
-     */
-    @Override
-    public <T extends Appendable> T formatMeasure(
-            Measure measure, T appendable, FieldPosition fieldPosition) {
-        return mf.formatMeasure(measure, appendable, fieldPosition);
-    }
-    
     /**
      * @draft ICU 53
      * @provisional
