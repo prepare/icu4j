@@ -167,8 +167,9 @@ public class MeasureFormat extends UFormat {
         NARROW("unitsNarrow"),
         
         /**
-         * Very brief. Omit unit entirely when possible.
-         * For example with durations, show 5:37 instead of 5m, 37s.
+         * Identical to NARROW except when formatMeasures is called with
+         * an hour and minute; minute and second; or hour, minute, and second Measures.
+         * In these cases formatMeasures formats as 5:37:23 instead of 5h, 37m, 23s.
          * 
          * @draft ICU 53
          * @provisional
