@@ -5,7 +5,7 @@
  *******************************************************************************
  */
 
-package com.ibm.icu.text.stt.handlers;
+package com.ibm.icu.impl.stt.handlers;
 
 /**
  * Handler adapted to processing compound names. This type covers names made of
@@ -17,7 +17,7 @@ package com.ibm.icu.text.stt.handlers;
  */
 public class Underscore extends TypeHandler {
 
-	public Underscore() {
-		super("_");
-	}
+    public Underscore() {
+        super("_");
+    }
 }

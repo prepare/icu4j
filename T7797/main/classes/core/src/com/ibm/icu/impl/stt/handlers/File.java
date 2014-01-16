@@ -5,14 +5,14 @@
  *******************************************************************************
  */
 
-package com.ibm.icu.text.stt.handlers;
+package com.ibm.icu.impl.stt.handlers;
 
 /**
  * Handler adapted to processing directory and file paths.
  */
 public class File extends TypeHandler {
 
-	public File() {
-		super(":/\\.");
-	}
+    public File() {
+        super(":/\\.");
+    }
 }

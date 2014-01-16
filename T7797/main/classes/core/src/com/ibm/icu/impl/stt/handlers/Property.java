@@ -5,18 +5,19 @@
  *******************************************************************************
  */
 
-package com.ibm.icu.text.stt.handlers;
+package com.ibm.icu.impl.stt.handlers;
 
 /**
- * Handler adapted to processing structured text with the following format:
+ * Handler adapted to processing property file statements. It expects the
+ * following string format:
  * 
  * <pre>
- * system(user)
+ * name = value
  * </pre>
  */
-public class SystemAndUser extends Single {
+public class Property extends Single {
 
-	public SystemAndUser() {
-		super("(");
-	}
+    public Property() {
+        super("=");
+    }
 }
